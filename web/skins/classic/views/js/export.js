@@ -1,11 +1,15 @@
 var exportTimer = null;
 
-function configureExportButton(element) {
-  var form = element.form;
+function configureExportButton() {
+  var form = $j('#contentForm')[0];
+  if (!form) {
+    console.error("Form contentForm not found by jquery.");
+    return;
+  }
 
   var eventCount = 0;
   document.querySelectorAll('input[name="eids[]"]').forEach(function(el) {
-    if ( el.checked ) {
+    if (el.checked) {
       eventCount ++;
     }
   });
@@ -30,52 +34,51 @@ function startDownload(file) {
 }
 
 function exportProgress() {
-  if ( exportTimer ) {
+  if (exportTimer) {
     var tickerText = $j('#exportProgressTicker').text();
     if ( tickerText.length < 1 || tickerText.length > 4 ) {
       $j('#exportProgressTicker').text('.');
     } else {
       $j('#exportProgressTicker').append('.');
     }
+  } else {
+    console.log("No timer");
   }
 }
 
 function exportResponse(respObj, respText) {
   clearInterval(exportTimer);
-  if ( respObj.result != 'Ok' ) {
+  if (respObj.result != 'Ok') {
     $j('#exportProgressTicker').text(respObj.message);
   } else {
     $j('#exportProgressTicker').text(exportSucceededString);
     setTimeout(startDownload, 1500, decodeURIComponent(respObj.exportFile));
   }
   return;
-
-  if ( 0 ) {
-    var eids = new Array();
-    for (var i = 0, len=form.elements.length; i < len; i++) {
-      if ( form.elements[i].name == 'eids[]' ) {
-        eids[eids.length] = 'eids[]='+form.elements[i].value;
-      }
-    }
-  }
-  form.submit();
-
-  //window.location.replace( thisUrl+'?view='+currentView+'&'+eids.join('&')+'&exportFile='+respObj.exportFile+'&generated='+((respObj.result=='Ok')?1:0) );
 }
 
 function exportEvents( ) {
   var formData = $j('#contentForm').serialize();
 
+  $j.ajaxSetup({
+    timeout: 0
+  });
   $j.getJSON(thisUrl + '?view=event&request=event&action=export', formData)
       .done(exportResponse)
-      .fail(logAjaxFail);
+      .fail(exportFail);
 
   $j('#exportProgress').removeClass('hidden');
   $j('#exportProgress').addClass('warnText');
-  $j('#exportProgress').text(exportProgressString);
+  $j('#exportProgressText').text(exportProgressString);
 
-  //exportProgress();
   exportTimer = setInterval(exportProgress, 500);
+}
+
+function exportFail() {
+  clearInterval(exportTimer);
+  $j('#exportProgress').addClass('errorText');
+  $j('#exportProgressTicker').text('Failed export');
+  logAjaxFail();
 }
 
 function getEventDetailModal(eid) {
@@ -93,7 +96,7 @@ function getEventDetailModal(eid) {
 }
 
 function initPage() {
-  configureExportButton(this);
+  configureExportButton();
   if ( exportReady ) {
     setTimeout(startDownload, 1500, exportFile);
   }

@@ -28,12 +28,16 @@ controlOptions['.$control->Id().'][0] = '.
 ?>
 
 var monitorNames = new Object();
+var rtspStreamNames = new Object();
 <?php
-$query = empty($_REQUEST['mid']) ? dbQuery('SELECT Name FROM Monitors') : dbQuery('SELECT Name FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
-if ( $query ) {
-  while ( $name = dbFetchNext($query, 'Name') ) {
+$query = empty($_REQUEST['mid']) ?
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors') :
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
+if ($query) {
+  while ($row = dbFetchNext($query)) {
     echo '
-monitorNames[\''.validJsStr($name).'\'] = true;
+monitorNames[\''.validJsStr($row['Name']).'\'] = true;
+rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;
 ';
   } // end foreach
 } # end if query
@@ -41,6 +45,7 @@ monitorNames[\''.validJsStr($name).'\'] = true;
 
 function validateForm( form ) {
   var errors = new Array();
+  var warnings = new Array();
 
   if ( form.elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
     errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
@@ -68,9 +73,11 @@ function validateForm( form ) {
     if ( form.elements['newMonitor[VideoWriter]'].value == 2 /* Passthrough */ )
       errors[errors.length] = "<?php echo translate('BadPassthrough') ?>";
   } else if ( form.elements['newMonitor[Type]'].value == 'Ffmpeg' ) {
-    if ( !form.elements['newMonitor[Path]'].value )
-//|| !form.elements['newMonitor[Path]'].value.match( /^\d+$/ ) ) // valid url
+    if ( !form.elements['newMonitor[Path]'].value ) {
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
+    } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
+      warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
+    }
 
   } else if ( form.elements['newMonitor[Type]'].value == 'File' ) {
     if ( !form.elements['newMonitor[Path]'].value )
@@ -82,6 +89,13 @@ function validateForm( form ) {
       errors[errors.length] = "<?php echo translate('BadSourceType') ?>";
     if ( form.elements['newMonitor[Path]'].value.search(/^https?:\/\//i) )
       errors[errors.length] = "<?php echo translate('BadWebSitePath') ?>";
+  }
+
+  if (form.elements['newMonitor[VideoWriter]'].value == '1' /* Encode */) {
+    var parameters = form.elements['newMonitor[EncoderParameters]'].value.replace(/[^#a-zA-Z]/g, "");
+    if (parameters == '' || parameters == '#Linesbeginningwith#areacomment#Forchangingqualityusethecrfoption#isbestisworstquality#crf' ) {
+      warnings[warnings.length] = '<?php echo translate('BadEncoderParameters') ?>';
+    }
   }
 
   if ( form.elements['newMonitor[Type]'].value != 'WebSite' ) {
@@ -136,15 +150,19 @@ function validateForm( form ) {
         errors[errors.length] = "<?php echo translate('BadSignalCheckColour') ?>";
     if ( !form.elements['newMonitor[WebColour]'].value || !form.elements['newMonitor[WebColour]'].value.match( /^[#0-9a-zA-Z]+$/ ) )
       errors[errors.length] = "<?php echo translate('BadWebColour') ?>";
-
   }
+
+  if ( form.elements['newMonitor[RTSPStreamName]'].value
+      &&
+      rtspStreamNames[form.elements['newMonitor[RTSPStreamName]'].value]
+    )
+    errors[errors.length] = "<?php echo translate('DuplicateRTSPStreamName') ?>";
 
   if ( errors.length ) {
     alert(errors.join("\n"));
     return false;
   }
 
-  var warnings = new Array();
   if ( (form.elements['newMonitor[Function]'].value != 'Monitor') && (form.elements['newMonitor[Function]'].value != 'None') ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";

@@ -10,7 +10,7 @@
 #include "zm_rtsp_server_unicast_server_media_subsession.h"
 
 #include "zm_config.h"
-#include "zm_rtsp_server_device_source.h"
+#include "zm_rtsp_server_fifo_source.h"
 
 #if HAVE_RTSP_SERVER
 // -----------------------------------------
@@ -45,6 +45,8 @@ RTPSink* UnicastServerMediaSubsession::createNewRTPSink(
 char const* UnicastServerMediaSubsession::getAuxSDPLine(
     RTPSink* rtpSink, FramedSource* inputSource
     ) {
-	return this->getAuxLine(dynamic_cast<ZoneMinderDeviceSource*>(m_replicator->inputSource()), rtpSink->rtpPayloadType());
+	return this->getAuxLine(
+      dynamic_cast<ZoneMinderFifoSource*>(m_replicator->inputSource()),
+      rtpSink->rtpPayloadType());
 }
 #endif // HAVE_RTSP_SERVER

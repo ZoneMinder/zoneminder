@@ -21,30 +21,39 @@
 #define ZM_BUFFER_H
 
 #include "zm_logger.h"
+#include "zm_time.h"
 #include <cstring>
 
-class Buffer
-{
-protected:
+class Buffer {
+ protected:
   unsigned char *mStorage;
   unsigned int mAllocation;
   unsigned int mSize;
   unsigned char *mHead;
   unsigned char *mTail;
 
-public:
-  Buffer() : mStorage(nullptr), mAllocation(0), mSize(0), mHead(nullptr), mTail(nullptr) {
+ public:
+  Buffer() :
+    mStorage(nullptr),
+    mAllocation(0),
+    mSize(0),
+    mHead(nullptr),
+    mTail(nullptr) {
   }
   explicit Buffer(unsigned int pSize) : mAllocation(pSize), mSize(0) {
     mHead = mStorage = new unsigned char[mAllocation];
+    if (mAllocation) *mHead = '\0';
     mTail = mHead;
   }
-  Buffer(const unsigned char *pStorage, unsigned int pSize) : mAllocation(pSize), mSize(pSize) {
+  Buffer(const unsigned char *pStorage, unsigned int pSize) :
+    mAllocation(pSize), mSize(pSize) {
     mHead = mStorage = new unsigned char[mSize];
     std::memcpy(mStorage, pStorage, mSize);
     mTail = mHead + mSize;
   }
-  Buffer(const Buffer &buffer) : mAllocation(buffer.mSize), mSize(buffer.mSize) {
+  Buffer(const Buffer &buffer) :
+    mAllocation(buffer.mSize),
+    mSize(buffer.mSize) {
     mHead = mStorage = new unsigned char[mSize];
     std::memcpy(mStorage, buffer.mHead, mSize);
     mTail = mHead + mSize;
@@ -62,7 +71,7 @@ public:
     }
     return mSize;
   }
-  //unsigned int Allocation() const { return( mAllocation ); }
+  // unsigned int Allocation() const { return( mAllocation ); }
 
   void clear() {
     mSize = 0;
@@ -76,8 +85,9 @@ public:
 
   // Trim from the front of the buffer
   unsigned int consume(unsigned int count) {
-    if ( count > mSize ) {
-      Warning("Attempt to consume %d bytes of buffer, size is only %d bytes", count, mSize);
+    if (count > mSize) {
+      Warning("Attempt to consume %d bytes of buffer, size is only %d bytes",
+          count, mSize);
       count = mSize;
     }
     mHead += count;
@@ -87,29 +97,32 @@ public:
   }
   // Trim from the end of the buffer
   unsigned int shrink(unsigned int count) {
-    if ( count > mSize ) {
-      Warning("Attempt to shrink buffer by %d bytes, size is only %d bytes", count, mSize);
+    if (count > mSize) {
+      Warning("Attempt to shrink buffer by %d bytes, size is only %d bytes",
+          count, mSize);
       count = mSize;
     }
     mSize -= count;
-    if ( mTail > (mHead + mSize) )
+    if (mTail > (mHead + mSize))
       mTail = mHead + mSize;
     tidy(0);
     return count;
   }
   // Add to the end of the buffer
-  unsigned int expand( unsigned int count );
+  unsigned int expand(unsigned int count);
 
   // Return pointer to the first pSize bytes and advance the head
+  // We don't call tidy here because it is assumed the ram will be used afterwards
+  // This differs from consume
   unsigned char *extract(unsigned int pSize) {
-    if ( pSize > mSize ) {
-      Warning("Attempt to extract %d bytes of buffer, size is only %d bytes", pSize, mSize);
+    if (pSize > mSize) {
+      Warning("Attempt to extract %d bytes of buffer, size is only %d bytes",
+          pSize, mSize);
       pSize = mSize;
     }
     unsigned char *oldHead = mHead;
     mHead += pSize;
     mSize -= pSize;
-    tidy(0);
     return oldHead;
   }
   // Add bytes to the end of the buffer
@@ -126,52 +139,56 @@ public:
   unsigned int append(const Buffer &buffer) {
     return append(buffer.mHead, buffer.mSize);
   }
-  void tidy( bool level=0 ) {
-    if ( mHead != mStorage ) {
-      if ( mSize == 0 )
+  void tidy(bool level=0) {
+    if (mHead != mStorage) {
+      if (mSize == 0) {
         mHead = mTail = mStorage;
-      else if ( level ) {
-        if ( ((uintptr_t)mHead-(uintptr_t)mStorage) > mSize ) {
-          std::memcpy( mStorage, mHead, mSize );
+//*mHead = '\0';
+      } else if (level) {
+        if (((uintptr_t)mHead-(uintptr_t)mStorage) > mSize) {
+          std::memcpy(mStorage, mHead, mSize);
           mHead = mStorage;
           mTail = mHead + mSize;
         }
       }
+    } else if (mSize == 0) {
+      *mHead = '\0';
     }
   }
 
-  Buffer &operator=( const Buffer &buffer ) {
-    assign( buffer );
-    return( *this );
+  Buffer &operator=(const Buffer &buffer) {
+    assign(buffer);
+    return *this;
   }
-  Buffer &operator+=( const Buffer &buffer ) {
-    append( buffer );
-    return( *this );
+  Buffer &operator+=(const Buffer &buffer) {
+    append(buffer);
+    return *this;
   }
-  Buffer &operator+=( unsigned int count ) {
-    expand( count );
-    return( *this );
+  Buffer &operator+=(unsigned int count) {
+    expand(count);
+    return *this;
   }
-  Buffer &operator-=( unsigned int count ) {
+  Buffer &operator-=(unsigned int count) {
     consume(count);
     return *this;
   }
   operator unsigned char *() const {
-    return( mHead );
+    return mHead;
   }
   operator char *() const {
-    return( (char *)mHead );
+    return reinterpret_cast<char *>(mHead);
   }
   unsigned char *operator+(int offset) const {
-    return( (unsigned char *)(mHead+offset) );
+    return (unsigned char *)(mHead+offset);
   }
   unsigned char operator[](int index) const {
-    return( *(mHead+index) );
+    return *(mHead+index);
   }
   operator int () const {
-    return( (int)mSize );
+    return static_cast<int>(mSize);
   }
-  int read_into( int sd, unsigned int bytes );
+  int read_into(int sd, unsigned int bytes);
+  int read_into(int sd, unsigned int bytes, Microseconds timeout);
 };
 
 #endif // ZM_BUFFER_H

@@ -3,41 +3,42 @@
 
 #include "zm_config.h"
 #include "zm_ffmpeg.h"
-#include "zm_thread.h"
+#include "xop/RtspServer.h"
+
+#include "zm_rtsp_server_fifo_source.h"
+#include <atomic>
 #include <list>
 #include <memory>
 
 #if HAVE_RTSP_SERVER
-#include <BasicUsageEnvironment.hh>
-#include <RTSPServer.hh>
 
 class Monitor;
 
-class RTSPServerThread : public Thread {
+class RTSPServerThread {
   private:
     std::shared_ptr<Monitor> monitor_;
-    char terminate;
 
-    TaskScheduler* scheduler;
-    UsageEnvironment* env;
-    UserAuthenticationDatabase* authDB;
+    std::thread thread_;
+    std::atomic<bool> terminate_;
+    std::mutex scheduler_watch_var_mutex_;
+    char scheduler_watch_var_;
 
-    RTSPServer* rtspServer;
-    std::list<FramedSource *> sources;
+    std::shared_ptr<xop::EventLoop> eventLoop;
+    std::shared_ptr<xop::RtspServer> rtspServer;
+
+    std::list<ZoneMinderFifoSource *> sources;
+    int port;
 
   public:
-    explicit RTSPServerThread(std::shared_ptr<Monitor> monitor);
+    explicit RTSPServerThread(int port);
     ~RTSPServerThread();
-    void addStream(AVStream *, AVStream *);
-    int run();
-    void stop();
-    bool stopped() const;
-  private:
-    const std::string getRtpFormat(AVCodecID codec, bool muxTS);
-    int addSession(
-        const std::string & sessionName,
-        const std::list<ServerMediaSubsession*> & subSession
-    );
+    xop::MediaSession *addSession(std::string &streamname);
+    void removeSession(xop::MediaSession *sms);
+    ZoneMinderFifoSource *addFifo(xop::MediaSession *sms, std::string fifo);
+    void Run();
+    void Stop();
+    int Start();
+    bool IsStopped() const { return terminate_; };
 };
 #endif // HAVE_RTSP_SERVER
 

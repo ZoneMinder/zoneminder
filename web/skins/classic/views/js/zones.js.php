@@ -9,6 +9,7 @@ monitorData[monitorData.length] = {
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
+  'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>'
 };
@@ -24,7 +25,7 @@ var STATE_TAPE = <?php echo STATE_TAPE ?>;
 
 var stateStrings = new Array();
 stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
-stateStrings[STATE_PREALARM] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_PREALARM] = "<?php echo translate('PreAlarm') ?>";
 stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
 stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
 stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";

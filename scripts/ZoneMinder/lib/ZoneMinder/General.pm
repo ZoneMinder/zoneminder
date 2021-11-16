@@ -31,6 +31,8 @@ our %EXPORT_TAGS = (
       systemStatus
       packageControl
       daemonControl
+      parseNameEqualsValueToHash
+      hash_diff
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -534,6 +536,42 @@ sub jsonDecode {
   return $result;
 }
 
+sub parseNameEqualsValueToHash {
+  my %settings;
+  foreach my $line ( split ( /\r?\n/, $_[0] ) ) {
+    next if ! $line;
+    next if ! ( $line =~ /=/ );
+    my ($name, $value ) = split('=', $line);
+    $value =~ s/^'//;
+    $value =~ s/'$//;
+    $settings{$name} = defined $value ? $value : '';
+  }
+  return %settings;
+}
+
+sub hash_diff {
+  # assumes keys of second hash are all in the first hash
+  my ( $settings, $defaults ) = @_;
+  my %updates;
+
+  foreach my $setting ( keys %{$settings} ) {
+    next if ! exists $$defaults{$setting};
+    if (
+      ($$settings{$setting} and ! $$defaults{$setting})
+        or
+      (!$$settings{$setting} and $$defaults{$setting})
+        or
+      (
+        ($$settings{$setting} and $$defaults{$setting} and (
+            $$settings{$setting} ne $$defaults{$setting}))
+      )
+    ) {
+      $updates{$setting} = $$defaults{$setting};
+    }
+  } # end foreach setting
+  return %updates;
+}
+
 sub packageControl {
   my $command = shift;
   my $string = $Config{ZM_PATH_BIN}.'/zmpkg.pl '.$command;
@@ -598,6 +636,8 @@ of the ZoneMinder scripts
       packageControl
       daemonControl
       systemStatus
+       parseNameEqualsValueToHash
+      hash_diff
       ) ]
 
 

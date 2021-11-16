@@ -32,7 +32,7 @@
 //     If both scale and either width or height are specified, scale is ignored
 //
 
-if ( !canView('Events') ) {
+if ( !canView('Events') and ($_REQUEST['fid'] != 'snapshot' or !canView('Snapshots'))) {
   $view = 'error';
   return;
 }
@@ -196,8 +196,10 @@ if ( empty($_REQUEST['path']) ) {
                 Output was: '.implode(PHP_EOL,$output) );
             }
             # Generating an image file will use up more disk space, so update the Event record.
-            $Event->DiskSpace(null);
-            $Event->save();
+            if ( $Event->EndDateTime() ) {
+              $Event->DiskSpace(null);
+              $Event->save();
+            }
           } else {
             header('HTTP/1.0 404 Not Found');
             ZM\Fatal('No snapshot jpg found for event '.$_REQUEST['eid']);
@@ -210,9 +212,8 @@ if ( empty($_REQUEST['path']) ) {
         $Frame->FrameId('snapshot');
       } # end if found snapshot.jpg
     } else {
-
       $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));
-      if ( ! $Frame ) {
+      if (!$Frame) {
         $previousBulkFrame = dbFetchOne(
           'SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1',
           NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
@@ -221,22 +222,22 @@ if ( empty($_REQUEST['path']) ) {
           'SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1',
           NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
         );
-        if ( $previousBulkFrame and $nextBulkFrame ) {
+        if ($previousBulkFrame and $nextBulkFrame) {
           $Frame = new ZM\Frame($previousBulkFrame);
           $Frame->FrameId($_REQUEST['fid']);
 
           $percentage = ($Frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
 
           $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
-          ZM\Debug("Got virtual frame from Bulk Frames previous delta: " . $previousBulkFrame['Delta'] . " + nextdelta:" . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
+          ZM\Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
         } else {
           ZM\Fatal('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
         }
-      }
+      }  # end if !Frame
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
       ZM\Debug("Path: $path");
-    }
+    }  # if special frame (snapshot, alarm etc) or identified by id
 
   } else {
 # If we are only specifying fid, then the fid must be the primary key into the frames table. But when the event is specified, then it is the frame #
@@ -281,8 +282,10 @@ Command was: '.$command.'
 Output was: '.implode(PHP_EOL,$output) );
       }
       # Generating an image file will use up more disk space, so update the Event record.
-      $Event->DiskSpace(null);
-      $Event->save();
+      if ( $Event->EndDateTime() ) {
+        $Event->DiskSpace(null);
+        $Event->save();
+      }
     } else {
       header('HTTP/1.0 404 Not Found');
       ZM\Fatal("Can't create frame $show images from video because there is no video file for this event at ".
@@ -349,7 +352,7 @@ if ( !empty($_REQUEST['height']) ) {
 if ( $errorText ) {
   ZM\Error($errorText);
 } else {
-  header("Content-type: $media_type");
+  header('Content-type: '.$media_type);
   if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
     if ( $Event ) {
@@ -361,7 +364,7 @@ if ( $errorText ) {
     }
   } else {
     ZM\Debug("Doing a scaled image: scale($scale) width($width) height($height)");
-    $i = 0;
+    $i = null;
     if ( ! ( $width && $height ) ) {
       $i = imagecreatefromjpeg($path);
       $oldWidth = imagesx($i);
@@ -382,22 +385,33 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
   
     # Slight optimisation, thumbnails always specify width and height, so we can cache them.
     $scaled_path = preg_replace('/\.jpg$/', "-${width}x${height}.jpg", $path);
-    if ( $Event ) {
+    if ($Event) {
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-${width}x${height}.jpg";
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
     if ( !( file_exists($scaled_path) and readfile($scaled_path) ) ) {
       ZM\Debug("Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
-      ob_start();
-      if ( !$i )
+      if (!$i)
         $i = imagecreatefromjpeg($path);
-      $iScale = imagescale($i, $width, $height);
-      imagejpeg($iScale);
-      imagedestroy($i);
-      imagedestroy($iScale);
-      $scaled_jpeg_data = ob_get_contents();
-      file_put_contents($scaled_path, $scaled_jpeg_data);
-      echo $scaled_jpeg_data;
+      if ( !$i) {
+        ZM\Error('Unable to load jpeg from '.$scaled_path);
+        $i  = imagecreatetruecolor($width, $height);
+        $bg_colour = imagecolorallocate($i, 255, 255, 255);
+        $fg_colour = imagecolorallocate($i, 0, 0, 0);
+        imagefilledrectangle($im, 0, 0, $width, $height, $bg_colour);
+        imagestring($i, 1, 5, 5, 'Unable to load jpeg from  ' . $scaled_path, $fg_colour);
+        imagejpeg($i);
+      } else {
+        ZM\Debug("Have image scaling to $width x $height");
+        ob_start();
+        $iScale = imagescale($i, $width, $height);
+        imagejpeg($iScale);
+        imagedestroy($i);
+        imagedestroy($iScale);
+        $scaled_jpeg_data = ob_get_contents();
+        file_put_contents($scaled_path, $scaled_jpeg_data);
+        echo $scaled_jpeg_data;
+      }
     } else {
       ZM\Debug("Sending $scaled_path");
       $bytes = readfile($scaled_path);

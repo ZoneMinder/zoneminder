@@ -10,10 +10,11 @@
 
 // Older versions of libvncserver defined a max macro in rfb/rfbproto.h
 // Undef it here so it doesn't collide with std::max
-// TODO: Remove this once xenial support is dropped
+// TODO: Remove this once CentOS 7 support is dropped
 #ifdef max
 #undef max
 #endif
+
 
 // Used by vnc callbacks
 struct VncPrivateData {
@@ -51,11 +52,11 @@ public:
     
   ~VncCamera();
 
-  int PreCapture();
-  int PrimeCapture();
-  int Capture(ZMPacket &packet);
-  int PostCapture();
-  int Close();
+  int PreCapture() override;
+  int PrimeCapture() override;
+  int Capture(std::shared_ptr<ZMPacket> &packet) override;
+  int PostCapture() override;
+  int Close() override;
 };
 
 #endif // HAVE_LIBVNC

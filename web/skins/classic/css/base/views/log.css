@@ -16,3 +16,15 @@ tr.log-dbg td {
     font-style: italic;
 }
 
+th[data-field="DateTime"],
+th[data-field="Component"],
+th[data-field="Code"],
+th[data-field="Message"],
+th[data-field="File"],
+th[data-field="Server"],
+th[data-field="Line"] {
+  text-align: left;
+}
+th[data-field="DateTime"] {
+  min-width: 135px;
+}

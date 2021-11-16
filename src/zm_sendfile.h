@@ -1,10 +1,6 @@
 #ifndef ZM_SENDFILE_H
 #define ZM_SENDFILE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef HAVE_SENDFILE4_SUPPORT
 #include <sys/sendfile.h>
 int zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
@@ -37,8 +33,4 @@ int zm_sendfile(int out_fd, int in_fd, off_t *offset, off_t size) {
 #error "Your platform does not support sendfile. Sorry."
 #endif
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif // ZM_SENDFILE_H

@@ -20,7 +20,9 @@
 #ifndef ZM_RTP_CTRL_H
 #define ZM_RTP_CTRL_H
 
-#include "zm_thread.h"
+#include <atomic>
+#include <sys/types.h>
+#include <thread>
 
 // Defined in ffmpeg rtp.h
 //#define RTP_MAX_SDES 255    // maximum text length for SDES
@@ -32,7 +34,7 @@
 class RtspThread;
 class RtpSource;
 
-class RtpCtrlThread : public Thread {
+class RtpCtrlThread {
 friend class RtspThread;
 
 private:
@@ -121,7 +123,9 @@ private:
   RtspThread &mRtspThread;
   RtpSource &mRtpSource;
   int mPort;
-  bool mStop;
+
+  std::atomic<bool> mTerminate;
+  std::thread mThread;
 
 private:
   int recvPacket( const unsigned char *packet, ssize_t packetLen );
@@ -129,14 +133,13 @@ private:
   int generateSdes( const unsigned char *packet, ssize_t packetLen );
   int generateBye( const unsigned char *packet, ssize_t packetLen );
   int recvPackets( unsigned char *buffer, ssize_t nBytes );
-  int run();
+  void Run();
 
 public:
   RtpCtrlThread( RtspThread &rtspThread, RtpSource &rtpSource );
+  ~RtpCtrlThread();
 
-  void stop() {
-    mStop = true;
-  }
+  void Stop() { mTerminate = true; }
 };
 
 #endif // ZM_RTP_CTRL_H

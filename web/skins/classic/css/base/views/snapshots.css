@@ -1,0 +1,6 @@
+th[data-field="Id"],
+th[data-field="Description"],
+th[data-field="CreatedOn"],
+th[data-field="Name"] {
+  text-align: left;
+}

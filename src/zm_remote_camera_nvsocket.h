@@ -47,16 +47,16 @@ public:
       bool p_record_audio );
   ~RemoteCameraNVSocket();
 
-  void Initialise();
-  void Terminate() { Disconnect(); }
-  int Connect();
-  int Disconnect();
+  void Initialise() override;
+  void Terminate() override { Disconnect(); }
+  int Connect() override;
+  int Disconnect() override;
   int SendRequest(std::string);
   int GetResponse();
-  int PrimeCapture();
-  int Capture(ZMPacket &p);
-  int PostCapture();
-  int Close() { return 0; };
+  int PrimeCapture() override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
 };
 
 #endif // ZM_REMOTE_CAMERA_NVSOCKET_H

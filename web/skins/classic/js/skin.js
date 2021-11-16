@@ -126,6 +126,28 @@ function dataOnClick() {
       window[fnName](ev);
     };
   });
+  document.querySelectorAll("button[data-on-mousedown]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-mousedown");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
+      return;
+    }
+
+    el.onmousedown = function(ev) {
+      window[fnName](ev);
+    };
+  });
+  document.querySelectorAll("button[data-on-mouseup]").forEach(function(el) {
+    var fnName = el.getAttribute("data-on-mouseup");
+    if ( !window[fnName] ) {
+      console.error("Nothing found to bind to " + fnName + " on element " + el.name);
+      return;
+    }
+
+    el.onmouseup = function(ev) {
+      window[fnName](ev);
+    };
+  });
 }
 
 // 'data-on-click-true' calls the global function in the attribute value with no arguments when a click happens.
@@ -331,10 +353,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function getNavBar() {
-    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar')
+    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay?'&'+auth_relay:''))
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
+          if (error == 'Unauthorized') {
+            window.location.reload(true);
+          }
           if ( ! jqxhr.responseText ) {
             console.log("No responseText in jqxhr");
             console.log(jqxhr);
@@ -559,10 +584,21 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   var ratio = baseWidth / baseHeight;
   var container = $j('#content');
+  if (!container) {
+    console.error("No container found");
+    return;
+  }
+
+  if (!bottomEl || !bottomEl.length) {
+    bottomEl = $j(container[0].lastElementChild);
+  }
+  //console.log(bottomEl);
   var viewPort = $j(window);
-  // jquery does not provide a bottom offet, and offset dows not include margins.  outerHeight true minus false gives total vertical margins.
+  // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+  //console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true));
   var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
+  //console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true));
   var newWidth = ratio * newHeight;
   if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth();
@@ -573,13 +609,15 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
     return parseInt($j(this).val());
   }).get();
   scales.shift();
-  var closest;
+  var closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
     }
   });
-  autoScale = closest;
+  if (closest) {
+    autoScale = closest;
+  }
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
@@ -756,8 +794,8 @@ function logAjaxFail(jqxhr, textStatus, error) {
 }
 
 // Load the Modal HTML via Ajax call
-function getModal(id) {
-  $j.getJSON(thisUrl + '?request=modal&modal='+id)
+function getModal(id, parameters, buttonconfig=null) {
+  $j.getJSON(thisUrl + '?request=modal&modal='+id+'&'+parameters)
       .done(function(data) {
         if ( !data ) {
           console.error("Get modal returned no data");
@@ -765,7 +803,7 @@ function getModal(id) {
         }
 
         insertModalHtml(id, data.html);
-        manageModalBtns(id);
+        buttonconfig ? buttonconfig() : manageModalBtns(id);
         modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {
           console.log('No modal found');
@@ -773,6 +811,14 @@ function getModal(id) {
         $j('#'+id+'Modal').modal('show');
       })
       .fail(logAjaxFail);
+}
+
+function showModal(id, buttonconfig=null) {
+  var div = $j('#'+id+'Modal');
+  if ( ! div.length ) {
+    getModal(id, buttonconfig);
+  }
+  div.modal('show');
 }
 
 function manageModalBtns(id) {
@@ -884,8 +930,9 @@ function manageShutdownBtns(element) {
       .fail(logAjaxFail);
 }
 
+var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
-  timeout = setTimeout(function() {
+  thumbnail_timeout = setTimeout(function() {
     var img = event.target;
     var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
     var imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
@@ -896,7 +943,7 @@ function thumbnail_onmouseover(event) {
 }
 
 function thumbnail_onmouseout(event) {
-  clearTimeout(timeout);
+  clearTimeout(thumbnail_timeout);
   var img = event.target;
   var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
@@ -911,5 +958,31 @@ function initThumbAnimation() {
       this.addEventListener('mouseover', thumbnail_onmouseover, false);
       this.addEventListener('mouseout', thumbnail_onmouseout, false);
     });
+  }
+}
+
+/* View in fullscreen */
+function openFullscreen(elem) {
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.webkitRequestFullscreen) {
+    /* Safari */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) {
+    /* IE11 */
+    elem.msRequestFullscreen();
+  }
+}
+
+/* Close fullscreen */
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) {
+    /* Safari */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) {
+    /* IE11 */
+    document.msExitFullscreen();
   }
 }

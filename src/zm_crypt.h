@@ -20,10 +20,36 @@
 #ifndef ZM_CRYPT_H
 #define ZM_CRYPT_H
 
+#include "zm_config.h"
+#include "zm_crypto_gnutls.h"
+#include "zm_crypto_openssl.h"
+#include "zm_define.h"
 #include <string>
-#include <utility>
 
-bool verifyPassword( const char *username, const char *input_password, const char *db_password_hash);
+bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash);
 
-std::pair <std::string, unsigned int>  verifyToken(std::string token, std::string key);
+std::pair<std::string, unsigned int> verifyToken(std::string token, std::string key);
+
+namespace zm {
+namespace crypto {
+namespace impl {
+
+#if defined(HAVE_LIBGNUTLS)
+template<HashAlgorithms Algorithm>
+using Hash = gnutls::GenericHashImpl<Algorithm>;
+#elif defined(HAVE_LIBOPENSSL)
+template<HashAlgorithms Algorithm>
+using Hash = openssl::GenericHashImpl<Algorithm>;
+#endif
+}
+}
+}
+
+namespace zm {
+namespace crypto {
+using MD5 = impl::Hash<impl::HashAlgorithms::kMD5>;
+using SHA1 = impl::Hash<impl::HashAlgorithms::kSHA1>;
+}
+}
+
 #endif // ZM_CRYPT_H

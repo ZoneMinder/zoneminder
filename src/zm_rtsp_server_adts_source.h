@@ -28,8 +28,6 @@ class ADTS_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
         AVStream * stream,
         unsigned int queueSize
         ) {
-      Debug(1, "m_stream %p codecpar %p channels %d", 
-          stream, stream->codecpar, stream->codecpar->channels);
 			return new ADTS_ZoneMinderDeviceSource(env, std::move(monitor), stream, queueSize);
     };
 	protected:
@@ -50,12 +48,7 @@ class ADTS_ZoneMinderDeviceSource : public ZoneMinderDeviceSource {
     int samplingFrequency() { return m_stream->codecpar->sample_rate; };
     const char *configStr() { return config.c_str(); };
     int numChannels() {
-      Debug(1, "this %p m_stream %p channels %d", 
-          this, m_stream, channels);
-      Debug(1, "m_stream %p codecpar %p channels %d => %d", 
-          m_stream, m_stream->codecpar, m_stream->codecpar->channels, channels);
       return channels;
-      return m_stream->codecpar->channels;
     }
 
 	protected:

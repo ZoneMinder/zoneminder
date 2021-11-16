@@ -42,6 +42,11 @@ if (
 ?>
 <div class="error">
 User Authentication is not turned on. You cannot log in.
+<script nonce="<?php echo $cspNonce; ?>">
+  setTimeout(function() {
+    window.location.replace('?view=console');
+  }, 500);
+</script>
 </div>
 <?php
 } # end if ZM_OPT_AUTH

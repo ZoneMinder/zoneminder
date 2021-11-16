@@ -1,5 +1,5 @@
 //
-// ZoneMinder Fifo Debug
+// ZoneMinder Fifo
 // Copyright (C) 2019 ZoneMinder LLC
 //
 // This program is free software; you can redistribute it and/or
@@ -20,59 +20,41 @@
 #define ZM_FIFO_H
 
 #include "zm_stream.h"
+#include "zm_packet.h"
 
 class Monitor;
 
-#define zmFifoDbgPrintf(level, params...) {\
-  zmFifoDbgOutput(0, __FILE__, __LINE__, level, ##params);\
-  }
-
-#ifndef ZM_DBG_OFF
-#define FifoDebug(level, params...) zmFifoDbgPrintf(level, ##params)
-#else
-#define FifoDebug(level, params...)
-#endif
-void zmFifoDbgOutput(
-    int hex,
-    const char * const file,
-    const int line,
-    const int level,
-    const char *fstring,
-    ...) __attribute__((format(printf, 5, 6)));
-int zmFifoDbgInit(Monitor * monitor);
-
-class FifoStream : public StreamBase {
+class Fifo {
  private:
-    char * stream_path;
-    int total_read;
-    int bytes_read;
-    unsigned int frame_count;
-    static void file_create_if_missing(
-        const char * path,
-        bool is_fifo,
-        bool delete_fake_fifo = true
-        );
-
- protected:
-    typedef enum { UNKNOWN, MJPEG, RAW } StreamType;
-    StreamType  stream_type;
-    bool sendMJEGFrames();
-    bool sendRAWFrames();
-    void processCommand(const CmdMsg *msg) override {}
+   std::string path;
+   bool on_blocking_abort;
+   FILE *outfile;
+   int raw_fd;
 
  public:
-    FifoStream() : 
-      stream_path(nullptr),
-      total_read(0),
-      bytes_read(0),
-      frame_count(0),
-      stream_type(UNKNOWN)
+  static void file_create_if_missing(const std::string &path, bool is_fifo, bool delete_fake_fifo = true);
+  static void fifo_create_if_missing(const std::string &path, bool delete_fake_fifo = true);
+
+    Fifo() :
+      on_blocking_abort(true),
+      outfile(nullptr),
+      raw_fd(-1)
     {}
-    static void fifo_create_if_missing(
-        const char * path,
-        bool delete_fake_fifo = true);
-    void setStreamStart(const char * path);
-    void setStreamStart(int monitor_id, const char * format);
-    void runStream() override;
+    Fifo(const char *p_path, bool p_on_blocking_abort) :
+      path(p_path),
+      on_blocking_abort(p_on_blocking_abort),
+      outfile(nullptr),
+      raw_fd(-1)
+    {}
+    ~Fifo();
+
+    static bool writePacket(std::string filename, const ZMPacket &packet);
+    static bool write(std::string filename, uint8_t *data, size_t size);
+
+    bool open();
+    bool close();
+
+    bool writePacket(const ZMPacket &packet);
+    bool write(uint8_t *data, size_t size, int64_t pts);
 };
 #endif  // ZM_FIFO_H

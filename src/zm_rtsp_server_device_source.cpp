@@ -23,13 +23,13 @@ ZoneMinderDeviceSource::ZoneMinderDeviceSource(
     unsigned int queueSize
     ) :
   FramedSource(env),
+	m_eventTriggerId(envir().taskScheduler().createEventTrigger(ZoneMinderDeviceSource::deliverFrameStub)),
 	m_stream(stream),
 	m_monitor(std::move(monitor)),
   m_packetqueue(nullptr),
   m_packetqueue_it(nullptr),
 	m_queueSize(queueSize)
 {
-	m_eventTriggerId = envir().taskScheduler().createEventTrigger(ZoneMinderDeviceSource::deliverFrameStub);
 	memset(&m_thid, 0, sizeof(m_thid));
 	memset(&m_mutex, 0, sizeof(m_mutex));
 	if ( m_monitor ) {

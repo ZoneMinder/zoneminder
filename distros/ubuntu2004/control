@@ -2,9 +2,8 @@ Source: zoneminder
 Section: net
 Priority: optional
 Maintainer: Isaac Connor <isaac@zoneminder.com>
-Build-Depends: debhelper (>= 12), sphinx-doc, python3-sphinx, dh-linktree, dh-apache2
+Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-apache2
               ,cmake
-              ,libavdevice-dev
               ,libavcodec-dev
               ,libavformat-dev
               ,libavutil-dev
@@ -13,7 +12,6 @@ Build-Depends: debhelper (>= 12), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,ffmpeg
               ,net-tools
               ,libbz2-dev
-              ,libgcrypt20-dev
               ,libcurl4-gnutls-dev
               ,libjpeg-turbo8-dev | libjpeg62-turbo-dev | libjpeg8-dev | libjpeg9-dev
               ,libturbojpeg0-dev
@@ -33,15 +31,18 @@ Build-Depends: debhelper (>= 12), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libdata-entropy-perl
               ,libvncserver-dev
               ,libfmt-dev
+              ,libjwt-gnutls-dev|libjwt-dev
+
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 
 Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
+        ,sudo
         ,javascript-common
-        ,libswscale5
-        ,libswresample3
+        ,libswscale5|libswscale4
+        ,libswresample3|libswresample2
         ,ffmpeg
         ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
@@ -76,6 +77,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
         ,libfmt
+        ,libjwt-gnutls0|libjwt0
+
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

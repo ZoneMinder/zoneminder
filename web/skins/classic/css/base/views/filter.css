@@ -63,11 +63,24 @@ select {
 input[name="filter[EmailSubject]"],
 input[name="filter[EmailTo]"],
 textarea[name="filter[EmailBody]"] {
-width: 500px;
+width: 100%;
 }
 select#Id {
 min-width: 500px;
 }
 .Name input {
 min-width: 500px;
+}
+#ActionsAndOptions {
+  padding-top: 5px;
+  border-top: 1px solid #7f7fb2;
+  border-bottom: 1px solid #7f7fb2;
+}
+#ActionsAndOptions:after {
+  content: ".";
+  display: block;
+  height: 0;
+  font-size: 0;
+  clear: both;
+  visibility: hidden;
 }

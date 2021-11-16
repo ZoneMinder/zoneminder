@@ -1,5 +1,5 @@
 /*
- * ZoneMinder Base Stylesheet, $Date$, $Revision$
+ * ZoneMinder Dark Stylesheet, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
  * 
  * This program is free software; you can redistribute it and/or
@@ -47,7 +47,7 @@ p {
 }
 
 th {
-    color: #117AAd;
+    color: #10a4e8;
 }
 
 img.normal {
@@ -147,9 +147,9 @@ fieldset {
     border-bottom: 1px solid #000000;
 }
 
-input {
+input, textarea, select, button, .btn-primary {
   background-color: rgb(68,68,68);
-  color: #999;
+  color: #dddddd;
 }
 /* PP - make it easy to identify disabled buttons */
 
@@ -185,7 +185,8 @@ input[type=submit]:disabled,
 }
 
 .table-hover > tbody > tr:hover {
-  background-color: orange;
+  color: orange;
+  background-color: #444444;
 }
 
 .nav-pills>li.active>a, .nav-pills>li.active>a:focus, .nav-pills>li.active>a:hover {
@@ -216,6 +217,14 @@ li.search-choice {
 }
 /* end chosen override */
 
-modal-content {
-  background-color: #222222;
+.modal-content {
+    background-color: #222222;
+}
+
+ul.nav.nav-pills.flex-column {
+    background-color:  #485460; 
+}
+
+.thead-highlight {
+    background-color:#485460;
 }

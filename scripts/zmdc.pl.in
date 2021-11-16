@@ -101,11 +101,12 @@ my @daemons = (
     'zmstats.pl',
     'zmtrack.pl',
     'zmcontrol.pl',
+    'zm_rtsp_server',
     'zmtelemetry.pl'
     );
 
 if ( $Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
-	push @daemons,'zmeventnotification.pl';
+	push @daemons, 'zmeventnotification.pl';
 }
 
 my $command = shift @ARGV;

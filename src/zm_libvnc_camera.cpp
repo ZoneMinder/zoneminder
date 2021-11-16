@@ -44,18 +44,20 @@ static void GotFrameBufferUpdateCallback(rfbClient *rfb, int x, int y, int w, in
 }
 
 static char* GetPasswordCallback(rfbClient* cl) {
-  Debug(1, "Getcredentials: %s", (*rfbClientGetClientData_f)(cl, &TAG_1));
+  Debug(1, "Getcredentials: %s", static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_1)));
   return strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
 }
 
 static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType){
-  rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
   if (credentialType != rfbCredentialTypeUser) {
-    free(c);
+		Debug(1, "credentialType != rfbCredentialTypeUser");
     return nullptr;
   }
+  rfbCredential *c = (rfbCredential *)malloc(sizeof(rfbCredential));
 
-  Debug(1, "Getcredentials: %s:%s", (*rfbClientGetClientData_f)(cl, &TAG_1), (*rfbClientGetClientData_f)(cl, &TAG_2));
+  Debug(1, "Getcredentials: %s:%s",
+        static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_1)),
+        static_cast<char *>((*rfbClientGetClientData_f)(cl, &TAG_2)));
   c->userCredential.password = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_1));
   c->userCredential.username = strdup((const char *)(*rfbClientGetClientData_f)(cl, &TAG_2));
   return c;
@@ -106,6 +108,7 @@ VncCamera::VncCamera(
       p_record_audio
     ),
     mRfb(nullptr),
+    mVncData({}),
   mHost(host),
   mPort(port),
   mUser(user),
@@ -144,6 +147,10 @@ VncCamera::~VncCamera() {
 }
 
 int VncCamera::PrimeCapture() {
+  if (libvnc_lib == nullptr) {
+    Error("No libvnc shared lib bound.");
+    return -1;
+  }
   Debug(1, "Priming capture from %s", mHost.c_str());
 
   if (!mRfb) {
@@ -164,13 +171,19 @@ int VncCamera::PrimeCapture() {
     mRfb->GetCredential = GetCredentialsCallback;
 
     mRfb->programName = "Zoneminder VNC Monitor";
-    if ( mRfb->serverHost ) free(mRfb->serverHost);
+    if (mRfb->serverHost) free(mRfb->serverHost);
     mRfb->serverHost = strdup(mHost.c_str());
     mRfb->serverPort = atoi(mPort.c_str());
+		if (!mRfb->serverPort) {
+			Debug(1, "Defaulting to port 5900");
+			mRfb->serverPort = 5900;
+		}
+
+	} else {
+		Debug(1, "mRfb already exists?");
   }
   if (!(*rfbInitClient_f)(mRfb, 0, nullptr)) {
     /* IF rfbInitClient fails, it calls rdbClientCleanup which will free mRfb */
-    Warning("Failed to Prime capture from %s", mHost.c_str());
     mRfb = nullptr;
     return -1; 
   }
@@ -178,7 +191,7 @@ int VncCamera::PrimeCapture() {
     Warning("Specified dimensions do not match screen size monitor: (%dx%d) != vnc: (%dx%d)",
         width, height, mRfb->width, mRfb->height);
   }
-  get_VideoStream();
+  getVideoStream();
 
   return 1;
 }
@@ -195,20 +208,21 @@ int VncCamera::PreCapture() {
   return res == TRUE ? 1 : -1;
 }
 
-int VncCamera::Capture(ZMPacket &zm_packet) {
+int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   if (!mVncData.buffer) {
     Debug(1, "No buffer");
     return 0;
   }
-  if (!zm_packet.image) {
+  if (!zm_packet->image) {
     Debug(1, "Allocating image %dx%d %dcolours = %d", width, height, colours, colours*pixels);
-    zm_packet.image = new Image(width, height, colours, subpixelorder);
+    zm_packet->image = new Image(width, height, colours, subpixelorder);
   }
-  zm_packet.keyframe = 1;
-  zm_packet.codec_type = AVMEDIA_TYPE_VIDEO;
-  zm_packet.packet.stream_index = mVideoStreamId;
+  zm_packet->keyframe = 1;
+  zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
+  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->stream = mVideoStream;
 
-  uint8_t *directbuffer = zm_packet.image->WriteBuffer(width, height, colours, subpixelorder);
+  uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
   Debug(1, "scale src %p, %d, dest %p %d %d %dx%d %dx%d", mVncData.buffer,
       mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
       directbuffer,

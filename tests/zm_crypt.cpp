@@ -15,7 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "catch2/catch.hpp"
+#include "zm_catch2.h"
 
 #include "zm_crypt.h"
 
@@ -75,4 +75,63 @@ TEST_CASE("JWT validation") {
     REQUIRE(result.first == "");
     REQUIRE(result.second == 0);
   }
+}
+
+TEST_CASE("zm::crypto::MD5") {
+  using namespace zm::crypto;
+  MD5 md5;
+
+  REQUIRE(md5.GetDigest() == MD5::Digest());
+
+  SECTION("hash from const char*") {
+    md5.UpdateData("abcdefghijklmnopqrstuvwxyz");
+    md5.Finalize();
+
+    REQUIRE(md5.GetDigest() == MD5::Digest{0xc3, 0xfc, 0xd3, 0xd7, 0x61, 0x92, 0xe4, 0x00, 0x7d, 0xfb, 0x49, 0x6c, 0xca,
+                                           0x67, 0xe1, 0x3b});
+  }
+
+  SECTION("hash from std::string") {
+    md5.UpdateData(std::string("abcdefghijklmnopqrstuvwxyz"));
+    md5.Finalize();
+
+    REQUIRE(md5.GetDigest() == MD5::Digest{0xc3, 0xfc, 0xd3, 0xd7, 0x61, 0x92, 0xe4, 0x00, 0x7d, 0xfb, 0x49, 0x6c, 0xca,
+                                           0x67, 0xe1, 0x3b});
+  }
+}
+
+TEST_CASE("zm::crypto::MD5::GetDigestOf") {
+  using namespace zm::crypto;
+  std::array<uint8, 3> data = {'a', 'b', 'c'};
+
+  SECTION("data and len") {
+    MD5::Digest digest = MD5::GetDigestOf(reinterpret_cast<const uint8 *>(data.data()), data.size());
+
+    REQUIRE(digest == MD5::Digest{0x90, 0x01, 0x50, 0x98, 0x3c, 0xd2, 0x4f, 0xb0, 0xd6, 0x96, 0x3f, 0x7d, 0x28, 0xe1,
+                                  0x7f, 0x72});
+  }
+
+  SECTION("container") {
+    MD5::Digest digest = MD5::GetDigestOf(data);
+
+    REQUIRE(digest == MD5::Digest{0x90, 0x01, 0x50, 0x98, 0x3c, 0xd2, 0x4f, 0xb0, 0xd6, 0x96, 0x3f, 0x7d, 0x28, 0xe1,
+                                  0x7f, 0x72});
+  }
+
+  SECTION("multiple containers") {
+    MD5::Digest digest = MD5::GetDigestOf(data, data);
+
+    REQUIRE(digest == MD5::Digest{0x44, 0x0a, 0xc8, 0x58, 0x92, 0xca, 0x43, 0xad, 0x26, 0xd4, 0x4c, 0x7a, 0xd9, 0xd4,
+                                  0x7d, 0x3e});
+  }
+}
+
+TEST_CASE("zm::crypto::SHA1::GetDigestOf") {
+  using namespace zm::crypto;
+  std::array<uint8, 3> data = {'a', 'b', 'c'};
+
+  SHA1::Digest digest = SHA1::GetDigestOf(data);
+
+  REQUIRE(digest == SHA1::Digest{0xa9, 0x99, 0x3e, 0x36, 0x47, 0x06, 0x81, 0x6a, 0xba, 0x3e, 0x25, 0x71, 0x78, 0x50,
+                                 0xc2, 0x6c, 0x9c, 0xd0, 0xd8, 0x9d});
 }

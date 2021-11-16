@@ -22,7 +22,8 @@
 
 #include "zm_event.h"
 #include "zm_time.h"
-#include <sys/time.h>
+#include "zm_zone.h"
+#include <vector>
 
 enum FrameType {
   NORMAL = 0,
@@ -34,24 +35,23 @@ enum FrameType {
 // This describes a frame record
 //
 class Frame {
+ public:
+  Frame(event_id_t p_event_id,
+        int p_frame_id,
+        FrameType p_type,
+        SystemTimePoint p_timestamp,
+        Microseconds p_delta,
+        int p_score,
+        std::vector<ZoneStats> p_stats
+  );
 
-public:
-  Frame(
-     event_id_t           p_event_id,
-     int                  p_frame_id,
-     FrameType            p_type,
-     struct timeval       p_timestamp,
-     struct DeltaTimeval  p_delta,
-     int                  p_score
-     );
-
-  event_id_t     event_id;
-  int            frame_id;
-  FrameType      type;
-  struct timeval timestamp;
-  struct DeltaTimeval  delta;
+  event_id_t event_id;
+  int frame_id;
+  FrameType type;
+  SystemTimePoint timestamp;
+  Microseconds delta;
   int score;
-
+  std::vector<ZoneStats> zone_stats;
 };
 
 #endif // ZM_FRAME_H

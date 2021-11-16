@@ -24,7 +24,7 @@
 
 MYSQL dbconn;
 std::mutex db_mutex;
-zmDbQueue   dbQueue;
+zmDbQueue  dbQueue;
 
 bool zmDbConnected = false;
 
@@ -102,6 +102,7 @@ bool zmDbConnect() {
   if ( mysql_query(&dbconn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
     Error("Can't set isolation level: %s", mysql_error(&dbconn));
   }
+  mysql_set_character_set(&dbconn, "utf8");
   zmDbConnected = true;
   return zmDbConnected;
 }
@@ -117,25 +118,25 @@ void zmDbClose() {
   }
 }
 
-MYSQL_RES * zmDbFetch(const char * query) {
+MYSQL_RES *zmDbFetch(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected) {
     Error("Not connected.");
     return nullptr;
   }
 
-  if (mysql_query(&dbconn, query)) {
+  if (mysql_query(&dbconn, query.c_str())) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     return nullptr;
   }
   MYSQL_RES *result = mysql_store_result(&dbconn);
   if (!result) {
-    Error("Can't use query result: %s for query %s", mysql_error(&dbconn), query);
+    Error("Can't use query result: %s for query %s", mysql_error(&dbconn), query.c_str());
   }
   return result;
-} // end MYSQL_RES * zmDbFetch(const char * query);
+}
 
-zmDbRow *zmDbFetchOne(const char *query) {
+zmDbRow *zmDbFetchOne(const std::string &query) {
   zmDbRow *row = new zmDbRow();
   if (row->fetch(query)) {
     return row;
@@ -144,13 +145,13 @@ zmDbRow *zmDbFetchOne(const char *query) {
   return nullptr;
 }
 
-MYSQL_RES *zmDbRow::fetch(const char *query) {
+MYSQL_RES *zmDbRow::fetch(const std::string &query) {
   result_set = zmDbFetch(query);
   if (!result_set) return result_set;
 
   int n_rows = mysql_num_rows(result_set);
   if (n_rows != 1) {
-    Error("Bogus number of lines return from query, %d returned for query %s.", n_rows, query);
+    Error("Bogus number of lines return from query, %d returned for query %s.", n_rows, query.c_str());
     mysql_free_result(result_set);
     result_set = nullptr;
     return result_set;
@@ -160,38 +161,63 @@ MYSQL_RES *zmDbRow::fetch(const char *query) {
   if (!row) {
     mysql_free_result(result_set);
     result_set = nullptr;
-    Error("Error getting row from query %s. Error is %s", query, mysql_error(&dbconn));
+    Error("Error getting row from query %s. Error is %s", query.c_str(), mysql_error(&dbconn));
   } else {
     Debug(5, "Success");
   }
   return result_set;
 }
 
-int zmDbDo(const char *query) {
+int zmDbDo(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected)
     return 0;
   int rc;
-  while ((rc = mysql_query(&dbconn, query)) and !zm_terminate) {
-    Error("Can't run query %s: %s", query, mysql_error(&dbconn));
+  while ((rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
+    Logger *logger = Logger::fetch();
+    Logger::Level oldLevel = logger->databaseLevel();
+    logger->databaseLevel(Logger::NOLOG);
+    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
+    logger->databaseLevel(oldLevel);
     if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) ) {
       return rc;
     }
   }
+  Logger *logger = Logger::fetch();
+  Logger::Level oldLevel = logger->databaseLevel();
+  logger->databaseLevel(Logger::NOLOG);
+
+  Debug(1, "Success running sql query %s", query.c_str());
+  logger->databaseLevel(oldLevel);
   return 1;
 }
 
-int zmDbDoInsert(const char *query) {
+int zmDbDoInsert(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected) return 0;
   int rc;
-  while ( (rc = mysql_query(&dbconn, query)) and !zm_terminate) {
-    Error("Can't run query %s: %s", query, mysql_error(&dbconn));
+  while ( (rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
+    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
     if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
       return 0;
   }
   int id = mysql_insert_id(&dbconn);
+  Debug(2, "Success running sql insert %s. Resulting id is %d", query.c_str(), id);
   return id;
+}
+
+int zmDbDoUpdate(const std::string &query) {
+  std::lock_guard<std::mutex> lck(db_mutex);
+  if (!zmDbConnected) return 0;
+  int rc;
+  while ( (rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
+    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
+    if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
+      return -rc;
+  }
+  int affected = mysql_affected_rows(&dbconn);
+  Debug(2, "Success running sql update %s. Rows modified %d", query.c_str(), affected);
+  return affected;
 }
 
 zmDbRow::~zmDbRow() {
@@ -208,9 +234,13 @@ zmDbQueue::zmDbQueue() :
 { }
 
 zmDbQueue::~zmDbQueue() {
+  stop();
+}
+
+void zmDbQueue::stop() {
   mTerminate = true;
   mCondition.notify_all();
-  mThread.join();
+  if (mThread.joinable()) mThread.join();
 }
 
 void zmDbQueue::process() {
@@ -220,18 +250,40 @@ void zmDbQueue::process() {
     if (mQueue.empty()) {
       mCondition.wait(lock);
     }
-    if (!mQueue.empty()) {
+    while (!mQueue.empty()) {
+      if (mQueue.size() > 10) {
+        Logger *log = Logger::fetch();
+        Logger::Level db_level = log->databaseLevel();
+        log->databaseLevel(Logger::NOLOG);
+        Warning("db queue size has grown larger %zu than 10 entries", mQueue.size());
+        log->databaseLevel(db_level);
+      }
       std::string sql = mQueue.front();
       mQueue.pop();
+      // My idea for leaving the locking around each sql statement is to allow
+      // other db writers to get a chance
       lock.unlock();
-      zmDbDo(sql.c_str());
+      zmDbDo(sql);
       lock.lock();
     }
   }
 }  // end void zmDbQueue::process()
 
 void zmDbQueue::push(std::string &&sql) {
+  if (mTerminate) return;
   std::unique_lock<std::mutex> lock(mMutex);
   mQueue.push(std::move(sql));
   mCondition.notify_all();
+}
+
+std::string zmDbEscapeString(const std::string& to_escape) {
+  // According to docs, size of safer_whatever must be 2 * length + 1
+  // due to unicode conversions + null terminator.
+  std::string escaped((to_escape.length() * 2) + 1, '\0');
+
+
+  size_t escaped_len = mysql_real_escape_string(&dbconn, &escaped[0], to_escape.c_str(), to_escape.length());
+  escaped.resize(escaped_len);
+
+  return escaped;
 }

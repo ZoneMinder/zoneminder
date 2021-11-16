@@ -1,11 +1,11 @@
 <?php
-if ( !canView('Control') ) return;
+if (!canView('Control')) return;
 
 $monitor = ZM\Monitor::find_one(array('Id'=>$_REQUEST['mid']));
 
 $zmuCommand = getZmuCommand(' -m '.escapeshellarg($_REQUEST['mid']).' -B -C -H -O');
 $zmuOutput = exec( $zmuCommand );
-if ( $zmuOutput ) {
+if ($zmuOutput) {
   list($brightness, $contrast, $hue, $colour) = explode(' ', $zmuOutput);
 
   $monitor->Brightness($brightness);
@@ -13,7 +13,6 @@ if ( $zmuOutput ) {
   $monitor->Hue($hue);
   $monitor->Colour($colour);
 }
-
 ?>
 <div class="modal" id="settingsModal" tabindex="-1">
   <div class="modal-dialog">
@@ -35,22 +34,94 @@ if ( $zmuOutput ) {
         <input type="hidden" name="mid" value="<?php echo validInt($_REQUEST['mid']) ?>"/>
         <table id="contentTable" class="major">
           <tbody>
+<?php
+$ctls = shell_exec('v4l2-ctl -d '.$monitor->Device().' --list-ctrls');
+
+if (!$ctls) {
+ZM\Warning('Guessing v4l ctrls.  We need v4l2-ctl please install it');
+$ctls = '
+                     brightness 0x00980900 (int)    : min=-10 max=10 step=1 default=0 value=8
+                       contrast 0x00980901 (int)    : min=0 max=20 step=1 default=10 value=12
+                     saturation 0x00980902 (int)    : min=0 max=10 step=1 default=7 value=6
+                            hue 0x00980903 (int)    : min=-5000 max=5000 step=1000 default=0 value=2000
+';
+}
+$ctls = trim($ctls);
+$ctls = explode("\n", $ctls);
+
+foreach ($ctls as $line) {
+  $ctl = explode(':', $line);
+  $type_info = explode(' ', trim($ctl[0]));
+
+  $setting = trim($type_info[0]);
+  if ($setting == 'saturation')
+    $setting = 'colour';
+  $setting_uc = ucwords($setting);
+  $type = $type[2];
+
+  $min = '';
+  $max = '';
+  $step = '';
+  $value = '';
+  $default = '';
+
+  # The purpose is security
+  foreach (explode(' ', trim($ctl[1])) as $index=>$prop) {
+    list($key,$val) = explode('=', $prop);
+
+    // get current value
+    if ($key == 'value') {
+      $value = validInt($val);
+    } else if ($key == 'default') {
+      $default = validInt($val);
+    } else if ($key == 'min') {
+      $min = validInt($val);
+    } else if ($key == 'max') {
+      $max = validInt($val);
+    } else if ($key == 'step') {
+      $step = validInt($val);
+    }
+  }
+
+  $label = translate($setting_uc);
+  if ($label == $setting_uc) {
+    $label = ucwords(str_replace('_', ' ', $label));
+  }
+
+  if ($setting == 'brightness' or $setting == 'colour' or $setting == 'contrast' or $setting == 'hue') {
+    echo '
             <tr>
-              <th scope="row"><?php echo translate('Brightness') ?></th>
-              <td><input type="number" name="newBrightness" value="<?php echo $monitor->Brightness() ?>" <?php if ( !canView( 'Control' ) ) { ?> disabled="disabled"<?php } ?> /></td>
+              <th scope="row">'.$label.'</th>
+              <td>'.$min.'</td><td><input type="range" title="'.$value.'" min="'.$min.'" max="'.$max.'" step="'.$step.'" default="'.$default.'" value="'.$value.'" id="new'.$setting_uc.'" name="new'.$setting_uc.'" '.(canEdit('Control') ? '' : 'disabled="disabled"') .'/></td><td>'.$max.'</td>
             </tr>
+';
+  } else {
+    if ($type == '(bool)') {
+    echo '
             <tr>
-              <th scope="row"><?php echo translate('Contrast') ?></th>
-              <td><input type="number" name="newContrast" value="<?php echo $monitor->Contrast() ?>" <?php  echo canView('Control') ? '' : ' disabled="disabled"' ?> /></td>
+              <th scope="row">'.$label.'</th>
+              <td></td><td>'.html_radio('new'.$setting_uc, array('0'=>translate('True'), '1', translate('False')), $value, array('disabled'=>'disabled')).'
+              </td><td></td>
             </tr>
+';
+    } else if ($type == '(int)') {
+    echo '
             <tr>
-              <th scope="row"><?php echo translate('Hue') ?></th>
-              <td><input type="number" name="newHue" value="<?php echo $monitor->Hue() ?>" <?php echo canView('Control') ? '' : ' disabled="disabled"' ?> /></td>
+              <th scope="row">'.$label.'</th>
+              <td></td><td><input type="range" '.$ctl[1].' disabled="disabled"/></td><td></td>
             </tr>
+';
+    } else {
+    echo '
             <tr>
-              <th scope="row"><?php echo translate('Colour') ?></th>
-              <td><input type="number" name="newColour" value="<?php echo $monitor->Colour() ?>" <?php echo canView('Control') ? '' : ' disabled="disabled"' ?> /></td>
+              <th scope="row">'.$label.'</th>
+              <td></td><td>'.$value.'</td><td></td>
             </tr>
+';
+    }
+  }
+} # end foreach ctrl
+?>
           </tbody>
         </table>
       </div>

@@ -22,6 +22,8 @@
 
 #include "zm_camera.h"
 
+#include <memory>
+
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
       AVBufferRef *hw_device_ref;
@@ -34,6 +36,7 @@ typedef struct DecodeContext {
 class FfmpegCamera : public Camera {
   protected:
     std::string         mPath;
+    std::string         mSecondPath;
     std::string         mMethod;
     std::string         mOptions;
 
@@ -42,7 +45,7 @@ class FfmpegCamera : public Camera {
     std::string         hwaccel_device;
 
     int frameCount;    
-  
+
     _AVPIXELFORMAT      imagePixFormat;
 
     bool                use_hwaccel; //will default to on if hwaccel specified, will get turned off if there is a failure
@@ -56,12 +59,10 @@ class FfmpegCamera : public Camera {
     AVPacket packet;       
 
     int OpenFfmpeg();
-    int Close();
+    int Close() override;
     bool mCanCapture;
 
-#if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
-#endif
 
     int                 error_count;
 
@@ -69,6 +70,7 @@ class FfmpegCamera : public Camera {
     FfmpegCamera(
         const Monitor *monitor,
         const std::string &path,
+        const std::string &second_path,
         const std::string &p_method,
         const std::string &p_options,
         int p_width,
@@ -89,10 +91,10 @@ class FfmpegCamera : public Camera {
     const std::string &Options() const { return mOptions; } 
     const std::string &Method() const { return mMethod; }
 
-    int PrimeCapture();
-    int PreCapture();
-    int Capture(ZMPacket &p);
-    int PostCapture();
+    int PrimeCapture() override;
+    int PreCapture() override;
+    int Capture(std::shared_ptr<ZMPacket> &p) override;
+    int PostCapture() override;
   private:
     static int FfmpegInterruptCallback(void*ctx);
 };

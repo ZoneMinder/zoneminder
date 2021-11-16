@@ -52,12 +52,8 @@ int FFmpeg_Output::Open( const char *filepath ) {
     }
 
     streams[i].frame_count = 0;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    streams[i].context = avcodec_alloc_context3( NULL );
-    avcodec_parameters_to_context( streams[i].context, input_format_context->streams[i]->codecpar );
-#else
-    streams[i].context = input_format_context->streams[i]->codec;
-#endif
+    streams[i].context = avcodec_alloc_context3(nullptr);
+    avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
 
     if ( !(streams[i].codec = avcodec_find_decoder(streams[i].context->codec_id)) ) {
       Error( "Could not find input codec\n");
@@ -70,9 +66,7 @@ int FFmpeg_Output::Open( const char *filepath ) {
     if ((error = avcodec_open2( streams[i].context, streams[i].codec, NULL)) < 0) {
       Error( "Could not open input codec (error '%s')\n",
           av_make_error_string(error).c_str() );
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context( &streams[i].context );
-#endif
       avformat_close_input(&input_format_context);
       return error;
     }
@@ -117,7 +111,6 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
 
       AVCodecContext *context = streams[packet.stream_index].context;
 
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     ret = avcodec_send_packet( context, &packet );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
@@ -160,15 +153,6 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
 #endif
 
     frameComplete = 1;
-# else
-    ret = zm_avcodec_decode_video( streams[packet.stream_index].context, frame, &frameComplete, &packet );
-    if ( ret < 0 ) {
-      av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-      Error( "Unable to decode frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
-      zm_av_packet_unref( &packet );
-      continue;
-    }
-#endif
   } // end if it's the right stream
 
       zm_av_packet_unref( &packet );

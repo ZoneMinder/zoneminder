@@ -24,6 +24,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends
@@ -183,9 +184,9 @@ int RemoteCameraNVSocket::PrimeCapture() {
   return 0;
 }
 
-int RemoteCameraNVSocket::Capture( ZMPacket &zm_packet ) {
-  if ( SendRequest("GetNextImage\n") < 0 ) {
-    Warning( "Unable to capture image, retrying" );
+int RemoteCameraNVSocket::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
+  if (SendRequest("GetNextImage\n") < 0) {
+    Warning("Unable to capture image, retrying");
     return 0;
   }
 	int bytes_read = Read(sd, buffer, imagesize);
@@ -194,17 +195,17 @@ int RemoteCameraNVSocket::Capture( ZMPacket &zm_packet ) {
     return 0;
   }
   uint32_t end;
-  if ( Read(sd, (char *) &end , sizeof(end)) < 0 ) {
+  if (Read(sd, (char *) &end , sizeof(end)) < 0) {
     Warning("Unable to capture image, retrying");
     return 0;
   }
-  if ( end != 0xFFFFFFFF) {
+  if (end != 0xFFFFFFFF) {
     Warning("End Bytes Failed\n");
     return 0;
   }
 
-  zm_packet.image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
-  zm_packet.keyframe = 1;
+  zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
+  zm_packet->keyframe = 1;
   return 1;
 }
 

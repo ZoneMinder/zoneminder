@@ -24,10 +24,12 @@
 #include "zm_rtp_source.h"
 #include "zm_rtsp_auth.h"
 #include "zm_sdp.h"
+#include <atomic>
 #include <map>
 #include <set>
+#include <thread>
 
-class RtspThread : public Thread {
+class RtspThread {
 public:
   typedef enum { RTP_UNICAST, RTP_MULTICAST, RTP_RTSP, RTP_RTSP_HTTP } RtspMethod;
   typedef enum { UNDEFINED, UNICAST, MULTICAST } RtspDist;
@@ -66,8 +68,8 @@ private:
 
   std::string mHttpSession;       ///< Only for RTSP over HTTP sessions
 
-  ZM::TcpInetClient mRtspSocket;
-  ZM::TcpInetClient mRtspSocket2;
+  zm::TcpInetClient mRtspSocket;
+  zm::TcpInetClient mRtspSocket2;
 
   SourceMap mSources;
 
@@ -84,12 +86,14 @@ private:
 
   unsigned long mRtpTime; 
 
-  bool mStop;
+  std::thread mThread;
+  std::atomic<bool> mTerminate;
 
 private:
   bool sendCommand( std::string message );
   bool recvResponse( std::string &response );
-  void checkAuthResponse(std::string &response);  
+  void checkAuthResponse(std::string &response);
+  void Run();
 
 public:
   RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, const std::string &port, const std::string &path, const std::string &auth, bool rtsp_describe );
@@ -124,15 +128,10 @@ public:
       return( false );
     return( iter->second->getFrame( frame ) );
   }
-  int run();
-  void stop()
-  {
-    mStop = true;
-  }
-  bool stopped() const
-  {
-    return( mStop );
-  }
+
+  void Stop() { mTerminate = true; }
+  bool IsStopped() const { return mTerminate; }
+
   int getAddressFamily ()
   {
     return mRtspSocket.getDomain();

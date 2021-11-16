@@ -21,15 +21,14 @@
 #define ZM_MONITORSTREAM_H
 
 #include "zm_stream.h"
-#include <sys/time.h>
 
 class MonitorStream : public StreamBase {
   protected:
-    typedef struct SwapImage {
-      bool            valid;
-      struct timeval  timestamp;
-      char            file_name[PATH_MAX];
-    } SwapImage;
+    struct SwapImage {
+      bool valid = false;
+      SystemTimePoint timestamp;
+      std::string file_name;
+    };
 
   private:
     SwapImage *temp_image_buffer;
@@ -38,15 +37,14 @@ class MonitorStream : public StreamBase {
     int temp_write_index;
 
   protected:
-    time_t ttl;
+    Microseconds ttl;
     int playback_buffer;
     bool delayed;
-    int frame_count;
 
   protected:
     bool checkSwapPath(const char *path, bool create_path);
-    bool sendFrame(const char *filepath, struct timeval *timestamp);
-    bool sendFrame(Image *image, struct timeval *timestamp);
+    bool sendFrame(const std::string &filepath, SystemTimePoint timestamp);
+    bool sendFrame(Image *image, SystemTimePoint timestamp);
     void processCommand(const CmdMsg *msg) override;
     void SingleImage(int scale=100);
     void SingleImageRaw(int scale=100);
@@ -55,21 +53,21 @@ class MonitorStream : public StreamBase {
 #endif
 
   public:
-    MonitorStream() : 
+    MonitorStream() :
       temp_image_buffer(nullptr),
       temp_image_buffer_count(0),
       temp_read_index(0),
       temp_write_index(0),
       ttl(0),
       playback_buffer(0),
-      delayed(false),
-      frame_count(0) {
-    }
+      delayed(false)
+  {}
+
     void setStreamBuffer(int p_playback_buffer) {
       playback_buffer = p_playback_buffer;
     }
     void setStreamTTL(time_t p_ttl) {
-      ttl = p_ttl;
+      ttl = Seconds(p_ttl);
     }
     bool setStreamStart(int monitor_id) {
       return loadMonitor(monitor_id);

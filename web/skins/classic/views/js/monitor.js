@@ -48,8 +48,9 @@ function updateMonitorDimensions(element) {
       form.elements['newMonitor[Height]'].value = dimensions[1];
     }
   }
+  update_estimated_ram_use();
   return false;
-}
+} // function updateMonitorDimensions(element)
 
 function loadLocations( element ) {
   var form = element.form;
@@ -139,9 +140,10 @@ function initPage() {
       form.submit();
     };
   });
-  document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+  document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
     el.oninput = window['update_estimated_ram_use'].bind(el);
   });
+  update_estimated_ram_use();
 
   document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
     el.onchange = function() {
@@ -156,6 +158,47 @@ function initPage() {
         $j('#FunctionDecodingEnabled').show();
       } else {
         $j('#FunctionDecodingEnabled').hide();
+      }
+    };
+    el.onchange();
+  });
+
+  document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
+    el.onchange = function() {
+      if ( this.value == 1 /* Encode */ ) {
+        $j('.OutputCodec').show();
+        $j('.Encoder').show();
+      } else {
+        $j('.OutputCodec').hide();
+        $j('.Encoder').hide();
+      }
+    };
+    el.onchange();
+  });
+  document.querySelectorAll('select[name="newMonitor[OutputCodec]"]').forEach(function(el) {
+    el.onchange = function() {
+      var encoder_dropdown = $j('select[name="newMonitor[Encoder]"]');
+      if (encoder_dropdown) {
+        for (i=0; i<encoder_dropdown[0].options.length; i++) {
+          option = encoder_dropdown[0].options[i];
+          if ( this.value == 27 ) {
+            option.disabled = !option.value.includes('264');
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
+          } else if ( this.value == 173 /* hevc */ ) {
+            option.disabled = !(option.value.includes('hevc') || option.value.includes('265') );
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
+          } else {
+            option.disabled = false;
+          }
+        }
+      } else {
+        console.log('No encoder');
       }
     };
     el.onchange();
@@ -269,12 +312,23 @@ function random_WebColour() {
 }
 
 function update_estimated_ram_use() {
-  var buffer_count = document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value;
   var width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
   var height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
   var colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
 
-  document.getElementById('estimated_ram_use').innerHTML = human_filesize(buffer_count * width * height * colours, 0);
+  var min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
+  min_buffer_count += parseInt(document.querySelectorAll('input[name="newMonitor[PreEventCount]"]')[0].value);
+  var min_buffer_size = min_buffer_count * width * height * colours;
+  document.getElementById('estimated_ram_use').innerHTML = 'Min: ' + human_filesize(min_buffer_size);
+
+  var max_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]')[0].value);
+  if (max_buffer_count) {
+    var max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
+    console.log(max_buffer_size);
+    document.getElementById('estimated_ram_use').innerHTML += ' Max: ' + human_filesize(max_buffer_size);
+  } else {
+    document.getElementById('estimated_ram_use').innerHTML += ' Max: Unlimited';
+  }
 }
 
 function updateLatitudeAndLongitude(latitude, longitude) {

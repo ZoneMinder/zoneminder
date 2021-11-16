@@ -22,6 +22,12 @@
 # This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
+
+sub array_diff(\@\@) {
+  my %e = map { $_ => undef } @{$_[1]};
+  return @{[ ( grep { (exists $e{$_}) ? ( delete $e{$_} ) : ( 1 ) } @{ $_[0] } ), keys %e ] };
+}
+
 package ZoneMinder::Object;
 
 use 5.006;
@@ -212,7 +218,7 @@ sub save {
 	my $serial = eval '$'.$type.'::serial';
 	my @identified_by = eval '@'.$type.'::identified_by';
 
-	my $ac = ZoneMinder::Database::start_transaction( $local_dbh );
+	my $ac = ZoneMinder::Database::start_transaction( $local_dbh ) if $local_dbh->{AutoCommit};
 	if ( ! $serial ) {
 		my $insert = $force_insert;
 		my %serial = eval '%'.$type.'::serial';
@@ -228,8 +234,8 @@ $log->debug("No serial") if $debug;
 				if ( ! ( ( $_ = $local_dbh->prepare("DELETE FROM `$table` WHERE $where") ) and $_->execute( @$self{@identified_by} ) ) ) {
 					$where =~ s/\?/\%s/g;
 					$log->error("Error deleting: DELETE FROM $table WHERE " .  sprintf($where, map { defined $_ ? $_ : 'undef' } ( @$self{@identified_by}) ).'):' . $local_dbh->errstr);
-					$local_dbh->rollback();
-					ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+					$local_dbh->rollback() if $ac;
+					ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 					return $local_dbh->errstr;
 				} elsif ( $debug ) {
 					$log->debug("SQL succesful DELETE FROM $table WHERE $where");
@@ -261,8 +267,8 @@ $log->debug("No serial") if $debug;
 				my $error = $local_dbh->errstr;
 				$command =~ s/\?/\%s/g;
 				$log->error('SQL statement execution failed: ('.sprintf($command, , map { defined $_ ? $_ : 'undef' } ( @sql{@keys}) ).'):' . $local_dbh->errstr);
-				$local_dbh->rollback();
-				ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+				$local_dbh->rollback() if $ac;
+				ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -276,8 +282,8 @@ $log->debug("No serial") if $debug;
 				my $error = $local_dbh->errstr;
 				$command =~ s/\?/\%s/g;
 				$log->error('SQL failed: ('.sprintf($command, , map { defined $_ ? $_ : 'undef' } ( @sql{@keys, @$fields{@identified_by}}) ).'):' . $local_dbh->errstr);
-				$local_dbh->rollback();
-        ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+				$local_dbh->rollback() if $ac;
+        ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -315,8 +321,8 @@ $log->debug("No serial") if $debug;
 				$command =~ s/\?/\%s/g;
 				my $error = $local_dbh->errstr;
 				$log->error('SQL failed: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys}) ).'):' . $error);
-				$local_dbh->rollback();
-        ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+				$local_dbh->rollback() if $ac;
+        ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -334,8 +340,8 @@ $log->debug("No serial") if $debug;
 				my $error = $local_dbh->errstr;
 				$command =~ s/\?/\%s/g;
 				$log->error('SQL failed: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys}, @sql{@$fields{@identified_by}} ) ).'):' . $error) if $log;
-				$local_dbh->rollback();
-        ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+				$local_dbh->rollback() if $ac;
+        ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -344,7 +350,7 @@ $log->debug("No serial") if $debug;
 			} # end if
 		} # end if
 	} # end if
-  ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+  ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
   #$self->load();
 	#if ( $$fields{id} ) {
 		#if ( ! $ZoneMinder::Object::cache{$type}{$$self{id}} ) {
@@ -845,6 +851,42 @@ sub find_sql {
 	#$log->debug("Loading Debug:$debug $object_type ($sql) (".join(',', map { ref $_ eq 'ARRAY' ? join(',', @{$_}) : $_ } @values).')' ) if $debug;
 	return \%sql;
 } # end sub find_sql
+
+sub changes {
+  my ( $self, $params ) = @_;
+
+  my $type = ref $self;
+  if ( ! $type ) {
+    my ( $caller, undef, $line ) = caller;
+    $log->error("No type in Object::changes. self:$self from  $caller:$line");
+  }
+  my $fields = eval ('\%'.$type.'::fields');
+  if (!$fields) {
+    $log->warn('Object::changes called on an object with no fields');
+    return;
+  } # end if
+  my @results;
+
+  foreach my $field (sort keys %$fields) {
+    next if ! exists $$params{$field};
+
+    if ( ref $$self{$field} eq 'ARRAY' ) {
+      my @second = ref $$params{$field} eq 'ARRAY' ? @{$$params{$field}} : ($$params{$field});
+      if (array_diff(@{$$self{$field}}, @second)) {
+        push @results, [ $field, $$self{$field}, $$params{$field} ];
+      }
+    } elsif (
+      (!defined($$self{$field}) and defined($$params{$field}))
+        or
+      (defined($$self{$field}) and !defined($$params{$field}))
+    ) {
+      push @results, $field;
+    } elsif ( defined($$self{$field}) and defined($$params{$field}) and ($$self{$field} ne $$params{$field}) ) {
+      push @results, $field;
+    }
+  }
+  return @results;
+}
 
 sub AUTOLOAD {
   my $type = ref($_[0]);

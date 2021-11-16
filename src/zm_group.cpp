@@ -20,6 +20,7 @@
 #include "zm_group.h"
 
 #include "zm_logger.h"
+#include "zm_utils.h"
 #include <cstring>
 
 Group::Group() {
@@ -30,7 +31,7 @@ Group::Group() {
 }
 
 // The order of columns is: Id, ParentId, Name
-Group::Group(MYSQL_ROW &dbrow) {
+Group::Group(const MYSQL_ROW &dbrow) {
 	unsigned int index = 0;
 	id = atoi(dbrow[index++]);
 	parent_id = dbrow[index] ? atoi(dbrow[index]): 0; index++;
@@ -39,27 +40,27 @@ Group::Group(MYSQL_ROW &dbrow) {
 
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
 Group::Group(unsigned int p_id) {
-	id = 0;
+  id = 0;
 
-	if ( p_id ) {
-		char sql[ZM_SQL_SML_BUFSIZ];
-		snprintf(sql, sizeof(sql), "SELECT `Id`, `ParentId`, `Name` FROM `Group` WHERE `Id`=%d", p_id);
-		Debug(2,"Loading Group for %d using %s", p_id, sql);
-		zmDbRow dbrow;
-		if ( !dbrow.fetch(sql) ) {
-			Error("Unable to load group for id %d: %s", p_id, mysql_error(&dbconn));
-		} else {
-			unsigned int index = 0;
-			id = atoi(dbrow[index++]);
-      parent_id = dbrow[index] ? atoi(dbrow[index]): 0; index++;
-			strncpy(name, dbrow[index++], sizeof(name)-1);
-			Debug(1, "Loaded Group area %d '%s'", id, this->Name());
-		}
-	}
-	if ( ! id ) {
-		Debug(1,"No id passed to Group constructor.");
-		strcpy(name, "Default");
-	}
+  if (p_id) {
+    std::string sql = stringtf("SELECT `Id`, `ParentId`, `Name` FROM `Group` WHERE `Id`=%u", p_id);
+    Debug(2, "Loading Group for %u using %s", p_id, sql.c_str());
+    zmDbRow dbrow;
+    if (!dbrow.fetch(sql)) {
+      Error("Unable to load group for id %u: %s", p_id, mysql_error(&dbconn));
+    } else {
+      unsigned int index = 0;
+      id = atoi(dbrow[index++]);
+      parent_id = dbrow[index] ? atoi(dbrow[index]) : 0;
+      index++;
+      strncpy(name, dbrow[index++], sizeof(name) - 1);
+      Debug(1, "Loaded Group area %d '%s'", id, this->Name());
+    }
+  }
+  if (!id) {
+    Debug(1, "No id passed to Group constructor.");
+    strcpy(name, "Default");
+  }
 }
 
 Group::~Group() {

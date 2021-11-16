@@ -12,7 +12,13 @@
 include(Catch)
 
 set(TEST_SOURCES
-  zm_crypt.cpp)
+  zm_box.cpp
+  zm_comms.cpp
+  zm_crypt.cpp
+  zm_font.cpp
+  zm_poly.cpp
+  zm_utils.cpp
+  zm_vector2.cpp)
 
 add_executable(tests main.cpp ${TEST_SOURCES})
 
@@ -29,3 +35,9 @@ target_include_directories(tests
     ${CMAKE_CURRENT_BINARY_DIR})
 
 catch_discover_tests(tests)
+
+add_custom_command(TARGET tests
+  PRE_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  ${CMAKE_CURRENT_SOURCE_DIR}/data/ ${CMAKE_CURRENT_BINARY_DIR}/data/
+  BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/data/)

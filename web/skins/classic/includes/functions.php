@@ -233,6 +233,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getCycleHTML($view);
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
+          echo getSnapshotsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getHeaderFlipHTML();
         echo '</ul>';
@@ -264,8 +265,9 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getSysLoadHTML();
           echo getDbConHTML();
           echo getStorageHTML();
-          echo getShmHTML();
-          echo getLogIconHTML();
+          echo getRamHTML();
+          #echo getShmHTML();
+          #echo getLogIconHTML();
           ?>
         </ul>
 
@@ -322,7 +324,8 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getSysLoadHTML();
             echo getDbConHTML();
             echo getStorageHTML();
-            echo getShmHTML();
+            echo getRamHTML();
+            #echo getShmHTML();
             echo getLogIconHTML();
             ?>
           </ul>
@@ -361,6 +364,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getCycleHTML($view);
             echo getMontageHTML($view);
             echo getMontageReviewHTML($view);
+            echo getSnapshotsHTML($view);
             echo getRprtEvntAuditHTML($view);
           echo '</ul>';
       }
@@ -380,6 +384,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 // Returns the html representing the current unix style system load
 function getSysLoadHTML() {
   $result = '';
+  if ( !canView('System') ) return $result;
 
   $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
   $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
@@ -392,7 +397,7 @@ function getSysLoadHTML() {
 // Returns the html representing the current number of connections made to the database
 function getDbConHTML() {
   $result = '';
-  
+  if ( !canView('System') ) return $result;
   $connections = dbFetchOne('SHOW status WHERE variable_name=\'threads_connected\'', 'Value');
   $max_connections = dbFetchOne('SHOW variables WHERE variable_name=\'max_connections\'', 'Value');
   $percent_used = $max_connections ? 100 * $connections / $max_connections : 100;
@@ -409,6 +414,7 @@ function getDbConHTML() {
 // Returns an html dropdown showing capacity of all storage areas
 function getStorageHTML() {
   $result = '';
+  if ( !canView('System') ) return $result;
 
   $func = function($S) {
     $class = '';
@@ -452,9 +458,41 @@ function getStorageHTML() {
   return $result;
 }
 
+function getRamHTML() {
+  $result = '';
+  if ( !canView('System') ) return $result;
+  $contents = file_get_contents('/proc/meminfo');
+  preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
+  $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
+  $mem_used = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
+  $mem_used_percent = (int)(100*$mem_used/$meminfo['MemTotal']);
+  $used_class = '';
+  if ($mem_used_percent > 95) {
+    $used_class = 'text-danger';
+  } else if ($mem_used_percent > 90) {
+    $used_class = 'text-warning';
+  }
+  $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
+  $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
+  $swap_class = '';
+  if ($swap_used_percent > 95) {
+    $swap_class = 'text-danger';
+  } else if ($swap_used_percent > 90) {
+    $swap_class = 'text-warning';
+  }
+
+  $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
+    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> '.
+    '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> '.
+    '</li>'.PHP_EOL;
+  
+  return $result;
+}
+
 // Returns the html representing the current capacity of mapped memory filesystem (usually /dev/shm)
 function getShmHTML() {
   $result = '';
+  if ( !canView('System') ) return $result;
   
   $shm_percent = getDiskPercent(ZM_PATH_MAP);
   $shm_total_space = disk_total_space(ZM_PATH_MAP);
@@ -516,6 +554,7 @@ function getBandwidthHTML($bandwidth_options, $user) {
 // Returns the html representing the version of ZoneMinder
 function getZMVersionHTML() {
   $result = '';
+  if ( !canView('System') ) return $result;
   $content = '';
   
   if ( ZM_DYN_DB_VERSION && (ZM_DYN_DB_VERSION != ZM_VERSION) ) {  // Must upgrade before proceeding
@@ -638,7 +677,8 @@ function getDevicesHTML() {
 // Returns the html representing the Groups menu item
 function getGroupsHTML($view) {
   $result = '';
-  
+  if ( !canView('Groups') ) return $result;
+
   $class = $view == 'groups' ? ' selected' : '';
   $result .= '<li id="getGroupsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
   
@@ -648,6 +688,7 @@ function getGroupsHTML($view) {
 // Returns the html representing the Filter menu item
 function getFilterHTML($view) {
   $result = '';
+  if ( !canView('Events') ) return $result;
   
   $class = $view == 'filter' ? ' selected' : '';
   $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
@@ -672,7 +713,7 @@ function getMontageHTML($view) {
   $result = '';
   
   if ( canView('Stream') ) {
-    $class = $view == 'cycle' ? ' selected' : '';
+    $class = $view == 'montage' ? ' selected' : '';
     $result .= '<li id="getMontageHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
   
@@ -701,6 +742,18 @@ function getMontageReviewHTML($view) {
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
     $class = $view == 'montagereview' ? ' selected' : '';
     $result .= '<li id="getMontageReviewHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+  }
+  
+  return $result;
+}
+
+// Returns the html representing the Montage menu item
+function getSnapshotsHTML($view) {
+  $result = '';
+  
+  if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
+    $class = $view == 'snapshots' ? ' selected' : '';
+    $result .= '<li id="getSnapshotsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -746,25 +799,23 @@ function getAccountCircleHTML($skin, $user=null) {
 function getStatusBtnHTML($status) {
   $result = '';
   
-  if ( canEdit('System') ) {
-    //$result .= '<li class="nav-item dropdown">'.PHP_EOL;
+  if (canEdit('System')) {
     $result .= '<li id="getStatusBtnHTML">'.PHP_EOL;
     $result .= '<button type="button" class="btn btn-default navbar-btn" id="stateModalBtn">' .$status. '</button>'.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
-    //$result .= '</li>'.PHP_EOL;
 
-    if ( ZM_SYSTEM_SHUTDOWN ) {
-      $result .= '<li class="navbar-text pr-2 align-self-center">'.PHP_EOL;
-      $result .= '<button class="btn btn-outline" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate("Shutdown"). '" ><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
+    if (ZM_SYSTEM_SHUTDOWN) {
+      $result .= '<li class="pr-2">'.PHP_EOL;
+      $result .= '<button id="shutdownButton" class="btn btn-default navbar-btn" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate('Shutdown'). '"><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
       $result .= '</li>'.PHP_EOL;
      } 
 
-  } else if ( canView('System') ) {
+  } else if (canView('System')) {
     $result .= '<li id="getStatusBtnHTML" class="navbar-text">'.PHP_EOL;
     $result .= $status.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -863,9 +914,9 @@ function xhtmlFooter() {
   $viewJsFile = getSkinFile('views/js/'.$basename.'.js');
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 ?>
-  <script src="skins/<?php echo $skin; ?>/js/jquery.min.js"></script>
+  <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
-  <script src="skins/<?php echo $skin; ?>/js/bootstrap.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
   'js/bootstrap-table.min.js',
@@ -880,7 +931,6 @@ function xhtmlFooter() {
   'js/Server.js',
 ), true );
 ?>
-  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
 <?php
   if ( $view == 'event' ) {
 ?>
@@ -894,7 +944,7 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
 ?>
-  <script nonce="<?php echo $cspNonce; ?>">
+  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();
 <?php
   if ( $skinJsPhpFile ) {
     require_once( $skinJsPhpFile );

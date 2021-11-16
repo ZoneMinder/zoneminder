@@ -202,7 +202,7 @@ function toPercent(field, maxValue) {
       field.value = 100;
     }
   }
-  field.setAttribute('step', 0.01);
+  field.setAttribute('step', 'any');
   field.setAttribute('max', 100);
 }
 
@@ -661,6 +661,7 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    monitors[i].setScale('auto');
     monitors[i].start(delay);
   }
 

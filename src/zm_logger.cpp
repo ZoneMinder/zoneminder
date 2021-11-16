@@ -20,11 +20,11 @@
 #include "zm_logger.h"
 
 #include "zm_db.h"
+#include "zm_time.h"
 #include "zm_utils.h"
-
 #include <libgen.h>
 #include <syslog.h>
-#include <sys/time.h>
+#include <unistd.h>
 
 #ifdef __FreeBSD__
 #include <sys/thr.h>
@@ -43,11 +43,11 @@ Logger::IntMap Logger::smSyslogPriorities;
 
 void Logger::usrHandler(int sig) {
   Logger *logger = fetch();
-  if ( sig == SIGUSR1 )
+  if (sig == SIGUSR1)
     logger->level(logger->level()+1);
-  else if ( sig == SIGUSR2 )
+  else if (sig == SIGUSR2)
     logger->level(logger->level()-1);
-  Info("Logger - Level changed to %d", logger->level());
+  Info("Logger - Level changed to %d %s", logger->level(), smCodes[logger->level()].c_str());
 }
 
 Logger::Logger() :
@@ -126,24 +126,24 @@ void Logger::initialise(const std::string &id, const Options &options) {
 
   Level tempLevel = INFO;
   Level tempTerminalLevel = mTerminalLevel;
-  Level tempDatabaseLevel = mDatabaseLevel;
-  Level tempFileLevel = mFileLevel;
-  Level tempSyslogLevel = mSyslogLevel;
 
   if ( options.mTerminalLevel != NOOPT )
     tempTerminalLevel = options.mTerminalLevel;
 
-  // DEBUG1 == 1.  So >= DEBUG1, we set to DEBUG9?! Why?
+  // DEBUG1 == 1.  So >= DEBUG1, we set to DEBUG9?! Why? icon: because log_level_database only goes up to debug.
+  Level tempDatabaseLevel;
   if ( options.mDatabaseLevel != NOOPT )
     tempDatabaseLevel = options.mDatabaseLevel;
   else
     tempDatabaseLevel = config.log_level_database >= DEBUG1 ? DEBUG9 : config.log_level_database;
 
+  Level tempFileLevel;
   if ( options.mFileLevel != NOOPT )
     tempFileLevel = options.mFileLevel;
   else
     tempFileLevel = config.log_level_file >= DEBUG1 ? DEBUG9 : config.log_level_file;
 
+  Level tempSyslogLevel;
   if ( options.mSyslogLevel != NOOPT )
     tempSyslogLevel = options.mSyslogLevel;
   else
@@ -166,7 +166,7 @@ void Logger::initialise(const std::string &id, const Options &options) {
     tempSyslogLevel = atoi(envPtr);
 
   if ( config.log_debug ) {
-    StringVector targets = split(config.log_debug_target, "|");
+    StringVector targets = Split(config.log_debug_target, "|");
     for ( unsigned int i = 0; i < targets.size(); i++ ) {
       const std::string &target = targets[i];
       if ( target == mId || target == "_"+mId || target == "_"+mIdRoot || target == "" ) {
@@ -296,25 +296,23 @@ const std::string &Logger::id(const std::string &id) {
 }
 
 Logger::Level Logger::level(Logger::Level level) {
-  if ( level > NOOPT ) {
-    level = limit(level);
-    if ( mLevel != level )
-      mLevel = level;
+  if (level > NOOPT) {
+    mLevel = limit(level);
 
     mEffectiveLevel = NOLOG;
-    if ( mTerminalLevel > mEffectiveLevel )
+    if (mTerminalLevel > mEffectiveLevel)
       mEffectiveLevel = mTerminalLevel;
-    if ( mDatabaseLevel > mEffectiveLevel )
+    if (mDatabaseLevel > mEffectiveLevel)
       mEffectiveLevel = mDatabaseLevel;
-    if ( mFileLevel > mEffectiveLevel )
+    if (mFileLevel > mEffectiveLevel)
       mEffectiveLevel = mFileLevel;
-    if ( mSyslogLevel > mEffectiveLevel )
+    if (mSyslogLevel > mEffectiveLevel)
       mEffectiveLevel = mSyslogLevel;
-    if ( mEffectiveLevel > mLevel)
+    if (mEffectiveLevel > mLevel)
       mEffectiveLevel = mLevel;
 
     // DEBUG levels should flush
-    if ( mLevel > INFO )
+    if (mLevel > INFO)
       mFlush = true;
   }
   return mLevel;
@@ -324,9 +322,7 @@ Logger::Level Logger::terminalLevel(Logger::Level terminalLevel) {
   if ( terminalLevel > NOOPT ) {
     if ( !mHasTerminal )
       terminalLevel = NOLOG;
-    terminalLevel = limit(terminalLevel);
-    if ( mTerminalLevel != terminalLevel )
-      mTerminalLevel = terminalLevel;
+    mTerminalLevel = limit(terminalLevel);
   }
   return mTerminalLevel;
 }
@@ -419,7 +415,7 @@ void Logger::closeSyslog() {
   (void) closelog();
 }
 
-void Logger::logPrint(bool hex, const char * const filepath, const int line, const int level, const char *fstring, ...) {
+void Logger::logPrint(bool hex, const char *filepath, int line, int level, const char *fstring, ...) {
   if (level > mEffectiveLevel) return;
   if (level < PANIC || level > DEBUG9)
     Panic("Invalid logger level %d", level);
@@ -427,31 +423,22 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   log_mutex.lock();
   // Can we save some cycles by having these as members and not allocate them on the fly? I think so.
   char            timeString[64];
-  char            logString[8192];
+  char            logString[4096]; // SQL TEXT can hold 64k so we could go up to 32k here but why?
   va_list         argPtr;
-  struct timeval  timeVal;
 
   const char *base = strrchr(filepath, '/');
   const char *file = base ? base+1 : filepath;
   const char *classString = smCodes[level].c_str();
 
-  gettimeofday(&timeVal, nullptr);
+  SystemTimePoint now = std::chrono::system_clock::now();
+  time_t now_sec = std::chrono::system_clock::to_time_t(now);
+  Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
+      now.time_since_epoch() - std::chrono::duration_cast<Seconds>(now.time_since_epoch()));
 
-#if 0
-  if ( logRuntime ) {
-    static struct timeval logStart;
-
-    subtractTime( &timeVal, &logStart );
-
-    snprintf( timeString, sizeof(timeString), "%ld.%03ld", timeVal.tv_sec, timeVal.tv_usec/1000 );
-  } else {
-#endif
-    char *timePtr = timeString;
-    timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime(&timeVal.tv_sec));
-    snprintf(timePtr, sizeof(timeString)-(timePtr-timeString), ".%06ld", timeVal.tv_usec);
-#if 0
-  }
-#endif
+  char *timePtr = timeString;
+  tm now_tm = {};
+  timePtr += strftime(timePtr, sizeof(timeString), "%x %H:%M:%S", localtime_r(&now_sec, &now_tm));
+  snprintf(timePtr, sizeof(timeString) - (timePtr - timeString), ".%06" PRIi64, static_cast<int64>(now_frac.count()));
 
   pid_t tid;
 #ifdef __FreeBSD__
@@ -500,6 +487,11 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   }
   va_end(argPtr);
   char *syslogEnd = logPtr;
+
+  if ( static_cast<size_t>(logPtr - logString) >= sizeof(logString) ) {
+    // vsnprintf won't exceed the the buffer, but it might hit the end.
+    logPtr = logString + sizeof(logString)-3;
+  }
   strncpy(logPtr, "]\n", sizeof(logString)-(logPtr-logString));
 
   if (level <= mTerminalLevel) {
@@ -510,32 +502,31 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
   if (level <= mFileLevel) {
     if (!mLogFileFP) {
       // FIXME unlocking here is a problem. Another thread could sneak in.
-      log_mutex.unlock();
+      // We are using a recursive mutex so unlocking shouldn't be neccessary
+      //log_mutex.unlock();
       // We do this here so that we only create the file if we ever write to it.
       openFile();
-      log_mutex.lock();
+      //log_mutex.lock();
     }
     if (mLogFileFP) {
       fputs(logString, mLogFileFP);
       if (mFlush) fflush(mLogFileFP);
-    } else {
-      puts("Logging to file, but failed to open it\n");
+    } else if (mTerminalLevel != NOLOG) {
+      puts("Logging to file but failed to open it\n");
     }
   }  // end if level <= mFileLevel
 
   if (level <= mDatabaseLevel) {
     if (zmDbConnected) {
-      int syslogSize = syslogEnd-syslogStart;
-      char escapedString[(syslogSize*2)+1];
-      mysql_real_escape_string(&dbconn, escapedString, syslogStart, syslogSize);
+      std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
 
       std::string sql_string = stringtf(
           "INSERT INTO `Logs` "
           "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
           " VALUES "
-          "( %ld.%06ld, '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-          timeVal.tv_sec, timeVal.tv_usec, mId.c_str(), staticConfig.SERVER_ID, tid, level, classString, escapedString, file, line
-          );
+          "( %ld.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
+          now_sec, static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
+          escapedString.c_str(), file, line);
       dbQueue.push(std::move(sql_string));
     } else {
       puts("Db is closed");
@@ -559,6 +550,7 @@ void Logger::logPrint(bool hex, const char * const filepath, const int line, con
 void logInit(const std::string &id, const Logger::Options &options) {
   if (Logger::smInstance) {
     delete Logger::smInstance;
+    Logger::smInstance = nullptr;
   }
 
   Logger::smInstance = new Logger();

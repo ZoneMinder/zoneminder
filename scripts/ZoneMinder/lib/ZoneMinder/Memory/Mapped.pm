@@ -81,7 +81,7 @@ sub zmMemAttach {
     return undef;
   }
   if ( defined($monitor->{MMapAddr}) ) {
-    Debug("zmMemAttach already attached at $monitor->{MMapAddr} for $$monitor{Id}");
+    Debug(3, "zmMemAttach already attached at $monitor->{MMapAddr} for $$monitor{Id}");
     return !undef;
   }
 
@@ -168,11 +168,11 @@ sub zmMemPut {
 }
 
 sub zmMemClean {
-  Debug('Removing memory map files');
+  Debug(3, 'Removing memory map files');
   my $mapPath = $Config{ZM_PATH_MAP}.'/zm.mmap.*';
   foreach my $mapFile( glob( $mapPath ) ) {
     ( $mapFile ) = $mapFile =~ /^(.+)$/;
-    Debug("Removing memory map file '$mapFile'");
+    Debug(3, "Removing memory map file '$mapFile'");
     unlink($mapFile);
   }
 }

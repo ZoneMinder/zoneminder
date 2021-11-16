@@ -188,32 +188,32 @@ while ( $event_row = dbFetchNext($results) ) {
     <div class="col-md-3">
       <div class="form-group">
         <label for="exportDetail"><?php echo translate('ExportDetails') ?>
-          <input type="checkbox" name="exportDetail" value="1"<?php if ( !empty($_REQUEST['exportDetail']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+          <input type="checkbox" name="exportDetail" value="1"<?php if ( !empty($_REQUEST['exportDetail']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
         </label>
       </div>
       <div class="form-group">
         <label for="exportFrames"><?php echo translate('ExportFrames') ?>
-          <input type="checkbox" name="exportFrames" value="1"<?php if ( !empty($_REQUEST['exportFrames']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+          <input type="checkbox" name="exportFrames" value="1"<?php if ( !empty($_REQUEST['exportFrames']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
         </label>
       </div>
     </div>
     <div class="col-md-3">
       <div class="form-group">
         <label for="exportImages"><?php echo translate('ExportImageFiles') ?>
-          <input type="checkbox" name="exportImages" value="1"<?php if ( !empty($_REQUEST['exportImages']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+          <input type="checkbox" name="exportImages" value="1"<?php if ( !empty($_REQUEST['exportImages']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
 
         </label>
        </div>
        <div class="form-group">
          <label for="exportVideo"><?php echo translate('ExportVideoFiles') ?>
-         <input type="checkbox" name="exportVideo" value="1"<?php if ( !empty($_REQUEST['exportVideo']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+         <input type="checkbox" name="exportVideo" value="1"<?php if ( !empty($_REQUEST['exportVideo']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
          </label>
        </div>
     </div>
     <div class="col-md-3">
       <div class="form-group">
         <label for="exportMisc"><?php echo translate('ExportMiscFiles') ?>
-        <input type="checkbox" name="exportMisc" value="1"<?php if ( !empty($_REQUEST['exportMisc']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+        <input type="checkbox" name="exportMisc" value="1"<?php if ( !empty($_REQUEST['exportMisc']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
         </label>
       </div>
     </div>
@@ -224,7 +224,7 @@ while ( $event_row = dbFetchNext($results) ) {
             array('tar'=>translate('ExportFormatTar'), 'zip' => translate('ExportFormatZip')),
             (isset($_REQUEST['exportFormat'])?$_REQUEST['exportFormat']:'zip'), # default to zip
             array(),
-            array('data-on-click-this'=>'configureExportButton')
+            array('data-on-click'=>'configureExportButton')
           ); ?>
         </label>
       </div>
@@ -234,7 +234,7 @@ while ( $event_row = dbFetchNext($results) ) {
             array('1'=>translate('Yes'), '0' => translate('No')),
             (isset($_REQUEST['exportCompress'])?$_REQUEST['exportCompress']:'0'), # default to no
             array(),
-            array('data-on-click-this'=>'configureExportButton')
+            array('data-on-click'=>'configureExportButton')
           ); ?>
         </label>
       </div>

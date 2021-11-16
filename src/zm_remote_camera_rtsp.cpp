@@ -23,8 +23,6 @@
 #include "zm_monitor.h"
 #include "zm_packet.h"
 
-#if HAVE_LIBAVFORMAT
-
 RemoteCameraRtsp::RemoteCameraRtsp(
     const Monitor *monitor,
     const std::string &p_method,
@@ -48,7 +46,6 @@ RemoteCameraRtsp::RemoteCameraRtsp(
       p_brightness, p_contrast, p_hue, p_colour,
       p_capture, p_record_audio),
   rtsp_describe(p_rtsp_describe),
-  rtspThread(0),
   frameCount(0)
 {
   if ( p_method == "rtpUni" )
@@ -114,29 +111,26 @@ void RemoteCameraRtsp::Terminate() {
 }
 
 int RemoteCameraRtsp::Connect() {
-  rtspThread = new RtspThread(monitor->Id(), method, protocol, host, port, path, auth, rtsp_describe);
-
-  rtspThread->start();
+  rtspThread = zm::make_unique<RtspThread>(monitor->Id(), method, protocol, host, port, path, auth, rtsp_describe);
 
   return 0;
 }
 
 int RemoteCameraRtsp::Disconnect() {
-  if ( rtspThread ) {
-    rtspThread->stop();
-    rtspThread->join();
-    delete rtspThread;
-    rtspThread = nullptr;
+  if (rtspThread) {
+    rtspThread->Stop();
+    rtspThread.reset();
   }
   return 0;
 }
 
 int RemoteCameraRtsp::PrimeCapture() {
   Debug(2, "Waiting for sources");
-  for ( int i = 0; (i < 100) && !rtspThread->hasSources(); i++ ) {
-    usleep(100000);
+  for (int i = 0; i < 100 && !rtspThread->hasSources(); i++) {
+    std::this_thread::sleep_for(Microseconds(100));
   }
-  if ( !rtspThread->hasSources() ) {
+
+  if (!rtspThread->hasSources()) {
     Error("No RTSP sources");
     return -1;
   }
@@ -180,12 +174,8 @@ int RemoteCameraRtsp::PrimeCapture() {
     Debug(3, "Unable to locate audio stream");
 
   // Get a pointer to the codec context for the video stream
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  mVideoCodecContext = avcodec_alloc_context3(NULL);
+  mVideoCodecContext = avcodec_alloc_context3(nullptr);
   avcodec_parameters_to_context(mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar);
-#else
-  mVideoCodecContext = mFormatContext->streams[mVideoStreamId]->codec;
-#endif
 
   // Find the decoder for the video stream
   AVCodec *codec = avcodec_find_decoder(mVideoCodecContext->codec_id);
@@ -193,28 +183,20 @@ int RemoteCameraRtsp::PrimeCapture() {
     Panic("Unable to locate codec %d decoder", mVideoCodecContext->codec_id);
 
   // Open codec
-#if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
-  if ( avcodec_open(mVideoCodecContext, codec) < 0 )
-#else
-  if ( avcodec_open2(mVideoCodecContext, codec, 0) < 0 )
-#endif
+  if ( avcodec_open2(mVideoCodecContext, codec, nullptr) < 0 )
     Panic("Can't open codec");
 
-#if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   int pSize = av_image_get_buffer_size(imagePixFormat, width, height, 1);
-#else
-  int pSize = avpicture_get_size(imagePixFormat, width, height);
-#endif
 
   if ( (unsigned int)pSize != imagesize ) {
-    Fatal("Image size mismatch. Required: %d Available: %d", pSize, imagesize);
+    Fatal("Image size mismatch. Required: %d Available: %llu", pSize, imagesize);
   }
 
   return 1;
 }  // end PrimeCapture
 
 int RemoteCameraRtsp::PreCapture() {
-  if ( !rtspThread->isRunning() )
+  if (!rtspThread || rtspThread->IsStopped())
     return -1;
   if ( !rtspThread->hasSources() ) {
     Error("Cannot precapture, no RTP sources");
@@ -223,18 +205,18 @@ int RemoteCameraRtsp::PreCapture() {
   return 1;
 }
 
-int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
+int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   int frameComplete = false;
-  AVPacket *packet = &zm_packet.packet;
-  if ( !zm_packet.image ) {
+  AVPacket *packet = &zm_packet->packet;
+  if ( !zm_packet->image ) {
     Debug(1, "Allocating image %dx%d %d colours %d", width, height, colours, subpixelorder);
-    zm_packet.image = new Image(width, height, colours, subpixelorder);
+    zm_packet->image = new Image(width, height, colours, subpixelorder);
   }
 
   
-  while ( !frameComplete ) {
+  while (!frameComplete) {
     buffer.clear();
-    if ( !rtspThread->isRunning() )
+    if (!rtspThread || rtspThread->IsStopped())
       return -1;
 
     if ( rtspThread->getFrame(buffer) ) {
@@ -259,7 +241,7 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
           continue;
         } else if ( nalType == 5 ) {
           packet->flags |= AV_PKT_FLAG_KEY;
-          zm_packet.keyframe = 1;
+          zm_packet->keyframe = 1;
         // IDR
           buffer += lastSps;
           buffer += lastPps;
@@ -280,35 +262,23 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
         gettimeofday(&now, NULL);
         packet->pts = packet->dts = now.tv_sec*1000000+now.tv_usec;
 
-        int bytes_consumed = zm_packet.decode(mVideoCodecContext);
+        int bytes_consumed = zm_packet->decode(mVideoCodecContext);
         if ( bytes_consumed < 0 ) {
           Error("Error while decoding frame %d", frameCount);
           //Hexdump(Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size());
         }
         buffer -= packet->size;
         if ( bytes_consumed ) {
-          zm_dump_video_frame(zm_packet.in_frame, "remote_rtsp_decode");
-          if ( ! mVideoStream->
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-              codecpar
-#else
-              codec
-#endif
-              ->width ) {
+          zm_dump_video_frame(zm_packet->in_frame, "remote_rtsp_decode");
+          if (!mVideoStream->codecpar->width) {
             zm_dump_codec(mVideoCodecContext);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
             zm_dump_codecpar(mVideoStream->codecpar);
-            mVideoStream->codecpar->width = zm_packet.in_frame->width;
-            mVideoStream->codecpar->height = zm_packet.in_frame->height;
-#else
-            mVideoStream->codec->width = zm_packet.in_frame->width;
-            mVideoStream->codec->height = zm_packet.in_frame->height;
-#endif
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+            mVideoStream->codecpar->width = zm_packet->in_frame->width;
+            mVideoStream->codecpar->height = zm_packet->in_frame->height;
             zm_dump_codecpar(mVideoStream->codecpar);
-#endif
           }
-          zm_packet.codec_type = mVideoCodecContext->codec_type;
+          zm_packet->codec_type = mVideoCodecContext->codec_type;
+          zm_packet->stream = mVideoStream;
           frameComplete = true;
           Debug(2, "Frame: %d - %d/%d", frameCount, bytes_consumed, buffer.size());
           packet->data = nullptr;
@@ -324,4 +294,3 @@ int RemoteCameraRtsp::Capture(ZMPacket &zm_packet) {
 int RemoteCameraRtsp::PostCapture() {
   return 1;
 }
-#endif // HAVE_LIBAVFORMAT

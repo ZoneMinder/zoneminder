@@ -8,6 +8,7 @@
 
 #include "zm_config.h"
 #include "zm_rtsp_server_adts_source.h"
+#include "zm_rtsp_server_adts_fifo_source.h"
 #include <sstream>
 
 #if HAVE_RTSP_SERVER
@@ -15,16 +16,20 @@
 //   BaseServerMediaSubsession
 // ---------------------------------
 FramedSource* BaseServerMediaSubsession::createSource(
-    UsageEnvironment& env, FramedSource* inputSource, const std::string& format)
+    UsageEnvironment& env,
+    FramedSource* inputSource,
+    const std::string& format)
 {
 	FramedSource* source = nullptr;
-	if ( format == "video/MP2T" ) {
+	if (format == "video/MP2T") {
 		source = MPEG2TransportStreamFramer::createNew(env, inputSource);
-	} else if ( format == "video/H264" ) {
-		source = H264VideoStreamDiscreteFramer::createNew(env, inputSource);
+	} else if (format == "video/H264") {
+		source = H264VideoStreamDiscreteFramer::createNew(env, inputSource
+        /*Boolean includeStartCodeInOutput, Boolean insertAccessUnitDelimiters*/
+        );
 	}
 #if LIVEMEDIA_LIBRARY_VERSION_INT > 1414454400
-	else if ( format == "video/H265" ) {
+	else if (format == "video/H265") {
 		source = H265VideoStreamDiscreteFramer::createNew(env, inputSource);
 	}
 #endif
@@ -49,27 +54,28 @@ RTPSink*  BaseServerMediaSubsession::createSink(
     ) {
 
 	RTPSink* sink = nullptr;
-	if ( format == "video/MP2T" ) {
+	if (format == "video/MP2T") {
 		sink = SimpleRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic, 90000, "video", "MP2T", 1, true, false);
-	} else if ( format == "video/H264" ) {
+	} else if (format == "video/H264") {
 		sink = H264VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
-	} else if ( format == "video/VP8" ) {
+	} else if (format == "video/VP8") {
 		sink = VP8VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
 	}
 #if LIVEMEDIA_LIBRARY_VERSION_INT > 1414454400
-	else if ( format == "video/VP9" ) {
+	else if (format == "video/VP9") {
 		sink = VP9VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
-	} else if ( format == "video/H265" ) {
+	} else if (format == "video/H265") {
 		sink = H265VideoRTPSink::createNew(env, rtpGroupsock, rtpPayloadTypeIfDynamic);
+  }
 #endif	
-  } else if ( format == "audio/AAC" ) {
-    ADTS_ZoneMinderDeviceSource *adts_source = (ADTS_ZoneMinderDeviceSource *)(m_replicator->inputSource());
+  else if (format == "audio/AAC") {
+    ADTS_ZoneMinderFifoSource *adts_source = (ADTS_ZoneMinderFifoSource *)(m_replicator->inputSource());
     sink = MPEG4GenericRTPSink::createNew(env, rtpGroupsock,
         rtpPayloadTypeIfDynamic,
-        adts_source->samplingFrequency(),
+        adts_source->getFrequency(),
         "audio", "AAC-hbr",
         adts_source->configStr(),
-        adts_source->numChannels()
+        adts_source->getChannels()
         );
   } else {
     Error("unknown format");
@@ -83,24 +89,20 @@ RTPSink*  BaseServerMediaSubsession::createSink(
 }
 
 char const* BaseServerMediaSubsession::getAuxLine(
-    ZoneMinderDeviceSource* source,
+    ZoneMinderFifoSource* source,
     unsigned char rtpPayloadType
     ) {
 	const char* auxLine = nullptr;
-	if ( source ) {
+	if (source) {
 		std::ostringstream os; 
 		os << "a=fmtp:" << int(rtpPayloadType) << " ";
 		os << source->getAuxLine();
-		os << "\r\n";
-		int width = source->getWidth();
-		int height = source->getHeight();
-		if ( (width > 0) && (height>0) ) {
-			os << "a=x-dimensions:" << width << "," <<  height  << "\r\n";
-		}
+		//os << "\r\n";
 		auxLine = strdup(os.str().c_str());
-    Debug(1, "auxLine: %s", auxLine);
+    Debug(1, "BaseServerMediaSubsession::auxLine: %s", auxLine);
   } else {
-    Error("No source auxLine: ");
+    Error("No source auxLine:");
+    return "";
 	}
 	return auxLine;
 }

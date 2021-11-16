@@ -23,6 +23,7 @@
 // Static JavaScript should go in skin.js
 //
 
+global $user;
 ?>
 var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
@@ -43,7 +44,7 @@ var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 var canView = {};
 var canEdit = {};
 <?php
-$perms = array('Stream', 'Events', 'Control', 'Monitors', 'Groups', 'System', 'Devices');
+$perms = array('Stream', 'Events', 'Control', 'Monitors', 'Groups', 'Snapshots', 'System', 'Devices');
 foreach ( $perms as $perm ) {
 ?>
   canView["<?php echo $perm ?>"] = <?php echo canView($perm)?'true':'false' ?>;
@@ -53,6 +54,7 @@ foreach ( $perms as $perm ) {
 ?>
 
 var ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
+var SCALE_BASE = <?php echo SCALE_BASE ?>;
 
 var refreshParent = <?php
 if ( ! empty($refreshParent) ) {
@@ -82,4 +84,9 @@ var imagePrefix = "<?php echo '?view=image&eid=' ?>";
 
 var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 var auth_relay = '<?php echo get_auth_relay() ?>';
+var user = <?php
+$user_without_password = $user;
+unset($user_without_password['Password']);
+echo json_encode($user_without_password);
+?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;

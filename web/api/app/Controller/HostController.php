@@ -137,7 +137,7 @@ class HostController extends AppController {
   private function _getCredentials($generate_refresh_token=false, $token='', $username='') {
 
     if ( !ZM_OPT_USE_AUTH ) {
-      ZM\Error('OPT_USE_AUTH is turned off. Tokens will be null');
+      ZM\Debug('OPT_USE_AUTH is turned off. Tokens will be null');
       return;
     }
       

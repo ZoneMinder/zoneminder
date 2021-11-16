@@ -81,10 +81,10 @@ public:
   virtual void Terminate() = 0;
   virtual int Connect() = 0;
   virtual int Disconnect() = 0;
-  virtual int PreCapture() { return 0; };
-  virtual int PrimeCapture() { return 0; };
-  virtual int Capture(ZMPacket &p) = 0;
-  virtual int PostCapture() = 0;
+  virtual int PreCapture() override { return 0; };
+  virtual int PrimeCapture() override { return 0; };
+  virtual int Capture(std::shared_ptr<ZMPacket> &p) override = 0;
+  virtual int PostCapture() override = 0;
   int Read(int fd, char*buf, int size);
 };
 

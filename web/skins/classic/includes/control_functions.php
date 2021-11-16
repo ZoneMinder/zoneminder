@@ -21,13 +21,14 @@
 
 function controlFocus($monitor, $cmds) {
   $control = $monitor->Control();
+  $cmd = $control->CanFocusCon() ? 'data-on-mousedown="controlCmd" data-on-mouseup="controlCmd"' : 'data-on-click="controlCmd"';
   ob_start();
 ?>
 <div class="arrowControl focusControls">
   <div class="arrowLabel"><?php echo translate('Near') ?></div>
-  <button type="button" class="longArrowBtn upBtn" value="<?php echo $cmds['FocusNear'] ?>" data-on-click="controlCmd" data-xtell="0" data-ytell="-1"></button>
+  <button type="button" class="longArrowBtn upBtn" value="<?php echo $cmds['FocusNear'] ?>" <?php echo $cmd ?> data-xtell="0" data-ytell="-1"></button>
   <button type="button" class="arrowCenter"<?php if ( $control->CanFocusCon() ) { ?> data-on-click="controlCmd" value="<?php echo $cmds['FocusStop'] ?>"<?php } ?>><?php echo translate('Focus') ?></button>
-  <button type="button" class="longArrowBtn downBtn" data-on-click="controlCmd" value="<?php echo $cmds['FocusFar'] ?>" data-xtell="0" data-ytell="1"></button>
+  <button type="button" class="longArrowBtn downBtn" value="<?php echo $cmds['FocusFar'] ?>" <?php echo $cmd ?> data-xtell="0" data-ytell="1"></button>
   <div class="arrowLabel"><?php echo translate('Far') ?></div>
 <?php
   if ( $control->CanAutoFocus() ) {
@@ -44,13 +45,14 @@ function controlFocus($monitor, $cmds) {
 
 function controlZoom($monitor, $cmds) {
   $control = $monitor->Control();
+  $cmd = $control->CanZoomCon() ? 'data-on-mousedown="controlCmd" data-on-mouseup="controlCmd"' : 'data-on-click="controlCmd"';
   ob_start();
 ?>
 <div class="arrowControl zoomControls">
   <div class="arrowLabel"><?php echo translate('Tele') ?></div>
-  <button type="button" class="longArrowBtn upBtn" data-on-click="controlCmd" value="<?php echo $cmds['ZoomTele'] ?>" data-xtell="0" data-ytell="-1"></button>
+  <button type="button" class="longArrowBtn upBtn" <?php echo $cmd ?> value="<?php echo $cmds['ZoomTele'] ?>" data-xtell="0" data-ytell="-1"></button>
   <button type="button" class="arrowCenter"<?php if ( $control->CanZoomCon() ) { ?> data-on-click="controlCmd" value="<?php echo $cmds['ZoomStop'] ?>"<?php } ?>><?php echo translate('Zoom') ?></button>
-  <button type="button" class="longArrowBtn downBtn" data-on-click="controlCmd" value="<?php echo $cmds['ZoomWide'] ?>" data-xtell="0" data-ytell="1"></button>
+  <button type="button" class="longArrowBtn downBtn" <?php echo $cmd ?> value="<?php echo $cmds['ZoomWide'] ?>" data-xtell="0" data-ytell="1"></button>
   <div class="arrowLabel"><?php echo translate('Wide') ?></div>
 <?php
   if ( $control->CanAutoZoom() ) {
@@ -66,13 +68,14 @@ function controlZoom($monitor, $cmds) {
 
 function controlIris($monitor, $cmds) {
   $control = $monitor->Control();
+  $cmd = $control->CanIrisCon() ? 'data-on-mousedown="controlCmd" data-on-mouseup="controlCmd"' : 'data-on-click="controlCmd"';
   ob_start();
 ?>
 <div class="arrowControl irisControls">
   <div class="arrowLabel"><?php echo translate('Open') ?></div>
-  <button type="button" class="longArrowBtn upBtn" data-on-click="controlCmd" value="<?php echo $cmds['IrisOpen'] ?>" data-xtell="0" data-ytell="-1"></button>
+  <button type="button" class="longArrowBtn upBtn" value="<?php echo $cmds['IrisOpen'] ?>" <?php echo $cmd ?> data-xtell="0" data-ytell="-1"></button>
   <button type="button" class="arrowCenter"<?php if ( $control->CanIrisCon() ) { ?> data-on-click="controlCmd" value="<?php echo $cmds['IrisStop'] ?>"<?php } ?>><?php echo translate('Iris') ?></button>
-  <button type="button" class="longArrowBtn downBtn" data-on-click="controlCmd" value="<?php echo $cmds['IrisClose'] ?>" data-xtell="0" data-ytell="1"></button>
+  <button type="button" class="longArrowBtn downBtn" value="<?php echo $cmds['IrisClose'] ?>" <?php echo $cmd ?> data-xtell="0" data-ytell="1"></button>
   <div class="arrowLabel"><?php echo translate('Close') ?></div>
 <?php
   if ( $control->CanAutoIris() ) {
@@ -89,13 +92,14 @@ function controlIris($monitor, $cmds) {
 
 function controlWhite($monitor, $cmds) {
   $control = $monitor->Control();
+  $cmd = $control->CanWhiteCon() ? 'data-on-mousedown="controlCmd" data-on-mouseup="controlCmd"' : 'data-on-click="controlCmd"';
   ob_start();
 ?>
 <div class="arrowControl whiteControls">
   <div class="arrowLabel"><?php echo translate('In') ?></div>
-  <button type="button" class="longArrowBtn upBtn" data-on-click="controlCmd" value="<?php echo $cmds['WhiteIn'] ?>" data-xtell="0" data-ytell="-1"></button>
+  <button type="button" class="longArrowBtn upBtn" value="<?php echo $cmds['WhiteIn'] ?>" <?php echo $cmd ?> data-xtell="0" data-ytell="-1"></button>
   <button type="button" class="arrowCenter"<?php if ( $control->CanWhiteCon() ) { ?> data-on-click="controlCmd" value="<?php echo $cmds['WhiteStop'] ?>"<?php } ?>><?php echo translate('White') ?></button>
-  <button type="button" class="longArrowBtn downBtn" data-on-click="controlCmd" value="<?php echo $cmds['WhiteOut'] ?>" data-xtell="0" data-ytell="1)"></button>
+  <button type="button" class="longArrowBtn downBtn" value="<?php echo $cmds['WhiteOut'] ?>" <?php echo $cmd ?> data-xtell="0" data-ytell="1)"></button>
   <div class="arrowLabel"><?php echo translate('Out') ?></div>
 <?php
   if ( $control->CanAutoWhite() ) {
@@ -121,20 +125,21 @@ function controlPanTilt($monitor, $cmds) {
   $hasPan = $control->CanPan();
   $hasTilt = $control->CanTilt();
   $hasDiag = $hasPan && $hasTilt && $control->CanMoveDiag();
+  $cmd = $control->CanMoveCon() ? 'data-on-mousedown="controlCmd" data-on-mouseup="controlCmd" ' : 'data-on-click="controlCmd" ';
 ?>
-    <button type="button" class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUpLeft'] ?>" data-xtell="-1" data-ytell="-1"></button>
-    <button type="button" class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUp'] ?>" data-xtell="0" data-ytell="-1"></button>
-    <button type="button" class="arrowBtn upRightBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveUpRight'] ?>" data-xtell="1" data-ytell="-1"></button>
-    <button type="button" class="arrowBtn leftBtn<?php echo $hasPan?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveLeft'] ?>" data-xtell="-1" data-ytell="0"></button>
+    <button type="button" class="arrowBtn upLeftBtn<?php echo $hasDiag?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveUpLeft'] ?>" data-xtell="-1" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn upBtn<?php echo $hasTilt?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveUp'] ?>" data-xtell="0" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn upRightBtn<?php echo $hasDiag?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveUpRight'] ?>" data-xtell="1" data-ytell="-1"></button>
+    <button type="button" class="arrowBtn leftBtn<?php echo $hasPan?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveLeft'] ?>" data-xtell="-1" data-ytell="0"></button>
 <?php if ( isset($cmds['Center']) ) { ?>
-    <button type="button" class="arrowBtn centerBtn" data-on-click="controlCmd" value="<?php echo $cmds['Center'] ?>"></button>
+    <button type="button" class="arrowBtn centerBtn" <?php echo $cmd ?> value="<?php echo $cmds['Center'] ?>"></button>
 <?php } else { ?>
     <button type="button" class="arrowBtn NocenterBtn"></button>
 <?php } ?>
-    <button type="button" class="arrowBtn rightBtn<?php echo $hasPan?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveRight'] ?>" data-xtell="1" data-ytell="0"></button>
-    <button type="button" class="arrowBtn downLeftBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveDownLeft'] ?>" data-xtell="-1" data-ytell="1"></button>
-    <button type="button" class="arrowBtn downBtn<?php echo $hasTilt?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveDown'] ?>" data-xtell="0" data-ytell="1"></button>
-    <button type="button" class="arrowBtn downRightBtn<?php echo $hasDiag?'':' invisible' ?>" data-on-click="controlCmd" value="<?php echo $cmds['MoveDownRight'] ?>" data-xtell="1" data-ytell="1"></button>
+    <button type="button" class="arrowBtn rightBtn<?php echo $hasPan?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveRight'] ?>" data-xtell="1" data-ytell="0"></button>
+    <button type="button" class="arrowBtn downLeftBtn<?php echo $hasDiag?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveDownLeft'] ?>" data-xtell="-1" data-ytell="1"></button>
+    <button type="button" class="arrowBtn downBtn<?php echo $hasTilt?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveDown'] ?>" data-xtell="0" data-ytell="1"></button>
+    <button type="button" class="arrowBtn downRightBtn<?php echo $hasDiag?'':' invisible' ?>" <?php echo $cmd ?> value="<?php echo $cmds['MoveDownRight'] ?>" data-xtell="1" data-ytell="1"></button>
   </div>
 </div>
 <?php

@@ -23,7 +23,7 @@
  */
 
 // Setup a 'default' cache configuration for use in the application.
-Cache::config('default', array('engine' => 'Apc'));
+Cache::config('default', array('engine' => '@ZM_CAKEPHP_CACHE@'));
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.

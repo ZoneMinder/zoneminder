@@ -94,7 +94,11 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes) {
   // Return frames slightly faster than 1fps (if time() supports greater than one second resolution)
   if ( newFrame || difftime(now, data->prevTime) >= 0.8 ) {
     data->prevTime = now;
-    data->newImage.updateValueSignal(true);
+    {
+      std::lock_guard<std::mutex> lck(data->newImageMutex);
+      data->newImage = true;
+    }
+    data->newImageCv.notify_all();
   }
 }
 
@@ -165,6 +169,9 @@ LibvlcCamera::~LibvlcCamera() {
   if ( capture ) {
     Terminate();
   }
+
+  mLibvlcData.newImageCv.notify_all(); // to unblock on termination (zm_terminate)
+
   if ( mLibvlcMediaPlayer != nullptr ) {
     (*libvlc_media_player_release_f)(mLibvlcMediaPlayer);
     mLibvlcMediaPlayer = nullptr;
@@ -206,7 +213,7 @@ void LibvlcCamera::Terminate() {
 int LibvlcCamera::PrimeCapture() {
   Debug(1, "Priming capture from %s, libvlc version %s", mPath.c_str(), (*libvlc_get_version_f)());
 
-  StringVector opVect = split(Options(), ",");
+  StringVector opVect = Split(Options(), ",");
 
   // Set transport method as specified by method field, rtpUni is default
   if ( Method() == "rtpMulti" )
@@ -220,11 +227,11 @@ int LibvlcCamera::PrimeCapture() {
 
   if ( opVect.size() > 0 ) {
     mOptArgV = new char*[opVect.size()];
-    Debug(2, "Number of Options: %d",opVect.size());
+    Debug(2, "Number of Options: %zu", opVect.size());
     for (size_t i=0; i< opVect.size(); i++) {
-      opVect[i] = trimSpaces(opVect[i]);
+      opVect[i] = TrimSpaces(opVect[i]);
       mOptArgV[i] = (char *)opVect[i].c_str();
-      Debug(2, "set option %d to '%s'", i,  opVect[i].c_str());
+      Debug(2, "set option %zu to '%s'", i, opVect[i].c_str());
     }
   }
 
@@ -255,8 +262,8 @@ int LibvlcCamera::PrimeCapture() {
   // Libvlc wants 32 byte alignment for images (should in theory do this for all image lines)
   mLibvlcData.buffer = (uint8_t*)zm_mallocaligned(64, mLibvlcData.bufferSize);
   mLibvlcData.prevBuffer = (uint8_t*)zm_mallocaligned(64, mLibvlcData.bufferSize);
-  
-  mLibvlcData.newImage.setValueImmediate(false);
+
+  mLibvlcData.newImage = false;
 
   (*libvlc_media_player_play_f)(mLibvlcMediaPlayer);
 
@@ -269,17 +276,21 @@ int LibvlcCamera::PreCapture() {
 }
 
 // Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::Capture( ZMPacket &zm_packet ) {   
+int LibvlcCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {   
   // newImage is a mutex/condition based flag to tell us when there is an image available
-  while( !mLibvlcData.newImage.getValueImmediate() ) {
-    if (zm_terminate)
-      return 0;
-    mLibvlcData.newImage.getUpdatedValue(1);
+  {
+    std::unique_lock<std::mutex> lck(mLibvlcData.newImageMutex);
+    mLibvlcData.newImageCv.wait(lck, [&]{ return mLibvlcData.newImage || zm_terminate; });
+    mLibvlcData.newImage = false;
   }
 
+  if (zm_terminate)
+    return 0;
+
   mLibvlcData.mutex.lock();
-  zm_packet.image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
-  mLibvlcData.newImage.setValueImmediate(false);
+  zm_packet->image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
+  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->stream = mVideoStream;
   mLibvlcData.mutex.unlock();
 
   return 1;
@@ -308,9 +319,9 @@ void LibvlcCamera::log_callback(void *ptr, int level, const libvlc_log_t *ctx, c
   }
 
   if ( log ) {
-    char            logString[8192];
-    vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
-    log->logPrint(false, __FILE__, __LINE__, log_level, logString);
+    char logString[8192];
+    vsnprintf(logString, sizeof(logString) - 1, fmt, vargs);
+    log->logPrint(false, __FILE__, __LINE__, log_level, "%s", logString);
   }
 }
 #endif // HAVE_LIBVLC

@@ -69,6 +69,11 @@
 // setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
+setlocale( LC_TIME, 'en_GB.utf8' );
+define("DATE_FMT_CONSOLE_LONG", "%a %d %b, %Hh%M");
+define( "STRF_FMT_DATETIME_SHORT", "%d/%m/%y %H:%M:%S" );
+define( "STRF_FMT_DATETIME_SHORTER", "%x %H:%M:%S" );
+
 // Simple String Replacements
 $SLANG = array(
     'SystemLog'             => 'System Log',
@@ -162,6 +167,7 @@ $SLANG = array(
     'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more',
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
+    'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadFrameSkip'          => 'Frame skip count must be an integer of zero or more',
@@ -177,6 +183,7 @@ $SLANG = array(
     'BadColours'            => 'Target colour must be set to a valid value',
     'BadPassthrough'        => 'Passthrough only works with ffmpeg type monitors.',
     'BadPath'               => 'Path must be set to a valid value',
+    'BadPathNotEncoded'     => 'Path must be set to a valid value. We have detected invalid characters !*\'()$ ,#[] that may need to be url percent encoded.',
     'BadPort'               => 'Port must be set to a valid number',
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
@@ -322,6 +329,7 @@ $SLANG = array(
     'DoNativeMotionDetection'=> 'Do Native Motion Detection',
     'Download'              => 'Download',
     'DuplicateMonitorName'  => 'Duplicate Monitor Name',
+    'DuplicateRTSPStreamName' =>  'Duplicate RTSP Stream Name',
     'Duration'              => 'Duration',
     'Edit'                  => 'Edit',
     'EditControl'           => 'Edit Control',
@@ -416,6 +424,7 @@ $SLANG = array(
     'General'               => 'General',
     'GenerateVideo'         => 'Generate Video',
     'GeneratingVideo'       => 'Generating Video',
+    'GetCurrentLocation'    => 'Get Current Location',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
     'Grey'                  => 'Grey',
     'Group'                 => 'Group',
@@ -441,6 +450,7 @@ $SLANG = array(
     'Idle'                  => 'Idle',
     'Ignore'                => 'Ignore',
     'ImageBufferSize'       => 'Image Buffer Size (frames)',
+    'MaxImageBufferCount'   => 'Maximum Image Buffer Size (frames)',
     'Image'                 => 'Image',
     'Images'                => 'Images',
     'Include'               => 'Include',
@@ -526,6 +536,7 @@ $SLANG = array(
     'MinPanStep'            => 'Min Pan Step',
     'MinPixelThresLtMax'    => 'Minimum pixel threshold should be less than maximum',
     'MinPixelThresUnset'    => 'You must specify a minimum pixel threshold',
+    'MinSectionlength'      => 'Minimum section length',
     'MinTiltRange'          => 'Min Tilt Range',
     'MinTiltSpeed'          => 'Min Tilt Speed',
     'MinTiltStep'           => 'Min Tilt Step',
@@ -537,6 +548,7 @@ $SLANG = array(
     'MinZoomStep'           => 'Min Zoom Step',
     'Misc'                  => 'Misc',
     'Mode'                  => 'Mode',
+    'ModectDuringPTZ'       => 'Do motion detection during PTZ motion',
     'MonitorIds'            => 'Monitor&nbsp;Ids',
     'Monitor'               => 'Monitor',
     'MonitorPresetIntro'    => 'Select an appropriate preset from the list below.<br/><br/>Please note that this may overwrite any values you already have configured for the current monitor.<br/><br/>',
@@ -1136,6 +1148,19 @@ $OLANG = array(
       When in Record or Nodect mode and using H264Passthrough with no jpegs being saved, we can
       optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
       but will make live view unavailable for this monitor.'
+  ),
+  'ImageBufferCount' => array(
+    'Help' => '
+    Number of raw images available in /dev/shm. Currently should be set in the 3-5 range.  Used for live viewing.'
+  ),
+  'MaxImageBufferCount' => array(
+    'Help' => '
+    Maximum number of video packets that will be held in the packet queue.
+    The packetqueue will normally manage itself, keeping Pre Event Count frames or all since last keyframe if using 
+    passthrough mode. You can set a maximum to prevent the monitor from consuming too much ram, but your events might
+    not have all the frames they should if your keyframe interval is larger than this value.
+    You will get errors in your logs about this. So make sure your keyframe interval is low or you have enough ram.
+  '
   ),
 
 //    'LANG_DEFAULT' => array(

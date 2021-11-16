@@ -59,19 +59,19 @@ public:
       );
   ~RemoteCameraHttp();
 
-  void Initialise();
-  void Terminate() { Disconnect(); }
-  int Connect();
-  int Disconnect();
+  void Initialise() override;
+  void Terminate() override { Disconnect(); }
+  int Connect() override;
+  int Disconnect() override;
   int SendRequest();
   int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
 	int GetData();
   int GetResponse();
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( ZMPacket &p );
-  int PostCapture();
-  int Close() { Disconnect(); return 0; };
+  int PrimeCapture() override;
+  int PreCapture() override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
+  int PostCapture() override;
+  int Close() override { Disconnect(); return 0; };
 };
 
 #endif // ZM_REMOTE_CAMERA_HTTP_H

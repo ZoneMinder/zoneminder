@@ -19,7 +19,7 @@
 //
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
-if ( ! canEdit('Monitors') ) {
+if ( !canEdit('Monitors') ) {
   ZM\Warning('Monitor actions require Monitors Permissions');
   return;
 }
@@ -34,8 +34,7 @@ if ( $action == 'save' ) {
     }
     if ( ZM_OPT_X10 ) {
       $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId=?', NULL, array($mid));
-      if ( !$x10Monitor )
-        $x10Monitor = array();
+      if ( !$x10Monitor ) $x10Monitor = array();
     }
   } else {
     if ( $user['MonitorIds'] ) {
@@ -54,6 +53,7 @@ if ( $action == 'save' ) {
       'Triggers' => array(),
       'Controllable' => 0,
       'TrackMotion' => 0,
+      'ModectDuringPTZ' =>  0,
       'Enabled' => 0,
       'DecodingEnabled' => 0,
       'Exif' => 0,
@@ -88,6 +88,7 @@ if ( $action == 'save' ) {
   $restart = false;
 
   if ( count($changes) ) {
+    // monitor->Id() has a value when the db record exists
     if ( $monitor->Id() ) {
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
@@ -204,7 +205,7 @@ if ( $action == 'save' ) {
         } // end if changes in width or height
       } else {
         global $error_message;
-        $error_message = dbError();
+        $error_message = dbError('unknown');
       } // end if successful save
       $restart = true;
     } else { // new monitor
@@ -212,9 +213,7 @@ if ( $action == 'save' ) {
 # FIXME This is actually a race condition. Should lock the table.
       $maxSeq = dbFetchOne('SELECT MAX(Sequence) AS MaxSequence FROM Monitors', 'MaxSequence');
       $changes['Sequence'] = $maxSeq+1;
-      if ( $mid and !$monitor->Id() ) {
-        $changes['Id'] = $mid;
-      }
+      if ( $mid ) $changes['Id'] = $mid; # mid specified in request, doesn't exist in db, will re-use slot
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();

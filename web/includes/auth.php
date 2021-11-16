@@ -58,16 +58,14 @@ function migrateHash($user, $pass) {
 
 // core function used to load a User record by username and password
 function validateUser($username='', $password='') {
-
   $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
   // local user, shouldn't affect the global user
   $user = dbFetchOne($sql, NULL, array($username));
-
-  if ( ! $user ) {
+  if (!$user) {
     return array(false, "Could not retrieve user $username details");
   }
 
-  switch ( password_type($user['Password']) ) {
+  switch (password_type($user['Password'])) {
   case 'mysql' : 
     // We assume we don't need to support mysql < 4.1
     // Starting MY SQL 4.1, mysql concats a '*' in front of its password hash
@@ -97,7 +95,7 @@ function validateUser($username='', $password='') {
     $password_correct = ($user['Password'] == $password);
   } // switch password_type
 
-  if ( $password_correct ) {
+  if ($password_correct) {
     return array($user, 'OK');
   }
   return array(false, "Login denied for user \"$username\"");
@@ -137,11 +135,11 @@ function validateToken($token, $allowed_token_type='access') {
   $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
   $saved_user_details = dbFetchOne($sql, NULL, array($username));
 
-  if ( $saved_user_details ) {
+  if ($saved_user_details) {
     $issuedAt =  $jwt_payload['iat'];
     $minIssuedAt = $saved_user_details['TokenMinExpiry'];
 
-    if ( $issuedAt < $minIssuedAt ) {
+    if ($issuedAt < $minIssuedAt) {
       ZM\Error("Token revoked for $username. Please generate a new token");
       $user = null;// unset only clears the local variable
       return array(false, 'Token revoked. Please re-generate');
@@ -155,9 +153,9 @@ function validateToken($token, $allowed_token_type='access') {
 } // end function validateToken($token, $allowed_token_type='access')
 
 function getAuthUser($auth) {
-  if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth) ) {
+  if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth)) {
     $remoteAddr = '';
-    if ( ZM_AUTH_HASH_IPS ) {
+    if (ZM_AUTH_HASH_IPS) {
       $remoteAddr = $_SERVER['REMOTE_ADDR'];
       if ( !$remoteAddr ) {
         ZM\Error("Can't determine remote address for authentication, using empty string");
@@ -165,41 +163,40 @@ function getAuthUser($auth) {
       }
     }
 
+    $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     $values = array();
-    if ( isset($_SESSION['username']) ) {
+    if (isset($_SESSION['username'])) {
       # Most of the time we will be logged in already and the session will have our username, so we can significantly speed up our hash testing by only looking at our user.
       # Only really important if you have a lot of users.
-      $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username=?';
+      $sql .= ' AND Username=?';
       array_push($values, $_SESSION['username']);
-    } else {
-      $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     }
 
-    foreach ( dbFetchAll($sql, NULL, $values) as $user ) {
+    foreach (dbFetchAll($sql, NULL, $values) as $user) {
       $now = time();
-      for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600 ) { // Try for last TTL hours
+      for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
         $time = localtime($now);
         $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
         $authHash = md5($authKey);
 
-        if ( $auth == $authHash ) {
+        if ($auth == $authHash) {
           return $user;
         } // end if $auth == $authHash
       } // end foreach hour
     } // end foreach user
 
-    if ( isset($_SESSION['username']) ) {
+    if (isset($_SESSION['username'])) {
 			# In a multi-server case, we might be logged in as another user and so the auth hash didn't work
 			$sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
 
-			foreach ( dbFetchAll($sql, NULL, $values) as $user ) {
+			foreach (dbFetchAll($sql, NULL, $values) as $user) {
 				$now = time();
-				for ( $i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600 ) { // Try for last TTL hours
+				for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
 					$time = localtime($now);
 					$authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
 					$authHash = md5($authKey);
 
-					if ( $auth == $authHash ) {
+					if ($auth == $authHash) {
 						return $user;
 					} // end if $auth == $authHash
 				} // end foreach hour
@@ -211,26 +208,26 @@ function getAuthUser($auth) {
   return null;
 } // end getAuthUser($auth)
 
+function calculateAuthHash($remoteAddr) {
+  global $user;
+  $local_time = localtime();
+  $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$local_time[2].$local_time[3].$local_time[4].$local_time[5];
+  #ZM\Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
+  return md5($authKey);
+}
+
 function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
-  if ( ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password']) ) {
+  if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password']) and isset($_SESSION)) {
     $time = time();
 
     # We use 1800 so that we regenerate the hash at half the TTL
-    $mintime = $time - ( ZM_AUTH_HASH_TTL * 1800 );
+    $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
 
     # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
-    if ( $force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime ) ) {
+    if ($force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime )) {
+      $auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
-      $local_time = localtime();
-      $authKey = '';
-      if ( $useRemoteAddr ) {
-        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$_SESSION['remoteAddr'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
-      } else {
-        $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$local_time[2].$local_time[3].$local_time[4].$local_time[5];
-      }
-      #ZM\Debug("Generated using hour:".$local_time[2] . ' mday:' . $local_time[3] . ' month:'.$local_time[4] . ' year: ' . $local_time[5] );
-      $auth = md5($authKey);
       $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
       # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.
@@ -260,11 +257,11 @@ function canEdit($area, $mid=false) {
 
 function userFromSession() {
   $user = null; // Not global
-  if ( isset($_SESSION['username']) ) {
-    if ( ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed') ) {
+  if (isset($_SESSION['username'])) {
+    if (ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed')) {
       # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
       # This prevent session modification to switch users
-      if ( isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) )
+      if (isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]))
         $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
       else
         ZM\Debug('No auth hash in session, there should have been');
@@ -278,13 +275,13 @@ function userFromSession() {
 }
 
 function get_auth_relay() {
-  if ( ZM_OPT_USE_AUTH ) {
-    if ( ZM_AUTH_RELAY == 'hashed' ) {
+  if (ZM_OPT_USE_AUTH) {
+    if (ZM_AUTH_RELAY == 'hashed') {
       return 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-    } else if ( ZM_AUTH_RELAY == 'plain' ) {
+    } else if (ZM_AUTH_RELAY == 'plain') {
       // password probably needs to be escaped
       return 'username='.$_SESSION['username'].'&password='.urlencode($_SESSION['password']);
-    } else if ( ZM_AUTH_RELAY == 'none' ) {
+    } else if (ZM_AUTH_RELAY == 'none') {
       return 'username='.$_SESSION['username'];
     } else {
       ZM\Error('Unknown value for ZM_AUTH_RELAY ' . ZM_AUTH_RELAY);
@@ -293,8 +290,8 @@ function get_auth_relay() {
   return '';
 } // end function get_auth_relay
 
-if ( ZM_OPT_USE_AUTH ) {
-  if ( !empty($_REQUEST['token']) ) {
+if (ZM_OPT_USE_AUTH) {
+  if (!empty($_REQUEST['token'])) {
     // we only need to get the username here
     // don't know the token type. That will
     // be checked later 
@@ -303,7 +300,7 @@ if ( ZM_OPT_USE_AUTH ) {
   } else {
     // Non token based auth
 
-    if ( ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth']) ) {
+    if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
       $user = getAuthUser($_REQUEST['auth']);
     } else if (
       ! (
@@ -312,13 +309,13 @@ if ( ZM_OPT_USE_AUTH ) {
       (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA)
     ) ) {
       $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
-      if ( !$ret[0] ) {
+      if (!$ret[0]) {
         ZM\Error($ret[1]);
         unset($user); // unset should be ok here because we aren't in a function
         return;
       }
       $user = $ret[0];
-    } else if ( (ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER']) ) {
+    } else if ((ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER'])) {
       $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       // local user, shouldn't affect the global user
       $user = dbFetchOne($sql, NULL, array($_SERVER['REMOTE_USER']));
@@ -326,7 +323,7 @@ if ( ZM_OPT_USE_AUTH ) {
       $user = userFromSession();
     }
 
-    if ( !empty($user) ) {
+    if (!empty($user)) {
       // generate it once here, while session is open.  Value will be cached in session and return when called later on
       generateAuthHash(ZM_AUTH_HASH_IPS);
     }

@@ -44,8 +44,9 @@ $tabs['medband'] = translate('MediumBW');
 $tabs['lowband'] = translate('LowBW');
 $tabs['users'] = translate('Users');
 $tabs['control'] = translate('Control');
+$tabs['privacy'] = translate('Privacy');
 
-if ( isset($_REQUEST['tab']) )
+if (isset($_REQUEST['tab']))
   $tab = validHtmlStr($_REQUEST['tab']);
 else
   $tab = 'system';
@@ -53,7 +54,6 @@ else
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Options'));
-
 ?>
 <body>
   <?php echo getNavBarHTML(); ?>
@@ -62,7 +62,7 @@ xhtmlHeaders(__FILE__, translate('Options'));
       <nav id="sidebar">
         <ul class="nav nav-pills flex-column h-100">
 <?php
-foreach ( $tabs as $name=>$value ) {
+foreach ($tabs as $name=>$value) {
 ?>
           <li class="nav-item form-control-sm my-1"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
@@ -129,6 +129,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
               <th class="colControl"><?php echo translate('Control') ?></th>
               <th class="colMonitors"><?php echo translate('Monitors') ?></th>
               <th class="colGroups"><?php echo translate('Groups') ?></th>
+              <th class="colSnapshots"><?php echo translate('Snapshots') ?></th>
               <th class="colSystem"><?php echo translate('System') ?></th>
               <th class="colDevices"><?php echo translate('Devices') ?></th>
               <th class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
@@ -156,7 +157,6 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           $userMonitors[] = $monitors[$monitorId]['Name'];
         }
       }
-      ZM\Debug("monitors: ".$user_row['Username'] . ' ' . $user_row['MonitorIds']. ' :' . print_r($userMonitors, true));
 ?>
             <tr>
               <td class="colUsername"><?php echo makeLink('?view=user&amp;uid='.$user_row['Id'], validHtmlStr($user_row['Username']).($user['Username']==$user_row['Username']?'*':''), $canEdit) ?></td>
@@ -167,6 +167,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
               <td class="colControl"><?php echo validHtmlStr($user_row['Control']) ?></td>
               <td class="colMonitors"><?php echo validHtmlStr($user_row['Monitors']) ?></td>
               <td class="colGroups"><?php echo validHtmlStr($user_row['Groups']) ?></td>
+              <td class="colSnapshots"><?php echo validHtmlStr($user_row['Snapshots']) ?></td>
               <td class="colSystem"><?php echo validHtmlStr($user_row['System']) ?></td>
               <td class="colDevices"><?php echo validHtmlStr($user_row['Devices']) ?></td>
               <td class="colBandwidth"><?php echo $user_row['MaxBandwidth']?$bandwidth_options[$user_row['MaxBandwidth']]:'&nbsp;' ?></td>
@@ -188,6 +189,14 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
 } else if ( $tab == 'control' ) {
       if ( canView('Control') ) {
         $redirect = '?view=controlcaps';
+      } else {
+        $redirect = '?view=error';
+      }
+      // Have to do this 
+      header('Location: '.$redirect);
+} else if ($tab == 'privacy') {
+      if (canView('System')) {
+        $redirect = '?view=privacy';
       } else {
         $redirect = '?view=error';
       }

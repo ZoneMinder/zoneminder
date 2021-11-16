@@ -3,10 +3,10 @@ delimiter //
 DROP TRIGGER IF EXISTS Events_Hour_delete_trigger//
 CREATE TRIGGER Events_Hour_delete_trigger BEFORE DELETE ON Events_Hour
 FOR EACH ROW BEGIN
-  UPDATE Monitor_Status SET
+  UPDATE Event_Summaries SET
   HourEvents = GREATEST(COALESCE(HourEvents,1)-1,0),
   HourEventDiskSpace=GREATEST(COALESCE(HourEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0)
-  WHERE Monitor_Status.MonitorId=OLD.MonitorId;
+  WHERE Event_Summaries.MonitorId=OLD.MonitorId;
 END; 
 //
 
@@ -20,10 +20,10 @@ FOR EACH ROW
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
       IF ( NEW.MonitorID != OLD.MonitorID ) THEN
-        UPDATE Monitor_Status SET HourEventDiskSpace=GREATEST(COALESCE(HourEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0) WHERE Monitor_Status.MonitorId=OLD.MonitorId;
-        UPDATE Monitor_Status SET HourEventDiskSpace=COALESCE(HourEventDiskSpace,0)+COALESCE(NEW.DiskSpace,0) WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+        UPDATE Event_Summaries SET HourEventDiskSpace=GREATEST(COALESCE(HourEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0) WHERE Event_Summaries.MonitorId=OLD.MonitorId;
+        UPDATE Event_Summaries SET HourEventDiskSpace=COALESCE(HourEventDiskSpace,0)+COALESCE(NEW.DiskSpace,0) WHERE Event_Summaries.MonitorId=NEW.MonitorId;
       ELSE
-        UPDATE Monitor_Status SET HourEventDiskSpace=COALESCE(HourEventDiskSpace,0)+diff WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+        UPDATE Event_Summaries SET HourEventDiskSpace=COALESCE(HourEventDiskSpace,0)+diff WHERE Event_Summaries.MonitorId=NEW.MonitorId;
       END IF;
     END IF;
   END;
@@ -32,10 +32,10 @@ FOR EACH ROW
 DROP TRIGGER IF EXISTS Events_Day_delete_trigger//
 CREATE TRIGGER Events_Day_delete_trigger BEFORE DELETE ON Events_Day
 FOR EACH ROW BEGIN
-  UPDATE Monitor_Status SET
+  UPDATE Event_Summaries SET
   DayEvents = GREATEST(COALESCE(DayEvents,1)-1,0),
   DayEventDiskSpace=GREATEST(COALESCE(DayEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0)
-  WHERE Monitor_Status.MonitorId=OLD.MonitorId;
+  WHERE Event_Summaries.MonitorId=OLD.MonitorId;
 END;
 //
 
@@ -48,10 +48,10 @@ FOR EACH ROW
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
       IF ( NEW.MonitorID != OLD.MonitorID ) THEN
-        UPDATE Monitor_Status SET DayEventDiskSpace=GREATEST(COALESCE(DayEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0) WHERE Monitor_Status.MonitorId=OLD.MonitorId;
-        UPDATE Monitor_Status SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+COALESCE(NEW.DiskSpace,0) WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+        UPDATE Event_Summaries SET DayEventDiskSpace=GREATEST(COALESCE(DayEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0) WHERE Event_Summaries.MonitorId=OLD.MonitorId;
+        UPDATE Event_Summaries SET DayEventDiskSpace=COALESCE(DayEventDiskSpace,0)+COALESCE(NEW.DiskSpace,0) WHERE Event_Summaries.MonitorId=NEW.MonitorId;
       ELSE
-        UPDATE Monitor_Status SET DayEventDiskSpace=GREATEST(COALESCE(DayEventDiskSpace,0)+diff,0) WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+        UPDATE Event_Summaries SET DayEventDiskSpace=GREATEST(COALESCE(DayEventDiskSpace,0)+diff,0) WHERE Event_Summaries.MonitorId=NEW.MonitorId;
       END IF;
     END IF;
   END;
@@ -61,10 +61,10 @@ FOR EACH ROW
 DROP TRIGGER IF EXISTS Events_Week_delete_trigger//
 CREATE TRIGGER Events_Week_delete_trigger BEFORE DELETE ON Events_Week
 FOR EACH ROW BEGIN
-  UPDATE Monitor_Status SET
+  UPDATE Event_Summaries SET
   WeekEvents = GREATEST(COALESCE(WeekEvents,1)-1,0),
   WeekEventDiskSpace=GREATEST(COALESCE(WeekEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0)
-  WHERE Monitor_Status.MonitorId=OLD.MonitorId;
+  WHERE Event_Summaries.MonitorId=OLD.MonitorId;
 END;
 //
 
@@ -77,10 +77,10 @@ FOR EACH ROW
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
       IF ( NEW.MonitorID != OLD.MonitorID ) THEN
-        UPDATE Monitor_Status SET WeekEventDiskSpace=GREATEST(COALESCE(WeekEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0) WHERE Monitor_Status.MonitorId=OLD.MonitorId;
-        UPDATE Monitor_Status SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+COALESCE(NEW.DiskSpace,0) WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+        UPDATE Event_Summaries SET WeekEventDiskSpace=GREATEST(COALESCE(WeekEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0) WHERE Event_Summaries.MonitorId=OLD.MonitorId;
+        UPDATE Event_Summaries SET WeekEventDiskSpace=COALESCE(WeekEventDiskSpace,0)+COALESCE(NEW.DiskSpace,0) WHERE Event_Summaries.MonitorId=NEW.MonitorId;
       ELSE
-        UPDATE Monitor_Status SET WeekEventDiskSpace=GREATEST(COALESCE(WeekEventDiskSpace,0)+diff,0) WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+        UPDATE Event_Summaries SET WeekEventDiskSpace=GREATEST(COALESCE(WeekEventDiskSpace,0)+diff,0) WHERE Event_Summaries.MonitorId=NEW.MonitorId;
       END IF;
     END IF;
   END;
@@ -89,10 +89,10 @@ FOR EACH ROW
 DROP TRIGGER IF EXISTS Events_Month_delete_trigger//
 CREATE TRIGGER Events_Month_delete_trigger BEFORE DELETE ON Events_Month
 FOR EACH ROW BEGIN
-  UPDATE Monitor_Status SET
+  UPDATE Event_Summaries SET
   MonthEvents = GREATEST(COALESCE(MonthEvents,1)-1,0),
   MonthEventDiskSpace=GREATEST(COALESCE(MonthEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0)
-  WHERE Monitor_Status.MonitorId=OLD.MonitorId;
+  WHERE Event_Summaries.MonitorId=OLD.MonitorId;
 END;
 //
 
@@ -105,10 +105,10 @@ FOR EACH ROW
     set diff = COALESCE(NEW.DiskSpace,0) - COALESCE(OLD.DiskSpace,0);
     IF ( diff ) THEN
       IF ( NEW.MonitorID != OLD.MonitorID ) THEN
-        UPDATE Monitor_Status SET MonthEventDiskSpace=GREATEST(COALESCE(MonthEventDiskSpace,0)-COALESCE(OLD.DiskSpace),0) WHERE Monitor_Status.MonitorId=OLD.MonitorId;
-        UPDATE Monitor_Status SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+COALESCE(NEW.DiskSpace) WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+        UPDATE Event_Summaries SET MonthEventDiskSpace=GREATEST(COALESCE(MonthEventDiskSpace,0)-COALESCE(OLD.DiskSpace),0) WHERE Event_Summaries.MonitorId=OLD.MonitorId;
+        UPDATE Event_Summaries SET MonthEventDiskSpace=COALESCE(MonthEventDiskSpace,0)+COALESCE(NEW.DiskSpace) WHERE Event_Summaries.MonitorId=NEW.MonitorId;
       ELSE
-        UPDATE Monitor_Status SET MonthEventDiskSpace=GREATEST(COALESCE(MonthEventDiskSpace,0)+diff,0) WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+        UPDATE Event_Summaries SET MonthEventDiskSpace=GREATEST(COALESCE(MonthEventDiskSpace,0)+diff,0) WHERE Event_Summaries.MonitorId=NEW.MonitorId;
       END IF;
     END IF;
   END;
@@ -145,20 +145,21 @@ BEGIN
   IF ( NEW.Archived != OLD.Archived ) THEN
     IF ( NEW.Archived ) THEN
       INSERT INTO Events_Archived (EventId,MonitorId,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.DiskSpace);
-      UPDATE Monitor_Status SET ArchivedEvents = COALESCE(ArchivedEvents,0)+1, ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) + COALESCE(NEW.DiskSpace,0) WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+      INSERT INTO Event_Summaries (MonitorId,ArchivedEvents,ArchivedEventDiskSpace) VALUES (NEW.MonitorId,1,NEW.DiskSpace) ON DUPLICATE KEY
+        UPDATE ArchivedEvents = COALESCE(ArchivedEvents,0)+1, ArchivedEventDiskSpace = COALESCE(ArchivedEventDiskSpace,0) + COALESCE(NEW.DiskSpace,0);
     ELSEIF ( OLD.Archived ) THEN
       DELETE FROM Events_Archived WHERE EventId=OLD.Id;
-      UPDATE Monitor_Status
+      UPDATE Event_Summaries
         SET
           ArchivedEvents = GREATEST(COALESCE(ArchivedEvents,0)-1,0),
           ArchivedEventDiskSpace = GREATEST(COALESCE(ArchivedEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0),0)
-        WHERE Monitor_Status.MonitorId=OLD.MonitorId;
+        WHERE Event_Summaries.MonitorId=OLD.MonitorId;
     ELSE
       IF ( OLD.DiskSpace != NEW.DiskSpace ) THEN
         UPDATE Events_Archived SET DiskSpace=NEW.DiskSpace WHERE EventId=NEW.Id;
-        UPDATE Monitor_Status SET
+        UPDATE Event_Summaries SET
           ArchivedEventDiskSpace = GREATEST(COALESCE(ArchivedEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) + COALESCE(NEW.DiskSpace,0),0)
-          WHERE Monitor_Status.MonitorId=OLD.MonitorId;
+          WHERE Event_Summaries.MonitorId=OLD.MonitorId;
       END IF;
     END IF;
   ELSEIF ( NEW.Archived AND diff ) THEN
@@ -166,10 +167,10 @@ BEGIN
   END IF;
 
   IF ( diff ) THEN
-    UPDATE Monitor_Status
+    UPDATE Event_Summaries
       SET
         TotalEventDiskSpace = GREATEST(COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0) + COALESCE(NEW.DiskSpace,0),0)
-      WHERE Monitor_Status.MonitorId=OLD.MonitorId;
+      WHERE Event_Summaries.MonitorId=OLD.MonitorId;
   END IF;
 
 END;
@@ -189,13 +190,13 @@ FOR EACH ROW
   INSERT INTO Events_Day (EventId,MonitorId,StartDateTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartDateTime,0);
   INSERT INTO Events_Week (EventId,MonitorId,StartDateTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartDateTime,0);
   INSERT INTO Events_Month (EventId,MonitorId,StartDateTime,DiskSpace) VALUES (NEW.Id,NEW.MonitorId,NEW.StartDateTime,0);
-  UPDATE Monitor_Status SET
+  INSERT INTO Event_Summaries (MonitorId,HourEvents,DayEvents,WeekEvents,MonthEvents,TotalEvents) VALUES (NEW.MonitorId,1,1,1,1,1) ON DUPLICATE KEY
+  UPDATE 
   HourEvents = COALESCE(HourEvents,0)+1,
   DayEvents = COALESCE(DayEvents,0)+1,
   WeekEvents = COALESCE(WeekEvents,0)+1,
   MonthEvents = COALESCE(MonthEvents,0)+1,
-  TotalEvents = COALESCE(TotalEvents,0)+1
-  WHERE Monitor_Status.MonitorId=NEW.MonitorId;
+  TotalEvents = COALESCE(TotalEvents,0)+1;
 END;
 //
 
@@ -213,17 +214,17 @@ BEGIN
   DELETE FROM Events_Month WHERE EventId=OLD.Id;
   IF ( OLD.Archived ) THEN
     DELETE FROM Events_Archived WHERE EventId=OLD.Id;
-    UPDATE Monitor_Status SET
+    UPDATE Event_Summaries SET
       ArchivedEvents = GREATEST(COALESCE(ArchivedEvents,1) - 1,0),
       ArchivedEventDiskSpace = GREATEST(COALESCE(ArchivedEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0),0),
       TotalEvents = GREATEST(COALESCE(TotalEvents,1) - 1,0),
       TotalEventDiskSpace = GREATEST(COALESCE(TotalEventDiskSpace,0) - COALESCE(OLD.DiskSpace,0),0)
-      WHERE Monitor_Status.MonitorId=OLD.MonitorId;
+      WHERE Event_Summaries.MonitorId=OLD.MonitorId;
   ELSE
-    UPDATE Monitor_Status SET
+    UPDATE Event_Summaries SET
     TotalEvents = GREATEST(COALESCE(TotalEvents,1)-1,0),
     TotalEventDiskSpace=GREATEST(COALESCE(TotalEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0)
-    WHERE Monitor_Status.MonitorId=OLD.MonitorId;
+    WHERE Event_Summaries.MonitorId=OLD.MonitorId;
   END IF;
 END;
 

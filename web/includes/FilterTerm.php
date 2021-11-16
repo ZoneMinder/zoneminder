@@ -41,6 +41,11 @@ class FilterTerm {
         Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
       }
     }
+    if ( isset($term['tablename']) ) {
+      $this->tablename = $term['tablename'];
+    } else {
+      $this->tablename = 'E';
+    }
 
     if ( isset($term['obr']) ) {
       if ( (string)(int)$term['obr'] == $term['obr'] ) {
@@ -143,14 +148,13 @@ class FilterTerm {
   } # end function sql_values
 
   public function sql_operator() {
-    switch ( $this->attr ) {
-    case 'AlarmZoneId':
+    switch ($this->attr) {
+    case 'AlarmedZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
       return '';
     }
-
 
     switch ( $this->op ) {
     case '=' :
@@ -196,13 +200,17 @@ class FilterTerm {
 
     $sql = '';
     if ( isset($this->cnj) ) {
-      $sql .= ' '.$this->cnj.' ';
+      $sql .= ' '.$this->cnj;
     }
     if ( isset($this->obr) ) {
-      $sql .= ' '.str_repeat('(', $this->obr).' ';
+      $sql .= ' '.str_repeat('(', $this->obr);
     }
+    $sql .= ' ';
 
     switch ( $this->attr ) {
+    case 'AlarmedZoneId':
+      $sql .= '/* AlarmedZoneId */ ';
+      break;
     case 'ExistsInFileSystem':
     case 'DiskPercent':
       $sql .= 'TRUE /*'.$this->attr.'*/';
@@ -288,7 +296,10 @@ class FilterTerm {
     case 'Notes':
     case 'StateId':
     case 'Archived':
-      $sql .= 'E.'.$this->attr;
+      $sql .= $this->tablename.'.'.$this->attr;
+      break;
+    default :
+      $sql .= $this->tablename.'.'.$this->attr;
     }
     $sql .= $this->sql_operator();
     $values = $this->sql_values();
@@ -299,8 +310,9 @@ class FilterTerm {
     }
 
     if ( isset($this->cbr) ) {
-      $sql .= ' '.str_repeat(')', $this->cbr).' ';
+      $sql .= ' '.str_repeat(')', $this->cbr);
     }
+    $sql .= PHP_EOL;
     return $sql;
   } # end public function sql
 

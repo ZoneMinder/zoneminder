@@ -5,7 +5,7 @@ if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
   ajaxError('No event id(s) supplied');
 }
 
-if ( canView('Events') ) {
+if ( canView('Events') or canView('Snapshots') ) {
   switch ( $_REQUEST['action'] ) {
   case 'video' :
     if ( empty($_REQUEST['videoFormat']) ) {
@@ -74,10 +74,15 @@ if ( canView('Events') ) {
     else
       $exportCompress = false;
 
+    if ( !empty($_REQUEST['exportStructure']) )
+      $exportStructure = $_SESSION['export']['structure'] = $_REQUEST['exportStructure'];
+    else
+      $exportStructure = false;
+
     session_write_close();
 
     $exportIds = !empty($_REQUEST['eids']) ? $_REQUEST['eids'] : $_REQUEST['id'];
-    if ( $exportFile = exportEvents(
+    if ($exportFile = exportEvents(
       $exportIds,
       (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
       $exportDetail,
@@ -86,11 +91,14 @@ if ( canView('Events') ) {
       $exportVideo,
       $exportMisc,
       $exportFormat,
-      $exportCompress
-    ) )
-    ajaxResponse(array('exportFile'=>$exportFile));
-    else
+      $exportCompress,
+      $exportStructure,
+      (!empty($_REQUEST['exportFile'])?$_REQUEST['exportFile']:'zmExport')
+    )) {
+      ajaxResponse(array('exportFile'=>$exportFile));
+    } else {
       ajaxError('Export Failed');
+    }
     break;
   case 'download' :
     require_once(ZM_SKIN_PATH.'/includes/export_functions.php');
@@ -104,7 +112,7 @@ if ( canView('Events') ) {
       false,#detail
       false,#frames
       false,#images
-      $exportVideo,
+      true, #$exportVideo,
       false,#Misc
       $exportFormat,
       false#,#Compress

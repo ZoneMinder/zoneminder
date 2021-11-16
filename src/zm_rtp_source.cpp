@@ -23,8 +23,7 @@
 #include "zm_rtp_data.h"
 #include "zm_utils.h"
 #include <arpa/inet.h>
-
-#if HAVE_LIBAVCODEC
+#include <unistd.h>
 
 RtpSource::RtpSource(
     int id,
@@ -67,16 +66,22 @@ RtpSource::RtpSource(
 
   mRtpFactor = mRtpClock;
 
-  mBaseTimeReal = tvNow();
-  mBaseTimeNtp = tvZero();
+  mBaseTimeReal = std::chrono::system_clock::now();
+  mBaseTimeNtp = {};
   mBaseTimeRtp = rtpTime;
 
-  mLastSrTimeReal = tvZero();
-  mLastSrTimeNtp = tvZero();
+  mLastSrTimeReal = {};
+  mLastSrTimeNtp = {};
   mLastSrTimeRtp = 0;
 
   if ( mCodecId != AV_CODEC_ID_H264 && mCodecId != AV_CODEC_ID_MPEG4 )
     Warning("The device is using a codec (%d) that may not be supported. Do not be surprised if things don't work.", mCodecId);
+}
+
+RtpSource::~RtpSource() {
+  mTerminate = true;
+  mFrameReadyCv.notify_all();
+  mFrameProcessedCv.notify_all();
 }
 
 void RtpSource::init(uint16_t seq) {
@@ -154,18 +159,19 @@ bool RtpSource::updateSeq(uint16_t seq) {
 }
 
 void RtpSource::updateJitter( const RtpDataHeader *header ) {
-  if ( mRtpFactor > 0 ) {
-    uint32_t localTimeRtp = mBaseTimeRtp + uint32_t(tvDiffSec(mBaseTimeReal) * mRtpFactor);
+  if (mRtpFactor > 0) {
+    SystemTimePoint now = std::chrono::system_clock::now();
+    FPSeconds time_diff = std::chrono::duration_cast<FPSeconds>(now - mBaseTimeReal);
+
+    uint32_t localTimeRtp = mBaseTimeRtp + static_cast<uint32>(time_diff.count() * mRtpFactor);
     uint32_t packetTransit = localTimeRtp - ntohl(header->timestampN);
 
-    Debug(5, "Delta rtp = %.6f\n"
-        "Local RTP time = %x",
-        "Packet RTP time = %x",
-        "Packet transit RTP time = %x",
-        tvDiffSec(mBaseTimeReal),
-        localTimeRtp,
-        ntohl(header->timestampN),
-        packetTransit);
+    Debug(5,
+          "Delta rtp = %.6f\n Local RTP time = %x Packet RTP time = %x Packet transit RTP time = %x",
+          time_diff.count(),
+          localTimeRtp,
+          ntohl(header->timestampN),
+          packetTransit);
 
     if ( mTransit > 0 ) {
       // Jitter
@@ -187,12 +193,13 @@ void RtpSource::updateRtcpData(
     uint32_t ntpTimeSecs,
     uint32_t ntpTimeFrac,
     uint32_t rtpTime) {
-  struct timeval ntpTime = tvMake(ntpTimeSecs, suseconds_t((USEC_PER_SEC*(ntpTimeFrac>>16))/(1<<16)));
+  timeval ntpTime = zm::chrono::duration_cast<timeval>(
+      Seconds(ntpTimeSecs) + Microseconds((Microseconds::period::den * (ntpTimeFrac >> 16)) / (1 << 16)));
 
   Debug(5, "ntpTime: %ld.%06ld, rtpTime: %x", ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
 
   if ( mBaseTimeNtp.tv_sec == 0 ) {
-    mBaseTimeReal = tvNow();
+    mBaseTimeReal = std::chrono::system_clock::now();
     mBaseTimeNtp = ntpTime;
     mBaseTimeRtp = rtpTime;
   } else if ( !mRtpClock ) {
@@ -201,12 +208,14 @@ void RtpSource::updateRtcpData(
         mLastSrTimeNtp.tv_sec, mLastSrTimeNtp.tv_usec, rtpTime,
         ntpTime.tv_sec, ntpTime.tv_usec, rtpTime);
 
-    double diffNtpTime = tvDiffSec( mBaseTimeNtp, ntpTime );
+    FPSeconds diffNtpTime =
+        zm::chrono::duration_cast<Microseconds>(ntpTime) - zm::chrono::duration_cast<Microseconds>(mBaseTimeNtp);
+
     uint32_t diffRtpTime = rtpTime - mBaseTimeRtp;
-    mRtpFactor = (uint32_t)(diffRtpTime / diffNtpTime);
+    mRtpFactor = static_cast<uint32>(diffRtpTime / diffNtpTime.count());
 
     Debug( 5, "NTP-diff: %.6f RTP-diff: %d RTPfactor: %d",
-        diffNtpTime, diffRtpTime, mRtpFactor);
+        diffNtpTime.count(), diffRtpTime, mRtpFactor);
   }
   mLastSrTimeNtpSecs = ntpTimeSecs;
   mLastSrTimeNtpFrac = ntpTimeFrac;
@@ -232,19 +241,13 @@ void RtpSource::updateRtcpStats() {
     mLostFraction = (lostInterval << 8) / expectedInterval;
 
   Debug(5,
-      "Expected packets = %d\n",
-      "Lost packets = %d\n",
-      "Expected interval = %d\n",
-      "Received interval = %d\n",
-      "Lost interval = %d\n",
-      "Lost fraction = %d\n",
-
-      mExpectedPackets,
-      mLostPackets,
-      expectedInterval,
-      receivedInterval,
-      lostInterval,
-      mLostFraction);
+        "Expected packets = %d\n Lost packets = %d\n Expected interval = %d\n Received interval = %d\n Lost interval = %d\n Lost fraction = %d\n",
+        mExpectedPackets,
+        mLostPackets,
+        expectedInterval,
+        receivedInterval,
+        lostInterval,
+        mLostFraction);
 }
 
 bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
@@ -292,7 +295,7 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
 
               extraHeader = 2;
               break;
-          default: 
+          default:
               Debug(3, "Unhandled nalType %d", nalType);
         }
 
@@ -301,7 +304,7 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
           mFrame.append("\x0\x0\x1", 3);
       } // end if H264
       mFrame.append(packet+rtpHeaderSize+extraHeader,
-          packetLen-rtpHeaderSize-extraHeader); 
+          packetLen-rtpHeaderSize-extraHeader);
     } else {
       Debug(3, "NOT H264 frame: type is %d", mCodecId);
     }
@@ -312,16 +315,21 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
       if ( mFrameGood ) {
         Debug(3, "Got new frame %d, %d bytes", mFrameCount, mFrame.size());
 
-        mFrameProcessed.setValueImmediate(false);
-        mFrameReady.updateValueSignal(true);
-        if ( !mFrameProcessed.getValueImmediate() ) {
-          // What is the point of this for loop? Is it just me, or will it call getUpdatedValue once or twice? Could it not be better written as
-          // if ( ! mFrameProcessed.getUpdatedValue( 1 ) && mFrameProcessed.getUpdatedValue( 1 ) ) return false;
-
-          for ( int count = 0; !mFrameProcessed.getUpdatedValue(1); count++ )
-            if ( count > 1 )
-              return false;
+        {
+          std::lock_guard<std::mutex> lck(mFrameReadyMutex);
+          mFrameReady = true;
         }
+        mFrameReadyCv.notify_all();
+
+        {
+          std::unique_lock<std::mutex> lck(mFrameProcessedMutex);
+          mFrameProcessedCv.wait(lck, [&]{ return mFrameProcessed || mTerminate; });
+          mFrameProcessed = false;
+        }
+
+        if (mTerminate)
+          return false;
+
         mFrameCount++;
       } else {
         Warning("Discarding incomplete frame %d, %d bytes", mFrameCount, mFrame.size());
@@ -349,19 +357,21 @@ bool RtpSource::handlePacket(const unsigned char *packet, size_t packetLen) {
 }
 
 bool RtpSource::getFrame(Buffer &buffer) {
-  if ( !mFrameReady.getValueImmediate() ) {
-    Debug(3, "Getting frame but not ready");
-    // Allow for a couple of spurious returns
-    for ( int count = 0; !mFrameReady.getUpdatedValue(1); count++ ) {
-      if ( count > 1 )
-        return false;
-    }
+  {
+    std::unique_lock<std::mutex> lck(mFrameReadyMutex);
+    mFrameReadyCv.wait(lck, [&]{ return mFrameReady || mTerminate; });
+    mFrameReady = false;
   }
+
+  if (mTerminate)
+    return false;
+
   buffer = mFrame;
-  mFrameReady.setValueImmediate(false);
-  mFrameProcessed.updateValueSignal(true);
+  {
+    std::lock_guard<std::mutex> lck(mFrameProcessedMutex);
+    mFrameProcessed = true;
+  }
+  mFrameProcessedCv.notify_all();
   Debug(4, "Copied %d bytes", buffer.size());
   return true;
 }
-
-#endif // HAVE_LIBAVCODEC

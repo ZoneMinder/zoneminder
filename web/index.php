@@ -47,10 +47,6 @@ require_once('includes/config.php');
 require_once('includes/session.php');
 require_once('includes/logger.php');
 require_once('includes/Server.php');
-require_once('includes/Storage.php');
-require_once('includes/Event.php');
-require_once('includes/Group.php');
-require_once('includes/Monitor.php');
 
 // Useful debugging lines for mobile devices
 if ( 0 and ZM\Logger::fetch()->debugOn() ) {
@@ -98,7 +94,7 @@ if ( isset($_GET['skin']) ) {
   $skin = 'classic';
 }
 
-if ( ! is_dir("skins/$skin") ) {
+if (!is_dir('skins/'.$skin) ) {
   $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
 
   if ( !in_array($skin, $skins) ) {
@@ -117,10 +113,10 @@ if ( isset($_GET['css']) ) {
   $css = 'classic';
 }
 
-if ( !is_dir("skins/$skin/css/$css") ) {
+if (!is_dir("skins/$skin/css/$css")) {
   $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR));
-  if ( count($css_skins) ) {
-    if ( !in_array($css, $css_skins) ) {
+  if (count($css_skins)) {
+    if (!in_array($css, $css_skins)) {
       ZM\Error("Invalid skin css '$css' setting to " . $css_skins[0]);
       $css = $css_skins[0];
     } else {
@@ -137,11 +133,16 @@ define('ZM_SKIN_PATH', "skins/$skin");
 define('ZM_SKIN_NAME', $skin);
 
 $skinBase = array(); // To allow for inheritance of skins
-if ( !file_exists(ZM_SKIN_PATH) )
+if (!file_exists(ZM_SKIN_PATH))
   ZM\Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
 zm_session_start();
+
+$cookie_options = array(
+  'expires'=>time()+3600*24*30*12*10,
+  'samesite' => 'Strict',
+);
 
 if (
   !isset($_SESSION['skin']) ||
@@ -150,7 +151,11 @@ if (
   ($_COOKIE['zmSkin'] != $skin)
 ) {
   $_SESSION['skin'] = $skin;
-  setcookie('zmSkin', $skin, time()+3600*24*30*12*10);
+	if (version_compare(phpversion(), '7.3.0', '>=')) {
+	setcookie('zmSkin', $skin, $cookie_options);
+	} else {
+	setcookie('zmSkin', $skin, $cookie_options['expires'], '/; samesite=strict');
+	}
 }
 
 if (
@@ -160,7 +165,11 @@ if (
   ($_COOKIE['zmCSS'] != $css)
 ) {
   $_SESSION['css'] = $css;
-  setcookie('zmCSS', $css, time()+3600*24*30*12*10);
+	if (version_compare(phpversion(), '7.3.0', '>=')) {
+    setcookie('zmCSS', $css, $cookie_options);
+	} else {
+	  setcookie('zmCSS', $css, $cookie_options['expires'], '/; samesite=strict');
+	}
 }
 
 # Running is global but only do the daemonCheck if it is actually needed
@@ -183,11 +192,6 @@ $user = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
-if ( isset($_REQUEST['redirect']) )
-  $redirect = '?view='.detaintPath($_REQUEST['redirect']);
-
-# Add CSP Headers
-$cspNonce = bin2hex(zm_random_bytes(16));
 
 $request = null;
 if ( isset($_REQUEST['request']) )
@@ -198,6 +202,11 @@ require_once('includes/auth.php');
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
 session_write_close();
+
+require_once('includes/Storage.php');
+require_once('includes/Event.php');
+require_once('includes/Group.php');
+require_once('includes/Monitor.php');
 
 // lang references $user[Language] so must come after auth
 require_once('includes/lang.php');
@@ -249,27 +258,24 @@ if ( $action and !$request ) {
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
 if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'none') ) {
-  /* AJAX check  */
-  if ( !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-    && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' ) {
+  if ($request) {
+    # requests only return json
     header('HTTP/1.1 401 Unauthorized');
     exit;
   }
-  ZM\Debug('Redirecting to login');
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
-  if ( ! $request ) {
-    zm_session_start();
-    $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
-    session_write_close();
-  }
-  $request = null;
+  zm_session_start();
+  $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
+  session_write_close();
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
   $request = null;
 }
 
+if ( isset($_REQUEST['redirect']) )
+  $redirect = '?view='.detaintPath($_REQUEST['redirect']);
 
 if ( $redirect ) {
   ZM\Debug("Redirecting to $redirect");
@@ -286,8 +292,11 @@ if ( $request ) {
   return;
 }
 
+# Add CSP Headers
+$cspNonce = bin2hex(zm_random_bytes(16));
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   ob_start();
+  CSPHeaders($view, $cspNonce);
   foreach ( $includeFiles as $includeFile ) {
     if ( !file_exists($includeFile) )
       ZM\Fatal("View '$view' does not exist");
@@ -301,9 +310,7 @@ if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
     foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
       require_once $includeFile;
   }
-
-  CSPHeaders($view, $cspNonce);
-  ob_end_flush();
+  while (ob_get_level() > 0) ob_end_flush();
 }
 // If the view is missing or the view still returned error with the user logged in,
 // then it is not recoverable.

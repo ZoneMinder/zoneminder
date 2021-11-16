@@ -103,18 +103,17 @@ if ( $command eq 'state' ) {
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID}: ())
     or Fatal("Can't execute: ".$sth->errstr());
-  while( my $monitor = $sth->fetchrow_hashref() ) {
+  while ( my $monitor = $sth->fetchrow_hashref() ) {
     foreach my $definition ( @{$state->{Definitions}} ) {
       if ( $monitor->{Id} =~ /^$definition->{Id}$/ ) {
         $monitor->{NewFunction} = $definition->{Function};
         $monitor->{NewEnabled} = $definition->{Enabled};
+        last;
       }
     }
-    #next if ( !$monitor->{NewFunction} );
-    $monitor->{NewFunction} = 'None'
-    if ( !$monitor->{NewFunction} );
-    $monitor->{NewEnabled} = 0
-    if ( !$monitor->{NewEnabled} );
+    next if ! exists $monitor->{NewFunction};
+    $monitor->{NewFunction} = 'None' if !$monitor->{NewFunction};
+    $monitor->{NewEnabled} = 0 if !$monitor->{NewEnabled};
     if ( $monitor->{Function} ne $monitor->{NewFunction}
       || $monitor->{Enabled} ne $monitor->{NewEnabled}
     ) {
@@ -171,8 +170,8 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     if ( $Config{ZM_DYN_DB_VERSION}
         and ( $Config{ZM_DYN_DB_VERSION} ne ZM_VERSION )
        ) {
-         my ( $db_major, $db_minor, $db_micro ) = split('.', $Config{ZM_DYN_DB_VERSION});
-         my ( $major, $minor, $micro ) = split('.', ZM_VERSION);
+         my ( $db_major, $db_minor, $db_micro ) = split(/\./, $Config{ZM_DYN_DB_VERSION});
+         my ( $major, $minor, $micro ) = split(/\./, ZM_VERSION);
          if ( $db_major != $major or $db_minor != $minor ) {
            Fatal('Version mismatch, system is version '.ZM_VERSION
              .', database is '.$Config{ZM_DYN_DB_VERSION}
@@ -294,6 +293,9 @@ if ( $command =~ /^(?:start|restart)$/ ) {
       Debug('Not running zmstats.pl because it is turned off for this server.');
     } else {
       runCommand('zmdc.pl start zmstats.pl');
+    }
+    if ( $Config{ZM_MIN_RTSP_PORT} ) {
+      runCommand('zmdc.pl start zm_rtsp_server');
     }
   } else {
     $retval = 1;

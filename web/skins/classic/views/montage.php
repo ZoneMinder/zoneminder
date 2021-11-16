@@ -140,11 +140,11 @@ xhtmlHeaders(__FILE__, translate('Montage'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-  <div id="page" class="container-fluid">
+  <div id="page">
     <div id="header">
 <?php
     $html = '';
-    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'up')) ? 'down' : 'up';
+    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'down')) ? 'up' : 'down';
     $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
     $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
     echo $html;
@@ -154,14 +154,16 @@ echo getNavBarHTML();
 if ( $showControl ) {
   echo makeLink('?view=control', translate('Control'));
 }
-if ( $showZones ) {
-?>
-  <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
-<?php
-} else {
-?>
-  <a id="ShowZones" href="?view=montage&amp;showZones=1"><?php echo translate('Show Zones')?></a>
-<?php
+if ( canView('System') ) {
+  if ( $showZones ) {
+  ?>
+    <a id="HideZones" href="?view=montage&amp;showZones=0"><?php echo translate('Hide Zones')?></a>
+  <?php
+  } else {
+  ?>
+    <a id="ShowZones" href="?view=montage&amp;showZones=1"><?php echo translate('Show Zones')?></a>
+  <?php
+  }
 }
 ?>
       </div>
@@ -197,6 +199,16 @@ if ( $showZones ) {
             <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>
             <button type="button" value="Cancel" data-on-click-this="cancel_layout"><?php echo translate('Cancel') ?></button>
           </span>
+
+<?php if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS) { ?>
+          <button type="button" name="snapshotBtn" data-on-click-this="takeSnapshot">
+            <i class="material-icons md-18">camera_enhance</i>
+            &nbsp;<?php echo translate('Snapshot') ?>
+          </button>
+<?php } ?>
+        <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
+        <i class="material-icons md-18">fullscreen</i>
+        </button>
         </form>
       </div>
     </div>
@@ -222,8 +234,14 @@ foreach ( $monitors as $monitor ) {
             >
             <?php
   $monitor_options = $options;
-  $monitor_options['width'] = $monitor_options['width'].'px';
+  $monitor_options['width'] = '100%';
+
+  if ( 0 ) {
+  if ($monitor_options['width'] > 0)
+    $monitor_options['width'] = $monitor_options['width'].'px';
+  if ($monitor_options['height'] > 0)
   $monitor_options['height'] = $monitor_options['height']?$monitor_options['height'].'px' : null;
+  } # end if
   $monitor_options['connkey'] = $monitor->connKey();
 
   #ZM\Warning('Options: ' . print_r($monitor_options,true));

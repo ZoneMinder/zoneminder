@@ -12,7 +12,7 @@ class UsersController extends AppController {
  *
  * @var array
  */
-	public $components = array('RequestHandler', 'Paginator');
+  public $components = array( 'Paginator', 'RequestHandler');
 
   public function beforeFilter() {
     parent::beforeFilter();
@@ -20,7 +20,7 @@ class UsersController extends AppController {
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
     $canView = (!$user) || ($user['System'] != 'None');
-    if ( !$canView ) {
+    if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -30,14 +30,13 @@ class UsersController extends AppController {
  * index method
  *
  * @return void
- * This also creates a thumbnail for each user.
  */
 	public function index() {
 		$this->User->recursive = 0;
 
     global $user;
     # We should actually be able to list our own user, but I'm not bothering at this time.
-    if ( $user['System'] == 'None' ) {
+    if ($user['System'] == 'None' ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -59,12 +58,12 @@ class UsersController extends AppController {
     global $user;
     # We can view ourselves
     $canView = ($user['System'] != 'None') or ($user['Id'] == $id);
-    if ( !$canView ) {
+    if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
 
-		if ( !$this->User->exists($id) ) {
+		if (!$this->User->exists($id)) {
 			throw new NotFoundException(__('Invalid user'));
 		}
 
@@ -83,22 +82,31 @@ class UsersController extends AppController {
  * @return void
  */
 	public function add() {
-		if ( $this->request->is('post') ) {
-
+		if ($this->request->is('post')) {
       global $user;
-      if ( $user['System'] != 'Edit' ) {
+      if ($user['System'] != 'Edit') {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
 
-			$this->User->create();
-			if ( $this->User->save($this->request->data) ) {
-				return $this->flash(__('The user has been saved.'), array('action' => 'index'));
-			}
-			$this->Session->setFlash(
-					__('The user could not be saved. Please, try again.')
-					);
-		}
+      $this->User->create();
+      if ($this->User->save($this->request->data)) {
+        $message = 'Saved';
+      } else {
+        $message = 'Error';
+        // if there is a validation message, use it
+        if (!$this->User->validates()) {
+          $message = $this->User->validationErrors;
+        }
+      }
+    } else {
+      $message = 'Add without post data';
+    }
+    $this->set(array(
+      'user'        => $this->User,
+      'message'     => $message,
+      '_serialize'  => array('message')
+    ));
 	}
 
 /**
@@ -113,20 +121,23 @@ class UsersController extends AppController {
 
     global $user;
     $canEdit = ($user['System'] == 'Edit') or (($user['Id'] == $id) and ZM_USER_SELF_EDIT);
-    if ( !$canEdit ) {
+    if (!$canEdit) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
 
-		if ( !$this->User->exists($id) ) {
+		if (!$this->User->exists($id)) {
 			throw new NotFoundException(__('Invalid user'));
 		}
 
-		if ( $this->request->is('post') || $this->request->is('put') ) {
+		if ($this->request->is('post') || $this->request->is('put')) {
 			if ( $this->User->save($this->request->data) ) {
 				$message = 'Saved';
 			} else {
 				$message = 'Error';
+        if (!$this->User->validates()) {
+          $message = $this->User->validationErrors;
+        }
 			}
 		} else {
       # What is this doing? Resetting the request data? I understand clearing the password field
@@ -161,7 +172,7 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->request->allowMethod('post', 'delete');
-		if ( $this->User->delete() ) {
+		if ($this->User->delete()) {
 			$message = 'The user has been deleted.';
 		} else {
 			$message = 'The user could not be deleted. Please, try again.';

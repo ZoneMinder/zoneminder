@@ -61,21 +61,35 @@ protected:
   pthread_cond_t request_complete_cond;
 
 public:
-  cURLCamera( const Monitor* monitor, const std::string &path, const std::string &username, const std::string &password, unsigned int p_width, unsigned int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
+  cURLCamera(
+      const Monitor* monitor,
+      const std::string &path,
+      const std::string &username,
+      const std::string &password,
+      unsigned int p_width,
+      unsigned int p_height,
+      int p_colours,
+      int p_brightness,
+      int p_contrast,
+      int p_hue,
+      int p_colour,
+      bool p_capture,
+      bool p_record_audio
+      );
   ~cURLCamera();
 
-  const std::string &Path() const { return( mPath ); }
-  const std::string &Username() const { return( mUser ); }
-  const std::string &Password() const { return( mPass ); }
+  const std::string &Path() const { return mPath; }
+  const std::string &Username() const { return mUser; }
+  const std::string &Password() const { return mPass; }
 
   void Initialise();
   void Terminate();
-  int Close() { return 0; };
+  int Close() override { return 0; };
 
-  int PrimeCapture();
-  int PreCapture();
-  int Capture( ZMPacket &p );
-  int PostCapture();
+  int PrimeCapture() override;
+  int PreCapture() override;
+  int Capture(std::shared_ptr<ZMPacket> &p)override;
+  int PostCapture()override ;
 
   size_t data_callback(void *buffer, size_t size, size_t nmemb, void *userdata);
   size_t header_callback(void *buffer, size_t size, size_t nmemb, void *userdata);

@@ -27,12 +27,17 @@ package ZoneMinder::Monitor;
 use 5.006;
 use strict;
 use warnings;
+use Time::HiRes qw(usleep);
 
 require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require ZoneMinder::Server;
+require ZoneMinder::Memory;
 require ZoneMinder::Monitor_Status;
+require ZoneMinder::Event_Summary;
+require ZoneMinder::Zone;
+use ZoneMinder::Logger qw(:all);
 
 #our @ISA = qw(Exporter ZoneMinder::Base);
 use parent qw(ZoneMinder::Object);
@@ -115,6 +120,7 @@ $serial = $primary_key = 'Id';
   TrackDelay
   ReturnLocation
   ReturnDelay
+  ModectDuringPTZ
   DefaultRate
   DefaultScale
   SignalCheckPoints
@@ -125,7 +131,6 @@ $serial = $primary_key = 'Id';
   ZoneCount
   Refresh
   DefaultCodec
-  GroupIds
   Latitude
   Longitude
   );
@@ -133,8 +138,8 @@ $serial = $primary_key = 'Id';
 %defaults = (
     ServerId => 0,
     StorageId => 0,
-    Type      => 'Ffmpeg',
-    Function  => 'Mocord',
+    Type      => q`'Ffmpeg'`,
+    Function  => q`'Mocord'`,
     Enabled   => 1,
     LinkedMonitors => undef,
     Device  =>  '',
@@ -163,15 +168,15 @@ $serial = $primary_key = 'Id';
     VideoWriter =>  0,
     OutputCodec =>  undef,
     OutputContainer => undef,
-    EncoderParameters => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\n#crf=23\n",
+    EncoderParameters => '',
     RecordAudio=>0,
     RTSPDescribe=>0,
     Brightness  =>  -1,
     Contrast    =>  -1,
     Hue         =>  -1,
     Colour      =>  -1,
-    EventPrefix =>  'Event-',
-    LabelFormat => '%N - %d/%m/%y %H:%M:%S',
+    EventPrefix =>  q`'Event-'`,
+    LabelFormat => '',
     LabelX      =>  0,
     LabelY      =>  0,
     LabelSize   =>  1,
@@ -201,16 +206,17 @@ $serial = $primary_key = 'Id';
     TrackDelay      =>  undef,
     ReturnLocation  =>  -1,
     ReturnDelay     =>  undef,
+    ModectDuringPTZ =>  0,
     DefaultRate =>  100,
     DefaultScale  =>  100,
     SignalCheckPoints =>  0,
-    SignalCheckColour =>  '#0000BE',
-    WebColour   =>  '#ff0000',
+    SignalCheckColour =>  q`'#0000BE'`,
+    WebColour   =>  q`'#ff0000'`,
     Exif    =>  0,
     Sequence  =>  undef,
     ZoneCount =>  0,
     Refresh => undef,
-    DefaultCodec  => 'auto',
+    DefaultCodec  => q`'auto'`,
     Latitude  =>  undef,
     Longitude =>  undef,
     );
@@ -222,6 +228,13 @@ sub Server {
 sub Storage {
 	return new ZoneMinder::Storage( $_[0]{StorageId} );
 } # end sub Storage
+
+sub Zones {
+  if (! exists $_[0]{Zones}) {
+    $_[0]{Zones} = [ $_[0]{Id} ? ZoneMinder::Zone->find(MonitorId=>$_[0]{Id}) : () ];
+  }
+  return wantarray ? @{$_[0]{Zones}} : $_[0]{Zones};
+}
 
 sub control {
   my $monitor = shift;
@@ -253,6 +266,81 @@ sub Status {
     $$self{Status} = ZoneMinder::Monitor_Status->find_one(MonitorId=>$$self{Id});
   }
   return $$self{Status};
+}
+
+sub Event_Summary {
+  my $self = shift;
+  $$self{Event_Summary} = shift if @_;
+  if ( ! $$self{Event_Summary} ) {
+    $$self{Event_Summary} = ZoneMinder::Event_Summary->find_one(MonitorId=>$$self{Id});
+  }
+  return $$self{Event_Summary};
+}
+
+sub connect {
+  my $self = shift;
+  return ZoneMinder::Memory::zmMemVerify($self);
+}
+
+sub disconnect {
+  my $self = shift;
+  ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
+}
+
+sub suspendMotionDetection {
+  my $self = shift;
+  return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
+  return if $$self{Function} eq 'Nodect' or $$self{Function} eq 'Monitor' or $$self{Function} eq 'None';
+  my $count = 50;
+  while ($count and ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
+    ZoneMinder::Logger::Debug(1, 'Suspending motion detection');
+    ZoneMinder::Memory::zmMonitorSuspend($self);
+    usleep(100000);
+    $count -= 1;
+  }
+  if (!$count) {
+    ZoneMinder::Logger::Error('Unable to suspend motion detection after 5 seconds.');
+    ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
+  } else {
+    ZoneMinder::Logger::Debug(1, 'shared_data:active='.ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1));
+  }
+}
+
+sub resumeMotionDetection {
+  my $self = shift;
+  return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
+  return if $$self{Function} eq 'Nodect' or $$self{Function} eq 'Monitor' or $$self{Function} eq 'None';
+  my $count = 50;
+  while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
+    ZoneMinder::Logger::Debug(1, 'Resuming motion detection');
+    ZoneMinder::Memory::zmMonitorResume($self);
+    usleep(100000);
+    $count -= 1;
+  }
+  if (!$count) {
+    ZoneMinder::Logger::Error('Unable to resume motion detection after 5 seconds.');
+    ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
+  }
+  return 1;
+}
+
+sub Control {
+  my $self = shift;
+  if ( ! exists $$self{Control}) {
+    require ZoneMinder::Control;
+    my $Control = ZoneMinder::Control->find_one(Id=>$$self{ControlId});
+    if ($Control) {
+      require Module::Load::Conditional;
+      if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$$Control{Protocol} => undef})) {
+        Error("Can't load ZoneMinder::Control::$$Control{Protocol}\n$Module::Load::Conditional::ERROR");
+        return undef;
+      }
+      bless $Control, 'ZoneMinder::Control::'.$$Control{Protocol};
+      $$Control{MonitorId} = $$self{Id};
+      $$self{Control} = $Control;
+    }
+  }
+  return $$self{Control};
 }
 
 1;

@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC

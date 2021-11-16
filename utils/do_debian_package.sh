@@ -146,6 +146,14 @@ else
   fi;
 fi
 
+if [ "$PACKAGE_VERSION" == "NOW" ]; then
+  PACKAGE_VERSION=`date +%Y%m%d%H%M%S`;
+else
+  if [ "$PACKAGE_VERSION" == "CURRENT" ]; then
+    PACKAGE_VERSION="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+  fi;
+fi;
+
 IFS='.' read -r -a VERSION_PARTS <<< "$RELEASE"
 if [ "$PPA" == "" ]; then
   if [ "$RELEASE" != "" ]; then

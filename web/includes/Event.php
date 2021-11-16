@@ -650,6 +650,23 @@ class Event extends ZM_Object {
     }
     return false;
   }
+  function canEdit($u=null) {
+    global $user;
+    if (!$u) $u=$user;
+    if (!$u) {
+      # auth turned on and not logged in
+      return false;
+    }
+    if (!empty($u['MonitorIds']) ) {
+      if (!in_array($this->{'MonitorId'}, explode(',', $u['MonitorIds']))) {
+        return false;
+      }
+    }
+    if ($u['Events'] != 'Edit') {
+      return false;
+    }
+    return true;
+  }
 } # end class
 
 ?>

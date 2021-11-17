@@ -28,7 +28,7 @@ class ZM_Object {
           $this->{$k} = $v;
         }
         global $object_cache;
-        if ( ! isset($object_cache[$class]) ) {
+        if (!isset($object_cache[$class])) {
           $object_cache[$class] = array();
         }
         $cache = &$object_cache[$class];
@@ -103,13 +103,13 @@ class ZM_Object {
       }
       $sql .= implode(' AND ', $fields );
     }
-    if ( $options ) {
-      if ( isset($options['order']) ) {
-        $sql .= ' ORDER BY ' . $options['order'];
+    if ($options) {
+      if (isset($options['order'])) {
+        $sql .= ' ORDER BY '.$options['order'];
       }
-      if ( isset($options['limit']) ) {
-        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $options['limit'];
+      if (isset($options['limit'])) {
+        if (is_integer($options['limit']) or ctype_digit($options['limit'])) {
+          $sql .= ' LIMIT '.$options['limit'];
         } else {
           $backTrace = debug_backtrace();
           Error('Invalid value for limit('.$options['limit'].') passed to '.get_class()."::find from ".print_r($backTrace,true));
@@ -119,8 +119,8 @@ class ZM_Object {
     }
     $rows = dbFetchAll($sql, NULL, $values);
     $results = array();
-    if ( $rows ) {
-      foreach ( $rows as $row ) {
+    if ($rows) {
+      foreach ($rows as $row) {
         array_push($results , new $class($row));
       }
     }
@@ -129,7 +129,7 @@ class ZM_Object {
 
   public static function _find_one($class, $parameters = array(), $options = array() ) {
     global $object_cache;
-    if ( ! isset($object_cache[$class]) ) {
+    if (!isset($object_cache[$class])) {
       $object_cache[$class] = array();
     }
     $cache = &$object_cache[$class];
@@ -179,11 +179,11 @@ class ZM_Object {
   }
 
   public function set($data) {
-    foreach ( $data as $field => $value ) {
-      if ( method_exists($this, $field) and is_callable(array($this, $field), false) ) {
+    foreach ($data as $field => $value) {
+      if (method_exists($this, $field) and is_callable(array($this, $field), false)) {
         $this->$field($value);
       } else {
-        if ( is_array($value) ) {
+        if (is_array($value)) {
           # perhaps should turn into a comma-separated string
           $this->{$field} = implode(',', $value);
         } else if (is_string($value)) {
@@ -212,11 +212,11 @@ class ZM_Object {
           } else {
             $this->{$field} = $value;
           }
-        } else if ( is_integer($value) ) {
+        } else if (is_integer($value)) {
           $this->{$field} = $value;
-        } else if ( is_bool($value) ) {
+        } else if (is_bool($value)) {
           $this->{$field} = $value;
-        } else if ( is_null($value) ) {
+        } else if (is_null($value)) {
           $this->{$field} = $value;
         } else {
           Error("Unknown type $field => $value of var " . gettype($value));
@@ -307,7 +307,7 @@ class ZM_Object {
     $class = get_class($this);
     $table = $class::$table;
 
-    if ( $new_values ) {
+    if ($new_values) {
       $this->set($new_values);
     }
 

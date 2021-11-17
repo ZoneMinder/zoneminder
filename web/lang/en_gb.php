@@ -663,8 +663,33 @@ $SLANG = array(
     'PrivacyCookiesText'    => 'Whether you use a web browser or a mobile app to communicate with the ZoneMinder server, a ZMSESSID cookie is created on the client to uniquely identify a session with the ZoneMinder server. ZmCSS and zmSkin cookies are created to remember your style and skin choices.',
     'PrivacyTelemetry'      => 'Telemetry',
     'PrivacyTelemetryText'  => 'Because ZoneMinder is open-source, anyone can install it without registering. This makes it difficult to  answer questions such as: how many systems are out there, what is the largest system out there, what kind of systems are out there, or where are these systems located? Knowing the answers to these questions, helps users who ask us these questions, and it helps us set priorities based on the majority user base.',
-    'PrivacyTelemetryList'  => 'The ZoneMinder Telemetry daemon collects the following data about your system:<ul><li>A unique identifier (UUID) <li>City based location is gathered by querying <a href="https://ipinfo.io/geo">ipinfo.io</a>. City, region, country, latitude, and longitude parameters are saved. The latitude and longitude coordinates are accurate down to the city or town level only!<li>Current time<li>Total number of monitors<li>Total number of events<li>System architecture<li>Operating system kernel, distro, and distro version<li>Version of ZoneMinder<li>Total amount of memory<li>Number of cpu cores</ul>',
-    'PrivacyMonitorList'    => 'The following configuration parameters from each monitor are collected:<ul><li>Id<li>Name<li>Type<li>Function<li>Width<li>Height<li>Colours<li>MaxFPS<li>AlarmMaxFPS</ul>',
+    'PrivacyTelemetryList'  => 'The ZoneMinder Telemetry daemon collects the following data about your system:
+    <ul>
+      <li>A unique identifier (UUID)</li>
+      <li>City based location is gathered by querying <a href="https://ipinfo.io/geo">ipinfo.io</a>. City, region, country, latitude, and longitude parameters are saved. The latitude and longitude coordinates are accurate down to the city or town level only!</li>
+      <li>Current time</li>
+      <li>Total number of monitors</li>
+      <li>Total number of events</li>
+      <li>System architecture</li>
+      <li>Operating system kernel, distro, and distro version</li>
+      <li>Version of ZoneMinder</li>
+      <li>Total amount of memory</li>
+      <li>Number of cpu cores</li>
+    </ul>',
+    'PrivacyMonitorList'    => 'The following configuration parameters from each monitor are collected:
+   <ul>
+    <li>Id</li>
+    <li>Name</li>
+    <li>Manufacturer</li>
+    <li>Model</li>
+    <li>Type</li>
+    <li>Function</li>
+    <li>Width</li>
+    <li>Height</li>
+    <li>Colours</li>
+    <li>MaxFPS</li>
+    <li>AlarmMaxFPS</li>
+   </ul>',
     'PrivacyConclusionText' => 'We are <u>NOT</u> collecting any image specific data from your cameras. We don’t know what your cameras are watching. This data will not be sold or used for any purpose not stated herein. By clicking accept, you agree to send us this data to help make ZoneMinder a better product. By clicking decline, you can still freely use ZoneMinder and all its features.',
     'Probe'                 => 'Probe',
     'ProfileProbe'          => 'Stream Probe',

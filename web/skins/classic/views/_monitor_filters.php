@@ -178,7 +178,6 @@ $html .= '</span>
 ' .
   ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll($sql, null, $values);
-  ZM\Debug(print_r($monitors, true));
   $displayMonitors = array();
   $monitors_dropdown = array();
 

@@ -1,12 +1,12 @@
 <?php
 App::uses('AppController', 'Controller');
 /**
- * Servers Controller
+ * Manufacturers Controller
  *
- * @property Server $Server
+ * @property Manufacturer $Manufacturer
  * @property PaginatorComponent $Paginator
  */
-class ServersController extends AppController {
+class ManufacturersController extends AppController {
 
 /**
  * Components
@@ -18,7 +18,7 @@ class ServersController extends AppController {
   public function beforeFilter() {
     parent::beforeFilter();
     /*
-     * A user needs the server data to calculate how to view a monitor, and there really isn't anything sensitive in this data.
+     * A user needs the manufacturer data to calculate how to view a monitor, and there really isn't anything sensitive in this data.
      * So it has been decided for now to just let everyone read it.
      
     global $user;
@@ -36,13 +36,13 @@ class ServersController extends AppController {
  * @return void
  */
   public function index() {
-    $this->Server->recursive = 0;
+    $this->Manufacturer->recursive = 0;
     
     $options = '';
-    $servers = $this->Server->find('all', $options);
+    $manufacturers = $this->Manufacturer->find('all', $options);
 		$this->set(array(
-					'servers' => $servers,
-					'_serialize' => array('servers')
+					'manufacturers' => $manufacturers,
+					'_serialize' => array('manufacturers')
 					));
 	}
 
@@ -54,21 +54,21 @@ class ServersController extends AppController {
  * @return void
  */
   public function view($id = null) {
-    $this->Server->recursive = 0;
-    if ( !$this->Server->exists($id) ) {
-      throw new NotFoundException(__('Invalid server'));
+    $this->Manufacturer->recursive = 0;
+    if ( !$this->Manufacturer->exists($id) ) {
+      throw new NotFoundException(__('Invalid manufacturer'));
     }
     $restricted = '';
     
     $options = array('conditions' => array( 
-          array('Server.'.$this->Server->primaryKey => $id),
+          array('Manufacturer.'.$this->Manufacturer->primaryKey => $id),
           $restricted
           )
         );
-    $server = $this->Server->find('first', $options);
+    $manufacturer = $this->Manufacturer->find('first', $options);
     $this->set(array(
-      'server' => $server,
-      '_serialize' => array('server')
+      'manufacturer' => $manufacturer,
+      '_serialize' => array('manufacturer')
     ));
   }
 
@@ -87,9 +87,11 @@ class ServersController extends AppController {
         return;
       }
 
-      $this->Server->create();
-      if ( $this->Server->save($this->request->data) ) {
-        return $this->flash(__('The server has been saved.'), array('action' => 'index'));
+      $this->Manufacturer->create();
+      if ( $this->Manufacturer->save($this->request->data) ) {
+				# Might be nice to send it a start request
+        #$this->daemonControl($this->Manufacturer->id, 'start', $this->request->data);
+        return $this->flash(__('The manufacturer has been saved.'), array('action' => 'index'));
       }
     }
   }
@@ -102,7 +104,7 @@ class ServersController extends AppController {
  * @return void
  */
   public function edit($id = null) {
-    $this->Server->id = $id;
+    $this->Manufacturer->id = $id;
 
     global $user;
     $canEdit = (!$user) || ($user['System'] == 'Edit');
@@ -111,10 +113,10 @@ class ServersController extends AppController {
       return;
     }
 
-    if ( !$this->Server->exists($id) ) {
-      throw new NotFoundException(__('Invalid server'));
+    if ( !$this->Manufacturer->exists($id) ) {
+      throw new NotFoundException(__('Invalid manufacturer'));
     }
-    if ( $this->Server->save($this->request->data) ) {
+    if ( $this->Manufacturer->save($this->request->data) ) {
       $message = 'Saved';
     } else {
       $message = 'Error';
@@ -124,6 +126,8 @@ class ServersController extends AppController {
       'message' => $message,
       '_serialize' => array('message')
     ));
+    // - restart this manufacturer after change
+    #$this->daemonControl($this->Manufacturer->id, 'restart', $this->request->data);
   }
 
 /**
@@ -141,16 +145,18 @@ class ServersController extends AppController {
       return;
     }
 
-    $this->Server->id = $id;
-    if ( !$this->Server->exists() ) {
-      throw new NotFoundException(__('Invalid server'));
+    $this->Manufacturer->id = $id;
+    if ( !$this->Manufacturer->exists() ) {
+      throw new NotFoundException(__('Invalid manufacturer'));
     }
     $this->request->allowMethod('post', 'delete');
 
-    if ( $this->Server->delete() ) {
-      return $this->flash(__('The server has been deleted.'), array('action' => 'index'));
+    #$this->daemonControl($this->Manufacturer->id, 'stop');
+
+    if ( $this->Manufacturer->delete() ) {
+      return $this->flash(__('The manufacturer has been deleted.'), array('action' => 'index'));
     } else {
-      return $this->flash(__('The server could not be deleted. Please, try again.'), array('action' => 'index'));
+      return $this->flash(__('The manufacturer could not be deleted. Please, try again.'), array('action' => 'index'));
     }
   }
 }

@@ -19,55 +19,62 @@
 //
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
-if ( !canEdit('Monitors') ) {
+if (!canEdit('Monitors')) {
   ZM\Warning('Monitor actions require Monitors Permissions');
   return;
 }
 
-if ( $action == 'save' ) {
+global $error_message;
+
+if ($action == 'save') {
   $mid = 0;
-  if ( !empty($_REQUEST['mid']) ) {
+  if (!empty($_REQUEST['mid'])) {
     $mid = validInt($_REQUEST['mid']);
-    if ( !canEdit('Monitors', $mid) ) {
+    if (!canEdit('Monitors', $mid)) {
       ZM\Warning('You do not have permission to edit this monitor');
       return;
     }
-    if ( ZM_OPT_X10 ) {
+    if (ZM_OPT_X10) {
       $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId=?', NULL, array($mid));
-      if ( !$x10Monitor ) $x10Monitor = array();
+      if (!$x10Monitor) $x10Monitor = array();
     }
   } else {
-    if ( $user['MonitorIds'] ) {
+    if ($user['MonitorIds']) {
       ZM\Warning('You are restricted to certain monitors so cannot add a new one.');
       return;
     }
-    if ( ZM_OPT_X10 ) {
+    if (ZM_OPT_X10) {
       $x10Monitor = array();
     }
   }
 
   # For convenience
   $newMonitor = $_REQUEST['newMonitor'];
+  ZM\Debug("newMonitor: ". print_r($newMonitor, true));
 
-  if ( !$newMonitor['ManufacturerId'] and ($newMonitor['Manufacturer'] != '') ) {
+  if (!$newMonitor['ManufacturerId'] and ($newMonitor['Manufacturer'] != '')) {
     # Need to add a new Manufacturer entry
     $newManufacturer = ZM\Manufacturer::find_one(array('Name'=>$newMonitor['Manufacturer']));
     if (!$newManufacturer) {
       $newManufacturer = new ZM\Manufacturer();
-      $newManufacturer->save(array('Name'=>$newMonitor['Manufacturer']));
+      if (!$newManufacturer->save(array('Name'=>$newMonitor['Manufacturer']))) {
+        $error_message .= "Error saving new Manufacturer: " . $newManufacturer->get_last_error().'</br>';
+      }
     }
     $newMonitor['ManufacturerId'] = $newManufacturer->Id();
   }
 
-  if ( !$newMonitor['ModelId'] and ($newMonitor['Model'] != '') ) {
+  if (!$newMonitor['ModelId'] and ($newMonitor['Model'] != '')) {
     # Need to add a new Model entry
     $newModel = ZM\Model::find_one(array('Name'=>$newMonitor['Model']));
     if (!$newModel) {
       $newModel = new ZM\Model();
-      $newModel->save(array(
+      if (!$newModel->save(array(
             'Name'=>$newMonitor['Model'],
             'ManufacturerId'=>$newMonitor['ManufacturerId']
-            ));
+      ))) {
+        $error_message .= "Error saving new Model: " . $newModel->get_last_error().'</br>';
+      }
     }
     $newMonitor['ModelId'] = $newModel->Id();
   }
@@ -94,13 +101,13 @@ if ( $action == 'save' ) {
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
   # So force a value for these fields
-  foreach ( $types as $field => $value ) {
-    if ( ! isset($newMonitor[$field] ) ) {
+  foreach ($types as $field => $value) {
+    if (!isset($newMonitor[$field])) {
       $newMonitor[$field] = $value;
     }
   } # end foreach type
 
-  if ( $newMonitor['ServerId'] == 'auto' ) {
+  if ($newMonitor['ServerId'] == 'auto') {
     $newMonitor['ServerId'] = dbFetchOne(
       'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
     ZM\Debug('Auto selecting server: Got ' . $newMonitor['ServerId']);
@@ -110,17 +117,19 @@ if ( $action == 'save' ) {
     }
   }
 
+  ZM\Debug("newMonitor: ". print_r($newMonitor, true));
   $changes = $monitor->changes($newMonitor);
+  ZM\Debug("Changes: ". print_r($changes, true));
   $restart = false;
 
-  if ( count($changes) ) {
+  if (count($changes)) {
     // monitor->Id() has a value when the db record exists
-    if ( $monitor->Id() ) {
+    if ($monitor->Id()) {
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
-      if ( $monitor->Type() != 'WebSite' ) {
+      if ($monitor->Type() != 'WebSite') {
         $monitor->zmcControl('stop');
-        if ( $monitor->Controllable() ) {
+        if ($monitor->Controllable()) {
           $monitor->sendControlCommand('stop');
         }
       }
@@ -129,8 +138,7 @@ if ( $action == 'save' ) {
       $oldW = $monitor->Width();
       $oldH = $monitor->Height();
 
-      if ( $monitor->save($changes) ) {
-
+      if ($monitor->save($changes)) {
         // Groups will be added below
         if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
           // creating symlinks when symlink already exists reports errors, but is perfectly ok
@@ -138,26 +146,26 @@ if ( $action == 'save' ) {
 
           $OldStorage = $monitor->Storage();
           $saferOldName = basename($monitor->Name());
-          if ( file_exists($OldStorage->Path().'/'.$saferOldName) )
+          if (file_exists($OldStorage->Path().'/'.$saferOldName))
             unlink($OldStorage->Path().'/'.$saferOldName);
 
           $NewStorage = new ZM\Storage($newMonitor['StorageId']);
-          if ( !file_exists($NewStorage->Path().'/'.$mid) ) {
-            if ( !mkdir($NewStorage->Path().'/'.$mid, 0755) ) {
-              ZM\Error('Unable to mkdir ' . $NewStorage->Path().'/'.$mid);
+          if (!file_exists($NewStorage->Path().'/'.$mid)) {
+            if (!mkdir($NewStorage->Path().'/'.$mid, 0755)) {
+              ZM\Error('Unable to mkdir '.$NewStorage->Path().'/'.$mid);
             }
           }
           $saferNewName = basename($newMonitor['Name']);
           $link_path = $NewStorage->Path().'/'.$saferNewName;
           // Use a relative path for the target so the link continues to work from backups or directory changes.
-          if ( !symlink($mid, $link_path) ) {
-            if ( ! ( file_exists($link_path) and is_link($link_path) ) ) {
+          if (!symlink($mid, $link_path)) {
+            if (!(file_exists($link_path) and is_link($link_path))) {
               ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
             }
           }
         } // end if Name or Storage Area Change
 
-        if ( isset($changes['Width']) || isset($changes['Height']) ) {
+        if (isset($changes['Width']) || isset($changes['Height'])) {
           $newW = $newMonitor['Width'];
           $newH = $newMonitor['Height'];
 
@@ -230,8 +238,7 @@ if ( $action == 'save' ) {
           } // end if rotation or just size change
         } // end if changes in width or height
       } else {
-        global $error_message;
-        $error_message = dbError('unknown');
+        $error_message .= $monitor->get_last_error();
       } // end if successful save
       $restart = true;
     } else { // new monitor

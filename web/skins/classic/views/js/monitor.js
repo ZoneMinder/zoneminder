@@ -353,7 +353,7 @@ function populate_models(ManufacturerId) {
   }
 
   dropdown.empty();
-  dropdown.append('<option value="0" selected="true">Unknown</option>');
+  dropdown.append('<option value="" selected="true">Unknown</option>');
   dropdown.prop('selectedIndex', 0);
 
   if (ManufacturerId) {

@@ -1,0 +1,2 @@
+source @PKGDATADIR@/db/manufacturers.sql
+source @PKGDATADIR@/db/models.sql

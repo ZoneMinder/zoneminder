@@ -327,17 +327,23 @@ sub resumeMotionDetection {
 sub Control {
   my $self = shift;
   if ( ! exists $$self{Control}) {
-    require ZoneMinder::Control;
-    my $Control = ZoneMinder::Control->find_one(Id=>$$self{ControlId});
-    if ($Control) {
-      require Module::Load::Conditional;
-      if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$$Control{Protocol} => undef})) {
-        Error("Can't load ZoneMinder::Control::$$Control{Protocol}\n$Module::Load::Conditional::ERROR");
-        return undef;
+    if ($$self{ControlId}) {
+      require ZoneMinder::Control;
+      my $Control = ZoneMinder::Control->find_one(Id=>$$self{ControlId});
+      if ($Control) {
+        require Module::Load::Conditional;
+        if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$$Control{Protocol} => undef})) {
+          Error("Can't load ZoneMinder::Control::$$Control{Protocol}\n$Module::Load::Conditional::ERROR");
+          return undef;
+        }
+        bless $Control, 'ZoneMinder::Control::'.$$Control{Protocol};
+        $$Control{MonitorId} = $$self{Id};
+        $$self{Control} = $Control;
+      } else {
+        Error("Unable to load control for control $$self{ControlId} for monitor $$self{Id}");
       }
-      bless $Control, 'ZoneMinder::Control::'.$$Control{Protocol};
-      $$Control{MonitorId} = $$self{Id};
-      $$self{Control} = $Control;
+    } else {
+      Info("No ControlId set in monitor $$self{Id}")
     }
   }
   return $$self{Control};

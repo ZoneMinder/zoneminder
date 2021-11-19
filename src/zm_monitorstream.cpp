@@ -378,8 +378,9 @@ bool MonitorStream::sendFrame(const char *filepath, const timeval &timestamp) {
 } // end bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp)
 
 bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
-  if (!config.timestamp_on_capture)
+  if (!config.timestamp_on_capture) {
     monitor->TimestampImage(image, timestamp);
+  }
   Image *send_image = prepareImage(image);
 
   fputs("--" BOUNDARY "\r\n", stdout);

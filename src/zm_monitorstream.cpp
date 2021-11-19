@@ -377,9 +377,10 @@ bool MonitorStream::sendFrame(const char *filepath, const timeval &timestamp) {
   return false;
 } // end bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp)
 
-bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
-  if (!config.timestamp_on_capture)
+bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
+  if (!config.timestamp_on_capture) {
     monitor->TimestampImage(image, timestamp);
+  }
   Image *send_image = prepareImage(image);
 
   fputs("--" BOUNDARY "\r\n", stdout);
@@ -863,6 +864,10 @@ void MonitorStream::SingleImage(int scale) {
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);
   Image *snap_image = monitor->image_buffer[index];
+  if (!config.timestamp_on_capture) {
+    monitor->TimestampImage(snap_image,
+                            SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));
+  }
 
   if (!config.timestamp_on_capture) {
     monitor->TimestampImage(snap_image, monitor->shared_timestamps[index]);

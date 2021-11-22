@@ -326,17 +326,23 @@ sub resumeMotionDetection {
 
 sub Control {
   my $self = shift;
-  if ( ! exists $$self{Control}) {
+  if (!exists $$self{Control}) {
     if ($$self{ControlId}) {
       require ZoneMinder::Control;
       my $Control = ZoneMinder::Control->find_one(Id=>$$self{ControlId});
       if ($Control) {
+        my $Protocol = $$Control{Protocol};
+
+        if (!$Protocol) {
+          Error("No protocol set in control $$Control{Id}, trying Name $$Control{Name}");
+          $Protocol = $$Control{Name};
+        }
         require Module::Load::Conditional;
-        if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$$Control{Protocol} => undef})) {
-          Error("Can't load ZoneMinder::Control::$$Control{Protocol}\n$Module::Load::Conditional::ERROR");
+        if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$Protocol => undef})) {
+          Error("Can't load ZoneMinder::Control::$Protocol\n$Module::Load::Conditional::ERROR");
           return undef;
         }
-        bless $Control, 'ZoneMinder::Control::'.$$Control{Protocol};
+        bless $Control, 'ZoneMinder::Control::'.$Protocol;
         $$Control{MonitorId} = $$self{Id};
         $$self{Control} = $Control;
       } else {

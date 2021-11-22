@@ -57,7 +57,7 @@ function getFrame(monId, time, last_Frame) {
 
   var events_for_monitor = events_by_monitor_id[monId];
   if ( !events_for_monitor ) {
-    console.log("No events for monitor " + monId);
+    //console.log("No events for monitor " + monId);
     return;
   }
 
@@ -648,8 +648,11 @@ function setSpeed(speed_index) {
 }
 
 function setLive(value) {
+  // When we submit the context etc goes away but we may still be trying to update
+  // So kill the timer.
+  clearInterval(timerObj);
   liveMode = value;
-  var form = $j('#montagereview_form')[0];
+  var form = document.getElementById('montagereview_form');
   form.elements['live'].value = value;
   form.submit();
   return false;

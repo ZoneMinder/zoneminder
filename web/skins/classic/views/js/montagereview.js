@@ -988,6 +988,19 @@ function initPage() {
     });
   });
 
+  if ( !liveMode ) {
+    canvas = document.getElementById('timeline');
+
+    canvas.addEventListener('mousemove', mmove, false);
+    canvas.addEventListener('touchmove', tmove, false);
+    canvas.addEventListener('mousedown', mdown, false);
+    canvas.addEventListener('mouseup', mup, false);
+    canvas.addEventListener('mouseout', mout, false);
+
+    ctx = canvas.getContext('2d');
+    drawGraph();
+  }
+
   for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
     if ( !monId ) continue;
@@ -1009,18 +1022,6 @@ function initPage() {
     }
   } // end foreach monitor
 
-  if ( !liveMode ) {
-    canvas = document.getElementById('timeline');
-
-    canvas.addEventListener('mousemove', mmove, false);
-    canvas.addEventListener('touchmove', tmove, false);
-    canvas.addEventListener('mousedown', mdown, false);
-    canvas.addEventListener('mouseup', mup, false);
-    canvas.addEventListener('mouseout', mout, false);
-
-    ctx = canvas.getContext('2d');
-    drawGraph();
-  }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw
   //setLive(liveMode);  // will redraw

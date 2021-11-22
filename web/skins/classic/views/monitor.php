@@ -453,7 +453,7 @@ foreach ( $tabs as $name=>$value ) {
 switch ( $name ) {
   case 'general' :
     {
-      if (!$monitor->Id()) {
+      if (!$monitor->Id() and count($monitors)) {
         $monitor_ids = array();
         foreach ($monitors as $m) { $monitor_ids[] = $m['Id']; }
         $available_monitor_ids = array_diff(range(min($monitor_ids),max($monitor_ids)), $monitor_ids);
@@ -470,7 +470,7 @@ if (count($available_monitor_ids)) {
           </tr>
 <?php
 
-      } # end if ! $monitor->Id()
+      } # end if ! $monitor->Id() and count($monitors)
 ?>
           <tr class="Name">
             <td class="text-right pr-3"><?php echo translate('Name') ?></td>

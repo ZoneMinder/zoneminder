@@ -1873,7 +1873,7 @@ bool Monitor::Analyse() {
             if (snap->image) {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
-                Debug(1, "Assigning instead of Dectecting");
+                Debug(1, "Assigning instead of Detecting");
                 ref_image.Assign(*(snap->image));
               } else {
                 Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);

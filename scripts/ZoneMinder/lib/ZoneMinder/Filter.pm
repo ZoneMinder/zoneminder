@@ -230,8 +230,8 @@ sub Sql {
           # PostCondition, so no further SQL
         } else {
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
-          foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
-
+          # Empty value will result in () from split
+          foreach my $temp_value ( $stripped_value ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.$value.')';
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
@@ -250,7 +250,8 @@ sub Sql {
                 $$self{Server} = new ZoneMinder::Server($temp_value);
               }
             } elsif ( $term->{attr} eq 'StorageId' ) {
-              $value = "'$temp_value'";
+              # Empty means NULL, otherwise must be an integer
+              $value = $temp_value ne '' ? int($temp_value) : 'NULL';
               $$self{Storage} = new ZoneMinder::Storage($temp_value);
             } elsif ( $term->{attr} eq 'Name'
               || $term->{attr} eq 'Cause'

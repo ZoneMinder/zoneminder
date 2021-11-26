@@ -733,19 +733,22 @@ sub MoveTo {
 
   my $was_in_transaction = !$ZoneMinder::Database::dbh->{AutoCommit};
   $ZoneMinder::Database::dbh->begin_work() if !$was_in_transaction;
-  $self->lock_and_load(); # The fact that we are in a transaction might not imply locking
+  if (!$self->lock_and_load()) {
+    Warning('Unable to lock event record '.$$self{Id}); # The fact that we are in a transaction might not imply locking
+    $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+    return 'Unable to lock event record';
+  }
 
   my $OldStorage = $self->Storage(undef);
-
   my $error = $self->CopyTo($NewStorage);
-  return $error if $error;
+  if (!$error) {
+    # Succeeded in copying all files, so we may now update the Event.
+    $$self{StorageId} = $$NewStorage{Id};
+    $self->Storage($NewStorage);
+    $error .= $self->save();
 
-  # Succeeded in copying all files, so we may now update the Event.
-  $$self{StorageId} = $$NewStorage{Id};
-  $self->Storage($NewStorage);
-  $error .= $self->save();
-
-  # Going to leave it to upper layer as to whether we rollback or not
+    # Going to leave it to upper layer as to whether we rollback or not
+  }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
   return $error if $error;
 

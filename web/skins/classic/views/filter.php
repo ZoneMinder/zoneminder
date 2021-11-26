@@ -152,7 +152,7 @@ $booleanValues = array(
 
 $focusWindow = true;
 
-$storageareas = array('' => 'All') + ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+$storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
 
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ ) {

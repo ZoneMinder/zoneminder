@@ -57,6 +57,8 @@ class Monitor extends ZM_Object {
     'DecodingEnabled'   => array('type'=>'boolean','default'=>1),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
+    'EventStartCommand' => '',
+    'EventEndCommand' => '',
     'ONVIF_URL' =>  '',
     'ONVIF_Username'  =>  '',
     'ONVIF_Password'  =>  '',

@@ -675,6 +675,14 @@ if (count($available_monitor_ids)) {
       }
 ?>
         </td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('Event Start Command') ?></td>
+            <td><input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" /></td>
+          </tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('Event End Command') ?></td>
+            <td><input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>" /></td>
+          </tr>
         <?php
         }
         break;

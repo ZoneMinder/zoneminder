@@ -70,7 +70,7 @@
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
 "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
-"`LinkedMonitors`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
 "`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
@@ -435,7 +435,7 @@ Monitor::Monitor()
 
 /*
   std::string load_monitor_sql =
- "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, LinkedMonitors, "
+ "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
  "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
@@ -489,6 +489,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // See below after save_jpegs for a recalculation of decoding_enabled
 
   ReloadLinkedMonitors(dbrow[col]); col++;
+  event_start_command = dbrow[col] ? dbrow[col] : ""; col++;
+  event_end_command = dbrow[col] ? dbrow[col] : ""; col++;
 
   /* "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS," */
   analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], nullptr) : 0.0; col++;
@@ -1994,6 +1996,12 @@ bool Monitor::Analyse() {
             alarm_cause = cause+" Continuous "+alarm_cause;
             strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
             SetVideoWriterStartTime(event->StartTime());
+            if (!event_start_command.empty()) {
+              if (fork() == 0) {
+                execlp(event_start_command.c_str(), event_start_command.c_str(), std::to_string(event->Id()).c_str(), nullptr);
+                Error("Error execing %s", event_start_command.c_str());
+              }
+            }
 
             Info("%s: %03d - Opened new event %" PRIu64 ", section start",
                 name.c_str(), analysis_image_count, event->Id());
@@ -2083,6 +2091,13 @@ bool Monitor::Analyse() {
                 packetqueue.free_it(start_it);
                 delete start_it;
                 start_it = nullptr;
+
+            if (!event_start_command.empty()) {
+              if (fork() == 0) {
+                execlp(event_start_command.c_str(), event_start_command.c_str(), std::to_string(event->Id()).c_str(), nullptr);
+                Error("Error execing %s", event_start_command.c_str());
+              }
+            }
 
                 Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
               } else {
@@ -2786,7 +2801,18 @@ void Monitor::closeEvent() {
     Debug(1, "close event thread is not joinable");
   }
   Debug(1, "Starting thread to close event");
-  close_event_thread = std::thread([](Event *e){ delete e; }, event);
+  close_event_thread = std::thread([](Event *e, const std::string &command){
+        int64_t event_id = e->Id();
+        delete e;
+
+        if (!command.empty()) {
+          if (fork() == 0) {
+            execlp(command.c_str(), command.c_str(), std::to_string(event_id).c_str(), nullptr);
+            Error("Error execing %s", command.c_str());
+          }
+        }
+
+      }, event, event_end_command);
   Debug(1, "Nulling event");
   event = nullptr;
   if (shared_data) video_store_data->recording = {};

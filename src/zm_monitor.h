@@ -404,6 +404,8 @@ protected:
 
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;
+  std::string   event_start_command;
+  std::string   event_end_command;
 
   std::vector<Group *> groups;
 

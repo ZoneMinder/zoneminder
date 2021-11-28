@@ -4,7 +4,7 @@ Debian
 .. contents::
 
 Easy Way: Debian 11 (Bullseye)
-------------------------
+------------------------------
 
 This procedure will guide you through the installation of ZoneMinder on Debian 11 (Bullseye).
 

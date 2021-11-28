@@ -104,7 +104,7 @@ Add the following to the /etc/apt/sources.list.d/zoneminder.list file
 
 You can do this using:
 
-.. code-block::
+::
 
     echo "deb https://zmrepo.zoneminder.com/debian/release-1.36 buster/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 

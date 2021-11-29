@@ -21,7 +21,7 @@ SET @s = (SELECT IF(
 	FROM INFORMATION_SCHEMA.COLUMNS
 	WHERE table_name = 'Monitors'
 	AND table_schema = DATABASE()
-	AND column_name = 'AlarmStartCommand'
+	AND column_name = 'EventStartCommand'
 	) > 0,
 "SELECT 'Column EventStartCommand already exists in Monitors'",
 "ALTER TABLE `Monitors` ADD COLUMN `EventStartCommand` VARCHAR(255) NOT NULL DEFAULT '' AFTER `Triggers`"

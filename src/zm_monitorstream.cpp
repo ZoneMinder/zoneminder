@@ -378,9 +378,9 @@ bool MonitorStream::sendFrame(const char *filepath, const timeval &timestamp) {
 } // end bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp)
 
 bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
-  Image *send_image = prepareImage(image);
   if (!config.timestamp_on_capture)
-    monitor->TimestampImage(send_image, timestamp);
+    monitor->TimestampImage(image, timestamp);
+  Image *send_image = prepareImage(image);
 
   fputs("--" BOUNDARY "\r\n", stdout);
 #if HAVE_LIBAVCODEC
@@ -864,14 +864,16 @@ void MonitorStream::SingleImage(int scale) {
   Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);
   Image *snap_image = monitor->image_buffer[index];
 
+  if (!config.timestamp_on_capture) {
+    monitor->TimestampImage(snap_image, monitor->shared_timestamps[index]);
+  }
+
   if ( scale != ZM_SCALE_BASE ) {
     scaled_image.Assign(*snap_image);
     scaled_image.Scale(scale);
     snap_image = &scaled_image;
   }
-  if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage(snap_image, monitor->shared_timestamps[index]);
-  }
+
   snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
 
   fprintf(stdout,

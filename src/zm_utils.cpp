@@ -252,8 +252,15 @@ void HwCapsDetect() {
 #elif defined(__arm__)
   // ARM processor in 32bit mode
   // To see if it supports NEON, we need to get that information from the kernel
+  #ifdef __linux__
   unsigned long auxval = getauxval(AT_HWCAP);
   if (auxval & HWCAP_ARM_NEON) {
+  #elif defined(__FreeBSD__)
+  unsigned long auxval = 0;
+  elf_aux_info(AT_HWCAP, &auxval, sizeof(auxval));
+  if (auxval & HWCAP_NEON) {
+  #error Unsupported OS.
+  #endif
     Debug(1,"Detected ARM (AArch32) processor with Neon");
     neonversion = 1;
   } else {

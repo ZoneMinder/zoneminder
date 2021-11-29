@@ -44,8 +44,9 @@ $tabs['medband'] = translate('MediumBW');
 $tabs['lowband'] = translate('LowBW');
 $tabs['users'] = translate('Users');
 $tabs['control'] = translate('Control');
+$tabs['privacy'] = translate('Privacy');
 
-if ( isset($_REQUEST['tab']) )
+if (isset($_REQUEST['tab']))
   $tab = validHtmlStr($_REQUEST['tab']);
 else
   $tab = 'system';
@@ -53,7 +54,6 @@ else
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Options'));
-
 ?>
 <body>
   <?php echo getNavBarHTML(); ?>
@@ -62,7 +62,7 @@ xhtmlHeaders(__FILE__, translate('Options'));
       <nav id="sidebar">
         <ul class="nav nav-pills flex-column h-100">
 <?php
-foreach ( $tabs as $name=>$value ) {
+foreach ($tabs as $name=>$value) {
 ?>
           <li class="nav-item form-control-sm my-1"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
@@ -189,6 +189,14 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
 } else if ( $tab == 'control' ) {
       if ( canView('Control') ) {
         $redirect = '?view=controlcaps';
+      } else {
+        $redirect = '?view=error';
+      }
+      // Have to do this 
+      header('Location: '.$redirect);
+} else if ($tab == 'privacy') {
+      if (canView('System')) {
+        $redirect = '?view=privacy';
       } else {
         $redirect = '?view=error';
       }

@@ -229,6 +229,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_QUIT :
       Info("User initiated exit - CMD_QUIT");
+      zm_terminate = true;
       break;
     case CMD_QUERY :
       Debug(1, "Got QUERY command, sending STATUS");
@@ -315,16 +316,6 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     }
   }
   Debug(2, "Number of bytes sent to (%s): (%d)", rem_addr.sun_path, nbytes);
-
-  // quit after sending a status, if this was a quit request
-  if ( (MsgCommand)msg->msg_data[0] == CMD_QUIT ) {
-    zm_terminate = true;
-    Debug(2, "Quitting");
-    return;
-  }
-
-  //Debug(2,"Updating framerate");
-  //updateFrameRate(monitor->GetFPS());
 }  // end void MonitorStream::processCommand(const CmdMsg *msg)
 
 bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint timestamp) {
@@ -386,10 +377,10 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
 }
 
 bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
-  Image *send_image = prepareImage(image);
   if (!config.timestamp_on_capture) {
-    monitor->TimestampImage(send_image, timestamp);
+    monitor->TimestampImage(image, timestamp);
   }
+  Image *send_image = prepareImage(image);
 
   fputs("--" BOUNDARY "\r\n", stdout);
   if ( type == STREAM_MPEG ) {
@@ -863,15 +854,15 @@ void MonitorStream::SingleImage(int scale) {
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);
   Image *snap_image = monitor->image_buffer[index];
+  if (!config.timestamp_on_capture) {
+    monitor->TimestampImage(snap_image,
+                            SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));
+  }
 
   if ( scale != ZM_SCALE_BASE ) {
     scaled_image.Assign(*snap_image);
     scaled_image.Scale(scale);
     snap_image = &scaled_image;
-  }
-  if (!config.timestamp_on_capture) {
-    monitor->TimestampImage(snap_image,
-                            SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index])));
   }
   snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
 

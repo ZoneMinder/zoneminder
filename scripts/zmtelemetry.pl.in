@@ -263,7 +263,10 @@ sub countQuery {
 sub getMonitorRef {
   my $dbh = shift;
 
-  my $sql = 'SELECT `Id`,`Name`,`Type`,`Function`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS` FROM `Monitors`';
+  my $sql = 'SELECT `Id`,`Name`,`Type`,`Function`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS`,
+  (SELECT Name FROM Manufacturers WHERE Manufacturers.Id = ManufacturerId),
+  (SELECT Name FROM Models WHERE Models.Id = ModelId)
+  FROM `Monitors`';
   my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die( "Can't execute: ".$sth->errstr() );
   my $arrayref = $sth->fetchall_arrayref({});

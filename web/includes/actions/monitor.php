@@ -19,31 +19,64 @@
 //
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
-if ( !canEdit('Monitors') ) {
+if (!canEdit('Monitors')) {
   ZM\Warning('Monitor actions require Monitors Permissions');
   return;
 }
 
-if ( $action == 'save' ) {
+global $error_message;
+
+if ($action == 'save') {
   $mid = 0;
-  if ( !empty($_REQUEST['mid']) ) {
+  if (!empty($_REQUEST['mid'])) {
     $mid = validInt($_REQUEST['mid']);
-    if ( !canEdit('Monitors', $mid) ) {
+    if (!canEdit('Monitors', $mid)) {
       ZM\Warning('You do not have permission to edit this monitor');
       return;
     }
-    if ( ZM_OPT_X10 ) {
+    if (ZM_OPT_X10) {
       $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId=?', NULL, array($mid));
-      if ( !$x10Monitor ) $x10Monitor = array();
+      if (!$x10Monitor) $x10Monitor = array();
     }
   } else {
-    if ( $user['MonitorIds'] ) {
+    if ($user['MonitorIds']) {
       ZM\Warning('You are restricted to certain monitors so cannot add a new one.');
       return;
     }
-    if ( ZM_OPT_X10 ) {
+    if (ZM_OPT_X10) {
       $x10Monitor = array();
     }
+  }
+
+  # For convenience
+  $newMonitor = $_REQUEST['newMonitor'];
+  ZM\Debug("newMonitor: ". print_r($newMonitor, true));
+
+  if (!$newMonitor['ManufacturerId'] and ($newMonitor['Manufacturer'] != '')) {
+    # Need to add a new Manufacturer entry
+    $newManufacturer = ZM\Manufacturer::find_one(array('Name'=>$newMonitor['Manufacturer']));
+    if (!$newManufacturer) {
+      $newManufacturer = new ZM\Manufacturer();
+      if (!$newManufacturer->save(array('Name'=>$newMonitor['Manufacturer']))) {
+        $error_message .= "Error saving new Manufacturer: " . $newManufacturer->get_last_error().'</br>';
+      }
+    }
+    $newMonitor['ManufacturerId'] = $newManufacturer->Id();
+  }
+
+  if (!$newMonitor['ModelId'] and ($newMonitor['Model'] != '')) {
+    # Need to add a new Model entry
+    $newModel = ZM\Model::find_one(array('Name'=>$newMonitor['Model']));
+    if (!$newModel) {
+      $newModel = new ZM\Model();
+      if (!$newModel->save(array(
+            'Name'=>$newMonitor['Model'],
+            'ManufacturerId'=>$newMonitor['ManufacturerId']
+      ))) {
+        $error_message .= "Error saving new Model: " . $newModel->get_last_error().'</br>';
+      }
+    }
+    $newMonitor['ModelId'] = $newModel->Id();
   }
 
   $monitor = new ZM\Monitor($mid);
@@ -68,33 +101,35 @@ if ( $action == 'save' ) {
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
   # So force a value for these fields
-  foreach ( $types as $field => $value ) {
-    if ( ! isset($_REQUEST['newMonitor'][$field] ) ) {
-      $_REQUEST['newMonitor'][$field] = $value;
+  foreach ($types as $field => $value) {
+    if (!isset($newMonitor[$field])) {
+      $newMonitor[$field] = $value;
     }
   } # end foreach type
 
-  if ( $_REQUEST['newMonitor']['ServerId'] == 'auto' ) {
-    $_REQUEST['newMonitor']['ServerId'] = dbFetchOne(
+  if ($newMonitor['ServerId'] == 'auto') {
+    $newMonitor['ServerId'] = dbFetchOne(
       'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
-    ZM\Debug('Auto selecting server: Got ' . $_REQUEST['newMonitor']['ServerId']);
-    if ( ( !$_REQUEST['newMonitor'] ) and defined('ZM_SERVER_ID') ) {
-      $_REQUEST['newMonitor']['ServerId'] = ZM_SERVER_ID;
+    ZM\Debug('Auto selecting server: Got ' . $newMonitor['ServerId']);
+    if ((!$newMonitor['ServerId']) and defined('ZM_SERVER_ID')) {
+      $newMonitor['ServerId'] = ZM_SERVER_ID;
       ZM\Debug('Auto selecting server to ' . ZM_SERVER_ID);
     }
   }
 
-  $changes = $monitor->changes($_REQUEST['newMonitor']);
+  ZM\Debug("newMonitor: ". print_r($newMonitor, true));
+  $changes = $monitor->changes($newMonitor);
+  ZM\Debug("Changes: ". print_r($changes, true));
   $restart = false;
 
-  if ( count($changes) ) {
+  if (count($changes)) {
     // monitor->Id() has a value when the db record exists
-    if ( $monitor->Id() ) {
+    if ($monitor->Id()) {
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
-      if ( $monitor->Type() != 'WebSite' ) {
+      if ($monitor->Type() != 'WebSite') {
         $monitor->zmcControl('stop');
-        if ( $monitor->Controllable() ) {
+        if ($monitor->Controllable()) {
           $monitor->sendControlCommand('stop');
         }
       }
@@ -103,8 +138,7 @@ if ( $action == 'save' ) {
       $oldW = $monitor->Width();
       $oldH = $monitor->Height();
 
-      if ( $monitor->save($changes) ) {
-
+      if ($monitor->save($changes)) {
         // Groups will be added below
         if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
           // creating symlinks when symlink already exists reports errors, but is perfectly ok
@@ -112,28 +146,28 @@ if ( $action == 'save' ) {
 
           $OldStorage = $monitor->Storage();
           $saferOldName = basename($monitor->Name());
-          if ( file_exists($OldStorage->Path().'/'.$saferOldName) )
+          if (file_exists($OldStorage->Path().'/'.$saferOldName))
             unlink($OldStorage->Path().'/'.$saferOldName);
 
-          $NewStorage = new ZM\Storage($_REQUEST['newMonitor']['StorageId']);
-          if ( !file_exists($NewStorage->Path().'/'.$mid) ) {
-            if ( !mkdir($NewStorage->Path().'/'.$mid, 0755) ) {
-              ZM\Error('Unable to mkdir ' . $NewStorage->Path().'/'.$mid);
+          $NewStorage = new ZM\Storage($newMonitor['StorageId']);
+          if (!file_exists($NewStorage->Path().'/'.$mid)) {
+            if (!mkdir($NewStorage->Path().'/'.$mid, 0755)) {
+              ZM\Error('Unable to mkdir '.$NewStorage->Path().'/'.$mid);
             }
           }
-          $saferNewName = basename($_REQUEST['newMonitor']['Name']);
+          $saferNewName = basename($newMonitor['Name']);
           $link_path = $NewStorage->Path().'/'.$saferNewName;
           // Use a relative path for the target so the link continues to work from backups or directory changes.
-          if ( !symlink($mid, $link_path) ) {
-            if ( ! ( file_exists($link_path) and is_link($link_path) ) ) {
+          if (!symlink($mid, $link_path)) {
+            if (!(file_exists($link_path) and is_link($link_path))) {
               ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
             }
           }
         } // end if Name or Storage Area Change
 
-        if ( isset($changes['Width']) || isset($changes['Height']) ) {
-          $newW = $_REQUEST['newMonitor']['Width'];
-          $newH = $_REQUEST['newMonitor']['Height'];
+        if (isset($changes['Width']) || isset($changes['Height'])) {
+          $newW = $newMonitor['Width'];
+          $newH = $newMonitor['Height'];
 
           $zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($mid));
 
@@ -204,8 +238,7 @@ if ( $action == 'save' ) {
           } // end if rotation or just size change
         } // end if changes in width or height
       } else {
-        global $error_message;
-        $error_message = dbError('unknown');
+        $error_message .= $monitor->get_last_error();
       } // end if successful save
       $restart = true;
     } else { // new monitor
@@ -217,14 +250,27 @@ if ( $action == 'save' ) {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
-        $zoneArea = $_REQUEST['newMonitor']['Width'] * $_REQUEST['newMonitor']['Height'];
-        dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid, sprintf( "%d,%d %d,%d %d,%d %d,%d", 0, 0, $_REQUEST['newMonitor']['Width']-1, 0, $_REQUEST['newMonitor']['Width']-1, $_REQUEST['newMonitor']['Height']-1, 0, $_REQUEST['newMonitor']['Height']-1 ), $zoneArea, intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*3)/100), intval(($zoneArea*75)/100), intval(($zoneArea*2)/100)  ) );
-        //$view = 'none';
+        $zoneArea = $newMonitor['Width'] * $newMonitor['Height'];
+        dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid,
+              sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
+                $newMonitor['Width']-1,
+                0,
+                $newMonitor['Width']-1,
+                $newMonitor['Height']-1,
+                0,
+                $newMonitor['Height']-1),
+              $zoneArea,
+              intval(($zoneArea*3)/100),
+              intval(($zoneArea*75)/100),
+              intval(($zoneArea*3)/100),
+              intval(($zoneArea*75)/100),
+              intval(($zoneArea*2)/100)
+              ));
         $Storage = $monitor->Storage();
 
 				error_reporting(0);
         mkdir($Storage->Path().'/'.$mid, 0755);
-        $saferName = basename($_REQUEST['newMonitor']['Name']);
+        $saferName = basename($newMonitor['Name']);
         symlink($mid, $Storage->Path().'/'.$saferName);
 
       } else {

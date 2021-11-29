@@ -1,11 +1,13 @@
 <?php
 namespace ZM;
 require_once('database.php');
-require_once('Server.php');
 require_once('Object.php');
 require_once('Control.php');
-require_once('Storage.php');
 require_once('Group.php');
+require_once('Manufacturer.php');
+require_once('Model.php');
+require_once('Server.php');
+require_once('Storage.php');
 
 $FunctionTypes = null;
 
@@ -47,12 +49,16 @@ class Monitor extends ZM_Object {
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,
+    'ManufacturerId'  => null,
+    'ModelId'         => null,
     'Type'      => 'Ffmpeg',
     'Function'  => 'Mocord',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'DecodingEnabled'   => array('type'=>'boolean','default'=>1),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
+    'EventStartCommand' => '',
+    'EventEndCommand' => '',
     'ONVIF_URL' =>  '',
     'ONVIF_Username'  =>  '',
     'ONVIF_Password'  =>  '',
@@ -495,6 +501,10 @@ class Monitor extends ZM_Object {
     return $this->Server()->UrlToIndex($port);
   }
 
+  public function UrlToZMS($port=null) {
+    return $this->Server()->UrlToZMS($port).'?mid='.$this->Id();
+  }
+
   public function sendControlCommand($command) {
     // command is generally a command option list like --command=blah but might be just the word quit
 
@@ -681,6 +691,30 @@ class Monitor extends ZM_Object {
   }
   function DisableAlarms() {
     $output = $this->AlarmCommand('disable');
+  }
+  function Model() {
+    if (!property_exists($this, 'Model')) {
+      if ($this->{'ModelId'}) {
+        $this->{'Model'} = Model::find_one(array('Id'=>$this->ModelId()));
+        if (!$this->{'Model'})
+          $this->{'Model'} = new Model();
+      } else {
+        $this->{'Model'} = new Model();
+      }
+    }
+    return $this->{'Model'};
+  }
+  function Manufacturer() {
+    if (!property_exists($this, 'Manufacturer')) {
+      if ($this->{'ManufacturerId'}) {
+        $this->{'Manufacturer'} = Manufacturer::find_one(array('Id'=>$this->ManufacturerId()));
+        if (!$this->{'Manufacturer'})
+          $this->{'Manufacturer'} = new Manufacturer();
+      } else {
+          $this->{'Manufacturer'} = new Manufacturer();
+      }
+    }
+    return $this->{'Manufacturer'};
   }
 } // end class Monitor
 ?>

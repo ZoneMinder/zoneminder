@@ -60,8 +60,8 @@ Event::Event(
   //snapshit_file(),
   //alarm_file(""),
   videoStore(nullptr),
-  //video_name(""),
   //video_file(""),
+  //video_path(""),
   last_db_frame(0),
   have_video_keyframe(false),
   //scheme
@@ -103,7 +103,14 @@ Event::Event(
 
   // Copy it in case opening the mp4 doesn't work we can set it to another value
   save_jpegs = monitor->GetOptSaveJPEGs();
-  Storage * storage = monitor->getStorage();
+  Storage *storage = monitor->getStorage();
+  if (monitor->GetOptVideoWriter() != 0) {
+    container = monitor->OutputContainer();
+    if ( container == "auto" || container == "" ) {
+      container = "mp4";
+    }
+    video_incomplete_file = "incomplete."+container;
+  }
 
   std::string sql = stringtf(
       "INSERT INTO `Events` "
@@ -120,28 +127,27 @@ Event::Event(
       state_id,
       monitor->getOrientation(),
       0,
-      "",
+      video_incomplete_file.c_str(),
       save_jpegs,
       storage->SchemeString().c_str()
       );
   id = zmDbDoInsert(sql);
 
-  if ( !SetPath(storage) ) {
+  if (!SetPath(storage)) {
     // Try another
     Warning("Failed creating event dir at %s", storage->Path());
 
     sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
-    if ( monitor->ServerId() )
+    if (monitor->ServerId())
       sql += stringtf(" AND ServerId=%u", monitor->ServerId());
 
-    Debug(1, "%s", sql.c_str());
     storage = nullptr;
 
     MYSQL_RES *result = zmDbFetch(sql);
-    if ( result ) {
-      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+    if (result) {
+      for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
         storage = new Storage(atoi(dbrow[0]));
-        if ( SetPath(storage) )
+        if (SetPath(storage))
           break;
         delete storage;
         storage = nullptr;
@@ -149,18 +155,18 @@ Event::Event(
       mysql_free_result(result);
       result = nullptr;
     }
-    if ( !storage ) {
+    if (!storage) {
       Info("No valid local storage area found.  Trying all other areas.");
       // Try remote
       sql = "SELECT `Id` FROM `Storage` WHERE ServerId IS NULL";
-      if ( monitor->ServerId() )
+      if (monitor->ServerId())
         sql += stringtf(" OR ServerId != %u", monitor->ServerId());
 
       result = zmDbFetch(sql);
-      if ( result ) {
+      if (result) {
         for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
           storage = new Storage(atoi(dbrow[0]));
-          if ( SetPath(storage) )
+          if (SetPath(storage))
             break;
           delete storage;
           storage = nullptr;
@@ -169,7 +175,7 @@ Event::Event(
         result = nullptr;
       }
     }
-    if ( !storage ) {
+    if (!storage) {
       storage = new Storage();
       Warning("Failed to find a storage area to save events.");
     }
@@ -178,24 +184,16 @@ Event::Event(
   }  // end if ! setPath(Storage)
   Debug(1, "Using storage area at %s", path.c_str());
 
-  video_name = "";
-
   snapshot_file = path + "/snapshot.jpg";
   alarm_file = path + "/alarm.jpg";
 
-  /* Save as video */
+  video_incomplete_path = path + "/" + video_incomplete_file;
 
-  if ( monitor->GetOptVideoWriter() != 0 ) {
-    std::string container = monitor->OutputContainer();
-    if ( container == "auto" || container == "" ) {
-      container = "mp4";
-    }
+  if (monitor->GetOptVideoWriter() != 0) {
+    /* Save as video */
         
-    video_name = stringtf("%" PRIu64 "-%s.%s", id, "video", container.c_str());
-    video_file = path + "/" + video_name;
-    Debug(1, "Writing video file to %s", video_file.c_str());
     videoStore = new VideoStore(
-        video_file.c_str(),
+        video_incomplete_path.c_str(),
         container.c_str(),
         monitor->GetVideoStream(),
         monitor->GetVideoCodecContext(),
@@ -213,20 +211,32 @@ Event::Event(
         zmDbDo(sql);
       }
     } else {
-      sql = stringtf("UPDATE Events SET Videoed=1, DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
-      zmDbDo(sql);
+      std::string codec = videoStore->get_codec();
+      video_file = stringtf("%" PRIu64 "-%s.%s.%s", id, "video", codec.c_str(), container.c_str());
+      video_path = path + "/" + video_file;
+      Debug(1, "Video file is %s", video_file.c_str());
     }
   }  // end if GetOptVideoWriter
+  if (storage != monitor->getStorage())
+    delete storage;
 }
 
 Event::~Event() {
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
 
   /* Close the video file */
-  if ( videoStore != nullptr ) {
+  if (videoStore != nullptr) {
     Debug(4, "Deleting video store");
     delete videoStore;
     videoStore = nullptr;
+    int result = rename(video_incomplete_path.c_str(), video_path.c_str());
+    if (result == 0) {
+      Debug(1, "File successfully renamed");
+    } else {
+      Error("Failed renaming %s to %s", video_incomplete_path.c_str(), video_path.c_str());
+      // So that we don't update the event record
+      video_file = video_incomplete_file;
+    }
   }
 
   // endtime is set in AddFrame, so SHOULD be set to the value of the last frame timestamp.
@@ -245,21 +255,23 @@ Event::~Event() {
   }
 
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64 " AND Name='New Event'",
       monitor->EventPrefix(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
+      video_file.c_str(), // defaults to ""
       id);
 
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d WHERE Id = %" PRIu64,
+        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64,
         std::chrono::system_clock::to_time_t(end_time),
         delta_time.count(),
         frames, alarm_frames,
         tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
+        video_file.c_str(), // defaults to ""
         id);
     zmDbDoUpdate(sql);
   }  // end if no changed rows due to Name change during recording
@@ -312,32 +324,32 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   bool update = false;
 
   //Info( "Checking notes, %d <> %d", noteSetMap.size(), newNoteSetMap.size() );
-  if ( newNoteSetMap.size() > 0 ) {
-    if ( noteSetMap.size() == 0 ) {
+  if (newNoteSetMap.size() > 0) {
+    if (noteSetMap.size() == 0) {
       noteSetMap = newNoteSetMap;
       update = true;
     } else {
-      for ( StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin();
+      for (StringSetMap::const_iterator newNoteSetMapIter = newNoteSetMap.begin();
           newNoteSetMapIter != newNoteSetMap.end();
-          ++newNoteSetMapIter ) {
+          ++newNoteSetMapIter) {
         const std::string &newNoteGroup = newNoteSetMapIter->first;
         const StringSet &newNoteSet = newNoteSetMapIter->second;
         //Info( "Got %d new strings", newNoteSet.size() );
-        if ( newNoteSet.size() > 0 ) {
+        if (newNoteSet.size() > 0) {
           StringSetMap::iterator noteSetMapIter = noteSetMap.find(newNoteGroup);
-          if ( noteSetMapIter == noteSetMap.end() ) {
-            //Info( "Can't find note group %s, copying %d strings", newNoteGroup.c_str(), newNoteSet.size() );
+          if (noteSetMapIter == noteSetMap.end()) {
+            //Debug(3, "Can't find note group %s, copying %d strings", newNoteGroup.c_str(), newNoteSet.size());
             noteSetMap.insert(StringSetMap::value_type(newNoteGroup, newNoteSet));
             update = true;
           } else {
             StringSet &noteSet = noteSetMapIter->second;
-            //Info( "Found note group %s, got %d strings", newNoteGroup.c_str(), newNoteSet.size() );
-            for ( StringSet::const_iterator newNoteSetIter = newNoteSet.begin();
+            //Debug(3, "Found note group %s, got %d strings", newNoteGroup.c_str(), newNoteSet.size());
+            for (StringSet::const_iterator newNoteSetIter = newNoteSet.begin();
                 newNoteSetIter != newNoteSet.end();
-                ++newNoteSetIter ) {
+                ++newNoteSetIter) {
               const std::string &newNote = *newNoteSetIter;
               StringSet::iterator noteSetIter = noteSet.find(newNote);
-              if ( noteSetIter == noteSet.end() ) {
+              if (noteSetIter == noteSet.end()) {
                 noteSet.insert(newNote);
                 update = true;
               }
@@ -534,7 +546,7 @@ void Event::AddFrame(Image *image,
         or
             (frame_type == BULK)
         or
-            (fps and (frame_data.size() > fps))) {
+            (fps and (frame_data.size() > 5*fps))) {
       Debug(1, "Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
             frame_data.size(), write_to_db, fps, (frame_type == BULK));
       WriteDbFrames();

@@ -16,6 +16,9 @@ function generateVideoResponse( data, responseText ) {
 }
 
 function generateVideo() {
+  $j.ajaxSetup({
+    timeout: 0
+  });
   var form = $j('#videoForm').serialize();
   $j.getJSON(thisUrl + '?view=request&request=event&action=video', form)
       .done(generateVideoResponse)

@@ -270,7 +270,6 @@ int Image::PopulateFrame(AVFrame *frame) {
   frame->width = width;
   frame->height = height;
   frame->format = imagePixFormat;
-  Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d", width, height, linesize, colours, size);
   zm_dump_video_frame(frame, "Image.Populate(frame)");
   return 1;
 }  // int Image::PopulateFrame(AVFrame *frame)

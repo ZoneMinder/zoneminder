@@ -317,5 +317,10 @@ function initPage() {
   }
   selectLayout('#zmMontageLayout');
 }
+
+function watchFullscreen() {
+  const content = document.getElementById('content');
+  openFullscreen(content);
+}
 // Kick everything off
 $j(document).ready(initPage);

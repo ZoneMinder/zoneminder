@@ -657,6 +657,7 @@ function getFrameResponse(respObj, respText) {
 
 function frameQuery(eventId, frameId, loadImage) {
   var data = {};
+  if (auth_hash) data.auth = auth_hash;
   data.loopback = loadImage;
   data.id = {eventId, frameId};
 
@@ -772,8 +773,9 @@ function manageDelConfirmModalBtns() {
       return;
     }
 
+    pauseClicked();
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=event&task=delete&id='+eventData.Id)
+    $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
         .done(function(data) {
           $j('#deleteConfirm').modal('hide');
           streamNext(true);

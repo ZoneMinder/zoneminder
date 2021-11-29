@@ -111,6 +111,13 @@ class VideoStore {
     int writePacket(const std::shared_ptr<ZMPacket> &pkt);
     int write_packets(PacketQueue &queue);
     void flush_codecs();
+    const char *get_codec() {
+      if (chosen_codec_data)
+        return chosen_codec_data->codec_codec;
+      if (video_out_stream)
+        return avcodec_get_name(video_out_stream->codecpar->codec_id);
+      return "";
+    }
 };
 
 #endif // ZM_VIDEOSTORE_H

@@ -239,6 +239,6 @@ echo "];\n";
 var cWidth;   // save canvas width
 var cHeight;  // save canvas height
 var canvas;   // global canvas definition so we don't have to keep looking it up
-var ctx;
+var ctx = null;
 var underSlider;    // use this to hold what is hidden by the slider
 var underSliderX;   // Where the above was taken from (left side, Y is zero)

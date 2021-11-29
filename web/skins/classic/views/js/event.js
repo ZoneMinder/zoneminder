@@ -773,8 +773,9 @@ function manageDelConfirmModalBtns() {
       return;
     }
 
+    pauseClicked();
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=event&task=delete&id='+eventData.Id)
+    $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
         .done(function(data) {
           $j('#deleteConfirm').modal('hide');
           streamNext(true);

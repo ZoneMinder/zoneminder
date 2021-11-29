@@ -43,6 +43,7 @@ require Date::Parse;
 require POSIX;
 use Date::Format qw(time2str);
 use Time::HiRes qw(gettimeofday tv_interval stat);
+use Scalar::Util qw(looks_like_number);
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -601,7 +602,7 @@ sub CopyTo {
   # First determine if we can move it to the dest.
   # We do this before bothering to lock the event
   my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
-  if ( ! $$NewStorage{Id} ) {
+  if ( ! looks_like_number($$NewStorage{Id}) ) {
     return 'New storage does not have an id.  Moving will not happen.';
   } elsif ( $$NewStorage{Id} == $$self{StorageId} ) {
     return 'Event is already located at ' . $NewPath;

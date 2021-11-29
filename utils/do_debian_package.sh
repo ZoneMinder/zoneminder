@@ -87,11 +87,7 @@ else
 fi;
 
 if [ "$DISTROS" == "" ]; then
-  if [ "$RELEASE" != "" ]; then
-    DISTROS="bionic,focal,hirsute,impish"
-  else
-    DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
-  fi;
+  DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   echo "Defaulting to $DISTROS for distribution";
 else
   echo "Building for $DISTROS";

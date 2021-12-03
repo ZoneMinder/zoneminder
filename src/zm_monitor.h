@@ -593,6 +593,10 @@ public:
   bool Decode();
   void DumpImage( Image *dump_image ) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
+  Event *openEvent(
+      const std::shared_ptr<ZMPacket> &snap,
+      const std::string &cause,
+      const Event::StringSetMap noteSetMap);
   void closeEvent();
 
   void Reload();

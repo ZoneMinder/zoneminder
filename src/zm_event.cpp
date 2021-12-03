@@ -546,7 +546,7 @@ void Event::AddFrame(Image *image,
         or
             (frame_type == BULK)
         or
-            (fps and (frame_data.size() > fps))) {
+            (fps and (frame_data.size() > 5*fps))) {
       Debug(1, "Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
             frame_data.size(), write_to_db, fps, (frame_type == BULK));
       WriteDbFrames();

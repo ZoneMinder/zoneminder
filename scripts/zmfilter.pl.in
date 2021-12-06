@@ -21,28 +21,6 @@
 #
 # ==========================================================================
 
-=head1 NAME
-
-zmfilter.pl - ZoneMinder tool to filter events
-
-=head1 SYNOPSIS
-
-zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
-
-=head1 DESCRIPTION
-
-This script continuously monitors the recorded events for the given
-monitor and applies any filters which would delete and/or upload
-matching events.
-
-=head1 OPTIONS
-
-
--f{filter name}, --filter={filter name}  - The name of a specific filter to run
---filter_id={filter id}                  - The id of a specific filter to run
--v, --version                            - Print ZoneMinder version
-
-=cut
 use strict;
 use bytes;
 
@@ -1051,9 +1029,7 @@ sub executeCommand {
   my $filter = shift;
   my $Event = shift;
 
-  my $event_path = $Event->Path();
-
-  my $command = $filter->{AutoExecuteCmd}.' '.$event_path;
+  my $command = $filter->{AutoExecuteCmd}.' '.$Event->Path();
   $command = substituteTags($command, $filter, $Event);
 
   Info("Executing '$command'");
@@ -1063,15 +1039,37 @@ sub executeCommand {
     chomp($output);
     Debug("Output: $output");
   }
-  if ( $status ) {
+  if ($status) {
     Error("Command '$command' exited with status: $status");
     return 0;
   } else {
-    my $sql = 'UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute( $Event->{Id} )
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+    zmSQLExecute('UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?', $Event->{Id});
   }
-  return( 1 );
+  return 1;
 }
+
+1;
+__END__
+
+=head1 NAME
+
+zmfilter.pl - ZoneMinder tool to select events and perform actions on them
+
+=head1 SYNOPSIS
+
+zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] [--daemon] | -v, --version
+
+=head1 DESCRIPTION
+
+This script performs a specified database query to select recorded events and performs specified actions on them
+such as email reporting, deleting, moving, etc.  If the --daemon option is given it will remain resident, repeating
+the query and applying actions.  This is normally managed by zmdc.pl however it can be used manually as well.
+
+=head1 OPTIONS
+
+  -f{filter name}, --filter={filter name}  - The name of a specific filter to run
+  --filter_id={filter id}                  - The id of a specific filter to run
+  --daemon                                 - Causes zmfilter.pl to stay running endlessly repeating the filter(s).
+  -v, --version                            - Print ZoneMinder version
+
+=cut

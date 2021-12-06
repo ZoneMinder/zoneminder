@@ -141,7 +141,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
 
-if ( !EVENT_PATH ) {
+if (!EVENT_PATH) {
   Error('No event path defined. Config was '.$Config{ZM_DIR_EVENTS});
   die;
 }
@@ -173,22 +173,22 @@ if ( ! ( $filter_name or $filter_id ) ) {
 my @filters;
 my $last_action = 0;
 
-while( !$zm_terminate ) {
+while (!$zm_terminate) {
   my $now = time;
-  if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
+  if (($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY}) {
     Debug('Reloading filters');
     $last_action = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
 
-  foreach my $filter ( @filters ) {
+  foreach my $filter (@filters) {
     last if $zm_terminate;
-    if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
+    if ($$filter{Concurrent} and !($filter_id or $filter_name)) {
       my ( $proc ) = $0 =~ /(\S+)/;
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
       Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
 
-      system(qq`$proc --filter "$$filter{Name}" &`);
+      system(qq`$proc --filter_id $id &`);
     } else {
       checkFilter($filter);
     }

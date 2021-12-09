@@ -177,7 +177,7 @@ function changeScale() {
   var newWidth;
   var newHeight;
   var autoScale;
-  var eventViewer= $j(vid ? '#videoobj' : '#evtStream');
+  var eventViewer= $j(vid ? '#videoobj' : '#videoFeed');
   var alarmCue = $j('div.alarmCue');
   var bottomEl = $j('#replayStatus');
 
@@ -910,12 +910,12 @@ function initPage() {
     progressBarNav();
     streamCmdTimer = setTimeout(streamQuery, 500);
     if (canStreamNative) {
-      if (!$j('#imageFeed')) {
-        console.log('No element with id tag imageFeed found.');
+      if (!$j('#videoFeed')) {
+        console.log('No element with id tag videoFeed found.');
       } else {
-        var streamImg = $j('#imageFeed img');
+        var streamImg = $j('#videoFeed img');
         if (!streamImg) {
-          streamImg = $j('#imageFeed object');
+          streamImg = $j('#videoFeed object');
         }
         $j(streamImg).click(function(event) {
           handleClick(event);
@@ -1070,6 +1070,28 @@ function initPage() {
     $j('#deleteConfirm').modal('show');
   });
 } // end initPage
+
+document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
+
+function toggleZones(e) {
+  const zones = $j('#zones'+eventData.MonitorId);
+  const button = document.getElementById('toggleZonesButton');
+  if (zones.length) {
+    if (zones.is(":visible")) {
+      zones.hide();
+      button.setAttribute('title', showZonesString);
+      button.innerHTML = '<span class="material-icons">layers</span>';
+      setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
+    } else {
+      zones.show();
+      button.setAttribute('title', hideZonesString);
+      button.innerHTML = '<span class="material-icons">layers_clear</span>';
+      setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
+    }
+  } else {
+    console.error("Zones svg not found");
+  }
+}
 
 // Kick everything off
 $j(document).ready(initPage);

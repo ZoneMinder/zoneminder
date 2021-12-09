@@ -9,18 +9,6 @@
 //
 // Import constants
 //
-var STATE_IDLE = <?php echo STATE_IDLE ?>;
-var STATE_PREALARM = <?php echo STATE_PREALARM ?>;
-var STATE_ALARM = <?php echo STATE_ALARM ?>;
-var STATE_ALERT = <?php echo STATE_ALERT ?>;
-var STATE_TAPE = <?php echo STATE_TAPE ?>;
-
-var stateStrings = new Array();
-stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
-stateStrings[STATE_PREALARM] = "<?php echo translate('Idle') ?>";
-stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
-stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
-stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 var deleteString = "<?php echo translate('Delete') ?>";
 

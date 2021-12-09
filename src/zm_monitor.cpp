@@ -3096,9 +3096,6 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
-  if (close_event_thread.joinable()) {
-    close_event_thread.join();
-  }
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
     decoder->Stop();
@@ -3116,10 +3113,14 @@ int Monitor::Close() {
     video_fifo = nullptr;
   }
 
+  if (close_event_thread.joinable()) {
+    close_event_thread.join();
+  }
   std::lock_guard<std::mutex> lck(event_mutex);
   if (event) {
     Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), image_count, event->Id());
     closeEvent();
+    close_event_thread.join();
   }
   if (camera) camera->Close();
   return 1;

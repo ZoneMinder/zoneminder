@@ -220,12 +220,13 @@ int main(int argc, char *argv[]) {
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
-  sigset_t block_set;
-  sigemptyset(&block_set);
-
-  sigaddset(&block_set, SIGHUP);
-  sigaddset(&block_set, SIGUSR1);
-  sigaddset(&block_set, SIGUSR2);
+  struct sigaction sa;
+  sa.sa_handler = SIG_IGN; //handle signal by ignoring
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  if (sigaction(SIGCHLD, &sa, 0) == -1) {
+    Error("Unable to set SIGCHLD to ignore. There may be zombies.");
+  }
 
   int result = 0;
   int prime_capture_log_count = 0;
@@ -286,7 +287,6 @@ int main(int argc, char *argv[]) {
     Microseconds sleep_time = Microseconds(0);
 
     while (!zm_terminate) {
-      //sigprocmask(SIG_BLOCK, &block_set, 0);
       for (size_t i = 0; i < monitors.size(); i++) {
         monitors[i]->CheckAction();
 

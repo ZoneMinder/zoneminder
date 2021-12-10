@@ -70,7 +70,7 @@
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
 "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
-"`LinkedMonitors`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
 "`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
@@ -435,7 +435,7 @@ Monitor::Monitor()
 
 /*
   std::string load_monitor_sql =
- "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, LinkedMonitors, "
+ "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
  "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
@@ -489,6 +489,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // See below after save_jpegs for a recalculation of decoding_enabled
 
   ReloadLinkedMonitors(dbrow[col]); col++;
+  event_start_command = dbrow[col] ? dbrow[col] : ""; col++;
+  event_end_command = dbrow[col] ? dbrow[col] : ""; col++;
 
   /* "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS," */
   analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], nullptr) : 0.0; col++;
@@ -1873,19 +1875,27 @@ bool Monitor::Analyse() {
             if (snap->image) {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
-                Debug(1, "Assigning instead of Dectecting");
+                Debug(1, "Assigning instead of Detecting");
                 ref_image.Assign(*(snap->image));
               } else {
                 Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                 // Get new score.
                 int motion_score = DetectMotion(*(snap->image), zoneSet);
 
+                // lets construct alarm cause. It will contain cause + names of zones alarmed
+                std::string alarm_cause;
                 snap->zone_stats.reserve(zones.size());
                 for (const Zone &zone : zones) {
                   const ZoneStats &stats = zone.GetStats();
                   stats.DumpToLog("After detect motion");
                   snap->zone_stats.push_back(stats);
+                  if (zone.Alarmed()) {
+                    if (!alarm_cause.empty()) alarm_cause += ",";
+                    alarm_cause += std::string(zone.Label());
+                  }
                 }
+                if (!alarm_cause.empty())
+                  cause = cause+" "+alarm_cause;
 
                 Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
                     score, last_motion_score, motion_score);
@@ -1911,6 +1921,7 @@ bool Monitor::Analyse() {
               );
         } // end if active and doing motion detection
 
+
         if (function == RECORD or function == MOCORD) {
           // If doing record, check to see if we need to close the event or not.
           if (event) {
@@ -1933,69 +1944,9 @@ bool Monitor::Analyse() {
           }  // end if event
 
           if (!event) {
-            Debug(2, "Creating continuous event");
-            if (!snap->keyframe and (videowriter == PASSTHROUGH)) {
-              // Must start on a keyframe so rewind. Only for passthrough though I guess.
-              // FIXME this iterator is not protected from invalidation
-              packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                  *analysis_it, 0 /* pre_event_count */
-                  );
+            event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
 
-              // This gets a lock on the starting packet
-
-              ZMLockedPacket *starting_packet_lock = nullptr;
-              std::shared_ptr<ZMPacket> starting_packet = nullptr;
-              if (*start_it != *analysis_it) {
-                starting_packet_lock = packetqueue.get_packet(start_it);
-                if (!starting_packet_lock) {
-                  Warning("Unable to get starting packet lock");
-                  delete packet_lock;
-                  return false;
-                }
-                starting_packet = starting_packet_lock->packet_;
-              } else {
-                starting_packet = snap;
-              }
-
-              event = new Event(this, starting_packet->timestamp, "Continuous", noteSetMap);
-              // Write out starting packets, do not modify packetqueue it will garbage collect itself
-              while (starting_packet and ((*start_it) != *analysis_it)) {
-                event->AddPacket(starting_packet);
-                // Have added the packet, don't want to unlock it until we have locked the next
-
-                packetqueue.increment_it(start_it);
-                if ((*start_it) == *analysis_it) {
-                  if (starting_packet_lock) delete starting_packet_lock;
-                  break;
-                }
-                ZMLockedPacket *lp = packetqueue.get_packet(start_it);
-                delete starting_packet_lock;
-                if (!lp) return false;
-                starting_packet_lock = lp;
-                starting_packet = lp->packet_;
-              }
-              packetqueue.free_it(start_it);
-              delete start_it;
-              start_it = nullptr;
-            } else {
-              // Create event from current snap
-              event = new Event(this, timestamp, "Continuous", noteSetMap);
-            }
-            shared_data->last_event_id = event->Id();
-
-            // lets construct alarm cause. It will contain cause + names of zones alarmed
-            std::string alarm_cause;
-            for (const Zone &zone : zones) {
-              if (zone.Alarmed()) {
-                if (!alarm_cause.empty()) alarm_cause += ",";
-                alarm_cause += std::string(zone.Label());
-              }
-            }
-            alarm_cause = cause+" Continuous "+alarm_cause;
-            strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-            SetVideoWriterStartTime(event->StartTime());
-
-            Info("%s: %03d - Opened new event %" PRIu64 ", section start",
+            Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
                 name.c_str(), analysis_image_count, event->Id());
             /* To prevent cancelling out an existing alert\prealarm\alarm state */
             if (state == IDLE) {
@@ -2027,63 +1978,12 @@ bool Monitor::Analyse() {
                     (event_close_mode == CLOSE_ALARM));
             }
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
-              // lets construct alarm cause. It will contain cause + names of zones alarmed
-              std::string alarm_cause = "";
-              for (const Zone &zone : zones) {
-                if (zone.Alarmed()) {
-                  alarm_cause = alarm_cause + "," + std::string(zone.Label());
-                }
-              }
-              if (!alarm_cause.empty()) alarm_cause[0] = ' ';
-              alarm_cause = cause + alarm_cause;
-              strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
-                  name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
+                  name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
 
               if (!event) {
-                packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                    *analysis_it,
-                    (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
-                    );
-                ZMLockedPacket *starting_packet_lock = nullptr;
-                std::shared_ptr<ZMPacket> starting_packet = nullptr;
-                if (*start_it != *analysis_it) {
-                  starting_packet_lock = packetqueue.get_packet(start_it);
-                  if (!starting_packet_lock) return false;
-                  starting_packet = starting_packet_lock->packet_;
-                } else {
-                  starting_packet = snap;
-                }
-
-                event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
-                shared_data->last_event_id = event->Id();
-                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-                SetVideoWriterStartTime(event->StartTime());
+                event = openEvent(snap, cause, noteSetMap);
                 shared_data->state = state = ALARM;
-
-                // Write out starting packets, do not modify packetqueue it will garbage collect itself
-                while (*start_it != *analysis_it) {
-                  event->AddPacket(starting_packet);
-
-                  packetqueue.increment_it(start_it);
-                  if ( (*start_it) == (*analysis_it) ) {
-                    if (starting_packet_lock) delete starting_packet_lock;
-                    break;
-                  }
-                  ZMLockedPacket *lp = packetqueue.get_packet(start_it);
-                  delete starting_packet_lock;
-                  if (!lp) {
-                    // Shutting down event will be closed by ~Monitor()
-                    // Perhaps we shouldn't do this.
-                    return false;
-                  }
-                  starting_packet_lock = lp;
-                  starting_packet = lp->packet_;
-                }
-                packetqueue.free_it(start_it);
-                delete start_it;
-                start_it = nullptr;
-
                 Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
               } else {
                 shared_data->state = state = ALARM;
@@ -2193,11 +2093,7 @@ bool Monitor::Analyse() {
                       static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - GetVideoWriterStartTime()).count()),
                       static_cast<int64>(Seconds(section_length).count()));
               closeEvent();
-              event = new Event(this, timestamp, cause, noteSetMap);
-              shared_data->last_event_id = event->Id();
-              //set up video store data
-              snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-              SetVideoWriterStartTime(event->StartTime());
+              event = openEvent(snap, cause, noteSetMap);
             }
           } else {
             Error("ALARM but no event");
@@ -2776,6 +2672,67 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
   Debug(2, "done annotating %s", label_text);
 } // end void Monitor::TimestampImage
 
+Event * Monitor::openEvent(
+    const std::shared_ptr<ZMPacket> &snap,
+    const std::string &cause,
+    const Event::StringSetMap noteSetMap) {
+
+  // FIXME this iterator is not protected from invalidation
+  packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
+      *analysis_it,
+      (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
+      );
+
+  // This gets a lock on the starting packet
+
+  ZMLockedPacket *starting_packet_lock = nullptr;
+  std::shared_ptr<ZMPacket> starting_packet = nullptr;
+  if (*start_it != *analysis_it) {
+    starting_packet_lock = packetqueue.get_packet(start_it);
+    if (!starting_packet_lock) {
+      Warning("Unable to get starting packet lock");
+      return nullptr;
+    }
+    starting_packet = starting_packet_lock->packet_;
+  } else {
+    starting_packet = snap;
+  }
+
+  event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
+
+  shared_data->last_event_id = event->Id();
+  strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+
+  if (!event_start_command.empty()) {
+    if (fork() == 0) {
+      execlp(event_start_command.c_str(), event_start_command.c_str(), std::to_string(event->Id()).c_str(), nullptr);
+      Error("Error execing %s", event_start_command.c_str());
+    }
+  }
+
+  // Write out starting packets, do not modify packetqueue it will garbage collect itself
+  while (starting_packet and ((*start_it) != *analysis_it)) {
+    event->AddPacket(starting_packet);
+    // Have added the packet, don't want to unlock it until we have locked the next
+
+    packetqueue.increment_it(start_it);
+    if ((*start_it) == *analysis_it) {
+      if (starting_packet_lock) delete starting_packet_lock;
+      break;
+    }
+    ZMLockedPacket *lp = packetqueue.get_packet(start_it);
+    delete starting_packet_lock;
+    if (!lp) return nullptr; // only on terminate FIXME
+    starting_packet_lock = lp;
+    starting_packet = lp->packet_;
+  }
+  packetqueue.free_it(start_it);
+  delete start_it;
+  start_it = nullptr;
+
+  return event;
+}
+
 void Monitor::closeEvent() {
   if (!event) return;
 
@@ -2786,7 +2743,18 @@ void Monitor::closeEvent() {
     Debug(1, "close event thread is not joinable");
   }
   Debug(1, "Starting thread to close event");
-  close_event_thread = std::thread([](Event *e){ delete e; }, event);
+  close_event_thread = std::thread([](Event *e, const std::string &command){
+        int64_t event_id = e->Id();
+        delete e;
+
+        if (!command.empty()) {
+          if (fork() == 0) {
+            execlp(command.c_str(), command.c_str(), std::to_string(event_id).c_str(), nullptr);
+            Error("Error execing %s", command.c_str());
+          }
+        }
+
+      }, event, event_end_command);
   Debug(1, "Nulling event");
   event = nullptr;
   if (shared_data) video_store_data->recording = {};
@@ -3079,9 +3047,6 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
-  if (close_event_thread.joinable()) {
-    close_event_thread.join();
-  }
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
     decoder->Stop();
@@ -3099,10 +3064,14 @@ int Monitor::Close() {
     video_fifo = nullptr;
   }
 
+  if (close_event_thread.joinable()) {
+    close_event_thread.join();
+  }
   std::lock_guard<std::mutex> lck(event_mutex);
   if (event) {
     Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), image_count, event->Id());
     closeEvent();
+    close_event_thread.join();
   }
   if (camera) camera->Close();
   return 1;

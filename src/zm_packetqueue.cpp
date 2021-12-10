@@ -116,14 +116,15 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           , max_video_packet_count);
 
       for (
-      auto it = ++pktQueue.begin();
-      it != pktQueue.end() and *it != add_packet;
+          auto it = ++pktQueue.begin();
+          it != pktQueue.end() and *it != add_packet;
+          // iterator is incremented by erase
       ) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
 
         ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
         if (!lp->trylock()) {
-          Debug(1, "Found locked packet when trying to free up video packets. Skipping to next one");
+          Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
           delete lp;
           ++it;
           continue;
@@ -312,7 +313,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
             pktQueue.size());
       pktQueue.pop_front();
       packet_counts[zm_packet->packet.stream_index] -= 1;
-      //delete zm_packet;
     }
   }  // end if have at least max_video_packet_count video packets remaining
   // We signal on every packet because someday we may analyze sound

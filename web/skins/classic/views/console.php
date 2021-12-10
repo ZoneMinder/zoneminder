@@ -260,31 +260,37 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
 <?php
+  $source_class = 'infoText';
+  $source_class_reason = '';
   if ( (!$monitor['Status'] || $monitor['Status'] == 'NotRunning') && $monitor['Type']!='WebSite' ) {
     $source_class = 'errorText';
+    $source_class_reason = translate('Not Running');
   } else {
     if ( $monitor['CaptureFPS'] == '0.00' ) {
       $source_class = 'errorText';
+      $source_class_reason = translate('No capture FPS');
     } else if ( (!$monitor['AnalysisFPS']) && ($monitor['Function']!='Monitor') && ($monitor['Function'] != 'Nodect') ) {
       $source_class = 'warnText';
-    } else {
-      $source_class = 'infoText';
+      $source_class_reason = translate('No analysis FPS');
     }
   }
-  if ( $monitor['Function'] == 'None' )
-    $function_class = 'errorText';
-  else
-    $function_class = 'infoText';
 
+  $function_class = 'infoText';
+  if ($monitor['Function'] == 'None') {
+    $function_class = 'errorText';
+  }
+
+  $dot_class = $source_class;
+  $dot_class_reason = $source_class_reason;
+  if ( $function_class != 'infoText' ) {
+    $dot_class = $function_class;
+  } else if (($monitor['Function'] == 'Modect' || $monitor['Function'] == 'Mocord') and !$monitor['Enabled']) {
+    $dot_class .= ' warnText';
+    $dot_class_reason .= ' '.translate('Analysis is disabled');
+  }
 
   $scale = max(reScale(SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
   $stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Function'] != 'None');
-  $dot_class = $source_class;
-  if ( $function_class != 'infoText' ) {
-    $dot_class = $function_class;
-  } else if ( !$monitor['Enabled'] ) {
-    $dot_class .= ' warnText';
-  }
 
   if ( ZM_WEB_ID_ON_CONSOLE ) {
 ?>
@@ -317,7 +323,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
   }
 ?>
             <td class="colName">
-            <i class="material-icons md-18 <?php echo $dot_class ?>">lens</i>
+            <i class="material-icons md-18 <?php echo $dot_class ?>" title="<?php echo $dot_class_reason ?>">lens</i>
               <a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . validHtmlStr($monitor['Name']) ?></a><br/>
               <?php echo $imgHTML ?>
               <div class="small text-nowrap text-muted">

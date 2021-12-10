@@ -167,6 +167,8 @@ set(ZM_NO_X10 "OFF" CACHE BOOL
 set(ZM_ONVIF "ON" CACHE BOOL
   "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not
     work with all cameras claiming to be ONVIF compliant. default: ON")
+set(ZM_NO_PCRE "OFF" CACHE BOOL
+  "Set to ON to skip libpcre3 checks and force building ZM without libpcre3. default: OFF")
 set(ZM_NO_RTSPSERVER "OFF" CACHE BOOL
   "Set to ON to skip building ZM with rtsp server support. default: OFF")
 set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING
@@ -407,21 +409,24 @@ else()
   message(FATAL_ERROR "ZoneMinder requires pthread but it was not found on your system")
 endif()
 
-# pcre (using find_library and find_path)
-find_library(PCRE_LIBRARIES pcre)
-if(PCRE_LIBRARIES)
-  set(HAVE_LIBPCRE 1)
-  list(APPEND ZM_BIN_LIBS "${PCRE_LIBRARIES}")
-  find_path(PCRE_INCLUDE_DIR pcre.h)
-  if(PCRE_INCLUDE_DIR)
-    include_directories("${PCRE_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${PCRE_INCLUDE_DIR}")
+# Do not check for cURL if ZM_NO_CURL is on
+if(NOT ZM_NO_PRCE)
+  # pcre (using find_library and find_path)
+  find_library(PCRE_LIBRARIES pcre)
+  if(PCRE_LIBRARIES)
+    set(HAVE_LIBPCRE 1)
+    list(APPEND ZM_BIN_LIBS "${PCRE_LIBRARIES}")
+    find_path(PCRE_INCLUDE_DIR pcre.h)
+    if(PCRE_INCLUDE_DIR)
+      include_directories("${PCRE_INCLUDE_DIR}")
+      set(CMAKE_REQUIRED_INCLUDES "${PCRE_INCLUDE_DIR}")
+    endif()
+    mark_as_advanced(FORCE PCRE_LIBRARIES PCRE_INCLUDE_DIR)
+    check_include_file("pcre.h" HAVE_PCRE_H)
+    set(optlibsfound "${optlibsfound} PCRE")
+  else()
+    set(optlibsnotfound "${optlibsnotfound} PCRE")
   endif()
-  mark_as_advanced(FORCE PCRE_LIBRARIES PCRE_INCLUDE_DIR)
-  check_include_file("pcre.h" HAVE_PCRE_H)
-  set(optlibsfound "${optlibsfound} PCRE")
-else()
-  set(optlibsnotfound "${optlibsnotfound} PCRE")
 endif()
 
 # mysqlclient (using find_library and find_path)
@@ -540,6 +545,7 @@ set(ZM_PCRE 0)
 if(HAVE_LIBPCRE AND HAVE_PCRE_H)
   set(ZM_PCRE 1)
 endif()
+
 # Check for mmap and enable in all components
 set(ZM_MEM_MAPPED 0)
 set(ENABLE_MMAP no)

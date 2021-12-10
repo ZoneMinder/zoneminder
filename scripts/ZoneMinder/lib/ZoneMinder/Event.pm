@@ -43,6 +43,7 @@ require Date::Parse;
 require POSIX;
 use Date::Format qw(time2str);
 use Time::HiRes qw(gettimeofday tv_interval stat);
+use Scalar::Util qw(looks_like_number);
 
 #our @ISA = qw(ZoneMinder::Object);
 use parent qw(ZoneMinder::Object);
@@ -601,7 +602,7 @@ sub CopyTo {
   # First determine if we can move it to the dest.
   # We do this before bothering to lock the event
   my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
-  if ( ! $$NewStorage{Id} ) {
+  if ( ! looks_like_number($$NewStorage{Id}) ) {
     return 'New storage does not have an id.  Moving will not happen.';
   } elsif ( $$NewStorage{Id} == $$self{StorageId} ) {
     return 'Event is already located at ' . $NewPath;
@@ -733,19 +734,22 @@ sub MoveTo {
 
   my $was_in_transaction = !$ZoneMinder::Database::dbh->{AutoCommit};
   $ZoneMinder::Database::dbh->begin_work() if !$was_in_transaction;
-  $self->lock_and_load(); # The fact that we are in a transaction might not imply locking
+  if (!$self->lock_and_load()) {
+    Warning('Unable to lock event record '.$$self{Id}); # The fact that we are in a transaction might not imply locking
+    $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+    return 'Unable to lock event record';
+  }
 
   my $OldStorage = $self->Storage(undef);
-
   my $error = $self->CopyTo($NewStorage);
-  return $error if $error;
+  if (!$error) {
+    # Succeeded in copying all files, so we may now update the Event.
+    $$self{StorageId} = $$NewStorage{Id};
+    $self->Storage($NewStorage);
+    $error .= $self->save();
 
-  # Succeeded in copying all files, so we may now update the Event.
-  $$self{StorageId} = $$NewStorage{Id};
-  $self->Storage($NewStorage);
-  $error .= $self->save();
-
-  # Going to leave it to upper layer as to whether we rollback or not
+    # Going to leave it to upper layer as to whether we rollback or not
+  }
   $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
   return $error if $error;
 

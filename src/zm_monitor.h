@@ -404,6 +404,8 @@ protected:
 
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;
+  std::string   event_start_command;
+  std::string   event_end_command;
 
   std::vector<Group *> groups;
 
@@ -591,6 +593,10 @@ public:
   bool Decode();
   void DumpImage( Image *dump_image ) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
+  Event *openEvent(
+      const std::shared_ptr<ZMPacket> &snap,
+      const std::string &cause,
+      const Event::StringSetMap noteSetMap);
   void closeEvent();
 
   void Reload();

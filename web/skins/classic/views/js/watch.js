@@ -531,11 +531,11 @@ function getStatusCmdResponse(respObj, respText) {
 }
 
 function statusCmdQuery() {
-  $j.getJSON(monitorUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId)
+  $j.getJSON(monitorUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId+'&'+auth_relay)
       .done(getStatusCmdResponse)
       .fail(logAjaxFail);
 
-  streamCmdTimer = null;
+  statusCmdTimer = null;
 }
 
 function alarmCmdReq(data) {

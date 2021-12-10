@@ -365,6 +365,7 @@ int main(int argc, char *argv[]) {
         monitor->Id());
     zmDbDo(sql);
   }
+  monitors.clear();
 
   Image::Deinitialise();
   Debug(1, "terminating");

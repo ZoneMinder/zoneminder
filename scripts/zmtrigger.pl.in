@@ -196,7 +196,7 @@ while (!$zm_terminate) {
   foreach my $connection ( @in_poll_connections ) {
     my $messages = $connection->getMessages();
     if (defined($messages)) {
-      foreach my $message (@$messages) handleMessage($connection, $message);
+      foreach my $message (@$messages) { handleMessage($connection, $message) };
     }
   }
 

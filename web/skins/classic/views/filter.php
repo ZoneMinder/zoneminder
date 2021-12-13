@@ -367,6 +367,7 @@ for ( $i=0; $i < count($terms); $i++ ) {
                 <?php
 # Note: The keys need to be actual column names
 $sort_fields = array(
+    ''              => translate('None'),
     'Id'            => translate('AttrId'),
     'Name'          => translate('AttrName'),
     'Cause'         => translate('AttrCause'),
@@ -383,10 +384,18 @@ $sort_fields = array(
     );
 echo htmlSelect('filter[Query][sort_field]', $sort_fields, $filter->sort_field());
 $sort_dirns = array(
-    '1' => translate('SortAsc'),
-    '0'  => translate('SortDesc')
-    );
-echo htmlSelect( 'filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc() );
+  '1' => translate('SortAsc'),
+  '0'  => translate('SortDesc')
+);
+echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc());
+?>
+              </td>
+              <td>
+                <label for="filter[Query][skip_locked]"><?php echo translate('Skip Locked') ?></label>
+<?php
+echo htmlSelect('filter[Query][skip_locked]',
+  array('0'=>translate('No'), '1'=>translate('Yes')),
+  $filter->skip_locked());
 ?>
               </td>
               <td>  
@@ -468,8 +477,12 @@ if ( ZM_OPT_MESSAGE ) {
         <div id="optionsTable" class="filterTable">
           <fieldset><legend><?php echo translate('Options') ?></legend>
             <p>
-              <label for="background"><?php echo translate('BackgroundFilter') ?></label>
+              <label for="filter[Background]"><?php echo translate('BackgroundFilter') ?></label>
               <input type="checkbox" id="filter[Background]" name="filter[Background]" value="1"<?php if ( $filter->Background() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
+            </p>
+            <p>
+              <label for="ExecuteInterval"><?php echo translate('Execute Interval') ?></label>
+              <input type="number" id="filter[ExecuteInterval]" name="filter[ExecuteInterval]" min="0" step="1" value="<?php echo $filter->ExecuteInterval() ?>" />
             </p>
             <p>
               <label for="Concurrent"><?php echo translate('ConcurrentFilter') ?></label>

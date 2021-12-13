@@ -48,7 +48,7 @@ if (isset($_REQUEST['order'])) {
   } else if (strtolower($_REQUEST['order']) == 'desc') {
     $order = 'DESC';
   } else {
-    Warning("Invalid value for order " . $_REQUEST['order']);
+    Warning('Invalid value for order ' . $_REQUEST['order']);
   }
 }
 
@@ -170,18 +170,23 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   // The names of columns shown in the event view that are NOT dB columns in the database
   $col_alt = array('Monitor', 'Storage');
 
-  if (!in_array($sort, array_merge($columns, $col_alt))) {
-    ZM\Error('Invalid sort field: ' . $sort);
-    $sort = 'Id';
+  if ( $sort != '' ) {
+    if (!in_array($sort, array_merge($columns, $col_alt))) {
+      ZM\Error('Invalid sort field: ' . $sort);
+      $sort = '';
+    } else if ( $sort == 'Monitor' ) {
+      $sort = 'M.Name';
+    } else {
+      $sort = 'E.'.$sort;
+    }
   }
 
   $values = array();
   $likes = array();
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
 
-  $sort = $sort == 'Monitor' ? 'M.Name' : 'E.'.$sort;
   $col_str = 'E.*, M.Name AS Monitor';
-  $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY '.$sort.' '.$order;
+  $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
   if ($filter->limit() and !count($filter->pre_sql_conditions()) and !count($filter->post_sql_conditions())) {
     $sql .= ' LIMIT '.$filter->limit();
   }

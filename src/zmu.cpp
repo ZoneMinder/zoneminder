@@ -486,7 +486,7 @@ int main(int argc, char *argv[]) {
       exit_zmu(-1);
     }
 		if ( !ValidateAccess(user, mon_id, function) ) {
-			Error("Insufficient privileges for requested action");
+			Error("Insufficient privileges for user %s for requested function %x", username, function);
 			exit_zmu(-1);
 		}
   } // end if auth

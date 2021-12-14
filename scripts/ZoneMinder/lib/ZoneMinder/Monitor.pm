@@ -241,20 +241,26 @@ sub control {
   my $command = shift;
   my $process = shift;
 
-  if ( $command eq 'stop' or $command eq 'restart' ) {
-    if ( $process ) {
-      `/usr/bin/zmdc.pl stop $process -m $$monitor{Id}`;
+  if ($command eq 'stop' or $command eq 'restart') {
+    if ($process) {
+      runCommand("zmdc.pl stop $process -m $$monitor{Id}");
     } else {
-      `/usr/bin/zmdc.pl stop zma -m $$monitor{Id}`;
-      `/usr/bin/zmdc.pl stop zmc -m $$monitor{Id}`;
+      if ($monitor->{Type} eq 'Local') {
+        runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
+      } else {
+        runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
+      }
     }
   }
   if ( $command eq 'start' or $command eq 'restart' ) {
     if ( $process ) {
-      `/usr/bin/zmdc.pl start $process -m $$monitor{Id}`;
+      runCommand("zmdc.pl start $process -m $$monitor{Id}");
     } else {
-      `/usr/bin/zmdc.pl start zmc -m $$monitor{Id}`;
-      `/usr/bin/zmdc.pl start zma -m $$monitor{Id}`;
+      if ($monitor->{Type} eq 'Local') {
+        runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
+      } else {
+        runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
+      }
     } # end if
   }
 } # end sub control

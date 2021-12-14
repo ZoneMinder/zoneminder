@@ -18,143 +18,296 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Stream') ) {
+if (!canView('Stream')) {
   $view = 'error';
   return;
 }
+require_once('includes/Monitor.php');
 
-if ( !isset($_REQUEST['mid']) ) {
-  $view = 'error';
-  return;
-}
+ob_start();
+include('_monitor_filters.php');
+$filterbar = ob_get_contents();
+ob_end_clean();
+
 
 // This is for input sanitation
-$mid = intval($_REQUEST['mid']); 
-if ( !visibleMonitor($mid) ) {
+$mid = isset($_REQUEST['mid']) ? intval($_REQUEST['mid']) : 0;
+
+$widths = array(
+  'auto'  => translate('auto'),
+  '100%'  => '100%',
+  '160px' => '160px',
+  '320px' => '320px',
+  '352px' => '352px',
+  '640px' => '640px',
+  '1280px' => '1280px',
+  '1920px'  =>  '1920px'
+);
+
+$heights = array(
+  'auto'  => translate('auto'),
+  '240px' => '240px',
+  '480px' => '480px',
+  '720px' => '720px',
+  '1080px'  =>  '1080px',
+);
+
+$monitors = array();
+$monitor_index = 0;
+foreach ($displayMonitors as &$row) {
+  if ($row['Function'] == 'None') continue;
+  if ($mid and ($row['Id'] == $mid)) $monitor_index = count($monitors);
+  $monitors[] = new ZM\Monitor($row);
+  if (!isset($widths[$row['Width'].'px'])) {
+    $widths[$row['Width'].'px'] = $row['Width'].'px';
+  }
+  if (!isset($heights[$row['Height'].'px'])) {
+    $heights[$row['Height'].'px'] = $row['Height'].'px';
+  }
+  unset($row);
+} # end foreach Monitor
+
+if (!$mid) {
+  $mid = $monitors[0]->Id();
+  $monitor_index = 0;
+}
+
+if (!visibleMonitor($mid)) {
   $view = 'error';
   return;
 }
 
-require_once('includes/Monitor.php');
 $monitor = new ZM\Monitor($mid);
-
+$nextMid = ($monitor_index == count($monitors)-1) ? $monitors[0]->Id() : $monitors[$monitor_index+1]->Id();
+$cycle = isset($_REQUEST['cycle']) and ($_REQUEST['cycle'] == 'true');
+$showCycle = $cycle;
+ZM\Error("Show cycle: $showCycle");
+if (isset($_COOKIE['zmCycleShow'])) {
+  $showCycle = $_COOKIE['zmCycleShow'] == 'true';
+  ZM\Error("Show cycle: $showCycle");
+} else {
+  ZM\Error("Show cycle: not set");
+}
 #Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
 
-if ( isset($_REQUEST['scale']) ) {
+$options = array();
+if (empty($_REQUEST['mode'])) {
+  $options['mode'] = canStream() ? 'stream' : 'still';
+} else {
+  $options['mode'] = validHtmlStr($_REQUEST['mode']);
+}
+zm_session_start();
+
+$period = ZM_WEB_REFRESH_CYCLE;
+if (isset($_REQUEST['period'])) {
+  $period = validInt($_REQUEST['period']);
+} else if (isset($_COOKIE['zmCyclePeriod'])) {
+  $period = validInt($_COOKIE['zmCyclePeriod']);
+}
+
+if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScale'.$mid];
 } else {
   $scale = $monitor->DefaultScale();
 }
+$options['scale'] = $scale;
+
+if (isset($_REQUEST['width'])) {
+  $options['width'] = validInt($_REQUEST['width']); 
+} else if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
+  $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
+#} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
+  #$options['width'] = $_SESSION['zmCycleWidth'];
+} else {
+  $options['width'] = '';
+}
+if (isset($_REQUEST['height'])) {
+  $options['height'] =validInt($_REQUEST['height']);
+} else if (isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight']) {
+  $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
+#else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
+  #$options['height'] = $_SESSION['zmCycleHeight'];
+} else {
+  $options['height'] = '';
+}
+session_write_close();
 
 $connkey = generateConnKey();
-
 $streamMode = getStreamMode();
-
-$popup = ((isset($_REQUEST['popup'])) && ($_REQUEST['popup'] == 1));
 
 noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 ?>
 <body>
   <?php echo getNavBarHTML() ?>
+  <div id="header">
+    <div class="controlHeader">
+      <form method="get">
+        <input type="hidden" name="view" value="watch"/>
+        <?php echo $filterbar ?>
+      </form>
+    </div>
+
     <div class="d-flex flex-row justify-content-between px-3 py-1">
-      <div>
+      <div id="navButtons">
         <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
         <button type="button" id="settingsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Settings') ?>" disabled><i class="fa fa-sliders"></i></button>
         <button type="button" id="enableAlmBtn" class="btn btn-normal" data-on-click="cmdAlarm" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DisableAlarms') ?>" disabled><i class="fa fa-bell"></i></button>
         <button type="button" id="forceAlmBtn" class="btn btn-danger" data-on-click="cmdForce" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ForceAlarm') ?>" disabled><i class="fa fa-exclamation-circle"></i></button>
       </div>
-
-      <div>
-        <h2><?php echo makeLink('?view=monitor&amp;mid='.$monitor->Id(), validHtmlStr($monitor->Name()), canEdit('Monitors')) ?></h2>
+      <div id="headerButtons">
+<!--
+<?php if ( $options['mode'] == 'stream' ) { ?>
+        <a href="?view=<?php echo $view ?>&amp;mode=still&amp;mid=<?php echo $monitor ? $monitor->Id() : '' ?>"><?php echo translate('Stills') ?></a>
+<?php } else { ?>
+        <a href="?view=<?php echo $view ?>&amp;mode=stream&amp;mid=<?php echo $monitor ? $monitor->Id() : '' ?>"><?php echo translate('Stream') ?></a>
+<?php } ?>
+-->
+        <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
+            <span class="material-icons md-18">view_carousel</span>
+        </button>
       </div>
-
-      <div>
-        <?php echo translate('Scale').': '.htmlSelect('scale', $scales, $scale, array('id'=>'scale')); ?>
-      </div>
-    </div>
+      <div id="sizeControl">
+        <span id="widthControl">
+          <label><?php echo translate('Width') ?>:</label>
+          <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change-this'=>'changeSize') ); ?>
+        </span>
+        <span id="heightControl">
+          <label><?php echo translate('Height') ?>:</label>
+          <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change-this'=>'changeSize') ); ?>
+        </span>
+        <span id="scaleControl">
+          <label><?php echo translate('Scale') ?>:</label>
+          <?php echo htmlSelect('scale', $scales, $options['scale'], array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
+        </span>
+      </div><!--sizeControl-->
+    </div><!--control header-->
+  </div><!--header-->
 <?php
 if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
   echo '<div class="warning">Monitor is not capturing. We will be unable to provide an image</div>';
 }
 ?>
-    <div id="content">
-      <div id="imageFeed"
+    <div class="container-fluid h-100">
+      <div class="row flex-nowrap h-100" id="content">
+        <nav id="sidebar" class="h-100"<?php echo $showCycle?'':' style="display:none;"'?>>
+          <div id="cycleButtons" class="buttons">
 <?php
-if ( $streamMode == 'jpeg' ) {
+$seconds = translate('seconds');
+$minute = translate('minute');
+$minutes = translate('minutes');
+$cyclePeriodOptions = array(
+  10 => '10 '.$seconds,
+  30 => '30 '.$seconds,
+  60 => '1 '.$minute,
+  120 => '2 '.$minutes,
+  300 => '5 '.$minutes,
+);
+if (!isset($cyclePeriodOptions[ZM_WEB_REFRESH_CYCLE])) {
+  $cyclePeriodOptions[ZM_WEB_REFRESH_CYCLE] = ZM_WEB_REFRESH_CYCLE.' '.$seconds;
+}
+echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cyclePeriod'));
+?>
+            <span id="secondsToCycle"></span><br/>
+            <button type="button" id="cyclePrevBtn" title="<?php echo translate('PreviousMonitor') ?>">
+            <i class="material-icons md-18">skip_previous</i>
+            </button>
+            <button type="button" id="cyclePauseBtn" title="<?php echo translate('PauseCycle') ?>">
+            <i class="material-icons md-18">pause</i>
+            </button>
+            <button type="button" id="cyclePlayBtn" title="<?php echo translate('PlayCycle') ?>">
+            <i class="material-icons md-18">play_arrow</i>
+            </button>
+            <button type="button" id="cycleNextBtn" title="<?php echo translate('NextMonitor') ?>">
+            <i class="material-icons md-18">skip_next</i>
+            </button>
+          </div>
+          <ul class="nav nav-pills flex-column h-100">
+<?php
+  foreach ($monitors as $m) {
+    echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=watch&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+  }
+ ?>
+          </ul>
+        </nav>
+      <div class="container-fluid col-sm-offset-2 h-100 pr-0">
+        <div id="imageFeed"
+<?php
+if ($streamMode == 'jpeg') {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
-><?php echo getStreamHTML($monitor, array('scale'=>$scale)); ?></div>
-
-
-<?php if ( $monitor->Type() != 'WebSite' ) { ?>
-      <div id="monitorStatus">
-        <div id="monitorState">
-          <?php echo translate('State') ?>:
-          <span id="stateValue"></span> -
-          <span title="<?php echo translate('Viewing FPS')?>"><span id="fpsValue"></span> fps</span>
-          <span title="<?php echo translate('Capturing FPS')?>"><span id="capturefpsValue"></span> fps</span>
-          <?php if ( $monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord' ) { ?>
-          <span title="<?php echo translate('Analysis FPS')?>"><span id="analysisfpsValue"></span> fps</span>
-          <?php } ?>
+><?php echo getStreamHTML($monitor, array('scale'=>$scale)); ?>
         </div>
-      </div>
-      <div id="dvrControls">
+
+<?php if ($monitor->Type() != 'WebSite') { ?>
+        <div id="monitorStatus">
+          <div id="monitorState">
+            <span><?php echo translate('State') ?>:<span id="stateValue"></span></span>
+            <span id="viewingFPS" title="<?php echo translate('Viewing FPS')?>"><span id="viewingFPSValue"></span> fps</span>
+            <span id="captureFPS" title="<?php echo translate('Capturing FPS')?>"><span id="captureFPSValue"></span> fps</span>
+            <?php if ( $monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord' ) { ?>
+            <span id="analysisFPS" title="<?php echo translate('Analysis FPS')?>"><span id="analysisFPSValue"></span> fps</span>
+            <?php } ?>
+          </div>
+        </div>
+        <div id="replayStatus"<?php echo $streamMode=="single" ? ' class="hidden"' : '' ?>>
+          <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue"></span></span>
+          <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"></span>x</span>
+          <span id="delay"><?php echo translate('Delay') ?>: <span id="delayValue"></span>s</span>
+          <span id="level"><?php echo translate('Buffer') ?>: <span id="levelValue"></span>%</span>
+          <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
+        </div>
+        <div class="buttons">
+          <div id="dvrControls">
 <?php
-if ( $streamMode == 'jpeg' ) {
-  if ( $monitor->StreamReplayBuffer() != 0 ) {
+if ($streamMode == 'jpeg') {
+  if ($monitor->StreamReplayBuffer() != 0) {
 ?>
-        <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastRev">
-<i class="material-icons md-18">fast_rewind</i>
-        </button>
-        <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowRev">
-        <i class="material-icons md-18">chevron_right</i>
-        </button>
+            <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastRev">
+            <i class="material-icons md-18">fast_rewind</i>
+            </button>
+            <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowRev">
+            <i class="material-icons md-18">chevron_right</i>
+            </button>
 <?php 
   }
 ?>
-        <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click-true="streamCmdPause">
-<i class="material-icons md-18">pause</i>
-        </button>
-        <button type="button" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdStop" style="display:none;">
-<i class="material-icons md-18">stop</i>
-        </button>
-        <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click-true="streamCmdPlay">
-<i class="material-icons md-18">play_arrow</i>
-        </button>
+            <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click-true="streamCmdPause">
+            <i class="material-icons md-18">pause</i>
+            </button>
+            <button type="button" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdStop" style="display:none;">
+            <i class="material-icons md-18">stop</i>
+            </button>
+            <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click-true="streamCmdPlay">
+            <i class="material-icons md-18">play_arrow</i>
+            </button>
 <?php
-  if ( $monitor->StreamReplayBuffer() != 0 ) {
+  if ($monitor->StreamReplayBuffer() != 0) {
 ?>
-        <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowFwd">
-        <i class="material-icons md-18">chevron_right</i>
-        </button>
-        <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastFwd">
-<i class="material-icons md-18">fast_forward</i>
-        </button>
+            <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowFwd">
+            <i class="material-icons md-18">chevron_right</i>
+            </button>
+            <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastFwd">
+            <i class="material-icons md-18">fast_forward</i>
+            </button>
 <?php
   }
 ?>
-        <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut">
-        <i class="material-icons md-18">zoom_out</i>
-        </button>
-        <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
-        <i class="material-icons md-18">fullscreen</i>
-        </button>
+            <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut">
+            <i class="material-icons md-18">zoom_out</i>
+            </button>
+            <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
+            <i class="material-icons md-18">fullscreen</i>
+            </button>
 <?php
 } // end if streamMode==jpeg
 ?>
-      </div>
-      <div id="replayStatus"<?php echo $streamMode=="single" ? ' class="hidden"' : '' ?>>
-        <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue"></span></span>
-        <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"></span>x</span>
-        <span id="delay"><?php echo translate('Delay') ?>: <span id="delayValue"></span>s</span>
-        <span id="level"><?php echo translate('Buffer') ?>: <span id="levelValue"></span>%</span>
-        <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
+      </div><!--dvrButtons-->
       </div>
 <?php } // end if $monitor->Type() != 'WebSite' ?>
 <?php
@@ -208,6 +361,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 
         </table>
       </div>
+    </div>
 <?php
 }
 if ( ZM_WEB_SOUND_ON_ALARM ) {

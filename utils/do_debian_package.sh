@@ -218,8 +218,8 @@ rm .gitignore
 cd ../
 
 
-if [ ! -e "$DIRECTORY.orig.tar.gz" ]; then
-  read -p "$DIRECTORY.orig.tar.gz does not exist, create it? [Y/n]"
+if [ -e "$DIRECTORY.orig.tar.gz" ]; then
+  read -p "$DIRECTORY.orig.tar.gz exists, overwrite it? [Y/n]"
   if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
     tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
   fi;

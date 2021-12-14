@@ -904,9 +904,10 @@ function initPage() {
 
   if (monitorType != 'WebSite') {
     if (streamMode == 'single') {
-      statusCmdTimer = setTimeout(statusCmdQuery, (Math.random()+0.1)*statusRefreshTimeout);
+      statusCmdTimer = setTimeout(statusCmdQuery, 100);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
     } else {
+      streamCmdTimer = setTimeout(streamCmdQuery, 100);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
     }
 
@@ -1054,9 +1055,11 @@ function cycleNext() {
 }
 
 function cyclePrev() {
+  console.log(monIdx);
   monIdx --;
   if (monIdx < 0) {
     monIdx = monitorData.length - 1;
+  console.log(monIdx);
   }
   if (!monitorData[monIdx]) {
     console.log('No monitorData for ' + monIdx);

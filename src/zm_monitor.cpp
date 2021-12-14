@@ -1175,7 +1175,7 @@ void Monitor::AddPrivacyBitmask() {
 
 int Monitor::GetImage(int32_t index, int scale) {
   if (index < 0 || index > image_buffer_count) {
-    Warning("Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
+    Debug(1, "Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
     index = shared_data->last_write_index;
   }
   if (!image_buffer.size() or static_cast<size_t>(index) >= image_buffer.size()) {

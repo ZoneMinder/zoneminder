@@ -223,6 +223,8 @@ if [ -e "$DIRECTORY.orig.tar.gz" ]; then
   if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
     tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
   fi;
+else
+  tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
 fi;
 
 IFS=',' ;for DISTRO in `echo "$DISTROS"`; do 

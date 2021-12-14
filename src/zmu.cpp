@@ -497,6 +497,16 @@ int main(int argc, char *argv[]) {
     if ( verbose ) {
       printf("Monitor %u(%s)\n", monitor->Id(), monitor->Name());
     }
+
+    if (monitor->GetFunction() == Monitor::NONE) {
+      if (verbose) {
+        printf("Current state: None\n");
+      } else {
+        printf("%d", Monitor::UNKNOWN);
+      }
+      exit_zmu(-1);
+    }
+
     if ( !monitor->connect() ) {
       Error("Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name());
       exit_zmu(-1);

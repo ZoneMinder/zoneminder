@@ -413,12 +413,10 @@ sub Sql {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
     if ($$self{LockRows}) {
-      $sql .= ' FOR UPDATE OF E'
-    } else {
-      $sql .= ' FOR SHARE OF E'
-    }
-    if ($filter_expr->{skip_locked}) {
-      $sql .= ' SKIP LOCKED';
+      $sql .= ' FOR UPDATE'
+      if ($filter_expr->{skip_locked}) {
+        $sql .= ' SKIP LOCKED';
+      }
     }
     $self->{Sql} = $sql;
   } # end if has Sql

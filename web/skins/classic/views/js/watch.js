@@ -1055,11 +1055,9 @@ function cycleNext() {
 }
 
 function cyclePrev() {
-  console.log(monIdx);
   monIdx --;
   if (monIdx < 0) {
     monIdx = monitorData.length - 1;
-  console.log(monIdx);
   }
   if (!monitorData[monIdx]) {
     console.log('No monitorData for ' + monIdx);

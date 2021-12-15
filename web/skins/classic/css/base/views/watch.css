@@ -1,8 +1,14 @@
 #header {
 }
 
+.container-fluid {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 #sidebar {
   min-width: 140px;
+  padding-right: 1px;
 }
 
 #menuControls {

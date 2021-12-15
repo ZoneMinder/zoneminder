@@ -290,7 +290,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.rate = replay_rate;
   status_data.delay = FPSeconds(now - last_frame_timestamp).count();
   status_data.zoom = zoom;
-  Debug(2, "fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
+  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
       status_data.fps,
       status_data.capture_fps,
       status_data.analysis_fps,
@@ -363,7 +363,6 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     TimePoint::duration frame_send_time = send_end_time - send_start_time;
 
     if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
-      maxfps /= 2;
       Info("Frame send time %" PRIi64 " ms too slow, throttling maxfps to %.2f",
            static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
            maxfps);
@@ -448,11 +447,13 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     TimePoint send_end_time = std::chrono::steady_clock::now();
     TimePoint::duration frame_send_time = send_end_time - send_start_time;
+    TimePoint::duration maxfps_milliseconds = Milliseconds(lround(Milliseconds::period::den / maxfps));
 
-    if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
-      maxfps /= 1.5;
-      Warning("Frame send time %" PRIi64 " msec too slow, throttling maxfps to %.2f",
+    if (frame_send_time > maxfps_milliseconds) {
+      //maxfps /= 1.5;
+      Warning("Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", throttling maxfps to %.3f",
               static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
+              static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
               maxfps);
     }
   }  // Not mpeg
@@ -779,13 +780,18 @@ void MonitorStream::runStream() {
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
 
     FPSeconds sleep_time =
-        FPSeconds(ZM_RATE_BASE / ((base_fps ? base_fps : 1) * (replay_rate ? abs(replay_rate * 2) : 2)));
+        FPSeconds(1 / ((base_fps ? base_fps : 1) * (replay_rate ? abs(replay_rate) : 1)));
+    if (last_frame_sent.time_since_epoch() != Seconds(0)) {
+      sleep_time -= (now - last_frame_sent);
+      if (sleep_time < Seconds(0)) 
+        sleep_time = Seconds(0);
+    }
 
     if (sleep_time > MonitorStream::MAX_SLEEP) {
+      Debug(3, "Sleeping for MAX_SLEEP_USEC instead of %" PRIi64 " us",
+            static_cast<int64>(std::chrono::duration_cast<Microseconds>(sleep_time).count()));
       // Shouldn't sleep for long because we need to check command queue, etc.
       sleep_time = MonitorStream::MAX_SLEEP;
-      Debug(3, "Sleeping for MAX_SLEEP_USEC %" PRIi64 " us",
-            static_cast<int64>(std::chrono::duration_cast<Microseconds>(sleep_time).count()));
     } else {
       Debug(3, "Sleeping for %" PRIi64 " us",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(sleep_time).count()));
@@ -796,13 +802,6 @@ void MonitorStream::runStream() {
       Debug(2, "now - start > ttl (%" PRIi64 " us). break",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(ttl).count()));
       break;
-    }
-
-    if (last_frame_sent.time_since_epoch() == Seconds(0)) {
-      // If we didn't capture above, because frame_mod was bad? Then last_frame_sent will not have a value.
-      last_frame_sent = now;
-      Warning("no last_frame_sent.  Shouldn't happen. frame_mod was (%d) frame_count (%d)",
-          frame_mod, frame_count);
     }
   } // end while ! zm_terminate
 

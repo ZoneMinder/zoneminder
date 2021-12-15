@@ -207,10 +207,11 @@ public:
       scale = DEFAULT_SCALE;
   }
   void setStreamReplayRate(int p_rate) {
-    Debug(2, "Setting replay_rate %d", p_rate);
+    Debug(1, "Setting replay_rate %d", p_rate);
     replay_rate = p_rate;
   }
   void setStreamMaxFPS(double p_maxfps) {
+    Debug(1, "Setting max fps to %f", p_maxfps);
     maxfps = p_maxfps;
   }
   void setStreamBitrate(int p_bitrate) {

@@ -1048,7 +1048,7 @@ sub executeCommand {
     Error("Command '$command' exited with status: $status");
     return 0;
   } else {
-    zmSQLExecute('UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?', $Event->{Id});
+    ZoneMinder::Database::zmSQLExecute('UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?', $Event->{Id});
   }
   return 1;
 }

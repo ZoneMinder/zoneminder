@@ -243,23 +243,23 @@ sub control {
 
   if ($command eq 'stop' or $command eq 'restart') {
     if ($process) {
-      runCommand("zmdc.pl stop $process -m $$monitor{Id}");
+      ZoneMinder::General::runCommand("zmdc.pl stop $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
       } else {
-        runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
+        ZoneMinder::General::runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
       }
     }
   }
   if ( $command eq 'start' or $command eq 'restart' ) {
     if ( $process ) {
-      runCommand("zmdc.pl start $process -m $$monitor{Id}");
+      ZoneMinder::General::runCommand("zmdc.pl start $process -m $$monitor{Id}");
     } else {
       if ($monitor->{Type} eq 'Local') {
-        runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
+        ZoneMinder::General::runCommand('zmdc.pl start zmc -d '.$monitor->{Device});
       } else {
-        runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
+        ZoneMinder::General::runCommand('zmdc.pl start zmc -m '.$monitor->{Id});
       }
     } # end if
   }

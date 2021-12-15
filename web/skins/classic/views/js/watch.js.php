@@ -1,5 +1,5 @@
 <?php 
-  global $monIdx;
+  global $monitor_index;
   global $nextMid;
   global $options;
   global $monitors;
@@ -53,7 +53,7 @@ var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
 var monitorStreamReplayBuffer = <?php echo $monitor->StreamReplayBuffer() ?>;
 var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
-var monIdx = '<?php echo $monIdx; ?>';
+var monIdx = <?php echo $monitor_index; ?>;
 var nextMid = "<?php echo isset($nextMid)?$nextMid:'' ?>";
 var mode = "<?php echo $options['mode'] ?>";
 

@@ -446,8 +446,10 @@ function streamFastRev(action) {
 function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
-    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
-    return;
+    if (prevEventId != 0) {
+      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      return;
+    }
 
     /* Ideally I'd like to get back to this style
     if ( vid && PrevEventDefVideoPath.indexOf("view_video") > 0 ) {
@@ -619,8 +621,8 @@ function getNearEventsResponse(respObj, respText) {
   if (checkStreamForErrors('getNearEventsResponse', respObj)) {
     return;
   }
-  prevEventId = respObj.nearevents.PrevEventId;
-  nextEventId = respObj.nearevents.NextEventId;
+  prevEventId = parseInt(respObj.nearevents.PrevEventId);
+  nextEventId = parseInt(respObj.nearevents.NextEventId);
   prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
   nextEventStartTime = Date.parse(respObj.nearevents.NextEventStartTime);
   PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;

@@ -413,7 +413,7 @@ sub Sql {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
     if ($$self{LockRows}) {
-      $sql .= ' FOR UPDATE'
+      $sql .= ' FOR UPDATE';
       if ($filter_expr->{skip_locked}) {
         $sql .= ' SKIP LOCKED';
       }

@@ -32,6 +32,7 @@ var CMD_PREV = <?php echo CMD_PREV ?>;
 var CMD_NEXT = <?php echo CMD_NEXT ?>;
 var CMD_SEEK = <?php echo CMD_SEEK ?>;
 var CMD_QUERY = <?php echo CMD_QUERY ?>;
+var CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;
 
 var SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
 var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;

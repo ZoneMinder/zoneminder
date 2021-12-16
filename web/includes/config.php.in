@@ -119,6 +119,7 @@ define('CMD_NEXT', 13);
 define('CMD_SEEK', 14 );
 define('CMD_VARPLAY', 15);
 define('CMD_QUIT', 17);
+define('CMD_MAXFPS', 18);
 define('CMD_QUERY', 99);
 
 //

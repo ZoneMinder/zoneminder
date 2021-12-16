@@ -663,7 +663,7 @@ bool EventStream::checkEventLoaded() {
       else
         curr_frame_id = 1;
       Debug(2, "New frame id = %ld", curr_frame_id);
-      start = std::chrono::system_clock::now();
+      start = std::chrono::steady_clock::now();
       return true;
     } else {
       Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
@@ -851,13 +851,13 @@ void EventStream::runStream() {
   }
   updateFrameRate(fps);
 
-  start = std::chrono::system_clock::now();
+  start = std::chrono::steady_clock::now();
 
   SystemTimePoint::duration last_frame_offset = Seconds(0);
   SystemTimePoint::duration time_to_event = Seconds(0);
 
   while ( !zm_terminate ) {
-    now = std::chrono::system_clock::now();
+    now = std::chrono::steady_clock::now();
 
     Microseconds delta = Microseconds(0);
     send_frame = false;
@@ -904,7 +904,7 @@ void EventStream::runStream() {
 
     // time_to_event > 0 means that we are not in the event
     if (time_to_event > Seconds(0) and mode == MODE_ALL) {
-      SystemTimePoint::duration time_since_last_send = now - last_frame_sent;
+      TimePoint::duration time_since_last_send = now - last_frame_sent;
       Debug(1, "Time since last send = %.2f s", FPSeconds(time_since_last_send).count());
       if (time_since_last_send > Seconds(1)) {
         char frame_text[64];
@@ -976,7 +976,7 @@ void EventStream::runStream() {
       // +/- 1? What if we are skipping frames?
       curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;
       // sending the frame may have taken some time, so reload now
-      now = std::chrono::system_clock::now();
+      now = std::chrono::steady_clock::now();
 
       // we incremented by replay_rate, so might have jumped past frame_count
       if ( (mode == MODE_SINGLE) && (

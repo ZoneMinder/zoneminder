@@ -81,23 +81,27 @@ $monitor = new ZM\Monitor($mid);
 $nextMid = ($monitor_index == count($monitors)-1) ? $monitors[0]->Id() : $monitors[$monitor_index+1]->Id();
 $cycle = isset($_REQUEST['cycle']) and ($_REQUEST['cycle'] == 'true');
 $showCycle = $cycle;
-ZM\Error("Show cycle: $showCycle");
 if (isset($_COOKIE['zmCycleShow'])) {
   $showCycle = $_COOKIE['zmCycleShow'] == 'true';
-  ZM\Error("Show cycle: $showCycle");
-} else {
-  ZM\Error("Show cycle: not set");
 }
 #Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
 
 $options = array();
-if (empty($_REQUEST['mode'])) {
-  $options['mode'] = canStream() ? 'stream' : 'still';
-} else {
+if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode']=='stream')) {
   $options['mode'] = validHtmlStr($_REQUEST['mode']);
+} else if (isset($_COOKIE['zmWatchMode'])) {
+  $options['mode'] = $_COOKIE['zmWatchMode'];
+} else {
+  $options['mode'] = canStream() ? 'stream' : 'still';
 }
-zm_session_start();
+if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+  $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
+} else if (isset($_COOKIE['zmWatchRate'])) {
+  $options['maxfps'] = $_COOKIE['zmWatchRate'];
+} else {
+  $options['maxfps'] = ''; // unlimited
+}
 
 $period = ZM_WEB_REFRESH_CYCLE;
 if (isset($_REQUEST['period'])) {
@@ -118,22 +122,17 @@ $options['scale'] = $scale;
 if (isset($_REQUEST['width'])) {
   $options['width'] = validInt($_REQUEST['width']); 
 } else if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
-  $_SESSION['zmCycleWidth'] = $options['width'] = $_COOKIE['zmCycleWidth'];
-#} elseif ( isset($_SESSION['zmCycleWidth']) and $_SESSION['zmCycleWidth'] ) {
-  #$options['width'] = $_SESSION['zmCycleWidth'];
+  $options['width'] = $_COOKIE['zmCycleWidth'];
 } else {
   $options['width'] = '';
 }
 if (isset($_REQUEST['height'])) {
   $options['height'] =validInt($_REQUEST['height']);
 } else if (isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight']) {
-  $_SESSION['zmCycleHeight'] = $options['height'] = $_COOKIE['zmCycleHeight'];
-#else if ( isset($_SESSION['zmCycleHeight']) and $_SESSION['zmCycleHeight'] )
-  #$options['height'] = $_SESSION['zmCycleHeight'];
+  $options['height'] = $_COOKIE['zmCycleHeight'];
 } else {
   $options['height'] = '';
 }
-session_write_close();
 
 $connkey = generateConnKey();
 $streamMode = getStreamMode();
@@ -161,15 +160,24 @@ xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
       </div>
       <div id="headerButtons">
 <!--
-<?php if ( $options['mode'] == 'stream' ) { ?>
-        <a href="?view=<?php echo $view ?>&amp;mode=still&amp;mid=<?php echo $monitor ? $monitor->Id() : '' ?>"><?php echo translate('Stills') ?></a>
-<?php } else { ?>
-        <a href="?view=<?php echo $view ?>&amp;mode=stream&amp;mid=<?php echo $monitor ? $monitor->Id() : '' ?>"><?php echo translate('Stream') ?></a>
-<?php } ?>
+        <button type="button" id="streamToggle" class="btn <?php echo $options['mode'] == 'stream' ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle Streaming/Stills')?>">
+            <span class="material-icons md-18">switch_video</span>
+        </button>
 -->
         <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
             <span class="material-icons md-18">view_carousel</span>
         </button>
+          <?php
+$maxfps_options = array(''=>translate('Unlimited'),
+  '0' => translate('Stills'),
+  '1' => '1 '.translate('FPS'),
+  '2' => '2 '.translate('FPS'),
+  '5' => '5 '.translate('FPS'),
+  '10' => '10 '.translate('FPS'),
+  '20' => '20 '.translate('FPS'),
+);
+echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
+?>
       </div>
       <div id="sizeControl">
         <span id="widthControl">
@@ -241,9 +249,8 @@ if ($streamMode == 'jpeg') {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
-><?php echo getStreamHTML($monitor, array('scale'=>$scale)); ?>
+><?php echo getStreamHTML($monitor, $options); ?>
         </div>
-
 <?php if ($monitor->Type() != 'WebSite') { ?>
         <div id="monitorStatus">
           <div id="monitorState">
@@ -262,8 +269,7 @@ if ($streamMode == 'jpeg') {
           <span id="level"><?php echo translate('Buffer') ?>: <span id="levelValue"></span>%</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
         </div>
-        <div class="buttons">
-          <div id="dvrControls">
+        <div class="buttons" id="dvrControls">
 <?php
 if ($streamMode == 'jpeg') {
   if ($monitor->StreamReplayBuffer() != 0) {
@@ -308,7 +314,6 @@ if ($streamMode == 'jpeg') {
 } // end if streamMode==jpeg
 ?>
       </div><!--dvrButtons-->
-      </div>
 <?php } // end if $monitor->Type() != 'WebSite' ?>
 <?php
 if ( $showPtzControls ) {

@@ -52,6 +52,13 @@ if ( sem_acquire($semaphore,1) !== false ) {
       intval($_REQUEST['offset']),
       1000000*( $_REQUEST['offset']-intval($_REQUEST['offset'])));
     break;
+  case CMD_MAXFPS :
+    ZM\Debug('Maxfps to '.$_REQUEST['maxfps']);
+    # Pack int two 32 bit integers instead of trying to deal with floats
+    $msg = pack('lcNN', MSG_CMD, $_REQUEST['command'],
+      intval($_REQUEST['maxfps']),
+      1000000*( $_REQUEST['maxfps']-intval($_REQUEST['maxfps'])));
+    break;
   default :
     ZM\Debug('Sending command ' . $_REQUEST['command']);
     $msg = pack('lc', MSG_CMD, $_REQUEST['command']);

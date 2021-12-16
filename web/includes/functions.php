@@ -2070,7 +2070,9 @@ function getStreamHTML($monitor, $options = array()) {
   if ( ! isset($options['height'] ) )
     $options['height'] = 0;
 
-  $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  if (!isset($options['maxfps'])) {
+    $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  }
   if ( $monitor->StreamReplayBuffer() )
     $options['buffer'] = $monitor->StreamReplayBuffer();
   //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );

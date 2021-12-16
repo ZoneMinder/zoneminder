@@ -155,7 +155,7 @@ void FifoStream::runStream() {
   }
 
   while (!zm_terminate) {
-    now = std::chrono::system_clock::now();
+    now = std::chrono::steady_clock::now();
     checkCommandQueue();
 
     if (stream_type == MJPEG) {

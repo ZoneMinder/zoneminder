@@ -386,7 +386,7 @@ void StreamBase::openComms() {
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
-    last_comm_update = std::chrono::system_clock::now();
+    last_comm_update = std::chrono::steady_clock::now();
     Debug(3, "comms open at %s", loc_sock_path);
   } // end if connKey > 0
 } // end void StreamBase::openComms()

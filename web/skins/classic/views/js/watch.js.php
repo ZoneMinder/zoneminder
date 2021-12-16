@@ -102,7 +102,7 @@ var labels = new Array();
 $labels = array();
 foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array($monitor->Id())) as $row) {
   $label = $labels[$row['Preset']] = $row['Label'];
-  echo 'labels['. validInt($index) .'] = '.validJsStr($label).'\'';
+  echo 'labels['. validInt($index) .'] = \''.validJsStr($label).'\'';
 }
 ?>
 var deleteString = "<?php echo translate('Delete') ?>";

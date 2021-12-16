@@ -134,6 +134,18 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
           break;
       }
       break;
+    case CMD_MAXFPS :
+      {
+        double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
+          | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
+        double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
+          | ((unsigned char) msg->msg_data[7] << 8) | (unsigned char) msg->msg_data[8];
+
+        maxfps = (int_part + dec_part / 1000000.0);
+
+        Debug(1, "Got MAXFPS %f", maxfps);
+        break;
+      }
     case CMD_SLOWFWD :
       Debug(1, "Got SLOW FWD command");
       paused = true;
@@ -268,7 +280,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   } else {
     FPSeconds elapsed = now - last_fps_update;
     if (elapsed.count()) { 
-      actual_fps = (frame_count - last_frame_count) / elapsed.count();
+      actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
       last_frame_count = frame_count;
       last_fps_update = now;
     }
@@ -288,7 +300,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.delayed = delayed;
   status_data.paused = paused;
   status_data.rate = replay_rate;
-  status_data.delay = FPSeconds(now - last_frame_timestamp).count();
+  status_data.delay = FPSeconds(now - last_frame_sent).count();
   status_data.zoom = zoom;
   Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
       status_data.fps,
@@ -382,6 +394,9 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   Image *send_image = prepareImage(image);
 
   fputs("--" BOUNDARY "\r\n", stdout);
+  // Calculate how long it takes to actually send the frame
+  TimePoint send_start_time = std::chrono::steady_clock::now();
+
   if ( type == STREAM_MPEG ) {
     if ( !vid_stream ) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
@@ -402,8 +417,6 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     int img_buffer_size = 0;
     unsigned char *img_buffer = temp_img_buffer;
 
-    // Calculate how long it takes to actually send the frame
-    TimePoint send_start_time = std::chrono::steady_clock::now();
 
     switch ( type ) {
       case STREAM_JPEG :
@@ -445,21 +458,22 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     fputs("\r\n", stdout);
     fflush(stdout);
 
-    TimePoint send_end_time = std::chrono::steady_clock::now();
-    TimePoint::duration frame_send_time = send_end_time - send_start_time;
-    TimePoint::duration maxfps_milliseconds = Milliseconds(lround(Milliseconds::period::den / maxfps));
-
-    if (frame_send_time > maxfps_milliseconds) {
-      //maxfps /= 1.5;
-      Warning("Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", throttling maxfps to %.3f",
-              static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
-              static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
-              maxfps);
-    }
   }  // Not mpeg
-  last_frame_sent = now;
+
+  TimePoint send_end_time = std::chrono::steady_clock::now();
+  TimePoint::duration frame_send_time = send_end_time - send_start_time;
+  TimePoint::duration maxfps_milliseconds = Milliseconds(lround(Milliseconds::period::den / maxfps));
+
+  if (frame_send_time > maxfps_milliseconds) {
+    //maxfps /= 1.5;
+    Warning("Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", throttling maxfps to %.3f",
+        static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
+        static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
+        maxfps);
+  }
+  last_frame_sent = send_end_time;
   return true;
-}
+}  // end bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp)
 
 void MonitorStream::runStream() {
   if (type == STREAM_SINGLE) {
@@ -502,7 +516,8 @@ void MonitorStream::runStream() {
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
   int32_t last_read_index = monitor->image_buffer_count;
 
-  SystemTimePoint stream_start_time = std::chrono::system_clock::now();
+  TimePoint stream_start_time = std::chrono::steady_clock::now();
+  when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
 
   frame_count = 0;
 
@@ -571,7 +586,7 @@ void MonitorStream::runStream() {
       break;
     }
 
-    now = std::chrono::system_clock::now();
+    now = std::chrono::steady_clock::now();
 
     bool was_paused = paused;
     bool got_command = false; // commands like zoom should output a frame even if paused
@@ -618,7 +633,7 @@ void MonitorStream::runStream() {
             temp_read_index = MOD_ADD(temp_read_index, (replay_rate>=0?-1:1), temp_image_buffer_count);
           } else {
             FPSeconds expected_delta_time = ((FPSeconds(swap_image->timestamp - last_frame_timestamp)) * ZM_RATE_BASE) / replay_rate;
-            SystemTimePoint::duration actual_delta_time = now - last_frame_sent;
+            TimePoint::duration actual_delta_time = now - last_frame_sent;
 
             // If the next frame is due
             if (actual_delta_time > expected_delta_time) {
@@ -684,7 +699,8 @@ void MonitorStream::runStream() {
     if (last_read_index != monitor->shared_data->last_write_index) {
       // have a new image to send
       int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
-      if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
+      //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
+      if ( now >= when_to_send_next_frame ) {
         if (!paused && !delayed) {
           last_read_index = monitor->shared_data->last_write_index;
           Debug(2, "Sending frame index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
@@ -743,9 +759,9 @@ void MonitorStream::runStream() {
             }  // end if actual_delta_time > 5
           }  // end if change in zoom
         }  // end if paused or not
-      } else {
-        frame_count++;
-      }  // end if should send frame
+      //} else {
+        //frame_count++;
+      }  // end if should send frame now > when_to_send_next_frame
 
       if (buffered_playback && !paused) {
         if (monitor->shared_data->valid) {
@@ -776,15 +792,35 @@ void MonitorStream::runStream() {
         }
       } // end if buffered playback
     } else {
-      Debug(3, "Waiting for capture last_write_index=%u", monitor->shared_data->last_write_index);
+      Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
+          monitor->shared_data->last_write_index,
+          last_read_index);
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
 
-    FPSeconds sleep_time =
-        FPSeconds(1 / ((base_fps ? base_fps : 1) * (replay_rate ? abs(replay_rate) : 1)));
-    if (last_frame_sent.time_since_epoch() != Seconds(0)) {
-      sleep_time -= (now - last_frame_sent);
-      if (sleep_time < Seconds(0)) 
-        sleep_time = Seconds(0);
+    FPSeconds sleep_time;
+    if (now >= when_to_send_next_frame) {
+      // sent a frame, so update
+
+      double capture_fps = monitor->GetFPS();
+      double fps = (maxfps && (capture_fps > maxfps)) ? maxfps : capture_fps;
+      double sleep_time_seconds = (1 / ((fps ? fps : 1)))    // 1 second / fps
+        * (replay_rate ? abs(replay_rate)/ZM_RATE_BASE : 1); // replay_rate is 100 for 1x
+      Debug(3, "Using %f for maxfps.  capture_fps: %f maxfps %f * replay_rate: %d = %f", fps, capture_fps, maxfps, replay_rate, sleep_time_seconds);
+
+      sleep_time = FPSeconds(sleep_time_seconds);
+      if (when_to_send_next_frame > now)
+        sleep_time -= when_to_send_next_frame - now;
+
+      when_to_send_next_frame = now + std::chrono::duration_cast<Microseconds>(sleep_time);
+
+      if (last_frame_sent > now) {
+        FPSeconds elapsed = last_frame_sent - now;
+        if (sleep_time > elapsed) {
+          sleep_time -= elapsed;
+        }
+      }
+    } else {
+      sleep_time = when_to_send_next_frame - now;
     }
 
     if (sleep_time > MonitorStream::MAX_SLEEP) {

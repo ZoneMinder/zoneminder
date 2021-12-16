@@ -21,6 +21,7 @@
 #define ZM_TIME_H
 
 #include <chrono>
+#include <string>
 #include <sys/time.h>
 
 typedef std::chrono::microseconds Microseconds;
@@ -119,5 +120,8 @@ class TimeSegmentAdder {
   // True when it has finished timing.
   bool finished_;
 };
+
+std::string SystemTimePointToString(SystemTimePoint tp);
+std::string TimePointToString(TimePoint tp);
 
 #endif // ZM_TIME_H

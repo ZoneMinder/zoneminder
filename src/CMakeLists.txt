@@ -60,6 +60,7 @@ set(ZM_BIN_SRC_FILES
   zm_signal.cpp
   zm_stream.cpp
   zm_swscale.cpp
+  zm_time.cpp
   zm_user.cpp
   zm_utils.cpp
   zm_videostore.cpp

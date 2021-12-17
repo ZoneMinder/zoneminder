@@ -460,16 +460,18 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
   }  // Not mpeg
 
-  TimePoint send_end_time = std::chrono::steady_clock::now();
-  TimePoint::duration frame_send_time = send_end_time - send_start_time;
-  TimePoint::duration maxfps_milliseconds = Milliseconds(lround(Milliseconds::period::den / maxfps));
+  if (maxfps) {
+    TimePoint send_end_time = std::chrono::steady_clock::now();
+    TimePoint::duration frame_send_time = send_end_time - send_start_time;
+    TimePoint::duration maxfps_milliseconds = Milliseconds(lround(Milliseconds::period::den / maxfps));
 
-  if (frame_send_time > maxfps_milliseconds) {
-    //maxfps /= 1.5;
-    Warning("Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", throttling maxfps to %.3f",
-        static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
-        static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
-        maxfps);
+    if (frame_send_time > maxfps_milliseconds) {
+      //maxfps /= 1.5;
+      Warning("Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", throttling maxfps to %.3f",
+          static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
+          static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
+          maxfps);
+    }
   }
   last_frame_sent = send_end_time;
   return true;

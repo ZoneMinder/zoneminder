@@ -37,6 +37,7 @@ set(ZM_BIN_SRC_FILES
   zm_monitor_janus.cpp
   zm_monitor_amcrest.cpp
   zm_monitorstream.cpp
+  zm_mqtt.cpp
   zm_ffmpeg.cpp
   zm_ffmpeg_camera.cpp
   zm_ffmpeg_input.cpp

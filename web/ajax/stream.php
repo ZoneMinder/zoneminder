@@ -1,5 +1,5 @@
 <?php
-  error_reporting(0);
+error_reporting(0);
 
 $start_time = time();
 
@@ -7,7 +7,7 @@ define('MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT/2);
 define('MSG_DATA_SIZE', 4+256);
 
 if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
-  ajaxError("Unexpected received message type '$type'");
+  ajaxError('No connkey or no command in stream ajax');
 }
 
 mkdir(ZM_PATH_SOCKS);
@@ -15,7 +15,17 @@ mkdir(ZM_PATH_SOCKS);
 # The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
 $key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock', 'Z');
 $semaphore = sem_get($key,1);
-if ( sem_acquire($semaphore,1) !== false ) {
+$semaphore_tries = 10;
+$have_semaphore = false;
+
+while ( $semaphore_tries ) {
+  $have_semaphore = sem_acquire($semaphore,1);
+  if ($have_semaphore !== false) break;
+  ZM\Debug("Failed to get semaphore, trying again");
+  usleep(100000);
+  $semaphore_tries -= 1;
+}
+if ($have_semaphore) {
   if ( !($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0)) ) {
     ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
   }
@@ -161,12 +171,11 @@ if ( sem_acquire($semaphore,1) !== false ) {
     ajaxResponse(array('status'=>$data));
     break;
   default :
-    ajaxError("Unexpected received message type '$type'");
+    ajaxError('Unexpected received message type '.$data['type']);
   }
   sem_release($semaphore);
 } else {
-  ZM\Debug('Couldn\'t get semaphore');
-  ajaxResponse(array());
+  ajaxError("Unable to get semaphore.");
 }
 
 ajaxError('Unrecognised action or insufficient permissions in ajax/stream');

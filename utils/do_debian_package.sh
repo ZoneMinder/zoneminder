@@ -119,8 +119,8 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
   if [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
     echo "Using local clone ${GITHUB_FORK}_ZoneMinder.git to pull from."
     cd "${GITHUB_FORK}_ZoneMinder.git"
-    echo "git fetch..."
-    git fetch
+    echo "git pull..."
+    git pull
     cd ../
 
     echo "git clone ${GITHUB_FORK}_ZoneMinder.git ${GITHUB_FORK}_zoneminder_release"

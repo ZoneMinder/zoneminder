@@ -33,6 +33,7 @@ set(ZM_BIN_SRC_FILES
   zm_local_camera.cpp
   zm_monitor.cpp
   zm_monitorstream.cpp
+  zm_mqtt.cpp
   zm_ffmpeg.cpp
   zm_ffmpeg_camera.cpp
   zm_ffmpeg_input.cpp

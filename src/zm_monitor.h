@@ -28,6 +28,7 @@
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
+#include "zm_mqtt.h"
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
@@ -491,6 +492,8 @@ protected:
   std::thread  close_event_thread;
 
   std::vector<Zone> zones;
+
+  std::unique_ptr<MQTT> mqtt;
 
   const unsigned char  *privacy_bitmask;
 

@@ -837,12 +837,13 @@ void EventStream::runStream() {
 
   //checkInitialised();
 
-  if ( type == STREAM_JPEG )
+  if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n", stdout);
 
-  if ( !event_data ) {
+  if (!event_data) {
     sendTextFrame("No event data found");
-    exit(0);
+    zm_terminate = true;
+    return;
   }
 
   double fps = 1.0;

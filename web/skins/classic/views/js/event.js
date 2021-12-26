@@ -710,10 +710,6 @@ function renameEvent() {
   actQuery('rename', {eventName: newName});
 }
 
-function exportEvent() {
-  window.location.assign('?view=export&eids[]='+eventData.Id);
-}
-
 function showEventFrames() {
   window.location.assign('?view=frames&eid='+eventData.Id);
 }
@@ -1020,11 +1016,11 @@ function initPage() {
   // Manage the EXPORT button
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
-    exportEvent();
+    window.location.assign('?view=export&eids[]='+eventData.Id);
   });
 
   // Manage the generateVideo button
-  bindButton('#videoBtn', 'click', null, function onExportClick(evt) {
+  bindButton('#videoBtn', 'click', null, function onVideoClick(evt) {
     evt.preventDefault();
     videoEvent();
   });

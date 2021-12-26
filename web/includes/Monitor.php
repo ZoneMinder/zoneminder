@@ -148,6 +148,8 @@ class Monitor extends ZM_Object {
     'RTSPServer' => array('type'=>'boolean', 'default'=>0),
     'RTSPStreamName'  => '',
     'Importance'      =>  'Normal',
+    'MQTT_Enabled'    =>  false,
+    'MQTT_Subscriptions'  =>  '',
   );
   private $status_fields = array(
     'Status'  =>  null,

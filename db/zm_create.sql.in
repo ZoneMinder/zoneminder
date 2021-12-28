@@ -188,7 +188,7 @@ CREATE TABLE `Events` (
   `StorageId`	smallint(5) unsigned default 0,
   `SecondaryStorageId`	smallint(5) unsigned default 0,
   `Name` varchar(64) NOT NULL default '',
-  `Cause` varchar(32) NOT NULL default '',
+  `Cause` TEXT,
   `StartDateTime` datetime default NULL,
   `EndDateTime` datetime default NULL,
   `Width` smallint(5) unsigned NOT NULL default '0',

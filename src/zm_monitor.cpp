@@ -1894,16 +1894,14 @@ bool Monitor::Analyse() {
                     alarm_cause += std::string(zone.Label());
                   }
                 }
-                if (!alarm_cause.empty())
-                  cause = cause+" "+alarm_cause;
-
                 Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
                     score, last_motion_score, motion_score);
                 motion_frame_count += 1;
                 last_motion_score = motion_score;
+
                 if (motion_score) {
                   if (cause.length()) cause += ", ";
-                  cause += MOTION_CAUSE;
+                  cause += MOTION_CAUSE+":"+alarm_cause;
                   noteSetMap[MOTION_CAUSE] = zoneSet;
                 } // end if motion_score
               }

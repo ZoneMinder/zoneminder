@@ -1901,7 +1901,7 @@ bool Monitor::Analyse() {
 
                 if (motion_score) {
                   if (cause.length()) cause += ", ";
-                  cause += MOTION_CAUSE+":"+alarm_cause;
+                  cause += MOTION_CAUSE+std::string(":")+alarm_cause;
                   noteSetMap[MOTION_CAUSE] = zoneSet;
                 } // end if motion_score
               }

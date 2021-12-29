@@ -513,6 +513,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
               echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($canEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
             } else if ( $value['Type'] == 'password' ) {
               echo '<input type="password" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($canEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
+              echo '<span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="'.$name.'">visibility</span>';
             } else {
               echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($canEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
             }

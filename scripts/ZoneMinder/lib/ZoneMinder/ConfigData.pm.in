@@ -163,7 +163,7 @@ our %types = (
     format      => q( $1\@$2 )
   },
   password => {
-    db_type     => 'string',
+    db_type     => 'password',
     hint        => 'password',
     pattern      => qr|^(.+)$|,
     format      => q($1)

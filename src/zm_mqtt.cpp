@@ -1,6 +1,7 @@
 #include "zm.h"
 #include "zm_logger.h"
 #include "zm_mqtt.h"
+#include "zm_monitor.h"
 #include "zm_time.h"
 
 #include <sstream>
@@ -49,15 +50,13 @@ void MQTT::send() {
       int mid;
       std::stringstream mqtt_topic;
       std::stringstream mqtt_payload;
-      mqtt_topic << "/a/";
-      mqtt_topic << api_key;
-      mqtt_topic << "/p/";
-      mqtt_topic << project_id;
-      mqtt_topic << "/device/" << device_id;
-      mqtt_topic << "/sensor/" << outer_iter->first;
+      //mqtt_topic << "/a/";
+      mqtt_topic << "/" << MQTT_TOPIC_PREFIX;
+      mqtt_topic << "/monitor/" << monitor_->Id();
+      //mqtt_topic << "/sensor/" << outer_iter->first;
       mqtt_topic << "/data";
 
-      mqtt_payload << "{ \"value\":"<<inner_iter->second<<" }";
+      //mqtt_payload << "{ \"value\":"<<inner_iter->second<<" }";
 
       const std::string mqtt_topic_string = mqtt_topic.str();
       const std::string mqtt_payload_string = mqtt_payload.str();
@@ -84,13 +83,13 @@ void MQTT::addActuator(std::string name, std::function <void(int val)> f) {
   int mid;
   std::stringstream mqtt_topic;
 
-  mqtt_topic << "/a/";
-  mqtt_topic << api_key;
-  mqtt_topic << "/p/";
-  mqtt_topic << project_id;
-  mqtt_topic << "/device/" << device_id;
-  mqtt_topic << "/actuator/" << name;
-  mqtt_topic << "/state";
+  //mqtt_topic << "/a/";
+  //mqtt_topic << api_key;
+  //mqtt_topic << "/p/";
+  //mqtt_topic << project_id;
+  //mqtt_topic << "/device/" << device_id;
+  //mqtt_topic << "/actuator/" << name;
+  //mqtt_topic << "/state";
 
   subscribe(&mid, mqtt_topic.str().c_str());
 }

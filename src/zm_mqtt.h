@@ -39,7 +39,7 @@ class MQTT : public mosqpp::mosquittopp {
     std::map<std::string, std::map<std::chrono::milliseconds, double>>::iterator sensorListIterator;
     std::map<std::string, int> actuatorList;
 
-    Monitor *monitor;
+    Monitor *monitor_;
     bool connected_;
 };
 

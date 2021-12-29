@@ -493,6 +493,7 @@ protected:
 
   std::vector<Zone> zones;
 
+  std::vector<std::string>  mqtt_subscriptions;
   std::unique_ptr<MQTT> mqtt;
 
   const unsigned char  *privacy_bitmask;

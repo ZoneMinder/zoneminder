@@ -15,7 +15,8 @@ input[name="newMonitor[Path]"],
 input[name="newMonitor[SecondPath]"],
 input[name="newMonitor[LabelFormat]"],
 input[name="newMonitor[ControlDevice]"],
-input[name="newMonitor[ControlAddress]"] {
+input[name="newMonitor[ControlAddress]"],
+input[name="newMonitor[MQTT_Subscriptions]"] {
   width: 100%;
 }
 input[name="newMonitor[LabelFormat]"]{
@@ -54,4 +55,18 @@ tr td:first-child {
 }
 .OutputContainer {
   display: none;
+}
+.tab-content,
+.tab-content .active {
+width: 100%;
+}
+.tab-content .active table {
+width: 100%;
+table-layout: fixed;
+}
+.tab-content .active table tr {
+  height: 32px;
+}
+.tab-content .active table td.text-right {
+width: 245px;
 }

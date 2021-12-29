@@ -17,12 +17,13 @@ class MQTT : public mosqpp::mosquittopp {
   public:
     MQTT(Monitor *);
     ~MQTT();
-    void connect(const char * hostname = "mqtt.zoneminder.com", unsigned int port = 1883, unsigned int keepalive = 60);
     void autoconfigure();
+    void connect();
     void disconnect();
-    void send();
+    void send(const std::string &message);
     void addSensor(std::string name, std::string type);
-    void addActuator(std::string name, std::function <void(int val)> f);
+    void add_subscription(const std::string &name);
+
     void addValue(std::string name, double value);
     void listValues(const std::string &sensor_name);
     void on_connect(int rc);

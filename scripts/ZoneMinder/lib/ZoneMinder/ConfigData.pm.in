@@ -162,6 +162,12 @@ our %types = (
     pattern     => qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|,
     format      => q( $1\@$2 )
   },
+  password => {
+    db_type     => 'string',
+    hint        => 'password',
+    pattern      => qr|^(.+)$|,
+    format      => q($1)
+  },
   timezone => {
     db_type     => 'string',
     hint        => 'America/Toronto',

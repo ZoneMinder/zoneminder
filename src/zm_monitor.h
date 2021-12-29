@@ -493,6 +493,7 @@ protected:
 
   std::vector<Zone> zones;
 
+  bool                      mqtt_enabled;
   std::vector<std::string>  mqtt_subscriptions;
   std::unique_ptr<MQTT> mqtt;
 

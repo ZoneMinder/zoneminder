@@ -382,6 +382,7 @@ if ( $monitor->Type() != 'WebSite' ) {
     $tabs['x10'] = translate('X10');
   $tabs['misc'] = translate('Misc');
   $tabs['location'] = translate('Location');
+  $tabs['mqtt'] = translate('MQTT');
 }
 
 if ( isset($_REQUEST['tab']) )
@@ -718,7 +719,7 @@ if (count($available_monitor_ids)) {
             <td><input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"/></td>
           </tr>
           <tr>
-            <td><?php echo translate('CaptureMethod') ?></td>
+            <td class="text-right pr-3"><?php echo translate('CaptureMethod') ?></td>
             <td><?php echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), array('onchange'=>'submitTab', 'data-tab-name'=>$tab) ); ?></td>
           </tr>
 <?php
@@ -1314,6 +1315,18 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <td colspan="2"><div id="LocationMap" style="height: 500px; width: 500px;"></div></td>
         </tr>
             
+<?php
+    break;
+  case 'mqtt':
+?>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('MQTT Enabled') ?></td>
+          <td><?php echo html_radio('newMonitor[MQTT_Enabled]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->MQTT_Enabled()) ?></td>
+        </tr>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('MQTT Subscriptions') ?></td>
+          <td><input type="text" name="newMonitor[MQTT_Subscriptions]" value="<?php echo $monitor->MQTT_Subscriptions() ?>" /></td>
+        </tr>
 <?php
     break;
   default :

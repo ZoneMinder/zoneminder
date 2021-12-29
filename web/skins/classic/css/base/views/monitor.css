@@ -19,7 +19,8 @@ input[name="newMonitor[ControlAddress]"],
 input[name="newMonitor[ONVIF_URL]"],
 input[name="newMonitor[ONVIF_Username]"],
 input[name="newMonitor[ONVIF_Password]"],
-input[name="newMonitor[ONVIF_Options]"] {
+input[name="newMonitor[ONVIF_Options]"],
+input[name="newMonitor[MQTT_Subscriptions]"] {
   width: 100%;
 }
 input[name="newMonitor[LabelFormat]"]{
@@ -58,4 +59,18 @@ tr td:first-child {
 }
 .OutputContainer {
   display: none;
+}
+.tab-content,
+.tab-content .active {
+width: 100%;
+}
+.tab-content .active table {
+width: 100%;
+table-layout: fixed;
+}
+.tab-content .active table tr {
+  height: 32px;
+}
+.tab-content .active table td.text-right {
+width: 245px;
 }

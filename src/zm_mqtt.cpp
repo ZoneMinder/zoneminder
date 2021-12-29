@@ -8,16 +8,34 @@
 #include <string.h>
 
 MQTT::MQTT(Monitor *monitor) :
-  mosquittopp(),
+  mosquittopp("ZoneMinder"),
   monitor_(monitor),
   connected_(false)
 {
   mosqpp::lib_init();
+  connect();
 }
 
-void MQTT::connect(const char * hostname, unsigned int port, unsigned int keepalive) {
-  mosqpp::mosquittopp::connect(hostname, port, keepalive);
-  loop_start();
+void MQTT::connect() {
+  if (config.mqtt_username[0]) {
+    Debug(1, "MQTT setting username to %s, password to %s", config.mqtt_username, config.mqtt_password);
+    int rc = mosqpp::mosquittopp::username_pw_set(config.mqtt_username, config.mqtt_password);
+    if (MOSQ_ERR_SUCCESS != rc) {
+      Warning("MQTT username pw set returns %d %s", rc, strerror(rc));
+    }
+  }
+  Debug(1, "MQTT connecting to %s:%d", config.mqtt_hostname, config.mqtt_port);
+  int rc = mosqpp::mosquittopp::connect(config.mqtt_hostname, config.mqtt_port, 60);
+  if (MOSQ_ERR_SUCCESS != rc) {
+    if (MOSQ_ERR_INVAL == rc) {
+      Warning("MQTT reports invalid parameters to connect");
+    } else {
+      Warning("MQTT connect returns %d %s", rc, strerror(rc));
+    }
+  } else {
+    Debug(1, "Starting loop");
+    loop_start();
+  }
 }
 
 void MQTT::autoconfigure() {
@@ -28,7 +46,7 @@ void MQTT::disconnect() {
 
 void MQTT::on_connect(int rc) {
   Debug(1, "Connected with rc %d", rc);
-  if (rc == 0) connected_ = true;
+  if (rc == MOSQ_ERR_SUCCESS) connected_ = true;
 }
 
 void MQTT::on_message(const struct mosquitto_message *message) {
@@ -39,39 +57,24 @@ void MQTT::on_subscribe(int mid, int qos_count, const int *granted_qos) {
 }
 
 void MQTT::on_publish() {
+  Debug(1, "on_publish ");
 }
 
-void MQTT::send() {
-  while (!connected_) { std::this_thread::sleep_for(Seconds(1)); }
+void MQTT::send(const std::string &message) {
+  if (!connected_) connect();
 
-  for (auto outer_iter=sensorList.begin(); outer_iter!=sensorList.end(); ++outer_iter) {
-    for (auto inner_iter=outer_iter->second.begin(); inner_iter!=outer_iter->second.end(); ++inner_iter) {
-      Debug(1, "%s %ld %f", outer_iter->first.c_str(), inner_iter->first.count(), inner_iter->second);
-      int mid;
-      std::stringstream mqtt_topic;
-      std::stringstream mqtt_payload;
-      //mqtt_topic << "/a/";
-      mqtt_topic << "/" << MQTT_TOPIC_PREFIX;
-      mqtt_topic << "/monitor/" << monitor_->Id();
-      //mqtt_topic << "/sensor/" << outer_iter->first;
-      mqtt_topic << "/data";
+  std::stringstream mqtt_topic;
+  //mqtt_topic << "/" << config.mqtt_topic_prefix;
+  mqtt_topic << config.mqtt_topic_prefix;
+  mqtt_topic << "/monitor/" << monitor_->Id();
 
-      //mqtt_payload << "{ \"value\":"<<inner_iter->second<<" }";
-
-      const std::string mqtt_topic_string = mqtt_topic.str();
-      const std::string mqtt_payload_string = mqtt_payload.str();
-      Debug(1, "DEBUG: MQTT TOPIC: %s", mqtt_topic_string.c_str());
-      publish(&mid, mqtt_topic_string.c_str(), mqtt_payload_string.length(), mqtt_payload_string.c_str(), 0, true);
-
-      auto this_iter = inner_iter;
-      inner_iter++;
-
-      outer_iter->second.erase(this_iter);
-      if (inner_iter == outer_iter->second.end()) {
-        break;
-      }
-    }  // end foreach inner
-  }  // end foreach outer
+  const std::string mqtt_topic_string = mqtt_topic.str();
+  Debug(1, "DEBUG: MQTT TOPIC: %s : message %s", mqtt_topic_string.c_str(), message.c_str());
+  //int rc = publish(&mid, mqtt_topic_string.c_str(), message.length(), message.c_str(), 0, true);
+  int rc = publish(nullptr, mqtt_topic_string.c_str(), message.length(), message.c_str());
+  if (MOSQ_ERR_SUCCESS != rc) {
+    Warning("MQTT publish returns %d %s", rc, strerror(rc));
+  }
 }
 
 void MQTT::addSensor(std::string name, std::string type) {
@@ -79,19 +82,11 @@ void MQTT::addSensor(std::string name, std::string type) {
   sensorList.insert ( std::pair<std::string,std::map<std::chrono::milliseconds, double>>(name, valuesList));
 }
 
-void MQTT::addActuator(std::string name, std::function <void(int val)> f) {
+void MQTT::add_subscription(const std::string &name) {
+//, std::function <void(int val)> f) {
   int mid;
-  std::stringstream mqtt_topic;
-
-  //mqtt_topic << "/a/";
-  //mqtt_topic << api_key;
-  //mqtt_topic << "/p/";
-  //mqtt_topic << project_id;
-  //mqtt_topic << "/device/" << device_id;
-  //mqtt_topic << "/actuator/" << name;
-  //mqtt_topic << "/state";
-
-  subscribe(&mid, mqtt_topic.str().c_str());
+  Debug(1, "MQTT add subscription to %s", name.c_str());
+  subscribe(&mid, name.c_str());
 }
 
 void MQTT::addValue(std::string name, double value) {

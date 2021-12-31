@@ -534,6 +534,9 @@ public:
       return shared_data->last_viewed_time;
     return 0;
   }
+  void setLastViewed() {
+    setLastViewed(std::chrono::system_clock::now());
+  }
   void setLastViewed(SystemTimePoint new_time) {
     if (shared_data && shared_data->valid)
       shared_data->last_viewed_time = 

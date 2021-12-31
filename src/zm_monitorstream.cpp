@@ -582,7 +582,7 @@ void MonitorStream::runStream() {
     }
 
     now = std::chrono::steady_clock::now();
-    monitor->setLastViewed(now);
+    monitor->setLastViewed();
 
     bool was_paused = paused;
     bool got_command = false; // commands like zoom should output a frame even if paused

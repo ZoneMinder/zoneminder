@@ -220,12 +220,13 @@ int main(int argc, char *argv[]) {
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
-  sigset_t block_set;
-  sigemptyset(&block_set);
-
-  sigaddset(&block_set, SIGHUP);
-  sigaddset(&block_set, SIGUSR1);
-  sigaddset(&block_set, SIGUSR2);
+  struct sigaction sa;
+  sa.sa_handler = SIG_IGN; //handle signal by ignoring
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  if (sigaction(SIGCHLD, &sa, 0) == -1) {
+    Error("Unable to set SIGCHLD to ignore. There may be zombies.");
+  }
 
   int result = 0;
   int prime_capture_log_count = 0;
@@ -273,7 +274,7 @@ int main(int argc, char *argv[]) {
 
         std::this_thread::sleep_for(sleep_time);
       }
-      if (zm_terminate){
+      if (zm_terminate) {
         break;
       }
 
@@ -317,6 +318,7 @@ int main(int argc, char *argv[]) {
           result = -1;
           break;
         }
+        monitors[i]->UpdateFPS();
 
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()
@@ -373,6 +375,7 @@ int main(int argc, char *argv[]) {
         monitor->Id());
     zmDbDo(sql);
   }
+  monitors.clear();
 
   Image::Deinitialise();
   Debug(1, "terminating");

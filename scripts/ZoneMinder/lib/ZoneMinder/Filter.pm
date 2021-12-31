@@ -56,6 +56,7 @@ $primary_key = 'Id';
 %fields = map { $_ => $_ } qw(
 Id
 Name
+ExecuteInterval
 Query_json
 AutoArchive
 AutoUnarchive
@@ -106,7 +107,6 @@ sub Execute {
     $sql =~ s/zmSystemLoad/$load/g;
   }
 
-  $sql .= ' FOR UPDATE' if $$self{LockRows};
 
   Debug("Filter::Execute SQL ($sql)");
   my $sth = $ZoneMinder::Database::dbh->prepare_cached($sql)
@@ -230,8 +230,8 @@ sub Sql {
           # PostCondition, so no further SQL
         } else {
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
-          foreach my $temp_value ( split( /["'\s]*?,["'\s]*?/, $stripped_value ) ) {
-
+          # Empty value will result in () from split
+          foreach my $temp_value ( $stripped_value ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.$value.')';
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
@@ -250,7 +250,8 @@ sub Sql {
                 $$self{Server} = new ZoneMinder::Server($temp_value);
               }
             } elsif ( $term->{attr} eq 'StorageId' ) {
-              $value = "'$temp_value'";
+              # Empty means NULL, otherwise must be an integer
+              $value = $temp_value ne '' ? int($temp_value) : 'NULL';
               $$self{Storage} = new ZoneMinder::Storage($temp_value);
             } elsif ( $term->{attr} eq 'Name'
               || $term->{attr} eq 'Cause'
@@ -370,10 +371,7 @@ sub Sql {
     if ( @auto_terms ) {
       $sql .= ' AND ( '.join(' or ', @auto_terms).' )';
     }
-    if ( !$filter_expr->{sort_field} ) {
-      $filter_expr->{sort_field} = 'StartDateTime';
-      $filter_expr->{sort_asc} = 0;
-    }
+
     my $sort_column = '';
     if ( $filter_expr->{sort_field} eq 'Id' ) {
       $sort_column = 'E.Id';
@@ -405,13 +403,20 @@ sub Sql {
       $sort_column = 'E.MaxScore';
     } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
       $sort_column = 'E.DiskSpace';
-    } else {
-      $sort_column = 'E.StartDateTime';
+    } elsif ( $filter_expr->{sort_field} ne '' ) {
+      $sort_column = 'E.'.$filter_expr->{sort_field};
     }
-    my $sort_order = $filter_expr->{sort_asc} ? 'ASC' : 'DESC';
-    $sql .= ' ORDER BY '.$sort_column.' '.$sort_order;
-    if ( $filter_expr->{limit} ) {
+    if ( $sort_column ne '' ) {
+      $sql .= ' ORDER BY '.$sort_column.' '.($filter_expr->{sort_asc} ? 'ASC' : 'DESC');
+    }
+    if ($filter_expr->{limit}) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
+    }
+    if ($$self{LockRows}) {
+      $sql .= ' FOR UPDATE';
+      if ($filter_expr->{skip_locked}) {
+        $sql .= ' SKIP LOCKED';
+      }
     }
     $self->{Sql} = $sql;
   } # end if has Sql

@@ -251,6 +251,13 @@ void zmDbQueue::process() {
       mCondition.wait(lock);
     }
     while (!mQueue.empty()) {
+      if (mQueue.size() > 20) {
+        Logger *log = Logger::fetch();
+        Logger::Level db_level = log->databaseLevel();
+        log->databaseLevel(Logger::NOLOG);
+        Warning("db queue size has grown larger %zu than 20 entries", mQueue.size());
+        log->databaseLevel(db_level);
+      }
       std::string sql = mQueue.front();
       mQueue.pop();
       // My idea for leaving the locking around each sql statement is to allow
@@ -264,8 +271,10 @@ void zmDbQueue::process() {
 
 void zmDbQueue::push(std::string &&sql) {
   if (mTerminate) return;
-  std::unique_lock<std::mutex> lock(mMutex);
-  mQueue.push(std::move(sql));
+  {
+    std::unique_lock<std::mutex> lock(mMutex);
+    mQueue.push(std::move(sql));
+  }
   mCondition.notify_all();
 }
 

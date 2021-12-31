@@ -9,13 +9,13 @@
      </div>
      <div class="modal-body">
 <?php
-  //require_once('includes/Filter.php');
+  require_once('includes/Filter.php');
   $fid = validInt($_REQUEST['fid']);
-  if ( !$fid ) {
+  if (!$fid) {
     echo '<div class="error">No filter id specified.</div>';
   } else {
     $filter = new ZM\Filter($_REQUEST['fid']);
-    if ( ! $filter->Id() ) {
+    if (!$filter->Id()) {
       echo '<div class="error">Filter not found for id '.$_REQUEST['fid'].'</div>';
     }
   }
@@ -25,7 +25,16 @@
             // We have to manually insert the csrf key into the form when using a modal generated via ajax call
             echo getCSRFinputHTML();
 ?>
-          <p><label>SQL</label><?php echo $filter->sql() ?></p>
+          <p><label>SQL</label>
+<?php
+  $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale<br/>FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)<br/>WHERE<br/>';
+  $sql .= $filter->sql();
+  $sql .= $filter->sort_field() ? ' ORDER BY '.$filter->sort_field(). ' ' .($filter->sort_asc() ? 'ASC' : 'DESC') : '';
+  $sql .= $filter->limit() ? ' LIMIT '.$filter->limit() : '';
+  $sql .= $filter->skip_locked() ? ' SKIP LOCKED' : '';
+
+  echo $sql;
+?></p>
          <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel')?> </button>
         </div>

@@ -46,6 +46,7 @@ RETSIGTYPE zm_die_handler(int signal, siginfo_t * info, void *context)
 RETSIGTYPE zm_die_handler(int signal)
 #endif
 {
+  zm_terminate = true;
 	Error("Got signal %d (%s), crashing", signal, strsignal(signal));
 #if (defined(__i386__) || defined(__x86_64__))
 	// Get more information if available

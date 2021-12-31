@@ -128,10 +128,10 @@ bool StreamBase::checkCommandQueue() {
       return true;
     }
   } else if ( connkey ) {
-    Warning("No sd in checkCommandQueue, comms not open?");
+    Warning("No sd in checkCommandQueue, comms not open for connkey %06d?", connkey);
   } else {
     // Perfectly valid if only getting a snapshot
-    Debug(1, "No sd in checkCommandQueue, comms not open?");
+    Debug(1, "No sd in checkCommandQueue, comms not open.");
   }
   return false;
 }  // end bool StreamBase::checkCommandQueue()
@@ -386,9 +386,9 @@ void StreamBase::openComms() {
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
-    last_comm_update = std::chrono::system_clock::now();
+    last_comm_update = std::chrono::steady_clock::now();
+    Debug(3, "comms open at %s", loc_sock_path);
   } // end if connKey > 0
-  Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()
 
 void StreamBase::closeComms() {

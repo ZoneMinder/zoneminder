@@ -786,7 +786,7 @@ function exportFileList(
     }
     closedir($dir);
   }
-  ZM\Debug(print_r($files, true));
+  ZM\Debug('All available files: '.print_r($files, true));
 
   $exportFileList = array();
 
@@ -842,6 +842,18 @@ function exportFileList(
   } else {
     ZM\Debug('Not including frame images');
   } # end if exportImages
+
+  if ($exportVideo) {
+    $filesLeft = array();
+    foreach ($files as $file) {
+      if (preg_match('/\.(?:mpg|mpeg|mov|swf|mp4|mkv|avi|asf|3gp)$/', $file)) {
+        $exportFileList[$file] = $file;
+      } else {
+        $filesLeft[$file] = $file;
+      }
+    }
+    $files = $filesLeft;
+  }
 
   if ($exportMisc) {
     foreach ($files as $file) {

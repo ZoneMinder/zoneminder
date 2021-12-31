@@ -141,7 +141,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->storage_id = dbrow[1] ? atoi(dbrow[1]) : 0;
   event_data->frame_count = dbrow[2] == nullptr ? 0 : atoi(dbrow[2]);
   event_data->start_time = SystemTimePoint(Seconds(atoi(dbrow[3])));
-  event_data->end_time = dbrow[4] ? SystemTimePoint(Seconds(atoi(dbrow[4]))) : SystemTimePoint();
+  event_data->end_time = dbrow[4] ? SystemTimePoint(Seconds(atoi(dbrow[4]))) : std::chrono::system_clock::now();
   event_data->duration = std::chrono::duration_cast<Microseconds>(event_data->end_time - event_data->start_time);
   event_data->frames_duration =
       std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : FPSeconds(0.0));
@@ -663,6 +663,7 @@ bool EventStream::checkEventLoaded() {
       else
         curr_frame_id = 1;
       Debug(2, "New frame id = %ld", curr_frame_id);
+      start = std::chrono::steady_clock::now();
       return true;
     } else {
       Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
@@ -810,7 +811,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
           fputs("Content-Type: image/x-rgbz\r\n", stdout);
           break;
         case STREAM_RAW :
-          img_buffer = (uint8_t*)(send_image->Buffer());
+          img_buffer = send_image->Buffer();
           img_buffer_size = send_image->Size();
           fputs("Content-Type: image/x-rgb\r\n", stdout);
           break;
@@ -836,12 +837,13 @@ void EventStream::runStream() {
 
   //checkInitialised();
 
-  if ( type == STREAM_JPEG )
+  if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n", stdout);
 
-  if ( !event_data ) {
+  if (!event_data) {
     sendTextFrame("No event data found");
-    exit(0);
+    zm_terminate = true;
+    return;
   }
 
   double fps = 1.0;
@@ -850,13 +852,13 @@ void EventStream::runStream() {
   }
   updateFrameRate(fps);
 
-  start = std::chrono::system_clock::now();
+  start = std::chrono::steady_clock::now();
 
   SystemTimePoint::duration last_frame_offset = Seconds(0);
   SystemTimePoint::duration time_to_event = Seconds(0);
 
   while ( !zm_terminate ) {
-    now = std::chrono::system_clock::now();
+    now = std::chrono::steady_clock::now();
 
     Microseconds delta = Microseconds(0);
     send_frame = false;
@@ -903,7 +905,7 @@ void EventStream::runStream() {
 
     // time_to_event > 0 means that we are not in the event
     if (time_to_event > Seconds(0) and mode == MODE_ALL) {
-      SystemTimePoint::duration time_since_last_send = now - last_frame_sent;
+      TimePoint::duration time_since_last_send = now - last_frame_sent;
       Debug(1, "Time since last send = %.2f s", FPSeconds(time_since_last_send).count());
       if (time_since_last_send > Seconds(1)) {
         char frame_text[64];
@@ -957,23 +959,25 @@ void EventStream::runStream() {
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()));
 
       // if effective > base we should speed up frame delivery
-      delta = std::chrono::duration_cast<Microseconds>((delta * base_fps) / effective_fps);
-      Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f)",
+      if (base_fps < effective_fps) {
+        delta = std::chrono::duration_cast<Microseconds>((delta * base_fps) / effective_fps);
+        Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f)",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
             base_fps,
             effective_fps);
 
-      // but must not exceed maxfps
-      delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
-      Debug(3, "delta %" PRIi64 " us = base_fps (%f) /effective_fps (%f) from 30fps",
+        // but must not exceed maxfps
+        delta = std::max(delta, Microseconds(lround(Microseconds::period::den / maxfps)));
+        Debug(3, "delta %" PRIi64 " us = base_fps (%f) / effective_fps (%f) from 30fps",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(delta).count()),
             base_fps,
             effective_fps);
+      }
 
       // +/- 1? What if we are skipping frames?
       curr_frame_id += (replay_rate>0) ? frame_mod : -1*frame_mod;
       // sending the frame may have taken some time, so reload now
-      now = std::chrono::system_clock::now();
+      now = std::chrono::steady_clock::now();
 
       // we incremented by replay_rate, so might have jumped past frame_count
       if ( (mode == MODE_SINGLE) && (

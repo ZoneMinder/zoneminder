@@ -35,7 +35,9 @@ require ZoneMinder::Storage;
 require ZoneMinder::Server;
 require ZoneMinder::Memory;
 require ZoneMinder::Monitor_Status;
+require ZoneMinder::Event_Summary;
 require ZoneMinder::Zone;
+use ZoneMinder::Logger qw(:all);
 
 #our @ISA = qw(Exporter ZoneMinder::Base);
 use parent qw(ZoneMinder::Object);
@@ -239,20 +241,26 @@ sub control {
   my $command = shift;
   my $process = shift;
 
-  if ( $command eq 'stop' or $command eq 'restart' ) {
-    if ( $process ) {
-      `/usr/bin/zmdc.pl stop $process -m $$monitor{Id}`;
+  if ($command eq 'stop' or $command eq 'restart') {
+    if ($process) {
+      ZoneMinder::General::runCommand("zmdc.pl stop $process -m $$monitor{Id}");
     } else {
-      `/usr/bin/zmdc.pl stop zma -m $$monitor{Id}`;
-      `/usr/bin/zmdc.pl stop zmc -m $$monitor{Id}`;
+      if ($monitor->{Type} eq 'Local') {
+        ZoneMinder::General::runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
+      } else {
+        ZoneMinder::General::runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
+      }
     }
   }
   if ( $command eq 'start' or $command eq 'restart' ) {
     if ( $process ) {
-      `/usr/bin/zmdc.pl start $process -m $$monitor{Id}`;
+      ZoneMinder::General::runCommand("zmdc.pl start $process -m $$monitor{Id}");
     } else {
-      `/usr/bin/zmdc.pl start zmc -m $$monitor{Id}`;
-      `/usr/bin/zmdc.pl start zma -m $$monitor{Id}`;
+      if ($monitor->{Type} eq 'Local') {
+        ZoneMinder::General::runCommand('zmdc.pl start zmc -d '.$monitor->{Device});
+      } else {
+        ZoneMinder::General::runCommand('zmdc.pl start zmc -m '.$monitor->{Id});
+      }
     } # end if
   }
 } # end sub control
@@ -264,6 +272,15 @@ sub Status {
     $$self{Status} = ZoneMinder::Monitor_Status->find_one(MonitorId=>$$self{Id});
   }
   return $$self{Status};
+}
+
+sub Event_Summary {
+  my $self = shift;
+  $$self{Event_Summary} = shift if @_;
+  if ( ! $$self{Event_Summary} ) {
+    $$self{Event_Summary} = ZoneMinder::Event_Summary->find_one(MonitorId=>$$self{Id});
+  }
+  return $$self{Event_Summary};
 }
 
 sub connect {
@@ -311,6 +328,37 @@ sub resumeMotionDetection {
     ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
   }
   return 1;
+}
+
+sub Control {
+  my $self = shift;
+  if (!exists $$self{Control}) {
+    if ($$self{ControlId}) {
+      require ZoneMinder::Control;
+      my $Control = ZoneMinder::Control->find_one(Id=>$$self{ControlId});
+      if ($Control) {
+        my $Protocol = $$Control{Protocol};
+
+        if (!$Protocol) {
+          Error("No protocol set in control $$Control{Id}, trying Name $$Control{Name}");
+          $Protocol = $$Control{Name};
+        }
+        require Module::Load::Conditional;
+        if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$Protocol => undef})) {
+          Error("Can't load ZoneMinder::Control::$Protocol\n$Module::Load::Conditional::ERROR");
+          return undef;
+        }
+        bless $Control, 'ZoneMinder::Control::'.$Protocol;
+        $$Control{MonitorId} = $$self{Id};
+        $$self{Control} = $Control;
+      } else {
+        Error("Unable to load control for control $$self{ControlId} for monitor $$self{Id}");
+      }
+    } else {
+      Info("No ControlId set in monitor $$self{Id}")
+    }
+  }
+  return $$self{Control};
 }
 
 1;

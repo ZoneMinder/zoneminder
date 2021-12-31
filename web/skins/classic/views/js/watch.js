@@ -44,7 +44,7 @@ function ajaxRequest(params) {
   data.view = 'request';
   data.request = 'watch';
   data.mid = monitorId;
-  if ( auth_hash ) data.auth = auth_hash;
+  if (auth_hash) data.auth = auth_hash;
 
   $j.getJSON(thisUrl, data)
       .done(function(data) {
@@ -94,17 +94,63 @@ function showPtzControls() {
   showMode = 'control';
 }
 
+function changeSize() {
+  var width = $j('#width').val();
+  var height = $j('#height').val();
+
+  // Scale the frame
+  monitor_frame = $j('#imageFeed');
+  if (!monitor_frame) {
+    console.log('Error finding frame');
+    return;
+  }
+  if (width) monitor_frame.css('width', width);
+  if (height) monitor_frame.css('height', height);
+
+  var streamImg = document.getElementById('liveStream'+monitorData[monIdx].id);
+  if (streamImg) {
+    if (streamImg.nodeName == 'IMG') {
+      let src = streamImg.src;
+      streamImg.src = '';
+      src = src.replace(/width=[\.\d]+/i, 'width='+parseInt(width));
+      src = src.replace(/height=[\.\d]+/i, 'height='+parseInt(height));
+      src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+      streamImg.src = src;
+    }
+    streamImg.style.width = width ? width : null;
+    streamImg.style.height = height ? height : null;
+  } else {
+    console.log('Did not find liveStream'+monitorData[monIdx].id);
+  }
+  $j('#scale').val('');
+  setCookie('zmCycleScale', '', 3600);
+  setCookie('zmCycleWidth', width, 3600);
+  setCookie('zmCycleHeight', height, 3600);
+} // end function changeSize()
+
 function changeScale() {
   var scale = $j('#scale').val();
+  setCookie('zmWatchScale'+monitorId, scale, 3600);
+  $j('#width').val('auto');
+  $j('#height').val('auto');
+  setCookie('zmCycleScale', scale, 3600);
+  setCookie('zmCycleWidth', 'auto', 3600);
+  setCookie('zmCycleHeight', 'auto', 3600);
+
   var newWidth;
   var newHeight;
   var autoScale;
+
+  var streamImg = $j('#liveStream'+monitorId);
+  if (!streamImg.length) {
+    console.error('No element found for liveStream'+monitorId);
+  }
 
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   if (scale == '0' || scale == 'auto') {
-    var newSize = scaleToFit(monitorWidth, monitorHeight, $j('#liveStream'+monitorId), $j('#replayStatus'));
+    const newSize = scaleToFit(monitorWidth, monitorHeight, streamImg, $j('#dvrControls'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
@@ -114,22 +160,21 @@ function changeScale() {
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
-  setCookie('zmWatchScale'+monitorId, scale, 3600);
-
-  var streamImg = $j('#liveStream'+monitorId);
-  if (streamImg) {
-    var oldSrc = streamImg.attr('src');
+  if (streamImg.prop('nodeName') == 'IMG') {
+    const oldSrc = streamImg.attr('src');
     streamImg.attr('src', '');
     // This is so that we don't waste bandwidth and let the browser do all the scaling.
     if (autoScale > 100) autoScale = 100;
     if (scale > 100) scale = 100;
-    var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
+    const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
 
+    streamImg.css('width', newWidth+'px');
     streamImg.width(newWidth);
+    streamImg.css('height', newHeight+'px');
     streamImg.height(newHeight);
     streamImg.attr('src', newSrc);
   } else {
-    console.error('No element found for liveStream'+monitorId);
+    console.log("Not an IMG, can't set size");
   }
 } // end function changeScale
 
@@ -184,6 +229,15 @@ function setAlarmState(currentAlarmState) {
   lastAlarmState = alarmState;
 } // end function setAlarmState( currentAlarmState )
 
+function streamCmdReq(data) {
+  if (auth_hash) data.auth = auth_hash;
+  $j.getJSON(monitorUrl + '?view=request&request=stream&connkey='+connKey, data)
+      .done(getStreamCmdResponse)
+      .fail(getStreamCmdError);
+
+  streamCmdTimer = null;
+}
+
 function getStreamCmdError(text, error) {
   console.log(error);
   // Error are normally due to failed auth. reload the page.
@@ -200,9 +254,15 @@ function getStreamCmdResponse(respObj, respText) {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
       streamStatus = respObj.status;
-      $j('#fpsValue').text(streamStatus.fps);
-      $j('#capturefpsValue').text(streamStatus.capturefps);
-      $j('#analysisfpsValue').text(streamStatus.analysisfps);
+      if ($j('#viewingFPSValue').text() != streamStatus.fps) {
+        $j('#viewingFPSValue').text(streamStatus.fps);
+      }
+      if ($j('#captureFPSValue').text() != streamStatus.capturefps) {
+        $j('#captureFPSValue').text(streamStatus.capturefps);
+      }
+      if ($j('#analysisFPSValue').text() != streamStatus.analysisfps) {
+        $j('#analysisFPSValue').text(streamStatus.analysisfps);
+      }
 
       setAlarmState(streamStatus.state);
 
@@ -287,31 +347,21 @@ function getStreamCmdResponse(respObj, respText) {
         // Try to reload the image stream.
         var streamImg = $j('#liveStream'+monitorId);
         if (streamImg) {
-          var oldSrc = streamImg.attr('src');
-          var newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-          if (oldSrc != newSrc) {
-            streamImg.attr('src', newSrc);
-            table.bootstrapTable('refresh');
+          const oldSrc = streamImg.attr('src');
+          if (oldSrc) {
+            const newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
+            if (oldSrc != newSrc) {
+              streamImg.attr('src', newSrc);
+              table.bootstrapTable('refresh');
+            }
           }
         }
       } // end if have a new auth hash
     } // end if respObj.status
   } else {
+    console.log("Not ok");
     checkStreamForErrors('getStreamCmdResponse', respObj);//log them
-    // Try to reload the image stream.
-    // If it's an auth error, we should reload the whole page.
-    console.log("have error");
-    //window.location.reload();
-    var streamImg = $j('#liveStream'+monitorId);
-    if (streamImg) {
-      var oldSrc = streamImg.attr('src');
-      var newSrc = oldSrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-
-      streamImg.attr('src', newSrc);
-      console.log('Changing livestream src to ' + newSrc);
-    } else {
-      console.log('Unable to find streamImg liveStream');
-    }
+    fetchImage($j('#imageFeed img'));
   }
 
   var streamCmdTimeout = statusRefreshTimeout;
@@ -319,6 +369,10 @@ function getStreamCmdResponse(respObj, respText) {
     streamCmdTimeout = streamCmdTimeout/5;
   }
   streamCmdTimer = setTimeout(streamCmdQuery, streamCmdTimeout);
+}
+
+function streamCmdQuery() {
+  streamCmdReq({command: CMD_QUERY});
 }
 
 function streamCmdPause(action) {
@@ -360,20 +414,10 @@ function streamCmdPlay(action) {
     }
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_PLAY;
-    streamCmdReq(data);
+    streamCmdReq({command: CMD_PLAY});
   }
 }
 
-function streamCmdReq(data) {
-  $j.getJSON(monitorUrl + '?view=request&request=stream&connkey='+connKey, data)
-      .done(getStreamCmdResponse)
-      .fail(getStreamCmdError);
-
-  streamCmdTimer = null;
-}
 
 function streamCmdStop(action) {
   setButtonState('pauseBtn', 'inactive');
@@ -386,10 +430,7 @@ function streamCmdStop(action) {
     setButtonState('fastRevBtn', 'unavail');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_STOP;
-    streamCmdReq(data);
+    streamCmdReq({command: CMD_STOP});
   }
   setButtonState('stopBtn', 'unavail');
   setButtonState('playBtn', 'active');
@@ -406,10 +447,7 @@ function streamCmdFastFwd(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_FASTFWD;
-    streamCmdReq(data);
+    streamCmdReq({command: CMD_FASTFWD});
   }
 }
 
@@ -424,10 +462,7 @@ function streamCmdSlowFwd(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_SLOWFWD;
-    streamCmdReq(data);
+    streamCmdReq({command: CMD_SLOWFWD});
   }
   setButtonState('pauseBtn', 'active');
   if (monitorStreamReplayBuffer) {
@@ -446,10 +481,7 @@ function streamCmdSlowRev(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_SLOWREV;
-    streamCmdReq(data);
+    streamCmdReq({command: CMD_SLOWREV});
   }
   setButtonState('pauseBtn', 'active');
   if (monitorStreamReplayBuffer) {
@@ -468,16 +500,12 @@ function streamCmdFastRev(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_FASTREV;
-    streamCmdReq(data);
+    streamCmdReq({command: CMD_FASTREV});
   }
 }
 
 function streamCmdZoomIn(x, y) {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
   data.x = x;
   data.y = y;
   data.command = CMD_ZOOMIN;
@@ -485,15 +513,11 @@ function streamCmdZoomIn(x, y) {
 }
 
 function streamCmdZoomOut() {
-  var data = {};
-  if (auth_hash) data.auth = auth_hash;
-  data.command = CMD_ZOOMOUT;
-  streamCmdReq(data);
+  streamCmdReq({command: CMD_ZOOMOUT});
 }
 
 function streamCmdScale(scale) {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
   data.command = CMD_SCALE;
   data.scale = scale;
   streamCmdReq(data);
@@ -501,20 +525,14 @@ function streamCmdScale(scale) {
 
 function streamCmdPan(x, y) {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
   data.x = x;
   data.y = y;
   data.command = CMD_PAN;
   streamCmdReq(data);
 }
 
-function streamCmdQuery() {
-  var data = {};
-  if (auth_hash) data.auth = auth_hash;
-  data.command = CMD_QUERY;
-  streamCmdReq(data);
-}
 
+/* getStatusCmd is used when not streaming, since there is no persistent zms */
 function getStatusCmdResponse(respObj, respText) {
   watchdogOk('status');
   if (statusCmdTimer) {
@@ -522,32 +540,33 @@ function getStatusCmdResponse(respObj, respText) {
   }
 
   if (respObj.result == 'Ok') {
-    $j('#fpsValue').text(respObj.monitor.FrameRate);
+    $j('#captureFPSValue').text(respObj.monitor.FrameRate);
     setAlarmState(respObj.monitor.Status);
   } else {
     checkStreamForErrors('getStatusCmdResponse', respObj);
   }
 
   var statusCmdTimeout = statusRefreshTimeout;
-  if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
+  if (alarmState == STATE_ALARM || alarmState == STATE_ALERT) {
     statusCmdTimeout = statusCmdTimeout/5;
   }
   statusCmdTimer = setTimeout(statusCmdQuery, statusCmdTimeout);
 }
 
 function statusCmdQuery() {
-  $j.getJSON(monitorUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId)
+  $j.getJSON(monitorUrl + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+monitorId+'&'+auth_relay)
       .done(getStatusCmdResponse)
       .fail(logAjaxFail);
 
-  streamCmdTimer = null;
+  statusCmdTimer = null;
 }
 
 function alarmCmdReq(data) {
+  if (auth_hash) data.auth = auth_hash;
   $j.getJSON(monitorUrl + '?view=request&request=alarm&id='+monitorId, data)
       .done(getAlarmCmdResponse)
       .fail(function(jqxhr, textStatus, error) {
-        if ( textStatus === "timeout" ) {
+        if (textStatus === 'timeout') {
           streamCmdQuery();
         } else {
           logAjaxFail(jqxhr, textStatus, error);
@@ -561,14 +580,12 @@ function getAlarmCmdResponse(respObj, respText) {
 
 function cmdDisableAlarms() {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
   data.command = 'disableAlarms';
   alarmCmdReq(data);
 }
 
 function cmdEnableAlarms() {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
   data.command = 'enableAlarms';
   alarmCmdReq(data);
 }
@@ -583,7 +600,6 @@ function cmdAlarm() {
 
 function cmdForceAlarm() {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
   data.command = 'forceAlarm';
   alarmCmdReq(data);
   if (window.event) window.event.preventDefault();
@@ -591,7 +607,6 @@ function cmdForceAlarm() {
 
 function cmdCancelForcedAlarm() {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
   data.command = 'cancelForcedAlarm';
   alarmCmdReq(data);
   if (window.event) window.event.preventDefault();
@@ -607,6 +622,7 @@ function cmdForce() {
 }
 
 function controlReq(data) {
+  if (auth_hash) data.auth = auth_hash;
   $j.getJSON(monitorUrl + '?view=request&request=control&id='+monitorId, data)
       .done(getControlResponse)
       .fail(logAjaxFail);
@@ -639,16 +655,16 @@ function controlCmd(event) {
   var data = {};
 
   if (event && (xtell || ytell)) {
-    var target = event.target;
-    var offset = $j(target).offset();
-    var width = $j(target).width();
-    var height = $j(target).height();
+    const target = event.target;
+    const offset = $j(target).offset();
+    const width = $j(target).width();
+    const height = $j(target).height();
 
-    var x = event.pageX - offset.left;
-    var y = event.pageY - offset.top;
+    const x = event.pageX - offset.left;
+    const y = event.pageY - offset.top;
 
     if (xtell) {
-      var xge = parseInt((x*100)/width);
+      let xge = parseInt((x*100)/width);
       if (xtell == -1) {
         xge = 100 - xge;
       } else if (xtell == 2) {
@@ -657,7 +673,7 @@ function controlCmd(event) {
       data.xge = xge;
     }
     if (ytell) {
-      var yge = parseInt((y*100)/height);
+      let yge = parseInt((y*100)/height);
       if (ytell == -1) {
         yge = 100 - yge;
       } else if (ytell == 2) {
@@ -667,7 +683,6 @@ function controlCmd(event) {
     }
   }
 
-  if (auth_hash) data.auth = auth_hash;
   data.control = control;
   controlReq(data);
 
@@ -678,7 +693,6 @@ function controlCmd(event) {
 
 function controlCmdImage(x, y) {
   var data = {};
-  if (auth_hash) data.auth = auth_hash;
   data.scale = scale;
   data.control = imageControlMode;
   data.x = x;
@@ -691,7 +705,9 @@ function controlCmdImage(x, y) {
 }
 
 function fetchImage(streamImage) {
-  streamImage.attr('src', streamImage.attr('src').replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )));
+  const oldsrc = streamImage.attr('src');
+  streamImage.attr('src', '');
+  streamImage.attr('src', oldsrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )));
 }
 
 function handleClick(event) {
@@ -768,7 +784,6 @@ function reloadWebSite() {
 
 function updatePresetLabels() {
   var lblNdx = $j('#ctrlPresetForm option:selected').val();
-
   $j('#newLabel').val(labels[lblNdx]);
 }
 
@@ -878,23 +893,21 @@ function initPage() {
     // Load the PTZ Preset modal into the DOM
     if (monitorControllable) getCtrlPresetModal();
     // Load the settings modal into the DOM
-    if (monitorType == "Local") getSettingsModal();
+    if (monitorType == 'Local') getSettingsModal();
   }
 
   if (monitorType != 'WebSite') {
     if (streamMode == 'single') {
-      statusCmdTimer = setTimeout(statusCmdQuery, (Math.random()+0.1)*statusRefreshTimeout);
+      statusCmdTimer = setTimeout(statusCmdQuery, 200);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
     } else {
-      streamCmdTimer = setTimeout(streamCmdQuery, (Math.random()+0.1)*statusRefreshTimeout);
+      streamCmdTimer = setTimeout(streamCmdQuery, 200);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
     }
 
     if (canStreamNative || (streamMode == 'single')) {
       var streamImg = $j('#imageFeed img');
-      if (!streamImg) {
-        streamImg = $j('#imageFeed object');
-      }
+      if (!streamImg) streamImg = $j('#imageFeed object');
       if (!streamImg) {
         console.error('No streamImg found for imageFeed');
       } else {
@@ -904,6 +917,11 @@ function initPage() {
         } else {
           streamImg.click(function(event) {
             handleClick(event);
+          });
+          streamImg.on("error", function(thing) {
+            console.log("Error loading image");
+            console.log(thing);
+            setInterval(fetchImage, 100, $j('#imageFeed img'));
           });
         }
       } // end if have streamImg
@@ -919,6 +937,9 @@ function initPage() {
       el.onchange = window['changeScale'];
     });
     changeScale();
+    document.querySelectorAll('select[name="changeRate"]').forEach(function(el) {
+      el.onchange = window['changeRate'].bind(el, el);
+    });
   } else if (monitorRefresh > 0) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }
@@ -944,8 +965,20 @@ function initPage() {
     $j('#settingsModal').modal('show');
   });
 
+  bindButton('#cyclePlayBtn', 'click', null, cycleStart);
+  bindButton('#cyclePauseBtn', 'click', null, cyclePause);
+  bindButton('#cycleNextBtn', 'click', null, cycleNext);
+  bindButton('#cyclePrevBtn', 'click', null, cyclePrev);
+  bindButton('#cycleToggle', 'click', null, cycleToggle);
+  bindButton('#cyclePeriod', 'change', null, cyclePeriodChange);
+  if (cycle) {
+    cycleStart();
+  } else {
+    cyclePause();
+  }
+
   // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !(canView.Control && monitorType == 'Local'));
+  settingsBtn.prop('disabled', !(canView.Control && (monitorType == 'Local')));
 
   // Init the bootstrap-table
   if (monitorType != 'WebSite') table.bootstrapTable({icons: icons});
@@ -969,6 +1002,107 @@ function initPage() {
     table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
   });
 } // initPage
+
+function watchFullscreen() {
+  const btn = document.getElementById('fullscreenBtn');
+  if (btn.firstElementChild.innerHTML=='fullscreen') {
+    const content = document.getElementById('content');
+    openFullscreen(content);
+    btn.firstElementChild.innerHTML='fullscreen_exit';
+    btn.setAttribute('title', translate["Exit Fullscreen"]);
+  } else {
+    closeFullscreen();
+    btn.firstElementChild.innerHTML='fullscreen';
+    btn.setAttribute('title', translate["Fullscreen"]);
+  }
+}
+
+var intervalId;
+var secondsToCycle = 0;
+
+function nextCycleView() {
+  secondsToCycle --;
+  if (secondsToCycle<=0) {
+    window.location.replace('?view=watch&mid='+nextMid+'&mode='+mode+'&cycle=true');
+  }
+  $j('#secondsToCycle').text(secondsToCycle);
+}
+
+function cyclePause() {
+  clearInterval(intervalId);
+  $j('#cyclePauseBtn').hide();
+  $j('#cyclePlayBtn').show();
+}
+
+function cycleStart() {
+  secondsToCycle = $j('#cyclePeriod').val();
+  intervalId = setInterval(nextCycleView, 1000);
+  $j('#cyclePauseBtn').show();
+  $j('#cyclePlayBtn').hide();
+}
+
+function cycleNext() {
+  monIdx ++;
+  if (monIdx >= monitorData.length) {
+    monIdx = 0;
+  }
+  if (!monitorData[monIdx]) {
+    console.log('No monitorData for ' + monIdx);
+  }
+  window.location.replace('?view=watch&cycle=true&mid='+monitorData[monIdx].id+'&mode='+mode);
+}
+
+function cyclePrev() {
+  monIdx --;
+  if (monIdx < 0) {
+    monIdx = monitorData.length - 1;
+  }
+  if (!monitorData[monIdx]) {
+    console.log('No monitorData for ' + monIdx);
+  }
+  window.location.replace('?view=watch&cycle=true&mid='+monitorData[monIdx].id+'&mode='+mode);
+}
+
+function cyclePeriodChange() {
+  const cyclePeriodSelect = $j('#cyclePeriod');
+  secondsToCycle = cyclePeriodSelect.val();
+  setCookie('zmCyclePeriod', secondsToCycle, 3600);
+}
+function cycleToggle(e) {
+  sidebar = $j('#sidebar');
+  button = $j('#cycleToggle');
+  if (sidebar.is(":visible")) {
+    sidebar.hide();
+    setCookie('zmCycleShow', false, 3600);
+  } else {
+    sidebar.show();
+    setCookie('zmCycleShow', true, 3600);
+  }
+  button.toggleClass('btn-secondary');
+  button.toggleClass('btn-primary');
+}
+
+function changeRate(e) {
+  const newvalue = $j(e).val();
+  if (1) {
+    var data = {};
+    data.command = CMD_MAXFPS;
+    data.maxfps = newvalue;
+    streamCmdReq(data);
+  } else {
+    streamImage = $j('#liveStream'+monitorData[monIdx].id);
+    const oldsrc = streamImage.attr('src');
+    streamImage.attr('src', ''); // stop streaming
+    console.log(newvalue);
+    if (newvalue == '0') {
+      // Unlimited
+      streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps=0.00100'));
+    } else {
+      streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
+    }
+  }
+  setCookie('zmWatchRate', newvalue, 3600);
+}
 
 // Kick everything off
 $j(document).ready(initPage);

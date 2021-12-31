@@ -3,6 +3,50 @@ Debian
 
 .. contents::
 
+Easy Way: Debian 11 (Bullseye)
+------------------------------
+
+This procedure will guide you through the installation of ZoneMinder on Debian 11 (Bullseye).
+
+**Step 1:** Setup Sudo (optional but recommended)
+
+By default Debian does not come with sudo, so you have to install it and configure it manually.
+This step is optional but recommended and the following instructions assume that you have setup sudo.
+If you prefer to setup ZoneMinder as root, do it at your own risk and adapt the following instructions accordingly.
+
+::
+
+    apt install sudo
+    usermod -a -G sudo <username>
+    exit
+
+Now your terminal session is back under your normal user. You can check that 
+you are now part of the sudo group with the command ``groups``, "sudo" should
+appear in the list. If not, run ``newgrp sudo`` and check again with ``groups``.
+
+**Step 2:** Update system and install zoneminder
+
+Run the following commands.
+
+::
+
+    sudo apt update
+    sudo apt upgrade
+    sudo apt install mariadb-server
+    sudo apt install zoneminder
+
+When mariadb is installed for the first time, it doesn't add a password to the root user. Therefore, for security, it is recommended to run ``mysql secure installation``.
+
+**Step 3:** Setup permissions for zm.conf
+
+To make sure zoneminder can read the configuration file, run the following command.
+
+::
+
+    sudo chgrp -c www-data /etc/zm/zm.conf
+
+Congratulations! You should now be able to access zoneminder at ``http://yourhostname/zm``
+
 Easy Way: Debian Buster
 ------------------------
 
@@ -60,7 +104,7 @@ Add the following to the /etc/apt/sources.list.d/zoneminder.list file
 
 You can do this using:
 
-.. code-block::
+::
 
     echo "deb https://zmrepo.zoneminder.com/debian/release-1.36 buster/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 

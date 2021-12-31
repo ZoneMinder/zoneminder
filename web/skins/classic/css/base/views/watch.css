@@ -1,6 +1,14 @@
 #header {
-    display: flex;
-    justify-content: space-between;
+}
+
+.container-fluid {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+#sidebar {
+  min-width: 140px;
+  padding-right: 1px;
 }
 
 #menuControls {
@@ -19,17 +27,20 @@
 #monitorStatus {
     margin: 4px auto;
     text-align: center;
-}
-
-#monitorStatus #enableDisableAlarms {
-    float: left;
-}
-
-#monitorStatus #forceCancelAlarm {
-    float: right;
+  display: inline-block;
 }
 
 #monitorStatus #monitorState {
+}
+
+#replayStatus {
+    margin: 3px 0 2px;
+    text-align: center;
+  display: inline-block;
+}
+
+#replayStatus > span {
+    padding: 0 4px;
 }
 
 #dvrControls {
@@ -67,15 +78,6 @@
     cursor: default;
 }
 
-#replayStatus {
-    margin: 3px 0 2px;
-    text-align: center;
-    clear: both;
-}
-
-#replayStatus > span {
-    padding: 0 4px;
-}
 
 #events {
     margin: 0 auto;
@@ -116,3 +118,22 @@ span.alert {
     background-color: #DCDCDC;
 }
 
+.controlHeader {
+  width: 100%;
+}
+
+#viewingFPS,
+#captureFPS,
+#analysisFPS
+{
+  display: inline-block;
+}
+#stateValue,
+#viewingFPSValue,
+#captureFPSValue,
+#analysisFPSValue
+{
+  display: inline-block;
+  min-width: 40px;
+  text-align: right;
+}

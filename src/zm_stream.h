@@ -88,6 +88,7 @@ protected:
     CMD_VARPLAY,
     CMD_GET_IMAGE,
     CMD_QUIT,
+    CMD_MAXFPS,
     CMD_QUERY=99
   } MsgCommand;
 
@@ -118,21 +119,22 @@ protected:
   bool paused;
   int step;
 
-  SystemTimePoint now;
-  SystemTimePoint last_comm_update;
+  TimePoint now;
+  TimePoint last_comm_update;
 
   double maxfps;
   double base_fps;        // Should be capturing fps, hence a rough target
   double effective_fps;   // Target fps after taking max_fps into account
   double actual_fps;      // sliding calculated actual streaming fps achieved
-  SystemTimePoint last_fps_update;
+  TimePoint last_fps_update;
   int frame_count;      // Count of frames sent
   int last_frame_count; // Used in calculating actual_fps from frame_count - last_frame_count
 
   int frame_mod;
 
-  SystemTimePoint last_frame_sent;
+  TimePoint last_frame_sent;
   SystemTimePoint last_frame_timestamp;
+  TimePoint when_to_send_next_frame;  // When to send next frame so if now < send_next_frame, skip
 
   VideoStream *vid_stream;
 
@@ -207,10 +209,11 @@ public:
       scale = DEFAULT_SCALE;
   }
   void setStreamReplayRate(int p_rate) {
-    Debug(2, "Setting replay_rate %d", p_rate);
+    Debug(1, "Setting replay_rate %d", p_rate);
     replay_rate = p_rate;
   }
   void setStreamMaxFPS(double p_maxfps) {
+    Debug(1, "Setting max fps to %f", p_maxfps);
     maxfps = p_maxfps;
   }
   void setStreamBitrate(int p_bitrate) {

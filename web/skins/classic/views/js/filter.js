@@ -57,7 +57,7 @@ function validateForm(form) {
       form.elements['filter[AutoUnarchive]'].checked ||
       form.elements['filter[UpdateDiskSpace]'].checked ||
       form.elements['filter[AutoVideo]'].checked ||
-      (form.elements['filter[AutoEmail]'].checked && form.elements['filter[AutoEmail]'].checked) ||
+      (form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked) ||
       (form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked) ||
       form.elements['filter[AutoExecute]'].checked ||
       form.elements['filter[AutoDelete]'].checked ||
@@ -167,7 +167,6 @@ function submitToExport(element) {
 }
 
 function submitAction(button) {
-  console.log(button.value);
   var form = button.form;
   form.elements['action'].value = button.value;
   form.submit();
@@ -175,7 +174,6 @@ function submitAction(button) {
 
 function deleteFilter(element) {
   var form = element.form;
-  console.log(form);
   if (confirm(deleteSavedFilterString+" '"+form.elements['filter[Name]'].value+"'?")) {
     form.elements['action'].value = 'delete';
     form.submit();
@@ -384,7 +382,6 @@ function debugFilter() {
 }
 
 function manageModalBtns(id) {
-  console.log(id);
   // Manage the CANCEL modal button
   var cancelBtn = document.getElementById(id+"CancelBtn");
   if ( cancelBtn ) {

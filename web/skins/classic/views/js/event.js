@@ -34,7 +34,7 @@ function streamReq(data) {
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(thisUrl, data)
+  $j.getJSON(monitorUrl, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -177,7 +177,7 @@ function changeScale() {
   var newWidth;
   var newHeight;
   var autoScale;
-  var eventViewer= $j(vid ? '#videoobj' : '#evtStream');
+  var eventViewer= $j(vid ? '#videoobj' : '#videoFeed');
   var alarmCue = $j('div.alarmCue');
   var bottomEl = $j('#replayStatus');
 
@@ -300,7 +300,7 @@ function getCmdResponse(respObj, respText) {
 
   if (streamStatus.auth) {
     // Try to reload the image stream.
-    var streamImg = $j('#evtStream');
+    var streamImg = document.getElementById('evtStream');
     if (streamImg) {
       streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
     }
@@ -446,8 +446,10 @@ function streamFastRev(action) {
 function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
-    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
-    return;
+    if (prevEventId != 0) {
+      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      return;
+    }
 
     /* Ideally I'd like to get back to this style
     if ( vid && PrevEventDefVideoPath.indexOf("view_video") > 0 ) {
@@ -619,8 +621,8 @@ function getNearEventsResponse(respObj, respText) {
   if (checkStreamForErrors('getNearEventsResponse', respObj)) {
     return;
   }
-  prevEventId = respObj.nearevents.PrevEventId;
-  nextEventId = respObj.nearevents.NextEventId;
+  prevEventId = parseInt(respObj.nearevents.PrevEventId);
+  nextEventId = parseInt(respObj.nearevents.NextEventId);
   prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
   nextEventStartTime = Date.parse(respObj.nearevents.NextEventStartTime);
   PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;
@@ -657,6 +659,7 @@ function getFrameResponse(respObj, respText) {
 
 function frameQuery(eventId, frameId, loadImage) {
   var data = {};
+  if (auth_hash) data.auth = auth_hash;
   data.loopback = loadImage;
   data.id = {eventId, frameId};
 
@@ -708,7 +711,7 @@ function renameEvent() {
 }
 
 function exportEvent() {
-  window.location.assign('?view=export&eid='+eventData.Id);
+  window.location.assign('?view=export&eids[]='+eventData.Id);
 }
 
 function showEventFrames() {
@@ -767,14 +770,16 @@ function handleClick(event) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( !canEdit.Events ) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
 
+    pauseClicked();
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
+    $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
         .done(function(data) {
+          $j('#deleteConfirm').modal('hide');
           streamNext(true);
         })
         .fail(logAjaxFail);
@@ -907,12 +912,12 @@ function initPage() {
     progressBarNav();
     streamCmdTimer = setTimeout(streamQuery, 500);
     if (canStreamNative) {
-      if (!$j('#imageFeed')) {
-        console.log('No element with id tag imageFeed found.');
+      if (!$j('#videoFeed')) {
+        console.log('No element with id tag videoFeed found.');
       } else {
-        var streamImg = $j('#imageFeed img');
+        var streamImg = $j('#videoFeed img');
         if (!streamImg) {
-          streamImg = $j('#imageFeed object');
+          streamImg = $j('#videoFeed object');
         }
         $j(streamImg).click(function(event) {
           handleClick(event);
@@ -1015,7 +1020,13 @@ function initPage() {
   // Manage the EXPORT button
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
-    window.location.assign('?view=export&eids[]='+eventData.Id);
+    exportEvent();
+  });
+
+  // Manage the generateVideo button
+  bindButton('#videoBtn', 'click', null, function onExportClick(evt) {
+    evt.preventDefault();
+    videoEvent();
   });
 
   // Manage the Event STATISTICS Button
@@ -1061,6 +1072,28 @@ function initPage() {
     $j('#deleteConfirm').modal('show');
   });
 } // end initPage
+
+document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
+
+function toggleZones(e) {
+  const zones = $j('#zones'+eventData.MonitorId);
+  const button = document.getElementById('toggleZonesButton');
+  if (zones.length) {
+    if (zones.is(":visible")) {
+      zones.hide();
+      button.setAttribute('title', showZonesString);
+      button.innerHTML = '<span class="material-icons">layers</span>';
+      setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
+    } else {
+      zones.show();
+      button.setAttribute('title', hideZonesString);
+      button.innerHTML = '<span class="material-icons">layers_clear</span>';
+      setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
+    }
+  } else {
+    console.error("Zones svg not found");
+  }
+}
 
 // Kick everything off
 $j(document).ready(initPage);

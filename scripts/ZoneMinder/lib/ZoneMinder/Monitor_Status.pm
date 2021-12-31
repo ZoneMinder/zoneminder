@@ -43,18 +43,6 @@ $serial = $primary_key = 'MonitorId';
   CaptureFPS
   AnalysisFPS
   CaptureBandwidth
-  TotalEvents
-  TotalEventDiskSpace
-  HourEvents
-  HourEventDiskSpace
-  DayEvents
-  DayEventDiskSpace
-  WeekEvents
-  WeekEventDiskSpace
-  MonthEvents
-  MonthEventDiskSpace
-  ArchivedEvents
-  ArchivedEventDiskSpace
   );
 
 %defaults = (
@@ -62,18 +50,6 @@ $serial = $primary_key = 'MonitorId';
     CaptureFPS => undef,
     AnalysisFPS => undef,
     CaptureBandwidth => undef,
-    TotalEvents => undef,
-    TotalEventDiskSpace => undef,
-    HourEvents =>   undef,
-    HourEventDiskSpace =>  undef,
-    DayEvents =>  undef,
-    DayEventDiskSpace =>  undef,
-    WeekEvents =>  undef,
-    WeekEventDiskSpace =>  undef,
-    MonthEvents =>  undef,
-    MonthEventDiskSpace =>  undef,
-    ArchivedEvents =>  undef,
-    ArchivedEventDiskSpace =>  undef,
     );
 
 sub Monitor {

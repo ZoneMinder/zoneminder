@@ -1,60 +1,74 @@
-
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
      AND table_name = 'Monitors'
-     AND column_name = 'Capturing'
+     AND column_name = 'ManufacturerId'
     ) > 0,
-"SELECT 'Column Capturing already exists in Monitors'",
-"ALTER TABLE `Monitors` ADD `Capturing` enum('None','Ondemand', 'Always') NOT NULL default 'Always' AFTER `Function`"
+"SELECT 'Column ManufacturerId already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `ManufacturerId`  int(10) unsigned AFTER `StorageId`"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
 SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE table_schema = DATABASE()
+     AND table_name = 'Monitors'
+     AND column_name = 'ManufacturerId'
+    ) > 0,
+"SELECT 'FOREIGN KEY for ManufacturerId already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD FOREIGN KEY  (`ManufacturerId`) REFERENCES `Manufacturers` (Id)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF( 
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
      AND table_name = 'Monitors'
-     AND column_name = 'Analysing'
+     AND column_name = 'ModelId'
     ) > 0,
-"SELECT 'Column Analysing already exists in Monitors'",
-"ALTER TABLE `Monitors` ADD `Analysing` enum('None','Always') NOT NULL default 'Always'"
+"SELECT 'Column ModelId already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD `ModelId`  int(10) unsigned AFTER `ManufacturerId`"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
 SET @s = (SELECT IF(
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE table_schema = DATABASE()
      AND table_name = 'Monitors'
-     AND column_name = 'AnalysisSource'
+     AND column_name = 'ModelId'
     ) > 0,
-"SELECT 'Column AnalysisSource already exists in Monitors'",
-"ALTER TABLE `Monitors` ADD `AnalysisSource` enum('Primary','Secondary') NOT NULL DEFAULT 'Primary' AFTER `Analysing`"
+"SELECT 'FOREIGN KEY for ModelId already exists in Monitors'",
+"ALTER TABLE `Monitors` ADD FOREIGN KEY  (`ModelId`) REFERENCES `Models` (Id)"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF( 
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'MonitorPresets'
+     AND column_name = 'ModelId'
+    ) > 0,
+"SELECT 'Column ModelId already exists in MonitorPresets'",
+"ALTER TABLE `MonitorPresets` ADD `ModelId`  int(10) unsigned AFTER `Id`"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
 SET @s = (SELECT IF(
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
-     AND table_name = 'Monitors'
-     AND column_name = 'Recording'
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE table_schema = DATABASE()
+     AND table_name = 'MonitorPresets'
+     AND column_name = 'ModelId'
     ) > 0,
-"SELECT 'Column Recording already exists in Monitors'",
-"ALTER TABLE `Monitors` ADD `Recording` enum('None', 'OnMotion', 'Always') NOT NULL default 'Always'"
+"SELECT 'FOREIGN KEY for ModelId already exists in MonitorPresets'",
+"ALTER TABLE `MonitorPresets` ADD FOREIGN KEY  (`ModelId`) REFERENCES `Models` (Id)"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
-SET @s = (SELECT IF(
-    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
-     AND table_name = 'Monitors'
-     AND column_name = 'RecordingSource'
-    ) > 0,
-"SELECT 'Column RecordingSource already exists in Monitors'",
-"ALTER TABLE `Monitors` ADD `RecordingSource` enum('Primary','Secondary','Both') NOT NULL DEFAULT 'Primary' AFTER `RecordAudio`"
-));
-
-PREPARE stmt FROM @s;
-EXECUTE stmt;
+UPDATE `MonitorPresets` SET `ModelId`=(SELECT `Id` FROM `Models` WHERE `Name`='IP8M-T2499EW') WHERE `Name` like 'Amcrest, IP8M-T2499EW
+%';

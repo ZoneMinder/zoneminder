@@ -458,6 +458,17 @@ int FfmpegCamera::OpenFfmpeg() {
 #endif
   }  // end if hwaccel_name
 
+  // set codec to automatically determine how many threads suits best for the decoding job
+  mVideoCodecContext->thread_count = 0;
+
+  if (mVideoCodec->capabilities | AV_CODEC_CAP_FRAME_THREADS) {
+    mVideoCodecContext->thread_type = FF_THREAD_FRAME;
+  } else if (mVideoCodec->capabilities | AV_CODEC_CAP_SLICE_THREADS) {
+    mVideoCodecContext->thread_type = FF_THREAD_SLICE;
+  } else {
+    mVideoCodecContext->thread_count = 1; //don't use multithreading
+  }
+
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
   e = nullptr;

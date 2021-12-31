@@ -482,7 +482,7 @@ int main(int argc, char *argv[]) {
       exit_zmu(-1);
     }
 		if ( !ValidateAccess(user, mon_id, function) ) {
-			Error("Insufficient privileges for requested action");
+			Error("Insufficient privileges for user %s for requested function %x", username, function);
 			exit_zmu(-1);
 		}
   } // end if auth
@@ -497,6 +497,16 @@ int main(int argc, char *argv[]) {
     if ( verbose ) {
       printf("Monitor %u(%s)\n", monitor->Id(), monitor->Name());
     }
+
+    if (monitor->GetFunction() == Monitor::NONE) {
+      if (verbose) {
+        printf("Current state: None\n");
+      } else {
+        printf("%d", Monitor::UNKNOWN);
+      }
+      exit_zmu(-1);
+    }
+
     if ( !monitor->connect() ) {
       Error("Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name());
       exit_zmu(-1);

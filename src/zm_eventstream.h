@@ -76,7 +76,7 @@ class EventStream : public StreamBase {
     long curr_frame_id;
     SystemTimePoint curr_stream_time;
     bool  send_frame;
-    SystemTimePoint start;     // clock time when started the event
+    TimePoint start;     // clock time when started the event
 
     EventData *event_data;
 

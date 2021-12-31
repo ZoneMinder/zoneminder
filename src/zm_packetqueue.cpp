@@ -116,14 +116,15 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           , max_video_packet_count);
 
       for (
-      auto it = ++pktQueue.begin();
-      it != pktQueue.end() and *it != add_packet;
+          auto it = ++pktQueue.begin();
+          it != pktQueue.end() and *it != add_packet;
+          // iterator is incremented by erase
       ) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
 
         ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
         if (!lp->trylock()) {
-          Debug(1, "Found locked packet when trying to free up video packets. Skipping to next one");
+          Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
           delete lp;
           ++it;
           continue;
@@ -209,7 +210,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       --it;
     }
   }
-  Debug(1, "Tail count is %d, queue size is %lu", tail_count, pktQueue.size());
+  Debug(1, "Tail count is %d, queue size is %zu", tail_count, pktQueue.size());
 
   if (!keep_keyframes) {
     // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
@@ -260,6 +261,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       zm_packet = *it;
       lp = new ZMLockedPacket(zm_packet);
       if (!lp->trylock()) {
+        Debug(3, "Failed locking packet %d", zm_packet->image_index);
         delete lp;
         break;
       }
@@ -280,7 +282,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
           next_front = it;
         }
         ++video_packets_to_delete;
-        Debug(4, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+        Debug(3, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
             video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
         if (packet_counts[video_stream_id] - video_packets_to_delete <= pre_event_video_packet_count + tail_count) {
           break;
@@ -289,7 +291,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       ++it;
     } // end while
   }  // end if first packet not locked
-  Debug(1, "Resulting pointing at latest packet? %d, next front points to begin? %d",
+  Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d",
       ( *it == add_packet ),
       ( next_front == pktQueue.begin() )
       );
@@ -311,7 +313,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
             pktQueue.size());
       pktQueue.pop_front();
       packet_counts[zm_packet->packet.stream_index] -= 1;
-      //delete zm_packet;
     }
   }  // end if have at least max_video_packet_count video packets remaining
   // We signal on every packet because someday we may analyze sound

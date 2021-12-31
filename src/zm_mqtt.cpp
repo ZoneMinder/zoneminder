@@ -50,14 +50,15 @@ void MQTT::on_connect(int rc) {
 }
 
 void MQTT::on_message(const struct mosquitto_message *message) {
+Debug(1, "MQTT: Have message %s: %s", message->topic, message->payload);
 }
 
 void MQTT::on_subscribe(int mid, int qos_count, const int *granted_qos) {
-  Debug(1, "Subscribed to topic ");
+  Debug(1, "MQTT: Subscribed to topic ");
 }
 
 void MQTT::on_publish() {
-  Debug(1, "on_publish ");
+  Debug(1, "MQTT: on_publish ");
 }
 
 void MQTT::send(const std::string &message) {
@@ -69,7 +70,7 @@ void MQTT::send(const std::string &message) {
   mqtt_topic << "/monitor/" << monitor_->Id();
 
   const std::string mqtt_topic_string = mqtt_topic.str();
-  Debug(1, "DEBUG: MQTT TOPIC: %s : message %s", mqtt_topic_string.c_str(), message.c_str());
+  //Debug(1, "DEBUG: MQTT TOPIC: %s : message %s", mqtt_topic_string.c_str(), message.c_str());
   //int rc = publish(&mid, mqtt_topic_string.c_str(), message.length(), message.c_str(), 0, true);
   int rc = publish(nullptr, mqtt_topic_string.c_str(), message.length(), message.c_str());
   if (MOSQ_ERR_SUCCESS != rc) {

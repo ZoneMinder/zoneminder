@@ -250,9 +250,12 @@ int main(int argc, char *argv[]) {
           monitor->Id());
       zmDbDo(sql);
 
-      while ((monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) and !monitor->hasViewers()) {
-        Debug(1, "ONDEMAND and no Viewers.  Sleeping");
-        sleep(1);
+
+      if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        while (!zm_terminate and !monitor->hasViewers()) {
+          Debug(1, "ONDEMAND and no Viewers.  Sleeping");
+          std::this_thread::sleep_for(Seconds(1));
+        }
       }
 
       Seconds sleep_time = Seconds(0);
@@ -284,7 +287,7 @@ int main(int argc, char *argv[]) {
       zmDbDo(sql);
     }  // end foreach monitor
 
-    if (zm_terminate){
+    if (zm_terminate) {
       break;
     }
 
@@ -295,7 +298,8 @@ int main(int argc, char *argv[]) {
       for (size_t i = 0; i < monitors.size(); i++) {
         monitors[i]->CheckAction();
 
-        if (monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND and !monitors[i]->hasViewers()) {
+        if ((monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND) and !monitors[i]->hasViewers()) {
+          std::this_thread::sleep_for(Microseconds(100000));
           result = 0;
           continue;
         }

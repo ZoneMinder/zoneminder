@@ -472,14 +472,26 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 }  // end bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp)
 
 void MonitorStream::runStream() {
-  if (type == STREAM_SINGLE) {
-    // Not yet migrated over to stream class
-    if (checkInitialised()) {
-      SingleImage(scale);
-    } else {
+
+  // Notify capture that we might want to view
+  monitor->setLastViewed();
+
+  if (!checkInitialised()) {
+    if (monitor->Capturing() != Monitor::CAPTURING_ONDEMAND) {
       fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
       sendTextFrame("Unable to send image");
+      return;
     }
+    while (!zm_terminate && !checkInitialised()) {
+      Debug(1, "Waiting for capture");
+      usleep(100000);
+      monitor->setLastViewed();
+    }
+  }
+
+  if (type == STREAM_SINGLE) {
+    // Not yet migrated over to stream class
+    SingleImage(scale);
     return;
   }
 

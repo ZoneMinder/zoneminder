@@ -57,7 +57,7 @@ Event::Event(
   alarm_frames(0),
   alarm_frame_written(false),
   tot_score(0),
-  max_score(0),
+  max_score(-1),
   //path(""),
   //snapshit_file(),
   //alarm_file(""),
@@ -450,7 +450,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
     }  // end if save_jpegs
 
     // If this is the first frame, we should add a thumbnail to the event directory
-    if ((frames == 1) || (score > (int)max_score)) {
+    if ((frames == 1) || (score > max_score)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
       WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str());
@@ -506,10 +506,14 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
   bool db_frame = ( frame_type == BULK )
     or ( frame_type == ALARM )
     or ( frames == 1 )
-    or ( score > (int)max_score )
+    or ( score > max_score )
     or ( monitor_state == Monitor::ALERT )
     or ( monitor_state == Monitor::ALARM )
     or ( monitor_state == Monitor::PREALARM );
+
+  if (score > max_score) {
+    max_score = score;
+  }
 
   if (db_frame) {
 
@@ -556,8 +560,6 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
     }  // end if frame_type == BULK
   }  // end if db_frame
 
-  if (score > (int)max_score)
-    max_score = score;
   end_time = packet->timestamp;
 }  // void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet)
 

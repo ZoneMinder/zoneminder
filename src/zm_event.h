@@ -82,8 +82,8 @@ class Event {
     int        frames;
     int        alarm_frames;
     bool alarm_frame_written;
-    unsigned int  tot_score;
-    unsigned int  max_score;
+    int  tot_score;
+    int  max_score;
     std::string path;
     std::string snapshot_file;
     std::string alarm_file;

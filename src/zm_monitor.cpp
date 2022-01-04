@@ -1769,29 +1769,25 @@ bool Monitor::Analyse() {
     // FIXME this snap might not be the one that caused the signal change.  Need to store that in the packet.
     if (signal_change) {
       Debug(2, "Signal change, new signal is %d", signal);
-      const char *signalText = "Unknown";
       if (!signal) {
-        signalText = "Lost";
         if (event) {
+          event->addNote(SIGNAL_CAUSE, "Lost");
           Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
           closeEvent();
           last_section_mod = 0;
         }
-      } else {
-        signalText = "Reacquired";
-        score += 100;
+      } else if (function == MOCORD or function == RECORD) {
+        if (!event) {
+          if (cause.length()) cause += ", ";
+          cause += SIGNAL_CAUSE + std::string(": Reacquired");
+        } else {
+          event->addNote(SIGNAL_CAUSE, "Reacquired");
+        }
+        if (snap->image)
+          ref_image.Assign(*(snap->image));
       }
-      if (!event) {
-        if (cause.length()) cause += ", ";
-        cause += SIGNAL_CAUSE;
-      }
-      Event::StringSet noteSet;
-      noteSet.insert(signalText);
-      noteSetMap[SIGNAL_CAUSE] = noteSet;
       shared_data->state = state = IDLE;
       shared_data->active = signal;
-      if ((function == MODECT or function == MOCORD) and snap->image)
-        ref_image.Assign(*(snap->image));
     }  // end if signal change
 
     if (signal) {

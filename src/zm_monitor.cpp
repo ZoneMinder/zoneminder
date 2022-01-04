@@ -66,6 +66,14 @@
 #define MAP_LOCKED 0
 #endif
 
+#ifdef WITH_GSOAP
+//Workaround for the gsoap library on RHEL
+struct Namespace namespaces[] =
+{
+   {NULL, NULL} // end of table
+};
+#endif
+
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
@@ -83,7 +91,7 @@ std::string load_monitor_sql =
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`,"
-"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`,"
+"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, "
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1 FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
@@ -446,7 +454,7 @@ Monitor::Monitor()
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
  "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
  "`RTSPServer`,`RTSPStreamName`,
- "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`,"
+ "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, "
  "SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors";
 */
 
@@ -621,6 +629,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   onvif_username = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_password = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_options = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+  onvif_event_listener = (*dbrow[col] != '0'); col++;
 
   importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
 
@@ -1058,6 +1067,42 @@ bool Monitor::connect() {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
   }
+
+  //ONVIF Setup
+#ifdef WITH_GSOAP
+  ONVIF_Trigger_State = FALSE;
+  if (onvif_event_listener) { //Temporarily using this option to enable the feature
+    Debug(1, "Starting ONVIF");
+    ONVIF_Healthy = FALSE;
+    tev__PullMessages.Timeout = "PT600S";
+    tev__PullMessages.MessageLimit = 100;
+    soap = soap_new();
+    soap->connect_timeout = 5;
+    soap->recv_timeout = 5;
+    soap->send_timeout = 5;
+    soap_register_plugin(soap, soap_wsse);
+    proxyEvent = PullPointSubscriptionBindingProxy(soap);
+    std::string full_url = onvif_url + "/Events";
+    proxyEvent.soap_endpoint = full_url.c_str();
+    set_credentials(soap);
+    Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
+    if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
+      Warning("Couldn't create subscription!");
+    } else {
+      //Empty the stored messages
+      set_credentials(soap);
+      if (proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) {
+        Warning("Couldn't do initial event pull! %s", response.SubscriptionReference.Address);
+      } else {
+        Debug(1, "Good Initial ONVIF Pull");
+        ONVIF_Healthy = TRUE;
+      }
+    }
+  } else {
+    Debug(1, "Not Starting ONVIF");
+  }
+  //End ONVIF Setup
+#endif
 
   // We set these here because otherwise the first fps calc is meaningless
   last_fps_time = std::chrono::system_clock::now();
@@ -1713,6 +1758,50 @@ void Monitor::UpdateFPS() {
   } // end if report fps
 }  // void Monitor::UpdateFPS()
 
+//Thread where ONVIF polling, and other similar status polling can happen.
+//Since these can be blocking, run here to avoid intefering with other processing
+bool Monitor::Poll() {
+
+#ifdef WITH_GSOAP
+  if (ONVIF_Healthy) {
+    set_credentials(soap);
+    int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
+    if (result != SOAP_OK) {
+      if (result != -1) //Ignore the timeout error
+        Warning("Failed to get ONVIF messages! %i", result);
+    } else {
+      Debug(1, "Got Good Response! %i", result);
+      for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
+        if (msg->Topic->__any.text != NULL &&
+        std::strstr(msg->Topic->__any.text, "MotionAlarm") &&
+        msg->Message.__any.elts != NULL &&
+        msg->Message.__any.elts->next != NULL &&
+        msg->Message.__any.elts->next->elts != NULL &&
+        msg->Message.__any.elts->next->elts->atts != NULL &&
+        msg->Message.__any.elts->next->elts->atts->next != NULL &&
+        msg->Message.__any.elts->next->elts->atts->next->text != NULL) {
+        Debug(1,"Got Motion Alarm!");
+          if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
+          //Event Start
+            Debug(1,"Triggered on ONVIF");
+            if (!ONVIF_Trigger_State) {
+              Debug(1,"Triggered Event");
+              ONVIF_Trigger_State = TRUE;
+            }
+          } else {
+            Debug(1, "Triggered off ONVIF");
+            ONVIF_Trigger_State = FALSE;
+          }
+        }
+      }
+    }
+  }
+#endif
+  return TRUE;
+} //end Poll
+
+
+
 // Would be nice if this JUST did analysis
 // This idea is that we should be analysing as close to the capture frame as possible.
 // This function should process as much as possible before returning
@@ -1759,6 +1848,19 @@ bool Monitor::Analyse() {
 
     std::string cause;
     Event::StringSetMap noteSetMap;
+
+#ifdef WITH_GSOAP
+    if (ONVIF_Trigger_State) {
+      score += 9;
+      Debug(1, "Triggered on ONVIF");
+      if (!event) {
+        cause += "ONVIF";
+      }
+      Event::StringSet noteSet;
+      noteSet.insert("ONVIF2");
+      noteSetMap[MOTION_CAUSE] = noteSet;
+    }  // end ONVIF_Trigger
+#endif
 
     // Specifically told to be on.  Setting the score here will trigger the alarm.
     if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
@@ -2999,6 +3101,16 @@ int Monitor::PrimeCapture() {
     }
   }  // end if rtsp_server
 
+#ifdef WITH_GSOAP //For now, just don't run the thread if no ONVIF support. This may change if we add other long polling options.
+  //ONVIF Thread
+  if (onvif_event_listener) {
+    if (!Poller) {
+      Poller = zm::make_unique<PollThread>(this);
+    } else {
+      Poller->Start();
+    }
+  }
+#endif
   if (decoding_enabled) {
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
@@ -3033,6 +3145,24 @@ int Monitor::Close() {
   if (decoder) {
     decoder->Stop();
   }
+
+#ifdef WITH_GSOAP
+  //ONVIF Teardown
+  if (Poller) {
+    Poller->Stop();
+  }
+  if (onvif_event_listener && soap != nullptr) {
+    Debug(1, "Tearing Down Onvif");
+    _wsnt__Unsubscribe wsnt__Unsubscribe;
+    _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+    proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+    soap_destroy(soap);
+    soap_end(soap);
+    soap_free(soap);
+    soap = nullptr;
+  }//End ONVIF
+#endif
+
   if (analysis_thread) {
     analysis_thread->Stop();
   }
@@ -3138,3 +3268,36 @@ StringVector Monitor::GroupNames() {
   }
   return groupnames;
 } // end Monitor::GroupNames()
+
+#ifdef WITH_GSOAP
+//ONVIF Set Credentials
+void Monitor::set_credentials(struct soap *soap)
+{
+  soap_wsse_delete_Security(soap);
+  soap_wsse_add_Timestamp(soap, NULL, 10);
+  soap_wsse_add_UsernameTokenDigest(soap, "Auth", onvif_username.c_str(), onvif_password.c_str());
+}
+
+//GSOAP boilerplate
+int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char *faultactor, struct SOAP_ENV__Detail *detail, struct SOAP_ENV__Code *SOAP_ENV__Code, struct SOAP_ENV__Reason *SOAP_ENV__Reason, char *SOAP_ENV__Node, char *SOAP_ENV__Role, struct SOAP_ENV__Detail *SOAP_ENV__Detail)
+{
+  // populate the fault struct from the operation arguments to print it
+  soap_fault(soap);
+  // SOAP 1.1
+  soap->fault->faultcode = faultcode;
+  soap->fault->faultstring = faultstring;
+  soap->fault->faultactor = faultactor;
+  soap->fault->detail = detail;
+  // SOAP 1.2
+  soap->fault->SOAP_ENV__Code = SOAP_ENV__Code;
+  soap->fault->SOAP_ENV__Reason = SOAP_ENV__Reason;
+  soap->fault->SOAP_ENV__Node = SOAP_ENV__Node;
+  soap->fault->SOAP_ENV__Role = SOAP_ENV__Role;
+  soap->fault->SOAP_ENV__Detail = SOAP_ENV__Detail;
+  // set error
+  soap->error = SOAP_FAULT;
+  // handle or display the fault here with soap_stream_fault(soap, std::cerr);
+  // return HTTP 202 Accepted
+  return soap_send_empty_response(soap, SOAP_OK);
+}
+#endif

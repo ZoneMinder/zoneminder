@@ -706,6 +706,10 @@ if (count($available_monitor_ids)) {
               <td class="text-right pr-3"><?php echo translate('ONVIF_Options') ?></td>
               <td><input type="text" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/></td>
             </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('ONVIF_Event_Listener') ?></td>
+              <td><?php echo html_radio('newMonitor[ONVIF_Event_Listener]', array('1'=>translate('Enabled'), '0'=>'Disabled'), $monitor->ONVIF_Event_Listener()); ?></td>
+            </tr>
 <?php
         break;
     }

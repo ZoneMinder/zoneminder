@@ -518,6 +518,15 @@ endif()
 #list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
 #endif()
 
+
+find_package(GSOAP 2.0.0)
+if (GSOAP_FOUND)
+  set(optlibsfound "${optlibsfound} gsoap")
+  add_compile_definitions(WITH_GSOAP)
+else()
+  set(optlibsnotfound "${optlibsnotfound} gsoap")
+endif()
+
 if(NOT ZM_NO_RTSPSERVER)
   set(HAVE_RTSP_SERVER 1)
 else()

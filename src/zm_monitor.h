@@ -351,7 +351,6 @@ protected:
   int        first_alarm_count;
   int        last_alarm_count;
   bool       last_signal;
-  int        last_section_mod;
   int        buffer_count;
   State      state;
   SystemTimePoint start_time;

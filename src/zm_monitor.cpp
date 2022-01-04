@@ -375,7 +375,6 @@ Monitor::Monitor()
   first_alarm_count(0),
   last_alarm_count(0),
   last_signal(false),
-  last_section_mod(0),
   buffer_count(0),
   state(IDLE),
   last_motion_score(0),
@@ -426,7 +425,6 @@ Monitor::Monitor()
     event_close_mode = CLOSE_IDLE;
 
   event = nullptr;
-  last_section_mod = 0;
 
   adaptive_skip = true;
 
@@ -1774,7 +1772,6 @@ bool Monitor::Analyse() {
           event->addNote(SIGNAL_CAUSE, "Lost");
           Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
           closeEvent();
-          last_section_mod = 0;
         }
       } else if (function == MOCORD or function == RECORD) {
         if (!event) {

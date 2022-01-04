@@ -291,6 +291,10 @@ void Event::createNotes(std::string &notes) {
   }
 }  // void Event::createNotes(std::string &notes)
 
+void Event::addNote(const char *cause, const std::string &note) {
+  noteSetMap[cause].insert(note);
+}
+
 bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) const {
   int thisquality = 
     (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?

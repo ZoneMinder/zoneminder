@@ -375,7 +375,6 @@ Monitor::Monitor()
   first_alarm_count(0),
   last_alarm_count(0),
   last_signal(false),
-  last_section_mod(0),
   buffer_count(0),
   state(IDLE),
   last_motion_score(0),
@@ -426,7 +425,6 @@ Monitor::Monitor()
     event_close_mode = CLOSE_IDLE;
 
   event = nullptr;
-  last_section_mod = 0;
 
   adaptive_skip = true;
 
@@ -1776,29 +1774,24 @@ bool Monitor::Analyse() {
     // FIXME this snap might not be the one that caused the signal change.  Need to store that in the packet.
     if (signal_change) {
       Debug(2, "Signal change, new signal is %d", signal);
-      const char *signalText = "Unknown";
       if (!signal) {
-        signalText = "Lost";
         if (event) {
+          event->addNote(SIGNAL_CAUSE, "Lost");
           Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
           closeEvent();
-          last_section_mod = 0;
         }
-      } else {
-        signalText = "Reacquired";
-        score += 100;
+      } else if (function == MOCORD or function == RECORD) {
+        if (!event) {
+          if (cause.length()) cause += ", ";
+          cause += SIGNAL_CAUSE + std::string(": Reacquired");
+        } else {
+          event->addNote(SIGNAL_CAUSE, "Reacquired");
+        }
+        if (snap->image)
+          ref_image.Assign(*(snap->image));
       }
-      if (!event) {
-        if (cause.length()) cause += ", ";
-        cause += SIGNAL_CAUSE;
-      }
-      Event::StringSet noteSet;
-      noteSet.insert(signalText);
-      noteSetMap[SIGNAL_CAUSE] = noteSet;
       shared_data->state = state = IDLE;
       shared_data->active = signal;
-      if ((function == MODECT or function == MOCORD) and snap->image)
-        ref_image.Assign(*(snap->image));
     }  // end if signal change
 
     if (signal) {
@@ -1842,27 +1835,14 @@ bool Monitor::Analyse() {
 
         /* try to stay behind the decoder. */
         if (decoding_enabled) {
-          while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
+          if (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
             // Need to wait for the decoder thread.
             Debug(1, "Waiting for decode");
             packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
             packetqueue.wait();
-
-            // Another thread may have moved our it. Unlikely but possible
-            packet_lock = packetqueue.get_packet(analysis_it);
-            if (!packet_lock) return false;
-            snap = packet_lock->packet_;
-
-            if (!snap->image and snap->decoded) {
-              Debug(1, "No image but was decoded, giving up");
-              delete packet_lock;
-              return false;
-            }
-          }  // end while ! decoded
-          if (zm_terminate) {
-            delete packet_lock;
+            // Everything may have changed, just return and start again.  This needs to be more RAII
             return false;
-          }
+          }  // end while ! decoded
         }  // end if decoding enabled
 
         SystemTimePoint timestamp = snap->timestamp;
@@ -1878,46 +1858,43 @@ bool Monitor::Analyse() {
                 motion_frame_skip, capture_fps, analysis_fps_limit);
           }
 
-          if (!(analysis_image_count % (motion_frame_skip+1))) {
-            if (snap->image) {
-              // decoder may not have been able to provide an image
-              if (!ref_image.Buffer()) {
-                Debug(1, "Assigning instead of Detecting");
-                ref_image.Assign(*(snap->image));
-              } else {
-                Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
-                // Get new score.
-                int motion_score = DetectMotion(*(snap->image), zoneSet);
+          if (snap->image) {
+            // decoder may not have been able to provide an image
+            if (!ref_image.Buffer()) {
+              Debug(1, "Assigning instead of Detecting");
+              ref_image.Assign(*(snap->image));
+            } else if (!(analysis_image_count % (motion_frame_skip+1))) {
+              Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
+              // Get new score.
+              int motion_score = DetectMotion(*(snap->image), zoneSet);
 
-                // lets construct alarm cause. It will contain cause + names of zones alarmed
-                std::string alarm_cause;
-                snap->zone_stats.reserve(zones.size());
-                for (const Zone &zone : zones) {
-                  const ZoneStats &stats = zone.GetStats();
-                  stats.DumpToLog("After detect motion");
-                  snap->zone_stats.push_back(stats);
-                  if (zone.Alarmed()) {
-                    if (!alarm_cause.empty()) alarm_cause += ",";
-                    alarm_cause += std::string(zone.Label());
-                  }
+              // lets construct alarm cause. It will contain cause + names of zones alarmed
+              snap->zone_stats.reserve(zones.size());
+              for (const Zone &zone : zones) {
+                const ZoneStats &stats = zone.GetStats();
+                stats.DumpToLog("After detect motion");
+                snap->zone_stats.push_back(stats);
+                if (zone.Alarmed()) {
+                  if (!snap->alarm_cause.empty()) snap->alarm_cause += ",";
+                  snap->alarm_cause += std::string(zone.Label());
                 }
-                Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                    score, last_motion_score, motion_score);
-                motion_frame_count += 1;
-                last_motion_score = motion_score;
-
-                if (motion_score) {
-                  if (cause.length()) cause += ", ";
-                  cause += MOTION_CAUSE+std::string(":")+alarm_cause;
-                  noteSetMap[MOTION_CAUSE] = zoneSet;
-                } // end if motion_score
               }
+              Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
+                  score, last_motion_score, motion_score);
+              motion_frame_count += 1;
+              last_motion_score = motion_score;
+
+              if (motion_score) {
+                if (cause.length()) cause += ", ";
+                cause += MOTION_CAUSE+std::string(":")+snap->alarm_cause;
+                noteSetMap[MOTION_CAUSE] = zoneSet;
+              } // end if motion_score
             } else {
-              Debug(1, "no image so skipping motion detection");
-            }  // end if has image
+              Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
+            }
           } else {
-            Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
-          }
+            Debug(1, "no image so skipping motion detection");
+          }  // end if has image
           score += last_motion_score;
         } else {
           Debug(1, "Not Active(%d) enabled %d active %d doing motion detection: %d",
@@ -1925,7 +1902,6 @@ bool Monitor::Analyse() {
               (function == MODECT or function == MOCORD)
               );
         } // end if active and doing motion detection
-
 
         if (function == RECORD or function == MOCORD) {
           // If doing record, check to see if we need to close the event or not.

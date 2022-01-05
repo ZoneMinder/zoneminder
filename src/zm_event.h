@@ -77,8 +77,8 @@ class Event {
     int        frames;
     int        alarm_frames;
     bool alarm_frame_written;
-    unsigned int  tot_score;
-    unsigned int  max_score;
+    int  tot_score;
+    int  max_score;
     std::string path;
     std::string snapshot_file;
     std::string alarm_file;
@@ -110,6 +110,7 @@ class Event {
 
     uint64_t Id() const { return id; }
     const std::string &Cause() const { return cause; }
+    void addNote(const char *cause, const std::string &note);
     int Frames() const { return frames; }
     int AlarmFrames() const { return alarm_frames; }
 
@@ -123,7 +124,7 @@ class Event {
 
     void updateNotes(const StringSetMap &stringSetMap);
 
-  void AddFrame(Image *image,
+    void AddFrame(Image *image,
                 SystemTimePoint timestamp,
                 const std::vector<ZoneStats> &stats,
                 int score = 0,
@@ -134,17 +135,17 @@ class Event {
     bool SetPath(Storage *storage);
 
  public:
-  static std::string getSubPath(tm time) {
-    std::string subpath = stringtf("%02d/%02d/%02d/%02d/%02d/%02d",
-                                   time.tm_year - 100, time.tm_mon + 1, time.tm_mday,
-                                   time.tm_hour, time.tm_min, time.tm_sec);
-    return subpath;
-  }
-  static std::string getSubPath(time_t *time) {
-    tm time_tm = {};
-    localtime_r(time, &time_tm);
-    return Event::getSubPath(time_tm);
-  }
+    static std::string getSubPath(tm time) {
+      std::string subpath = stringtf("%02d/%02d/%02d/%02d/%02d/%02d",
+          time.tm_year - 100, time.tm_mon + 1, time.tm_mday,
+          time.tm_hour, time.tm_min, time.tm_sec);
+      return subpath;
+    }
+    static std::string getSubPath(time_t *time) {
+      tm time_tm = {};
+      localtime_r(time, &time_tm);
+      return Event::getSubPath(time_tm);
+    }
 
     const char* getEventFile() const {
       return video_file.c_str();

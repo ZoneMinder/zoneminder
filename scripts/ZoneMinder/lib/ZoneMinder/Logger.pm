@@ -638,6 +638,7 @@ sub logInit( ;@ ) {
   $logger = ZoneMinder::Logger->new() if !$logger;
   $logger->initialise(%options);
   logSetSignal();
+  return $logger;
 }
 
 sub logReinit {

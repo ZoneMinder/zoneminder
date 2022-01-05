@@ -60,16 +60,16 @@ var mode = "<?php echo $options['mode'] ?>";
 
 var monitorData = new Array();
 <?php
-foreach ($monitors as $monitor) {
+foreach ($monitors as $m) {
 ?>
 monitorData[monitorData.length] = {
-  'id': <?php echo $monitor->Id() ?>,
-  'width': <?php echo $monitor->ViewWidth() ?>,
-  'height':<?php echo $monitor->ViewHeight() ?>,
-  'url': '<?php echo $monitor->UrlToIndex() ?>',
-  'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
-  'type': '<?php echo $monitor->Type() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>'
+  'id': <?php echo $m->Id() ?>,
+  'width': <?php echo $m->ViewWidth() ?>,
+  'height':<?php echo $m->ViewHeight() ?>,
+  'url': '<?php echo $m->UrlToIndex() ?>',
+  'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $m->Id() ?>' );},
+  'type': '<?php echo $m->Type() ?>',
+  'refresh': '<?php echo $m->Refresh() ?>'
 };
 <?php
 } // end foreach monitor
@@ -101,9 +101,10 @@ var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
 var labels = new Array();
 <?php
 $labels = array();
+ZM\Debug("Presets");
 foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array($monitor->Id())) as $row) {
   $label = $labels[$row['Preset']] = $row['Label'];
-  echo 'labels['. validInt($index) .'] = \''.validJsStr($label).'\'';
+  echo 'labels['. validInt($row['Preset']) .'] = \''.validJsStr($label).'\';'.PHP_EOL;
 }
 ?>
 var deleteString = "<?php echo translate('Delete') ?>";

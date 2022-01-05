@@ -367,13 +367,15 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     fputs("\r\n", stdout);
     fflush(stdout);
 
-    TimePoint send_end_time = std::chrono::steady_clock::now();
-    TimePoint::duration frame_send_time = send_end_time - send_start_time;
+    if (maxfps > 0.0) {
+      TimePoint send_end_time = std::chrono::steady_clock::now();
+      TimePoint::duration frame_send_time = send_end_time - send_start_time;
 
-    if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
-      Info("Frame send time %" PRIi64 " ms too slow, throttling maxfps to %.2f",
-           static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
-           maxfps);
+      if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
+        Info("Frame send time %" PRIi64 " ms too slow, throttling maxfps to %.2f",
+            static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
+            maxfps);
+      }
     }
 
     last_frame_sent = now;
@@ -456,7 +458,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   }  // Not mpeg
 
   last_frame_sent = std::chrono::steady_clock::now();
-  if (maxfps) {
+  if (maxfps > 0.0) {
     TimePoint::duration frame_send_time = last_frame_sent - send_start_time;
     TimePoint::duration maxfps_milliseconds = Milliseconds(lround(Milliseconds::period::den / maxfps));
 
@@ -810,7 +812,7 @@ void MonitorStream::runStream() {
       // sent a frame, so update
 
       double capture_fps = monitor->GetFPS();
-      double fps = (maxfps && (capture_fps > maxfps)) ? maxfps : capture_fps;
+      double fps = ((maxfps > 0.0) && (capture_fps > maxfps)) ? maxfps : capture_fps;
       double sleep_time_seconds = (1 / ((fps ? fps : 1)))    // 1 second / fps
         * (replay_rate ? abs(replay_rate)/ZM_RATE_BASE : 1); // replay_rate is 100 for 1x
       Debug(3, "Using %f for maxfps.  capture_fps: %f maxfps %f * replay_rate: %d = %f", fps, capture_fps, maxfps, replay_rate, sleep_time_seconds);

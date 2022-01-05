@@ -1327,9 +1327,9 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 <?php
       echo htmlselect('newMonitor[Importance]',
               array(
-                'Not'=>translate('Not important'),
+                'Normal'=>translate('Normal'),
                 'Less'=>translate('Less important'),
-                'Normal'=>translate('Normal')
+                'Not'=>translate('Not important')
               ), $monitor->Importance());
 ?>
           </td>

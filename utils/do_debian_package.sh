@@ -119,8 +119,8 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
   if [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
     echo "Using local clone ${GITHUB_FORK}_ZoneMinder.git to pull from."
     cd "${GITHUB_FORK}_ZoneMinder.git"
-    echo "git fetch..."
-    git fetch
+    echo "git pull..."
+    git pull
     cd ../
 
     echo "git clone ${GITHUB_FORK}_ZoneMinder.git ${GITHUB_FORK}_zoneminder_release"
@@ -223,6 +223,8 @@ if [ -e "$DIRECTORY.orig.tar.gz" ]; then
   if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
     tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
   fi;
+else
+  tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
 fi;
 
 IFS=',' ;for DISTRO in `echo "$DISTROS"`; do 

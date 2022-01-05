@@ -133,6 +133,9 @@ $serial = $primary_key = 'Id';
   DefaultCodec
   Latitude
   Longitude
+  RTSPServer
+  RTSPStreamName
+  Importance
   );
 
 %defaults = (

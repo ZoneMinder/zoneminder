@@ -306,6 +306,11 @@ protected:
   std::string path;
   std::string second_path;
 
+  std::string onvif_url;
+  std::string onvif_username;
+  std::string onvif_password;
+  std::string onvif_options;
+
   std::string     device;
   int             palette;
   int             channel;
@@ -607,6 +612,11 @@ public:
   std::string GetVideoFifoPath() const { return shared_data ? shared_data->video_fifo_path : ""; };
   std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
   std::string GetRTSPStreamName() const { return rtsp_streamname; };
+
+  const std::string &getONVIF_URL() const { return onvif_url; };
+  const std::string &getONVIF_Username() const { return onvif_username; };
+  const std::string &getONVIF_Password() const { return onvif_password; };
+  const std::string &getONVIF_Options() const { return onvif_options; };
 
   int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;

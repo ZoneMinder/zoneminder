@@ -83,6 +83,7 @@ std::string load_monitor_sql =
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`,"
+"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`,"
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1 FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
@@ -445,6 +446,7 @@ Monitor::Monitor()
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
  "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
  "`RTSPServer`,`RTSPStreamName`,
+ "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`,"
  "SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors";
 */
 
@@ -615,6 +617,13 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
 
+  onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+  onvif_username = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+  onvif_password = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+  onvif_options = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+
+  importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
+
  /*"SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors"; */
   signal_check_points = atoi(dbrow[col]); col++;
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
@@ -626,7 +635,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   blue_val = BLUE_VAL_BGRA(signal_check_colour);
   grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
 
-  importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
   if (importance < 0) importance = 0; // Should only be >= 0
 
   // How many frames we need to have before we start analysing

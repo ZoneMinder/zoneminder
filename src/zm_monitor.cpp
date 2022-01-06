@@ -434,7 +434,7 @@ Monitor::Monitor()
 
 /*
   std::string load_monitor_sql =
-  "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `Enabled`, `DecodingEnabled`, "
+  "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `Enabled`, `DecodingEnabled`, "
  "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -484,7 +484,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   }
   Debug(1, "Have camera type %s", CameraType_Strings[type].c_str());
   col++;
-  function = (Function)atoi(dbrow[col]); col++;
   capturing = (CapturingOption)atoi(dbrow[col]); col++;
   analysing = (AnalysingOption)atoi(dbrow[col]); col++;
   analysis_source = (AnalysisSourceOption)atoi(dbrow[col]); col++;
@@ -565,8 +564,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
 
   decoding_enabled = !(
-      ( function == RECORD or function == NODECT )
-      and
       ( savejpegs == 0 )
       and
       ( videowriter == PASSTHROUGH )
@@ -1722,7 +1719,7 @@ void Monitor::UpdateFPS() {
 
 // Would be nice if this JUST did analysis
 // This idea is that we should be analysing as close to the capture frame as possible.
-// This function should process as much as possible before returning
+// This method should process as much as possible before returning
 //
 // If there is an event, the we should do our best to empty the queue.
 // If there isn't then we keep pre-event + alarm frames. = pre_event_count
@@ -1913,8 +1910,8 @@ bool Monitor::Analyse() {
           // If doing record, check to see if we need to close the event or not.
           if (event && (section_length > Seconds(min_section_length)) && (timestamp - event->StartTime() >= section_length)) {
             if (
-                 (function == MOCORD && event_close_mode != CLOSE_TIME)
-                 || (function == RECORD && event_close_mode == CLOSE_TIME)
+                 (recording == RECORDING_ONMOTION && event_close_mode != CLOSE_TIME)
+                 || (recording == RECORDING_ALWAYS && event_close_mode == CLOSE_TIME)
                  || std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()) % section_length == Seconds(0)) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                    name.c_str(),
@@ -1940,20 +1937,21 @@ bool Monitor::Analyse() {
           } // end if ! event
         } // end if RECORDING
 
-        if (score and (function != MONITOR)) {
+        if (score) {
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
-            if (event && event->Frames()
-                && !event->AlarmFrames()
-                && (event_close_mode == CLOSE_ALARM)
-                && ((timestamp - event->StartTime()) >= min_section_length)
-                && ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count - 1))) {
-              Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
-                  name.c_str(), image_count, event->Id());
-              closeEvent();
-            } else if (event) {
-              // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-              Debug(3,
+            if (event) {
+              if (event->Frames()
+                  && !event->AlarmFrames()
+                  && (event_close_mode == CLOSE_ALARM)
+                  && ((timestamp - event->StartTime()) >= min_section_length)
+                  && ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count - 1))) {
+                Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
+                    name.c_str(), image_count, event->Id());
+                closeEvent();
+              } else {
+                // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
+                Debug(3,
                     "pre_alarm_count in event %d of %d, event frames %d, alarm frames %d event length %" PRIi64 " >=? %" PRIi64 " min close mode is ALARM? %d",
                     Event::PreAlarmCount(), pre_event_count,
                     event->Frames(),
@@ -1961,22 +1959,23 @@ bool Monitor::Analyse() {
                     static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - event->StartTime()).count()),
                     static_cast<int64>(Seconds(min_section_length).count()),
                     (event_close_mode == CLOSE_ALARM));
-            }
-            if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
+              }
+            }  // end if event
+
+            if (Event::PreAlarmCount() >= alarm_frame_count-1) {
+              shared_data->state = state = ALARM;
+
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                   name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
 
-              if (!event) {
+              if (!event and (recording != RECORDING_NONE)) {
                 event = openEvent(snap, cause, noteSetMap);
-                shared_data->state = state = ALARM;
                 Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
-              } else {
-                shared_data->state = state = ALARM;
+                if (alarm_frame_count) {
+                  Debug(1, "alarm frame count so SavePreAlarmFrames");
+                  event->SavePreAlarmFrames();
+                }
               }  // end if no event, so start it
-              if ( alarm_frame_count ) {
-                Debug(1, "alarm frame count so SavePreAlarmFrames");
-                event->SavePreAlarmFrames();
-              }
             } else if (state != PREALARM) {
               Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
               shared_data->state = state = PREALARM;
@@ -1994,9 +1993,9 @@ bool Monitor::Analyse() {
             shared_data->state = state = ALARM;
             Debug(1, "Was in TAPE, going into ALARM");
           } else {
-            Debug(1, "Staying in %s", State_Strings[state].c_str());
-
+            Debug(3, "Staying in %s", State_Strings[state].c_str());
           }
+
           if (state == ALARM) {
             last_alarm_count = analysis_image_count; 
           } // This is needed so post_event_count counts after last alarmed frames while in ALARM not single alarmed frames while ALERT
@@ -2006,25 +2005,28 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
             shared_data->state = state = ALERT;
           } else if (state == ALERT) {
-            if (
-                ((analysis_image_count - last_alarm_count) > post_event_count)
+            if (((analysis_image_count - last_alarm_count) > post_event_count)
                 &&
                ((timestamp - event->StartTime()) >= min_section_length)) {
               Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                   name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
               //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
-              if ( (function != RECORD && function != MOCORD ) || event_close_mode == CLOSE_ALARM ) {
-                shared_data->state = state = IDLE;
-                Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",
-                    name.c_str(), analysis_image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
-                closeEvent();
+              if (event) {
+                if ((recording == RECORDING_ONMOTION) || (event_close_mode == CLOSE_ALARM) ) {
+                  shared_data->state = state = IDLE;
+                  Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",
+                      name.c_str(), analysis_image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
+                  closeEvent();
+                } else {
+                  shared_data->state = state = TAPE;
+                }
               } else {
-                shared_data->state = state = TAPE;
+                shared_data->state = state = IDLE;
               }
             }
           } else if (state == PREALARM) {
             // Back to IDLE
-            shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
+            shared_data->state = state = (event ? TAPE : IDLE);
           } else {
             Debug(1,
                   "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
@@ -2091,7 +2093,7 @@ bool Monitor::Analyse() {
           // bulk frame code moved to event.
         } // end if state machine
 
-        if ( (function == MODECT or function == MOCORD) and snap->image ) {
+        if ((analysing != ANALYSING_NONE) and snap->image) {
           if (!ref_image.Buffer()) {
             Debug(1, "Assigning");
             ref_image.Assign(*(snap->image));

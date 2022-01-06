@@ -1780,7 +1780,7 @@ bool Monitor::Analyse() {
           Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
           closeEvent();
         }
-      } else if (function == MOCORD or function == RECORD) {
+      } else if (recording == RECORDING_ALWAYS) {
         if (!event) {
           if (cause.length()) cause += ", ";
           cause += SIGNAL_CAUSE + std::string(": Reacquired");
@@ -1847,7 +1847,7 @@ bool Monitor::Analyse() {
 
         SystemTimePoint timestamp = snap->timestamp;
 
-        if (Active() and (function == MODECT or function == MOCORD)) {
+        if (Active() and (analysing == ANALYSING_ALWAYS)) {
           Debug(3, "signal and active and modect");
           Event::StringSet zoneSet;
 
@@ -1898,20 +1898,16 @@ bool Monitor::Analyse() {
           score += last_motion_score;
         } else {
           Debug(1, "Not Active(%d) enabled %d active %d doing motion detection: %d",
-              Active(), enabled, shared_data->active,
-              (function == MODECT or function == MOCORD)
-              );
+              Active(), enabled, shared_data->active, analysing);
         } // end if active and doing motion detection
 
-        if (function == RECORD or function == MOCORD) {
+        if (capturing == CAPTURING_ALWAYS) {
           // If doing record, check to see if we need to close the event or not.
-          if (event) {
-            Debug(2, "Have event %" PRIu64 " in record", event->Id());
-
-            if (section_length != Seconds(0) && (timestamp - event->StartTime() >= section_length)
-                && ((function == MOCORD && event_close_mode != CLOSE_TIME)
-                    || (function == RECORD && event_close_mode == CLOSE_TIME)
-                    || std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()) % section_length == Seconds(0))) {
+          if (event && (section_length > Seconds(min_section_length)) && (timestamp - event->StartTime() >= section_length)) {
+            if (
+                 (function == MOCORD && event_close_mode != CLOSE_TIME)
+                 || (function == RECORD && event_close_mode == CLOSE_TIME)
+                 || std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()) % section_length == Seconds(0)) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                    name.c_str(),
                    image_count,

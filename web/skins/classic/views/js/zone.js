@@ -4,8 +4,9 @@ var saveBtn = $j('#saveBtn');
 var cancelBtn = $j('#cancelBtn');
 var backBtn = $j('#backBtn');
 var refreshBtn = $j('#refreshBtn');
+var analyseBtn = $j('#analyseBtn');
 var monitors = [];
-var analyze_frames = true;
+var analyse_frames = true;
 
 function validateForm( form ) {
   var errors = [];
@@ -658,19 +659,21 @@ function initPage() {
     };
   }
 
-  if ( el = $('analyzeBtn') ) {
-    $('analyzeBtn').onclick = function() {
-      console.log(analyze_frames);
-      analyze_frames = !analyze_frames;
-      if ( analyze_frames ) {
-        $('analyzeBtn').classList.add('disabled');
+  if ( el = analyseBtn[0] ) {
+    el.onclick = function() {
+      console.log(analyse_frames);
+      analyse_frames = !analyse_frames;
+      if (analyse_frames) {
+        analyseBtn.toggleClass('btn-primary');
       } else {
-        $('analyzeBtn').classList.remove('disabled');
+        analyseBtn.toggleClass('btn-secondary');
       }
       for ( var i = 0, length = monitors.length; i < length; i++ ) {
-        monitors[i].show_analyze_frames(analyze_frames);
+        monitors[i].show_analyse_frames(analyse_frames);
       }
-    }
+    };
+  } else {
+    console.log('Analyse button not found');
   }
 
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
@@ -679,6 +682,7 @@ function initPage() {
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].setScale('auto');
+    monitors[i].show_analyse_frames(analyse_frames);
     monitors[i].start(delay);
   }
 

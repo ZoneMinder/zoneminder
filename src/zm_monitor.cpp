@@ -2161,6 +2161,7 @@ bool Monitor::Analyse() {
                   snap->analysis_image->Overlay(*(zone.AlarmImage()));
               } // end if zone is alarmed
             } // end foreach zone
+            alarm_image.Assign(snap->analysis_imageimage);
           } // end if savejpegs
 
           // incremement pre alarm image count
@@ -2172,79 +2173,6 @@ bool Monitor::Analyse() {
                 if (!snap->analysis_image)
                   snap->analysis_image = new Image(*(snap->image));
                 snap->analysis_image->Overlay(*(zone.AlarmImage()));
-=======
-          } // end if ALARM or ALERT
-
-          if ( state == PREALARM ) {
-            if ( function != MOCORD ) {
-              shared_data->state = state = IDLE;
-            } else {
-              shared_data->state = state = TAPE;
-            }
-						// Not in PREALARM state anymore, can clear PreAlarmCount
-						if ( Event::PreAlarmCount() )
-							Event::EmptyPreAlarmFrames();
-					}
-				} // end if score or not
-
-        if ( state != IDLE ) {
-          if ( state == PREALARM || state == ALARM ) {
-            if ( savejpegs > 1 ) {
-              bool got_anal_image = false;
-              Debug(1, "Assigning alarm image");
-              alarm_image->Assign(*snap_image);
-              for ( int i = 0; i < n_zones; i++ ) {
-                if ( zones[i]->Alarmed() ) {
-                  if ( zones[i]->AlarmImage() ) {
-                    alarm_image->Overlay(*(zones[i]->AlarmImage()));
-                    got_anal_image = true;
-                  }
-                  if ( config.record_event_stats && (state == ALARM) )
-                    zones[i]->RecordStats(event);
-                } // end if zone is alarmed
-              } // end foreach zone
-
-              if ( state == PREALARM ) {
-                Event::AddPreAlarmFrame(snap_image, *timestamp, score, (got_anal_image?alarm_image:nullptr));
-              } else {
-								event->AddFrame(snap_image, *timestamp, score, (got_anal_image?alarm_image:nullptr));
-							}
-            } else {
-              // Not doing alarm frame storage
-              if ( state == PREALARM ) {
-                Event::AddPreAlarmFrame(snap_image, *timestamp, score);
-              } else {
-                event->AddFrame(snap_image, *timestamp, score);
-                if ( config.record_event_stats ) {
-                  for ( int i = 0; i < n_zones; i++ ) {
-                    if ( zones[i]->Alarmed() )
-                      zones[i]->RecordStats(event);
-                  }
-                } // end if  config.record_event_stats
-              }
-            } // end if savejpegs > 1 
-
-            if ( event ) {
-              if ( noteSetMap.size() > 0 )
-                event->updateNotes(noteSetMap);
-
-              if ( section_length
-                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-                  && ! (image_count % fps_report_interval)
-                 ) {
-                Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %d - %d = %d >= %d",
-                    name, image_count, event->Id(),
-                    timestamp->tv_sec, video_store_data->recording.tv_sec,
-                    timestamp->tv_sec - video_store_data->recording.tv_sec,
-                    section_length
-                    );
-                closeEvent();
-                event = new Event(this, *timestamp, cause, noteSetMap);
-                shared_data->last_event = event->Id();
-                //set up video store data
-                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-                video_store_data->recording = event->StartTime();
->>>>>>> 89ff8a7fc (Include alarm_image in shared_mem)
               }
             }  // end if zone is alarmed
           }  // end foreach zone

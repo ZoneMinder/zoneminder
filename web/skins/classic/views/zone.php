@@ -169,6 +169,9 @@ if ( count($other_zones) ) {
               <?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps
             </div>
             <div id="StreamControlButtons">
+              <button type="button" id="analyseBtn" class="btn btn-primary" title="<?php echo translate('Show Analysis') ?>">
+                <i class="material-icons md-18">assessment</i>
+              </button>
               <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>">
                 <i class="material-icons md-18">pause</i>
               </button>

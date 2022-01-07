@@ -666,8 +666,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
        + (image_buffer_count*sizeof(struct timeval))
-       + (image_buffer_count*camera->ImageSize())
-       + camera->ImageSize() // alarm_image
+       + (image_buffer_count*image_size)
+       + image_size // alarm_image
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
@@ -1970,6 +1970,8 @@ bool Monitor::Analyse() {
           }
 
           if (snap->image) {
+            alarm_image.Assign(*(snap->image));
+
             // decoder may not have been able to provide an image
             if (!ref_image.Buffer()) {
               Debug(1, "Assigning instead of Detecting");
@@ -2152,7 +2154,7 @@ bool Monitor::Analyse() {
 
         if (state == PREALARM) {
           // Generate analysis images if necessary
-          if ((savejpegs > 1) and snap->image) {
+          if (snap->image) {
             for (const Zone &zone : zones) {
               if (zone.Alarmed() and zone.AlarmImage()) {
                   if (!snap->analysis_image)
@@ -2160,21 +2162,23 @@ bool Monitor::Analyse() {
                   snap->analysis_image->Overlay(*(zone.AlarmImage()));
               } // end if zone is alarmed
             } // end foreach zone
-            alarm_image.Assign(*snap->analysis_image);
-          } // end if savejpegs
+            alarm_image.Assign(*(snap->analysis_image));
+          } // end if image.
 
           // incremement pre alarm image count
           Event::AddPreAlarmFrame(snap->image, timestamp, score, nullptr);
         } else if (state == ALARM) {
-          for (const Zone &zone : zones) {
-            if (zone.Alarmed()) {
-              if (zone.AlarmImage() and (savejpegs > 1) and snap->image) {
+          if (snap->image) {
+            for (const Zone &zone : zones) {
+              if (zone.Alarmed() and zone.AlarmImage()) {
                 if (!snap->analysis_image)
                   snap->analysis_image = new Image(*(snap->image));
                 snap->analysis_image->Overlay(*(zone.AlarmImage()));
-              }
-            }  // end if zone is alarmed
-          }  // end foreach zone
+              }  // end if zone is alarmed
+            }  // end foreach zone
+            alarm_image.Assign(*(snap->analysis_image));
+          }
+
           if (event) {
             if (noteSetMap.size() > 0)
               event->updateNotes(noteSetMap);

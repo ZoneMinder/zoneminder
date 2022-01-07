@@ -56,6 +56,13 @@ $serial = $primary_key = 'Id';
   Enabled
   LinkedMonitors
   Triggers
+  EventStartCommand
+  EventEndCommand
+  ONVIF_URL
+  ONVIF_Username
+  ONVIF_Password
+  ONVIF_Options
+  ONVIF_Event_Listener
   Device
   Channel
   Format

@@ -276,10 +276,10 @@ function MonitorStream(monitorData) {
           .fail(this.onFailure.bind(this));
     };
   }
-  this.analyze_frames = true;
-  this.show_analyze_frames = function(toggle) {
-    this.analyze_frames = toggle;
-    console.log("Sending command " + (this.analyze_frames?CMD_ANALYZE_ON:CMD_ANALYZE_OFF));
-    this.streamCmdReq.send(this.streamCmdParms+"&command="+(this.analyze_frames?CMD_ANALYZE_ON:CMD_ANALYZE_OFF));
-  }
+  this.analyse_frames = true;
+  this.show_analyse_frames = function(toggle) {
+    this.analyse_frames = toggle;
+    this.streamCmdParms.command = this.analyse_frames?CMD_ANALYZE_ON:CMD_ANALYZE_OFF;
+    this.streamCmdReq(this.streamCmdParms);
+  };
 } // end function MonitorStream

@@ -69,7 +69,7 @@
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `Enabled`, `DecodingEnabled`, "
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `Enabled`, `DecodingEnabled`, "
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
@@ -98,16 +98,6 @@ std::string CameraType_Strings[] = {
   "VNC"
 };
 
-std::string Function_Strings[] = {
-  "Unknown",
-  "None",
-  "Monitor",
-  "Modect",
-  "Record",
-  "Mocord",
-  "Nodect"
-};
-
 std::string State_Strings[] = {
   "Unknown",
   "IDLE",
@@ -115,6 +105,26 @@ std::string State_Strings[] = {
   "ALARM",
   "ALERT",
   "TAPE"
+};
+
+std::string Capturing_Strings[] = {
+  "Unknown",
+  "None",
+  "On demand",
+  "Always"
+};
+
+std::string Analysing_Strings[] = {
+  "Unknown",
+  "None",
+  "Always"
+};
+
+std::string Recording_Strings[] = {
+  "Unknown",
+  "None",
+  "On motion",
+  "Always"
 };
 
 std::string TriggerState_Strings[] = {
@@ -570,7 +580,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       and
       !decoding_enabled
       );
-  Debug(3, "Decoding enabled: %d function %d %s savejpegs %d videowriter %d", decoding_enabled, function, Function_Strings[function].c_str(), savejpegs, videowriter);
+  Debug(3, "Decoding enabled: %d savejpegs %d videowriter %d", decoding_enabled, savejpegs, videowriter);
 
 /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
@@ -1908,7 +1918,7 @@ bool Monitor::Analyse() {
 
         if (capturing == CAPTURING_ALWAYS) {
           // If doing record, check to see if we need to close the event or not.
-          if (event && (section_length > Seconds(min_section_length)) && (timestamp - event->StartTime() >= section_length)) {
+          if (event && (section_length >= Seconds(min_section_length)) && (timestamp - event->StartTime() > section_length)) {
             if (
                  (recording == RECORDING_ONMOTION && event_close_mode != CLOSE_TIME)
                  || (recording == RECORDING_ALWAYS && event_close_mode == CLOSE_TIME)
@@ -2072,7 +2082,7 @@ bool Monitor::Analyse() {
           if (event) {
             if (noteSetMap.size() > 0)
               event->updateNotes(noteSetMap);
-            if (section_length != Seconds(0) && (timestamp - event->StartTime() >= section_length)) {
+            if (section_length != Seconds(min_section_length) && (timestamp - event->StartTime() > section_length)) {
               Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                       name.c_str(), analysis_image_count, event->Id(),
                       static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()).count()),
@@ -2175,8 +2185,8 @@ void Monitor::ReloadZones() {
 
 void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
   Debug(1, "Reloading linked monitors for monitor %s, '%s'", name.c_str(), p_linked_monitors);
-  if ( n_linked_monitors ) {
-    for ( int i=0; i < n_linked_monitors; i++ ) {
+  if (n_linked_monitors) {
+    for (int i=0; i < n_linked_monitors; i++) {
       delete linked_monitors[i];
     }
     delete[] linked_monitors;
@@ -2290,9 +2300,9 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &w
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
 (const char *device, Purpose purpose) {
 
-  std::string where = "`Function` != 'None' AND `Type` = 'Local'";
+  std::string where = "`Capturing` != 'None' AND `Type` = 'Local'";
 
-  if ( device[0] )
+  if (device[0])
     where += " AND `Device`='" + std::string(device) + "'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
@@ -2302,7 +2312,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors
 (const char *protocol, const char *host, const char *port, const char *path, Purpose purpose) {
-  std::string where = "`Function` != 'None' AND `Type` = 'Remote'";
+  std::string where = "`Capturing` != 'None' AND `Type` = 'Remote'";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   if (protocol)
@@ -2311,7 +2321,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors
 }
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadFileMonitors(const char *file, Purpose purpose) {
-  std::string where = "`Function` != 'None' AND `Type` = 'File'";
+  std::string where = "`Capturing` != 'None' AND `Type` = 'File'";
   if (file[0])
     where += " AND `Path`='" + std::string(file) + "'";
   if (staticConfig.SERVER_ID)
@@ -2320,7 +2330,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFileMonitors(const char *file
 }
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *file, Purpose purpose) {
-  std::string where = "`Function` != 'None' AND `Type` = 'Ffmpeg'";
+  std::string where = "`Capturing` != 'None' AND `Type` = 'Ffmpeg'";
   if (file[0])
     where += " AND `Path` = '" + std::string(file) + "'";
   if (staticConfig.SERVER_ID)
@@ -2937,14 +2947,9 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   sprintf(output+strlen(output), "Reference Blend %%ge : %d\n", ref_blend_perc);
   sprintf(output+strlen(output), "Alarm Reference Blend %%ge : %d\n", alarm_ref_blend_perc);
   sprintf(output+strlen(output), "Track Motion : %d\n", track_motion);
-  sprintf(output+strlen(output), "Function: %d - %s\n", function,
-    function==NONE?"None":(
-    function==MONITOR?"Monitor Only":(
-    function==MODECT?"Motion Detection":(
-    function==RECORD?"Continuous Record":(
-    function==MOCORD?"Continuous Record with Motion Detection":(
-    function==NODECT?"Externally Triggered only, no Motion Detection":"Unknown"
-  ))))));
+  sprintf(output+strlen(output), "Capturing %d - %s\n", capturing, Capturing_Strings[capturing].c_str());
+  sprintf(output+strlen(output), "Analysing %d - %s\n", analysing, Analysing_Strings[analysing].c_str());
+  sprintf(output+strlen(output), "Recording %d - %s\n", recording, Recording_Strings[recording].c_str());
   sprintf(output+strlen(output), "Zones : %zu\n", zones.size());
   for (const Zone &zone : zones) {
     zone.DumpSettings(output+strlen(output), verbose);

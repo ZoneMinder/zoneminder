@@ -9,6 +9,7 @@ $raw = isset($_REQUEST['raw']);
 $data = array();
 
 if ($raw) {
+  $data['raw'] = array();
   $sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,M.Name AS MonitorName
     FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id
     WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';

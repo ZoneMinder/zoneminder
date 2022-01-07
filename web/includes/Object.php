@@ -11,19 +11,24 @@ class ZM_Object {
     $class = get_class($this);
 
     $row = NULL;
-    if ( $IdOrRow ) {
+    if ($IdOrRow) {
 
-      if ( is_integer($IdOrRow) or ctype_digit($IdOrRow) ) {
+      if (is_integer($IdOrRow) or ctype_digit($IdOrRow)) {
         $table = $class::$table;
         $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($IdOrRow));
-        if ( !$row ) {
+        if (!$row) {
           Error("Unable to load $class record for Id=$IdOrRow");
+          return;
         }
-      } else if ( is_array($IdOrRow) ) {
+      } else if (is_array($IdOrRow)) {
         $row = $IdOrRow;
       }
 
       if ( $row ) {
+        if (!isset($row['Id'])) {
+          Error("No Id in " . print_r($row, true));
+          return;
+        }
         foreach ($row as $k => $v) {
           $this->{$k} = $v;
         }

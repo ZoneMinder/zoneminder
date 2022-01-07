@@ -1070,10 +1070,6 @@ bool Monitor::connect() {
     video_store_data->size = sizeof(VideoStoreData);
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
-  } else if (!shared_data->valid) {
-    Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
-    return false;
-  }
 
   //ONVIF Setup
 #ifdef WITH_GSOAP
@@ -1110,6 +1106,10 @@ bool Monitor::connect() {
   }
   //End ONVIF Setup
 #endif
+  } else if (!shared_data->valid) {
+    Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
+    return false;
+  }
 
   // We set these here because otherwise the first fps calc is meaningless
   last_fps_time = std::chrono::system_clock::now();

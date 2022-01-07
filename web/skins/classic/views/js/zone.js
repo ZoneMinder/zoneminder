@@ -664,9 +664,13 @@ function initPage() {
       console.log(analyse_frames);
       analyse_frames = !analyse_frames;
       if (analyse_frames) {
-        analyseBtn.toggleClass('btn-primary');
+        analyseBtn.addClass('btn-primary');
+        analyseBtn.removeClass('btn-secondary');
+        analyseBtn.attr('title', translate['Showing Analysis']);
       } else {
-        analyseBtn.toggleClass('btn-secondary');
+        analyseBtn.removeClass('btn-primaryary');
+        analyseBtn.addClass('btn-secondary');
+        analyseBtn.attr('title', translate['Not Showing Analysis']);
       }
       for ( var i = 0, length = monitors.length; i < length; i++ ) {
         monitors[i].show_analyse_frames(analyse_frames);

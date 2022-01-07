@@ -122,3 +122,7 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
 var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
 
+var translate = {
+  "Showing Analysis": '<?php echo translate('Showing Analysis'); ?>',
+  "Not Showing Analysis": '<?php echo translate('Not Showing Analysis'); ?>'
+};

@@ -79,7 +79,6 @@ bool MonitorStream::checkSwapPath(const char *path, bool create_path) {
 
 void MonitorStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
-  Debug(2, "CMD_ANALYZE_ON %d", CMD_ANALYZE_ON);
   // Check for incoming command
   switch ( (MsgCommand)msg->msg_data[0] ) {
     case CMD_PAUSE :
@@ -724,13 +723,16 @@ void MonitorStream::runStream() {
               SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
           Image *send_image = nullptr;
-          if ( ( frame_type == FRAME_ANALYSIS ) && ( monitor->GetOptSaveJPEGs() & 2 ) ) {
+          if ((frame_type == FRAME_ANALYSIS) && 
+              (monitor->GetFunction() == Monitor::MOCORD || monitor->GetFunction() == Monitor::MODECT)) {
+              Debug(1, "Sending analysis image");
             send_image = monitor->GetAlarmImage();
             if ( !send_image ) {
               Debug(1, "Falling back");
               send_image = monitor->image_buffer[index];
             }
           } else {
+             Debug(1, "Sending regular image");
             send_image = monitor->image_buffer[index];
           }
 

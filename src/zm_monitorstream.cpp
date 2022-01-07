@@ -746,7 +746,7 @@ void MonitorStream::runStream() {
             frame_count++;
             frame_count++;
           } else {
-            SystemTimePoint::duration actual_delta_time = now - last_frame_sent;
+            TimePoint::duration actual_delta_time = now - last_frame_sent;
             if (actual_delta_time > Seconds(5)) {
               if (paused_image) {
                 // Send keepalive

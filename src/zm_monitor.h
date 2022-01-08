@@ -431,14 +431,6 @@ protected:
   std::string diag_path_ref;
   std::string diag_path_delta;
 
-  // Used in check signal
-  uint8_t red_val;
-  uint8_t green_val;
-  uint8_t blue_val;
-  uint8_t grayscale_val; /* 8bit grayscale color */
-  Rgb colour_val; /* RGB32 color */
-  int usedsubpixorder;
-
   //ONVIF
 #ifdef WITH_GSOAP
   struct soap *soap;
@@ -451,6 +443,15 @@ protected:
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
 #endif
+
+  // Used in check signal
+  uint8_t red_val;
+  uint8_t green_val;
+  uint8_t blue_val;
+  uint8_t grayscale_val; /* 8bit grayscale color */
+  Rgb colour_val; /* RGB32 color */
+  int usedsubpixorder;
+
 public:
   explicit Monitor();
 

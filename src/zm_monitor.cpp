@@ -419,12 +419,14 @@ Monitor::Monitor()
   privacy_bitmask(nullptr),
   n_linked_monitors(0),
   linked_monitors(nullptr),
+#ifdef WITH_GSOAP
+  soap(nullptr),
+#endif
   red_val(0),
   green_val(0),
   blue_val(0),
   grayscale_val(0),
-  colour_val(0),
-  soap(nullptr)
+  colour_val(0)
 {
 
   if ( strcmp(config.event_close_mode, "time") == 0 )

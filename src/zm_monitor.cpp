@@ -2163,6 +2163,7 @@ bool Monitor::Analyse() {
                   snap->analysis_image->Overlay(*(zone.AlarmImage()));
               } // end if zone is alarmed
             } // end foreach zone
+            if (snap->analysis_image != nullptr)
             alarm_image.Assign(*(snap->analysis_image));
           } // end if image.
 
@@ -2177,6 +2178,7 @@ bool Monitor::Analyse() {
                 snap->analysis_image->Overlay(*(zone.AlarmImage()));
               }  // end if zone is alarmed
             }  // end foreach zone
+            if (snap->analysis_image != nullptr)
             alarm_image.Assign(*(snap->analysis_image));
           }
 

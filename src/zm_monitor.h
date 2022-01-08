@@ -256,18 +256,6 @@ protected:
 
   protected:
 
-  //ONVIF
-#ifdef WITH_GSOAP
-  struct soap *soap;
-  bool ONVIF_Trigger_State;
-  bool ONVIF_Healthy;
-  _tev__CreatePullPointSubscription request;
-  _tev__CreatePullPointSubscriptionResponse response;
-  _tev__PullMessages tev__PullMessages;
-  _tev__PullMessagesResponse tev__PullMessagesResponse;
-  PullPointSubscriptionBindingProxy proxyEvent;
-  void set_credentials(struct soap *soap);
-#endif
 
   // These are read from the DB and thereafter remain unchanged
   unsigned int    id;
@@ -451,6 +439,18 @@ protected:
   Rgb colour_val; /* RGB32 color */
   int usedsubpixorder;
 
+  //ONVIF
+#ifdef WITH_GSOAP
+  struct soap *soap;
+  bool ONVIF_Trigger_State;
+  bool ONVIF_Healthy;
+  _tev__CreatePullPointSubscription request;
+  _tev__CreatePullPointSubscriptionResponse response;
+  _tev__PullMessages tev__PullMessages;
+  _tev__PullMessagesResponse tev__PullMessagesResponse;
+  PullPointSubscriptionBindingProxy proxyEvent;
+  void set_credentials(struct soap *soap);
+#endif
 public:
   explicit Monitor();
 

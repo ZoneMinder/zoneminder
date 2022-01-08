@@ -423,7 +423,8 @@ Monitor::Monitor()
   green_val(0),
   blue_val(0),
   grayscale_val(0),
-  colour_val(0)
+  colour_val(0),
+  soap(nullptr)
 {
 
   if ( strcmp(config.event_close_mode, "time") == 0 )
@@ -1808,8 +1809,6 @@ bool Monitor::Poll() {
   return TRUE;
 } //end Poll
 
-
-
 // Would be nice if this JUST did analysis
 // This idea is that we should be analysing as close to the capture frame as possible.
 // This function should process as much as possible before returning
@@ -3158,13 +3157,16 @@ int Monitor::Close() {
   if (decoder) {
     decoder->Stop();
   }
+  if (analysis_thread) {
+    analysis_thread->Stop();
+  }
 
 #ifdef WITH_GSOAP
   //ONVIF Teardown
   if (Poller) {
     Poller->Stop();
   }
-  if (onvif_event_listener && soap != nullptr) {
+  if (onvif_event_listener && (soap != nullptr)) {
     Debug(1, "Tearing Down Onvif");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
@@ -3173,12 +3175,9 @@ int Monitor::Close() {
     soap_end(soap);
     soap_free(soap);
     soap = nullptr;
-  }//End ONVIF
+  }  //End ONVIF
 #endif
 
-  if (analysis_thread) {
-    analysis_thread->Stop();
-  }
   packetqueue.clear();
   if (audio_fifo) {
     delete audio_fifo;

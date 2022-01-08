@@ -421,6 +421,7 @@ Monitor::Monitor()
   linked_monitors(nullptr),
 #ifdef WITH_GSOAP
   soap(nullptr),
+  ONVIF_Closes_Event(FALSE),
 #endif
   red_val(0),
   green_val(0),
@@ -1080,6 +1081,9 @@ bool Monitor::connect() {
   if (onvif_event_listener) { //Temporarily using this option to enable the feature
     Debug(1, "Starting ONVIF");
     ONVIF_Healthy = FALSE;
+    if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
+      ONVIF_Closes_Event = TRUE;
+    }
     tev__PullMessages.Timeout = "PT600S";
     tev__PullMessages.MessageLimit = 100;
     soap = soap_new();
@@ -1802,6 +1806,10 @@ bool Monitor::Poll() {
           } else {
             Debug(1, "Triggered off ONVIF");
             ONVIF_Trigger_State = FALSE;
+            if (!ONVIF_Closes_Event) { //If we get a close event, then we know to expect them.
+              ONVIF_Closes_Event = TRUE;
+              Debug(1,"Setting ClosesEvent");
+            }
           }
         }
       }
@@ -1868,6 +1876,9 @@ bool Monitor::Analyse() {
       Event::StringSet noteSet;
       noteSet.insert("ONVIF2");
       noteSetMap[MOTION_CAUSE] = noteSet;
+      //If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
+      if (!ONVIF_Closes_Event && state == ALARM)
+        ONVIF_Trigger_State = FALSE;
     }  // end ONVIF_Trigger
 #endif
 
@@ -2163,6 +2174,7 @@ bool Monitor::Analyse() {
                   snap->analysis_image->Overlay(*(zone.AlarmImage()));
               } // end if zone is alarmed
             } // end foreach zone
+            if (snap->analysis_image != nullptr)
             alarm_image.Assign(*(snap->analysis_image));
           } // end if image.
 
@@ -2177,6 +2189,7 @@ bool Monitor::Analyse() {
                 snap->analysis_image->Overlay(*(zone.AlarmImage()));
               }  // end if zone is alarmed
             }  // end foreach zone
+            if (snap->analysis_image != nullptr)
             alarm_image.Assign(*(snap->analysis_image));
           }
 

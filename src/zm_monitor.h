@@ -436,6 +436,7 @@ protected:
   struct soap *soap;
   bool ONVIF_Trigger_State;
   bool ONVIF_Healthy;
+  bool ONVIF_Closes_Event;
   _tev__CreatePullPointSubscription request;
   _tev__CreatePullPointSubscriptionResponse response;
   _tev__PullMessages tev__PullMessages;

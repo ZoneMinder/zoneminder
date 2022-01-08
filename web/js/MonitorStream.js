@@ -2,6 +2,8 @@
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.connKey = monitorData.connKey;
+  this.auth_relay = auth_relay;
+  this.auth_hash = auth_hash;
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
@@ -206,36 +208,38 @@ function MonitorStream(monitorData) {
         var newAlarm = ( isAlarmed && !wasAlarmed );
         var oldAlarm = ( !isAlarmed && wasAlarmed );
 
-        if ( newAlarm ) {
-          if ( false && SOUND_ON_ALARM ) {
+        if (newAlarm) {
+          if (false && SOUND_ON_ALARM) {
             // Enable the alarm sound
             $j('#alarmSound').removeClass('hidden');
           }
-          if ( (typeof POPUP_ON_ALARM !== 'undefined') && POPUP_ON_ALARM ) {
+          if ((typeof POPUP_ON_ALARM !== 'undefined') && POPUP_ON_ALARM) {
             windowToFront();
           }
         }
-        if ( false && SOUND_ON_ALARM ) {
+        if (false && SOUND_ON_ALARM) {
           if ( oldAlarm ) {
             // Disable alarm sound
             $j('#alarmSound').addClass('hidden');
           }
         }
-        if ( this.status.auth ) {
-          if ( this.status.auth != auth_hash ) {
+        if (this.status.auth) {
+          if (this.status.auth != auth_hash) {
             // Try to reload the image stream.
-            if ( stream ) {
-              stream.src = stream.src.replace(/auth=\w+/i, 'auth='+this.status.auth);
+            if (stream) {
+              const oldsrc = stream.src;
+              stream.src = '';
+              stream.src = oldsrc.replace(/auth=\w+/i, 'auth='+this.status.auth);
             }
-            console.log("Changed auth from " + auth_hash + " to " + this.status.auth);
-            auth_hash = this.status.auth;
+            console.log("Changed auth from " + this.auth_hash + " to " + this.status.auth);
+            this.auth_hash = this.status.auth;
           }
         } // end if have a new auth hash
       } // end if has state
     } else {
       console.error(respObj.message);
       // Try to reload the image stream.
-      if ( stream ) {
+      if (stream) {
         if ( stream.src ) {
           console.log('Reloading stream: ' + stream.src);
           src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));

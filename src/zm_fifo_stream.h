@@ -28,7 +28,6 @@ class FifoStream : public StreamBase {
     std::string stream_path;
     int total_read;
     int bytes_read;
-    unsigned int frame_count;
 
  protected:
     typedef enum { UNKNOWN, MJPEG, RAW } StreamType;
@@ -39,9 +38,9 @@ class FifoStream : public StreamBase {
 
  public:
     FifoStream() : 
+      StreamBase(),
       total_read(0),
       bytes_read(0),
-      frame_count(0),
       stream_type(UNKNOWN)
     {}
 

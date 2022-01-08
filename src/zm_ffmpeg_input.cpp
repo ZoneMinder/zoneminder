@@ -31,8 +31,7 @@ int FFmpeg_Input::Open(
     const AVStream * audio_in_stream,
     const AVCodecContext * audio_in_ctx
     ) {
-  video_stream_id = video_in_stream->index;
-  int max_stream_index = video_in_stream->index;
+ int max_stream_index = video_stream_id = video_in_stream->index;
 
   if ( audio_in_stream ) {
     max_stream_index = video_in_stream->index > audio_in_stream->index ? video_in_stream->index : audio_in_stream->index;

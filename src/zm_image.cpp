@@ -214,25 +214,26 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   update_function_pointers();
 }
 
-Image::Image(const AVFrame *frame) {
+Image::Image(const AVFrame *frame) :
+  colours(ZM_COLOUR_RGB32),
+  padding(0),
+  subpixelorder(ZM_SUBPIX_ORDER_RGBA),
+  imagePixFormat(AV_PIX_FMT_RGBA),
+  buffer(0),
+  holdbuffer(0)
+{
   width = frame->width;
   height = frame->height;
   pixels = width*height;
 
   zm_dump_video_frame(frame, "Image.Assign(frame)");
   // FIXME
-  colours = ZM_COLOUR_RGB32;
-  subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-  imagePixFormat = AV_PIX_FMT_RGBA;
-    //(AVPixelFormat)frame->format;
+  //(AVPixelFormat)frame->format;
 
   size = av_image_get_buffer_size(AV_PIX_FMT_RGBA, width, height, 32);
   // av_image_get_linesize isn't aligned, so we have to do that.
   linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 32);
-  padding = 0;
 
-  buffer = nullptr;
-  holdbuffer = 0;
   AllocImgBuffer(size);
   this->Assign(frame);
 }
@@ -1677,15 +1678,15 @@ void Image::Overlay( const Image &image ) {
 }
 
 /* RGB32 compatible: complete */
-void Image::Overlay( const Image &image, unsigned int x, unsigned int y ) {
+void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned int lo_y ) {
   if ( !(width < image.width || height < image.height) ) {
     Panic("Attempt to overlay image too big for destination, %dx%d > %dx%d",
         image.width, image.height, width, height );
   }
 
-  if ( !(width < (x+image.width) || height < (y+image.height)) ) {
+  if ( !(width < (lo_x+image.width) || height < (lo_y+image.height)) ) {
     Panic("Attempt to overlay image outside of destination bounds, %dx%d @ %dx%d > %dx%d",
-        image.width, image.height, x, y, width, height );
+        image.width, image.height, lo_x, lo_y, width, height );
   }
 
   if ( !(colours == image.colours) ) {
@@ -1693,10 +1694,8 @@ void Image::Overlay( const Image &image, unsigned int x, unsigned int y ) {
         colours, image.colours);
   }
 
-  unsigned int lo_x = x;
-  unsigned int lo_y = y;
-  unsigned int hi_x = (x+image.width)-1;
-  unsigned int hi_y = (y+image.height-1);
+  unsigned int hi_x = (lo_x+image.width)-1;
+  unsigned int hi_y = (lo_y+image.height-1);
   if ( colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t *psrc = image.buffer;
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
@@ -2732,7 +2731,7 @@ void Image::Flip( bool leftright ) {
   AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
 }
 
-void Image::Scale(unsigned int factor) {
+void Image::Scale(const unsigned int factor) {
   if ( !factor ) {
     Error("Bogus scale factor %d found", factor);
     return;
@@ -2756,15 +2755,13 @@ void Image::Scale(unsigned int factor) {
     unsigned int h_count = ZM_SCALE_BASE/2;
     unsigned int last_h_index = 0;
     unsigned int last_w_index = 0;
-    unsigned int h_index;
     for ( unsigned int y = 0; y < height; y++ ) {
       unsigned char *ps = &buffer[y*wc];
       unsigned int w_count = ZM_SCALE_BASE/2;
-      unsigned int w_index;
       last_w_index = 0;
       for ( unsigned int x = 0; x < width; x++ ) {
         w_count += factor;
-        w_index = w_count/ZM_SCALE_BASE;
+        unsigned int w_index = w_count/ZM_SCALE_BASE;
         for (unsigned int f = last_w_index; f < w_index; f++ ) {
           for ( unsigned int c = 0; c < colours; c++ ) {
             *pd++ = *(ps+c);
@@ -2774,7 +2771,7 @@ void Image::Scale(unsigned int factor) {
         last_w_index = w_index;
       }
       h_count += factor;
-      h_index = h_count/ZM_SCALE_BASE;
+      unsigned int h_index = h_count/ZM_SCALE_BASE;
       for ( unsigned int f = last_h_index+1; f < h_index; f++ ) {
         memcpy(pd, pd-nwc, nwc);
         pd += nwc;
@@ -2786,17 +2783,14 @@ void Image::Scale(unsigned int factor) {
   } else {
     unsigned char *pd = scale_buffer;
     unsigned int wc = width*colours;
-    unsigned int xstart = factor/2;
-    unsigned int ystart = factor/2;
-    unsigned int h_count = ystart;
+    unsigned int h_count = factor/2;
     unsigned int last_h_index = 0;
     unsigned int last_w_index = 0;
-    unsigned int h_index;
     for ( unsigned int y = 0; y < height; y++ ) {
       h_count += factor;
-      h_index = h_count/ZM_SCALE_BASE;
+      unsigned int h_index = h_count/ZM_SCALE_BASE;
       if ( h_index > last_h_index ) {
-        unsigned int w_count = xstart;
+        unsigned int w_count = factor/2;
         unsigned int w_index;
         last_w_index = 0;
 
@@ -2825,6 +2819,7 @@ void Image::Scale(unsigned int factor) {
 
 void Image::Deinterlace_Discard() {
   /* Simple deinterlacing. Copy the even lines into the odd lines */
+  // ICON: These can be drastically improved.  But who cares?
 
   if ( colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t *psrc;
@@ -3107,9 +3102,9 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
-  static uint32_t divider = 0;
-  static uint32_t clearmask = 0;
   static double current_blendpercent = 0.0;
+  static uint32_t clearmask = 0;
+  static uint32_t divider = 0;
 
   if ( current_blendpercent != blendpercent ) {
     /* Attempt to match the blending percent to one of the possible values */
@@ -3310,10 +3305,10 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
 
 __attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 #if (defined(__aarch64__) && !defined(ZM_STRIP_NEON))
-  static int8_t divider = 0;
   static double current_blendpercent = 0.0;
 
-  if(current_blendpercent != blendpercent) {
+  if (current_blendpercent != blendpercent) {
+    static int8_t divider = 0;
     /* Attempt to match the blending percent to one of the possible values */
     if(blendpercent < 2.34375) {
       // 1.5625% blending

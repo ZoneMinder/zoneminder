@@ -2675,23 +2675,21 @@ bool Monitor::Decode() {
       } else if (deinterlacing_value == 3) {
         capture_image->Deinterlace_Blend();
       } else if (deinterlacing_value == 4) {
-        ZMLockedPacket *deinterlace_packet_lock = nullptr;
         while (!zm_terminate) {
-          ZMLockedPacket *second_packet_lock = packetqueue.get_packet(decoder_it);
-          if (!second_packet_lock) {
+          ZMLockedPacket *deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
+          if (!deinterlace_packet_lock) {
             packetqueue.unlock(packet_lock);
             return false;
           }
-          if (second_packet_lock->packet_->codec_type == packet->codec_type) {
-            deinterlace_packet_lock = second_packet_lock;
+          if (deinterlace_packet_lock->packet_->codec_type == packet->codec_type) {
+            capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
+            packetqueue.unlock(deinterlace_packet_lock);
             break;
           }
-          packetqueue.unlock(second_packet_lock);
+          packetqueue.unlock(deinterlace_packet_lock);
           packetqueue.increment_it(decoder_it);
         }
         if (zm_terminate) return false;
-        capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
-        packetqueue.unlock(deinterlace_packet_lock);
       } else if (deinterlacing_value == 5) {
         capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
       }
@@ -2786,7 +2784,7 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
 Event * Monitor::openEvent(
     const std::shared_ptr<ZMPacket> &snap,
     const std::string &cause,
-    const Event::StringSetMap noteSetMap) {
+    const Event::StringSetMap &noteSetMap) {
 
   // FIXME this iterator is not protected from invalidation
   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(

@@ -243,6 +243,14 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       Info("User initiated exit - CMD_QUIT");
       zm_terminate = true;
       break;
+    case CMD_ANALYZE_ON : 
+      frame_type = FRAME_ANALYSIS;
+      Debug(1, "ANALYSIS on");
+      break;
+    case CMD_ANALYZE_OFF : 
+      frame_type = FRAME_NORMAL;
+      Debug(1, "ANALYSIS off");
+      break;
     case CMD_QUERY :
       Debug(1, "Got QUERY command, sending STATUS");
       break;
@@ -720,9 +728,22 @@ void MonitorStream::runStream() {
           // Perhaps we should use NOW instead. 
           last_frame_timestamp =
               SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
-          Image *image = monitor->image_buffer[index];
 
-          if (!sendFrame(image, last_frame_timestamp)) {
+          Image *send_image = nullptr;
+          if ((frame_type == FRAME_ANALYSIS) && 
+              (monitor->GetFunction() == Monitor::MOCORD || monitor->GetFunction() == Monitor::MODECT)) {
+              Debug(1, "Sending analysis image");
+            send_image = monitor->GetAlarmImage();
+            if ( !send_image ) {
+              Debug(1, "Falling back");
+              send_image = monitor->image_buffer[index];
+            }
+          } else {
+             Debug(1, "Sending regular image");
+            send_image = monitor->image_buffer[index];
+          }
+
+          if (!sendFrame(send_image, last_frame_timestamp)) {
             Debug(2, "sendFrame failed, quiting.");
             zm_terminate = true;
             break;
@@ -731,7 +752,7 @@ void MonitorStream::runStream() {
           if (frame_count == 0) {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
-            if (!sendFrame(image, last_frame_timestamp)) {
+            if (!sendFrame(send_image, last_frame_timestamp)) {
               Debug(2, "sendFrame failed, quiting.");
               zm_terminate = true;
               break;
@@ -753,7 +774,7 @@ void MonitorStream::runStream() {
             frame_count++;
             frame_count++;
           } else {
-            SystemTimePoint::duration actual_delta_time = now - last_frame_sent;
+            TimePoint::duration actual_delta_time = now - last_frame_sent;
             if (actual_delta_time > Seconds(5)) {
               if (paused_image) {
                 // Send keepalive

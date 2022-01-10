@@ -88,9 +88,15 @@ function initialAlarmCues(eventId) {
 }
 
 function setAlarmCues(data) {
-  cueFrames = data.frames;
-  alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
-  $j(".alarmCue").html(alarmSpans);
+  if (!data) {
+    Error('No data in setAlarmCues for event ' + eventData.Id);
+  } else if (!data.frames) {
+    Error('No data.frames in setAlarmCues for event ' + eventData.Id);
+  } else {
+    cueFrames = data.frames;
+    alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
+    $j(".alarmCue").html(alarmSpans);
+  }
 }
 
 function renderAlarmCues(containerEl) {

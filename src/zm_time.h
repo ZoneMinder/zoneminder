@@ -91,7 +91,7 @@ Duration duration_cast(timeval const &tv) {
 //
 class TimeSegmentAdder {
  public:
-  TimeSegmentAdder(Microseconds &in_target) :
+  explicit TimeSegmentAdder(Microseconds &in_target) :
       target_(in_target),
       start_time_(std::chrono::steady_clock::now()),
       finished_(false) {

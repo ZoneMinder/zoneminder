@@ -467,6 +467,7 @@ CREATE TABLE `Monitors` (
   `ONVIF_Username` VARCHAR(64) NOT NULL DEFAULT '',
   `ONVIF_Password` VARCHAR(64) NOT NULL DEFAULT '',
   `ONVIF_Options` VARCHAR(64) NOT NULL DEFAULT '',
+  `ONVIF_Event_Listener`  BOOLEAN NOT NULL DEFAULT FALSE,
   `Device` tinytext NOT NULL default '',
   `Channel` tinyint(3) unsigned NOT NULL default '0',
   `Format` int(10) unsigned NOT NULL default '0',

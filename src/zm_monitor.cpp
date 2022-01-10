@@ -66,6 +66,14 @@
 #define MAP_LOCKED 0
 #endif
 
+#ifdef WITH_GSOAP
+//Workaround for the gsoap library on RHEL
+struct Namespace namespaces[] =
+{
+   {NULL, NULL} // end of table
+};
+#endif
+
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
@@ -83,7 +91,7 @@ std::string load_monitor_sql =
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`,"
-"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`,"
+"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, "
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1 FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
@@ -235,7 +243,7 @@ bool Monitor::MonitorLink::connect() {
     return true;
   }
   return false;
-} // end bool Monitor::MonitorLink::connect()
+}  // end bool Monitor::MonitorLink::connect()
 
 bool Monitor::MonitorLink::disconnect() {
   if (connected) {
@@ -421,6 +429,10 @@ Monitor::Monitor()
   privacy_bitmask(nullptr),
   n_linked_monitors(0),
   linked_monitors(nullptr),
+#ifdef WITH_GSOAP
+  soap(nullptr),
+  ONVIF_Closes_Event(FALSE),
+#endif
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -457,7 +469,7 @@ Monitor::Monitor()
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
  "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
  "`RTSPServer`,`RTSPStreamName`,
- "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`,"
+ "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, "
  "SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors";
 */
 
@@ -486,7 +498,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   } else if ( ! strcmp(dbrow[col], "Libvlc") ) {
     type = LIBVLC;
   } else if ( ! strcmp(dbrow[col], "cURL") ) {
-    type = CURL;
+    type = LIBCURL;
   } else if ( ! strcmp(dbrow[col], "VNC") ) {
     type = VNC;
   } else {
@@ -635,8 +647,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   onvif_username = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_password = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_options = std::string(dbrow[col] ? dbrow[col] : ""); col++;
-
-  importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
+  onvif_event_listener = (*dbrow[col] != '0'); col++;
 
  /*"SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors"; */
   signal_check_points = atoi(dbrow[col]); col++;
@@ -649,6 +660,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   blue_val = BLUE_VAL_BGRA(signal_check_colour);
   grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
 
+  importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
   if (importance < 0) importance = 0; // Should only be >= 0
 
   // How many frames we need to have before we start analysing
@@ -670,8 +682,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
-       + (image_buffer_count * sizeof(struct timeval))
-       + (image_buffer_count * image_size)
+       + (image_buffer_count*sizeof(struct timeval))
+       + (image_buffer_count*image_size)
+       + image_size // alarm_image
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
@@ -860,7 +873,7 @@ void Monitor::LoadCamera() {
 #endif // HAVE_LIBVLC
       break;
     }
-    case CURL: {
+    case LIBCURL: {
 #if HAVE_LIBCURL
       camera = zm::make_unique<cURLCamera>(this,
                                            path.c_str(),
@@ -1027,6 +1040,12 @@ bool Monitor::connect() {
     image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
+  alarm_image.AssignDirect(width, height, camera->Colours(), camera->SubpixelOrder(),
+      &(shared_images[image_buffer_count*camera->ImageSize()]),
+        camera->ImageSize(),
+        ZM_BUFTYPE_DONTFREE
+        );
+  alarm_image.HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   Debug(3, "Allocated %zu %zu image buffers", image_buffer.capacity(), image_buffer.size());
 
   if (purpose == CAPTURE) {
@@ -1068,6 +1087,45 @@ bool Monitor::connect() {
     video_store_data->size = sizeof(VideoStoreData);
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
+
+  //ONVIF Setup
+#ifdef WITH_GSOAP
+  ONVIF_Trigger_State = FALSE;
+  if (onvif_event_listener) { //Temporarily using this option to enable the feature
+    Debug(1, "Starting ONVIF");
+    ONVIF_Healthy = FALSE;
+    if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
+      ONVIF_Closes_Event = TRUE;
+    }
+    tev__PullMessages.Timeout = "PT600S";
+    tev__PullMessages.MessageLimit = 100;
+    soap = soap_new();
+    soap->connect_timeout = 5;
+    soap->recv_timeout = 5;
+    soap->send_timeout = 5;
+    soap_register_plugin(soap, soap_wsse);
+    proxyEvent = PullPointSubscriptionBindingProxy(soap);
+    std::string full_url = onvif_url + "/Events";
+    proxyEvent.soap_endpoint = full_url.c_str();
+    set_credentials(soap);
+    Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
+    if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
+      Warning("Couldn't create subscription!");
+    } else {
+      //Empty the stored messages
+      set_credentials(soap);
+      if (proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) {
+        Warning("Couldn't do initial event pull! %s", response.SubscriptionReference.Address);
+      } else {
+        Debug(1, "Good Initial ONVIF Pull");
+        ONVIF_Healthy = TRUE;
+      }
+    }
+  } else {
+    Debug(1, "Not Starting ONVIF");
+  }
+  //End ONVIF Setup
+#endif
   } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
@@ -1186,6 +1244,10 @@ void Monitor::AddPrivacyBitmask() {
     privacy_bitmask = privacy_image->Buffer();
 }
 
+Image *Monitor::GetAlarmImage() {
+  return &alarm_image;
+}
+
 int Monitor::GetImage(int32_t index, int scale) {
   if (index < 0 || index > image_buffer_count) {
     Debug(1, "Invalid index %d passed. image_buffer_count = %d", index, image_buffer_count);
@@ -1200,26 +1262,23 @@ int Monitor::GetImage(int32_t index, int scale) {
     return 0;
   }
 
-  Image *image;
+  std::string filename = stringtf("Monitor%u.jpg", id);
   // If we are going to be modifying the snapshot before writing, then we need to copy it
   if ((scale != ZM_SCALE_BASE) || (!config.timestamp_on_capture)) {
-    alarm_image.Assign(*image_buffer[index]);
+    Image image;
+    image.Assign(*image_buffer[index]);
 
     if (scale != ZM_SCALE_BASE) {
-      alarm_image.Scale(scale);
+      image.Scale(scale);
     }
 
     if (!config.timestamp_on_capture) {
-      TimestampImage(&alarm_image, SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
+      TimestampImage(&image, SystemTimePoint(zm::chrono::duration_cast<Microseconds>(shared_timestamps[index])));
     }
-    image = &alarm_image;
+    return image.WriteJpeg(filename);
   } else {
-    image = image_buffer[index];
+    return image_buffer[index]->WriteJpeg(filename);
   }
-
-  std::string filename = stringtf("Monitor%u.jpg", id);
-  image->WriteJpeg(filename);
-  return 1;
 }
 
 ZMPacket *Monitor::getSnapshot(int index) const {
@@ -1727,6 +1786,52 @@ void Monitor::UpdateFPS() {
   } // end if report fps
 }  // void Monitor::UpdateFPS()
 
+//Thread where ONVIF polling, and other similar status polling can happen.
+//Since these can be blocking, run here to avoid intefering with other processing
+bool Monitor::Poll() {
+
+#ifdef WITH_GSOAP
+  if (ONVIF_Healthy) {
+    set_credentials(soap);
+    int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
+    if (result != SOAP_OK) {
+      if (result != -1) //Ignore the timeout error
+        Warning("Failed to get ONVIF messages! %i", result);
+    } else {
+      Debug(1, "Got Good Response! %i", result);
+      for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
+        if (msg->Topic->__any.text != NULL &&
+        std::strstr(msg->Topic->__any.text, "MotionAlarm") &&
+        msg->Message.__any.elts != NULL &&
+        msg->Message.__any.elts->next != NULL &&
+        msg->Message.__any.elts->next->elts != NULL &&
+        msg->Message.__any.elts->next->elts->atts != NULL &&
+        msg->Message.__any.elts->next->elts->atts->next != NULL &&
+        msg->Message.__any.elts->next->elts->atts->next->text != NULL) {
+        Debug(1,"Got Motion Alarm!");
+          if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
+          //Event Start
+            Debug(1,"Triggered on ONVIF");
+            if (!ONVIF_Trigger_State) {
+              Debug(1,"Triggered Event");
+              ONVIF_Trigger_State = TRUE;
+            }
+          } else {
+            Debug(1, "Triggered off ONVIF");
+            ONVIF_Trigger_State = FALSE;
+            if (!ONVIF_Closes_Event) { //If we get a close event, then we know to expect them.
+              ONVIF_Closes_Event = TRUE;
+              Debug(1,"Setting ClosesEvent");
+            }
+          }
+        }
+      }
+    }
+  }
+#endif
+  return TRUE;
+} //end Poll
+
 // Would be nice if this JUST did analysis
 // This idea is that we should be analysing as close to the capture frame as possible.
 // This method should process as much as possible before returning
@@ -1773,6 +1878,22 @@ bool Monitor::Analyse() {
 
     std::string cause;
     Event::StringSetMap noteSetMap;
+
+#ifdef WITH_GSOAP
+    if (ONVIF_Trigger_State) {
+      score += 9;
+      Debug(1, "Triggered on ONVIF");
+      if (!event) {
+        cause += "ONVIF";
+      }
+      Event::StringSet noteSet;
+      noteSet.insert("ONVIF2");
+      noteSetMap[MOTION_CAUSE] = noteSet;
+      //If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
+      if (!ONVIF_Closes_Event && state == ALARM)
+        ONVIF_Trigger_State = FALSE;
+    }  // end ONVIF_Trigger
+#endif
 
     // Specifically told to be on.  Setting the score here will trigger the alarm.
     if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
@@ -1874,6 +1995,8 @@ bool Monitor::Analyse() {
           }
 
           if (snap->image) {
+            alarm_image.Assign(*(snap->image));
+
             // decoder may not have been able to provide an image
             if (!ref_image.Buffer()) {
               Debug(1, "Assigning instead of Detecting");
@@ -2057,7 +2180,7 @@ bool Monitor::Analyse() {
 
         if (state == PREALARM) {
           // Generate analysis images if necessary
-          if ((savejpegs > 1) and snap->image) {
+          if (snap->image) {
             for (const Zone &zone : zones) {
               if (zone.Alarmed() and zone.AlarmImage()) {
                   if (!snap->analysis_image)
@@ -2065,20 +2188,25 @@ bool Monitor::Analyse() {
                   snap->analysis_image->Overlay(*(zone.AlarmImage()));
               } // end if zone is alarmed
             } // end foreach zone
-          } // end if savejpegs
+            if (snap->analysis_image != nullptr)
+            alarm_image.Assign(*(snap->analysis_image));
+          } // end if image.
 
           // incremement pre alarm image count
           Event::AddPreAlarmFrame(snap->image, timestamp, score, nullptr);
         } else if (state == ALARM) {
-          for (const Zone &zone : zones) {
-            if (zone.Alarmed()) {
-              if (zone.AlarmImage() and (savejpegs > 1) and snap->image) {
+          if (snap->image) {
+            for (const Zone &zone : zones) {
+              if (zone.Alarmed() and zone.AlarmImage()) {
                 if (!snap->analysis_image)
                   snap->analysis_image = new Image(*(snap->image));
                 snap->analysis_image->Overlay(*(zone.AlarmImage()));
-              }
-            }  // end if zone is alarmed
-          }  // end foreach zone
+              }  // end if zone is alarmed
+            }  // end foreach zone
+            if (snap->analysis_image != nullptr)
+            alarm_image.Assign(*(snap->analysis_image));
+          }
+
           if (event) {
             if (noteSetMap.size() > 0)
               event->updateNotes(noteSetMap);
@@ -2557,23 +2685,21 @@ bool Monitor::Decode() {
       } else if (deinterlacing_value == 3) {
         capture_image->Deinterlace_Blend();
       } else if (deinterlacing_value == 4) {
-        ZMLockedPacket *deinterlace_packet_lock = nullptr;
         while (!zm_terminate) {
-          ZMLockedPacket *second_packet_lock = packetqueue.get_packet(decoder_it);
-          if (!second_packet_lock) {
+          ZMLockedPacket *deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
+          if (!deinterlace_packet_lock) {
             packetqueue.unlock(packet_lock);
             return false;
           }
-          if (second_packet_lock->packet_->codec_type == packet->codec_type) {
-            deinterlace_packet_lock = second_packet_lock;
+          if (deinterlace_packet_lock->packet_->codec_type == packet->codec_type) {
+            capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
+            packetqueue.unlock(deinterlace_packet_lock);
             break;
           }
-          packetqueue.unlock(second_packet_lock);
+          packetqueue.unlock(deinterlace_packet_lock);
           packetqueue.increment_it(decoder_it);
         }
         if (zm_terminate) return false;
-        capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
-        packetqueue.unlock(deinterlace_packet_lock);
       } else if (deinterlacing_value == 5) {
         capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
       }
@@ -2668,7 +2794,7 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
 Event * Monitor::openEvent(
     const std::shared_ptr<ZMPacket> &snap,
     const std::string &cause,
-    const Event::StringSetMap noteSetMap) {
+    const Event::StringSetMap &noteSetMap) {
 
   // FIXME this iterator is not protected from invalidation
   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
@@ -3005,6 +3131,16 @@ int Monitor::PrimeCapture() {
     }
   }  // end if rtsp_server
 
+#ifdef WITH_GSOAP //For now, just don't run the thread if no ONVIF support. This may change if we add other long polling options.
+  //ONVIF Thread
+  if (onvif_event_listener) {
+    if (!Poller) {
+      Poller = zm::make_unique<PollThread>(this);
+    } else {
+      Poller->Start();
+    }
+  }
+#endif
   if (decoding_enabled) {
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
@@ -3042,6 +3178,24 @@ int Monitor::Close() {
   if (analysis_thread) {
     analysis_thread->Stop();
   }
+
+#ifdef WITH_GSOAP
+  //ONVIF Teardown
+  if (Poller) {
+    Poller->Stop();
+  }
+  if (onvif_event_listener && (soap != nullptr)) {
+    Debug(1, "Tearing Down Onvif");
+    _wsnt__Unsubscribe wsnt__Unsubscribe;
+    _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+    proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+    soap_destroy(soap);
+    soap_end(soap);
+    soap_free(soap);
+    soap = nullptr;
+  }  //End ONVIF
+#endif
+
   packetqueue.clear();
   if (audio_fifo) {
     delete audio_fifo;
@@ -3144,3 +3298,36 @@ StringVector Monitor::GroupNames() {
   }
   return groupnames;
 } // end Monitor::GroupNames()
+
+#ifdef WITH_GSOAP
+//ONVIF Set Credentials
+void Monitor::set_credentials(struct soap *soap)
+{
+  soap_wsse_delete_Security(soap);
+  soap_wsse_add_Timestamp(soap, NULL, 10);
+  soap_wsse_add_UsernameTokenDigest(soap, "Auth", onvif_username.c_str(), onvif_password.c_str());
+}
+
+//GSOAP boilerplate
+int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char *faultactor, struct SOAP_ENV__Detail *detail, struct SOAP_ENV__Code *SOAP_ENV__Code, struct SOAP_ENV__Reason *SOAP_ENV__Reason, char *SOAP_ENV__Node, char *SOAP_ENV__Role, struct SOAP_ENV__Detail *SOAP_ENV__Detail)
+{
+  // populate the fault struct from the operation arguments to print it
+  soap_fault(soap);
+  // SOAP 1.1
+  soap->fault->faultcode = faultcode;
+  soap->fault->faultstring = faultstring;
+  soap->fault->faultactor = faultactor;
+  soap->fault->detail = detail;
+  // SOAP 1.2
+  soap->fault->SOAP_ENV__Code = SOAP_ENV__Code;
+  soap->fault->SOAP_ENV__Reason = SOAP_ENV__Reason;
+  soap->fault->SOAP_ENV__Node = SOAP_ENV__Node;
+  soap->fault->SOAP_ENV__Role = SOAP_ENV__Role;
+  soap->fault->SOAP_ENV__Detail = SOAP_ENV__Detail;
+  // set error
+  soap->error = SOAP_FAULT;
+  // handle or display the fault here with soap_stream_fault(soap, std::cerr);
+  // return HTTP 202 Accepted
+  return soap_send_empty_response(soap, SOAP_OK);
+}
+#endif

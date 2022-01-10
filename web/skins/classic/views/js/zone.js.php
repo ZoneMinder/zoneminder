@@ -97,6 +97,8 @@ var deleteString = "<?php echo translate('Delete') ?>";
 var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
 var CMD_PLAY = <?php echo CMD_PLAY ?>;
 var CMD_STOP = <?php echo CMD_STOP ?>;
+var CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
+var CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;
 var CMD_QUERY = <?php echo CMD_QUERY ?>;
 
 var SCALE_BASE = <?php echo SCALE_BASE ?>;
@@ -120,3 +122,7 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
 var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
 
+var translate = {
+  "Showing Analysis": '<?php echo translate('Showing Analysis'); ?>',
+  "Not Showing Analysis": '<?php echo translate('Not Showing Analysis'); ?>'
+};

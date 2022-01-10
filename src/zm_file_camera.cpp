@@ -46,9 +46,9 @@ FileCamera::FileCamera(
       p_hue,
       p_colour,
       p_capture,
-      p_record_audio)
+      p_record_audio),
+  path(p_path)
 {
-  path = std::string(p_path);
   if (capture) {
     Initialise();
   }

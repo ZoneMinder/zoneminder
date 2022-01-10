@@ -23,6 +23,7 @@
 #include "zm_define.h"
 #include "zm_camera.h"
 #include "zm_analysis_thread.h"
+#include "zm_poll_thread.h"
 #include "zm_decoder_thread.h"
 #include "zm_event.h"
 #include "zm_fifo.h"
@@ -33,6 +34,12 @@
 #include <memory>
 #include <sys/time.h>
 #include <vector>
+
+#ifdef WITH_GSOAP
+#include "soapPullPointSubscriptionBindingProxy.h"
+#include "plugin/wsseapi.h"
+#include <openssl/err.h>
+#endif
 
 class Group;
 
@@ -97,7 +104,7 @@ public:
     FILE,
     FFMPEG,
     LIBVLC,
-    CURL,
+    LIBCURL,
     NVSOCKET,
     VNC,
   } CameraType;
@@ -280,6 +287,8 @@ protected:
   };
 
   protected:
+
+
   // These are read from the DB and thereafter remain unchanged
   unsigned int    id;
   std::string     name;
@@ -310,6 +319,7 @@ protected:
   std::string onvif_username;
   std::string onvif_password;
   std::string onvif_options;
+  bool        onvif_event_listener;
 
   std::string     device;
   int             palette;
@@ -433,6 +443,7 @@ protected:
 
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
+  std::unique_ptr<PollThread> Poller;
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
@@ -458,6 +469,20 @@ protected:
   Image        write_image;    // Used when creating snapshot images
   std::string diag_path_ref;
   std::string diag_path_delta;
+
+  //ONVIF
+#ifdef WITH_GSOAP
+  struct soap *soap;
+  bool ONVIF_Trigger_State;
+  bool ONVIF_Healthy;
+  bool ONVIF_Closes_Event;
+  _tev__CreatePullPointSubscription request;
+  _tev__CreatePullPointSubscriptionResponse response;
+  _tev__PullMessages tev__PullMessages;
+  _tev__PullMessagesResponse tev__PullMessagesResponse;
+  PullPointSubscriptionBindingProxy proxyEvent;
+  void set_credentials(struct soap *soap);
+#endif
 
   // Used in check signal
   uint8_t red_val;
@@ -618,6 +643,7 @@ public:
   const std::string &getONVIF_Password() const { return onvif_password; };
   const std::string &getONVIF_Options() const { return onvif_options; };
 
+  Image *GetAlarmImage();
   int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;
   SystemTimePoint GetTimestamp(int index = -1) const;
@@ -674,12 +700,13 @@ public:
   bool CheckSignal( const Image *image );
   bool Analyse();
   bool Decode();
+  bool Poll();
   void DumpImage( Image *dump_image ) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   Event *openEvent(
       const std::shared_ptr<ZMPacket> &snap,
       const std::string &cause,
-      const Event::StringSetMap noteSetMap);
+      const Event::StringSetMap &noteSetMap);
   void closeEvent();
 
   void Reload();

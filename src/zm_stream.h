@@ -40,6 +40,7 @@ public:
     STREAM_SINGLE,
     STREAM_MPEG
   } StreamType;
+  typedef enum { FRAME_NORMAL, FRAME_ANALYSIS } FrameType;
 
 protected:
   static constexpr Seconds MAX_STREAM_DELAY = Seconds(5);
@@ -89,6 +90,8 @@ protected:
     CMD_GET_IMAGE,
     CMD_QUIT,
     CMD_MAXFPS,
+    CMD_ANALYZE_ON,
+    CMD_ANALYZE_OFF,
     CMD_QUERY=99
   } MsgCommand;
 
@@ -97,6 +100,7 @@ protected:
   std::shared_ptr<Monitor> monitor;
 
   StreamType type;
+  FrameType   frame_type;
   const char *format;
   int replay_rate;
   int scale;
@@ -153,6 +157,7 @@ public:
     monitor_id(0),
     monitor(nullptr),
     type(DEFAULT_TYPE),
+    frame_type(FRAME_NORMAL),
     format(""),
     replay_rate(DEFAULT_RATE),
     scale(DEFAULT_SCALE),
@@ -198,7 +203,9 @@ public:
       type = STREAM_RAW;
     }
 #endif
-
+  }
+  void setStreamFrameType(FrameType p_type) {
+    frame_type = p_type;
   }
   void setStreamFormat(const char *p_format) {
     format = p_format;

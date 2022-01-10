@@ -219,7 +219,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   int alarm_mid_x = -1;
   int alarm_mid_y = -1;
 
-  unsigned int lo_x = polygon.Extent().Lo().x_;
+  //unsigned int lo_x = polygon.Extent().Lo().x_;
   unsigned int lo_y = polygon.Extent().Lo().y_;
   unsigned int hi_x = polygon.Extent().Hi().x_;
   unsigned int hi_y = polygon.Extent().Hi().y_;
@@ -699,6 +699,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
     if ((type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)) {
 
+      unsigned int lo_x = polygon.Extent().Lo().x_;
       // First mask out anything we don't want
       for (unsigned int y = lo_y; y <= hi_y; y++) {
         pdiff = diff_buff + ((diff_width * y) + lo_x);

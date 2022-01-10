@@ -487,7 +487,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   } else if ( ! strcmp(dbrow[col], "Libvlc") ) {
     type = LIBVLC;
   } else if ( ! strcmp(dbrow[col], "cURL") ) {
-    type = CURL;
+    type = LIBCURL;
   } else if ( ! strcmp(dbrow[col], "VNC") ) {
     type = VNC;
   } else {
@@ -859,7 +859,7 @@ void Monitor::LoadCamera() {
 #endif // HAVE_LIBVLC
       break;
     }
-    case CURL: {
+    case LIBCURL: {
 #if HAVE_LIBCURL
       camera = zm::make_unique<cURLCamera>(this,
                                            path.c_str(),

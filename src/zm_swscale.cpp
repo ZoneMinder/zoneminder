@@ -22,7 +22,14 @@
 #include "zm_image.h"
 #include "zm_logger.h"
 
-SWScale::SWScale() : gotdefaults(false), swscale_ctx(nullptr), input_avframe(nullptr), output_avframe(nullptr) {
+SWScale::SWScale() :
+  gotdefaults(false),
+  swscale_ctx(nullptr),
+  input_avframe(nullptr),
+  output_avframe(nullptr),
+  default_width(0),
+  default_height(0)
+{
   Debug(4, "SWScale object created");
 }
 

@@ -399,13 +399,6 @@ $SLANG = array(
     'First'                 => 'First',
     'FlippedHori'           => 'Flipped Horizontally',
     'FlippedVert'           => 'Flipped Vertically',
-    'FnNone'                => 'None',            // Added 2013.08.16.
-    'FnMonitor'             => 'Monitor',            // Added 2013.08.16.
-    'FnModect'              => 'Modect',            // Added 2013.08.16.
-    'FnRecord'              => 'Record',            // Added 2013.08.16.
-    'FnMocord'              => 'Mocord',            // Added 2013.08.16.
-    'FnNodect'              => 'Nodect',            // Added 2013.08.16.
-    'FnExtdect'             => 'Extdect',           // Added 2014.12.14.
     'Focus'                 => 'Focus',
     'ForceAlarm'            => 'Force Alarm',
     'Format'                => 'Format',
@@ -698,9 +691,8 @@ $SLANG = array(
     'Protocol'              => 'Protocol',
     'Rate'                  => 'Rate',
     'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
-	'RecordAudio'			=> 'Whether to store the audio stream when saving an event.',
+    'RecordAudio'			=> 'Whether to store the audio stream when saving an event.',
     'Real'                  => 'Real',
-    'Record'                => 'Record',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
     'Refresh'               => 'Refresh',
     'RemoteHostName'        => 'Host Name',
@@ -1110,55 +1102,6 @@ $OLANG = array(
       certainly not what you want! To unlink monitors you can ctrl-click.
       '
 	),
-  'FUNCTION_NONE' => array(
-    'Help' => '
-      In None mode no processes are started.  No capturing will occur.
-      '
-  ),
-  'FUNCTION_MONITOR' => array(
-    'Help' => '
-      In Monitor mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      No motion detection will be performed.  This monitor type cannot save video.
-      '
-  ),
-  'FUNCTION_MODECT' => array(
-    'Help' => '
-      In Modect mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      In addition the video will be analysed for motion.  
-      When motion is detected, events will be created and video will be stored.
-      Motion data will be stored in the database for each event.
-      Events may also be triggered externally (zmtrigger) or by linked monitors.
-      '
-  ),
-  'FUNCTION_RECORD' => array(
-    'Help' => '
-      In Record mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      Motion detection will not be performed.
-      Events will be created at fixed intervals and video will be stored.
-      '
-  ),
-  'FUNCTION_MOCORD' => array(
-    'Help' => '
-      In Mocord mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      In addition the video will be analysed for motion.  
-      Events will be created at fixed intervals or at start and stop of motion.
-      Video will always be stored to disk and events will have the motion data stored in the database.
-      Events may also be triggered externally (zmtrigger) or by linked monitors.
-      '
-  ),
-  'FUNCTION_NODECT' => array(
-    'Help' => '
-      In Nodect mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      In addition any linked cameras will be checked for their alarm status. 
-      When linked cameras or an external trigger (zmtrigger) are alarmed, events will be created
-      and video will be stored.  No other motion detection will occur.
-      '
-  ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
       When in Modect, Mocord, Nodect or RECORD mode the analysis process can be turned on/off.

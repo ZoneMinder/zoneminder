@@ -293,18 +293,16 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext->interrupt_callback.opaque = this;
 
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), nullptr, &opts);
-  if ( ret != 0 )
-  {
+  if (ret != 0) {
     logPrintf(Logger::ERROR + monitor->Importance(),
         "Unable to open input %s due to: %s", mPath.c_str(),
         av_make_error_string(ret).c_str());
 
-    if ( mFormatContext ) {
+    if (mFormatContext) {
       avformat_close_input(&mFormatContext);
       mFormatContext = nullptr;
     }
     av_dict_free(&opts);
-
     return -1;
   }
   AVDictionaryEntry *e = nullptr;

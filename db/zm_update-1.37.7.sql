@@ -13,7 +13,7 @@ SET @s = (SELECT IF(
   AND table_schema = DATABASE()
   AND column_name = 'ONVIF_Event_Listener'
   ) > 0,
-"SELECT 'Column ONVIF_Event_Listener already exists in Monitorss'",
+"SELECT 'Column ONVIF_Event_Listener already exists in Monitors'",
 "ALTER TABLE `Monitors` ADD COLUMN `ONVIF_Event_Listener` BOOLEAN NOT NULL default false AFTER `ONVIF_Options`"
 ));
 

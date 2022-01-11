@@ -314,7 +314,9 @@ Monitor::Monitor()
   storage_id(0),
   type(LOCAL),
   function(NONE),
-  enabled(false),
+  capturing(CAPTURING_ALWAYS),
+  analysing(ANALYSING_ALWAYS),
+  recording(RECORDING_ALWAYS),
   decoding_enabled(false),
   //protocol
   //method
@@ -456,7 +458,8 @@ Monitor::Monitor()
 
 /*
   std::string load_monitor_sql =
-  "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `Enabled`, `DecodingEnabled`, "
+  "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`,
+  `DecodingEnabled`, "
  "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -512,7 +515,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   recording = (RecordingOption)atoi(dbrow[col]); col++;
   recording_source = (RecordingSourceOption)atoi(dbrow[col]); col++;
 
-  enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   // See below after save_jpegs for a recalculation of decoding_enabled
 
@@ -1051,7 +1053,9 @@ bool Monitor::connect() {
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
-    shared_data->active = enabled;
+    shared_data->analysing = analysing;
+    shared_data->capturing = capturing;
+    shared_data->recording = recording;
     shared_data->signal = false;
     shared_data->capture_fps = 0.0;
     shared_data->analysis_fps = 0.0;
@@ -1377,16 +1381,12 @@ void Monitor::actionReload() {
 
 void Monitor::actionEnable() {
   shared_data->action |= RELOAD;
-
-  std::string sql = stringtf("UPDATE `Monitors` SET `Enabled` = 1 WHERE `Id` = %u", id);
-  zmDbDo(sql);
+  shared_data->capturing = true;
 }
 
 void Monitor::actionDisable() {
   shared_data->action |= RELOAD;
-
-  std::string sql = stringtf("UPDATE `Monitors` SET `Enabled` = 0 WHERE `Id` = %u", id);
-  zmDbDo(sql);
+  shared_data->capturing = false;
 }
 
 void Monitor::actionSuspend() {
@@ -1698,31 +1698,31 @@ bool Monitor::CheckSignal(const Image *image) {
 } // end bool Monitor::CheckSignal(const Image *image)
 
 void Monitor::CheckAction() {
-  SystemTimePoint now = std::chrono::system_clock::now();
 
-  if ( shared_data->action ) {
+  if (shared_data->action) {
     // Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
-    if ( shared_data->action & RELOAD ) {
+    if (shared_data->action & RELOAD) {
       Info("Received reload indication at count %d", image_count);
       shared_data->action &= ~RELOAD;
       Reload();
     }
-    if ( shared_data->action & SUSPEND ) {
-      if ( Active() ) {
+    if (shared_data->action & SUSPEND) {
+      if (Active()) {
         Info("Received suspend indication at count %d", image_count);
-        shared_data->active = false;
+        shared_data->analysing = false;
         //closeEvent();
       } else {
         Info("Received suspend indication at count %d, but wasn't active", image_count);
       }
       if (config.max_suspend_time) {
+        SystemTimePoint now = std::chrono::system_clock::now();
         auto_resume_time = now + Seconds(config.max_suspend_time);
       }
       shared_data->action &= ~SUSPEND;
-    } else if ( shared_data->action & RESUME ) {
+    } else if (shared_data->action & RESUME) {
       if ( Enabled() && !Active() ) {
         Info("Received resume indication at count %d", image_count);
-        shared_data->active = true;
+        shared_data->analysing = true;
         ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
         shared_data->alarm_x = shared_data->alarm_y = -1;
       }
@@ -1730,10 +1730,13 @@ void Monitor::CheckAction() {
     }
   } // end if shared_data->action
 
-  if (auto_resume_time.time_since_epoch() != Seconds(0) && now >= auto_resume_time) {
-    Info("Auto resuming at count %d", image_count);
-    shared_data->active = true;
-    ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
+  if (auto_resume_time.time_since_epoch() != Seconds(0)) {
+    SystemTimePoint now = std::chrono::system_clock::now();
+    if (now >= auto_resume_time) {
+      Info("Auto resuming at count %d", image_count);
+      shared_data->analysing = true;
+      ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
+    }
   }
 }
 
@@ -1927,7 +1930,6 @@ bool Monitor::Analyse() {
           ref_image.Assign(*(snap->image));
       }
       shared_data->state = state = IDLE;
-      shared_data->active = signal;
     }  // end if signal change
 
     if (signal) {
@@ -1983,9 +1985,8 @@ bool Monitor::Analyse() {
 
         SystemTimePoint timestamp = snap->timestamp;
 
-        if (Active() and (analysing == ANALYSING_ALWAYS)) {
-          Debug(3, "signal and active and modect");
-          Event::StringSet zoneSet;
+        if (shared_data->analysing) {
+          Debug(3, "signal and capturing and doing motion detection");
 
           if (analysis_fps_limit) {
             double capture_fps = get_capture_fps();
@@ -2002,6 +2003,7 @@ bool Monitor::Analyse() {
               Debug(1, "Assigning instead of Detecting");
               ref_image.Assign(*(snap->image));
             } else if (!(analysis_image_count % (motion_frame_skip+1))) {
+              Event::StringSet zoneSet;
               Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
               // Get new score.
               int motion_score = DetectMotion(*(snap->image), zoneSet);
@@ -2035,11 +2037,10 @@ bool Monitor::Analyse() {
           }  // end if has image
           score += last_motion_score;
         } else {
-          Debug(1, "Not Active(%d) enabled %d active %d doing motion detection: %d",
-              Active(), enabled, shared_data->active, analysing);
+          Debug(1, "Not analysing %d", shared_data->analysing);
         } // end if active and doing motion detection
 
-        if (capturing == CAPTURING_ALWAYS) {
+        if (shared_data->recording) {
           // If doing record, check to see if we need to close the event or not.
           if (event && (section_length >= Seconds(min_section_length)) && (timestamp - event->StartTime() > section_length)) {
             if (
@@ -2058,7 +2059,7 @@ bool Monitor::Analyse() {
             }  // end if section_length
           }  // end if event
 
-          if (!event) {
+          if (shared_data->capturing && !event) {
             event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
 
             Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
@@ -2388,7 +2389,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
           Debug(1, "Linking to monitor %d %s", atoi(dbrow[0]), dbrow[1]);
           linked_monitors[count++] = new MonitorLink(link_ids[i], dbrow[1]);
         } else {
-          Warning("Can't link to monitor %d, invalid id, function or not enabled", link_ids[i]);
+          Warning("Can't link to monitor %d, invalid id or database error", link_ids[i]);
         }
         mysql_free_result(result);
       }  // end foreach link_id
@@ -3083,9 +3084,10 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   for (const Zone &zone : zones) {
     zone.DumpSettings(output+strlen(output), verbose);
   }
-  sprintf(output+strlen(output), "Recording Enabled? %s\n", enabled ? "enabled" : "disabled");
+  sprintf(output+strlen(output), "Capturing Enabled? %s\n", shared_data->capturing ? "enabled" : "disabled");
+  sprintf(output+strlen(output), "Motion Detection Enabled? %s\n", shared_data->analysing ? "enabled" : "disabled");
+  sprintf(output+strlen(output), "Recording Enabled? %s\n", shared_data->recording ? "enabled" : "disabled");
   sprintf(output+strlen(output), "Events Enabled (!TRIGGER_OFF)? %s\n", trigger_data->trigger_state == TRIGGER_OFF ? "disabled" : "enabled");
-  sprintf(output+strlen(output), "Motion Detection Enabled? %s\n", shared_data->active ? "enabled" : "disabled");
   return true;
 } // bool Monitor::DumpSettings(char *output, bool verbose)
 

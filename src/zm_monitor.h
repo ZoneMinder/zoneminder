@@ -173,13 +173,15 @@ protected:
     int32_t alarm_x;            /* +44   */
     int32_t alarm_y;            /* +48   */
     uint8_t valid;              /* +52   */
-    uint8_t active;             /* +53   */
-    uint8_t signal;             /* +54   */
-    uint8_t format;             /* +55   */
-    uint32_t imagesize;         /* +56   */
-    uint32_t last_frame_score;  /* +60   */
-    uint32_t  audio_frequency;  /* +64   */
-    uint32_t  audio_channels;   /* +68   */
+    uint8_t capturing;          /* +53  boolean current status */
+    uint8_t analysing;          /* +54  boolean current status */
+    uint8_t recording;          /* +55  boolean current status */
+    uint8_t signal;             /* +56   */
+    uint8_t format;             /* +57   */
+    uint32_t imagesize;         /* +58   */
+    uint32_t last_frame_score;  /* +62   */
+    uint32_t  audio_frequency;  /* +66   */
+    uint32_t  audio_channels;   /* +70   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
@@ -302,7 +304,6 @@ protected:
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
-  bool            enabled;            // Whether the monitor is enabled or asleep
   bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
 
   std::string protocol;
@@ -538,9 +539,7 @@ public:
   inline Function GetFunction() const { return function; }
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
   inline bool Enabled() const {
-    if (analysing == ANALYSING_NONE)
-      return false;
-    return enabled;
+    return shared_data->capturing;
   }
   inline bool DecodingEnabled() const {
     return decoding_enabled;
@@ -554,9 +553,7 @@ public:
     return false;
   }
   inline bool Active() const {
-    if (analysing == ANALYSING_NONE)
-      return false;
-    return (enabled && shared_data->active);
+    return shared_data->analysing;
   }
   int64_t getLastViewed() {
     if (shared_data && shared_data->valid)

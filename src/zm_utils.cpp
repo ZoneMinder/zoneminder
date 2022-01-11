@@ -122,13 +122,14 @@ std::string stringtf(const char* format, ...) {
   va_start(args, format);
   va_list args2;
   va_copy(args2, args);
-
-  int size = vsnprintf(nullptr, 0, format, args) + 1; // Extra space for '\0'
+  int size = vsnprintf(nullptr, 0, format, args);
   va_end(args);
 
-  if (size <= 0) {
+  if (size < 0) {
+    va_end(args2);
     throw std::runtime_error("Error during formatting.");
   }
+  size += 1; // Extra space for '\0'
 
   std::unique_ptr<char[]> buf(new char[size]);
   vsnprintf(buf.get(), size, format, args2);
@@ -259,6 +260,8 @@ void HwCapsDetect() {
   unsigned long auxval = 0;
   elf_aux_info(AT_HWCAP, &auxval, sizeof(auxval));
   if (auxval & HWCAP_NEON) {
+  #else
+  {
   #error Unsupported OS.
   #endif
     Debug(1,"Detected ARM (AArch32) processor with Neon");

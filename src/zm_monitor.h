@@ -76,7 +76,7 @@ public:
     FILE,
     FFMPEG,
     LIBVLC,
-    CURL,
+    LIBCURL,
     NVSOCKET,
     VNC,
   } CameraType;

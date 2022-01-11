@@ -2135,7 +2135,7 @@ bool Monitor::Analyse() {
               if (
                   (function != RECORD && function != MOCORD)
                   ||
-                  (event_close_mode == CLOSE_ALARM || event_close_mode=CLOSE_IDLE)
+                  (event_close_mode == CLOSE_ALARM || event_close_mode==CLOSE_IDLE)
                   ) {
                 shared_data->state = state = IDLE;
                 Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",

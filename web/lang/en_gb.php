@@ -1102,16 +1102,16 @@ $OLANG = array(
       certainly not what you want! To unlink monitors you can ctrl-click.
       '
 	),
-  'CAPTURING' => array(
-    'Help' => 'When to do capturing:
-None: Do not run a process, do not do capturing.  Equivalent to the old Function == None
-Ondemand: A zmc process will run, but will wait for a viewer (live view, thumbnail or rstp server connection) before connecting to the camera.
-Always: A zmc process will run and immediately connect and stay connected.
+  'OPTIONS_CAPTURING' => array(
+    'Help' => 'When to do capturing:~~~~
+None: Do not run a process, do not do capturing.  Equivalent to the old Function == None~~~~
+Ondemand: A zmc process will run, but will wait for a viewer (live view, thumbnail or rstp server connection) before connecting to the camera.~~~~
+Always: A zmc process will run and immediately connect and stay connected.~~~~
 ',
   ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
-      When in Modect, Mocord, Nodect or RECORD mode the analysis process can be turned on/off.
+      When to perform motion detection on the captured video.  
       This setting sets the default state when the process starts up.
       It can then be turned on/off through external triggers zmtrigger zmu or the web ui.
       When not enabled no motion detection or linked monitor checking will be performed and 
@@ -1120,7 +1120,7 @@ Always: A zmc process will run and immediately connect and stay connected.
   ),
   'FUNCTION_DECODING_ENABLED' => array(
     'Help' => '
-      When in Record or Nodect mode and using H264Passthrough with no jpegs being saved, we can
+      When not performing motion detection and using H264Passthrough with no jpegs being saved, we can
       optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
       but will make live view unavailable for this monitor.'
   ),

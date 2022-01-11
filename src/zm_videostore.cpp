@@ -401,6 +401,10 @@ bool VideoStore::open() {
       } else {
         audio_in_ctx = avcodec_alloc_context3(audio_out_codec);
         ret = avcodec_parameters_to_context(audio_in_ctx, audio_in_stream->codecpar);
+        if (ret < 0)
+          Error("Failure from avcodec_parameters_to_context %s",
+              av_make_error_string(ret).c_str());
+
         audio_in_ctx->time_base = audio_in_stream->time_base;
 
         audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
@@ -497,8 +501,16 @@ bool VideoStore::open() {
     Debug(1, "using movflags %s", movflags_entry->value);
   }
   if ((ret = avformat_write_header(oc, &opts)) < 0) {
-    Warning("Unable to set movflags trying with defaults.");
-    ret = avformat_write_header(oc, nullptr);
+    // we crash if we try again
+    if (ENOSPC != ret) {
+      Warning("Unable to set movflags trying with defaults.%d %s",
+          ret, av_make_error_string(ret).c_str());
+
+      ret = avformat_write_header(oc, nullptr);
+      Debug(1, "Done %d", ret);
+    } else {
+      Error("ENOSPC. fail");
+    }
   } else if (av_dict_count(opts) != 0) {
     Info("some options not used, turn on debugging for a list.");
     AVDictionaryEntry *e = nullptr;
@@ -729,7 +741,6 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
-  audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
   if (!audio_out_ctx->channel_layout) {
     Debug(3, "Correcting channel layout from (%" PRIi64 ") to (%" PRIi64 ")",
         audio_out_ctx->channel_layout,
@@ -852,7 +863,7 @@ bool VideoStore::setup_resampler() {
     return false;
   }
   if ((ret = swr_init(resample_ctx)) < 0) {
-    Error("Could not open resampler");
+    Error("Could not open resampler %d", ret);
     av_frame_free(&in_frame);
     av_frame_free(&out_frame);
     swr_free(&resample_ctx);

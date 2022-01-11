@@ -1,17 +1,17 @@
 /*
  * ZoneMinder MPEG class implementation, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -42,19 +42,26 @@ void VideoStream::SetupFormat( ) {
 	ofc = nullptr;
 	avformat_alloc_output_context2(&ofc, nullptr, format, filename);
 
-	if ( !ofc ) {
+	if (!ofc) {
 		Fatal("avformat_alloc_..._context failed");
 	}
 
 	of = ofc->oformat;
-	Debug(1, "Using output format: %s (%s)", of->name, of->long_name);
+  Debug(1, "Using output format: %s (%s)", of->name, of->long_name);
 }
 
-void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate ) {
+int VideoStream::SetupCodec(
+    int colours,
+    int subpixelorder,
+    int width,
+    int height,
+    int bitrate,
+    double frame_rate
+    ) {
 	/* ffmpeg format matching */
-	switch ( colours ) {
+	switch (colours) {
 	  case ZM_COLOUR_RGB24:
-	    if ( subpixelorder == ZM_SUBPIX_ORDER_BGR ) {
+	    if (subpixelorder == ZM_SUBPIX_ORDER_BGR) {
 	      /* BGR subpixel order */
 	      pf = AV_PIX_FMT_BGR24;
 	    } else {
@@ -63,13 +70,13 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	    }
 	    break;
 	  case ZM_COLOUR_RGB32:
-	    if ( subpixelorder == ZM_SUBPIX_ORDER_ARGB ) {
+	    if (subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
 	      /* ARGB subpixel order */
 	      pf = AV_PIX_FMT_ARGB;
-	    } else if ( subpixelorder == ZM_SUBPIX_ORDER_ABGR ) {
+	    } else if (subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
 	      /* ABGR subpixel order */
 	      pf = AV_PIX_FMT_ABGR;
-	    } else if ( subpixelorder == ZM_SUBPIX_ORDER_BGRA ) {
+	    } else if (subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
 	      /* BGRA subpixel order */
 	      pf = AV_PIX_FMT_BGRA;
 	    } else {
@@ -85,22 +92,22 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	    break;
 	}
 
-	if ( strcmp("rtp", of->name) == 0 ) {
+	if (strcmp("rtp", of->name) == 0) {
 		// RTP must have a packet_size.
 		// Not sure what this value should be really...
 		ofc->packet_size = width*height;
     Debug(1,"Setting packet_size to %d", ofc->packet_size);
-		
-		if ( of->video_codec ==  AV_CODEC_ID_NONE ) {
+
+		if (of->video_codec == AV_CODEC_ID_NONE) {
 			// RTP does not have a default codec in ffmpeg <= 0.8.
 			of->video_codec = AV_CODEC_ID_MPEG4;
 		}
 	}
-	
+
 	_AVCODECID codec_id = of->video_codec;
-	if ( codec_name ) {
+	if (codec_name) {
     AVCodec *a = avcodec_find_encoder_by_name(codec_name);
-    if ( a ) {
+    if (a) {
       codec_id = a->id;
       Debug(1, "Using codec \"%s\"", codec_name);
     } else {
@@ -111,31 +118,29 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 	/* add the video streams using the default format codecs
 	   and initialize the codecs */
 	ost = nullptr;
-	if ( codec_id != AV_CODEC_ID_NONE ) {
+	if (codec_id != AV_CODEC_ID_NONE) {
 		codec = avcodec_find_encoder(codec_id);
-		if ( !codec ) {
-			Fatal("Could not find encoder for '%s'", avcodec_get_name(codec_id));
+		if (!codec) {
+			Error("Could not find encoder for '%s'", avcodec_get_name(codec_id));
+      return -1;
 		}
 
 		Debug(1, "Found encoder for '%s'", avcodec_get_name(codec_id));
-
-		ost = avformat_new_stream( ofc, codec );
-		
-		if ( !ost ) {
-			Fatal( "Could not alloc stream" );
-      return;
+		ost = avformat_new_stream(ofc, codec);
+		if (!ost) {
+			Error("Could not alloc stream");
+      return -1;
 		}
-		Debug( 1, "Allocated stream (%d) !=? (%d)", ost->id , ofc->nb_streams - 1 );
+		Debug(1, "Allocated stream (%d) !=? (%d)", ost->id , ofc->nb_streams - 1);
 		ost->id = ofc->nb_streams - 1;
 
     codec_context = avcodec_alloc_context3(nullptr);
     //avcodec_parameters_to_context(codec_context, ost->codecpar);
-
 		codec_context->codec_id = codec->id;
 		codec_context->codec_type = codec->type;
 
 		codec_context->pix_fmt = strcmp("mjpeg", ofc->oformat->name) == 0 ? AV_PIX_FMT_YUVJ422P : AV_PIX_FMT_YUV420P;
-		if ( bitrate <= 100 ) {
+		if (bitrate <= 100) {
 			// Quality based bitrate control (VBR). Scale is 1..31 where 1 is best.
 			// This gets rid of artifacts in the beginning of the movie; and well, even quality.
 			codec_context->flags |= AV_CODEC_FLAG_QSCALE;
@@ -155,22 +160,22 @@ void VideoStream::SetupCodec( int colours, int subpixelorder, int width, int hei
 		codec_context->time_base.num = 1;
     ost->time_base.den = frame_rate;
 		ost->time_base.num = 1;
-
-		
 		Debug( 1, "Will encode in %d fps. %dx%d", codec_context->time_base.den, width, height );
-		
+
 		/* emit one intra frame every second */
 		codec_context->gop_size = frame_rate;
 
 		// some formats want stream headers to be separate
-		if ( of->flags & AVFMT_GLOBALHEADER )
+		if (of->flags & AVFMT_GLOBALHEADER)
 			codec_context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     avcodec_parameters_from_context(ost->codecpar, codec_context);
     zm_dump_codecpar(ost->codecpar);
 	} else {
-		Fatal( "of->video_codec == AV_CODEC_ID_NONE" );
-	}
+		Error("of->video_codec == AV_CODEC_ID_NONE");
+    return -1;
+  }
+  return 0;
 }
 
 void VideoStream::SetParameters( ) {
@@ -198,11 +203,11 @@ const char *VideoStream::MimeType() const {
 bool VideoStream::OpenStream( ) {
 	int ret;
 
-	/* now that all the parameters are set, we can open the 
+	/* now that all the parameters are set, we can open the
 	   video codecs and allocate the necessary encode buffers */
 	if ( ost ) {
     Debug(1,"Opening codec");
-    
+
 		/* open the codec */
 
       if ((ret = avcodec_open2(codec_context, codec, nullptr)) < 0) {
@@ -319,7 +324,7 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 	if ( !initialised ) {
 		Initialise( );
 	}
-	
+
 	if ( format ) {
 		int length = strlen(format);
 		codec_and_format = new char[length+1];;
@@ -337,13 +342,13 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 	SetupFormat( );
 	SetupCodec( colours, subpixelorder, width, height, bitrate, frame_rate );
 	SetParameters( );
-    
+
   // Allocate buffered packets.
   packet_buffers = new AVPacket*[2];
   packet_buffers[0] = new AVPacket();
   packet_buffers[1] = new AVPacket();
   packet_index = 0;
-	
+
 	// Initialize mutex used by streaming thread.
 	if ( pthread_mutex_init( buffer_copy_lock, nullptr ) != 0 ) {
 		Fatal("pthread_mutex_init failed");
@@ -353,35 +358,35 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 
 VideoStream::~VideoStream( ) {
 	Debug( 1, "VideoStream destructor." );
-	
+
 	// Stop streaming thread.
 	if ( streaming_thread ) {
 		do_streaming = false;
 		void* thread_exit_code;
-		
+
 		Debug( 1, "Asking streaming thread to exit." );
-		
+
 		// Wait for thread to exit.
 		pthread_join(streaming_thread, &thread_exit_code);
 	}
-	
+
 	if ( buffer_copy != nullptr ) {
 		av_free( buffer_copy );
 	}
-    
+
 	if ( buffer_copy_lock ) {
 		if ( pthread_mutex_destroy( buffer_copy_lock ) != 0 ) {
 			Error( "pthread_mutex_destroy failed" );
 		}
 		delete buffer_copy_lock;
 	}
-    
+
   if (packet_buffers) {
     delete packet_buffers[0];
     delete packet_buffers[1];
     delete[] packet_buffers;
   }
-	
+
 	/* close each codec */
 	if ( ost ) {
 		avcodec_close( codec_context );
@@ -409,7 +414,7 @@ VideoStream::~VideoStream( ) {
 
 	/* free the stream */
 	av_free( ofc );
-	
+
 	/* free format and codec_name data. */
 	if ( codec_and_format ) {
 		delete codec_and_format;
@@ -420,12 +425,12 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _a
 	if ( pthread_mutex_lock(buffer_copy_lock) != 0 ) {
 		Fatal( "EncodeFrame: pthread_mutex_lock failed." );
 	}
-	
+
 	if (buffer_copy_size < buffer_size) {
 		if ( buffer_copy ) {
 			av_free(buffer_copy);
 		}
-		
+
 		// Allocate a buffer to store source images for the streaming thread to encode.
 		buffer_copy = (uint8_t *)av_malloc(buffer_size);
 		if ( !buffer_copy ) {
@@ -435,35 +440,34 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _a
 		}
 		buffer_copy_size = buffer_size;
 	}
-	
+
 	add_timestamp = _add_timestamp;
 	timestamp = _timestamp;
 	buffer_copy_used = buffer_size;
 	memcpy(buffer_copy, buffer, buffer_size);
-	
+
 	if ( pthread_mutex_unlock(buffer_copy_lock) != 0 ) {
 		Fatal( "EncodeFrame: pthread_mutex_unlock failed." );
 	}
-	
+
 	if ( streaming_thread == 0 ) {
 		Debug( 1, "Starting streaming thread" );
-		
+
 		// Start a thread for streaming encoded video.
 		if (pthread_create( &streaming_thread, nullptr, StreamingThreadCallback, (void*) this) != 0){
 			// Log a fatal error and exit the process.
 			Fatal( "VideoStream failed to create streaming thread." );
 		}
 	}
-	
+
 	//return ActuallyEncodeFrame( buffer, buffer_size, add_timestamp, timestamp);
-	
+
 	return _timestamp;
 }
 
 double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp ) {
-
 	if ( codec_context->pix_fmt != pf ) {
-	static struct SwsContext *img_convert_ctx = nullptr;
+    static struct SwsContext *img_convert_ctx = nullptr;
 		memcpy( tmp_opicture->data[0], buffer, buffer_size );
 		if ( !img_convert_ctx ) {
 			img_convert_ctx = sws_getCachedContext( nullptr, codec_context->width, codec_context->height, pf, codec_context->width, codec_context->height, codec_context->pix_fmt, SWS_BICUBIC, nullptr, nullptr, nullptr );
@@ -475,37 +479,36 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		memcpy( opicture->data[0], buffer, buffer_size );
 	}
 	AVFrame *opicture_ptr = opicture;
-	
+
 	AVPacket *pkt = packet_buffers[packet_index];
 	av_init_packet( pkt );
-    int got_packet = 0;
-    if (codec_context->codec_type == AVMEDIA_TYPE_VIDEO &&
-       codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
-		pkt->flags |= AV_PKT_FLAG_KEY;
-		pkt->stream_index = ost->index;
-		pkt->data = (uint8_t *)opicture_ptr;
-		pkt->size = sizeof (AVPicture);
-      got_packet = 1;
+  int got_packet = 0;
+  if (codec_context->codec_type == AVMEDIA_TYPE_VIDEO &&
+      codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
+    pkt->flags |= AV_PKT_FLAG_KEY;
+    pkt->stream_index = ost->index;
+    pkt->data = (uint8_t *)opicture_ptr;
+    pkt->size = sizeof (AVPicture);
+    got_packet = 1;
 	} else {
 		opicture_ptr->pts = codec_context->frame_number;
 		opicture_ptr->quality = codec_context->global_quality;
 
-      avcodec_send_frame(codec_context, opicture_ptr);
-      int ret = avcodec_receive_packet(codec_context, pkt);
-      if ( ret < 0 ) {
-        if ( AVERROR_EOF != ret ) {
-          Error("ERror encoding video (%d) (%s)", ret,
-                av_err2str(ret));
-        }
-      } else {
-        got_packet = 1;
+    avcodec_send_frame(codec_context, opicture_ptr);
+    int ret = avcodec_receive_packet(codec_context, pkt);
+    if (ret < 0) {
+      if (AVERROR_EOF != ret) {
+        Error("ERror encoding video (%d) (%s)", ret, av_err2str(ret));
       }
+    } else {
+      got_packet = 1;
+    }
 
-    if ( got_packet ) {
-//      if ( c->coded_frame->key_frame )
-//      {
-//        pkt->flags |= AV_PKT_FLAG_KEY;
-//      }
+    if (got_packet) {
+      //      if ( c->coded_frame->key_frame )
+      //      {
+      //        pkt->flags |= AV_PKT_FLAG_KEY;
+      //      }
 
       if ( pkt->pts != (int64_t)AV_NOPTS_VALUE ) {
         pkt->pts = av_rescale_q( pkt->pts, codec_context->time_base, ost->time_base );
@@ -517,18 +520,17 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
       pkt->stream_index = ost->index;
     }
   }
-  
-  return ( opicture_ptr->pts);
+
+  return opicture_ptr->pts;
 }
 
 int VideoStream::SendPacket(AVPacket *packet) {
-    
-    int ret = av_write_frame( ofc, packet );
-    if ( ret != 0 ) {
-        Fatal( "Error %d while writing video frame: %s", ret, av_err2str( errno ) );
-    }
-    av_packet_unref( packet );
-    return ret;
+  int ret = av_write_frame(ofc, packet);
+  if (ret < 0) {
+    Error("Error %d while writing video frame: %s", ret, av_err2str(errno));
+  }
+  av_packet_unref(packet);
+  return ret;
 }
 
 void *VideoStream::StreamingThreadCallback(void *ctx) {

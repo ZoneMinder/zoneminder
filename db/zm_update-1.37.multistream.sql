@@ -10,6 +10,8 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+UPDATE `Monitors` SET `Capturing` = 'None' WHERE `Function` == 'None';
+
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
      AND table_name = 'Monitors'
@@ -21,6 +23,8 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+UPDATE `Monitors` SET `Analysing` = 'None' WHERE `Function` == 'Record' OR `Function` == 'Nodect';
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
@@ -45,6 +49,9 @@ SET @s = (SELECT IF(
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
+
+UPDATE `Monitors` SET `Recording` = 'None' WHERE `Function` == 'Monitor';
+UPDATE `Monitors` SET `Recording` = 'OnMotion' WHERE `Function` == 'Modect';
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()

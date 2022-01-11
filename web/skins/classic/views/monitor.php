@@ -542,7 +542,7 @@ if (count($available_monitor_ids)) {
       if ($monitor->Type() != 'WebSite') {
 ?>
           <tr class="Capturing">
-            <td class="text-right pr-3"><?php echo translate('Capturing') ?></td>
+            <td class="text-right pr-3"><?php echo translate('Capturing'); echo makeHelpLink('OPTIONS_CAPTURING'); ?></td>
             <td>
 <?php
         echo htmlSelect('newMonitor[Capturing]', ZM\getMonitorCapturingOptions(), $monitor->Capturing());
@@ -566,6 +566,23 @@ if (count($available_monitor_ids)) {
           echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
         }
 ?>
+            </td>
+          </tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('Recording') ?></td>
+            <td>
+  <?php
+          echo htmlSelect('newMonitor[Recording]', ZM\getMonitorRecordingOptions(), $monitor->Recording(), array('on-change-this'=>'Recording_onChange'));
+  ?>
+                <div id="Recording_help">
+  <?php
+          foreach (ZM\getMonitorRecordingOptions() as $fn => $translated) {
+            if (isset($OLANG['RECORDING_'.strtoupper($fn)])) {
+              echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['RECORDING_'.strtoupper($fn)]['Help'].'</div>';
+            }
+          }
+  ?>
+              </div>
             </td>
           </tr>
           <tr class="LinkedMonitors">
@@ -973,23 +990,6 @@ include('_monitor_source_nvsocket.php');
     }
   case 'storage' :
 ?>
-        <tr>
-          <td class="text-right pr-3"><?php echo translate('Recording') ?></td>
-          <td>
-<?php
-        echo htmlSelect('newMonitor[Recording]', ZM\getMonitorRecordingOptions(), $monitor->Recording(), array('on-change-this'=>'Recording_onChange'));
-?>
-              <div id="Recording_help">
-<?php
-        foreach (ZM\getMonitorRecordingOptions() as $fn => $translated) {
-          if (isset($OLANG['RECORDING_'.strtoupper($fn)])) {
-            echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['RECORDING_'.strtoupper($fn)]['Help'].'</div>';
-          }
-        }
-?>
-            </div>
-          </td>
-        </tr>
         <tr id="RecordingSource"<?php echo $monitor->SecondPath() ? '' : ' style="display:none;"' ?>>
           <td class="text-right pr-3"><?php echo translate('RecordingSource') ?></td>
           <td>

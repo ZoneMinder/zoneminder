@@ -835,8 +835,6 @@ Used to end the debug session and close any logs etc. Not usually necessary.
 
 =item $trace         = logTrace ( [$trace] );
 
-=item $level         = logLevel ( [$level] );
-
 =item $termLevel     = logTermLevel ( [$termLevel] );
 
 =item $databaseLevel = logDatabaseLevel ( [$databaseLevel] );

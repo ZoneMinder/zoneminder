@@ -501,8 +501,16 @@ bool VideoStore::open() {
     Debug(1, "using movflags %s", movflags_entry->value);
   }
   if ((ret = avformat_write_header(oc, &opts)) < 0) {
-    Warning("Unable to set movflags trying with defaults.");
-    ret = avformat_write_header(oc, nullptr);
+    // we crash if we try again
+    if (ENOSPC != ret) {
+      Warning("Unable to set movflags trying with defaults.%d %s",
+          ret, av_make_error_string(ret).c_str());
+
+      ret = avformat_write_header(oc, nullptr);
+      Debug(1, "Done %d", ret);
+    } else {
+      Error("ENOSPC. fail");
+    }
   } else if (av_dict_count(opts) != 0) {
     Info("some options not used, turn on debugging for a list.");
     AVDictionaryEntry *e = nullptr;

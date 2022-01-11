@@ -2145,7 +2145,10 @@ bool Monitor::Analyse() {
                   name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
               //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
               if (event) {
-                if ((recording == RECORDING_ONMOTION) || (event_close_mode == CLOSE_ALARM) ) {
+                if ((recording == RECORDING_ONMOTION)
+                    ||
+                    (event_close_mode == CLOSE_ALARM || event_close_mode==CLOSE_IDLE)
+                   ) {
                   shared_data->state = state = IDLE;
                   Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",
                       name.c_str(), analysis_image_count, event->Id(), (function==MOCORD)?", section truncated":"" );

@@ -3306,9 +3306,9 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
 __attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 #if (defined(__aarch64__) && !defined(ZM_STRIP_NEON))
   static double current_blendpercent = 0.0;
+  static int8_t divider = 0;
 
   if (current_blendpercent != blendpercent) {
-    static int8_t divider = 0;
     /* Attempt to match the blending percent to one of the possible values */
     if(blendpercent < 2.34375) {
       // 1.5625% blending

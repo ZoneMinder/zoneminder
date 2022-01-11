@@ -77,7 +77,7 @@ struct Namespace namespaces[] =
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, "
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, `JanusEnabled`,"
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
@@ -306,6 +306,7 @@ Monitor::Monitor()
   function(NONE),
   enabled(false),
   decoding_enabled(false),
+  janus_enabled(false),
   //protocol
   //method
   //options
@@ -446,7 +447,7 @@ Monitor::Monitor()
 
 /*
   std::string load_monitor_sql =
- "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
+ "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, JanusEnabled, LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
  "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
@@ -487,7 +488,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   } else if ( ! strcmp(dbrow[col], "Libvlc") ) {
     type = LIBVLC;
   } else if ( ! strcmp(dbrow[col], "cURL") ) {
-    type = CURL;
+    type = LIBCURL;
   } else if ( ! strcmp(dbrow[col], "VNC") ) {
     type = VNC;
   } else {
@@ -499,6 +500,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   // See below after save_jpegs for a recalculation of decoding_enabled
+  janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
 
   ReloadLinkedMonitors(dbrow[col]); col++;
   event_start_command = dbrow[col] ? dbrow[col] : ""; col++;
@@ -859,7 +861,7 @@ void Monitor::LoadCamera() {
 #endif // HAVE_LIBVLC
       break;
     }
-    case CURL: {
+    case LIBCURL: {
 #if HAVE_LIBCURL
       camera = zm::make_unique<cURLCamera>(this,
                                            path.c_str(),
@@ -1074,44 +1076,55 @@ bool Monitor::connect() {
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
 
-  //ONVIF Setup
 #ifdef WITH_GSOAP
-  ONVIF_Trigger_State = FALSE;
-  if (onvif_event_listener) { //Temporarily using this option to enable the feature
-    Debug(1, "Starting ONVIF");
-    ONVIF_Healthy = FALSE;
-    if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
-      ONVIF_Closes_Event = TRUE;
-    }
-    tev__PullMessages.Timeout = "PT600S";
-    tev__PullMessages.MessageLimit = 100;
-    soap = soap_new();
-    soap->connect_timeout = 5;
-    soap->recv_timeout = 5;
-    soap->send_timeout = 5;
-    soap_register_plugin(soap, soap_wsse);
-    proxyEvent = PullPointSubscriptionBindingProxy(soap);
-    std::string full_url = onvif_url + "/Events";
-    proxyEvent.soap_endpoint = full_url.c_str();
-    set_credentials(soap);
-    Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
-    if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
-      Warning("Couldn't create subscription!");
-    } else {
-      //Empty the stored messages
-      set_credentials(soap);
-      if (proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) {
-        Warning("Couldn't do initial event pull! %s", response.SubscriptionReference.Address);
-      } else {
-        Debug(1, "Good Initial ONVIF Pull");
-        ONVIF_Healthy = TRUE;
+    //ONVIF Setup
+    ONVIF_Trigger_State = FALSE;
+    if (onvif_event_listener) { //Temporarily using this option to enable the feature
+      Debug(1, "Starting ONVIF");
+      ONVIF_Healthy = FALSE;
+      if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
+        ONVIF_Closes_Event = TRUE;
       }
+      tev__PullMessages.Timeout = "PT600S";
+      tev__PullMessages.MessageLimit = 100;
+      soap = soap_new();
+      soap->connect_timeout = 5;
+      soap->recv_timeout = 5;
+      soap->send_timeout = 5;
+      soap_register_plugin(soap, soap_wsse);
+      proxyEvent = PullPointSubscriptionBindingProxy(soap);
+      std::string full_url = onvif_url + "/Events";
+      proxyEvent.soap_endpoint = full_url.c_str();
+      set_credentials(soap);
+      Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
+      if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
+        Warning("Couldn't create subscription!");
+      } else {
+        //Empty the stored messages
+        set_credentials(soap);
+        if (proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) {
+          Warning("Couldn't do initial event pull! %s", response.SubscriptionReference.Address);
+        } else {
+          Debug(1, "Good Initial ONVIF Pull");
+          ONVIF_Healthy = TRUE;
+        }
+      }
+    } else {
+      Debug(1, "Not Starting ONVIF");
     }
-  } else {
-    Debug(1, "Not Starting ONVIF");
-  }
-  //End ONVIF Setup
+    //End ONVIF Setup
 #endif
+
+//janus setup.
+    if (janus_enabled) {
+      add_to_janus();
+    }
+//ifdef janus, and if url contains rtsp
+//look for username and password
+//make the initial call, scrape id, then connect to plugin
+//add stream using the same id
+
+
   } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
@@ -3189,6 +3202,10 @@ int Monitor::Close() {
     soap = nullptr;
   }  //End ONVIF
 #endif
+  //Janus Teardown
+    if (janus_enabled && (purpose == CAPTURE)) {
+      remove_from_janus();
+    }
 
   packetqueue.clear();
   if (audio_fifo) {
@@ -3325,3 +3342,120 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
   return soap_send_empty_response(soap, SOAP_OK);
 }
 #endif
+
+size_t Monitor::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
+int Monitor::add_to_janus() {
+  //TODO clean this up, add error checking, etc
+  std::string response;
+  std::string endpoint = "127.0.0.1:8088/janus/";
+  std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
+  std::string rtsp_username;
+  std::string rtsp_password;
+  std::string rtsp_path = "rtsp://";
+  std::size_t pos;
+  std::size_t pos2;
+
+  curl = curl_easy_init();
+
+  //parse username and password
+  pos = path.find(":", 7);
+  rtsp_username = path.substr(7, pos-7);
+
+  pos2 = path.find("@", pos);
+  rtsp_password = path.substr(pos+1, pos2 - pos - 1);
+  rtsp_path += path.substr(pos2 + 1);
+
+  //Start Janus API init. Need to get a session_id and handle_id
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  curl_easy_perform(curl);
+  pos = response.find("\"id\": ");
+  std::string janus_id = response.substr(pos + 6, 16);
+  response = "";
+  endpoint += janus_id;
+  postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
+  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  curl_easy_perform(curl);
+  pos = response.find("\"id\": ");
+  std::string handle_id = response.substr(pos + 6, 16);
+  endpoint += "/";
+  endpoint += handle_id;
+
+  //Assemble our actual request
+  postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
+  postData +=  "\"request\" : \"create\", \"admin_key\" : \"supersecret\", \"type\" : \"rtsp\", ";
+  postData +=  "\"url\" : \"";
+  postData += rtsp_path;
+  postData += "\", \"rtsp_user\" : \"";
+  postData += rtsp_username;
+  postData += "\", \"rtsp_pwd\" : \"";
+  postData += rtsp_password;
+  postData += "\", \"id\" : ";
+  postData += std::to_string(id);
+  postData += ", \"video\" : true}}";
+
+  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  curl_easy_perform(curl);
+  Warning(response.c_str());
+  curl_easy_cleanup(curl);
+
+}
+int Monitor::remove_from_janus() {
+  //TODO clean this up, add error checking, etc
+  std::string response;
+  std::string endpoint = "127.0.0.1:8088/janus/";
+  std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
+  std::size_t pos;
+
+  curl = curl_easy_init();
+
+
+  //Start Janus API init. Need to get a session_id and handle_id
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  curl_easy_perform(curl);
+  pos = response.find("\"id\": ");
+  std::string janus_id = response.substr(pos + 6, 16);
+  response = "";
+  endpoint += janus_id;
+  postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
+  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  curl_easy_perform(curl);
+  pos = response.find("\"id\": ");
+  std::string handle_id = response.substr(pos + 6, 16);
+  endpoint += "/";
+  endpoint += handle_id;
+
+  //Assemble our actual request
+  postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
+  postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"supersecret\", \"id\" : ";
+  postData += std::to_string(id);
+  postData += "}}";
+
+  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  curl_easy_perform(curl);
+  Warning(response.c_str());
+  curl_easy_cleanup(curl);
+
+}

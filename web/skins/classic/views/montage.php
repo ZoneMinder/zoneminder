@@ -325,5 +325,7 @@ foreach (array_reverse($zones) as $zone) {
       </div>
     </div>
   </div>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/8.1.0/adapter.min.js"></script>
+  <script src="<?php echo cache_bust('js/janus.js') ?>"></script>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

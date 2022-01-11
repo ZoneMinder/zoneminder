@@ -66,6 +66,7 @@ monitorData[monitorData.length] = {
   'id': <?php echo $m->Id() ?>,
   'width': <?php echo $m->ViewWidth() ?>,
   'height':<?php echo $m->ViewHeight() ?>,
+  'janusEnabled':<?php echo $m->JanusEnabled() ?>,
   'url': '<?php echo $m->UrlToIndex() ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $m->Id() ?>' );},
   'type': '<?php echo $m->Type() ?>',

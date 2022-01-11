@@ -1102,6 +1102,13 @@ $OLANG = array(
       certainly not what you want! To unlink monitors you can ctrl-click.
       '
 	),
+  'CAPTURING' => array(
+    'Help' => 'When to do capturing:
+None: Do not run a process, do not do capturing.  Equivalent to the old Function == None
+Ondemand: A zmc process will run, but will wait for a viewer (live view, thumbnail or rstp server connection) before connecting to the camera.
+Always: A zmc process will run and immediately connect and stay connected.
+',
+  ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
       When in Modect, Mocord, Nodect or RECORD mode the analysis process can be turned on/off.

@@ -1,21 +1,21 @@
 //
 // ZoneMinder Control Utility, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 /*
 
@@ -36,7 +36,7 @@ zmc - The ZoneMinder Utility
 This binary is a handy command line interface to several useful functions. It's
 not really meant to be used by anyone except the web page (there's only limited
 'help' in it so far) but can be if necessary, especially for debugging video
-problems. 
+problems.
 
 =head1 OPTIONS
 
@@ -56,10 +56,10 @@ Options for use with monitors:
   -q, --query                             - Query the current settings for the monitor
   -s, --state                             - Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,
                                             3 = alert, 4 = tape
-  -B, --brightness [value]                - Output the current brightness, set to value if given 
-  -C, --contrast [value]                  - Output the current contrast, set to value if given 
-  -H, --hue [value]                       - Output the current hue, set to value if given 
-  -O, --colour [value]                    - Output the current colour, set to value if given 
+  -B, --brightness [value]                - Output the current brightness, set to value if given
+  -C, --contrast [value]                  - Output the current contrast, set to value if given
+  -H, --hue [value]                       - Output the current hue, set to value if given
+  -O, --colour [value]                    - Output the current colour, set to value if given
   -i, --image [image_index]               - Write captured image to disk as <monitor_name>.jpg, last image captured
                                             or specified ring buffer index if given.
   -S, --scale <scale_%%ge>                - With --image specify any scaling (in %%) to be applied to the image
@@ -122,20 +122,20 @@ void Usage(int status=-1) {
 			"  -t, --timestamp [image_index]  : Output captured image timestamp, last image captured or specified\n"
 			"                   ring buffer index if given\n"
 			"  -R, --read_index         : Output ring buffer read index\n"
-			"  -W, --write_index        : Output ring buffer write index\n" 
-			"  -e, --event          : Output last event index\n" 
-			"  -f, --fps            : Output last Frames Per Second captured reading\n" 
-			"  -z, --zones          : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n" 
-			"  -a, --alarm          : Force alarm in monitor, this will trigger recording until cancelled with -c\n" 
-			"  -n, --noalarm          : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n" 
-			"  -c, --cancel           : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n" 
-			"  -L, --reload           : Signal monitor to reload settings\n" 
-			"  -E, --enable           : Enable detection, wake monitor up\n" 
-			"  -D, --disable          : Disable detection, put monitor to sleep\n" 
-			"  -u, --suspend          : Suspend detection, useful to prevent bogus alarms when panning etc\n" 
-			"  -r, --resume           : Resume detection after a suspend\n" 
-			"  -U, --username <username>    : When running in authenticated mode the username and\n" 
-			"  -P, --password <password>    : password combination of the given user\n" 
+			"  -W, --write_index        : Output ring buffer write index\n"
+			"  -e, --event          : Output last event index\n"
+			"  -f, --fps            : Output last Frames Per Second captured reading\n"
+			"  -z, --zones          : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n"
+			"  -a, --alarm          : Force alarm in monitor, this will trigger recording until cancelled with -c\n"
+			"  -n, --noalarm          : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n"
+			"  -c, --cancel           : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n"
+			"  -L, --reload           : Signal monitor to reload settings\n"
+			"  -E, --enable           : Enable capture, wake monitor up\n"
+			"  -D, --disable          : Disable capture, put monitor to sleep\n"
+			"  -u, --suspend          : Suspend motion detection, useful to prevent bogus alarms when panning etc\n"
+			"  -r, --resume           : Resume motion detection after a suspend\n"
+			"  -U, --username <username>    : When running in authenticated mode the username and\n"
+			"  -P, --password <password>    : password combination of the given user\n"
 			"  -A, --auth <authentication>  : Pass authentication hash string instead of user details\n"
       "  -T, --token <token>  : Pass JWT token string instead of user details\n"
 	 "", stderr );
@@ -457,7 +457,7 @@ int main(int argc, char *argv[]) {
 
       user = zmLoadUser(username);
     } else {
-       
+
       if ( !(username && password) && !auth ) {
         Error("Username and password or auth/token string must be supplied");
         exit_zmu(-1);
@@ -652,22 +652,22 @@ int main(int argc, char *argv[]) {
     }
     if ( function & ZMU_ENABLE ) {
       if ( verbose )
-        printf("Enabling event generation\n");
+        printf("Enabling capturing\n");
       monitor->actionEnable();
     }
     if ( function & ZMU_DISABLE ) {
       if ( verbose )
-        printf("Disabling event generation\n");
+        printf("Disabling capturing\n");
       monitor->actionDisable();
     }
     if ( function & ZMU_SUSPEND ) {
       if ( verbose )
-        printf("Suspending event generation\n");
+        printf("Suspending motion detection\n");
       monitor->actionSuspend();
     }
     if ( function & ZMU_RESUME ) {
       if ( verbose )
-        printf("Resuming event generation\n");
+        printf("Resuming motion detection\n");
       monitor->actionResume();
     }
     if ( function & ZMU_QUERY ) {

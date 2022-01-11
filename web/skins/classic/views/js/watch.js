@@ -361,7 +361,7 @@ function getStreamCmdResponse(respObj, respText) {
   } else {
     console.log("Not ok");
     checkStreamForErrors('getStreamCmdResponse', respObj);//log them
-    fetchImage($j('#imageFeed img'));
+    setTimeout(fetchImage, 1000, $j('#imageFeed img'));
   }
 
   var streamCmdTimeout = statusRefreshTimeout;
@@ -706,8 +706,10 @@ function controlCmdImage(x, y) {
 
 function fetchImage(streamImage) {
   const oldsrc = streamImage.attr('src');
+const newsrc = oldsrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+console.log("New src: " + newsrc);
   streamImage.attr('src', '');
-  streamImage.attr('src', oldsrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) )));
+  streamImage.attr('src', newsrc);
 }
 
 function handleClick(event) {

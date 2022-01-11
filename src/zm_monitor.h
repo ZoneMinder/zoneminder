@@ -538,7 +538,7 @@ public:
   inline Function GetFunction() const { return function; }
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
   inline bool Enabled() const {
-    if (function <= MONITOR)
+    if (analysing == ANALYSING_NONE)
       return false;
     return enabled;
   }
@@ -554,7 +554,7 @@ public:
     return false;
   }
   inline bool Active() const {
-    if (function <= MONITOR)
+    if (analysing == ANALYSING_NONE)
       return false;
     return (enabled && shared_data->active);
   }

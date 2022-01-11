@@ -508,6 +508,8 @@ bool VideoStore::open() {
 
       ret = avformat_write_header(oc, nullptr);
       Debug(1, "Done %d", ret);
+    } else {
+      Error("ENOSPC. fail");
     }
   } else if (av_dict_count(opts) != 0) {
     Info("some options not used, turn on debugging for a list.");

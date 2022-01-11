@@ -23,6 +23,14 @@ void AnalysisThread::Start() {
 
 void AnalysisThread::Run() {
   while (!(terminate_ or zm_terminate)) {
-    monitor_->Analyse();
+    // Some periodic updates are required for variable capturing framerate
+    Debug(2, "Analyzing");
+    if (!monitor_->Analyse()) {
+      if (!(terminate_ or zm_terminate)) {
+        Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
+        Debug(2, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+      }
+    }
   }
 }

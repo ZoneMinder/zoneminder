@@ -22,12 +22,19 @@
 
 #include "zm_config.h"
 #include "zm_define.h"
+#include "zm_packet.h"
 #include "zm_storage.h"
 #include "zm_zone.h"
 
+#include <atomic>
+#include <condition_variable>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <queue>
 #include <set>
+#include <thread>
+
 
 class EventStream;
 class Frame;
@@ -91,6 +98,15 @@ class Event {
 
     void createNotes(std::string &notes);
 
+    std::queue<std::shared_ptr<ZMPacket>> packet_queue;
+    std::mutex packet_queue_mutex;
+    std::condition_variable packet_queue_condition;
+
+    void Run();
+
+    std::atomic<bool> terminate_;
+    std::thread thread_;
+
  public:
     static bool OpenFrameSocket(int);
     static bool ValidateFrameSocket(int);
@@ -112,6 +128,7 @@ class Event {
     const struct timeval &EndTime() const { return end_time; }
 
     void AddPacket(const std::shared_ptr<ZMPacket> &p);
+    void AddPacket_(const std::shared_ptr<ZMPacket> &p);
     bool WritePacket(const std::shared_ptr<ZMPacket> &p);
     bool SendFrameImage(const Image *image, bool alarm_frame=false);
     bool WriteFrameImage(
@@ -130,6 +147,9 @@ class Event {
         int score=0,
         Image *alarm_image=nullptr
         );
+
+    void Stop() { terminate_ = true; }
+    bool Stopped() const { return terminate_; }
 
  private:
     void WriteDbFrames();

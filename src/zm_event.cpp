@@ -67,7 +67,8 @@ Event::Event(
   last_db_frame(0),
   have_video_keyframe(false),
   //scheme
-  save_jpegs(0)
+  save_jpegs(0),
+  terminate_(false)
 {
   std::string notes;
   createNotes(notes);
@@ -129,104 +130,17 @@ Event::Event(
 
   id = zmDbDoInsert(sql.c_str());
 
-  if ( !SetPath(storage) ) {
-    // Try another
-    Warning("Failed creating event dir at %s", storage->Path());
-
-    sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
-    if ( monitor->ServerId() )
-      sql += stringtf(" AND ServerId=%u", monitor->ServerId());
-
-    Debug(1, "%s", sql.c_str());
-    storage = nullptr;
-
-    MYSQL_RES *result = zmDbFetch(sql.c_str());
-    if ( result ) {
-      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-        storage = new Storage(atoi(dbrow[0]));
-        if ( SetPath(storage) )
-          break;
-        delete storage;
-        storage = nullptr;
-      }  // end foreach row of Storage
-      mysql_free_result(result);
-      result = nullptr;
-    }
-    if ( !storage ) {
-      Info("No valid local storage area found.  Trying all other areas.");
-      // Try remote
-      sql = "SELECT `Id` FROM `Storage` WHERE ServerId IS NULL";
-      if ( monitor->ServerId() )
-        sql += stringtf(" OR ServerId != %u", monitor->ServerId());
-
-      result = zmDbFetch(sql.c_str());
-      if ( result ) {
-        for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-          storage = new Storage(atoi(dbrow[0]));
-          if ( SetPath(storage) )
-            break;
-          delete storage;
-          storage = nullptr;
-        }  // end foreach row of Storage
-        mysql_free_result(result);
-        result = nullptr;
-      }
-    }
-    if ( !storage ) {
-      storage = new Storage();
-      Warning("Failed to find a storage area to save events.");
-    }
-    sql = stringtf("UPDATE Events SET StorageId = '%d' WHERE Id=%" PRIu64, storage->Id(), id);
-    zmDbDo(sql.c_str());
-  }  // end if ! setPath(Storage)
-  Debug(1, "Using storage area at %s", path.c_str());
-
-  video_name = "";
-
-  snapshot_file = path + "/snapshot.jpg";
-  alarm_file = path + "/alarm.jpg";
-
-  /* Save as video */
-
-  if ( monitor->GetOptVideoWriter() != 0 ) {
-    std::string container = monitor->OutputContainer();
-    if ( container == "auto" || container == "" ) {
-      container = "mp4";
-    }
-        
-    video_name = stringtf("%" PRIu64 "-%s.%s", id, "video", container.c_str());
-    video_file = path + "/" + video_name;
-    Debug(1, "Writing video file to %s", video_file.c_str());
-    videoStore = new VideoStore(
-        video_file.c_str(),
-        container.c_str(),
-        monitor->GetVideoStream(),
-        monitor->GetVideoCodecContext(),
-        ( monitor->RecordAudio() ? monitor->GetAudioStream() : nullptr ),
-        ( monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr ),
-        monitor );
-
-    if ( !videoStore->open() ) {
-      Warning("Failed to open videostore, turning on jpegs");
-      delete videoStore;
-      videoStore = nullptr;
-      if ( ! ( save_jpegs & 1 ) ) {
-        save_jpegs |= 1; // Turn on jpeg storage
-        sql = stringtf("UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id);
-        zmDbDo(sql.c_str());
-      }
-    } else {
-      sql = stringtf("UPDATE Events SET Videoed=1, DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
-      zmDbDo(sql.c_str());
-    }
-  }  // end if GetOptVideoWriter
+  thread_ = std::thread(&Event::Run, this);
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
 Event::~Event() {
-  // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
+
+  Stop();
+  if (thread_.joinable()) thread_.join();
 
   /* Close the video file */
-  if ( videoStore != nullptr ) {
+  // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
+  if (videoStore != nullptr) {
     Debug(4, "Deleting video store");
     delete videoStore;
     videoStore = nullptr;
@@ -420,7 +334,12 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
 void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
+  std::unique_lock<std::mutex> lck(packet_queue_mutex);
+  packet_queue.push(packet);
+  packet_queue_condition.notify_one();
+}
 
+void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
   have_video_keyframe = have_video_keyframe || 
     ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && 
       ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
@@ -695,3 +614,109 @@ bool Event::SetPath(Storage *storage) {
   }  // deep storage or not
   return true;
 }  // end bool Event::SetPath
+
+void Event::Run() {
+  Storage *storage = monitor->getStorage();
+  if (!SetPath(storage)) {
+    // Try another
+    Warning("Failed creating event dir at %s", storage->Path());
+
+    std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
+    if (monitor->ServerId())
+      sql += stringtf(" AND ServerId=%u", monitor->ServerId());
+
+    storage = nullptr;
+
+    MYSQL_RES *result = zmDbFetch(sql.c_str());
+    if (result) {
+      for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+        storage = new Storage(atoi(dbrow[0]));
+        if (SetPath(storage))
+          break;
+        delete storage;
+        storage = nullptr;
+      }  // end foreach row of Storage
+      mysql_free_result(result);
+      result = nullptr;
+    }
+    if (!storage) {
+      Info("No valid local storage area found.  Trying all other areas.");
+      // Try remote
+      sql = "SELECT `Id` FROM `Storage` WHERE ServerId IS NULL";
+      if (monitor->ServerId())
+        sql += stringtf(" OR ServerId != %u", monitor->ServerId());
+
+      result = zmDbFetch(sql.c_str());
+      if (result) {
+        for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+          storage = new Storage(atoi(dbrow[0]));
+          if (SetPath(storage))
+            break;
+          delete storage;
+          storage = nullptr;
+        }  // end foreach row of Storage
+        mysql_free_result(result);
+        result = nullptr;
+      }
+    }
+    if (!storage) {
+      storage = new Storage();
+      Warning("Failed to find a storage area to save events.");
+    }
+    sql = stringtf("UPDATE Events SET StorageId = '%d' WHERE Id=%" PRIu64, storage->Id(), id);
+    zmDbDo(sql.c_str());
+  }  // end if ! setPath(Storage)
+  Debug(1, "Using storage area at %s", path.c_str());
+
+  snapshot_file = path + "/snapshot.jpg";
+  alarm_file = path + "/alarm.jpg";
+
+  std::string container = monitor->OutputContainer();
+  if ( container == "auto" || container == "" ) {
+    container = "mp4";
+  }
+
+  video_name = stringtf("%" PRIu64 "-%s.%s", id, "video", container.c_str());
+  video_file = path + "/" + video_name;
+  Debug(1, "Writing video file to %s", video_file.c_str());
+
+  if (monitor->GetOptVideoWriter() != 0) {
+    /* Save as video */
+        
+    videoStore = new VideoStore(
+        video_file.c_str(),
+        container.c_str(),
+        monitor->GetVideoStream(),
+        monitor->GetVideoCodecContext(),
+        ( monitor->RecordAudio() ? monitor->GetAudioStream() : nullptr ),
+        ( monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr ),
+        monitor );
+
+    if ( !videoStore->open() ) {
+      Warning("Failed to open videostore, turning on jpegs");
+      delete videoStore;
+      videoStore = nullptr;
+      if ( ! ( save_jpegs & 1 ) ) {
+        save_jpegs |= 1; // Turn on jpeg storage
+        zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id).c_str());
+      }
+    }
+  }  // end if GetOptVideoWriter
+  if (storage != monitor->getStorage())
+    delete storage;
+
+  std::unique_lock<std::mutex> lck(packet_queue_mutex);
+
+  // The idea is to process the queue no matter what so that all packets get processed.
+  // We only break if the queue is empty
+  while (true) {
+    if (!packet_queue.empty()) {
+      this->AddPacket_(packet_queue.front());
+      packet_queue.pop();
+    } else {
+      if (terminate_ or zm_terminate)
+        break;
+      packet_queue_condition.wait(lck);
+    }
+  }
+}

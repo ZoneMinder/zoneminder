@@ -1115,15 +1115,12 @@ bool Monitor::connect() {
     //End ONVIF Setup
 #endif
 
-//janus setup.
-    if (janus_enabled) {
-      add_to_janus();
+    //janus setup.
+    if (janus_enabled && (path.find("rtsp://") !=  std::string::npos)) {
+      if (add_to_janus() != 0) {
+        Warning("Failed to add monitor stream to Janus!");
+      }
     }
-//ifdef janus, and if url contains rtsp
-//look for username and password
-//make the initial call, scrape id, then connect to plugin
-//add stream using the same id
-
 
   } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
@@ -3360,16 +3357,21 @@ int Monitor::add_to_janus() {
   std::string rtsp_username;
   std::string rtsp_password;
   std::string rtsp_path = "rtsp://";
+  std::string janus_id;
   std::size_t pos;
   std::size_t pos2;
+  CURLcode res;
 
   curl = curl_easy_init();
-
+  if(!curl) return -1;
   //parse username and password
   pos = path.find(":", 7);
+  if (pos == std::string::npos) return -1;
   rtsp_username = path.substr(7, pos-7);
 
   pos2 = path.find("@", pos);
+  if (pos2 == std::string::npos) return -1;
+
   rtsp_password = path.substr(pos+1, pos2 - pos - 1);
   rtsp_path += path.substr(pos2 + 1);
 
@@ -3378,9 +3380,12 @@ int Monitor::add_to_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  curl_easy_perform(curl);
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK) return -1;
+
   pos = response.find("\"id\": ");
-  std::string janus_id = response.substr(pos + 6, 16);
+  if (pos == std::string::npos) return -1;
+  janus_id = response.substr(pos + 6, 16);
   response = "";
   endpoint += janus_id;
   postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
@@ -3388,9 +3393,11 @@ int Monitor::add_to_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  curl_easy_perform(curl);
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK) return -1;
   pos = response.find("\"id\": ");
-  std::string handle_id = response.substr(pos + 6, 16);
+  if (pos == std::string::npos) return -1;
+  std::string handle_id = response.substr(pos + 6, 16); //TODO: This is an assumption that the string is always 16
   endpoint += "/";
   endpoint += handle_id;
 
@@ -3411,10 +3418,11 @@ int Monitor::add_to_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  curl_easy_perform(curl);
-  Warning(response.c_str());
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK) return -1;
+  Debug(1,response.c_str());
   curl_easy_cleanup(curl);
-
+  return 0;
 }
 int Monitor::remove_from_janus() {
   //TODO clean this up, add error checking, etc
@@ -3422,8 +3430,10 @@ int Monitor::remove_from_janus() {
   std::string endpoint = "127.0.0.1:8088/janus/";
   std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
   std::size_t pos;
+  CURLcode res;
 
   curl = curl_easy_init();
+  if(!curl) return -1;
 
 
   //Start Janus API init. Need to get a session_id and handle_id
@@ -3431,8 +3441,11 @@ int Monitor::remove_from_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  curl_easy_perform(curl);
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK) return -1;
+
   pos = response.find("\"id\": ");
+  if (pos == std::string::npos) return -1;
   std::string janus_id = response.substr(pos + 6, 16);
   response = "";
   endpoint += janus_id;
@@ -3441,8 +3454,11 @@ int Monitor::remove_from_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  curl_easy_perform(curl);
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK) return -1;
+
   pos = response.find("\"id\": ");
+  if (pos == std::string::npos) return -1;
   std::string handle_id = response.substr(pos + 6, 16);
   endpoint += "/";
   endpoint += handle_id;
@@ -3457,8 +3473,10 @@ int Monitor::remove_from_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  curl_easy_perform(curl);
-  Warning(response.c_str());
-  curl_easy_cleanup(curl);
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK) return -1;
 
+  Debug(1, response.c_str());
+  curl_easy_cleanup(curl);
+  return 0;
 }

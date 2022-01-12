@@ -1849,12 +1849,10 @@ bool Monitor::Analyse() {
 
   // Need to guard around event creation/deletion from Reload()
   std::lock_guard<std::mutex> lck(event_mutex);
-  Debug(3, "Have event lock");
 
   // if we have been told to be OFF, then we are off and don't do any processing.
   if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
     Debug(4, "Trigger not OFF state is (%d)", int(trigger_data->trigger_state));
-    int score = 0;
     // Ready means that we have captured the warmup # of frames
     if (!Ready()) {
       Debug(3, "Not ready?");
@@ -1862,6 +1860,7 @@ bool Monitor::Analyse() {
       return false;
     }
 
+    int score = 0;
     std::string cause;
     Event::StringSetMap noteSetMap;
 
@@ -1886,6 +1885,8 @@ bool Monitor::Analyse() {
       score += trigger_data->trigger_score;
       Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
       if (!event) {
+        if (!cause.empty())
+          cause += ", ";
         cause += trigger_data->trigger_cause;
       }
       Event::StringSet noteSet;
@@ -1904,7 +1905,7 @@ bool Monitor::Analyse() {
         }
       } else if (function == MOCORD or function == RECORD) {
         if (!event) {
-          if (cause.length()) cause += ", ";
+          if (!cause.empty()) cause += ", ";
           cause += SIGNAL_CAUSE + std::string(": Reacquired");
         } else {
           event->addNote(SIGNAL_CAUSE, "Reacquired");
@@ -1963,7 +1964,7 @@ bool Monitor::Analyse() {
             packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
             packetqueue.wait();
             // Everything may have changed, just return and start again.  This needs to be more RAII
-            return false;
+            return true;
           }  // end while ! decoded
         }  // end if decoding enabled
 
@@ -1981,17 +1982,19 @@ bool Monitor::Analyse() {
           }
 
           if (snap->image) {
-            alarm_image.Assign(*(snap->image));
 
             // decoder may not have been able to provide an image
             if (!ref_image.Buffer()) {
               Debug(1, "Assigning instead of Detecting");
               ref_image.Assign(*(snap->image));
+              alarm_image.Assign(*(snap->image));
             } else if (!(analysis_image_count % (motion_frame_skip+1))) {
               Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
               // Get new score.
               int motion_score = DetectMotion(*(snap->image), zoneSet);
 
+              if (!snap->analysis_image)
+                snap->analysis_image = new Image(*(snap->image));
               // lets construct alarm cause. It will contain cause + names of zones alarmed
               snap->zone_stats.reserve(zones.size());
               for (const Zone &zone : zones) {
@@ -2001,8 +2004,11 @@ bool Monitor::Analyse() {
                 if (zone.Alarmed()) {
                   if (!snap->alarm_cause.empty()) snap->alarm_cause += ",";
                   snap->alarm_cause += std::string(zone.Label());
+                  if (zone.AlarmImage())
+                    snap->analysis_image->Overlay(*(zone.AlarmImage()));
                 }
               }
+              alarm_image.Assign(*(snap->analysis_image));
               Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
                   score, last_motion_score, motion_score);
               motion_frame_count += 1;
@@ -2015,13 +2021,14 @@ bool Monitor::Analyse() {
               } // end if motion_score
             } else {
               Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
+              alarm_image.Assign(*(snap->image));
             }
           } else {
             Debug(1, "no image so skipping motion detection");
           }  // end if has image
           score += last_motion_score;
         } else {
-          Debug(1, "Not Active(%d) enabled %d active %d doing motion detection: %d",
+          Debug(1, "Not Active(%d) enabled %d shared->active %d doing motion detection: %d",
               Active(), enabled, shared_data->active,
               (function == MODECT or function == MOCORD)
               );
@@ -2167,34 +2174,9 @@ bool Monitor::Analyse() {
         snap->score = score;
 
         if (state == PREALARM) {
-          // Generate analysis images if necessary
-          if (snap->image) {
-            for (const Zone &zone : zones) {
-              if (zone.Alarmed() and zone.AlarmImage()) {
-                  if (!snap->analysis_image)
-                    snap->analysis_image = new Image(*(snap->image));
-                  snap->analysis_image->Overlay(*(zone.AlarmImage()));
-              } // end if zone is alarmed
-            } // end foreach zone
-            if (snap->analysis_image != nullptr)
-            alarm_image.Assign(*(snap->analysis_image));
-          } // end if image.
-
           // incremement pre alarm image count
           Event::AddPreAlarmFrame(snap->image, timestamp, score, nullptr);
         } else if (state == ALARM) {
-          if (snap->image) {
-            for (const Zone &zone : zones) {
-              if (zone.Alarmed() and zone.AlarmImage()) {
-                if (!snap->analysis_image)
-                  snap->analysis_image = new Image(*(snap->image));
-                snap->analysis_image->Overlay(*(zone.AlarmImage()));
-              }  // end if zone is alarmed
-            }  // end foreach zone
-            if (snap->analysis_image != nullptr)
-            alarm_image.Assign(*(snap->analysis_image));
-          }
-
           if (event) {
             if (noteSetMap.size() > 0)
               event->updateNotes(noteSetMap);
@@ -2211,15 +2193,15 @@ bool Monitor::Analyse() {
           } else {
             Error("ALARM but no event");
           }
-        } else if ( state == ALERT ) {
+        } else if (state == ALERT) {
           // Alert means this frame has no motion, but we were alarmed and are still recording.
           if ((noteSetMap.size() > 0) and event)
             event->updateNotes(noteSetMap);
-        } else if ( state == TAPE ) {
+        } else if (state == TAPE) {
           // bulk frame code moved to event.
         } // end if state machine
 
-        if ( (function == MODECT or function == MOCORD) and snap->image ) {
+        if ((function == MODECT or function == MOCORD) and snap->image) {
           if (!ref_image.Buffer()) {
             Debug(1, "Assigning");
             ref_image.Assign(*(snap->image));
@@ -2246,11 +2228,18 @@ bool Monitor::Analyse() {
 
   // In the case where people have pre-alarm frames, the web ui will generate the frame images
   // from the mp4. So no one will notice anyways.
-  if (snap->image and (videowriter == PASSTHROUGH) and !savejpegs) {
-    Debug(1, "Deleting image data for %d", snap->image_index);
-    // Don't need raw images anymore
-    delete snap->image;
-    snap->image = nullptr;
+  if (snap->image and (videowriter == PASSTHROUGH)) {
+   if (!savejpegs) {
+     Debug(1, "Deleting image data for %d", snap->image_index);
+     // Don't need raw images anymore
+     delete snap->image;
+     snap->image = nullptr;
+   }
+   if (snap->analysis_image and !(savejpegs & 2)) {
+     Debug(1, "Deleting analysis image data for %d", snap->image_index);
+     delete snap->analysis_image;
+     snap->analysis_image = nullptr;
+   }
   }
 
   packetqueue.clearPackets(snap);
@@ -2261,7 +2250,8 @@ bool Monitor::Analyse() {
     analysis_image_count++;
   }
   packetqueue.increment_it(analysis_it);
-  packetqueue.unlock(packet_lock);
+  delete packet_lock;
+  //packetqueue.unlock(packet_lock);
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
   return true;

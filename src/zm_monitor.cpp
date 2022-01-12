@@ -3420,7 +3420,7 @@ int Monitor::add_to_janus() {
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   res = curl_easy_perform(curl);
   if (res != CURLE_OK) return -1;
-  Debug(1,response.c_str());
+  Debug(1,"Added stream to Janus: %s", response.c_str());
   curl_easy_cleanup(curl);
   return 0;
 }
@@ -3476,7 +3476,7 @@ int Monitor::remove_from_janus() {
   res = curl_easy_perform(curl);
   if (res != CURLE_OK) return -1;
 
-  Debug(1, response.c_str());
+  Debug(1, "Removed stream from Janus: %s", response.c_str());
   curl_easy_cleanup(curl);
   return 0;
 }

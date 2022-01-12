@@ -5,7 +5,6 @@ function MonitorStream(monitorData) {
   this.auth_relay = auth_relay;
   this.auth_hash = auth_hash;
   this.url = monitorData.url;
-  this.janusEnabled = monitorData.janusEnabled;
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
   this.height = monitorData.height;
@@ -85,71 +84,6 @@ function MonitorStream(monitorData) {
       // Website Monitors won't have an img tag
       console.log('No src for #liveStream'+this.id);
       console.log(stream);
-      return;
-    }
-    if (this.janusEnabled) {
-      var id = parseInt(this.id);
-      var opaqueId = "streamingtest-"+Janus.randomString(12);
-      var server = "http://zm-dev:8088/janus";
-      Janus.init({debug: "all", callback: function() {
-        janus = new Janus({
-          server: server,
-          success: function() {
-      janus.attach({
-        plugin: "janus.plugin.streaming",
-        opaqueId: opaqueId,
-        success: function(pluginHandle) {
-          streaming = pluginHandle;
-          var body = { "request": "watch", "id": id };
-          streaming.send({"message": body});
-        },
-        error: function(error) {
-          Janus.error("  -- Error attaching plugin... ", error);
-        },
-        onmessage: function(msg, jsep) {
-          Janus.debug(" ::: Got a message :::");
-          Janus.debug(msg);
-          var result = msg["result"];
-          if(result !== null && result !== undefined) {
-            if(result["status"] !== undefined && result["status"] !== null) {
-              var status = result["status"];
-            }
-          } else if(msg["error"] !== undefined && msg["error"] !== null) {
-            alert(msg["error"]);
-            stopStream();
-            return;
-          }
-          if(jsep !== undefined && jsep !== null) {
-            Janus.debug("Handling SDP as well...");
-            Janus.debug(jsep);
-            // Offer from the plugin, let's answer
-            streaming.createAnswer({
-              jsep: jsep,
-              // We want recvonly audio/video and, if negotiated, datachannels
-              media: { audioSend: false, videoSend: false, data: true },
-              success: function(jsep) {
-                Janus.debug("Got SDP!");
-                Janus.debug(jsep);
-                var body = { "request": "start"};
-                streaming.send({"message": body, "jsep": jsep});
-              },
-              error: function(error) {
-                Janus.error("WebRTC error:", error);
-                alert("WebRTC error... " + JSON.stringify(error));
-              }
-            });
-          }
-        }, //onmessage function
-        onremotestream: function(ourstream) {
-          Janus.debug(" ::: Got a remote track :::");
-          Janus.debug(ourstream);
-          Janus.attachMediaStream(stream, ourstream);
-          stream.play()
-        }
-      });// attach
-    } //Success functio
-  }); //new Janus
-}}); //janus.init callback
       return;
     }
     src = stream.src.replace(/mode=single/i, 'mode=jpeg');

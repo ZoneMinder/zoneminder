@@ -9,6 +9,10 @@ var forceAlmBtn = $j('#forceAlmBtn');
 var table = $j('#eventList');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
+var server;
+var janus = null;
+var opaqueId;
+var streaming2;
 /*
 This is the format of the json object sent by bootstrap-table
 
@@ -897,15 +901,78 @@ function initPage() {
   }
 
   if (monitorType != 'WebSite') {
-    if (streamMode == 'single') {
-      statusCmdTimer = setTimeout(statusCmdQuery, 200);
-      setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
-    } else {
-      streamCmdTimer = setTimeout(streamCmdQuery, 200);
-      setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
+    if (streamMode != 'janus') {
+      if (streamMode == 'single') {
+        statusCmdTimer = setTimeout(statusCmdQuery, 200);
+        setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
+      } else {
+        streamCmdTimer = setTimeout(streamCmdQuery, 200);
+        setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
+      }
     }
-
-    if (canStreamNative || (streamMode == 'single')) {
+    if (streamMode == 'janus') {
+    server = "http://" + window.location.hostname + ":8088/janus";
+    opaqueId = "streamingtest-"+Janus.randomString(12);
+    Janus.init({debug: "all", callback: function() {
+      janus = new Janus({
+        server: server,
+        success: function() {
+          janus.attach({
+            plugin: "janus.plugin.streaming",
+            opaqueId: opaqueId,
+            success: function(pluginHandle) {
+              streaming2 = pluginHandle;
+              var body = { "request": "watch", "id":monitorId };
+              streaming2.send({"message": body});
+            },
+            error: function(error) {
+              Janus.error("  -- Error attaching plugin... ", error);
+            },
+            onmessage: function(msg, jsep) {
+              Janus.debug(" ::: Got a message :::");
+              Janus.debug(msg);
+              var result = msg["result"];
+              if(result !== null && result !== undefined) {
+                if(result["status"] !== undefined && result["status"] !== null) {
+                  var status = result["status"];
+                }
+              } else if(msg["error"] !== undefined && msg["error"] !== null) {
+                alert(msg["error"]);
+                stopStream();
+                return;
+              }
+              if(jsep !== undefined && jsep !== null) {
+                Janus.debug("Handling SDP as well...");
+                Janus.debug(jsep);
+                // Offer from the plugin, let's answer
+                streaming2.createAnswer({
+                  jsep: jsep,
+                  // We want recvonly audio/video and, if negotiated, datachannels
+                  media: { audioSend: false, videoSend: false, data: true },
+                  success: function(jsep) {
+                    Janus.debug("Got SDP!");
+                    Janus.debug(jsep);
+                    var body = { "request": "start"};
+                    streaming2.send({"message": body, "jsep": jsep});
+                  },
+                  error: function(error) {
+                    Janus.error("WebRTC error:", error);
+                    alert("WebRTC error... " + JSON.stringify(error));
+                  }
+                });
+              }
+            }, //onmessage function
+            onremotestream: function(stream) {
+              Janus.debug(" ::: Got a remote track :::");
+              Janus.debug(stream);
+              Janus.attachMediaStream(document.getElementById("liveStream" + monitorId), stream);
+              document.getElementById("liveStream" + monitorId).play();
+            }
+          });// attach
+        } //Success functio
+      }); //new Janus
+    }}); //janus.init callback
+    } else if (canStreamNative || (streamMode == 'single')) {
       var streamImg = $j('#imageFeed img');
       if (!streamImg) streamImg = $j('#imageFeed object');
       if (!streamImg) {

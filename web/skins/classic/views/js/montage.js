@@ -315,7 +315,7 @@ function initPage() {
     }
   }
   if (initJanus) {
-    server = "http://zm-dev:8088/janus";
+    server = "http://" + window.location.hostname + ":8088/janus";
     opaqueId = "streamingtest-"+Janus.randomString(12);
     Janus.init({debug: "all", callback: function() {
       janus = new Janus({

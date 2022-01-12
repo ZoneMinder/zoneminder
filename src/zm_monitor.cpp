@@ -3140,7 +3140,7 @@ int Monitor::PrimeCapture() {
 
 #ifdef WITH_GSOAP //For now, just don't run the thread if no ONVIF support. This may change if we add other long polling options.
   //ONVIF Thread
-  if (onvif_event_listener) {
+  if (onvif_event_listener && ONVIF_Healthy) {
     if (!Poller) {
       Poller = zm::make_unique<PollThread>(this);
     } else {

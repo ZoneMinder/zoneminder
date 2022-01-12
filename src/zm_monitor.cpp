@@ -1077,6 +1077,7 @@ bool Monitor::connect() {
     shared_data->valid = true;
 
 #ifdef WITH_GSOAP
+
     //ONVIF Setup
     ONVIF_Trigger_State = FALSE;
     if (onvif_event_listener) { //Temporarily using this option to enable the feature
@@ -1095,6 +1096,7 @@ bool Monitor::connect() {
       proxyEvent = PullPointSubscriptionBindingProxy(soap);
       std::string full_url = onvif_url + "/Events";
       proxyEvent.soap_endpoint = full_url.c_str();
+
       set_credentials(soap);
       Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
       if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
@@ -3140,7 +3142,9 @@ int Monitor::PrimeCapture() {
 
 #ifdef WITH_GSOAP //For now, just don't run the thread if no ONVIF support. This may change if we add other long polling options.
   //ONVIF Thread
-  if (onvif_event_listener && ONVIF_Healthy) {
+
+  if (onvif_event_listener  && ONVIF_Healthy) {
+
     if (!Poller) {
       Poller = zm::make_unique<PollThread>(this);
     } else {

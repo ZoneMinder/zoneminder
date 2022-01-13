@@ -96,7 +96,7 @@ my $use_log = (($> == 0) || ($> == $web_uid));
 logInit( toFile=>$use_log?DEBUG:NOLOG );
 logSetSignal();
 
-my $interactive = 1;
+my $interactive = -t STDERR; # interactive if we have IO
 my $check = 0;
 my $freshen = 0;
 my $rename = 0;
@@ -144,7 +144,7 @@ if ( ($check + $freshen + $rename + $zoneFix + $migrateEvents + ($version?1:0)) 
   pod2usage(-exitstatus => -1);
 }
 
-if ($check and ($Config{ZM_CHECK_FOR_UPDATES} or $interactive) ) {
+if ($check) {
   if (!$interactive) {
     Info('Update agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime() )."\n");
   }

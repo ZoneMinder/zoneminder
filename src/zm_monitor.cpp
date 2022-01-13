@@ -1077,7 +1077,7 @@ bool Monitor::connect() {
   //ONVIF Setup
 #ifdef WITH_GSOAP
   ONVIF_Trigger_State = FALSE;
-  if (onvif_event_listener) { //Temporarily using this option to enable the feature
+  if (onvif_event_listener) {
     Debug(1, "Starting ONVIF");
     ONVIF_Healthy = FALSE;
     if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
@@ -1869,11 +1869,18 @@ bool Monitor::Analyse() {
       score += 9;
       Debug(1, "Triggered on ONVIF");
       if (!event) {
+        Event::StringSet noteSet;
+        noteSet.insert("ONVIF2");
+        noteSetMap[MOTION_CAUSE] = noteSet;
+
+        event = openEvent(snap, "ONVIF", noteSetMap);
         cause += "ONVIF";
+      } else {
+        event->addNote(MOTION_CAUSE, "ONVIF2");
+// Add to cause
       }
-      Event::StringSet noteSet;
-      noteSet.insert("ONVIF2");
-      noteSetMap[MOTION_CAUSE] = noteSet;
+      // Regardless of previous state, we go to ALARM
+      shared_data->state = state = ALARM;
       //If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
       if (!ONVIF_Closes_Event && state == ALARM)
         ONVIF_Trigger_State = FALSE;
@@ -1885,13 +1892,16 @@ bool Monitor::Analyse() {
       score += trigger_data->trigger_score;
       Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
       if (!event) {
-        if (!cause.empty())
-          cause += ", ";
-        cause += trigger_data->trigger_cause;
+        Event::StringSet noteSet;
+        noteSet.insert(trigger_data->trigger_text);
+        noteSetMap[trigger_data->trigger_cause] = noteSet;
+        event = openEvent(snap, trigger_data->trigger_cause, noteSetMap);
+        Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
+      } else {
+        event->addNote(trigger_data->trigger_cause, trigger_data->trigger_text);
+        // Need to know if we should end the previous and start a new one, or just add the data
       }
-      Event::StringSet noteSet;
-      noteSet.insert(trigger_data->trigger_text);
-      noteSetMap[trigger_data->trigger_cause] = noteSet;
+      shared_data->state = state = ALARM;
     }  // end if trigger_on
 
     // FIXME this snap might not be the one that caused the signal change.  Need to store that in the packet.
@@ -1968,8 +1978,6 @@ bool Monitor::Analyse() {
           }  // end while ! decoded
         }  // end if decoding enabled
 
-        SystemTimePoint timestamp = snap->timestamp;
-
         if (Active() and (function == MODECT or function == MOCORD)) {
           Debug(3, "signal and active and modect");
           Event::StringSet zoneSet;
@@ -1991,7 +1999,7 @@ bool Monitor::Analyse() {
             } else if (!(analysis_image_count % (motion_frame_skip+1))) {
               Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
               // Get new score.
-              int motion_score = DetectMotion(*(snap->image), zoneSet);
+              snap->score = DetectMotion(*(snap->image), zoneSet);
 
               if (!snap->analysis_image)
                 snap->analysis_image = new Image(*(snap->image));
@@ -2010,11 +2018,11 @@ bool Monitor::Analyse() {
               }
               alarm_image.Assign(*(snap->analysis_image));
               Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                  score, last_motion_score, motion_score);
+                  score, last_motion_score, snap->score);
               motion_frame_count += 1;
-              last_motion_score = motion_score;
+              last_motion_score = snap->score;
 
-              if (motion_score) {
+              if (snap->score) {
                 if (cause.length()) cause += ", ";
                 cause += MOTION_CAUSE+std::string(":")+snap->alarm_cause;
                 noteSetMap[MOTION_CAUSE] = zoneSet;
@@ -2026,7 +2034,7 @@ bool Monitor::Analyse() {
           } else {
             Debug(1, "no image so skipping motion detection");
           }  // end if has image
-          score += last_motion_score;
+//score += last_motion_score;
         } else {
           Debug(1, "Not Active(%d) enabled %d shared->active %d doing motion detection: %d",
               Active(), enabled, shared_data->active,
@@ -2039,17 +2047,17 @@ bool Monitor::Analyse() {
           if (event) {
             Debug(2, "Have event %" PRIu64 " in record", event->Id());
 
-            if (section_length != Seconds(0) && (timestamp - event->StartTime() >= section_length)
+            if (section_length != Seconds(0) && (snap->timestamp - event->StartTime() >= section_length)
                 && ((function == MOCORD && event_close_mode != CLOSE_TIME)
                     || (function == RECORD && event_close_mode == CLOSE_TIME)
-                    || std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()) % section_length == Seconds(0))) {
+                    || std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0))) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                    name.c_str(),
                    image_count,
                    event->Id(),
-                   static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()).count()),
+                   static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
                    static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                   static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - event->StartTime()).count()),
+                   static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
                    static_cast<int64>(Seconds(section_length).count()));
               closeEvent();
             }  // end if section_length
@@ -2067,13 +2075,14 @@ bool Monitor::Analyse() {
           } // end if ! event
         } // end if RECORDING
 
-        if (score and (function != MONITOR)) {
+        if ((snap->score > 0) and (function != MONITOR)) {
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()
                 && !event->AlarmFrames()
                 && (event_close_mode == CLOSE_ALARM)
-                && ((timestamp - event->StartTime()) >= min_section_length)
+                // FIXME since we won't be including this snap in the event if we close it, we should be looking at event->duration() instead
+                && ((snap->timestamp - event->StartTime()) >= min_section_length)
                 && ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count - 1))) {
               Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
                   name.c_str(), image_count, event->Id());
@@ -2085,7 +2094,7 @@ bool Monitor::Analyse() {
                     Event::PreAlarmCount(), pre_event_count,
                     event->Frames(),
                     event->AlarmFrames(),
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - event->StartTime()).count()),
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
                     static_cast<int64>(Seconds(min_section_length).count()),
                     (event_close_mode == CLOSE_ALARM));
             }
@@ -2095,12 +2104,10 @@ bool Monitor::Analyse() {
 
               if (!event) {
                 event = openEvent(snap, cause, noteSetMap);
-                shared_data->state = state = ALARM;
                 Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
-              } else {
-                shared_data->state = state = ALARM;
               }  // end if no event, so start it
-              if ( alarm_frame_count ) {
+              shared_data->state = state = ALARM;
+              if (alarm_frame_count) {
                 Debug(1, "alarm frame count so SavePreAlarmFrames");
                 event->SavePreAlarmFrames();
               }
@@ -2122,13 +2129,14 @@ bool Monitor::Analyse() {
             Debug(1, "Was in TAPE, going into ALARM");
           } else {
             Debug(1, "Staying in %s", State_Strings[state].c_str());
-
           }
           if (state == ALARM) {
             last_alarm_count = analysis_image_count; 
           } // This is needed so post_event_count counts after last alarmed frames while in ALARM not single alarmed frames while ALERT
-        } else { // no score?
+        } else if (!score and snap->score == 0) { // snap->score means -1 which means didn't do motion detection so don't do state transition
+          Debug(1, "!score");
           alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count 
+
           if (state == ALARM) {
             Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
             shared_data->state = state = ALERT;
@@ -2136,7 +2144,7 @@ bool Monitor::Analyse() {
             if (
                 ((analysis_image_count - last_alarm_count) > post_event_count)
                 &&
-               ((timestamp - event->StartTime()) >= min_section_length)) {
+               ((snap->timestamp - event->StartTime()) >= min_section_length)) {
               Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                   name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
               if (
@@ -2163,7 +2171,7 @@ bool Monitor::Analyse() {
                   analysis_image_count,
                   last_alarm_count,
                   post_event_count,
-                  static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()).count()),
+                  static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
                   static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
                   static_cast<int64>(Seconds(min_section_length).count()));
           }
@@ -2171,21 +2179,22 @@ bool Monitor::Analyse() {
             Event::EmptyPreAlarmFrames();
         } // end if score or not
 
-        snap->score = score;
+        if (score > snap->score)
+          snap->score = score;
 
         if (state == PREALARM) {
           // incremement pre alarm image count
-          Event::AddPreAlarmFrame(snap->image, timestamp, score, nullptr);
+          Event::AddPreAlarmFrame(snap->image, snap->timestamp, score, nullptr);
         } else if (state == ALARM) {
           if (event) {
             if (noteSetMap.size() > 0)
               event->updateNotes(noteSetMap);
-            if (section_length != Seconds(0) && (timestamp - event->StartTime() >= section_length)) {
+            if (section_length != Seconds(0) && (snap->timestamp - event->StartTime() >= section_length)) {
               Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                       name.c_str(), analysis_image_count, event->Id(),
-                      static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
                       static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
-                      static_cast<int64>(std::chrono::duration_cast<Seconds>(timestamp - GetVideoWriterStartTime()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - GetVideoWriterStartTime()).count()),
                       static_cast<int64>(Seconds(section_length).count()));
               closeEvent();
               event = openEvent(snap, cause, noteSetMap);
@@ -3120,7 +3129,7 @@ int Monitor::PrimeCapture() {
 
 #ifdef WITH_GSOAP //For now, just don't run the thread if no ONVIF support. This may change if we add other long polling options.
   //ONVIF Thread
-  if (onvif_event_listener) {
+  if (onvif_event_listener  && ONVIF_Healthy) {
     if (!Poller) {
       Poller = zm::make_unique<PollThread>(this);
     } else {

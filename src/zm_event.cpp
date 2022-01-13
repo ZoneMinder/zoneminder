@@ -134,14 +134,19 @@ Event::Event(
       );
   id = zmDbDoInsert(sql);
 
-
   thread_ = std::thread(&Event::Run, this);
 }
 
 Event::~Event() {
-
+  Debug(1, "Deleting event, calling stop");
   Stop();
-  if (thread_.joinable()) thread_.join();
+  if (thread_.joinable()) {
+    // Should be.  Issuing the stop and then getting the lock
+    Debug(1, "Joinable");
+    thread_.join();
+  } else {
+    Debug(1, "Not Joinable");
+  }
 
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
@@ -670,19 +675,23 @@ void Event::Run() {
   if (storage != monitor->getStorage())
     delete storage;
 
-
   std::unique_lock<std::mutex> lck(packet_queue_mutex);
 
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   while (true) {
     if (!packet_queue.empty()) {
+      Debug(1, "adding packet");
       this->AddPacket_(packet_queue.front());
       packet_queue.pop();
     } else {
-      if (terminate_ or zm_terminate)
+      if (terminate_ or zm_terminate) {
+Debug(1, "terminating");
         break;
+      }
+Debug(1, "waiting");
       packet_queue_condition.wait(lck);
+Debug(1, "wakeing");
     }
   }
 }

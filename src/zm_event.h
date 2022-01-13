@@ -147,7 +147,10 @@ class Event {
                 int score = 0,
                 Image *alarm_image = nullptr);
 
-    void Stop() { terminate_ = true; }
+    void Stop() {
+      terminate_ = true;
+      packet_queue_condition.notify_all();
+    }
     bool Stopped() const { return terminate_; }
 
  private:

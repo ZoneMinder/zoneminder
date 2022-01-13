@@ -22,14 +22,21 @@
 
 #include "zm_config.h"
 #include "zm_define.h"
+#include "zm_packet.h"
 #include "zm_storage.h"
 #include "zm_time.h"
 #include "zm_utils.h"
 #include "zm_zone.h"
 
+#include <atomic>
+#include <condition_variable>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <queue>
 #include <set>
+#include <thread>
+
 
 class EventStream;
 class Frame;
@@ -98,6 +105,15 @@ class Event {
 
     void createNotes(std::string &notes);
 
+    std::queue<std::shared_ptr<ZMPacket>> packet_queue;
+    std::mutex packet_queue_mutex;
+    std::condition_variable packet_queue_condition;
+
+    void Run();
+
+    std::atomic<bool> terminate_;
+    std::thread thread_;
+
  public:
     static bool OpenFrameSocket(int);
     static bool ValidateFrameSocket(int);
@@ -118,6 +134,7 @@ class Event {
     SystemTimePoint EndTime() const { return end_time; }
 
     void AddPacket(const std::shared_ptr<ZMPacket> &p);
+    void AddPacket_(const std::shared_ptr<ZMPacket> &p);
     bool WritePacket(const std::shared_ptr<ZMPacket> &p);
     bool SendFrameImage(const Image *image, bool alarm_frame=false);
     bool WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame = false) const;
@@ -129,6 +146,12 @@ class Event {
                 const std::vector<ZoneStats> &stats,
                 int score = 0,
                 Image *alarm_image = nullptr);
+
+    void Stop() {
+      terminate_ = true;
+      packet_queue_condition.notify_all();
+    }
+    bool Stopped() const { return terminate_; }
 
  private:
     void WriteDbFrames();

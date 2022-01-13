@@ -52,6 +52,7 @@ It can also apply and configure upgrades etc, including on the fly upgrades.
 
 =cut
 use strict;
+use warnings;
 use bytes;
 use version;
 
@@ -143,8 +144,10 @@ if ( ($check + $freshen + $rename + $zoneFix + $migrateEvents + ($version?1:0)) 
   pod2usage(-exitstatus => -1);
 }
 
-if ( $check && $Config{ZM_CHECK_FOR_UPDATES} ) {
-  print('Update agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime() )."\n");
+if ($check and ($Config{ZM_CHECK_FOR_UPDATES} or $interactive) ) {
+  if (!$interactive) {
+    Info('Update agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime() )."\n");
+  }
 
   my $currVersion = $Config{ZM_DYN_CURR_VERSION};
   my $lastVersion = $Config{ZM_DYN_LAST_VERSION};
@@ -152,16 +155,14 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} ) {
 
   if ( !$currVersion ) {
     $currVersion = $Config{ZM_VERSION};
-
-    my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
-    my $sth = $dbh->prepare_cached($sql) or die("Can't prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($currVersion) or die("Can't execute: ".$sth->errstr());
-    $sth->finish();
+    zmDbDo("UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_DYN_CURR_VERSION'", $currVersion);
   }
 
   while ( 1 ) {
     my $now = time();
-    if ( !$lastVersion || !$lastCheck || (($now-$lastCheck) > CHECK_INTERVAL) ) {
+    if ( !$interactive and $lastVersion and $lastCheck and (($now-$lastCheck) <= CHECK_INTERVAL) ) {
+      Debug("Not checking for updates since we already have less than " . CHECK_INTERVAL . " seconds ago.");
+    } else {
       Info('Checking for updates');
 
       use LWP::UserAgent;
@@ -174,25 +175,16 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} ) {
       my $res = $ua->request($req);
 
       if ( $res->is_success ) {
-        $lastVersion = $res->content;
-        chomp($lastVersion);
+        my $latestVersion = $res->content;
+        chomp($latestVersion);
         $lastCheck = $now;
 
-        Info('Got version: '.$lastVersion);
+        Info('Got version: '.$latestVersion);
 
-
-        my $lv_sql = 'UPDATE Config SET Value = ? WHERE Name = \'ZM_DYN_LAST_VERSION\'';
-        my $lv_sth = $dbh->prepare_cached($lv_sql) or die("Can't prepare '$lv_sql': ".$dbh->errstr());
-        my $lv_res = $lv_sth->execute($lastVersion) or die("Can't execute: ".$lv_sth->errstr());
-        $lv_sth->finish();
-
-        my $lc_sql = 'UPDATE Config SET Value = ? WHERE Name = \'ZM_DYN_LAST_CHECK\'';
-        my $lc_sth = $dbh->prepare_cached($lc_sql) or die("Can't prepare '$lc_sql': ".$dbh->errstr());
-        my $lc_res = $lc_sth->execute($lastCheck) or die("Can't execute: ".$lc_sth->errstr());
-        $lc_sth->finish();
+        zmDbDo('UPDATE Config SET Value = ? WHERE Name = \'ZM_DYN_LAST_VERSION\'', $latestVersion);
+        zmDbDo('UPDATE Config SET Value = ? WHERE Name = \'ZM_DYN_LAST_CHECK\'', $lastCheck);
         if ($interactive) {
-print("Hello");
-          print("Latest version $lastVersion, our version " . ZM_VERSION."\n");
+          print("Last version $lastVersion, Latest version $latestVersion, our version " . ZM_VERSION."\n");
           exit(0);
         }
       } else {

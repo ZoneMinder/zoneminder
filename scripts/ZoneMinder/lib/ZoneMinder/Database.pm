@@ -273,6 +273,9 @@ sub zmDbDo {
 	if ( ! defined $rows ) {
 		$sql =~ s/\?/'%s'/;
 		Error(sprintf("Failed $sql :", @_).$dbh->errstr());
+  } elsif ( ZoneMinder::Logger::logLevel() > INFO ) {
+		$sql =~ s/\?/'%s'/;
+		Debug(sprintf("Succeeded $sql : $rows rows affected", @_));
 	}
   return $rows;
 }

@@ -937,8 +937,7 @@ function initPage() {
                   var status = result["status"];
                 }
               } else if(msg["error"] !== undefined && msg["error"] !== null) {
-                alert(msg["error"]);
-                stopStream();
+                Janus.error(msg["error"]);
                 return;
               }
               if(jsep !== undefined && jsep !== null) {
@@ -957,7 +956,6 @@ function initPage() {
                   },
                   error: function(error) {
                     Janus.error("WebRTC error:", error);
-                    alert("WebRTC error... " + JSON.stringify(error));
                   }
                 });
               }

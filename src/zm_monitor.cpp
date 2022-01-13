@@ -1117,12 +1117,13 @@ bool Monitor::connect() {
     //End ONVIF Setup
 #endif
 
-    //janus setup.
+#if HAVE_LIBCURL    //janus setup. Depends on libcurl.
     if (janus_enabled && (path.find("rtsp://") !=  std::string::npos)) {
       if (add_to_janus() != 0) {
         Warning("Failed to add monitor stream to Janus!");
       }
     }
+#endif
 
   } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
@@ -3206,10 +3207,11 @@ int Monitor::Close() {
     soap = nullptr;
   }  //End ONVIF
 #endif
-  //Janus Teardown
+#if HAVE_LIBCURL  //Janus Teardown
     if (janus_enabled && (purpose == CAPTURE)) {
       remove_from_janus();
     }
+#endif
 
   packetqueue.clear();
   if (audio_fifo) {

@@ -2038,39 +2038,6 @@ bool Monitor::Analyse() {
                 );
           } // end if active and doing motion detection
 
-          if (function == RECORD or function == MOCORD) {
-            // If doing record, check to see if we need to close the event or not.
-            if (event) {
-              Debug(2, "Have event %" PRIu64 " in record", event->Id());
-
-              if (section_length != Seconds(min_section_length) && (event->Duration() >= section_length)
-                  && ((function == MOCORD && event_close_mode != CLOSE_TIME)
-                      || (function == RECORD && event_close_mode == CLOSE_TIME)
-                      || std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0))) {
-                Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
-                     name.c_str(),
-                     image_count,
-                     event->Id(),
-                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                     static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
-                     static_cast<int64>(Seconds(section_length).count()));
-                closeEvent();
-              }  // end if section_length
-            }  // end if event
-
-            if (!event) {
-              event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
-
-              Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
-                  name.c_str(), analysis_image_count, event->Id());
-              /* To prevent cancelling out an existing alert\prealarm\alarm state */
-              // This ignores current score status.  This should all come after the state machine calculations
-              if (state == IDLE) {
-                shared_data->state = state = TAPE;
-              }
-            } // end if ! event
-          } // end if RECORDING
 
           // If motion detecting, score will be > 0 on motion, but if skipping frames, might not be. So also test snap->score
           if ((score > 0) or ((snap->score > 0) and (function != MONITOR))) {
@@ -2207,6 +2174,40 @@ bool Monitor::Analyse() {
           } else if (state == TAPE) {
             // bulk frame code moved to event.
           } // end if state machine
+
+          if (function == RECORD or function == MOCORD) {
+            // If doing record, check to see if we need to close the event or not.
+            if (event) {
+              Debug(2, "Have event %" PRIu64 " in record", event->Id());
+
+              if (section_length != Seconds(min_section_length) && (event->Duration() >= section_length)
+                  && ((function == MOCORD && event_close_mode != CLOSE_TIME)
+                      || (function == RECORD && event_close_mode == CLOSE_TIME)
+                      || std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0))) {
+                Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
+                     name.c_str(),
+                     image_count,
+                     event->Id(),
+                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                     static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
+                     static_cast<int64>(Seconds(section_length).count()));
+                closeEvent();
+              }  // end if section_length
+            }  // end if event
+
+            if (!event) {
+              event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
+
+              Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
+                  name.c_str(), analysis_image_count, event->Id());
+              /* To prevent cancelling out an existing alert\prealarm\alarm state */
+              // This ignores current score status.  This should all come after the state machine calculations
+              if (state == IDLE) {
+                shared_data->state = state = TAPE;
+              }
+            } // end if ! event
+          } // end if RECORDING
 
           if ((function == MODECT or function == MOCORD) and snap->image) {
             if (!ref_image.Buffer()) {
@@ -2685,7 +2686,11 @@ bool Monitor::Decode() {
             return false;
           }
           if (deinterlace_packet_lock->packet_->codec_type == packet->codec_type) {
-            capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
+            if (!deinterlace_packet_lock->packet_->image) {
+              Error("Can't de-interlace when we have to decode.  De-Interlacing should only be useful on old low res local cams");
+            } else {
+              capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
+            }
             delete deinterlace_packet_lock;
             //packetqueue.unlock(deinterlace_packet_lock);
             break;
@@ -2738,8 +2743,7 @@ bool Monitor::Decode() {
   shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
   shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
-  delete packet_lock;
-  //packetqueue.unlock(packet_lock);
+  packetqueue.unlock(packet_lock);
   return true;
 }  // end bool Monitor::Decode()
 

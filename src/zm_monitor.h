@@ -34,6 +34,7 @@
 #include <memory>
 #include <sys/time.h>
 #include <vector>
+#include <curl/curl.h>
 
 #ifdef WITH_GSOAP
 #include "soapPullPointSubscriptionBindingProxy.h"
@@ -46,6 +47,7 @@ class Group;
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
 #define LINKED_CAUSE "Linked"
+
 
 //
 // This is the main class for monitors. Each monitor is associated
@@ -266,6 +268,7 @@ protected:
   Function        function;           // What the monitor is doing
   bool            enabled;            // Whether the monitor is enabled or asleep
   bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
+  bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
 
   std::string protocol;
   std::string method;
@@ -444,6 +447,13 @@ protected:
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
 #endif
+
+  //curl stuff for Janus
+  CURL *curl;
+  //helper class for CURL
+  static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+  int add_to_janus();
+  int remove_from_janus();
 
   // Used in check signal
   uint8_t red_val;

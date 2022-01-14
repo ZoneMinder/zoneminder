@@ -2057,11 +2057,11 @@ bool Monitor::Analyse() {
 
         if (shared_data->recording) {
           // If doing record, check to see if we need to close the event or not.
-          if (event && (section_length >= Seconds(min_section_length)) && (timestamp - event->StartTime() > section_length)) {
+          if (event && (section_length >= Seconds(min_section_length)) && (snap->timestamp - event->StartTime() > section_length)) {
             if (
                  (recording == RECORDING_ONMOTION && event_close_mode != CLOSE_TIME)
                  || (recording == RECORDING_ALWAYS && event_close_mode == CLOSE_TIME)
-                 || std::chrono::duration_cast<Seconds>(timestamp.time_since_epoch()) % section_length == Seconds(0)) {
+                 || std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                    name.c_str(),
                    image_count,
@@ -2093,7 +2093,7 @@ bool Monitor::Analyse() {
               if (event->Frames()
                   && !event->AlarmFrames()
                   && (event_close_mode == CLOSE_ALARM)
-                  && ((timestamp - event->StartTime()) >= min_section_length)
+                  && ((snap->timestamp - event->StartTime()) >= min_section_length)
                   && ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count - 1))) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
                     name.c_str(), image_count, event->Id());

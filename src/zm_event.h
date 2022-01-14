@@ -132,6 +132,7 @@ class Event {
 
     SystemTimePoint StartTime() const { return start_time; }
     SystemTimePoint EndTime() const { return end_time; }
+    TimePoint::duration Duration() const { return end_time - start_time; };
 
     void AddPacket(const std::shared_ptr<ZMPacket> &p);
     void AddPacket_(const std::shared_ptr<ZMPacket> &p);

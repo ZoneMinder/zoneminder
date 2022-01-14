@@ -62,7 +62,7 @@ function initCycle() {
             opaqueId: opaqueId,
             success: function(pluginHandle) {
               streaming2 = pluginHandle;
-              var body = { "request": "watch", "id":monitorData[monIdx].id };
+              var body = {"request": "watch", "id": monitorData[monIdx].id};
               streaming2.send({"message": body});
             },
             error: function(error) {
@@ -72,26 +72,27 @@ function initCycle() {
               Janus.debug(" ::: Got a message :::");
               Janus.debug(msg);
               var result = msg["result"];
-              if(result !== null && result !== undefined) {
-                if(result["status"] !== undefined && result["status"] !== null) {
-                  var status = result["status"];
+              if (result !== null && result !== undefined) {
+                if (result["status"] !== undefined && result["status"] !== null) {
+                  const status = result["status"];
+                  console.log(status);
                 }
-              } else if(msg["error"] !== undefined && msg["error"] !== null) {
+              } else if (msg["error"] !== undefined && msg["error"] !== null) {
                 Janus.debug(msg["error"]);
                 return;
               }
-              if(jsep !== undefined && jsep !== null) {
+              if (jsep !== undefined && jsep !== null) {
                 Janus.debug("Handling SDP as well...");
                 Janus.debug(jsep);
                 // Offer from the plugin, let's answer
                 streaming2.createAnswer({
                   jsep: jsep,
                   // We want recvonly audio/video and, if negotiated, datachannels
-                  media: { audioSend: false, videoSend: false, data: true },
+                  media: {audioSend: false, videoSend: false, data: true},
                   success: function(jsep) {
                     Janus.debug("Got SDP!");
                     Janus.debug(jsep);
-                    var body = { "request": "start"};
+                    var body = {"request": "start"};
                     streaming2.send({"message": body, "jsep": jsep});
                   },
                   error: function(error) {

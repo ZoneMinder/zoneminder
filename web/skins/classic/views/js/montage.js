@@ -307,7 +307,7 @@ function initPage() {
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
   var initJanus = false;
-  var streamingMonitors = [];
+  //var streamingMonitors = [];
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
     if (monitorData[i].janusEnabled) {
       initJanus = true;
@@ -353,57 +353,57 @@ function watchFullscreen() {
 }
 
 function attachVideo(janus, i) {
-      janus.attach({
-        plugin: "janus.plugin.streaming",
-        opaqueId:"streamingtest-"+Janus.randomString(12),
-        success: function(pluginHandle) {
-          janusMonitors[i].streaming = pluginHandle;
-          var body = { "request": "watch", "id":parseInt(janusMonitors[i].id) };
-          janusMonitors[i].streaming.send({"message": body});
-        },
-        error: function(error) {
-          Janus.error("  -- Error attaching plugin... ", error);
-        },
-        onmessage: function(msg, jsep) {
-          Janus.debug(" ::: Got a message :::");
-          Janus.debug(msg);
-          var result = msg["result"];
-          if(result !== null && result !== undefined) {
-            if(result["status"] !== undefined && result["status"] !== null) {
-              var status = result["status"];
-            }
-          } else if(msg["error"] !== undefined && msg["error"] !== null) {
-            Janus.error(msg["error"]);
-            return;
-          }
-          if(jsep !== undefined && jsep !== null) {
-            Janus.debug("Handling SDP as well...");
-            Janus.debug(jsep);
-            // Offer from the plugin, let's answer
-            janusMonitors[i].streaming.createAnswer({
-              jsep: jsep,
-              // We want recvonly audio/video and, if negotiated, datachannels
-              media: { audioSend: false, videoSend: false, data: true },
-              success: function(jsep) {
-                Janus.debug("Got SDP!");
-                Janus.debug(jsep);
-                var body = { "request": "start"};
-                janusMonitors[i].streaming.send({"message": body, "jsep": jsep});
-              },
-              error: function(error) {
-                Janus.error("WebRTC error:", error);
-              }
-            });
-          }
-        }, //onmessage function
-        onremotestream: function(ourstream) {
-          Janus.debug(" ::: Got a remote track :::");
-          Janus.debug(ourstream);
-          Janus.attachMediaStream(document.getElementById("liveStream" + janusMonitors[i].id), ourstream);
-          document.getElementById("liveStream" + janusMonitors[i].id).play()
+  janus.attach({
+    plugin: "janus.plugin.streaming",
+    opaqueId: "streamingtest-"+Janus.randomString(12),
+    success: function(pluginHandle) {
+      janusMonitors[i].streaming = pluginHandle;
+      var body = {"request": "watch", "id": parseInt(janusMonitors[i].id)};
+      janusMonitors[i].streaming.send({"message": body});
+    },
+    error: function(error) {
+      Janus.error("  -- Error attaching plugin... ", error);
+    },
+    onmessage: function(msg, jsep) {
+      Janus.debug(" ::: Got a message :::");
+      Janus.debug(msg);
+      var result = msg["result"];
+      if (result !== null && result !== undefined) {
+        if (result["status"] !== undefined && result["status"] !== null) {
+          const status = result["status"];
+          console.log(status);
         }
-      });// attach
-
+      } else if (msg["error"] !== undefined && msg["error"] !== null) {
+        Janus.error(msg["error"]);
+        return;
+      }
+      if (jsep !== undefined && jsep !== null) {
+        Janus.debug("Handling SDP as well...");
+        Janus.debug(jsep);
+        // Offer from the plugin, let's answer
+        janusMonitors[i].streaming.createAnswer({
+          jsep: jsep,
+          // We want recvonly audio/video and, if negotiated, datachannels
+          media: {audioSend: false, videoSend: false, data: true},
+          success: function(jsep) {
+            Janus.debug("Got SDP!");
+            Janus.debug(jsep);
+            var body = {"request": "start"};
+            janusMonitors[i].streaming.send({"message": body, "jsep": jsep});
+          },
+          error: function(error) {
+            Janus.error("WebRTC error:", error);
+          }
+        });
+      }
+    }, //onmessage function
+    onremotestream: function(ourstream) {
+      Janus.debug(" ::: Got a remote track :::");
+      Janus.debug(ourstream);
+      Janus.attachMediaStream(document.getElementById("liveStream" + janusMonitors[i].id), ourstream);
+      document.getElementById("liveStream" + janusMonitors[i].id).play();
+    }
+  });// attach
 }
 // Kick everything off
 $j(document).ready(initPage);

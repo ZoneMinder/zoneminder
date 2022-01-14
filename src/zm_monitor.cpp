@@ -1839,6 +1839,12 @@ bool Monitor::Analyse() {
     packetqueue.increment_it(analysis_it);
     return false;
   }
+  // Ready means that we have captured the warmup # of frames
+  if (!Ready()) {
+    Debug(3, "Not ready?");
+    delete packet_lock;
+    return false;
+  }
 
   // signal is set by capture
   bool signal = shared_data->signal;
@@ -1853,54 +1859,36 @@ bool Monitor::Analyse() {
   // if we have been told to be OFF, then we are off and don't do any processing.
   if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
     Debug(4, "Trigger not OFF state is (%d)", int(trigger_data->trigger_state));
-    // Ready means that we have captured the warmup # of frames
-    if (!Ready()) {
-      Debug(3, "Not ready?");
-      delete packet_lock;
-      return false;
-    }
 
     int score = 0;
     std::string cause;
     Event::StringSetMap noteSetMap;
 
 #ifdef WITH_GSOAP
-    if (ONVIF_Trigger_State) {
-      score += 9;
-      Debug(1, "Triggered on ONVIF");
-      if (!event) {
+    if (onvif_event_listener  && ONVIF_Healthy) {
+      if (ONVIF_Trigger_State) {
+        score += 9;
+        Debug(1, "Triggered on ONVIF");
         Event::StringSet noteSet;
         noteSet.insert("ONVIF2");
         noteSetMap[MOTION_CAUSE] = noteSet;
-
-        event = openEvent(snap, "ONVIF", noteSetMap);
         cause += "ONVIF";
-      } else {
-        event->addNote(MOTION_CAUSE, "ONVIF2");
-// Add to cause
-      }
-      // Regardless of previous state, we go to ALARM
-      shared_data->state = state = ALARM;
-      //If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
-      if (!ONVIF_Closes_Event && state == ALARM)
-        ONVIF_Trigger_State = FALSE;
-    }  // end ONVIF_Trigger
+        //If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
+        if (!ONVIF_Closes_Event && state == ALARM)
+          ONVIF_Trigger_State = FALSE;
+      }  // end ONVIF_Trigger
+    }  // end if (onvif_event_listener  && ONVIF_Healthy)
 #endif
 
-    // Specifically told to be on.  Setting the score here will trigger the alarm.
+    // Specifically told to be on.  Setting the score here is not enough to trigger the alarm. Must jump directly to ALARM
     if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
       score += trigger_data->trigger_score;
       Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
-      if (!event) {
-        Event::StringSet noteSet;
-        noteSet.insert(trigger_data->trigger_text);
-        noteSetMap[trigger_data->trigger_cause] = noteSet;
-        event = openEvent(snap, trigger_data->trigger_cause, noteSetMap);
-        Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
-      } else {
-        event->addNote(trigger_data->trigger_cause, trigger_data->trigger_text);
-        // Need to know if we should end the previous and start a new one, or just add the data
-      }
+      if (!cause.empty()) cause += ", ";
+      cause += trigger_data->trigger_cause;
+      Event::StringSet noteSet;
+      noteSet.insert(trigger_data->trigger_text);
+      noteSetMap[trigger_data->trigger_cause] = noteSet;
       shared_data->state = state = ALARM;
     }  // end if trigger_on
 
@@ -1968,14 +1956,21 @@ bool Monitor::Analyse() {
 
         /* try to stay behind the decoder. */
         if (decoding_enabled) {
-          if (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
+          while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
             // Need to wait for the decoder thread.
+            // decoder thread might be waiting on the lock for this packet.
+            // So we need to relinquish the lock and wait.  Waiting automatically relinquishes the lock
+            // So... 
             Debug(1, "Waiting for decode");
-            packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
-            packetqueue.wait();
-            // Everything may have changed, just return and start again.  This needs to be more RAII
-            return true;
+            packet_lock->wait();
+            //packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
+            //packetqueue.wait();
+            ////packet_lock->lock();
           }  // end while ! decoded
+          if (zm_terminate or analysis_thread->Stopped()) {
+            delete packet_lock;
+            return false;
+          }
         }  // end if decoding enabled
 
         if (Active() and (function == MODECT or function == MOCORD)) {
@@ -1990,7 +1985,6 @@ bool Monitor::Analyse() {
           }
 
           if (snap->image) {
-
             // decoder may not have been able to provide an image
             if (!ref_image.Buffer()) {
               Debug(1, "Assigning instead of Detecting");
@@ -2024,8 +2018,9 @@ bool Monitor::Analyse() {
 
               if (snap->score) {
                 if (cause.length()) cause += ", ";
-                cause += MOTION_CAUSE+std::string(":")+snap->alarm_cause;
+                cause += MOTION_CAUSE + std::string(":") + snap->alarm_cause;
                 noteSetMap[MOTION_CAUSE] = zoneSet;
+                score += snap->score;
               } // end if motion_score
             } else {
               Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
@@ -2069,13 +2064,15 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
                 name.c_str(), analysis_image_count, event->Id());
             /* To prevent cancelling out an existing alert\prealarm\alarm state */
+            // This ignores current score status.  This should all come after the state machine calculations
             if (state == IDLE) {
               shared_data->state = state = TAPE;
             }
           } // end if ! event
         } // end if RECORDING
 
-        if ((snap->score > 0) and (function != MONITOR)) {
+        // If motion detecting, score will be > 0 on motion, but if skipping frames, might not be. So also test snap->score
+        if ((score > 0) or ((snap->score > 0) and (function != MONITOR))) {
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             // If we should end then previous continuous event and start a new non-continuous event
             if (event && event->Frames()
@@ -2133,8 +2130,8 @@ bool Monitor::Analyse() {
           if (state == ALARM) {
             last_alarm_count = analysis_image_count; 
           } // This is needed so post_event_count counts after last alarmed frames while in ALARM not single alarmed frames while ALERT
-        } else if (!score and snap->score == 0) { // snap->score means -1 which means didn't do motion detection so don't do state transition
-          Debug(1, "!score");
+        } else if (!score and (snap->score == 0)) { // snap->score means -1 which means didn't do motion detection so don't do state transition
+          Debug(1, "!score %s", State_Strings[state].c_str());
           alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count 
 
           if (state == ALARM) {
@@ -2238,17 +2235,17 @@ bool Monitor::Analyse() {
   // In the case where people have pre-alarm frames, the web ui will generate the frame images
   // from the mp4. So no one will notice anyways.
   if (snap->image and (videowriter == PASSTHROUGH)) {
-   if (!savejpegs) {
-     Debug(1, "Deleting image data for %d", snap->image_index);
-     // Don't need raw images anymore
-     delete snap->image;
-     snap->image = nullptr;
-   }
-   if (snap->analysis_image and !(savejpegs & 2)) {
-     Debug(1, "Deleting analysis image data for %d", snap->image_index);
-     delete snap->analysis_image;
-     snap->analysis_image = nullptr;
-   }
+    if (!savejpegs) {
+      Debug(1, "Deleting image data for %d", snap->image_index);
+      // Don't need raw images anymore
+      delete snap->image;
+      snap->image = nullptr;
+    }
+    if (snap->analysis_image and !(savejpegs & 2)) {
+      Debug(1, "Deleting analysis image data for %d", snap->image_index);
+      delete snap->analysis_image;
+      snap->analysis_image = nullptr;
+    }
   }
 
   packetqueue.clearPackets(snap);
@@ -2571,7 +2568,8 @@ bool Monitor::Decode() {
   std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     Debug(4, "Not video");
-    packetqueue.unlock(packet_lock);
+    //packetqueue.unlock(packet_lock);
+    delete packet_lock;
     return true; // Don't need decode
   }
 
@@ -2677,24 +2675,31 @@ bool Monitor::Decode() {
         capture_image->Deinterlace_Blend();
       } else if (deinterlacing_value == 4) {
         while (!zm_terminate) {
+          // ICON FIXME SHould we not clone decoder_it?
           ZMLockedPacket *deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
           if (!deinterlace_packet_lock) {
-            packetqueue.unlock(packet_lock);
+            delete packet_lock;
+            //packetqueue.unlock(packet_lock);
             return false;
           }
           if (deinterlace_packet_lock->packet_->codec_type == packet->codec_type) {
             capture_image->Deinterlace_4Field(deinterlace_packet_lock->packet_->image, (deinterlacing>>8)&0xff);
-            packetqueue.unlock(deinterlace_packet_lock);
+            delete deinterlace_packet_lock;
+            //packetqueue.unlock(deinterlace_packet_lock);
             break;
           }
-          packetqueue.unlock(deinterlace_packet_lock);
+          delete deinterlace_packet_lock;
+          //packetqueue.unlock(deinterlace_packet_lock);
           packetqueue.increment_it(decoder_it);
         }
-        if (zm_terminate) return false;
+        if (zm_terminate) {
+          delete packet_lock;
+          return false;
+        }
       } else if (deinterlacing_value == 5) {
         capture_image->Deinterlace_Blend_CustomRatio((deinterlacing>>8)&0xff);
       }
-    }
+    } // end if deinterlacing_value
 
     if (orientation != ROTATE_0) {
       Debug(3, "Doing rotation");
@@ -2731,7 +2736,8 @@ bool Monitor::Decode() {
   shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
   shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
-  packetqueue.unlock(packet_lock);
+  delete packet_lock;
+  //packetqueue.unlock(packet_lock);
   return true;
 }  // end bool Monitor::Decode()
 

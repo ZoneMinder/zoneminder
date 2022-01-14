@@ -348,7 +348,7 @@ return false;
             return $value === csrf_hash($_COOKIE[$n], $time);
         case 'key':
             if (!$GLOBALS['csrf']['key']) {
-		    Debug("Checking key: no key set"  );
+		    ZM\Debug("Checking key: no key set"  );
 		    return false;
 	    }
  #Debug("Checking sid: $value === " . csrf_hash($GLOBALS['csrf']['key'], $time) );

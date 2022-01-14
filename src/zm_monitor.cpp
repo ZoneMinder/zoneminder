@@ -2154,7 +2154,7 @@ bool Monitor::Analyse() {
             if (event) {
               if (noteSetMap.size() > 0)
                 event->updateNotes(noteSetMap);
-              if (section_length != Seconds(min_section_length) && (event->Duration() >= section_length)) {
+              if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
                 Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                         name.c_str(), analysis_image_count, event->Id(),
                         static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
@@ -2180,7 +2180,7 @@ bool Monitor::Analyse() {
             if (event) {
               Debug(2, "Have event %" PRIu64 " in record", event->Id());
 
-              if (section_length != Seconds(min_section_length) && (event->Duration() >= section_length)
+              if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)
                   && ((function == MOCORD && event_close_mode != CLOSE_TIME)
                       || (function == RECORD && event_close_mode == CLOSE_TIME)
                       || std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0))) {

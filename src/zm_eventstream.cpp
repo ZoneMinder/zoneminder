@@ -1126,7 +1126,8 @@ bool EventStream::send_file(const std::string &filepath) {
   } else {
     Debug(1, "Failed to sendfile?");
   }
-  Warning("Unable to send raw frame %ld: %s rc %d", curr_frame_id, strerror(errno), rc);
+  Warning("Unable to send raw frame %ld: %s rc %d != %d",
+      curr_frame_id, strerror(errno), rc, (int)filestat.st_size);
 #endif
 
   static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];

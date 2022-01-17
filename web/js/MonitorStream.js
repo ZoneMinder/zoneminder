@@ -303,13 +303,13 @@ function MonitorStream(monitorData) {
 } // end function MonitorStream
 
 async function attachVideo(id) {
-  await waitUntil(() => janus.isConnected() )
+  await waitUntil(() => janus.isConnected() );
   janus.attach({
     plugin: "janus.plugin.streaming",
     opaqueId: "streamingtest-"+Janus.randomString(12),
     success: function(pluginHandle) {
       streaming[id] = pluginHandle;
-      var body = { "request": "watch", "id": id};
+      var body = {"request": "watch", "id": id};
       streaming[id].send({"message": body});
     },
     error: function(error) {
@@ -319,26 +319,26 @@ async function attachVideo(id) {
       Janus.debug(" ::: Got a message :::");
       Janus.debug(msg);
       var result = msg["result"];
-      if(result !== null && result !== undefined) {
-        if(result["status"] !== undefined && result["status"] !== null) {
+      if (result !== null && result !== undefined) {
+        if (result["status"] !== undefined && result["status"] !== null) {
           var status = result["status"];
           Janus.debug(status);
         }
-      } else if(msg["error"] !== undefined && msg["error"] !== null) {
+      } else if (msg["error"] !== undefined && msg["error"] !== null) {
         return;
       }
-      if(jsep !== undefined && jsep !== null) {
+      if (jsep !== undefined && jsep !== null) {
         Janus.debug("Handling SDP as well...");
         Janus.debug(jsep);
         // Offer from the plugin, let's answer
         streaming[id].createAnswer({
           jsep: jsep,
           // We want recvonly audio/video and, if negotiated, datachannels
-          media: { audioSend: false, videoSend: false, data: true },
+          media: {audioSend: false, videoSend: false, data: true},
           success: function(jsep) {
             Janus.debug("Got SDP!");
             Janus.debug(jsep);
-            var body = { "request": "start"};
+            var body = {"request": "start"};
             streaming[id].send({"message": body, "jsep": jsep});
           },
           error: function(error) {
@@ -357,7 +357,7 @@ async function attachVideo(id) {
 
 const waitUntil = (condition) => {
   return new Promise((resolve) => {
-    let interval = setInterval(() => {
+    const interval = setInterval(() => {
       if (!condition()) {
         return;
       }
@@ -365,4 +365,4 @@ const waitUntil = (condition) => {
       resolve();
     }, 100);
   });
-}
+};

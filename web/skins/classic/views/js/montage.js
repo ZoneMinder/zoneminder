@@ -1,9 +1,3 @@
-var server;
-var janus = null;
-var opaqueId;
-var globalCount = 0;
-var streamingList = [];
-var janusMonitors = [];
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered
@@ -306,43 +300,19 @@ function initPage() {
     $j("#flipMontageHeader").slideToggle("fast");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
-  var initJanus = false;
-  //var streamingMonitors = [];
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
-    if (monitorData[i].janusEnabled) {
-      initJanus = true;
-      janusMonitors.push(monitorData[i]);
-    }
-  }
-  if (initJanus) {
-    server = "http://" + window.location.hostname + ":8088/janus";
-    opaqueId = "streamingtest-"+Janus.randomString(12);
-    Janus.init({debug: "all", callback: function() {
-      janus = new Janus({
-        server: server,
-        success: function() {
-          for ( var i = 0, length = janusMonitors.length; i < length; i++ ) {
-            attachVideo(janus, i);
-          }
-        }
-      });
-    }});
-  }
-  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
-    if (!monitorData[i].janusEnabled) {
-      monitors[i] = new MonitorStream(monitorData[i]);
+    monitors[i] = new MonitorStream(monitorData[i]);
 
-      // Start the fps and status updates. give a random delay so that we don't assault the server
-      var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-      console.log("delay: " + delay);
-      monitors[i].start(delay);
+    // Start the fps and status updates. give a random delay so that we don't assault the server
+    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    console.log("delay: " + delay);
+    monitors[i].start(delay);
 
-      var interval = monitors[i].refresh;
-      if ( monitors[i].type == 'WebSite' && interval > 0 ) {
-        setInterval(reloadWebSite, interval*1000, i);
-      }
-      monitors[i].setup_onclick();
+    var interval = monitors[i].refresh;
+    if ( monitors[i].type == 'WebSite' && interval > 0 ) {
+      setInterval(reloadWebSite, interval*1000, i);
     }
+    monitors[i].setup_onclick();
   }
   selectLayout('#zmMontageLayout');
 }
@@ -352,58 +322,5 @@ function watchFullscreen() {
   openFullscreen(content);
 }
 
-function attachVideo(janus, i) {
-  janus.attach({
-    plugin: "janus.plugin.streaming",
-    opaqueId: "streamingtest-"+Janus.randomString(12),
-    success: function(pluginHandle) {
-      janusMonitors[i].streaming = pluginHandle;
-      var body = {"request": "watch", "id": parseInt(janusMonitors[i].id)};
-      janusMonitors[i].streaming.send({"message": body});
-    },
-    error: function(error) {
-      Janus.error("  -- Error attaching plugin... ", error);
-    },
-    onmessage: function(msg, jsep) {
-      Janus.debug(" ::: Got a message :::");
-      Janus.debug(msg);
-      var result = msg["result"];
-      if (result !== null && result !== undefined) {
-        if (result["status"] !== undefined && result["status"] !== null) {
-          const status = result["status"];
-          console.log(status);
-        }
-      } else if (msg["error"] !== undefined && msg["error"] !== null) {
-        Janus.error(msg["error"]);
-        return;
-      }
-      if (jsep !== undefined && jsep !== null) {
-        Janus.debug("Handling SDP as well...");
-        Janus.debug(jsep);
-        // Offer from the plugin, let's answer
-        janusMonitors[i].streaming.createAnswer({
-          jsep: jsep,
-          // We want recvonly audio/video and, if negotiated, datachannels
-          media: {audioSend: false, videoSend: false, data: true},
-          success: function(jsep) {
-            Janus.debug("Got SDP!");
-            Janus.debug(jsep);
-            var body = {"request": "start"};
-            janusMonitors[i].streaming.send({"message": body, "jsep": jsep});
-          },
-          error: function(error) {
-            Janus.error("WebRTC error:", error);
-          }
-        });
-      }
-    }, //onmessage function
-    onremotestream: function(ourstream) {
-      Janus.debug(" ::: Got a remote track :::");
-      Janus.debug(ourstream);
-      Janus.attachMediaStream(document.getElementById("liveStream" + janusMonitors[i].id), ourstream);
-      document.getElementById("liveStream" + janusMonitors[i].id).play();
-    }
-  });// attach
-}
 // Kick everything off
 $j(document).ready(initPage);

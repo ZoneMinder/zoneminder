@@ -326,6 +326,6 @@ foreach (array_reverse($zones) as $zone) {
     </div>
   </div>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
-  <script src="<?php echo cache_bust('js/janus.js') ?>"></script>
+  <script src="/javascript/janus/janus.js"></script>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

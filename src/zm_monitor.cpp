@@ -1100,12 +1100,13 @@ bool Monitor::connect() {
       set_credentials(soap);
       Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
       if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
-        Warning("Couldn't create subscription!");
+        Error("Couldn't create subscription! %s, %s", soap_fault_string(soap), soap_fault_detail(soap));
       } else {
         //Empty the stored messages
         set_credentials(soap);
-        if (proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) {
-          Warning("Couldn't do initial event pull! %s", response.SubscriptionReference.Address);
+        if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+            ( soap->error != SOAP_EOF)) { //SOAP_EOF could indicate no messages to pull.
+          Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
         } else {
           Debug(1, "Good Initial ONVIF Pull");
           ONVIF_Healthy = TRUE;
@@ -1120,7 +1121,9 @@ bool Monitor::connect() {
 #if HAVE_LIBCURL    //janus setup. Depends on libcurl.
     if (janus_enabled && (path.find("rtsp://") !=  std::string::npos)) {
       if (add_to_janus() != 0) {
-        Warning("Failed to add monitor stream to Janus!");
+        if (add_to_janus() != 0) {
+          Warning("Failed to add monitor stream to Janus!");
+        }
       }
     }
 #endif
@@ -1794,8 +1797,10 @@ bool Monitor::Poll() {
     set_credentials(soap);
     int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
     if (result != SOAP_OK) {
-      if (result != -1) //Ignore the timeout error
-        Warning("Failed to get ONVIF messages! %i", result);
+      if (result != SOAP_EOF) { //Ignore the timeout error
+        Error("Failed to get ONVIF messages! %s", soap_fault_string(soap));
+        ONVIF_Healthy = FALSE;
+      }
     } else {
       Debug(1, "Got Good Response! %i", result);
       for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
@@ -1814,6 +1819,7 @@ bool Monitor::Poll() {
             if (!ONVIF_Trigger_State) {
               Debug(1,"Triggered Event");
               ONVIF_Trigger_State = TRUE;
+              std::this_thread::sleep_for (std::chrono::seconds(1)); //thread sleep
             }
           } else {
             Debug(1, "Triggered off ONVIF");
@@ -1826,6 +1832,8 @@ bool Monitor::Poll() {
         }
       }
     }
+  } else {
+    std::this_thread::sleep_for (std::chrono::seconds(1)); //thread sleep to avoid the busy loop.
   }
 #endif
   return TRUE;
@@ -2109,11 +2117,14 @@ bool Monitor::Analyse() {
               Debug(1, "Staying in %s", State_Strings[state].c_str());
             }
             if (state == ALARM) {
-              last_alarm_count = analysis_image_count; 
+              last_alarm_count = analysis_image_count;
             } // This is needed so post_event_count counts after last alarmed frames while in ALARM not single alarmed frames while ALERT
-          } else if (!score and (snap->score == 0)) { // snap->score means -1 which means didn't do motion detection so don't do state transition
+
+          // snap->score -1 means didn't do motion detection so don't do state transition
+          // In Nodect, we may still have a triggered event, so need this code to run to end the event.
+          } else if (!score and ((snap->score == 0) or (function == NODECT))) {
             Debug(1, "!score %s", State_Strings[state].c_str());
-            alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count 
+            alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
 
             if (state == ALARM) {
               Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);

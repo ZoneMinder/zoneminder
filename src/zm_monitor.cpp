@@ -1126,6 +1126,9 @@ bool Monitor::connect() {
         }
       }
     }
+#else
+    if (janus_enabled)
+      Error("zmc not compiled with LIBCURL. Janus support not built in!");
 #endif
 
   } else if (!shared_data->valid) {
@@ -3390,7 +3393,10 @@ int Monitor::add_to_janus() {
   CURLcode res;
 
   curl = curl_easy_init();
-  if(!curl) return -1;
+  if (!curl) {
+    Error("Failed to init curl");
+    return -1;
+  }
   //parse username and password
   pos = path.find(":", 7);
   if (pos == std::string::npos) return -1;
@@ -3408,7 +3414,11 @@ int Monitor::add_to_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
+  if (res != CURLE_OK) {
+    Error("Failed to curl_easy_perform getting session/handle id");
+    curl_easy_cleanup(curl);
+    return -1;
+  }
 
   pos = response.find("\"id\": ");
   if (pos == std::string::npos) return -1;
@@ -3421,7 +3431,11 @@ int Monitor::add_to_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
+  if (res != CURLE_OK) {
+    Error("Failed to curl_easy_perform attaching");
+    curl_easy_cleanup(curl);
+    return -1;
+  }
   pos = response.find("\"id\": ");
   if (pos == std::string::npos) return -1;
   std::string handle_id = response.substr(pos + 6, 16); //TODO: This is an assumption that the string is always 16
@@ -3446,7 +3460,11 @@ int Monitor::add_to_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
+  if (res != CURLE_OK) {
+    Error("Failed to curl_easy_perform adding rtsp stream");
+    curl_easy_cleanup(curl);
+    return -1;
+  }
   Debug(1,"Added stream to Janus: %s", response.c_str());
   curl_easy_cleanup(curl);
   return 0;

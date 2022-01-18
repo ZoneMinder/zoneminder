@@ -47,6 +47,11 @@ function MonitorStream(monitorData) {
     this.scale = newscale;
 
     const oldSrc = img.getAttribute('src');
+    if (!oldSrc) {
+      console.log("No src on img?!");
+      console.log(img);
+      return;
+    }
     let newSrc = '';
 
     img.setAttribute('src', '');
@@ -85,7 +90,14 @@ function MonitorStream(monitorData) {
 
     if (this.janusEnabled) {
       var id = parseInt(this.id);
-      var server = "http://" + window.location.hostname + ":8088/janus";
+      var server;
+      if (window.location.protocol=='https:') {
+        // Assume reverse proxy setup for now
+        server = "https://" + window.location.hostname + "/janus";
+      } else {
+        server = "http://" + window.location.hostname + ":8088/janus";
+      }
+
       if (janus == null) {
         Janus.init({debug: "all", callback: function() {
           janus = new Janus({server: server}); //new Janus
@@ -178,9 +190,14 @@ function MonitorStream(monitorData) {
   this.getStreamCmdResponse = function(respObj, respText) {
     var stream = $j('#liveStream'+this.id)[0];
 
-    if ( ! stream ) {
+    if (!stream) {
       console.log('No live stream');
       return;
+    }
+
+    //watchdogOk('stream');
+    if (streamCmdTimer) {
+      streamCmdTimer = clearTimeout(streamCmdTimer);
     }
 
     if ( respObj.result == 'Ok' ) {
@@ -202,13 +219,25 @@ function MonitorStream(monitorData) {
           !COMPACT_MONTAGE) &&
           (this.type != 'WebSite')
         ) {
-          var fpsValue = $j('#fpsValue'+this.id);
-          var stateValue = $j('#stateValue'+this.id);
-          var monitorState = $j('#monitorState'+this.id);
+          const viewingFPSValue = $j('#vewingFPSValue'+this.id);
+          const captureFPSValue = $j('#captureFPSValue'+this.id);
+          const analysisFPSValue = $j('#analysisFPSValue'+this.id);
 
-          if ( fpsValue.length ) fpsValue.text(this.status.fps);
-          if ( stateValue.length ) stateValue.text(stateStrings[this.alarmState]);
-          if ( monitorState.length ) this.setStateClass(monitorState, stateClass);
+          const stateValue = $j('#stateValue'+this.id);
+          const monitorState = $j('#monitorState'+this.id);
+
+          if (viewingFPSValue.length && (viewingFPSValue.text != this.status.fps)) {
+            viewingFPSValue.text(this.status.fps);
+          }
+          if (analysisFPSValue.length && (analysisFPSValue.text != this.status.analysisfps)) {
+            analysisFPSValue.text(this.status.analysisfps);
+          }
+          if (captureFPSValue.length && (captureFPSValue.text != this.status.capturefps)) {
+            captureFPSValue.text(this.status.capturefps);
+          }
+
+          if (stateValue.length) stateValue.text(stateStrings[this.alarmState]);
+          if (monitorState.length) this.setStateClass(monitorState, stateClass);
         }
 
         this.setStateClass($j('#monitor'+this.id), stateClass);
@@ -238,7 +267,7 @@ function MonitorStream(monitorData) {
           }
         }
         if (this.status.auth) {
-          if (this.status.auth != auth_hash) {
+          if (this.status.auth != this.auth_hash) {
             // Try to reload the image stream.
             if (stream) {
               const oldsrc = stream.src;

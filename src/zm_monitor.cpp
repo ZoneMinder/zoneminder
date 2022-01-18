@@ -2087,16 +2087,8 @@ bool Monitor::Analyse() {
               if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
                 Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                     name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
-
-                if (!event) {
-                  event = openEvent(snap, cause, noteSetMap);
-                  Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
-                }  // end if no event, so start it
                 shared_data->state = state = ALARM;
-                if (alarm_frame_count) {
-                  Debug(1, "alarm frame count so SavePreAlarmFrames");
-                  event->SavePreAlarmFrames();
-                }
+
               } else if (state != PREALARM) {
                 Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
                 shared_data->state = state = PREALARM;
@@ -2189,7 +2181,14 @@ bool Monitor::Analyse() {
                 event = openEvent(snap, cause, noteSetMap);
               }
             } else {
-              Error("ALARM but no event");
+              if (!event) {
+                event = openEvent(snap, cause, noteSetMap);
+                Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
+              }  // end if no event, so start it
+              if (alarm_frame_count) {
+                Debug(1, "alarm frame count so SavePreAlarmFrames");
+                event->SavePreAlarmFrames();
+              }
             }
           } else if (state == ALERT) {
             // Alert means this frame has no motion, but we were alarmed and are still recording.

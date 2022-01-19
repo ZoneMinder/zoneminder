@@ -1279,6 +1279,16 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
             <?php echo translate('frames')?>
           </td>
         </tr>
+        <tr id="FunctionJanusEnabled">
+          <td class="text-right pr-3"><?php echo translate('Janus Live Stream') ?></td>
+          <td><input type="checkbox" name="newMonitor[JanusEnabled]" value="1"<?php echo $monitor->JanusEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_ENABLED']['Help'].'</div>';
+  }
+?>
+          </td>
+        </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('DefaultRate') ?></td>
           <td><?php echo htmlSelect('newMonitor[DefaultRate]', $rates, $monitor->DefaultRate()); ?></td>

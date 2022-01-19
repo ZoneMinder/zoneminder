@@ -1124,6 +1124,11 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
       optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
       but will make live view unavailable for this monitor.'
   ),
+  'FUNCTION_JANUS_ENABLED' => array(
+    'Help' => '
+      Attempt to use Janus streaming server for h264/h265 live view. Experimental, but allows
+      for significantly better performance.'
+  ),
   'ImageBufferCount' => array(
     'Help' => '
     Number of raw images available in /dev/shm. Currently should be set in the 3-5 range.  Used for live viewing.'

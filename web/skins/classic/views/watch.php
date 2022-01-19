@@ -135,7 +135,11 @@ if (isset($_REQUEST['height'])) {
 }
 
 $connkey = generateConnKey();
-$streamMode = getStreamMode();
+if ( $monitor->JanusEnabled() ) {
+    $streamMode = 'janus';
+} else {
+  $streamMode = getStreamMode();
+}
 
 noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
@@ -407,4 +411,6 @@ if ( ZM_WEB_SOUND_ON_ALARM ) {
 ?>
     </div>
   </div>
+  <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+  <script src="<?php echo cache_bust('js/janus.js') ?>"></script>
 <?php xhtmlFooter() ?>

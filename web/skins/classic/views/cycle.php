@@ -192,4 +192,6 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
         </div>
       </div>
     </div>
+<script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+<script src="<?php echo cache_bust('js/janus.js') ?>"></script>
 <?php xhtmlFooter() ?>

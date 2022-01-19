@@ -116,6 +116,7 @@ class Monitor extends ZM_Object {
     'Recording' => 'Always',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'DecodingEnabled'   => array('type'=>'boolean','default'=>1),
+    'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
     'EventStartCommand' => '',

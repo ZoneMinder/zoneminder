@@ -2076,7 +2076,7 @@ bool Monitor::Analyse() {
                   && (event->Duration() >= min_section_length)
                   && ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count - 1))) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
-                    name.c_str(), image_count, event->Id());
+                    name.c_str(), snap->image_index, event->Id());
                 closeEvent();
               } else if (event) {
                 // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
@@ -2091,7 +2091,7 @@ bool Monitor::Analyse() {
               }
               if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
                 Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
-                    name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
+                    name.c_str(), snap->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
                 shared_data->state = state = ALARM;
 
               } else if (state != PREALARM) {
@@ -2214,7 +2214,7 @@ bool Monitor::Analyse() {
                       || std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0))) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                      name.c_str(),
-                     image_count,
+                     snap->image_index,
                      event->Id(),
                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
@@ -2558,8 +2558,6 @@ int Monitor::Capture() {
       } else {
         Debug(4, "Not Queueing audio packet");
       }
-      // Don't update last_write_index because that is used for live streaming
-      //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       return 1;
     } else {
       Debug(1, "Unknown codec type %d", packet->codec_type);
@@ -2690,7 +2688,7 @@ bool Monitor::Decode() {
   }  // end if need_decoding
 
   Image* capture_image = nullptr;
-  unsigned int index = image_count % image_buffer_count;
+  unsigned int index = packet->image_index % image_buffer_count;
 
   if (packet->image) {
     capture_image = packet->image;

@@ -727,12 +727,12 @@ void MonitorStream::runStream() {
               (monitor->GetFunction() == Monitor::MOCORD || monitor->GetFunction() == Monitor::MODECT)) {
               Debug(1, "Sending analysis image");
             send_image = monitor->GetAlarmImage();
-            if ( !send_image ) {
+            if (!send_image) {
               Debug(1, "Falling back");
               send_image = monitor->image_buffer[index];
             }
           } else {
-             Debug(1, "Sending regular image");
+            Debug(1, "Sending regular image index %d", index);
             send_image = monitor->image_buffer[index];
           }
 

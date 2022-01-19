@@ -269,6 +269,7 @@ protected:
   bool            enabled;            // Whether the monitor is enabled or asleep
   bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
+  bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
 
   std::string protocol;
   std::string method;
@@ -511,6 +512,20 @@ public:
   inline bool DecodingEnabled() const {
     return decoding_enabled;
   }
+  bool JanusEnabled() {
+    return janus_enabled;
+  }
+  bool JanusAudioEnabled() {
+    return janus_audio_enabled;
+  }
+  bool OnvifEnabled() {
+    return onvif_event_listener;
+  }
+#ifdef WITH_GSOAP
+  bool OnvifHealthy() {
+    return ONVIF_Healthy;
+  }
+#endif
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
     if ( image_count >= ready_count ) {

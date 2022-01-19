@@ -80,6 +80,16 @@ if ( !canEdit('Monitors') ) return;
 ?>
 
         </div>
+        <div class="form-group" id="FunctionJanusAudioEnabled">
+          <label for="newJanusAudioEnabled"><?php echo translate('Janus Audio Enabled') ?></label>
+          <input type="checkbox" name="newJanusAudioEnabled" id="newJanusAudioEnabled" value="1"/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_AUDIO_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_AUDIO_ENABLED']['Help'].'</div>';
+  }
+?>
+
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="funcSaveBtn btn btn-primary"><?php echo translate('Save') ?></button>

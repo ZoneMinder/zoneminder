@@ -89,6 +89,7 @@ if ($action == 'save') {
       'ModectDuringPTZ' =>  0,
       'Enabled' => 0,
       'DecodingEnabled' => 0,
+      'JanusEnabled' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,
       'V4LMultiBuffer'  => '',

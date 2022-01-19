@@ -521,9 +521,11 @@ public:
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
+#ifdef WITH_GSOAP
   bool OnvifHealthy() {
     return ONVIF_Healthy;
   }
+#endif
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
     if ( image_count >= ready_count ) {

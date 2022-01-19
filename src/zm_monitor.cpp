@@ -1153,6 +1153,7 @@ bool Monitor::disconnect() {
   }
 
   if (purpose == CAPTURE) {
+    alarm_image.HoldBuffer(false); /* Allow to reset buffer */
     if (unlink(mem_file.c_str()) < 0) {
       Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
     }

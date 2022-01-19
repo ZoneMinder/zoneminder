@@ -260,6 +260,21 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
+  //manage the Janus audio check
+  if (document.getElementsByName("newMonitor[JanusEnabled]")[0].checked) {
+    document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+  } else {
+    document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+  }
+
+  document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
+    if (this.checked) {
+      document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+    } else {
+      document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+    }
+  });
+
   if ( ZM_OPT_USE_GEOLOCATION ) {
     if ( window.L ) {
       var form = document.getElementById('contentForm');

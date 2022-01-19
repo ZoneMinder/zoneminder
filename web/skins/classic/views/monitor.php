@@ -587,6 +587,16 @@ if (count($available_monitor_ids)) {
 ?>
           </td>
         </tr>
+  <tr id="FunctionJanusAudioEnabled">
+          <td class="text-right pr-3"><?php echo translate('Janus Live Stream Audio') ?></td>
+          <td><input type="checkbox" name="newMonitor[JanusAudioEnabled]" value="1"<?php echo $monitor->JanusAudioEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_AUDIO_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_AUDIO_ENABLED']['Help'].'</div>';
+  }
+?>
+          </td>
+        </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
           <td>

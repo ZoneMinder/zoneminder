@@ -77,7 +77,7 @@ struct Namespace namespaces[] =
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, `JanusEnabled`,"
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Function`+0, `Enabled`, `DecodingEnabled`, `JanusEnabled`, `JanusAudioEnabled`,"
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
@@ -307,6 +307,7 @@ Monitor::Monitor()
   enabled(false),
   decoding_enabled(false),
   janus_enabled(false),
+  janus_audio_enabled(false),
   //protocol
   //method
   //options
@@ -447,7 +448,7 @@ Monitor::Monitor()
 
 /*
   std::string load_monitor_sql =
- "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, JanusEnabled, LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
+ "SELECT Id, Name, ServerId, StorageId, Type, Function+0, Enabled, DecodingEnabled, JanusEnabled, JanusAudioEnabled, LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
  "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
  "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
  "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
@@ -501,6 +502,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   // See below after save_jpegs for a recalculation of decoding_enabled
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
 
   ReloadLinkedMonitors(dbrow[col]); col++;
   event_start_command = dbrow[col] ? dbrow[col] : ""; col++;
@@ -1121,7 +1123,7 @@ bool Monitor::connect() {
 #if HAVE_LIBCURL    //janus setup. Depends on libcurl.
     if (janus_enabled && (path.find("rtsp://") !=  std::string::npos)) {
       if (add_to_janus() != 0) {
-        if (add_to_janus() != 0) {
+        if (add_to_janus() != 0) { //The initial attempt may fail. This is a temporary workaround.
           Warning("Failed to add monitor stream to Janus!");
         }
       }
@@ -3453,6 +3455,7 @@ int Monitor::add_to_janus() {
   postData += rtsp_password;
   postData += "\", \"id\" : ";
   postData += std::to_string(id);
+  if (janus_audio_enabled)  postData += ", \"audio\" : true";
   postData += ", \"video\" : true}}";
 
   curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());

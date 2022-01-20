@@ -21,7 +21,7 @@
 
 if ( $action == 'bandwidth' && isset($_REQUEST['newBandwidth']) ) {
   $_COOKIE['zmBandwidth'] = validStr($_REQUEST['newBandwidth']);
-  setcookie('zmBandwidth', validStr($_REQUEST['newBandwidth']), time()+3600*24*30*12*10);
+  zm_setcookie('zmBandwidth', validStr($_REQUEST['newBandwidth']));
   $refreshParent = true;
   $view = 'none';
   $closePopup = true;

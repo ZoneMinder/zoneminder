@@ -916,6 +916,7 @@ function xhtmlFooter() {
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
+  <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
@@ -944,7 +945,8 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
 ?>
-  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();
+  <script nonce="<?php echo $cspNonce; ?>">
+    var $j = jQuery.noConflict();
 <?php
   if ( $skinJsPhpFile ) {
     require_once( $skinJsPhpFile );

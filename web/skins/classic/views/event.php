@@ -46,6 +46,10 @@ if (isset($_REQUEST['rate']) ) {
 } else {
   $rate = reScale(RATE_BASE, $monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
 }
+if ($rate > 1600) {
+  $rate = 1600;
+  zm_setcookie('zmEventRate', $rate);
+}
 
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);

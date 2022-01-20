@@ -25,7 +25,7 @@ class Group extends ZM_Object {
       if ( isset($_COOKIE['zmGroup']) ) {
         if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
           unset($_COOKIE['zmGroup']);
-          setcookie('zmGroup', '', time()-3600*24*2);
+          zm_setcookie('zmGroup', '');
         }
       }
     }

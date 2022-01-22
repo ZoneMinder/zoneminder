@@ -109,6 +109,7 @@ stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 <?php
 global $config;
 foreach ($config as $name=>$c) {
-  echo $name . ' = \''.$c['Value'].'\''.PHP_EOL;
+  if (!$c['Private'])
+    echo $name . ' = \''.$c['Value'].'\''.PHP_EOL;
 }
 ?>

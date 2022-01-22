@@ -123,3 +123,10 @@ stateStrings[STATE_PREALARM] = "<?php echo translate('Prealarm') ?>";
 stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
 stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
 stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
+
+<?php
+global $config;
+foreach ($config as $name=>$c) {
+    echo 'const '. $name . ' = \''.$c['Value'].'\''.PHP_EOL;
+}
+?>

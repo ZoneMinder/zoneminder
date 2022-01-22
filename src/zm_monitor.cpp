@@ -2120,7 +2120,7 @@ bool Monitor::Analyse() {
 
           // snap->score -1 means didn't do motion detection so don't do state transition
           // In Nodect, we may still have a triggered event, so need this code to run to end the event.
-          } else if (!score and ((snap->score == 0) or (function == NODECT))) {
+          } else if (!score and ((snap->score == 0) or (function == NODECT || function == RECORD))) {
             Debug(1, "!score %s", State_Strings[state].c_str());
             alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
 

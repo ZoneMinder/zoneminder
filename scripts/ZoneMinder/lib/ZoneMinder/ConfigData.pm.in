@@ -304,6 +304,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -484,6 +485,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
                    ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -499,6 +501,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
                    ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {

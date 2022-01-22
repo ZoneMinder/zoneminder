@@ -92,7 +92,9 @@ function MonitorStream(monitorData) {
     if (this.janusEnabled) {
       var id = parseInt(this.id);
       var server;
-      if (window.location.protocol=='https:') {
+      if (ZM_JANUS_PATH) {
+        server = ZM_JANUS_PATH;
+      } else if (window.location.protocol=='https:') {
         // Assume reverse proxy setup for now
         server = "https://" + window.location.hostname + "/janus";
       } else {

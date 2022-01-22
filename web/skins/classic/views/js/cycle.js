@@ -51,7 +51,14 @@ function initCycle() {
   if ( scale == '0' || scale == 'auto' ) changeScale();
 
   if (monitorData[monIdx].janusEnabled) {
-    server = "http://" + window.location.hostname + ":8088/janus";
+          if (ZM_JANUS_PATH) {
+        server = ZM_JANUS_PATH;
+      } else if (window.location.protocol=='https:') {
+        // Assume reverse proxy setup for now
+        server = "https://" + window.location.hostname + "/janus";
+      } else {
+        server = "http://" + window.location.hostname + ":8088/janus";
+      }
     opaqueId = "streamingtest-"+Janus.randomString(12);
     Janus.init({debug: "all", callback: function() {
       janus = new Janus({

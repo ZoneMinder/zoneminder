@@ -3383,7 +3383,12 @@ size_t Monitor::WriteCallback(void *contents, size_t size, size_t nmemb, void *u
 int Monitor::add_to_janus() {
   //TODO clean this up, add error checking, etc
   std::string response;
-  std::string endpoint = "127.0.0.1:8088/janus/";
+  std::string endpoint;
+  if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
+    endpoint = config.janus_path;
+  } else {
+    endpoint = "127.0.0.1:8088/janus/";
+  }
   std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
   std::string rtsp_username;
   std::string rtsp_password;
@@ -3425,6 +3430,7 @@ int Monitor::add_to_janus() {
   if (pos == std::string::npos) return -1;
   janus_id = response.substr(pos + 6, 16);
   response = "";
+  endpoint += "/";
   endpoint += janus_id;
   postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
   curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
@@ -3445,8 +3451,10 @@ int Monitor::add_to_janus() {
 
   //Assemble our actual request
   postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
-  postData +=  "\"request\" : \"create\", \"admin_key\" : \"supersecret\", \"type\" : \"rtsp\", ";
-  postData +=  "\"url\" : \"";
+  postData +=  "\"request\" : \"create\", \"admin_key\" : \"";
+  postData += config.janus_secret;
+  postData += "\", \"type\" : \"rtsp\", ";
+  postData += "\"url\" : \"";
   postData += rtsp_path;
   postData += "\", \"rtsp_user\" : \"";
   postData += rtsp_username;
@@ -3474,7 +3482,12 @@ int Monitor::add_to_janus() {
 int Monitor::remove_from_janus() {
   //TODO clean this up, add error checking, etc
   std::string response;
-  std::string endpoint = "127.0.0.1:8088/janus/";
+  std::string endpoint;
+  if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
+    endpoint = config.janus_path;
+  } else {
+    endpoint = "127.0.0.1:8088/janus/";
+  }
   std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
   std::size_t pos;
   CURLcode res;
@@ -3495,6 +3508,7 @@ int Monitor::remove_from_janus() {
   if (pos == std::string::npos) return -1;
   std::string janus_id = response.substr(pos + 6, 16);
   response = "";
+  endpoint += "/";
   endpoint += janus_id;
   postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
   curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
@@ -3512,7 +3526,9 @@ int Monitor::remove_from_janus() {
 
   //Assemble our actual request
   postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
-  postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"supersecret\", \"id\" : ";
+  postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"";
+  postData += config.janus_secret;
+  postData += "\", \"id\" : ";
   postData += std::to_string(id);
   postData += "}}";
 

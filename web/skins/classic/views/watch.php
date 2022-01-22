@@ -396,6 +396,7 @@ if ( ZM_WEB_SOUND_ON_ALARM ) {
 ?>
     </div>
   </div>
+  <script>var ZM_JANUS_PATH = '<?php echo ZM_JANUS_PATH ?>'</script>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
   <script src="/javascript/janus/janus.js"></script>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>

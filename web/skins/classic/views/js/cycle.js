@@ -91,6 +91,9 @@ function initCycle() {
               if (jsep !== undefined && jsep !== null) {
                 Janus.debug("Handling SDP as well...");
                 Janus.debug(jsep);
+                if ((navigator.userAgent.toLowerCase().indexOf('firefox') > -1) && (jsep["sdp"].includes("420029"))) { //because firefox devs are stubborn
+                  jsep["sdp"] = jsep["sdp"].replace("420029", "42e01f");
+                }
                 // Offer from the plugin, let's answer
                 streaming2.createAnswer({
                   jsep: jsep,

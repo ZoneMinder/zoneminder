@@ -521,6 +521,7 @@ public:
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
+  int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
 #ifdef WITH_GSOAP
   bool OnvifHealthy() {
     return ONVIF_Healthy;

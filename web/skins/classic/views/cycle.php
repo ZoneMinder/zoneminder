@@ -192,7 +192,6 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
         </div>
       </div>
     </div>
-<script>var ZM_JANUS_PATH = '<?php echo ZM_JANUS_PATH ?>'</script>
 <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
 <script src="/javascript/janus/janus.js"></script>
 <?php xhtmlFooter() ?>

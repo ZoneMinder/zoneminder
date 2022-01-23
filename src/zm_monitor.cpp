@@ -1123,6 +1123,7 @@ bool Monitor::connect() {
 
 #if HAVE_LIBCURL    //janus setup. Depends on libcurl.
     if (janus_enabled && (path.find("rtsp://") !=  std::string::npos)) {
+      get_janus_session();
       if (add_to_janus() != 0) {
           Warning("Failed to add monitor stream to Janus!"); //The first attempt may fail. Will be reattempted in the Poller thread
       }
@@ -1842,7 +1843,10 @@ bool Monitor::Poll() {
   }
 #endif
   if (janus_enabled) {
-    if (check_janus() != 1) {
+    if (janus_session.empty()) {
+      get_janus_session();
+    }
+    if (check_janus() == 0) {
       add_to_janus();
     }
   }
@@ -3395,7 +3399,6 @@ int Monitor::add_to_janus() {
   std::string rtsp_username;
   std::string rtsp_password;
   std::string rtsp_path = "rtsp://";
-  std::string janus_id;
   std::size_t pos;
   std::size_t pos2;
   CURLcode res;
@@ -3416,40 +3419,8 @@ int Monitor::add_to_janus() {
   rtsp_password = path.substr(pos+1, pos2 - pos - 1);
   rtsp_path += path.substr(pos2 + 1);
 
-  //Start Janus API init. Need to get a session_id and handle_id
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) {
-    Error("Failed to curl_easy_perform getting session/handle id");
-    curl_easy_cleanup(curl);
-    return -1;
-  }
-
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  janus_id = response.substr(pos + 6, 16);
-  response = "";
   endpoint += "/";
-  endpoint += janus_id;
-  postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) {
-    Error("Failed to curl_easy_perform attaching");
-    curl_easy_cleanup(curl);
-    return -1;
-  }
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  std::string handle_id = response.substr(pos + 6, 16); //TODO: This is an assumption that the string is always 16
-  endpoint += "/";
-  endpoint += handle_id;
+  endpoint += janus_session;
 
   //Assemble our actual request
   postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
@@ -3477,6 +3448,13 @@ int Monitor::add_to_janus() {
     curl_easy_cleanup(curl);
     return -1;
   }
+  if ((response.find("error") != std::string::npos) && ((response.find("No such session") != std::string::npos) || (response.find("No such handle") != std::string::npos))) {
+    janus_session = "";
+    curl_easy_cleanup(curl);
+    return -2;
+  }
+  //scan for missing session or handle id "No such session" "no such handle"
+
   Debug(1,"Added stream to Janus: %s", response.c_str());
   curl_easy_cleanup(curl);
   return 0;
@@ -3490,41 +3468,15 @@ int Monitor::check_janus() {
   } else {
     endpoint = "127.0.0.1:8088/janus/";
   }
-  std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
-  std::size_t pos;
+  std::string postData;
+  //std::size_t pos;
   CURLcode res;
 
   curl = curl_easy_init();
   if(!curl) return -1;
 
-
-  //Start Janus API init. Need to get a session_id and handle_id
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
-
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  std::string janus_id = response.substr(pos + 6, 16);
-  response = "";
   endpoint += "/";
-  endpoint += janus_id;
-  postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
-
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  std::string handle_id = response.substr(pos + 6, 16);
-  endpoint += "/";
-  endpoint += handle_id;
+  endpoint += janus_session;
 
   //Assemble our actual request
   postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
@@ -3537,16 +3489,28 @@ int Monitor::check_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
+  if (res != CURLE_OK) { //may mean an error code thrown by Janus, because of a bad session
+    Warning("Attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    curl_easy_cleanup(curl);
+    janus_session = "";
+    return -1;
+  }
 
-  Debug(1, "Queried for stream status: %s", response.c_str());
   curl_easy_cleanup(curl);
-  if (response.find("No such mountpoint") == std::string::npos) {
-    return 1;
-  } else {
+  Debug(1, "Queried for stream status: %s", response.c_str());
+  if ((response.find("error") != std::string::npos) && ((response.find("No such session") != std::string::npos) || (response.find("No such handle") != std::string::npos))) {
+  Warning("Janus Session timed out");
+    janus_session = "";
+    return -2;
+  } else if (response.find("No such mountpoint") != std::string::npos) {
+    Warning("Mountpoint Missing");
     return 0;
+  } else {
+    return 1;
   }
 }
+
+
 int Monitor::remove_from_janus() {
   std::string response;
   std::string endpoint;
@@ -3556,40 +3520,14 @@ int Monitor::remove_from_janus() {
     endpoint = "127.0.0.1:8088/janus/";
   }
   std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
-  std::size_t pos;
+  //std::size_t pos;
   CURLcode res;
 
   curl = curl_easy_init();
   if(!curl) return -1;
 
-
-  //Start Janus API init. Need to get a session_id and handle_id
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
-
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  std::string janus_id = response.substr(pos + 6, 16);
-  response = "";
   endpoint += "/";
-  endpoint += janus_id;
-  postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
-
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  std::string handle_id = response.substr(pos + 6, 16);
-  endpoint += "/";
-  endpoint += handle_id;
+  endpoint += janus_session;
 
   //Assemble our actual request
   postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
@@ -3604,9 +3542,75 @@ int Monitor::remove_from_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
+  if (res != CURLE_OK) {
+    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    curl_easy_cleanup(curl);
+    return -1;
+  }
 
   Debug(1, "Removed stream from Janus: %s", response.c_str());
   curl_easy_cleanup(curl);
   return 0;
 }
+
+int Monitor::get_janus_session() {
+  std::string response;
+  std::string endpoint;
+  if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
+    endpoint = config.janus_path;
+  } else {
+    endpoint = "127.0.0.1:8088/janus/";
+  }
+  std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
+  std::size_t pos;
+  CURLcode res;
+  curl = curl_easy_init();
+  if(!curl) return -1;
+
+  //Start Janus API init. Need to get a session_id and handle_id
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK) {
+    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    curl_easy_cleanup(curl);
+    return -1;
+  }
+
+  pos = response.find("\"id\": ");
+  if (pos == std::string::npos)
+  {
+    curl_easy_cleanup(curl);
+    return -1;
+  }
+  janus_session = response.substr(pos + 6, 16);
+
+  response = "";
+  endpoint += "/";
+  endpoint += janus_session;
+  postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
+  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK)
+  {
+    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    curl_easy_cleanup(curl);
+    return -1;
+  }
+
+  pos = response.find("\"id\": ");
+  if (pos == std::string::npos)
+  {
+    curl_easy_cleanup(curl);
+    return -1;
+  }
+  janus_session += "/";
+  janus_session += response.substr(pos + 6, 16);
+  curl_easy_cleanup(curl);
+  return 1;
+} //get_janus_session

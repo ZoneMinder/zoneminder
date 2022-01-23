@@ -455,6 +455,8 @@ protected:
   static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
   int add_to_janus();
   int remove_from_janus();
+  int get_janus_session();
+  std::string janus_session;
 
   // Used in check signal
   uint8_t red_val;

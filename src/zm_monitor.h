@@ -455,6 +455,8 @@ protected:
   static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
   int add_to_janus();
   int remove_from_janus();
+  int get_janus_session();
+  std::string janus_session;
 
   // Used in check signal
   uint8_t red_val;
@@ -521,6 +523,7 @@ public:
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
+  int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
 #ifdef WITH_GSOAP
   bool OnvifHealthy() {
     return ONVIF_Healthy;

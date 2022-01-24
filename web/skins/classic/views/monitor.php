@@ -770,9 +770,18 @@ include('_monitor_source_nvsocket.php');
 ?>
             </td>
           </tr>
-          <tr><td class="text-right pr-3"><?php echo translate('RemoteHostName') ?></td><td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($monitor->Host()) ?>"/></td></tr>
-          <tr><td><?php echo translate('RemoteHostPort') ?></td><td><input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" min="0" max="65535"/></td></tr>
-          <tr><td><?php echo translate('RemoteHostPath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('RemoteHostName') ?></td>
+            <td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($monitor->Host()) ?>"/></td>
+          </tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('RemoteHostPort') ?></td>
+            <td><input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" min="0" max="65535" step="1"/></td>
+          </tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('RemoteHostPath') ?></td>
+            <td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/></td>
+          </tr>
 <?php
       } else if ( $monitor->Type() == 'File' ) {
 ?>

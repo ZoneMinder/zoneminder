@@ -10,6 +10,7 @@
 }
 
 textarea,
+input[name="newMonitor[Host]"],
 input[name="newMonitor[Name]"],
 input[name="newMonitor[Path]"],
 input[name="newMonitor[SecondPath]"],

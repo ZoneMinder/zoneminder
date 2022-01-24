@@ -447,11 +447,6 @@ if ( $version ) {
 
   print( "\nUpgrading database to version ".ZM_VERSION."\n" );
 
-# Update config first of all
-  migratePaths();
-  ZoneMinder::Config::loadConfigFromDB();
-  ZoneMinder::Config::saveConfigToDB();
-
   my $cascade = undef;
   if ( $cascade || $version eq "1.19.0" ) {
 # Patch the database

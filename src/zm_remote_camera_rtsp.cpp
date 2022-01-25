@@ -196,7 +196,7 @@ int RemoteCameraRtsp::PrimeCapture() {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
   if ( avcodec_open(mVideoCodecContext, codec) < 0 )
 #else
-  if ( avcodec_open2(mVideoCodecContext, codec, 0) < 0 )
+  if ( avcodec_open2(mVideoCodecContext, codec, nullptr) < 0 )
 #endif
   {
     Error("Can't open codec");

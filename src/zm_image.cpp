@@ -24,6 +24,7 @@
 #include "zm_utils.h"
 #include <algorithm>
 #include <fcntl.h>
+#include <mutex>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -79,6 +80,8 @@ imgbufcpy_fptr_t fptr_imgbufcpy;
 
 /* Font */
 static ZmFont font;
+
+std::mutex              jpeg_mutex;
 
 void Image::update_function_pointers() {
   /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
@@ -1083,6 +1086,9 @@ bool Image::WriteJpeg(const std::string &filename,
                       const int &quality_override,
                       SystemTimePoint timestamp,
                       bool on_blocking_abort) const {
+  // jpeg libs are not thread safe
+  std::unique_lock<std::mutex> lck(jpeg_mutex);
+
   if (config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8)) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
@@ -1365,6 +1371,8 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_overr
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.EncodeJpeg(outbuffer, outbuffer_size, quality_override);
   }
+
+  std::unique_lock<std::mutex> lck(jpeg_mutex);
 
   int quality = quality_override ? quality_override : config.jpeg_stream_quality;
 

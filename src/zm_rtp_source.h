@@ -91,8 +91,6 @@ private:
   bool mFrameGood;
   bool prevM;
 
-  bool mTerminate;
-
   bool mFrameReady;
   std::condition_variable mFrameReadyCv;
   std::mutex mFrameReadyMutex;
@@ -100,6 +98,7 @@ private:
   bool mFrameProcessed;
   std::condition_variable mFrameProcessedCv;
   std::mutex mFrameProcessedMutex;
+  bool mTerminate;
 
 private:
   void init(uint16_t seq);

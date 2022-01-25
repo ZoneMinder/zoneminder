@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_monitor.h"
 #include "zm_packet.h"
+#include "zm_signal.h"
 
 #if HAVE_LIBAVFORMAT
 
@@ -128,7 +129,7 @@ int RemoteCameraRtsp::Disconnect() {
 
 int RemoteCameraRtsp::PrimeCapture() {
   Debug(2, "Waiting for sources");
-  for ( int i = 0; (i < 100) && !rtspThread->hasSources(); i++ ) {
+  for ( int i = 100; i &&zm_terminate && !rtspThread->hasSources(); i-- ) {
     usleep(100000);
   }
   if ( !rtspThread->hasSources() ) {

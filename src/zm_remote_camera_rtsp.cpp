@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_monitor.h"
 #include "zm_packet.h"
+#include "zm_signal.h"
 
 RemoteCameraRtsp::RemoteCameraRtsp(
     const Monitor *monitor,
@@ -126,8 +127,8 @@ int RemoteCameraRtsp::Disconnect() {
 
 int RemoteCameraRtsp::PrimeCapture() {
   Debug(2, "Waiting for sources");
-  for (int i = 0; i < 100 && !rtspThread->hasSources(); i++) {
-    std::this_thread::sleep_for(Microseconds(100));
+  for (int i = 100; i && !zm_terminate && !rtspThread->hasSources(); i--) {
+    std::this_thread::sleep_for(Microseconds(10000));
   }
 
   if (!rtspThread->hasSources()) {
@@ -218,7 +219,7 @@ int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
   while (!frameComplete) {
     buffer.clear();
-    if (!rtspThread || rtspThread->IsStopped())
+    if (!rtspThread || rtspThread->IsStopped() || zm_terminate)
       return -1;
 
     if (rtspThread->getFrame(buffer)) {

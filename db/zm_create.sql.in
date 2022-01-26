@@ -39,6 +39,7 @@ CREATE TABLE `Config` (
   `Help` text,
   `Category` varchar(32) NOT NULL default '',
   `Readonly` tinyint(3) unsigned NOT NULL default '0',
+  `Private` BOOLEAN NOT NULL DEFAULT FALSE,
   `Requires` text,
   PRIMARY KEY (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -460,6 +461,7 @@ CREATE TABLE `Monitors` (
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `DecodingEnabled` tinyint(3) unsigned NOT NULL default '1',
   `JanusEnabled` BOOLEAN NOT NULL default false,
+  `JanusAudioEnabled` BOOLEAN NOT NULL default false,
   `LinkedMonitors` varchar(255),
   `Triggers` set('X10') NOT NULL default '',
   `EventStartCommand` VARCHAR(255) NOT NULL DEFAULT '',

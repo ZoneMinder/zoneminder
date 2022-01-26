@@ -52,6 +52,7 @@
 #include <algorithm>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <chrono>
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -78,7 +79,7 @@ struct Namespace namespaces[] =
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
 "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `DecodingEnabled`, "
-"`JanusEnabled`,"
+"`JanusEnabled`, `JanusAudioEnabled`, "
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
@@ -319,6 +320,7 @@ Monitor::Monitor()
   recording(RECORDING_ALWAYS),
   decoding_enabled(false),
   janus_enabled(false),
+  janus_audio_enabled(false),
   //protocol
   //method
   //options
@@ -458,9 +460,10 @@ Monitor::Monitor()
 }  // Monitor::Monitor
 
 /*
+<<<<<<< HEAD
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`,
-   `DecodingEnabled`, JanusEnabled, "
+   `DecodingEnabled`, JanusEnabled, JanusAudioEnabled, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -519,6 +522,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   // See below after save_jpegs for a recalculation of decoding_enabled
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
 
   ReloadLinkedMonitors(dbrow[col]); col++;
   event_start_command = dbrow[col] ? dbrow[col] : ""; col++;
@@ -1138,12 +1142,14 @@ bool Monitor::connect() {
 
 #if HAVE_LIBCURL    //janus setup. Depends on libcurl.
     if (janus_enabled && (path.find("rtsp://") !=  std::string::npos)) {
+      get_janus_session();
       if (add_to_janus() != 0) {
-        if (add_to_janus() != 0) {
-          Warning("Failed to add monitor stream to Janus!");
-        }
+          Warning("Failed to add monitor stream to Janus!"); //The first attempt may fail. Will be reattempted in the Poller thread
       }
     }
+#else
+    if (janus_enabled)
+      Error("zmc not compiled with LIBCURL. Janus support not built in!");
 #endif
 
   } else if (!shared_data->valid) {
@@ -1166,6 +1172,7 @@ bool Monitor::disconnect() {
   }
 
   if (purpose == CAPTURE) {
+    alarm_image.HoldBuffer(false); /* Allow to reset buffer */
     if (unlink(mem_file.c_str()) < 0) {
       Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
     }
@@ -1808,6 +1815,8 @@ void Monitor::UpdateFPS() {
 //Thread where ONVIF polling, and other similar status polling can happen.
 //Since these can be blocking, run here to avoid intefering with other processing
 bool Monitor::Poll() {
+  //We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
+  std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
 #ifdef WITH_GSOAP
   if (ONVIF_Healthy) {
@@ -1849,10 +1858,17 @@ bool Monitor::Poll() {
         }
       }
     }
-  } else {
-    std::this_thread::sleep_for (std::chrono::seconds(1)); //thread sleep to avoid the busy loop.
   }
 #endif
+  if (janus_enabled) {
+    if (janus_session.empty()) {
+      get_janus_session();
+    }
+    if (check_janus() == 0) {
+      add_to_janus();
+    }
+  }
+  std::this_thread::sleep_until(loop_start_time + std::chrono::seconds(5));
   return TRUE;
 } //end Poll
 
@@ -2084,7 +2100,7 @@ bool Monitor::Analyse() {
                   && (event->Duration() >= min_section_length)
                   && ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count - 1))) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
-                    name.c_str(), image_count, event->Id());
+                    name.c_str(), snap->image_index, event->Id());
                 closeEvent();
               } else if (event) {
                 // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
@@ -2099,7 +2115,7 @@ bool Monitor::Analyse() {
               }
               if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
                 Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
-                    name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
+                    name.c_str(), snap->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
                 shared_data->state = state = ALARM;
 
               } else if (state != PREALARM) {
@@ -2222,7 +2238,7 @@ bool Monitor::Analyse() {
 
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                      name.c_str(),
-                     image_count,
+                     snap->image_index,
                      event->Id(),
                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
@@ -2562,8 +2578,6 @@ int Monitor::Capture() {
       } else {
         Debug(4, "Not Queueing audio packet");
       }
-      // Don't update last_write_index because that is used for live streaming
-      //shared_data->last_write_time = image_buffer[index].timestamp->tv_sec;
       return 1;
     } else {
       Debug(1, "Unknown codec type %d", packet->codec_type);
@@ -2694,7 +2708,7 @@ bool Monitor::Decode() {
   }  // end if need_decoding
 
   Image* capture_image = nullptr;
-  unsigned int index = image_count % image_buffer_count;
+  unsigned int index = packet->image_index % image_buffer_count;
 
   if (packet->image) {
     capture_image = packet->image;
@@ -3167,10 +3181,8 @@ int Monitor::PrimeCapture() {
     }
   }  // end if rtsp_server
 
-#ifdef WITH_GSOAP //For now, just don't run the thread if no ONVIF support. This may change if we add other long polling options.
-  //ONVIF Thread
-
-  if (onvif_event_listener  && ONVIF_Healthy) {
+  //Poller Thread
+  if (onvif_event_listener || janus_enabled) {
 
     if (!Poller) {
       Poller = zm::make_unique<PollThread>(this);
@@ -3178,7 +3190,7 @@ int Monitor::PrimeCapture() {
       Poller->Start();
     }
   }
-#endif
+
   if (decoding_enabled) {
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
@@ -3382,20 +3394,26 @@ size_t Monitor::WriteCallback(void *contents, size_t size, size_t nmemb, void *u
 }
 
 int Monitor::add_to_janus() {
-  //TODO clean this up, add error checking, etc
   std::string response;
-  std::string endpoint = "127.0.0.1:8088/janus/";
+  std::string endpoint;
+  if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
+    endpoint = config.janus_path;
+  } else {
+    endpoint = "127.0.0.1:8088/janus/";
+  }
   std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
   std::string rtsp_username;
   std::string rtsp_password;
   std::string rtsp_path = "rtsp://";
-  std::string janus_id;
   std::size_t pos;
   std::size_t pos2;
   CURLcode res;
 
   curl = curl_easy_init();
-  if(!curl) return -1;
+  if (!curl) {
+    Error("Failed to init curl");
+    return -1;
+  }
   //parse username and password
   pos = path.find(":", 7);
   if (pos == std::string::npos) return -1;
@@ -3407,36 +3425,15 @@ int Monitor::add_to_janus() {
   rtsp_password = path.substr(pos+1, pos2 - pos - 1);
   rtsp_path += path.substr(pos2 + 1);
 
-  //Start Janus API init. Need to get a session_id and handle_id
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
-
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  janus_id = response.substr(pos + 6, 16);
-  response = "";
-  endpoint += janus_id;
-  postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  std::string handle_id = response.substr(pos + 6, 16); //TODO: This is an assumption that the string is always 16
   endpoint += "/";
-  endpoint += handle_id;
+  endpoint += janus_session;
 
   //Assemble our actual request
   postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
-  postData +=  "\"request\" : \"create\", \"admin_key\" : \"supersecret\", \"type\" : \"rtsp\", ";
-  postData +=  "\"url\" : \"";
+  postData +=  "\"request\" : \"create\", \"admin_key\" : \"";
+  postData += config.janus_secret;
+  postData += "\", \"type\" : \"rtsp\", ";
+  postData += "\"url\" : \"";
   postData += rtsp_path;
   postData += "\", \"rtsp_user\" : \"";
   postData += rtsp_username;
@@ -3444,6 +3441,7 @@ int Monitor::add_to_janus() {
   postData += rtsp_password;
   postData += "\", \"id\" : ";
   postData += std::to_string(id);
+  if (janus_audio_enabled)  postData += ", \"audio\" : true";
   postData += ", \"video\" : true}}";
 
   curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
@@ -3451,53 +3449,44 @@ int Monitor::add_to_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
+  if (res != CURLE_OK) {
+    Error("Failed to curl_easy_perform adding rtsp stream");
+    curl_easy_cleanup(curl);
+    return -1;
+  }
+  if ((response.find("error") != std::string::npos) && ((response.find("No such session") != std::string::npos) || (response.find("No such handle") != std::string::npos))) {
+    janus_session = "";
+    curl_easy_cleanup(curl);
+    return -2;
+  }
+  //scan for missing session or handle id "No such session" "no such handle"
+
   Debug(1,"Added stream to Janus: %s", response.c_str());
   curl_easy_cleanup(curl);
   return 0;
 }
-int Monitor::remove_from_janus() {
-  //TODO clean this up, add error checking, etc
+
+int Monitor::check_janus() {
   std::string response;
-  std::string endpoint = "127.0.0.1:8088/janus/";
-  std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
-  std::size_t pos;
+  std::string endpoint;
+  if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
+    endpoint = config.janus_path;
+  } else {
+    endpoint = "127.0.0.1:8088/janus/";
+  }
+  std::string postData;
+  //std::size_t pos;
   CURLcode res;
 
   curl = curl_easy_init();
   if(!curl) return -1;
 
-
-  //Start Janus API init. Need to get a session_id and handle_id
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
-
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  std::string janus_id = response.substr(pos + 6, 16);
-  response = "";
-  endpoint += janus_id;
-  postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
-
-  pos = response.find("\"id\": ");
-  if (pos == std::string::npos) return -1;
-  std::string handle_id = response.substr(pos + 6, 16);
   endpoint += "/";
-  endpoint += handle_id;
+  endpoint += janus_session;
 
   //Assemble our actual request
   postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
-  postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"supersecret\", \"id\" : ";
+  postData +=  "\"request\" : \"info\", \"id\" : ";
   postData += std::to_string(id);
   postData += "}}";
 
@@ -3506,9 +3495,128 @@ int Monitor::remove_from_janus() {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   res = curl_easy_perform(curl);
-  if (res != CURLE_OK) return -1;
+  if (res != CURLE_OK) { //may mean an error code thrown by Janus, because of a bad session
+    Warning("Attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    curl_easy_cleanup(curl);
+    janus_session = "";
+    return -1;
+  }
+
+  curl_easy_cleanup(curl);
+  Debug(1, "Queried for stream status: %s", response.c_str());
+  if ((response.find("error") != std::string::npos) && ((response.find("No such session") != std::string::npos) || (response.find("No such handle") != std::string::npos))) {
+  Warning("Janus Session timed out");
+    janus_session = "";
+    return -2;
+  } else if (response.find("No such mountpoint") != std::string::npos) {
+    Warning("Mountpoint Missing");
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+
+int Monitor::remove_from_janus() {
+  std::string response;
+  std::string endpoint;
+  if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
+    endpoint = config.janus_path;
+  } else {
+    endpoint = "127.0.0.1:8088/janus/";
+  }
+  std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
+  //std::size_t pos;
+  CURLcode res;
+
+  curl = curl_easy_init();
+  if(!curl) return -1;
+
+  endpoint += "/";
+  endpoint += janus_session;
+
+  //Assemble our actual request
+  postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
+  postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"";
+  postData += config.janus_secret;
+  postData += "\", \"id\" : ";
+  postData += std::to_string(id);
+  postData += "}}";
+
+  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK) {
+    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    curl_easy_cleanup(curl);
+    return -1;
+  }
 
   Debug(1, "Removed stream from Janus: %s", response.c_str());
   curl_easy_cleanup(curl);
   return 0;
 }
+
+int Monitor::get_janus_session() {
+  std::string response;
+  std::string endpoint;
+  if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
+    endpoint = config.janus_path;
+  } else {
+    endpoint = "127.0.0.1:8088/janus/";
+  }
+  std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
+  std::size_t pos;
+  CURLcode res;
+  curl = curl_easy_init();
+  if(!curl) return -1;
+
+  //Start Janus API init. Need to get a session_id and handle_id
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK) {
+    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    curl_easy_cleanup(curl);
+    return -1;
+  }
+
+  pos = response.find("\"id\": ");
+  if (pos == std::string::npos)
+  {
+    curl_easy_cleanup(curl);
+    return -1;
+  }
+  janus_session = response.substr(pos + 6, 16);
+
+  response = "";
+  endpoint += "/";
+  endpoint += janus_session;
+  postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
+  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  res = curl_easy_perform(curl);
+  if (res != CURLE_OK)
+  {
+    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    curl_easy_cleanup(curl);
+    return -1;
+  }
+
+  pos = response.find("\"id\": ");
+  if (pos == std::string::npos)
+  {
+    curl_easy_cleanup(curl);
+    return -1;
+  }
+  janus_session += "/";
+  janus_session += response.substr(pos + 6, 16);
+  curl_easy_cleanup(curl);
+  return 1;
+} //get_janus_session

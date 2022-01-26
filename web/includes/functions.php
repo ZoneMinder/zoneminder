@@ -2095,7 +2095,7 @@ function getStreamHTML($monitor, $options = array()) {
     ) );
     return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
   } else if ( $monitor->JanusEnabled() ) {
-    return '<video id="liveStream'.$monitor->Id().'" width="'.$options['width'].'"autoplay muted playsinline=""></video>';
+    return '<video id="liveStream'.$monitor->Id().'" width="'.$options['width'].'"autoplay muted controls playsinline="" ></video>';
   } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';
     $streamSrc = $monitor->getStreamSrc($options);

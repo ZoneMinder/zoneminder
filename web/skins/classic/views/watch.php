@@ -247,7 +247,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           </ul>
         </nav>
       <div class="container-fluid col-sm-offset-2 h-100 pr-0">
-        <div id="imageFeed"
+        <div id="imageFeed<?php echo $monitor->Id() ?>"
 <?php
 if ($streamMode == 'jpeg') {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
@@ -255,24 +255,9 @@ if ($streamMode == 'jpeg') {
 ?>
 ><?php echo getStreamHTML($monitor, $options); ?>
         </div>
-<?php if ($monitor->Type() != 'WebSite') { ?>
-        <div id="monitorStatus">
-          <div id="monitorState">
-            <span><?php echo translate('State') ?>:<span id="stateValue"></span></span>
-            <span id="viewingFPS" title="<?php echo translate('Viewing FPS')?>"><span id="viewingFPSValue"></span> fps</span>
-            <span id="captureFPS" title="<?php echo translate('Capturing FPS')?>"><span id="captureFPSValue"></span> fps</span>
-            <?php if ( $monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord' ) { ?>
-            <span id="analysisFPS" title="<?php echo translate('Analysis FPS')?>"><span id="analysisFPSValue"></span> fps</span>
-            <?php } ?>
-          </div>
-        </div>
-        <div id="replayStatus"<?php echo $streamMode=="single" ? ' class="hidden"' : '' ?>>
-          <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue"></span></span>
-          <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"></span>x</span>
-          <span id="delay"><?php echo translate('Delay') ?>: <span id="delayValue"></span>s</span>
-          <span id="level"><?php echo translate('Buffer') ?>: <span id="levelValue"></span>%</span>
-          <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
-        </div>
+<?php if ($monitor->Type() != 'WebSite') {
+    echo $monitor->getMonitorStateHTML();
+ ?>
         <div class="buttons" id="dvrControls">
 <?php
 if ($streamMode == 'jpeg') {
@@ -413,4 +398,5 @@ if ( ZM_WEB_SOUND_ON_ALARM ) {
   </div>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
   <script src="/javascript/janus/janus.js"></script>
+  <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

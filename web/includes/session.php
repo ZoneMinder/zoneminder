@@ -1,4 +1,21 @@
 <?php
+
+// Wrapper around setcookie that auto-sets samesite, and deals with older versions of php
+function zm_setcookie($cookie, $value, $options=array()) {
+  if (!isset($options['expires'])) {
+    $options['expires'] = time()+3600*24*30*12*10; // 10 years?!
+  }
+  if (!isset($options['samesite'])) {
+    $options['samesite'] = 'Strict';
+  }
+
+  if (version_compare(phpversion(), '7.3.0', '>=')) {
+    setcookie($cookie, $value, $options);
+  } else {
+    setcookie($cookie, $value, $options['expires'], '/; samesite=strict');
+  }
+}
+
 // ZM session start function support timestamp management
 function zm_session_start() {
 

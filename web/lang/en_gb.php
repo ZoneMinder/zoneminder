@@ -1129,6 +1129,11 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
       Attempt to use Janus streaming server for h264/h265 live view. Experimental, but allows
       for significantly better performance.'
   ),
+  'FUNCTION_JANUS_AUDIO_ENABLED' => array(
+    'Help' => '
+      Attempt to enable audio in the Janus stream. Has no effect for cameras without audio support,
+      but can prevent a stream playing if your camera sends an audio format unsupported by the browser.'
+  ),
   'ImageBufferCount' => array(
     'Help' => '
     Number of raw images available in /dev/shm. Currently should be set in the 3-5 range.  Used for live viewing.'

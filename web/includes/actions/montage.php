@@ -38,7 +38,7 @@ if ( isset($_REQUEST['object']) ) {
       $Layout->save();
       zm_session_start();
       $_SESSION['zmMontageLayout'] = $Layout->Id();
-      setcookie('zmMontageLayout', $Layout->Id(), 1);
+      zm_setcookie('zmMontageLayout', $Layout->Id());
       session_write_close();
       $redirect = '?view=montage';
     } // end if save

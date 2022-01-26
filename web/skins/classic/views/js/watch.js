@@ -182,73 +182,6 @@ function changeScale() {
   }
 } // end function changeScale
 
-function setAlarmState(currentAlarmState) {
-  alarmState = currentAlarmState;
-
-  var stateClass = '';
-  if (alarmState == STATE_ALARM) {
-    stateClass = 'alarm';
-  } else if (alarmState == STATE_ALERT) {
-    stateClass = 'alert';
-  }
-  $j('#stateValue').text(stateStrings[alarmState]);
-  if (stateClass) {
-    $j('#stateValue').addClass(stateClass);
-  } else {
-    $j('#stateValue').removeClass();
-  }
-
-  var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
-  var wasAlarmed = ( lastAlarmState == STATE_ALARM || lastAlarmState == STATE_ALERT );
-
-  var newAlarm = ( isAlarmed && !wasAlarmed );
-  var oldAlarm = ( !isAlarmed && wasAlarmed );
-
-  if (newAlarm) {
-    table.bootstrapTable('refresh');
-    if (SOUND_ON_ALARM) {
-      // Enable the alarm sound
-      if (!msieVer) {
-        $j('#alarmSound').removeClass('hidden');
-      } else {
-        $j('#MediaPlayer').trigger('play');
-      }
-    }
-    if (POPUP_ON_ALARM) {
-      window.focus();
-    }
-  }
-  if (oldAlarm) { // done with an event do a refresh
-    table.bootstrapTable('refresh');
-    if (SOUND_ON_ALARM) {
-      // Disable alarm sound
-      if (!msieVer) {
-        $j('#alarmSound').addClass('hidden');
-      } else {
-        $j('#MediaPlayer').trigger('pause');
-      }
-    }
-  }
-
-  lastAlarmState = alarmState;
-} // end function setAlarmState( currentAlarmState )
-
-function streamCmdReq(data) {
-  if (auth_hash) data.auth = auth_hash;
-  $j.getJSON(monitorUrl + '?view=request&request=stream&connkey='+connKey, data)
-      .done(getStreamCmdResponse)
-      .fail(getStreamCmdError);
-
-  streamCmdTimer = null;
-}
-
-function getStreamCmdError(text, error) {
-  console.log(error);
-  // Error are normally due to failed auth. reload the page.
-
-  //window.location.reload();
-}
-
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk('stream');
   if (streamCmdTimer) {
@@ -379,7 +312,7 @@ function streamCmdQuery() {
   streamCmdReq({command: CMD_QUERY});
 }
 
-function streamCmdPause(action) {
+function onPause() {
   setButtonState('pauseBtn', 'active');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
@@ -389,18 +322,17 @@ function streamCmdPause(action) {
     setButtonState('slowRevBtn', 'inactive');
     setButtonState('fastRevBtn', 'inactive');
   }
+}
+function streamCmdPause(action) {
+  onPause();
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_PAUSE;
-    streamCmdReq(data);
+    monitorStream.streamCommand(CMD_PAUSE);
   }
 }
-
-function streamCmdPlay(action) {
+function onPlay() {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'active');
-  if (streamStatus.delayed == true) {
+  if (monitorStream.status.delayed == true) {
     setButtonState('stopBtn', 'inactive');
     if (monitorStreamReplayBuffer) {
       setButtonState('fastFwdBtn', 'inactive');
@@ -417,11 +349,14 @@ function streamCmdPlay(action) {
       setButtonState('fastRevBtn', 'unavail');
     }
   }
-  if (action) {
-    streamCmdReq({command: CMD_PLAY});
-  }
 }
 
+function streamCmdPlay(action) {
+  onPlay();
+  if (action) {
+    monitorStream.streamCommand(CMD_PLAY);
+  }
+}
 
 function streamCmdStop(action) {
   setButtonState('pauseBtn', 'inactive');
@@ -434,7 +369,7 @@ function streamCmdStop(action) {
     setButtonState('fastRevBtn', 'unavail');
   }
   if (action) {
-    streamCmdReq({command: CMD_STOP});
+    monitorStream.streamCommand(CMD_STOP);
   }
   setButtonState('stopBtn', 'unavail');
   setButtonState('playBtn', 'active');
@@ -451,7 +386,7 @@ function streamCmdFastFwd(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    streamCmdReq({command: CMD_FASTFWD});
+    monitorStream.streamCommand(CMD_FASTFWD);
   }
 }
 
@@ -466,7 +401,7 @@ function streamCmdSlowFwd(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    streamCmdReq({command: CMD_SLOWFWD});
+    monitorStream.command(CMD_SLOWFWD);
   }
   setButtonState('pauseBtn', 'active');
   if (monitorStreamReplayBuffer) {
@@ -485,7 +420,7 @@ function streamCmdSlowRev(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    streamCmdReq({command: CMD_SLOWREV});
+    monitorStream.command(CMD_SLOWREV);
   }
   setButtonState('pauseBtn', 'active');
   if (monitorStreamReplayBuffer) {
@@ -504,35 +439,24 @@ function streamCmdFastRev(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    streamCmdReq({command: CMD_FASTREV});
+    monitorStream.command(CMD_FASTREV);
   }
 }
 
 function streamCmdZoomIn(x, y) {
-  var data = {};
-  data.x = x;
-  data.y = y;
-  data.command = CMD_ZOOMIN;
-  streamCmdReq(data);
+  monitorStream.streamCommand({x: x, y: y, command: CMD_ZOOMIN});
 }
 
 function streamCmdZoomOut() {
-  streamCmdReq({command: CMD_ZOOMOUT});
+  monitorStream.streamCommand(CMD_ZOOMOUT);
 }
 
 function streamCmdScale(scale) {
-  var data = {};
-  data.command = CMD_SCALE;
-  data.scale = scale;
-  streamCmdReq(data);
+  monitorStream.streamCommand({command: CMD_SCALE, scale: scale});
 }
 
 function streamCmdPan(x, y) {
-  var data = {};
-  data.x = x;
-  data.y = y;
-  data.command = CMD_PAN;
-  streamCmdReq(data);
+  monitorStream.streamCommand({x: x, y: y, command: CMD_PAN});
 }
 
 
@@ -565,33 +489,12 @@ function statusCmdQuery() {
   statusCmdTimer = null;
 }
 
-function alarmCmdReq(data) {
-  if (auth_hash) data.auth = auth_hash;
-  $j.getJSON(monitorUrl + '?view=request&request=alarm&id='+monitorId, data)
-      .done(getAlarmCmdResponse)
-      .fail(function(jqxhr, textStatus, error) {
-        if (textStatus === 'timeout') {
-          streamCmdQuery();
-        } else {
-          logAjaxFail(jqxhr, textStatus, error);
-        }
-      });
-}
-
-function getAlarmCmdResponse(respObj, respText) {
-  checkStreamForErrors('getAlarmCmdResponse', respObj);
-}
-
 function cmdDisableAlarms() {
-  var data = {};
-  data.command = 'disableAlarms';
-  alarmCmdReq(data);
+  monitorStream.alarmCommand('disableAlarms');
 }
 
 function cmdEnableAlarms() {
-  var data = {};
-  data.command = 'enableAlarms';
-  alarmCmdReq(data);
+  monitorStream.alarmCommand('enableAlarms');
 }
 
 function cmdAlarm() {
@@ -603,16 +506,13 @@ function cmdAlarm() {
 }
 
 function cmdForceAlarm() {
-  var data = {};
-  data.command = 'forceAlarm';
-  alarmCmdReq(data);
+  monitorStream.alarmCommand('forceAlarm');
   if (window.event) window.event.preventDefault();
+  return false;
 }
 
 function cmdCancelForcedAlarm() {
-  var data = {};
-  data.command = 'cancelForcedAlarm';
-  alarmCmdReq(data);
+  monitorStream.alarmCommand('cancelForcedAlarm');
   if (window.event) window.event.preventDefault();
   return false;
 }
@@ -719,6 +619,7 @@ console.log("New src: " + newsrc);
 function handleClick(event) {
   // target should be the img tag
   var target = $j(event.target);
+  console.log("click " + showMode);
   var width = target.width();
   var height = target.height();
 
@@ -894,6 +795,10 @@ function msieVer() {
   }
 }
 
+function refresh_events_table() {
+  table.bootstrapTable('refresh');
+}
+
 function initPage() {
   if (canView.Control) {
     // Load the PTZ Preset modal into the DOM
@@ -901,79 +806,37 @@ function initPage() {
     // Load the settings modal into the DOM
     if (monitorType == 'Local') getSettingsModal();
   }
+  // Only enable the settings button for local cameras
+  settingsBtn.prop('disabled', !(canView.Control && (monitorType == 'Local')));
 
   if (monitorType != 'WebSite') {
-    if (streamMode != 'janus') {
-      if (streamMode == 'single') {
-        statusCmdTimer = setTimeout(statusCmdQuery, 200);
-        setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
-      } else {
-        streamCmdTimer = setTimeout(streamCmdQuery, 200);
-        setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
-      }
+    monitorStream = new MonitorStream(monitorData[monIdx]);
+
+    // Start the fps and status updates. give a random delay so that we don't assault the server
+    monitorStream.setScale('auto');
+    monitorStream.start(Math.round( (Math.random()+0.5)*statusRefreshTimeout ));
+    if (streamMode == 'single') {
+      monitorStream.setup_onclick(fetchImage);
+    } else {
+      monitorStream.setup_onclick(handleClick);
     }
-    if (streamMode == 'janus') {
-      server = "http://" + window.location.hostname + ":8088/janus";
-      opaqueId = "streamingtest-"+Janus.randomString(12);
-      Janus.init({debug: "all", callback: function() {
-        janus = new Janus({
-          server: server,
-          success: function() {
-            janus.attach({
-              plugin: "janus.plugin.streaming",
-              opaqueId: opaqueId,
-              success: function(pluginHandle) {
-                streaming2 = pluginHandle;
-                var body = {"request": "watch", "id": monitorId};
-                streaming2.send({"message": body});
-              },
-              error: function(error) {
-                Janus.error("  -- Error attaching plugin... ", error);
-              },
-              onmessage: function(msg, jsep) {
-                Janus.debug(" ::: Got a message :::");
-                Janus.debug(msg);
-                var result = msg["result"];
-                if (result !== null && result !== undefined) {
-                  if (result["status"] !== undefined && result["status"] !== null) {
-                    var status = result["status"];
-                    console.log(status);
-                  }
-                } else if (msg["error"] !== undefined && msg["error"] !== null) {
-                  Janus.error(msg["error"]);
-                  return;
-                }
-                if (jsep !== undefined && jsep !== null) {
-                  Janus.debug("Handling SDP as well...");
-                  Janus.debug(jsep);
-                  // Offer from the plugin, let's answer
-                  streaming2.createAnswer({
-                    jsep: jsep,
-                    // We want recvonly audio/video and, if negotiated, datachannels
-                    media: {audioSend: false, videoSend: false, data: true},
-                    success: function(jsep) {
-                      Janus.debug("Got SDP!");
-                      Janus.debug(jsep);
-                      var body = {"request": "start"};
-                      streaming2.send({"message": body, "jsep": jsep});
-                    },
-                    error: function(error) {
-                      Janus.error("WebRTC error:", error);
-                    }
-                  });
-                }
-              }, //onmessage function
-              onremotestream: function(stream) {
-                Janus.debug(" ::: Got a remote track :::");
-                Janus.debug(stream);
-                Janus.attachMediaStream(document.getElementById("liveStream" + monitorId), stream);
-                document.getElementById("liveStream" + monitorId).play();
-              }
-            }); // attach
-          } //Success functio
-        }); //new Janus
-      }}); //janus.init callback
-    } else if (canStreamNative || (streamMode == 'single')) {
+    monitorStream.setup_onpause(onPause);
+    monitorStream.setup_onplay(onPlay);
+    monitorStream.setup_onalarm(refresh_events_table);
+
+    monitorStream.setButton('enableAlarmButton', enableAlmBtn);
+    monitorStream.setButton('forceAlarmButton', forceAlmBtn);
+    monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+
+    /*
+    if (streamMode == 'single') {
+      statusCmdTimer = setTimeout(statusCmdQuery, 200);
+      setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
+    } else {
+      streamCmdTimer = setTimeout(streamCmdQuery, 200);
+      setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
+    }
+    if (canStreamNative || (streamMode == 'single')) {
       var streamImg = $j('#imageFeed img');
       if (!streamImg) streamImg = $j('#imageFeed object');
       if (!streamImg) {
@@ -998,6 +861,7 @@ function initPage() {
     if (refreshApplet && appletRefreshTime) {
       setTimeout(appletRefresh, appletRefreshTime*1000);
     }
+    */
     if (window.history.length == 1) {
       $j('#closeControl').html('');
     }
@@ -1007,6 +871,27 @@ function initPage() {
     changeScale();
     document.querySelectorAll('select[name="changeRate"]').forEach(function(el) {
       el.onchange = window['changeRate'].bind(el, el);
+    });
+
+    // Init the bootstrap-table
+    table.bootstrapTable({icons: icons});
+    // Update table rows each time after new data is loaded
+    table.on('post-body.bs.table', function(data) {
+      $j('#eventList tr:contains("New Event")').addClass('recent');
+    });
+
+    // Take appropriate action when the user clicks on a cell
+    table.on('click-cell.bs.table', processClicks);
+
+    // Some toolbar events break the thumbnail animation, so re-init eventlistener
+    table.on('all.bs.table', initThumbAnimation);
+
+    // Update table links each time after new data is loaded
+    table.on('post-body.bs.table', function(data) {
+      var thumb_ndx = $j('#eventList tr th').filter(function() {
+        return $j(this).text().trim() == 'Thumbnail';
+      }).index();
+      table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
     });
   } else if (monitorRefresh > 0) {
     setInterval(reloadWebSite, monitorRefresh*1000);
@@ -1044,31 +929,6 @@ function initPage() {
   } else {
     cyclePause();
   }
-
-  // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !(canView.Control && (monitorType == 'Local')));
-
-  // Init the bootstrap-table
-  if (monitorType != 'WebSite') table.bootstrapTable({icons: icons});
-
-  // Update table rows each time after new data is loaded
-  table.on('post-body.bs.table', function(data) {
-    $j('#eventList tr:contains("New Event")').addClass('recent');
-  });
-
-  // Take appropriate action when the user clicks on a cell
-  table.on('click-cell.bs.table', processClicks);
-
-  // Some toolbar events break the thumbnail animation, so re-init eventlistener
-  table.on('all.bs.table', initThumbAnimation);
-
-  // Update table links each time after new data is loaded
-  table.on('post-body.bs.table', function(data) {
-    var thumb_ndx = $j('#eventList tr th').filter(function() {
-      return $j(this).text().trim() == 'Thumbnail';
-    }).index();
-    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
-  });
 } // initPage
 
 function watchFullscreen() {
@@ -1153,10 +1013,7 @@ function cycleToggle(e) {
 function changeRate(e) {
   const newvalue = $j(e).val();
   if (1) {
-    var data = {};
-    data.command = CMD_MAXFPS;
-    data.maxfps = newvalue;
-    streamCmdReq(data);
+    monitorStream.streamCommand({command: CMD_MAXFPS, maxfps: newvalue});
   } else {
     streamImage = $j('#liveStream'+monitorData[monIdx].id);
     const oldsrc = streamImage.attr('src');

@@ -308,6 +308,7 @@ protected:
 
   bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
+  bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
 
   std::string protocol;
   std::string method;
@@ -494,6 +495,8 @@ protected:
   static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
   int add_to_janus();
   int remove_from_janus();
+  int get_janus_session();
+  std::string janus_session;
 
   // Used in check signal
   uint8_t red_val;
@@ -554,6 +557,21 @@ public:
   inline bool DecodingEnabled() const {
     return decoding_enabled;
   }
+  bool JanusEnabled() {
+    return janus_enabled;
+  }
+  bool JanusAudioEnabled() {
+    return janus_audio_enabled;
+  }
+  bool OnvifEnabled() {
+    return onvif_event_listener;
+  }
+  int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
+#ifdef WITH_GSOAP
+  bool OnvifHealthy() {
+    return ONVIF_Healthy;
+  }
+#endif
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
     if (image_count >= ready_count) {

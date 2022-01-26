@@ -51,7 +51,14 @@ function initCycle() {
   if ( scale == '0' || scale == 'auto' ) changeScale();
 
   if (monitorData[monIdx].janusEnabled) {
-    server = "http://" + window.location.hostname + ":8088/janus";
+    if (ZM_JANUS_PATH) {
+      server = ZM_JANUS_PATH;
+    } else if (window.location.protocol=='https:') {
+      // Assume reverse proxy setup for now
+      server = "https://" + window.location.hostname + "/janus";
+    } else {
+      server = "http://" + window.location.hostname + ":8088/janus";
+    }
     opaqueId = "streamingtest-"+Janus.randomString(12);
     Janus.init({debug: "all", callback: function() {
       janus = new Janus({
@@ -84,6 +91,9 @@ function initCycle() {
               if (jsep !== undefined && jsep !== null) {
                 Janus.debug("Handling SDP as well...");
                 Janus.debug(jsep);
+                if ((navigator.userAgent.toLowerCase().indexOf('firefox') > -1) && (jsep["sdp"].includes("420029"))) { //because firefox devs are stubborn
+                  jsep["sdp"] = jsep["sdp"].replace("420029", "42e01f");
+                }
                 // Offer from the plugin, let's answer
                 streaming2.createAnswer({
                   jsep: jsep,

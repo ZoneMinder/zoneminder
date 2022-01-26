@@ -89,6 +89,8 @@ if ($action == 'save') {
       'ModectDuringPTZ' =>  0,
       'Enabled' => 0,
       'DecodingEnabled' => 0,
+      'JanusEnabled' => 0,
+      'JanusAudioEnabled' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,
       'V4LMultiBuffer'  => '',
@@ -324,7 +326,8 @@ if ($action == 'save') {
     // really should thump zmwatch and maybe zmtrigger too.
     //daemonControl( 'restart', 'zmwatch.pl' );
   } // end if restart
-  $redirect = '?view=console';
+  if (!$error_message)
+    $redirect = '?view=console';
 } else {
   ZM\Warning("Unknown action $action in Monitor");
 } // end if action == Delete

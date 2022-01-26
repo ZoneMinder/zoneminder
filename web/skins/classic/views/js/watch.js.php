@@ -64,6 +64,7 @@ foreach ($monitors as $m) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $m->Id() ?>,
+  'connKey': <?php echo $m->connKey() ?>,
   'width': <?php echo $m->ViewWidth() ?>,
   'height':<?php echo $m->ViewHeight() ?>,
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,

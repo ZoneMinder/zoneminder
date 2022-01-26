@@ -145,11 +145,13 @@ class Image {
     explicit Image(const AVFrame *frame);
 
     ~Image();
+
     static void Initialise();
     static void Deinitialise();
 
     inline void DumpImgBuffer() {
-      DumpBuffer(buffer, buffertype);
+      if (buffertype != ZM_BUFTYPE_DONTFREE)
+        DumpBuffer(buffer, buffertype);
       buffertype = ZM_BUFTYPE_DONTFREE;
       buffer = nullptr;
       allocation = 0;

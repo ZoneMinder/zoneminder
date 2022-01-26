@@ -307,14 +307,7 @@ foreach (array_reverse($zones) as $zone) {
             </div>
 <?php
   if ((!ZM_WEB_COMPACT_MONTAGE) && ($monitor->Type() != 'WebSite')) {
-?>
-            <div id="monitorState<?php echo $monitor->Id() ?>" class="monitorState idle">
-              <?php echo translate('State') ?>:
-              <span id="stateValue<?php echo $monitor->Id() ?>"></span>
-              &nbsp;-&nbsp;
-              <span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps
-            </div>
-<?php
+    echo $monitor->getMonitorStateHTML();
   }
 ?>
           </div>

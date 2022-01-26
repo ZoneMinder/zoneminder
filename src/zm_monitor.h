@@ -438,11 +438,12 @@ protected:
   std::string diag_path_delta;
 
   //ONVIF
-#ifdef WITH_GSOAP
-  struct soap *soap = nullptr;
-  bool ONVIF_Trigger_State;
+  bool ONVIF_Trigger_State; //Re-using some variables for Amcrest API support
   bool ONVIF_Healthy;
   bool ONVIF_Closes_Event;
+
+#ifdef WITH_GSOAP
+  struct soap *soap = nullptr;
   _tev__CreatePullPointSubscription request;
   _tev__CreatePullPointSubscriptionResponse response;
   _tev__PullMessages tev__PullMessages;

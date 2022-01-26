@@ -423,7 +423,7 @@ void Event::AddFrame(Image *image,
     // If this is the first frame, we should add a thumbnail to the event directory
     if ((frames == 1) || (score > max_score)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
-      Debug(1, "Writing snapshot");
+      Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
       WriteFrameImage(image, timestamp, snapshot_file.c_str());
     } else {
       Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);
@@ -435,17 +435,19 @@ void Event::AddFrame(Image *image,
       if (!alarm_frame_written) {
         write_to_db = true; // OD processing will need it, so the db needs to know about it
         alarm_frame_written = true;
-        Debug(1, "Writing alarm image");
-        WriteFrameImage(image, timestamp, alarm_file.c_str());
+        Debug(1, "Writing alarm image to %s", alarm_file.c_str());
+        if (!WriteFrameImage(image, timestamp, alarm_file.c_str())) {
+          Error("Failed to write alarm frame image to %s", alarm_file.c_str());
+        }
       } else {
         Debug(3, "Not Writing alarm image because alarm frame already written");
       }
 
       if (alarm_image and (save_jpegs & 2)) {
         std::string event_file = stringtf(staticConfig.analyse_file_format.c_str(), path.c_str(), frames);
-        Debug(1, "Writing analysis frame %d", frames);
+        Debug(1, "Writing analysis frame %d to %s", frames, event_file.c_str());
         if (!WriteFrameImage(alarm_image, timestamp, event_file.c_str(), true)) {
-          Error("Failed to write analysis frame image");
+          Error("Failed to write analysis frame image to %s", event_file.c_str());
         }
       }
     }  // end if is an alarm frame

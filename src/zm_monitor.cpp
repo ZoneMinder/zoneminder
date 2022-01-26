@@ -92,7 +92,7 @@ std::string load_monitor_sql =
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`,"
-"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, "
+"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1 FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
@@ -461,7 +461,7 @@ Monitor::Monitor()
  "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
  "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
  "`RTSPServer`,`RTSPStreamName`,
- "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, "
+ "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
  "SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors";
 */
 
@@ -639,6 +639,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   onvif_password = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_options = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_event_listener = (*dbrow[col] != '0'); col++;
+  use_Amcrest_API = (*dbrow[col] != '0'); col++;
 
  /*"SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors"; */
   signal_check_points = atoi(dbrow[col]); col++;
@@ -1040,6 +1041,7 @@ bool Monitor::connect() {
   Debug(3, "Allocated %zu %zu image buffers", image_buffer.capacity(), image_buffer.size());
 
   if (purpose == CAPTURE) {
+    curl_global_init(CURL_GLOBAL_DEFAULT); //May not be the appropriate place. Need to do this before any other curl calls, and any other threads start.
     memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
     shared_data->active = enabled;
@@ -1079,47 +1081,59 @@ bool Monitor::connect() {
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
 
-#ifdef WITH_GSOAP
 
-    //ONVIF Setup
+    //ONVIF and Amcrest Setup
+    //since they serve the same function, handling them as two options of the same feature.
     ONVIF_Trigger_State = FALSE;
-    if (onvif_event_listener) { //Temporarily using this option to enable the feature
+    if (onvif_event_listener) { //
       Debug(1, "Starting ONVIF");
       ONVIF_Healthy = FALSE;
       if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
         ONVIF_Closes_Event = TRUE;
       }
-      tev__PullMessages.Timeout = "PT600S";
-      tev__PullMessages.MessageLimit = 100;
-      soap = soap_new();
-      soap->connect_timeout = 5;
-      soap->recv_timeout = 5;
-      soap->send_timeout = 5;
-      soap_register_plugin(soap, soap_wsse);
-      proxyEvent = PullPointSubscriptionBindingProxy(soap);
-      std::string full_url = onvif_url + "/Events";
-      proxyEvent.soap_endpoint = full_url.c_str();
+      if (use_Amcrest_API) {
+        curl_multi = curl_multi_init();
+        start_Amcrest();
+        //spin up curl_multi
+        //use the onvif_user and onvif_pass and onvif_url here.
+        //going to use the non-blocking curl api, and in the polling thread, block for 5 seconds waiting for input, just like onvif
+        //note that it's not possible for a single camera to use both.
+      } else { //using GSOAP
+#ifdef WITH_GSOAP
+        tev__PullMessages.Timeout = "PT600S";
+        tev__PullMessages.MessageLimit = 100;
+        soap = soap_new();
+        soap->connect_timeout = 5;
+        soap->recv_timeout = 5;
+        soap->send_timeout = 5;
+        soap_register_plugin(soap, soap_wsse);
+        proxyEvent = PullPointSubscriptionBindingProxy(soap);
+        std::string full_url = onvif_url + "/Events";
+        proxyEvent.soap_endpoint = full_url.c_str();
 
-      set_credentials(soap);
-      Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
-      if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
-        Error("Couldn't create subscription! %s, %s", soap_fault_string(soap), soap_fault_detail(soap));
-      } else {
-        //Empty the stored messages
         set_credentials(soap);
-        if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-            ( soap->error != SOAP_EOF)) { //SOAP_EOF could indicate no messages to pull.
-          Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+        Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
+        if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
+          Error("Couldn't create subscription! %s, %s", soap_fault_string(soap), soap_fault_detail(soap));
         } else {
-          Debug(1, "Good Initial ONVIF Pull");
-          ONVIF_Healthy = TRUE;
+          //Empty the stored messages
+          set_credentials(soap);
+          if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+              ( soap->error != SOAP_EOF)) { //SOAP_EOF could indicate no messages to pull.
+            Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+          } else {
+            Debug(1, "Good Initial ONVIF Pull");
+            ONVIF_Healthy = TRUE;
+          }
         }
+#else
+        Error("zmc not compiled with GSOAP. ONVIF support not built in!");
+#endif
       }
     } else {
       Debug(1, "Not Starting ONVIF");
     }
     //End ONVIF Setup
-#endif
 
 #if HAVE_LIBCURL    //janus setup. Depends on libcurl.
     if (janus_enabled && (path.find("rtsp://") !=  std::string::npos)) {
@@ -1228,6 +1242,12 @@ Monitor::~Monitor() {
     sws_freeContext(convert_context);
     convert_context = nullptr;
   }
+  if (Amcrest_handle != nullptr) {
+    curl_multi_remove_handle(curl_multi, Amcrest_handle);
+    curl_easy_cleanup(Amcrest_handle);
+  }
+  if (curl_multi != nullptr) curl_multi_cleanup(curl_multi);
+  curl_global_cleanup();
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
@@ -1800,36 +1820,25 @@ bool Monitor::Poll() {
   //We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
-#ifdef WITH_GSOAP
   if (ONVIF_Healthy) {
-    set_credentials(soap);
-    int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
-    if (result != SOAP_OK) {
-      if (result != SOAP_EOF) { //Ignore the timeout error
-        Error("Failed to get ONVIF messages! %s", soap_fault_string(soap));
-        ONVIF_Healthy = FALSE;
-      }
-    } else {
-      Debug(1, "Got Good Response! %i", result);
-      for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
-        if (msg->Topic->__any.text != NULL &&
-        std::strstr(msg->Topic->__any.text, "MotionAlarm") &&
-        msg->Message.__any.elts != NULL &&
-        msg->Message.__any.elts->next != NULL &&
-        msg->Message.__any.elts->next->elts != NULL &&
-        msg->Message.__any.elts->next->elts->atts != NULL &&
-        msg->Message.__any.elts->next->elts->atts->next != NULL &&
-        msg->Message.__any.elts->next->elts->atts->next->text != NULL) {
-        Debug(1,"Got Motion Alarm!");
-          if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
+    if(use_Amcrest_API) {
+      int open_handles;
+      int transfers;
+      curl_multi_perform(curl_multi, &open_handles);
+      if (open_handles == 0) {
+        start_Amcrest(); //http transfer ended, need to restart.
+      } else {
+        curl_multi_wait(curl_multi, NULL, 0, 5000, &transfers); //wait for max 5 seconds for event.
+        if (transfers > 0) { //have data to deal with
+          curl_multi_perform(curl_multi, &open_handles); //actually grabs the data, populates amcrest_response
+          if (amcrest_response.find("action=Start") != std::string::npos) {
           //Event Start
-            Debug(1,"Triggered on ONVIF");
+          Debug(1,"Triggered on ONVIF");
             if (!ONVIF_Trigger_State) {
               Debug(1,"Triggered Event");
               ONVIF_Trigger_State = TRUE;
-              std::this_thread::sleep_for (std::chrono::seconds(1)); //thread sleep
             }
-          } else {
+          } else if (amcrest_response.find("action=Stop") != std::string::npos){
             Debug(1, "Triggered off ONVIF");
             ONVIF_Trigger_State = FALSE;
             if (!ONVIF_Closes_Event) { //If we get a close event, then we know to expect them.
@@ -1837,11 +1846,53 @@ bool Monitor::Poll() {
               Debug(1,"Setting ClosesEvent");
             }
           }
+          amcrest_response.clear(); //We've dealt with the message, need to clear the queue
         }
       }
+    } else {
+
+#ifdef WITH_GSOAP
+      set_credentials(soap);
+      int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
+      if (result != SOAP_OK) {
+        if (result != SOAP_EOF) { //Ignore the timeout error
+          Error("Failed to get ONVIF messages! %s", soap_fault_string(soap));
+          ONVIF_Healthy = FALSE;
+        }
+      } else {
+        Debug(1, "Got Good Response! %i", result);
+        for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
+          if (msg->Topic->__any.text != NULL &&
+          std::strstr(msg->Topic->__any.text, "MotionAlarm") &&
+          msg->Message.__any.elts != NULL &&
+          msg->Message.__any.elts->next != NULL &&
+          msg->Message.__any.elts->next->elts != NULL &&
+          msg->Message.__any.elts->next->elts->atts != NULL &&
+          msg->Message.__any.elts->next->elts->atts->next != NULL &&
+          msg->Message.__any.elts->next->elts->atts->next->text != NULL) {
+          Debug(1,"Got Motion Alarm!");
+            if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
+            //Event Start
+              Debug(1,"Triggered on ONVIF");
+              if (!ONVIF_Trigger_State) {
+                Debug(1,"Triggered Event");
+                ONVIF_Trigger_State = TRUE;
+                std::this_thread::sleep_for (std::chrono::seconds(1)); //thread sleep
+              }
+            } else {
+              Debug(1, "Triggered off ONVIF");
+              ONVIF_Trigger_State = FALSE;
+              if (!ONVIF_Closes_Event) { //If we get a close event, then we know to expect them.
+                ONVIF_Closes_Event = TRUE;
+                Debug(1,"Setting ClosesEvent");
+              }
+            }
+          }
+        }
+      }
+#endif
     }
   }
-#endif
   if (janus_enabled) {
     if (janus_session.empty()) {
       get_janus_session();
@@ -3223,11 +3274,15 @@ int Monitor::Close() {
     analysis_thread->Stop();
   }
 
-#ifdef WITH_GSOAP
   //ONVIF Teardown
   if (Poller) {
     Poller->Stop();
   }
+  if (curl_multi != nullptr) {
+    curl_multi_cleanup(curl_multi);
+    curl_multi = nullptr;
+  }
+#ifdef WITH_GSOAP
   if (onvif_event_listener && (soap != nullptr)) {
     Debug(1, "Tearing Down Onvif");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
@@ -3240,9 +3295,9 @@ int Monitor::Close() {
   }  //End ONVIF
 #endif
 #if HAVE_LIBCURL  //Janus Teardown
-    if (janus_enabled && (purpose == CAPTURE)) {
-      remove_from_janus();
-    }
+  if (janus_enabled && (purpose == CAPTURE)) {
+    remove_from_janus();
+  }
 #endif
 
   packetqueue.clear();
@@ -3614,3 +3669,55 @@ int Monitor::get_janus_session() {
   curl_easy_cleanup(curl);
   return 1;
 } //get_janus_session
+
+int Monitor::start_Amcrest() {
+  //init the transfer and start it in multi-handle
+  int running_handles;
+  long response_code;
+  struct CURLMsg *m;
+  CURLMcode curl_error;
+  if (Amcrest_handle != nullptr) {  //potentially clean up the old handle
+    curl_multi_remove_handle(curl_multi, Amcrest_handle);
+    curl_easy_cleanup(Amcrest_handle);
+  }
+
+  std::string full_url = onvif_url;
+  if (full_url.back() != '/') full_url += '/';
+  full_url += "eventManager.cgi?action=attach&codes=[VideoMotion]";
+  Amcrest_handle = curl_easy_init();
+  if (!Amcrest_handle){
+    Warning("Handle is null!");
+    return -1;
+  }
+  curl_easy_setopt(Amcrest_handle, CURLOPT_URL, full_url.c_str());
+  curl_easy_setopt(Amcrest_handle, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(Amcrest_handle, CURLOPT_WRITEDATA, &amcrest_response);
+  curl_easy_setopt(Amcrest_handle, CURLOPT_USERNAME, onvif_username.c_str());
+  curl_easy_setopt(Amcrest_handle, CURLOPT_PASSWORD, onvif_password.c_str());
+  curl_easy_setopt(Amcrest_handle, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
+  curl_error = curl_multi_add_handle(curl_multi, Amcrest_handle);
+    Warning("error of %i", curl_error);
+  curl_error = curl_multi_perform(curl_multi, &running_handles);
+  if (curl_error == CURLM_OK) {
+    curl_easy_getinfo(Amcrest_handle, CURLINFO_RESPONSE_CODE, &response_code);
+    int msgq = 0;
+    m = curl_multi_info_read(curl_multi, &msgq);
+    if (m && (m->msg == CURLMSG_DONE)) {
+      Warning("Libcurl exited Early: %i", m->data.result);
+    }
+
+    curl_multi_wait(curl_multi, NULL, 0, 300, NULL);
+    curl_error = curl_multi_perform(curl_multi, &running_handles);
+  }
+
+  if ((curl_error == CURLM_OK) && (running_handles > 0)) {
+    ONVIF_Healthy = TRUE;
+  } else {
+    Warning("Response: %s", amcrest_response.c_str());
+    Warning("Seeing %i streams, and error of %i, url: %s", running_handles, curl_error, full_url.c_str());
+    curl_easy_getinfo(Amcrest_handle, CURLINFO_OS_ERRNO, &response_code);
+    Warning("Response code: %lu", response_code);
+  }
+
+return 0;
+}

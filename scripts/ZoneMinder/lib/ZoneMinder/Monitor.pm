@@ -63,6 +63,7 @@ $serial = $primary_key = 'Id';
   ONVIF_Password
   ONVIF_Options
   ONVIF_Event_Listener
+  use_Amcrest_API
   Device
   Channel
   Format

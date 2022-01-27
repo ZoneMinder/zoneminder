@@ -263,7 +263,7 @@ sub countQuery {
 sub getMonitorRef {
   my $dbh = shift;
 
-  my $sql = 'SELECT `Id`,`Name`,`Type`,`Function`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS`,
+  my $sql = 'SELECT `Id`,`Name`,`Type`,`Capturing`,`Analysing`,`Recording`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS`,
   (SELECT Name FROM Manufacturers WHERE Manufacturers.Id = ManufacturerId),
   (SELECT Name FROM Models WHERE Models.Id = ModelId)
   FROM `Monitors`';

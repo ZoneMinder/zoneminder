@@ -203,8 +203,7 @@ sub xs_duration {
 
     my %new_monitors = ();
 
-    #	my $sql = "select * from Monitors where find_in_set( Function, 'Modect,Mocord,Nodect,ExtDect' )>0 and ConfigType='ONVIF'";
-    my $sql = "SELECT * FROM Monitors WHERE ONVIF_URL != ''";
+    my $sql = "SELECT * FROM Monitors WHERE Capturing != 'None' AND ONVIF_URL != ''";
     my $sth = $dbh->prepare_cached($sql) or Fatal("Can't prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute() or Fatal("Can't execute: ".$sth->errstr());
     while ( my $monitor = $sth->fetchrow_hashref() ) {

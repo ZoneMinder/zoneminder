@@ -203,27 +203,13 @@ sub zmDbGetMonitor {
     return undef ;
   }
 
-  my $sql = 'SELECT * FROM Monitors WHERE Id = ?';
-  my $sth = $dbh->prepare_cached($sql);
-  if ( !$sth ) {
-    Error("Can't prepare '$sql': ".$dbh->errstr());
-    return undef;
-  }
-  my $res = $sth->execute($id);
-  if ( !$res ) {
-    Error("Can't execute '$sql': ".$sth->errstr());
-    return undef;
-  }
-  my $monitor = $sth->fetchrow_hashref();
-  $sth->finish();
-  return $monitor;
+  return zmDbFetchOne('SELECT * FROM Monitors WHERE Id = ?', $id);
 }
 
 sub zmDbGetMonitorAndControl {
   zmDbConnect();
 
   my $id = shift;
-
   return undef if !defined($id);
 
   my $sql = 'SELECT C.*,M.*,C.Protocol
@@ -231,19 +217,7 @@ sub zmDbGetMonitorAndControl {
     INNER JOIN Controls as C on (M.ControlId = C.Id)
     WHERE M.Id = ?'
     ;
-  my $sth = $dbh->prepare_cached($sql);
-  if ( !$sth ) {
-    Error("Can't prepare '$sql': ".$dbh->errstr());
-    return undef;
-  }
-  my $res = $sth->execute( $id );
-  if ( !$res ) {
-    Error("Can't execute '$sql': ".$sth->errstr());
-    return undef;
-  }
-  my $monitor = $sth->fetchrow_hashref();
-  $sth->finish();
-  return $monitor;
+  return zmDbFetchOne($sql);
 }
 
 sub start_transaction {
@@ -280,6 +254,24 @@ sub zmDbDo {
   return $rows;
 }
 
+sub zmDbFetchOne {
+  my $sql = shift;
+
+  my $sth = $dbh->prepare_cached($sql);
+  if (!$sth) {
+    Error("Can't prepare '$sql': ".$dbh->errstr());
+    return undef;
+  }
+  my $res = $sth->execute(@_);
+  if (!$res) {
+    Error("Can't execute '$sql': ".$sth->errstr());
+    return undef;
+  }
+  my $row = $sth->fetchrow_hashref();
+  $sth->finish();
+  return $row;
+}
+
 1;
 __END__
 
@@ -302,6 +294,7 @@ zmDbGetMonitors
 zmDbGetMonitor
 zmDbGetMonitorAndControl
 zmDbDo
+zmDbFetchOne
 
 =head1 AUTHOR
 

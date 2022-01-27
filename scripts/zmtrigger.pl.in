@@ -302,9 +302,9 @@ while (!$zm_terminate) {
   } elsif (@needsReload) { 
     foreach my $monitor (@needsReload) {
       $monitor = $monitors{$monitor->Id()} = ZoneMinder::Monitor->find_one(Id=>$monitor->Id());
-      if ( $$monitor{Function} eq 'None' ) {
+      if ($$monitor{Capturing} eq 'None') {
         delete $monitors{$monitor->Id()};
-      } elsif ( $Config{ZM_SERVER_ID} and ($$monitor{ServerId} != $Config{ZM_SERVER_ID})) {
+      } elsif ($Config{ZM_SERVER_ID} and ($$monitor{ServerId} != $Config{ZM_SERVER_ID})) {
         delete $monitors{$monitor->Id()};
       } else {
         if ($monitor->connect()) {
@@ -312,7 +312,7 @@ while (!$zm_terminate) {
           $monitor->{LastEvent} = zmGetLastEvent($monitor);
         }
       }
-    }
+    } # end foreach @needsREload
     @needsReload = ();
   }
 
@@ -326,11 +326,10 @@ sub loadMonitors {
   $monitor_reload_time = time();
 
   %monitors = ();
-
   foreach my $monitor ( ZoneMinder::Monitor->find(
-    Function=>['Modect','Mocord','Nodect','Record'],
+    'Capturing !=' => 'None',
     ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ()),
-  )) {
+    )) {
     if ($monitor->connect()) { # This will re-init shared memory
       $monitor->{LastState} = zmGetMonitorState($monitor);
       $monitor->{LastEvent} = zmGetLastEvent($monitor);

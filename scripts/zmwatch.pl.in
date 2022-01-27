@@ -90,7 +90,7 @@ while (!$zm_terminate) {
   }
 
   foreach my $monitor (ZoneMinder::Monitor->find($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ())) {
-    next if $monitor->{Function} eq 'None';
+    next if $monitor->{Capturing} eq 'None' ;
     next if $monitor->{Type} eq 'WebSite';
     next if $monitor->{Capturing} eq 'Ondemand';
     my $now = time(); 
@@ -128,8 +128,8 @@ while (!$zm_terminate) {
       &&($monitor->{MaxFPS}>0)
       &&($monitor->{MaxFPS}<1)
     ) ? (3/$monitor->{MaxFPS})
-    : $Config{ZM_WATCH_MAX_DELAY}
-    ;
+    : $Config{ZM_WATCH_MAX_DELAY};
+
     my $image_delay = $now - $capture_time;
     Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
     if ($image_delay > $max_image_delay) {
@@ -140,7 +140,7 @@ while (!$zm_terminate) {
       next;
     }
 
-    if ($monitor->{Function} ne 'Monitor') {
+    if ($monitor->{Analysing} ne 'None') {
       # Now check analysis thread
 # Check we have got an image recently
       my $image_time = zmGetLastReadTime($monitor);
@@ -168,9 +168,7 @@ while (!$zm_terminate) {
           next;
         }
       }
-
     } # end if check analysis daemon
-
   } # end foreach monitor
 
   sleep($Config{ZM_WATCH_CHECK_INTERVAL});

@@ -301,9 +301,9 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
-void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
+void Event::AddPacket(ZMLockedPacket *packetlock) {
   std::unique_lock<std::mutex> lck(packet_queue_mutex);
-  packet_queue.push(packet);
+  packet_queue.push(packetlock);
   packet_queue_condition.notify_one();
 }
 
@@ -684,7 +684,9 @@ void Event::Run() {
   while (true) {
     if (!packet_queue.empty()) {
       Debug(1, "adding packet");
-      this->AddPacket_(packet_queue.front());
+      const ZMLockedPacket * packet_lock = packet_queue.front();
+      this->AddPacket_(packet_lock->packet_);
+      delete packet_lock;
       packet_queue.pop();
     } else {
       if (terminate_ or zm_terminate) {

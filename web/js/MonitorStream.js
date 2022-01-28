@@ -38,6 +38,14 @@ function MonitorStream(monitorData) {
     }
     return this.element;
   };
+  this.getFrame = function() {
+    if (this.frame) return this.frame;
+    this.frame = document.getElementById('imageFeed'+this.id);
+    if (!this.frame) {
+      console.error("No frame div for #imageFeed"+this.id);
+    }
+    return this.frame;
+  };
 
   /* if the img element didn't have a src, this would fill it in, causing it to show. */
   this.show = function() {
@@ -161,7 +169,7 @@ function MonitorStream(monitorData) {
 
   this.setup_onclick = function(func) {
     this.onclick = func;
-    const el = this.getElement();
+    const el = this.getFrame();
     if (!el) return;
     el.addEventListener('click', this.onclick, false);
   };

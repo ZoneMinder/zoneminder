@@ -742,7 +742,3 @@ void Event::Run() {
     }
   }
 }  // end Run()
-
-int Event::MonitorId() {
-  return monitor->Id();
-}

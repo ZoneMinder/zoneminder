@@ -1763,422 +1763,337 @@ bool Monitor::Analyse() {
   Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%s) image index %d",
       signal, signal_change, TriggerState_Strings[trigger_data->trigger_state].c_str(), snap->image_index);
 
-  // Need to guard around event creation/deletion from Reload()
-  std::lock_guard<std::mutex> lck(event_mutex);
-  Debug(3, "Have event lock");
+  {
+    // Need to guard around event creation/deletion from Reload()
+    std::lock_guard<std::mutex> lck(event_mutex);
+    Debug(3, "Have event lock");
 
-  // if we have been told to be OFF, then we are off and don't do any processing.
-  if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
-    Debug(4, "Trigger not OFF state is (%d)", int(trigger_data->trigger_state));
-    int score = 0;
-    // Ready means that we have captured the warmup # of frames
-    if (!Ready()) {
-      Debug(3, "Not ready?");
-      delete packet_lock;
-      return false;
-    }
-
-    std::string cause;
-    Event::StringSetMap noteSetMap;
-
-    // Specifically told to be on.  Setting the score here will trigger the alarm.
-    if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
-      score += trigger_data->trigger_score;
-      Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
-      if (!event) {
-        cause += trigger_data->trigger_cause;
+    // if we have been told to be OFF, then we are off and don't do any processing.
+    if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
+      Debug(4, "Trigger not OFF state is (%d)", int(trigger_data->trigger_state));
+      int score = 0;
+      // Ready means that we have captured the warmup # of frames
+      if (!Ready()) {
+        Debug(3, "Not ready?");
+        delete packet_lock;
+        return false;
       }
-      Event::StringSet noteSet;
-      noteSet.insert(trigger_data->trigger_text);
-      noteSetMap[trigger_data->trigger_cause] = noteSet;
-    }  // end if trigger_on
 
-    // FIXME this snap might not be the one that caused the signal change.  Need to store that in the packet.
-    if (signal_change) {
-      Debug(2, "Signal change, new signal is %d", signal);
-      const char *signalText = "Unknown";
-      if (!signal) {
-        signalText = "Lost";
-        if (event) {
-          Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
-          closeEvent();
-          last_section_mod = 0;
+      std::string cause;
+      Event::StringSetMap noteSetMap;
+
+      // Specifically told to be on.  Setting the score here will trigger the alarm.
+      if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
+        score += trigger_data->trigger_score;
+        Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
+        if (!event) {
+          cause += trigger_data->trigger_cause;
         }
-      } else {
-        signalText = "Reacquired";
-        score += 100;
-      }
-      if (!event) {
-        if (cause.length()) cause += ", ";
-        cause += SIGNAL_CAUSE;
-      }
-      Event::StringSet noteSet;
-      noteSet.insert(signalText);
-      noteSetMap[SIGNAL_CAUSE] = noteSet;
-      shared_data->state = state = IDLE;
-      shared_data->active = signal;
-      if ((function == MODECT or function == MOCORD) and snap->image)
-        ref_image.Assign(*(snap->image));
-    }  // end if signal change
+        Event::StringSet noteSet;
+        noteSet.insert(trigger_data->trigger_text);
+        noteSetMap[trigger_data->trigger_cause] = noteSet;
+      }  // end if trigger_on
 
-    if (signal) {
-      if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
-        // Check to see if linked monitors are triggering.
-        if (n_linked_monitors > 0) {
-          Debug(1, "Checking linked monitors");
-          // FIXME improve logic here
-          bool first_link = true;
-          Event::StringSet noteSet;
-          for (int i = 0; i < n_linked_monitors; i++) {
-            // TODO: Shouldn't we try to connect?
-            if (linked_monitors[i]->isConnected()) {
-              Debug(1, "Linked monitor %d %s is connected",
-                  linked_monitors[i]->Id(), linked_monitors[i]->Name());
-              if (linked_monitors[i]->hasAlarmed()) {
-                Debug(1, "Linked monitor %d %s is alarmed",
+      // FIXME this snap might not be the one that caused the signal change.  Need to store that in the packet.
+      if (signal_change) {
+        Debug(2, "Signal change, new signal is %d", signal);
+        const char *signalText = "Unknown";
+        if (!signal) {
+          signalText = "Lost";
+          if (event) {
+            Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
+            closeEvent();
+            last_section_mod = 0;
+          }
+        } else {
+          signalText = "Reacquired";
+          score += 100;
+        }
+        if (!event) {
+          if (cause.length()) cause += ", ";
+          cause += SIGNAL_CAUSE;
+        }
+        Event::StringSet noteSet;
+        noteSet.insert(signalText);
+        noteSetMap[SIGNAL_CAUSE] = noteSet;
+        shared_data->state = state = IDLE;
+        shared_data->active = signal;
+        if ((function == MODECT or function == MOCORD) and snap->image)
+          ref_image.Assign(*(snap->image));
+      }  // end if signal change
+
+      if (signal) {
+        if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
+          // Check to see if linked monitors are triggering.
+          if (n_linked_monitors > 0) {
+            Debug(1, "Checking linked monitors");
+            // FIXME improve logic here
+            bool first_link = true;
+            Event::StringSet noteSet;
+            for (int i = 0; i < n_linked_monitors; i++) {
+              // TODO: Shouldn't we try to connect?
+              if (linked_monitors[i]->isConnected()) {
+                Debug(1, "Linked monitor %d %s is connected",
                     linked_monitors[i]->Id(), linked_monitors[i]->Name());
-                if (!event) {
-                  if (first_link) {
-                    if (cause.length())
-                      cause += ", ";
-                    cause += LINKED_CAUSE;
-                    first_link = false;
+                if (linked_monitors[i]->hasAlarmed()) {
+                  Debug(1, "Linked monitor %d %s is alarmed",
+                      linked_monitors[i]->Id(), linked_monitors[i]->Name());
+                  if (!event) {
+                    if (first_link) {
+                      if (cause.length())
+                        cause += ", ";
+                      cause += LINKED_CAUSE;
+                      first_link = false;
+                    }
                   }
+                  noteSet.insert(linked_monitors[i]->Name());
+                  score += linked_monitors[i]->lastFrameScore(); // 50;
+                } else {
+                  Debug(1, "Linked monitor %d %s is not alarmed",
+                      linked_monitors[i]->Id(), linked_monitors[i]->Name());
                 }
-                noteSet.insert(linked_monitors[i]->Name());
-                score += linked_monitors[i]->lastFrameScore(); // 50;
               } else {
-                Debug(1, "Linked monitor %d %s is not alarmed",
-                    linked_monitors[i]->Id(), linked_monitors[i]->Name());
+                Debug(1, "Linked monitor %d %d is not connected. Connecting.", i, linked_monitors[i]->Id());
+                linked_monitors[i]->connect();
               }
-            } else {
-              Debug(1, "Linked monitor %d %d is not connected. Connecting.", i, linked_monitors[i]->Id());
-              linked_monitors[i]->connect();
-            }
-          } // end foreach linked_monitor
-          if (noteSet.size() > 0)
-            noteSetMap[LINKED_CAUSE] = noteSet;
-        } // end if linked_monitors
+            } // end foreach linked_monitor
+            if (noteSet.size() > 0)
+              noteSetMap[LINKED_CAUSE] = noteSet;
+          } // end if linked_monitors
 
-        /* try to stay behind the decoder. */
-        if (decoding_enabled) {
-          while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
-            // Need to wait for the decoder thread.
-            Debug(1, "Waiting for decode");
-            packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
-            packetqueue.wait();
+          /* try to stay behind the decoder. */
+          if (decoding_enabled) {
+            while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
+              // Need to wait for the decoder thread.
+              Debug(1, "Waiting for decode");
+              packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
+              packetqueue.wait();
 
-            // Another thread may have moved our it. Unlikely but possible
-            packet_lock = packetqueue.get_packet(analysis_it);
-            if (!packet_lock) return false;
-            snap = packet_lock->packet_;
+              // Another thread may have moved our it. Unlikely but possible
+              packet_lock = packetqueue.get_packet(analysis_it);
+              if (!packet_lock) return false;
+              snap = packet_lock->packet_;
 
-            if (!snap->image and snap->decoded) {
-              Debug(1, "No image but was decoded, giving up");
+              if (!snap->image and snap->decoded) {
+                Debug(1, "No image but was decoded, giving up");
+                delete packet_lock;
+                return false;
+              }
+            }  // end while ! decoded
+            if (zm_terminate) {
               delete packet_lock;
               return false;
             }
-          }  // end while ! decoded
-          if (zm_terminate) {
-            delete packet_lock;
-            return false;
-          }
-        }  // end if decoding enabled
+          }  // end if decoding enabled
 
-        struct timeval *timestamp = &snap->timestamp;
+          struct timeval *timestamp = &snap->timestamp;
 
-        if (Active() and (function == MODECT or function == MOCORD)) {
-          Debug(3, "signal and active and modect");
-          Event::StringSet zoneSet;
+          if (Active() and (function == MODECT or function == MOCORD)) {
+            Debug(3, "signal and active and modect");
+            Event::StringSet zoneSet;
 
-          int motion_score = last_motion_score;
+            int motion_score = last_motion_score;
 
-          if (analysis_fps_limit) {
-            double capture_fps = get_capture_fps();
-            motion_frame_skip = capture_fps / analysis_fps_limit;
-            Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
-                motion_frame_skip, capture_fps, analysis_fps_limit);
-          }
+            if (analysis_fps_limit) {
+              double capture_fps = get_capture_fps();
+              motion_frame_skip = capture_fps / analysis_fps_limit;
+              Debug(1, "Recalculating motion_frame_skip (%d) = capture_fps(%f) / analysis_fps(%f)",
+                  motion_frame_skip, capture_fps, analysis_fps_limit);
+            }
 
-          if (!(analysis_image_count % (motion_frame_skip+1))) {
-            if (snap->image) {
-              // decoder may not have been able to provide an image
-              if (!ref_image.Buffer()) {
-                Debug(1, "Assigning instead of Detecting");
-                ref_image.Assign(*(snap->image));
-              } else {
-                Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
-                // Get new score.
-                motion_score = DetectMotion(*(snap->image), zoneSet);
+            if (!(analysis_image_count % (motion_frame_skip+1))) {
+              if (snap->image) {
+                // decoder may not have been able to provide an image
+                if (!ref_image.Buffer()) {
+                  Debug(1, "Assigning instead of Detecting");
+                  ref_image.Assign(*(snap->image));
+                } else {
+                  Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
+                  // Get new score.
+                  motion_score = DetectMotion(*(snap->image), zoneSet);
 
-                snap->zone_stats.reserve(zones.size());
-                for (const Zone &zone : zones) {
-                  const ZoneStats &stats = zone.GetStats();
-                  stats.DumpToLog("After detect motion");
-                  snap->zone_stats.push_back(stats);
+                  snap->zone_stats.reserve(zones.size());
+                  for (const Zone &zone : zones) {
+                    const ZoneStats &stats = zone.GetStats();
+                    stats.DumpToLog("After detect motion");
+                    snap->zone_stats.push_back(stats);
+                  }
+
+                  Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
+                      score, last_motion_score, motion_score);
+                  motion_frame_count += 1;
+                  // Why are we updating the last_motion_score too?
+                  last_motion_score = motion_score;
                 }
-
-                Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                    score, last_motion_score, motion_score);
-                motion_frame_count += 1;
-                // Why are we updating the last_motion_score too?
-                last_motion_score = motion_score;
-              }
+              } else {
+                Debug(1, "no image so skipping motion detection");
+              }  // end if has image
             } else {
-              Debug(1, "no image so skipping motion detection");
-            }  // end if has image
+              Debug(1, "Skipped motion detection last motion score was %d", motion_score);
+            }
+            if (motion_score) {
+              score += motion_score;
+              if (cause.length()) cause += ", ";
+              cause += MOTION_CAUSE;
+              noteSetMap[MOTION_CAUSE] = zoneSet;
+            } // end if motion_score
           } else {
-            Debug(1, "Skipped motion detection last motion score was %d", motion_score);
-          }
-          if (motion_score) {
-            score += motion_score;
-            if (cause.length()) cause += ", ";
-            cause += MOTION_CAUSE;
-            noteSetMap[MOTION_CAUSE] = zoneSet;
-          } // end if motion_score
-        } else {
-          Debug(1, "Not Active(%d) enabled %d active %d doing motion detection: %d",
-              Active(), enabled, shared_data->active,
-              (function == MODECT or function == MOCORD)
-              );
-        } // end if active and doing motion detection
+            Debug(1, "Not Active(%d) enabled %d active %d doing motion detection: %d",
+                Active(), enabled, shared_data->active,
+                (function == MODECT or function == MOCORD)
+                );
+          } // end if active and doing motion detection
 
-        if (function == RECORD or function == MOCORD) {
-          // If doing record, check to see if we need to close the event or not.
-          if (event) {
-            Debug(2, "Have event %" PRIu64 " in record", event->Id());
+          if (function == RECORD or function == MOCORD) {
+            // If doing record, check to see if we need to close the event or not.
+            if (event) {
+              Debug(2, "Have event %" PRIu64 " in record", event->Id());
 
-            if (section_length && 
-                (( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length)
-                && ( 
-                  ((function == MOCORD) && (event_close_mode != CLOSE_TIME))
-                  ||
-                  ( (function == RECORD) && (event_close_mode == CLOSE_TIME) )  
-                  || ! ( timestamp->tv_sec % section_length )
-                )
-               ) {
-              Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
-                   name.c_str(),
-                   image_count,
-                   event->Id(),
-                   static_cast<int64>(timestamp->tv_sec),
-                   static_cast<int64>(video_store_data->recording.tv_sec),
-                   static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
-                   section_length);
-              closeEvent();
-            }  // end if section_length
-          }  // end if event
+              if (section_length && 
+                  (( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length)
+                  && ( 
+                    ((function == MOCORD) && (event_close_mode != CLOSE_TIME))
+                    ||
+                    ( (function == RECORD) && (event_close_mode == CLOSE_TIME) )  
+                    || ! ( timestamp->tv_sec % section_length )
+                    )
+                 ) {
+                Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
+                    name.c_str(),
+                    image_count,
+                    event->Id(),
+                    static_cast<int64>(timestamp->tv_sec),
+                    static_cast<int64>(video_store_data->recording.tv_sec),
+                    static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
+                    section_length);
+                closeEvent();
+              }  // end if section_length
+            }  // end if event
 
-          if (!event) {
-            Debug(2, "Creating continuous event");
-            if (!snap->keyframe and (videowriter == PASSTHROUGH)) {
-              // Must start on a keyframe so rewind. Only for passthrough though I guess.
-              // FIXME this iterator is not protected from invalidation
-              packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                  *analysis_it, 0 /* pre_event_count */
-                  );
+            if (!event) {
+              Debug(2, "Creating continuous event");
+              event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
 
-              // This gets a lock on the starting packet
-
-              ZMLockedPacket *starting_packet_lock = nullptr;
-              std::shared_ptr<ZMPacket> starting_packet = nullptr;
-              if (*start_it != *analysis_it) {
-                starting_packet_lock = packetqueue.get_packet(start_it);
-                if (!starting_packet_lock) {
-                  Warning("Unable to get starting packet lock");
-                  delete packet_lock;
-                  return false;
+              // lets construct alarm cause. It will contain cause + names of zones alarmed
+              std::string alarm_cause;
+              for (const Zone &zone : zones) {
+                if (zone.Alarmed()) {
+                  if (!alarm_cause.empty()) alarm_cause += ",";
+                  alarm_cause += std::string(zone.Label());
                 }
-                starting_packet = starting_packet_lock->packet_;
-              } else {
-                starting_packet = snap;
               }
-
-              event = new Event(this, starting_packet->timestamp, "Continuous", noteSetMap);
-              // Write out starting packets, do not modify packetqueue it will garbage collect itself
-              while (starting_packet and ((*start_it) != *analysis_it)) {
-                event->AddPacket(starting_packet);
-                // Have added the packet, don't want to unlock it until we have locked the next
-
-                packetqueue.increment_it(start_it);
-                if ((*start_it) == *analysis_it) {
-                  if (starting_packet_lock) delete starting_packet_lock;
-                  break;
-                }
-                ZMLockedPacket *lp = packetqueue.get_packet(start_it);
-                delete starting_packet_lock;
-                if (!lp) return false;
-                starting_packet_lock = lp;
-                starting_packet = lp->packet_;
+              alarm_cause = cause+" Continuous "+alarm_cause;
+              strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+              video_store_data->recording = event->StartTime();
+              Info("%s: %03d - Opened new event %" PRIu64 ", section start",
+                  name.c_str(), analysis_image_count, event->Id());
+              /* To prevent cancelling out an existing alert\prealarm\alarm state */
+              if (state == IDLE) {
+                shared_data->state = state = TAPE;
               }
-              packetqueue.free_it(start_it);
-              delete start_it;
-              start_it = nullptr;
-            } else {
-              // Create event from current snap
-              event = new Event(this, *timestamp, "Continuous", noteSetMap);
-            }
-            shared_data->last_event_id = event->Id();
+            } // end if ! event
+          } // end if RECORDING
 
-            // lets construct alarm cause. It will contain cause + names of zones alarmed
-            std::string alarm_cause;
-            for (const Zone &zone : zones) {
-              if (zone.Alarmed()) {
-                if (!alarm_cause.empty()) alarm_cause += ",";
-                alarm_cause += std::string(zone.Label());
-              }
-            }
-            alarm_cause = cause+" Continuous "+alarm_cause;
-            strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-            video_store_data->recording = event->StartTime();
-            Info("%s: %03d - Opened new event %" PRIu64 ", section start",
-                name.c_str(), analysis_image_count, event->Id());
-            /* To prevent cancelling out an existing alert\prealarm\alarm state */
-            if (state == IDLE) {
-              shared_data->state = state = TAPE;
-            }
-          } // end if ! event
-        } // end if RECORDING
-
-        if (score and (function != MONITOR)) {
-          if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
-            // If we should end then previous continuous event and start a new non-continuous event
-            if (event && event->Frames()
-                && (!event->AlarmFrames())
-                && (event_close_mode == CLOSE_ALARM)
-                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
-                && ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
-               ) {
-              Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
-                  name.c_str(), image_count, event->Id());
-              closeEvent();
-            } else if (event) {
-              // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-              Debug(3,
+          if (score and (function != MONITOR)) {
+            if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
+              // If we should end then previous continuous event and start a new non-continuous event
+              if (event && event->Frames()
+                  && (!event->AlarmFrames())
+                  && (event_close_mode == CLOSE_ALARM)
+                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+                  && ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
+                 ) {
+                Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
+                    name.c_str(), image_count, event->Id());
+                closeEvent();
+              } else if (event) {
+                // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
+                Debug(3,
                     "pre_alarm_count in event %d, event frames %d, alarm frames %d event length %" PRIi64 " >=? %d min",
                     Event::PreAlarmCount(),
                     event->Frames(),
                     event->AlarmFrames(),
                     static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
                     min_section_length);
-            }
-            if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
-              // lets construct alarm cause. It will contain cause + names of zones alarmed
-              std::string alarm_cause = "";
-              for (const Zone &zone : zones) {
-                if (zone.Alarmed()) {
-                  alarm_cause = alarm_cause + "," + std::string(zone.Label());
-                }
               }
-              if (!alarm_cause.empty()) alarm_cause[0] = ' ';
-              alarm_cause = cause + alarm_cause;
-              strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-              Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
-                  name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
+              if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
+                // lets construct alarm cause. It will contain cause + names of zones alarmed
+                std::string alarm_cause = "";
+                for (const Zone &zone : zones) {
+                  if (zone.Alarmed()) {
+                    alarm_cause = alarm_cause + "," + std::string(zone.Label());
+                  }
+                }
+                if (!alarm_cause.empty()) alarm_cause[0] = ' ';
+                alarm_cause = cause + alarm_cause;
+                strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+                Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
+                    name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
-              if (!event) {
-                packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                    *analysis_it,
-                    (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count)
-                    );
-                ZMLockedPacket *starting_packet_lock = nullptr;
-                std::shared_ptr<ZMPacket> starting_packet = nullptr;
-                if (*start_it != *analysis_it) {
-                  starting_packet_lock = packetqueue.get_packet(start_it);
-                  if (!starting_packet_lock) return false;
-                  starting_packet = starting_packet_lock->packet_;
+                if (!event) {
+                  event = openEvent(snap, cause, noteSetMap);
+                  snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                  video_store_data->recording = event->StartTime();
+                  shared_data->state = state = ALARM;
+                  Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
                 } else {
-                  starting_packet = snap;
+                  shared_data->state = state = ALARM;
+                }  // end if no event, so start it
+                if ( alarm_frame_count ) {
+                  Debug(1, "alarm frame count so SavePreAlarmFrames");
+                  event->SavePreAlarmFrames();
                 }
-
-                event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
-                shared_data->last_event_id = event->Id();
-                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-                video_store_data->recording = event->StartTime();
-                shared_data->state = state = ALARM;
-
-                // Write out starting packets, do not modify packetqueue it will garbage collect itself
-                while (*start_it != *analysis_it) {
-                  event->AddPacket(starting_packet);
-
-                  packetqueue.increment_it(start_it);
-                  if ( (*start_it) == (*analysis_it) ) {
-                    if (starting_packet_lock) delete starting_packet_lock;
-                    break;
-                  }
-                  ZMLockedPacket *lp = packetqueue.get_packet(start_it);
-                  delete starting_packet_lock;
-                  if (!lp) {
-                    // Shutting down event will be closed by ~Monitor()
-                    // Perhaps we shouldn't do this.
-                    return false;
-                  }
-                  starting_packet_lock = lp;
-                  starting_packet = lp->packet_;
-                }
-                packetqueue.free_it(start_it);
-                delete start_it;
-                start_it = nullptr;
-
-                Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
-              } else {
-                shared_data->state = state = ALARM;
-              }  // end if no event, so start it
-              if ( alarm_frame_count ) {
-                Debug(1, "alarm frame count so SavePreAlarmFrames");
-                event->SavePreAlarmFrames();
+              } else if (state != PREALARM) {
+                Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
+                shared_data->state = state = PREALARM;
               }
-            } else if (state != PREALARM) {
-              Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
-              shared_data->state = state = PREALARM;
-            }
-          } else if (state == ALERT) {
-            alert_to_alarm_frame_count--;
-            Debug(1, "%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d",
-                name.c_str(), analysis_image_count, alert_to_alarm_frame_count);
-            if (alert_to_alarm_frame_count == 0) {
-              Info("%s: %03d - Gone back into alarm state", name.c_str(), analysis_image_count);
+            } else if (state == ALERT) {
+              alert_to_alarm_frame_count--;
+              Debug(1, "%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d",
+                  name.c_str(), analysis_image_count, alert_to_alarm_frame_count);
+              if (alert_to_alarm_frame_count == 0) {
+                Info("%s: %03d - Gone back into alarm state", name.c_str(), analysis_image_count);
+                shared_data->state = state = ALARM;
+              }
+            } else if (state == TAPE) {
+              // Already recording, but IDLE so switch to ALARM
               shared_data->state = state = ALARM;
-            }
-          } else if (state == TAPE) {
-            // Already recording, but IDLE so switch to ALARM
-            shared_data->state = state = ALARM;
-            Debug(1, "Was in TAPE, going into ALARM");
-          } else {
-            Debug(1, "Staying in %s", State_Strings[state].c_str());
+              Debug(1, "Was in TAPE, going into ALARM");
+            } else {
+              Debug(1, "Staying in %s", State_Strings[state].c_str());
 
-          }
-          if (state == ALARM) {
-            last_alarm_count = analysis_image_count; 
-          } // This is needed so post_event_count counts after last alarmed frames while in ALARM not single alarmed frames while ALERT
-        } else { // no score?
-          alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count 
-          if (state == ALARM) {
-            Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
-            shared_data->state = state = ALERT;
-          } else if (state == ALERT) {
-            if ( 
-                ( analysis_image_count-last_alarm_count > post_event_count ) 
-                &&
-                ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
-               ) {
-              Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
-                  name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
-              //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
-              if ( (function != RECORD && function != MOCORD ) || event_close_mode == CLOSE_ALARM ) {
-                shared_data->state = state = IDLE;
-                Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",
-                    name.c_str(), analysis_image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
-                closeEvent();
-              } else {
-                shared_data->state = state = TAPE;
-              }
             }
-          } else if (state == PREALARM) {
-            // Back to IDLE
-            shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
-          } else {
-            Debug(1,
+            if (state == ALARM) {
+              last_alarm_count = analysis_image_count; 
+            } // This is needed so post_event_count counts after last alarmed frames while in ALARM not single alarmed frames while ALERT
+          } else { // no score?
+            alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count 
+            if (state == ALARM) {
+              Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
+              shared_data->state = state = ALERT;
+            } else if (state == ALERT) {
+              if ( 
+                  ( analysis_image_count-last_alarm_count > post_event_count ) 
+                  &&
+                  ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+                 ) {
+                Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
+                    name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
+                //if ( function != MOCORD || event_close_mode == CLOSE_ALARM || event->Cause() == SIGNAL_CAUSE )
+                if ( (function != RECORD && function != MOCORD ) || event_close_mode == CLOSE_ALARM ) {
+                  shared_data->state = state = IDLE;
+                  Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",
+                      name.c_str(), analysis_image_count, event->Id(), (function==MOCORD)?", section truncated":"" );
+                  closeEvent();
+                } else {
+                  shared_data->state = state = TAPE;
+                }
+              }
+            } else if (state == PREALARM) {
+              // Back to IDLE
+              shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
+            } else {
+              Debug(1,
                   "State %s because image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%d)",
                   State_Strings[state].c_str(),
                   analysis_image_count,
@@ -2187,115 +2102,122 @@ bool Monitor::Analyse() {
                   static_cast<int64>(timestamp->tv_sec),
                   static_cast<int64>(video_store_data->recording.tv_sec),
                   min_section_length);
-          }
-          if (Event::PreAlarmCount())
-            Event::EmptyPreAlarmFrames();
-        } // end if score or not
+            }
+            if (Event::PreAlarmCount())
+              Event::EmptyPreAlarmFrames();
+          } // end if score or not
 
-        snap->score = score;
+          snap->score = score;
 
-        if (state == PREALARM) {
-          // Generate analysis images if necessary
-          if ((savejpegs > 1) and snap->image) {
+          if (state == PREALARM) {
+            // Generate analysis images if necessary
+            if ((savejpegs > 1) and snap->image) {
+              for (const Zone &zone : zones) {
+                if (zone.Alarmed()) {
+                  if (zone.AlarmImage()) {
+                    if (!snap->analysis_image)
+                      snap->analysis_image = new Image(*(snap->image));
+                    snap->analysis_image->Overlay(*(zone.AlarmImage()));
+                  }
+                } // end if zone is alarmed
+              } // end foreach zone
+            } // end if savejpegs
+
+            // incremement pre alarm image count
+            //have_pre_alarmed_frames ++;
+            Event::AddPreAlarmFrame(snap->image, *timestamp, score, nullptr);
+          } else if (state == ALARM) {
             for (const Zone &zone : zones) {
               if (zone.Alarmed()) {
-                if (zone.AlarmImage()) {
+                if (zone.AlarmImage() and (savejpegs > 1) and snap->image) {
                   if (!snap->analysis_image)
                     snap->analysis_image = new Image(*(snap->image));
                   snap->analysis_image->Overlay(*(zone.AlarmImage()));
                 }
-              } // end if zone is alarmed
-            } // end foreach zone
-          } // end if savejpegs
-
-          // incremement pre alarm image count
-          //have_pre_alarmed_frames ++;
-          Event::AddPreAlarmFrame(snap->image, *timestamp, score, nullptr);
-        } else if (state == ALARM) {
-          for (const Zone &zone : zones) {
-            if (zone.Alarmed()) {
-              if (zone.AlarmImage() and (savejpegs > 1) and snap->image) {
-                if (!snap->analysis_image)
-                  snap->analysis_image = new Image(*(snap->image));
-                snap->analysis_image->Overlay(*(zone.AlarmImage()));
+              }  // end if zone is alarmed
+            }  // end foreach zone
+            if (event) {
+              if (noteSetMap.size() > 0)
+                event->updateNotes(noteSetMap);
+              if ( section_length
+                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                 ) {
+                Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
+                    name.c_str(), analysis_image_count, event->Id(),
+                    static_cast<int64>(timestamp->tv_sec), static_cast<int64>(video_store_data->recording.tv_sec),
+                    static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
+                    section_length);
+                closeEvent();
+                event = new Event(this, *timestamp, cause, noteSetMap);
+                shared_data->last_event_id = event->Id();
+                //set up video store data
+                snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                video_store_data->recording = event->StartTime();
               }
-            }  // end if zone is alarmed
-          }  // end foreach zone
-          if (event) {
-            if (noteSetMap.size() > 0)
-              event->updateNotes(noteSetMap);
-            if ( section_length
-                && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
-               ) {
-              Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
-                      name.c_str(), analysis_image_count, event->Id(),
-                      static_cast<int64>(timestamp->tv_sec), static_cast<int64>(video_store_data->recording.tv_sec),
-                      static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
-                      section_length);
-              closeEvent();
-              event = new Event(this, *timestamp, cause, noteSetMap);
-              shared_data->last_event_id = event->Id();
-              //set up video store data
-              snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-              video_store_data->recording = event->StartTime();
+            } else {
+              Error("ALARM but no event");
             }
-          } else {
-            Error("ALARM but no event");
-          }
-        } else if ( state == ALERT ) {
-          // Alert means this frame has no motion, but we were alarmed and are still recording.
-          if ((noteSetMap.size() > 0) and event)
-            event->updateNotes(noteSetMap);
-        } else if ( state == TAPE ) {
-          // bulk frame code moved to event.
-        } // end if state machine
+          } else if ( state == ALERT ) {
+            // Alert means this frame has no motion, but we were alarmed and are still recording.
+            if ((noteSetMap.size() > 0) and event)
+              event->updateNotes(noteSetMap);
+          } else if ( state == TAPE ) {
+            // bulk frame code moved to event.
+          } // end if state machine
 
-        if ( (function == MODECT or function == MOCORD) and snap->image ) {
-          if (!ref_image.Buffer()) {
-            Debug(1, "Assigning");
-            ref_image.Assign(*(snap->image));
-          } else {
-            Debug(1, "Blending");
-            ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-            Debug(1, "Done Blending");
+          if ( (function == MODECT or function == MOCORD) and snap->image ) {
+            if (!ref_image.Buffer()) {
+              Debug(1, "Assigning");
+              ref_image.Assign(*(snap->image));
+            } else {
+              Debug(1, "Blending");
+              ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+              Debug(1, "Done Blending");
+            }
           }
-        }
-        last_signal = signal;
-      } // end if videostream
-    } // end if signal
-    shared_data->last_frame_score = score;
-  } else {
-    Debug(3, "trigger == off");
-    if (event) {
-      Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name.c_str(), analysis_image_count, event->Id());
-      closeEvent();
+          last_signal = signal;
+        } // end if videostream
+      } // end if signal
+      shared_data->last_frame_score = score;
+    } else {
+      Debug(3, "trigger == off");
+      if (event) {
+        Info("%s: %03d - Closing event %" PRIu64 ", trigger off", name.c_str(), analysis_image_count, event->Id());
+        closeEvent();
+      }
+      shared_data->state = state = IDLE;
+    } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
+
+    if (event) event->AddPacket(packet_lock);
+
+    // In the case where people have pre-alarm frames, the web ui will generate the frame images
+    // from the mp4. So no one will notice anyways.
+    if (snap->image and (videowriter == PASSTHROUGH)) {
+      if (!savejpegs) {
+        Debug(1, "Deleting image data for %d", snap->image_index);
+        // Don't need raw images anymore
+        delete snap->image;
+        snap->image = nullptr;
+      }
+      if (snap->analysis_image and !(savejpegs & 2)) {
+        Debug(1, "Deleting analysis image data for %d", snap->image_index);
+        delete snap->analysis_image;
+        snap->analysis_image = nullptr;
+      }
     }
-    shared_data->state = state = IDLE;
-  } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
-  if (event) event->AddPacket(snap);
+    packetqueue.clearPackets(snap);
 
-  // In the case where people have pre-alarm frames, the web ui will generate the frame images
-  // from the mp4. So no one will notice anyways.
-  if (snap->image and (videowriter == PASSTHROUGH) and !savejpegs) {
-    Debug(1, "Deleting image data for %d", snap->image_index);
-    // Don't need raw images anymore
-    delete snap->image;
-    snap->image = nullptr;
-  }
-
-  packetqueue.clearPackets(snap);
-
-  if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
-    // Only do these if it's a video packet.
-    shared_data->last_read_index = snap->image_index;
-    analysis_image_count++;
-    if (function == MODECT or function == MOCORD)
-      UpdateAnalysisFPS();
-  }
-  packetqueue.increment_it(analysis_it);
-  packetqueue.unlock(packet_lock);
-  shared_data->last_read_time = time(nullptr);
+    if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
+      // Only do these if it's a video packet.
+      shared_data->last_read_index = snap->image_index;
+      analysis_image_count++;
+    }
+    packetqueue.increment_it(analysis_it);
+    if (!event) delete packet_lock;
+  } // end scope for event_lock
+  //packetqueue.unlock(packet_lock);
+  shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
   return true;
 } // end Monitor::Analyse
@@ -2782,6 +2704,60 @@ void Monitor::TimestampImage(Image *ts_image, const timeval &ts_time) const {
   ts_image->Annotate(label_text, label_coord, label_size);
   Debug(2, "done annotating %s", label_text);
 } // end void Monitor::TimestampImage
+
+Event * Monitor::openEvent(
+    const std::shared_ptr<ZMPacket> &snap,
+    const std::string &cause,
+    const Event::StringSetMap &noteSetMap) {
+
+  // FIXME this iterator is not protected from invalidation
+  packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
+      *analysis_it,
+      (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
+      );
+
+  // This gets a lock on the starting packet
+
+  ZMLockedPacket *starting_packet_lock = nullptr;
+  std::shared_ptr<ZMPacket> starting_packet = nullptr;
+  if (*start_it != *analysis_it) {
+    starting_packet_lock = packetqueue.get_packet(start_it);
+    if (!starting_packet_lock) {
+      Warning("Unable to get starting packet lock");
+      return nullptr;
+    }
+    starting_packet = starting_packet_lock->packet_;
+  } else {
+    starting_packet = snap;
+  }
+
+  event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
+
+  shared_data->last_event_id = event->Id();
+  strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+
+  // Write out starting packets, do not modify packetqueue it will garbage collect itself
+  while (starting_packet and ((*start_it) != *analysis_it)) {
+    event->AddPacket(starting_packet_lock);
+    // Have added the packet, don't want to unlock it until we have locked the next
+
+    packetqueue.increment_it(start_it);
+    if ((*start_it) == *analysis_it) {
+      //if (starting_packet_lock) delete starting_packet_lock;
+      break;
+    }
+    ZMLockedPacket *lp = packetqueue.get_packet(start_it);
+    //delete starting_packet_lock;
+    if (!lp) return nullptr; // only on terminate FIXME
+    starting_packet_lock = lp;
+    starting_packet = lp->packet_;
+  }
+  packetqueue.free_it(start_it);
+  delete start_it;
+  start_it = nullptr;
+
+  return event;
+}
 
 void Monitor::closeEvent() {
   if (!event) return;

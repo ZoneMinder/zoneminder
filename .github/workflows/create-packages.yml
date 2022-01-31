@@ -29,3 +29,13 @@ jobs:
           DIST: ${{ matrix.os_dist.dist }}
           DOCKER_REPO: iconzm/packpack
         run: utils/packpack/startpackpack.sh
+
+      - name: Publish
+        uses: nogsantos/scp-deploy@master
+        with:
+          src: ./build/*.{deb,dsc,tar.xz,buildinfo,changes}
+          host: ${{ secrets.ZMREPO_HOST }}
+          remote: debian/master/mini-dinstall/incoming/
+          port: ${{ secrets.ZMREPO_SSH_PORT }}
+          user: ${{ secrets.ZMREPO_SSH_USER }}
+          key: ${{ secrets.ZMREPO_SSH_KEY }}

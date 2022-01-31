@@ -35,7 +35,7 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
           ARGS: "-rltgoDzvO"
-          SOURCE: ./build/*.{deb,dsc,tar.xz,buildinfo,changes}
+          SOURCE: build/
           REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
           TARGET: debian/master/mini-dinstall/incoming/

@@ -34,6 +34,7 @@ use bytes;
 use ZoneMinder;
 use ZoneMinder::Monitor;
 use ZoneMinder::State;
+use ZoneMinder::Filter;
 use DBI;
 use POSIX;
 use Time::HiRes qw/gettimeofday/;
@@ -130,7 +131,7 @@ if ( $command eq 'state' ) {
           or 
         ($monitor->{Recording} ne $definition->{Recording})
           ) {
-        $monitor->save({ map { $_ => $definition{$_} } qw(Capturing Analysing Recording) });
+        $monitor->save({ map { $_ => $$definition{$_} } qw(Capturing Analysing Recording) });
         last; # definition
       } # end if
     } # end foreach definition

@@ -1,10 +1,3 @@
-var ZM_OPT_USE_GEOLOCATION = '<?php echo ZM_OPT_USE_GEOLOCATION ?>' == '1' ? true : false;
-<?php
-if ( ZM_OPT_USE_GEOLOCATION ) { 
-  echo 'var ZM_OPT_GEOLOCATION_TILE_PROVIDER=\''.ZM_OPT_GEOLOCATION_TILE_PROVIDER.'\''.PHP_EOL;
-  echo 'var ZM_OPT_GEOLOCATION_ACCESS_TOKEN=\''.ZM_OPT_GEOLOCATION_ACCESS_TOKEN.'\''.PHP_EOL;
-}
-?>
 var optControl = <?php echo ZM_OPT_CONTROL ?>;
 var hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
 var defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';

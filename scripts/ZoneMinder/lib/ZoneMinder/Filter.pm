@@ -31,26 +31,16 @@ use warnings;
 require ZoneMinder::Base;
 require Date::Manip;
 require POSIX;
-
-use parent qw(ZoneMinder::Object);
-
-use vars qw/ $table $primary_key /;
-$table = 'Filters';
-$primary_key = 'Id';
-# ==========================================================================
-#
-# General Utility Functions
-#
-# ==========================================================================
-
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 require ZoneMinder::Storage;
 require ZoneMinder::Server;
 
+use parent qw(ZoneMinder::Object);
+
 use vars qw/ $table $primary_key %fields /;
-$table = 'Users';
+$table = 'Filters';
 $primary_key = 'Id';
 
 %fields = map { $_ => $_ } qw(

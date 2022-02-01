@@ -21,6 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          fetch-depth: '0'
           submodules: recursive
       - name: Run packpack
         env:

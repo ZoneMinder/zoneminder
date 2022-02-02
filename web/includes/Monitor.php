@@ -110,7 +110,6 @@ class Monitor extends ZM_Object {
     'ManufacturerId'  => null,
     'ModelId'         => null,
     'Type'      => 'Ffmpeg',
-    'Function'  => 'Mocord',
     'Capturing' => 'Always',
     'Analysing' => 'Always',
     'Recording' => 'Always',
@@ -127,6 +126,7 @@ class Monitor extends ZM_Object {
     'ONVIF_Password'  =>  '',
     'ONVIF_Options'   =>  '',
     'ONVIF_Event_Listener'  =>  '0',
+    'use_Amcrest_API'  =>  '0',
     'Device'  =>  '',
     'Channel' =>  0,
     'Format'  =>  '0',
@@ -414,7 +414,7 @@ class Monitor extends ZM_Object {
         if ($mode == 'restart') {
           daemonControl('stop', 'zmc', $zmcArgs);
         }
-        if ($this->{'Function'} != 'None') {
+        if ($this->{'Capturing'} != 'None') {
           daemonControl('start', 'zmc', $zmcArgs);
         }
       }
@@ -789,7 +789,7 @@ class Monitor extends ZM_Object {
     <span id="viewingFPS'.$this->Id().'" title="'.translate('Viewing FPS').'"><span id="viewingFPSValue'.$this->Id().'"></span> fps</span>
     <span id="captureFPS'.$this->Id().'" title="'.translate('Capturing FPS').'"><span id="captureFPSValue'.$this->Id().'"></span> fps</span>
 ';
-    if ( $this->Function() == 'Modect' or $this->Function() == 'Mocord' ) {
+    if ($this->Analysing() != 'None') {
       $html .= '<span id="analysisFPS'.$this->Id().'" title="'.translate('Analysis FPS').'"><span id="analysisFPSValue'.$this->Id().'"></span> fps</span>
       ';
     }

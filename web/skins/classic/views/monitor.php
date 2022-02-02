@@ -754,6 +754,10 @@ if (count($available_monitor_ids)) {
               <td class="text-right pr-3"><?php echo translate('ONVIF_Event_Listener') ?></td>
               <td><?php echo html_radio('newMonitor[ONVIF_Event_Listener]', array('1'=>translate('Enabled'), '0'=>'Disabled'), $monitor->ONVIF_Event_Listener()); ?></td>
             </tr>
+            <tr id="function_use_Amcrest_API">
+              <td class="text-right pr-3"><?php echo translate('use_Amcrest_API') ?></td>
+              <td><?php echo html_radio('newMonitor[use_Amcrest_API]', array('1'=>translate('Enabled'), '0'=>'Disabled'), $monitor->use_Amcrest_API()); ?></td>
+            </tr>
 <?php
         break;
     }

@@ -275,6 +275,23 @@ function initPage() {
     }
   });
 
+  // Amcrest API controller
+  if (document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[0].checked) {
+    document.getElementById("function_use_Amcrest_API").hidden = false;
+  } else {
+    document.getElementById("function_use_Amcrest_API").hidden = true;
+  }
+  document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[0].addEventListener('change', function() {
+    if (this.checked) {
+      document.getElementById("function_use_Amcrest_API").hidden = false;
+    }
+  });
+  document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[1].addEventListener('change', function() {
+    if (this.checked) {
+      document.getElementById("function_use_Amcrest_API").hidden = true;
+    }
+  });
+
   if ( ZM_OPT_USE_GEOLOCATION ) {
     if ( window.L ) {
       var form = document.getElementById('contentForm');

@@ -318,7 +318,7 @@ endif()
 # Do not check for cURL if ZM_NO_CURL is on
 if(NOT ZM_NO_CURL)
   # cURL
-  find_package(CURL)
+  find_package(CURL REQUIRED)
   if(CURL_FOUND)
     set(HAVE_LIBCURL 1)
     list(APPEND ZM_BIN_LIBS ${CURL_LIBRARIES})

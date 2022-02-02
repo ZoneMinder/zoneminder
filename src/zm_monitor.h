@@ -285,7 +285,9 @@ protected:
   std::string onvif_username;
   std::string onvif_password;
   std::string onvif_options;
+  std::string amcrest_response;
   bool        onvif_event_listener;
+  bool        use_Amcrest_API;
 
   std::string     device;
   int             palette;
@@ -436,11 +438,12 @@ protected:
   std::string diag_path_delta;
 
   //ONVIF
-#ifdef WITH_GSOAP
-  struct soap *soap;
-  bool ONVIF_Trigger_State;
+  bool ONVIF_Trigger_State; //Re-using some variables for Amcrest API support
   bool ONVIF_Healthy;
   bool ONVIF_Closes_Event;
+
+#ifdef WITH_GSOAP
+  struct soap *soap = nullptr;
   _tev__CreatePullPointSubscription request;
   _tev__CreatePullPointSubscriptionResponse response;
   _tev__PullMessages tev__PullMessages;
@@ -449,8 +452,11 @@ protected:
   void set_credentials(struct soap *soap);
 #endif
 
-  //curl stuff for Janus
-  CURL *curl;
+  //curl stuff
+  CURL *curl = nullptr;
+  CURLM *curl_multi = nullptr;
+  CURL *Amcrest_handle = nullptr;
+  int start_Amcrest();
   //helper class for CURL
   static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
   int add_to_janus();

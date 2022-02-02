@@ -422,9 +422,9 @@ Monitor::Monitor()
   privacy_bitmask(nullptr),
   n_linked_monitors(0),
   linked_monitors(nullptr),
+  ONVIF_Closes_Event(FALSE),
 #ifdef WITH_GSOAP
   soap(nullptr),
-  ONVIF_Closes_Event(FALSE),
 #endif
   red_val(0),
   green_val(0),
@@ -1996,8 +1996,19 @@ bool Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if (snap->image)
+          if (snap->in_frame && (
+                ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
+                ||
+                ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
+                ) ) {
+            Debug(1, "assigning refimage from v-channel");
+            Image v_image(snap->in_frame->width,
+                snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[3], 0);
+            ref_image.Assign(v_image);
+          } else if (snap->image) {
+            Debug(1, "assigning refimage from snap->image");
             ref_image.Assign(*(snap->image));
+          }
         }
         shared_data->state = state = IDLE;
         shared_data->active = signal;
@@ -2076,12 +2087,32 @@ bool Monitor::Analyse() {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
-                ref_image.Assign(*(snap->image));
+                if (snap->in_frame && (
+                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
+                      ||
+                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
+                      ) ) {
+                  Debug(1, "assigning refimage from v-channel");
+                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[3], 0);
+                  ref_image.Assign(v_image);
+                } else {
+            Debug(1, "assigning refimage from snap->image");
+                  ref_image.Assign(*(snap->image));
+                }
                 alarm_image.Assign(*(snap->image));
               } else if (!(analysis_image_count % (motion_frame_skip+1))) {
                 Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                 // Get new score.
-                snap->score = DetectMotion(*(snap->image), zoneSet);
+                if (snap->in_frame && (
+                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
+                      ||
+                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
+                      ) ) {
+                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[3], 0);
+                  snap->score = DetectMotion(v_image, zoneSet);
+                } else {
+                  snap->score = DetectMotion(*(snap->image), zoneSet);
+                }
 
                 if (!snap->analysis_image)
                   snap->analysis_image = new Image(*(snap->image));
@@ -2298,16 +2329,42 @@ bool Monitor::Analyse() {
             } // end if ! event
           } // end if RECORDING
 
-          if ((function == MODECT or function == MOCORD) and snap->image) {
+          if (function == MODECT or function == MOCORD) {
             if (!ref_image.Buffer()) {
-              Debug(1, "Assigning");
-              ref_image.Assign(*(snap->image));
+              if (snap->in_frame && (
+                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
+                    ||
+                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
+                    ) ) {
+                Debug(1, "Assigning from vchannel");
+                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[3], 0);
+                ref_image.Assign(v_image);
+              } else if (snap->image) {
+                Debug(1, "Assigning");
+                ref_image.Assign(*(snap->image));
+              }
             } else {
-              Debug(1, "Blending");
-              ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-              Debug(1, "Done Blending");
-            }
-          }
+              if (snap->in_frame &&
+                  ( 
+                   ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
+                   ||
+                   ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
+                  )
+                 ) {
+                Debug(1, "Blending from vchannel");
+                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[3], 0);
+                ref_image.Blend(v_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+              } else if (snap->image) {
+                Debug(1, "Blending because %p and format %d != %d, %d", snap->in_frame,
+                    snap->in_frame->format,
+                    AV_PIX_FMT_YUV420P,
+                    AV_PIX_FMT_YUVJ420P
+                    );
+                ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                Debug(1, "Done Blending");
+              }
+            } // end if have image
+          } // end if detecting
           last_signal = signal;
         } // end if videostream
       } // end if signal

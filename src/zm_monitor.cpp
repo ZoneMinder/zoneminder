@@ -2321,34 +2321,37 @@ bool Monitor::Analyse() {
       shared_data->state = state = IDLE;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
-    if (event) event->AddPacket(snap);
+    packetqueue.clearPackets(snap);
+
+    if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
+      // Only do these if it's a video packet.
+      shared_data->last_read_index = snap->image_index;
+      analysis_image_count++;
+    }
+
+    if (event) {
+      event->AddPacket(packet_lock);
+    } else {
+      // In the case where people have pre-alarm frames, the web ui will generate the frame images
+      // from the mp4. So no one will notice anyways.
+      if (snap->image and (videowriter == PASSTHROUGH)) {
+        if (!savejpegs) {
+          Debug(1, "Deleting image data for %d", snap->image_index);
+          // Don't need raw images anymore
+          delete snap->image;
+          snap->image = nullptr;
+        }
+        if (snap->analysis_image and !(savejpegs & 2)) {
+          Debug(1, "Deleting analysis image data for %d", snap->image_index);
+          delete snap->analysis_image;
+          snap->analysis_image = nullptr;
+        }
+      }
+      delete packet_lock;
+    }
   } // end scope for event_lock
 
-  // In the case where people have pre-alarm frames, the web ui will generate the frame images
-  // from the mp4. So no one will notice anyways.
-  if (snap->image and (videowriter == PASSTHROUGH)) {
-    if (!savejpegs) {
-      Debug(1, "Deleting image data for %d", snap->image_index);
-      // Don't need raw images anymore
-      delete snap->image;
-      snap->image = nullptr;
-    }
-    if (snap->analysis_image and !(savejpegs & 2)) {
-      Debug(1, "Deleting analysis image data for %d", snap->image_index);
-      delete snap->analysis_image;
-      snap->analysis_image = nullptr;
-    }
-  }
-
-  packetqueue.clearPackets(snap);
-
-  if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
-    // Only do these if it's a video packet.
-    shared_data->last_read_index = snap->image_index;
-    analysis_image_count++;
-  }
   packetqueue.increment_it(analysis_it);
-  delete packet_lock;
   //packetqueue.unlock(packet_lock);
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -2921,16 +2924,16 @@ Event * Monitor::openEvent(
 
   // Write out starting packets, do not modify packetqueue it will garbage collect itself
   while (starting_packet and ((*start_it) != *analysis_it)) {
-    event->AddPacket(starting_packet);
+    event->AddPacket(starting_packet_lock);
     // Have added the packet, don't want to unlock it until we have locked the next
 
     packetqueue.increment_it(start_it);
     if ((*start_it) == *analysis_it) {
-      if (starting_packet_lock) delete starting_packet_lock;
+      //if (starting_packet_lock) delete starting_packet_lock;
       break;
     }
     ZMLockedPacket *lp = packetqueue.get_packet(start_it);
-    delete starting_packet_lock;
+    //delete starting_packet_lock;
     if (!lp) return nullptr; // only on terminate FIXME
     starting_packet_lock = lp;
     starting_packet = lp->packet_;

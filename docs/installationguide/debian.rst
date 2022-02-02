@@ -35,7 +35,7 @@ Run the following commands.
     sudo apt install mariadb-server
     sudo apt install zoneminder
 
-When mariadb is installed for the first time, it doesn't add a password to the root user. Therefore, for security, it is recommended to run ``mysql secure installation``.
+By default MariaDB uses `unix socket authentication`_, so no root user password is required (root MariaDB user access only available to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation`_.
 
 **Step 3:** Setup permissions for zm.conf
 
@@ -337,3 +337,6 @@ Reload Apache to enable your changes and then start ZoneMinder.
     sudo systemctl start zoneminder
 
 You are now ready to go with ZoneMinder. Open a browser and type either ``localhost/zm`` one the local machine or ``{IP-OF-ZM-SERVER}/zm`` if you connect from a remote computer.
+
+.. _unix socket authentication: https://mariadb.com/kb/en/authentication-plugin-unix-socket/
+.. _mariadb-secure-installation: https://mariadb.com/kb/en/mysql_secure_installation/

@@ -251,7 +251,7 @@ void zmDbQueue::process() {
       mCondition.wait(lock);
     }
     while (!mQueue.empty()) {
-      if (mQueue.size() > 20) {
+      if (mQueue.size() > 30) {
         Logger *log = Logger::fetch();
         Logger::Level db_level = log->databaseLevel();
         log->databaseLevel(Logger::NOLOG);

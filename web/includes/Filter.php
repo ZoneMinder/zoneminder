@@ -240,7 +240,7 @@ class Filter extends ZM_Object {
     }
     if ( isset( $this->Query()['limit'] ) )
       return $this->{'Query'}['limit'];
-    return 100;
+    return 0;
     #return $this->defaults{'limit'};
   }
 

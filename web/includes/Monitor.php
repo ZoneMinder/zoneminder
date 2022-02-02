@@ -66,6 +66,7 @@ class Monitor extends ZM_Object {
     'ONVIF_Password'  =>  '',
     'ONVIF_Options'   =>  '',
     'ONVIF_Event_Listener'  =>  '0',
+    'use_Amcrest_API'  =>  '0',
     'Device'  =>  '',
     'Channel' =>  0,
     'Format'  =>  '0',

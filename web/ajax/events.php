@@ -182,6 +182,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $sort = $sort == 'Monitor' ? 'M.Name' : 'E.'.$sort;
   $col_str = 'E.*, M.Name AS Monitor';
   $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY '.$sort.' '.$order;
+  if ($filter->limit() and !count($filter->pre_sql_conditions()) and !count($filter->post_sql_conditions())) {
+    $sql .= ' LIMIT '.$filter->limit();
+  }
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -207,6 +210,12 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $event_ids[] = $event->Id();
     $unfiltered_rows[] = $row;
   } # end foreach row
+
+  # Filter limits come before pagination limits.
+  if ($filter->limit() and ($filter->limit() > count($unfiltered_rows))) {
+    ZM\Debug("Filtering rows due to filter->limit " . count($unfiltered_rows)." limit: ".$filter->limit());
+    $unfiltered_rows = array_slice($unfiltered_rows, 0, $filter->limit());
+  }
 
   ZM\Debug('Have ' . count($unfiltered_rows) . ' events matching base filter.');
 
@@ -246,8 +255,10 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $filtered_rows = $unfiltered_rows;
   } # end if search_filter->terms() > 1
 
-  if ($limit) 
+  if ($limit) {
+    ZM\Debug("Filtering rows due to limit " . count($filtered_rows)." offset: $offset limit: $limit");
     $filtered_rows = array_slice($filtered_rows, $offset, $limit);
+  }
 
   $returned_rows = array();
   foreach ($filtered_rows as $row) {

@@ -35,7 +35,7 @@ Run the following commands.
     sudo apt install mariadb-server
     sudo apt install zoneminder
 
-By default MariaDB uses `unix socket authentication`_, so no root user password is required (root MariaDB user access only avaialble to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation`_.
+By default MariaDB uses `unix socket authentication`_, so no root user password is required (root MariaDB user access only available to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation`_.
 
 **Step 3:** Setup permissions for zm.conf
 

@@ -48,6 +48,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
       $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
       $_REQUEST['filter']['Query']['limit'] = validInt($_REQUEST['filter']['Query']['limit']);
+      $_REQUEST['filter']['Query']['skip_locked'] = isset($_REQUEST['filter']['Query']['skip_locked']) ? validInt($_REQUEST['filter']['Query']['skip_locked']) : 0;
       
       $_REQUEST['filter']['AutoCopy'] = empty($_REQUEST['filter']['AutoCopy']) ? 0 : 1;
       $_REQUEST['filter']['AutoCopyTo'] = empty($_REQUEST['filter']['AutoCopyTo']) ? 0 : $_REQUEST['filter']['AutoCopyTo'];
@@ -80,21 +81,23 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
           $error_message = $filter->get_last_error();
           return;
         }
-        // We update the request id so that the newly saved filter is auto-selected
-        $_REQUEST['Id'] = $filter->Id();
+        if ($action == 'Save' or $action == 'SaveAs' ) {
+          // We update the request id so that the newly saved filter is auto-selected
+          $_REQUEST['Id'] = $filter->Id();
+        }
       } # end if changes
 
       if ($action == 'execute') {
         $filter->execute();
         if (count($changes)) {
           $filter->delete();
-					$filter->Id(null);
+					$filter->Id($_REQUEST['Id']);
         }
       } else if ($filter->Background()) {
         $filter->control('start');
       }
       global $redirect;
-      $redirect = '?view=filter'.$filter->querystring('filter', '&');
+      $redirect = '?view=filter&Id='.$_REQUEST['Id'].$filter->querystring('filter', '&');
 
     } else if ($action == 'control') {
       if ( $_REQUEST['command'] == 'start'

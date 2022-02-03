@@ -214,22 +214,24 @@ class Event extends ZM_Object {
     }
   } # end Event->delete
 
-  public function getStreamSrc( $args=array(), $querySep='&' ) {
-
-    $streamSrc = '';
-    $Server = null;
+  public function Server() {
     if ( $this->Storage()->ServerId() ) {
       # The Event may have been moved to Storage on another server,
       # So prefer viewing the Event from the Server that is actually
       # storing the video
-      $Server = $this->Storage()->Server();
+      return $this->Storage()->Server();
     } else if ( $this->Monitor()->ServerId() ) {
       # Assume that the server that recorded it has it
-      $Server = $this->Monitor()->Server();
-    } else {
-      # A default Server will result in the use of ZM_DIR_EVENTS
-      $Server = new Server();
+      return $this->Monitor()->Server();
     }
+    # A default Server will result in the use of ZM_DIR_EVENTS
+    return new Server();
+  }
+
+  public function getStreamSrc( $args=array(), $querySep='&' ) {
+
+    $streamSrc = '';
+    $Server = $this->Server();
 
     # If we are in a multi-port setup, then use the multiport, else by
     # passing null Server->Url will use the Port set in the Server setting
@@ -354,15 +356,7 @@ class Event extends ZM_Object {
 # We always store at least 1 image when capturing
 
     $streamSrc = '';
-    $Server = null;
-    if ( $this->Storage()->ServerId() ) {
-      $Server = $this->Storage()->Server();
-    } else if ( $this->Monitor()->ServerId() ) {
-      # Assume that the server that recorded it has it
-      $Server = $this->Monitor()->Server();
-    } else {
-      $Server = new Server();
-    }
+    $Server = $this->Server();
     $streamSrc .= $Server->UrlToIndex(
       ZM_MIN_STREAMING_PORT ?
       ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
@@ -514,7 +508,7 @@ class Event extends ZM_Object {
       return false;
     }
     $Storage= $this->Storage();
-    $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
+    $Server = $this->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
@@ -562,7 +556,7 @@ class Event extends ZM_Object {
       return false;
     }
     $Storage= $this->Storage();
-    $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
+    $Server = $this->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi().'/events/'.$this->{'Id'}.'.json';

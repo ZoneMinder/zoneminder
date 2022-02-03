@@ -2344,7 +2344,7 @@ bool Monitor::Analyse() {
                 ref_image.Assign(*(snap->image));
               }
             } else {
-              if (snap->in_frame &&
+              if (0 and snap->in_frame &&
                   ( 
                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
                    ||

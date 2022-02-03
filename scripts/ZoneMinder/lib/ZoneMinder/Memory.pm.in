@@ -828,7 +828,9 @@ by monitor capture and analysis processes.
 shared_data       The general mapped memory section
 size              The size, in bytes, of this section
 valid             Flag indicating whether this section has been initialised
-active            Flag indicating whether this monitor is active (enabled/disabled)
+capturing         Flag indicating whether this monitor is presently capturing
+analysing         Flag indicating whether this monitor is presently analysing
+recording         Flag indicating whether this monitor is presently recording
 signal            Flag indicating whether this monitor is receiving a valid signal
 state             The current monitor state, see the STATE constants below
 last_write_index  The last index, in the image buffer, that an image has been saved to

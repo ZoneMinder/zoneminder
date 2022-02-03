@@ -136,13 +136,6 @@ else
       echo "Defaulting to master branch";
       BRANCH="master";
     fi;
-    if [ "$SNAPSHOT" == "NOW" ]; then
-      SNAPSHOT=`date +%Y%m%d%H%M%S`;
-    else
-      if [ "$SNAPSHOT" == "CURRENT" ]; then
-        SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
-      fi;
-    fi;
   fi;
 fi
 
@@ -150,6 +143,8 @@ if [ "$PACKAGE_VERSION" == "NOW" ]; then
   PACKAGE_VERSION=`date +%Y%m%d%H%M%S`;
 else
   if [ "$PACKAGE_VERSION" == "CURRENT" ]; then
+    # git the latest (short) commit hash of the version file
+    versionhash=$(git log -n1 --pretty=format:%h version)
     PACKAGE_VERSION="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
   fi;
 fi;
@@ -200,10 +195,19 @@ else
 fi;
 
 cd "${GITHUB_FORK}_zoneminder_release"
-  git checkout $BRANCH
-cd ../
+git checkout $BRANCH
 
-VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
+VERSION=`cat version`
+if [ "$SNAPSHOT" == "NOW" ]; then
+  SNAPSHOT=`date +%Y%m%d%H%M%S`;
+else
+  if [ "$SNAPSHOT" == "CURRENT" ]; then
+    # git the latest (short) commit hash of the version file
+    versionhash=$(git log -n1 --pretty=format:%h version)
+    SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+  fi;
+fi;
+cd ../
 
 if [ -z "$VERSION" ]; then
   exit 1;

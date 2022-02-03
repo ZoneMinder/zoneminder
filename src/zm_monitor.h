@@ -93,7 +93,7 @@ public:
   } Orientation;
 
   typedef enum {
-    DEINTERLACE_DISABLED = 0x00000000, 
+    DEINTERLACE_DISABLED = 0x00000000,
     DEINTERLACE_FOUR_FIELD_SOFT = 0x00001E04,
     DEINTERLACE_FOUR_FIELD_MEDIUM = 0x00001404,
     DEINTERLACE_FOUR_FIELD_HARD = 0x00000A04,
@@ -154,12 +154,12 @@ protected:
     uint32_t last_frame_score;  /* +60   */
     uint32_t  audio_frequency;  /* +64   */
     uint32_t  audio_channels;   /* +68   */
-    /* 
+    /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
-     ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple 
+     ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
-     */  
+     */
     union {                     /* +72   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
@@ -256,7 +256,49 @@ protected:
       bool hasAlarmed();
   };
 
+  class AmcrestAPI {
   protected:
+    Monitor *parent;
+    std::string amcrest_response;
+    CURLM *curl_multi = nullptr;
+    CURL *Amcrest_handle = nullptr;
+    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
+  public:
+    AmcrestAPI( Monitor *parent_);
+    ~AmcrestAPI();
+    int API_Connect();
+    void WaitForMessage();
+    bool Amcrest_Alarmed;
+    int start_Amcrest();
+  };
+
+  class JanusManager {
+  protected:
+    Monitor *parent;
+    CURL *curl = nullptr;
+    //helper class for CURL
+    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    bool Janus_Healthy;
+    std::string janus_session;
+    std::string janus_handle;
+    std::string janus_endpoint;
+    std::string stream_key;
+    std::string rtsp_username;
+    std::string rtsp_password;
+    std::string rtsp_path;
+
+  public:
+    JanusManager(Monitor *parent_);
+    ~JanusManager();
+    int add_to_janus();
+    int check_janus();
+    int remove_from_janus();
+    int get_janus_session();
+    int get_janus_handle();
+    int get_janus_plugin();
+    std::string get_stream_key();
+  };
 
 
   // These are read from the DB and thereafter remain unchanged
@@ -285,7 +327,6 @@ protected:
   std::string onvif_username;
   std::string onvif_password;
   std::string onvif_options;
-  std::string amcrest_response;
   bool        onvif_event_listener;
   bool        use_Amcrest_API;
 
@@ -438,9 +479,12 @@ protected:
   std::string diag_path_delta;
 
   //ONVIF
-  bool ONVIF_Trigger_State; //Re-using some variables for Amcrest API support
-  bool ONVIF_Healthy;
-  bool ONVIF_Closes_Event;
+  bool Poll_Trigger_State;
+  bool Event_Poller_Healthy;
+  bool Event_Poller_Closes_Event;
+
+  JanusManager *Janus_Manager;
+  AmcrestAPI *Amcrest_Manager;
 
 #ifdef WITH_GSOAP
   struct soap *soap = nullptr;
@@ -452,17 +496,6 @@ protected:
   void set_credentials(struct soap *soap);
 #endif
 
-  //curl stuff
-  CURL *curl = nullptr;
-  CURLM *curl_multi = nullptr;
-  CURL *Amcrest_handle = nullptr;
-  int start_Amcrest();
-  //helper class for CURL
-  static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
-  int add_to_janus();
-  int remove_from_janus();
-  int get_janus_session();
-  std::string janus_session;
 
   // Used in check signal
   uint8_t red_val;
@@ -530,11 +563,9 @@ public:
     return onvif_event_listener;
   }
   int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
-#ifdef WITH_GSOAP
-  bool OnvifHealthy() {
-    return ONVIF_Healthy;
+  bool EventPollerHealthy() {
+    return Event_Poller_Healthy;
   }
-#endif
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
     if ( image_count >= ready_count ) {
@@ -583,7 +614,7 @@ public:
   void SetVideoWriterStartTime(SystemTimePoint t) {
     video_store_data->recording = zm::chrono::duration_cast<timeval>(t.time_since_epoch());
   }
- 
+
   unsigned int GetPreEventCount() const { return pre_event_count; };
   int32_t GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const { return (State)shared_data->state; }

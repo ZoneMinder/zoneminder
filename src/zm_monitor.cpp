@@ -2013,14 +2013,14 @@ bool Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if (snap->in_frame && (
+          if (0 and snap->in_frame && (
                 ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                 ||
                 ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                 ) ) {
             Debug(1, "assigning refimage from v-channel");
             Image v_image(snap->in_frame->width,
-                snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[2], 0);
+                snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
             ref_image.Assign(v_image);
           } else if (snap->image) {
             Debug(1, "assigning refimage from snap->image");
@@ -2104,13 +2104,13 @@ bool Monitor::Analyse() {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
-                if (snap->in_frame && (
+                if (0 and snap->in_frame && (
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                       ||
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                       ) ) {
                   Debug(1, "assigning refimage from v-channel");
-                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[2], 0);
+                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
                   ref_image.Assign(v_image);
                 } else {
             Debug(1, "assigning refimage from snap->image");
@@ -2120,12 +2120,12 @@ bool Monitor::Analyse() {
               } else if (!(analysis_image_count % (motion_frame_skip+1))) {
                 Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                 // Get new score.
-                if (snap->in_frame && (
+                if (0 and snap->in_frame && (
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                       ||
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                       ) ) {
-                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[2], 0);
+                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
                   snap->score = DetectMotion(v_image, zoneSet);
                 } else {
                   snap->score = DetectMotion(*(snap->image), zoneSet);
@@ -2344,20 +2344,20 @@ bool Monitor::Analyse() {
 
           if ((analysing == ANALYSING_ALWAYS) and snap->image) {
             if (!ref_image.Buffer()) {
-              if (snap->in_frame && (
+              if (0 and snap->in_frame && (
                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                     ||
                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                     ) ) {
                 Debug(1, "Assigning from vchannel");
-                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[2], 0);
+                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
                 ref_image.Assign(v_image);
               } else if (snap->image) {
                 Debug(1, "Assigning");
                 ref_image.Assign(*(snap->image));
               }
             } else {
-              if (snap->in_frame &&
+              if (0 and snap->in_frame &&
                   ( 
                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
                    ||
@@ -2365,7 +2365,7 @@ bool Monitor::Analyse() {
                   )
                  ) {
                 Debug(1, "Blending from vchannel");
-                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[2], 0);
+                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
                 ref_image.Blend(v_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
               } else if (snap->image) {
                 Debug(1, "Blending because %p and format %d != %d, %d", snap->in_frame,

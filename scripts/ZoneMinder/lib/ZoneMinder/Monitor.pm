@@ -52,7 +52,9 @@ $serial = $primary_key = 'Id';
   ServerId
   StorageId
   Type
-  Function
+  Capturing
+  Analysing
+  Recording
   Enabled
   LinkedMonitors
   Triggers
@@ -307,9 +309,9 @@ sub disconnect {
 sub suspendMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
-  return if $$self{Function} eq 'Nodect' or $$self{Function} eq 'Monitor' or $$self{Function} eq 'None';
+  return if $$self{Capturing} eq 'None' or $$self{Analysing} eq 'None';
   my $count = 50;
-  while ($count and ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
+  while ($count and ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1)) {
     ZoneMinder::Logger::Debug(1, 'Suspending motion detection');
     ZoneMinder::Memory::zmMonitorSuspend($self);
     usleep(100000);
@@ -319,16 +321,16 @@ sub suspendMotionDetection {
     ZoneMinder::Logger::Error('Unable to suspend motion detection after 5 seconds.');
     ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
   } else {
-    ZoneMinder::Logger::Debug(1, 'shared_data:active='.ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1));
+    ZoneMinder::Logger::Debug(1, 'shared_data:analysing='.ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1));
   }
 }
 
 sub resumeMotionDetection {
   my $self = shift;
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
-  return if $$self{Function} eq 'Nodect' or $$self{Function} eq 'Monitor' or $$self{Function} eq 'None';
+  return if $$self{Capturing} eq 'None' or $$self{Analysing} eq 'None';
   my $count = 50;
-  while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:active', 1)) {
+  while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1)) {
     ZoneMinder::Logger::Debug(1, 'Resuming motion detection');
     ZoneMinder::Memory::zmMonitorResume($self);
     usleep(100000);

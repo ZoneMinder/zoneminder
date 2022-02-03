@@ -228,7 +228,7 @@ if ( $command =~ /^(?:start|restart)$/ ) {
           if ( $monitor->{Controllable} ) {
             runCommand("zmdc.pl start zmcontrol.pl --id $monitor->{Id}");
             if ( $monitor->{TrackMotion} ) {
-              if ( $monitor->{Function} eq 'Modect' || $monitor->{Function} eq 'Mocord' ) {
+              if ($monitor->{Analysing} ne 'None') {
                 runCommand("zmdc.pl start zmtrack.pl -m $monitor->{Id}");
               } else {
                 Warning('Monitor is set to track motion, but does not have motion detection enabled.');

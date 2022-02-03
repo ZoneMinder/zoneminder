@@ -2331,7 +2331,7 @@ bool Monitor::Analyse() {
 
           if (function == MODECT or function == MOCORD) {
             if (!ref_image.Buffer()) {
-              if (0 snap->in_frame && (
+              if (0 and snap->in_frame && (
                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                     ||
                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)

@@ -698,7 +698,7 @@ class Monitor extends ZM_Object {
   }
   function Model() {
     if (!property_exists($this, 'Model')) {
-      if ($this->{'ModelId'}) {
+      if (property_exists($this, 'ModelId') and $this->{'ModelId'}) {
         $this->{'Model'} = Model::find_one(array('Id'=>$this->ModelId()));
         if (!$this->{'Model'})
           $this->{'Model'} = new Model();
@@ -710,7 +710,7 @@ class Monitor extends ZM_Object {
   }
   function Manufacturer() {
     if (!property_exists($this, 'Manufacturer')) {
-      if ($this->{'ManufacturerId'}) {
+      if (property_exists($this, 'ManufacturerId') and $this->{'ManufacturerId'}) {
         $this->{'Manufacturer'} = Manufacturer::find_one(array('Id'=>$this->ManufacturerId()));
         if (!$this->{'Manufacturer'})
           $this->{'Manufacturer'} = new Manufacturer();

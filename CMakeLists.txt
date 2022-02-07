@@ -83,6 +83,7 @@ mark_as_advanced(
   ZM_TARGET_DISTRO
   ZM_PATH_MAP
   ZM_PATH_ARP
+  ZM_PATH_ARP_SCAN
   ZM_CONFIG_DIR
   ZM_CONFIG_SUBDIR
   ZM_SYSTEMD
@@ -145,6 +146,8 @@ set(ZM_PATH_MAP "/dev/shm" CACHE PATH
   "Location to save mapped memory files, default: /dev/shm")
 set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")
+set(ZM_PATH_ARP_SCAN "" CACHE PATH
+  "Full path to compatible scan_arp binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
@@ -638,6 +641,18 @@ if(ZM_PATH_ARP STREQUAL "")
   endif()
   if(ARP_EXECUTABLE-NOTFOUND)
     message(WARNING "Unable to find a compatible arp binary. Monitor probe will not function.")
+  endif()
+endif()
+
+# Find the path to an arp-scan compatible executable
+if(ZM_PATH_ARP_SCAN STREQUAL "")
+  find_program(ARP_SCAN_EXECUTABLE arp-scan)
+  if(ARP_SCAN_EXECUTABLE)
+    set(ZM_PATH_ARP_SCAN "${ARP_SCAN_EXECUTABLE}")
+    mark_as_advanced(ARP_SCAN_EXECUTABLE)
+  endif()
+  if(ARP_SCAN_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible arp-scan binary. Monitor probe will be less powerful.")
   endif()
 endif()
 

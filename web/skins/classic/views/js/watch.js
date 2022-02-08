@@ -850,7 +850,7 @@ function initPage() {
     // Load the PTZ Preset modal into the DOM
     if (monitorControllable) getCtrlPresetModal();
     // Load the settings modal into the DOM
-    if (monitorType == "Local") getSettingsModal();
+    if (monitorType == 'Local') getSettingsModal();
   }
 
   if (monitorType != 'WebSite') {
@@ -917,7 +917,15 @@ function initPage() {
   });
 
   // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !(canView.Control && (monitorType == 'Local')));
+  if (!canView.Control) {
+    settingsBtn.prop('disabled', true);
+    settingsBtn.prop('title', 'Disbled due to lack of Control View permission.');
+  } else if (monitorType != 'Local') {
+    settingsBtn.prop('disabled', true);
+    settingsBtn.prop('title', 'Settings only available for Local monitors.');
+  } else {
+    settingsBtn.prop('disabled', false);
+  }
 
   // Init the bootstrap-table
   if (monitorType != 'WebSite') table.bootstrapTable({icons: icons});

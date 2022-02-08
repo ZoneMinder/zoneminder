@@ -117,6 +117,7 @@ include('_monitor_filters.php');
 $filterbar = ob_get_contents();
 ob_end_clean();
 
+$need_janus = false;
 $monitors = array();
 foreach ( $displayMonitors as &$row ) {
   if ( $row['Function'] == 'None' )
@@ -133,7 +134,10 @@ foreach ( $displayMonitors as &$row ) {
   if ( ! isset($heights[$row['Height']]) ) {
     $heights[$row['Height']] = $row['Height'].'px';
   }
-  $monitors[] = new ZM\Monitor($row);
+  $monitor = $monitors[] = new ZM\Monitor($row);
+  if ($monitor->JanusEnabled()) {
+    $need_janus = true;
+  }
 } # end foreach Monitor
 
 xhtmlHeaders(__FILE__, translate('Montage'));
@@ -319,6 +323,8 @@ foreach (array_reverse($zones) as $zone) {
     </div>
   </div>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+<?php if ($need_janus) { ?>
   <script src="/javascript/janus/janus.js"></script>
+<?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

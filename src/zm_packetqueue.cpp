@@ -126,10 +126,9 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       ) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
 
-        ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
-        if (!lp->trylock()) {
+        ZMLockedPacket lp(zm_packet);
+        if (!lp.trylock()) {
           Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
-          delete lp;
           ++it;
           continue;
         }
@@ -157,8 +156,6 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             packet_counts[video_stream_id],
             max_video_packet_count,
             pktQueue.size());
-
-        delete lp;
 
         if (zm_packet->packet.stream_index == video_stream_id)
           break;

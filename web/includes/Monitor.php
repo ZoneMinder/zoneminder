@@ -25,27 +25,27 @@ function getMonitorFunctionTypes() {
   return $FunctionTypes;
 }
 
-$MonitorCapturingOptions = null;
-function getMonitorCapturingOptions() {
+$CapturingOptions = null;
+function getCapturingOptions() {
   if (!isset($MonitorCapturingOptions)) {
-    $MonitorCapturingOptions = array(
+    $CapturingOptions = array(
         'None'=>translate('None'),
         'Ondemand'  =>  translate('On Demand'),
         'Always'    =>  translate('Always'),
         );
   }
-  return $MonitorCapturingOptions;
+  return $CapturingOptions;
 }
 
-$MonitorAnalysingOptions = null;
-function getMonitorAnalysingOptions() {
-  if (!isset($MonitorAnalysingOptions)) {
-    $MonitorAnalysingOptions = array(
+$AnalysingOptions = null;
+function getAnalysingOptions() {
+  if (!isset($AnalysingOptions)) {
+    $AnalysingOptions = array(
         'None'   => translate('None'),
         'Always' => translate('Always'),
         );
   }
-  return $MonitorAnalysingOptions;
+  return $AnalysingOptions;
 }
 
 $MonitorAnalysisSourceOptions = null;
@@ -59,16 +59,16 @@ function getMonitorAnalysisSourceOptions() {
   return $MonitorAnalysisSourceOptions;
 }
 
-$MonitorRecordingOptions = null;
-function getMonitorRecordingOptions() {
-  if (!isset($MonitorRecordingOptions)) {
-    $MonitorRecordingOptions = array(
+$RecordingOptions = null;
+function getRecordingOptions() {
+  if (!isset($RecordingOptions)) {
+    $RecordingOptions = array(
         'None'     => translate('None'),
         'OnMotion' => translate('On Motion'),
         'Always'   => translate('Always'),
         );
   }
-  return $MonitorRecordingOptions;
+  return $RecordingOptions;
 }
 
 $MonitorRecordingSourceOptions = null;

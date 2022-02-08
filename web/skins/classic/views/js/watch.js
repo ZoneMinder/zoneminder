@@ -805,7 +805,15 @@ function initPage() {
     if (monitorType == 'Local') getSettingsModal();
   }
   // Only enable the settings button for local cameras
-  settingsBtn.prop('disabled', !(canView.Control && (monitorType == 'Local')));
+  if (!canView.Control) {
+    settingsBtn.prop('disabled', true);
+    settingsBtn.prop('title', 'Disbled due to lack of Control View permission.');
+  } else if (monitorType != 'Local') {
+    settingsBtn.prop('disabled', true);
+    settingsBtn.prop('title', 'Settings only available for Local monitors.');
+  } else {
+    settingsBtn.prop('disabled', false);
+  }
 
   if (monitorType != 'WebSite') {
     monitorStream = new MonitorStream(monitorData[monIdx]);

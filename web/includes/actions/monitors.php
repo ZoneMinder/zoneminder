@@ -39,7 +39,7 @@ if ($action == 'save') {
       global $error_message;
       $error_message .= 'Error saving monitor: ' . $Monitor->get_last_error().'<br/>';
     }
-    if ($Monitor->Function() != 'None' && $Monitor->Type() != 'WebSite') {
+    if ($Monitor->Capturing() != 'None' && $Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('start');
     }
   } // end foreach mid

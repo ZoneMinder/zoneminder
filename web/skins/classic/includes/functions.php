@@ -472,19 +472,21 @@ function getRamHTML() {
   } else if ($mem_used_percent > 90) {
     $used_class = 'text-warning';
   }
-  $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
-  $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
-  $swap_class = '';
-  if ($swap_used_percent > 95) {
-    $swap_class = 'text-danger';
-  } else if ($swap_used_percent > 90) {
-    $swap_class = 'text-warning';
-  }
-
   $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
-    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> '.
-    '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> '.
-    '</li>'.PHP_EOL;
+    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> ';
+
+  if ($meminfo['SwapTotal']) {
+    $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
+    $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
+    $swap_class = '';
+    if ($swap_used_percent > 95) {
+      $swap_class = 'text-danger';
+    } else if ($swap_used_percent > 90) {
+      $swap_class = 'text-warning';
+    }
+    $result .= '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> ';
+  } # end if SwapTotal
+  $result .= '</li>'.PHP_EOL;
   
   return $result;
 }

@@ -54,9 +54,9 @@ else
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Options'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML(); ?>
   <div class="container-fluid">
     <div class="row flex-nowrap">
       <nav id="sidebar">

@@ -730,7 +730,7 @@ int main(int argc, char *argv[]) {
     if ( function & ZMU_QUERY ) {
 #if ZM_HAS_V4L
 			char vidString[0x10000] = "";
-			bool ok = LocalCamera::GetCurrentSettings(device.c_str(), vidString, v4lVersion, verbose);
+			bool ok = LocalCamera::GetCurrentSettings(device.empty()?nullptr:device.c_str(), vidString, v4lVersion, verbose);
 			printf("%s", vidString);
 			exit_zmu(ok ? 0 : -1);
 #else // ZM_HAS_V4L

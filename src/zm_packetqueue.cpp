@@ -121,7 +121,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
       for (
           auto it = ++pktQueue.begin();
-          it != pktQueue.end() and *it != add_packet;
+          //it != pktQueue.end() and  // can't git end because we added our packet
+          *it != add_packet;
           // iterator is incremented by erase
       ) {
         std::shared_ptr <ZMPacket>zm_packet = *it;

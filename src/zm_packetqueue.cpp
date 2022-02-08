@@ -117,15 +117,15 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
       for (
           auto it = ++pktQueue.begin();
-          it != pktQueue.end() and *it != add_packet;
+          //it != pktQueue.end() and  // can't git end because we added our packet
+          *it != add_packet;
           // iterator is incremented by erase
       ) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
 
-        ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
-        if (!lp->trylock()) {
+        ZMLockedPacket lp(zm_packet);
+        if (!lp.trylock()) {
           Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
-          delete lp;
           ++it;
           continue;
         }
@@ -137,7 +137,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             ) {
           auto iterator_it = *iterators_it;
           // Have to check each iterator and make sure it doesn't point to the packet we are about to delete
-          if ((*iterator_it!=pktQueue.end()) and (*(*iterator_it) == zm_packet)) {
+          if (*(*iterator_it) == zm_packet) {
             Debug(1, "Bumping IT because it is at the front that we are deleting");
             ++(*iterator_it);
           }
@@ -154,8 +154,6 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             max_video_packet_count,
             pktQueue.size());
 
-        delete lp;
-
         if (zm_packet->packet.stream_index == video_stream_id)
           break;
       }  // end while
@@ -163,7 +161,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
   }  // end lock scope
   // We signal on every packet because someday we may analyze sound
   Debug(4, "packetqueue queuepacket, unlocked signalling");
-  condition.notify_all();
+  condition.notify_one();
 
 	return true;
 }  // end bool PacketQueue::queuePacket(ZMPacket* zm_packet)

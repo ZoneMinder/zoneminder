@@ -204,7 +204,10 @@ function changeScale() {
     streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();
   }
-  alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
+  if (cueFrames) {
+    //just re-render alarmCues.  skip ajax call
+    alarmCue.html(renderAlarmCues(eventViewer));
+  }
   setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
 
   // After a resize, check if we still have room to display the event stats table

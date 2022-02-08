@@ -138,7 +138,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             ) {
           auto iterator_it = *iterators_it;
           // Have to check each iterator and make sure it doesn't point to the packet we are about to delete
-          if ((*iterator_it!=pktQueue.end()) and (*(*iterator_it) == zm_packet)) {
+          if (*(*iterator_it) == zm_packet) {
             Debug(1, "Bumping IT because it is at the front that we are deleting");
             ++(*iterator_it);
           }

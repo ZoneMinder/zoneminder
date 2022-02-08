@@ -169,7 +169,7 @@ function getBodyTopHTML() {
 ';
   global $error_message;
   if ( $error_message ) {
-   echo '<div class="error">'.$error_message.'</div>';
+   echo '<div id="error">'.$error_message.'</div>';
   }
 } // end function getBodyTopHTML
 
@@ -203,7 +203,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   $status = runtimeStatus($running);
 
 ?>
-<div class="fixed-top container-fluid p-0">
+<div class="container-fluid p-0">
   <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row">
 
     <div class="navbar-brand justify-content-start align-self-start">

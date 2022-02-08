@@ -44,12 +44,21 @@ if ($action == 'Save') {
     } else {
       unset($_REQUEST['newUser']['Password']);
     }
+    if (isset($_REQUEST['newUser']['Language']) and $_REQUEST['newUser']['Language']) {
+      # Verify that the language file exists in the lang directory.
+      if (!file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['newUser']['Language'].'.php')) {
+        $error_message .= 'Error setting Language. New value ' .$_REQUEST['newUser']['Language'].' not saved because '.ZM_PATH_WEB.'/lang/'.$_REQUEST['newUser']['Language'].'.php doesn\'t exist.<br/>';
+        ZM\Error($error_message);
+        unset($_REQUEST['newUser']['Language']);
+        unset($_REQUEST['redirect']);
+      }
+    }
     $changes = $dbUser->changes($_REQUEST['newUser']);
-    ZM\Debug("Changes: " . print_r($changes, true));
+    ZM\Debug('Changes: ' . print_r($changes, true));
 
     if (count($changes)) {
       if (!$dbUser->save($changes)) {
-        $error_message = $dbUser->get_last_error();
+        $error_message .= $dbUser->get_last_error().'<br/>';
         unset($_REQUEST['redirect']);
         return;
       }
@@ -73,6 +82,15 @@ if ($action == 'Save') {
     } else {
       unset($_REQUEST['newUser']['Password']);
     }
+    if (isset($_REQUEST['newUser']['Language']) and $_REQUEST['newUser']['Language']) {
+      # Verify that the language file exists in the lang directory.
+      if (!file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['newUser']['Language'].'.php')) {
+        $error_message .= 'Error setting Language. New value ' .$_REQUEST['newUser']['Language'].' not saved because '.ZM_PATH_WEB.'/lang/'.$_REQUEST['newUser']['Language'].'.php doesn\'t exist.<br/>';
+        ZM\Error($error_message);
+        unset($_REQUEST['newUser']['Language']);
+        unset($_REQUEST['redirect']);
+      }
+    }
     $fields = array('Password'=>'', 'Language'=>'', 'HomeView'=>'');
     ZM\Debug("changes: ".print_r(array_intersect_key($_REQUEST['newUser'], $fields),true));
     $changes = $dbUser->changes(array_intersect_key($_REQUEST['newUser'], $fields));
@@ -80,7 +98,7 @@ if ($action == 'Save') {
 
     if (count($changes)) {
       if (!$dbUser->save($changes)) {
-        $error_message = $dbUser->get_last_error();
+        $error_message .= $dbUser->get_last_error();
         unset($_REQUEST['redirect']);
         return;
       }

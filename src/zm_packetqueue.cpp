@@ -161,7 +161,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
   }  // end lock scope
   // We signal on every packet because someday we may analyze sound
   Debug(4, "packetqueue queuepacket, unlocked signalling");
-  condition.notify_all();
+  condition.notify_one();
 
 	return true;
 }  // end bool PacketQueue::queuePacket(ZMPacket* zm_packet)

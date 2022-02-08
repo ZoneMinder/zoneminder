@@ -274,6 +274,9 @@ function MonitorStream(monitorData) {
     // Assuming temporary problem, retry in a bit.
     setTimeout(this.streamCmdQuery.bind(this), 1000*statusRefreshTimeout);
     logAjaxFail(jqxhr, textStatus, error);
+    if (textStatus == 'Unauthorized') {
+      window.location.reload();
+    }
   };
 
   this.getStreamCmdResponse = function(respObj, respText) {

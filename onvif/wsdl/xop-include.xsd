@@ -1,0 +1,13 @@
+<xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema' 
+           xmlns:tns='http://www.w3.org/2004/08/xop/include' 
+           targetNamespace='http://www.w3.org/2004/08/xop/include' >
+
+  <xs:element name='Include' type='tns:Include' />
+  <xs:complexType name='Include' >
+	<xs:sequence>
+	  <xs:any namespace='##other' minOccurs='0' maxOccurs='unbounded' />
+	</xs:sequence>
+	<xs:attribute name='href' type='xs:anyURI' use='required' />
+	<xs:anyAttribute namespace='##other' />
+  </xs:complexType>
+</xs:schema>

@@ -1,0 +1,6 @@
+## cakephp
+#replace  /usr/share/php/Cake					/usr/share/zoneminder/www/api/lib/Cake
+
+## libjs-jquery
+replace  /usr/share/javascript/jquery/jquery.min.js		/usr/share/zoneminder/www/skins/classic/js/jquery-3.5.1.min.js
+replace  /usr/share/javascript/jquery/jquery.min.js		/usr/share/zoneminder/www/skins/flat/js/jquery-3.5.1.min.js

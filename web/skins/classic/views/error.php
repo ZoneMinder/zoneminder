@@ -23,6 +23,7 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Error') );
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
     <div id="header">
       <h1>ZoneMinder <?php echo translate('Error') ?></h1>
@@ -33,9 +34,6 @@ xhtmlHeaders(__FILE__, translate('Error') );
       </p>
       <p>
         <?php echo translate('ContactAdmin') ?>
-      </p>
-      <p>
-        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
       </p>
     </div>
   </div>

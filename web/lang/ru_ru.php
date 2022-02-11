@@ -153,7 +153,7 @@ $SLANG = array(
     'BadFrameSkip'         => 'Количество пропускаемых кадров должно быть целочисленным и большим либо равным нулю',
     'BadHeight'            => 'Неправильная высота',
     'BadHost'              => 'Неправильный IP или имя хоста; указывается без http://',
-    'BadImageBufferCount'  => 'Image buffer size must be an integer of 10 or more',
+    'BadImageBufferCount'  => 'Image buffer size must be an integer of 2 or more',
     'BadLabelX'            => 'X координата ярлыка должна быть целочисленной и большей либо равной нулю',
     'BadLabelY'            => 'Y координата ярлыка должна быть целочисленной и большей либо равной нулю',
     'BadMaxFPS'            => 'Ограничение скорости записи должно быть положительным',
@@ -957,7 +957,7 @@ $OLANG = array(
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

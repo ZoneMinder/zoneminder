@@ -3,8 +3,8 @@
 
 [Unit]
 Description=ZoneMinder CCTV recording and security system
-After=network.target mysqld.service httpd.service
-Requires=mysqld.service httpd.service
+After=network.target mysqld.service httpd.service janus.service
+Requires=mysqld.service httpd.service janus.service
 
 [Service]
 User=@WEB_USER@

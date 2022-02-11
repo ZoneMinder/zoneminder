@@ -1,0 +1,5 @@
+## We're using "libjs-jquery" instead.
+source-is-missing web/skins/*/js/jquery-3.5.1.min.js
+
+## Acknowledged, will repack eventually.
+source-contains-prebuilt-javascript-object web/skins/*/js/jquery-3.5.1.min.js

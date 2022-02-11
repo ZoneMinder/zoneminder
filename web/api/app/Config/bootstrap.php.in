@@ -23,7 +23,7 @@
  */
 
 // Setup a 'default' cache configuration for use in the application.
-Cache::config('default', array('engine' => 'Apc'));
+Cache::config('default', array('engine' => '@ZM_CAKEPHP_CACHE@'));
 
 /**
  * The settings below can be used to set additional paths to models, views and controllers.
@@ -102,21 +102,21 @@ CakeLog::config('debug', array(
 	'engine' => 'File',
 	'types' => array('notice', 'info', 'debug'),
 	'file' => 'cake_debug',
-    'path' => '@ZM_LOGDIR@/'
+  'path' => '@ZM_LOGDIR@/'
 ));
 CakeLog::config('error', array(
 	'engine' => 'File',
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
 	'file' => 'cake_error',
-    'path' => '@ZM_LOGDIR@/'
+  'path' => '@ZM_LOGDIR@/'
 ));
 CakeLog::config('custom_path', array(
-    'engine' => 'File',
-    'path' => '@ZM_LOGDIR@/'
+  'engine' => 'File',
+  'path' => '@ZM_LOGDIR@/'
 ));
 
-Configure::write('ZM_CONFIG',  '@ZM_CONFIG@');
-Configure::write('ZM_CONFIG_SUBDIR',  '@ZM_CONFIG_SUBDIR@');
+Configure::write('ZM_CONFIG', '@ZM_CONFIG@');
+Configure::write('ZM_CONFIG_SUBDIR', '@ZM_CONFIG_SUBDIR@');
 Configure::write('ZM_VERSION', '@VERSION@');
 Configure::write('ZM_API_VERSION', '@API_VERSION@');
 
@@ -127,28 +127,4 @@ global $configvals;
 # Add them to the cakephp Config
 foreach( $configvals as $key => $value) {
   Configure::write($key, $value);
-}
-if ( 0 ) {
-  // No longer needed, but I want to keep the code for reference
-  //
-// For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
-if ( ! defined('ZM_SERVER_ID') ) {
-  App::uses('ClassRegistry', 'Utility');
-  $ServerModel = ClassRegistry::init('Server');
-  if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
-    $Server = $ServerModel->find( 'first', array( 'conditions'=>array('Name'=>ZM_SERVER_NAME) ) );
-    if ( ! $Server ) {
-      Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
-    } else {
-      define( 'ZM_SERVER_ID', $Server['Server']['Id'] );
-    }
-  } else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
-    $Server = $ServerModel->find( 'first', array( 'conditions'=>array('Name'=>ZM_SERVER_HOST) ) );
-    if ( ! $Server ) {
-      Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
-    } else {
-      define( 'ZM_SERVER_ID', $Server['Server']['Id'] );
-    }
-  }
-}
 }

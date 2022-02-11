@@ -52,3 +52,42 @@ td.monoRow {
   background-color: #ffffff;
 }
 
+ul.tabs {
+  margin: 0;
+  margin-bottom: -1px;
+  padding: 0;
+  float: left;
+  list-style: none;
+  height: 32px;
+  border-bottom: 1px solid #7f7fb2;
+  border-left: 1px solid #7f7fb2;
+  width: 100%;
+}
+ul.tabs li {
+  float: left;
+  margin: 0;
+  padding: 0;
+  height: 31px;
+  line-height: 31px;
+  border: 1px solid #7f7fb2;
+  border-left: none;
+  margin-bottom: -1px;
+  background: #fff;
+  overflow: hidden;
+  position: relative;
+}
+ul.tabs li a {
+  text-decoration: none;
+  color: #000;
+  display: block;
+  font-size: 1.2em;
+  padding: 0 20px;
+  outline: none;
+}
+ul.tabs li a:hover {
+  background: #ccc;
+}
+html ul.tabs li.active, html ul.tabs li.active a:hover  {
+  background: #dddddd;
+  border-bottom: 1px solid #e0e0e0;
+}

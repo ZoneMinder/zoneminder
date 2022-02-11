@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!-- 
+ 
+Copyright 2001 - 2006, International Business Machines Corporation and Microsoft Corporation
+All Rights Reserved
+
+License for WSDL 1.1 Binding Extension for SOAP 1.2 Schema Files
+
+The Authors grant permission to copy and distribute the WSDL 1.1 Binding Extension for SOAP 1.2 Schema Files in any medium without fee or royalty as long as this notice and license are distributed with them.  The originals of these files can be located at:
+
+http://schemas.xmlsoap.org/wsdl/soap12/wsdl11soap12.xsd
+
+THESE SCHEMA FILES ARE PROVIDED "AS IS," AND THE AUTHORS MAKE NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THESE FILES, INCLUDING, BUT NOT LIMITED TO, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT OR TITLE.  THE AUTHORS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF OR RELATING TO ANY USE OR DISTRIBUTION OF THESE FILES.
+
+The name and trademarks of the Authors may NOT be used in any manner, including advertising or publicity pertaining to these files or any program or service that uses these files, written prior permission.  Title to copyright in these files will at all times remain with the Authors.
+
+No other rights are granted by implication, estoppel or otherwise.
+
+
+--> 
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+           xmlns:wsoap12="http://schemas.xmlsoap.org/wsdl/soap12/"
+           targetNamespace="http://schemas.xmlsoap.org/wsdl/soap12/" >
+
+  <xs:import namespace = "http://schemas.xmlsoap.org/wsdl/" />
+
+  <xs:complexType name="tExtensibilityElementOpenAttrs" >
+    <xs:complexContent>
+      <xs:extension base="wsdl:tExtensibilityElement" >
+        <xs:anyAttribute namespace="##other" processContents="lax"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="binding" type="wsoap12:tBinding" />
+  <xs:complexType name="tBinding" >
+    <xs:complexContent>
+      <xs:extension base="wsoap12:tExtensibilityElementOpenAttrs" >
+        <xs:attribute name="transport" type="xs:anyURI" use="required" />
+        <xs:attribute name="style" type="wsoap12:tStyleChoice" use="optional" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:simpleType name="tStyleChoice" >
+    <xs:restriction base="xs:string" >
+      <xs:enumeration value="rpc" />
+      <xs:enumeration value="document" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="operation" type="wsoap12:tOperation" />
+  <xs:complexType name="tOperation" >
+    <xs:complexContent>
+      <xs:extension base="wsoap12:tExtensibilityElementOpenAttrs" >
+        <xs:attribute name="soapAction" type="xs:anyURI" use="optional" />
+        <xs:attribute name="soapActionRequired" type="xs:boolean" use="optional" />
+        <xs:attribute name="style" type="wsoap12:tStyleChoice" use="optional" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="body" type="wsoap12:tBody" />
+  <xs:attributeGroup name="tBodyAttributes" >
+    <!-- The encodingStyle attribute is now a single URI, instead of a list of URIs -->
+    <xs:attribute name="encodingStyle" type="xs:anyURI" use="optional" />
+    <xs:attribute name="use" type="wsoap12:useChoice" use="optional" />
+    <xs:attribute name="namespace" type="xs:anyURI" use="optional" />
+  </xs:attributeGroup>
+  <xs:simpleType name="tParts">
+    <xs:list itemType="xs:NMTOKEN"/>
+  </xs:simpleType>
+  <xs:complexType name="tBody" >
+    <xs:complexContent>
+      <xs:extension base="wsoap12:tExtensibilityElementOpenAttrs" >
+        <xs:attribute name="parts" type="wsoap12:tParts" use="optional" />
+        <xs:attributeGroup ref = "wsoap12:tBodyAttributes" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  
+  <xs:simpleType name="useChoice" >
+    <xs:restriction base="xs:string" >
+      <xs:enumeration value="literal" />
+      <xs:enumeration value="encoded" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:element name="fault" type="wsoap12:tFault" />
+  <xs:complexType name="tFaultRes" abstract="true" >
+    <xs:complexContent>
+      <xs:restriction base="wsoap12:tBody" >
+	    <xs:attribute ref="wsdl:required" use="optional" /> 
+        <xs:attribute name="parts" type="wsoap12:tParts" use="prohibited" />
+		<xs:attributeGroup ref="wsoap12:tBodyAttributes" />
+      </xs:restriction>
+    </xs:complexContent>  	
+  </xs:complexType>
+  <xs:complexType name="tFault" >
+    <xs:complexContent>
+      <xs:extension base="wsoap12:tFaultRes">
+        <xs:attribute name="name" type="xs:NCName" use="required" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+
+  <xs:element name="header" type="wsoap12:tHeader" />
+  <xs:attributeGroup name="tHeaderAttributes" >
+    <xs:attribute name="message" type="xs:QName" use="required" />
+    <xs:attribute name="part" type="xs:NMTOKEN" use="required" />
+    <xs:attribute name="use" type="wsoap12:useChoice" use="required" />
+    <xs:attribute name="encodingStyle" type="xs:anyURI" use="optional" />
+    <xs:attribute name="namespace" type="xs:anyURI" use="optional" />      
+  </xs:attributeGroup>
+  <xs:complexType name="tHeader" >
+    <xs:complexContent>
+      <xs:extension base="wsoap12:tExtensibilityElementOpenAttrs" >
+        <xs:sequence>
+          <xs:element ref="wsoap12:headerfault" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+		<xs:attributeGroup ref="wsoap12:tHeaderAttributes" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="headerfault" type="wsoap12:tHeaderFault" />
+  <xs:complexType name="tHeaderFault" >
+	<xs:attributeGroup ref="wsoap12:tHeaderAttributes" />
+	<xs:anyAttribute namespace="##other" processContents="lax"/>
+  </xs:complexType>
+
+  <xs:element name="address" type="wsoap12:tAddress" />
+  <xs:complexType name="tAddress" >
+    <xs:complexContent>
+      <xs:extension base="wsoap12:tExtensibilityElementOpenAttrs" >
+        <xs:attribute name="location" type="xs:anyURI" use="required" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+</xs:schema>

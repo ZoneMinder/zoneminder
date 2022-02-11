@@ -1,16 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Amcrest HTTP API Control Protocol Module, 20180214, Rev 3.0
-#
-# Change Log
-#
-# Rev 3.0:
-#  - Fixes incorrect method names
-#  - Updates control sequences to Amcrest HTTP Protocol API v 2.12
-#  - Extends control features
-#
-# Rev 2.0:
-#  - Fixed installation instructions text, no changes to functionality.
+# ZoneMinder Amcrest HTTP API Control Protocol Module
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -39,6 +29,7 @@ use Time::HiRes qw( usleep );
 require ZoneMinder::Base;
 require ZoneMinder::Control;
 require LWP::UserAgent;
+use URI;
 
 our @ISA = qw(ZoneMinder::Control);
 
@@ -63,22 +54,28 @@ sub open {
   my $self = shift;
 
   $self->loadMonitor();
-  my $username;
-  my $password;
-  my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
-
-  if ( $self->{Monitor}->{ControlAddress} =~ /(.*):(.*)@(.*)/ ) {
-    $username = $1;
-    $password = $2;
-    $$self{address} = $3;
+  if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
+    # Has no scheme at the beginning, so won't parse as a URI
+    $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
   }
+  my $uri = URI->new($self->{Monitor}->{ControlAddress});
 
   $self->{ua} = LWP::UserAgent->new;
-  $self->{ua}->credentials($$self{address}, $realm, $username, $password);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
+  my ( $username, $password );
+  my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
+  if ( $self->{Monitor}->{ControlAddress} ) {
+    ( $username, $password ) = $uri->authority() =~ /^(.*):(.*)@(.*)$/;
 
-  # Detect REALM
-  my $res = $self->{ua}->get($$self{address}.'/cgi-bin/ptz.cgi');
+    $$self{address} = $uri->host_port();
+    $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+    # Testing seems to show that we need the username/password in each url as well as credentials
+    $$self{base_url} = $uri->canonical();
+    Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, $password, base_url: $$self{base_url} auth:".$uri->authority());
+  }
+
+  # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
+  my $res = $self->{ua}->get($$self{base_url}.'cgi-bin/magicBox.cgi?action=getDeviceType');
 
   if ( $res->is_success ) {
     $self->{state} = 'open';
@@ -94,21 +91,26 @@ sub open {
 
     if ( $$headers{'www-authenticate'} ) {
       my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
-      if ( $tokens =~ /\w+="([^"]+)"/i ) {
+      if ( $tokens =~ /realm="([^"]+)"/i ) {
         if ( $realm ne $1 ) {
           $realm = $1;
-          Debug("Changing REALM to $realm");
+          Debug("Changing REALM to ($realm)");
           $self->{ua}->credentials($$self{address}, $realm, $username, $password);
-          $res = $self->{ua}->get($$self{address}.'/cgi-bin/ptz.cgi');
+          $res = $self->{ua}->get($$self{base_url}.'cgi-bin/ptz.cgi');
           if ( $res->is_success() ) {
             $self->{state} = 'open';
             return;
+          } elsif ( $res->status_line eq '400 Bad Request' ) {
+          # In testing, this second request fails with Bad Request, I assume because we didn't actually give it a command.
+            $self->{state} = 'open';
+            return;
+          } else {
+            Error('Authentication still failed after updating REALM' . $res->status_line);
+            $headers = $res->headers();
+            foreach my $k ( keys %$headers ) {
+              Debug("Header $k => $$headers{$k}");
+            }  # end foreach
           }
-          Error('Authentication still failed after updating REALM' . $res->status_line);
-          $headers = $res->headers();
-          foreach my $k ( keys %$headers ) {
-            Debug("Initial Header $k => $$headers{$k}");
-          }  # end foreach
         } else {
           Error('Authentication failed, not a REALM problem');
         }
@@ -118,9 +120,12 @@ sub open {
     } else {
       Debug('No headers line');
     } # end if headers
+  } else {
+    Error("Failed to get $$self{base_url}cgi-bin/magicBox.cgi?action=getDeviceType ".$res->status_line());
+
   } # end if $res->status_line() eq '401 Unauthorized'
 
-  $self->{state} = 'open';
+  $self->{state} = 'closed';
 }
 
 sub close {
@@ -135,16 +140,23 @@ sub sendCmd {
 
   $self->printMsg($cmd, 'Tx');
 
-  my $req = HTTP::Request->new( GET=>"http://$$self{address}/$cmd" );
-  my $res = $self->{ua}->request($req);
+  my $res = $self->{ua}->get($$self{base_url}.$cmd);
 
   if ( $res->is_success ) {
     $result = !undef;
     # Command to camera appears successful, write Info item to log
-    Info('Camera control: \''.$res->status_line().'\' for URL '.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+    Info('Camera control: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
     # TODO: Add code to retrieve $res->message_decode or some such. Then we could do things like check the camera status.
   } else {
-    Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+    # Try again
+    $res = $self->{ua}->get($$self{base_url}.$cmd);
+    if ( $res->is_success ) {
+      # Command to camera appears successful, write Info item to log
+      Info('Camera control 2: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
+    } else {
+      Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{base_url}.$cmd);
+      $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+    }
   }
 
   return $result;
@@ -175,67 +187,65 @@ sub moveAbs ## Up, Down, Left, Right, etc. ??? Doesn't make sense here...
 sub moveConUp {
   my $self = shift;
   Debug('Move Up');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=Up&channel=0&arg1=0&arg2=1&arg3=0');
-  usleep(500); ##XXX Should this be passed in as a "speed" parameter?
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=Up&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=Up&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDown {
   my $self = shift;
   Debug('Move Down');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=Down&channel=0&arg1=0&arg2=1&arg3=0');
-  usleep(500);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=Down&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=Down&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConLeft {
   my $self = shift;
   Debug('Move Left');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=Left&channel=0&arg1=0&arg2=1&arg3=0');
-  usleep(500);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=Left&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=Left&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConRight {
   my $self = shift;
   Debug('Move Right');
-  #    $self->sendCmd( 'cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=270&arg2=5&arg3=0' );
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=Right&channel=0&arg1=0&arg2=1&arg3=0');
-  usleep(500);
-  Debug('Move Right Stop');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=Right&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=Right&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConUpRight {
   my $self = shift;
   Debug('Move Diagonally Up Right');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=RightUp&channel=0&arg1=1&arg2=1&arg3=0');
-  usleep(500);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=RightUp&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=RightUp&channel=0&arg1=1&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDownRight {
   my $self = shift;
   Debug('Move Diagonally Down Right');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=RightDown&channel=0&arg1=1&arg2=1&arg3=0');
-  usleep(500);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=RightDown&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{LastCmd} = 'code=RightDown&channel=0&arg1=1&arg2=1&arg3=0';
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConUpLeft {
   my $self = shift;
   Debug('Move Diagonally Up Left');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=LeftUp&channel=0&arg1=1&arg2=1&arg3=0');
-  usleep(500);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=LeftUp&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=LeftUp&channel=0&arg1=1&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDownLeft {
   my $self = shift;
   Debug('Move Diagonally Down Left');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=LeftDown&channel=0&arg1=1&arg2=1&arg3=0');
-  usleep (500);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=LeftDown&channel=0&arg1=0&arg2=1&arg3=0');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=LeftDown&channel=0&arg1=1&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 # Stop is not "correctly" implemented as control_functions.php translates this to "Center"
@@ -244,8 +254,15 @@ sub moveConDownLeft {
 
 sub moveStop {
   my $self = shift;
-  Debug('Move Stop/Center');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=0&arg2=0&arg3=0&arg4=1');
+  if ($$self{LastCmd}) {
+    Debug('Move Stop '.$$self{LastCmd});
+    $self->sendCmd('cgi-bin/ptz.cgi?action=stop&'.$$self{LastCmd});
+    $$self{LastCmd} = '';
+    $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  } else {
+    Debug('Move Stop/Center');
+    $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=0&arg2=0&arg3=0&arg4=1');
+  }
 }
 
 # Move Camera to Home Position
@@ -295,17 +312,17 @@ sub moveMap {
 sub zoomConTele {
   my $self = shift;
   Debug('Zoom continuous tele');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&channel=0&code=ZoomTele&arg1=0&arg2=0&arg3=0&arg4=0');
-  usleep(100000);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&channel=0&code=ZoomTele&arg1=0&arg2=0&arg3=0&arg4=0');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=ZoomTele&channel=0&arg1=0&arg2=0&arg3=0&arg4=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub zoomConWide {
   my $self = shift;
   Debug('Zoom continuous wide');
-  $self->sendCmd('cgi-bin/ptz.cgi?action=start&channel=0&code=ZoomWide&arg1=0&arg2=0&arg3=0&arg4=0');
-  usleep (100000);
-  $self->sendCmd('cgi-bin/ptz.cgi?action=stop&channel=0&code=ZoomWide&arg1=0&arg2=0&arg3=0&arg4=0');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=ZoomWide&channel=0&arg1=0&arg2=0&arg3=0&arg4=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 1;

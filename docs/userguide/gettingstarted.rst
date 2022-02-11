@@ -51,9 +51,9 @@ This screen is called the "console" screen in ZoneMinder and shows a summary of 
 
 * **A**: The options menu lets you configure many aspects of ZoneMinder. Refer to :doc:`options`.
 * **B**: This brings up a color coded log window that shows various system and component level logs. This window is useful if you are trying to diagnose issues. Refer to :doc:`logging`.
-* **C**: ZoneMinder allows you to group monitors gor logical separation. This option lets you create new groups, associate monitors to them and edit/delete existing groups.
+* **C**: ZoneMinder allows you to group monitors for logical separation. This option lets you create new groups, associate monitors to them and edit/delete existing groups.
 * **D**: Filters are a powerful mechanism to perform actions when certain conditions are met. ZoneMinder comes with some preset filters that keep a tab of disk space and others. Many users create their own filters for more advanced actions like sending emails when certain events occur and more. Refer to :doc:`filterevents`.
-* **E**: The Cycle option allows you to rotate between live views of each cofigured monitor.
+* **E**: The Cycle option allows you to rotate between live views of each configured monitor.
 * **F**: The Montage option shows a collage of your monitors. You can customize them including moving them around.
 * **G**: Montage Review allows you to simultaneously view past events for different monitors. Note that this is a very resource intensive page and its performance will vary based on your system capabilities.
 * **H**: Audit Events Report is more of a power user feature. This option looks for recording gaps in events and recording issues in mp4 files.
@@ -109,7 +109,7 @@ This brings up the new monitor window:
 
 * In this example, the Function is 'Modect', which means it will start recording if motion is detected on that camera feed. The parameters for what constitutes motion detected is specific in :doc:`definezone`
 
-* In Analytis FPS, we've put in 5FPS here. Note that you should not put an FPS that is greater than the camera FPS. In my case, 5FPS is sufficient for my needs
+* In Analysis FPS, we've put in 5FPS here. Note that you should not put an FPS that is greater than the camera FPS. In my case, 5FPS is sufficient for my needs
 
 .. note::
   Leave Maximum FPS and Alarm Maximum FPS **empty** if you are configuring an IP camera. In older versions of ZoneMinder, you were encouraged to put a value here, but that is no longer recommended. Infact, if you see your feed going much slower than the feed is supposed to go, or you get a lot of buffering/display issues, make sure this is empty. If you need to control camera FPS, please do it directly on the camera (via its own web interface, for example)
@@ -122,6 +122,8 @@ This brings up the new monitor window:
 
 * Let's select a protocol of RTSP and a remote method of RTP/RTSP (this is an RTSP camera)
 * Note that starting ZM 1.34, GPUs are supported. In my case, I have an NVIDIA GeForce GTX1050i. These ``cuda`` and ``cuvid`` parameters are what my system supports to use the NVIDIA hardware decoder and GPU resources. If you don't have a GPU, or don't know how to configure your ffmpeg to support it, leave it empty for now. In future, we will add a section on how to set up a GPU
+
+**NOTE**: It is entirely possible that ``cuda`` and ``cuvid`` don't work for you and you need different values. Isaac uses ``cuda`` in ``DecoderHWAccelName`` and leaves ``DecoderHWAccelDevice`` empty. Try that too.
 
 .. todo::
   add GPU docs

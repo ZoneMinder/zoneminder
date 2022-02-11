@@ -17,12 +17,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Events') ) {
+if (!canView('Events')) {
   $view = 'error';
   return;
 }
 
-foreach ( getSkinIncludes('includes/timeline_functions.php') as $includeFile )
+foreach (getSkinIncludes('includes/timeline_functions.php') as $includeFile)
   require_once $includeFile;
 
 //
@@ -128,9 +128,9 @@ $chart = array(
 $monitors = array();
 
 # The as E, and joining with Monitors is required for the filterSQL filters.
-$rangeSql = 'SELECT min(E.StartTime) AS MinTime, max(E.EndTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartTime) AND NOT isnull(E.EndTime)';
-$eventsSql = 'SELECT E.* FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartTime)';
-$eventIdsSql = 'SELECT E.Id FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartTime)';
+$rangeSql = 'SELECT min(E.StartDateTime) AS MinTime, max(E.EndDateTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartDateTime) AND NOT isnull(E.EndDateTime)';
+$eventsSql = 'SELECT E.* FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartDateTime)';
+$eventIdsSql = 'SELECT E.Id FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartDateTime)';
 $eventsValues = array();
 
 if ( !empty($user['MonitorIds']) ) {
@@ -142,8 +142,10 @@ if ( !empty($user['MonitorIds']) ) {
 }
 
 $tree = false;
-if ( isset($_REQUEST['filter']) )
-  $tree = parseFilterToTree($_REQUEST['filter']['Query']);
+if ( isset($_REQUEST['filter']) ) {
+  $filter =  ZM\Filter::parse($_REQUEST['filter']);
+  $tree = $filter->tree();
+}
 
 if ( isset($_REQUEST['range']) )
   $range = validHtmlStr($_REQUEST['range']);
@@ -154,7 +156,7 @@ if ( isset($_REQUEST['midTime']) )
 if ( isset($_REQUEST['maxTime']) )
   $maxTime = validHtmlStr($_REQUEST['maxTime']);
 
-if ( isset($range) ) {
+if ( isset($range) and validInt($range) ) {
   $halfRange = (int)($range/2);
   if ( isset($midTime) ) {
     $midTimeT = strtotime($midTime);
@@ -193,9 +195,8 @@ if ( isset($minTime) && isset($maxTime) ) {
   $filterSql = parseTreeToSQL($tree);
 
   if ( $filterSql ) {
-    $filterSql = " AND $filterSql";
-    $eventsSql .= $filterSql;
-    $eventIdsSql .= $filterSql;
+    $eventsSql .= ' AND '.$filterSql;
+    $eventIdsSql .= ' AND '.$filterSql;
   }
 } else {
   $filterSql = parseTreeToSQL($tree);
@@ -203,20 +204,20 @@ if ( isset($minTime) && isset($maxTime) ) {
   extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
 
   if ( $filterSql ) {
-    $filterSql = " AND $filterSql";
-    $rangeSql .= $filterSql;
-    $eventsSql .= $filterSql;
-    $eventIdsSql .= $filterSql;
+    $rangeSql .= ' AND '.$filterSql;
+    $eventsSql .= ' AND '.$filterSql;
+    $eventIdsSql .= ' AND '.$filterSql;
   }
 
   if ( !isset($minTime) || !isset($maxTime) ) {
     // Dynamically determine range
     $row = dbFetchOne($rangeSql);
-
-    if ( !isset($minTime) )
-      $minTime = $row['MinTime'];
-    if ( !isset($maxTime) )
-      $maxTime = $row['MaxTime'];
+    if ( $row ) {
+      if ( !isset($minTime) )
+        $minTime = $row['MinTime'];
+      if ( !isset($maxTime) )
+        $maxTime = $row['MaxTime'];
+    }
   }
 
   if ( empty($minTime) )
@@ -231,10 +232,9 @@ if ( isset($minTime) && isset($maxTime) ) {
   $range = ($maxTimeT - $minTimeT) + 1;
   $halfRange = (int)($range/2);
   $midTimeT = $minTimeT + $halfRange;
-  $midTime = strftime( STRF_FMT_DATETIME_DB, $midTimeT );
+  $midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
 }
 
-//echo "MnT: $tempMinTime, MxT: $tempMaxTime, ExP: $tempExpandable<br>";
 if ( $tree ) {
   appendDatetimeRange($tree, $minTime, $maxTime);
 
@@ -271,8 +271,8 @@ $midTimeT = $minTimeT + $halfRange;
 $midTime = strftime(STRF_FMT_DATETIME_DB, $midTimeT);
 
 if ( isset($minTime) && isset($maxTime) ) {
-  $eventsSql .= " AND EndTime >= '$minTime' AND StartTime <= '$maxTime'";
-  $eventIdsSql .= " AND EndTime >= '$minTime' AND StartTime <= '$maxTime'";
+  $eventsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
+  $eventIdsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
 }
 
 if ( 0 ) {
@@ -307,13 +307,13 @@ $monEventSlots = array();
 $monFrameSlots = array();
 $events_result = dbQuery($eventsSql);
 if ( !$events_result ) {
-  Fatal('SQL-ERR');
+  ZM\Fatal('SQL-ERR');
   return;
 }
 
 $max_aspect_ratio = 0;
 
-while( $event = $events_result->fetch(PDO::FETCH_ASSOC) ) {
+while ($event = $events_result->fetch(PDO::FETCH_ASSOC)) {
   if ( !isset($monitors[$event['MonitorId']]) ) {
     $monitor = $monitors[$event['MonitorId']] = ZM\Monitor::find_one(array('Id'=>$event['MonitorId']));
     $monEventSlots[$event['MonitorId']] = array();
@@ -326,13 +326,13 @@ while( $event = $events_result->fetch(PDO::FETCH_ASSOC) ) {
   $currEventSlots = &$monEventSlots[$event['MonitorId']];
   $currFrameSlots = &$monFrameSlots[$event['MonitorId']];
 
-  $startTimeT = strtotime($event['StartTime']);
+  $startTimeT = strtotime($event['StartDateTime']);
   $startIndex = $rawStartIndex = (int)(($startTimeT - $chart['data']['x']['lo']) / $chart['data']['x']['density']);
   if ( $startIndex < 0 )
     $startIndex = 0;
 
-  if ( isset($event['EndTime']) )
-    $endTimeT = strtotime($event['EndTime']);
+  if ( isset($event['EndDateTime']) )
+    $endTimeT = strtotime($event['EndDateTime']);
   else
     $endTimeT = time();
   $endIndex = $rawEndIndex = (int)(($endTimeT - $chart['data']['x']['lo']) / $chart['data']['x']['density']);
@@ -361,7 +361,7 @@ while( $event = $events_result->fetch(PDO::FETCH_ASSOC) ) {
 
       $i = $startIndex;
       if ( !isset($currFrameSlots[$i]) ) {
-        $currFrameSlots[$i] = array('count'=>1, 'value'=>$event['MaxScore'], 'event'=>$event, 'frame'=>$frame);
+        $currFrameSlots[$i] = array('count'=>1, 'value'=>$event['MaxScore'], 'event'=>$event, 'frame'=>$frame, 'id'=>$frame['FrameId']);
       } else {
         $currFrameSlots[$i]['count']++;
         if ( $event['MaxScore'] > $currFrameSlots[$i]['value'] ) {
@@ -434,10 +434,10 @@ $majYScale = getYScale(
   $chart['grid']['y']['major']['max']);
 
 // Optimise boxes
-foreach( array_keys($monEventSlots) as $monitorId ) {
-  unset( $currEventSlots );
+foreach (array_keys($monEventSlots) as $monitorId) {
+  unset($currEventSlots);
   $currEventSlots = &$monEventSlots[$monitorId];
-  for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
+  for ($i = 0; $i < $chart['graph']['width']; $i++) {
     if ( isset($currEventSlots[$i]) ) {
       if ( isset($currSlot) ) {
         if ( $currSlot['event']['Id'] == $currEventSlots[$i]['event']['Id'] ) {
@@ -494,7 +494,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
   } # end foreach MonitorId
 }  # end foreach x
 
-#ZM\Logger::Debug(print_r( $monEventSlots,true ));
+//ZM\Debug(print_r( $monEventSlots,true ));
 //print_r( $monFrameSlots );
 //print_r( $chart );
 
@@ -552,7 +552,7 @@ if ( $mode == 'overlay' ) {
     $top +=  $chart['graph']['activityBarHeight']+1+$chart['graph']['eventBarHeight']+1;
   }
 } else {
-  Warning("No mode $mode");
+  ZM\Warning("No mode $mode");
 }
 
 preg_match('/^(\d+)-(\d+)-(\d+) (\d+):(\d+)/', $minTime, $startMatches);
@@ -613,7 +613,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
           $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
           $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-            <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php
         }
         $lastTick = $i;
@@ -626,7 +626,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
     $zoomMinTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
     $zoomMaxTime = strftime( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
 ?>
-            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" onclick="tlZoomBounds( '<?php echo $zoomMinTime ?>', '<?php echo $zoomMaxTime ?>' )"></div>
+            <div class="<?php echo $zoomClass ?>" style="left: <?php echo $lastTick-1 ?>px; width: <?php echo $i-$lastTick ?>px;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php
   }
 ?>
@@ -670,18 +670,17 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Timeline'));
 ?>
 <body>
-  <div id="page">
   <?php echo getNavBarHTML() ?>
-    <div id="header">
-      <div id="info">
-        <h2><?php echo translate('Timeline') ?></h2>
-        <a id="refreshLink" href="#" data-on-click="refreshWindow"><?php echo translate('Refresh') ?></a>
+  <div id="page p-0">
+    <div class="d-flex p-1">
+      <div class="mr-auto" id="toolbar" >
+        <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button id="listBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('List') ?>" ><i class="fa fa-list"></i></button>
       </div>
-      <div id="headerButtons">
-        <a href="#" data-on-click="backWindow"><?php echo translate('Back') ?></a>
-        <a href="?view=events&amp;page=1<?php echo htmlspecialchars($filterQuery) ?>"><?php echo translate('List') ?></a>
-      </div>
+      <h2 class="align-self-end"><?php echo translate('Timeline') ?></h2>
     </div>
+    
     <div id="content" class="chartSize">
       <div id="instruction">
         <p><?php echo translate('TimelineTip1') ?></p>
@@ -693,13 +692,13 @@ xhtmlHeaders(__FILE__, translate('Timeline'));
 <?php 
 foreach ( $monitors as $monitor ) {
 ?>
-        <div class="monitorPanel" style="width:<?php echo 100/count($monitors); ?>%;float:left;">
-          <div class="imagePanel">
+        <div class="monitorPanel" style="width:<?php echo 100/count($monitors); ?>%; float:left;">
+        <div class="imagePanel"<?php echo count($monitors)==1?' style="width: 50%; float: left;"' :''?>>
             <div class="imageHeight image">
               <img id="imageSrc<?php echo $monitor->Id() ?>" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
             </div>
           </div>
-          <div id="dataPanel<?php echo $monitor->Id() ?>">
+          <div id="dataPanel<?php echo $monitor->Id() ?>" class="dataPanel"<?php echo count($monitors)==1?' style="width: 50%; float: left;"' :''?>>
             <div id="textPanel<?php echo $monitor->Id() ?>">
               <div id="eventData<?php echo $monitor->Id() ?>">
               </div>
@@ -745,7 +744,7 @@ function drawSlot($slot,$index) {
 if ( $mode == 'overlay' ) {
   echo drawYGrid( $chart, $majYScale, 'majLabelY', 'majTickY', 'majGridY graphWidth' );
 }
-echo drawXGrid( $chart, $majXScale, 'majLabelX', 'majTickX', 'majGridX graphHeight', 'zoom graphHeight' );
+echo drawXGrid( $chart, $majXScale, 'majLabelX', 'majTickX', 'majGridX graphHeight', 'tlzoom graphHeight' );
 if ( $mode == 'overlay' ) {
 ?>
           <div id="activity" class="activitySize">
@@ -817,5 +816,4 @@ foreach( array_keys($monEventSlots) as $monitorId ) {
       </div>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

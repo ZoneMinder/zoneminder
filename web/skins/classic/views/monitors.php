@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web function view file, $Date$, $Revision$
+// ZoneMinder web monitors view file, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -39,12 +39,12 @@ foreach ( $storage_areas as $S ) {
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Function'));
+getBodyTopHTML();
+echo getNavBarHTML();
+
 ?>
-<body>
   <div id="page">
-    <div id="header">
-      <h2><?php echo translate('Function') ?></h2>
-    </div>
+    <h2 class="pt-2"><?php echo translate('Monitors') ?></h2>
     <div id="content">
 The following monitors will have these settings update when you click Save:<br/><br/>
       <?php echo implode('<br/>', array_map(function($m){return $m->Id().' ' .$m->Name();}, $monitors)); ?>
@@ -86,12 +86,22 @@ The following monitors will have these settings update when you click Save:<br/>
           <label for="newMonitor[Enabled]"><?php echo translate('Enabled') ?></label>
           <input type="checkbox" name="newMonitor[Enabled]" id="newMonitor[Enabled]" value="1"<?php if ( !empty($monitors[0]->Enabled()) ) { ?> checked="checked"<?php } ?>/>
         </p>
+        <p>
+          <label for="newMonitor[Importance]"><?php echo translate('Importance'); echo makeHelpLink('OPTIONS_IMPORTANCE') ?></label>
+<?php
+      echo htmlselect('newMonitor[Importance]',
+              array(
+                'Normal'=>translate('Normal'),
+                'Less'=>translate('Less important'),
+                'Not'=>translate('Not important')
+              ), $monitor->Importance());
+?>
+        </p>
         <div id="contentButtons">
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>
-          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
+          <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

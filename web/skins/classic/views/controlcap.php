@@ -37,454 +37,620 @@ $tabs['presets'] = translate('Presets');
 
 $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) :'main';
 
-if ( isset($_REQUEST['newControl']) ) {
-    $newControl = $_REQUEST['newControl'];
+if ( isset($_REQUEST['Control']) ) {
+  $Control = $_REQUEST['Control'];
 } else {
-    if ( !empty($_REQUEST['cid']) ) {
-        $control = dbFetchOne('SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['cid']));
-    } else {
-        $control = array(
-            'Name' => translate('New'),
-            'Type' => "Local",
-            'Protocol' => "",
-            'CanWake' => "",
-            'CanSleep' => "",
-            'CanReset' => "",
-            'CanReboot' => "",
-            'CanMove' => "",
-            'CanMoveDiag' => "",
-            'CanMoveMap' => "",
-            'CanMoveAbs' => "",
-            'CanMoveRel' => "",
-            'CanMoveCon' => "",
-            'CanPan' => "",
-            'MinPanRange' => "",
-            'MaxPanRange' => "",
-            'MinPanStep' => "",
-            'MaxPanStep' => "",
-            'HasPanSpeed' => "",
-            'MinPanSpeed' => "",
-            'MaxPanSpeed' => "",
-            'HasTurboPan' => "",
-            'TurboPanSpeed' => "",
-            'CanTilt' => "",
-            'MinTiltRange' => "",
-            'MaxTiltRange' => "",
-            'MinTiltStep' => "",
-            'MaxTiltStep' => "",
-            'HasTiltSpeed' => "",
-            'MinTiltSpeed' => "",
-            'MaxTiltSpeed' => "",
-            'HasTurboTilt' => "",
-            'TurboTiltSpeed' => "",
-            'CanZoom' => "",
-            'CanZoomAbs' => "",
-            'CanZoomRel' => "",
-            'CanZoomCon' => "",
-            'MinZoomRange' => "",
-            'MaxZoomRange' => "",
-            'MinZoomStep' => "",
-            'MaxZoomStep' => "",
-            'HasZoomSpeed' => "",
-            'MinZoomSpeed' => "",
-            'MaxZoomSpeed' => "",
-            'CanFocus' => "",
-            'CanAutoFocus' => "",
-            'CanFocusAbs' => "",
-            'CanFocusRel' => "",
-            'CanFocusCon' => "",
-            'MinFocusRange' => "",
-            'MaxFocusRange' => "",
-            'MinFocusStep' => "",
-            'MaxFocusStep' => "",
-            'HasFocusSpeed' => "",
-            'MinFocusSpeed' => "",
-            'MaxFocusSpeed' => "",
-            'CanIris' => "",
-            'CanAutoIris' => "",
-            'CanIrisAbs' => "",
-            'CanIrisRel' => "",
-            'CanIrisCon' => "",
-            'MinIrisRange' => "",
-            'MaxIrisRange' => "",
-            'MinIrisStep' => "",
-            'MaxIrisStep' => "",
-            'HasIrisSpeed' => "",
-            'MinIrisSpeed' => "",
-            'MaxIrisSpeed' => "",
-            'CanGain' => "",
-            'CanAutoGain' => "",
-            'CanGainAbs' => "",
-            'CanGainRel' => "",
-            'CanGainCon' => "",
-            'MinGainRange' => "",
-            'MaxGainRange' => "",
-            'MinGainStep' => "",
-            'MaxGainStep' => "",
-            'HasGainSpeed' => "",
-            'MinGainSpeed' => "",
-            'MaxGainSpeed' => "",
-            'CanWhite' => "",
-            'CanAutoWhite' => "",
-            'CanWhiteAbs' => "",
-            'CanWhiteRel' => "",
-            'CanWhiteCon' => "",
-            'MinWhiteRange' => "",
-            'MaxWhiteRange' => "",
-            'MinWhiteStep' => "",
-            'MaxWhiteStep' => "",
-            'HasWhiteSpeed' => "",
-            'MinWhiteSpeed' => "",
-            'MaxWhiteSpeed' => "",
-            'HasPresets' => "",
-            'NumPresets' => "",
-            'HasHomePreset' => "",
-            'CanSetPresets' => "",
-        );
-    }
-    $newControl = $control;
+  if ( !empty($_REQUEST['cid']) ) {
+    $Control = dbFetchOne('SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['cid']));
+  } else {
+    $Control = array(
+      'Name' => translate('New'),
+      'Type' => 'Local',
+      'Protocol' => '',
+      'CanWake' => '',
+      'CanSleep' => '',
+      'CanReset' => '',
+      'CanReboot' => '',
+      'CanMove' => '',
+      'CanMoveDiag' => '',
+      'CanMoveMap' => '',
+      'CanMoveAbs' => '',
+      'CanMoveRel' => '',
+      'CanMoveCon' => '',
+      'CanPan' => '',
+      'MinPanRange' => '',
+      'MaxPanRange' => '',
+      'MinPanStep' => '',
+      'MaxPanStep' => '',
+      'HasPanSpeed' => '',
+      'MinPanSpeed' => '',
+      'MaxPanSpeed' => '',
+      'HasTurboPan' => '',
+      'TurboPanSpeed' => '',
+      'CanTilt' => '',
+      'MinTiltRange' => '',
+      'MaxTiltRange' => '',
+      'MinTiltStep' => '',
+      'MaxTiltStep' => '',
+      'HasTiltSpeed' => '',
+      'MinTiltSpeed' => '',
+      'MaxTiltSpeed' => '',
+      'HasTurboTilt' => '',
+      'TurboTiltSpeed' => '',
+      'CanZoom' => '',
+      'CanZoomAbs' => '',
+      'CanZoomRel' => '',
+      'CanZoomCon' => '',
+      'MinZoomRange' => '',
+      'MaxZoomRange' => '',
+      'MinZoomStep' => '',
+      'MaxZoomStep' => '',
+      'HasZoomSpeed' => '',
+      'MinZoomSpeed' => '',
+      'MaxZoomSpeed' => '',
+      'CanFocus' => '',
+      'CanAutoFocus' => '',
+      'CanFocusAbs' => '',
+      'CanFocusRel' => '',
+      'CanFocusCon' => '',
+      'MinFocusRange' => '',
+      'MaxFocusRange' => '',
+      'MinFocusStep' => '',
+      'MaxFocusStep' => '',
+      'HasFocusSpeed' => '',
+      'MinFocusSpeed' => '',
+      'MaxFocusSpeed' => '',
+      'CanIris' => '',
+      'CanAutoIris' => '',
+      'CanIrisAbs' => '',
+      'CanIrisRel' => '',
+      'CanIrisCon' => '',
+      'MinIrisRange' => '',
+      'MaxIrisRange' => '',
+      'MinIrisStep' => '',
+      'MaxIrisStep' => '',
+      'HasIrisSpeed' => '',
+      'MinIrisSpeed' => '',
+      'MaxIrisSpeed' => '',
+      'CanGain' => '',
+      'CanAutoGain' => '',
+      'CanGainAbs' => '',
+      'CanGainRel' => '',
+      'CanGainCon' => '',
+      'MinGainRange' => '',
+      'MaxGainRange' => '',
+      'MinGainStep' => '',
+      'MaxGainStep' => '',
+      'HasGainSpeed' => '',
+      'MinGainSpeed' => '',
+      'MaxGainSpeed' => '',
+      'CanWhite' => '',
+      'CanAutoWhite' => '',
+      'CanWhiteAbs' => '',
+      'CanWhiteRel' => '',
+      'CanWhiteCon' => '',
+      'MinWhiteRange' => '',
+      'MaxWhiteRange' => '',
+      'MinWhiteStep' => '',
+      'MaxWhiteStep' => '',
+      'HasWhiteSpeed' => '',
+      'MinWhiteSpeed' => '',
+      'MaxWhiteSpeed' => '',
+      'HasPresets' => '',
+      'NumPresets' => '',
+      'HasHomePreset' => '',
+      'CanSetPresets' => '',
+    );
+  }
 }
 
-$focusWindow = true;
-
-xhtmlHeaders(__FILE__, translate('ControlCap')." - ".$newControl['Name'] );
+xhtmlHeaders(__FILE__, translate('ControlCap').' - '.$Control['Name']);
 ?>
 <body>
-  <div id="page">
-    <div id="header">
-      <h2><?php echo translate('ControlCap') ?> - <?php echo validHtmlStr($newControl['Name']) ?></h2>
-    </div>
-    <div id="content">
-      <ul class="tabList">
+  <?php echo getNavBarHTML() ?>
+  <div id="page" class="container-fluid">
+    <div class="row flex-nowrap">
+      <nav> <!-- BEGIN PILL LIST -->
+        <ul class="nav nav-pills flex-column h-100" id="pills-tab" role="tabList" aria-orientation="vertical">
 <?php
 foreach ( $tabs as $name=>$value ) {
-    if ( $tab == $name ) {
 ?>
-        <li class="active"><?php echo $value ?></li>
-<?php
-    } else {
-?>
-        <li><a href="#" data-tab-name="<?php echo $name ?>"><?php echo $value ?></a></li>
-<?php
-    }
-}
-?>
-      </ul>
-      <div class="clear"></div>
-      <form name="contentForm" id="contentForm" method="post" action="?" class="validateFormOnSubmit">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
-        <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-        <input type="hidden" name="action" value="controlcap"/>
-        <input type="hidden" name="cid" value="<?php echo requestVar('cid') ?>"/>
-<?php
-if ( $tab != 'main' ) {
-?>
-        <input type="hidden" name="newControl[Name]" value="<?php echo validHtmlStr($newControl['Name']) ?>"/>
-        <input type="hidden" name="newControl[Type]" value="<?php echo validHtmlStr($newControl['Type']) ?>"/>
-        <input type="hidden" name="newControl[Protocol]" value="<?php echo validHtmlStr($newControl['Protocol']) ?>"/>
-        <input type="hidden" name="newControl[CanWake]" value="<?php echo !empty($newControl['CanWake']) ?>"/>
-        <input type="hidden" name="newControl[CanSleep]" value="<?php echo !empty($newControl['CanSleep']) ?>"/>
-        <input type="hidden" name="newControl[CanReset]" value="<?php echo !empty($newControl['CanReset']) ?>"/>
-<?php
-}
-if ( $tab != 'move' ) {
-?>
-        <input type="hidden" name="newControl[CanMove]" value="<?php echo !empty($newControl['CanMove']) ?>"/>
-        <input type="hidden" name="newControl[CanMoveDiag]" value="<?php echo !empty($newControl['CanMoveDiag']) ?>"/>
-        <input type="hidden" name="newControl[CanMoveMap]" value="<?php echo !empty($newControl['CanMoveMap']) ?>"/>
-        <input type="hidden" name="newControl[CanMoveAbs]" value="<?php echo !empty($newControl['CanMoveAbs']) ?>"/>
-        <input type="hidden" name="newControl[CanMoveRel]" value="<?php echo !empty($newControl['CanMoveRel']) ?>"/>
-        <input type="hidden" name="newControl[CanMoveCon]" value="<?php echo !empty($newControl['CanMoveCon']) ?>"/>
-<?php
-}
-if ( $tab != 'pan' ) {
-?>
-        <input type="hidden" name="newControl[CanPan]" value="<?php echo !empty($newControl['CanPan']) ?>"/>
-        <input type="hidden" name="newControl[MinPanRange]" value="<?php echo validHtmlStr($newControl['MinPanRange']) ?>"/>
-        <input type="hidden" name="newControl[MaxPanRange]" value="<?php echo validHtmlStr($newControl['MaxPanRange']) ?>"/>
-        <input type="hidden" name="newControl[MinPanStep]" value="<?php echo validHtmlStr($newControl['MinPanStep']) ?>"/>
-        <input type="hidden" name="newControl[MaxPanStep]" value="<?php echo validHtmlStr($newControl['MaxPanStep']) ?>"/>
-        <input type="hidden" name="newControl[HasPanSpeed]" value="<?php echo !empty($newControl['HasPanSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MinPanSpeed]" value="<?php echo validHtmlStr($newControl['MinPanSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MaxPanSpeed]" value="<?php echo validHtmlStr($newControl['MaxPanSpeed']) ?>"/>
-        <input type="hidden" name="newControl[HasTurboPan]" value="<?php echo !empty($newControl['HasTurboPan']) ?>"/>
-        <input type="hidden" name="newControl[TurboPanSpeed]" value="<?php echo validHtmlStr($newControl['TurboPanSpeed']) ?>"/>
-<?php
-}
-if ( $tab != 'tilt' ) {
-?>
-        <input type="hidden" name="newControl[CanTilt]" value="<?php echo !empty($newControl['CanTilt']) ?>"/>
-        <input type="hidden" name="newControl[MinTiltRange]" value="<?php echo validHtmlStr($newControl['MinTiltRange']) ?>"/>
-        <input type="hidden" name="newControl[MaxTiltRange]" value="<?php echo validHtmlStr($newControl['MaxTiltRange']) ?>"/>
-        <input type="hidden" name="newControl[MinTiltStep]" value="<?php echo validHtmlStr($newControl['MinTiltStep']) ?>"/>
-        <input type="hidden" name="newControl[MaxTiltStep]" value="<?php echo validHtmlStr($newControl['MaxTiltStep']) ?>"/>
-        <input type="hidden" name="newControl[HasTiltSpeed]" value="<?php echo !empty($newControl['HasTiltSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MinTiltSpeed]" value="<?php echo validHtmlStr($newControl['MinTiltSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MaxTiltSpeed]" value="<?php echo validHtmlStr($newControl['MaxTiltSpeed']) ?>"/>
-        <input type="hidden" name="newControl[HasTurboTilt]" value="<?php echo !empty($newControl['HasTurboTilt']) ?>"/>
-        <input type="hidden" name="newControl[TurboTiltSpeed]" value="<?php echo validHtmlStr($newControl['TurboTiltSpeed']) ?>"/>
-<?php
-}
-if ( $tab != 'zoom' ) {
-?>
-        <input type="hidden" name="newControl[CanZoom]" value="<?php echo !empty($newControl['CanZoom']) ?>"/>
-        <input type="hidden" name="newControl[CanZoomAbs]" value="<?php echo !empty($newControl['CanZoomAbs']) ?>"/>
-        <input type="hidden" name="newControl[CanZoomRel]" value="<?php echo !empty($newControl['CanZoomRel']) ?>"/>
-        <input type="hidden" name="newControl[CanZoomCon]" value="<?php echo !empty($newControl['CanZoomCon']) ?>"/>
-        <input type="hidden" name="newControl[MinZoomRange]" value="<?php echo validHtmlStr($newControl['MinZoomRange']) ?>"/>
-        <input type="hidden" name="newControl[MaxZoomRange]" value="<?php echo validHtmlStr($newControl['MaxZoomRange']) ?>"/>
-        <input type="hidden" name="newControl[MinZoomStep]" value="<?php echo validHtmlStr($newControl['MinZoomStep']) ?>"/>
-        <input type="hidden" name="newControl[MaxZoomStep]" value="<?php echo validHtmlStr($newControl['MaxZoomStep']) ?>"/>
-        <input type="hidden" name="newControl[HasZoomSpeed]" value="<?php echo !empty($newControl['HasZoomSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MinZoomSpeed]" value="<?php echo validHtmlStr($newControl['MinZoomSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MaxZoomSpeed]" value="<?php echo validHtmlStr($newControl['MaxZoomSpeed']) ?>"/>
-<?php
-}
-if ( $tab != 'focus' ) {
-?>
-        <input type="hidden" name="newControl[CanFocus]" value="<?php echo !empty($newControl['CanFocus']) ?>"/>
-        <input type="hidden" name="newControl[CanAutoFocus]" value="<?php echo !empty($newControl['CanAutoFocus']) ?>"/>
-        <input type="hidden" name="newControl[CanFocusAbs]" value="<?php echo !empty($newControl['CanFocusAbs']) ?>"/>
-        <input type="hidden" name="newControl[CanFocusRel]" value="<?php echo !empty($newControl['CanFocusRel']) ?>"/>
-        <input type="hidden" name="newControl[CanFocusCon]" value="<?php echo !empty($newControl['CanFocusCon']) ?>"/>
-        <input type="hidden" name="newControl[MinFocusRange]" value="<?php echo validHtmlStr($newControl['MinFocusRange']) ?>"/>
-        <input type="hidden" name="newControl[MaxFocusRange]" value="<?php echo validHtmlStr($newControl['MaxFocusRange']) ?>"/>
-        <input type="hidden" name="newControl[MinFocusStep]" value="<?php echo validHtmlStr($newControl['MinFocusStep']) ?>"/>
-        <input type="hidden" name="newControl[MaxFocusStep]" value="<?php echo validHtmlStr($newControl['MaxFocusStep']) ?>"/>
-        <input type="hidden" name="newControl[HasFocusSpeed]" value="<?php echo !empty($newControl['HasFocusSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MinFocusSpeed]" value="<?php echo validHtmlStr($newControl['MinFocusSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MaxFocusSpeed]" value="<?php echo validHtmlStr($newControl['MaxFocusSpeed']) ?>"/>
-<?php
-}
-if ( $tab != 'iris' ) {
-?>
-        <input type="hidden" name="newControl[CanIris]" value="<?php echo !empty($newControl['CanIris']) ?>"/>
-        <input type="hidden" name="newControl[CanAutoIris]" value="<?php echo !empty($newControl['CanAutoIris']) ?>"/>
-        <input type="hidden" name="newControl[CanIrisAbs]" value="<?php echo !empty($newControl['CanIrisAbs']) ?>"/>
-        <input type="hidden" name="newControl[CanIrisRel]" value="<?php echo !empty($newControl['CanIrisRel']) ?>"/>
-        <input type="hidden" name="newControl[CanIrisCon]" value="<?php echo !empty($newControl['CanIrisCon']) ?>"/>
-        <input type="hidden" name="newControl[MinIrisRange]" value="<?php echo validHtmlStr($newControl['MinIrisRange']) ?>"/>
-        <input type="hidden" name="newControl[MaxIrisRange]" value="<?php echo validHtmlStr($newControl['MaxIrisRange']) ?>"/>
-        <input type="hidden" name="newControl[MinIrisStep]" value="<?php echo validHtmlStr($newControl['MinIrisStep']) ?>"/>
-        <input type="hidden" name="newControl[MaxIrisStep]" value="<?php echo validHtmlStr($newControl['MaxIrisStep']) ?>"/>
-        <input type="hidden" name="newControl[HasIrisSpeed]" value="<?php echo !empty($newControl['HasIrisSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MinIrisSpeed]" value="<?php echo validHtmlStr($newControl['MinIrisSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MaxIrisSpeed]" value="<?php echo validHtmlStr($newControl['MaxIrisSpeed']) ?>"/>
-<?php
-}
-if ( $tab != 'gain' ) {
-?>
-        <input type="hidden" name="newControl[CanGain]" value="<?php echo !empty($newControl['CanGain']) ?>"/>
-        <input type="hidden" name="newControl[CanAutoGain]" value="<?php echo !empty($newControl['CanAutoGain']) ?>"/>
-        <input type="hidden" name="newControl[CanGainAbs]" value="<?php echo !empty($newControl['CanGainAbs']) ?>"/>
-        <input type="hidden" name="newControl[CanGainRel]" value="<?php echo !empty($newControl['CanGainRel']) ?>"/>
-        <input type="hidden" name="newControl[CanGainCon]" value="<?php echo !empty($newControl['CanGainCon']) ?>"/>
-        <input type="hidden" name="newControl[MinGainRange]" value="<?php echo validHtmlStr($newControl['MinGainRange']) ?>"/>
-        <input type="hidden" name="newControl[MaxGainRange]" value="<?php echo validHtmlStr($newControl['MaxGainRange']) ?>"/>
-        <input type="hidden" name="newControl[MinGainStep]" value="<?php echo validHtmlStr($newControl['MinGainStep']) ?>"/>
-        <input type="hidden" name="newControl[MaxGainStep]" value="<?php echo validHtmlStr($newControl['MaxGainStep']) ?>"/>
-        <input type="hidden" name="newControl[HasGainSpeed]" value="<?php echo !empty($newControl['HasGainSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MinGainSpeed]" value="<?php echo validHtmlStr($newControl['MinGainSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MaxGainSpeed]" value="<?php echo validHtmlStr($newControl['MaxGainSpeed']) ?>"/>
-<?php
-}
-if ( $tab != 'white' ) {
-?>
-        <input type="hidden" name="newControl[CanWhite]" value="<?php echo !empty($newControl['CanWhite']) ?>"/>
-        <input type="hidden" name="newControl[CanAutoWhite]" value="<?php echo !empty($newControl['CanAutoWhite']) ?>"/>
-        <input type="hidden" name="newControl[CanWhiteAbs]" value="<?php echo !empty($newControl['CanWhiteAbs']) ?>"/>
-        <input type="hidden" name="newControl[CanWhiteRel]" value="<?php echo !empty($newControl['CanWhiteRel']) ?>"/>
-        <input type="hidden" name="newControl[CanWhiteCon]" value="<?php echo !empty($newControl['CanWhiteCon']) ?>"/>
-        <input type="hidden" name="newControl[MinWhiteRange]" value="<?php echo validHtmlStr($newControl['MinWhiteRange']) ?>"/>
-        <input type="hidden" name="newControl[MaxWhiteRange]" value="<?php echo validHtmlStr($newControl['MaxWhiteRange']) ?>"/>
-        <input type="hidden" name="newControl[MinWhiteStep]" value="<?php echo validHtmlStr($newControl['MinWhiteStep']) ?>"/>
-        <input type="hidden" name="newControl[MaxWhiteStep]" value="<?php echo validHtmlStr($newControl['MaxWhiteStep']) ?>"/>
-        <input type="hidden" name="newControl[HasWhiteSpeed]" value="<?php echo !empty($newControl['HasWhiteSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MinWhiteSpeed]" value="<?php echo validHtmlStr($newControl['MinWhiteSpeed']) ?>"/>
-        <input type="hidden" name="newControl[MaxWhiteSpeed]" value="<?php echo validHtmlStr($newControl['MaxWhiteSpeed']) ?>"/>
-<?php
-}
-if ( $tab != 'presets' ) {
-?>
-        <input type="hidden" name="newControl[HasPresets]" value="<?php echo !empty($newControl['HasPresets']) ?>"/>
-        <input type="hidden" name="newControl[NumPresets]" value="<?php echo validHtmlStr($newControl['NumPresets']) ?>"/>
-        <input type="hidden" name="newControl[HasHomePreset]" value="<?php echo !empty($newControl['HasHomePreset']) ?>"/>
-        <input type="hidden" name="newControl[CanSetPresets]" value="<?php echo !empty($newControl['CanSetPresets']) ?>"/>
+    <li class="nav-item form-control-sm my-1">
+      <a
+        id="<?php echo $name ?>-tab"
+        data-toggle="pill"
+        class="nav-link<?php echo $tab == $name ? ' active' : '' ?>"
+        href="#pills-<?php echo $name?>"
+        role="tab"
+        aria-controls="pills-<?php echo $name?>"
+        aria-selected="<?php echo $tab == $name ? 'true':'false'?>"
+      ><?php echo $value ?></a>
+    </li>
 <?php
 }
 ?>
-        <table id="contentTable" class="major">
+        </ul>
+      </nav> <!-- END PILL LIST -->
+
+      <div class="d-flex flex-column col-sm-offset-2 container-fluid">
+        <!-- BEGIN MINI HEADER -->
+        <div class="w-100 py-1">
+          <div class="float-left pl-3">
+            <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+            <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+          </div>
+          <div class="w-100 pt-2">
+            <h2><?php echo translate('ControlCap') ?> - <?php echo validHtmlStr($Control['Name']) ?></h2>
+          </div>
+        </div>
+
+        <!-- BEGIN ITEM LIST -->
+        <div class="d-flex flex-row container-fluid pr-0">
+          <form name="contentForm" id="contentForm" method="post" action="?" class="validateFormOnSubmit">
+            <input type="hidden" name="view" value="<?php echo $view ?>"/>
+            <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
+            <input type="hidden" name="cid" value="<?php echo requestVar('cid') ?>"/>
+
+            <div class="tab-content" id="pills-tabContent">
+<?php
+foreach ( $tabs as $name=>$value ) {
+  echo '<div id="pills-'.$name.'" class="tab-pane fade'.($name==$tab ? ' show active' : '').'" role="tabpanel" aria-labelledby="'.$name.'-tab">'.PHP_EOL;
+?>
+        <table class="major">
           <tbody>
 <?php
-switch ( $tab ) {
+switch ( $name ) {
   case 'main' :
-  {
 ?>
-            <tr><th scope="row"><?php echo translate('Name') ?></th><td><input type="text" name="newControl[Name]" value="<?php echo validHtmlStr($newControl['Name']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('Type') ?></th><td><?php 
-            $types = array( 'Local'=>translate('Local'), 'Remote'=>translate('Remote'), 'Ffmpeg'=>translate('Ffmpeg'), 'Libvlc'=>translate('Libvlc'), 'cURL'=>'cURL');
-            echo buildSelect('newControl[Type]', $types); ?></td></tr>
-            <tr><th scope="row"><?php echo translate('Protocol') ?></th><td><input type="text" name="newControl[Protocol]" value="<?php echo validHtmlStr($newControl['Protocol']) ?>" size="24"/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanWake') ?></th><td><input type="checkbox" name="newControl[CanWake]" value="1"<?php if ( !empty($newControl['CanWake']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanSleep') ?></th><td><input type="checkbox" name="newControl[CanSleep]" value="1"<?php if ( !empty($newControl['CanSleep']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanReset') ?></th><td><input type="checkbox" name="newControl[CanReset]" value="1"<?php if ( !empty($newControl['CanReset']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanReboot') ?></th><td><input type="checkbox" name="newControl[CanReboot]" value="1"<?php if ( !empty($newControl['CanReboot']) ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('Name') ?></th>
+              <td><input type="text" name="Control[Name]" value="<?php echo validHtmlStr($Control['Name']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('Type') ?></th>
+              <td>
+<?php 
+    $types = array(
+      'Local'=>translate('Local'),
+      'Remote'=>translate('Remote'),
+      'Ffmpeg'=>translate('Ffmpeg'),
+      'Libvlc'=>translate('Libvlc'),
+      'cURL'=>'cURL'
+    );
+    echo buildSelect('Control[Type]', $types);
+?>
+              </td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('Protocol') ?></th>
+              <td><input type="text" name="Control[Protocol]" value="<?php echo validHtmlStr($Control['Protocol']) ?>" size="24"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanWake') ?></th>
+              <td><input type="checkbox" name="Control[CanWake]" value="1"<?php if ( !empty($Control['CanWake']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanSleep') ?></th>
+              <td><input type="checkbox" name="Control[CanSleep]" value="1"<?php if ( !empty($Control['CanSleep']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanReset') ?></th>
+              <td><input type="checkbox" name="Control[CanReset]" value="1"<?php if ( !empty($Control['CanReset']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanReboot') ?></th>
+              <td><input type="checkbox" name="Control[CanReboot]" value="1"<?php if ( !empty($Control['CanReboot']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
 <?php
         break;
-    }
     case 'move' :
-    {
 ?>
-            <tr><th scope="row"><?php echo translate('CanMove') ?></th><td><input type="checkbox" name="newControl[CanMove]" value="1"<?php if ( !empty($newControl['CanMove']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanMoveDiag') ?></th><td><input type="checkbox" name="newControl[CanMoveDiag]" value="1"<?php if ( !empty($newControl['CanMoveDiag']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanMoveMap') ?></th><td><input type="checkbox" name="newControl[CanMoveMap]" value="1"<?php if ( !empty($newControl['CanMoveMap']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanMoveAbs') ?></th><td><input type="checkbox" name="newControl[CanMoveAbs]" value="1"<?php if ( !empty($newControl['CanMoveAbs']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanMoveRel') ?></th><td><input type="checkbox" name="newControl[CanMoveRel]" value="1"<?php if ( !empty($newControl['CanMoveRel']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanMoveCon') ?></th><td><input type="checkbox" name="newControl[CanMoveCon]" value="1"<?php if ( !empty($newControl['CanMoveCon']) ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanMove') ?></th>
+              <td><input type="checkbox" name="Control[CanMove]" value="1"<?php if ( !empty($Control['CanMove']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanMoveDiag') ?></th>
+              <td><input type="checkbox" name="Control[CanMoveDiag]" value="1"<?php if ( !empty($Control['CanMoveDiag']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanMoveMap') ?></th>
+              <td><input type="checkbox" name="Control[CanMoveMap]" value="1"<?php if ( !empty($Control['CanMoveMap']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanMoveAbs') ?></th>
+              <td><input type="checkbox" name="Control[CanMoveAbs]" value="1"<?php if ( !empty($Control['CanMoveAbs']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanMoveRel') ?></th>
+              <td><input type="checkbox" name="Control[CanMoveRel]" value="1"<?php if ( !empty($Control['CanMoveRel']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanMoveCon') ?></th>
+              <td><input type="checkbox" name="Control[CanMoveCon]" value="1"<?php if ( !empty($Control['CanMoveCon']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
 <?php
         break;
-    }
     case 'pan' :
-    {
 ?>
-            <tr><th scope="row"><?php echo translate('CanPan') ?></th><td><input type="checkbox" name="newControl[CanPan]" value="1"<?php if ( !empty($newControl['CanPan']) ) { ?> checked="checked"<?php } ?>></td></tr>
-            <tr><th scope="row"><?php echo translate('MinPanRange') ?></th><td><input type="number" name="newControl[MinPanRange]" value="<?php echo validHtmlStr($newControl['MinPanRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxPanRange') ?></th><td><input type="number" name="newControl[MaxPanRange]" value="<?php echo validHtmlStr($newControl['MaxPanRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinPanStep') ?></th><td><input type="number" name="newControl[MinPanStep]" value="<?php echo validHtmlStr($newControl['MinPanStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxPanStep') ?></th><td><input type="number" name="newControl[MaxPanStep]" value="<?php echo validHtmlStr($newControl['MaxPanStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasPanSpeed') ?></th><td><input type="checkbox" name="newControl[HasPanSpeed]" value="1"<?php if ( !empty($newControl['HasPanSpeed']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinPanSpeed') ?></th><td><input type="number" name="newControl[MinPanSpeed]" value="<?php echo validHtmlStr($newControl['MinPanSpeed']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxPanSpeed') ?></th><td><input type="number" name="newControl[MaxPanSpeed]" value="<?php echo validHtmlStr($newControl['MaxPanSpeed']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasTurboPan') ?></th><td><input type="checkbox" name="newControl[HasTurboPan]" value="1"<?php if ( !empty($newControl['HasTurboPan']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('TurboPanSpeed') ?></th><td><input type="number" name="newControl[TurboPanSpeed]" value="<?php echo validHtmlStr($newControl['TurboPanSpeed']) ?>"/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanPan') ?></th>
+              <td><input type="checkbox" name="Control[CanPan]" value="1"<?php if ( !empty($Control['CanPan']) ) { ?> checked="checked"<?php } ?>></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinPanRange') ?></th>
+              <td><input type="number" name="Control[MinPanRange]" value="<?php echo validHtmlStr($Control['MinPanRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxPanRange') ?></th>
+              <td><input type="number" name="Control[MaxPanRange]" value="<?php echo validHtmlStr($Control['MaxPanRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinPanStep') ?></th>
+              <td><input type="number" name="Control[MinPanStep]" value="<?php echo validHtmlStr($Control['MinPanStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxPanStep') ?></th>
+              <td><input type="number" name="Control[MaxPanStep]" value="<?php echo validHtmlStr($Control['MaxPanStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasPanSpeed') ?></th>
+              <td><input type="checkbox" name="Control[HasPanSpeed]" value="1"<?php if ( !empty($Control['HasPanSpeed']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinPanSpeed') ?></th>
+              <td><input type="number" name="Control[MinPanSpeed]" value="<?php echo validHtmlStr($Control['MinPanSpeed']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxPanSpeed') ?></th>
+              <td><input type="number" name="Control[MaxPanSpeed]" value="<?php echo validHtmlStr($Control['MaxPanSpeed']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasTurboPan') ?></th>
+              <td><input type="checkbox" name="Control[HasTurboPan]" value="1"<?php if ( !empty($Control['HasTurboPan']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('TurboPanSpeed') ?></th>
+              <td><input type="number" name="Control[TurboPanSpeed]" value="<?php echo validHtmlStr($Control['TurboPanSpeed']) ?>"/></td>
+            </tr>
 <?php
         break;
-    }
     case 'tilt' :
-    {
 ?>
-            <tr><th scope="row"><?php echo translate('CanTilt') ?></th><td><input type="checkbox" name="newControl[CanTilt]" value="1"<?php if ( !empty($newControl['CanTilt']) ) { ?> checked="checked"<?php } ?>></td></tr>
-            <tr><th scope="row"><?php echo translate('MinTiltRange') ?></th><td><input type="number" name="newControl[MinTiltRange]" value="<?php echo validHtmlStr($newControl['MinTiltRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxTiltRange') ?></th><td><input type="number" name="newControl[MaxTiltRange]" value="<?php echo validHtmlStr($newControl['MaxTiltRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinTiltStep') ?></th><td><input type="number" name="newControl[MinTiltStep]" value="<?php echo validHtmlStr($newControl['MinTiltStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxTiltStep') ?></th><td><input type="number" name="newControl[MaxTiltStep]" value="<?php echo validHtmlStr($newControl['MaxTiltStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasTiltSpeed') ?></th><td><input type="checkbox" name="newControl[HasTiltSpeed]" value="1"<?php if ( !empty($newControl['HasTiltSpeed']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinTiltSpeed') ?></th><td><input type="number" name="newControl[MinTiltSpeed]" value="<?php echo validHtmlStr($newControl['MinTiltSpeed']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxTiltSpeed') ?></th><td><input type="number" name="newControl[MaxTiltSpeed]" value="<?php echo validHtmlStr($newControl['MaxTiltSpeed']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasTurboTilt') ?></th><td><input type="checkbox" name="newControl[HasTurboTilt]" value="1"<?php if ( !empty($newControl['HasTurboTilt']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('TurboTiltSpeed') ?></th><td><input type="number" name="newControl[TurboTiltSpeed]" value="<?php echo validHtmlStr($newControl['TurboTiltSpeed']) ?>"/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanTilt') ?></th>
+              <td><input type="checkbox" name="Control[CanTilt]" value="1"<?php if ( !empty($Control['CanTilt']) ) { ?> checked="checked"<?php } ?>></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinTiltRange') ?></th>
+              <td><input type="number" name="Control[MinTiltRange]" value="<?php echo validHtmlStr($Control['MinTiltRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxTiltRange') ?></th>
+              <td><input type="number" name="Control[MaxTiltRange]" value="<?php echo validHtmlStr($Control['MaxTiltRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinTiltStep') ?></th>
+              <td><input type="number" name="Control[MinTiltStep]" value="<?php echo validHtmlStr($Control['MinTiltStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxTiltStep') ?></th>
+              <td><input type="number" name="Control[MaxTiltStep]" value="<?php echo validHtmlStr($Control['MaxTiltStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasTiltSpeed') ?></th>
+              <td><input type="checkbox" name="Control[HasTiltSpeed]" value="1"<?php if ( !empty($Control['HasTiltSpeed']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinTiltSpeed') ?></th>
+              <td><input type="number" name="Control[MinTiltSpeed]" value="<?php echo validHtmlStr($Control['MinTiltSpeed']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxTiltSpeed') ?></th>
+              <td><input type="number" name="Control[MaxTiltSpeed]" value="<?php echo validHtmlStr($Control['MaxTiltSpeed']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasTurboTilt') ?></th>
+              <td><input type="checkbox" name="Control[HasTurboTilt]" value="1"<?php if ( !empty($Control['HasTurboTilt']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('TurboTiltSpeed') ?></th>
+              <td><input type="number" name="Control[TurboTiltSpeed]" value="<?php echo validHtmlStr($Control['TurboTiltSpeed']) ?>"/></td>
+            </tr>
 <?php
         break;
-    }
     case 'zoom' :
-    {
 ?>
-            <tr><th scope="row"><?php echo translate('CanZoom') ?></th><td><input type="checkbox" name="newControl[CanZoom]" value="1"<?php if ( !empty($newControl['CanZoom']) ) { ?> checked="checked"<?php } ?>></td></tr>
-            <tr><th scope="row"><?php echo translate('CanZoomAbs') ?></th><td><input type="checkbox" name="newControl[CanZoomAbs]" value="1"<?php if ( !empty($newControl['CanZoomAbs']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanZoomRel') ?></th><td><input type="checkbox" name="newControl[CanZoomRel]" value="1"<?php if ( !empty($newControl['CanZoomRel']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanZoomCon') ?></th><td><input type="checkbox" name="newControl[CanZoomCon]" value="1"<?php if ( !empty($newControl['CanZoomCon']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinZoomRange') ?></th><td><input type="number" name="newControl[MinZoomRange]" value="<?php echo validHtmlStr($newControl['MinZoomRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxZoomRange') ?></th><td><input type="number" name="newControl[MaxZoomRange]" value="<?php echo validHtmlStr($newControl['MaxZoomRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinZoomStep') ?></th><td><input type="number" name="newControl[MinZoomStep]" value="<?php echo validHtmlStr($newControl['MinZoomStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxZoomStep') ?></th><td><input type="number" name="newControl[MaxZoomStep]" value="<?php echo validHtmlStr($newControl['MaxZoomStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasZoomSpeed') ?></th><td><input type="checkbox" name="newControl[HasZoomSpeed]" value="1"<?php if ( !empty($newControl['HasZoomSpeed']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinZoomSpeed') ?></th><td><input type="number" name="newControl[MinZoomSpeed]" value="<?php echo validHtmlStr($newControl['MinZoomSpeed']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxZoomSpeed') ?></th><td><input type="number" name="newControl[MaxZoomSpeed]" value="<?php echo validHtmlStr($newControl['MaxZoomSpeed']) ?>"/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanZoom') ?></th>
+              <td><input type="checkbox" name="Control[CanZoom]" value="1"<?php if ( !empty($Control['CanZoom']) ) { ?> checked="checked"<?php } ?>></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanZoomAbs') ?></th>
+              <td><input type="checkbox" name="Control[CanZoomAbs]" value="1"<?php if ( !empty($Control['CanZoomAbs']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanZoomRel') ?></th>
+              <td><input type="checkbox" name="Control[CanZoomRel]" value="1"<?php if ( !empty($Control['CanZoomRel']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanZoomCon') ?></th>
+              <td><input type="checkbox" name="Control[CanZoomCon]" value="1"<?php if ( !empty($Control['CanZoomCon']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinZoomRange') ?></th>
+              <td><input type="number" name="Control[MinZoomRange]" value="<?php echo validHtmlStr($Control['MinZoomRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxZoomRange') ?></th>
+              <td><input type="number" name="Control[MaxZoomRange]" value="<?php echo validHtmlStr($Control['MaxZoomRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinZoomStep') ?></th>
+              <td><input type="number" name="Control[MinZoomStep]" value="<?php echo validHtmlStr($Control['MinZoomStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxZoomStep') ?></th>
+              <td><input type="number" name="Control[MaxZoomStep]" value="<?php echo validHtmlStr($Control['MaxZoomStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasZoomSpeed') ?></th>
+              <td><input type="checkbox" name="Control[HasZoomSpeed]" value="1"<?php if ( !empty($Control['HasZoomSpeed']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinZoomSpeed') ?></th>
+              <td><input type="number" name="Control[MinZoomSpeed]" value="<?php echo validHtmlStr($Control['MinZoomSpeed']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxZoomSpeed') ?></th>
+              <td><input type="number" name="Control[MaxZoomSpeed]" value="<?php echo validHtmlStr($Control['MaxZoomSpeed']) ?>"/></td>
+            </tr>
 <?php
         break;
-    }
     case 'focus' :
-    {
 ?>
-            <tr><th scope="row"><?php echo translate('CanFocus') ?></th><td><input type="checkbox" name="newControl[CanFocus]" value="1"<?php if ( !empty($newControl['CanFocus']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanAutoFocus') ?></th><td><input type="checkbox" name="newControl[CanAutoFocus]" value="1"<?php if ( !empty($newControl['CanAutoFocus']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanFocusAbs') ?></th><td><input type="checkbox" name="newControl[CanFocusAbs]" value="1"<?php if ( !empty($newControl['CanFocusAbs']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanFocusRel') ?></th><td><input type="checkbox" name="newControl[CanFocusRel]" value="1"<?php if ( !empty($newControl['CanFocusRel']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanFocusCon') ?></th><td><input type="checkbox" name="newControl[CanFocusCon]" value="1"<?php if ( !empty($newControl['CanFocusCon']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinFocusRange') ?></th><td><input type="number" name="newControl[MinFocusRange]" value="<?php echo validHtmlStr($newControl['MinFocusRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxFocusRange') ?></th><td><input type="number" name="newControl[MaxFocusRange]" value="<?php echo validHtmlStr($newControl['MaxFocusRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinFocusStep') ?></th><td><input type="number" name="newControl[MinFocusStep]" value="<?php echo validHtmlStr($newControl['MinFocusStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxFocusStep') ?></th><td><input type="number" name="newControl[MaxFocusStep]" value="<?php echo validHtmlStr($newControl['MaxFocusStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasFocusSpeed') ?></th><td><input type="checkbox" name="newControl[HasFocusSpeed]" value="1"<?php if ( !empty($newControl['HasFocusSpeed']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinFocusSpeed') ?></th><td><input type="number" name="newControl[MinFocusSpeed]" value="<?php echo validHtmlStr($newControl['MinFocusSpeed']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxFocusSpeed') ?></th><td><input type="number" name="newControl[MaxFocusSpeed]" value="<?php echo validHtmlStr($newControl['MaxFocusSpeed']) ?>"/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanFocus') ?></th>
+              <td><input type="checkbox" name="Control[CanFocus]" value="1"<?php if ( !empty($Control['CanFocus']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanAutoFocus') ?></th>
+              <td><input type="checkbox" name="Control[CanAutoFocus]" value="1"<?php if ( !empty($Control['CanAutoFocus']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanFocusAbs') ?></th>
+              <td><input type="checkbox" name="Control[CanFocusAbs]" value="1"<?php if ( !empty($Control['CanFocusAbs']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanFocusRel') ?></th>
+              <td><input type="checkbox" name="Control[CanFocusRel]" value="1"<?php if ( !empty($Control['CanFocusRel']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanFocusCon') ?></th>
+              <td><input type="checkbox" name="Control[CanFocusCon]" value="1"<?php if ( !empty($Control['CanFocusCon']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinFocusRange') ?></th>
+              <td><input type="number" name="Control[MinFocusRange]" value="<?php echo validHtmlStr($Control['MinFocusRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxFocusRange') ?></th>
+              <td><input type="number" name="Control[MaxFocusRange]" value="<?php echo validHtmlStr($Control['MaxFocusRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinFocusStep') ?></th>
+              <td><input type="number" name="Control[MinFocusStep]" value="<?php echo validHtmlStr($Control['MinFocusStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxFocusStep') ?></th>
+              <td><input type="number" name="Control[MaxFocusStep]" value="<?php echo validHtmlStr($Control['MaxFocusStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasFocusSpeed') ?></th>
+              <td><input type="checkbox" name="Control[HasFocusSpeed]" value="1"<?php if ( !empty($Control['HasFocusSpeed']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinFocusSpeed') ?></th>
+              <td><input type="number" name="Control[MinFocusSpeed]" value="<?php echo validHtmlStr($Control['MinFocusSpeed']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxFocusSpeed') ?></th>
+              <td><input type="number" name="Control[MaxFocusSpeed]" value="<?php echo validHtmlStr($Control['MaxFocusSpeed']) ?>"/></td>
+            </tr>
 <?php
         break;
-    }
     case 'iris' :
-    {
 ?>
-            <tr><th scope="row"><?php echo translate('CanIris') ?></th><td><input type="checkbox" name="newControl[CanIris]" value="1"<?php if ( !empty($newControl['CanIris']) ) { ?> checked="checked"<?php } ?>></td></tr>
-            <tr><th scope="row"><?php echo translate('CanAutoIris') ?></th><td><input type="checkbox" name="newControl[CanAutoIris]" value="1"<?php if ( !empty($newControl['CanAutoIris']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanIrisAbs') ?></th><td><input type="checkbox" name="newControl[CanIrisAbs]" value="1"<?php if ( !empty($newControl['CanIrisAbs']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanIrisRel') ?></th><td><input type="checkbox" name="newControl[CanIrisRel]" value="1"<?php if ( !empty($newControl['CanIrisRel']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanIrisCon') ?></th><td><input type="checkbox" name="newControl[CanIrisCon]" value="1"<?php if ( !empty($newControl['CanIrisCon']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinIrisRange') ?></th><td><input type="number" name="newControl[MinIrisRange]" value="<?php echo validHtmlStr($newControl['MinIrisRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxIrisRange') ?></th><td><input type="number" name="newControl[MaxIrisRange]" value="<?php echo validHtmlStr($newControl['MaxIrisRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinIrisStep') ?></th><td><input type="number" name="newControl[MinIrisStep]" value="<?php echo validHtmlStr($newControl['MinIrisStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxIrisStep') ?></th><td><input type="number" name="newControl[MaxIrisStep]" value="<?php echo validHtmlStr($newControl['MaxIrisStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasIrisSpeed') ?></th><td><input type="checkbox" name="newControl[HasIrisSpeed]" value="1"<?php if ( !empty($newControl['HasIrisSpeed']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinIrisSpeed') ?></th><td><input type="number" name="newControl[MinIrisSpeed]" value="<?php echo validHtmlStr($newControl['MinIrisSpeed']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxIrisSpeed') ?></th><td><input type="number" name="newControl[MaxIrisSpeed]" value="<?php echo validHtmlStr($newControl['MaxIrisSpeed']) ?>"/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanIris') ?></th>
+              <td><input type="checkbox" name="Control[CanIris]" value="1"<?php if ( !empty($Control['CanIris']) ) { ?> checked="checked"<?php } ?>></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanAutoIris') ?></th>
+              <td><input type="checkbox" name="Control[CanAutoIris]" value="1"<?php if ( !empty($Control['CanAutoIris']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanIrisAbs') ?></th>
+              <td><input type="checkbox" name="Control[CanIrisAbs]" value="1"<?php if ( !empty($Control['CanIrisAbs']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanIrisRel') ?></th>
+              <td><input type="checkbox" name="Control[CanIrisRel]" value="1"<?php if ( !empty($Control['CanIrisRel']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanIrisCon') ?></th>
+              <td><input type="checkbox" name="Control[CanIrisCon]" value="1"<?php if ( !empty($Control['CanIrisCon']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinIrisRange') ?></th>
+              <td><input type="number" name="Control[MinIrisRange]" value="<?php echo validHtmlStr($Control['MinIrisRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxIrisRange') ?></th>
+              <td><input type="number" name="Control[MaxIrisRange]" value="<?php echo validHtmlStr($Control['MaxIrisRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinIrisStep') ?></th>
+              <td><input type="number" name="Control[MinIrisStep]" value="<?php echo validHtmlStr($Control['MinIrisStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxIrisStep') ?></th>
+              <td><input type="number" name="Control[MaxIrisStep]" value="<?php echo validHtmlStr($Control['MaxIrisStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasIrisSpeed') ?></th>
+              <td><input type="checkbox" name="Control[HasIrisSpeed]" value="1"<?php if ( !empty($Control['HasIrisSpeed']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinIrisSpeed') ?></th>
+              <td><input type="number" name="Control[MinIrisSpeed]" value="<?php echo validHtmlStr($Control['MinIrisSpeed']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxIrisSpeed') ?></th>
+              <td><input type="number" name="Control[MaxIrisSpeed]" value="<?php echo validHtmlStr($Control['MaxIrisSpeed']) ?>"/></td>
+            </tr>
 <?php
         break;
-    }
     case 'gain' :
-    {
 ?>
-            <tr><th scope="row"><?php echo translate('CanGain') ?></th><td><input type="checkbox" name="newControl[CanGain]" value="1"<?php if ( !empty($newControl['CanGain']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanAutoGain') ?></th><td><input type="checkbox" name="newControl[CanAutoGain]" value="1"<?php if ( !empty($newControl['CanAutoGain']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanGainAbs') ?></th><td><input type="checkbox" name="newControl[CanGainAbs]" value="1"<?php if ( !empty($newControl['CanGainAbs']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanGainRel') ?></th><td><input type="checkbox" name="newControl[CanGainRel]" value="1"<?php if ( !empty($newControl['CanGainRel']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanGainCon') ?></th><td><input type="checkbox" name="newControl[CanGainCon]" value="1"<?php if ( !empty($newControl['CanGainCon']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinGainRange') ?></th><td><input type="number" name="newControl[MinGainRange]" value="<?php echo validHtmlStr($newControl['MinGainRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxGainRange') ?></th><td><input type="number" name="newControl[MaxGainRange]" value="<?php echo validHtmlStr($newControl['MaxGainRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinGainStep') ?></th><td><input type="number" name="newControl[MinGainStep]" value="<?php echo validHtmlStr($newControl['MinGainStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxGainStep') ?></th><td><input type="number" name="newControl[MaxGainStep]" value="<?php echo validHtmlStr($newControl['MaxGainStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasGainSpeed') ?></th><td><input type="checkbox" name="newControl[HasGainSpeed]" value="1"<?php if ( !empty($newControl['HasGainSpeed']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinGainSpeed') ?></th><td><input type="number" name="newControl[MinGainSpeed]" value="<?php echo validHtmlStr($newControl['MinGainSpeed']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxGainSpeed') ?></th><td><input type="number" name="newControl[MaxGainSpeed]" value="<?php echo validHtmlStr($newControl['MaxGainSpeed']) ?>"/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanGain') ?></th>
+              <td><input type="checkbox" name="Control[CanGain]" value="1"<?php if ( !empty($Control['CanGain']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanAutoGain') ?></th>
+              <td><input type="checkbox" name="Control[CanAutoGain]" value="1"<?php if ( !empty($Control['CanAutoGain']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanGainAbs') ?></th>
+              <td><input type="checkbox" name="Control[CanGainAbs]" value="1"<?php if ( !empty($Control['CanGainAbs']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanGainRel') ?></th>
+              <td><input type="checkbox" name="Control[CanGainRel]" value="1"<?php if ( !empty($Control['CanGainRel']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanGainCon') ?></th>
+              <td><input type="checkbox" name="Control[CanGainCon]" value="1"<?php if ( !empty($Control['CanGainCon']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinGainRange') ?></th>
+              <td><input type="number" name="Control[MinGainRange]" value="<?php echo validHtmlStr($Control['MinGainRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxGainRange') ?></th>
+              <td><input type="number" name="Control[MaxGainRange]" value="<?php echo validHtmlStr($Control['MaxGainRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinGainStep') ?></th>
+              <td><input type="number" name="Control[MinGainStep]" value="<?php echo validHtmlStr($Control['MinGainStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxGainStep') ?></th>
+              <td><input type="number" name="Control[MaxGainStep]" value="<?php echo validHtmlStr($Control['MaxGainStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasGainSpeed') ?></th>
+              <td><input type="checkbox" name="Control[HasGainSpeed]" value="1"<?php if ( !empty($Control['HasGainSpeed']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinGainSpeed') ?></th>
+              <td><input type="number" name="Control[MinGainSpeed]" value="<?php echo validHtmlStr($Control['MinGainSpeed']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxGainSpeed') ?></th>
+              <td><input type="number" name="Control[MaxGainSpeed]" value="<?php echo validHtmlStr($Control['MaxGainSpeed']) ?>"/></td>
+            </tr>
 <?php
         break;
-    }
     case 'white' :
-    {
 ?>
-            <tr><th scope="row"><?php echo translate('CanWhite') ?></th><td><input type="checkbox" name="newControl[CanWhite]" value="1"<?php if ( !empty($newControl['CanWhite']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanAutoWhite') ?></th><td><input type="checkbox" name="newControl[CanAutoWhite]" value="1"<?php if ( !empty($newControl['CanAutoWhite']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanWhiteAbs') ?></th><td><input type="checkbox" name="newControl[CanWhiteAbs]" value="1"<?php if ( !empty($newControl['CanWhiteAbs']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanWhiteRel') ?></th><td><input type="checkbox" name="newControl[CanWhiteRel]" value="1"<?php if ( !empty($newControl['CanWhiteRel']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanWhiteCon') ?></th><td><input type="checkbox" name="newControl[CanWhiteCon]" value="1"<?php if ( !empty($newControl['CanWhiteCon']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinWhiteRange') ?></th><td><input type="number" name="newControl[MinWhiteRange]" value="<?php echo validHtmlStr($newControl['MinWhiteRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxWhiteRange') ?></th><td><input type="number" name="newControl[MaxWhiteRange]" value="<?php echo validHtmlStr($newControl['MaxWhiteRange']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinWhiteStep') ?></th><td><input type="number" name="newControl[MinWhiteStep]" value="<?php echo validHtmlStr($newControl['MinWhiteStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxWhiteStep') ?></th><td><input type="number" name="newControl[MaxWhiteStep]" value="<?php echo validHtmlStr($newControl['MaxWhiteStep']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasWhiteSpeed') ?></th><td><input type="checkbox" name="newControl[HasWhiteSpeed]" value="1"<?php if ( !empty($newControl['HasWhiteSpeed']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('MinWhiteSpeed') ?></th><td><input type="number" name="newControl[MinWhiteSpeed]" value="<?php echo validHtmlStr($newControl['MinWhiteSpeed']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('MaxWhiteSpeed') ?></th><td><input type="number" name="newControl[MaxWhiteSpeed]" value="<?php echo validHtmlStr($newControl['MaxWhiteSpeed']) ?>"/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanWhite') ?></th>
+              <td><input type="checkbox" name="Control[CanWhite]" value="1"<?php if ( !empty($Control['CanWhite']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanAutoWhite') ?></th>
+              <td><input type="checkbox" name="Control[CanAutoWhite]" value="1"<?php if ( !empty($Control['CanAutoWhite']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanWhiteAbs') ?></th>
+              <td><input type="checkbox" name="Control[CanWhiteAbs]" value="1"<?php if ( !empty($Control['CanWhiteAbs']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanWhiteRel') ?></th>
+              <td><input type="checkbox" name="Control[CanWhiteRel]" value="1"<?php if ( !empty($Control['CanWhiteRel']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanWhiteCon') ?></th>
+              <td><input type="checkbox" name="Control[CanWhiteCon]" value="1"<?php if ( !empty($Control['CanWhiteCon']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinWhiteRange') ?></th>
+              <td><input type="number" name="Control[MinWhiteRange]" value="<?php echo validHtmlStr($Control['MinWhiteRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxWhiteRange') ?></th>
+              <td><input type="number" name="Control[MaxWhiteRange]" value="<?php echo validHtmlStr($Control['MaxWhiteRange']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinWhiteStep') ?></th>
+              <td><input type="number" name="Control[MinWhiteStep]" value="<?php echo validHtmlStr($Control['MinWhiteStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxWhiteStep') ?></th>
+              <td><input type="number" name="Control[MaxWhiteStep]" value="<?php echo validHtmlStr($Control['MaxWhiteStep']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasWhiteSpeed') ?></th>
+              <td><input type="checkbox" name="Control[HasWhiteSpeed]" value="1"<?php if ( !empty($Control['HasWhiteSpeed']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinWhiteSpeed') ?></th>
+              <td><input type="number" name="Control[MinWhiteSpeed]" value="<?php echo validHtmlStr($Control['MinWhiteSpeed']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxWhiteSpeed') ?></th>
+              <td><input type="number" name="Control[MaxWhiteSpeed]" value="<?php echo validHtmlStr($Control['MaxWhiteSpeed']) ?>"/></td>
+            </tr>
 <?php
         break;
-    }
     case 'presets' :
-    {
 ?>
-            <tr><th scope="row"><?php echo translate('HasPresets') ?></th><td><input type="checkbox" name="newControl[HasPresets]" value="1"<?php if ( !empty($newControl['HasPresets']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('NumPresets') ?></th><td><input type="number" name="newControl[NumPresets]" value="<?php echo validHtmlStr($newControl['NumPresets']) ?>"/></td></tr>
-            <tr><th scope="row"><?php echo translate('HasHomePreset') ?></th><td><input type="checkbox" name="newControl[HasHomePreset]" value="1"<?php if ( !empty($newControl['HasHomePreset']) ) { ?> checked="checked"<?php } ?>/></td></tr>
-            <tr><th scope="row"><?php echo translate('CanSetPresets') ?></th><td><input type="checkbox" name="newControl[CanSetPresets]" value="1"<?php if ( !empty($newControl['CanSetPresets']) ) { ?> checked="checked"<?php } ?>/></td></tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasPresets') ?></th>
+              <td><input type="checkbox" name="Control[HasPresets]" value="1"<?php if ( !empty($Control['HasPresets']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('NumPresets') ?></th>
+              <td><input type="number" name="Control[NumPresets]" value="<?php echo validHtmlStr($Control['NumPresets']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('HasHomePreset') ?></th>
+              <td><input type="checkbox" name="Control[HasHomePreset]" value="1"<?php if ( !empty($Control['HasHomePreset']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanSetPresets') ?></th>
+              <td><input type="checkbox" name="Control[CanSetPresets]" value="1"<?php if ( !empty($Control['CanSetPresets']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
 <?php
         break;
-    }
-}
+} # end switch tab
 ?>
           </tbody>
         </table>
+      </div>
+<?php
+} # end foreach tab
+?>
+        </div><!--tab-content-->
         <div id="contentButtons">
-          <button type="submit" value="Save"<?php if ( !canEdit( 'Control' ) ) { ?> disabled="disabled"<?php } ?>><?php echo translate('Save') ?></button>
-          <button type="button" data-on-click="closeWindow"><?php echo translate('Cancel') ?></button>
+          <button type="submit" name="action" value="Save"<?php if ( !canEdit( 'Control' ) ) { ?> disabled="disabled"<?php } ?>><?php echo translate('Save') ?></button>
+          <button type="button" id="cancelBtn"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>
+    </div>
   </div>
-</body>
-</html>
+</div>
+<?php xhtmlFooter() ?>

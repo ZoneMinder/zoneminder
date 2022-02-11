@@ -40,7 +40,7 @@ zoneminder (1.27.99+1-testing-SNAPSHOT2014072901) testing; urgency=medium
 
  -- Isaac Connor <iconnor@connortechnology.com>  Tue, 29 Jul 2014 14:50:20 -0400
 
-zoneminder (1.27.0+1-testing-v4ltomonitor-1) testing; urgency=high
+zoneminder (1.27.0+1-trusty-v4ltomonitor-1) trusty; urgency=high
 
   * Snapshot release - 
 

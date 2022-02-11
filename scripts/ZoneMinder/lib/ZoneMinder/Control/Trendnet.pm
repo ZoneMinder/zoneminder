@@ -3,6 +3,7 @@ package ZoneMinder::Control::Trendnet;
 use 5.006;
 use strict;
 use warnings;
+use Time::HiRes qw(usleep);
 
 require ZoneMinder::Base;
 require ZoneMinder::Control;
@@ -101,16 +102,22 @@ sub open {
 } # end sub open
 
 sub sendCmd {
-
   # This routine is used for all moving, which are all GET commands...
-
   my $self = shift;
-  my $cmd = shift;
 
+  if (!$self->{Monitor}->{ModectDuringPTZ}) {
+    $$self{Monitor}->suspendMotionDetection();
+  }
+
+  my $cmd = shift;
   my $url = $PROTOCOL.$ADDRESS.'/cgi/ptdc.cgi?command='.$cmd;
   my $res = $self->{ua}->get($url);
-
   Debug('sendCmd command: ' . $url);
+
+  if (!$self->{Monitor}->{ModectDuringPTZ}) {
+    usleep(10000);
+    $$self{Monitor}->resumeMotionDetection();
+  }
   if ( $res->is_success ) {
     Debug($res->content);
     return !undef;
@@ -365,6 +372,25 @@ sub reset {
   Debug('Reset -- IR auto');
 
   $self->sendCmdPost($url,$cmd);
+}
+
+sub reboot {
+  my $self = shift;
+  Debug('Camera Reboot');
+  $self->sendCmdPost('/eng/admin/reboot.cgi', { reboot => 'true' });
+  #$referer = 'http://'.$HI->ip().'/eng/admin/tools_default.cgi';
+  #$initial_url = $HI->ip().'/eng/admin/tools_default.cgi';
+}
+
+sub ping {
+  return -1 if ! $ADDRESS;
+
+  require Net::Ping;
+
+  my $p = Net::Ping->new();
+  my $rv = $p->ping($ADDRESS);
+  $p->close();
+  return $rv;
 }
 
 1;

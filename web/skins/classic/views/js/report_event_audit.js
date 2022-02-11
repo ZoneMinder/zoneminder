@@ -30,29 +30,28 @@ function changeDateTime(e) {
   window.location = uri;
 }
 
+function datetime_change(newDate, oldData) {
+  if (newDate !== oldData.lastVal) {
+    changeDateTime();
+  }
+}
+
 function initPage() {
   $j('#minTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
     maxDate: +0,
     constrainInput: false,
-    onClose: function(newDate, oldData) {
-      if (newDate !== oldData.lastVal) {
-        changeDateTime();
-      }
-    }
+    onClose: datetime_change
   });
+
   $j('#maxTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
     minDate: $j('#minTime').val(),
     maxDate: +0,
     constrainInput: false,
-    onClose: function(newDate, oldData) {
-      if (newDate !== oldData.lastVal) {
-        changeDateTime();
-      }
-    }
+    onClose: datetime_change
   });
 }
 // Kick everything off

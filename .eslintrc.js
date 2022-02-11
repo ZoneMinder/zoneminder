@@ -3,6 +3,7 @@
 module.exports = {
   "env": {
     "browser": true,
+    "es2017": true,
   },
   "extends": ["google"],
   "overrides": [{

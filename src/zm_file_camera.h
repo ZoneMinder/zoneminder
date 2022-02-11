@@ -21,33 +21,37 @@
 #define ZM_FILE_CAMERA_H
 
 #include "zm_camera.h"
-#include "zm_buffer.h"
-#include "zm_regexp.h"
-#include "zm_packetqueue.h"
-
-#include <sys/param.h>
 
 //
 // Class representing 'file' cameras, i.e. those which are
 // accessed using a single file which contains the latest jpeg data
 //
 class FileCamera : public Camera {
-protected:
-  char path[PATH_MAX];
-
-public:
-  FileCamera( int p_id, const char *p_path, int p_width, int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio );
-  ~FileCamera();
-
-  const char *Path() const { return( path ); }
+ public:
+  FileCamera(const Monitor *monitor,
+             const char *p_path,
+             int p_width,
+             int p_height,
+             int p_colours,
+             int p_brightness,
+             int p_contrast,
+             int p_hue,
+             int p_colour,
+             bool p_capture,
+             bool p_record_audio);
+  ~FileCamera() override;
 
   void Initialise();
   void Terminate();
-  int PreCapture();
-  int Capture( Image &image );
-  int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
-int Close() { return 0; };
+  int PreCapture() override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
+
+  const std::string &Path() const { return path; }
+
+ private:
+  std::string path;
 };
 
 #endif // ZM_FILE_CAMERA_H

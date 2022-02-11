@@ -1,5 +1,5 @@
 <?php
-  error_reporting(0);
+error_reporting(0);
 
 $start_time = time();
 
@@ -7,7 +7,7 @@ define('MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT/2);
 define('MSG_DATA_SIZE', 4+256);
 
 if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
-  ajaxError("Unexpected received message type '$type'");
+  ajaxError('No connkey or no command in stream ajax');
 }
 
 mkdir(ZM_PATH_SOCKS);
@@ -15,7 +15,17 @@ mkdir(ZM_PATH_SOCKS);
 # The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
 $key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock', 'Z');
 $semaphore = sem_get($key,1);
-if ( sem_acquire($semaphore,1) !== false ) {
+$semaphore_tries = 10;
+$have_semaphore = false;
+
+while ( $semaphore_tries ) {
+  $have_semaphore = sem_acquire($semaphore,1);
+  if ($have_semaphore !== false) break;
+  ZM\Debug("Failed to get semaphore, trying again");
+  usleep(100000);
+  $semaphore_tries -= 1;
+}
+if ($have_semaphore) {
   if ( !($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0)) ) {
     ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
   }
@@ -31,27 +41,36 @@ if ( sem_acquire($semaphore,1) !== false ) {
 
   switch ( $_REQUEST['command'] ) {
   case CMD_VARPLAY :
-    ZM\Logger::Debug('Varplaying to '.$_REQUEST['rate']);
+    ZM\Debug('Varplaying to '.$_REQUEST['rate']);
     $msg = pack('lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['rate']+32768);
     break;
   case CMD_ZOOMIN :
-    ZM\Logger::Debug('Zooming to '.$_REQUEST['x'].','.$_REQUEST['y']);
+    ZM\Debug('Zooming to '.$_REQUEST['x'].','.$_REQUEST['y']);
     $msg = pack('lcnn', MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y']);
     break;
   case CMD_PAN :
-    ZM\Logger::Debug('Panning to '.$_REQUEST['x'].','.$_REQUEST['y']);
+    ZM\Debug('Panning to '.$_REQUEST['x'].','.$_REQUEST['y']);
     $msg = pack('lcnn', MSG_CMD, $_REQUEST['command'], $_REQUEST['x'], $_REQUEST['y']);
     break;
   case CMD_SCALE :
-    ZM\Logger::Debug('Scaling to '.$_REQUEST['scale']);
+    ZM\Debug('Scaling to '.$_REQUEST['scale']);
     $msg = pack('lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['scale']);
     break;
   case CMD_SEEK :
-    ZM\Logger::Debug('Seeking to '.$_REQUEST['offset']);
-    $msg = pack('lcN', MSG_CMD, $_REQUEST['command'], $_REQUEST['offset']);
+    # Pack int two 32 bit integers instead of trying to deal with floats
+    $msg = pack('lcNN', MSG_CMD, $_REQUEST['command'],
+      intval($_REQUEST['offset']),
+      1000000*( $_REQUEST['offset']-intval($_REQUEST['offset'])));
+    break;
+  case CMD_MAXFPS :
+    ZM\Debug('Maxfps to '.$_REQUEST['maxfps']);
+    # Pack int two 32 bit integers instead of trying to deal with floats
+    $msg = pack('lcNN', MSG_CMD, $_REQUEST['command'],
+      intval($_REQUEST['maxfps']),
+      1000000*( $_REQUEST['maxfps']-intval($_REQUEST['maxfps'])));
     break;
   default :
-    ZM\Logger::Debug('Sending command ' . $_REQUEST['command']);
+    ZM\Debug('Sending command ' . $_REQUEST['command']);
     $msg = pack('lc', MSG_CMD, $_REQUEST['command']);
     break;
   }
@@ -65,7 +84,7 @@ if ( sem_acquire($semaphore,1) !== false ) {
     // WHY? We will just send another one... 
     // ANSWER: Because otherwise we get a log of errors logged
 
-    //ZM\Logger::Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
+    //ZM\Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
     usleep(1000);
   }
 
@@ -86,10 +105,8 @@ if ( sem_acquire($semaphore,1) !== false ) {
   $numSockets = socket_select($rSockets, $wSockets, $eSockets, intval($timeout/1000), ($timeout%1000)*1000);
 
   if ( $numSockets === false ) {
-    ZM\Error('socket_select failed: ' . socket_strerror(socket_last_error()));
     ajaxError('socket_select failed: '.socket_strerror(socket_last_error()));
   } else if ( $numSockets < 0 ) {
-    ZM\Error("Socket closed $remSockFile");
     ajaxError("Socket closed $remSockFile");
   } else if ( $numSockets == 0 ) {
     ZM\Error("Timed out waiting for msg $remSockFile");
@@ -97,7 +114,6 @@ if ( sem_acquire($semaphore,1) !== false ) {
     #ajaxError("Timed out waiting for msg $remSockFile");
   } else if ( $numSockets > 0 ) {
     if ( count($rSockets) != 1 ) {
-      ZM\Error('Bogus return from select, '.count($rSockets).' sockets available');
       ajaxError('Bogus return from select, '.count($rSockets).' sockets available');
     }
   }
@@ -118,48 +134,48 @@ if ( sem_acquire($semaphore,1) !== false ) {
   $data = unpack('ltype', $msg);
   switch ( $data['type'] ) {
   case MSG_DATA_WATCH :
-    $data = unpack('ltype/imonitor/istate/dfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
-    ZM\Logger::Debug('FPS: ' . $data['fps']);
+    $data = unpack('ltype/imonitor/istate/dfps/dcapturefps/danalysisfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
     $data['fps'] = round( $data['fps'], 2 );
-    ZM\Logger::Debug('FPS: ' . $data['fps'] );
+    $data['capturefps'] = round( $data['capturefps'], 2 );
+    $data['analysisfps'] = round( $data['analysisfps'], 2 );
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-    if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
-      $time = time();
-      // Regenerate auth hash after half the lifetime of the hash
-      if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
-        $data['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+    if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+      if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
+        $data['auth'] = $auth_hash;
+        ZM\Debug("including nw auth hash " . $data['auth']);
+      } else {
+        ZM\Debug('Not including new auth hash becase it hasn\'t changed '.$auth_hash);
       } 
     }
     ajaxResponse(array('status'=>$data));
     break;
   case MSG_DATA_EVENT :
     if ( version_compare( phpversion(), '5.6.0', '<') ) {
-      ZM\Logger::Debug('Using old unpack methods to handle 64bit event id');
-      $data = unpack('ltype/ieventlow/ieventhigh/iprogress/irate/izoom/Cpaused', $msg);
+      ZM\Debug('Using old unpack methods to handle 64bit event id');
+      $data = unpack('ltype/ieventlow/ieventhigh/dduration/dprogress/irate/izoom/Cpaused', $msg);
       $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];
     } else {
-      $data = unpack('ltype/Qevent/iprogress/irate/izoom/Cpaused', $msg);
+      $data = unpack('ltype/Qevent/dduration/dprogress/irate/izoom/Cpaused', $msg);
     }
     $data['rate'] /= RATE_BASE;
-    $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-    if ( ZM_OPT_USE_AUTH && ZM_AUTH_RELAY == 'hashed' ) {
-      $time = time();
-      // Regenerate auth hash after half the lifetime of the hash
-      if ( (!isset($_SESSION['AuthHashGeneratedAt'])) or ( $_SESSION['AuthHashGeneratedAt'] < $time - (ZM_AUTH_HASH_TTL * 1800) ) ) {
-        $data['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+    $data['zoom'] = round($data['zoom']/SCALE_BASE, 1);
+    if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+      if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
+        $data['auth'] = $auth_hash;
       } 
     }
     ajaxResponse(array('status'=>$data));
     break;
   default :
-    ajaxError("Unexpected received message type '$type'");
+    ajaxError('Unexpected received message type '.$data['type']);
   }
   sem_release($semaphore);
 } else {
-  ZM\Logger::Debug('Couldn\'t get semaphore');
-  ajaxResponse(array());
+  ajaxError("Unable to get semaphore.");
 }
 
 ajaxError('Unrecognised action or insufficient permissions in ajax/stream');

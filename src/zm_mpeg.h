@@ -21,8 +21,7 @@
 #define ZM_MPEG_H
 
 #include "zm_ffmpeg.h"
-
-#if HAVE_LIBAVCODEC
+#include <pthread.h>
 
 class VideoStream {
 protected:
@@ -69,7 +68,7 @@ protected:
   static void Initialise();
 
   void SetupFormat( );
-  void SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate );
+  int SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate );
   void SetParameters();
   void ActuallyOpenStream();
   double ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
@@ -81,7 +80,5 @@ public:
   bool OpenStream();
   double EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 };
-
-#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_MPEG_H

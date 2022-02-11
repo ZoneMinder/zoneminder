@@ -77,7 +77,7 @@ To start the build, simply execute the following command from the root folder of
 
 	OS=<distroname> DIST=<distrorel> utils/packpack/startpackpack.sh
 
-Where <distroname> is the name of the distro you wish to build on, such as fedora, and <distrorev> is release name or number of the distro you wish to build on. Redhat distros expect a number for <distrorev> while Debian and Ubuntu distros expect a name. For example:
+Where <distroname> is the name of the distro you wish to build on, such as fedora, and <distrorel> is the release name or number of the distro you wish to build on. Redhat distros expect a number for <distrorel> while Debian and Ubuntu distros expect a name. For example:
 
 ::
 
@@ -85,7 +85,7 @@ Where <distroname> is the name of the distro you wish to build on, such as fedor
 
 ::
 
-	OS=ubuntu DIST=xenial utils/packpack/startpackpack.sh
+	OS=ubuntu DIST=hirsute utils/packpack/startpackpack.sh
 
 Once you enter the appropriate command, go get a coffee while a ZoneMinder package is built. When the build finished, you can find the resulting packages under a subfolder called "build".
 
@@ -93,13 +93,13 @@ Note that this will build packages with x86_64 architecture. This build method c
 
 ::
 
-	OS=ubuntu DIST=xenial ARCH=i386 utils/packpack/startpackpack.sh
+	OS=ubuntu DIST=hirsute ARCH=i386 utils/packpack/startpackpack.sh
 
 For advanced users who really want to go out into uncharted waters, it is theoretically possible to build arm packages as well, as long as the host architecture is compatible.
 
 ::
 
-	OS=ubuntu DIST=xenial ARCH=armhfp utils/packpack/startpackpack.sh
+	OS=ubuntu DIST=hirsute ARCH=armhfp utils/packpack/startpackpack.sh
 
 Building arm packages in this manner has not been tested by us, however.
 

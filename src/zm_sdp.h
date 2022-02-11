@@ -20,14 +20,8 @@
 #ifndef ZM_SDP_H
 #define ZM_SDP_H
 
-#include "zm.h"
-
-#include "zm_utils.h"
-#include "zm_exception.h"
 #include "zm_ffmpeg.h"
-
-#include <stdlib.h>
-
+#include "zm_utils.h"
 #include <string>
 #include <vector>
 
@@ -38,11 +32,7 @@ protected:
   struct StaticPayloadDesc {
     int payloadType;
     const char payloadName[6];
-#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
     AVMediaType codecType;
-#else
-    enum CodecType codecType;
-#endif
     _AVCODECID codecId;
     int clockRate;
     int autoChannels;
@@ -50,11 +40,7 @@ protected:
 
   struct DynamicPayloadDesc {
     const char payloadName[32];
-#if (LIBAVCODEC_VERSION_CHECK(52, 64, 0, 64, 0) || LIBAVUTIL_VERSION_CHECK(50, 14, 0, 14, 0))
     AVMediaType codecType;
-#else
-    enum CodecType codecType;
-#endif
     _AVCODECID codecId;
 
     //int clockRate;
@@ -120,7 +106,7 @@ public:
     {
       return( mTransport );
     }
-    const int getPayloadType() const
+    int getPayloadType() const
     {
       return( mPayloadType );
     }
@@ -142,7 +128,7 @@ public:
       mControlUrl = controlUrl;
     }
 
-    const int getClock() const {
+    int getClock() const {
       return( mClock );
     }
     void setClock( int clock ) {
@@ -163,10 +149,10 @@ public:
     void setSprops(const std::string &props) {
       mSprops = props;
     }
-    const std::string getSprops() const {
+    std::string getSprops() const {
       return ( mSprops );
     }
-    const double getFrameRate() const {
+    double getFrameRate() const {
       return( mFrameRate );
     }
     void setFrameRate( double frameRate ) {
@@ -211,7 +197,7 @@ public:
   MediaDescriptor *getStream( int index )
   {
     if ( index < 0 || (unsigned int)index >= mMediaList.size() )
-      return( 0 );
+      return nullptr;
     return( mMediaList[index] );
   }
 

@@ -1,5 +1,18 @@
+// Manage the NEW Group button
 function newGroup() {
-  createPopup( '?view=group', 'zmGroup', 'group' );
+  $j.getJSON(thisUrl + '?request=modal&modal=group')
+      .done(function(data) {
+        insertModalHtml('groupdModal', data.html);
+        $j('#groupModal').modal('show');
+        $j('.chosen').chosen("destroy");
+        $j('.chosen').chosen();
+        // Manage the Save button
+        $j('#grpModalSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#groupForm').submit();
+        });
+      })
+      .fail(logAjaxFail);
 }
 
 function setGroup( element ) {
@@ -8,8 +21,25 @@ function setGroup( element ) {
   form.submit();
 }
 
-function editGroup( gid ) {
-  createPopup( '?view=group&gid='+gid, 'zmGroup', 'group' );
+function editGroup( element ) {
+  var gid = element.getAttribute('data-group-id');
+  if ( !gid ) {
+    console.log('No group id found in editGroup');
+  } else {
+    $j.getJSON(thisUrl + '?request=modal&modal=group&gid=' + gid)
+        .done(function(data) {
+          insertModalHtml('groupModal', data.html);
+          $j('#groupModal').modal('show');
+          $j('.chosen').chosen("destroy");
+          $j('.chosen').chosen();
+          // Manage the Save button
+          $j('#grpModalSaveBtn').click(function(evt) {
+            evt.preventDefault();
+            $j('#groupForm').submit();
+          });
+        })
+        .fail(logAjaxFail);
+  }
 }
 
 function deleteGroup( element ) {
@@ -20,7 +50,7 @@ function deleteGroup( element ) {
 }
 
 function configureButtons( element ) {
-  if ( canEditGroups ) {
+  if ( canEdit.Groups ) {
     var form = element.form;
     if ( element.checked ) {
       form.deleteBtn.disabled = (element.value == 0);
@@ -28,4 +58,21 @@ function configureButtons( element ) {
   }
 }
 
-window.focus();
+function configModalBtns() {
+  var form = $j('#groupForm')[0];
+  if ( !form ) {
+    console.log("No groupForm found");
+    return;
+  }
+  if ( !canEdit.Groups ) {
+    console.log("Cannot edit groups");
+    form.elements['action'].disabled = disabled;
+    return;
+  }
+  var disabled = false;
+
+  if ( form.elements['newGroup[Name]'].value == '' ) {
+    disabled = true;
+  }
+  form.elements['action'].disabled = disabled;
+}

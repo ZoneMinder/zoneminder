@@ -20,26 +20,28 @@
 #ifndef ZM_RGB_H
 #define ZM_RGB_H
 
-typedef uint32_t Rgb;  // RGB colour type
+#include "zm_define.h"
 
-#define WHITE     0xff
-#define WHITE_R   0xff
-#define WHITE_G   0xff
-#define WHITE_B   0xff
+typedef uint32 Rgb;  // RGB colour type
 
-#define BLACK     0x00
-#define BLACK_R   0x00
-#define BLACK_G   0x00
-#define BLACK_B   0x00
+constexpr uint8 kWhite = 0xff;
+constexpr uint8 kWhiteR = 0xff;
+constexpr uint8 kWhiteG = 0xff;
+constexpr uint8 kWhiteB = 0xff;
 
-#define RGB_WHITE     (0x00ffffff)
-#define RGB_BLACK     (0x00000000)
-#define RGB_RED     (0x000000ff)
-#define RGB_GREEN     (0x0000ff00)
-#define RGB_BLUE    (0x00ff0000)
-#define RGB_ORANGE    (0x0000a5ff)
-#define RGB_PURPLE    (0x00800080)
-#define RGB_TRANSPARENT  (0x01000000)
+constexpr uint8 kBlack = 0x00;
+constexpr uint8 kBlackR = 0x00;
+constexpr uint8 kBlackG = 0x00;
+constexpr uint8 kBlackB = 0x00;
+
+constexpr Rgb kRGBWhite = 0x00ffffff;
+constexpr Rgb kRGBBlack = 0x00000000;
+constexpr Rgb kRGBRed = 0x000000ff;
+constexpr Rgb kRGBGreen = 0x0000ff00;
+constexpr Rgb kRGBBlue = 0x00ff0000;
+constexpr Rgb kRGBOrange = 0x0000a5ff;
+constexpr Rgb kRGBPurple = 0x00800080;
+constexpr Rgb kRGBTransparent = 0x01000000;
 
 #define RGB_VAL(v,c)    (((v)>>(16-((c)*8)))&0xff)
 
@@ -116,41 +118,34 @@ typedef uint32_t Rgb;  // RGB colour type
 
 /* Convert RGB colour value into BGR\ARGB\ABGR */
 inline Rgb rgb_convert(Rgb p_col, int p_subpixorder) {
-  Rgb result;
+  Rgb result = 0;
   
-  switch(p_subpixorder) {
-    
+  switch (p_subpixorder) {
     case ZM_SUBPIX_ORDER_BGR:
     case ZM_SUBPIX_ORDER_BGRA:
-    {
-    BLUE_PTR_BGRA(&result) = BLUE_VAL_RGBA(p_col);
-    GREEN_PTR_BGRA(&result) = GREEN_VAL_RGBA(p_col);
-    RED_PTR_BGRA(&result) = RED_VAL_RGBA(p_col);
-    }
-    break;
+      BLUE_PTR_BGRA(&result) = BLUE_VAL_RGBA(p_col);
+      GREEN_PTR_BGRA(&result) = GREEN_VAL_RGBA(p_col);
+      RED_PTR_BGRA(&result) = RED_VAL_RGBA(p_col);
+      break;
     case ZM_SUBPIX_ORDER_ARGB:
-    {
-    BLUE_PTR_ARGB(&result) = BLUE_VAL_RGBA(p_col);
-    GREEN_PTR_ARGB(&result) = GREEN_VAL_RGBA(p_col);
-    RED_PTR_ARGB(&result) = RED_VAL_RGBA(p_col);
-    }
-    break;
+      BLUE_PTR_ARGB(&result) = BLUE_VAL_RGBA(p_col);
+      GREEN_PTR_ARGB(&result) = GREEN_VAL_RGBA(p_col);
+      RED_PTR_ARGB(&result) = RED_VAL_RGBA(p_col);
+      break;
     case ZM_SUBPIX_ORDER_ABGR:
-    {
-    BLUE_PTR_ABGR(&result) = BLUE_VAL_RGBA(p_col);
-    GREEN_PTR_ABGR(&result) = GREEN_VAL_RGBA(p_col);
-    RED_PTR_ABGR(&result) = RED_VAL_RGBA(p_col);
-    }
-    break;
-    /* Grayscale */
+      BLUE_PTR_ABGR(&result) = BLUE_VAL_RGBA(p_col);
+      GREEN_PTR_ABGR(&result) = GREEN_VAL_RGBA(p_col);
+      RED_PTR_ABGR(&result) = RED_VAL_RGBA(p_col);
+      break;
+      /* Grayscale */
     case ZM_SUBPIX_ORDER_NONE:
-    result = p_col & 0xff;
-    break;
+      result = p_col & 0xff;
+      break;
     default:
-    return p_col;
-    break;
+      result = p_col;
+      break;
   }
-  
+
   return result;
 }
 

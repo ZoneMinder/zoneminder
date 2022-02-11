@@ -21,6 +21,30 @@ class HostController extends AppController {
     ));
   }
 
+  // an interface to individually control the various ZM daemons
+  // invocation: https://server/zm/api/host/daemonControl/<daemon>.pl/<command>.json
+  // note that this API is only for interaction with a specific
+  // daemon. zmdc also allows other functions like logrot/etc
+  public function daemonControl($daemon_name, $command) {
+    global $user;
+    if ($command == 'check' || $command == 'status') {
+      $permission = 'View';
+    } else {
+      $permission = 'Edit';
+    }
+    $allowed = (!$user) || ($user['System'] == $permission );
+    if ( !$allowed ) {
+      throw new UnauthorizedException(__("Insufficient privileges"));
+      return;
+    }
+    $string = ZM_PATH_BIN."/zmdc.pl $command $daemon_name";
+    $result = exec($string);
+    $this->set(array(
+      'result' => $result,
+      '_serialize' => array('result')
+    ));
+  }
+
   function getLoad() {
     $load = sys_getloadavg();
 
@@ -50,8 +74,10 @@ class HostController extends AppController {
     $cred_depr = [];
 
     if ( $username && $password ) {
+      ZM\Debug('Username and password provided, generating access and refresh tokens');
       $cred = $this->_getCredentials(true, '', $username); // generate refresh
     } else {
+      ZM\Debug('Only generating access token');
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
     }
 
@@ -69,6 +95,8 @@ class HostController extends AppController {
       $cred_depr = $this->_getCredentialsDeprecated();
       $login_array['credentials'] = $cred_depr[0];
       $login_array['append_password'] = $cred_depr[1];
+    } else {
+      ZM\Debug('Legacy Auth is disabled, not generating auth= credentials');
     }
 
     $login_array['version'] = $ver[0];
@@ -108,8 +136,11 @@ class HostController extends AppController {
 
   private function _getCredentials($generate_refresh_token=false, $token='', $username='') {
 
-    if ( !ZM_OPT_USE_AUTH )
+    if ( !ZM_OPT_USE_AUTH ) {
+      ZM\Debug('OPT_USE_AUTH is turned off. Tokens will be null');
       return;
+    }
+      
 
     if ( !ZM_AUTH_HASH_SECRET )
       throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));
@@ -196,7 +227,7 @@ class HostController extends AppController {
 
     if ( $mid ) {
       // Get disk usage for $mid
-      ZM\Logger::Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
+      ZM\Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print $1}'");
       $usage = shell_exec("du -s0 $zm_dir_events/$mid | awk '{print $1}'");
     } else {
       $monitors = $this->Monitor->find('all', array(

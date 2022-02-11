@@ -69,6 +69,11 @@
 // setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
+setlocale( LC_TIME, 'en_GB.utf8' );
+define("DATE_FMT_CONSOLE_LONG", "%a %d %b, %Hh%M");
+define( "STRF_FMT_DATETIME_SHORT", "%d/%m/%y %H:%M:%S" );
+define( "STRF_FMT_DATETIME_SHORTER", "%x %H:%M:%S" );
+
 // Simple String Replacements
 $SLANG = array(
     'SystemLog'             => 'System Log',
@@ -87,6 +92,7 @@ $SLANG = array(
     'Actual'                => 'Actual',
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add',
+    'AddMonitorDisabled'    => 'Your user is not allowed to add a new monitor',
     'AddNewServer'          => 'Add New Server',
     'AddNewStorage'         => 'Add New Storage',
     'AddNewUser'            => 'Add New User',
@@ -116,6 +122,7 @@ $SLANG = array(
     'Area'                  => 'Area',
     'AreaUnits'             => 'Area (px/%)',
     'AttrAlarmFrames'       => 'Alarm Frames',
+    'AttrAlarmedZone'       => 'Alarmed Zone',
     'AttrArchiveStatus'     => 'Archive Status',
     'AttrAvgScore'          => 'Avg. Score',
     'AttrCause'             => 'Cause',
@@ -123,7 +130,8 @@ $SLANG = array(
     'AttrEndDate'           => 'End Date',
     'AttrStartDateTime'     => 'Start Date/Time',
     'AttrEndDateTime'       => 'End Date/Time',
-    'AttrDiskSpace'         => 'Disk Space',
+    'AttrEventDiskSpace'    => 'Event Disk Space',
+    'AttrDiskSpace'         => 'File System Disk Space',
     'AttrDiskBlocks'        => 'Disk Blocks',
     'AttrDiskPercent'       => 'Disk Percent',
     'AttrDuration'          => 'Duration',
@@ -159,20 +167,23 @@ $SLANG = array(
     'BadAnalysisUpdateDelay'=> 'Analysis update delay must be set to an integer of zero or more',
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
+    'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadFrameSkip'          => 'Frame skip count must be an integer of zero or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
     'BadHeight'             => 'Height must be set to a valid value',
     'BadHost'               => 'Host must be set to a valid ip address or hostname, do not include http://',
-    'BadImageBufferCount'   => 'Image buffer size must be an integer of 10 or more',
+    'BadImageBufferCount'   => 'Image buffer size must be an integer of 2 or more',
     'BadLabelX'             => 'Label X co-ordinate must be set to an integer of zero or more',
     'BadLabelY'             => 'Label Y co-ordinate must be set to an integer of zero or more',
     'BadMaxFPS'             => 'Maximum FPS must be a positive integer or floating point value',
     'BadNameChars'          => 'Names may only contain alphanumeric characters plus spaces, hyphen and underscore',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadColours'            => 'Target colour must be set to a valid value',
+    'BadPassthrough'        => 'Passthrough only works with ffmpeg type monitors.',
     'BadPath'               => 'Path must be set to a valid value',
+    'BadPathNotEncoded'     => 'Path must be set to a valid value. We have detected invalid characters !*\'()$ ,#[] that may need to be url percent encoded.',
     'BadPort'               => 'Port must be set to a valid number',
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
@@ -254,8 +265,14 @@ $SLANG = array(
     'Command'               => 'Command',
     'ConcurrentFilter'      => 'Run filter concurrently',
     'Config'                => 'Config',
+    'ConfigOptions'         => 'ConfigOptions',
+    'ConfigType'            => 'Config Type',
     'ConfiguredFor'         => 'Configured for',
+    'ConfigURL'             => 'Config Base URL',
+    'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
+    'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
+    'ConfirmDeleteTitle'    => 'Delete Confirmation',
     'ConfirmPassword'       => 'Confirm Password',
     'ConjAnd'               => 'and',
     'ConjOr'                => 'or',
@@ -312,8 +329,10 @@ $SLANG = array(
     'DoNativeMotionDetection'=> 'Do Native Motion Detection',
     'Download'              => 'Download',
     'DuplicateMonitorName'  => 'Duplicate Monitor Name',
+    'DuplicateRTSPStreamName' =>  'Duplicate RTSP Stream Name',
     'Duration'              => 'Duration',
     'Edit'                  => 'Edit',
+    'EditControl'           => 'Edit Control',
     'EditLayout'            => 'Edit Layout',
     'Email'                 => 'Email',
     'EnableAlarms'          => 'Enable Alarms',
@@ -338,6 +357,7 @@ $SLANG = array(
     'Export'                => 'Export',
     'DownloadVideo'         => 'Download Video',
     'GenerateDownload'      => 'Generate Download',
+    'ExistsInFileSystem'    => 'Exists In File System',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',
     'ExportFormatTar'       => 'Tar',
@@ -356,11 +376,16 @@ $SLANG = array(
     'Ffmpeg'                => 'Ffmpeg',
     'File'                  => 'File',
     'FilterArchiveEvents'   => 'Archive all matches',
+    'FilterUnarchiveEvents' => 'Unarchive all matches',
     'FilterUpdateDiskSpace' => 'Update used disk space',
     'FilterDeleteEvents'    => 'Delete all matches',
     'FilterCopyEvents'      => 'Copy all matches',
+    'FilterLockRows'        => 'Lock Rows',
     'FilterMoveEvents'      => 'Move all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
+    'FilterEmailTo'    			=> 'Email To',
+    'FilterEmailSubject'	  => 'Email Subject',
+    'FilterEmailBody'   	  => 'Email Body',
     'FilterExecuteEvents'   => 'Execute command on all matches',
     'FilterLog'             => 'Filter log',
     'FilterMessageEvents'   => 'Message details of all matches',
@@ -369,6 +394,7 @@ $SLANG = array(
     'Filters'               => 'Filters',
     'FilterUnset'           => 'You must specify a filter width and height',
     'FilterUploadEvents'    => 'Upload all matches',
+    'FilterUser'            => 'User to run filter as',
     'FilterVideoEvents'     => 'Create video for all matches',
     'First'                 => 'First',
     'FlippedHori'           => 'Flipped Horizontally',
@@ -379,6 +405,7 @@ $SLANG = array(
     'FnRecord'              => 'Record',            // Added 2013.08.16.
     'FnMocord'              => 'Mocord',            // Added 2013.08.16.
     'FnNodect'              => 'Nodect',            // Added 2013.08.16.
+    'FnExtdect'             => 'Extdect',           // Added 2014.12.14.
     'Focus'                 => 'Focus',
     'ForceAlarm'            => 'Force Alarm',
     'Format'                => 'Format',
@@ -397,6 +424,7 @@ $SLANG = array(
     'General'               => 'General',
     'GenerateVideo'         => 'Generate Video',
     'GeneratingVideo'       => 'Generating Video',
+    'GetCurrentLocation'    => 'Get Current Location',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
     'Grey'                  => 'Grey',
     'Group'                 => 'Group',
@@ -422,6 +450,7 @@ $SLANG = array(
     'Idle'                  => 'Idle',
     'Ignore'                => 'Ignore',
     'ImageBufferSize'       => 'Image Buffer Size (frames)',
+    'MaxImageBufferCount'   => 'Maximum Image Buffer Size (frames)',
     'Image'                 => 'Image',
     'Images'                => 'Images',
     'Include'               => 'Include',
@@ -482,6 +511,7 @@ $SLANG = array(
     'MaxZoomStep'           => 'Max Zoom Step',
     'MediumBW'              => 'Medium&nbsp;B/W',
     'Medium'                => 'Medium',
+    'MetaConfig'            => 'Meta Config',
     'MinAlarmAreaLtMax'     => 'Minimum alarm area should be less than maximum',
     'MinAlarmAreaUnset'     => 'You must specify the minimum alarm pixel count',
     'MinBlobAreaLtMax'      => 'Minimum blob area should be less than maximum',
@@ -506,6 +536,7 @@ $SLANG = array(
     'MinPanStep'            => 'Min Pan Step',
     'MinPixelThresLtMax'    => 'Minimum pixel threshold should be less than maximum',
     'MinPixelThresUnset'    => 'You must specify a minimum pixel threshold',
+    'MinSectionlength'      => 'Minimum section length',
     'MinTiltRange'          => 'Min Tilt Range',
     'MinTiltSpeed'          => 'Min Tilt Speed',
     'MinTiltStep'           => 'Min Tilt Step',
@@ -517,6 +548,7 @@ $SLANG = array(
     'MinZoomStep'           => 'Min Zoom Step',
     'Misc'                  => 'Misc',
     'Mode'                  => 'Mode',
+    'ModectDuringPTZ'       => 'Do motion detection during PTZ motion',
     'MonitorIds'            => 'Monitor&nbsp;Ids',
     'Monitor'               => 'Monitor',
     'MonitorPresetIntro'    => 'Select an appropriate preset from the list below.<br/><br/>Please note that this may overwrite any values you already have configured for the current monitor.<br/><br/>',
@@ -631,8 +663,33 @@ $SLANG = array(
     'PrivacyCookiesText'    => 'Whether you use a web browser or a mobile app to communicate with the ZoneMinder server, a ZMSESSID cookie is created on the client to uniquely identify a session with the ZoneMinder server. ZmCSS and zmSkin cookies are created to remember your style and skin choices.',
     'PrivacyTelemetry'      => 'Telemetry',
     'PrivacyTelemetryText'  => 'Because ZoneMinder is open-source, anyone can install it without registering. This makes it difficult to  answer questions such as: how many systems are out there, what is the largest system out there, what kind of systems are out there, or where are these systems located? Knowing the answers to these questions, helps users who ask us these questions, and it helps us set priorities based on the majority user base.',
-    'PrivacyTelemetryList'  => 'The ZoneMinder Telemetry daemon collects the following data about your system:<ul><li>A unique identifier (UUID) <li>City based location is gathered by querying <a href="https://ipinfo.io/geo">ipinfo.io</a>. City, region, country, latitude, and longitude parameters are saved. The latitude and longitude coordinates are accurate down to the city or town level only!<li>Current time<li>Total number of monitors<li>Total number of events<li>System architecture<li>Operating system kernel, distro, and distro version<li>Version of ZoneMinder<li>Total amount of memory<li>Number of cpu cores</ul>',
-    'PrivacyMonitorList'    => 'The following configuration parameters from each monitor are collected:<ul><li>Id<li>Name<li>Type<li>Function<li>Width<li>Height<li>Colours<li>MaxFPS<li>AlarmMaxFPS</ul>',
+    'PrivacyTelemetryList'  => 'The ZoneMinder Telemetry daemon collects the following data about your system:
+    <ul>
+      <li>A unique identifier (UUID)</li>
+      <li>City based location is gathered by querying <a href="https://ipinfo.io/geo">ipinfo.io</a>. City, region, country, latitude, and longitude parameters are saved. The latitude and longitude coordinates are accurate down to the city or town level only!</li>
+      <li>Current time</li>
+      <li>Total number of monitors</li>
+      <li>Total number of events</li>
+      <li>System architecture</li>
+      <li>Operating system kernel, distro, and distro version</li>
+      <li>Version of ZoneMinder</li>
+      <li>Total amount of memory</li>
+      <li>Number of cpu cores</li>
+    </ul>',
+    'PrivacyMonitorList'    => 'The following configuration parameters from each monitor are collected:
+   <ul>
+    <li>Id</li>
+    <li>Name</li>
+    <li>Manufacturer</li>
+    <li>Model</li>
+    <li>Type</li>
+    <li>Function</li>
+    <li>Width</li>
+    <li>Height</li>
+    <li>Colours</li>
+    <li>MaxFPS</li>
+    <li>AlarmMaxFPS</li>
+   </ul>',
     'PrivacyConclusionText' => 'We are <u>NOT</u> collecting any image specific data from your cameras. We don’t know what your cameras are watching. This data will not be sold or used for any purpose not stated herein. By clicking accept, you agree to send us this data to help make ZoneMinder a better product. By clicking decline, you can still freely use ZoneMinder and all its features.',
     'Probe'                 => 'Probe',
     'ProfileProbe'          => 'Stream Probe',
@@ -771,6 +828,7 @@ $SLANG = array(
     'TurboPanSpeed'         => 'Turbo Pan Speed',
     'TurboTiltSpeed'        => 'Turbo Tilt Speed',
     'Type'                  => 'Type',
+    'TZUnset'               => 'Unset - use value in php.ini',
     'Unarchive'             => 'Unarchive',
     'Undefined'             => 'Undefined',
     'Units'                 => 'Units',
@@ -793,6 +851,7 @@ $SLANG = array(
     'VersionRemindHour'     => 'Remind again in 1 hour',
     'VersionRemindNever'    => 'Don\'t remind about new versions',
     'VersionRemindWeek'     => 'Remind again in 1 week',
+    'VersionRemindMonth'    => 'Remind again in 1 month',
     'Version'               => 'Version',
     'ViewMatches'           => 'View Matches',
     'VideoFormat'           => 'Video Format',
@@ -808,7 +867,6 @@ $SLANG = array(
     'ViewEvent'             => 'View Event',
     'ViewPaged'             => 'View Paged',
     'View'                  => 'View',
-	'V4L'					=> 'V4L',
 	'V4LCapturesPerFrame'	=> 'Captures Per Frame',
 	'V4LMultiBuffer'		=> 'Multi Buffering',
     'Wake'                  => 'Wake',
@@ -976,11 +1034,30 @@ $OLANG = array(
     'Help' => '
       Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~
       Examples (do not enter quotes)~~~~
-      "allowed_media_types=video" Set datatype to request fromcam (audio, video, data)~~~~
-      "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets~~~~
-      "loglevel=debug" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)
+      "allowed_media_types=video" Set datatype to request from cam (audio, video, data)~~~~
+      "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets
     '
 	),
+  'OPTIONS_ENCODER_PARAMETERS' => array(
+    'Help' => '
+    Parameters passed to the encoding codec. name=value separated by either , or newline.~~
+    For example to changing quality, use the crf option.  1 is best, 51 is worst 23 is default.~~
+~~
+    crf=23~~
+    ~~
+    You might want to alter the movflags value to support different behaviours. Some people have troubles viewing videos due to the frag_keyframe option, but that option is supposed to allow viewing of incomplete events. See 
+    [https://ffmpeg.org/ffmpeg-formats.html](https://ffmpeg.org/ffmpeg-formats.html)
+    for more information.  ZoneMinder\'s default is frag_keyframe,empty_moov~~
+    ',
+  ),
+  'OPTIONS_DECODERHWACCELNAME' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel command line option.  With intel graphics support, use "vaapi".  For NVIDIA cuda support use "cuda". To check for support, run ffmpeg -hwaccels on the command line.'
+    ),
+  'OPTIONS_DECODERHWACCELDEVICE' => array(
+    'Help' => '
+    This is equivalent to the ffmpeg -hwaccel_device command line option.  You should only have to specify this if you have multiple GPUs.  A typical value for Intel VAAPI would be /dev/dri/renderD128.'
+    ),
     'OPTIONS_RTSPTrans' => array(
       'Help' => '
         This sets the RTSP Transport Protocol for FFmpeg.~~
@@ -1033,10 +1110,97 @@ $OLANG = array(
       certainly not what you want! To unlink monitors you can ctrl-click.
       '
 	),
+  'FUNCTION_NONE' => array(
+    'Help' => '
+      In None mode no processes are started.  No capturing will occur.
+      '
+  ),
+  'FUNCTION_MONITOR' => array(
+    'Help' => '
+      In Monitor mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      No motion detection will be performed.  This monitor type cannot save video.
+      '
+  ),
+  'FUNCTION_MODECT' => array(
+    'Help' => '
+      In Modect mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition the video will be analysed for motion.  
+      When motion is detected, events will be created and video will be stored.
+      Motion data will be stored in the database for each event.
+      Events may also be triggered externally (zmtrigger) or by linked monitors.
+      '
+  ),
+  'FUNCTION_RECORD' => array(
+    'Help' => '
+      In Record mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      Motion detection will not be performed.
+      Events will be created at fixed intervals and video will be stored.
+      '
+  ),
+  'FUNCTION_MOCORD' => array(
+    'Help' => '
+      In Mocord mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition the video will be analysed for motion.  
+      Events will be created at fixed intervals or at start and stop of motion.
+      Video will always be stored to disk and events will have the motion data stored in the database.
+      Events may also be triggered externally (zmtrigger) or by linked monitors.
+      '
+  ),
+  'FUNCTION_NODECT' => array(
+    'Help' => '
+      In Nodect mode the capture process (zmc) will connect to the camera and stream data.
+      It will be decoded if necessary and live viewing will be possible.
+      In addition any linked cameras will be checked for their alarm status. 
+      When linked cameras or an external trigger (zmtrigger) are alarmed, events will be created
+      and video will be stored.  No other motion detection will occur.
+      '
+  ),
+  'FUNCTION_ANALYSIS_ENABLED' => array(
+    'Help' => '
+      When in Modect, Mocord, Nodect or RECORD mode the analysis process can be turned on/off.
+      This setting sets the default state when the process starts up.
+      It can then be turned on/off through external triggers zmtrigger zmu or the web ui.
+      When not enabled no motion detection or linked monitor checking will be performed and 
+      no events will be created.
+      '
+  ),
+  'FUNCTION_DECODING_ENABLED' => array(
+    'Help' => '
+      When in Record or Nodect mode and using H264Passthrough with no jpegs being saved, we can
+      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
+      but will make live view unavailable for this monitor.'
+  ),
+  'FUNCTION_JANUS_ENABLED' => array(
+    'Help' => '
+      Attempt to use Janus streaming server for h264/h265 live view. Experimental, but allows
+      for significantly better performance.'
+  ),
+  'FUNCTION_JANUS_AUDIO_ENABLED' => array(
+    'Help' => '
+      Attempt to enable audio in the Janus stream. Has no effect for cameras without audio support,
+      but can prevent a stream playing if your camera sends an audio format unsupported by the browser.'
+  ),
+  'ImageBufferCount' => array(
+    'Help' => '
+    Number of raw images available in /dev/shm. Currently should be set in the 3-5 range.  Used for live viewing.'
+  ),
+  'MaxImageBufferCount' => array(
+    'Help' => '
+    Maximum number of video packets that will be held in the packet queue.
+    The packetqueue will normally manage itself, keeping Pre Event Count frames or all since last keyframe if using 
+    passthrough mode. You can set a maximum to prevent the monitor from consuming too much ram, but your events might
+    not have all the frames they should if your keyframe interval is larger than this value.
+    You will get errors in your logs about this. So make sure your keyframe interval is low or you have enough ram.
+  '
+  ),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

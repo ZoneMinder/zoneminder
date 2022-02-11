@@ -42,14 +42,13 @@ function evaluateLoadTimes() {
   currentDisplayInterval = Math.min(Math.max(currentDisplayInterval, 40), 10000);
   imageLoadTimesEvaluated=0;
   setSpeed(speedIndex);
-  $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
+  $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
 function getFrame(monId, time, last_Frame) {
   if ( last_Frame ) {
     if (
-      (last_Frame.TimeStampSecs <= time)
-      &&
+      (last_Frame.TimeStampSecs <= time) &&
       (last_Frame.EndTimeStampSecs >= time)
     ) {
       return last_Frame;
@@ -58,7 +57,7 @@ function getFrame(monId, time, last_Frame) {
 
   var events_for_monitor = events_by_monitor_id[monId];
   if ( !events_for_monitor ) {
-    console.log("No events for monitor " + monId);
+    //console.log("No events for monitor " + monId);
     return;
   }
 
@@ -104,12 +103,11 @@ function getFrame(monId, time, last_Frame) {
         continue;
       }
       if (
-        e.FramesById[frame_id].TimeStampSecs == time
-          || (
-            e.FramesById[frame_id].TimeStampSecs < time
-            && (
-              (!e.FramesById[frame_id].NextTimeStampSecs) // only if event.EndTime is null
-             ||
+        e.FramesById[frame_id].TimeStampSecs == time ||
+          (
+            e.FramesById[frame_id].TimeStampSecs < time &&
+            (
+              (!e.FramesById[frame_id].NextTimeStampSecs) || // only if event.EndTime is null
              (e.FramesById[frame_id].NextTimeStampSecs > time)
             )
           )
@@ -277,17 +275,16 @@ function timerFire() {
     clearInterval(timerObj);
     timerObj = null;
     timerInterval = currentDisplayInterval;
-    console.log("Turn off nterrupts timerInterfave" + timerInterval);
+    console.log("Turn off interrupts timerInterfave" + timerInterval);
   }
 
   if ( (currentSpeed > 0 || liveMode != 0) && ! timerObj ) {
     timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
   }
 
-  if ( liveMode ) {
-    console.log("liveMode");
+  if (liveMode) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if ( currentTimeSecs + playSecsPerInterval >= maxTimeSecs ) {
+  } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
     console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
@@ -339,7 +336,7 @@ function drawSliderOnGraph(val) {
       ctx.strokeRect(sliderX+sliderLineWidth, sliderLineWidth, sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
       underSliderX = sliderX;
     }
-    var o = $('scruboutput');
+    var o = document.getElementById('scruboutput');
     if ( liveMode == 1 ) {
       o.innerHTML = "Live Feed @ " + (1000 / currentDisplayInterval).toFixed(1) + " fps";
       o.style.color = "red";
@@ -365,41 +362,41 @@ function drawSliderOnGraph(val) {
   // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
   // If this starts to collide increase some of the extra space
 
-  var o = $('scrubleft');
-  o.innerHTML=secs2dbstr(minTimeSecs);
-  o.style.position="absolute";
-  o.style.bottom=labbottom;
-  o.style.font=labfont;
-  o.style.left="5px";
+  var o = document.getElementById('scrubleft');
+  o.innerHTML = secs2dbstr(minTimeSecs);
+  o.style.position = "absolute";
+  o.style.bottom = labbottom;
+  o.style.font = labfont;
+  o.style.left = "5px";
   if ( numMonitors == 0 ) { // we need a len calculation if we skipped the slider
     len = o.offsetWidth;
   }
   // If the slider will overlay part of this suppress (this is the left side)
   if ( len + 10 > sliderX || cWidth < len * 4 ) {
     // that last check is for very narrow browsers
-    o.style.display="none";
+    o.style.display = "none";
   } else {
-    o.style.display="inline";
-    o.style.display="inline-flex"; // safari won't take this but will just ignore
+    o.style.display = "inline";
+    o.style.display = "inline-flex"; // safari won't take this but will just ignore
   }
 
-  var o = $('scrubright');
-  o.innerHTML=secs2dbstr(maxTimeSecs);
-  o.style.position="absolute";
-  o.style.bottom=labbottom;
-  o.style.font=labfont;
+  var o = document.getElementById('scrubright');
+  o.innerHTML = secs2dbstr(maxTimeSecs);
+  o.style.position = "absolute";
+  o.style.bottom = labbottom;
+  o.style.font = labfont;
   // If the slider will overlay part of this suppress (this is the right side)
   o.style.left=(cWidth - len - 15).toString() + "px";
   if ( sliderX > cWidth - len - 20 || cWidth < len * 4 ) {
-    o.style.display="none";
+    o.style.display = "none";
   } else {
-    o.style.display="inline";
-    o.style.display="inline-flex";
+    o.style.display = "inline";
+    o.style.display = "inline-flex";
   }
 }
 
 function drawGraph() {
-  var divWidth = $('timelinediv').clientWidth;
+  var divWidth = document.getElementById('timelinediv').clientWidth;
   canvas.width = cWidth = divWidth; // Let it float and determine width (it should be sized a bit smaller percentage of window)
   cHeight = parseInt(window.innerHeight * 0.10);
   if ( cHeight < numMonitors * 20 ) {
@@ -463,46 +460,55 @@ function drawGraph() {
 } // end function drawGraph
 
 function redrawScreen() {
+  var dateTimeDiv = $j('#DateTimeDiv');
+  var speedDiv = $j('#SpeedDiv');
+  var timeLineDiv = $j('#timelinediv');
+  var liveButton = $j('#liveButton');
+  var zoomIn = $j('#zoomin');
+  var zoomOut = $j('#zoomout');
+  var panLeft = $j('#panleft');
+  var panRight = $j('#panright');
+  var downloadVideo = $j('#downloadVideo');
+  var scaleDiv = $j('#ScaleDiv');
+  var fit = $j('#fit');
+
   if ( liveMode == 1 ) {
     // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
-    $('DateTimeDiv').style.display="none";
-    $('SpeedDiv').style.display="none";
-    var timelinediv= $('timelinediv');
-    if ( timelinediv ) timelinediv.style.display="none";
-    $('liveButton').innerHTML="History";
-    $('zoomin').style.display="none";
-    $('zoomout').style.display="none";
-    $('panleft').style.display="none";
-    $('panright').style.display="none";
-    if ($('downloadVideo')) $('downloadVideo').style.display="none";
+    dateTimeDiv.hide();
+    speedDiv.hide();
+    timeLineDiv.hide();
+    liveButton.text('History');
+    zoomIn.hide();
+    zoomOut.hide();
+    panLeft.hide();
+    panRight.hide();
+    downloadVideo.hide();
   } else {
     // switch out of liveview mode
-    $('DateTimeDiv').style.display="inline";
-    $('DateTimeDiv').style.display="inline-flex";
-    $('SpeedDiv').style.display="inline";
-    $('SpeedDiv').style.display="inline-flex";
-    $('timelinediv').style.display=null;
-    $('liveButton').innerHTML="Live";
-    $('zoomin').style.display="inline";
-    $('zoomin').style.display="inline-flex";
-    $('zoomout').style.display="inline";
-    $('zoomout').style.display="inline-flex";
-    $('panleft').style.display="inline";
-    $('panleft').style.display="inline-flex";
-    $('panright').style.display="inline";
-    $('panright').style.display="inline-flex";
-    if ($('downloadVideo')) $('downloadVideo').style.display="inline";
+    dateTimeDiv.show();
+    speedDiv.show();
+    timeLineDiv.show();
+    liveButton.text('Live');
+    zoomIn.show();
+    zoomOut.show();
+    panLeft.show();
+    panRight.show();
+    downloadVideo.show();
+
     drawGraph();
   }
 
+  var monitors = $j('#monitors');
   if ( fitMode == 1 ) {
-    $('ScaleDiv').style.display="none";
-    $('fit').innerHTML="Scale";
-    var vh=window.innerHeight;
-    var pos=$('monitors').getPosition();
-    var mh=(vh - pos.y - $('fps').getSize().y);
-    $('monitors').setStyle('height', mh.toString() + "px"); // leave a small gap at bottom
-    if (maxfit2($('monitors').getSize().x, $('monitors').getSize().y) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+    var fps = $j('#fps');
+    var vh = window.innerHeight;
+    var mh = (vh - monitors.position().top - fps.outerHeight());
+
+    scaleDiv.hide();
+    fit.text('Scale');
+    monitors.height(mh.toString() + 'px'); // leave a small gap at bottom
+    if (maxfit2(monitors.outerWidth(), monitors.outerHeight()) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+      console.log("Failed to fit, dropping back to scaled mode");
       fitMode=1-fitMode;
     }
   } else {
@@ -511,10 +517,9 @@ function redrawScreen() {
     for ( var i=0; i<numMonitors; i++ ) {
       monitorCanvasObj[monitorPtr[i]].style.position="";
     }
-    $('monitors').setStyle('height', "auto");
-    $('ScaleDiv').style.display="inline";
-    $('ScaleDiv').style.display="inline-flex";
-    $('fit').innerHTML="Fit";
+    monitors.height('auto');
+    scaleDiv.show();
+    fit.text('fit');
     setScale(currentScale);
   }
   outputUpdate(currentTimeSecs);
@@ -611,7 +616,7 @@ function setFit(value) {
 
 function showScale(newscale) {
   // updates slider only
-  $('scaleslideroutput').innerHTML = parseFloat(newscale).toFixed(2).toString() + " x";
+  $j('#scaleslideroutput').text(parseFloat(newscale).toFixed(2).toString() + " x");
   return;
 }
 
@@ -627,11 +632,11 @@ function setScale(newscale) {
 
 function showSpeed(val) {
   // updates slider only
-  $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
+  $j('#speedslideroutput').text(parseFloat(speeds[val]).toFixed(2).toString() + " x");
 }
 
 function setSpeed(speed_index) {
-  if ( liveMode == 1 ) {
+  if (liveMode == 1) {
     console.log("setSpeed in liveMode?");
     return; // we shouldn't actually get here but just in case
   }
@@ -643,8 +648,11 @@ function setSpeed(speed_index) {
 }
 
 function setLive(value) {
+  // When we submit the context etc goes away but we may still be trying to update
+  // So kill the timer.
+  clearInterval(timerObj);
   liveMode = value;
-  var form = $j('#montagereview_form')[0];
+  var form = document.getElementById('montagereview_form');
   form.elements['live'].value = value;
   form.submit();
   return false;
@@ -668,10 +676,10 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
       maxSecs = parseInt(now);
     }
     maxStr = "&maxTime=" + secs2inputstr(maxSecs);
-    $('maxTime').value = secs2inputstr(maxSecs);
+    $j('#maxTime').val(secs2inputstr(maxSecs));
   }
   if ( minSecs > 0 ) {
-    $('minTime').value = secs2inputstr(minSecs);
+    $j('#minTime').val(secs2inputstr(minSecs));
     minStr = "&minTime=" + secs2inputstr(minSecs);
   }
   if ( maxSecs == 0 && minSecs == 0 ) {
@@ -737,8 +745,16 @@ function click_panright() {
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
   clicknav(minTimeSecs, maxTimeSecs, 0);
 }
+// Manage the DOWNLOAD VIDEO button
 function click_download() {
-  createPopup('?view=download', 'zmDownload', 'download');
+  $j.getJSON(thisUrl + '?request=modal&modal=download')
+      .done(function(data) {
+        insertModalHtml('downloadModal', data.html);
+        $j('#downloadModal').modal('show');
+        // Manage the GENERATE DOWNLOAD button
+        $j('#exportButton').click(exportEvent);
+      })
+      .fail(logAjaxFail);
 }
 function click_all_events() {
   clicknav(0, 0, 0);
@@ -758,16 +774,16 @@ function compSize(a, b) { // sort array by some size parameter  - height seems t
 }
 
 function maxfit2(divW, divH) {
-  var bestFitX=[]; // how we arranged the so-far best match
-  var bestFitX2=[];
-  var bestFitY=[];
-  var bestFitY2=[];
+  var bestFitX = []; // how we arranged the so-far best match
+  var bestFitX2 = [];
+  var bestFitY = [];
+  var bestFitY2 = [];
 
-  var minScale=0.05;
-  var maxScale=5.00;
-  var bestFitArea=0;
-
-  var borders=-1;
+  var minScale = 0.05;
+  var maxScale = 5.00;
+  var bestFitArea = 0;
+  var borders_width=-1;
+  var borders_height=-1;
 
   //monitorPtr.sort(compSize); //Sorts monitors by size in viewport.  If enabled makes captions not line up with graphs.
 
@@ -794,8 +810,12 @@ function maxfit2(divW, divH) {
         return 1; // it's OK
       }
 
-      if ( borders <= 0 ) {
-        borders=$("Monitor"+monId).getStyle("border").toInt() * 2;
+      var monitor_div = $j('#Monitor'+monId);
+      if ( borders_width <= 0 ) {
+        borders_width = parseInt(monitor_div.css('border-left-width')) + parseInt(monitor_div.css('border-right-width'));
+      }
+      if ( borders_height <= 0) {
+        borders_height = parseInt(monitor_div.css('border-top-width')) + parseInt(monitor_div.css('border-bottom-width'));
       } // assume fixed size border, and added to both sides and top/bottom
       // try fitting over first, then down.  Each new one must land at either upper right or lower left corner of last (try in that order)
       // Pick the one with the smallest Y, then smallest X if Y equal
@@ -803,22 +823,36 @@ function maxfit2(divW, divH) {
       var fitY = 999999999;
       for ( adjacent = 0; adjacent < m; adjacent ++ ) {
         // try top right of adjacent
-        if ( doesItFit(thisX2[adjacent]+1, thisY[adjacent], monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, m-1) == 1 ) {
+        if (doesItFit(
+            thisX2[adjacent]+1,
+            thisY[adjacent],
+            monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_width,
+            monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_height,
+            m-1) == 1) {
           if ( thisY[adjacent]<fitY || ( thisY[adjacent] == fitY && thisX2[adjacent]+1 < fitX ) ) {
             fitX = thisX2[adjacent] + 1;
             fitY = thisY[adjacent];
           }
         }
         // try bottom left
-        if ( doesItFit(thisX[adjacent], thisY2[adjacent]+1, monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, m-1) == 1 ) {
+        if (doesItFit(
+            thisX[adjacent],
+            thisY2[adjacent]+1,
+            monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_width,
+            monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_height,
+            m-1) == 1) {
           if ( thisY2[adjacent]+1 < fitY || ( thisY2[adjacent]+1 == fitY && thisX[adjacent] < fitX ) ) {
             fitX = thisX[adjacent];
             fitY = thisY2[adjacent] + 1;
           }
         }
-      }
+      } // end for adjacent < m
       if ( m == 0 ) { // note for the very first one there were no adjacents so the above loop didn't run
-        if ( doesItFit(0, 0, monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, -1) == 1 ) {
+        if ( doesItFit(
+            0, 0,
+            monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_width,
+            monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders_height,
+            -1) == 1 ) {
           fitX = 0;
           fitY = 0;
         }
@@ -828,11 +862,11 @@ function maxfit2(divW, divH) {
         break; // break out of monitor loop flagging we didn't fit
       }
       thisX[m] =fitX;
-      thisX2[m]=fitX + monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
+      thisX2[m]=fitX + monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders_width;
       thisY[m] =fitY;
-      thisY2[m]=fitY + monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
+      thisY2[m]=fitY + monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders_height;
       thisArea += (thisX2[m] - thisX[m])*(thisY2[m] - thisY[m]);
-    }
+    } // end foreach monitor
     if ( allFit == 1 ) {
       minScale=thisScale;
       if (bestFitArea<thisArea) {
@@ -850,12 +884,12 @@ function maxfit2(divW, divH) {
   }
   if ( bestFitArea > 0 ) { // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
     for ( m = 0; m < numMonitors; m++ ) {
-      c = $("Monitor" + monitorPtr[m]);
-      c.style.position="absolute";
-      c.style.left=bestFitX[m].toString() + "px";
-      c.style.top=bestFitY[m].toString() + "px";
-      c.width = bestFitX2[m] - bestFitX[m] + 1 - borders;
-      c.height= bestFitY2[m] - bestFitY[m] + 1 - borders;
+      c = document.getElementById('Monitor' + monitorPtr[m]);
+      c.style.position = 'absolute';
+      c.style.left = bestFitX[m].toString() + "px";
+      c.style.top = bestFitY[m].toString() + "px";
+      c.width = bestFitX2[m] - bestFitX[m] + 1 - borders_width;
+      c.height = bestFitY2[m] - bestFitY[m] + 1 - borders_height;
     }
     return 1;
   } else {
@@ -871,15 +905,15 @@ function showOneMonitor(monId) {
   var url;
   if ( liveMode != 0 ) {
     url = '?view=watch&mid=' + monId.toString();
-    createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId]);
+    window.location.assign(url);
   } else {
     var Frame = getFrame(monId, currentTimeSecs);
     if ( Frame ) {
       url = '?view=event&eid=' + Frame.EventId + '&fid=' + Frame.FrameId;
-      createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
+      window.location.assign(url);
     } else {
       url = '?view=watch&mid=' + monId.toString();
-      createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId]);
+      window.location.assign(url);
     }
   } // end if live/events
 }
@@ -896,7 +930,7 @@ function zoom(monId, scale) {
 
 function clickMonitor(event) {
   var element = event.target;
-  //var monitor_element = $("Monitor"+monId.toString());
+  //var monitor_element = document.getElementById('Monitor'+monId.toString());
   var monId = element.getAttribute('monitor_id');
   var pos_x = event.offsetX ? (event.offsetX) : event.pageX - element.offsetLeft;
   var pos_y = event.offsetY ? (event.offsetY) : event.pageY - element.offsetTop;
@@ -936,6 +970,10 @@ function changeDateTime(e) {
     }
   }
 
+  // Reloading can take a while, so stop interrupts to reduce load
+  clearInterval(timerObj);
+  timerObj = null;
+
   var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
 }
@@ -950,10 +988,23 @@ function initPage() {
     });
   });
 
+  if ( !liveMode ) {
+    canvas = document.getElementById('timeline');
+
+    canvas.addEventListener('mousemove', mmove, false);
+    canvas.addEventListener('touchmove', tmove, false);
+    canvas.addEventListener('mousedown', mdown, false);
+    canvas.addEventListener('mouseup', mup, false);
+    canvas.addEventListener('mouseout', mout, false);
+
+    ctx = canvas.getContext('2d');
+    drawGraph();
+  }
+
   for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
     if ( !monId ) continue;
-    monitorCanvasObj[monId] = $('Monitor'+monId);
+    monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
     if ( !monitorCanvasObj[monId] ) {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
     } else {
@@ -967,30 +1018,10 @@ function initPage() {
         imagedone(this, this.monId, false);
       };
       loadImage2Monitor(monId, monitorImageURL[monId]);
+      monitorCanvasObj[monId].addEventListener('click', clickMonitor, false);
     }
   } // end foreach monitor
 
-  if ( !liveMode ) {
-    canvas = $("timeline");
-
-    canvas.addEventListener('mousemove', mmove, false);
-    canvas.addEventListener('touchmove', tmove, false);
-    canvas.addEventListener('mousedown', mdown, false);
-    canvas.addEventListener('mouseup', mup, false);
-    canvas.addEventListener('mouseout', mout, false);
-
-    ctx = canvas.getContext('2d');
-    drawGraph();
-  }
-  for ( i=0, len=monitorPtr.length; i < len; i += 1 ) {
-    var monitor_id = monitorPtr[i];
-    monitor_canvas = $('Monitor'+monitor_id);
-    if ( ! monitor_canvas ) {
-      console.log("No canvas found for monitor " + monitor_id);
-      continue;
-    }
-    monitor_canvas.addEventListener('click', clickMonitor, false);
-  }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw
   //setLive(liveMode);  // will redraw
@@ -1009,8 +1040,7 @@ function initPage() {
   $j('#maxTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
-    //minDate: $j('#minTime').val(),
-    minDate: -7,
+    minDate: minTime,
     maxDate: +0,
     constrainInput: false,
     onClose: function(newDate, oldData) {

@@ -1,3 +1,9 @@
+<?php
+  global $monIdx;
+  global $nextMid;
+  global $options;
+  global $monitors;
+?>
 var monIdx = '<?php echo $monIdx; ?>';
 var nextMid = "<?php echo isset($nextMid)?$nextMid:'' ?>";
 var mode = "<?php echo $options['mode'] ?>";
@@ -9,13 +15,13 @@ foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
-  'connKey': <?php echo $monitor->connKey() ?>,
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
   'url': '<?php echo $monitor->UrlToIndex() ?>',
-  'onclick': function(){createPopup( '?view=watch&mid=<?php echo $monitor->Id() ?>', 'zmWatch<?php echo $monitor->Id() ?>', 'watch', <?php echo reScale( $monitor->ViewWidth(), $monitor->PopupScale() ); ?>, <?php echo reScale( $monitor->ViewHeight(), $monitor->PopupScale() ); ?> );},
+  'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
   'type': '<?php echo $monitor->Type() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>'
+  'refresh': '<?php echo $monitor->Refresh() ?>',
+  'janusEnabled': <?php echo $monitor->JanusEnabled() ?>
 };
 <?php
 } // end foreach monitor

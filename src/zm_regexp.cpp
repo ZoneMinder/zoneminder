@@ -15,16 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/ 
+*/
 
-#include <string.h>
-
-#include "zm.h"
 #include "zm_regexp.h"
+
+#include "zm_logger.h"
+#include <cstring>
 
 #if HAVE_LIBPCRE
 
-RegExpr::RegExpr( const char *pattern, int flags, int p_max_matches ) : max_matches( p_max_matches ), match_buffers( 0 ), match_lengths( 0 ), match_valid( 0 )
+RegExpr::RegExpr( const char *pattern, int flags, int p_max_matches ) : max_matches( p_max_matches ), match_buffers( nullptr ), match_lengths( nullptr ), match_valid( nullptr )
 {
   const char *errstr;
   int erroffset = 0;
@@ -50,7 +50,7 @@ RegExpr::RegExpr( const char *pattern, int flags, int p_max_matches ) : max_matc
     match_valid = new bool[max_matches];
     memset( match_valid, 0, sizeof(*match_valid)*max_matches );
   } else {
-    match_vectors = NULL;
+    match_vectors = nullptr;
   }
   match_string = "";
   n_matches = 0;

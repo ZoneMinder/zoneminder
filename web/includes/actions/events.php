@@ -31,14 +31,18 @@ if ( !canEdit('Events') ) {
 
 if ( $action == 'archive' ) {
   $dbConn->beginTransaction();
-  foreach( getAffectedIds('eids') as $markEid ) {
+  $eids = getAffectedIds('eids');
+  ZM\Debug("E IDS" . print_r($eids, true));
+  foreach ( $eids as $markEid ) {
     dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(1, $markEid));
   }
   $dbConn->commit();
   $refreshParent = true;
 } else if ( $action == 'unarchive' ) {
   $dbConn->beginTransaction();
-  foreach( getAffectedIds('eids') as $markEid ) {
+  $eids = getAffectedIds('eids');
+  ZM\Debug("E IDS" . print_r($eids, true));
+  foreach ( $eids as $markEid ) {
     dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $markEid));
   }
   $dbConn->commit();
@@ -48,5 +52,7 @@ if ( $action == 'archive' ) {
     deleteEvent($markEid);
   }
   $refreshParent = true;
+} else {
+  ZM\Warning("Unsupported action $action in events");
 }
 ?>

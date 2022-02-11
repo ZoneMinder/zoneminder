@@ -5,32 +5,38 @@ require_once('database.php');
 $object_cache = array();
 
 class ZM_Object {
+  protected $_last_error;
 
   public function __construct($IdOrRow = NULL) {
     $class = get_class($this);
 
     $row = NULL;
-    if ( $IdOrRow ) {
-      if ( is_integer($IdOrRow) or ctype_digit($IdOrRow) ) {
+    if ($IdOrRow) {
+
+      if (is_integer($IdOrRow) or ctype_digit($IdOrRow)) {
         $table = $class::$table;
         $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($IdOrRow));
-        if ( !$row ) {
+        if (!$row) {
           Error("Unable to load $class record for Id=$IdOrRow");
+          return;
         }
-      } elseif ( is_array($IdOrRow) ) {
+      } else if (is_array($IdOrRow)) {
         $row = $IdOrRow;
       }
 
       if ( $row ) {
-        global $object_cache;
-        if ( ! isset($object_cache[$class]) ) {
-          $object_cache[$class] = array();
+        if (!isset($row['Id'])) {
+          Error("No Id in " . print_r($row, true));
+          return;
         }
-        $cache = &$object_cache[$class];
-
         foreach ($row as $k => $v) {
           $this->{$k} = $v;
         }
+        global $object_cache;
+        if (!isset($object_cache[$class])) {
+          $object_cache[$class] = array();
+        }
+        $cache = &$object_cache[$class];
         $cache[$row['Id']] = $this;
       }
     } # end if isset($IdOrRow)
@@ -38,11 +44,29 @@ class ZM_Object {
 
   public function __call($fn, array $args){
     $type = (array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn])) ? $this->defaults[$fn]['type'] : 'scalar';
+
     if ( count($args) ) {
-      if ( $type == 'set' and is_array($args[0]) )
+      if ( $type == 'set' and is_array($args[0]) ) {
         $this->{$fn} = implode(',', $args[0]);
-      else
-        $this->{$fn} = $args[0];
+      } else if ( array_key_exists($fn, $this->defaults) && is_array($this->defaults[$fn]) && isset($this->defaults[$fn]['filter_regexp']) ) {
+        if ( is_array($this->defaults[$fn]['filter_regexp']) ) {
+          foreach ( $this->defaults[$fn]['filter_regexp'] as $regexp ) {
+            $this->{$fn} = preg_replace($regexp, '', $args[0]);
+          }
+        } else {
+          $this->{$fn} = preg_replace($this->defaults[$fn]['filter_regexp'], '', $args[0]);
+        }
+      } else {
+        if ( $args[0] == '' and array_key_exists($fn, $this->defaults) ) {
+          if ( is_array($this->defaults[$fn]) ) {
+            $this->{$fn} = $this->defaults[$fn]['default'];
+          } else {
+            $this->{$fn} = $this->defaults[$fn];
+          }
+        } else {
+          $this->{$fn} = $args[0];
+        }
+      }
     }
 
     if ( property_exists($this, $fn) ) {
@@ -63,7 +87,7 @@ class ZM_Object {
   public static function _find($class, $parameters = null, $options = null ) {
     $table = $class::$table;
     $filters = array();
-    $sql = "SELECT * FROM `$table` ";
+    $sql = 'SELECT * FROM `'.$table.'` ';
     $values = array();
 
     if ( $parameters ) {
@@ -84,13 +108,13 @@ class ZM_Object {
       }
       $sql .= implode(' AND ', $fields );
     }
-    if ( $options ) {
-      if ( isset($options['order']) ) {
-        $sql .= ' ORDER BY ' . $options['order'];
+    if ($options) {
+      if (isset($options['order'])) {
+        $sql .= ' ORDER BY '.$options['order'];
       }
-      if ( isset($options['limit']) ) {
-        if ( is_integer($options['limit']) or ctype_digit($options['limit']) ) {
-          $sql .= ' LIMIT ' . $options['limit'];
+      if (isset($options['limit'])) {
+        if (is_integer($options['limit']) or ctype_digit($options['limit'])) {
+          $sql .= ' LIMIT '.$options['limit'];
         } else {
           $backTrace = debug_backtrace();
           Error('Invalid value for limit('.$options['limit'].') passed to '.get_class()."::find from ".print_r($backTrace,true));
@@ -100,8 +124,8 @@ class ZM_Object {
     }
     $rows = dbFetchAll($sql, NULL, $values);
     $results = array();
-    if ( $rows ) {
-      foreach ( $rows as $row ) {
+    if ($rows) {
+      foreach ($rows as $row) {
         array_push($results , new $class($row));
       }
     }
@@ -110,8 +134,9 @@ class ZM_Object {
 
   public static function _find_one($class, $parameters = array(), $options = array() ) {
     global $object_cache;
-    if ( ! isset($object_cache[$class]) )
+    if (!isset($object_cache[$class])) {
       $object_cache[$class] = array();
+    }
     $cache = &$object_cache[$class];
     if ( 
         ( count($parameters) == 1 ) and
@@ -127,9 +152,18 @@ class ZM_Object {
     return $results[0];
   }
 
-  public static function Objects_Indexed_By_Id($class) {
+  public static function _clear_cache($class) {
+    global $object_cache;
+    $object_cache[$class] = array();
+  }
+  public function _remove_from_cache($class, $object) {
+    global $object_cache;
+    unset($object_cache[$class][$object->Id()]);
+  }
+
+  public static function Objects_Indexed_By_Id($class, $params=null) {
     $results = array();
-    foreach ( ZM_Object::_find($class, null, array('order'=>'lower(Name)')) as $Object ) {
+    foreach ( ZM_Object::_find($class, $params, array('order'=>'lower(Name)')) as $Object ) {
       $results[$Object->Id()] = $Object;
     }
     return $results;
@@ -138,7 +172,7 @@ class ZM_Object {
   public function to_json() {
     $json = array();
     foreach ($this->defaults as $key => $value) {
-      if ( is_callable(array($this, $key)) ) {
+      if ( is_callable(array($this, $key), false) ) {
         $json[$key] = $this->$key();
       } else if ( property_exists($this, $key) ) {
         $json[$key] = $this->{$key};
@@ -150,44 +184,51 @@ class ZM_Object {
   }
 
   public function set($data) {
-    foreach ( $data as $k => $v ) {
-      if ( method_exists($this, $k) ) {
-        $this->{$k}($v);
+    foreach ($data as $field => $value) {
+      if (method_exists($this, $field) and is_callable(array($this, $field), false)) {
+        $this->$field($value);
       } else {
-        if ( is_array($v) ) {
-# perhaps should turn into a comma-separated string
-          $this->{$k} = implode(',', $v);
-        } else if ( is_string($v) ) {
-if ( 0 ) {
-# Remarking this out.  We are setting a value, not asking for a default to be set. 
-# So don't do defaults here, do them somewhere else
-          if ( ($v == null) and array_key_exists($k, $this->defaults) ) {
-Logger::Debug("$k => Have default for $v: ");
-            if ( is_array($this->defaults[$k]) ) {
-              $this->{$k} = $this->defaults[$k]['default'];
-            } else {
-							$this->{$k} = $this->defaults[$k];
-							Logger::Debug("$k => Have default for $v: " . $this->{$k});
-						}
-					} else {
-						$this->{$k} = trim($v);
+        if (is_array($value)) {
+          # perhaps should turn into a comma-separated string
+          $this->{$field} = implode(',', $value);
+        } else if (is_string($value)) {
+          if (array_key_exists($field, $this->defaults)) {
+						# Need filtering
+						if (is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
+							if (is_array($this->defaults[$field]['filter_regexp'])) {
+								foreach ($this->defaults[$field]['filter_regexp'] as $regexp) {
+									$this->{$field} = preg_replace($regexp, '', trim($value));
+								}
+							} else {
+								$this->{$field} = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+							}
+						} else if ($value == '') {
+							if (is_array($this->defaults[$field])) {
+								$this->{$field} = $this->defaults[$field]['default'];
+							} else if (is_string($this->defaults[$field])) {
+# if the default is a string, don't set it. Having a default for empty string is to set null for numbers.
+								$this->{$field} = $value;
+							} else {
+								$this->{$field} = $this->defaults[$field];
+							}
+						} else {
+							$this->{$field} = $value;
+						}  # need a default
+          } else {
+            $this->{$field} = $value;
           }
-} else {
-						$this->{$k} = trim($v);
-}
-
-        } else if ( is_integer($v) ) {
-          $this->{$k} = $v;
-        } else if ( is_bool($v) ) {
-          $this->{$k} = $v;
-        } else if ( is_null($v) ) {
-          $this->{$k} = $v;
+        } else if (is_integer($value)) {
+          $this->{$field} = $value;
+        } else if (is_bool($value)) {
+          $this->{$field} = $value;
+        } else if (is_null($value)) {
+          $this->{$field} = $value;
         } else {
-          Error("Unknown type $k => $v of var " . gettype($v));
-          $this->{$k} = $v;
+          Error("Unknown type $field => $value of var " . gettype($value));
+          $this->{$field} = $value;
         }
       } # end if method_exists
-    } # end foreach $data as $k=>$v
+    } # end foreach $data as $field=>$value
   } # end function set($data)
 
   /* types is an array of fields telling use that the input might be a checkbox so not present in the input, but therefore has a value
@@ -195,88 +236,81 @@ Logger::Debug("$k => Have default for $v: ");
   public function changes($new_values, $defaults=null) {
     $changes = array();
 
-    if ( $defaults ) {
-      foreach ( $defaults as $field => $type ) {
-        if ( isset($new_values[$field]) ) {
-          # Will have already been handled above
-          continue;
-        }
+    if ($defaults) {
+      // FIXME: This code basically means that the new_values must be a full object, not a subset
+      // Perhaps if it only concerned itself with the keys of new_values
+      foreach ($defaults as $field => $type) {
+        if (isset($new_values[$field])) continue;
 
-        if ( isset($this->defaults[$field]) ) {
-          if ( is_array($this->defaults[$field]) ) {
+        if (isset($this->defaults[$field])) {
+          //Debug("Setting default for $field");
+          if (is_array($this->defaults[$field])) {
             $new_values[$field] = $this->defaults[$field]['default'];
           } else {
             $new_values[$field] = $this->defaults[$field];
           }
         }
       } # end foreach default
-    }
-    foreach ( $new_values as $field => $value ) {
+    } # end if defaults
 
-      if ( method_exists($this, $field) ) {
+    foreach ($new_values as $field => $value) {
+      if (method_exists($this, $field)) {
+        if (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
+          if (is_array($this->defaults[$field]['filter_regexp'])) {
+            foreach ($this->defaults[$field]['filter_regexp'] as $regexp) {
+              //Debug("regexping array $field $value to " . preg_replace($regexp, '', trim($value)));
+              $value = preg_replace($regexp, '', trim($value));
+            }
+          } else {
+            //Debug("regexping $field $value to " . preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value)));
+            $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+          }
+        }
+
         $old_value = $this->$field();
-        Logger::Debug("Checking method $field () ".print_r($old_value,true).' => ' . print_r($value,true));
-        if ( is_array($old_value) ) {
+        if (is_array($old_value)) {
           $diff = array_recursive_diff($old_value, $value);
-          Logger::Debug("Checking method $field () diff isi ".print_r($diff,true));
+          //Debug("$field array old: " .print_r($old_value, true) . " new: " . print_r($value, true). ' diff: '. print_r($diff, true));
           if ( count($diff) ) {
             $changes[$field] = $value;
           }
         } else if ( $this->$field() != $value ) {
+          //Debug("$field != $value");
           $changes[$field] = $value;
         }
-      } else if ( property_exists($this, $field) ) {
+      } else if (property_exists($this, $field)) {
         $type = (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field])) ? $this->defaults[$field]['type'] : 'scalar';
-        Logger::Debug("Checking field $field => current ".
-          (is_array($this->{$field}) ? implode(',',$this->{$field}) : $this->{$field}) . ' ?= ' .
-          (is_array($value) ? implode(',', $value) : $value)
-        );
-        if ( $type == 'set' ) {
-          $old_value = is_array($this->$field) ? $this->$field : explode(',', $this->$field);
-          $new_value = is_array($value) ? $value : explode(',', $value);
+        if ($type == 'set') {
+          $old_value = is_array($this->$field) ? $this->$field : ($this->$field ? explode(',', $this->$field) : array());
+          $new_value = is_array($value) ? $value : ($value ? explode(',', $value) : array());
 
           $diff = array_recursive_diff($old_value, $new_value);
-          Logger::Debug("Checking value $field () diff isi ".print_r($diff,true));
-          if ( count($diff) ) {
-            $changes[$field] = $new_value;
-          }
+          if (count($diff)) $changes[$field] = $new_value;
 
           # Input might be a command separated string, or an array
-          
+
         } else {
-          if ( $this->{$field} != $value ) {
-            $changes[$field] = $value;
+          if (array_key_exists($field, $this->defaults) && is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
+            if (is_array($this->defaults[$field]['filter_regexp'])) {
+              foreach ($this->defaults[$field]['filter_regexp'] as $regexp) {
+                $value = preg_replace($regexp, '', trim($value));
+              }
+            } else {
+              $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+            }
           }
+          if ($this->{$field} != $value) $changes[$field] = $value;
         }
-      } else if ( array_key_exists($field, $this->defaults) ) {
-        if ( is_array($this->defaults[$field]) ) {
+      } else if (array_key_exists($field, $this->defaults)) {
+        if (is_array($this->defaults[$field]) and isset($this->defaults[$field]['default'])) {
           $default = $this->defaults[$field]['default'];
         } else {
           $default = $this->defaults[$field];
         }
 
-        Logger::Debug("Checking default $field => ".
-          ( is_array($default) ? implode(',',$default) : $default).
-          ' ' .
-          ( is_array($value) ? implode(',', $value) : $value)
-        );
-        if ( $default != $value ) {
-          $changes[$field] = $value;
-        }
+        if ($default != $value) $changes[$field] = $value;
       }
-
-        #if ( (!array_key_exists($field, $this)) or ( $this->{$field} != $new_values[$field] ) ) {
-      #Logger::Debug("Checking default $field => $default_value changes becaause" . $new_values[$field].' != '.$new_values[$field]);
-          #$changes[$field] = $new_values[$field];
-        ##} else if  {
-      #Logger::Debug("Checking default $field => $default_value changes becaause " . $new_values[$field].' != '.$new_values[$field]);
-          ##array_push( $changes, [$field=>$defaults[$field]] );
-        #}
-      #} else {
-        #Logger::Debug("Checking default $field => $default_value not in new_values");
-      #}
     } # end foreach newvalue
-
 
     return $changes;
   } # end public function changes
@@ -285,10 +319,27 @@ Logger::Debug("$k => Have default for $v: ");
     $class = get_class($this);
     $table = $class::$table;
 
-    if ( $new_values ) {
-      //Logger::Debug("New values" . print_r($new_values, true));
+    if ($new_values) {
       $this->set($new_values);
     }
+
+    # Set defaults.  Note that we only replace "" with null, not other values
+    # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
+    foreach ( $this->defaults as $field => $default ) {
+      if (!property_exists($this, $field)) {
+        if (is_array($default)) {
+          $this->{$field} = $default['default'];
+        } else {
+          $this->{$field} = $default;
+        }
+      } else if ($this->{$field} === '') {
+        if (is_array($default)) {
+          $this->{$field} = $default['default'];
+        } else if ($default == null) {
+          $this->{$field} = $default;
+        }
+      }
+    } # end foreach default
 
     $fields = array_filter(
       $this->defaults,
@@ -305,32 +356,86 @@ Logger::Debug("$k => Have default for $v: ");
     $fields = array_keys($fields);
 
     if ( $this->Id() ) {
-      $sql = 'UPDATE '.$table.' SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
+      $sql = 'UPDATE `'.$table.'` SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
       $values = array_map(function($field){ return $this->{$field};}, $fields);
       $values[] = $this->{'Id'};
-      if ( dbQuery($sql, $values) )
-        return true;
+      if (dbQuery($sql, $values)) return true;
     } else {
       unset($fields['Id']);
 
-      $sql = 'INSERT INTO '.$table.
-        ' ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
+      $sql = 'INSERT INTO `'.$table.
+        '` ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
           ') VALUES ('.
-          implode(', ', array_map(function($field){return '?';}, $fields)).')';
+          implode(', ', array_map(function($field){return (($this->$field() === 'NOW()') ? 'NOW()' : '?');}, $fields)).')';
 
-      $values = array_map(function($field){return $this->$field();}, $fields);
-      if ( dbQuery($sql, $values) ) {
+      # For some reason comparing 0 to 'NOW()' returns false; So we do this.
+      $filtered = array_filter($fields, function($field){ return ( (!$this->$field()) or ($this->$field() != 'NOW()'));});
+      $mapped = array_map(function($field){return $this->$field();}, $filtered);
+      $values = array_values($mapped);
+      if (dbQuery($sql, $values)) {
         $this->{'Id'} = dbInsertId();
         return true;
       }
     }
+    $this->_last_error = dbError($sql);
     return false;
   } // end function save
+
+  public function insert($new_values = null) {
+    $class = get_class($this);
+    $table = $class::$table;
+
+    if ( $new_values ) {
+      $this->set($new_values);
+    }
+
+    # Set defaults.  Note that we only replace "" with null, not other values
+    # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
+    foreach ( $this->defaults as $field => $default ) {
+      if ( (!property_exists($this, $field)) or ($this->{$field} === '') ) {
+        if ( is_array($default) ) {
+          $this->{$field} = $default['default'];
+        } else if ( $default == null ) {
+          $this->{$field} = $default;
+        }
+      }
+    }
+
+    $fields = array_filter(
+      $this->defaults,
+      function($v) {
+        return !(
+          is_array($v)
+          and
+          isset($v['do_not_update'])
+          and
+          $v['do_not_update']
+        );
+      }
+    );
+    $fields = array_keys($fields);
+
+    if ( ! $this->Id() )
+      unset($fields['Id']);
+
+    $sql = 'INSERT INTO `'.$table.
+      '` ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
+        ') VALUES ('.
+        implode(', ', array_map(function($field){return '?';}, $fields)).')';
+
+    $values = array_map(function($field){return $this->$field();}, $fields);
+    if ( dbQuery($sql, $values) ) {
+      if ( ! $this->{'Id'} )
+        $this->{'Id'} = dbInsertId();
+      return true;
+    }
+    return false;
+  } // end function insert
 
   public function delete() {
     $class = get_class($this);
     $table = $class::$table;
-    dbQuery("DELETE FROM $table WHERE Id=?", array($this->{'Id'}));
+    dbQuery("DELETE FROM `$table` WHERE Id=?", array($this->{'Id'}));
     if ( isset($object_cache[$class]) and isset($object_cache[$class][$this->{'Id'}]) )
       unset($object_cache[$class][$this->{'Id'}]);
   }
@@ -341,7 +446,18 @@ Logger::Debug("$k => Have default for $v: ");
     $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($this->Id()));
     if ( !$row ) {
       Error("Unable to lock $class record for Id=".$this->Id());
+    } else {
+      // row may have been modified since initial load
+      foreach ($row as $k => $v) {
+        $this->{$k} = $v;
+      }
     }
+  }
+  public function remove_from_cache() {
+    return ZM_Object::_remove_from_cache(get_class(), $this);
+  }
+  public function get_last_error() {
+    return $this->_last_error;
   }
 } # end class Object
 ?>

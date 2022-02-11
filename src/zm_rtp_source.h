@@ -21,14 +21,14 @@
 #define ZM_RTP_SOURCE_H
 
 #include "zm_buffer.h"
+#include "zm_config.h"
+#include "zm_define.h"
 #include "zm_ffmpeg.h"
-#include "zm_thread.h"
-
-#include <sys/time.h>
-#include <stdint.h>
+#include "zm_time.h"
+#include <condition_variable>
+#include <mutex>
 #include <string>
-
-#if HAVE_LIBAVCODEC
+#include <sys/time.h>
 
 struct RtpDataHeader;
 
@@ -69,7 +69,7 @@ private:
   // Time keys
   uint32_t mRtpClock;
   uint32_t mRtpFactor;
-  struct timeval mBaseTimeReal;
+  SystemTimePoint mBaseTimeReal;
   struct timeval mBaseTimeNtp;
   uint32_t mBaseTimeRtp;
 
@@ -90,14 +90,22 @@ private:
   int mFrameCount;
   bool mFrameGood;
   bool prevM;
-  ThreadData<bool> mFrameReady;
-  ThreadData<bool> mFrameProcessed;
+
+  bool mFrameReady;
+  std::condition_variable mFrameReadyCv;
+  std::mutex mFrameReadyMutex;
+
+  bool mFrameProcessed;
+  std::condition_variable mFrameProcessedCv;
+  std::mutex mFrameProcessedMutex;
+  bool mTerminate;
 
 private:
-  void init( uint16_t seq );
+  void init(uint16_t seq);
 
 public:
   RtpSource( int id, const std::string &localHost, int localPortBase, const std::string &remoteHost, int remotePortBase, uint32_t ssrc, uint16_t seq, uint32_t rtpClock, uint32_t rtpTime, _AVCODECID codecId );
+  ~RtpSource();
   
   bool updateSeq( uint16_t seq );
   void updateJitter( const RtpDataHeader *header );
@@ -182,7 +190,5 @@ public:
     return( ((mLastSrTimeNtpSecs&0xffff)<<16)|(mLastSrTimeNtpFrac>>16) );
   }
 };
-
-#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_RTP_SOURCE_H

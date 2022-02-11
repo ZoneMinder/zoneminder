@@ -4,11 +4,13 @@
 }
 #settingsPanel,
 #zonePoints {
-	width: 600px;
+	max-width: 600px;
+  width: 50%;
 }
 
 #zoneSettings {
   border-collapse: collapse;
+  width: 100%;
 }
 
 #zoneSettings th,
@@ -25,9 +27,16 @@
 }
 
 #definitionPanel {
-    float: left;
     margin: 2px;
     text-align: center;
+}
+#definitionPanel:after {
+  content: ".";
+  display: block;
+  height: 0;
+    font-size: 0;
+  clear: both;
+  visibility: hidden;
 }
 
 #definitionPanel input[type=submit],
@@ -36,7 +45,10 @@
 }
 
 #imagePanel {
+  float: left;
     position: relative;
+    width: 50%;
+    min-width: 647px; /* extra 6 px for padding */
 }
 
 /* NB: The size of the imageFrame determines the area within which the markers
@@ -45,7 +57,23 @@
  * the extreme edges of the imageFrame. */
 #imageFrame {
     position: relative;
-    padding: 0 3px 3px 0; /* Compensate for negative margins in the markers just below. */
+    padding: 3px 4px 4px 3px;
+}
+#imageFrame svg {
+  box-sizing: border-box;
+ position:absolute;
+ top: 3px;
+ left: 3px; 
+ right: 3px;
+ background: none;
+ }
+#imageFrame img {
+  width: 100%;
+  display: block;
+}
+#imageFrame img.alarm ,
+#imageFrame img.alert {
+  padding: 1px;
 }
 
 #imageFrame div {
@@ -132,5 +160,37 @@ width: 100%;
 input[name="newAlarmRgbR"],
 input[name="newAlarmRgbG"],
 input[name="newAlarmRgbB"] {
-width: 30%;
+width: 25%;
+}
+input[name="newZone[MinPixelThreshold]"],
+input[name="newZone[MaxPixelThreshold]"],
+input[name="newZone[FilterX]"],
+input[name="newZone[FilterY]"],
+input[name="newZone[MinFilterPixels]"],
+input[name="newZone[MaxFilterPixels]"],
+input[name="newZone[MinBlobPixels]"],
+input[name="newZone[MaxBlobPixels]"],
+input[name="newZone[MinBlobs]"],
+input[name="newZone[MaxBlobs]"],
+input[name="newZone[MinAlarmPixels]"],
+input[name="newZone[MaxAlarmPixels]"] {
+  width: 90px;
+}
+input.ZonePoint {
+    width: 75px;
+}
+svg {
+  overflow: visible;
+}
+svg circle {
+  fill: green;
+    overflow: visible;
+}
+#monitorState {
+  display: inline;
+  float: left;
+}
+#StreamControlButtons {
+  display: inline;
+  float: right;
 }

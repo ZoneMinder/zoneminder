@@ -16,7 +16,7 @@ my @monitors;
 my $dbh = zmDbConnect();
 
 my $sql = "SELECT * FROM Monitors
-  WHERE find_in_set( Function, 'Modect,Mocord,Nodect' )".
+  WHERE find_in_set( `Function`, 'Modect,Mocord,Nodect' )".
   ( $Config{ZM_SERVER_ID} ? 'AND ServerId=?' : '' )
   ;
 

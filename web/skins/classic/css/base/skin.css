@@ -123,7 +123,7 @@ table th:last-child{
 
 
 a:link {
-    color: #3498db;
+    color: #0fbcf9;
     text-decoration: none;
 }
 
@@ -153,12 +153,8 @@ input,textarea,select,button,.btn-primary {
     background-color: #f8f8f8;
     text-align: left;
     border-radius:4px;
+    margin: 1px 0;
 }
-/*
-input[type=text], input[type=password], input[type="url"], textarea, select {
-    padding: 1px;
-}
-*/
 
 input.noborder {
     border: 0;
@@ -168,6 +164,9 @@ input[disabled] {
     color: #888888;
 }
 
+.modal img {
+    max-width: 100%;
+}
 img {
   display: inline-block;
 }
@@ -326,23 +325,9 @@ ul.tabList li.active a {
     color: #dc143c;
 }
 
-fieldset {
-    border: 1px solid black;
-    padding: 4px;
-    margin-bottom: 8px;
-    border-radius: 2px;
-    -moz-border-radius: 2px;
-    -webkit-border-radius: 2px;
-}
-
-fieldset > legend {
-    padding: 0 2px;
-}
-
 /*
  * Behavior classes
  */
-
 
 .ok, .infoText {
     color: #0fb9b1;
@@ -354,6 +339,14 @@ fieldset > legend {
 
 .alarm, .errorText, .error {
     color: #ff3f34;
+}
+/* Refers to the error box at the top of the web UI */
+#error {
+  width: 100%;
+  padding: 5px;
+  font-weight: bold;
+  background-color: white;
+  color: #ff3f34;
 }
 
 .timedErrorBox {
@@ -445,14 +438,14 @@ th.table-th-sort span.table-th-sort-span {
     float: right;
     width: 12px;
     height: 12px;
-    background: url("/skins/classic/graphics/arrow-s-u.png") no-repeat 0 0;
+    background: url("../skins/classic/graphics/arrow-s-u.png") no-repeat 0 0;
 }
 
 th.table-th-sort-rev span.table-th-sort-span {
     float: right;
     width: 12px;
     height: 12px;
-    background: url("/skins/classic/graphics/arrow-s-d.png") no-repeat 0 0;
+    background: url("../skins/classic/graphics/arrow-s-d.png") no-repeat 0 0;
 }
 
 .table-tr-odd {
@@ -476,6 +469,15 @@ th.table-th-sort-rev span.table-th-sort-span {
     color: white;
     font-weight: 300;
 }
+#header:after {
+  content: ".";
+  display: block;
+  height: 0;
+    font-size: 0;
+  clear: both;
+  visibility: hidden;
+}
+
 
 #header h2 {
     left: 0;
@@ -509,10 +511,11 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #content {
-    width: 96%;
+    width: 100%;
     margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
+    clear: both;
 }
 
 #content p {
@@ -569,11 +572,18 @@ input[type=submit],
     border-color: #3498db;
     text-transform: uppercase;
     font-weight: 200;
-    padding: 5px 10px;
+    padding: 7px 10px 5px 10px;
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
     text-align: center;
+}
+
+.btn-normal,
+.btn-normal:link {
+    color: #fff;
+    background-color: #3498db;
+    border: 1px solid #3498db;
 }
 
 button:hover,
@@ -596,18 +606,6 @@ input[type=submit]:disabled,
 
 }
 
-#options {
-  font-size:90%;
-}
-
-#options .help-block {
-  margin-top: 0;
-}
-
-#options .form-group {
-  margin-bottom: 20px;
-  border-bottom: 1px solid #e7e7e7;
-}
 
 .navbar{
 	margin-bottom: 0 !important;
@@ -662,6 +660,11 @@ margin-left: 0;
 .nav-pills > li > a {
   border-radius: 0;
 }
+
+ul.nav.nav-pills.flex-column {
+  background-color: #f5f5f5; 
+}
+
 .chosen-container {
 text-align: left;
 }
@@ -696,6 +699,10 @@ li.search-choice {
 .gi-4x{font-size: 4em;}
 .gi-5x{font-size: 5em;}
 
+.fa:hover{
+  color: black;
+}
+
 .filterBar {
   margin-top:5px;
   margin-bottom:5px;
@@ -703,4 +710,53 @@ li.search-choice {
    
 .form-check-inline {
   display: inline-block;
+}
+
+#dropdown_storage+div,
+#dropdown_reminder+div,
+#dropdown_bandwidth+div {
+  background-color:#485460;
+}
+
+#framesTable td:hover {
+    cursor: pointer;
+}
+
+.zoom {
+  transform-origin: 70% 50%;
+  transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
+}
+
+.zoom-console {
+  transform-origin: 0% 50%;
+  transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
+}
+
+a.flip {
+  float: right;
+  margin-right: -20px;
+}
+
+#content table.major .colDiskSpace {
+  text-align: right;
+}
+
+#objdetectModal .modal-content {
+    width: fit-content;
+}
+
+#modalLogout .modal-dialog {
+  height: 100%;
+}
+#modalLogout .modal-content {
+  height: 90%;
+}
+#modalLogout .modal-body {
+  overflow:auto;
+}
+#shutdownButton {
+  padding: 3px 10px 5px 10px;
+  color: white;
+}
+#shutdownButton i {
 }

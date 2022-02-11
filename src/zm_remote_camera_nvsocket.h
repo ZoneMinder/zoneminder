@@ -20,28 +20,19 @@
 #ifndef ZM_REMOTE_CAMERA_NVSOCKET_H
 #define ZM_REMOTE_CAMERA_NVSOCKET_H
 
+#include "zm_buffer.h"
 #include "zm_remote_camera.h"
 
-#include "zm_buffer.h"
-#include "zm_regexp.h"
-#include "zm_utils.h"
-
-//
-// Class representing 'http' cameras, i.e. those which are
-// accessed over a network connection using http
-//
 class RemoteCameraNVSocket : public RemoteCamera {
 protected:
   std::string request;
   struct timeval timeout;
-  //struct hostent *hp;
-  //struct sockaddr_in sa;
   int sd;
   Buffer buffer;
 
 public:
   RemoteCameraNVSocket(
-      unsigned int p_monitor_id,
+      const Monitor *monitor,
       const std::string &host,
       const std::string &port,
       const std::string &path,
@@ -56,18 +47,16 @@ public:
       bool p_record_audio );
   ~RemoteCameraNVSocket();
 
-  void Initialise();
-  void Terminate() { Disconnect(); }
-  int Connect();
-  int Disconnect();
-  int SendRequest( std::string );
-  int ReadData( Buffer &buffer, unsigned int bytes_expected=0 );
+  void Initialise() override;
+  void Terminate() override { Disconnect(); }
+  int Connect() override;
+  int Disconnect() override;
+  int SendRequest(std::string);
   int GetResponse();
-  int PrimeCapture();
-  int Capture( Image &image );
-  int PostCapture();
-  int CaptureAndRecord( Image &image, timeval recording, char* event_directory ) {return(0);};
-  int Close() { return 0; };
+  int PrimeCapture() override;
+  int Capture(std::shared_ptr<ZMPacket> &p) override;
+  int PostCapture() override;
+  int Close() override { return 0; };
 };
 
 #endif // ZM_REMOTE_CAMERA_NVSOCKET_H

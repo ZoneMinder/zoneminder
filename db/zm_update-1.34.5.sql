@@ -1,0 +1,5 @@
+--
+-- This updates a 1.34.4 database to 1.34.5
+--
+-- No changes required
+--

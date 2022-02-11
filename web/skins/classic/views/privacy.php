@@ -38,7 +38,7 @@ xhtmlHeaders(__FILE__, translate('Privacy'));
       <h2><?php echo translate('Privacy') ?></h2>
       <h1>ZoneMinder - <?php echo translate('Privacy') ?></h1>
     </div>
-    <div id="content">
+    <div id="content" class="container pt-3">
       <form name="contentForm" id="contentForm" method="post" action="?">
         <input type="hidden" name="view" value="privacy"/>
         <input type="hidden" name="action" value="privacy"/>
@@ -61,13 +61,12 @@ xhtmlHeaders(__FILE__, translate('Privacy'));
         <p><?php echo translate('PrivacyTelemetryList') ?></p>
         <p><?php echo translate('PrivacyMonitorList') ?></p>
         <p><?php echo translate('PrivacyConclusionText') ?></p>
-        <p><?php echo htmlSelect('option', $options, ZM_TELEMETRY_DATA); ?></p>
 
-        <div id="contentButtons">
+        <div id="contentButtons" class="pb-3">
+          <?php echo htmlSelect('option', $options, ZM_TELEMETRY_DATA); ?>
           <button type="submit" value="Apply"><?php echo translate('Apply') ?></button>
         </div>
       </form>
     </div>
   </div>
-</body>
-</html>
+<?php xhtmlFooter() ?>

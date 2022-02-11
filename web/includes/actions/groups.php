@@ -21,9 +21,9 @@
 // Group view actions
 if ( ($action == 'setgroup') && canView('Groups')) {
   if ( !empty($_REQUEST['gid']) ) {
-    setcookie('zmGroup', validInt($_REQUEST['gid']), time()+3600*24*30*12*10);
+    zm_setcookie('zmGroup', validInt($_REQUEST['gid']));
   } else {
-    setcookie('zmGroup', '', time()-3600*24*2);
+    zm_setcookie('zmGroup', '', time()-3600*24*2);
   }
   $refreshParent = true;
   return;

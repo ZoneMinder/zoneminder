@@ -42,6 +42,8 @@ if ( $action == 'version' && isset($_REQUEST['option']) ) {
       $nextReminder += 24*60*60;
     } elseif ( $option == 'week' ) {
       $nextReminder += 7*24*60*60;
+    } elseif ( $option == 'month' ) {
+      $nextReminder += 30*24*60*60;
     }
     dbQuery("UPDATE Config SET Value = '".$nextReminder."' WHERE Name = 'ZM_DYN_NEXT_REMINDER'");
     break;

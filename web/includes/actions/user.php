@@ -18,67 +18,99 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( $action == 'user' ) {
-  if ( canEdit('System') ) {
-    if ( !empty($_REQUEST['uid']) )
-      $dbUser = dbFetchOne('SELECT * FROM Users WHERE Id=?', NULL, array($_REQUEST['uid']));
-    else
-      $dbUser = array();
+global $error_message;
 
-    $types = array();
-    $changes = getFormChanges($dbUser, $_REQUEST['newUser'], $types);
+if ($action == 'Save') {
+  require_once('includes/User.php');
+  $uid = isset($_REQUEST['uid']) ? validInt($_REQUEST['uid']) : 0;
+  $dbUser = new ZM\User($uid);
 
-    if ( function_exists('password_hash') ) {
-      $pass_hash = '"'.password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT).'"';
-    } else {
-      $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
-      ZM\Info('Cannot use bcrypt as you are using PHP < 5.3');
+  if (canEdit('System')) {
+    # Need to check for uniqueness of Username
+    $user_with_my_username = ZM\User::find_one(array('Username'=>$_REQUEST['newUser']['Username']));
+    if ($user_with_my_username and 
+      ( ( $uid and ($user_with_my_username->Id() != $uid) ) or !$uid)
+    ) {
+      $error_message = 'There already exists a user with this Username<br/>';
+      unset($_REQUEST['redirect']);
+      return;
     }
-   
-    if ( $_REQUEST['newUser']['Password'] ) {
-      $changes['Password'] = 'Password = '.$pass_hash;
-    } else {
-      unset($changes['Password']);
-    }
+    # What other tests should we do?
 
-    if ( count($changes) ) {
-      if ( !empty($_REQUEST['uid']) ) {
-        dbQuery('UPDATE Users SET '.implode(', ', $changes).' WHERE Id = ?', array($_REQUEST['uid']));
-        # If we are updating the logged in user, then update our session user data.
-        if ( $user and ( $dbUser['Username'] == $user['Username'] ) )
-          generateAuthHash(ZM_AUTH_HASH_IPS);
-      } else {
-        dbQuery('INSERT INTO Users SET '.implode(', ', $changes));
+    if (isset($_REQUEST['newUser']['MonitorIds']) and is_array($_REQUEST['newUser']['MonitorIds']))
+      $_REQUEST['newUser']['MonitorIds'] = implode(',', $_REQUEST['newUser']['MonitorIds']);
+    if (!empty($_REQUEST['newUser']['Password'])) {
+      $_REQUEST['newUser']['Password'] = password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT);
+    } else {
+      unset($_REQUEST['newUser']['Password']);
+    }
+    if (isset($_REQUEST['newUser']['Language']) and $_REQUEST['newUser']['Language']) {
+      # Verify that the language file exists in the lang directory.
+      if (!file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['newUser']['Language'].'.php')) {
+        $error_message .= 'Error setting Language. New value ' .$_REQUEST['newUser']['Language'].' not saved because '.ZM_PATH_WEB.'/lang/'.$_REQUEST['newUser']['Language'].'.php doesn\'t exist.<br/>';
+        ZM\Error($error_message);
+        unset($_REQUEST['newUser']['Language']);
+        unset($_REQUEST['redirect']);
       }
-      $refreshParent = true;
     }
-    $view = 'none';
-  } else if ( ZM_USER_SELF_EDIT and ( $_REQUEST['uid'] == $user['Id'] ) ) {
-    $uid = $user['Id'];
+    $changes = $dbUser->changes($_REQUEST['newUser']);
+    ZM\Debug('Changes: ' . print_r($changes, true));
 
-    $dbUser = dbFetchOne('SELECT Id, Password, Language FROM Users WHERE Id = ?', NULL, array($uid));
+    if (count($changes)) {
+      if (!$dbUser->save($changes)) {
+        $error_message .= $dbUser->get_last_error().'<br/>';
+        unset($_REQUEST['redirect']);
+        return;
+      }
 
-    $types = array();
-    $changes = getFormChanges($dbUser, $_REQUEST['newUser'], $types);
+      if ($uid) {
+        if ($user and ($dbUser->Username() == $user['Username'])) {
+          # We are the logged in user, need to update the $user object and generate a new auth_hash
+          $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
+          $user = dbFetchOne($sql, NULL, array($uid));
 
-    if (function_exists ('password_hash')) {
-      $pass_hash = '"'.password_hash($pass, PASSWORD_BCRYPT).'"';
+          # Have to update auth hash in session
+          zm_session_start();
+          generateAuthHash(ZM_AUTH_HASH_IPS, true);
+          session_write_close();
+        }
+      }
+    } # end if changes
+  } else if (ZM_USER_SELF_EDIT and ($uid == $user['Id'])) {
+    if (!empty($_REQUEST['newUser']['Password'])) {
+      $_REQUEST['newUser']['Password'] = password_hash($_REQUEST['newUser']['Password'], PASSWORD_BCRYPT);
     } else {
-      $pass_hash = ' PASSWORD('.dbEscape($_REQUEST['newUser']['Password']).') ';
-      ZM\Info ('Cannot use bcrypt as you are using PHP < 5.3');
+      unset($_REQUEST['newUser']['Password']);
     }
+    if (isset($_REQUEST['newUser']['Language']) and $_REQUEST['newUser']['Language']) {
+      # Verify that the language file exists in the lang directory.
+      if (!file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['newUser']['Language'].'.php')) {
+        $error_message .= 'Error setting Language. New value ' .$_REQUEST['newUser']['Language'].' not saved because '.ZM_PATH_WEB.'/lang/'.$_REQUEST['newUser']['Language'].'.php doesn\'t exist.<br/>';
+        ZM\Error($error_message);
+        unset($_REQUEST['newUser']['Language']);
+        unset($_REQUEST['redirect']);
+      }
+    }
+    $fields = array('Password'=>'', 'Language'=>'', 'HomeView'=>'');
+    ZM\Debug("changes: ".print_r(array_intersect_key($_REQUEST['newUser'], $fields),true));
+    $changes = $dbUser->changes(array_intersect_key($_REQUEST['newUser'], $fields));
+    ZM\Debug("changes: ".print_r($changes, true));
 
-    if ( !empty($_REQUEST['newUser']['Password']) ) {
-      $changes['Password'] = 'Password = '.$pass_hash;
-    } else {
-      unset($changes['Password']);
+    if (count($changes)) {
+      if (!$dbUser->save($changes)) {
+        $error_message .= $dbUser->get_last_error();
+        unset($_REQUEST['redirect']);
+        return;
+      }
+
+      # We are the logged in user, need to update the $user object and generate a new auth_hash
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
+      $user = dbFetchOne($sql, NULL, array($uid));
+      
+      zm_session_start();
+      generateAuthHash(ZM_AUTH_HASH_IPS, true);
+      session_write_close();
     }
-    if ( count($changes) ) {
-      dbQuery('UPDATE Users SET '.implode(', ', $changes).' WHERE Id=?', array($uid));
-      $refreshParent = true;
-      generateAuthHash(ZM_AUTH_HASH_IPS);
-    }
-    $view = 'none';
   }
 } // end if $action == user
 ?>

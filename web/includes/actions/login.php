@@ -29,8 +29,13 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
     && ZM_OPT_USE_GOOG_RECAPTCHA
     && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY
-    && ZM_OPT_GOOG_RECAPTCHA_SITEKEY )
-  {
+    && ZM_OPT_GOOG_RECAPTCHA_SITEKEY
+  ) {
+    if ( !isset($_REQUEST['g-recaptcha-response']) ) {
+      ZM\Error('reCaptcha authentication failed. No g-recpatcha-response in REQUEST: ');
+      unset($user); // unset should be ok here because we aren't in a function
+      return;
+    }
     $url = 'https://www.google.com/recaptcha/api/siteverify';
     $fields = array (
       'secret'    => ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,
@@ -49,14 +54,23 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
       // as it produces the same error as when you don't answer a recaptcha
       if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
         if ( !in_array('invalid-input-secret', $responseData['error-codes']) ) {
-          Error('reCaptcha authentication failed');
+          ZM\Error('reCaptcha authentication failed. response was: ' . print_r($responseData['error-codes'],true));
           unset($user); // unset should be ok here because we aren't in a function
           return;
         } else {
-          Error('Invalid recaptcha secret detected');
+          ZM\Error('Invalid recaptcha secret detected');
         }
       }
     } // end if success==false
+    if ( ! (empty($_REQUEST['username']) or empty($_REQUEST['password'])) ) {
+      $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
+      if ( !$ret[0] ) {
+        ZM\Error($ret[1]);
+        unset($user); // unset should be ok here because we aren't in a function
+      } else {
+        $user = $ret[0];
+      }
+    } # end if have username and password
   } // end if using reCaptcha
 
   // if captcha existed, it was passed

@@ -107,6 +107,7 @@ sub zmDbConnect {
         .$socket . $sslOptions . ($options?join(';', '', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
         , $ZoneMinder::Config::Config{ZM_DB_USER}
         , $ZoneMinder::Config::Config{ZM_DB_PASS}
+        , { mysql_enable_utf8 => 1, }
         );
     };
     if ( !$dbh or $@ ) {
@@ -146,15 +147,15 @@ sub zmDbGetMonitors {
 
   if ( $function ) {
     if ( $function == DB_MON_CAPT ) {
-      $sql .= " where Function >= 'Monitor'";
+      $sql .= " WHERE `Function` >= 'Monitor'";
     } elsif ( $function == DB_MON_ACTIVE ) {
-      $sql .= " where Function > 'Monitor'";
+      $sql .= " WHERE `Function` > 'Monitor'";
     } elsif ( $function == DB_MON_MOTION ) {
-      $sql .= " where Function = 'Modect' or Function = 'Mocord'";
+      $sql .= " WHERE `Function` = 'Modect' OR `Function` = 'Mocord'";
     } elsif ( $function == DB_MON_RECORD ) {
-      $sql .= " where Function = 'Record' or Function = 'Mocord'";
+      $sql .= " WHERE `Function` = 'Record' OR `Function` = 'Mocord'";
     } elsif ( $function == DB_MON_PASSIVE ) {
-      $sql .= " where Function = 'Nodect'";
+      $sql .= " WHERE `Function` = 'Nodect'";
     }
   }
   my $sth = $dbh->prepare_cached( $sql );
@@ -266,15 +267,17 @@ sub end_transaction {
 } # end sub end_transaction
 
 # Basic execution of $dbh->do but with some pretty logging of the sql on error.
-# Returns 1 on success, 0 on error
 sub zmDbDo {
 	my $sql = shift;
-	if ( ! $dbh->do($sql, undef, @_) ) {
+  my $rows = $dbh->do($sql, undef, @_);
+	if ( ! defined $rows ) {
 		$sql =~ s/\?/'%s'/;
 		Error(sprintf("Failed $sql :", @_).$dbh->errstr());
-    return 0;
+  } elsif ( ZoneMinder::Logger::logLevel() > INFO ) {
+		$sql =~ s/\?/'%s'/;
+		Debug(sprintf("Succeeded $sql : $rows rows affected", @_));
 	}
-  return 1;
+  return $rows;
 }
 
 1;

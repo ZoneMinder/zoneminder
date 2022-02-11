@@ -22,10 +22,7 @@
 
 #include "zm_camera.h"
 
-#include "zm_buffer.h"
-#include "zm_ffmpeg.h"
-#include "zm_videostore.h"
-#include "zm_packetqueue.h"
+#include <memory>
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
@@ -39,29 +36,21 @@ typedef struct DecodeContext {
 class FfmpegCamera : public Camera {
   protected:
     std::string         mPath;
+    std::string         mSecondPath;
     std::string         mMethod;
     std::string         mOptions;
+
+    std::string         encoder_options;
     std::string         hwaccel_name;
     std::string         hwaccel_device;
 
     int frameCount;    
 
-#if HAVE_LIBAVFORMAT
-    AVFormatContext     *mFormatContext;
-    int                 mVideoStreamId;
-    int                 mAudioStreamId;
-    AVCodecContext      *mVideoCodecContext;
-    AVCodecContext      *mAudioCodecContext;
-    AVCodec             *mVideoCodec;
-    AVCodec             *mAudioCodec;
-    AVFrame             *mRawFrame; 
-    AVFrame             *mFrame;
     _AVPIXELFORMAT      imagePixFormat;
-    AVFrame             *input_frame;         // Use to point to mRawFrame or hwFrame;
 
-    AVFrame             *hwFrame; // Will also be used to indicate if hwaccel is in use
+    bool                use_hwaccel; //will default to on if hwaccel specified, will get turned off if there is a failure
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
-    AVBufferRef *hw_device_ctx = NULL;
+    AVBufferRef *hw_device_ctx = nullptr;
 #endif
 
     // Used to store the incoming packet, it will get copied when queued. 
@@ -70,24 +59,18 @@ class FfmpegCamera : public Camera {
     AVPacket packet;       
 
     int OpenFfmpeg();
-    int Close();
+    int Close() override;
     bool mCanCapture;
-#endif // HAVE_LIBAVFORMAT
 
-    VideoStore          *videoStore;
-    zm_packetqueue      *packetqueue;
-    bool                have_video_keyframe;
-
-#if HAVE_LIBSWSCALE
     struct SwsContext   *mConvertContext;
-#endif
 
     int                 error_count;
 
   public:
     FfmpegCamera(
-        int p_id,
+        const Monitor *monitor,
         const std::string &path,
+        const std::string &second_path,
         const std::string &p_method,
         const std::string &p_options,
         int p_width,
@@ -108,16 +91,11 @@ class FfmpegCamera : public Camera {
     const std::string &Options() const { return mOptions; } 
     const std::string &Method() const { return mMethod; }
 
-    void Initialise();
-    void Terminate();
-
-    int PrimeCapture();
-    int PreCapture();
-    int Capture( Image &image );
-    int CaptureAndRecord( Image &image, timeval recording, char* event_directory );
-    int PostCapture();
+    int PrimeCapture() override;
+    int PreCapture() override;
+    int Capture(std::shared_ptr<ZMPacket> &p) override;
+    int PostCapture() override;
   private:
     static int FfmpegInterruptCallback(void*ctx);
-    int transfer_to_image(Image &i, AVFrame *output_frame, AVFrame *input_frame);
 };
 #endif // ZM_FFMPEG_CAMERA_H

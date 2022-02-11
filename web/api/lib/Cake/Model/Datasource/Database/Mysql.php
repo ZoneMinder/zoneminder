@@ -120,6 +120,7 @@ class Mysql extends DboSource {
 		'primary_key' => array('name' => 'NOT NULL AUTO_INCREMENT'),
 		'string' => array('name' => 'varchar', 'limit' => '255'),
 		'text' => array('name' => 'text'),
+		'enum' => array('name' => 'enum'),
 		'biginteger' => array('name' => 'bigint', 'limit' => '20'),
 		'integer' => array('name' => 'int', 'limit' => '11', 'formatter' => 'intval'),
 		'smallinteger' => array('name' => 'smallint', 'limit' => '6', 'formatter' => 'intval'),
@@ -305,7 +306,7 @@ class Mysql extends DboSource {
  * Query charset by collation
  *
  * @param string $name Collation name
- * @return string Character set name
+ * @return string|false Character set name
  */
 	public function getCharsetName($name) {
 		if ((bool)version_compare($this->getVersion(), "5", "<")) {
@@ -391,7 +392,7 @@ class Mysql extends DboSource {
  * @param array $fields The fields to update.
  * @param array $values The values to set.
  * @param mixed $conditions The conditions to use.
- * @return array
+ * @return bool
  */
 	public function update(Model $model, $fields = array(), $values = null, $conditions = null) {
 		if (!$this->_useAlias) {
@@ -545,7 +546,7 @@ class Mysql extends DboSource {
  *
  * @param array $compare Result of a CakeSchema::compare()
  * @param string $table The table name.
- * @return array Array of alter statements to make.
+ * @return string|false String of alter statements to make.
  */
 	public function alterSchema($compare, $table = null) {
 		if (!is_array($compare)) {

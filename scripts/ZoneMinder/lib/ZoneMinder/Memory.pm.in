@@ -42,6 +42,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # will save memory.
 our %EXPORT_TAGS = (
     constants => [ qw(
+      STATE_UNKNOWN
       STATE_IDLE
       STATE_PREALARM
       STATE_ALARM
@@ -98,11 +99,12 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 
-use constant STATE_IDLE     => 0;
-use constant STATE_PREALARM => 1;
-use constant STATE_ALARM    => 2;
-use constant STATE_ALERT    => 3;
-use constant STATE_TAPE     => 4;
+use constant STATE_UNKNOWN  => 0;
+use constant STATE_IDLE     => 1;
+use constant STATE_PREALARM => 2;
+use constant STATE_ALARM    => 3;
+use constant STATE_ALERT    => 4;
+use constant STATE_TAPE     => 5;
 
 use constant ACTION_GET     => 1;
 use constant ACTION_SET     => 2;
@@ -144,9 +146,11 @@ our $mem_seq = 0;
 our $mem_data = {
   shared_data => { type=>'SharedData', seq=>$mem_seq++, contents=> {
     size             => { type=>'uint32', seq=>$mem_seq++ },
-    last_write_index => { type=>'uint32', seq=>$mem_seq++ },
-    last_read_index  => { type=>'uint32', seq=>$mem_seq++ },
+    last_write_index => { type=>'int32', seq=>$mem_seq++ },
+    last_read_index  => { type=>'int32', seq=>$mem_seq++ },
     state            => { type=>'uint32', seq=>$mem_seq++ },
+    capture_fps      => { type=>'double', seq=>$mem_seq++ },
+    analysis_fps     => { type=>'double', seq=>$mem_seq++ },
     last_event       => { type=>'uint64', seq=>$mem_seq++ },
     action           => { type=>'uint32', seq=>$mem_seq++ },
     brightness       => { type=>'int32', seq=>$mem_seq++ },
@@ -160,12 +164,17 @@ our $mem_data = {
     signal           => { type=>'uint8', seq=>$mem_seq++ },
     format           => { type=>'uint8', seq=>$mem_seq++ },
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
-    epadding1        => { type=>'uint32', seq=>$mem_seq++ },
+    last_frame_score => { type=>'uint32', seq=>$mem_seq++ },
+    audio_frequency  => { type=>'uint32', seq=>$mem_seq++ },
+    audio_channels   => { type=>'uint32', seq=>$mem_seq++ },
     startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
+    zmc_heartbeat_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
     alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
+    video_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
+    audio_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {
@@ -212,7 +221,7 @@ sub zmMemInit {
           || $member_data->{type} eq 'bool4'
           ) {
         $member_data->{size} = $member_data->{align} = 4;
-      } elsif ($member_data->{type} eq 'int16'
+      } elsif ( $member_data->{type} eq 'int16'
           || $member_data->{type} eq 'uint16'
           ) {
         $member_data->{size} = $member_data->{align} = 2;
@@ -221,6 +230,8 @@ sub zmMemInit {
           || $member_data->{type} eq 'bool1'
           ) {
         $member_data->{size} = $member_data->{align} = 1;
+      } elsif ( $member_data->{type} eq 'double' ) {
+        $member_data->{size} = $member_data->{align} = 8;
       } elsif ( $member_data->{type} =~ /^u?int8\[(\d+)\]$/ ) {
         $member_data->{size} = $1;
         $member_data->{align} = 1;
@@ -234,7 +245,7 @@ sub zmMemInit {
         $offset += ($member_data->{align} - ($offset%$member_data->{align}));
       }
       $member_data->{offset} = $offset;
-      $offset += $member_data->{size}
+      $offset += $member_data->{size};
     }
     $section_data->{size} = $offset - $section_data->{offset};
   }
@@ -297,11 +308,11 @@ sub zmMemVerify {
     Error("Shared data not valid for monitor $$monitor{Id}");
     return undef;
   } else {
-    Debug("Shared data appears valid for monitor $$monitor{Id}: $valid");
+    Debug(3, "Shared data appears valid for monitor $$monitor{Id}: $valid");
   }
 
   return !undef;
-}
+} # end sub zmMemVerify
 
 sub zmMemRead {
   my $monitor = shift;
@@ -320,7 +331,7 @@ sub zmMemRead {
     my $size = $mem_data->{$section}->{contents}->{$element}->{size};
 
     if (!defined $offset || !defined $type || !defined $size) {
-        Error('Invalid field:'.$field.' setting to undef and exiting zmMemRead');
+        Error('Invalid field:'.$field.' setting to undef and exiting zmMemRead offset:'.$offset.' type:'.$type.' size:'.$size);
         zmMemInvalidate($monitor);
         return undef;
     }   
@@ -353,7 +364,9 @@ sub zmMemRead {
     } elsif ( $type eq 'int8' ) {
       ( $value ) = unpack('c', $data);
     } elsif ( $type eq 'uint8' || $type eq 'bool1' ) {
-      ( $value ) = unpack( 'C', $data );
+      ( $value ) = unpack('C', $data);
+    } elsif ( $type eq 'double' ) {
+      ( $value ) = unpack('d', $data);
     } elsif ( $type =~ /^int8\[\d+\]$/ ) {
       ( $value ) = unpack('Z'.$size, $data);
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
@@ -375,10 +388,8 @@ sub zmMemInvalidate {
   my $mem_key = zmMemKey($monitor);
   if ( $mem_key ) {
     zmMemDetach($monitor);
-  } else {
-    Warning('no memkey in zmMemInvalidate');
   }
-}
+} # end sub zmMemInvalidate
 
 sub zmMemTidy {
   zmMemClean();
@@ -504,10 +515,10 @@ sub zmHasAlarmed {
   my $last_event_id = shift;
 
   my ( $state, $last_event ) = zmMemRead($monitor,
-    ['shared_data:state' ,'shared_data:last_event']
+    ['shared_data:state', 'shared_data:last_event']
   );
 
-  if ( $state == STATE_ALARM || $state == STATE_ALERT ) {
+  if ( $state == STATE_ALARM or $state == STATE_ALERT ) {
     return $last_event;
   } elsif( $last_event != $last_event_id ) {
     return $last_event;

@@ -3,10 +3,13 @@
 %global zmgid_final apache
 
 # Crud is configured as a git submodule
-%global crud_version 3.1.0-zm
+%global crud_version 3.2.0
 
 # CakePHP-Enum-Behavior is configured as a git submodule
 %global ceb_version 1.0-zm
+
+# RtspServer is configured as a git submodule
+%global rtspserver_commit     cd7fd49becad6010a1b8466bfebbd93999a39878
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
@@ -14,40 +17,51 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Fedora needs apcu backwards compatibility module
-%if 0%{?fedora}
-%global with_apcu_bc 1
-%endif
-
 # Newer php's keep json functions in a subpackage
 %if 0%{?fedora} || 0%{?rhel} >= 8
 %global with_php_json 1
+%endif
+
+# el7 uses cmake3 package and macros
+%if 0%{?rhel} == 7
+%global cmake %{cmake3}
+%global cmake_build %{cmake3_build}
+%global cmake_install %{cmake3_install}
+%global cmake_pkg_name cmake3
+%else
+%global cmake_pkg_name cmake
 %endif
 
 # The default for everything but el7 these days
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.33.16
+Version: 1.37.11
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
-# Mootools is inder the MIT license: http://mootools.net/
+# jQuery is under the MIT license: https://jquery.org/license/
 # CakePHP is under the MIT license: https://github.com/cakephp/cakephp
 # Crud is under the MIT license: https://github.com/FriendsOfCake/crud
 # CakePHP-Enum-Behavior is under the MIT license: https://github.com/asper/CakePHP-Enum-Behavior
+# Bootstrap is under the MIT license: https://getbootstrap.com/docs/4.5/about/license/
+# Bootstrap-table is under the MIT license: https://bootstrap-table.com/docs/about/license/
+# font-awesome is under CC-BY license: https://fontawesome.com/license/free
+# RtspServer is under the MIT license: https://github.com/PHZ76/RtspServer/blob/master/LICENSE
 License: GPLv2+ and LGPLv2+ and MIT
 URL: http://www.zoneminder.com/
 
 Source0: https://github.com/ZoneMinder/ZoneMinder/archive/%{version}.tar.gz#/zoneminder-%{version}.tar.gz
-Source1: https://github.com/ZoneMinder/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
+Source1: https://github.com/FriendsOfCake/crud/archive/v%{crud_version}.tar.gz#/crud-%{crud_version}.tar.gz
 Source2: https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/%{ceb_version}.tar.gz#/cakephp-enum-behavior-%{ceb_version}.tar.gz
+Source3: https://github.com/ZoneMinder/RtspServer/archive/%{rtspserver_commit}.tar.gz#/RtspServer-%{rtspserver_commit}.tar.gz
 
+%{?rhel:BuildRequires: epel-rpm-macros}
 BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
-BuildRequires: cmake3
+BuildRequires: %{cmake_pkg_name}
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
 BuildRequires: pcre-devel 
@@ -84,10 +98,6 @@ BuildRequires: zlib-devel
 BuildRequires: ffmpeg
 BuildRequires: ffmpeg-devel
 
-# Required for mp4 container support
-BuildRequires: libmp4v2-devel
-BuildRequires: x264-devel
-
 # Allow existing user base to seamlessly transition to sub-packages
 Requires: %{name}-common%{?_isa} = %{version}-%{release}
 Requires: %{name}-httpd%{?_isa} = %{version}-%{release}
@@ -111,8 +121,8 @@ Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
 %{?with_php_json:Requires: php-json}
-Requires: php-pecl-apcu
-%{?with_apcu_bc:Requires: php-pecl-apcu-bc}
+%{?fedora:Requires: php-pecl-memcached}
+%{?rhel:Requires: php-pecl-apcu}
 Requires: cambozola
 Requires: net-tools
 Requires: psmisc
@@ -197,25 +207,30 @@ gzip -dc %{_sourcedir}/cakephp-enum-behavior-%{ceb_version}.tar.gz | tar -xvvf -
 rm -rf ./web/api/app/Plugin/CakePHP-Enum-Behavior
 mv -f CakePHP-Enum-Behavior-%{ceb_version} ./web/api/app/Plugin/CakePHP-Enum-Behavior
 
+gzip -dc %{_sourcedir}/RtspServer-%{rtspserver_commit}.tar.gz | tar -xvvf -
+rm -rf ./dep/RtspServer
+mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
+
 # Change the following default values
 ./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
-./utils/zmeditconfigdata.sh ZM_UPLOAD_FTP_LOC_DIR %{_localstatedir}/spool/zoneminder-upload
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
-./utils/zmeditconfigdata.sh ZM_DYN_SHOW_DONATE_REMINDER no
-./utils/zmeditconfigdata.sh ZM_OPT_FAST_DELETE no
 
 %build
-%cmake3 \
+# Disable LTO due to top level asm
+# See https://fedoraproject.org/wiki/LTOByDefault
+%define _lto_cflags %{nil}
+
+%cmake \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
         -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
         .
 
-%make_build
+%cmake_build
 
 %install
-%make_install
+%cmake_install
 
 desktop-file-install					\
 	--dir %{buildroot}%{_datadir}/applications	\
@@ -255,6 +270,32 @@ fi
 echo -e "\nVERY IMPORTANT: Before starting ZoneMinder, you must read the README file\nto finish the installation or upgrade!"
 echo -e "\nThe README file is located here: %{_pkgdocdir}-common/README\n"
 
+# Neither the Apache nor Nginx packages create an SSL certificate anymore, so lets do that here
+if [ -f %{sslkey} -o -f %{sslcert} ]; then
+   exit 0
+fi
+
+umask 077
+%{_bindir}/openssl genrsa -rand /proc/cpuinfo:/proc/filesystems:/proc/interrupts:/proc/ioports:/proc/uptime 2048 > %{sslkey} 2> /dev/null
+
+FQDN=`hostname`
+# A >59 char FQDN means "root@FQDN" exceeds 64-char max length for emailAddress
+if [ "x${FQDN}" = "x" -o ${#FQDN} -gt 59 ]; then
+   FQDN=localhost.localdomain
+fi
+
+cat << EOF | %{_bindir}/openssl req -new -key %{sslkey} \
+         -x509 -sha256 -days 365 -set_serial $RANDOM -extensions v3_req \
+         -out %{sslcert} 2>/dev/null
+--
+SomeState
+SomeCity
+SomeOrganization
+SomeOrganizationalUnit
+${FQDN}
+root@${FQDN}
+EOF
+
 %post httpd
 # For the case of changing from nginx <-> httpd, files in these folders must change ownership if they exist
 %{_bindir}/chown -R %{zmuid_final}:%{zmgid_final} %{_sharedstatedir}/php/session/* >/dev/null 2>&1 || :
@@ -286,32 +327,6 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/gpasswd -a nginx video >/dev/null 2>&1 || :
 %{_bindir}/gpasswd -a nginx dialout >/dev/null 2>&1 || :
 
-# Nginx does not create an SSL certificate like the apache package does so lets do that here
-if [ -f %{sslkey} -o -f %{sslcert} ]; then
-   exit 0
-fi
-
-umask 077
-%{_bindir}/openssl genrsa -rand /proc/apm:/proc/cpuinfo:/proc/dma:/proc/filesystems:/proc/interrupts:/proc/ioports:/proc/pci:/proc/rtc:/proc/uptime 2048 > %{sslkey} 2> /dev/null
-
-FQDN=`hostname`
-# A >59 char FQDN means "root@FQDN" exceeds 64-char max length for emailAddress
-if [ "x${FQDN}" = "x" -o ${#FQDN} -gt 59 ]; then
-   FQDN=localhost.localdomain
-fi
-
-cat << EOF | %{_bindir}/openssl req -new -key %{sslkey} \
-         -x509 -sha256 -days 365 -set_serial $RANDOM -extensions v3_req \
-         -out %{sslcert} 2>/dev/null
---
-SomeState
-SomeCity
-SomeOrganization
-SomeOrganizationalUnit
-${FQDN}
-root@${FQDN}
-EOF
-
 %preun
 %systemd_preun %{name}.service
 
@@ -340,7 +355,6 @@ EOF
 %{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
 %{_bindir}/zmsystemctl.pl
 
-%{_bindir}/zma
 %{_bindir}/zmaudit.pl
 %{_bindir}/zmc
 %{_bindir}/zmcontrol.pl
@@ -357,8 +371,10 @@ EOF
 %{_bindir}/zmtelemetry.pl
 %{_bindir}/zmx10.pl
 %{_bindir}/zmonvif-probe.pl
+%{_bindir}/zmonvif-trigger.pl
 %{_bindir}/zmstats.pl
 %{_bindir}/zmrecover.pl
+%{_bindir}/zm_rtsp_server
 
 %{perl_vendorlib}/ZoneMinder*
 %{perl_vendorlib}/ONVIF*
@@ -389,7 +405,6 @@ EOF
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/cache/zoneminder
 %dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/log/zoneminder
-%dir %attr(755,%{zmuid_final},%{zmgid_final}) %{_localstatedir}/spool/zoneminder-upload
 
 %files nginx
 %config(noreplace) %attr(640,root,nginx) %{_sysconfdir}/zm/zm.conf
@@ -413,32 +428,138 @@ EOF
 %dir %attr(755,nginx,nginx) %{_sharedstatedir}/zoneminder/temp
 %dir %attr(755,nginx,nginx) %{_localstatedir}/cache/zoneminder
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
-%dir %attr(755,nginx,nginx) %{_localstatedir}/spool/zoneminder-upload
 
 %changelog
-* Sun Dec 08 2019 Isaac Connor <isaac@zoneminder.com> - 1.33.15-1
-- Bump to 1.33.15 Development
+* Mon Jul 05 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.1-1
+- 1.37.x development build
 
-* Sun Aug 11 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.14-1
-- Bump to 1.33.13 Development
+* Tue Jun 22 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.5-1
+- 1.36.5 release
 
-* Sun Jul 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.12-1
-- Bump to 1.33.12 Development
+* Fri Jun 18 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-2
+- apcu-bc deprecated on fedora, use memcached instead
+- only refer to cmake3 when building on el7
 
-* Sun Jun 23 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.9-1
-- Bump to 1.33.9 Development
+* Tue Jun 08 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.4-1
+- 1.36.4 release
 
-* Tue Apr 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.8-1
-- Bump to 1.33.8 Development
+* Sun May 30 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.3-1
+- 1.36.3 release
 
-* Sun Apr 07 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.6-1
-- Bump to 1.33.6 Development
+* Fri May 28 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.2-1
+- 1.36.2 release
 
-* Sat Mar 30 2019 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.4-1
-- Bump to 1.33.4 Development
+* Fri May 21 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.36.1-1
+- 1.36.1 release
+- add rtspserver submodule
 
-* Tue Dec 11 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.33.0-1
-- Bump to 1.33.0 Development
+* Wed Apr 21 2021 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.26-1
+- 1.34.26 Release
+
+* Sun Apr 18 2021 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.24-1
+- 1.34.24 Release
+
+* Thu Feb 04 2021 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.34.23-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
+* Sun Jan 31 2021 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.23-1
+- 1.34.23 Release
+- create ssl cert in all cases, not just nginx
+
+* Fri Jan  1 2021 Leigh Scott <leigh123linux@gmail.com> - 1.34.22-3
+- Rebuilt for new ffmpeg snapshot
+
+* Fri Nov 27 2020 Sérgio Basto <sergio@serjux.com> - 1.34.22-2
+- Mass rebuild for x264-0.161
+
+* Mon Sep 28 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.22-1
+- 1.34.22 Release
+
+* Mon Sep 28 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.21-1
+- 1.34.21 Release
+
+* Sun Aug 23 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.20-1
+- 1.34.20 Release
+- Buildrequire epel-rpm-macros on rhel
+- Update license references for js libraries
+
+* Wed Aug 19 2020 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.34.18-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_33_Mass_Rebuild
+
+* Thu Aug 06 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.18-1
+- 1.34.18 Release
+
+* Thu Aug 06 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.17-2
+- Disable LTO due to top level asm
+
+* Wed Aug 05 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.17-1
+- 1.34.17 Release
+
+* Tue Aug 04 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.16-4
+- Use new cmake build macros for f33 compat
+
+* Tue Jul 07 2020 Sérgio Basto <sergio@serjux.com> - 1.34.16-3
+- Mass rebuild for x264
+
+* Fri Jul 03 2020 Leigh Scott <leigh123linux@gmail.com> - 1.34.16-2
+- Perl 5.32 rebuild
+
+* Fri Jun 05 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.16-1
+- 1.34.16 Release
+
+* Fri May 15 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.14-1
+- 1.34.14 Release
+
+* Thu May 14 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.13-1
+- 1.34.13 Release
+
+* Sun May 10 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.12-1
+- 1.34.12 Release
+
+* Sat May 2 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.11-1
+- 1.34.11 Release
+
+* Sun Apr 26 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.10-1
+- 1.34.10 Release
+
+* Mon Apr 6 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.9-1
+- 1.34.9 Release
+
+* Sat Mar 28 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.7-1
+- 1.34.7 Release
+
+* Mon Mar 23 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.6-1
+- 1.34.6 Release
+
+* Sat Feb 29 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.5-1
+- 1.34.5 Release
+
+* Sun Feb 23 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.3-1
+- 1.34.3 Release
+
+* Sat Feb 22 2020 RPM Fusion Release Engineering <leigh123linux@googlemail.com> - 1.34.2-2
+- Rebuild for ffmpeg-4.3 git
+
+* Tue Feb 04 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.2-1
+- 1.34.2 Release
+
+* Fri Jan 31 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.1-1
+- 1.34.1 Release
+
+* Sat Jan 18 2020 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.34.0-1
+- 1.34.0 Release
+
+* Tue Dec 17 2019 Leigh Scott <leigh123linux@gmail.com> - 1.32.3-5
+- Mass rebuild for x264
+
+* Wed Aug 07 2019 Leigh Scott <leigh123linux@gmail.com> - 1.32.3-4
+- Rebuild for new ffmpeg version
+
+* Tue Mar 12 2019 Sérgio Basto <sergio@serjux.com> - 1.32.3-3
+- Mass rebuild for x264
+
+* Tue Mar 05 2019 RPM Fusion Release Engineering <leigh123linux@gmail.com> - 1.32.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
 
 * Sat Dec 08 2018 Andrew Bauer <zonexpertconsulting@outlook.com> - 1.32.3-1
 - 1.32.3 Release

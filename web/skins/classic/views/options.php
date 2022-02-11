@@ -43,8 +43,10 @@ $tabs['highband'] = translate('HighBW');
 $tabs['medband'] = translate('MediumBW');
 $tabs['lowband'] = translate('LowBW');
 $tabs['users'] = translate('Users');
+$tabs['control'] = translate('Control');
+$tabs['privacy'] = translate('Privacy');
 
-if ( isset($_REQUEST['tab']) )
+if (isset($_REQUEST['tab']))
   $tab = validHtmlStr($_REQUEST['tab']);
 else
   $tab = 'system';
@@ -52,58 +54,57 @@ else
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Options'));
-
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML(); ?>
   <div class="container-fluid">
-    <div class="row">
-      <div class="col-sm-2 sidebar">
-        <ul class="nav nav-pills nav-stacked">
+    <div class="row flex-nowrap">
+      <nav id="sidebar">
+        <ul class="nav nav-pills flex-column h-100">
 <?php
-foreach ( $tabs as $name=>$value ) {
+foreach ($tabs as $name=>$value) {
 ?>
-          <li<?php echo $tab == $name ? ' class="active"' : '' ?>><a href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
+          <li class="nav-item form-control-sm my-1"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
 <?php
 }
 ?>
         </ul>
-      </div>
-      <div class="col-sm-10 col-sm-offset-2">
+      </nav>
+      <div class="container-fluid col-sm-offset-2 h-100 pr-0">
         <br/>
         <div id="options">
 <?php 
 if ( $tab == 'skins' ) {
 ?>
-          <form name="optionsForm" class="form-horizontal" method="get" action="?">
+          <form name="optionsForm" method="get" action="?">
             <input type="hidden" name="view" value="<?php echo $view ?>"/>
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-            <div class="form-group">
-            <label for="skin" class="col-sm-3 control-label"><?php echo translate('Skin')?></label>
+            <div class="form-group row">
+            <label for="skin" class="col-sm-3 col-form-label"><?php echo translate('Skin')?></label>
               <div class="col-sm-6">
                 <select name="skin" class="form-control chosen">
 <?php
   # Have to do this stuff up here before including header.php because fof the cookie setting
-$skin_options = array_map('basename', glob('skins/*',GLOB_ONLYDIR));
+$skin_options = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
 foreach ( $skin_options as $dir ) {
   echo '<option value="'.$dir.'" '.($skin==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
 ?>
                 </select>
-                <span class="help-block"><?php echo translate('SkinDescription'); ?></span>
+                <span class="form-text"><?php echo translate('SkinDescription'); ?></span>
               </div>
             </div>
-            <div class="form-group">
-              <label for="css" class="col-sm-3 control-label">CSS</label>
+            <div class="form-group row">
+              <label for="css" class="col-sm-3 col-form-label">CSS</label>
               <div class="col-sm-6">
                 <select name="css" class="form-control chosen">
 <?php
-foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $dir ) {
+foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $dir ) {
   echo '<option value="'.$dir.'" '.($css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
 }
 ?>
                 </select>
-                <span class="help-block"><?php echo translate('CSSDescription'); ?></span>
+                <span class="form-text"><?php echo translate('CSSDescription'); ?></span>
               </div>
             </div>
             <div id="contentButtons">
@@ -128,7 +129,9 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
               <th class="colControl"><?php echo translate('Control') ?></th>
               <th class="colMonitors"><?php echo translate('Monitors') ?></th>
               <th class="colGroups"><?php echo translate('Groups') ?></th>
+              <th class="colSnapshots"><?php echo translate('Snapshots') ?></th>
               <th class="colSystem"><?php echo translate('System') ?></th>
+              <th class="colDevices"><?php echo translate('Devices') ?></th>
               <th class="colBandwidth"><?php echo translate('Bandwidth') ?></th>
               <th class="colMonitor"><?php echo translate('Monitor') ?></th>
               <?php if ( ZM_OPT_USE_API ) { ?><th class="colAPIEnabled"><?php echo translate('APIEnabled') ?></th><?php } ?>
@@ -139,36 +142,38 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
 <?php
     $sql = 'SELECT * FROM Monitors ORDER BY Sequence ASC';
     $monitors = array();
-    foreach( dbFetchAll($sql) as $monitor ) {
+    foreach ( dbFetchAll($sql) as $monitor ) {
       $monitors[$monitor['Id']] = $monitor;
     }
 
     $sql = 'SELECT * FROM Users ORDER BY Username';
-    foreach( dbFetchAll($sql) as $row ) {
+    foreach ( dbFetchAll($sql) as $user_row ) {
       $userMonitors = array();
-      if ( !empty($row['MonitorIds']) ) {
-        foreach ( explode(',', $row['MonitorIds']) as $monitorId ) {
+      if ( !empty($user_row['MonitorIds']) ) {
+        foreach ( explode(',', $user_row['MonitorIds']) as $monitorId ) {
           // A deleted monitor will cause an error since we don't update 
           // the user monitors list on monitor delete
-          if ( ! isset($monitors[$monitorId]) ) continue;
+          if ( !isset($monitors[$monitorId]) ) continue;
           $userMonitors[] = $monitors[$monitorId]['Name'];
         }
       }
 ?>
             <tr>
-              <td class="colUsername"><?php echo makePopupLink('?view=user&amp;uid='.$row['Id'], 'zmUser', 'user', validHtmlStr($row['Username']).($user['Username']==$row['Username']?"*":""), $canEdit) ?></td>
-              <td class="colLanguage"><?php echo $row['Language']?validHtmlStr($row['Language']):'default' ?></td>
-              <td class="colEnabled"><?php echo $row['Enabled']?translate('Yes'):translate('No') ?></td>
-              <td class="colStream"><?php echo validHtmlStr($row['Stream']) ?></td>
-              <td class="colEvents"><?php echo validHtmlStr($row['Events']) ?></td>
-              <td class="colControl"><?php echo validHtmlStr($row['Control']) ?></td>
-              <td class="colMonitors"><?php echo validHtmlStr($row['Monitors']) ?></td>
-              <td class="colGroups"><?php echo validHtmlStr($row['Groups']) ?></td>
-              <td class="colSystem"><?php echo validHtmlStr($row['System']) ?></td>
-              <td class="colBandwidth"><?php echo $row['MaxBandwidth']?$bandwidth_options[$row['MaxBandwidth']]:'&nbsp;' ?></td>
-              <td class="colMonitor"><?php echo $row['MonitorIds']?(join( ", ", $userMonitors )):"&nbsp;" ?></td>
-              <?php if ( ZM_OPT_USE_API ) { ?><td class="colAPIEnabled"><?php echo $row['APIEnabled']?translate('Yes'):translate('No') ?></td><?php } ?>
-              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $row['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
+              <td class="colUsername"><?php echo makeLink('?view=user&amp;uid='.$user_row['Id'], validHtmlStr($user_row['Username']).($user['Username']==$user_row['Username']?'*':''), $canEdit) ?></td>
+              <td class="colLanguage"><?php echo $user_row['Language']?validHtmlStr($user_row['Language']):'default' ?></td>
+              <td class="colEnabled"><?php echo translate($user_row['Enabled']?'Yes':'No') ?></td>
+              <td class="colStream"><?php echo validHtmlStr($user_row['Stream']) ?></td>
+              <td class="colEvents"><?php echo validHtmlStr($user_row['Events']) ?></td>
+              <td class="colControl"><?php echo validHtmlStr($user_row['Control']) ?></td>
+              <td class="colMonitors"><?php echo validHtmlStr($user_row['Monitors']) ?></td>
+              <td class="colGroups"><?php echo validHtmlStr($user_row['Groups']) ?></td>
+              <td class="colSnapshots"><?php echo validHtmlStr($user_row['Snapshots']) ?></td>
+              <td class="colSystem"><?php echo validHtmlStr($user_row['System']) ?></td>
+              <td class="colDevices"><?php echo validHtmlStr($user_row['Devices']) ?></td>
+              <td class="colBandwidth"><?php echo $user_row['MaxBandwidth']?$bandwidth_options[$user_row['MaxBandwidth']]:'&nbsp;' ?></td>
+              <td class="colMonitor"><?php echo count($userMonitors)?(join(', ', $userMonitors)):'&nbsp;' ?></td>
+              <?php if ( ZM_OPT_USE_API ) { ?><td class="colAPIEnabled"><?php echo translate($user_row['APIEnabled']?'Yes':'No') ?></td><?php } ?>
+              <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $user_row['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
             </tr>
 <?php
     }
@@ -176,12 +181,29 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
           </tbody>
         </table>
         <div id="contentButtons">
-        <?php echo makePopupButton('?view=user&uid=0', 'zmUser', 'user', translate("AddNewUser"), canEdit('System')); ?>
+          <?php echo makeButton('?view=user&uid=0', 'AddNewUser', canEdit('System')); ?>
           <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
-<?php
-} else if ( $tab == 'servers' ) { ?>
+      <?php
+} else if ( $tab == 'control' ) {
+      if ( canView('Control') ) {
+        $redirect = '?view=controlcaps';
+      } else {
+        $redirect = '?view=error';
+      }
+      // Have to do this 
+      header('Location: '.$redirect);
+} else if ($tab == 'privacy') {
+      if (canView('System')) {
+        $redirect = '?view=privacy';
+      } else {
+        $redirect = '?view=error';
+      }
+      // Have to do this 
+      header('Location: '.$redirect);
+} else if ( $tab == 'servers' ) {
+      ?>
       <form name="serversForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -208,47 +230,43 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
 			</tr>
           </thead>
           <tbody>
-<?php
-  $monitor_counts = dbFetchAssoc('SELECT Id,(SELECT COUNT(Id) FROM Monitors WHERE ServerId=Servers.Id) AS MonitorCount FROM Servers', 'Id', 'MonitorCount');
-  foreach ( ZM\Server::find() as $Server ) {
-?>
+          <?php
+          $monitor_counts = dbFetchAssoc('SELECT Id,(SELECT COUNT(Id) FROM Monitors WHERE ServerId=Servers.Id) AS MonitorCount FROM Servers', 'Id', 'MonitorCount');
+          foreach ( ZM\Server::find() as $Server ) {
+            $svr_opt = 'class="serverCol" data-sid="'.$Server->Id().'"';
+            ?>
             <tr>
-              <td class="colName"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->Name()), $canEdit) ?></td>
-              <td class="colUrl"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->Url()), $canEdit) ?></td>
-              <td class="colPathToIndex"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->PathToIndex()), $canEdit) ?></td>
-              <td class="colPathToZMS"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->PathToZMS()), $canEdit) ?></td>
-              <td class="colPathToApi"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->PathToApi()), $canEdit) ?></td>
+              <td class="colName"><?php echo makeLink('#', validHtmlStr($Server->Name()), $canEdit, $svr_opt ) ?></td>
+              <td class="colUrl"><?php echo makeLink('#', validHtmlStr($Server->Url()), $canEdit, $svr_opt ) ?></td>
+              <td class="colPathToIndex"><?php echo makeLink('#', validHtmlStr($Server->PathToIndex()), $canEdit, $svr_opt ) ?></td>
+              <td class="colPathToZMS"><?php echo makeLink('#', validHtmlStr($Server->PathToZMS()), $canEdit, $svr_opt ) ?></td>
+              <td class="colPathToAPI"><?php echo makeLink('#', validHtmlStr($Server->PathToAPI()), $canEdit, $svr_opt ) ?></td>
               <td class="colStatus <?php if ( $Server->Status() == 'NotRunning' ) { echo 'danger'; } ?>">
-                  <?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($Server->Status()), $canEdit) ?></td>
-              <td class="colMonitorCount">
-                  <?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', validHtmlStr($monitor_counts[$Server->Id()]), $canEdit) ?>
-              </td>
-              <td class="colCpuLoad <?php if ( $Server->CpuLoad() > 5 ) { echo 'danger'; } ?>">
-                  <?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server',$Server->CpuLoad(), $canEdit) ?>
-              </td>
+                  <?php echo makeLink('#', validHtmlStr($Server->Status()), $canEdit, $svr_opt) ?></td>
+              <td class="colMonitorCount"><?php echo makeLink('#', validHtmlStr($monitor_counts[$Server->Id()]), $canEdit, $svr_opt) ?></td>
+              <td class="colCpuLoad <?php if ( $Server->CpuLoad() > 5 ) { echo 'danger'; } ?>"><?php echo makeLink('#', $Server->CpuLoad(), $canEdit, $svr_opt) ?></td>
               <td class="colMemory <?php if ( (!$Server->TotalMem()) or ($Server->FreeMem()/$Server->TotalMem() < .1) ) { echo 'danger'; } ?>">
-                  <?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', human_filesize($Server->FreeMem()) . ' / ' . human_filesize($Server->TotalMem()), $canEdit) ?>
-              </td>
+                  <?php echo makeLink('#', human_filesize($Server->FreeMem()) . ' / ' . human_filesize($Server->TotalMem()), $canEdit, $svr_opt) ?></td>
               <td class="colSwap <?php if ( (!$Server->TotalSwap()) or ($Server->FreeSwap()/$Server->TotalSwap() < .1) ) { echo 'danger'; } ?>">
-                <?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', human_filesize($Server->FreeSwap()) . ' / ' . human_filesize($Server->TotalSwap()) , $canEdit) ?>
-              </td>
-              <td class="colStats"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', $Server->zmstats() ? 'yes' : 'no', $canEdit) ?></td>
-              <td class="colAudit"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', $Server->zmaudit() ? 'yes' : 'no', $canEdit) ?></td>
-              <td class="colTrigger"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', $Server->zmtrigger() ? 'yes' : 'no', $canEdit) ?></td>
-              <td class="colEventNotification"><?php echo makePopupLink('?view=server&amp;id='.$Server->Id(), 'zmServer', 'server', $Server->zmeventnotification() ? 'yes' : 'no', $canEdit) ?></td>
+                  <?php echo makeLink('#', human_filesize($Server->FreeSwap()) . ' / ' . human_filesize($Server->TotalSwap()) , $canEdit, $svr_opt) ?></td>
+              <td class="colStats"><?php echo makeLink('#', $Server->zmstats() ? 'yes' : 'no', $canEdit, $svr_opt) ?></td>
+              <td class="colAudit"><?php echo makeLink('#', $Server->zmaudit() ? 'yes' : 'no', $canEdit, $svr_opt) ?></td>
+              <td class="colTrigger"><?php echo makeLink('#', $Server->zmtrigger() ? 'yes' : 'no', $canEdit, $svr_opt) ?></td>
+              <td class="colEventNotification"><?php echo makeLink('#', $Server->zmeventnotification() ? 'yes' : 'no', $canEdit, $svr_opt) ?></td>
 
               <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Server->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
-			</tr>
+            </tr>
 <?php } #end foreach Server ?>
           </tbody>
         </table>
         <div id="contentButtons">
-        <?php echo makePopupButton('?view=server&id=0', 'zmServer', 'server', translate('AddNewServer'), canEdit('System')); ?>
+          <button type="button" id="NewServerBtn" value="<?php echo translate('AddNewServer') ?>" disabled="disabled"><?php echo translate('AddNewServer') ?></button>
           <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
-<?php
-} else if ( $tab == 'storage' ) { ?>
+      <?php
+} else if ( $tab == 'storage' ) { 
+      ?>
       <form name="storageForm" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
@@ -269,45 +287,48 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
             </tr>
           </thead>
           <tbody>
-<?php foreach( ZM\Storage::find( null, array('order'=>'lower(Name)') ) as $Storage ) { ?>
+          <?php
+          foreach( ZM\Storage::find( null, array('order'=>'lower(Name)') ) as $Storage ) { 
+            $filter = new ZM\Filter();
+            $filter->addTerm(array('attr'=>'StorageId','op'=>'=','val'=>$Storage->Id()));
+            if ( $user['MonitorIds'] ) {
+              $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+            }
+
+            $str_opt = 'class="storageCol" data-sid="'.$Storage->Id().'"';
+            ?>
             <tr>
-              <td class="colId"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Id()), $canEdit ) ?></td>
-              <td class="colName"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Name()), $canEdit ) ?></td>
-              <td class="colPath"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Path()), $canEdit ) ?></td>
-              <td class="colType"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Type()), $canEdit ) ?></td>
-              <td class="colScheme"><?php echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Scheme()), $canEdit ) ?></td>
-              <td class="colServer"><?php
-              echo makePopupLink('?view=storage&amp;id='.$Storage->Id(), 'zmStorage', 'storage', validHtmlStr($Storage->Server()->Name()), $canEdit ) ?></td>
-              <td class="colDiskSpace">
-                <?php echo
-                human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space())
-?>
-              </td>
-              <td class="ColEvents"><?php echo count($Storage->Events()).' using '.human_filesize($Storage->event_disk_space()) ?></td>
-              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( count($Storage->Events()) or !$canEdit ) { ?> disabled="disabled"<?php } ?><?php echo count($Storage->Events()) ? ' title="Can\' delete as long as there are events stored here."' : ''?>/></td>
+              <td class="colId"><?php echo makeLink('#', validHtmlStr($Storage->Id()), $canEdit, $str_opt) ?></td>
+              <td class="colName"><?php echo makeLink('#', validHtmlStr($Storage->Name()), $canEdit, $str_opt) ?></td>
+              <td class="colPath"><?php echo makeLink('#', validHtmlStr($Storage->Path()), $canEdit, $str_opt) ?></td>
+              <td class="colType"><?php echo makeLink('#', validHtmlStr($Storage->Type()), $canEdit, $str_opt) ?></td>
+              <td class="colScheme"><?php echo makeLink('#', validHtmlStr($Storage->Scheme()), $canEdit, $str_opt) ?></td>
+              <td class="colServer"><?php echo makeLink('#', validHtmlStr($Storage->Server()->Name()), $canEdit, $str_opt) ?></td>
+              <td class="colDiskSpace"><?php echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?></td>
+              <td class="ColEvents"><?php echo makeLink('?view=events'.$filter->querystring(), $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space()) ); ?></td>
+              <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( $Storage->EventCount() or !$canEdit ) { ?> disabled="disabled"<?php } ?><?php echo $Storage->EventCount() ? ' title="Can\'t delete as long as there are events stored here."' : ''?>/></td>
             </tr>
 <?php } #end foreach Server ?>
           </tbody>
         </table>
         <div id="contentButtons">
-          <?php echo makePopupButton('?view=storage&id=0', 'zmStorage', 'storage', translate('AddNewStorage'), canEdit('System')); ?>
+          <button type="button" id="NewStorageBtn" value="<?php echo translate('AddNewStorage') ?>" disabled="disabled"><?php echo translate('AddNewStorage') ?></button>
           <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
 
   <?php
-  } else if ($tab == 'API') {
+  } else if ( $tab == 'API' ) {
   
-    $apiEnabled = dbFetchOne("SELECT Value FROM Config WHERE Name='ZM_OPT_USE_API'");
-    if ($apiEnabled['Value']!='1') {
-      echo "<div class='errorText'>APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>";
-    }
-    else {
+    $apiEnabled = dbFetchOne('SELECT Value FROM Config WHERE Name=\'ZM_OPT_USE_API\'');
+    if ( $apiEnabled['Value'] != '1' ) {
+      echo '<div class="errorText">APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>';
+    } else {
   ?>
 
     <form name="userForm" method="post" action="?">
-      <button class="pull-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
-      <button class="btn-danger pull-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
+      <button class="float-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
+      <button class="btn-danger float-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
       <br/>
       <?php
       function revokeAllTokens() {
@@ -356,7 +377,6 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
         </thead>
         <tbody>
         <?php
-          
             $sql = 'SELECT * FROM Users ORDER BY Username';
             foreach ( dbFetchAll($sql) as $row ) {
         ?>
@@ -384,7 +404,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
     $result = $dbConn->query('SELECT * FROM `Config` ORDER BY `Id` ASC');
     if ( !$result )
       echo mysql_error();
-    while( $row = dbFetchNext($result) ) {
+    while ( $row = dbFetchNext($result) ) {
       $config[$row['Name']] = $row;
       if ( !($configCat = &$configCats[$row['Category']]) ) {
         $configCats[$row['Category']] = array();
@@ -398,43 +418,43 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*',GLOB_ONLYDIR)) as $
         $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
         $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));
         $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
+
         function timezone_list() {
-    static $timezones = null;
+          static $timezones = null;
 
-    if ($timezones === null) {
-        $timezones = [];
-        $offsets = [];
-        $now = new DateTime('now', new DateTimeZone('UTC'));
+          if ( $timezones === null ) {
+            $timezones = [];
+            $offsets = [];
+            $now = new DateTime('now', new DateTimeZone('UTC'));
 
-        foreach (DateTimeZone::listIdentifiers() as $timezone) {
-            $now->setTimezone(new DateTimeZone($timezone));
-            $offsets[] = $offset = $now->getOffset();
-            $timezones[$timezone] = '(' . format_GMT_offset($offset) . ') ' . format_timezone_name($timezone);
+            foreach ( DateTimeZone::listIdentifiers() as $timezone ) {
+              $now->setTimezone(new DateTimeZone($timezone));
+              $offsets[] = $offset = $now->getOffset();
+              $timezones[$timezone] = '(' . format_GMT_offset($offset) . ') ' . format_timezone_name($timezone);
+            }
+
+            array_multisort($offsets, $timezones);
+          }
+
+          return $timezones;
         }
 
-        array_multisort($offsets, $timezones);
-    }
+        function format_GMT_offset($offset) {
+          $hours = intval($offset / 3600);
+          $minutes = abs(intval($offset % 3600 / 60));
+          return 'GMT' . ($offset ? sprintf('%+03d:%02d', $hours, $minutes) : '');
+        }
 
-    return $timezones;
-}
-
-function format_GMT_offset($offset) {
-    $hours = intval($offset / 3600);
-    $minutes = abs(intval($offset % 3600 / 60));
-    return 'GMT' . ($offset ? sprintf('%+03d:%02d', $hours, $minutes) : '');
-}
-
-function format_timezone_name($name) {
-    $name = str_replace('/', ', ', $name);
-    $name = str_replace('_', ' ', $name);
-    $name = str_replace('St ', 'St. ', $name);
-    return $name;
-}
-        $configCats[$tab]['ZM_TIMEZONE']['Hint'] = timezone_list();
-
-    }
+        function format_timezone_name($name) {
+          $name = str_replace('/', ', ', $name);
+          $name = str_replace('_', ' ', $name);
+          $name = str_replace('St ', 'St. ', $name);
+          return $name;
+        }
+        $configCats[$tab]['ZM_TIMEZONE']['Hint'] = array(''=> translate('TZUnset')) + timezone_list();
+    } # end if tab == system
 ?>
-      <form name="optionsForm" class="form-horizontal" method="post" action="?">
+      <form name="optionsForm" class="" method="post" action="?">
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
@@ -444,9 +464,9 @@ function format_timezone_name($name) {
           $shortName = preg_replace( '/^ZM_/', '', $name );
           $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
 ?>
-            <div class="form-group">
-              <label for="<?php echo $name ?>" class="col-sm-3 control-label"><?php echo $shortName ?></label>
-              <div class="col-sm-6">
+            <div class="form-group form-row">
+              <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
+              <div class="col-md">
 <?php   
         if ( $value['Type'] == 'boolean' ) {
 ?>
@@ -461,7 +481,7 @@ function format_timezone_name($name) {
             $options = explode('|', $value['Hint']);
             if ( count($options) > 3 ) {
 ?>
-                <select class="form-control" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
+                <select class="form-control-sm" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option ) {
                   if ( preg_match('/^([^=]+)=(.+)$/', $option, $matches) ) {
@@ -486,7 +506,7 @@ function format_timezone_name($name) {
                     $optionLabel = $optionValue = $option;
                   }
 ?>
-                <label>
+                <label class="font-weight-bold  form-control-sm">
                   <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
                   <?php echo htmlspecialchars($optionLabel) ?>
                 </label>
@@ -497,27 +517,27 @@ function format_timezone_name($name) {
 <?php
         } else if ( $value['Type'] == 'text' ) {
 ?>
-              <textarea class="form-control" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" rows="5" cols="40"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo validHtmlStr($value['Value']) ?></textarea>
+              <textarea class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" rows="5" cols="40"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo validHtmlStr($value['Value']) ?></textarea>
 <?php
         } else if ( $value['Type'] == 'integer' ) {
 ?>
-              <input type="number" class="form-control small" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="number" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else if ( $value['Type'] == 'hexadecimal' ) {
 ?>
-              <input type="text" class="form-control medium" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else if ( $value['Type'] == 'decimal' ) {
 ?>
-              <input type="text" class="form-control small" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else {
 ?>
-              <input type="text" class="form-control large" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
 <?php
         }
 ?>
-              <span class="help-block"><?php echo validHtmlStr($optionPromptText) ?>&nbsp;(<?php echo makePopupLink( '?view=optionhelp&amp;option='.$name, 'zmOptionHelp', 'optionhelp', '?' ) ?>)</span>
+              <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
 	    </div><!-- End .col-sm-9 -->
             </div><!-- End .form-group -->
 <?php

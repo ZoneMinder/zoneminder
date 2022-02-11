@@ -1,0 +1,2 @@
+failregex = ^\s*web_php\[\d+\]\.ERR \[<HOST>\].*includes/auth.php
+datepattern = ^%%m/%%d/%%y %%H:%%M:%%S(?:\.%%f)

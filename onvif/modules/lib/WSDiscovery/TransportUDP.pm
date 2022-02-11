@@ -43,7 +43,7 @@ my %message_of :ATTR(:name<message>     :default<()>);
 my %is_success_of :ATTR(:name<is_success> :default<()>);
 
 my %local_addr_of :ATTR(:name<local_addr> :init_arg<local_addr> :default<()>);
-
+my $net_interface;
 
 # create methods normally inherited from SOAP::Client
 SUBFACTORY: {
@@ -60,14 +60,22 @@ sub _notify_response
   
 }
 
+sub set_net_interface {
+	my $self = shift;
+	$net_interface = shift;
+}
+
 sub send_multi() {
   my ($self, $address, $port, $utf8_string) = @_;
 
   my $destination = $address . ':' . $port;
-  my $socket = IO::Socket::Multicast->new(PROTO => 'udp', 
-      LocalPort=>$port, PeerAddr=>$destination, ReuseAddr=>1)
-      
-      or die 'Cannot open multicast socket to ' . ${address} . ':' . ${port};
+  my $socket = IO::Socket::Multicast->new(
+			PROTO => 'udp',
+      LocalPort=>$port,
+			PeerAddr=>$destination,
+			ReuseAddr=>1
+			) or die 'Cannot open multicast socket to ' . ${address} . ':' . ${port};
+	$_ = $socket->mcast_if($net_interface) if $net_interface;
 
   my $bytes = $utf8_string;
   utf8::encode($bytes);
@@ -80,14 +88,16 @@ sub receive_multi() {
   my ($self, $address, $port) = @_;
   my $data = undef;
   
-  my $socket = IO::Socket::Multicast->new(PROTO => 'udp', 
-      LocalPort=>$port, ReuseAddr=>1);
-	$socket->mcast_add($address);
+  my $socket = IO::Socket::Multicast->new(
+			PROTO => 'udp',
+      LocalPort=>$port,
+			ReuseAddr=>1);
+	$socket->mcast_add($address, $net_interface);
   
   my $readbits = '';
   vec($readbits, $socket->fileno, 1) = 1;
   
-  if(select($readbits, undef, undef, WAIT_TIME/1000)) {
+  if ( select($readbits, undef, undef, WAIT_TIME/1000) ) {
      $socket->recv($data, 9999);
      return $data;
   }
@@ -98,15 +108,19 @@ sub receive_uni() {
   my ($self, $address, $port, $localaddr) = @_;
   my $data = undef;
   
-  my $socket = IO::Socket::Multicast->new(PROTO => 'udp', 
-      LocalAddr => $localaddr, LocalPort=>$port, ReuseAddr=>1);
+  my $socket = IO::Socket::Multicast->new(
+			PROTO => 'udp',
+			LocalAddr => $localaddr,
+			LocalPort=>$port,
+			ReuseAddr=>1
+			);
       
-	$socket->mcast_add($address);
+	$socket->mcast_add($address, $net_interface);
   
   my $readbits = '';
   vec($readbits, $socket->fileno, 1) = 1;
   
-  if(select($readbits, undef, undef, WAIT_TIME/1000)) {
+  if ( select($readbits, undef, undef, WAIT_TIME/1000) ) {
      $socket->recv($data, 9999);
      return $data;
   }
@@ -114,50 +128,51 @@ sub receive_uni() {
 }
  
 sub send_receive {
-    my ($self, %parameters) = @_;
-    my ($envelope, $soap_action, $endpoint, $encoding, $content_type) =
-        @parameters{qw(envelope action endpoint encoding content_type)};
+	my ($self, %parameters) = @_;
+	my ($envelope, $soap_action, $endpoint, $encoding, $content_type) =
+		@parameters{qw(envelope action endpoint encoding content_type)};
 
-    my ($address,$port) = ($endpoint =~ /([^:\/]+):([0-9]+)/);
+	my ($address,$port) = ($endpoint =~ /([^:\/]+):([0-9]+)/);
 
-    #warn "address = ${address}";
-    #warn "port = ${port}";
+#warn "address = ${address}";
+#warn "port = ${port}";
 
-    $self->send_multi($address, $port, $envelope);
+	$self->send_multi($address, $port, $envelope);
 
-    my $localaddr = $self->get_local_addr();
+	my $localaddr = $self->get_local_addr();
+#warn "localddr $localaddr";
 
-    my ($response, $last_response);
-    my $wait = WAIT_COUNT;
-    while ( $wait >= 0 ) {
-      if($localaddr) {
-        if($response = $self->receive_uni($address, $port, $localaddr)) {
-          $last_response = $response;
-          $self->_notify_response($response);
-        }
-        $wait --;
-      }
-      if($response = $self->receive_multi($address, $port)) {
-        $last_response = $response;
-        $self->_notify_response($response);
-      }
-      $wait --;
-    }
-    
-    if($last_response) {
-      $self->set_code();
-      $self->set_message("");
-      $self->set_is_success(1);
-      $self->set_status('OK');
-    }
-    else{
-      $self->set_code();
-      $self->set_message("Timed out waiting for response");
-      $self->set_is_success(0);
-      $self->set_status('TIMEOUT');
-    }
+	my ($response, $last_response);
+	my $wait = WAIT_COUNT;
+	while ( $wait >= 0 ) {
+		if ( $localaddr ) {
+			if ( $response = $self->receive_uni($address, $port, $localaddr) ) {
+				$last_response = $response;
+				$self->_notify_response($response);
+			}
+			$wait --;
+		}
+		if ( $response = $self->receive_multi($address, $port) ) {
+			$last_response = $response;
+			$self->_notify_response($response);
+		}
+		$wait --;
+	}
 
-    return $last_response;
+	if ( $last_response ) {
+		$self->set_code();
+		$self->set_message('');
+		$self->set_is_success(1);
+		$self->set_status('OK');
+	} else {
+		$self->set_code();
+		$self->set_message('Timed out waiting for response');
+		$self->set_is_success(0);
+		$self->set_status('TIMEOUT');
+	}
+
+	return $last_response;
 }
 
 1;
+__END__

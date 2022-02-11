@@ -28,6 +28,12 @@ our %EXPORT_TAGS = (
       makePath
       jsonEncode
       jsonDecode
+      jsonLoad
+      systemStatus
+      packageControl
+      daemonControl
+      parseNameEqualsValueToHash
+      hash_diff
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -259,21 +265,21 @@ sub createEvent {
     }
     $frame->{Type} = $frame->{Score}>0?'Alarm':'Normal' unless( $frame->{Type} );
     $frame->{Delta} = $lastTimestamp?($frame->{TimeStamp}-$lastTimestamp):0.0;
-    $event->{StartTime} = $frame->{TimeStamp} unless ( $event->{StartTime} );
+    $event->{StartDateTime} = $frame->{TimeStamp} unless ( $event->{StartDateTime} );
     $event->{TotScore} += $frame->{Score};
     $event->{MaxScore} = $frame->{Score} if ( $frame->{Score} > $event->{MaxScore} );
     $event->{AlarmFrames}++ if ( $frame->{Type} eq 'Alarm' );
-    $event->{EndTime} = $frame->{TimeStamp};
+    $event->{EndDateTime} = $frame->{TimeStamp};
     $lastTimestamp = $frame->{TimeStamp};
   }
   $event->{Width} = $event->{monitor}->{Width} unless( $event->{Width} );
   $event->{Height} = $event->{monitor}->{Height} unless( $event->{Height} );
   $event->{AvgScore} = $event->{TotScore}/int($event->{AlarmFrames});
-  $event->{Length} = $event->{EndTime} - $event->{StartTime};
+  $event->{Length} = $event->{EndDateTime} - $event->{StartDateTime};
 
   my %formats = (
-      StartTime => 'from_unixtime(?)',
-      EndTime => 'from_unixtime(?)',
+      StartDateTime => 'from_unixtime(?)',
+      EndDateTime => 'from_unixtime(?)',
       );
 
   my ( @fields, @formats, @values );
@@ -294,7 +300,7 @@ sub createEvent {
   $event->{Id} = $dbh->{mysql_insertid};
   Info( "Created event ".$event->{Id} );
 
-  if ( $event->{EndTime} ) {
+  if ( $event->{EndDateTime} ) {
     $event->{Name} = $event->{monitor}->{EventPrefix}.$event->{Id}
     if ( $event->{Name} eq 'New Event' );
     my $sql = "update Events set Name = ? where Id = ?";
@@ -342,7 +348,7 @@ sub createEvent {
             ." to ".$frame->{capturePath}.": $!"
             );
       setFileOwner( $frame->{capturePath} );
-      if ( 0 && $Config{ZM_CREATE_ANALYSIS_IMAGES} ) {
+      if ( $event->{SaveJPEGs} > 1 ) {
         $frame->{analysePath} = sprintf(
             "%s/%0".$Config{ZM_EVENT_IMAGE_DIGITS}
             ."d-analyse.jpg"
@@ -380,8 +386,8 @@ sub updateEvent {
   if ( $event->{Name} eq 'New Event' );
 
   my %formats = (
-      StartTime => 'from_unixtime(?)',
-      EndTime => 'from_unixtime(?)',
+      StartDateTime => 'from_unixtime(?)',
+      EndDateTime => 'from_unixtime(?)',
       );
 
   my ( @values, @sets );
@@ -531,6 +537,91 @@ sub jsonDecode {
   return $result;
 }
 
+sub jsonLoad {
+  my $file = shift;
+  my $json = undef;
+  eval {
+    require File::Slurp;
+    my $contents = File::Slurp::read_file($file);
+    if (!$contents) {
+      Error("No contents for $file");
+      return $json;
+    }
+    require JSON;
+    $json = JSON::decode_json($contents);
+  };
+  Error($@) if $@;
+  return $json;
+}
+
+sub parseNameEqualsValueToHash {
+  my %settings;
+  foreach my $line ( split ( /\r?\n/, $_[0] ) ) {
+    next if ! $line;
+    next if ! ( $line =~ /=/ );
+    my ($name, $value ) = split('=', $line);
+    $value =~ s/^'//;
+    $value =~ s/'$//;
+    $settings{$name} = defined $value ? $value : '';
+  }
+  return %settings;
+}
+
+sub hash_diff {
+  # assumes keys of second hash are all in the first hash
+  my ( $settings, $defaults ) = @_;
+  my %updates;
+
+  foreach my $setting ( keys %{$settings} ) {
+    next if ! exists $$defaults{$setting};
+    if (
+      ($$settings{$setting} and ! $$defaults{$setting})
+        or
+      (!$$settings{$setting} and $$defaults{$setting})
+        or
+      (
+        ($$settings{$setting} and $$defaults{$setting} and (
+            $$settings{$setting} ne $$defaults{$setting}))
+      )
+    ) {
+      $updates{$setting} = $$defaults{$setting};
+    }
+  } # end foreach setting
+  return %updates;
+}
+
+sub packageControl {
+  my $command = shift;
+  my $string = $Config{ZM_PATH_BIN}.'/zmpkg.pl '.$command;
+  $string .= ' 2>/dev/null >&- <&- >/dev/null';
+  executeShellCommand($string);
+}
+
+sub daemonControl {
+  my ($command, $daemon, $args) = @_;
+  my $string = $Config{ZM_PATH_BIN}.'/zmdc.pl '.$command;
+  if ( $daemon ) {
+    $string .= ' ' . $daemon;
+    if ( $args ) {
+      $string .= ' ' . $args;
+    }
+  }
+  #$string .= ' 2>/dev/null >&- <&- >/dev/null';
+  executeShellCommand($string);
+}
+
+sub systemStatus {
+  my $command = $Config{ZM_PATH_BIN}.'/zmdc.pl check';
+  my $output = qx($command);
+  my $status = $? >> 8;
+  if ( $status || logDebugging() ) {
+    $output = '' if !defined($output);
+    chomp($output);
+    Debug("Command: $command Output: $output");
+  }
+  return $output;
+}
+
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!
@@ -542,7 +633,6 @@ ZoneMinder::General - Utility Functions for ZoneMinder
 =head1 SYNOPSIS
 
 use ZoneMinder::General;
-blah blah blah
 
 =head1 DESCRIPTION
 
@@ -561,6 +651,11 @@ of the ZoneMinder scripts
       makePath
       jsonEncode
       jsonDecode
+      packageControl
+      daemonControl
+      systemStatus
+       parseNameEqualsValueToHash
+      hash_diff
       ) ]
 
 

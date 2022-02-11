@@ -1,31 +1,46 @@
 {
-    "name": "cakephp/cakephp",
-    "description": "The CakePHP framework",
-    "type": "library",
-    "keywords": ["framework"],
-    "homepage": "http://cakephp.org",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "CakePHP Community",
-            "homepage": "https://github.com/cakephp/cakephp/graphs/contributors"
-        }
-    ],
-    "support": {
-        "issues": "https://github.com/cakephp/cakephp/issues",
-        "forum": "http://stackoverflow.com/tags/cakephp",
-        "irc": "irc://irc.freenode.org/cakephp",
-        "source": "https://github.com/cakephp/cakephp"
-    },
-    "require": {
-        "php": ">=5.2.8",
-        "ext-mcrypt": "*"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "3.7.*",
-        "cakephp/debug_kit" : "2.2.*"
-    },
-    "bin": [
-        "lib/Cake/Console/cake"
-    ]
+	"name": "cakephp/cakephp",
+	"description": "The CakePHP framework",
+	"type": "library",
+	"keywords": ["framework"],
+	"homepage": "https://cakephp.org",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "CakePHP Community",
+			"homepage": "https://github.com/cakephp/cakephp/graphs/contributors"
+		}
+	],
+	"support": {
+		"issues": "https://github.com/cakephp/cakephp/issues",
+		"forum": "https://stackoverflow.com/tags/cakephp",
+		"irc": "irc://irc.freenode.org/cakephp",
+		"source": "https://github.com/cakephp/cakephp"
+	},
+	"require": {
+		"php": ">=5.3.0,<8.0.0"
+	},
+	"suggest": {
+		"ext-openssl": "You need to install ext-openssl or ext-mcrypt to use AES-256 encryption",
+		"ext-mcrypt": "You need to install ext-openssl or ext-mcrypt to use AES-256 encryption"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "^3.7",
+		"cakephp/cakephp-codesniffer": "^1.0.0"
+	},
+	"config": {
+		"vendor-dir": "vendors/",
+		"process-timeout": 0
+	},
+	"bin": [
+		"lib/Cake/Console/cake"
+	],
+	"scripts": {
+		"check": [
+			"@cs-check",
+			"@test"
+		],
+		"cs-check": "./vendors/bin/phpcs -p --extensions=php --standard=CakePHP ./lib/Cake",
+		"test": "./lib/Cake/Console/cake test core AllTests --stderr --verbose"
+	}
 }

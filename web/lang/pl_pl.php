@@ -167,7 +167,7 @@ $SLANG = array(
     'BadFrameSkip'         => 'Liczba pomijanych ramek musi być liczbą całkowitą równą zero lub więcej',
     'BadHeight'            => 'Wysokość musi być ustawiona na prawidłową wartość',
     'BadHost'              => 'Host musi być ustawiony na prawidłowy adres IP lub nazwę hosta, nie dołączaj http://',
-    'BadImageBufferCount'  => 'Rozmiar bufora obrazu musi być liczbą całkowitą 10 lub większą',
+    'BadImageBufferCount'  => 'Rozmiar bufora obrazu musi być liczbą całkowitą 2 lub większą',
     'BadLabelX'            => 'Współrzędna X etykiety musi być ustawiona na liczbę całkowitą równą zero lub więceje',
     'BadLabelY'            => 'Współrzędna Y etykiety musi być ustawiona na liczbę całkowitą równą zero lub więcej',
     'BadMaxFPS'            => 'Maksymalna liczba klatek na sekundę musi być dodatnią liczbą całkowitą lub zmiennoprzecinkową',
@@ -942,7 +942,7 @@ $OLANG = array(
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

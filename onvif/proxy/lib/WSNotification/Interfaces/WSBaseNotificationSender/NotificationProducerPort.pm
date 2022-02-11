@@ -20,18 +20,16 @@ sub START {
 sub Subscribe {
     my ($self, $body, $header) = @_;
     die "Subscribe must be called as object method (\$self is <$self>)" if not blessed($self);
+#print " proxy/lib/WSNotification/Interfaces/WSBaseNotificationSender/NotificationProducerPort.pm Subscribe\n";
     return $self->SUPER::call({
         operation => 'Subscribe',
         soap_action => 'http://docs.oasis-open.org/wsn/bw-2/Subscribe',
         style => 'document',
         body => {
-            
-
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( WSNotification::Elements::Subscribe )],
-
+           use            => 'literal',
+					 namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+					 encodingStyle   => '',
+					 parts           =>  [qw( WSNotification::Elements::Subscribe )],
         },
         header => {
             
@@ -41,40 +39,31 @@ sub Subscribe {
         }
     }, $body, $header);
 }
-
 
 sub GetCurrentMessage {
-    my ($self, $body, $header) = @_;
-    die "GetCurrentMessage must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetCurrentMessage',
-        soap_action => 'http://docs.oasis-open.org/wsn/bw-2/GetCurrentMessage',
-        style => 'document',
-        body => {
-            
+	my ($self, $body, $header) = @_;
+	die "GetCurrentMessage must be called as object method (\$self is <$self>)" if not blessed($self);
+	return $self->SUPER::call({
+			operation => 'GetCurrentMessage',
+			soap_action => 'http://docs.oasis-open.org/wsn/bw-2/GetCurrentMessage',
+			style => 'document',
+			body => {
+			use            => 'literal',
+			namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+			encodingStyle   => '',
+			parts           =>  [qw( WSNotification::Elements::GetCurrentMessage )],
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( WSNotification::Elements::GetCurrentMessage )],
+			},
+			header => {
 
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
-    }, $body, $header);
+			},
+			headerfault => {
+
+			}
+			}, $body, $header);
 }
 
-
-
-
 1;
-
-
-
 __END__
 
 =pod

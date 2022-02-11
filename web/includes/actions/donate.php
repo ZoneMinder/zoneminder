@@ -30,6 +30,7 @@ if ( $action == 'donate' && isset($_REQUEST['option']) ) {
   switch ( $option ) {
     case 'go' :
       // Ignore this, the caller will open the page itself, use a return to shortut the view=none
+      $redirect = 'https://zoneminder.com/donate';
       return;
     case 'hour' :
       $nextReminder += 60*60;
@@ -49,6 +50,6 @@ if ( $action == 'donate' && isset($_REQUEST['option']) ) {
       Warning("Unknown value for option in donate: $option");
       break;
   } // end switch option
-  $view = 'none';
+  $redirect = '?view=console';
 }
 ?>

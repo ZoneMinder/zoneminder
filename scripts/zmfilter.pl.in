@@ -21,28 +21,6 @@
 #
 # ==========================================================================
 
-=head1 NAME
-
-zmfilter.pl - ZoneMinder tool to filter events
-
-=head1 SYNOPSIS
-
-zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
-
-=head1 DESCRIPTION
-
-This script continuously monitors the recorded events for the given
-monitor and applies any filters which would delete and/or upload
-matching events.
-
-=head1 OPTIONS
-
-
--f{filter name}, --filter={filter name}  - The name of a specific filter to run
---filter_id={filter id}                  - The id of a specific filter to run
--v, --version                            - Print ZoneMinder version
-
-=cut
 use strict;
 use bytes;
 
@@ -98,6 +76,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ;
 
 logInit($filter_id?(id=>'zmfilter_'.$filter_id):());
+
 sub HupHandler {
   # This idea at this time is to just exit, freeing up the memory. 
   # zmfilter.pl will be respawned by zmdc.
@@ -159,19 +138,19 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
 
-if ( ! EVENT_PATH ) {
-  Error("No event path defined. Config was $Config{ZM_DIR_EVENTS}");
+if (!EVENT_PATH) {
+  Error('No event path defined. Config was '.$Config{ZM_DIR_EVENTS});
   die;
 }
 
 # In future, should not be neccessary wrt StorageAreas
-chdir( EVENT_PATH );
+chdir(EVENT_PATH);
 
 # Should not be neccessary... but nice to get a local var.  What if it fails?
 my $dbh = zmDbConnect();
+$dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 
 if ( $filter_name ) {
   Info("Scanning for events using filter '$filter_name'");
@@ -193,26 +172,37 @@ if ( ! ( $filter_name or $filter_id ) ) {
 my @filters;
 my $last_action = 0;
 
-while( !$zm_terminate ) {
+while (!$zm_terminate) {
+  my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
   my $now = time;
-  if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
-    Debug("Reloading filters");
+  if (($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY}) {
+    Debug('Reloading filters');
     $last_action = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
 
-  foreach my $filter ( @filters ) {
+  foreach my $filter (@filters) {
     last if $zm_terminate;
-    if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
+
+    my $elapsed = ($now - ($$filter{last_ran} ? $$filter{last_ran} : 0));
+    if ($$filter{last_ran} and ($elapsed < $$filter{ExecuteInterval})) {
+      my $filter_delay = $$filter{ExecuteInterval} - ($now - $$filter{last_ran});
+      $delay = $filter_delay if $filter_delay < $delay;
+      Debug("Setting delay to $delay because ExecuteInterval=$$filter{ExecuteInterval} and $elapsed have elapsed");
+      next;
+    }
+
+    if ($$filter{Concurrent} and !($filter_id or $filter_name)) {
       my ( $proc ) = $0 =~ /(\S+)/;
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
       Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
 
-      system(qq`$proc --filter "$$filter{Name}" &`);
+      system(qq`$proc --filter_id $id &`);
     } else {
       checkFilter($filter);
+      $$filter{last_ran} = $now;
     }
-  }
+  } # end foreach filter
 
   last if (!$daemon and ($filter_name or $filter_id)) or $zm_terminate;
 
@@ -236,6 +226,7 @@ sub getFilters {
     $sql .= ' `Background` = 1 AND';
   }
   $sql .= '( `AutoArchive` = 1
+    or `AutoUnarchive` = 1
     or `AutoVideo` = 1
     or `AutoUpload` = 1
     or `AutoEmail` = 1
@@ -275,6 +266,7 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
 sub checkFilter {
   my $filter = shift;
 
+  my $in_transaction = ZoneMinder::Database::start_transaction($dbh) if $$filter{LockRows}; 
   my @Events = $filter->Execute();
   Debug(
       join(' ',
@@ -282,6 +274,7 @@ sub checkFilter {
         join(', ', 
           ($filter->{AutoDelete}?'delete':()),
           ($filter->{AutoArchive}?'archive':()),
+          ($filter->{AutoUnarchive}?'unarchive':()),
           ($filter->{AutoVideo}?'video':()),
           ($filter->{AutoUpload}?'upload':()),
           ($filter->{AutoEmail}?'email':()),
@@ -299,13 +292,22 @@ sub checkFilter {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    Debug("Checking event $Event->{Id}");
+    Debug('Checking event '.$Event->{Id});
     my $delete_ok = !undef;
     $dbh->ping();
     if ( $filter->{AutoArchive} ) {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
       my $sql = 'UPDATE `Events` SET `Archived` = 1 WHERE `Id` = ?';
+      my $sth = $dbh->prepare_cached($sql)
+        or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
+      my $res = $sth->execute($Event->{Id})
+        or Error("Unable to execute '$sql': ".$dbh->errstr());
+    }
+    if ( $filter->{AutoUnarchive} ) {
+      Info("Unarchiving event $Event->{Id}");
+      # Do it individually to avoid locking up the table for new events
+      my $sql = 'UPDATE `Events` SET `Archived` = 0 WHERE `Id` = ?';
       my $sth = $dbh->prepare_cached($sql)
         or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
       my $res = $sth->execute($Event->{Id})
@@ -346,6 +348,7 @@ sub checkFilter {
 
     if ( $filter->{AutoMove} ) {
       my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
+      Info("Moving event $Event->{Id} to datastore $filter->{AutoMoveTo}");
       $_ = $Event->MoveTo($NewStorage);
       Error($_) if $_;
     }
@@ -354,6 +357,7 @@ sub checkFilter {
       # So we still need to update the Event object with the new SecondaryStorageId
       my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
       if ( $NewStorage ) {
+        Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
         $_ = $Event->CopyTo($NewStorage);
         if ( $_ ) {
           $ZoneMinder::Database::dbh->commit();
@@ -368,9 +372,6 @@ sub checkFilter {
     } # end if AutoCopy
 
     if ( $filter->{UpdateDiskSpace} ) {
-      $ZoneMinder::Database::dbh->begin_work();
-      $Event->lock_and_load();
-
       my $old_diskspace = $$Event{DiskSpace};
 			my $new_diskspace = $Event->DiskSpace(undef);
 
@@ -381,9 +382,9 @@ sub checkFilter {
 					) {
         $Event->save();
       }
-      $ZoneMinder::Database::dbh->commit();
     } # end if UpdateDiskSpace
   } # end foreach event
+  ZoneMinder::Database::end_transaction($dbh, $in_transaction) if $$filter{LockRows}; 
 } # end sub checkFilter
 
 sub generateVideo {
@@ -391,8 +392,9 @@ sub generateVideo {
   my $Event = shift;
   my $phone = shift;
 
-  my $rate = $Event->{DefaultRate}/100;
-  my $scale = $Event->{DefaultScale}/100;
+  my $Monitor = $Event->Monitor();
+  my $rate = $$Monitor{DefaultRate}/100;
+  my $scale = $$Monitor{DefaultScale}/100;
   my $format;
 
   my @ffmpeg_formats = split(/\s+/, $Config{ZM_FFMPEG_FORMATS});
@@ -462,15 +464,18 @@ sub generateImage {
   my $event_path = $Event->Path();
   my $capture_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg', $event_path, $frame->{FrameId});
   my $analyse_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-analyse.jpg', $event_path, $frame->{FrameId}) if $analyse;
-  my $video_path =  sprintf('%s/%d-video.mp4', $event_path, $Event->{Id});
+  my $video_path =  sprintf('%s/%s', $event_path, $Event->{DefaultVideo});
   my $image_path = '';
 
 # check if the image file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
   if ( $analyse && -r $analyse_image_path ) {
+    Debug("Using analysis and jpeg exists $analyse_image_path");
     $image_path = $analyse_image_path;
   } elsif ( -r $capture_image_path ) {
+    Debug("Using captures and jpeg exists $capture_image_path");
     $image_path = $capture_image_path;
   } elsif ( -r $video_path ) {
+    Debug("mp4 exists $video_path");
     my $command ="ffmpeg -nostdin -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
     #$command = "ffmpeg -y -v 0 -i $video_path -vf 'select=gte(n\\,$$frame{FrameId}),setpts=PTS-STARTPTS' -vframes 1 -f image2 $capture_image_path";
     my $output = qx($command);
@@ -484,6 +489,8 @@ sub generateImage {
     } else {
       $image_path = $capture_image_path;
     }
+  } else {
+    Debug("No files found at $analyse_image_path, $capture_image_path or $video_path");
   }
   return $image_path;
 }
@@ -507,7 +514,7 @@ sub uploadArchFile {
     return(0);
   }
 
-  my $archFile = $Event->{MonitorName}.'-'.$Event->{Id};
+  my $archFile = $Event->Monitor()->Name().'-'.$Event->{Id};
   my $archImagePath = $Event->Path()
     .'/'
     .(
@@ -528,6 +535,10 @@ sub uploadArchFile {
 
     my $status = &AZ_OK;
     foreach my $imageFile ( @archImageFiles ) {
+      if (! -e $imageFile) {
+        Debug("Not adding $imageFile because it doesn't exist");
+        next;
+      }
       Debug("Adding $imageFile");
       my $member = $zip->addFile($imageFile);
       if ( !$member ) {
@@ -641,12 +652,14 @@ sub substituteTags {
 # First we'd better check what we need to get
 # We have a filter and an event, do we need any more
 # monitor information?
-  my $need_monitor = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_monitor = $text =~ /%(?:MN|MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_summary = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
 
   my $Monitor = $Event->Monitor() if $need_monitor;
+  my $Summary = $Monitor->Event_Summary() if $need_summary;
 
 # Do we need the image information too?
-  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD)%/;
+  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD|EIMODG)%/;
   my $first_alarm_frame;
   my $max_alarm_frame;
   my $max_alarm_score = 0;
@@ -667,19 +680,19 @@ sub substituteTags {
       }
       $rows ++;
     }
-    Debug("Frames: rows: $rows first alarm frame: $first_alarm_frame max_alaarm_frame: $max_alarm_frame, score: $max_alarm_score");
+    Debug("Frames: rows: $rows first alarm frame: $first_alarm_frame max_alarm_frame: $max_alarm_frame, score: $max_alarm_score");
     $sth->finish();
   }
 
   my $url = $Config{ZM_URL};
   $text =~ s/%ZP%/$url/g;
-  $text =~ s/%MN%/$Event->{MonitorName}/g;
-  $text =~ s/%MET%/$Monitor->{TotalEvents}/g;
-  $text =~ s/%MEH%/$Monitor->{HourEvents}/g;
-  $text =~ s/%MED%/$Monitor->{DayEvents}/g;
-  $text =~ s/%MEW%/$Monitor->{WeekEvents}/g;
-  $text =~ s/%MEM%/$Monitor->{MonthEvents}/g;
-  $text =~ s/%MEA%/$Monitor->{ArchivedEvents}/g;
+  $text =~ s/%MN%/$Monitor->{Name}/g;
+  $text =~ s/%MET%/$Summary->{TotalEvents}/g;
+  $text =~ s/%MEH%/$Summary->{HourEvents}/g;
+  $text =~ s/%MED%/$Summary->{DayEvents}/g;
+  $text =~ s/%MEW%/$Summary->{WeekEvents}/g;
+  $text =~ s/%MEM%/$Summary->{MonthEvents}/g;
+  $text =~ s/%MEA%/$Summary->{ArchivedEvents}/g;
   $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
   $text =~ s/%MPS%/$url?view=watch&mid=$Event->{MonitorId}&mode=stream/g;
   $text =~ s/%MPI%/$url?view=watch&mid=$Event->{MonitorId}&mode=still/g;
@@ -690,7 +703,8 @@ sub substituteTags {
   $text =~ s/%EN%/$Event->{Name}/g;
   $text =~ s/%EC%/$Event->{Cause}/g;
   $text =~ s/%ED%/$Event->{Notes}/g;
-  $text =~ s/%ET%/$Event->{StartTime}/g;
+  $text =~ s/%ET%/$Event->{StartDateTime}/g;
+  $text =~ s/%EVF%/$$Event{DefaultVideo}/g; # Event video filename
   $text =~ s/%EL%/$Event->{Length}/g;
   $text =~ s/%EF%/$Event->{Frames}/g;
   $text =~ s/%EFA%/$Event->{AlarmFrames}/g;
@@ -699,15 +713,22 @@ sub substituteTags {
   $text =~ s/%ESM%/$Event->{MaxScore}/g;
 
   if ( $first_alarm_frame ) {
-    $text =~ s/%EPI1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
-    $text =~ s/%EPIM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPF1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPFM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPI1%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPIM%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+    $text =~ s/%EPFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+    $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+
     if ( $attachments_ref ) {
       if ( $text =~ s/%EI1%//g ) {
         my $path = generateImage($Event, $first_alarm_frame);
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         } else {
-          Warning("Path to first image does not exist at $path");
+          Warning("Path to first image does not exist at $path for image $first_alarm_frame");
         }
       }
 
@@ -749,12 +770,20 @@ sub substituteTags {
       }
 
       if ( $text =~ s/%EIMOD%//g ) {
-        $text =~ s/%EIMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
         my $path = $Event->Path().'/objdetect.jpg';
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         } else {
-          Warning('No image for EIMOD at ' . $path);
+          Warning('No image for MOD at '.$path);
+        }
+      }
+
+      if ( $text =~ s/%EIMODG%//g ) {
+        my $path = $Event->Path().'/objdetect.gif';
+        if ( -e $path ) {
+          push @$attachments_ref, { type=>'image/gif', path=>$path };
+        } else {
+          Warning('No image for MODG at '.$path);
         }
       }
 
@@ -796,51 +825,55 @@ sub sendEmail {
     Error('No from email address defined, not sending email');
     return 0;
   }
-  if ( ! $Config{ZM_EMAIL_ADDRESS} ) {
+  if ( ! $$filter{EmailTo} ) {
     Error('No email address defined, not sending email');
     return 0;
   }
 
-  Info('Creating notification email');
+  Debug('Creating notification email');
 
-  my $subject = substituteTags($Config{ZM_EMAIL_SUBJECT}, $filter, $Event);
+  my $subject = substituteTags($$filter{EmailSubject}, $filter, $Event);
   return 0 if !$subject;
   my @attachments;
-  my $body = substituteTags($Config{ZM_EMAIL_BODY}, $filter, $Event, \@attachments);
+  my $body = substituteTags($$filter{EmailBody}, $filter, $Event, \@attachments);
   return 0 if !$body;
 
-  Info("Sending notification email '$subject'");
+  Debug("Sending notification email '$subject'");
 
   eval {
     if ( $Config{ZM_NEW_MAIL_MODULES} ) {
 ### Create the multipart container
       my $mail = MIME::Lite->new (
           From => $Config{ZM_FROM_EMAIL},
-          To => $Config{ZM_EMAIL_ADDRESS},
+          To => $$filter{EmailTo},
           Subject => $subject,
           Type => 'multipart/mixed'
           );
 ### Add the text message part
       $mail->attach (
-          Type => 'TEXT',
+          Type => (($body=~/<html/)?'text/html':'text/plain'),
           Data => $body
           );
 ### Add the attachments
+      my $total_size = 0;
       foreach my $attachment ( @attachments ) {
-        Info( "Attaching '$attachment->{path}'" );
+        my $size = -s $attachment->{path};
+        $total_size += $size;
+        Info("Attaching '$attachment->{path}' which is $size bytes");
         $mail->attach(
             Path => $attachment->{path},
             Type => $attachment->{type},
             Disposition => 'attachment'
             );
       }
+      if ( $total_size > 10*1024*1024 ) {
+        Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
+      }
 ### Send the Message
       if ( $Config{ZM_SSMTP_MAIL} ) {
         my $ssmtp_location = $Config{ZM_SSMTP_PATH};
         if ( !$ssmtp_location ) {
-          if ( logDebugging() ) {
-            Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
-          }
+          Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
           $ssmtp_location = qx('which ssmtp');
         }
         if ( !$ssmtp_location ) {
@@ -849,7 +882,7 @@ sub sendEmail {
           $mail->send();
         } else {
 ### Send using SSMTP
-          $mail->send('sendmail', $ssmtp_location, $Config{ZM_EMAIL_ADDRESS});
+          $mail->send('sendmail', $ssmtp_location, $$filter{EmailTo});
         }
       } else {
         MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
@@ -857,20 +890,27 @@ sub sendEmail {
       }
     } else {
       my $mail = MIME::Entity->build(
-          From => $Config{ZM_FROM_EMAIL},
-          To => $Config{ZM_EMAIL_ADDRESS},
-          Subject => $subject,
-          Type => (($body=~/<html>/)?'text/html':'text/plain'),
-          Data => $body
-          );
+        From => $Config{ZM_FROM_EMAIL},
+        To => $$filter{EmailTo},
+        Subject => $subject,
+        Type => (($body=~/<html/)?'text/html':'text/plain'),
+        Data => $body
+      );
 
+      my $total_size = 0;
       foreach my $attachment ( @attachments ) {
-        Info("Attaching '$attachment->{path}'");
+        my $size = -s $attachment->{path};
+        $total_size += $size;
+        Debug("Attaching '$attachment->{path}' which is $size bytes");
+
         $mail->attach(
-            Path => $attachment->{path},
-            Type => $attachment->{type},
-            Encoding => 'base64'
-            );
+          Path => $attachment->{path},
+          Type => $attachment->{type},
+          Encoding => 'base64'
+        );
+      } # end foreach attachment
+      if ( $total_size > 10*1024*1024 ) {
+        Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
       $mail->smtpsend(Host => $Config{ZM_EMAIL_HOST}, MailFrom => $Config{ZM_FROM_EMAIL});
     }
@@ -879,7 +919,7 @@ sub sendEmail {
     Error("Unable to send email: $@");
     return 0;
   } else {
-    Info('Notification email sent');
+    Info("Notification email sent to $$filter{EmailTo}");
   }
   my $sql = 'UPDATE `Events` SET `Emailed` = 1 WHERE `Id` = ?';
   my $sth = $dbh->prepare_cached($sql)
@@ -962,7 +1002,7 @@ sub sendMessage {
           From => $Config{ZM_FROM_EMAIL},
           To => $Config{ZM_MESSAGE_ADDRESS},
           Subject => $subject,
-          Type => (($body=~/<html>/)?'text/html':'text/plain'),
+          Type => (($body=~/<html/)?'text/html':'text/plain'),
           Data => $body
           );
 
@@ -999,10 +1039,7 @@ sub executeCommand {
   my $filter = shift;
   my $Event = shift;
 
-  my $event_path = $Event->Path();
-
-  my $command = $filter->{AutoExecuteCmd};
-  $command .= " $event_path";
+  my $command = $filter->{AutoExecuteCmd}.' '.$Event->Path();
   $command = substituteTags($command, $filter, $Event);
 
   Info("Executing '$command'");
@@ -1012,15 +1049,37 @@ sub executeCommand {
     chomp($output);
     Debug("Output: $output");
   }
-  if ( $status ) {
+  if ($status) {
     Error("Command '$command' exited with status: $status");
     return 0;
   } else {
-    my $sql = 'UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute( $Event->{Id} )
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+    ZoneMinder::Database::zmSQLExecute('UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?', $Event->{Id});
   }
-  return( 1 );
+  return 1;
 }
+
+1;
+__END__
+
+=head1 NAME
+
+zmfilter.pl - ZoneMinder tool to select events and perform actions on them
+
+=head1 SYNOPSIS
+
+zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] [--daemon] | -v, --version
+
+=head1 DESCRIPTION
+
+This script performs a specified database query to select recorded events and performs specified actions on them
+such as email reporting, deleting, moving, etc.  If the --daemon option is given it will remain resident, repeating
+the query and applying actions.  This is normally managed by zmdc.pl however it can be used manually as well.
+
+=head1 OPTIONS
+
+  -f{filter name}, --filter={filter name}  - The name of a specific filter to run
+  --filter_id={filter id}                  - The id of a specific filter to run
+  --daemon                                 - Causes zmfilter.pl to stay running endlessly repeating the filter(s).
+  -v, --version                            - Print ZoneMinder version
+
+=cut

@@ -22,6 +22,12 @@
 # This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
+
+sub array_diff(\@\@) {
+  my %e = map { $_ => undef } @{$_[1]};
+  return @{[ ( grep { (exists $e{$_}) ? ( delete $e{$_} ) : ( 1 ) } @{ $_[0] } ), keys %e ] };
+}
+
 package ZoneMinder::Object;
 
 use 5.006;
@@ -39,6 +45,10 @@ our @ISA = qw(ZoneMinder::Base);
 # General Utility Functions
 #
 # ==========================================================================
+
+sub def_or_undef {
+  return defined($_[0]) ? $_[0] : 'undef';
+}
 
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
@@ -208,7 +218,7 @@ sub save {
 	my $serial = eval '$'.$type.'::serial';
 	my @identified_by = eval '@'.$type.'::identified_by';
 
-	my $ac = ZoneMinder::Database::start_transaction( $local_dbh );
+	my $ac = ZoneMinder::Database::start_transaction( $local_dbh ) if $local_dbh->{AutoCommit};
 	if ( ! $serial ) {
 		my $insert = $force_insert;
 		my %serial = eval '%'.$type.'::serial';
@@ -224,8 +234,8 @@ $log->debug("No serial") if $debug;
 				if ( ! ( ( $_ = $local_dbh->prepare("DELETE FROM `$table` WHERE $where") ) and $_->execute( @$self{@identified_by} ) ) ) {
 					$where =~ s/\?/\%s/g;
 					$log->error("Error deleting: DELETE FROM $table WHERE " .  sprintf($where, map { defined $_ ? $_ : 'undef' } ( @$self{@identified_by}) ).'):' . $local_dbh->errstr);
-					$local_dbh->rollback();
-					ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+					$local_dbh->rollback() if $ac;
+					ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 					return $local_dbh->errstr;
 				} elsif ( $debug ) {
 					$log->debug("SQL succesful DELETE FROM $table WHERE $where");
@@ -257,8 +267,8 @@ $log->debug("No serial") if $debug;
 				my $error = $local_dbh->errstr;
 				$command =~ s/\?/\%s/g;
 				$log->error('SQL statement execution failed: ('.sprintf($command, , map { defined $_ ? $_ : 'undef' } ( @sql{@keys}) ).'):' . $local_dbh->errstr);
-				$local_dbh->rollback();
-				ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+				$local_dbh->rollback() if $ac;
+				ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -272,8 +282,8 @@ $log->debug("No serial") if $debug;
 				my $error = $local_dbh->errstr;
 				$command =~ s/\?/\%s/g;
 				$log->error('SQL failed: ('.sprintf($command, , map { defined $_ ? $_ : 'undef' } ( @sql{@keys, @$fields{@identified_by}}) ).'):' . $local_dbh->errstr);
-				$local_dbh->rollback();
-        ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+				$local_dbh->rollback() if $ac;
+        ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -311,8 +321,8 @@ $log->debug("No serial") if $debug;
 				$command =~ s/\?/\%s/g;
 				my $error = $local_dbh->errstr;
 				$log->error('SQL failed: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys}) ).'):' . $error);
-				$local_dbh->rollback();
-        ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+				$local_dbh->rollback() if $ac;
+        ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -330,8 +340,8 @@ $log->debug("No serial") if $debug;
 				my $error = $local_dbh->errstr;
 				$command =~ s/\?/\%s/g;
 				$log->error('SQL failed: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys}, @sql{@$fields{@identified_by}} ) ).'):' . $error) if $log;
-				$local_dbh->rollback();
-        ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+				$local_dbh->rollback() if $ac;
+        ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 				return $error;
 			} # end if
 			if ( $debug or DEBUG_ALL ) {
@@ -340,7 +350,7 @@ $log->debug("No serial") if $debug;
 			} # end if
 		} # end if
 	} # end if
-  ZoneMinder::Database::end_transaction( $local_dbh, $ac );
+  ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
   #$self->load();
 	#if ( $$fields{id} ) {
 		#if ( ! $ZoneMinder::Object::cache{$type}{$$self{id}} ) {
@@ -370,40 +380,29 @@ sub set {
 		$log->error("$type -> set called with non-hash params from $caller $line");
 	}
 
-	foreach my $field ( keys %fields ) {
-    if ( $params ) {
-      $log->debug("field: $field, param: ".$$params{$field}) if $debug;
-      if ( exists $$params{$field} ) {
-        $log->debug("field: $field, $$self{$field} =? param: ".$$params{$field}) if $debug;
-        if ( ( ! defined $$self{$field} ) or ($$self{$field} ne $params->{$field}) ) {
-# Only make changes to fields that have changed
-          if ( defined $fields{$field} ) {
-            $$self{$field} = $$params{$field} if defined $fields{$field};
-            push @set_fields, $fields{$field}, $$params{$field};	#mark for sql updating
-          } # end if
-          $log->debug("Running $field with $$params{$field}") if $debug;
-          if ( my $func = $self->can( $field ) ) {
-            $func->( $self, $$params{$field} );
-          } # end if
-        } # end if
-      } # end if
-		} # end if $params
-
-		if ( defined $fields{$field} ) {
-			if ( $$self{$field} ) {
-				$$self{$field} = transform( $type, $field, $$self{$field} );
-			} # end if $$self{field}
-		}
-	} # end foreach field
+  if ( $params ) {
+    foreach my $field ( keys %{$params} ) {
+      $log->debug("field: $field, ".def_or_undef($$self{$field}).' =? param: '.def_or_undef($$params{$field})) if $debug;
+      if ( ( ! defined $$self{$field} ) or ($$self{$field} ne $params->{$field}) ) {
+        # Only make changes to fields that have changed
+        if ( defined $fields{$field} ) {
+          $$self{$field} = $$params{$field};
+          push @set_fields, $fields{$field}, $$params{$field};	#mark for sql updating
+        } # end if has a column
+        $log->debug("Running $field with $$params{$field}") if $debug;
+        if ( my $func = $self->can( $field ) ) {
+          $func->( $self, $$params{$field} );
+        } # end if has function
+      } # end if has change
+    } # end foreach field
+  } # end if $params
 
 	foreach my $field ( keys %defaults ) {
-
 		if ( ( ! exists $$self{$field} ) or (!defined $$self{$field}) or ( $$self{$field} eq '' ) ) {
-			$log->debug("Setting default ($field) ($$self{$field}) ($defaults{$field}) ") if $debug;
+			$log->debug("Setting default ($field) (".def_or_undef($$self{$field}).') ('.def_or_undef($defaults{$field}).') ') if $debug;
 			if ( defined $defaults{$field} ) {
-				$log->debug("Default $field is defined: $defaults{$field}") if $debug;
-				if ( $defaults{$field} eq 'NOW()' ) {
-					$$self{$field} = 'NOW()';
+				if ( $defaults{$field} eq '' or $defaults{$field} eq 'NOW()' ) {
+					$$self{$field} = $defaults{$field};
 				} else {
 					$$self{$field} = eval($defaults{$field});
 					$log->error( "Eval error of object default $field default ($defaults{$field}) Reason: " . $@ ) if $@;
@@ -411,8 +410,9 @@ sub set {
 			} else {
 				$$self{$field} = $defaults{$field};
 			} # end if
-#$$self{$field} = ( defined $defaults{$field} ) ? eval($defaults{$field}) : $defaults{$field};
-			$log->debug("Setting default for ($field) using ($defaults{$field}) to ($$self{$field}) ") if $debug;
+			$log->debug("Setting default for ($field) using (".def_or_undef($defaults{$field}).') to ('.def_or_undef($$self{$field}).') ') if $debug;
+    } elsif ( defined $fields{$field} and $$self{$field} ) {
+      $$self{$field} = transform( $type, $field, $$self{$field} );
 		} # end if
 	} # end foreach default
 	return @set_fields;
@@ -639,9 +639,9 @@ $log->debug("Have array for $k $$search{$k}") if DEBUG_ALL;
 						
 						if ( ! ( $db_field =~ /\?/ ) ) {
 							if ( @{$$search{$k}} != 1 ) {
-								push @where, $db_field .' IN ('.join(',', map {'?'} @{$$search{$k}} ) . ')';
+								push @where, '`'.$db_field .'` IN ('.join(',', map {'?'} @{$$search{$k}} ) . ')';
 							} else {
-								push @where, $db_field.'=?';
+								push @where, '`'.$db_field.'`=?';
 							} # end if
 						} else {
 $log->debug("Have question ? for $k $$search{$k} $db_field") if DEBUG_ALL;
@@ -656,10 +656,10 @@ $log->debug("Have question ? for $k $$search{$k} $db_field") if DEBUG_ALL;
 						foreach my $p_k ( keys %{$$search{$k}} ) {
 							my $v = $$search{$k}{$p_k};
 							if ( ref $v eq 'ARRAY' ) {
-								push @where, $db_field.' IN ('.join(',', map {'?'} @{$v} ) . ')';
+								push @where, '`'.$db_field.'` IN ('.join(',', map {'?'} @{$v} ) . ')';
 								push @values, $p_k, @{$v};
 							} else {
-								push @where, $db_field.'=?';
+								push @where, '`'.$db_field.'`=?';
 								push @values, $p_k, $v;
 							} # end if
 						} # end foreach p_k
@@ -667,7 +667,7 @@ $log->debug("Have question ? for $k $$search{$k} $db_field") if DEBUG_ALL;
 						push @where, $db_field.' IS NULL';
 					} else {
 						if ( ! ( $db_field =~ /\?/ ) ) {
-							push @where, $db_field .'=?';
+							push @where, '`'.$db_field .'`=?';
 						} else {
 							push @where, $db_field;
 						}
@@ -851,6 +851,42 @@ sub find_sql {
 	#$log->debug("Loading Debug:$debug $object_type ($sql) (".join(',', map { ref $_ eq 'ARRAY' ? join(',', @{$_}) : $_ } @values).')' ) if $debug;
 	return \%sql;
 } # end sub find_sql
+
+sub changes {
+  my ( $self, $params ) = @_;
+
+  my $type = ref $self;
+  if ( ! $type ) {
+    my ( $caller, undef, $line ) = caller;
+    $log->error("No type in Object::changes. self:$self from  $caller:$line");
+  }
+  my $fields = eval ('\%'.$type.'::fields');
+  if (!$fields) {
+    $log->warn('Object::changes called on an object with no fields');
+    return;
+  } # end if
+  my @results;
+
+  foreach my $field (sort keys %$fields) {
+    next if ! exists $$params{$field};
+
+    if ( ref $$self{$field} eq 'ARRAY' ) {
+      my @second = ref $$params{$field} eq 'ARRAY' ? @{$$params{$field}} : ($$params{$field});
+      if (array_diff(@{$$self{$field}}, @second)) {
+        push @results, [ $field, $$self{$field}, $$params{$field} ];
+      }
+    } elsif (
+      (!defined($$self{$field}) and defined($$params{$field}))
+        or
+      (defined($$self{$field}) and !defined($$params{$field}))
+    ) {
+      push @results, $field;
+    } elsif ( defined($$self{$field}) and defined($$params{$field}) and ($$self{$field} ne $$params{$field}) ) {
+      push @results, $field;
+    }
+  }
+  return @results;
+}
 
 sub AUTOLOAD {
   my $type = ref($_[0]);

@@ -193,21 +193,21 @@ function csrf_check($fatal = true) {
     $tokens = '';
     do {
         if (!isset($_POST[$name])) {
-#Logger::Debug("POST[$name] is not set");
+#Debug("POST[$name] is not set");
 break;
 #} else {
-#Logger::Debug("POST[$name] is set as " . $_POST[$name] );
+#Debug("POST[$name] is set as " . $_POST[$name] );
 
 }
         // we don't regenerate a token and check it because some token creation
         // schemes are volatile.
         $tokens = $_POST[$name];
         if (!csrf_check_tokens($tokens)) {
-#Logger::Debug("Failed checking tokens");
+#Debug("Failed checking tokens");
 break;
 
 #} else {
-#Logger::Debug("Token passed");
+#Debug("Token passed");
 }
         $ok = true;
     } while (false);
@@ -296,7 +296,7 @@ function csrf_callback($tokens) {
       // Don't make it too easy for users to inflict a CSRF attack on themselves.
       echo "<p><strong>Only try again if you weren't sent to this page by someone as this is potentially a sign of an attack.</strong></p>";
       echo "<form method='post' action=''>$data<input type='submit' value='Try again' /></form>";
-      ZM\Logger::Debug("Failed csrf check");
+      ZM\Debug("Failed csrf check");
     }
     echo "<p>Debug: $tokens</p></body></html>
 ";
@@ -318,27 +318,27 @@ function csrf_check_tokens($tokens) {
  * Checks if a token is valid.
  */
 function csrf_check_token($token) {
-#Logger::Debug("Checking CSRF token $token");
+#Debug("Checking CSRF token $token");
     if (strpos($token, ':') === false) { 
-#Logger::Debug("Checking CSRF token $token bad because no :");
+#Debug("Checking CSRF token $token bad because no :");
       return false;
     }
     list($type, $value) = explode(':', $token, 2);
     if (strpos($value, ',') === false) {
-#Logger::Debug("Checking CSRF token $token bad because no ,");
+#Debug("Checking CSRF token $token bad because no ,");
       return false;
     }
     list($x, $time) = explode(',', $token, 2);
     if ($GLOBALS['csrf']['expires']) {
         if (time() > $time + $GLOBALS['csrf']['expires']) {
-#Logger::Debug("Checking CSRF token $token bad because expired");
+#Debug("Checking CSRF token $token bad because expired");
 return false;
         }
     }
     switch ($type) {
         case 'sid':
             {
- #Logger::Debug("Checking sid: $value === " . csrf_hash(session_id(), $time) );
+ #Debug("Checking sid: $value === " . csrf_hash(session_id(), $time) );
             return $value === csrf_hash(session_id(), $time);
             }
         case 'cookie':
@@ -348,10 +348,10 @@ return false;
             return $value === csrf_hash($_COOKIE[$n], $time);
         case 'key':
             if (!$GLOBALS['csrf']['key']) {
-		    Logger::Debug("Checking key: no key set"  );
+		    ZM\Debug("Checking key: no key set"  );
 		    return false;
 	    }
- #Logger::Debug("Checking sid: $value === " . csrf_hash($GLOBALS['csrf']['key'], $time) );
+ #Debug("Checking sid: $value === " . csrf_hash($GLOBALS['csrf']['key'], $time) );
 	    return $value === csrf_hash($GLOBALS['csrf']['key'], $time);
         // We could disable these 'weaker' checks if 'key' was set, but
         // that doesn't make me feel good then about the cookie-based
@@ -389,7 +389,7 @@ function csrf_conf($key, $val) {
  */
 function csrf_start() {
     if ($GLOBALS['csrf']['auto-session'] && !session_id()) {
-        session_start();
+        zm_session_start();
     }
 }
 

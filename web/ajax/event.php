@@ -1,11 +1,11 @@
 <?php
-error_reporting(E_ERROR);
+ini_set('display_errors', '0');
 
 if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
   ajaxError('No event id(s) supplied');
 }
 
-if ( canView('Events') ) {
+if ( canView('Events') or canView('Snapshots') ) {
   switch ( $_REQUEST['action'] ) {
   case 'video' :
     if ( empty($_REQUEST['videoFormat']) ) {
@@ -28,8 +28,8 @@ if ( canView('Events') ) {
     $ok = true;
     break;
   case 'deleteVideo' :
-    unlink( $videoFiles[$_REQUEST['id']] );
-    unset( $videoFiles[$_REQUEST['id']] );
+    unlink($videoFiles[$_REQUEST['id']]);
+    unset($videoFiles[$_REQUEST['id']]);
     ajaxResponse();
     break;
   case 'export' :
@@ -74,10 +74,15 @@ if ( canView('Events') ) {
     else
       $exportCompress = false;
 
+    if ( !empty($_REQUEST['exportStructure']) )
+      $exportStructure = $_SESSION['export']['structure'] = $_REQUEST['exportStructure'];
+    else
+      $exportStructure = false;
+
     session_write_close();
 
     $exportIds = !empty($_REQUEST['eids']) ? $_REQUEST['eids'] : $_REQUEST['id'];
-    if ( $exportFile = exportEvents(
+    if ($exportFile = exportEvents(
       $exportIds,
       (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
       $exportDetail,
@@ -86,11 +91,14 @@ if ( canView('Events') ) {
       $exportVideo,
       $exportMisc,
       $exportFormat,
-      $exportCompress
-    ) )
-    ajaxResponse(array('exportFile'=>$exportFile));
-    else
+      $exportCompress,
+      $exportStructure,
+      (!empty($_REQUEST['exportFile'])?$_REQUEST['exportFile']:'zmExport')
+    )) {
+      ajaxResponse(array('exportFile'=>$exportFile));
+    } else {
       ajaxError('Export Failed');
+    }
     break;
   case 'download' :
     require_once(ZM_SKIN_PATH.'/includes/export_functions.php');
@@ -104,13 +112,17 @@ if ( canView('Events') ) {
       false,#detail
       false,#frames
       false,#images
-      $exportVideo,
+      true, #$exportVideo,
       false,#Misc
       $exportFormat,
       false#,#Compress
       #$exportStructure
     ) ) {
-      ajaxResponse(array('exportFile'=>$exportFile,'exportFormat'=>$exportFormat, 'connkey'=>(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'')));
+    ajaxResponse(array(
+      'exportFile'=>$exportFile,
+      'exportFormat'=>$exportFormat,
+      'connkey'=>(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'')
+    ));
     } else {
       ajaxError('Export Failed');
     }
@@ -145,7 +157,7 @@ if ( canEdit('Events') ) {
     break;
   case 'delete' :
     $Event = new ZM\Event($_REQUEST['id']);
-    if ( ! $Event->Id() ) {
+    if ( !$Event->Id() ) {
       ajaxResponse(array('refreshEvent'=>false, 'refreshParent'=>true, 'message'=> 'Event not found.'));
     } else {
       $Event->delete();
@@ -155,5 +167,5 @@ if ( canEdit('Events') ) {
   } // end switch action
 } // end if canEdit('Events')
 
-ajaxError('Unrecognised action or insufficient permissions');
+ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user '.$user['Username']);
 ?>

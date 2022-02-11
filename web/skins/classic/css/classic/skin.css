@@ -492,6 +492,10 @@ margin-left: 0px;
 	border-radius: 0;
 }
 
+.nav-pills .nav-link.active, .nav-pills .show>.nav-link {
+  background-color: #337ab7;
+}
+
 button,
 input[type=button],
 input[type=submit],

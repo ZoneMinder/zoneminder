@@ -95,6 +95,7 @@ void Image::update_function_pointers() {
     delta8_abgr = &std_delta8_abgr;
     delta8_gray8 = &std_delta8_gray8;
     blend = &std_blend;
+    Warning("Using slow std functions");
   } else {
     // Use either sse or neon, or loop unrolled version
     delta8_rgb = fptr_delta8_rgb;
@@ -1737,7 +1738,6 @@ void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned
 }  // end void Image::Overlay( const Image &image, unsigned int x, unsigned int y )
 
 void Image::Blend( const Image &image, int transparency ) {
-  uint8_t* new_buffer;
 
   if ( !(
         width == image.width && height == image.height
@@ -1751,7 +1751,7 @@ void Image::Blend( const Image &image, int transparency ) {
   if ( transparency <= 0 )
     return;
 
-  new_buffer = AllocBuffer(size);
+  uint8_t* new_buffer = AllocBuffer(size);
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint start = std::chrono::steady_clock::now();
@@ -3397,6 +3397,7 @@ __attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const
 }
 
 __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
+  Warning("Using slow std_blend");
   double divide = blendpercent / 100.0;
   double opacity = 1.0 - divide;
   const uint8_t* const max_ptr = result + count;

@@ -36,8 +36,16 @@
 
 #topPanel {
     position: relative;
-    height: 220px;
+    min-height: 220px;
     margin: 4px auto 6px;
+}
+#topPanel:after {
+  content: ".";
+  display: block;
+  height: 0;
+    font-size: 0;
+  clear: both;
+  visibility: hidden;
 }
 
 #topPanel .imagePanel {
@@ -87,6 +95,7 @@
 }
 
 #topPanel #navPanel {
+  float: left;
     width: 100%;
     height: 70px;
     margin: 4px auto;

@@ -1813,9 +1813,9 @@ bool Monitor::Analyse() {
                 ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                 ) ) {
             Debug(1, "assigning refimage from v-channel");
-            Image v_image(snap->in_frame->width,
+            Image y_image(snap->in_frame->width,
                 snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-            ref_image.Assign(v_image);
+            ref_image.Assign(y_image);
           } else if (snap->image) {
             Debug(1, "assigning refimage from snap->image");
             ref_image.Assign(*(snap->image));
@@ -1904,8 +1904,8 @@ bool Monitor::Analyse() {
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                       ) ) {
                   Debug(1, "assigning refimage from v-channel");
-                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                  ref_image.Assign(v_image);
+                  Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
+                  ref_image.Assign(y_image);
                 } else {
             Debug(1, "assigning refimage from snap->image");
                   ref_image.Assign(*(snap->image));
@@ -1919,8 +1919,8 @@ bool Monitor::Analyse() {
                       ||
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                       ) ) {
-                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                  snap->score = DetectMotion(v_image, zoneSet);
+                  Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
+                  snap->score = DetectMotion(y_image, zoneSet);
                 } else {
                   snap->score = DetectMotion(*(snap->image), zoneSet);
                 }
@@ -2144,8 +2144,8 @@ bool Monitor::Analyse() {
                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                     ) ) {
                 Debug(1, "Assigning from vchannel");
-                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                ref_image.Assign(v_image);
+                Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
+                ref_image.Assign(y_image);
               } else if (snap->image) {
                 Debug(1, "Assigning");
                 ref_image.Assign(*(snap->image));
@@ -2159,8 +2159,8 @@ bool Monitor::Analyse() {
                   )
                  ) {
                 Debug(1, "Blending from vchannel");
-                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                ref_image.Blend(v_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
+                ref_image.Blend(y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
               } else if (snap->image) {
                 Debug(1, "Blending because %p and format %d != %d, %d", snap->in_frame,
                     snap->in_frame->format,

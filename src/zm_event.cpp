@@ -354,8 +354,11 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
     }
     //FIXME if it fails, we should write a jpeg
   }
-  if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image)
-    AddFrame(packet->image, packet->timestamp, packet->zone_stats, packet->score, packet->analysis_image);
+
+  if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
+    //AddFrame(packet->image, packet->timestamp, packet->zone_stats, packet->score, packet->analysis_image);
+    AddFrame(packet);
+  }
   end_time = packet->timestamp;
   return;
 }
@@ -413,19 +416,15 @@ void Event::WriteDbFrames() {
   }
 } // end void Event::WriteDbFrames()
 
-void Event::AddFrame(
-    Image *image,
-    struct timeval timestamp,
-    const std::vector<ZoneStats> &zone_stats,
-    int score,
-    Image *alarm_image) {
-  if (!timestamp.tv_sec) {
+void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
+  if (!packet->timestamp.tv_sec) {
     Warning("Not adding new frame, zero timestamp");
     return;
   }
 
   frames++;
   Monitor::State monitor_state = monitor->GetState();
+  int score = packet->score;
 
   bool write_to_db = false;
   FrameType frame_type = ( ( score > 0 ) ? ALARM : (
@@ -438,16 +437,16 @@ void Event::AddFrame(
       ) ? BULK : NORMAL 
       ) );
   Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d", 
-      frame_type_names[frame_type], score, monitor->GetState(), frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval));
+      frame_type_names[frame_type], score, monitor_state, frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval));
 
   if (score < 0) score = 0;
   tot_score += score;
 
-  if (image) {
+  if (packet->image) {
     if (save_jpegs & 1) {
       std::string event_file = stringtf(staticConfig.capture_file_format, path.c_str(), frames);
       Debug(1, "Writing capture frame %d to %s", frames, event_file.c_str());
-      if (!WriteFrameImage(image, timestamp, event_file.c_str())) {
+      if (!WriteFrameImage(packet->image, packet->timestamp, event_file.c_str())) {
         Error("Failed to write frame image");
       }
     }  // end if save_jpegs
@@ -455,7 +454,10 @@ void Event::AddFrame(
     // If this is the first frame, we should add a thumbnail to the event directory
     if ((frames == 1) || (score > (int)max_score)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
-      WriteFrameImage(image, timestamp, snapshot_file.c_str());
+      Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
+      WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str());
+    } else {
+      Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);
     }
 
     // We are writing an Alarm frame
@@ -464,15 +466,38 @@ void Event::AddFrame(
       if (!alarm_frame_written) {
         write_to_db = true; // OD processing will need it, so the db needs to know about it
         alarm_frame_written = true;
-        WriteFrameImage(image, timestamp, alarm_file.c_str());
+        Debug(1, "Writing alarm image to %s", alarm_file.c_str());
+        if (!WriteFrameImage(packet->image, packet->timestamp, alarm_file.c_str())) {
+          Error("Failed to write alarm frame image to %s", alarm_file.c_str());
+        }
+      } else {
+        Debug(3, "Not Writing alarm image because alarm frame already written");
       }
 
-      if (alarm_image and (save_jpegs & 2)) {
+      if (packet->analysis_image and (save_jpegs & 2)) {
         std::string event_file = stringtf(staticConfig.analyse_file_format, path.c_str(), frames);
-        Debug(1, "Writing analysis frame %d", frames);
-        if (!WriteFrameImage(alarm_image, timestamp, event_file.c_str(), true)) {
-          Error("Failed to write analysis frame image");
+        Debug(1, "Writing analysis frame %d to %s", frames, event_file.c_str());
+        if (!WriteFrameImage(packet->analysis_image, packet->timestamp, event_file.c_str(), true)) {
+          Error("Failed to write analysis frame image to %s", event_file.c_str());
         }
+        if (packet->in_frame &&
+            (
+             ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
+             ||
+             ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
+            )
+           ) {
+          std::string event_file = stringtf("%s/%d-y.jpg", path.c_str(), frames);
+          Image y_image(
+              packet->in_frame->width,
+              packet->in_frame->height,
+              1, ZM_SUBPIX_ORDER_NONE,
+              packet->in_frame->data[0], 0);
+          if (!WriteFrameImage(&y_image, packet->timestamp, event_file.c_str(), true)) {
+            Error("Failed to write y frame image to %s", event_file.c_str());
+          }
+        }
+
       }
     }  // end if is an alarm frame
   } else {
@@ -492,16 +517,16 @@ void Event::AddFrame(
   if (db_frame) {
 
     struct DeltaTimeval delta_time;
-    DELTA_TIMEVAL(delta_time, timestamp, start_time, DT_PREC_2);
+    DELTA_TIMEVAL(delta_time, packet->timestamp, start_time, DT_PREC_2);
     Debug(1, "Frame delta is %" PRIi64 ".%" PRIi64 " - %" PRIi64 ".%" PRIi64 " = %lu.%lu, score %u zone_stats.size %zu",
           static_cast<int64>(start_time.tv_sec), static_cast<int64>(start_time.tv_usec),
-          static_cast<int64>(timestamp.tv_sec), static_cast<int64>(timestamp.tv_usec),
+          static_cast<int64>(packet->timestamp.tv_sec), static_cast<int64>(packet->timestamp.tv_usec),
           delta_time.sec, delta_time.fsec,
           score,
-          zone_stats.size());
+          packet->zone_stats.size());
 
     // The idea is to write out 1/sec
-    frame_data.push(new Frame(id, frames, frame_type, timestamp, delta_time, score, zone_stats));
+    frame_data.push(new Frame(id, frames, frame_type, packet->timestamp, delta_time, score, packet->zone_stats));
     double fps = monitor->get_capture_fps();
 		if ( write_to_db
 				or
@@ -537,8 +562,8 @@ void Event::AddFrame(
 
   if (score > (int)max_score)
     max_score = score;
-  end_time = timestamp;
-}  // end void Event::AddFrame(Image *image, struct timeval timestamp, int score, Image *alarm_image)
+  end_time = packet->timestamp;
+}  // void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet)
 
 bool Event::SetPath(Storage *storage) {
   scheme = storage->Scheme();

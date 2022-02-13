@@ -140,13 +140,7 @@ class Event {
 
     void updateNotes(const StringSetMap &stringSetMap);
 
-    void AddFrame(
-        Image *image,
-        struct timeval timestamp,
-        const std::vector<ZoneStats> &stats,
-        int score=0,
-        Image *alarm_image=nullptr
-        );
+    void AddFrame(const std::shared_ptr<ZMPacket>&packet);
 
     void Stop() { terminate_ = true; }
     bool Stopped() const { return terminate_; }

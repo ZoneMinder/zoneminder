@@ -547,7 +547,9 @@ void EventStream::processCommand(const CmdMsg *msg) {
 
   struct {
     uint64_t event_id;
+    //Microseconds duration;
     double duration;
+    //Microseconds progress;
     double progress;
     int rate;
     int zoom;
@@ -555,8 +557,10 @@ void EventStream::processCommand(const CmdMsg *msg) {
   } status_data;
 
   status_data.event_id = event_data->event_id;
-  status_data.duration = event_data->duration;
-  status_data.progress = event_data->frames[curr_frame_id-1].offset;
+  //status_data.duration = event_data->duration;
+  status_data.duration = std::chrono::duration<double>(event_data->duration).count();
+  //status_data.progress = event_data->frames[curr_frame_id-1].offset;
+  status_data.progress = std::chrono::duration<double>(event_data->frames[curr_frame_id-1].offset).count();
   status_data.rate = replay_rate;
   status_data.zoom = zoom;
   status_data.paused = paused;

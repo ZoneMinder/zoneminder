@@ -30,20 +30,21 @@ function translate($name) {
 function loadLanguage($prefix='') {
   global $user;
 
-  if ( $prefix )
+  if ($prefix)
     $prefix = $prefix.'/';
 
-  if ( isset($user['Language']) and $user['Language'] ) {
-    $userLangFile = $prefix.'lang/'.$user['Language'].'.php';
+  if (isset($user['Language']) and $user['Language']) {
+    # Languages can only have letters, numbers and underscore
+    $userLangFile = $prefix.'lang/'.preg_replace('/[^[:alnum:]_]+/', '', $user['Language']).'.php';
 
-    if ( file_exists($userLangFile) ) {
+    if (file_exists($userLangFile)) {
       return $userLangFile;
     } else {
       ZM\Warning("User language file $userLangFile does not exist.");
     }
   }
 
-  $systemLangFile = $prefix.'lang/'.ZM_LANG_DEFAULT.'.php';
+  $systemLangFile = $prefix.'lang/'.preg_replace('/[^[:alnum:]_]+/', '', ZM_LANG_DEFAULT).'.php';
   if ( file_exists($systemLangFile) ) {
     return $systemLangFile;
   } else {

@@ -42,7 +42,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libswscale5|libswscale4
         ,libswresample3|libswresample2
         ,ffmpeg
-        ,libcurl4
+        ,libcurl4, libcurl4-gnutls-dev
         ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
         ,libphp-serialization-perl

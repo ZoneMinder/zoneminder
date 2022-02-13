@@ -387,6 +387,7 @@ function getFrameImage() {
 
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
   if ( !($frame = dbFetchOne($sql, NULL, array($eventId, $frameId))) ) {
+    ZM\Error("Frame not found for event $eventId frame $frameId");
     $frame = array();
     $frame['EventId'] = $eventId;
     $frame['FrameId'] = $frameId;

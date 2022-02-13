@@ -17,12 +17,12 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Events') ) {
+if (!canView('Events')) {
   $view = 'error';
   return;
 }
 
-foreach ( getSkinIncludes('includes/timeline_functions.php') as $includeFile )
+foreach (getSkinIncludes('includes/timeline_functions.php') as $includeFile)
   require_once $includeFile;
 
 //
@@ -313,7 +313,7 @@ if ( !$events_result ) {
 
 $max_aspect_ratio = 0;
 
-while( $event = $events_result->fetch(PDO::FETCH_ASSOC) ) {
+while ($event = $events_result->fetch(PDO::FETCH_ASSOC)) {
   if ( !isset($monitors[$event['MonitorId']]) ) {
     $monitor = $monitors[$event['MonitorId']] = ZM\Monitor::find_one(array('Id'=>$event['MonitorId']));
     $monEventSlots[$event['MonitorId']] = array();
@@ -361,7 +361,7 @@ while( $event = $events_result->fetch(PDO::FETCH_ASSOC) ) {
 
       $i = $startIndex;
       if ( !isset($currFrameSlots[$i]) ) {
-        $currFrameSlots[$i] = array('count'=>1, 'value'=>$event['MaxScore'], 'event'=>$event, 'frame'=>$frame);
+        $currFrameSlots[$i] = array('count'=>1, 'value'=>$event['MaxScore'], 'event'=>$event, 'frame'=>$frame, 'id'=>$frame['FrameId']);
       } else {
         $currFrameSlots[$i]['count']++;
         if ( $event['MaxScore'] > $currFrameSlots[$i]['value'] ) {
@@ -434,10 +434,10 @@ $majYScale = getYScale(
   $chart['grid']['y']['major']['max']);
 
 // Optimise boxes
-foreach( array_keys($monEventSlots) as $monitorId ) {
-  unset( $currEventSlots );
+foreach (array_keys($monEventSlots) as $monitorId) {
+  unset($currEventSlots);
   $currEventSlots = &$monEventSlots[$monitorId];
-  for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
+  for ($i = 0; $i < $chart['graph']['width']; $i++) {
     if ( isset($currEventSlots[$i]) ) {
       if ( isset($currSlot) ) {
         if ( $currSlot['event']['Id'] == $currEventSlots[$i]['event']['Id'] ) {
@@ -682,23 +682,32 @@ xhtmlHeaders(__FILE__, translate('Timeline'));
     </div>
     
     <div id="content" class="chartSize">
+      <div id="instruction">
+        <p><?php echo translate('TimelineTip1') ?></p>
+        <p><?php echo translate('TimelineTip2') ?></p>
+        <p><?php echo translate('TimelineTip3') ?></p>
+        <p><?php echo translate('TimelineTip4') ?></p>
+      </div>
       <div id="topPanel" class="graphWidth">
-        <div id="imagePanel">
-          <div id="image" class="imageHeight">
-		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
-          </div>
-        </div>
-        <div id="dataPanel">
-          <div id="textPanel">
-            <div id="instruction">
-              <p><?php echo translate('TimelineTip1') ?></p>
-              <p><?php echo translate('TimelineTip2') ?></p>
-              <p><?php echo translate('TimelineTip3') ?></p>
-              <p><?php echo translate('TimelineTip4') ?></p>
-              </div>
-            <div id="eventData">
+<?php 
+foreach ( $monitors as $monitor ) {
+?>
+        <div class="monitorPanel" style="width:<?php echo 100/count($monitors); ?>%; float:left;">
+        <div class="imagePanel"<?php echo count($monitors)==1?' style="width: 50%; float: left;"' :''?>>
+            <div class="imageHeight image">
+              <img id="imageSrc<?php echo $monitor->Id() ?>" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
             </div>
           </div>
+          <div id="dataPanel<?php echo $monitor->Id() ?>" class="dataPanel"<?php echo count($monitors)==1?' style="width: 50%; float: left;"' :''?>>
+            <div id="textPanel<?php echo $monitor->Id() ?>">
+              <div id="eventData<?php echo $monitor->Id() ?>">
+              </div>
+            </div>
+          </div>
+        </div>
+<?php 
+} # end foreach monitor
+?>
           <div id="navPanel">
             <button type="button" title="<?php echo translate('PanLeft') ?>" data-on-click="tlPanLeft">
             <i class="material-icons md-18">fast_rewind</i>
@@ -710,7 +719,6 @@ xhtmlHeaders(__FILE__, translate('Timeline'));
             <i class="material-icons md-18">fast_forward</i>
             </button>
           </div>
-        </div>
       </div>
       <div id="chartPanel">
         <div id="chart" class="graphSize">

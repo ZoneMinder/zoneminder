@@ -340,6 +340,14 @@ ul.tabList li.active a {
 .alarm, .errorText, .error {
     color: #ff3f34;
 }
+/* Refers to the error box at the top of the web UI */
+#error {
+  width: 100%;
+  padding: 5px;
+  font-weight: bold;
+  background-color: white;
+  color: #ff3f34;
+}
 
 .timedErrorBox {
   color:white;

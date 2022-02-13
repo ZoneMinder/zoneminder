@@ -104,7 +104,7 @@ $html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['Monit
 $html .= '</span>'.PHP_EOL;
 
 function addFilterSelect($name, $options) {
-  $html .= '<span class="'.$name.'Filter"><label>'.translate($name).'</label>';
+  $html = '<span class="'.$name.'Filter"><label>'.translate($name).'</label>';
   $html .= htmlSelect($name.'[]', $options,
     (isset($_SESSION[$name])?$_SESSION[$name]:''),
       array(

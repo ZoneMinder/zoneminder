@@ -115,10 +115,11 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
       <div>
         <p id="image">
 <?php
-if ( $imageData['hasAnalImage'] ) {
+if ($imageData['hasAnalImage']) {
   echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s" title="Click to display frame %s analysis">',
-    $Event->Id(), $Frame->FrameId(), $scale, ( $show=='anal'?'capt':'anal' ),
-    ( $show=='anal'?'without':'with' ),
+    $Event->Id(), $Frame->FrameId(), $scale,
+    ($show=='anal'?'capt':'anal'),
+    ($show=='anal'?'without':'with')
   );
 }
 ?>

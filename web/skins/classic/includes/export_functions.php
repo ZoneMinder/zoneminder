@@ -153,7 +153,7 @@ function exportEventFrames($event, $exportDetail, $exportImages) {
 <?php
         if ( $exportImages ) {
 ?>
-          <td><a href="<?php echo $imageFile ?>" target="zmExportImage"><img src="<?php echo $imageFile ?>" class="thumb" alt="Frame <?php echo $frame['FrameId'] ?>"/></a></td>
+          <td><a href="<?php echo $imageFile ?>" target="zmExportImage"><img src="<?php echo $imageFile ?>" class="thumb" alt="Frame <?php echo $frame['FrameId'] ?>" loading="lazy" /></a></td>
 <?php
         }
 ?>
@@ -576,7 +576,7 @@ function eventlist_html($Event, $exportDetail, $exportFrames, $exportStructure) 
     $html .= '<a href="#" onclick="switchevent(\''.$Event->Id().'/zmEventImages.html\');return false;">
 ';
     if ( ZM_WEB_LIST_THUMBS ) {
-      $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().($exportStructure=='flat'?'_':'/').'snapshot.jpg" alt="'.$Event->Id().'"/>
+      $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().($exportStructure=='flat'?'_':'/').'snapshot.jpg" alt="'.$Event->Id().'" loading="lazy" />
 ';
     }
     $html .= '</a><br/>
@@ -584,7 +584,7 @@ function eventlist_html($Event, $exportDetail, $exportFrames, $exportStructure) 
 	} # end if has jpegs
 	if ($Event->DefaultVideo()) {
     $html .= '<a href="'.$Event->Id().'/'.$Event->DefaultVideo() .'">';
-    $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().($exportStructure=='flat'?'_':'/').'snapshot.jpg" alt="'.$Event->Id().'"/>';
+    $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().($exportStructure=='flat'?'_':'/').'snapshot.jpg" alt="'.$Event->Id().'" loading="lazy" />';
     $html .= '</a><br/>'.PHP_EOL;
 	}
   if ($exportDetail) {

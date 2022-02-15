@@ -49,9 +49,9 @@ class EventStream : public StreamBase {
     struct EventData {
       uint64_t  event_id;
       unsigned int    monitor_id;
-      unsigned long   storage_id;
-      unsigned long   frame_count;    // Value of Frames column in Event
-      unsigned long   last_frame_id;  // Highest frame id known about. Can be < frame_count in incomplete events
+      unsigned int    storage_id;
+      int             frame_count;    // Value of Frames column in Event
+      int             last_frame_id;  // Highest frame id known about. Can be < frame_count in incomplete events
       SystemTimePoint start_time;
       SystemTimePoint end_time;
       Microseconds duration;
@@ -73,7 +73,7 @@ class EventStream : public StreamBase {
     StreamMode mode;
     bool forceEventChange;
 
-    long curr_frame_id;
+    int curr_frame_id;
     SystemTimePoint curr_stream_time;
     bool  send_frame;
     TimePoint start;     // clock time when started the event
@@ -82,7 +82,7 @@ class EventStream : public StreamBase {
 
   protected:
     bool loadEventData(uint64_t event_id);
-    bool loadInitialEventData(uint64_t init_event_id, unsigned int init_frame_id);
+    bool loadInitialEventData(uint64_t init_event_id, int init_frame_id);
     bool loadInitialEventData(int monitor_id, SystemTimePoint event_time);
 
     bool checkEventLoaded();
@@ -118,7 +118,7 @@ class EventStream : public StreamBase {
           ffmpeg_input = nullptr;
         }
     }
-    void setStreamStart(uint64_t init_event_id, unsigned int init_frame_id);
+    void setStreamStart(uint64_t init_event_id, int init_frame_id);
     void setStreamStart(int monitor_id, time_t event_time);
     void setStreamMode(StreamMode p_mode) { mode = p_mode; }
     void runStream() override;

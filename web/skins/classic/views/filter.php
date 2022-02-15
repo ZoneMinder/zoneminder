@@ -130,8 +130,6 @@ $opTypes = array(
     '!~'  => translate('OpNotMatches'),
     '=[]' => translate('OpIn'),
     '![]' => translate('OpNotIn'),
-    'IN'  => translate('OpIn'),
-    'NOT IN' => translate('OpNotIn'),
     'IS'  => translate('OpIs'),
     'IS NOT'  => translate('OpIsNot'),
     'LIKE' => translate('OpLike'),

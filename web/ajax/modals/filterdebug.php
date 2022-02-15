@@ -11,13 +11,20 @@
 <?php
   require_once('includes/Filter.php');
   $fid = validInt($_REQUEST['fid']);
-  if (!$fid) {
-    echo '<div class="error">No filter id specified.</div>';
-  } else {
-    $filter = new ZM\Filter($_REQUEST['fid']);
+
+  $filter = null;
+  if ($fid) {
+    $filter = new ZM\Filter($fid);
     if (!$filter->Id()) {
       echo '<div class="error">Filter not found for id '.$_REQUEST['fid'].'</div>';
     }
+  } else {
+   $filter = new ZM\Filter();
+   if ( isset($_REQUEST['filter'])) {
+     $filter->set($_REQUEST['filter']);
+   } else {
+     echo '<div class="error">No filter id or contents specified.</div>';
+   }
   }
 ?>
        <form name="contentForm" id="filterdebugForm" method="post" action="?">

@@ -2163,7 +2163,7 @@ bool Monitor::Analyse() {
                 ref_image.Blend(y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
               } else if (snap->image) {
                 Debug(1, "Blending because %p and format %d != %d, %d", snap->in_frame,
-                    snap->in_frame->format,
+                    (snap->in_frame ? snap->in_frame->format : -1),
                     AV_PIX_FMT_YUV420P,
                     AV_PIX_FMT_YUVJ420P
                     );
@@ -2683,7 +2683,7 @@ bool Monitor::Decode() {
 
     if (config.timestamp_on_capture) {
       Debug(3, "Timestamping");
-      TimestampImage(packet->image, packet->timestamp);
+      TimestampImage(capture_image, packet->timestamp);
     }
 
     image_buffer[index]->Assign(*(packet->image));

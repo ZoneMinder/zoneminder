@@ -24,6 +24,7 @@
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <unistd.h>
 #else // ZM_MEM_MAPPED
 #include <sys/ipc.h>
 #include <sys/shm.h>

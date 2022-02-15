@@ -42,7 +42,7 @@ $filter = new ZM\Filter();
 $filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'>=', 'val'=>$minTime, 'obr'=>'1'));
 $filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'<=', 'val'=>$maxTime, 'cnj'=>'and', 'cbr'=>'1'));
 if ( count($selected_monitor_ids) ) {
-  $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'IN', 'val'=>implode(',', $selected_monitor_ids), 'cnj'=>'and'));
+  $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=[]', 'val'=>implode(',', $selected_monitor_ids), 'cnj'=>'and'));
 } else if ( ( $group_id != 0 || isset($_SESSION['ServerId']) || isset($_SESSION['StorageId']) || isset($_SESSION['Status']) ) ) {
 # this should be redundant
   for ( $i=0; $i < count($displayMonitors); $i++ ) {
@@ -164,11 +164,11 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
 
   if ( count($FileMissing) ) {
     $FileMissing_filter = new ZM\Filter();
-    $FileMissing_filter->addTerm(array('attr'=>'Id', 'op'=>'IN', 'val'=>implode(',', array_map(function($Event){return $Event->Id();}, $FileMissing))));
+    $FileMissing_filter->addTerm(array('attr'=>'Id', 'op'=>'=[]', 'val'=>implode(',', array_map(function($Event){return $Event->Id();}, $FileMissing))));
   }
   if ( count($ZeroSize) ) {
     $ZeroSize_filter = new ZM\Filter();
-    $ZeroSize_filter->addTerm(array('attr'=>'Id', 'op'=>'IN', 'val'=>implode(',', array_map(function($Event){return $Event->Id();}, $ZeroSize))));
+    $ZeroSize_filter->addTerm(array('attr'=>'Id', 'op'=>'=[]', 'val'=>implode(',', array_map(function($Event){return $Event->Id();}, $ZeroSize))));
   }
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">

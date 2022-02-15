@@ -231,7 +231,7 @@ sub Sql {
         } else {
           ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
           # Empty value will result in () from split
-          foreach my $temp_value ( $stripped_value ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
+          foreach my $temp_value ( $stripped_value ne '' ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.$value.')';
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
@@ -323,7 +323,7 @@ sub Sql {
               $self->{Sql} .= ' IS NOT '.$value;
             } elsif ( $term->{op} eq '=[]' or $term->{op} eq 'IN' ) {
               $self->{Sql} .= ' IN ('.join(',', @value_list).")";
-            } elsif ( $term->{op} eq '![]' ) {
+            } elsif ( $term->{op} eq '![]' or $term->{op} eq 'NOT IN') {
               $self->{Sql} .= ' NOT IN ('.join(',', @value_list).')';
             } elsif ( $term->{op} eq 'LIKE' ) {
               $self->{Sql} .= ' LIKE '.$value;

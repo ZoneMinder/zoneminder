@@ -7,38 +7,45 @@ extern "C" {
 
 #ifdef HAVE_SENDFILE4_SUPPORT
 #include <sys/sendfile.h>
-ssize_t zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
-  size_t remaining = size;
-  while (remaining) {
-    ssize_t err = sendfile(out_fd, in_fd, offset, remaining);
-    if (err < 0) {
-      return -errno;
-    }
-    remaining -= err;
-    offset += err;
-  }
-
-  return size-remaining;
-}
 #elif HAVE_SENDFILE7_SUPPORT
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
-ssize_t zm_sendfile(int out_fd, int in_fd, off_t *offset, off_t size) {
+#else
+#include <unistd.h>
+#endif
+
+/* Function to send the contents of a file. Will use sendfile or fall back to reading/writing */
+
+ssize_t zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
+#ifdef HAVE_SENDFILE4_SUPPORT
+  ssize_t err = sendfile(out_fd, in_fd, offset, size);
+  if (err < 0) {
+    return -errno;
+  }
+  return err;
+
+#elif HAVE_SENDFILE7_SUPPORT
   ssize_t err = sendfile(in_fd, out_fd, *offset, size, nullptr, &size, 0);
   if (err && errno != EAGAIN)
     return -errno;
-
-  if (size) {
-    *offset += size;
-    return size;
+  return size;
+#else
+  uint8_t buffer[size];
+  ssize_t err = read(in_fd, buffer, size);
+  if (err < 0) {
+    Error("Unable to read %zu bytes: %s", size, strerror(errno));
+    return -errno;
   }
 
-  return -EAGAIN;
-}
-#else
-#error "Your platform does not support sendfile. Sorry."
+  err = fwrite(out_fd, buffer, size);
+  if (err < 0) {
+    Error("Unable to write %zu bytes: %s", size, strerror(errno));
+    return -errno;
+  }
+  return err;
 #endif
+}
 
 #ifdef __cplusplus
 }

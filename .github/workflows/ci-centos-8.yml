@@ -19,7 +19,7 @@ jobs:
           - crypto_backend: gnutls
             jwt_backend: libjwt
     runs-on: ubuntu-latest
-    container: centos:8
+    container: rockylinux:8
 
     steps:
       - name: Enable RPMFusion, EPEL and PowerTools

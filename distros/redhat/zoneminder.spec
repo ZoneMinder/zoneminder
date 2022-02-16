@@ -352,7 +352,8 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %{_unitdir}/zoneminder.service
-%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/actions/com.zoneminder.*
+%{_datadir}/polkit-1/rules.d/com.zoneminder.arp-scan.rules
 %{_bindir}/zmsystemctl.pl
 
 %{_bindir}/zmaudit.pl

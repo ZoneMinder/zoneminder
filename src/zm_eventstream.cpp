@@ -799,7 +799,13 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
 
       Image *send_image = prepareImage(image);
-      static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
+      if (temp_img_buffer_size < send_image->Size()) {
+        Debug(1, "Resizing image buffer from %zu to %u",
+            temp_img_buffer_size, send_image->Size());
+        delete[] temp_img_buffer;
+        temp_img_buffer = new uint8_t[send_image->Size()];
+        temp_img_buffer_size = send_image->Size();
+      }
       int img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
@@ -1098,14 +1104,12 @@ void EventStream::runStream() {
 } // end void EventStream::runStream()
 
 bool EventStream::send_file(const std::string &filepath) {
-  FILE *fdj = nullptr;
-  fdj = fopen(filepath.c_str(), "rb");
+  FILE *fdj = fopen(filepath.c_str(), "rb");
   if (!fdj) {
     Error("Can't open %s: %s", filepath.c_str(), strerror(errno));
     std::string error_message = stringtf("Can't open %s: %s", filepath.c_str(), strerror(errno));
     return sendTextFrame(error_message.c_str());
   }
-#if HAVE_SENDFILE
   static struct stat filestat;
   if (fstat(fileno(fdj), &filestat) < 0) {
     fclose(fdj); /* Close the file handle */
@@ -1117,33 +1121,30 @@ bool EventStream::send_file(const std::string &filepath) {
     Info("File size is zero. Unable to send raw frame %d: %s", curr_frame_id, strerror(errno));
     return false;
   }
-  if (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", (int)filestat.st_size)) {
+  if (0 > fprintf(stdout, "Content-Length: %jd\r\n\r\n", filestat.st_size)) {
     fclose(fdj); /* Close the file handle */
     Info("Unable to send raw frame %d: %s", curr_frame_id, strerror(errno));
     return false;
   }
-  int rc = zm_sendfile(fileno(stdout), fileno(fdj), 0, (int)filestat.st_size);
-  if (rc == (int)filestat.st_size) {
+  ssize_t remaining = filestat.st_size;
+
+  while (remaining > 0) {
+    ssize_t rc = zm_sendfile(fileno(stdout), fileno(fdj), nullptr, remaining);
+    if (rc < 0) break;
+    if (rc > 0) {
+      remaining -= rc;
+    } 
+  }  // end while remaining
+
+  if (!remaining) {
     // Success
     fclose(fdj); /* Close the file handle */
     return true;
   }
-  Warning("Unable to send raw frame %d: %s rc %d != %d",
-      curr_frame_id, strerror(errno), rc, (int)filestat.st_size);
-#endif
-
-  static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
-
-  uint8_t *img_buffer = temp_img_buffer;
-  int img_buffer_size = fread(img_buffer, 1, sizeof(temp_img_buffer), fdj);
-  fclose(fdj); /* Close the file handle */
-  if ( !img_buffer_size ) {
-    Info("Unable to read raw frame %d: %s", curr_frame_id, strerror(errno));
-    return false;
-  }
-
-  return send_buffer(img_buffer, img_buffer_size);
-}
+  Warning("Unable to send raw frame %d: %s %zu remaining",
+      curr_frame_id, strerror(errno), remaining);
+  return false;
+}  // end bool EventStream::send_file(const std::string &filepath)
 
 bool EventStream::send_buffer(uint8_t* buffer, int size) {
   if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", size) ) {

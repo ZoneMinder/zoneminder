@@ -422,11 +422,16 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
   } else {
-    static unsigned char temp_img_buffer[ZM_MAX_IMAGE_SIZE];
+    if (temp_img_buffer_size < send_image->Size()) {
+      Debug(1, "Resizing image buffer from %zu to %u",
+          temp_img_buffer_size, send_image->Size());
+      delete[] temp_img_buffer;
+      temp_img_buffer = new uint8_t[send_image->Size()];
+      temp_img_buffer_size = send_image->Size();
+    }
 
     int img_buffer_size = 0;
     unsigned char *img_buffer = temp_img_buffer;
-
 
     switch ( type ) {
       case STREAM_JPEG :

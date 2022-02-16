@@ -174,6 +174,7 @@ class FilterTerm {
     case 'IN' :
       return ' IN ';
     case '![]' :
+    case 'NOT IN' :
       return ' NOT IN ';
     case 'EXISTS' :
      return ' EXISTS ';
@@ -303,7 +304,7 @@ class FilterTerm {
     }
     $sql .= $this->sql_operator();
     $values = $this->sql_values();
-    if ( (count($values) > 1) or ($this->op == 'IN') or ($this->op == 'NOT IN') ) {
+    if ((count($values) > 1) or ($this->op == 'IN') or ($this->op == 'NOT IN') or ($this->op == '=[]') or ($this->op == '![]')) {
       $sql .= '('.join(',', $values).')';
     } else {
       $sql .= $values[0];

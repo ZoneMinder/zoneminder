@@ -55,6 +55,7 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
   ZM\Debug(ob_get_contents());
   ob_end_clean();
 }
+ZM\Debug(print_r($_REQUEST, true));
 
 global $Servers;
 $Servers = ZM\Server::find();

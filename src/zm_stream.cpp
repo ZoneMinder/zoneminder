@@ -31,10 +31,8 @@ constexpr Seconds StreamBase::MAX_STREAM_DELAY;
 constexpr Milliseconds StreamBase::MAX_SLEEP;
 
 StreamBase::~StreamBase() {
-  if (vid_stream) {
-    delete vid_stream;
-    vid_stream = nullptr;
-  }
+  delete vid_stream;
+  delete temp_img_buffer;
   closeComms();
 }
 

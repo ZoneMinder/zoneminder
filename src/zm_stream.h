@@ -144,6 +144,9 @@ protected:
 
   CmdMsg msg;
 
+  unsigned char *temp_img_buffer;     // Used when encoding or sending file data
+  size_t temp_img_buffer_size;
+
 protected:
   bool loadMonitor(int monitor_id);
   bool checkInitialised();
@@ -182,7 +185,9 @@ public:
     actual_fps(0.0),
     frame_count(0),
     last_frame_count(0),
-    frame_mod(1)
+    frame_mod(1),
+    temp_img_buffer(nullptr),
+    temp_img_buffer_size(0)
   {
     memset(&loc_sock_path, 0, sizeof(loc_sock_path));
     memset(&loc_addr, 0, sizeof(loc_addr));

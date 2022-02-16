@@ -1764,7 +1764,7 @@ bool Monitor::Analyse() {
       Event::StringSetMap noteSetMap;
 
 #ifdef WITH_GSOAP
-      if (onvif_event_listener  && Event_Poller_Healthy) {
+      if (onvif_event_listener && Event_Poller_Healthy) {
         if (Poll_Trigger_State) {
           score += 9;
           Debug(1, "Triggered on ONVIF");
@@ -1872,9 +1872,6 @@ bool Monitor::Analyse() {
               // So... 
               Debug(1, "Waiting for decode");
               packet_lock->wait();
-              //packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
-              //packetqueue.wait();
-              ////packet_lock->lock();
             }  // end while ! decoded
             if (zm_terminate or analysis_thread->Stopped()) {
               delete packet_lock;
@@ -1907,7 +1904,7 @@ bool Monitor::Analyse() {
                   Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
                   ref_image.Assign(y_image);
                 } else {
-            Debug(1, "assigning refimage from snap->image");
+                  Debug(1, "assigning refimage from snap->image");
                   ref_image.Assign(*(snap->image));
                 }
                 alarm_image.Assign(*(snap->image));
@@ -1969,7 +1966,7 @@ bool Monitor::Analyse() {
             if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
               // If we should end then previous continuous event and start a new non-continuous event
               if (event && event->Frames()
-                  && !event->AlarmFrames()
+                  && (event->AlarmFrames() < alarm_frame_count)
                   && (event_close_mode == CLOSE_ALARM)
                   // FIXME since we won't be including this snap in the event if we close it, we should be looking at event->duration() instead
                   && (event->Duration() >= min_section_length)
@@ -2029,7 +2026,7 @@ bool Monitor::Analyse() {
               if (
                   ((analysis_image_count - last_alarm_count) > post_event_count)
                   &&
-                 (event->Duration() >= min_section_length)) {
+                  (event->Duration() >= min_section_length)) {
                 Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                     name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
                 if (
@@ -2065,6 +2062,7 @@ bool Monitor::Analyse() {
               Event::EmptyPreAlarmFrames();
           } // end if score or not
 
+          // At this point, snap ONLY has motion score, so this adds other sources
           if (score > snap->score)
             snap->score = score;
 

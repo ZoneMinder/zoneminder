@@ -35,6 +35,7 @@ StreamBase::~StreamBase() {
     vid_stream = nullptr;
   }
 #endif
+  delete temp_img_buffer;
   closeComms();
 }
 

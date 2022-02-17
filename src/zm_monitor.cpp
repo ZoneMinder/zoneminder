@@ -1891,51 +1891,73 @@ bool Monitor::Analyse() {
                   ref_image.Assign(*(snap->image));
                 }
                 alarm_image.Assign(*(snap->image));
-              } else if (!(analysis_image_count % (motion_frame_skip+1))) {
-                Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
-                // Get new score.
-                if (0 and snap->in_frame && (
-                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
-                      ||
-                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                      ) ) {
-                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                  snap->score = DetectMotion(v_image, zoneSet);
-                } else {
-                  snap->score = DetectMotion(*(snap->image), zoneSet);
-                }
-
-                if (!snap->analysis_image)
-                  snap->analysis_image = new Image(*(snap->image));
-                // lets construct alarm cause. It will contain cause + names of zones alarmed
-                snap->zone_stats.reserve(zones.size());
-                for (const Zone &zone : zones) {
-                  const ZoneStats &stats = zone.GetStats();
-                  stats.DumpToLog("After detect motion");
-                  snap->zone_stats.push_back(stats);
-                  if (zone.Alarmed()) {
-                    if (!snap->alarm_cause.empty()) snap->alarm_cause += ",";
-                    snap->alarm_cause += std::string(zone.Label());
-                    if (zone.AlarmImage())
-                      snap->analysis_image->Overlay(*(zone.AlarmImage()));
-                  }
-                }
-                alarm_image.Assign(*(snap->analysis_image));
-                Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                    score, last_motion_score, snap->score);
-                motion_frame_count += 1;
-                last_motion_score = snap->score;
-
-                if (snap->score) {
-                  if (cause.length()) cause += ", ";
-                  cause += MOTION_CAUSE + std::string(":") + snap->alarm_cause;
-                  noteSetMap[MOTION_CAUSE] = zoneSet;
-                  score += snap->score;
-                } // end if motion_score
               } else {
-                Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
-                alarm_image.Assign(*(snap->image));
-              }
+                if (!(analysis_image_count % (motion_frame_skip+1))) {
+                  Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
+                  // Get new score.
+                  if (0 and snap->in_frame && (
+                        ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
+                        ||
+                        ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
+                        ) ) {
+                    Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
+                    snap->score = DetectMotion(v_image, zoneSet);
+                  } else {
+                    snap->score = DetectMotion(*(snap->image), zoneSet);
+                  }
+
+                  if (!snap->analysis_image)
+                    snap->analysis_image = new Image(*(snap->image));
+                  // lets construct alarm cause. It will contain cause + names of zones alarmed
+                  snap->zone_stats.reserve(zones.size());
+                  for (const Zone &zone : zones) {
+                    const ZoneStats &stats = zone.GetStats();
+                    stats.DumpToLog("After detect motion");
+                    snap->zone_stats.push_back(stats);
+                    if (zone.Alarmed()) {
+                      if (!snap->alarm_cause.empty()) snap->alarm_cause += ",";
+                      snap->alarm_cause += std::string(zone.Label());
+                      if (zone.AlarmImage())
+                        snap->analysis_image->Overlay(*(zone.AlarmImage()));
+                    }
+                  }
+                  alarm_image.Assign(*(snap->analysis_image));
+                  Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
+                      score, last_motion_score, snap->score);
+                  motion_frame_count += 1;
+                  last_motion_score = snap->score;
+
+                  if (snap->score) {
+                    if (cause.length()) cause += ", ";
+                    cause += MOTION_CAUSE + std::string(":") + snap->alarm_cause;
+                    noteSetMap[MOTION_CAUSE] = zoneSet;
+                    score += snap->score;
+                  } // end if motion_score
+                } else {
+                  Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
+                  alarm_image.Assign(*(snap->image));
+                }
+
+                if (0 and snap->in_frame &&
+                    ( 
+                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
+                     ||
+                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
+                    )
+                   ) {
+                  Debug(1, "Blending from vchannel");
+                  Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
+                  ref_image.Blend(v_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                } else if (snap->image) {
+                  Debug(1, "Blending because %p and format %d != %d, %d", snap->in_frame,
+                      (snap->in_frame ? snap->in_frame->format : -1),
+                      AV_PIX_FMT_YUV420P,
+                      AV_PIX_FMT_YUVJ420P
+                      );
+                  ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  Debug(1, "Done Blending");
+                }
+              }  // end if else ref_image.buffer
             } else {
               Debug(1, "no image so skipping motion detection");
             }  // end if has image
@@ -1947,7 +1969,6 @@ bool Monitor::Analyse() {
                 );
           } // end if active and doing motion detection
 
-
           // If motion detecting, score will be > 0 on motion, but if skipping frames, might not be. So also test snap->score
           if ((score > 0) or ((snap->score > 0) and (function != MONITOR))) {
             if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
@@ -1957,7 +1978,7 @@ bool Monitor::Analyse() {
                   && (event_close_mode == CLOSE_ALARM)
                   // FIXME since we won't be including this snap in the event if we close it, we should be looking at event->duration() instead
                   && (event->Duration() >= min_section_length)
-                  && ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count - 1))) {
+                  && (Event::PreAlarmCount() >= alarm_frame_count - 1)) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
                     name.c_str(), snap->image_index, event->Id());
                 closeEvent();
@@ -2010,8 +2031,11 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
               shared_data->state = state = ALERT;
             } else if (state == ALERT) {
-              if (
-                  ((analysis_image_count - last_alarm_count) > post_event_count)
+              if ((analysis_image_count - last_alarm_count) > post_event_count) {
+                shared_data->state = state = IDLE;
+              }
+
+#if 0
                   &&
                   (event->Duration() >= min_section_length)) {
                 Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
@@ -2029,9 +2053,10 @@ bool Monitor::Analyse() {
                   shared_data->state = state = TAPE;
                 }
               }
+#endif
             } else if (state == PREALARM) {
               // Back to IDLE
-              shared_data->state = state = ((function != MOCORD) ? IDLE : TAPE);
+              shared_data->state = state = IDLE; //((function != MOCORD) ? IDLE : TAPE);
             } else {
               Debug(1,
                     "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
@@ -2052,111 +2077,82 @@ bool Monitor::Analyse() {
           if (score > snap->score)
             snap->score = score;
 
-          if (state == PREALARM) {
-            // incremement pre alarm image count
-            Event::AddPreAlarmFrame(snap->image, snap->timestamp, score, nullptr);
-          } else if (state == ALARM) {
-            if (event) {
-              if (noteSetMap.size() > 0)
-                event->updateNotes(noteSetMap);
-              if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
-                Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
-                        name.c_str(), analysis_image_count, event->Id(),
+          if (event) {
+            if (noteSetMap.size() > 0)
+              event->updateNotes(noteSetMap);
+            switch (state) {
+              case PREALARM:
+              case ALARM:
+              case ALERT:
+                // Alert means this frame has no motion, but we were alarmed and are still recording.
+                if ((section_length != Seconds(0)) && (event->Duration() >= section_length) && (event_close_mode == CLOSE_TIME)) {
+                  Info("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                      name.c_str(), analysis_image_count, event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
+                  closeEvent();
+                  event = openEvent(snap, cause, noteSetMap);
+                }
+                break;
+              case IDLE:
+                if (function == MODECT or function == NODECT) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", idle",
+                      name.c_str(), snap->image_index, event->Id());
+                  closeEvent();
+                } else if (function == RECORD or function == MOCORD) {
+                  if ((section_length != Seconds(0)) 
+                      && (event->Duration() >= section_length)
+                      && (event_close_mode == CLOSE_IDLE || event_close_mode == CLOSE_TIME)) {
+                    //|| std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0))
+                    Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
+                        name.c_str(),
+                        snap->image_index,
+                        event->Id(),
                         static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
                         static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                        static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
                         static_cast<int64>(Seconds(section_length).count()));
-                closeEvent();
-                event = openEvent(snap, cause, noteSetMap);
-              }
-            } else {
-              if (!event) {
+                    closeEvent();
+                    event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
+                    Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
+                        name.c_str(), analysis_image_count, event->Id());
+                  }  // end if section_length
+                }  // end if function
+                break;
+              default:
+                Debug(1, "Have event in state %s", State_Strings[state].c_str());
+            }  // end switch state
+          } else {
+            switch (state) {
+              case PREALARM:
+                // incremement pre alarm image count
+                Event::AddPreAlarmFrame(snap->image, snap->timestamp, score, nullptr);
+                break;
+              case ALARM:
                 event = openEvent(snap, cause, noteSetMap);
                 Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
-              }  // end if no event, so start it
-              if (alarm_frame_count) {
-                Debug(1, "alarm frame count so SavePreAlarmFrames");
-                event->SavePreAlarmFrames();
-              }
-            }
-          } else if (state == ALERT) {
-            // Alert means this frame has no motion, but we were alarmed and are still recording.
-            if ((noteSetMap.size() > 0) and event)
-              event->updateNotes(noteSetMap);
-          } else if (state == TAPE) {
-            // bulk frame code moved to event.
-          } // end if state machine
+                if (alarm_frame_count) {
+                  Debug(1, "alarm frame count so SavePreAlarmFrames");
+                  event->SavePreAlarmFrames();
+                }
+                break;
+              case IDLE:
+                if (function == RECORD or function == MOCORD) {
+                  // If doing record, check to see if we need to close the event or not.
+                  if (!event) {
+                    event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
+                    Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
+                        name.c_str(), analysis_image_count, event->Id());
+                  } // end if ! event
+                } // end if RECORDING
+                break;
+              default:
+                Debug(1, "Have no event in state %s", State_Strings[state].c_str());
+            }  // end switch state
+          }  // end if event or not
 
-          if (function == RECORD or function == MOCORD) {
-            // If doing record, check to see if we need to close the event or not.
-            if (event) {
-              Debug(2, "Have event %" PRIu64 " in record", event->Id());
-
-              if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)
-                  && ((function == MOCORD && event_close_mode != CLOSE_TIME)
-                      || (function == RECORD && event_close_mode == CLOSE_TIME)
-                      || std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0))) {
-                Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
-                     name.c_str(),
-                     snap->image_index,
-                     event->Id(),
-                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                     static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
-                     static_cast<int64>(Seconds(section_length).count()));
-                closeEvent();
-              }  // end if section_length
-            }  // end if event
-
-            if (!event) {
-              event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
-
-              Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
-                  name.c_str(), analysis_image_count, event->Id());
-              /* To prevent cancelling out an existing alert\prealarm\alarm state */
-              // This ignores current score status.  This should all come after the state machine calculations
-              if (state == IDLE) {
-                shared_data->state = state = TAPE;
-              }
-            } // end if ! event
-          } // end if RECORDING
-
-          if (function == MODECT or function == MOCORD) {
-            if (!ref_image.Buffer()) {
-              if (0 and snap->in_frame && (
-                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
-                    ||
-                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                    ) ) {
-                Debug(1, "Assigning from vchannel");
-                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                ref_image.Assign(v_image);
-              } else if (snap->image) {
-                Debug(1, "Assigning");
-                ref_image.Assign(*(snap->image));
-              }
-            } else {
-              if (0 and snap->in_frame &&
-                  ( 
-                   ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
-                   ||
-                   ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                  )
-                 ) {
-                Debug(1, "Blending from vchannel");
-                Image v_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                ref_image.Blend(v_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-              } else if (snap->image) {
-                Debug(1, "Blending because %p and format %d != %d, %d", snap->in_frame,
-                    (snap->in_frame ? snap->in_frame->format : -1),
-                    AV_PIX_FMT_YUV420P,
-                    AV_PIX_FMT_YUVJ420P
-                    );
-                ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-                Debug(1, "Done Blending");
-              }
-            } // end if have image
-          } // end if detecting
           last_signal = signal;
         } // end if videostream
       } // end if signal

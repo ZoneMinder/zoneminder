@@ -52,14 +52,19 @@ function vjsReplay() {
         var overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
       } else {
-        var endTime = (Date.parse(eventData.EndDateTime)).getTime();
+        if (!eventData.EndDateTime) {
+          // No EndTime but have a next event, just go to it.
+          streamNext(true);
+          return;
+        }
+        var endTime = Date.parse(eventData.EndDateTime).getTime();
         var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
         if ( nextStartTime <= endTime ) {
           streamNext(true);
           return;
         }
-        var overLaid = $j("#videoobj");
         vid.pause();
+        var overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
         var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
         var messageP = $j('.vjsMessage');

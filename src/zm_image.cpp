@@ -98,7 +98,7 @@ void Image::update_function_pointers() {
     delta8_abgr = &std_delta8_abgr;
     delta8_gray8 = &std_delta8_gray8;
     blend = &std_blend;
-    Warning("Using slow std functions because pixels %d mod 4=%d", pixels, pixels%4);
+    Debug(1, "Using slow std functions because pixels %d mod 4=%d", pixels, pixels%4);
   } else {
     // Use either sse or neon, or loop unrolled version
     delta8_rgb = fptr_delta8_rgb;
@@ -1167,7 +1167,7 @@ bool Image::WriteJpeg(const std::string &filename,
       } else if (subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
         cinfo->in_color_space = JCS_EXT_XBGR;
       } else {
-        Warning("Unknwon subpixelorder %d", subpixelorder);
+        Warning("Unknown subpixelorder %d", subpixelorder);
         /* Assume RGBA */
         cinfo->in_color_space = JCS_EXT_RGBX;
       }

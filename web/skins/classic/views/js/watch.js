@@ -833,6 +833,14 @@ function initPage() {
     monitorStream.setButton('enableAlarmButton', enableAlmBtn);
     monitorStream.setButton('forceAlarmButton', forceAlmBtn);
     monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+    if (canEdit.Monitors) {
+      // Will be enabled by streamStatus ajax
+      enableAlmBtn.on('click', cmdAlarm);
+      forceAlmBtn.on('click', cmdForce);
+    } else {
+      forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
+      enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
+    }
 
     /*
     if (streamMode == 'single') {

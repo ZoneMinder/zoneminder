@@ -2768,7 +2768,11 @@ Event * Monitor::openEvent(
 
   if (!event_start_command.empty()) {
     if (fork() == 0) {
-      execlp(event_start_command.c_str(), event_start_command.c_str(), std::to_string(event->Id()).c_str(), nullptr);
+      execlp(event_start_command.c_str(),
+		      event_start_command.c_str(),
+		      std::to_string(event->Id()).c_str(),
+		      std::to_string(event->MonitorId()).c_str(),
+		      nullptr);
       Error("Error execing %s", event_start_command.c_str());
     }
   }
@@ -2808,11 +2812,15 @@ void Monitor::closeEvent() {
   Debug(1, "Starting thread to close event");
   close_event_thread = std::thread([](Event *e, const std::string &command){
         int64_t event_id = e->Id();
+	int monitor_id = e->MonitorId();
         delete e;
 
         if (!command.empty()) {
           if (fork() == 0) {
-            execlp(command.c_str(), command.c_str(), std::to_string(event_id).c_str(), nullptr);
+            execlp(command.c_str(), command.c_str(),
+			    std::to_string(event_id).c_str(),
+			    std::to_string(monitor_id).c_str(), // monitor id
+			    nullptr);
             Error("Error execing %s", command.c_str());
           }
         }

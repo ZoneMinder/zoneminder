@@ -242,8 +242,8 @@ void zmDbQueue::stop() {
     std::unique_lock<std::mutex> lock(mMutex);
 
     mTerminate = true;
-    mCondition.notify_all();
   }
+  mCondition.notify_all();
 
   if (mThread.joinable()) mThread.join();
 }

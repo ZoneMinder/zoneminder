@@ -108,8 +108,8 @@ bool zmDbConnect() {
 }
 
 void zmDbClose() {
+  std::lock_guard<std::mutex> lck(db_mutex);
   if (zmDbConnected) {
-    std::lock_guard<std::mutex> lck(db_mutex);
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()

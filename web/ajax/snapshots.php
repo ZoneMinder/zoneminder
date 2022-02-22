@@ -200,7 +200,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
       $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
 
-      $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'"/>';
+      $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" loading="lazy" />';
     }
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Description'] = validHtmlStr($row['Description']);

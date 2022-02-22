@@ -319,7 +319,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
       .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.
       ($options['width'] ? ' width="'.$options['width'].'"' : '' ).
       ($options['height'] ? ' height="'.$options['height'].'"' : '' ).
-      '/></a></div>';
+      ' loading="lazy" /></a></div>';
   }
 ?>
             <td class="colName">

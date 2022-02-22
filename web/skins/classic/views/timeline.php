@@ -695,7 +695,7 @@ foreach ( $monitors as $monitor ) {
         <div class="monitorPanel" style="width:<?php echo 100/count($monitors); ?>%; float:left;">
         <div class="imagePanel"<?php echo count($monitors)==1?' style="width: 50%; float: left;"' :''?>>
             <div class="imageHeight image">
-              <img id="imageSrc<?php echo $monitor->Id() ?>" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
+              <img id="imageSrc<?php echo $monitor->Id() ?>" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>" loading="lazy" />
             </div>
           </div>
           <div id="dataPanel<?php echo $monitor->Id() ?>" class="dataPanel"<?php echo count($monitors)==1?' style="width: 50%; float: left;"' :''?>>

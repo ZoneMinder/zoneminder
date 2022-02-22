@@ -699,3 +699,6 @@ Debug(1, "wakeing");
     }
   }
 }
+int Event::MonitorId() {
+  return monitor->Id();
+}

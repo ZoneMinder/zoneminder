@@ -26,7 +26,7 @@ function MonitorStream(monitorData) {
 
   this.buttons = {}; // index by name
   this.setButton = function(name, element) {
-    this.buttons.name = element;
+    this.buttons[name] = element;
   };
 
   this.element = null;
@@ -380,6 +380,8 @@ function MonitorStream(monitorData) {
             if ('enableAlarmButton' in this.buttons) {
               this.buttons.enableAlarmButton.addClass('disabled');
               this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
+            } else {
+              console.log('enableAlarmButton not found in buttons');
             }
             if ('forceAlarmButton' in this.buttons) {
               if (streamStatus.forced) {
@@ -390,8 +392,11 @@ function MonitorStream(monitorData) {
                 this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
               }
               this.buttons.forceAlarmButton.prop('disabled', false);
+            } else {
+              console.log('forceAlarmButton not found in buttons');
             }
           } else {
+            console.log("streamStatus not enabled");
             if ('enableAlarmButton' in this.buttons) {
               this.buttons.enableAlarmButton.removeClass('disabled');
               this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);
@@ -462,6 +467,8 @@ function MonitorStream(monitorData) {
 
   this.alarmCommand = function(command) {
     if (this.ajaxQueue) {
+      console.log("Aborting in progress ajax for alarm");
+      // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }
     const alarmCmdParms = Object.assign({}, this.streamCmdParms);
@@ -485,9 +492,6 @@ function MonitorStream(monitorData) {
     }
 
     this.streamCmdReq = function(streamCmdParms) {
-      if (this.ajaxQueue) {
-        this.ajaxQueue.abort();
-      }
       this.ajaxQueue = jQuery.ajaxQueue({url: this.url, data: streamCmdParms, dataType: "json"})
           .done(this.getStreamCmdResponse.bind(this))
           .fail(this.onFailure.bind(this));

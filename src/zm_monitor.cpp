@@ -1822,8 +1822,8 @@ bool Monitor::Analyse() {
                 Debug(1, "Linked monitor %d %s is connected",
                     linked_monitors[i]->Id(), linked_monitors[i]->Name());
                 if (linked_monitors[i]->hasAlarmed()) {
-                  Debug(1, "Linked monitor %d %s is alarmed",
-                      linked_monitors[i]->Id(), linked_monitors[i]->Name());
+                  Debug(1, "Linked monitor %d %s is alarmed score will be %d",
+                      linked_monitors[i]->Id(), linked_monitors[i]->Name(), linked_monitors[i]->lastFrameScore());
                   if (!event) {
                     if (first_link) {
                       if (cause.length())
@@ -1947,6 +1947,9 @@ bool Monitor::Analyse() {
                 );
           } // end if active and doing motion detection
 
+
+          // Set this before any state changes so that it's value is picked up immediately by linked monitors
+          shared_data->last_frame_score = score;
 
           // If motion detecting, score will be > 0 on motion, but if skipping frames, might not be. So also test snap->score
           if ((score > 0) or ((snap->score > 0) and (function != MONITOR))) {
@@ -2160,7 +2163,6 @@ bool Monitor::Analyse() {
           last_signal = signal;
         } // end if videostream
       } // end if signal
-      shared_data->last_frame_score = score;
     } else {
       Debug(3, "trigger == off");
       if (event) {
@@ -2766,7 +2768,11 @@ Event * Monitor::openEvent(
 
   if (!event_start_command.empty()) {
     if (fork() == 0) {
-      execlp(event_start_command.c_str(), event_start_command.c_str(), std::to_string(event->Id()).c_str(), nullptr);
+      execlp(event_start_command.c_str(),
+		      event_start_command.c_str(),
+		      std::to_string(event->Id()).c_str(),
+		      std::to_string(event->MonitorId()).c_str(),
+		      nullptr);
       Error("Error execing %s", event_start_command.c_str());
     }
   }
@@ -2806,11 +2812,15 @@ void Monitor::closeEvent() {
   Debug(1, "Starting thread to close event");
   close_event_thread = std::thread([](Event *e, const std::string &command){
         int64_t event_id = e->Id();
+	int monitor_id = e->MonitorId();
         delete e;
 
         if (!command.empty()) {
           if (fork() == 0) {
-            execlp(command.c_str(), command.c_str(), std::to_string(event_id).c_str(), nullptr);
+            execlp(command.c_str(), command.c_str(),
+			    std::to_string(event_id).c_str(),
+			    std::to_string(monitor_id).c_str(), // monitor id
+			    nullptr);
             Error("Error execing %s", command.c_str());
           }
         }

@@ -965,6 +965,7 @@ var secondsToCycle = 0;
 function nextCycleView() {
   secondsToCycle --;
   if (secondsToCycle<=0) {
+    clearInterval(intervalId);
     secondsToCycle = 0;
     window.location.replace('?view=watch&mid='+nextMid+'&mode='+mode+'&cycle=true');
   }

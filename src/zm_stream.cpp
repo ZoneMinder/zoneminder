@@ -31,10 +31,8 @@ constexpr Seconds StreamBase::MAX_STREAM_DELAY;
 constexpr Milliseconds StreamBase::MAX_SLEEP;
 
 StreamBase::~StreamBase() {
-  if (vid_stream) {
-    delete vid_stream;
-    vid_stream = nullptr;
-  }
+  delete vid_stream;
+  delete temp_img_buffer;
   closeComms();
 }
 
@@ -128,10 +126,10 @@ bool StreamBase::checkCommandQueue() {
       return true;
     }
   } else if ( connkey ) {
-    Warning("No sd in checkCommandQueue, comms not open?");
+    Warning("No sd in checkCommandQueue, comms not open for connkey %06d?", connkey);
   } else {
     // Perfectly valid if only getting a snapshot
-    Debug(1, "No sd in checkCommandQueue, comms not open?");
+    Debug(1, "No sd in checkCommandQueue, comms not open.");
   }
   return false;
 }  // end bool StreamBase::checkCommandQueue()
@@ -157,7 +155,6 @@ Image *StreamBase::prepareImage(Image *image) {
   int disp_image_width = (image->Width() * scale) / ZM_SCALE_BASE, disp_image_height = (image->Height() * scale) / ZM_SCALE_BASE;
   int last_disp_image_width = (image->Width() * last_scale) / ZM_SCALE_BASE, last_disp_image_height = (image->Height() * last_scale) / ZM_SCALE_BASE;
   int send_image_width = (disp_image_width * act_mag ) / mag, send_image_height = (disp_image_height * act_mag ) / mag;
-  int last_send_image_width = (last_disp_image_width * last_act_mag ) / last_mag, last_send_image_height = (last_disp_image_height * last_act_mag ) / last_mag;
 
   Debug(3,
       "Scaling by %d, zooming by %d = magnifying by %d(%d)\n"
@@ -169,8 +166,7 @@ Image *StreamBase::prepareImage(Image *image) {
       "Last actual image width = %d, height = %d\n"
       "Display image width = %d, height = %d\n"
       "Last display image width = %d, height = %d\n"
-      "Send image width = %d, height = %d\n"
-      "Last send image width = %d, height = %d\n",
+      "Send image width = %d, height = %d\n",
       scale, zoom, mag, act_mag,
       last_scale, last_zoom, last_mag, last_act_mag,
       base_image_width, base_image_height,
@@ -180,8 +176,7 @@ Image *StreamBase::prepareImage(Image *image) {
       last_act_image_width, last_act_image_height,
       disp_image_width, disp_image_height,
       last_disp_image_width, last_disp_image_height,
-      send_image_width, send_image_height,
-      last_send_image_width, last_send_image_height
+      send_image_width, send_image_height
       );
 
   if ( ( mag != ZM_SCALE_BASE ) && (act_mag != ZM_SCALE_BASE) ) {
@@ -386,9 +381,9 @@ void StreamBase::openComms() {
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
-    last_comm_update = std::chrono::system_clock::now();
+    last_comm_update = std::chrono::steady_clock::now();
+    Debug(3, "comms open at %s", loc_sock_path);
   } // end if connKey > 0
-  Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()
 
 void StreamBase::closeComms() {

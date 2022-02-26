@@ -90,3 +90,27 @@ unset($user_without_password['Password']);
 echo json_encode($user_without_password);
 ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
+
+var STATE_UNKNOWN = <?php echo STATE_UNKNOWN ?>;
+var STATE_IDLE = <?php echo STATE_IDLE ?>;
+var STATE_PREALARM = <?php echo STATE_PREALARM ?>;
+var STATE_ALARM = <?php echo STATE_ALARM ?>;
+var STATE_ALERT = <?php echo STATE_ALERT ?>;
+var STATE_TAPE = <?php echo STATE_TAPE ?>;
+
+var stateStrings = new Array();
+stateStrings[STATE_UNKNOWN] = "<?php echo translate('Unknown') ?>";
+stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_PREALARM] = "<?php echo translate('Prealarm') ?>";
+stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
+stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
+stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
+
+<?php
+global $config;
+foreach ($config as $name=>$c) {
+  if (!$c['Private']) {
+    echo 'const '. $name . ' = \''.preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']).'\';'.PHP_EOL;
+  }
+}
+?>

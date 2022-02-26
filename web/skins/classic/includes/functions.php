@@ -169,7 +169,7 @@ function getBodyTopHTML() {
 ';
   global $error_message;
   if ( $error_message ) {
-   echo '<div class="error">'.$error_message.'</div>';
+   echo '<div id="error">'.$error_message.'</div>';
   }
 } // end function getBodyTopHTML
 
@@ -203,7 +203,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   $status = runtimeStatus($running);
 
 ?>
-<div class="fixed-top container-fluid p-0">
+<div class="container-fluid p-0">
   <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row">
 
     <div class="navbar-brand justify-content-start align-self-start">
@@ -472,19 +472,21 @@ function getRamHTML() {
   } else if ($mem_used_percent > 90) {
     $used_class = 'text-warning';
   }
-  $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
-  $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
-  $swap_class = '';
-  if ($swap_used_percent > 95) {
-    $swap_class = 'text-danger';
-  } else if ($swap_used_percent > 90) {
-    $swap_class = 'text-warning';
-  }
-
   $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
-    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> '.
-    '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> '.
-    '</li>'.PHP_EOL;
+    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> ';
+
+  if ($meminfo['SwapTotal']) {
+    $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
+    $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
+    $swap_class = '';
+    if ($swap_used_percent > 95) {
+      $swap_class = 'text-danger';
+    } else if ($swap_used_percent > 90) {
+      $swap_class = 'text-warning';
+    }
+    $result .= '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> ';
+  } # end if SwapTotal
+  $result .= '</li>'.PHP_EOL;
   
   return $result;
 }
@@ -916,6 +918,7 @@ function xhtmlFooter() {
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
+  <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
@@ -944,7 +947,8 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
 ?>
-  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();
+  <script nonce="<?php echo $cspNonce; ?>">
+    var $j = jQuery.noConflict();
 <?php
   if ( $skinJsPhpFile ) {
     require_once( $skinJsPhpFile );

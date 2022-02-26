@@ -1,18 +1,6 @@
 //
 // Import constants
 //
-var STATE_IDLE = <?php echo STATE_IDLE ?>;
-var STATE_PREALARM = <?php echo STATE_PREALARM ?>;
-var STATE_ALARM = <?php echo STATE_ALARM ?>;
-var STATE_ALERT = <?php echo STATE_ALERT ?>;
-var STATE_TAPE = <?php echo STATE_TAPE ?>;
-
-var stateStrings = new Array();
-stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
-stateStrings[STATE_PREALARM] = "<?php echo translate('Idle') ?>";
-stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
-stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
-stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 var CMD_QUERY = <?php echo CMD_QUERY ?>;
 
@@ -36,6 +24,7 @@ monitorData[monitorData.length] = {
   'connKey': <?php echo $monitor->connKey() ?>, 
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
+  'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
   'type': '<?php echo $monitor->Type() ?>',

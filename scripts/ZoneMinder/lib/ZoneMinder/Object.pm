@@ -639,9 +639,9 @@ $log->debug("Have array for $k $$search{$k}") if DEBUG_ALL;
 						
 						if ( ! ( $db_field =~ /\?/ ) ) {
 							if ( @{$$search{$k}} != 1 ) {
-								push @where, $db_field .' IN ('.join(',', map {'?'} @{$$search{$k}} ) . ')';
+								push @where, '`'.$db_field .'` IN ('.join(',', map {'?'} @{$$search{$k}} ) . ')';
 							} else {
-								push @where, $db_field.'=?';
+								push @where, '`'.$db_field.'`=?';
 							} # end if
 						} else {
 $log->debug("Have question ? for $k $$search{$k} $db_field") if DEBUG_ALL;
@@ -656,10 +656,10 @@ $log->debug("Have question ? for $k $$search{$k} $db_field") if DEBUG_ALL;
 						foreach my $p_k ( keys %{$$search{$k}} ) {
 							my $v = $$search{$k}{$p_k};
 							if ( ref $v eq 'ARRAY' ) {
-								push @where, $db_field.' IN ('.join(',', map {'?'} @{$v} ) . ')';
+								push @where, '`'.$db_field.'` IN ('.join(',', map {'?'} @{$v} ) . ')';
 								push @values, $p_k, @{$v};
 							} else {
-								push @where, $db_field.'=?';
+								push @where, '`'.$db_field.'`=?';
 								push @values, $p_k, $v;
 							} # end if
 						} # end foreach p_k
@@ -667,7 +667,7 @@ $log->debug("Have question ? for $k $$search{$k} $db_field") if DEBUG_ALL;
 						push @where, $db_field.' IS NULL';
 					} else {
 						if ( ! ( $db_field =~ /\?/ ) ) {
-							push @where, $db_field .'=?';
+							push @where, '`'.$db_field .'`=?';
 						} else {
 							push @where, $db_field;
 						}

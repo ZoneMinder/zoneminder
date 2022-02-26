@@ -293,17 +293,16 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext->interrupt_callback.opaque = this;
 
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), nullptr, &opts);
-  if ( ret != 0 )
-  {
-    Error("Unable to open input %s due to: %s", mPath.c_str(),
+  if (ret != 0) {
+    logPrintf(Logger::ERROR + monitor->Importance(),
+        "Unable to open input %s due to: %s", mPath.c_str(),
         av_make_error_string(ret).c_str());
 
-    if ( mFormatContext ) {
+    if (mFormatContext) {
       avformat_close_input(&mFormatContext);
       mFormatContext = nullptr;
     }
     av_dict_free(&opts);
-
     return -1;
   }
   AVDictionaryEntry *e = nullptr;
@@ -457,6 +456,17 @@ int FfmpegCamera::OpenFfmpeg() {
     Warning("HWAccel support not compiled in.");
 #endif
   }  // end if hwaccel_name
+
+  // set codec to automatically determine how many threads suits best for the decoding job
+  mVideoCodecContext->thread_count = 0;
+
+  if (mVideoCodec->capabilities | AV_CODEC_CAP_FRAME_THREADS) {
+    mVideoCodecContext->thread_type = FF_THREAD_FRAME;
+  } else if (mVideoCodec->capabilities | AV_CODEC_CAP_SLICE_THREADS) {
+    mVideoCodecContext->thread_type = FF_THREAD_SLICE;
+  } else {
+    mVideoCodecContext->thread_count = 1; //don't use multithreading
+  }
 
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 

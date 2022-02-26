@@ -55,6 +55,7 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
   ZM\Debug(ob_get_contents());
   ob_end_clean();
 }
+ZM\Debug(print_r($_REQUEST, true));
 
 global $Servers;
 $Servers = ZM\Server::find();
@@ -139,11 +140,6 @@ $skinBase[] = $skin;
 
 zm_session_start();
 
-$cookie_options = array(
-  'expires'=>time()+3600*24*30*12*10,
-  'samesite' => 'Strict',
-);
-
 if (
   !isset($_SESSION['skin']) ||
   isset($_REQUEST['skin']) ||
@@ -151,11 +147,7 @@ if (
   ($_COOKIE['zmSkin'] != $skin)
 ) {
   $_SESSION['skin'] = $skin;
-	if (version_compare(phpversion(), '7.3.0', '>=')) {
-	setcookie('zmSkin', $skin, $cookie_options);
-	} else {
-	setcookie('zmSkin', $skin, $cookie_options['expires'], '/; samesite=strict');
-	}
+	zm_setcookie('zmSkin', $skin);
 }
 
 if (
@@ -165,11 +157,7 @@ if (
   ($_COOKIE['zmCSS'] != $css)
 ) {
   $_SESSION['css'] = $css;
-	if (version_compare(phpversion(), '7.3.0', '>=')) {
-    setcookie('zmCSS', $css, $cookie_options);
-	} else {
-	  setcookie('zmCSS', $css, $cookie_options['expires'], '/; samesite=strict');
-	}
+  zm_setcookie('zmCSS', $css);
 }
 
 # Running is global but only do the daemonCheck if it is actually needed

@@ -25,7 +25,7 @@ class Group extends ZM_Object {
       if ( isset($_COOKIE['zmGroup']) ) {
         if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
           unset($_COOKIE['zmGroup']);
-          setcookie('zmGroup', '', time()-3600*24*2);
+          zm_setcookie('zmGroup', '');
         }
       }
     }
@@ -167,9 +167,15 @@ class Group extends ZM_Object {
 	public function Parents() {
 		$Parents = array();
 		$Parent = $this->Parent();
-		while( $Parent ) {
+    $seen_parents = array();
+		while ($Parent) {
+      $seen_parents[$Parent->Id()] = $Parent;
 			array_unshift($Parents, $Parent);
 			$Parent = $Parent->Parent();
+      if ($Parent and isset($seen_parents[$Parent->Id()])) {
+        Warning("Detected hierarchy loop in group {$Parent->Name()}");
+        break;
+      }
 		}
 		return $Parents;
 	}
@@ -189,6 +195,9 @@ class Group extends ZM_Object {
 	public function canView($u=null) {
 		global $user;
 		if (!$u) $u = $user;
+    if (!count($this->Monitors()) and !count($this->Children())) {
+      return true;
+    }
 		# Can view if we can view any of the monitors in it.
 		foreach ($this->Monitors() as $monitor) {
 			if ($monitor->canView($u)) return true;

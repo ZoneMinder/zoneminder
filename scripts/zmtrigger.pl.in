@@ -42,6 +42,7 @@ use constant SELECT_TIMEOUT => 0.25;
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
+use ZoneMinder::Monitor;
 use ZoneMinder::Trigger::Channel::Inet;
 use ZoneMinder::Trigger::Channel::Unix;
 use ZoneMinder::Trigger::Channel::Serial;
@@ -166,13 +167,9 @@ while (!$zm_terminate) {
     foreach my $connection ( values(%spawned_connections) ) {
       if ( vec($rout, $connection->fileno(), 1) ) {
         Debug('Got input from spawned connection '
-            .$connection->name()
-            .' ('
-            .$connection->fileno()
-            .')'
-            );
+            .$connection->name().' ('.$connection->fileno().')');
         my $messages = $connection->getMessages();
-        if ( defined($messages) ) {
+        if (defined($messages)) {
           foreach my $message ( @$messages ) {
             handleMessage($connection, $message);
           }
@@ -199,34 +196,28 @@ while (!$zm_terminate) {
 # Check polled connections
   foreach my $connection ( @in_poll_connections ) {
     my $messages = $connection->getMessages();
-    if ( defined($messages) ) {
-      foreach my $message ( @$messages ) {
-        handleMessage($connection, $message);
-      }
+    if (defined($messages)) {
+      foreach my $message (@$messages) { handleMessage($connection, $message) };
     }
   }
 
   # Check for alarms that might have happened
   my @out_messages;
   foreach my $monitor ( values %monitors ) {
-
-    if ( ! zmMemVerify($monitor) ) {
+    if (!$monitor->connect()) {
       # Our attempt to verify the memory handle failed. We should reload the monitors.
       # Don't need to zmMemInvalidate because the monitor reload will do it.
+      Debug("Failed connect, putting on reloads");
       push @needsReload, $monitor;
       next;
     }
 
-    my ( $state, $last_event ) = zmMemRead( $monitor,
-        [
+    my ($state, $last_event) = zmMemRead($monitor, [
         'shared_data:state',
         'shared_data:last_event'
-        ]
-        );
+        ]);
 
-#print( "$monitor->{Id}: S:$state, LE:$last_event" );
-#print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}" );
-    if ( $state == STATE_ALARM or $state == STATE_ALERT ) {
+    if ($state == STATE_ALARM or $state == STATE_ALERT) {
 # In alarm state
       if ( !defined($monitor->{LastEvent})
           or ($last_event != $monitor->{LastEvent})
@@ -255,6 +246,7 @@ while (!$zm_terminate) {
     }
     $monitor->{LastState} = $state;
     $monitor->{LastEvent} = $last_event;
+    $monitor->disconnect();
   } # end foreach monitor
 
   foreach my $connection ( @out_connections ) {
@@ -304,15 +296,22 @@ while (!$zm_terminate) {
 
   # Reload all monitors from the dB every MONITOR_RELOAD_INTERVAL
   if ( (time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL ) {
-    foreach my $monitor ( values(%monitors) ) {
-      zmMemInvalidate( $monitor ); # Free up any used memory handle
-    }
     loadMonitors();
     @needsReload = (); # We just reloaded all monitors so no need reload a specific monitor
   # If we have NOT just reloaded all monitors, reload a specific monitor if its shared mem changed
-  } elsif ( @needsReload ) { 
-    foreach my $monitor ( @needsReload ) {
-      loadMonitor($monitor);
+  } elsif (@needsReload) { 
+    foreach my $monitor (@needsReload) {
+      $monitor = $monitors{$monitor->Id()} = ZoneMinder::Monitor->find_one(Id=>$monitor->Id());
+      if ( $$monitor{Function} eq 'None' ) {
+        delete $monitors{$monitor->Id()};
+      } elsif ( $Config{ZM_SERVER_ID} and ($$monitor{ServerId} != $Config{ZM_SERVER_ID})) {
+        delete $monitors{$monitor->Id()};
+      } else {
+        if ($monitor->connect()) {
+          $monitor->{LastState} = zmGetMonitorState($monitor);
+          $monitor->{LastEvent} = zmGetLastEvent($monitor);
+        }
+      }
     }
     @needsReload = ();
   }
@@ -323,40 +322,21 @@ while (!$zm_terminate) {
 Info('Trigger daemon exiting');
 exit;
 
-sub loadMonitor {
-  my $monitor = shift;
-
-  Debug('Loading monitor '.$monitor);
-  zmMemInvalidate($monitor);
-
-  if ( zmMemVerify($monitor) ) { # This will re-init shared memory
-    $monitor->{LastState} = zmGetMonitorState($monitor);
-    $monitor->{LastEvent} = zmGetLastEvent($monitor);
-  }
-} # end sub loadMonitor
-
 sub loadMonitors {
   $monitor_reload_time = time();
 
-  my %new_monitors = ();
+  %monitors = ();
 
-  my $sql = 'SELECT * FROM `Monitors`
-    WHERE find_in_set( `Function`, \'Modect,Mocord,Nodect,Record\' )'.
-    ( $Config{ZM_SERVER_ID} ? ' AND `ServerId`=?' : '' )
-    ;
-  my $sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
-    or Fatal( "Can't execute: ".$sth->errstr() );
-
-  while ( my $monitor = $sth->fetchrow_hashref() ) {
-    if ( zmMemVerify($monitor) ) { # This will re-init shared memory
+  foreach my $monitor ( ZoneMinder::Monitor->find(
+    Function=>['Modect','Mocord','Nodect','Record'],
+    ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ()),
+  )) {
+    if ($monitor->connect()) { # This will re-init shared memory
       $monitor->{LastState} = zmGetMonitorState($monitor);
       $monitor->{LastEvent} = zmGetLastEvent($monitor);
     }
-    $new_monitors{$monitor->{Id}} = $monitor;
+    $monitors{$monitor->{Id}} = $monitor;
   } # end while fetchrow
-  %monitors = %new_monitors;
 } # end sub loadMonitors
 
 sub handleMessage {

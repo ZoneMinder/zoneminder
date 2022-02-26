@@ -173,39 +173,10 @@ if ( !isset($_REQUEST['step']) || ($_REQUEST['step'] == '1') ) {
           <?php echo translate('OnvifProbeIntro') ?>
         </p>
         <p><label for="interface"><?php echo translate('Interface') ?></label>
-          <?php 
-  $interfaces = array();
-  $default_interface = null;
-
-  exec('ip link', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output);
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ( $output as $line ) {
-      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
-        if ( $matches[1] != 'lo' ) {
-          $interfaces[$matches[1]] = $matches[1];
-        } else {
-          ZM\Debug("No match for $line");
-        }
-      }
-    }
-  }
-  $routes = array();
-  exec('ip route', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output);
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ( $output as $line ) {
-      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
-        $default_interface = $matches[1];
-      } else if ( preg_match('/^([.\/[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
-        $interfaces[$matches[2]] .= ' ' . $matches[1];
-      }
-    } # end foreach line of output
-  }
+<?php 
+  $interfaces = get_networks();
+  $default_interface = $interfaces['default'];
+  unset($interfaces['default']);
 
   echo htmlSelect('interface', $interfaces, 
     (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),

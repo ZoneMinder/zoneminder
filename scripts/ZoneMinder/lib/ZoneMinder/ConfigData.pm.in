@@ -304,6 +304,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -368,6 +369,28 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_JANUS_SECRET',
+    default     => '',
+    description => 'Password for Janus streaming administration.',
+    help        => q`This value should be set to a secure password,
+      and match the admin_key value in janus.plugin.streaming.config.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_JANUS_PATH',
+    default     => '',
+    description => 'URL for Janus HTTP/S port',
+    help        => q`Janus requires HTTP/S communication to administer
+      and initiate h.264 streams. If left blank, this will default to
+      the ZM hostname, port 8088/janus. This setting is particularly
+      useful for putting janus behind a reverse proxy.
+      `,
+    type        => $types{string},
     category    => 'system',
   },
   {
@@ -462,6 +485,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
                    ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -477,6 +501,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
                    ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {

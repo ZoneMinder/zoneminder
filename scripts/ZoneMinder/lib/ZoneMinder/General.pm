@@ -28,6 +28,7 @@ our %EXPORT_TAGS = (
       makePath
       jsonEncode
       jsonDecode
+      jsonLoad
       systemStatus
       packageControl
       daemonControl
@@ -534,6 +535,23 @@ sub jsonDecode {
   my $result = eval $out;
   Fatal($@) if $@;
   return $result;
+}
+
+sub jsonLoad {
+  my $file = shift;
+  my $json = undef;
+  eval {
+    require File::Slurp;
+    my $contents = File::Slurp::read_file($file);
+    if (!$contents) {
+      Error("No contents for $file");
+      return $json;
+    }
+    require JSON;
+    $json = JSON::decode_json($contents);
+  };
+  Error($@) if $@;
+  return $json;
 }
 
 sub parseNameEqualsValueToHash {

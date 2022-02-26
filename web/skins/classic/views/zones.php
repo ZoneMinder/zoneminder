@@ -91,9 +91,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 ?>
           Sorry, your browser does not support inline SVG
         </svg>
-        <div id="monitorState">
-          <?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps
-        </div>
+<?php echo $monitor->getMonitorStateHTML(); ?>
         </div>
         <div class="zones">
           <table id="zonesTable" class="major">

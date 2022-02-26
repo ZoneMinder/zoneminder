@@ -48,7 +48,7 @@ if (isset($_REQUEST['order'])) {
   } else if (strtolower($_REQUEST['order']) == 'desc') {
     $order = 'DESC';
   } else {
-    Warning("Invalid value for order " . $_REQUEST['order']);
+    Warning('Invalid value for order ' . $_REQUEST['order']);
   }
 }
 
@@ -170,18 +170,26 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   // The names of columns shown in the event view that are NOT dB columns in the database
   $col_alt = array('Monitor', 'Storage');
 
-  if (!in_array($sort, array_merge($columns, $col_alt))) {
-    ZM\Error('Invalid sort field: ' . $sort);
-    $sort = 'Id';
+  if ( $sort != '' ) {
+    if (!in_array($sort, array_merge($columns, $col_alt))) {
+      ZM\Error('Invalid sort field: ' . $sort);
+      $sort = '';
+    } else if ( $sort == 'Monitor' ) {
+      $sort = 'M.Name';
+    } else {
+      $sort = 'E.'.$sort;
+    }
   }
 
   $values = array();
   $likes = array();
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
 
-  $sort = $sort == 'Monitor' ? 'M.Name' : 'E.'.$sort;
   $col_str = 'E.*, M.Name AS Monitor';
-  $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.' ORDER BY '.$sort.' '.$order;
+  $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
+  if ($filter->limit() and !count($filter->pre_sql_conditions()) and !count($filter->post_sql_conditions())) {
+    $sql .= ' LIMIT '.$filter->limit();
+  }
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -207,6 +215,12 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $event_ids[] = $event->Id();
     $unfiltered_rows[] = $row;
   } # end foreach row
+
+  # Filter limits come before pagination limits.
+  if ($filter->limit() and ($filter->limit() > count($unfiltered_rows))) {
+    ZM\Debug("Filtering rows due to filter->limit " . count($unfiltered_rows)." limit: ".$filter->limit());
+    $unfiltered_rows = array_slice($unfiltered_rows, 0, $filter->limit());
+  }
 
   ZM\Debug('Have ' . count($unfiltered_rows) . ' events matching base filter.');
 
@@ -246,8 +260,10 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $filtered_rows = $unfiltered_rows;
   } # end if search_filter->terms() > 1
 
-  if ($limit) 
+  if ($limit) {
+    ZM\Debug("Filtering rows due to limit " . count($filtered_rows)." offset: $offset limit: $limit");
     $filtered_rows = array_slice($filtered_rows, $offset, $limit);
+  }
 
   $returned_rows = array();
   foreach ($filtered_rows as $row) {
@@ -259,7 +275,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
 
     // Modify the row data as needed
-    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '"/>';
+    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '" loading="lazy" />';
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');

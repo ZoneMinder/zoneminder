@@ -453,7 +453,7 @@ foreach ( $tabs as $name=>$value ) {
 switch ( $name ) {
   case 'general' :
     {
-      if (!$monitor->Id()) {
+      if (!$monitor->Id() and count($monitors)) {
         $monitor_ids = array();
         foreach ($monitors as $m) { $monitor_ids[] = $m['Id']; }
         $available_monitor_ids = array_diff(range(min($monitor_ids),max($monitor_ids)), $monitor_ids);
@@ -470,7 +470,7 @@ if (count($available_monitor_ids)) {
           </tr>
 <?php
 
-      } # end if ! $monitor->Id()
+      } # end if ! $monitor->Id() and count($monitors)
 ?>
           <tr class="Name">
             <td class="text-right pr-3"><?php echo translate('Name') ?></td>
@@ -479,6 +479,44 @@ if (count($available_monitor_ids)) {
           <tr class="Notes">
             <td class="text-right pr-3"><?php echo translate('Notes') ?></td>
             <td><textarea name="newMonitor[Notes]" rows="4"><?php echo validHtmlStr($monitor->Notes()) ?></textarea></td>
+          </tr>
+          <tr class="Manufacturer">
+            <td class="text-right pr-3"><?php echo translate('Manufacturer') ?></td>
+            <td>
+<?php 
+  require_once('includes/Manufacturer.php');
+  $manufacturers = array(''=>translate('Unknown'));
+  foreach ( ZM\Manufacturer::find( null, array('order'=>'lower(Name)')) as $Manufacturer ) {
+    $manufacturers[$Manufacturer->Id()] = $Manufacturer->Name();
+  }
+  echo htmlSelect('newMonitor[ManufacturerId]', $manufacturers, $monitor->ManufacturerId(),
+      array('class'=>'chosen','data-on-change-this'=>'ManufacturerId_onchange'));
+?>
+              <input type="text" name="newMonitor[Manufacturer]"
+                placeholder="enter new manufacturer name"
+                value="<?php echo $monitor->Manufacturer()->Name() ?>"<?php echo $monitor->ManufacturerId() ? ' style="display:none"' : '' ?>
+                data-on-input-this="Manufacturer_onchange"
+              />
+            </td>
+          </tr>
+          <tr class="Model">
+            <td class="text-right pr-3"><?php echo translate('Model') ?></td>
+            <td>
+<?php 
+  require_once('includes/Model.php');
+  $models = array(''=>translate('Unknown'));
+  foreach ( ZM\Model::find(array('ManufacturerId'=>$monitor->ManufacturerId()), array('order'=>'lower(Name)')) as $Model ) {
+    $models[$Model->Id()] = $Model->Name();
+  }
+  echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(),
+      array('class'=>'chosen', 'data-on-change-this'=>'ModelId_onchange'));
+?>
+              <input type="text" name="newMonitor[Model]"
+                placeholder="enter new model name"
+                value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>
+                data-on-input-this="Model_onchange"
+              />
+            </td>
           </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('Server') ?></td><td>
@@ -535,6 +573,26 @@ if (count($available_monitor_ids)) {
 <?php
   if ( isset($OLANG['FUNCTION_DECODING_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
+  }
+?>
+          </td>
+        </tr>
+  <tr id="FunctionJanusEnabled">
+          <td class="text-right pr-3"><?php echo translate('Janus Live Stream') ?></td>
+          <td><input type="checkbox" name="newMonitor[JanusEnabled]" value="1"<?php echo $monitor->JanusEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_ENABLED']['Help'].'</div>';
+  }
+?>
+          </td>
+        </tr>
+  <tr id="FunctionJanusAudioEnabled">
+          <td class="text-right pr-3"><?php echo translate('Janus Live Stream Audio') ?></td>
+          <td><input type="checkbox" name="newMonitor[JanusAudioEnabled]" value="1"<?php echo $monitor->JanusAudioEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_AUDIO_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_AUDIO_ENABLED']['Help'].'</div>';
   }
 ?>
           </td>
@@ -637,6 +695,14 @@ if (count($available_monitor_ids)) {
       }
 ?>
         </td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('Event Start Command') ?></td>
+            <td><input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" /></td>
+          </tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('Event End Command') ?></td>
+            <td><input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>" /></td>
+          </tr>
         <?php
         }
         break;
@@ -659,6 +725,14 @@ if (count($available_monitor_ids)) {
             <tr>
               <td class="text-right pr-3"><?php echo translate('ONVIF_Options') ?></td>
               <td><input type="text" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/></td>
+            </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('ONVIF_Event_Listener') ?></td>
+              <td><?php echo html_radio('newMonitor[ONVIF_Event_Listener]', array('1'=>translate('Enabled'), '0'=>'Disabled'), $monitor->ONVIF_Event_Listener()); ?></td>
+            </tr>
+            <tr id="function_use_Amcrest_API">
+              <td class="text-right pr-3"><?php echo translate('use_Amcrest_API') ?></td>
+              <td><?php echo html_radio('newMonitor[use_Amcrest_API]', array('1'=>translate('Enabled'), '0'=>'Disabled'), $monitor->use_Amcrest_API()); ?></td>
             </tr>
 <?php
         break;
@@ -1240,9 +1314,9 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 <?php
       echo htmlselect('newMonitor[Importance]',
               array(
-                'Not'=>translate('Not important'),
+                'Normal'=>translate('Normal'),
                 'Less'=>translate('Less important'),
-                'Normal'=>translate('Normal')
+                'Not'=>translate('Not important')
               ), $monitor->Importance());
 ?>
           </td>

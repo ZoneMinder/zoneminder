@@ -117,7 +117,7 @@ function changeSize() {
     monitor_frame.css('height', ( height ? height+'px' : 'auto'));
 
     /*Stream could be an applet so can't use moo tools*/
-    var streamImg = document.getElementById('liveStream'+monitor.id);
+    var streamImg = monitor.getElement();
     if ( streamImg ) {
       if ( streamImg.nodeName == 'IMG' ) {
         var src = streamImg.src;
@@ -269,7 +269,7 @@ function cancel_layout(button) {
   $j('#EditLayout').show();
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor.setup_onclick();
+    monitor.setup_onclick(handleClick);
 
     //monitor_feed = $j('#imageFeed'+monitor.id);
     //monitor_feed.click(monitor.onclick);
@@ -300,7 +300,6 @@ function initPage() {
     $j("#flipMontageHeader").slideToggle("fast");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
-
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
     monitors[i] = new MonitorStream(monitorData[i]);
 
@@ -313,7 +312,7 @@ function initPage() {
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
       setInterval(reloadWebSite, interval*1000, i);
     }
-    monitors[i].setup_onclick();
+    monitors[i].setup_onclick(handleClick);
   }
   selectLayout('#zmMontageLayout');
 }
@@ -322,5 +321,16 @@ function watchFullscreen() {
   const content = document.getElementById('content');
   openFullscreen(content);
 }
+
+function handleClick(evt) {
+  console.log("handleClick");
+  var el = evt.currentTarget;
+  console.log(el);
+  var id = el.getAttribute("data-monitor-id");
+  var url = '?view=watch&mid='+id;
+  evt.preventDefault();
+  window.location.assign(url);
+}
+
 // Kick everything off
 $j(document).ready(initPage);

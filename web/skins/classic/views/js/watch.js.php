@@ -1,33 +1,20 @@
 <?php 
+  global $monitor_index;
+  global $nextMid;
+  global $options;
+  global $monitors;
   global $streamMode;
   global $showPtzControls;
   global $connkey;
   global $monitor;
   global $scale;
   global $labels;
+  global $cycle;
 ?>
 //
 // Import constants
 //
-var STATE_IDLE = <?php echo STATE_IDLE ?>;
-var STATE_PREALARM = <?php echo STATE_PREALARM ?>;
-var STATE_ALARM = <?php echo STATE_ALARM ?>;
-var STATE_ALERT = <?php echo STATE_ALERT ?>;
-var STATE_TAPE = <?php echo STATE_TAPE ?>;
 
-var stateStrings = new Array();
-stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
-stateStrings[STATE_PREALARM] = "<?php echo translate('Idle') ?>";
-stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
-stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
-stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
-
-var deleteString = "<?php echo translate('Delete') ?>";
-
-var enableAlarmsStr = "<?php echo translate('EnableAlarms') ?>";
-var disableAlarmsStr = "<?php echo translate('DisableAlarms') ?>";
-var forceAlarmStr = "<?php echo translate('ForceAlarm') ?>";
-var cancelForcedAlarmStr = "<?php echo translate('CancelForcedAlarm') ?>";
 
 var CMD_NONE = <?php echo CMD_NONE ?>;
 var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
@@ -45,8 +32,7 @@ var CMD_PREV = <?php echo CMD_PREV ?>;
 var CMD_NEXT = <?php echo CMD_NEXT ?>;
 var CMD_SEEK = <?php echo CMD_SEEK ?>;
 var CMD_QUERY = <?php echo CMD_QUERY ?>;
-
-var SCALE_BASE = <?php echo SCALE_BASE ?>;
+var CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;
 
 var SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
 var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
@@ -54,6 +40,7 @@ var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 
 var streamMode = "<?php echo $streamMode ?>";
 var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"events" ?>";
+var cycle = <?php echo $cycle ? 'true' : 'false' ?>;
 
 var connKey = '<?php echo $connkey ?>';
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
@@ -67,6 +54,30 @@ var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
 var monitorStreamReplayBuffer = <?php echo $monitor->StreamReplayBuffer() ?>;
 var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
+var monIdx = <?php echo $monitor_index; ?>;
+var nextMid = "<?php echo isset($nextMid)?$nextMid:'' ?>";
+var mode = "<?php echo $options['mode'] ?>";
+
+var monitorData = new Array();
+<?php
+foreach ($monitors as $m) {
+?>
+monitorData[monitorData.length] = {
+  'id': <?php echo $m->Id() ?>,
+  'connKey': <?php echo $m->connKey() ?>,
+  'width': <?php echo $m->ViewWidth() ?>,
+  'height':<?php echo $m->ViewHeight() ?>,
+  'janusEnabled':<?php echo $m->JanusEnabled() ?>,
+  'url': '<?php echo $m->UrlToIndex() ?>',
+  'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $m->Id() ?>' );},
+  'type': '<?php echo $m->Type() ?>',
+  'refresh': '<?php echo $m->Refresh() ?>'
+};
+<?php
+} // end foreach monitor
+?>
+
+var SCALE_BASE = <?php echo SCALE_BASE ?>;
 var scale = '<?php echo $scale ?>';
 
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
@@ -75,17 +86,16 @@ var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
 var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
-<?php 
-  $control = $monitor->Control();
-  if ( $control->CanMoveMap() ) { ?>
-var imageControlMode = "moveMap";
-<?php } elseif ( $control->CanMoveRel() ) { ?>
-var imageControlMode = "movePseudoMap";
-<?php } elseif ( $control->CanMoveCon() ) { ?>
-var imageControlMode = "moveConMap";
-<?php } else { ?>
-var imageControlMode = null;
-<?php } ?>
+var imageControlMode = '<?php 
+$control = $monitor->Control();
+if ($control->CanMoveMap()) {
+  echo 'moveMap';
+} else if ($control->CanMoveRel()) {
+  echo 'movePseudoMap';
+} else if ($control->CanMoveCon()) {
+  echo 'moveConMap';
+}
+?>';
 
 var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
 var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
@@ -93,17 +103,19 @@ var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
 var labels = new Array();
 <?php
 $labels = array();
-foreach( dbFetchAll( 'SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array( $monitor->Id() ) ) as $row ) {
-  $labels[$row['Preset']] = $row['Label'];
-}
-
-foreach ($labels as $index=>$label) {
-?>
-labels[<?php echo validInt($index) ?>] = '<?php echo validJsStr($label) ?>';
-<?php
+ZM\Debug("Presets");
+foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array($monitor->Id())) as $row) {
+  $label = $labels[$row['Preset']] = $row['Label'];
+  echo 'labels['. validInt($row['Preset']) .'] = \''.validJsStr($label).'\';'.PHP_EOL;
 }
 ?>
+var deleteString = "<?php echo translate('Delete') ?>";
+var enableAlarmsStr = "<?php echo translate('EnableAlarms') ?>";
+var disableAlarmsStr = "<?php echo translate('DisableAlarms') ?>";
+var forceAlarmStr = "<?php echo translate('ForceAlarm') ?>";
+var cancelForcedAlarmStr = "<?php echo translate('CancelForcedAlarm') ?>";
 var translate = {
+  "seconds": "<?php echo translate('seconds') ?>",
   "Fullscreen": "<?php echo translate('Fullscreen') ?>",
   "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
 };

@@ -45,8 +45,10 @@ RtpSource::RtpSource(
   mFrame(65536),
   mFrameCount(0),
   mFrameGood(true),
+  prevM(false),
   mFrameReady(false),
-  mFrameProcessed(false)
+  mFrameProcessed(false),
+  mTerminate(false)
 {
   char hostname[256] = "";
   gethostname(hostname, sizeof(hostname));

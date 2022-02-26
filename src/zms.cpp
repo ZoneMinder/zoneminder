@@ -65,6 +65,7 @@ int main(int argc, const char *argv[], char **envp) {
   double maxfps = 10.0;
   unsigned int bitrate = 100000;
   unsigned int ttl = 0;
+  bool  analysis_frames = false;
   EventStream::StreamMode replay = EventStream::MODE_NONE;
   std::string username;
   std::string password;
@@ -116,7 +117,14 @@ int main(int argc, const char *argv[], char **envp) {
     char const *value = strtok(nullptr, "=");
     if ( !value )
       value = "";
-    if ( !strcmp(name, "source") ) {
+    if ( !strcmp(name, "analysis") ) {
+      if ( !strcmp(value, "true") ) {
+        analysis_frames = true;
+      } else {
+        analysis_frames = (atoi(value) == 1);
+      }
+      Debug(1, "Viewing analysis frames");
+    } else if ( !strcmp(name, "source") ) {
       if ( !strcmp(value, "event") ) {
         source = ZMS_EVENT;
       } else if ( !strcmp(value, "fifo") ) {
@@ -273,6 +281,7 @@ int main(int argc, const char *argv[], char **envp) {
       zmDbClose();
       return -1;
     }
+    stream.setStreamFrameType(analysis_frames ? StreamBase::FRAME_ANALYSIS: StreamBase::FRAME_NORMAL);
 
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(MonitorStream::STREAM_JPEG);
@@ -309,6 +318,7 @@ int main(int argc, const char *argv[], char **envp) {
       Debug(3, "Setting stream start to frame (%d)", frame_id);
       stream.setStreamStart(event_id, frame_id);
     }
+    stream.setStreamFrameType(analysis_frames ? StreamBase::FRAME_ANALYSIS: StreamBase::FRAME_NORMAL);
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(EventStream::STREAM_JPEG);
     } else {

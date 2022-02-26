@@ -192,4 +192,12 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
         </div>
       </div>
     </div>
+<script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+<?php
+if ( $monitor->JanusEnabled() ) {
+?>
+  <script src="/javascript/janus/janus.js"></script>
+<?php
+}
+?>
 <?php xhtmlFooter() ?>

@@ -245,6 +245,7 @@ class Socket : public CommsBase {
   }
 
   virtual ssize_t recv(std::string &msg) const {
+    msg.reserve(ZM_NETWORK_BUFSIZ);
     std::vector<char> buffer(msg.capacity());
     ssize_t nBytes;
     if ((nBytes = ::recv(mSd, buffer.data(), buffer.size(), 0)) < 0) {

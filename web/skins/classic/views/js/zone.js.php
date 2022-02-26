@@ -94,23 +94,11 @@ var deleteString = "<?php echo translate('Delete') ?>";
 // Imported from watch.js.php and modified for new zone edit view
 //
 
-var STATE_IDLE = <?php echo STATE_IDLE ?>;
-var STATE_PREALARM = <?php echo STATE_PREALARM ?>;
-var STATE_ALARM = <?php echo STATE_ALARM ?>;
-var STATE_ALERT = <?php echo STATE_ALERT ?>;
-var STATE_TAPE = <?php echo STATE_TAPE ?>;
-
-var stateStrings = new Array();
-stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
-stateStrings[STATE_PREALARM] = "<?php echo translate('Idle') ?>";
-stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
-stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
-stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
-
-
 var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
 var CMD_PLAY = <?php echo CMD_PLAY ?>;
 var CMD_STOP = <?php echo CMD_STOP ?>;
+var CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
+var CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;
 var CMD_QUERY = <?php echo CMD_QUERY ?>;
 
 var SCALE_BASE = <?php echo SCALE_BASE ?>;
@@ -134,3 +122,7 @@ var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
 var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
 
+var translate = {
+  "Showing Analysis": '<?php echo translate('Showing Analysis'); ?>',
+  "Not Showing Analysis": '<?php echo translate('Not Showing Analysis'); ?>'
+};

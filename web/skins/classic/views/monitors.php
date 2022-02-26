@@ -86,6 +86,17 @@ The following monitors will have these settings update when you click Save:<br/>
           <label for="newMonitor[Enabled]"><?php echo translate('Enabled') ?></label>
           <input type="checkbox" name="newMonitor[Enabled]" id="newMonitor[Enabled]" value="1"<?php if ( !empty($monitors[0]->Enabled()) ) { ?> checked="checked"<?php } ?>/>
         </p>
+        <p>
+          <label for="newMonitor[Importance]"><?php echo translate('Importance'); echo makeHelpLink('OPTIONS_IMPORTANCE') ?></label>
+<?php
+      echo htmlselect('newMonitor[Importance]',
+              array(
+                'Normal'=>translate('Normal'),
+                'Less'=>translate('Less important'),
+                'Not'=>translate('Not important')
+              ), $monitor->Importance());
+?>
+        </p>
         <div id="contentButtons">
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>
           <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>

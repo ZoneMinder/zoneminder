@@ -1,7 +1,7 @@
 <?php
   global $connkey;
   global $Event;
-  global $Monitor;
+  global $monitor;
   global $filterQuery;
   global $sortQuery;
   global $rates;
@@ -43,14 +43,16 @@ var eventData = {
     Id: '<?php echo $Event->Id() ?>',
     Name: '<?php echo $Event->Name() ?>',
     MonitorId: '<?php echo $Event->MonitorId() ?>',
-    MonitorName: '<?php echo validJsStr($Monitor->Name()) ?>',
+    MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
     Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
+    Notes: '<?php echo $Event->Notes()?>',
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',
     StartDateTime: '<?php echo $Event->StartDateTime() ?>',
     StartDateTimeShort: '<?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?>',
     EndDateTime: '<?php echo $Event->EndDateTime() ?>',
+    EndDateTimeShort: '<?php echo $Event->EndDateTime()? strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->EndDateTime())) : '' ?>',
     Frames: '<?php echo $Event->Frames() ?>',
     AlarmFrames: '<?php echo $Event->AlarmFrames() ?>',
     TotScore: '<?php echo $Event->TotScore() ?>',
@@ -72,7 +74,9 @@ var eventDataStrings = {
     MonitorId: '<?php echo translate('AttrMonitorId') ?>',
     MonitorName: '<?php echo translate('AttrMonitorName') ?>',
     Cause: '<?php echo translate('Cause') ?>',
+    Notes: '<?php echo translate('Notes') ?>',
     StartDateTimeShort: '<?php echo translate('AttrStartTime') ?>',
+    EndDateTimeShort: '<?php echo translate('AttrEndTime') ?>',
     Length: '<?php echo translate('Duration') ?>',
     Frames: '<?php echo translate('AttrFrames') ?>',
     AlarmFrames: '<?php echo translate('AttrAlarmFrames') ?>',
@@ -85,7 +89,7 @@ var eventDataStrings = {
     Emailed: '<?php echo translate('Emailed') ?>'
 };
 
-var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';
+var monitorUrl = '<?php echo $Event->Server()->UrlToIndex(); ?>';
 
 var filterQuery = '<?php echo isset($filterQuery)?validJsStr(htmlspecialchars_decode($filterQuery)):'' ?>';
 var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode($sortQuery)):'' ?>';
@@ -93,7 +97,7 @@ var sortQuery = '<?php echo isset($sortQuery)?validJsStr(htmlspecialchars_decode
 var rates = <?php echo json_encode(array_keys($rates)) ?>;
 var rate = '<?php echo $rate ?>'; // really only used when setting up initial playback rate.
 var scale = "<?php echo $scale ?>";
-var LabelFormat = "<?php echo validJsStr($Monitor->LabelFormat())?>";
+var LabelFormat = "<?php echo validJsStr($monitor->LabelFormat())?>";
 
 var streamTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
@@ -105,6 +109,8 @@ var streamMode = '<?php echo $streamMode ?>';
 //
 var deleteString = "<?php echo validJsStr(translate('Delete')) ?>";
 var causeString = "<?php echo validJsStr(translate('AttrCause')) ?>";
+var showZonesString = "<?php echo validJsStr(translate('Show Zones'))?>";
+var hideZonesString = "<?php echo validJsStr(translate('Hide Zones'))?>";
 var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
 var popup = '<?php echo $popup ?>';

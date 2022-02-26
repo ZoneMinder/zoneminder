@@ -65,7 +65,7 @@ if ( empty($_REQUEST['path']) ) {
 
   if ( empty($_REQUEST['fid']) ) {
     header('HTTP/1.0 404 Not Found');
-    ZM\Fatal('No Frame ID specified');
+    ZM\Error('No Frame ID specified');
     return;
   }
 
@@ -73,47 +73,50 @@ if ( empty($_REQUEST['path']) ) {
     $Event = ZM\Event::find_one(array('Id'=>$_REQUEST['eid']));
     if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
-      ZM\Fatal('Event '.$_REQUEST['eid'].' Not found');
+      ZM\Error('Event '.$_REQUEST['eid'].' Not found');
       return;
     }
 
     if ( $_REQUEST['fid'] == 'objdetect' ) {
-        // if animation file is found, return that, else return image
-        // we are only looking for GIF or jpg here, not mp4
-        // as most often, browsers asking for this link will be expecting
-        // media types that can be rendered as <img src=>
-        $path_anim_gif = $Event->Path().'/objdetect.gif';
-        $path_image = $Event->Path().'/objdetect.jpg';
-        if (file_exists($path_anim_gif)) {
-          // we found the animation gif file
-          $media_type = 'image/gif';
-          ZM\Debug("Animation file found at $path");
-          $path = $path_anim_gif;
-        } else if (file_exists($path_image)) {
-            // animation not found, but image found
-            ZM\Debug("Image file found at $path");
-            $path = $path_image;
-        } else {
-            // neither animation nor image found
-            header('HTTP/1.0 404 Not Found');
-            ZM\Fatal("Object detection animation and image not found for this event");  
-        }
-        $Frame = new ZM\Frame();
-        $Frame->Id('objdetect');
-      } else if ( $_REQUEST['fid'] == 'objdetect_mp4' ) {
-        $path = $Event->Path().'/objdetect.mp4';
-        if ( !file_exists($path) ) {
-          header('HTTP/1.0 404 Not Found');
-          ZM\Fatal("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
-          }
-        $Frame = new ZM\Frame();
-        $Frame->Id('objdetect');
-        $media_type = 'video/mp4';
-      } else if ( $_REQUEST['fid'] == 'objdetect_gif' ) {
-        $path = $Event->Path().'/objdetect.gif';
-        if ( !file_exists($path) ) {
-          header('HTTP/1.0 404 Not Found');
-          ZM\Fatal("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
+      // if animation file is found, return that, else return image
+      // we are only looking for GIF or jpg here, not mp4
+      // as most often, browsers asking for this link will be expecting
+      // media types that can be rendered as <img src=>
+      $path_anim_gif = $Event->Path().'/objdetect.gif';
+      $path_image = $Event->Path().'/objdetect.jpg';
+      if (file_exists($path_anim_gif)) {
+        // we found the animation gif file
+        $media_type = 'image/gif';
+        ZM\Debug("Animation file found at $path");
+        $path = $path_anim_gif;
+      } else if (file_exists($path_image)) {
+        // animation not found, but image found
+        ZM\Debug("Image file found at $path");
+        $path = $path_image;
+      } else {
+        // neither animation nor image found
+        header('HTTP/1.0 404 Not Found');
+        ZM\Error('Object detection animation and image not found for this event');  
+        return;
+      }
+      $Frame = new ZM\Frame();
+      $Frame->Id('objdetect');
+    } else if ( $_REQUEST['fid'] == 'objdetect_mp4' ) {
+      $path = $Event->Path().'/objdetect.mp4';
+      if ( !file_exists($path) ) {
+        header('HTTP/1.0 404 Not Found');
+        ZM\Error("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
+        return;
+      }
+      $Frame = new ZM\Frame();
+      $Frame->Id('objdetect');
+      $media_type = 'video/mp4';
+    } else if ( $_REQUEST['fid'] == 'objdetect_gif' ) {
+      $path = $Event->Path().'/objdetect.gif';
+      if ( !file_exists($path) ) {
+        header('HTTP/1.0 404 Not Found');
+        ZM\Error("File $path does not exist. You might not have enabled create_animation in objectconfig.ini. If you have, inspect debug logs for errors during creation");
+        return;
       }
       $Frame = new ZM\Frame();
       $Frame->Id('objdetect');
@@ -122,7 +125,8 @@ if ( empty($_REQUEST['path']) ) {
       $path = $Event->Path().'/objdetect.jpg';
       if ( !file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Fatal("File $path does not exist. Please make sure store_frame_in_zm is enabled in the object detection config");
+        ZM\Error("File $path does not exist. Please make sure store_frame_in_zm is enabled in the object detection config");
+        return;
       }
       $Frame = new ZM\Frame();
       $Frame->Id('objdetect');
@@ -149,7 +153,7 @@ if ( empty($_REQUEST['path']) ) {
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           header('HTTP/1.0 404 Not Found');
-          ZM\Fatal('No alarm jpg found for event '.$_REQUEST['eid']);
+          ZM\Error('No alarm jpg found for event '.$_REQUEST['eid']);
           return;
         }
       } else {
@@ -189,11 +193,12 @@ if ( empty($_REQUEST['path']) ) {
             ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
             if ( ! file_exists($path) ) {
               header('HTTP/1.0 404 Not Found');
-              ZM\Fatal('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
+              ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
 
                 Command was: '.$command.'
 
                 Output was: '.implode(PHP_EOL,$output) );
+              return;
             }
             # Generating an image file will use up more disk space, so update the Event record.
             if ( $Event->EndDateTime() ) {
@@ -202,7 +207,7 @@ if ( empty($_REQUEST['path']) ) {
             }
           } else {
             header('HTTP/1.0 404 Not Found');
-            ZM\Fatal('No snapshot jpg found for event '.$_REQUEST['eid']);
+            ZM\Error('No snapshot jpg found for event '.$_REQUEST['eid']);
             return;
           }
         } # end if stored jpgs
@@ -231,7 +236,8 @@ if ( empty($_REQUEST['path']) ) {
           $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
           ZM\Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
         } else {
-          ZM\Fatal('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
+          ZM\Error('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
+          return;
         }
       }  # end if !Frame
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
@@ -244,14 +250,14 @@ if ( empty($_REQUEST['path']) ) {
     $Frame = ZM\Frame::find_one(array('Id'=>$_REQUEST['fid']));
     if ( !$Frame ) {
       header('HTTP/1.0 404 Not Found');
-      ZM\Fatal('Frame ' . $_REQUEST['fid'] . ' Not Found');
+      ZM\Error('Frame ' . $_REQUEST['fid'] . ' Not Found');
       return;
     }
 
     $Event = ZM\Event::find_one(array('Id'=>$Frame->EventId()));
     if ( !$Event ) {
       header('HTTP/1.0 404 Not Found');
-      ZM\Fatal('Event ' . $Frame->EventId() . ' Not Found');
+      ZM\Error('Event ' . $Frame->EventId() . ' Not Found');
       return;
     }
     $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
@@ -263,7 +269,8 @@ if ( empty($_REQUEST['path']) ) {
     if ( ($show == 'capture') and $Event->DefaultVideo() ) {
       if ( !file_exists($Event->Path().'/'.$Event->DefaultVideo()) ) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Fatal("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
+        ZM\Error("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
+        return;
       }
       $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path . ' 2>&1';
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
@@ -275,11 +282,12 @@ if ( empty($_REQUEST['path']) ) {
       ZM\Debug("Command: $command, retval: $retval, output: " . implode("\n", $output));
       if ( ! file_exists($path) ) {
         header('HTTP/1.0 404 Not Found');
-        ZM\Fatal('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
+        ZM\Error('Can\'t create frame images from video for this event '.$Event->DefaultVideo().'
 
 Command was: '.$command.'
 
 Output was: '.implode(PHP_EOL,$output) );
+        return;
       }
       # Generating an image file will use up more disk space, so update the Event record.
       if ( $Event->EndDateTime() ) {
@@ -288,8 +296,9 @@ Output was: '.implode(PHP_EOL,$output) );
       }
     } else {
       header('HTTP/1.0 404 Not Found');
-      ZM\Fatal("Can't create frame $show images from video because there is no video file for this event at ".
+      ZM\Error("Can't create frame $show images from video because there is no video file for this event at ".
         $Event->Path().'/'.$Event->DefaultVideo() );
+      return;
     }
   } # end if ! file_exists($path)
 
@@ -317,7 +326,8 @@ Output was: '.implode(PHP_EOL,$output) );
   }
   if ( !file_exists($path) ) {
     header('HTTP/1.0 404 Not Found');
-    ZM\Fatal("Image not found at $path");
+    ZM\Error("Image not found at $path");
+    return;
   }
 }
 

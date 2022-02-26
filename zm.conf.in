@@ -37,7 +37,8 @@ ZM_WEB_GROUP=@WEB_GROUP@
 ZM_DB_TYPE=@ZM_DB_TYPE@
 
 # ZoneMinder database hostname or ip address and optionally port or unix socket
-# Acceptable formats include hostname[:port], ip_address[:port], or localhost:unix_socket
+# Acceptable formats include hostname[:port], ip_address[:port], or
+# localhost:/path/to/unix_socket
 ZM_DB_HOST=@ZM_DB_HOST@
 
 # ZoneMinder database name

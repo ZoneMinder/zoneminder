@@ -1,11 +1,13 @@
 <?php
 namespace ZM;
 require_once('database.php');
-require_once('Server.php');
 require_once('Object.php');
 require_once('Control.php');
-require_once('Storage.php');
 require_once('Group.php');
+require_once('Manufacturer.php');
+require_once('Model.php');
+require_once('Server.php');
+require_once('Storage.php');
 
 $FunctionTypes = null;
 
@@ -47,16 +49,24 @@ class Monitor extends ZM_Object {
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,
+    'ManufacturerId'  => null,
+    'ModelId'         => null,
     'Type'      => 'Ffmpeg',
     'Function'  => 'Mocord',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'DecodingEnabled'   => array('type'=>'boolean','default'=>1),
+    'JanusEnabled'   => array('type'=>'boolean','default'=>0),
+    'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
+    'EventStartCommand' => '',
+    'EventEndCommand' => '',
     'ONVIF_URL' =>  '',
     'ONVIF_Username'  =>  '',
     'ONVIF_Password'  =>  '',
     'ONVIF_Options'   =>  '',
+    'ONVIF_Event_Listener'  =>  '0',
+    'use_Amcrest_API'  =>  '0',
     'Device'  =>  '',
     'Channel' =>  0,
     'Format'  =>  '0',
@@ -685,6 +695,52 @@ class Monitor extends ZM_Object {
   }
   function DisableAlarms() {
     $output = $this->AlarmCommand('disable');
+  }
+  function Model() {
+    if (!property_exists($this, 'Model')) {
+      if (property_exists($this, 'ModelId') and $this->{'ModelId'}) {
+        $this->{'Model'} = Model::find_one(array('Id'=>$this->ModelId()));
+        if (!$this->{'Model'})
+          $this->{'Model'} = new Model();
+      } else {
+        $this->{'Model'} = new Model();
+      }
+    }
+    return $this->{'Model'};
+  }
+  function Manufacturer() {
+    if (!property_exists($this, 'Manufacturer')) {
+      if (property_exists($this, 'ManufacturerId') and $this->{'ManufacturerId'}) {
+        $this->{'Manufacturer'} = Manufacturer::find_one(array('Id'=>$this->ManufacturerId()));
+        if (!$this->{'Manufacturer'})
+          $this->{'Manufacturer'} = new Manufacturer();
+      } else {
+          $this->{'Manufacturer'} = new Manufacturer();
+      }
+    }
+    return $this->{'Manufacturer'};
+  }
+  function getMonitorStateHTML() {
+    $html = '
+<div id="monitorStatus'.$this->Id().'" class="monitorStatus">
+  <div id="monitorState'.$this->Id().'" class="monitorState">
+    <span>'.translate('State').':<span id="stateValue'.$this->Id().'"></span></span>
+    <span id="viewingFPS'.$this->Id().'" title="'.translate('Viewing FPS').'"><span id="viewingFPSValue'.$this->Id().'"></span> fps</span>
+    <span id="captureFPS'.$this->Id().'" title="'.translate('Capturing FPS').'"><span id="captureFPSValue'.$this->Id().'"></span> fps</span>
+';
+    if ( $this->Function() == 'Modect' or $this->Function() == 'Mocord' ) {
+      $html .= '<span id="analysisFPS'.$this->Id().'" title="'.translate('Analysis FPS').'"><span id="analysisFPSValue'.$this->Id().'"></span> fps</span>
+      ';
+    }
+    $html .= '
+    <span id="rate'.$this->Id().'" class="hidden">'.translate('Rate').': <span id="rateValue'.$this->Id().'"></span>x</span>
+    <span id="delay'.$this->Id().'" class="hidden">'.translate('Delay').': <span id="delayValue'.$this->Id().'"></span>s</span>
+    <span id="level'.$this->Id().'" class="hidden">'.translate('Buffer').': <span id="levelValue'.$this->Id().'"></span>%</span>
+    <span id="zoom'.$this->Id().'">'. translate('Zoom').': <span id="zoomValue'.$this->Id().'"></span>x</span>
+  </div>
+</div>
+';
+    return $html;
   }
 } // end class Monitor
 ?>

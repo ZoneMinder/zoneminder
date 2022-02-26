@@ -19,6 +19,7 @@ override_dh_auto_configure:
             -DCMAKE_VERBOSE_MAKEFILE=ON                \
             -DCMAKE_BUILD_TYPE=Release                 \
 						-DBUILD_MAN=0 \
+						-DZM_NO_PCRE=ON \
             -DZM_CONFIG_DIR="/etc/zm"                  \
             -DZM_CONFIG_SUBDIR="/etc/zm/conf.d"        \
             -DZM_RUNDIR="/run/zm"                  \

@@ -1,3 +1,6 @@
+var server;
+var janus = null;
+var streaming2;
 var intervalId;
 var pauseBtn = $j('#pauseBtn');
 var playBtn = $j('#playBtn');
@@ -46,6 +49,79 @@ function initCycle() {
   intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   var scale = $j('#scale').val();
   if ( scale == '0' || scale == 'auto' ) changeScale();
+
+  if (monitorData[monIdx].janusEnabled) {
+    if (ZM_JANUS_PATH) {
+      server = ZM_JANUS_PATH;
+    } else if (window.location.protocol=='https:') {
+      // Assume reverse proxy setup for now
+      server = "https://" + window.location.hostname + "/janus";
+    } else {
+      server = "http://" + window.location.hostname + ":8088/janus";
+    }
+    opaqueId = "streamingtest-"+Janus.randomString(12);
+    Janus.init({debug: "all", callback: function() {
+      janus = new Janus({
+        server: server,
+        success: function() {
+          janus.attach({
+            plugin: "janus.plugin.streaming",
+            opaqueId: opaqueId,
+            success: function(pluginHandle) {
+              streaming2 = pluginHandle;
+              var body = {"request": "watch", "id": monitorData[monIdx].id};
+              streaming2.send({"message": body});
+            },
+            error: function(error) {
+              Janus.error("  -- Error attaching plugin... ", error);
+            },
+            onmessage: function(msg, jsep) {
+              Janus.debug(" ::: Got a message :::");
+              Janus.debug(msg);
+              var result = msg["result"];
+              if (result !== null && result !== undefined) {
+                if (result["status"] !== undefined && result["status"] !== null) {
+                  const status = result["status"];
+                  console.log(status);
+                }
+              } else if (msg["error"] !== undefined && msg["error"] !== null) {
+                Janus.debug(msg["error"]);
+                return;
+              }
+              if (jsep !== undefined && jsep !== null) {
+                Janus.debug("Handling SDP as well...");
+                Janus.debug(jsep);
+                if ((navigator.userAgent.toLowerCase().indexOf('firefox') > -1) && (jsep["sdp"].includes("420029"))) { //because firefox devs are stubborn
+                  jsep["sdp"] = jsep["sdp"].replace("420029", "42e01f");
+                }
+                // Offer from the plugin, let's answer
+                streaming2.createAnswer({
+                  jsep: jsep,
+                  // We want recvonly audio/video and, if negotiated, datachannels
+                  media: {audioSend: false, videoSend: false, data: true},
+                  success: function(jsep) {
+                    Janus.debug("Got SDP!");
+                    Janus.debug(jsep);
+                    var body = {"request": "start"};
+                    streaming2.send({"message": body, "jsep": jsep});
+                  },
+                  error: function(error) {
+                    Janus.error("WebRTC error:", error);
+                  }
+                });
+              }
+            }, //onmessage function
+            onremotestream: function(stream) {
+              Janus.debug(" ::: Got a remote track :::");
+              Janus.debug(stream);
+              Janus.attachMediaStream(document.getElementById("liveStream" + monitorData[monIdx].id), stream);
+              document.getElementById("liveStream" + monitorData[monIdx].id).play();
+            }
+          });// attach
+        } //Success functio
+      }); //new Janus
+    }}); //janus.init callback
+  } //if janus
 }
 
 function changeSize() {

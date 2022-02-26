@@ -16,7 +16,6 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libjpeg-turbo8-dev | libjpeg62-turbo-dev | libjpeg8-dev | libjpeg9-dev
               ,libturbojpeg0-dev
               ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
-              ,libpcre3-dev
               ,libpolkit-gobject-1-dev
               ,libv4l-dev [!hurd-any]
               ,libvlc-dev
@@ -32,6 +31,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libvncserver-dev
               ,libfmt-dev
               ,libjwt-gnutls-dev|libjwt-dev
+              ,libgsoap-dev
 
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
@@ -44,7 +44,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libswscale5|libswscale4
         ,libswresample3|libswresample2
         ,ffmpeg
-        ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
+        ,libcurl4, libcurl4-gnutls-dev
+        ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
         ,libphp-serialization-perl
         ,libmodule-load-conditional-perl
@@ -72,12 +73,12 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
-        ,libpcre3
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
         ,libfmt
         ,libjwt-gnutls0|libjwt0
+        ,libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
 
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm

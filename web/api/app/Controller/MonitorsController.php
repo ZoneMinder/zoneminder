@@ -321,12 +321,20 @@ class MonitorsController extends AppController {
     }
 
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Id', 'Type', 'Device'),
+      'fields' => array('Id', 'Type', 'Device', 'Function'),
       'conditions' => array('Id' => $id)
     ));
 
     // Clean up the returned array
     $monitor = Set::extract('/Monitor/.', $monitor);
+    if ($monitor[0]['Function'] == 'None') {
+      $this->set(array(
+        'status' => false,
+        'statustext' => 'Monitor function is set to None',
+        '_serialize' => array('status','statustext'),
+      ));
+      return;
+    }
 
     // Pass -d for local, otherwise -m
     if ( $monitor[0]['Type'] == 'Local' ) {

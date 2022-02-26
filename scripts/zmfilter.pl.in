@@ -21,28 +21,6 @@
 #
 # ==========================================================================
 
-=head1 NAME
-
-zmfilter.pl - ZoneMinder tool to filter events
-
-=head1 SYNOPSIS
-
-zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
-
-=head1 DESCRIPTION
-
-This script continuously monitors the recorded events for the given
-monitor and applies any filters which would delete and/or upload
-matching events.
-
-=head1 OPTIONS
-
-
--f{filter name}, --filter={filter name}  - The name of a specific filter to run
---filter_id={filter id}                  - The id of a specific filter to run
--v, --version                            - Print ZoneMinder version
-
-=cut
 use strict;
 use bytes;
 
@@ -160,10 +138,9 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
 
-if ( !EVENT_PATH ) {
+if (!EVENT_PATH) {
   Error('No event path defined. Config was '.$Config{ZM_DIR_EVENTS});
   die;
 }
@@ -195,26 +172,37 @@ if ( ! ( $filter_name or $filter_id ) ) {
 my @filters;
 my $last_action = 0;
 
-while( !$zm_terminate ) {
+while (!$zm_terminate) {
+  my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
   my $now = time;
-  if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
+  if (($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY}) {
     Debug('Reloading filters');
     $last_action = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
 
-  foreach my $filter ( @filters ) {
+  foreach my $filter (@filters) {
     last if $zm_terminate;
-    if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
+
+    my $elapsed = ($now - ($$filter{last_ran} ? $$filter{last_ran} : 0));
+    if ($$filter{last_ran} and ($elapsed < $$filter{ExecuteInterval})) {
+      my $filter_delay = $$filter{ExecuteInterval} - ($now - $$filter{last_ran});
+      $delay = $filter_delay if $filter_delay < $delay;
+      Debug("Setting delay to $delay because ExecuteInterval=$$filter{ExecuteInterval} and $elapsed have elapsed");
+      next;
+    }
+
+    if ($$filter{Concurrent} and !($filter_id or $filter_name)) {
       my ( $proc ) = $0 =~ /(\S+)/;
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
       Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
 
-      system(qq`$proc --filter "$$filter{Name}" &`);
+      system(qq`$proc --filter_id $id &`);
     } else {
       checkFilter($filter);
+      $$filter{last_ran} = $now;
     }
-  }
+  } # end foreach filter
 
   last if (!$daemon and ($filter_name or $filter_id)) or $zm_terminate;
 
@@ -384,11 +372,6 @@ sub checkFilter {
     } # end if AutoCopy
 
     if ( $filter->{UpdateDiskSpace} ) {
-      if ( $$filter{LockRows} ) {
-        $ZoneMinder::Database::dbh->begin_work();
-        $Event->lock_and_load();
-      }
-
       my $old_diskspace = $$Event{DiskSpace};
 			my $new_diskspace = $Event->DiskSpace(undef);
 
@@ -481,15 +464,18 @@ sub generateImage {
   my $event_path = $Event->Path();
   my $capture_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg', $event_path, $frame->{FrameId});
   my $analyse_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-analyse.jpg', $event_path, $frame->{FrameId}) if $analyse;
-  my $video_path =  sprintf('%s/%d-video.mp4', $event_path, $Event->{Id});
+  my $video_path =  sprintf('%s/%s', $event_path, $Event->{DefaultVideo});
   my $image_path = '';
 
 # check if the image file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
   if ( $analyse && -r $analyse_image_path ) {
+    Debug("Using analysis and jpeg exists $analyse_image_path");
     $image_path = $analyse_image_path;
   } elsif ( -r $capture_image_path ) {
+    Debug("Using captures and jpeg exists $capture_image_path");
     $image_path = $capture_image_path;
   } elsif ( -r $video_path ) {
+    Debug("mp4 exists $video_path");
     my $command ="ffmpeg -nostdin -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
     #$command = "ffmpeg -y -v 0 -i $video_path -vf 'select=gte(n\\,$$frame{FrameId}),setpts=PTS-STARTPTS' -vframes 1 -f image2 $capture_image_path";
     my $output = qx($command);
@@ -503,6 +489,8 @@ sub generateImage {
     } else {
       $image_path = $capture_image_path;
     }
+  } else {
+    Debug("No files found at $analyse_image_path, $capture_image_path or $video_path");
   }
   return $image_path;
 }
@@ -740,7 +728,7 @@ sub substituteTags {
         if ( -e $path ) {
           push @$attachments_ref, { type=>'image/jpeg', path=>$path };
         } else {
-          Warning("Path to first image does not exist at $path");
+          Warning("Path to first image does not exist at $path for image $first_alarm_frame");
         }
       }
 
@@ -1051,9 +1039,7 @@ sub executeCommand {
   my $filter = shift;
   my $Event = shift;
 
-  my $event_path = $Event->Path();
-
-  my $command = $filter->{AutoExecuteCmd}.' '.$event_path;
+  my $command = $filter->{AutoExecuteCmd}.' '.$Event->Path();
   $command = substituteTags($command, $filter, $Event);
 
   Info("Executing '$command'");
@@ -1063,15 +1049,37 @@ sub executeCommand {
     chomp($output);
     Debug("Output: $output");
   }
-  if ( $status ) {
+  if ($status) {
     Error("Command '$command' exited with status: $status");
     return 0;
   } else {
-    my $sql = 'UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute( $Event->{Id} )
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+    ZoneMinder::Database::zmSQLExecute('UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?', $Event->{Id});
   }
-  return( 1 );
+  return 1;
 }
+
+1;
+__END__
+
+=head1 NAME
+
+zmfilter.pl - ZoneMinder tool to select events and perform actions on them
+
+=head1 SYNOPSIS
+
+zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] [--daemon] | -v, --version
+
+=head1 DESCRIPTION
+
+This script performs a specified database query to select recorded events and performs specified actions on them
+such as email reporting, deleting, moving, etc.  If the --daemon option is given it will remain resident, repeating
+the query and applying actions.  This is normally managed by zmdc.pl however it can be used manually as well.
+
+=head1 OPTIONS
+
+  -f{filter name}, --filter={filter name}  - The name of a specific filter to run
+  --filter_id={filter id}                  - The id of a specific filter to run
+  --daemon                                 - Causes zmfilter.pl to stay running endlessly repeating the filter(s).
+  -v, --version                            - Print ZoneMinder version
+
+=cut

@@ -56,6 +56,14 @@ $serial = $primary_key = 'Id';
   Enabled
   LinkedMonitors
   Triggers
+  EventStartCommand
+  EventEndCommand
+  ONVIF_URL
+  ONVIF_Username
+  ONVIF_Password
+  ONVIF_Options
+  ONVIF_Event_Listener
+  use_Amcrest_API
   Device
   Channel
   Format
@@ -133,6 +141,9 @@ $serial = $primary_key = 'Id';
   DefaultCodec
   Latitude
   Longitude
+  RTSPServer
+  RTSPStreamName
+  Importance
   );
 
 %defaults = (
@@ -241,20 +252,26 @@ sub control {
   my $command = shift;
   my $process = shift;
 
-  if ( $command eq 'stop' or $command eq 'restart' ) {
-    if ( $process ) {
-      `/usr/bin/zmdc.pl stop $process -m $$monitor{Id}`;
+  if ($command eq 'stop' or $command eq 'restart') {
+    if ($process) {
+      ZoneMinder::General::runCommand("zmdc.pl stop $process -m $$monitor{Id}");
     } else {
-      `/usr/bin/zmdc.pl stop zma -m $$monitor{Id}`;
-      `/usr/bin/zmdc.pl stop zmc -m $$monitor{Id}`;
+      if ($monitor->{Type} eq 'Local') {
+        ZoneMinder::General::runCommand('zmdc.pl stop zmc -d '.$monitor->{Device});
+      } else {
+        ZoneMinder::General::runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
+      }
     }
   }
   if ( $command eq 'start' or $command eq 'restart' ) {
     if ( $process ) {
-      `/usr/bin/zmdc.pl start $process -m $$monitor{Id}`;
+      ZoneMinder::General::runCommand("zmdc.pl start $process -m $$monitor{Id}");
     } else {
-      `/usr/bin/zmdc.pl start zmc -m $$monitor{Id}`;
-      `/usr/bin/zmdc.pl start zma -m $$monitor{Id}`;
+      if ($monitor->{Type} eq 'Local') {
+        ZoneMinder::General::runCommand('zmdc.pl start zmc -d '.$monitor->{Device});
+      } else {
+        ZoneMinder::General::runCommand('zmdc.pl start zmc -m '.$monitor->{Id});
+      }
     } # end if
   }
 } # end sub control
@@ -326,18 +343,30 @@ sub resumeMotionDetection {
 
 sub Control {
   my $self = shift;
-  if ( ! exists $$self{Control}) {
-    require ZoneMinder::Control;
-    my $Control = ZoneMinder::Control->find_one(Id=>$$self{ControlId});
-    if ($Control) {
-      require Module::Load::Conditional;
-      if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$$Control{Protocol} => undef})) {
-        Error("Can't load ZoneMinder::Control::$$Control{Protocol}\n$Module::Load::Conditional::ERROR");
-        return undef;
+  if (!exists $$self{Control}) {
+    if ($$self{ControlId}) {
+      require ZoneMinder::Control;
+      my $Control = ZoneMinder::Control->find_one(Id=>$$self{ControlId});
+      if ($Control) {
+        my $Protocol = $$Control{Protocol};
+
+        if (!$Protocol) {
+          Error("No protocol set in control $$Control{Id}, trying Name $$Control{Name}");
+          $Protocol = $$Control{Name};
+        }
+        require Module::Load::Conditional;
+        if (!Module::Load::Conditional::can_load(modules => {'ZoneMinder::Control::'.$Protocol => undef})) {
+          Error("Can't load ZoneMinder::Control::$Protocol\n$Module::Load::Conditional::ERROR");
+          return undef;
+        }
+        bless $Control, 'ZoneMinder::Control::'.$Protocol;
+        $$Control{MonitorId} = $$self{Id};
+        $$self{Control} = $Control;
+      } else {
+        Error("Unable to load control for control $$self{ControlId} for monitor $$self{Id}");
       }
-      bless $Control, 'ZoneMinder::Control::'.$$Control{Protocol};
-      $$Control{MonitorId} = $$self{Id};
-      $$self{Control} = $Control;
+    } else {
+      Info("No ControlId set in monitor $$self{Id}")
     }
   }
   return $$self{Control};

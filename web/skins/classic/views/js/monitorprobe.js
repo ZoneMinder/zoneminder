@@ -11,3 +11,7 @@ function configureButtons( element ) {
   var form = element.form;
   form.saveBtn.disabled = (form.probe.selectedIndex==0);
 }
+
+function changeInterface(element) {
+  element.form.submit();
+}

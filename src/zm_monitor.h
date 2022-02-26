@@ -23,6 +23,7 @@
 #include "zm_define.h"
 #include "zm_camera.h"
 #include "zm_analysis_thread.h"
+#include "zm_poll_thread.h"
 #include "zm_decoder_thread.h"
 #include "zm_event.h"
 #include "zm_fifo.h"
@@ -33,12 +34,20 @@
 #include <memory>
 #include <sys/time.h>
 #include <vector>
+#include <curl/curl.h>
+
+#ifdef WITH_GSOAP
+#include "soapPullPointSubscriptionBindingProxy.h"
+#include "plugin/wsseapi.h"
+#include <openssl/err.h>
+#endif
 
 class Group;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
 #define LINKED_CAUSE "Linked"
+
 
 //
 // This is the main class for monitors. Each monitor is associated
@@ -69,7 +78,7 @@ public:
     FILE,
     FFMPEG,
     LIBVLC,
-    CURL,
+    LIBCURL,
     NVSOCKET,
     VNC,
   } CameraType;
@@ -84,7 +93,7 @@ public:
   } Orientation;
 
   typedef enum {
-    DEINTERLACE_DISABLED = 0x00000000, 
+    DEINTERLACE_DISABLED = 0x00000000,
     DEINTERLACE_FOUR_FIELD_SOFT = 0x00001E04,
     DEINTERLACE_FOUR_FIELD_MEDIUM = 0x00001404,
     DEINTERLACE_FOUR_FIELD_HARD = 0x00000A04,
@@ -145,12 +154,12 @@ protected:
     uint32_t last_frame_score;  /* +60   */
     uint32_t  audio_frequency;  /* +64   */
     uint32_t  audio_channels;   /* +68   */
-    /* 
+    /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
-     ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple 
+     ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
-     */  
+     */
     union {                     /* +72   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
@@ -247,7 +256,51 @@ protected:
       bool hasAlarmed();
   };
 
+  class AmcrestAPI {
   protected:
+    Monitor *parent;
+    std::string amcrest_response;
+    CURLM *curl_multi = nullptr;
+    CURL *Amcrest_handle = nullptr;
+    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
+  public:
+    AmcrestAPI( Monitor *parent_);
+    ~AmcrestAPI();
+    int API_Connect();
+    void WaitForMessage();
+    bool Amcrest_Alarmed;
+    int start_Amcrest();
+  };
+
+  class JanusManager {
+  protected:
+    Monitor *parent;
+    CURL *curl = nullptr;
+    //helper class for CURL
+    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    bool Janus_Healthy;
+    std::string janus_session;
+    std::string janus_handle;
+    std::string janus_endpoint;
+    std::string stream_key;
+    std::string rtsp_username;
+    std::string rtsp_password;
+    std::string rtsp_path;
+
+  public:
+    JanusManager(Monitor *parent_);
+    ~JanusManager();
+    int add_to_janus();
+    int check_janus();
+    int remove_from_janus();
+    int get_janus_session();
+    int get_janus_handle();
+    int get_janus_plugin();
+    std::string get_stream_key();
+  };
+
+
   // These are read from the DB and thereafter remain unchanged
   unsigned int    id;
   std::string     name;
@@ -257,6 +310,8 @@ protected:
   Function        function;           // What the monitor is doing
   bool            enabled;            // Whether the monitor is enabled or asleep
   bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
+  bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
+  bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
 
   std::string protocol;
   std::string method;
@@ -267,6 +322,13 @@ protected:
   std::string pass;
   std::string path;
   std::string second_path;
+
+  std::string onvif_url;
+  std::string onvif_username;
+  std::string onvif_password;
+  std::string onvif_options;
+  bool        onvif_event_listener;
+  bool        use_Amcrest_API;
 
   std::string     device;
   int             palette;
@@ -351,7 +413,6 @@ protected:
   int        first_alarm_count;
   int        last_alarm_count;
   bool       last_signal;
-  int        last_section_mod;
   int        buffer_count;
   State      state;
   SystemTimePoint start_time;
@@ -390,6 +451,7 @@ protected:
 
   VideoStore          *videoStore;
   PacketQueue      packetqueue;
+  std::unique_ptr<PollThread> Poller;
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
@@ -404,6 +466,8 @@ protected:
 
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;
+  std::string   event_start_command;
+  std::string   event_end_command;
 
   std::vector<Group *> groups;
 
@@ -413,6 +477,25 @@ protected:
   Image        write_image;    // Used when creating snapshot images
   std::string diag_path_ref;
   std::string diag_path_delta;
+
+  //ONVIF
+  bool Poll_Trigger_State;
+  bool Event_Poller_Healthy;
+  bool Event_Poller_Closes_Event;
+
+  JanusManager *Janus_Manager;
+  AmcrestAPI *Amcrest_Manager;
+
+#ifdef WITH_GSOAP
+  struct soap *soap = nullptr;
+  _tev__CreatePullPointSubscription request;
+  _tev__CreatePullPointSubscriptionResponse response;
+  _tev__PullMessages tev__PullMessages;
+  _tev__PullMessagesResponse tev__PullMessagesResponse;
+  PullPointSubscriptionBindingProxy proxyEvent;
+  void set_credentials(struct soap *soap);
+#endif
+
 
   // Used in check signal
   uint8_t red_val;
@@ -470,6 +553,19 @@ public:
   inline bool DecodingEnabled() const {
     return decoding_enabled;
   }
+  bool JanusEnabled() {
+    return janus_enabled;
+  }
+  bool JanusAudioEnabled() {
+    return janus_audio_enabled;
+  }
+  bool OnvifEnabled() {
+    return onvif_event_listener;
+  }
+  int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
+  bool EventPollerHealthy() {
+    return Event_Poller_Healthy;
+  }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
     if ( image_count >= ready_count ) {
@@ -518,7 +614,7 @@ public:
   void SetVideoWriterStartTime(SystemTimePoint t) {
     video_store_data->recording = zm::chrono::duration_cast<timeval>(t.time_since_epoch());
   }
- 
+
   unsigned int GetPreEventCount() const { return pre_event_count; };
   int32_t GetImageBufferCount() const { return image_buffer_count; };
   State GetState() const { return (State)shared_data->state; }
@@ -533,6 +629,12 @@ public:
   std::string GetAudioFifoPath() const { return shared_data ? shared_data->audio_fifo_path : ""; };
   std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
+  const std::string &getONVIF_URL() const { return onvif_url; };
+  const std::string &getONVIF_Username() const { return onvif_username; };
+  const std::string &getONVIF_Password() const { return onvif_password; };
+  const std::string &getONVIF_Options() const { return onvif_options; };
+
+  Image *GetAlarmImage();
   int GetImage(int32_t index=-1, int scale=100);
   ZMPacket *getSnapshot( int index=-1 ) const;
   SystemTimePoint GetTimestamp(int index = -1) const;
@@ -589,8 +691,13 @@ public:
   bool CheckSignal( const Image *image );
   bool Analyse();
   bool Decode();
+  bool Poll();
   void DumpImage( Image *dump_image ) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
+  Event *openEvent(
+      const std::shared_ptr<ZMPacket> &snap,
+      const std::string &cause,
+      const Event::StringSetMap &noteSetMap);
   void closeEvent();
 
   void Reload();

@@ -4,7 +4,7 @@ Debian
 .. contents::
 
 Easy Way: Debian 11 (Bullseye)
-------------------------
+------------------------------
 
 This procedure will guide you through the installation of ZoneMinder on Debian 11 (Bullseye).
 
@@ -35,7 +35,7 @@ Run the following commands.
     sudo apt install mariadb-server
     sudo apt install zoneminder
 
-When mariadb is installed for the first time, it doesn't add a password to the root user. Therefore, for security, it is recommended to run ``mysql secure installation``.
+By default MariaDB uses `unix socket authentication`_, so no root user password is required (root MariaDB user access only available to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation`_.
 
 **Step 3:** Setup permissions for zm.conf
 
@@ -104,7 +104,7 @@ Add the following to the /etc/apt/sources.list.d/zoneminder.list file
 
 You can do this using:
 
-.. code-block::
+::
 
     echo "deb https://zmrepo.zoneminder.com/debian/release-1.36 buster/" | sudo tee /etc/apt/sources.list.d/zoneminder.list
 
@@ -337,3 +337,6 @@ Reload Apache to enable your changes and then start ZoneMinder.
     sudo systemctl start zoneminder
 
 You are now ready to go with ZoneMinder. Open a browser and type either ``localhost/zm`` one the local machine or ``{IP-OF-ZM-SERVER}/zm`` if you connect from a remote computer.
+
+.. _unix socket authentication: https://mariadb.com/kb/en/authentication-plugin-unix-socket/
+.. _mariadb-secure-installation: https://mariadb.com/kb/en/mysql_secure_installation/

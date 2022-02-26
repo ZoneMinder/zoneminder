@@ -24,6 +24,7 @@ if ( !canView('Stream') ) {
 }
 
 require_once('includes/MontageLayout.php');
+require_once('includes/Zone.php');
 
 $showControl = false;
 $showZones = false;
@@ -48,7 +49,6 @@ $heights = array(
   '720' => '720px',
   '1080' => '1080px',
 );
-
 
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
@@ -117,6 +117,7 @@ include('_monitor_filters.php');
 $filterbar = ob_get_contents();
 ob_end_clean();
 
+$need_janus = false;
 $monitors = array();
 foreach ( $displayMonitors as &$row ) {
   if ( $row['Function'] == 'None' )
@@ -133,7 +134,10 @@ foreach ( $displayMonitors as &$row ) {
   if ( ! isset($heights[$row['Height']]) ) {
     $heights[$row['Height']] = $row['Height'].'px';
   }
-  $monitors[] = new ZM\Monitor($row);
+  $monitor = $monitors[] = new ZM\Monitor($row);
+  if ($monitor->JanusEnabled()) {
+    $need_janus = true;
+  }
 } # end foreach Monitor
 
 xhtmlHeaders(__FILE__, translate('Montage'));
@@ -149,7 +153,7 @@ echo getNavBarHTML();
     $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
     echo $html;
 ?>
-        <div id="headerButtons">
+      <div id="headerButtons">
 <?php
 if ( $showControl ) {
   echo makeLink('?view=control', translate('Control'));
@@ -237,10 +241,10 @@ foreach ( $monitors as $monitor ) {
   $monitor_options['width'] = '100%';
 
   if ( 0 ) {
-  if ($monitor_options['width'] > 0)
-    $monitor_options['width'] = $monitor_options['width'].'px';
-  if ($monitor_options['height'] > 0)
-  $monitor_options['height'] = $monitor_options['height']?$monitor_options['height'].'px' : null;
+    if ($monitor_options['width'] > 0)
+      $monitor_options['width'] = $monitor_options['width'].'px';
+    if ($monitor_options['height'] > 0)
+      $monitor_options['height'] = $monitor_options['height']?$monitor_options['height'].'px' : null;
   } # end if
   $monitor_options['connkey'] = $monitor->connKey();
 
@@ -275,30 +279,28 @@ foreach ( $monitors as $monitor ) {
     } else if ( $scale ) {
       $width = reScale($monitor->Width(), $scale);
       $height = reScale($monitor->Height(), $scale);
-    } 
+    }
 
     $zones = array();
-    foreach( dbFetchAll('SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($monitor->Id()) ) as $row ) {
-      $row['Points'] = coordsToPoints($row['Coords']);
-
-      if ( $scale ) {
-        limitPoints($row['Points'], 0, 0, $monitor->Width(), $monitor->Height());
+    foreach ( ZM\Zone::find(array('MonitorId'=>$monitor->Id()), array('order'=>'Area DESC')) as $row ) {
+      $points = $row->Points();
+      if ($scale) {
+        limitPoints($points, 0, 0, $monitor->Width(), $monitor->Height());
       } else {
-        limitPoints($row['Points'], 0, 0, 
+        limitPoints($points, 0, 0, 
             ( $width ? $width-1 : $monitor->ViewWidth()-1 ),
             ( $height ? $height-1 : $monitor->ViewHeight()-1 )
             );
       }
-      $row['Coords'] = pointsToCoords($row['Points']);
-      $row['AreaCoords'] = preg_replace('/\s+/', ',', $row['Coords']);
+      $row->Coords(pointsToCoords($points));
       $zones[] = $row;
     } // end foreach Zone
 ?>
 
-<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: 100%; height: 100%;" viewBox="0 0 <?php echo $monitor->ViewWidth() ?> <?php echo $monitor->ViewHeight() ?>" preserveAspectRatio="none">
+<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="position:absolute; top: 0; left: 0; background: none; width: 100%; height: 100%;" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
 <?php
-foreach ( array_reverse($zones) as $zone ) {
-  echo '<polygon points="'. $zone['AreaCoords'] .'" class="'. $zone['Type'].'" />';
+foreach (array_reverse($zones) as $zone) {
+  echo $zone->svg_polygon();
 } // end foreach zone
 ?>
   Sorry, your browser does not support inline SVG
@@ -308,10 +310,8 @@ foreach ( array_reverse($zones) as $zone ) {
 ?>
             </div>
 <?php
-  if ( (!ZM_WEB_COMPACT_MONTAGE) && ($monitor->Type() != 'WebSite') ) {
-?>
-            <div id="monitorState<?php echo $monitor->Id() ?>" class="monitorState idle"><?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps</div>
-<?php
+  if ((!ZM_WEB_COMPACT_MONTAGE) && ($monitor->Type() != 'WebSite')) {
+    echo $monitor->getMonitorStateHTML();
   }
 ?>
           </div>
@@ -322,5 +322,9 @@ foreach ( array_reverse($zones) as $zone ) {
       </div>
     </div>
   </div>
+  <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+<?php if ($need_janus) { ?>
+  <script src="/javascript/janus/janus.js"></script>
+<?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

@@ -63,7 +63,6 @@ possible, this should run at more or less constant speed.
 #include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
-#include <fmt/format.h>
 #include <getopt.h>
 
 void Usage() {
@@ -169,24 +168,24 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  std::string logId;
+  char log_id_string[32] = "";
   if ( device[0] ) {
     const char *slash_ptr = strrchr(device, '/');
-    logId = fmt::format("zmc_d{}", slash_ptr ? slash_ptr + 1 : device);
+    snprintf(log_id_string, sizeof(log_id_string), "zmc_d%s", slash_ptr?slash_ptr+1:device);
   } else if ( host[0] ) {
-    logId = fmt::format("zmc_h{}", host);
+    snprintf(log_id_string, sizeof(log_id_string), "zmc_h%s", host);
   } else if ( file[0] ) {
     const char *slash_ptr = strrchr(file, '/');
-    logId = fmt::format("zmc_f{}", slash_ptr ? slash_ptr + 1 : file);
+    snprintf(log_id_string, sizeof(log_id_string), "zmc_f%s", slash_ptr?slash_ptr+1:file);
   } else {
-    logId = fmt::format("zmc_m{}", monitor_id);
+    snprintf(log_id_string, sizeof(log_id_string), "zmc_m%d", monitor_id);
   }
 
-  logInit(logId);
+  logInit(log_id_string);
   zmLoadStaticConfig();
   zmDbConnect();
   zmLoadDBConfig();
-  logInit(logId);
+  logInit(log_id_string);
 
   HwCapsDetect();
 
@@ -368,7 +367,8 @@ int main(int argc, char *argv[]) {
         monitor->Reload();
       }
       logTerm();
-      logInit(logId);
+      logInit(log_id_string);
+
       zm_reload = false;
     }  // end if zm_reload
   }  // end while ! zm_terminate outer connection loop

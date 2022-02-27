@@ -6,8 +6,8 @@ task:
       - image_family: freebsd-13-0
 
   prepare_script:
-    - pkg install -yq git cmake pkgconf jpeg-turbo mysql80-client ffmpeg libvncserver libjwt catch p5-DBI p5-DBD-mysql p5-Date-Manip p5-Test-LWP-UserAgent p5-Sys-Mmap v4l_compat
-
+    - pkg install -yq git cmake pkgconf jpeg-turbo mysql80-client ffmpeg libvncserver libjwt libfmt catch p5-DBI p5-DBD-mysql p5-Date-Manip p5-Test-LWP-UserAgent p5-Sys-Mmap v4l_compat
+    
   configure_script:
     - git submodule update --init --recursive
     - mkdir build

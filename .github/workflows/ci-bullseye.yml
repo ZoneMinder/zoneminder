@@ -45,6 +45,7 @@ jobs:
           libcurl4-gnutls-dev libvlc-dev libvncserver-dev
           libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libwww-perl
           libpolkit-gobject-1-dev
+          libfmt-dev
           catch2
           ${{ matrix.crypto_package }} ${{ matrix.jwt_package }}
       - name: Prepare

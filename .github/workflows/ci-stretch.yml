@@ -33,6 +33,7 @@ jobs:
           libpolkit-gobject-1-dev
           libssl-dev
           libgsoap-dev
+          libfmt-dev
       - name: Prepare
         run: mkdir build
       - name: Configure

@@ -9,9 +9,10 @@ require_once('Model.php');
 require_once('Server.php');
 require_once('Storage.php');
 
-$FunctionTypes = null;
+class Monitor extends ZM_Object {
+protected static $FunctionTypes = null;
 
-function getMonitorFunctionTypes() {
+public static function getFunctionTypes() {
   if (!isset($FunctionTypes)) {
     $FunctionTypes = array(
       'None'    => translate('FnNone'),
@@ -25,8 +26,8 @@ function getMonitorFunctionTypes() {
   return $FunctionTypes;
 }
 
-$CapturingOptions = null;
-function getCapturingOptions() {
+protected static $CapturingOptions = null;
+public static function getCapturingOptions() {
   if (!isset($MonitorCapturingOptions)) {
     $CapturingOptions = array(
         'None'=>translate('None'),
@@ -37,8 +38,8 @@ function getCapturingOptions() {
   return $CapturingOptions;
 }
 
-$AnalysingOptions = null;
-function getAnalysingOptions() {
+protected static $AnalysingOptions = null;
+public static function getAnalysingOptions() {
   if (!isset($AnalysingOptions)) {
     $AnalysingOptions = array(
         'None'   => translate('None'),
@@ -48,8 +49,8 @@ function getAnalysingOptions() {
   return $AnalysingOptions;
 }
 
-$MonitorAnalysisSourceOptions = null;
-function getMonitorAnalysisSourceOptions() {
+protected static $MonitorAnalysisSourceOptions = null;
+public static function getAnalysisSourceOptions() {
   if (!isset($MonitorAnalysisSourceOptions)) {
     $MonitorAnalysisSourceOptions = array(
         'Primary'   => translate('Primary'),
@@ -59,8 +60,8 @@ function getMonitorAnalysisSourceOptions() {
   return $MonitorAnalysisSourceOptions;
 }
 
-$RecordingOptions = null;
-function getRecordingOptions() {
+protected static $RecordingOptions = null;
+public static function getRecordingOptions() {
   if (!isset($RecordingOptions)) {
     $RecordingOptions = array(
         'None'     => translate('None'),
@@ -71,8 +72,8 @@ function getRecordingOptions() {
   return $RecordingOptions;
 }
 
-$MonitorRecordingSourceOptions = null;
-function getMonitorRecordingSourceOptions() {
+protected static $MonitorRecordingSourceOptions = null;
+public static function getRecordingSourceOptions() {
   if (!isset($MonitorRecordingSourceOptions)) {
     $MonitorRecordingSourceOptions = array(
         'Primary'   => translate('Primary'),
@@ -83,8 +84,8 @@ function getMonitorRecordingSourceOptions() {
   return $MonitorRecordingSourceOptions;
 }
 
-$Statuses = null;
-function getMonitorStatuses() {
+protected static $Statuses = null;
+public static function getStatuses() {
   if (!isset($Statuses)) {
     $Statuses = array(
       -1 => 'Unknown',
@@ -98,7 +99,6 @@ function getMonitorStatuses() {
   return $Statuses;
 }
 
-class Monitor extends ZM_Object {
   protected static $table = 'Monitors';
 
   protected $defaults = array(

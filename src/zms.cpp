@@ -89,7 +89,7 @@ int main(int argc, const char *argv[], char **envp) {
   zmLoadStaticConfig();
   zmDbConnect();
   zmLoadDBConfig();
-  logInit(log_id_string);
+  logInit("zms");
 
   for (char **env = envp; *env != 0; env++) {
     char *thisEnv = *env;

@@ -610,8 +610,7 @@ function controlCmdImage(x, y) {
 
 function fetchImage(streamImage) {
   const oldsrc = streamImage.attr('src');
-const newsrc = oldsrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-console.log("New src: " + newsrc);
+  const newsrc = oldsrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
   streamImage.attr('src', '');
   streamImage.attr('src', newsrc);
 }

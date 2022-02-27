@@ -536,7 +536,9 @@ else()
   set(HAVE_RTSP_SERVER 0)
 endif()
 
-find_package(fmt REQUIRED)
+find_package(Fmt REQUIRED)
+list(APPEND ZM_BIN_LIBS "${FMT_LIBRARIES}")
+
 
 #
 # *** END OF LIBRARY CHECKS ***

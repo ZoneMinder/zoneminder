@@ -141,11 +141,11 @@ if ($have_semaphore) {
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-    if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+    if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed')) {
       $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-      if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
+      if (isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash)) {
         $data['auth'] = $auth_hash;
-        ZM\Debug("including nw auth hash " . $data['auth']);
+        ZM\Debug('including new auth hash '.$data['auth'].'because doesnt match request auth hash '.$_REQUEST['auth']);
       } else {
         ZM\Debug('Not including new auth hash becase it hasn\'t changed '.$auth_hash);
       } 

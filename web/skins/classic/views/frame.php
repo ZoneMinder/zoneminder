@@ -129,6 +129,7 @@ if ($imageData['hasAnalImage']) {
   height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
   alt="<?php echo $Frame->EventId().'-'.$Frame->FrameId() ?>"
   class="<?php echo $imageData['imageClass'] ?>"
+  loading="lazy"
 />
 <?php
 if ($imageData['hasAnalImage']) { ?></a><?php } ?>

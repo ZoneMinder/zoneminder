@@ -57,68 +57,75 @@ GetOptions(
   interval  => \$interval,
   version   => \$version
 );
-if ( $version ) {
-  print( ZoneMinder::Base::ZM_VERSION . "\n");
+
+if ($version) {
+  print(ZoneMinder::Base::ZM_VERSION . "\n");
   exit(0);
 }
+
+if ($help) {
+  pod2usage(-exitstatus => -1);
+}
+
 if ($show) {
   my %telemetry;
   my $dbh = zmDbConnect();
   collectData($dbh, \%telemetry);
   my $result = jsonEncode(\%telemetry);
-  print ($result);
+  print($result);
   exit(0);
 }
-if ( $help ) {
-  pod2usage(-exitstatus => -1);
-}
-if ( !defined $interval ) {
+
+if (!defined $interval) {
   $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
 }
 
-if ( !($Config{ZM_TELEMETRY_DATA} or $force) ) {
-  print "ZoneMinder Telemetry Agent not enabled.  Exiting.\n";
+if (!($Config{ZM_TELEMETRY_DATA} or $force)) {
+  print("ZoneMinder Telemetry Agent not enabled.  Exiting.\n");
   exit(0);
 }
-  
-print 'ZoneMinder Telemetry Agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n";
+
+print('ZoneMinder Telemetry Agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
 
 my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
 
-while( 1 ) {
+while (1) {
   my $now = time();
-  my $since_last_check = $now-$lastCheck;
+  my $since_last_check = $now - $lastCheck;
   Debug("Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
-  if ( $since_last_check < 0 ) {
+  if ($since_last_check < 0) {
     Warning('Seconds since last check is negative! Which means that lastCheck is in the future!');
-		sleep($interval);
+    sleep($interval);
     next;
   }
-  if ( ( ($since_last_check) > $interval ) or $force ) {
+  if ((($since_last_check) > $interval) or $force) {
     print "Collecting data to send to ZoneMinder Telemetry server.\n";
     my $dbh = zmDbConnect();
-# Build the telemetry hash
-# We should keep *BSD systems in mind when calling system commands
-    
-    my %telemetry;
-    collectData($dbh,\%telemetry);
-    my $result = jsonEncode(\%telemetry);
+    if ($dbh) {
+      # Build the telemetry hash
+      # We should keep *BSD systems in mind when calling system commands
 
-    if ( sendData($result) ) {
-      my $sql = q`UPDATE Config SET Value = ? WHERE Name = 'ZM_TELEMETRY_LAST_UPLOAD'`;
-      my $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-      my $res = $sth->execute($now) or die( "Can't execute: ".$sth->errstr() );
-      $sth->finish();
-      $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
-    }
-    zmDbDisconnect();
-  } elsif ( -t STDIN ) {
-    print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
-  } 
+      my %telemetry;
+      collectData($dbh, \%telemetry);
+      my $result = jsonEncode(\%telemetry);
+
+      if (sendData($result)) {
+        ZoneMinder::Database::zmDbDo('UPDATE Config SET Value=? WHERE Name=?',
+          $now, 'ZM_TELEMETRY_LAST_UPLOAD');
+        $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
+      }
+      zmDbDisconnect();
+    } elsif ( -t STDIN ) {
+      print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
+    } 
+  } else {
+    Error("Failed to opem database. Sleeping.");
+  }
   $lastCheck = $now;
   sleep($interval);
 } # end while
 print 'ZoneMinder Telemetry Agent exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n";
+exit(0);
 
 ###############
 # SUBROUTINES #
@@ -129,12 +136,12 @@ sub collectData {
   my $dbh = shift;
   my $telemetry = shift;
   $telemetry->{uuid} = getUUID($dbh);
-  ($telemetry->{city},$telemetry->{region},$telemetry->{country},$telemetry->{latitude},$telemetry->{longitude})=getGeo();
+  @$telemetry{qw(city region country latitude longitude)} = getGeo();
   $telemetry->{timestamp} = strftime('%Y-%m-%dT%H:%M:%S%z', localtime());
-  $telemetry->{monitor_count} = countQuery($dbh,'Monitors');
-  $telemetry->{event_count} = countQuery($dbh,'Events');
+  $telemetry->{monitor_count} = countQuery($dbh, 'Monitors');
+  $telemetry->{event_count} = countQuery($dbh, 'Events');
   $telemetry->{architecture} = runSysCmd('uname -p');
-  ($telemetry->{kernel}, $telemetry->{distro}, $telemetry->{version}) = getDistro();
+  @$telemetry{qw(kernel distro version)} = getDistro();
   $telemetry->{zm_version} = ZoneMinder::Base::ZM_VERSION;
   $telemetry->{system_memory} = totalmem();
   $telemetry->{processor_count} = cpu_count();
@@ -145,22 +152,23 @@ sub collectData {
 # Find, verify, then run the supplied system command
 sub runSysCmd {
   my $msg = shift;
-  my @arguments = split(/ /,$msg);
+  my @arguments = split(/ /, $msg);
   chomp($arguments[0]);
   my $path  = qx( which $arguments[0] );
 
   my $status = $? >> 8;
   my $result = '';
-  if ( !$path || $status ) {
-    Warning( "Cannot find the $arguments[0] executable." );
-  } else {
-    chomp($path);
-    $arguments[0] = $path;
-    my $cmd = join(' ',@arguments);
-		($cmd) = $cmd =~ /(.*)/; # detaint
-    $result = qx( $cmd );
-    chomp($result);
+  if (!$path || $status) {
+    Warning("Cannot find the $arguments[0] executable.");
+    return $result;
   }
+
+  chomp($path);
+  $arguments[0] = $path;
+  my $cmd = join(' ', @arguments);
+  ($cmd) = $cmd =~ /(.*)/; # detaint
+  $result = qx( $cmd );
+  chomp($result);
 
   return $result;
 }
@@ -172,8 +180,8 @@ sub sendData {
   my $ua = LWP::UserAgent->new;
   my $server_endpoint = $Config{ZM_TELEMETRY_SERVER_ENDPOINT};
 
-  if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
-    $ua->proxy( 'https', $Config{ZM_UPDATE_CHECK_PROXY} );
+  if ($Config{ZM_UPDATE_CHECK_PROXY}) {
+    $ua->proxy('https', $Config{ZM_UPDATE_CHECK_PROXY});
   }
 
   Debug("Posting telemetry data to: $server_endpoint");
@@ -183,8 +191,7 @@ sub sendData {
   $req->header('content-type' => 'application/x-www-form-urlencoded');
   $req->header('content-length' => length($msg));
   $req->header('connection' => 'Close');
-
-  $req->content(encode('UTF-8',$msg));
+  $req->content(encode('UTF-8', $msg));
 
   my $resp = $ua->request($req);
   my $resp_msg = $resp->decoded_content;
@@ -202,10 +209,14 @@ sub sendData {
 # Retrieves the UUID from the database. Creates a new UUID if one does not exist.
 sub getUUID {
   my $dbh = shift;
-  my $uuid= '';
+  my $uuid = '';
 
 # Verify the current UUID is valid and not nil
-  if (( $Config{ZM_TELEMETRY_UUID} =~ /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i ) && ( $Config{ZM_TELEMETRY_UUID} ne '00000000-0000-0000-0000-000000000000' )) {
+  if (
+    ($Config{ZM_TELEMETRY_UUID} =~ /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i)
+    &&
+    ($Config{ZM_TELEMETRY_UUID} ne '00000000-0000-0000-0000-000000000000' )
+  ) {
     $uuid = $Config{ZM_TELEMETRY_UUID};
   } else {
     my $sql = 'SELECT uuid()';
@@ -214,13 +225,8 @@ sub getUUID {
     $uuid = $Config{ZM_TELEMETRY_UUID} = $sth->fetchrow_array();
     $sth->finish();
 
-    $sql = q`UPDATE Config SET Value = ? WHERE Name = 'ZM_TELEMETRY_UUID'`;
-    $sth = $dbh->prepare_cached( $sql ) or die( "Can't prepare '$sql': ".$dbh->errstr() );
-    $res = $sth->execute( "$uuid" ) or die( "Can't execute: ".$sth->errstr() );
-    $sth->finish();
+    zmDbDo('UPDATE Config SET Value=? WHERE Name=?', $uuid, 'ZM_TELEMETRY_UUID');
   }
-  Debug("Using UUID of: $uuid");
-
   return $uuid;
 }
 
@@ -235,7 +241,7 @@ sub getGeo {
   my $resp_code = $resp->code;
 
   if ($resp->is_success) {
-    my $content = decode_json( $resp_msg );
+    my $content = decode_json($resp_msg);
     (my $latitude, my $longitude) = split /,/, $content->{loc};
     return ($content->{city}, $content->{region}, $content->{country}, $latitude, $longitude);
   } else {
@@ -280,15 +286,15 @@ sub getDistro {
   my $version = '';
   my @uname = uname();
 
-  if ( $uname[0] =~ /Linux/ ) {
+  if ($uname[0] =~ /Linux/) {
     Debug('Linux distro detected.');
     ($kernel, $distro, $version) = linuxDistro();
-  } elsif ( $uname[0] =~ /.*BSD/ ) {
+  } elsif ($uname[0] =~ /.*BSD/) {
     Debug('BSD distro detected.');
     $kernel = $uname[3];
     $distro = $uname[0];
     $version = $uname[2];
-  } elsif ( $uname[0] =~ /Darwin/ ) {
+  } elsif ($uname[0] =~ /Darwin/) {
     Debug('Mac OS distro detected.');
     $kernel = $uname[3];
     $distro = runSysCmd('sw_vers -productName');
@@ -316,37 +322,40 @@ sub linuxDistro {
   my $found = 0;
 
 # os-release is the standard for many new distros based on systemd
-  if ( -f '/etc/os-release' ) {
+  if (-f '/etc/os-release') {
     open(my $RELFILE,'<','/etc/os-release') or die( "Can't Open file: $!\n" );
     while (<$RELFILE>) {
-      if ( /^NAME=(")?(.*)(?(1)\1|).*$/ ) {
+      if (/^NAME=(")?(.*)(?(1)\1|).*$/) {
         $distro = $2;
-      $found = 1;
-    }
-    if ( /^VERSION_ID=(")?(.*)(?(1)\1|).*$/ ) {
-      $version = $2;
-    $found = 1;
-    }
+        $found = 1;
+      }
+      if (/^VERSION_ID=(")?(.*)(?(1)\1|).*$/) {
+        $version = $2;
+        $found = 1;
+      }
     }
     close $RELFILE;
 # exists on many distros but does not always contain useful information, such as redhat
-  } elsif ( -f '/etc/lsb-release' ) {
-    open(my $RELFILE,'<','/etc/lsb-release') or die( "Can't Open file: $!\n" );
-    while (<$RELFILE>) {
-      if ( /^DISTRIB_DESCRIPTION=(")?(.*)(?(1)\1|).*$/ ) {
-        $distro = $2;
-      $found = 1;
+  } elsif (-f '/etc/lsb-release') {
+    if (open(my $RELFILE,'<','/etc/lsb-release')) {
+      while (<$RELFILE>) {
+        if (/^DISTRIB_DESCRIPTION=(")?(.*)(?(1)\1|).*$/) {
+          $distro = $2;
+          $found = 1;
+        }
+        if (/^DISTRIB_RELEASE=(")?(.*)(?(1)\1|).*$/) {
+          $version = $2;
+          $found = 1;
+        }
+      }
+      close($RELFILE);
+    } else {
+      Error("Can't Open file /etc/lsb-release: $!\n");
     }
-    if ( /^DISTRIB_RELEASE=(")?(.*)(?(1)\1|).*$/ ) {
-      $version = $2;
-    $found = 1;
-    }
-    }
-    close $RELFILE;
   }
 
 # If all else fails, search through a list of known release files until we find one
-  if ( !$found ) {
+  if (!$found) {
     my @releasefile = ('/etc/SuSE-release', '/etc/redhat-release', '/etc/redhat_version',
         '/etc/fedora-release', '/etc/slackware-release', '/etc/slackware-version',
         '/etc/debian_release', '/etc/debian_version', '/etc/mandrake-release',
@@ -367,7 +376,7 @@ sub linuxDistro {
     }
   }
 
-  if ( !$found ) {
+  if (!$found) {
     Warning('ZoneMinder was unable to determine Linux distro. Please report.');
   }
 

@@ -108,8 +108,8 @@ bool zmDbConnect() {
 }
 
 void zmDbClose() {
+  std::lock_guard<std::mutex> lck(db_mutex);
   if (zmDbConnected) {
-    std::lock_guard<std::mutex> lck(db_mutex);
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()
@@ -238,8 +238,13 @@ zmDbQueue::~zmDbQueue() {
 }
 
 void zmDbQueue::stop() {
-  mTerminate = true;
+  {
+    std::unique_lock<std::mutex> lock(mMutex);
+
+    mTerminate = true;
+  }
   mCondition.notify_all();
+
   if (mThread.joinable()) mThread.join();
 }
 

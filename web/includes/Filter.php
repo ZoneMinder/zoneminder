@@ -129,7 +129,7 @@ class Filter extends ZM_Object {
     foreach ( $this->Terms as $term ) {
       if ( $term->attr == 'StorageId' ) {
         # TODO handle other operators like !=
-        $storage_ids[] = $term->value;
+        $storage_ids[] = $term->val;
       }
     }
     if ( count($storage_ids) ) {

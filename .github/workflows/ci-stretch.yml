@@ -27,11 +27,12 @@ jobs:
         run: >
           apt-get -qq install make cmake g++
           default-libmysqlclient-dev
-          libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev
+          libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev libavdevice-dev
           libcurl4-gnutls-dev libvlc-dev libvncserver-dev
           libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libwww-perl
           libpolkit-gobject-1-dev
           libssl-dev
+          libgsoap-dev
       - name: Prepare
         run: mkdir build
       - name: Configure

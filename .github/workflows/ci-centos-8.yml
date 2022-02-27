@@ -30,7 +30,7 @@ jobs:
         with:
           submodules: recursive
       - name: Install dependencies
-        run: yum -y update && yum -y install make cmake gcc-c++ catch-devel mariadb-devel ffmpeg-devel libcurl-devel vlc-devel libvncserver-devel libjpeg-turbo-devel "perl(Date::Manip)" "perl(DBD::mysql)" "perl(ExtUtils::MakeMaker)" "perl(Sys::Mmap)" "perl(Sys::Syslog)" "perl(LWP::UserAgent)" polkit-devel libjwt-devel
+        run: yum -y update && yum -y install make cmake gcc-c++ catch-devel mariadb-devel ffmpeg-devel libcurl-devel vlc-devel libvncserver-devel libjpeg-turbo-devel "perl(Date::Manip)" "perl(DBD::mysql)" "perl(ExtUtils::MakeMaker)" "perl(Sys::Mmap)" "perl(Sys::Syslog)" "perl(LWP::UserAgent)" polkit-devel libjwt-devel fmt-devel
       - name: Prepare
         run: mkdir build
       - name: Configure

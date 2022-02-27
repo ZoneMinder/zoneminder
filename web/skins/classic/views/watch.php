@@ -171,6 +171,8 @@ xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
         <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
             <span class="material-icons md-18">view_carousel</span>
         </button>
+        <span id="rateControl">
+          <label><?php echo translate('Rate') ?>:</label>
           <?php
 $maxfps_options = array(''=>translate('Unlimited'),
   '0' => translate('Stills'),
@@ -182,6 +184,7 @@ $maxfps_options = array(''=>translate('Unlimited'),
 );
 echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
 ?>
+        </span>
       </div>
       <div id="sizeControl">
         <span id="widthControl">

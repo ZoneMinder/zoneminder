@@ -545,11 +545,11 @@ if (count($available_monitor_ids)) {
             <td class="text-right pr-3"><?php echo translate('Capturing'); echo makeHelpLink('OPTIONS_CAPTURING'); ?></td>
             <td>
 <?php
-        echo htmlSelect('newMonitor[Capturing]', ZM\getMonitorCapturingOptions(), $monitor->Capturing());
+        echo htmlSelect('newMonitor[Capturing]', ZM\Monitor::getCapturingOptions(), $monitor->Capturing());
 ?>
               <div id="capturing_help">
 <?php
-        foreach (ZM\getMonitorCapturingOptions() as $fn => $translated) {
+        foreach (ZM\Monitor::getCapturingOptions() as $fn => $translated) {
           if (isset($OLANG['CAPTURING_'.strtoupper($fn)])) {
             echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['CAPTURING_'.strtoupper($fn)]['Help'].'</div>';
           }
@@ -572,11 +572,11 @@ if (count($available_monitor_ids)) {
             <td class="text-right pr-3"><?php echo translate('Recording') ?></td>
             <td>
   <?php
-          echo htmlSelect('newMonitor[Recording]', ZM\getMonitorRecordingOptions(), $monitor->Recording(), array('on-change-this'=>'Recording_onChange'));
+          echo htmlSelect('newMonitor[Recording]', ZM\Monitor::getRecordingOptions(), $monitor->Recording(), array('on-change-this'=>'Recording_onChange'));
   ?>
                 <div id="Recording_help">
   <?php
-          foreach (ZM\getMonitorRecordingOptions() as $fn => $translated) {
+          foreach (ZM\Monitor::getRecordingOptions() as $fn => $translated) {
             if (isset($OLANG['RECORDING_'.strtoupper($fn)])) {
               echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['RECORDING_'.strtoupper($fn)]['Help'].'</div>';
             }
@@ -625,12 +625,12 @@ if (count($available_monitor_ids)) {
             <td class="text-right pr-3"><?php echo translate('Analysing') ?></td>
             <td>
 <?php
-        echo htmlSelect('newMonitor[Analysing]', ZM\getMonitorAnalysingOptions(), $monitor->Analysing(), array('on-change-this'=>'Analysing_onChange'));
+        echo htmlSelect('newMonitor[Analysing]', ZM\Monitor::getAnalysingOptions(), $monitor->Analysing(), array('on-change-this'=>'Analysing_onChange'));
 
 ?>
               <div id="Analysing_help">
 <?php
-        foreach (ZM\getMonitorAnalysingOptions() as $fn => $translated) {
+        foreach (ZM\Monitor::getAnalysingOptions() as $fn => $translated) {
           if (isset($OLANG['ANALYSING_'.strtoupper($fn)])) {
             echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['ANALYSING_'.strtoupper($fn)]['Help'].'</div>';
           }
@@ -643,7 +643,7 @@ if (count($available_monitor_ids)) {
           <td class="text-right pr-3"><?php echo translate('AnalysisSource') ?></td>
           <td>
 <?php
-        echo htmlSelect('newMonitor[AnalysisSource]', ZM\getMonitorAnalysisSourceOptions(), $monitor->AnalysisSource());
+        echo htmlSelect('newMonitor[AnalysisSource]', ZM\Monitor::getAnalysisSourceOptions(), $monitor->AnalysisSource());
 ?>
           </td>
         </tr>
@@ -1008,7 +1008,7 @@ include('_monitor_source_nvsocket.php');
           <td class="text-right pr-3"><?php echo translate('RecordingSource') ?></td>
           <td>
 <?php
-        echo htmlSelect('newMonitor[RecordingSource]', ZM\getMonitorRecordingSourceOptions(), $monitor->RecordingSource());
+        echo htmlSelect('newMonitor[RecordingSource]', ZM\Monitor::getRecordingSourceOptions(), $monitor->RecordingSource());
 ?>
           </td>
         </tr>

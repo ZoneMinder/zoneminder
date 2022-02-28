@@ -2088,7 +2088,7 @@ bool Monitor::Analyse() {
                 closeEvent();
                 event = openEvent(snap, cause, noteSetMap);
               }
-            } else {
+            } else if (recording != RECORDING_NONE) {
               if (!event) {
                 event = openEvent(snap, cause, noteSetMap);
                 Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
@@ -2106,7 +2106,7 @@ bool Monitor::Analyse() {
             // bulk frame code moved to event.
           } // end if state machine
 
-        if (shared_data->recording) {
+        if (shared_data->recording > RECORDING_NONE) {
           // If doing record, check to see if we need to close the event or not.
           if (event && (section_length >= Seconds(min_section_length)) && (event->Duration() > section_length)) {
             if (

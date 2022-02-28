@@ -2126,7 +2126,7 @@ bool Monitor::Analyse() {
               }  // end if section_length
             }  // end if event
 
-            if (!event) {
+            if (!event and (recording == RECORDING_ALWAYS)) {
               event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
 
               Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",

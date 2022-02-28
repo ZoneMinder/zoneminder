@@ -115,11 +115,11 @@ while (1) {
         $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
       }
       zmDbDisconnect();
-    } elsif ( -t STDIN ) {
-      print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
-    } 
-  } else {
-    Error("Failed to opem database. Sleeping.");
+    } else {
+      Error('Failed to open database. Sleeping.');
+    }
+  } elsif (-t STDIN) {
+    print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
   }
   $lastCheck = $now;
   sleep($interval);

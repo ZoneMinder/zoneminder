@@ -536,8 +536,12 @@ async function attachVideo(id) {
       if (jsep !== undefined && jsep !== null) {
         Janus.debug("Handling SDP as well...");
         Janus.debug(jsep);
-        if ((navigator.userAgent.toLowerCase().indexOf('firefox') > -1) && (jsep["sdp"].includes("420029"))) { //because firefox devs are stubborn
-          jsep["sdp"] = jsep["sdp"].replace("420029", "42e01f");
+        if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
+          if (jsep["sdp"].includes("420029")) {
+            jsep["sdp"] = jsep["sdp"].replace("420029", "42e01f");
+          } else if (jsep["sdp"].includes("4d002a")) {
+            jsep["sdp"] = jsep["sdp"].replace("4d002a", "4de02a");
+          }
         }
         // Offer from the plugin, let's answer
         streaming[id].createAnswer({

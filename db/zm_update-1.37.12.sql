@@ -53,7 +53,7 @@ PREPARE stmt FROM @s;
 EXECUTE stmt;
 
 UPDATE `Monitors` SET `Recording` = 'None' WHERE `Function` = 'Monitor';
-UPDATE `Monitors` SET `Recording` = 'OnMotion' WHERE `Function` = 'Modect';
+UPDATE `Monitors` SET `Recording` = 'OnMotion' WHERE `Function` = 'Modect' OR `Function` = 'Nodect';
 UPDATE `Monitors` SET `Recording` = 'Always' WHERE `Function` = 'Mocord';
 
 SET @s = (SELECT IF(

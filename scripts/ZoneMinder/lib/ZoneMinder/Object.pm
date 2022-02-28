@@ -466,11 +466,17 @@ $log->debug("find_operators: field($field) type($type) op($operator) value($valu
 
 my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
 
-	if ( sets::isin( $operator, [ '=', '!=', '<', '>', '<=', '>=', '<<=' ] ) ) {
+	if ( $operator eq '=' 
+      or $operator eq '!='
+      or $operator eq '<'
+      or $operator eq '>'
+      or $operator eq '<='
+      or $operator eq '>='
+      or $operator eq '<<=' ) {
 		return ( $field.$type.' ' . $operator . ( $add_placeholder ? ' ?' : '' ), $value );
 	} elsif ( $operator eq 'not' ) {
 		return ( '( NOT ' . $field.$type.')', $value );
-	} elsif ( sets::isin( $operator, [ '&&', '<@', '@>' ] ) ) {
+	} elsif ( $operator eq '&&' or $operator eq '<@' or $operator eq '@>' ) {
 		if ( ref $value eq 'ARRAY' ) {
 			if ( $field =~ /^\(/ ) {
 				return ( 'ARRAY('.$field.$type.') ' . $operator . ' ?', $value );
@@ -482,7 +488,7 @@ my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
 		} # end if
 	} elsif ( $operator eq 'exists' ) {
 			return ( $value ? '' : 'NOT ' ) . 'EXISTS ' . $field.$type;
-	} elsif ( sets::isin( $operator, [ 'in', 'not in' ] ) ) {
+	} elsif ( $operator eq 'in' or $operator eq 'not in' ) {
 		if ( ref $value eq 'ARRAY' ) {
 			return ( $field.$type.' ' . $operator . ' ('. join(',', map { '?' } @{$value} ) . ')', @{$value} );
 		} else {
@@ -492,7 +498,7 @@ my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
 		return ( '? IN '.$field.$type, $value );
 	} elsif ( $operator eq 'does not contain' ) {
 		return ( '? NOT IN '.$field.$type, $value );
-	} elsif ( sets::isin( $operator, [ 'like','ilike' ] ) ) {
+	} elsif ( $operator eq 'like' or $operator eq 'ilike' ) {
 		return $field.'::text ' . $operator . ' ?', $value;
 	} elsif ( $operator eq 'null_or_<=' ) {
 		return '('.$field.$type.' IS NULL OR '.$field.$type.' <= ?)', $value;

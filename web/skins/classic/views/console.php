@@ -281,9 +281,10 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   $dot_class_reason = $source_class_reason;
   if ( $function_class != 'infoText' ) {
     $dot_class = $function_class;
-  } else if (($monitor['Analysing'] == 'Always') and !$monitor['Enabled']) {
-    $dot_class .= ' warnText';
-    $dot_class_reason .= ' '.translate('Analysis is disabled');
+  #} else if (($monitor['Analysing'] == 'Always') and !$monitor['Enabled']) {
+    #$dot_class .= ' warnText';
+    #$dot_class_reason .= ' '.translate('Analysis is disabled');
+    #FIXME replace this with a check for runstate vs dbstate
   }
 
   $scale = max(reScale(SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE), SCALE_BASE);

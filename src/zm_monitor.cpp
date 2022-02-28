@@ -75,6 +75,8 @@ struct Namespace namespaces[] =
 };
 #endif
 
+#define USE_Y_CHANNEL 0
+
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
@@ -1807,12 +1809,12 @@ bool Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if (snap->in_frame && (
+          if (USE_Y_CHANNEL && snap->in_frame && (
                 ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                 ||
                 ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                 ) ) {
-            Debug(1, "assigning refimage from v-channel");
+            Debug(1, "assigning refimage from y-channel");
             Image y_image(snap->in_frame->width,
                 snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
             ref_image.Assign(y_image);
@@ -1895,12 +1897,12 @@ bool Monitor::Analyse() {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
-                if (snap->in_frame && (
+                if (USE_Y_CHANNEL && snap->in_frame && (
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                       ||
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                       ) ) {
-                  Debug(1, "assigning refimage from v-channel");
+                  Debug(1, "assigning refimage from y-channel");
                   Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
                   ref_image.Assign(y_image);
                 } else {
@@ -1911,7 +1913,7 @@ bool Monitor::Analyse() {
               } else if (!(analysis_image_count % (motion_frame_skip+1))) {
                 Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                 // Get new score.
-                if (snap->in_frame && (
+                if (USE_Y_CHANNEL && snap->in_frame && (
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                       ||
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
@@ -2139,12 +2141,12 @@ bool Monitor::Analyse() {
 
           if ((analysing == ANALYSING_ALWAYS) and snap->image) {
             if (!ref_image.Buffer()) {
-              if (snap->in_frame && (
+              if (USE_Y_CHANNEL && snap->in_frame && (
                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                     ||
                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                     ) ) {
-                Debug(1, "Assigning from vchannel");
+                Debug(1, "Assigning from y-channel");
                 Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
                 ref_image.Assign(y_image);
               } else if (snap->image) {
@@ -2152,14 +2154,14 @@ bool Monitor::Analyse() {
                 ref_image.Assign(*(snap->image));
               }
             } else {
-              if (snap->in_frame &&
+              if (USE_Y_CHANNEL && snap->in_frame &&
                   ( 
                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
                    ||
                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
                   )
                  ) {
-                Debug(1, "Blending from vchannel");
+                Debug(1, "Blending from y-channel");
                 Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
                 ref_image.Blend(y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
               } else if (snap->image) {

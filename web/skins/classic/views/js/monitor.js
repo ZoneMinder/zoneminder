@@ -145,6 +145,7 @@ function initPage() {
   });
   update_estimated_ram_use();
 
+  /*
   document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
     el.onchange = function() {
       $j('#function_help div').hide();
@@ -162,6 +163,7 @@ function initPage() {
     };
     el.onchange();
   });
+  */
 
   document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
     el.onchange = function() {

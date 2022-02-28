@@ -78,8 +78,8 @@ function validateForm( form ) {
     if ( form.elements['newMonitor[VideoWriter]'].value == 2 /* Passthrough */ )
       errors[errors.length] = "<?php echo translate('BadPassthrough') ?>";
   } else if ( form.elements['newMonitor[Type]'].value == 'WebSite' ) {
-    if ( form.elements['newMonitor[Function]'].value != 'Monitor' && form.elements['newMonitor[Function]'].value != 'None')
-      errors[errors.length] = "<?php echo translate('BadSourceType') ?>";
+    //if ( form.elements['newMonitor[Function]'].value != 'Monitor' && form.elements['newMonitor[Function]'].value != 'None')
+      //errors[errors.length] = "<?php echo translate('BadSourceType') ?>";
     if ( form.elements['newMonitor[Path]'].value.search(/^https?:\/\//i) )
       errors[errors.length] = "<?php echo translate('BadWebSitePath') ?>";
   }
@@ -156,7 +156,7 @@ function validateForm( form ) {
     return false;
   }
 
-  if ( (form.elements['newMonitor[Function]'].value != 'Monitor') && (form.elements['newMonitor[Function]'].value != 'None') ) {
+  if ( (form.elements['newMonitor[Recording]'].value == 'None') ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";
     }

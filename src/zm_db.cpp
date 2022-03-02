@@ -268,8 +268,8 @@ void zmDbQueue::process() {
 
 void zmDbQueue::push(std::string &&sql) {
   {
-    if (mTerminate) return;
     std::unique_lock<std::mutex> lock(mMutex);
+    if (mTerminate) return;
     mQueue.push(std::move(sql));
   }
   mCondition.notify_all();

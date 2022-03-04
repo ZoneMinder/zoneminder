@@ -3,8 +3,11 @@
  * is rendered
  * @param {*} element - the event data passed by onchange callback
  */
-function selectLayout(element) {
+function selectLayout(new_layout) {
   var ddm = $j('#zmMontageLayout');
+  if (new_layout) {
+    $j('#zmMontageLayout option:contains("'+new_layout+'")').attr('selected',true);
+  }
   layout = ddm.val();
 
   if (layout_id = parseInt(layout)) {
@@ -24,7 +27,6 @@ function selectLayout(element) {
       if (layout.Positions['default'] ) {
         styles = layout.Positions['default'];
         for (style in styles) {
-          console.log("Applying " + style + ' ' + styles[style]);
           monitor_frame.css(style, styles[style]);
         }
       } else {
@@ -46,6 +48,7 @@ function selectLayout(element) {
       $j('#width').val('0');
     }
   } // end if a stored layout
+
   if (!layout) {
     console.log('No layout?');
     return;
@@ -73,29 +76,9 @@ function selectLayout(element) {
         stream_scale = Math.floor(stream_scale/5)*5;
       }
     }
-    setStreamScale('liveStream'+monitor.id, stream_scale, width, height);
+    monitor.setScale(stream_scale);
   } // end foreach monitor
 } // end function selectLayout(element)
-
-function setStreamScale(element_id, scale, width, height) {
-  var streamImg = document.getElementById(element_id);
-  if (streamImg) {
-    if (streamImg.nodeName == 'IMG') {
-      var src = streamImg.src;
-      src = src.replace(/scale=\d*/i, 'scale='+scale);
-      if (height == '0') {
-        streamImg.style.height = 'auto';
-      }
-      if (src != streamImg.src) {
-        streamImg.src = '';
-        streamImg.src = src;
-      }
-    } else if (streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT') {
-      // APPLET's and OBJECTS need to be re-initialized
-    }
-    //streamImg.style.width = '100%';
-  }
-}
 
 /**
  * called when the widthControl|heightControl select elements are changed
@@ -104,7 +87,11 @@ function changeSize() {
   var width = parseInt($j('#width').val());
   var height = parseInt($j('#height').val());
 
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+  selectLayout('Freeform');
+  $j('#width').val(width);
+  $j('#height').val(height);
+
+  for (var i = 0, length = monitors.length; i < length; i++) {
     var monitor = monitors[i];
 
     // Scale the frame
@@ -116,51 +103,29 @@ function changeSize() {
     monitor_frame.css('width', ( width ? width+'px' : 'auto'));
     monitor_frame.css('height', ( height ? height+'px' : 'auto'));
 
-    /*Stream could be an applet so can't use moo tools*/
-    var streamImg = monitor.getElement();
-    if ( streamImg ) {
-      if ( streamImg.nodeName == 'IMG' ) {
-        var src = streamImg.src;
-        streamImg.src = '';
-        var scale = 100;
-        if ( width ) {
-          scale = parseInt(100*width/monitor.width);
-        } else if ( height ) {
-          scale = parseInt(100*height/monitor.height);
-        }
-        // Note zms ignores width and height
-        src = src.replace(/scale=\d*/i, 'scale='+scale);
-
-        src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-        streamImg.src = src;
-      }
-      streamImg.style.width = width ? width+'px' : null;
-      streamImg.style.height = height ? height+'px' : null;
-      //streamImg.style.height = '';
+    var scale = 100;
+    if ( width ) {
+      scale = parseInt(100*width/monitor.width);
+    } else if ( height ) {
+      scale = parseInt(100*height/monitor.height);
     }
+    monitor.setScale(scale);
   }
   $j('#scale').val('');
   setCookie('zmMontageScale', '', 3600);
   setCookie('zmMontageWidth', width, 3600);
   setCookie('zmMontageHeight', height, 3600);
-  $j("#zmMontageLayout option:selected").removeAttr("selected");
-  //selectLayout('#zmMontageLayout');
 } // end function changeSize()
 
 /**
  * called when the scaleControl select element is changed
  */
 function changeScale() {
-  var scale = $j('#scale').val();
-  $j('#width').val('0'); //auto
-  $j('#height').val('0'); //auto
+  var scale = parseInt($j('#scale').val());
+  selectLayout('Freeform'); // Will also clear width and height
+  $j('#scale').val(scale);
   setCookie('zmMontageScale', scale, 3600);
-  setCookie('zmMontageWidth', '', 3600);
-  setCookie('zmMontageHeight', '', 3600);
-  if ( scale == '' ) {
-    selectLayout('#zmMontageLayout');
-    return;
-  }
+
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
     var newWidth = ( monitorData[i].width * scale ) / SCALE_BASE;
@@ -172,40 +137,14 @@ function changeScale() {
       console.log("Error finding frame for " + monitor.id);
       continue;
     }
-    if ( scale != '0' ) {
+    if ( scale > 0 ) {
       if ( newWidth ) {
         monitor_frame.css('width', newWidth);
       }
     } else {
       monitor_frame.css('width', '100%');
     }
-    // We don't set the frame height because it has the status bar as well
-    //if ( height ) {
-    ////monitor_frame.css('height', height+'px');
-    //}
-    /*Stream could be an applet so can't use moo tools*/
-    var streamImg = $j('#liveStream'+monitor.id)[0];
-    if ( streamImg ) {
-      if ( streamImg.nodeName == 'IMG' ) {
-        var src = streamImg.src;
-        streamImg.src = '';
-
-        //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-        if ( scale != '0' ) {
-          src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
-        } else {
-          src = src.replace(/scale=[\.\d]+/i, 'scale=100');
-        }
-        streamImg.src = src;
-      }
-      if ( scale != '0' ) {
-        streamImg.style.width = newWidth + 'px';
-        streamImg.style.height = newHeight + 'px';
-      } else {
-        streamImg.style.width = '100%';
-        streamImg.style.height = 'auto';
-      }
-    } // end if StreamImg
+    monitor.setScale(scale);
   } // end foreach Monitor
 }
 
@@ -274,7 +213,7 @@ function cancel_layout(button) {
     //monitor_feed = $j('#imageFeed'+monitor.id);
     //monitor_feed.click(monitor.onclick);
   };
-  selectLayout('#zmMontageLayout');
+  selectLayout('Freeform');
 }
 
 function reloadWebSite(ndx) {
@@ -314,7 +253,7 @@ function initPage() {
     }
     monitors[i].setup_onclick(handleClick);
   }
-  selectLayout('#zmMontageLayout');
+  selectLayout('Freeform');
 }
 
 function watchFullscreen() {

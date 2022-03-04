@@ -88,8 +88,8 @@ function MonitorStream(monitorData) {
     } else {
       newWidth = this.width * newscale / SCALE_BASE;
       newHeight = this.height * newscale / SCALE_BASE;
-      img.width(newWidth);
-      img.height(newHeight);
+      //img.width(newWidth);
+      //img.height(newHeight);
       if (newscale > 100) newscale = 100;
       newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
     }
@@ -367,6 +367,9 @@ function MonitorStream(monitorData) {
           } // end if paused or delayed
 
           $j('#zoomValue'+this.id).text(this.status.zoom);
+          if (this.status.zoom == '1.0') {
+            $j('#zoom'+this.id).addClass('hidden');
+          }
           if ('zoomOutBtn' in this.buttons) {
             if (this.status.zoom == '1.0') {
               setButtonState('zoomOutBtn', 'unavail');
@@ -381,25 +384,26 @@ function MonitorStream(monitorData) {
         if (canEdit.Monitors) {
           if (streamStatus.enabled) {
             if ('enableAlarmButton' in this.buttons) {
-              this.buttons.enableAlarmButton.addClass('disabled');
-              this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
-            } else {
-              console.log('enableAlarmButton not found in buttons');
+              if (!this.buttons.enableAlarmButton.hasClass('disabled')) {
+                this.buttons.enableAlarmButton.addClass('disabled');
+                this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
+              }
             }
             if ('forceAlarmButton' in this.buttons) {
               if (streamStatus.forced) {
-                this.buttons.forceAlarmButton.addClass('disabled');
-                this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+                if (! this.buttons.forceAlarmButton.hasClass('disabled')) {
+                  this.buttons.forceAlarmButton.addClass('disabled');
+                  this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+                }
               } else {
-                this.buttons.forceAlarmButton.removeClass('disabled');
-                this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+                if (this.buttons.forceAlarmButton.hasClass('disabled')) {
+                  this.buttons.forceAlarmButton.removeClass('disabled');
+                  this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+                }
               }
               this.buttons.forceAlarmButton.prop('disabled', false);
-            } else {
-              console.log('forceAlarmButton not found in buttons');
             }
           } else {
-            console.log("streamStatus not enabled");
             if ('enableAlarmButton' in this.buttons) {
               this.buttons.enableAlarmButton.removeClass('disabled');
               this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);

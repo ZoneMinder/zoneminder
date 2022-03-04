@@ -492,19 +492,6 @@ void MonitorStream::runStream() {
   // Notify capture that we might want to view
   monitor->setLastViewed();
 
-  if (!checkInitialised()) {
-    if (monitor->Capturing() != Monitor::CAPTURING_ONDEMAND) {
-      fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
-      sendTextFrame("Unable to send image");
-      return;
-    }
-    while (!zm_terminate && !checkInitialised()) {
-      Debug(1, "Waiting for capture");
-      usleep(100000);
-      monitor->setLastViewed();
-    }
-  }
-
   if (type == STREAM_SINGLE) {
     // Not yet migrated over to stream class
     SingleImage(scale);
@@ -524,6 +511,9 @@ void MonitorStream::runStream() {
     if (!checkInitialised()) {
       if (!loadMonitor(monitor_id)) {
         if (!sendTextFrame("Not connected")) return;
+      } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        monitor->setLastViewed();
+        if (!sendTextFrame("Waiting for capture")) return;
       } else {
         if (!sendTextFrame("Unable to stream")) return;
       }

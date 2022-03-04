@@ -794,10 +794,10 @@ public static function getStatuses() {
       ';
     }
     $html .= '
-    <span id="rate'.$this->Id().'" class="hidden">'.translate('Rate').': <span id="rateValue'.$this->Id().'"></span>x</span>
-    <span id="delay'.$this->Id().'" class="hidden">'.translate('Delay').': <span id="delayValue'.$this->Id().'"></span>s</span>
-    <span id="level'.$this->Id().'" class="hidden">'.translate('Buffer').': <span id="levelValue'.$this->Id().'"></span>%</span>
-    <span id="zoom'.$this->Id().'">'. translate('Zoom').': <span id="zoomValue'.$this->Id().'"></span>x</span>
+    <span id="rate'.$this->Id().'" class="rate hidden">'.translate('Rate').': <span id="rateValue'.$this->Id().'"></span>x</span>
+    <span id="delay'.$this->Id().'" class="delay hidden">'.translate('Delay').': <span id="delayValue'.$this->Id().'"></span>s</span>
+    <span id="level'.$this->Id().'" class="buffer hidden">'.translate('Buffer').': <span id="levelValue'.$this->Id().'"></span>%</span>
+    <span class="zoom hidden" id="zoom'.$this->Id().'">'. translate('Zoom').': <span id="zoomValue'.$this->Id().'"></span>x</span>
   </div>
 </div>
 ';

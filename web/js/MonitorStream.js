@@ -540,8 +540,12 @@ async function attachVideo(id) {
       if (jsep !== undefined && jsep !== null) {
         Janus.debug("Handling SDP as well...");
         Janus.debug(jsep);
-        if ((navigator.userAgent.toLowerCase().indexOf('firefox') > -1) && (jsep["sdp"].includes("420029"))) { //because firefox devs are stubborn
-          jsep["sdp"] = jsep["sdp"].replace("420029", "42e01f");
+        if (navigator.userAgent.toLowerCase().indexOf('firefox') > -1) {
+          if (jsep["sdp"].includes("420029")) {
+            jsep["sdp"] = jsep["sdp"].replace("420029", "42e01f");
+          } else if (jsep["sdp"].includes("4d002a")) {
+            jsep["sdp"] = jsep["sdp"].replace("4d002a", "4de02a");
+          }
         }
         // Offer from the plugin, let's answer
         streaming[id].createAnswer({
@@ -561,9 +565,28 @@ async function attachVideo(id) {
       }
     }, //onmessage function
     onremotestream: function(ourstream) {
-      Janus.debug(" ::: Got a remote track :::");
+      Janus.debug(" ::: Got a remote stream :::");
       Janus.debug(ourstream);
       Janus.attachMediaStream(document.getElementById("liveStream" + id), ourstream);
+    },
+    onremotetrack: function(track, mid, on) {
+      Janus.debug(" ::: Got a remote track :::");
+      Janus.debug(track);
+      if (track.kind ==="audio") {
+        stream = new MediaStream();
+        stream.addTrack(track.clone());
+        if (document.getElementById("liveAudio" + id) == null) {
+          audioElement = document.createElement('audio');
+          audioElement.setAttribute("id", "liveAudio" + id);
+          audioElement.controls = true;
+          document.getElementById("imageFeed" + id).append(audioElement);
+        }
+        Janus.attachMediaStream(document.getElementById("liveAudio" + id), stream);
+      } else {
+        stream = new MediaStream();
+        stream.addTrack(track.clone());
+        Janus.attachMediaStream(document.getElementById("liveStream" + id), stream);
+      }
     }
   }); // janus.attach
 } //function attachVideo

@@ -45,7 +45,7 @@ var eventData = {
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
     Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
-    Notes: '<?php echo $Event->Notes()?>',
+    Notes: `<?php echo $Event->Notes()?>`,
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',

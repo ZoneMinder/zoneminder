@@ -174,7 +174,7 @@ int Monitor::JanusManager::add_to_janus() {
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
   postData +=  "\"request\" : \"create\", \"admin_key\" : \"";
   postData += config.janus_secret;
-  postData += "\", \"type\" : \"rtsp\", ";
+  postData += "\", \"type\" : \"rtsp\", \"rtsp_quirk\" : true, ";
   postData += "\"url\" : \"";
   postData += rtsp_path;
   if (rtsp_username != "") {

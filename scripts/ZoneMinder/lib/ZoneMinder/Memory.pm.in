@@ -143,7 +143,7 @@ our $arch = 32 + 32*( qx(uname -m) =~ /64/ );
 our $native = $arch/8;
 our $mem_seq = 0;
 
-our $mem_data = {
+our %mem_data = (
   shared_data => { type=>'SharedData', seq=>$mem_seq++, contents=> {
     size             => { type=>'uint32', seq=>$mem_seq++ },
     last_write_index => { type=>'int32', seq=>$mem_seq++ },
@@ -191,14 +191,14 @@ our $mem_data = {
   }
   },
   end => { seq=>$mem_seq++, size=>0 }
-};
+);
 
 our $mem_size = 0;
 
 sub zmMemInit {
   my $offset = 0;
 
-  foreach my $section_data ( sort { $a->{seq} <=> $b->{seq} } values( %$mem_data ) ) {
+  foreach my $section_data ( sort { $a->{seq} <=> $b->{seq} } values( %mem_data ) ) {
     $section_data->{offset} = $offset;
     $section_data->{align} = 0;
 
@@ -254,64 +254,42 @@ sub zmMemInit {
   }
 
   $mem_size = $offset;
-}
+} # end sub zmMemInit
 
 &zmMemInit();
 
 sub zmMemVerify {
   my $monitor = shift;
 
-  if ( !zmMemAttach($monitor, $mem_size) ) {
-    return undef;
-  }
-
-  my $sd_size = zmMemRead($monitor, 'shared_data:size', 1);
-  if ( $sd_size != $mem_data->{shared_data}->{size} ) {
-    if ( $sd_size ) {
-      Error( 'Shared data size conflict in shared_data for monitor '
-          .$monitor->{Name}
-          .', expected '
-          .$mem_data->{shared_data}->{size}
-          .', got '
-          .$sd_size
-          );
-    } else {
-      Debug( 'Shared data size conflict in shared_data for monitor '
-          .$monitor->{Name}
-          .', expected '
-          .$mem_data->{shared_data}->{size}
-          .', got '.$sd_size
-          );
-    }
-    return undef;
-  }
-  my $td_size = zmMemRead($monitor, 'trigger_data:size', 1);
-  if ( $td_size != $mem_data->{trigger_data}->{size} ) {
-    if ( $td_size ) {
-      Error( 'Shared data size conflict in trigger_data for monitor '
-          .$monitor->{Name}
-          .', expected '
-          .$mem_data->{triggger_data}->{size}
-          .', got '
-          .$td_size
-          );
-    } else {
-      Debug( 'Shared data size conflict in trigger_data for monitor '
-          .$monitor->{Name}
-          .', expected '
-          .$mem_data->{triggger_data}->{size}
-          .', got '
-          .$td_size
-          );
-    }
+  if (!zmMemAttach($monitor, $mem_size)) {
     return undef;
   }
   my $valid = zmMemRead($monitor, 'shared_data:valid', 1);
-  if ( !$valid ) {
+  if (!$valid) {
     Error("Shared data not valid for monitor $$monitor{Id}");
     return undef;
   } else {
-    Debug(3, "Shared data appears valid for monitor $$monitor{Id}: $valid");
+    Debug(4, "Shared data appears valid for monitor $$monitor{Id}: $valid");
+  }
+
+  my $sd_size = zmMemRead($monitor, 'shared_data:size', 1);
+  if ($sd_size != $mem_data{shared_data}->{size}) {
+    Error('Shared data size conflict in shared_data for monitor '
+      .$monitor->{Name}.', expected '.$mem_data{shared_data}->{size}
+      .', got '.$sd_size);
+    return undef;
+  } else {
+    Debug(4, 'Shared data size match for monitor '.$monitor->{Name}
+      .', expected '.$mem_data{shared_data}->{size}.', got '.$sd_size);
+  }
+  my $td_size = zmMemRead($monitor, 'trigger_data:size', 1);
+  if ( $td_size != $mem_data{trigger_data}->{size} ) {
+    Error('Shared data size conflict in trigger_data for monitor '.$monitor->{Name}
+      .', expected '.$mem_data{trigger_data}->{size}.', got '.$td_size);
+    return undef;
+  } else {
+    Debug(4, 'Shared data size match in trigger_data for monitor '.$monitor->{Name}
+      .', expected '.$mem_data{trigger_data}->{size}.', got '.$td_size);
   }
 
   return !undef;
@@ -329,9 +307,9 @@ sub zmMemRead {
     my ( $section, $element ) = split(/[\/:.]/, $field);
     Fatal("Invalid shared data selector '$field'") if ( !$section || !$element );
 
-    my $offset = $mem_data->{$section}->{contents}->{$element}->{offset};
-    my $type = $mem_data->{$section}->{contents}->{$element}->{type};
-    my $size = $mem_data->{$section}->{contents}->{$element}->{size};
+    my $offset = $mem_data{$section}->{contents}->{$element}->{offset};
+    my $type = $mem_data{$section}->{contents}->{$element}->{type};
+    my $size = $mem_data{$section}->{contents}->{$element}->{size};
 
     if (!defined $offset || !defined $type || !defined $size) {
         Error('Invalid field:'.$field.' setting to undef and exiting zmMemRead offset:'.$offset.' type:'.$type.' size:'.$size);
@@ -391,6 +369,8 @@ sub zmMemInvalidate {
   my $mem_key = zmMemKey($monitor);
   if ( $mem_key ) {
     zmMemDetach($monitor);
+  } else {
+    Error("No mem_key for $monitor $$monitor{Name}");
   }
 } # end sub zmMemInvalidate
 
@@ -413,9 +393,9 @@ sub zmMemWrite {
       Fatal("Invalid shared data selector '$field'");
     }
 
-    my $offset = $mem_data->{$section}->{contents}->{$element}->{offset};
-    my $type = $mem_data->{$section}->{contents}->{$element}->{type};
-    my $size = $mem_data->{$section}->{contents}->{$element}->{size};
+    my $offset = $mem_data{$section}->{contents}->{$element}->{offset};
+    my $type = $mem_data{$section}->{contents}->{$element}->{type};
+    my $size = $mem_data{$section}->{contents}->{$element}->{size};
 
     my $data;
     if ( $type eq 'long' ) {

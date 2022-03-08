@@ -298,11 +298,16 @@ sub Event_Summary {
 
 sub connect {
   my $self = shift;
-  return ZoneMinder::Memory::zmMemVerify($self);
+  ZoneMinder::Logger::Debug(4, "Connecting");
+  if (!ZoneMinder::Memory::zmMemVerify($self)) {
+    $self->disconnect();
+  }
+  return !undef;
 }
 
 sub disconnect {
   my $self = shift;
+  ZoneMinder::Logger::Debug(4, "Disconnecting");
   ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
 }
 

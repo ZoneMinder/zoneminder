@@ -60,7 +60,7 @@ my $dbh = zmDbConnect();
 Debug("Command: $command");
 if ( $command and ( $command !~ /^(?:start|stop|restart|status|logrot|version)$/ ) ) {
   # Check to see if it's a valid run state
-  if ($state = ZoneMinder->find_one(Name=>$command)) {
+  if ($state = ZoneMinder::State->find_one(Name=>$command)) {
     $state->{Definitions} = [];
     foreach (split(',', $state->{Definition})) {
       my @state = split(':', $_);

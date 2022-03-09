@@ -353,6 +353,9 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
               if ($monitor['Analysing'] != 'None') {
                 echo ', '.translate('Analysing');
               }
+              if ($monitor['Recording'] != 'None') {
+                echo ', '.translate('Recording');
+              }
  ?><br/>
               <div class="small text-nowrap text-muted">
 <?php 

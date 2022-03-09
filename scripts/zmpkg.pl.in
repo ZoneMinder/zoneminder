@@ -119,6 +119,8 @@ if ( $command eq 'state' ) {
       ) {
     foreach my $definition ( @{$state->{Definitions}} ) {
       if ( $monitor->{Id} =~ /^$definition->{Id}$/ ) {
+        $monitor->{NewFunction} = $definition->{Function};
+        $monitor->{NewEnabled} = $definition->{Enabled};
         if (
             ($monitor->{Capturing} ne $definition->{Capturing})
             or

@@ -118,21 +118,17 @@ if ( $command eq 'state' ) {
         ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : () ), order=>'Id ASC')
       ) {
     foreach my $definition ( @{$state->{Definitions}} ) {
-# FIXME WHY a REGEXP
       if ( $monitor->{Id} =~ /^$definition->{Id}$/ ) {
-        $monitor->{NewFunction} = $definition->{Function};
-        $monitor->{NewEnabled} = $definition->{Enabled};
-        last;
-      }
-    if (
-        ($monitor->{Capturing} ne $definition->{Capturing})
-        or
-        ($monitor->{Analysing} ne $definition->{Analysing})
-          or 
-        ($monitor->{Recording} ne $definition->{Recording})
-          ) {
-        $monitor->save({ map { $_ => $$definition{$_} } qw(Capturing Analysing Recording) });
-        last; # definition
+        if (
+            ($monitor->{Capturing} ne $definition->{Capturing})
+            or
+            ($monitor->{Analysing} ne $definition->{Analysing})
+            or 
+            ($monitor->{Recording} ne $definition->{Recording})
+            ) {
+              $monitor->save({ map { $_ => $$definition{$_} } qw(Capturing Analysing Recording) });
+              last; # definition
+        } # end if
       } # end if
     } # end foreach definition
   } # end foreach monitor

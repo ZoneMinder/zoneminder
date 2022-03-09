@@ -83,7 +83,7 @@ if ( $command and ( $command !~ /^(?:start|stop|restart|status|logrot|version)$/
           Error("Unknown function $function, defaulting to Mocord"); 
         }
       } elsif (@state == 4) {
-        ($id, $capturing, $analysing, $capturing) = @state;
+        ($id, $capturing, $analysing, $recording) = @state;
       } else {
         Error("Unknown state in @state");
       }

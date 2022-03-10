@@ -348,14 +348,7 @@ $label_size = array(
     4 => translate('Extra Large'),
     );
 
-$codecs = array(
-  'auto'  => translate('Auto'),
-  'MP4'   => translate('MP4'),
-  'MJPEG' => translate('MJPEG'),
-);
-
 $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
-$controls = ZM\Control::find(null, array('order'=>'lower(Name)'));
 
 xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name()));
 getBodyTopHTML();
@@ -369,9 +362,11 @@ echo getNavBarHTML();
 $tabs = array();
 $tabs['general'] = translate('General');
 $tabs['source'] = translate('Source');
-$tabs['onvif'] = translate('ONVIF');
 if ( $monitor->Type() != 'WebSite' ) {
-  $tabs['storage'] = translate('Storage');
+  $tabs['analysis'] = translate('Analysis');
+  $tabs['recording'] = translate('Recording');
+  $tabs['viewing'] = translate('Viewing');
+  $tabs['onvif'] = translate('ONVIF');
   $tabs['timestamp'] = translate('Timestamp');
   $tabs['buffers'] = translate('Buffers');
   if ( ZM_OPT_CONTROL && canView('Control') )
@@ -382,10 +377,11 @@ if ( $monitor->Type() != 'WebSite' ) {
   $tabs['location'] = translate('Location');
 }
 
-if ( isset($_REQUEST['tab']) )
+if (isset($_REQUEST['tab']) and isset($tabs[$_REQUEST['tab']]) ) {
   $tab = validHtmlStr($_REQUEST['tab']);
-else
+} else {
   $tab = 'general';
+}
 
 foreach ($tabs as $name=>$value) {
 ?>
@@ -413,26 +409,26 @@ foreach ($tabs as $name=>$value) {
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       </div>
       
-    <h2><?php echo translate('Monitor').' - '.validHtmlStr($monitor->Name()) .($monitor->Id()? $monitor->Id() : '') ?></h2>
+      <h2><?php echo translate('Monitor').' - '.validHtmlStr($monitor->Name()) .($monitor->Id()? $monitor->Id() : '') ?></h2>
 <?php
 if (canEdit('Monitors')) {
   if (isset($_REQUEST['dupId'])) {
 ?>
-    <div class="alert alert-info">
-      Configuration cloned from Monitor: <?php echo validHtmlStr($clonedName) ?>
-    </div>
+      <div class="alert alert-info">
+        Configuration cloned from Monitor: <?php echo validHtmlStr($clonedName) ?>
+      </div>
 <?php
   }
 ?>
-    <div>
-      <button id="probeBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Probe') ?>" ><i class="fa fa-rss-square"></i></button>
-      <button id="onvifBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('OnvifProbe') ?>" ><i class="fa fa-rss"></i></button>
-      <button id="presetBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Presets') ?>" ><i class="fa fa-list-ol"></i></button>
-    </div>
+      <div>
+        <button id="probeBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Probe') ?>" ><i class="fa fa-rss-square"></i></button>
+        <button id="onvifBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('OnvifProbe') ?>" ><i class="fa fa-rss"></i></button>
+        <button id="presetBtn" class="btn btn-normal" data-mid="<?php echo $monitor->Id() ?>" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Presets') ?>" ><i class="fa fa-list-ol"></i></button>
+      </div>
 <?php
 } // end if canEdit('Monitors')
 ?>
-  </div>
+    </div>
 
     <!-- BEGIN ITEM LIST -->
     <div class="d-flex flex-row container-fluid pr-0">
@@ -456,31 +452,30 @@ switch ($name) {
         foreach ($monitors as $m) { $monitor_ids[] = $m['Id']; }
         $available_monitor_ids = array_diff(range(min($monitor_ids),max($monitor_ids)), $monitor_ids);
 ?>
-          <tr class="Id">
-            <td class="text-right pr-3"><?php echo translate('Id') ?></td>
-            <td><input type="number" step="1" min="1" name="newMonitor[Id]" placeholder="leave blank for auto"/><br/>
+              <tr class="Id">
+                <td class="text-right pr-3"><?php echo translate('Id') ?></td>
+                <td><input type="number" step="1" min="1" name="newMonitor[Id]" placeholder="leave blank for auto"/><br/>
 <?php 
-if (count($available_monitor_ids)) {
-  echo 'Some available ids: '.implode(', ', array_slice($available_monitor_ids, 0, 10));
-}
+        if (count($available_monitor_ids)) {
+          echo 'Some available ids: '.implode(', ', array_slice($available_monitor_ids, 0, 10));
+        }
 ?>
-            </td>
-          </tr>
+                </td>
+              </tr>
 <?php
-
       } # end if ! $monitor->Id() and count($monitors)
 ?>
-          <tr class="Name">
-            <td class="text-right pr-3"><?php echo translate('Name') ?></td>
-            <td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>"/></td>
-          </tr>
-          <tr class="Notes">
-            <td class="text-right pr-3"><?php echo translate('Notes') ?></td>
-            <td><textarea name="newMonitor[Notes]" rows="4"><?php echo validHtmlStr($monitor->Notes()) ?></textarea></td>
-          </tr>
-          <tr class="Manufacturer">
-            <td class="text-right pr-3"><?php echo translate('Manufacturer') ?></td>
-            <td>
+              <tr class="Name">
+                <td class="text-right pr-3"><?php echo translate('Name') ?></td>
+                <td><input type="text" name="newMonitor[Name]" value="<?php echo validHtmlStr($monitor->Name()) ?>"/></td>
+              </tr>
+              <tr class="Notes">
+                <td class="text-right pr-3"><?php echo translate('Notes') ?></td>
+                <td><textarea name="newMonitor[Notes]" rows="4"><?php echo validHtmlStr($monitor->Notes()) ?></textarea></td>
+              </tr>
+              <tr class="Manufacturer">
+                <td class="text-right pr-3"><?php echo translate('Manufacturer') ?></td>
+                <td>
 <?php 
   require_once('includes/Manufacturer.php');
   $manufacturers = array(''=>translate('Unknown'));
@@ -490,16 +485,16 @@ if (count($available_monitor_ids)) {
   echo htmlSelect('newMonitor[ManufacturerId]', $manufacturers, $monitor->ManufacturerId(),
       array('class'=>'chosen','data-on-change-this'=>'ManufacturerId_onchange'));
 ?>
-              <input type="text" name="newMonitor[Manufacturer]"
-                placeholder="enter new manufacturer name"
-                value="<?php echo $monitor->Manufacturer()->Name() ?>"<?php echo $monitor->ManufacturerId() ? ' style="display:none"' : '' ?>
-                data-on-input-this="Manufacturer_onchange"
-              />
-            </td>
-          </tr>
-          <tr class="Model">
-            <td class="text-right pr-3"><?php echo translate('Model') ?></td>
-            <td>
+                  <input type="text" name="newMonitor[Manufacturer]"
+                    placeholder="enter new manufacturer name"
+                    value="<?php echo $monitor->Manufacturer()->Name() ?>"<?php echo $monitor->ManufacturerId() ? ' style="display:none"' : '' ?>
+                    data-on-input-this="Manufacturer_onchange"
+                  />
+                </td>
+              </tr>
+              <tr class="Model">
+                <td class="text-right pr-3"><?php echo translate('Model') ?></td>
+                <td>
 <?php 
   require_once('includes/Model.php');
   $models = array(''=>translate('Unknown'));
@@ -509,197 +504,42 @@ if (count($available_monitor_ids)) {
   echo htmlSelect('newMonitor[ModelId]', $models, $monitor->ModelId(),
       array('class'=>'chosen', 'data-on-change-this'=>'ModelId_onchange'));
 ?>
-              <input type="text" name="newMonitor[Model]"
-                placeholder="enter new model name"
-                value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>
-                data-on-input-this="Model_onchange"
-              />
-            </td>
-          </tr>
+                  <input type="text" name="newMonitor[Model]"
+                    placeholder="enter new model name"
+                    value="<?php echo $monitor->Model()->Name() ?>"<?php echo $monitor->ModelId() ? ' style="display:none"':'' ?>
+                    data-on-input-this="Model_onchange"
+                  />
+                </td>
+              </tr>
 <?php 
       $Servers = ZM\Server::find(NULL, array('order'=>'lower(Name)'));
       if (count($Servers)) {
 ?>
-          <tr class="Server">
-            <td class="text-right pr-3"><?php echo translate('Server') ?></td><td>
+              <tr class="Server">
+                <td class="text-right pr-3"><?php echo translate('Server') ?></td><td>
 <?php
-      $servers = array(''=>'None','auto'=>'Auto');
+      $servers = array(''=>'None', 'auto'=>'Auto');
       foreach ($Servers as $Server) {
         $servers[$Server->Id()] = $Server->Name();
       }
       echo htmlSelect('newMonitor[ServerId]', $servers, $monitor->ServerId());
 ?>
-            </td>
-          </tr>
+                </td>
+              </tr>
 <?php 
       } # end if count($Servers)
 ?>
-          <tr class="Type">
-            <td class="text-right pr-3"><?php echo translate('SourceType') ?></td>
-            <td><?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?></td>
-          </tr>
-<?php
-      if ($monitor->Type() != 'WebSite') {
-?>
-          <tr class="Capturing">
-            <td class="text-right pr-3"><?php echo translate('Capturing'); echo makeHelpLink('OPTIONS_CAPTURING'); ?></td>
-            <td>
-<?php
-        echo htmlSelect('newMonitor[Capturing]', ZM\Monitor::getCapturingOptions(), $monitor->Capturing());
-?>
-              <div id="capturing_help">
-<?php
-        foreach (ZM\Monitor::getCapturingOptions() as $fn => $translated) {
-          if (isset($OLANG['CAPTURING_'.strtoupper($fn)])) {
-            echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['CAPTURING_'.strtoupper($fn)]['Help'].'</div>';
-          }
-        }
-?>
-              </div>
-            </td>
-          </tr>
-          <tr id="FunctionDecodingEnabled">
-            <td class="text-right pr-3"><?php echo translate('Decoding Enabled') ?></td>
-            <td><input type="checkbox" name="newMonitor[DecodingEnabled]" value="1"<?php echo $monitor->DecodingEnabled() ? ' checked="checked"' : '' ?>/>
-<?php
-        if (isset($OLANG['FUNCTION_DECODING_ENABLED'])) {
-          echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
-        }
-?>
-            </td>
-          </tr>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('Recording') ?></td>
-            <td>
-  <?php
-          echo htmlSelect('newMonitor[Recording]', ZM\Monitor::getRecordingOptions(), $monitor->Recording(), array('on-change-this'=>'Recording_onChange'));
-  ?>
-                <div id="Recording_help">
-  <?php
-          foreach (ZM\Monitor::getRecordingOptions() as $fn => $translated) {
-            if (isset($OLANG['RECORDING_'.strtoupper($fn)])) {
-              echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['RECORDING_'.strtoupper($fn)]['Help'].'</div>';
-            }
-          }
-  ?>
-              </div>
-            </td>
-          </tr>
-  <tr id="FunctionJanusAudioEnabled">
-          <td class="text-right pr-3"><?php echo translate('Janus Live Stream Audio') ?></td>
-          <td><input type="checkbox" name="newMonitor[JanusAudioEnabled]" value="1"<?php echo $monitor->JanusAudioEnabled() ? ' checked="checked"' : '' ?>/>
-<?php
-  if ( isset($OLANG['FUNCTION_JANUS_AUDIO_ENABLED']) ) {
-    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_AUDIO_ENABLED']['Help'].'</div>';
-  }
-?>
-          </td>
-        </tr>
-        <tr class="LinkedMonitors">
-          <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
-          <td>
-<?php
-      $monitor_options = array();
-      foreach ($monitors as $linked_monitor) {
-        if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {
-          $monitor_options[$linked_monitor['Id']] = validHtmlStr($linked_monitor['Name']);
-        }
-      }
-
-      echo htmlSelect(
-        'newMonitor[LinkedMonitors][]',
-        $monitor_options,
-        ( $monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array() ),
-        array('class'=>'chosen','multiple'=>'multiple')
-      );
-?>
-            </td>
-          </tr>
-          <tr class="Groups">
-            <td class="text-right pr-3"><?php echo translate('Groups'); ?></td>
-            <td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
-              echo htmlOptions(ZM\Group::get_dropdown_options(), $monitor->GroupIds());
-              ?></select></td>
-          </tr>
-          <tr class="Analysing">
-            <td class="text-right pr-3"><?php echo translate('Analysing') ?></td>
-            <td>
-<?php
-        echo htmlSelect('newMonitor[Analysing]', ZM\Monitor::getAnalysingOptions(), $monitor->Analysing(), array('on-change-this'=>'Analysing_onChange'));
-
-?>
-              <div id="Analysing_help">
-<?php
-        foreach (ZM\Monitor::getAnalysingOptions() as $fn => $translated) {
-          if (isset($OLANG['ANALYSING_'.strtoupper($fn)])) {
-            echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['ANALYSING_'.strtoupper($fn)]['Help'].'</div>';
-          }
-        }
-?>
-            </div>
-          </td>
-        </tr>
-        <tr id="AnalysisSource"<?php echo $monitor->SecondPath() ? '' : ' style="display:none;"' ?>>
-          <td class="text-right pr-3"><?php echo translate('AnalysisSource') ?></td>
-          <td>
-<?php
-        echo htmlSelect('newMonitor[AnalysisSource]', ZM\Monitor::getAnalysisSourceOptions(), $monitor->AnalysisSource());
-?>
-          </td>
-        </tr>
-        <tr>
-          <td class="text-right pr-3"><?php echo translate('AnalysisFPS') ?></td>
-          <td><input type="number" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" min="0" step="any"/></td>
-        </tr>
-<?php
-      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
-?>
-            <tr>
-              <td class="text-right pr-3"><?php echo translate('MaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></td>
-              <td>
-                <input type="number" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" min="0" step="any"/>
-                <span id="newMonitor[MaxFPS]" style="color:red;<?php echo $monitor->MaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
-              </td>
-            </tr>
-            <tr>
-              <td class="text-right pr-3"><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></td>
-              <td>
-                <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
-                <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
-              </td>
-            </tr>
-<?php
-      } else {
-?>
-            <tr>
-              <td class="text-right pr-3"><?php echo translate('MaximumFPS') ?></td>
-              <td><input type="number" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" min="0" step="any"/></td>
-            </tr>
-            <tr>
-              <td class="text-right pr-3"><?php echo translate('AlarmMaximumFPS') ?></td>
-              <td><input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/></td>
-            </tr>
-<?php
-      }
-      if ( ZM_FAST_IMAGE_BLENDS ) {
-?>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('RefImageBlendPct') ?></td>
-            <td><?php echo htmlSelect('newMonitor[RefBlendPerc]', $fastblendopts, $monitor->RefBlendPerc()); ?></td>
-          </tr>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('AlarmRefImageBlendPct') ?></td>
-            <td><?php echo htmlSelect('newMonitor[AlarmRefBlendPerc]', $fastblendopts_alarm, $monitor->AlarmRefBlendPerc()); ?></td>
-          </tr>
-          <?php
-      } else {
-?>
-            <tr><td class="text-right pr-3"><?php echo translate('RefImageBlendPct') ?></td><td><input type="text" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($monitor->RefBlendPerc()) ?>" size="4"/></td></tr>
-            <tr><td class="text-right pr-3"><?php echo translate('AlarmRefImageBlendPct') ?></td><td><input type="text" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($monitor->AlarmRefBlendPerc()) ?>" size="4"/></td></tr>
-<?php
-      }
-?>
-            <tr><td class="text-right pr-3"><?php echo translate('Triggers') ?></td><td>
+              <tr class="Type">
+                <td class="text-right pr-3"><?php echo translate('SourceType') ?></td>
+                <td><?php echo htmlSelect('newMonitor[Type]', $sourceTypes, $monitor->Type()); ?></td>
+              </tr>
+              <tr class="Groups">
+                <td class="text-right pr-3"><?php echo translate('Groups'); ?></td>
+                <td><select name="newMonitor[GroupIds][]" multiple="multiple" class="chosen"><?php
+                  echo htmlOptions(ZM\Group::get_dropdown_options(), $monitor->GroupIds());
+                  ?></select></td>
+              </tr>
+              <tr><td class="text-right pr-3"><?php echo translate('Triggers') ?></td><td>
 <?php
       $optTriggers = getSetValues('Monitors', 'Triggers');
       $breakCount = (int)(ceil(count($optTriggers)));
@@ -718,18 +558,10 @@ if (count($available_monitor_ids)) {
         echo '<em>'.translate('NoneAvailable').'</em>';
       }
 ?>
-        </td></tr>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('Event Start Command') ?></td>
-            <td><input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" /></td>
-          </tr>
-          <tr>
-            <td class="text-right pr-3"><?php echo translate('Event End Command') ?></td>
-            <td><input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>" /></td>
-          </tr>
-        <?php
-        }
-        break;
+              </td>
+            </tr>
+<?php
+      break;
     }
     case 'onvif' :
     {
@@ -763,6 +595,25 @@ if (count($available_monitor_ids)) {
     }
     case 'source' :
     {
+?>
+            <tr class="Capturing">
+              <td class="text-right pr-3"><?php echo translate('Capturing'); echo makeHelpLink('OPTIONS_CAPTURING'); ?></td>
+              <td>
+<?php
+        echo htmlSelect('newMonitor[Capturing]', ZM\Monitor::getCapturingOptions(), $monitor->Capturing());
+?>
+                <div id="capturing_help">
+<?php
+        foreach (ZM\Monitor::getCapturingOptions() as $fn => $translated) {
+          if (isset($OLANG['CAPTURING_'.strtoupper($fn)])) {
+            echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['CAPTURING_'.strtoupper($fn)]['Help'].'</div>';
+          }
+        }
+?>
+                </div>
+              </td>
+            </tr>
+<?php
       if ( ZM_HAS_V4L2 && $monitor->Type() == 'Local' ) {
 ?>
           <tr>
@@ -815,7 +666,7 @@ include('_monitor_source_nvsocket.php');
         </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('RemoteHostPort') ?></td>
-          <td><input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" size="6"/></td>
+          <td><input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" step="1" min="1" max="65536" /></td>
         </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('Username') ?></td>
@@ -844,13 +695,18 @@ include('_monitor_source_nvsocket.php');
 ?>
             </td>
           </tr>
-          <tr><td class="text-right pr-3"><?php echo translate('RemoteHostName') ?></td><td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($monitor->Host()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('RemoteHostName') ?></td>
+            <td><input type="text" name="newMonitor[Host]" value="<?php echo validHtmlStr($monitor->Host()) ?>"/></td></tr>
           <tr><td><?php echo translate('RemoteHostPort') ?></td><td><input type="number" name="newMonitor[Port]" value="<?php echo validHtmlStr($monitor->Port()) ?>" min="0" max="65535"/></td></tr>
           <tr><td><?php echo translate('RemoteHostPath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/></td></tr>
 <?php
       } else if ( $monitor->Type() == 'File' ) {
 ?>
-          <tr><td class="text-right pr-3"><?php echo translate('SourcePath') ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('SourcePath') ?></td>
+            <td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/></td>
+          </tr>
 <?php
       } elseif ( $monitor->Type() == 'cURL' ) {
 ?>
@@ -866,15 +722,15 @@ include('_monitor_source_nvsocket.php');
           </tr>
           <tr>
             <td><?php echo translate('Width') ?> (<?php echo translate('Pixels') ?>)</td>
-            <td><input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" min="1"/></td>
+            <td><input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" min="1" step="1"/></td>
           </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('Height') ?> (<?php echo translate('Pixels') ?>)</td>
-            <td><input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" min="1"/></td>
+            <td><input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" min="1" step="1"/></td>
           </tr>
           <tr>
             <td class="text-right pr-3"<?php echo 'Web Site Refresh (Optional)' ?></td>
-            <td><input type="number" name="newMonitor[Refresh]" value="<?php echo validHtmlStr($monitor->Refresh()) ?>" min="1"/></td>
+            <td><input type="number" name="newMonitor[Refresh]" value="<?php echo validHtmlStr($monitor->Refresh()) ?>" min="1" step="1"/></td>
           </tr>
 <?php
       } else if ( $monitor->Type() == 'Ffmpeg' || $monitor->Type() == 'Libvlc' ) {
@@ -923,8 +779,8 @@ include('_monitor_source_nvsocket.php');
         <tr>
           <td class="text-right pr-3"><?php echo translate('CaptureResolution') ?> (<?php echo translate('Pixels') ?>)</td>
           <td>
-            <input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" min="1"/>
-            <input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" min="1"/>
+            <input type="number" name="newMonitor[Width]" value="<?php echo validHtmlStr($monitor->Width()) ?>" min="1" step="1"/>
+            <input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" min="1" step="1"/>
 <?php 
         $resolutions =  
           array(
@@ -1000,18 +856,139 @@ include('_monitor_source_nvsocket.php');
             </tr>
 <?php
       } # end if monitor->Type() == 'Remote'
+?>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('MaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></td>
+              <td>
+                <input type="number" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" min="0" step="any"/>
+<?php
+      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
+?>
+                <span id="newMonitor[MaxFPS]" style="color:red;<?php echo $monitor->MaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
+<?php } ?>
+              </td>
+            </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></td>
+              <td>
+                <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
+<?php
+      if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
+?>
+                <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
+<?php } ?>
+              </td>
+            </tr>
+<?php
       break;
     }
-  case 'storage' :
+    case 'analysis' : {
 ?>
-        <tr id="RecordingSource"<?php echo $monitor->SecondPath() ? '' : ' style="display:none;"' ?>>
-          <td class="text-right pr-3"><?php echo translate('RecordingSource') ?></td>
-          <td>
+            <tr class="Analysing">
+              <td class="text-right pr-3"><?php echo translate('Motion Detection') ?></td>
+              <td>
+<?php
+        echo htmlSelect('newMonitor[Analysing]', ZM\Monitor::getAnalysingOptions(),
+            $monitor->Analysing(), array('on-change-this'=>'Analysing_onChange'));
+?>
+                <div id="Analysing_help">
+<?php
+        foreach (ZM\Monitor::getAnalysingOptions() as $fn => $translated) {
+          if (isset($OLANG['ANALYSING_'.strtoupper($fn)])) {
+            echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['ANALYSING_'.strtoupper($fn)]['Help'].'</div>';
+          }
+        }
+?>
+                </div>
+              </td>
+            </tr>
+            <tr id="AnalysisSource"<?php echo $monitor->SecondPath() ? '' : ' style="display:none;"' ?>>
+              <td class="text-right pr-3"><?php echo translate('AnalysisSource') ?></td>
+              <td>
+<?php
+        echo htmlSelect('newMonitor[AnalysisSource]', ZM\Monitor::getAnalysisSourceOptions(), $monitor->AnalysisSource());
+?>
+              </td>
+            </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('AnalysisFPS') ?></td>
+              <td><input type="number" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" min="0" step="any"/></td>
+            </tr>
+<?php
+      if ( ZM_FAST_IMAGE_BLENDS ) {
+?>
+              <tr>
+                <td class="text-right pr-3"><?php echo translate('RefImageBlendPct') ?></td>
+                <td><?php echo htmlSelect('newMonitor[RefBlendPerc]', $fastblendopts, $monitor->RefBlendPerc()); ?></td>
+              </tr>
+              <tr>
+                <td class="text-right pr-3"><?php echo translate('AlarmRefImageBlendPct') ?></td>
+                <td><?php echo htmlSelect('newMonitor[AlarmRefBlendPerc]', $fastblendopts_alarm, $monitor->AlarmRefBlendPerc()); ?></td>
+              </tr>
+          <?php
+      } else {
+?>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('RefImageBlendPct') ?></td>
+              <td><input type="number" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($monitor->RefBlendPerc()) ?>" step="any" min="0"/></td>
+            </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('AlarmRefImageBlendPct') ?></td>
+              <td><input type="number" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($monitor->AlarmRefBlendPerc()) ?>" step="any" min="0"/></td>
+            </tr>
+<?php
+      }
+?>
+            <tr class="LinkedMonitors">
+              <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
+              <td>
+<?php
+      $monitor_options = array();
+      foreach ($monitors as $linked_monitor) {
+        if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {
+          $monitor_options[$linked_monitor['Id']] = validHtmlStr($linked_monitor['Name']);
+        }
+      }
+      echo htmlSelect(
+        'newMonitor[LinkedMonitors][]',
+        $monitor_options,
+        ( $monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array() ),
+        array('class'=>'chosen','multiple'=>'multiple')
+      );
+?>
+              </td>
+            </tr>
+<?php
+    }
+    break;
+  case 'recording' :
+    {
+?>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('Recording') ?></td>
+            <td>
+  <?php
+          echo htmlSelect('newMonitor[Recording]', ZM\Monitor::getRecordingOptions(), $monitor->Recording(), array('on-change-this'=>'Recording_onChange'));
+  ?>
+                <div id="Recording_help">
+  <?php
+          foreach (ZM\Monitor::getRecordingOptions() as $fn => $translated) {
+            if (isset($OLANG['RECORDING_'.strtoupper($fn)])) {
+              echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['RECORDING_'.strtoupper($fn)]['Help'].'</div>';
+            }
+          }
+  ?>
+              </div>
+            </td>
+          </tr>
+          <tr id="RecordingSource"<?php echo $monitor->SecondPath() ? '' : ' style="display:none;"' ?>>
+            <td class="text-right pr-3"><?php echo translate('RecordingSource') ?></td>
+            <td>
 <?php
         echo htmlSelect('newMonitor[RecordingSource]', ZM\Monitor::getRecordingSourceOptions(), $monitor->RecordingSource());
 ?>
-          </td>
-        </tr>
+            </td>
+          </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('StorageArea') ?></td>
             <td>
@@ -1102,16 +1079,70 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <textarea name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
               </td>
             </tr>
-            <tr><td class="text-right pr-3"><?php echo translate('RecordAudio') ?></td><td>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('RecordAudio') ?></td><td>
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
               <input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/>
 <?php } else { ?>
               Audio recording only available with FFMPEG
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
-            </td></tr>
+              </td>
+            </tr>
+        </tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('Event Start Command') ?></td>
+            <td><input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" /></td>
+          </tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo translate('Event End Command') ?></td>
+            <td><input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>" /></td>
+          </tr>
 <?php
       break;
+    }
+  case 'viewing' :
+?>
+            <tr id="FunctionJanusEnabled">
+              <td class="text-right pr-3"><?php echo translate('Janus Live Stream') ?></td>
+              <td><input type="checkbox" name="newMonitor[JanusEnabled]" value="1"<?php echo $monitor->JanusEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_ENABLED']['Help'].'</div>';
+  }
+?>
+              </td>
+            </tr>
+            <tr id="FunctionJanusAudioEnabled">
+              <td class="text-right pr-3"><?php echo translate('Janus Live Stream Audio') ?></td>
+              <td><input type="checkbox" name="newMonitor[JanusAudioEnabled]" value="1"<?php echo $monitor->JanusAudioEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_AUDIO_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_AUDIO_ENABLED']['Help'].'</div>';
+  }
+?>
+              </td>
+            </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('DefaultRate') ?></td>
+              <td><?php echo htmlSelect('newMonitor[DefaultRate]', $rates, $monitor->DefaultRate()); ?></td>
+            </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('DefaultScale') ?></td>
+              <td><?php echo htmlSelect('newMonitor[DefaultScale]', $scales, $monitor->DefaultScale()); ?></td>
+            </tr>
+            <tr>
+              <td class="text-right pr-3"><?php echo translate('DefaultCodec') ?></td>
+              <td><?php
+$codecs = array(
+  'auto'  => translate('Auto'),
+  'MP4'   => translate('MP4'),
+  'MJPEG' => translate('MJPEG'),
+);
+ echo htmlSelect('newMonitor[DefaultCodec]', $codecs, $monitor->DefaultCodec()); ?></td>
+            </tr>
+<?php
+    break;
   case 'timestamp' :
     {
 ?>
@@ -1183,6 +1214,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <td class="text-right pr-3"><?php echo translate('ControlType') ?></td>
               <td>
 <?php 
+                  $controls = ZM\Control::find(null, array('order'=>'lower(Name)'));
                   $controlTypes = array(''=>translate('None'));
                   foreach ( $controls as $control ) {
                     $controlTypes[$control->Id()] = $control->Name();
@@ -1248,6 +1280,16 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
   case 'misc' :
     {
 ?>
+          <tr id="FunctionDecodingEnabled">
+            <td class="text-right pr-3"><?php echo translate('Decoding Enabled') ?></td>
+            <td><input type="checkbox" name="newMonitor[DecodingEnabled]" value="1"<?php echo $monitor->DecodingEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+        if (isset($OLANG['FUNCTION_DECODING_ENABLED'])) {
+          echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
+        }
+?>
+            </td>
+          </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('EventPrefix') ?></td>
           <td><input type="text" name="newMonitor[EventPrefix]" value="<?php echo validHtmlStr($monitor->EventPrefix()) ?>"/></td>
@@ -1292,28 +1334,6 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
             <input type="number" name="newMonitor[FPSReportInterval]" value="<?php echo validHtmlStr($monitor->FPSReportInterval()) ?>" min="0"/>
             <?php echo translate('frames')?>
           </td>
-        </tr>
-        <tr id="FunctionJanusEnabled">
-          <td class="text-right pr-3"><?php echo translate('Janus Live Stream') ?></td>
-          <td><input type="checkbox" name="newMonitor[JanusEnabled]" value="1"<?php echo $monitor->JanusEnabled() ? ' checked="checked"' : '' ?>/>
-<?php
-  if ( isset($OLANG['FUNCTION_JANUS_ENABLED']) ) {
-    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_ENABLED']['Help'].'</div>';
-  }
-?>
-          </td>
-        </tr>
-        <tr>
-          <td class="text-right pr-3"><?php echo translate('DefaultRate') ?></td>
-          <td><?php echo htmlSelect('newMonitor[DefaultRate]', $rates, $monitor->DefaultRate()); ?></td>
-        </tr>
-        <tr>
-          <td class="text-right pr-3"><?php echo translate('DefaultScale') ?></td>
-          <td><?php echo htmlSelect('newMonitor[DefaultScale]', $scales, $monitor->DefaultScale()); ?></td>
-        </tr>
-        <tr>
-          <td class="text-right pr-3"><?php echo translate('DefaultCodec') ?></td>
-          <td><?php echo htmlSelect('newMonitor[DefaultCodec]', $codecs, $monitor->DefaultCodec()); ?></td>
         </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('SignalCheckPoints') ?></td>

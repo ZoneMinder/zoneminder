@@ -789,7 +789,7 @@ function getAccountCircleHTML($skin, $user=null) {
   
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<li id="getAccountCircleHTML" class="navbar-text navbar-nav mr-2">'.PHP_EOL;
-    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
+    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  validHtmlStr($user['Username']),
       (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }

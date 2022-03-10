@@ -5,7 +5,7 @@ class Group extends ZM_Object {
   protected static $table = 'Groups';
   protected $defaults = array(
       'Id'              =>  null,
-      'Name'            =>  '',
+      'Name'            => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Group'),
       'ParentId'        =>  null,
       );
 

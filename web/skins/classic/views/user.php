@@ -20,7 +20,7 @@
 
 $selfEdit = ZM_USER_SELF_EDIT && ($_REQUEST['uid'] == $user['Id']);
 
-if ( !canEdit('System') && !$selfEdit ) {
+if (!canEdit('System') && !$selfEdit) {
   $view = 'error';
   return;
 }
@@ -80,7 +80,7 @@ if ( canEdit('System') ) {
 ?>
             <tr>
               <th class="text-right" scope="row"><?php echo translate('Username') ?></th>
-              <td><input type="text" name="newUser[Username]" value="<?php echo validHtmlStr($newUser->Username()); ?>"<?php echo $newUser->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
+              <td><input type="text" name="newUser[Username]" pattern="[A-Za-z0-9 .@]+" value="<?php echo validHtmlStr($newUser->Username()); ?>"<?php echo $newUser->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
             </tr>
 <?php
 }

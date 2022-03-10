@@ -21,8 +21,6 @@
 
 
 Monitor::JanusManager::JanusManager(Monitor *parent_) { //constructor takes care of init and calls add_to
-  std::string response;
-  std::size_t pos;
   parent = parent_;
   if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
     janus_endpoint = config.janus_path; //TODO: strip trailing /
@@ -30,17 +28,14 @@ Monitor::JanusManager::JanusManager(Monitor *parent_) { //constructor takes care
     janus_endpoint = "127.0.0.1:8088/janus";
   }
   if (janus_endpoint.back() == '/') janus_endpoint.pop_back(); //remove the trailing slash if present
-  std::size_t pos2 = parent->path.find("@", pos);
-  if (pos2 != std::string::npos) { //If we find an @ symbol, we have a username/password. Otherwise, passwordless login.
-
-    std::size_t pos = parent->path.find(":", 7); //Search for the colon, but only after the RTSP:// text.
-    if (pos == std::string::npos) throw std::runtime_error("Cannot Parse URL for Janus."); //Looks like an invalid url
-    rtsp_username = parent->path.substr(7, pos-7);
-
-    rtsp_password = parent->path.substr(pos+1, pos2 - pos - 1);
+  std::size_t at_pos = parent->path.find("@", 7);
+  if (at_pos != std::string::npos) { //If we find an @ symbol, we have a username/password. Otherwise, passwordless login.
+    std::size_t colon_pos = parent->path.find(":", 7); //Search for the colon, but only after the RTSP:// text.
+    if (colon_pos == std::string::npos) throw std::runtime_error("Cannot Parse URL for Janus."); //Looks like an invalid url
+    rtsp_username = parent->path.substr(7, colon_pos-7);
+    rtsp_password = parent->path.substr(colon_pos+1, at_pos - colon_pos - 1);
     rtsp_path = "RTSP://";
-    rtsp_path += parent->path.substr(pos2 + 1);
-
+    rtsp_path += parent->path.substr(at_pos + 1);
   } else {
     rtsp_username = "";
     rtsp_password = "";
@@ -52,15 +47,14 @@ Monitor::JanusManager::~JanusManager() {
   if (janus_session.empty()) get_janus_session();
   if (janus_handle.empty()) get_janus_handle();
 
+  curl = curl_easy_init();
+  if(!curl) return;
+
   std::string response;
   std::string endpoint;
 
   std::string postData = "{\"janus\" : \"create\", \"transaction\" : \"randomString\"}";
-  //std::size_t pos;
   CURLcode res;
-
-  curl = curl_easy_init();
-  if(!curl) return;
 
   endpoint = janus_endpoint;
   endpoint += "/";

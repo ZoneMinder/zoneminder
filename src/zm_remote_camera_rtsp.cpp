@@ -186,7 +186,7 @@ int RemoteCameraRtsp::PrimeCapture() {
 #endif
 
   // Find the decoder for the video stream
-  AVCodec *codec = avcodec_find_decoder(mVideoCodecContext->codec_id);
+  const AVCodec *codec = avcodec_find_decoder(mVideoCodecContext->codec_id);
   if ( codec == nullptr ) {
     Error("Unable to locate codec %d decoder", mVideoCodecContext->codec_id);
     return -1;

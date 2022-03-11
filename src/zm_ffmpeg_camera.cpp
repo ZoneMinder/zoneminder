@@ -383,7 +383,7 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(3, "Found video stream at index %d, audio stream at index %d",
       mVideoStreamId, mAudioStreamId);
 
-  AVCodec *mVideoCodec = nullptr;
+  const AVCodec *mVideoCodec = nullptr;
   if ( mVideoStream->
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       codecpar
@@ -532,7 +532,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }  // end if have audio stream
 
   if ( mAudioStreamId >= 0 ) {
-    AVCodec *mAudioCodec = nullptr;
+    const AVCodec *mAudioCodec = nullptr;
     if ( (mAudioCodec = avcodec_find_decoder(
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
             mAudioStream->codecpar->codec_id

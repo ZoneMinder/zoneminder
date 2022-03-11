@@ -42,11 +42,11 @@ protected:
   const char *format;
   const char *codec_name;
   enum _AVPIXELFORMAT pf;
-  AVOutputFormat *of;
+  const AVOutputFormat *of;
   AVFormatContext *ofc;
   AVStream *ost;
   AVCodecContext *codec_context;
-  AVCodec *codec;
+  const AVCodec *codec;
   AVFrame *opicture;
   AVFrame *tmp_opicture;
   uint8_t *video_outbuf;

@@ -1072,6 +1072,7 @@ $videowriter_containers = array(
   '' => translate('Auto'),
   'mp4' => 'mp4',
   'mkv' => 'mkv',
+  'webm' => 'webm',
 );
 echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor->OutputContainer());
 ?>

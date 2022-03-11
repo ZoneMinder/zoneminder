@@ -138,7 +138,7 @@ bool VideoStore::open() {
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
-  out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+  oc->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
   const AVCodec *video_out_codec = nullptr;
 
   AVDictionary *opts = nullptr;
@@ -1218,18 +1218,22 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   pkt->stream_index = stream->index;
 
   if (pkt->dts == AV_NOPTS_VALUE) {
-    Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
-    pkt->dts = stream->cur_dts;
-  } else if (pkt->dts < stream->cur_dts) {
+    Error("undefined dts");
+//    Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
+//    pkt->dts = stream->cur_dts;
+/*  } else if (pkt->dts < stream->cur_dts) {
     Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream cur_dts %" PRId64, pkt->dts, stream->cur_dts);
-    pkt->dts = stream->cur_dts;
+    pkt->dts = stream->cur_dts;*/
   }
 
   if (pkt->dts > pkt->pts) {
-    Debug(1,
+    Warning("pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+            "Decompression must happen before presentation.",
+            pkt->dts, pkt->pts);
+/*    Debug(1,
           "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
           "Decompression must happen before presentation.",
-          pkt->dts, pkt->pts);
+          pkt->dts, pkt->pts);*/
     pkt->pts = pkt->dts;
   }
 

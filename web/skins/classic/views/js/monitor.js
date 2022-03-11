@@ -189,8 +189,20 @@ function initPage() {
               encoder_dropdown[0].options[0].selected = 1;
               option.selected = false;
             }
+          } else if ( this.value == 167 /* vp9 */ ) {
+            option.disabled = !(option.value.includes('vp9'));
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
           } else if ( this.value == 173 /* hevc */ ) {
             option.disabled = !(option.value.includes('hevc') || option.value.includes('265') );
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
+          } else if ( this.value == 226 /* av1 */ ) {
+            option.disabled = !(option.value.includes('av1'));
             if ( option.disabled && option.selected ) {
               encoder_dropdown[0].options[0].selected = 1;
               option.selected = false;

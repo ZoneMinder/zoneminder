@@ -38,7 +38,7 @@ class VideoStore {
     CodecData *chosen_codec_data;
 
     Monitor *monitor;
-    AVOutputFormat *out_format;
+    const AVOutputFormat *out_format;
     AVFormatContext *oc;
     AVStream *video_out_stream;
     AVStream *audio_out_stream;
@@ -52,7 +52,7 @@ class VideoStore {
     const AVCodec *audio_in_codec;
     AVCodecContext *audio_in_ctx;
     // The following are used when encoding the audio stream to AAC
-    AVCodec *audio_out_codec;
+    const AVCodec *audio_out_codec;
     AVCodecContext *audio_out_ctx;
     // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
     AVPacket opkt;

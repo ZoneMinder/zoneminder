@@ -353,7 +353,7 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(3, "Found video stream at index %d, audio stream at index %d",
       mVideoStreamId, mAudioStreamId);
 
-  AVCodec *mVideoCodec = nullptr;
+  const AVCodec *mVideoCodec = nullptr;
   if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_H264) {
     if ((mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == nullptr) {
       Debug(1, "Failed to find decoder (h264_mmal)");
@@ -494,7 +494,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }  // end if have audio stream
 
   if ( mAudioStreamId >= 0 ) {
-    AVCodec *mAudioCodec = nullptr;
+    const AVCodec *mAudioCodec = nullptr;
     if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
       Debug(1, "Can't find codec for audio stream from %s", mPath.c_str());
     } else {

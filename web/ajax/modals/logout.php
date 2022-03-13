@@ -77,8 +77,8 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
 
   echo '
   <tr>
-    <td>'.$user->Username().'</td>
-    <td>'.$_SESSION['remoteAddr'].'</td>
+    <td>'.validHtmlStr($user->Username()).'</td>
+    <td>'.validHtmlStr($_SESSION['remoteAddr']).'</td>
     <td>'.strftime(STRF_FMT_DATETIME_SHORTER, $row['access']).'</td>
   </tr>
 ';

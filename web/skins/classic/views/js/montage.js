@@ -1,12 +1,12 @@
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered
- * @param {*} element - the event data passed by onchange callback
+ * @param {*} new_layout - the name of a layout to switch to
  */
 function selectLayout(new_layout) {
   var ddm = $j('#zmMontageLayout');
   if (new_layout) {
-    $j('#zmMontageLayout option:contains("'+new_layout+'")').attr('selected',true);
+    $j('#zmMontageLayout option:contains("'+new_layout+'")').attr('selected', true);
   }
   layout = ddm.val();
 
@@ -127,18 +127,19 @@ function changeScale() {
   setCookie('zmMontageScale', scale, 3600);
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
-    var monitor = monitors[i];
-    var newWidth = ( monitorData[i].width * scale ) / SCALE_BASE;
-    var newHeight = ( monitorData[i].height * scale ) / SCALE_BASE;
+    const monitor = monitors[i];
+    const newWidth = ( monitorData[i].width * scale ) / SCALE_BASE;
+    //var newHeight = ( monitorData[i].height * scale ) / SCALE_BASE;
+    // Theoretically by setting to freeform layout, all heights have been set to auto
 
     // Scale the frame
     monitor_frame = $j('#monitorFrame'+monitor.id);
-    if ( !monitor_frame ) {
+    if (!monitor_frame) {
       console.log("Error finding frame for " + monitor.id);
       continue;
     }
-    if ( scale > 0 ) {
-      if ( newWidth ) {
+    if (scale > 0) {
+      if (newWidth) {
         monitor_frame.css('width', newWidth);
       }
     } else {

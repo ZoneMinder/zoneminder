@@ -621,7 +621,7 @@ switch ($name) {
             <td><input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"/></td>
           </tr>
           <tr>
-            <td><?php echo translate('CaptureMethod') ?></td>
+            <td class="text-right pr-3"><?php echo translate('CaptureMethod') ?></td>
             <td><?php echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), array('onchange'=>'submitTab', 'data-tab-name'=>$tab) ); ?></td>
           </tr>
 <?php

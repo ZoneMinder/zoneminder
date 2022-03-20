@@ -65,7 +65,7 @@ public static function getRecordingOptions() {
   if (!isset($RecordingOptions)) {
     $RecordingOptions = array(
         'None'     => translate('None'),
-        'OnMotion' => translate('On Motion'),
+        'OnMotion' => translate('On Motion / Trigger / etc'),
         'Always'   => translate('Always'),
         );
   }

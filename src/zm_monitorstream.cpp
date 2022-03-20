@@ -727,7 +727,7 @@ void MonitorStream::runStream() {
 
           Image *send_image = nullptr;
           if ((frame_type == FRAME_ANALYSIS) && 
-              (monitor->GetFunction() == Monitor::MOCORD || monitor->GetFunction() == Monitor::MODECT)) {
+              (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
               Debug(1, "Sending analysis image");
             send_image = monitor->GetAlarmImage();
             if (!send_image) {

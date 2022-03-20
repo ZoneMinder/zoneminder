@@ -1574,7 +1574,7 @@ void Monitor::CheckAction() {
     if (shared_data->action & SUSPEND) {
       if (Active()) {
         Info("Received suspend indication at count %d", image_count);
-        shared_data->analysing = false;
+        shared_data->analysing = ANALYSING_NONE;
         //closeEvent();
       } else {
         Info("Received suspend indication at count %d, but wasn't active", image_count);
@@ -1587,7 +1587,7 @@ void Monitor::CheckAction() {
     } else if (shared_data->action & RESUME) {
       if ( Enabled() && !Active() ) {
         Info("Received resume indication at count %d", image_count);
-        shared_data->analysing = true;
+        shared_data->analysing = analysing;
         ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
         shared_data->alarm_x = shared_data->alarm_y = -1;
       }
@@ -1599,7 +1599,7 @@ void Monitor::CheckAction() {
     SystemTimePoint now = std::chrono::system_clock::now();
     if (now >= auto_resume_time) {
       Info("Auto resuming at count %d", image_count);
-      shared_data->analysing = true;
+      shared_data->analysing = analysing;
       ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
     }
   }
@@ -1750,8 +1750,8 @@ bool Monitor::Analyse() {
   bool signal = shared_data->signal;
   bool signal_change = (signal != last_signal);
 
-  Debug(3, "Motion detection is enabled signal(%d) signal_change(%d) trigger state(%s) image index %d",
-      signal, signal_change, TriggerState_Strings[trigger_data->trigger_state].c_str(), snap->image_index);
+  Debug(3, "Motion detection is enabled?(%d) signal(%d) signal_change(%d) trigger state(%s) image index %d",
+      shared_data->analysing, signal, signal_change, TriggerState_Strings[trigger_data->trigger_state].c_str(), snap->image_index);
 
   { // scope for event lock
     // Need to guard around event creation/deletion from Reload()
@@ -1881,7 +1881,7 @@ bool Monitor::Analyse() {
             }
           }  // end if decoding enabled
 
-          if (shared_data->analysing) {
+          if (shared_data->analysing > ANALYSING_NONE) {
             Debug(3, "signal and capturing and doing motion detection");
 
             if (analysis_fps_limit) {

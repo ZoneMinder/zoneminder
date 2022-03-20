@@ -64,15 +64,6 @@ public:
   } Purpose;
 
   typedef enum {
-    NONE=1,
-    MONITOR,
-    MODECT,
-    RECORD,
-    MOCORD,
-    NODECT
-  } Function;
-
-  typedef enum {
     CAPTURING_NONE=1,
     CAPTURING_ONDEMAND,
     CAPTURING_ALWAYS
@@ -175,9 +166,9 @@ protected:
     int32_t alarm_x;            /* +44   */
     int32_t alarm_y;            /* +48   */
     uint8_t valid;              /* +52   */
-    uint8_t capturing;          /* +53  boolean current status */
-    uint8_t analysing;          /* +54  boolean current status */
-    uint8_t recording;          /* +55  boolean current status */
+    uint8_t capturing;          /* +53   */
+    uint8_t analysing;          /* +54   */
+    uint8_t recording;          /* +55   */
     uint8_t signal;             /* +56   */
     uint8_t format;             /* +57   */
     uint32_t imagesize;         /* +58   */
@@ -341,7 +332,6 @@ protected:
   unsigned int    server_id;          // Id of the Server object
   unsigned int    storage_id;         // Id of the Storage Object, which currently will just provide a path, but in future may do more.
   CameraType      type;
-  Function        function;           // What the monitor is doing
   CapturingOption capturing;          // None, OnDemand, Always
   AnalysingOption analysing;          // None, Always
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
@@ -588,7 +578,6 @@ public:
   AnalysingOption Analysing() const { return analysing; }
   RecordingOption Recording() const { return recording; }
 
-  inline Function GetFunction() const { return function; }
   inline PacketQueue * GetPacketQueue() { return &packetqueue; }
   inline bool Enabled() const {
     return shared_data->capturing;

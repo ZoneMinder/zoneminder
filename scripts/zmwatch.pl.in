@@ -90,7 +90,7 @@ while (!$zm_terminate) {
   }
 
   foreach my $monitor (ZoneMinder::Monitor->find($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ())) {
-    next if $monitor->{Capturing} eq 'None' ;
+    next if $monitor->{Capturing} eq 'None';
     next if $monitor->{Type} eq 'WebSite';
     next if $monitor->{Capturing} eq 'Ondemand';
     my $now = time(); 

@@ -1882,7 +1882,7 @@ bool Monitor::Analyse() {
           }  // end if decoding enabled
 
           if (shared_data->analysing > ANALYSING_NONE) {
-            Debug(3, "signal and capturing and doing motion detection");
+            Debug(3, "signal and capturing and doing motion detection %d", shared_data->analysing);
 
             if (analysis_fps_limit) {
               double capture_fps = get_capture_fps();
@@ -2020,7 +2020,7 @@ bool Monitor::Analyse() {
 
           // snap->score -1 means didn't do motion detection so don't do state transition
           // In Nodect, we may still have a triggered event, so need this code to run to end the event.
-          } else if (!score and ((snap->score == 0) or (analysing == ANALYSING_NONE))) {
+          } else if (!score and ((snap->score == 0) or (shared_data->analysing == ANALYSING_NONE))) {
             Debug(1, "!score %s", State_Strings[state].c_str());
             alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
 
@@ -2139,7 +2139,7 @@ bool Monitor::Analyse() {
             } // end if ! event
           } // end if RECORDING
 
-          if ((analysing == ANALYSING_ALWAYS) and snap->image) {
+          if ((shared_data->analysing == ANALYSING_ALWAYS) and snap->image) {
             if (!ref_image.Buffer()) {
               if (USE_Y_CHANNEL && snap->in_frame && (
                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
@@ -3043,10 +3043,14 @@ bool Monitor::DumpSettings(char *output, bool verbose) {
   for (const Zone &zone : zones) {
     zone.DumpSettings(output+strlen(output), verbose);
   }
-  sprintf(output+strlen(output), "Capturing Enabled? %s\n", shared_data->capturing ? "enabled" : "disabled");
-  sprintf(output+strlen(output), "Motion Detection Enabled? %s\n", shared_data->analysing ? "enabled" : "disabled");
-  sprintf(output+strlen(output), "Recording Enabled? %s\n", shared_data->recording ? "enabled" : "disabled");
-  sprintf(output+strlen(output), "Events Enabled (!TRIGGER_OFF)? %s\n", trigger_data->trigger_state == TRIGGER_OFF ? "disabled" : "enabled");
+  sprintf(output+strlen(output), "Capturing Enabled? %s\n",
+      (shared_data->capturing != CAPTURING_NONE) ? "enabled" : "disabled");
+  sprintf(output+strlen(output), "Motion Detection Enabled? %s\n",
+      (shared_data->analysing != ANALYSING_NONE) ? "enabled" : "disabled");
+  sprintf(output+strlen(output), "Recording Enabled? %s\n",
+      (shared_data->recording != RECORDING_NONE) ? "enabled" : "disabled");
+  sprintf(output+strlen(output), "Events Enabled (!TRIGGER_OFF)? %s\n",
+      (trigger_data->trigger_state == TRIGGER_OFF) ? "disabled" : "enabled");
   return true;
 } // bool Monitor::DumpSettings(char *output, bool verbose)
 

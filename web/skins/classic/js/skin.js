@@ -103,9 +103,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
 
 // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
 function dataOnClickThis() {
-console.log("Looking for data-on-click-this");
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this], span[data-on-click-this]").forEach(function attachOnClick(el) {
-console.log(el);
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
       console.error("Nothing found to bind to " + fnName + " on element " + el.name);

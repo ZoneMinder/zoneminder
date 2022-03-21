@@ -346,9 +346,12 @@ sub handleMessage {
       handleDelay($delay, $connection, $action_text);
     }
   } elsif ( $action =~ /^(on|off)(?:[ \+](\d+))?$/ ) {
-    if ( !$monitor->{Enabled} ) {
-      Info('Motion detection not enabled on monitor '.$id);
+    if ( !$monitor->{Capturing} eq 'None' ) {
+      Warning('Capturing not enabled on monitor '.$id);
       return;
+    }
+    if ( !$monitor->{Recording} eq 'None' ) {
+      Warning('Recording not enabled on monitor '.$id);
     }
 
     my $trigger = $1;

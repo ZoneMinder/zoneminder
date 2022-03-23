@@ -1044,10 +1044,10 @@ void EventStream::runStream() {
 } // end void EventStream::runStream()
 
 bool EventStream::send_file(const char *filepath) {
-  FILE *fdj = fopen(filepath.c_str(), "rb");
+  FILE *fdj = fopen(filepath, "rb");
   if (!fdj) {
-    Error("Can't open %s: %s", filepath.c_str(), strerror(errno));
-    std::string error_message = stringtf("Can't open %s: %s", filepath.c_str(), strerror(errno));
+    Error("Can't open %s: %s", filepath, strerror(errno));
+    std::string error_message = stringtf("Can't open %s: %s", filepath, strerror(errno));
     return sendTextFrame(error_message.c_str());
   }
   static struct stat filestat;
@@ -1081,7 +1081,7 @@ bool EventStream::send_file(const char *filepath) {
     fclose(fdj); /* Close the file handle */
     return true;
   }
-  Warning("Unable to send raw frame %d: %s %zu remaining",
+  Warning("Unable to send raw frame %ld: %s %zu remaining",
       curr_frame_id, strerror(errno), remaining);
   return false;
 }  // end bool EventStream::send_file(const std::string &filepath)

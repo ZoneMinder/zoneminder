@@ -2200,7 +2200,7 @@ bool Monitor::Analyse() {
     } else {
       // In the case where people have pre-alarm frames, the web ui will generate the frame images
       // from the mp4. So no one will notice anyways.
-      if (snap->image and (videowriter == PASSTHROUGH)) {
+      if (snap->image and ((videowriter == PASSTHROUGH) || recording == RECORDING_NONE)) {
         if (!savejpegs) {
           Debug(1, "Deleting image data for %d", snap->image_index);
           // Don't need raw images anymore
@@ -2213,6 +2213,10 @@ bool Monitor::Analyse() {
           snap->analysis_image = nullptr;
         }
       }
+      // Free up the decoded frame as well, we won't be using it for anything at this time.
+      if (snap->out_frame) av_frame_free(&snap->out_frame);
+      if (snap->buffer) av_freep(&snap->buffer);
+
       delete packet_lock;
     }
   } // end scope for event_lock

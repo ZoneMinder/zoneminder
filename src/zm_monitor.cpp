@@ -2028,7 +2028,7 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
               shared_data->state = state = ALERT;
             } else if (state == ALERT) {
-              if (
+              if ( event &&
                   ((analysis_image_count - last_alarm_count) > post_event_count)
                   &&
                   (event->Duration() >= min_section_length)) {

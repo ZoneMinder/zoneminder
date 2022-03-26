@@ -48,7 +48,7 @@ Event::Event(
   id(0),
   monitor(p_monitor),
   start_time(p_start_time),
-  end_time(),
+  end_time(p_start_time),
   cause(p_cause),
   noteSetMap(p_noteSetMap),
   frames(0),

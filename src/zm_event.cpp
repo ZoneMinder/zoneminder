@@ -52,7 +52,7 @@ Event::Event(
   monitor(p_monitor),
   packetqueue_it(p_packetqueue_it),
   start_time(p_start_time),
-  end_time({0,0}),
+  end_time(p_start_time),
   cause(p_cause),
   noteSetMap(p_noteSetMap),
   frames(0),

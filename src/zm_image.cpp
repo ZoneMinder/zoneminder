@@ -5254,4 +5254,21 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
   }
 }
 
+AVPixelFormat Image::AVPixFormat() const {
+  if ( colours == ZM_COLOUR_RGB32 ) {
+    return AV_PIX_FMT_RGBA;
+  } else if ( colours == ZM_COLOUR_RGB24 ) {
+    if ( subpixelorder == ZM_SUBPIX_ORDER_BGR){
+      return AV_PIX_FMT_BGR24;
+    } else {
+      return AV_PIX_FMT_RGB24;
+    }
+  } else if ( colours == ZM_COLOUR_GRAY8 ) {
+    return AV_PIX_FMT_GRAY8;
+  } else {
+    Error("Unknown colours (%d)",colours);
+    return AV_PIX_FMT_RGBA;
+  }
+}
+
 

@@ -750,6 +750,7 @@ public:
    //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
   bool Analyse();
+  bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   bool Decode();
   bool Poll();
   void DumpImage( Image *dump_image ) const;

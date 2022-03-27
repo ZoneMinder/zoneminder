@@ -2521,6 +2521,65 @@ int Monitor::Capture() {
   return captureResult;
 } // end Monitor::Capture
 
+bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image) {
+  AVPixelFormat imagePixFormat = image->AVPixFormat();
+  AVPixelFormat inputPixFormat;
+  bool changeColorspaceDetails = false;
+  switch (input_frame->format) {
+    case AV_PIX_FMT_YUVJ420P:
+      inputPixFormat = AV_PIX_FMT_YUV420P;
+      changeColorspaceDetails = true;
+      break;
+    case AV_PIX_FMT_YUVJ422P:
+      inputPixFormat = AV_PIX_FMT_YUV422P;
+      changeColorspaceDetails = true;
+      break;
+    case AV_PIX_FMT_YUVJ444P:
+      inputPixFormat = AV_PIX_FMT_YUV444P;
+      changeColorspaceDetails = true;
+      break;
+    case AV_PIX_FMT_YUVJ440P:
+      inputPixFormat = AV_PIX_FMT_YUV440P;
+      changeColorspaceDetails = true;
+      break;
+    default:
+      inputPixFormat = (AVPixelFormat)input_frame->format;
+  }
+
+  convert_context = sws_getContext(
+      input_frame->width,
+      input_frame->height,
+      inputPixFormat,
+      image->Width(), image->Height(),
+      imagePixFormat, SWS_BICUBIC,
+      nullptr, nullptr, nullptr);
+  if (convert_context == nullptr) {
+    Error("Unable to create conversion context from %s to %s",
+        av_get_pix_fmt_name(inputPixFormat),
+        av_get_pix_fmt_name(imagePixFormat)
+        );
+  } else {
+    Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
+        input_frame->width, input_frame->height,
+        av_get_pix_fmt_name(inputPixFormat),
+        image->Width(), image->Height(),
+        av_get_pix_fmt_name(imagePixFormat)
+        );
+    if (changeColorspaceDetails) {
+      // change the range of input data by first reading the current color space and then setting it's range as yuvj.
+      int dummy[4];
+      int srcRange, dstRange;
+      int brightness, contrast, saturation;
+      sws_getColorspaceDetails(convert_context, (int**)&dummy, &srcRange, (int**)&dummy, &dstRange, &brightness, &contrast, &saturation);
+      const int* coefs = sws_getCoefficients(SWS_CS_DEFAULT);
+      srcRange = 1; // this marks that values are according to yuvj
+      sws_setColorspaceDetails(convert_context, coefs, srcRange, coefs, dstRange,
+          brightness, contrast, saturation);
+    }
+  }
+  return (convert_context != nullptr);
+}
+
 bool Monitor::Decode() {
   ZMLockedPacket *packet_lock = packetqueue.get_packet_and_increment_it(decoder_it);
   if (!packet_lock) return false;
@@ -2541,75 +2600,16 @@ bool Monitor::Decode() {
     if (ret > 0 and !zm_terminate) {
       if (packet->in_frame and !packet->image) {
         packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
-        AVFrame *input_frame = packet->in_frame;
-        if (!dest_frame) dest_frame = zm_av_frame_alloc();
 
-        if (!convert_context) {
-          AVPixelFormat imagePixFormat = (AVPixelFormat)(packet->image->AVPixFormat());
-          AVPixelFormat inputPixFormat;
-          bool changeColorspaceDetails = false;
-          switch (input_frame->format) {
-            case AV_PIX_FMT_YUVJ420P:
-              inputPixFormat = AV_PIX_FMT_YUV420P;
-              changeColorspaceDetails = true;
-              break;
-            case AV_PIX_FMT_YUVJ422P:
-              inputPixFormat = AV_PIX_FMT_YUV422P;
-              changeColorspaceDetails = true;
-              break;
-            case AV_PIX_FMT_YUVJ444P:
-              inputPixFormat = AV_PIX_FMT_YUV444P;
-              changeColorspaceDetails = true;
-              break;
-            case AV_PIX_FMT_YUVJ440P:
-              inputPixFormat = AV_PIX_FMT_YUV440P;
-              changeColorspaceDetails = true;
-              break;
-            default:
-              inputPixFormat = (AVPixelFormat)input_frame->format;
-          }
-
-          convert_context = sws_getContext(
-              input_frame->width,
-              input_frame->height,
-              inputPixFormat,
-              camera_width, camera_height,
-              imagePixFormat, SWS_BICUBIC,
-              nullptr, nullptr, nullptr);
-          if (convert_context == nullptr) {
-            Error("Unable to create conversion context from %s to %s",
-                av_get_pix_fmt_name((AVPixelFormat)input_frame->format),
-                av_get_pix_fmt_name(imagePixFormat)
-                );
-            delete packet->image;
-            packet->image = nullptr;
-          } else {
-            Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
-                input_frame->width, input_frame->height,
-                av_get_pix_fmt_name(inputPixFormat),
-                camera_width, camera_height,
-                av_get_pix_fmt_name(imagePixFormat)
-                );
-            if (changeColorspaceDetails) {
-              // change the range of input data by first reading the current color space and then setting it's range as yuvj.
-              int dummy[4];
-              int srcRange, dstRange;
-              int brightness, contrast, saturation;
-              sws_getColorspaceDetails(convert_context, (int**)&dummy, &srcRange, (int**)&dummy, &dstRange, &brightness, &contrast, &saturation);
-              const int* coefs = sws_getCoefficients(SWS_CS_DEFAULT);
-              srcRange = 1; // this marks that values are according to yuvj
-              sws_setColorspaceDetails(convert_context, coefs, srcRange, coefs, dstRange,
-                  brightness, contrast, saturation);
-            }
-
-          }
-        }
-        if (convert_context) {
+        if (convert_context || this->setupConvertContext(packet->in_frame, packet->image)) {
           if (!packet->image->Assign(packet->in_frame, convert_context, dest_frame)) {
             delete packet->image;
             packet->image = nullptr;
           }
           av_frame_unref(dest_frame);
+        } else {
+          delete packet->image;
+          packet->image = nullptr;
         }  // end if have convert_context
       }  // end if need transfer to image
     } else {
@@ -3113,6 +3113,7 @@ int Monitor::PrimeCapture() {
   }
 
   if (decoding_enabled) {
+    if (!dest_frame) dest_frame = zm_av_frame_alloc();
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
       Debug(1, "Creating decoder thread");

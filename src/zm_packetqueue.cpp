@@ -32,7 +32,8 @@ PacketQueue::PacketQueue():
   max_stream_id(-1),
   packet_counts(nullptr),
   deleting(false),
-  keep_keyframes(false)
+  keep_keyframes(false),
+  has_warned(false)
 {
 }
 
@@ -110,10 +111,13 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         and
         (packet_counts[video_stream_id] > max_video_packet_count)
        ) {
-      Warning("You have set the max video packets in the queue to %u."
-          " The queue is full. Either Analysis is not keeping up or"
-          " your camera's keyframe interval is larger than this setting."
-          , max_video_packet_count);
+      if (!has_warned) {
+        has_warned = true;
+        Warning("You have set the max video packets in the queue to %u."
+            " The queue is full. Either Analysis is not keeping up or"
+            " your camera's keyframe interval is larger than this setting."
+            , max_video_packet_count);
+      }
 
       for (
           auto it = ++pktQueue.begin();
@@ -157,6 +161,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         if (zm_packet->packet.stream_index == video_stream_id)
           break;
       }  // end while
+      has_warned = false;
     }  // end if not able catch up
   }  // end lock scope
   // We signal on every packet because someday we may analyze sound

@@ -30,7 +30,7 @@ class ZMLockedPacket;
 typedef std::list<std::shared_ptr<ZMPacket>>::iterator packetqueue_iterator;
 
 class PacketQueue {
-  public: // For now just to ease development
+  private: // For now just to ease development
     std::list<std::shared_ptr<ZMPacket>>    pktQueue;
     std::list<std::shared_ptr<ZMPacket>>::iterator analysis_it;
 
@@ -46,6 +46,7 @@ class PacketQueue {
 
     std::mutex mutex;
     std::condition_variable condition;
+    bool has_warned;
 
   public:
     PacketQueue();

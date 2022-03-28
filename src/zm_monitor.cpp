@@ -80,7 +80,7 @@ struct Namespace namespaces[] =
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `DecodingEnabled`, "
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `Decoding`+0, "
 "`JanusEnabled`, `JanusAudioEnabled`, "
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
@@ -139,6 +139,14 @@ std::string Recording_Strings[] = {
   "Always"
 };
 
+std::string Decoding_Strings[] = {
+  "Unknown",
+  "None",
+  "On demand",
+  "Keyframes",
+  "Always"
+};
+
 std::string TriggerState_Strings[] = {
   "Cancel", "On", "Off"
 };
@@ -152,7 +160,7 @@ Monitor::Monitor()
   capturing(CAPTURING_ALWAYS),
   analysing(ANALYSING_ALWAYS),
   recording(RECORDING_ALWAYS),
-  decoding_enabled(false),
+  decoding(DECODING_ALWAYS),
   janus_enabled(false),
   janus_audio_enabled(false),
   //protocol
@@ -298,7 +306,7 @@ Monitor::Monitor()
 /*
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`,
-   `DecodingEnabled`, JanusEnabled, JanusAudioEnabled, "
+   `Decoding`+0, JanusEnabled, JanusAudioEnabled, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -354,7 +362,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   recording = (RecordingOption)atoi(dbrow[col]); col++;
   recording_source = (RecordingSourceOption)atoi(dbrow[col]); col++;
 
-  decoding_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  decoding = (DecodingOption)atoi(dbrow[col]); col++;
   // See below after save_jpegs for a recalculation of decoding_enabled
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
@@ -428,14 +436,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   videowriter = (VideoWriter)atoi(dbrow[col]); col++;
   encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
 
-  decoding_enabled = !(
-      ( savejpegs == 0 )
-      and
-      ( videowriter == PASSTHROUGH )
-      and
-      !decoding_enabled
-      );
-  Debug(3, "Decoding enabled: %d savejpegs %d videowriter %d", decoding_enabled, savejpegs, videowriter);
+  Debug(3, "Decoding: %d savejpegs %d videowriter %d", decoding, savejpegs, videowriter);
 
 /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
@@ -1866,7 +1867,7 @@ bool Monitor::Analyse() {
           } // end if linked_monitors
 
           /* try to stay behind the decoder. */
-          if (decoding_enabled) {
+          if (decoding != DECODING_NONE) {
             while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
               // Need to wait for the decoder thread.
               // decoder thread might be waiting on the lock for this packet.
@@ -2454,7 +2455,7 @@ int Monitor::Capture() {
   } else if (captureResult > 0) {
     shared_data->signal = true;   // Assume if getting packets that we are getting something useful. CheckSignalPoints can correct this later.
     // If we captured, let's assume signal, Decode will detect further
-    if (!decoding_enabled) {
+    if (decoding == DECODING_NONE) {
       shared_data->last_write_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
     }
@@ -2592,6 +2593,14 @@ bool Monitor::Decode() {
   }
 
   if ((!packet->image) and packet->packet.size and !packet->in_frame) {
+    Debug(1, "Decoding ? %s", Decoding_Strings[decoding].c_str());
+    if ((decoding == DECODING_ALWAYS)
+        or
+        ((decoding == DECODING_ONDEMAND) and this->hasViewers() )
+        or
+        ((decoding == DECODING_KEYFRAMES) and packet->keyframe)
+       ) {
+
     // Allocate the image first so that it can be used by hwaccel
     // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
     //
@@ -2615,12 +2624,15 @@ bool Monitor::Decode() {
     } else {
       Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
     }
+    } else {
+    Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
+    } // end if doing decoding
   }  // end if need_decoding
 
-  Image* capture_image = nullptr;
-  unsigned int index = packet->image_index % image_buffer_count;
 
   if (packet->image) {
+    Image* capture_image = nullptr;
+    unsigned int index = packet->image_index % image_buffer_count;
     capture_image = packet->image;
 
     /* Deinterlacing */
@@ -2694,11 +2706,11 @@ bool Monitor::Decode() {
 
     image_buffer[index]->Assign(*(packet->image));
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
+    shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
+    shared_data->last_write_index = index;
+    shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   }  // end if have image
   packet->decoded = true;
-  shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
-  shared_data->last_write_index = index;
-  shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   packetqueue.unlock(packet_lock);
   return true;
 }  // end bool Monitor::Decode()
@@ -3112,7 +3124,7 @@ int Monitor::PrimeCapture() {
     }
   }
 
-  if (decoding_enabled) {
+  if (decoding != DECODING_NONE) {
     if (!dest_frame) dest_frame = zm_av_frame_alloc();
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {

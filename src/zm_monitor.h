@@ -92,6 +92,13 @@ public:
   } RecordingSourceOption;
 
   typedef enum {
+    DECODING_NONE=1,
+    DECODING_ONDEMAND,
+    DECODING_KEYFRAMES,
+    DECODING_ALWAYS
+  } DecodingOption;
+
+  typedef enum {
     LOCAL=1,
     REMOTE,
     FILE,
@@ -338,7 +345,7 @@ protected:
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
-  bool            decoding_enabled;   // Whether the monitor will decode h264/h265 packets
+  DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
 
@@ -582,8 +589,8 @@ public:
   inline bool Enabled() const {
     return shared_data->capturing;
   }
-  inline bool DecodingEnabled() const {
-    return decoding_enabled;
+  DecodingOption Decoding() const {
+    return decoding;
   }
   bool JanusEnabled() {
     return janus_enabled;

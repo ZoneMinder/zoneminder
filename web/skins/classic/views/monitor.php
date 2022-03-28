@@ -750,6 +750,25 @@ include('_monitor_source_nvsocket.php');
           </tr>
 <?php
       }
+?>
+          <tr class="Decoding">
+            <td class="text-right pr-3"><?php echo translate('Decoding'); echo makeHelpLink('FUNCTION_DECODING');?></td>
+            <td>
+<?php
+        echo htmlSelect('newMonitor[Decoding]', ZM\Monitor::getDecodingOptions(), $monitor->Decoding());
+?>
+                <div id="decoding_help">
+<?php
+        foreach (ZM\Monitor::getDecodingOptions() as $fn => $translated) {
+          if (isset($OLANG['FUNCTION_DECODING_'.strtoupper($fn)])) {
+            echo '<div class="form-text" id="'.$fn.'Help">'.$OLANG['FUNCTION_DECODING_'.strtoupper($fn)]['Help'].'</div>';
+          }
+        }
+?>
+                </div>
+            </td>
+          </tr>
+<?php
       if ( $monitor->Type() == 'Ffmpeg' ) {
 ?>
           <tr class="SourceSecondPath">
@@ -1280,16 +1299,6 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
   case 'misc' :
     {
 ?>
-          <tr id="FunctionDecodingEnabled">
-            <td class="text-right pr-3"><?php echo translate('Decoding Enabled') ?></td>
-            <td><input type="checkbox" name="newMonitor[DecodingEnabled]" value="1"<?php echo $monitor->DecodingEnabled() ? ' checked="checked"' : '' ?>/>
-<?php
-        if (isset($OLANG['FUNCTION_DECODING_ENABLED'])) {
-          echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
-        }
-?>
-            </td>
-          </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('EventPrefix') ?></td>
           <td><input type="text" name="newMonitor[EventPrefix]" value="<?php echo validHtmlStr($monitor->EventPrefix()) ?>"/></td>

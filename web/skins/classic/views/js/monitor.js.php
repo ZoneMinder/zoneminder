@@ -76,13 +76,14 @@ function validateForm( form ) {
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
     } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
-console.log(form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/));
     }
+/*
+ * Alternate way of testing for bad urls
     let url = new URL(form.elements['newMonitor[Path]'].value);
-console.log(url.href);
     if (url.href != form.elements['newMonitor[Path]'].value) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }
+*/
 
   } else if ( form.elements['newMonitor[Type]'].value == 'File' ) {
     if ( !form.elements['newMonitor[Path]'].value )

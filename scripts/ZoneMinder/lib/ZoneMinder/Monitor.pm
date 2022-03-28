@@ -55,6 +55,7 @@ $serial = $primary_key = 'Id';
   Capturing
   Analysing
   Recording
+  Decoding
   Enabled
   LinkedMonitors
   Triggers
@@ -152,7 +153,10 @@ $serial = $primary_key = 'Id';
     ServerId => 0,
     StorageId => 0,
     Type      => q`'Ffmpeg'`,
-    Function  => q`'Mocord'`,
+    Capturing => 'Always',
+    Analysing => 'Always',
+    Recording => 'Always',
+    Decoding => 'Always',
     Enabled   => 1,
     LinkedMonitors => undef,
     Device  =>  '',

@@ -893,11 +893,15 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
       no events will be created.
       '
   ),
-  'FUNCTION_DECODING_ENABLED' => array(
+  'FUNCTION_DECODING' => array(
     'Help' => '
       When not performing motion detection and using H264Passthrough with no jpegs being saved, we can
-      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
-      but will make live view unavailable for this monitor.'
+      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use.~~~~
+Always: every frame will be decoded, live view and thumbnails will be available.~~~~
+OnDemand: only do decoding when someone is watching.~~~~
+KeyFrames: Only keyframes will be decoded, so viewing frame rate will be very low, depending on the keyframe interval set in the camera.~~~~
+None: No frames will be decoded, live view and thumbnails will not be available~~~~
+'
   ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '

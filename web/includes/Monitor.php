@@ -28,7 +28,7 @@ public static function getFunctionTypes() {
 
 protected static $CapturingOptions = null;
 public static function getCapturingOptions() {
-  if (!isset($MonitorCapturingOptions)) {
+  if (!isset($CapturingOptions)) {
     $CapturingOptions = array(
         'None'=>translate('None'),
         'Ondemand'  =>  translate('On Demand'),
@@ -49,15 +49,15 @@ public static function getAnalysingOptions() {
   return $AnalysingOptions;
 }
 
-protected static $MonitorAnalysisSourceOptions = null;
+protected static $AnalysisSourceOptions = null;
 public static function getAnalysisSourceOptions() {
-  if (!isset($MonitorAnalysisSourceOptions)) {
-    $MonitorAnalysisSourceOptions = array(
+  if (!isset($AnalysisSourceOptions)) {
+    $AnalysisSourceOptions = array(
         'Primary'   => translate('Primary'),
         'Secondary' => translate('Secondary'),
         );
   }
-  return $MonitorAnalysisSourceOptions;
+  return $AnalysisSourceOptions;
 }
 
 protected static $RecordingOptions = null;
@@ -72,16 +72,29 @@ public static function getRecordingOptions() {
   return $RecordingOptions;
 }
 
-protected static $MonitorRecordingSourceOptions = null;
+protected static $RecordingSourceOptions = null;
 public static function getRecordingSourceOptions() {
-  if (!isset($MonitorRecordingSourceOptions)) {
-    $MonitorRecordingSourceOptions = array(
+  if (!isset($RecordingSourceOptions)) {
+    $RecordingSourceOptions = array(
         'Primary'   => translate('Primary'),
         'Secondary' => translate('Secondary'),
         'Both'      => translate('Both'),
         );
   }
-  return $MonitorRecordingSourceOptions;
+  return $RecordingSourceOptions;
+}
+
+protected static $DecodingOptions = null;
+public static function getDecodingOptions() {
+  if (!isset($DecodingOptions)) {
+    $DecodingOptions = array(
+        'None'      =>  translate('None'),
+        'Ondemand'  =>  translate('On Demand'),
+        'KeyFrames' =>  translate('KeyFrames Only'),
+        'Always'    =>  translate('Always'),
+        );
+  }
+  return $DecodingOptions;
 }
 
 protected static $Statuses = null;
@@ -114,7 +127,7 @@ public static function getStatuses() {
     'Analysing' => 'Always',
     'Recording' => 'Always',
     'Enabled'   => array('type'=>'boolean','default'=>1),
-    'DecodingEnabled'   => array('type'=>'boolean','default'=>1),
+    'Decoding'  => 'Always',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),

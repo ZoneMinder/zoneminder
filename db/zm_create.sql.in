@@ -460,6 +460,7 @@ CREATE TABLE `Monitors` (
   `Recording` enum('None', 'OnMotion', 'Always') NOT NULL default 'Always',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `DecodingEnabled` tinyint(3) unsigned NOT NULL default '1',
+  `Decoding` enum('None','Ondemand','KeyFrames','Always') NOT NULL default 'Always',
   `JanusEnabled` BOOLEAN NOT NULL default false,
   `JanusAudioEnabled` BOOLEAN NOT NULL default false,
   `LinkedMonitors` varchar(255),

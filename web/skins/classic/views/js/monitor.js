@@ -324,7 +324,6 @@ function update_estimated_ram_use() {
   var max_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]')[0].value);
   if (max_buffer_count) {
     var max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
-    console.log(max_buffer_size);
     document.getElementById('estimated_ram_use').innerHTML += ' Max: ' + human_filesize(max_buffer_size);
   } else {
     document.getElementById('estimated_ram_use').innerHTML += ' Max: Unlimited';

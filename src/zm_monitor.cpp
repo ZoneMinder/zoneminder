@@ -2601,39 +2601,36 @@ bool Monitor::Decode() {
         ((decoding == DECODING_KEYFRAMES) and packet->keyframe)
        ) {
 
-    // Allocate the image first so that it can be used by hwaccel
-    // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
-    //
-    //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
-    int ret = packet->decode(camera->getVideoCodecContext());
-    if (ret > 0 and !zm_terminate) {
-      if (packet->in_frame and !packet->image) {
-        packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+      // Allocate the image first so that it can be used by hwaccel
+      // We don't actually care about camera colours, pixel order etc.  We care about the desired settings
+      //
+      //capture_image = packet->image = new Image(width, height, camera->Colours(), camera->SubpixelOrder());
+      int ret = packet->decode(camera->getVideoCodecContext());
+      if (ret > 0 and !zm_terminate) {
+        if (packet->in_frame and !packet->image) {
+          packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
-        if (convert_context || this->setupConvertContext(packet->in_frame, packet->image)) {
-          if (!packet->image->Assign(packet->in_frame, convert_context, dest_frame)) {
+          if (convert_context || this->setupConvertContext(packet->in_frame, packet->image)) {
+            if (!packet->image->Assign(packet->in_frame, convert_context, dest_frame)) {
+              delete packet->image;
+              packet->image = nullptr;
+            }
+            av_frame_unref(dest_frame);
+          } else {
             delete packet->image;
             packet->image = nullptr;
-          }
-          av_frame_unref(dest_frame);
-        } else {
-          delete packet->image;
-          packet->image = nullptr;
-        }  // end if have convert_context
-      }  // end if need transfer to image
+          }  // end if have convert_context
+        }  // end if need transfer to image
+      } else {
+        Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
+      }
     } else {
-      Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
-    }
-    } else {
-    Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
+      Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
     } // end if doing decoding
   }  // end if need_decoding
 
-
   if (packet->image) {
-    Image* capture_image = nullptr;
-    unsigned int index = packet->image_index % image_buffer_count;
-    capture_image = packet->image;
+    Image* capture_image = packet->image;
 
     /* Deinterlacing */
     if (deinterlacing_value) {
@@ -2704,7 +2701,9 @@ bool Monitor::Decode() {
       TimestampImage(capture_image, packet->timestamp);
     }
 
+    unsigned int index = (shared_data->last_write_index++) % image_buffer_count;
     image_buffer[index]->Assign(*(packet->image));
+    Debug(3, "Assigned shared image %u", index);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;

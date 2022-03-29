@@ -409,7 +409,7 @@ foreach ($tabs as $name=>$value) {
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       </div>
       
-      <h2><?php echo translate('Monitor').' - '.validHtmlStr($monitor->Name()) .($monitor->Id()? $monitor->Id() : '') ?></h2>
+      <h2><?php echo translate('Monitor').' - '.($monitor->Id() ? $monitor->Id().' - ' : '').validHtmlStr($monitor->Name()) ?></h2>
 <?php
 if (canEdit('Monitors')) {
   if (isset($_REQUEST['dupId'])) {

@@ -203,8 +203,8 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   $status = runtimeStatus($running);
 
 ?>
-<div class="container-fluid p-0">
-  <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row">
+<div class="container-fluid p-0" id="navbar-container">
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row" id="navbar-one">
 
     <div class="navbar-brand justify-content-start align-self-start">
       <?php echo getNavBrandHTML() ?>
@@ -223,7 +223,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 
   // *** Build the navigation bar menu items ***
   if ( $user and $user['Username'] ) {
-        echo '<ul class="navbar-nav align-self-start justify-content-center">';
+        echo '<ul class="nav navbar-nav align-self-start justify-content-center">';
           echo getConsoleHTML();
           echo getOptionsHTML();
           echo getLogHTML();
@@ -247,7 +247,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     </div>
   </nav><!-- End First Navbar -->
 
-  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
+  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0" id="navbar-two">
     <div class="container-fluid" id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
 
@@ -281,9 +281,12 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
   
-  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
-    <?php echo getConsoleBannerHTML() ?>
-  </nav><!-- End Third Navbar -->
+<?php
+  $banner_html = getConsoleBannerHTML();
+  if ($banner_html) {
+    echo '<nav class="navbar navbar-expand-md bg-dark justify-content-center p-0" id="navbar-three">'.$banner_html.'</nav>';
+  }
+?>
 </div>
 <?php
 } // end function getNormalNavBarHTML()

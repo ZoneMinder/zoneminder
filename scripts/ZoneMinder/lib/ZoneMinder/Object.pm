@@ -79,7 +79,8 @@ sub new {
   no strict 'refs';
   my $primary_key = ${$parent.'::primary_key'};
   if ( ! $primary_key ) {
-    Error( 'NO primary_key for type ' . $parent );
+      my ( $caller, undef, $line ) = caller;
+    Error( 'NO primary_key for type ' . $parent . ' called from '.$caller.$line);
     return;
   } # end if
 
@@ -735,7 +736,8 @@ sub find {
 	my $fields = \%{$object_type.'::fields'};
   my $primary_key = ${$object_type.'::primary_key'};
   if ( ! $primary_key ) {
-    Error( 'NO primary_key for type ' . $object_type );
+    my ( $caller, undef, $line ) = caller;
+    Error( 'NO primary_key for type ' . $object_type . ' called from '.$caller.$line);
     return;
   } # end if
   if ( ! ($fields and keys %{$fields}) ) {

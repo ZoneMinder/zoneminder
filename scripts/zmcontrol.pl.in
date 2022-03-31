@@ -151,6 +151,7 @@ if ($options{command}) {
   $0 = $0.' --id '.$id;
 
   my $control = ('ZoneMinder::Control::'.$protocol)->new($id);
+  $$control{MonitorId} = $id;
   my $control_key = $control->getKey();
   $control->loadMonitor();
 

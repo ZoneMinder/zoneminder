@@ -190,7 +190,7 @@ sub loadMonitor {
   my $self = shift;
   if ( !$self->{Monitor} ) {
     if ( !($self->{Monitor} = ZoneMinder::Monitor->find_one(Id=>$self->{MonitorId})) ) {
-      Fatal('Monitor id '.$self->{id}.' not found');
+      Fatal('Monitor id '.$self->{MonitorId}.' not found');
     }
     if ( defined($self->{Monitor}->{AutoStopTimeout}) ) {
 # Convert to microseconds.

@@ -2701,7 +2701,9 @@ bool Monitor::Decode() {
       TimestampImage(capture_image, packet->timestamp);
     }
 
-    unsigned int index = (shared_data->last_write_index++) % image_buffer_count;
+    unsigned int index = shared_data->last_write_index;
+    index++;
+    index = index % image_buffer_count;
     image_buffer[index]->Assign(*(packet->image));
     Debug(3, "Assigned shared image %u", index);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
@@ -2829,7 +2831,7 @@ Event * Monitor::openEvent(
 void Monitor::closeEvent() {
   if (!event) return;
 
-  if ( close_event_thread.joinable() ) {
+  if (close_event_thread.joinable()) {
     Debug(1, "close event thread is joinable");
     close_event_thread.join();
   } else {
@@ -2838,7 +2840,7 @@ void Monitor::closeEvent() {
   Debug(1, "Starting thread to close event");
   close_event_thread = std::thread([](Event *e, const std::string &command){
         int64_t event_id = e->Id();
-	int monitor_id = e->MonitorId();
+        int monitor_id = e->MonitorId();
         delete e;
 
         if (!command.empty()) {

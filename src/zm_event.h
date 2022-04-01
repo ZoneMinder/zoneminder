@@ -145,7 +145,10 @@ class Event {
     void AddFrame(const std::shared_ptr<ZMPacket>&packet);
 
     void Stop() {
-      terminate_ = true;
+      {
+        std::unique_lock<std::mutex> lck(packet_queue_mutex);
+        terminate_ = true;
+      }
       packet_queue_condition.notify_all();
     }
     bool Stopped() const { return terminate_; }

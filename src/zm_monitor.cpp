@@ -1803,7 +1803,7 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
             closeEvent();
           }
-        } else if (recording == RECORDING_ALWAYS) {
+        } else if (shared_data->recording == RECORDING_ALWAYS) {
           if (!event) {
             if (!cause.empty()) cause += ", ";
             cause += SIGNAL_CAUSE + std::string(": Reacquired");
@@ -2036,13 +2036,13 @@ bool Monitor::Analyse() {
                 Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                     name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
                 if (
-                    (recording = RECORDING_ONMOTION)
+                    (shared_data->recording == RECORDING_ONMOTION)
                     ||
                     (event_close_mode == CLOSE_ALARM || event_close_mode==CLOSE_IDLE)
                     ) {
                   shared_data->state = state = IDLE;
                   Info("%s: %03d - Closing event %" PRIu64 ", alarm end%s",
-                      name.c_str(), analysis_image_count, event->Id(), (recording==RECORDING_ALWAYS)?", section truncated":"" );
+                      name.c_str(), analysis_image_count, event->Id(), (shared_data->recording==RECORDING_ALWAYS)?", section truncated":"" );
 
                   closeEvent();
                 } else {
@@ -2051,7 +2051,7 @@ bool Monitor::Analyse() {
               }
             } else if (state == PREALARM) {
               // Back to IDLE
-              shared_data->state = state = ((recording == RECORDING_ALWAYS) ? IDLE : TAPE);
+              shared_data->state = state = ((shared_data->recording == RECORDING_ALWAYS) ? IDLE : TAPE);
             } else {
               Debug(1,
                     "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
@@ -2089,7 +2089,7 @@ bool Monitor::Analyse() {
                 closeEvent();
                 event = openEvent(snap, cause, noteSetMap);
               }
-            } else if (recording != RECORDING_NONE) {
+            } else if (shared_data->recording != RECORDING_NONE) {
               if (!event) {
                 event = openEvent(snap, cause, noteSetMap);
                 Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
@@ -2107,27 +2107,27 @@ bool Monitor::Analyse() {
             // bulk frame code moved to event.
           } // end if state machine
 
-        if (shared_data->recording > RECORDING_NONE) {
-          // If doing record, check to see if we need to close the event or not.
-          if (event && (section_length >= Seconds(min_section_length)) && (event->Duration() > section_length)) {
-            if (
-                 (recording == RECORDING_ONMOTION && event_close_mode != CLOSE_TIME)
-                 || (recording == RECORDING_ALWAYS && event_close_mode == CLOSE_TIME)
-                 || std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
+          if (shared_data->recording > RECORDING_NONE) {
+            // If doing record, check to see if we need to close the event or not.
+            if (event && (section_length >= Seconds(min_section_length)) && (event->Duration() > section_length)) {
+              if (
+                  ((shared_data->recording == RECORDING_ONMOTION) && (event_close_mode != CLOSE_TIME))
+                  || ((shared_data->recording == RECORDING_ALWAYS) && (event_close_mode == CLOSE_TIME))
+                  || std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
 
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
-                     name.c_str(),
-                     snap->image_index,
-                     event->Id(),
-                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                     static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
-                     static_cast<int64>(Seconds(section_length).count()));
+                    name.c_str(),
+                    snap->image_index,
+                    event->Id(),
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
+                    static_cast<int64>(Seconds(section_length).count()));
                 closeEvent();
               }  // end if section_length
             }  // end if event
 
-            if (!event and (recording == RECORDING_ALWAYS)) {
+            if (!event and (shared_data->recording == RECORDING_ALWAYS)) {
               event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
 
               Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
@@ -2201,7 +2201,7 @@ bool Monitor::Analyse() {
     } else {
       // In the case where people have pre-alarm frames, the web ui will generate the frame images
       // from the mp4. So no one will notice anyways.
-      if (snap->image and ((videowriter == PASSTHROUGH) || recording == RECORDING_NONE)) {
+      if (snap->image and ((videowriter == PASSTHROUGH) || shared_data->recording == RECORDING_NONE)) {
         if (!savejpegs) {
           Debug(1, "Deleting image data for %d", snap->image_index);
           // Don't need raw images anymore

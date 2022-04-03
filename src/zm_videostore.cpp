@@ -1141,9 +1141,9 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
   if (!audio_first_dts) {
     audio_first_dts = ipkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;
+    Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
   }
 
-  Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
 
   if (audio_out_codec) {
@@ -1215,6 +1215,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   pkt->pos = -1;
   pkt->stream_index = stream->index;
 
+#if 0
   if (pkt->dts == AV_NOPTS_VALUE) {
     Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
     pkt->dts = stream->cur_dts;
@@ -1230,6 +1231,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
           pkt->dts, pkt->pts);
     pkt->pts = pkt->dts;
   }
+#endif
 
   ZM_DUMP_STREAM_PACKET(stream, (*pkt), "finished pkt");
   next_dts[stream->index] = pkt->dts + pkt->duration;

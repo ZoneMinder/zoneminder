@@ -257,7 +257,7 @@ int FfmpegCamera::OpenFfmpeg() {
   // Handle options
   AVDictionary *opts = nullptr;
   ret = av_dict_parse_string(&opts, Options().c_str(), "=", ",", 0);
-  if ( ret < 0 ) {
+  if (ret < 0) {
     Warning("Could not parse ffmpeg input options '%s'", Options().c_str());
   }
 
@@ -277,7 +277,7 @@ int FfmpegCamera::OpenFfmpeg() {
     } else {
       Warning("Unknown method (%s)", method.c_str());
     }
-    if ( ret < 0 ) {
+    if (ret < 0) {
       Warning("Could not set rtsp_transport method '%s'", method.c_str());
     }
   }  // end if RTSP
@@ -285,10 +285,6 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(1, "Calling avformat_open_input for %s", mPath.c_str());
 
   mFormatContext = avformat_alloc_context();
-  // Speed up find_stream_info
-  // FIXME can speed up initial analysis but need sensible parameters...
-  // mFormatContext->probesize = 32;
-  // mFormatContext->max_analyze_duration = 32;
   mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
   mFormatContext->interrupt_callback.opaque = this;
 
@@ -297,26 +293,23 @@ int FfmpegCamera::OpenFfmpeg() {
     logPrintf(Logger::ERROR + monitor->Importance(),
         "Unable to open input %s due to: %s", mPath.c_str(),
         av_make_error_string(ret).c_str());
-
-    if (mFormatContext) {
-      avformat_close_input(&mFormatContext);
-      mFormatContext = nullptr;
-    }
+    avformat_close_input(&mFormatContext);
+    mFormatContext = nullptr;
     av_dict_free(&opts);
     return -1;
   }
+
   AVDictionaryEntry *e = nullptr;
-  while ( (e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr ) {
+  while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
     Warning("Option %s not recognized by ffmpeg", e->key);
   }
   av_dict_free(&opts);
 
-  Debug(1, "Finding stream info");
   ret = avformat_find_stream_info(mFormatContext, nullptr);
-
-  if ( ret < 0 ) {
+  if (ret < 0) {
     Error("Unable to find stream info from %s due to: %s",
         mPath.c_str(), av_make_error_string(ret).c_str());
+    avformat_close_input(&mFormatContext);
     return -1;
   }
 
@@ -325,13 +318,15 @@ int FfmpegCamera::OpenFfmpeg() {
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   for (unsigned int i=0; i < mFormatContext->nb_streams; i++) {
-    AVStream *stream = mFormatContext->streams[i];
+    const AVStream *stream = mFormatContext->streams[i];
     if (is_video_stream(stream)) {
+      if (!(stream->codecpar->width && stream->codecpar->height)) {
+        Warning("No width and height in video stream. Trying again");
+        continue;
+      }
       if (mVideoStreamId == -1) {
         mVideoStreamId = i;
         mVideoStream = mFormatContext->streams[i];
-        // if we break, then we won't find the audio stream
-        continue;
       } else {
         Debug(2, "Have another video stream.");
       }
@@ -346,7 +341,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }  // end foreach stream
 
   if (mVideoStreamId == -1) {
-    Error("Unable to locate video stream in %s", mPath.c_str());
+    avformat_close_input(&mFormatContext);
     return -1;
   }
 

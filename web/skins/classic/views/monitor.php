@@ -1058,6 +1058,8 @@ $videowriter_codecs = array(
   '0' => translate('Auto'),
   '27' => 'h264',
   '173' => 'h265/hevc',
+  '167' => 'vp9',
+  '226' => 'av1',
 );
 echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->OutputCodec());
 ?>
@@ -1077,6 +1079,8 @@ $videowriter_encoders = array(
   'libx265' => 'libx265',
   'hevc_nvenc' => 'hevc_nvenc',
   'hevc_vaapi' => 'hevc_vaapi',
+  'libvpx-vp9' => 'libvpx-vp9',
+  'libsvtav1' => 'libsvtav1',
 );
  echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
             <tr class="OutputContainer">
@@ -1087,6 +1091,7 @@ $videowriter_containers = array(
   '' => translate('Auto'),
   'mp4' => 'mp4',
   'mkv' => 'mkv',
+  'webm' => 'webm',
 );
 echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor->OutputContainer());
 ?>

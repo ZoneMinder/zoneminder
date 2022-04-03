@@ -87,7 +87,38 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
   {
     std::unique_lock<std::mutex> lck(mutex);
 
-    pktQueue.push_back(add_packet);
+    bool have_out_of_order = false;
+    auto rit = pktQueue.rbegin();
+    if (add_packet->packet.dts != AV_NOPTS_VALUE) {
+      // Find the previous packet for the stream, and check dts
+      while (rit != pktQueue.rend()) {
+        if ((*rit)->packet.stream_index == add_packet->packet.stream_index) {
+          if ((*rit)->packet.dts <= add_packet->packet.dts) {
+            Debug(1, "Found in order packet");
+            ZM_DUMP_PACKET((*rit)->packet, "queued_packet");
+            ZM_DUMP_PACKET(add_packet->packet, "add_packet");
+            // packets are in order, everything is fine
+            break;
+          } else {
+            ZM_DUMP_PACKET((*rit)->packet, "queued_packet");
+            ZM_DUMP_PACKET(add_packet->packet, "add_packet");
+            have_out_of_order = true;
+          }
+        }
+        rit++;
+      }  // end while
+    }
+    if (have_out_of_order) {
+      if (rit == pktQueue.rend()) {
+        Warning("Unable to re-order packet");
+      } else {
+        Debug(1, "Found out of order packet");
+      }
+      pktQueue.insert(rit.base(), add_packet);
+    } else {
+      pktQueue.push_back(add_packet);
+    }
+
     packet_counts[add_packet->packet.stream_index] += 1;
     Debug(2, "packet counts for %d is %d",
         add_packet->packet.stream_index,

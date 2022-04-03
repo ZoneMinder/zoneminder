@@ -57,7 +57,7 @@ function getFrame(monId, time, last_Frame) {
 
   var events_for_monitor = events_by_monitor_id[monId];
   if ( !events_for_monitor ) {
-    console.log("No events for monitor " + monId);
+    //console.log("No events for monitor " + monId);
     return;
   }
 
@@ -275,17 +275,16 @@ function timerFire() {
     clearInterval(timerObj);
     timerObj = null;
     timerInterval = currentDisplayInterval;
-    console.log("Turn off nterrupts timerInterfave" + timerInterval);
+    console.log("Turn off interrupts timerInterfave" + timerInterval);
   }
 
   if ( (currentSpeed > 0 || liveMode != 0) && ! timerObj ) {
     timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
   }
 
-  if ( liveMode ) {
-    console.log("liveMode");
+  if (liveMode) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if ( currentTimeSecs + playSecsPerInterval >= maxTimeSecs ) {
+  } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
     console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
     setSpeed(0);
@@ -499,8 +498,8 @@ function redrawScreen() {
     drawGraph();
   }
 
+  var monitors = $j('#monitors');
   if ( fitMode == 1 ) {
-    var monitors = $j('#monitors');
     var fps = $j('#fps');
     var vh = window.innerHeight;
     var mh = (vh - monitors.position().top - fps.outerHeight());
@@ -637,7 +636,7 @@ function showSpeed(val) {
 }
 
 function setSpeed(speed_index) {
-  if ( liveMode == 1 ) {
+  if (liveMode == 1) {
     console.log("setSpeed in liveMode?");
     return; // we shouldn't actually get here but just in case
   }
@@ -649,8 +648,11 @@ function setSpeed(speed_index) {
 }
 
 function setLive(value) {
+  // When we submit the context etc goes away but we may still be trying to update
+  // So kill the timer.
+  clearInterval(timerObj);
   liveMode = value;
-  var form = $j('#montagereview_form')[0];
+  var form = document.getElementById('montagereview_form');
   form.elements['live'].value = value;
   form.submit();
   return false;
@@ -986,6 +988,19 @@ function initPage() {
     });
   });
 
+  if ( !liveMode ) {
+    canvas = document.getElementById('timeline');
+
+    canvas.addEventListener('mousemove', mmove, false);
+    canvas.addEventListener('touchmove', tmove, false);
+    canvas.addEventListener('mousedown', mdown, false);
+    canvas.addEventListener('mouseup', mup, false);
+    canvas.addEventListener('mouseout', mout, false);
+
+    ctx = canvas.getContext('2d');
+    drawGraph();
+  }
+
   for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
     var monId = monitorPtr[i];
     if ( !monId ) continue;
@@ -1007,18 +1022,6 @@ function initPage() {
     }
   } // end foreach monitor
 
-  if ( !liveMode ) {
-    canvas = document.getElementById('timeline');
-
-    canvas.addEventListener('mousemove', mmove, false);
-    canvas.addEventListener('touchmove', tmove, false);
-    canvas.addEventListener('mousedown', mdown, false);
-    canvas.addEventListener('mouseup', mup, false);
-    canvas.addEventListener('mouseout', mout, false);
-
-    ctx = canvas.getContext('2d');
-    drawGraph();
-  }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw
   //setLive(liveMode);  // will redraw

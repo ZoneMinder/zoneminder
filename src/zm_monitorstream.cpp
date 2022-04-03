@@ -89,7 +89,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_PLAY :
       Debug(1, "Got PLAY command");
-      if ( paused ) {
+      if (paused) {
         paused = false;
         delayed = true;
       }
@@ -97,7 +97,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_VARPLAY :
       Debug(1, "Got VARPLAY command");
-      if ( paused ) {
+      if (paused) {
         paused = false;
         delayed = true;
       }
@@ -110,7 +110,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_FASTFWD :
       Debug(1, "Got FAST FWD command");
-      if ( paused ) {
+      if (paused) {
         paused = false;
         delayed = true;
       }
@@ -135,27 +135,27 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       }
       break;
     case CMD_SLOWFWD :
-      Debug( 1, "Got SLOW FWD command" );
+      Debug(1, "Got SLOW FWD command");
       paused = true;
       delayed = true;
       replay_rate = ZM_RATE_BASE;
       step = 1;
       break;
     case CMD_SLOWREV :
-      Debug( 1, "Got SLOW REV command" );
+      Debug(1, "Got SLOW REV command");
       paused = true;
       delayed = true;
       replay_rate = ZM_RATE_BASE;
       step = -1;
       break;
     case CMD_FASTREV :
-      Debug( 1, "Got FAST REV command" );
-      if ( paused ) {
+      Debug(1, "Got FAST REV command");
+      if (paused) {
         paused = false;
         delayed = true;
       }
       // Set play rate
-      switch ( replay_rate ) {
+      switch (replay_rate) {
         case -2 * ZM_RATE_BASE :
           replay_rate = -5 * ZM_RATE_BASE;
           break;
@@ -229,6 +229,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       break;
     case CMD_QUIT :
       Info("User initiated exit - CMD_QUIT");
+      zm_terminate = true;
       break;
     case CMD_QUERY :
       Debug(1, "Got QUERY command, sending STATUS");
@@ -255,7 +256,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   } status_data;
 
   status_data.id = monitor->Id();
-  if ( ! monitor->ShmValid() ) {
+  if (!monitor->ShmValid()) {
     status_data.fps = 0.0;
     status_data.capture_fps = 0.0;
     status_data.analysis_fps = 0.0;
@@ -265,7 +266,14 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     status_data.forced = false;
     status_data.buffer_level = 0;
   } else {
-    status_data.fps = monitor->GetFPS();
+    int elapsed = now.tv_sec - last_fps_update.tv_sec;
+    if (elapsed) { 
+      actual_fps = (frame_count - last_frame_count) / elapsed;
+      last_frame_count = frame_count;
+      last_fps_update = now;
+    }
+
+    status_data.fps = actual_fps;
     status_data.capture_fps = monitor->get_capture_fps();
     status_data.analysis_fps = monitor->get_analysis_fps();
     status_data.state = monitor->shared_data->state;
@@ -308,16 +316,6 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     }
   }
   Debug(2, "Number of bytes sent to (%s): (%d)", rem_addr.sun_path, nbytes);
-
-  // quit after sending a status, if this was a quit request
-  if ( (MsgCommand)msg->msg_data[0] == CMD_QUIT ) {
-    zm_terminate = true;
-    Debug(2, "Quitting");
-    return;
-  }
-
-  //Debug(2,"Updating framerate");
-  //updateFrameRate(monitor->GetFPS());
 }  // end void MonitorStream::processCommand(const CmdMsg *msg)
 
 bool MonitorStream::sendFrame(const char *filepath, const timeval &timestamp) {
@@ -380,9 +378,10 @@ bool MonitorStream::sendFrame(const char *filepath, const timeval &timestamp) {
 } // end bool MonitorStream::sendFrame(const char *filepath, struct timeval *timestamp)
 
 bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
+  if (!config.timestamp_on_capture) {
+    monitor->TimestampImage(image, timestamp);
+  }
   Image *send_image = prepareImage(image);
-  if (!config.timestamp_on_capture)
-    monitor->TimestampImage(send_image, timestamp);
 
   fputs("--" BOUNDARY "\r\n", stdout);
 #if HAVE_LIBAVCODEC
@@ -520,7 +519,7 @@ void MonitorStream::runStream() {
   Image *paused_image = nullptr;
   struct timeval paused_timestamp;
 
-  if ( connkey && ( playback_buffer > 0 ) ) {
+  if (connkey && (playback_buffer > 0)) {
     // 15 is the max length for the swap path suffix, /zmswap-whatever, assuming max 6 digits for monitor id
     const int max_swap_len_suffix = 15;
 
@@ -529,27 +528,27 @@ void MonitorStream::runStream() {
     int subfolder2_length = snprintf(nullptr, 0, "/zmswap-q%06d", connkey) + 1;
     int total_swap_path_length = swap_path_length + subfolder1_length + subfolder2_length;
 
-    if ( total_swap_path_length + max_swap_len_suffix > PATH_MAX ) {
+    if (total_swap_path_length + max_swap_len_suffix > PATH_MAX) {
       Error("Swap Path is too long. %d > %d ", total_swap_path_length+max_swap_len_suffix, PATH_MAX);
     } else {
       swap_path = staticConfig.PATH_SWAP;
 
       Debug(3, "Checking swap path folder: %s", swap_path.c_str());
-      if ( checkSwapPath(swap_path.c_str(), true) ) {
+      if (checkSwapPath(swap_path.c_str(), true)) {
         swap_path += stringtf("/zmswap-m%d", monitor->Id());
 
         Debug(4, "Checking swap path subfolder: %s", swap_path.c_str());
-        if ( checkSwapPath(swap_path.c_str(), true) ) {
+        if (checkSwapPath(swap_path.c_str(), true)) {
           swap_path += stringtf("/zmswap-q%06d", connkey);
 
           Debug(4, "Checking swap path subfolder: %s", swap_path.c_str());
-          if ( checkSwapPath(swap_path.c_str(), true) ) {
+          if (checkSwapPath(swap_path.c_str(), true)) {
             buffered_playback = true;
           }
         }
       }
 
-      if ( !buffered_playback ) {
+      if (!buffered_playback) {
         Error("Unable to validate swap image path, disabling buffered playback");
       } else {
         Debug(2, "Assigning temporary buffer");
@@ -560,14 +559,13 @@ void MonitorStream::runStream() {
     }
   } else {
     Debug(2, "Not using playback_buffer");
-  } // end if connkey  & playback_buffer
+  } // end if connkey && playback_buffer
 
   while (!zm_terminate) {
-    bool got_command = false;
-    if ( feof(stdout) ) {
+    if (feof(stdout)) {
       Debug(2, "feof stdout");
       break;
-    } else if ( ferror(stdout) ) {
+    } else if (ferror(stdout)) {
       Debug(2, "ferror stdout");
       break;
     } else if (!monitor->ShmValid()) {
@@ -578,8 +576,9 @@ void MonitorStream::runStream() {
     gettimeofday(&now, nullptr);
 
     bool was_paused = paused;
-    if ( connkey ) {
-      while ( checkCommandQueue() && !zm_terminate ) {
+    bool got_command = false; // commands like zoom should output a frame even if paused
+    if (connkey) {
+      while (checkCommandQueue() && !zm_terminate) {
         // Loop in here until all commands are processed.
         Debug(2, "Have checking command Queue for connkey: %d", connkey);
         got_command = true;
@@ -591,35 +590,31 @@ void MonitorStream::runStream() {
       }
     }  // end if connkey
 
-    if ( paused ) {
-      if ( !was_paused ) {
+    if (paused) {
+      if (!was_paused) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
         paused_image = new Image(*monitor->image_buffer[index]);
         paused_timestamp = monitor->shared_timestamps[index];
       }
-    } else if ( paused_image ) {
-      Debug(1, "Clearing paused_image");
+    } else if (paused_image) {
       delete paused_image;
       paused_image = nullptr;
     }
 
-    if ( buffered_playback && delayed ) {
-      if ( temp_read_index == temp_write_index ) {
+    if (buffered_playback && delayed) {
+      if (temp_read_index == temp_write_index) {
         // Go back to live viewing
         Debug(1, "Exceeded temporary streaming buffer");
-        // Clear paused flag
         paused = false;
-        // Clear delayed_play flag
         delayed = false;
         replay_rate = ZM_RATE_BASE;
       } else {
-        if ( !paused ) {
+        if (!paused) {
           int temp_index = MOD_ADD(temp_read_index, 0, temp_image_buffer_count);
-          // Debug( 3, "tri: %d, ti: %d", temp_read_index, temp_index );
           SwapImage *swap_image = &temp_image_buffer[temp_index];
 
-          if ( !swap_image->valid ) {
+          if (!swap_image->valid) {
             paused = true;
             delayed = true;
             temp_read_index = MOD_ADD(temp_read_index, (replay_rate>=0?-1:1), temp_image_buffer_count);
@@ -632,13 +627,14 @@ void MonitorStream::runStream() {
             // If the next frame is due
             if ( actual_delta_time > expected_delta_time ) {
               // Debug( 2, "eDT: %.3lf, aDT: %.3f", expected_delta_time, actual_delta_time );
-              if ( temp_index%frame_mod == 0 ) {
+              if ((temp_index % frame_mod) == 0) {
                 Debug(2, "Sending delayed frame %d", temp_index);
                 // Send the next frame
                 if (!sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp)) {
                   zm_terminate = true;
                 }
-                memcpy(&last_frame_timestamp, &(swap_image->timestamp), sizeof(last_frame_timestamp));
+                frame_count++;
+                last_frame_timestamp = swap_image->timestamp;
                 // frame_sent = true;
               }
               temp_read_index = MOD_ADD(temp_read_index, (replay_rate>0?1:-1), temp_image_buffer_count);
@@ -650,17 +646,15 @@ void MonitorStream::runStream() {
           SwapImage *swap_image = &temp_image_buffer[temp_read_index];
 
           // Send the next frame
-          if ( !sendFrame(
+          if (!sendFrame(
                 temp_image_buffer[temp_read_index].file_name,
-                temp_image_buffer[temp_read_index].timestamp
-                ) ) {
+                temp_image_buffer[temp_read_index].timestamp)
+              ) {
             zm_terminate = true;
           }
-          memcpy(
-              &last_frame_timestamp,
-              &(swap_image->timestamp),
-              sizeof(last_frame_timestamp)
-              );
+          frame_count++;
+
+          last_frame_timestamp = swap_image->timestamp;
           // frame_sent = true;
           step = 0;
         } else {
@@ -675,12 +669,13 @@ void MonitorStream::runStream() {
             if ( !sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp) ) {
               zm_terminate = true;
             }
+            frame_count++;
             // frame_sent = true;
           }
         }  // end if (!paused) or step or paused
       }  // end if have exceeded buffer or not
 
-      if ( temp_read_index == temp_write_index ) {
+      if (temp_read_index == temp_write_index) {
         // Go back to live viewing
         Warning("Rewound over write index, resuming live play");
         // Clear paused flag
@@ -689,13 +684,13 @@ void MonitorStream::runStream() {
         delayed = false;
         replay_rate = ZM_RATE_BASE;
       }
-    }  // end if ( buffered_playback && delayed )
+    }  // end if (buffered_playback && delayed)
 
-    if ( last_read_index != monitor->shared_data->last_write_index ) {
+    if (last_read_index != monitor->shared_data->last_write_index) {
       // have a new image to send
-      int index = monitor->shared_data->last_write_index % monitor->image_buffer_count; // % shouldn't be neccessary
-      if ( (frame_mod == 1) || ((frame_count%frame_mod) == 0) ) {
-        if ( !paused && !delayed ) {
+      int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+      if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
+        if (!paused && !delayed) {
           last_read_index = monitor->shared_data->last_write_index;
           Debug(2, "Sending frame index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
               index, frame_mod, frame_count, paused, delayed);
@@ -710,9 +705,8 @@ void MonitorStream::runStream() {
             zm_terminate = true;
             break;
           }
-          //frame_sent = true;
-          //
-          if ( frame_count == 0 ) {
+          frame_count++;
+          if (frame_count == 0) {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
             if ( !sendFrame(image, last_frame_timestamp) ) {
@@ -724,16 +718,18 @@ void MonitorStream::runStream() {
 
           temp_read_index = temp_write_index;
         } else {
-          if ( delayed && !buffered_playback ) {
+          if (delayed && !buffered_playback) {
             Debug(2, "Can't delay when not buffering.");
             delayed = false;
           }
-          if ( last_zoom != zoom ) {
+          if (last_zoom != zoom) {
             Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom);
             if (!sendFrame(paused_image, paused_timestamp))
               zm_terminate = true;
             if (!sendFrame(paused_image, paused_timestamp))
               zm_terminate = true;
+            frame_count++;
+            frame_count++;
           } else {
             double actual_delta_time = TV_2_FLOAT(now) - last_frame_sent;
             if ( actual_delta_time > 5 ) {
@@ -744,17 +740,20 @@ void MonitorStream::runStream() {
                 // Send the next frame
                 if (!sendFrame(paused_image, paused_timestamp))
                   zm_terminate = true;
+                frame_count++;
               } else {
                 Debug(2, "Would have sent keepalive frame, but had no paused_image");
               }
             }  // end if actual_delta_time > 5
           }  // end if change in zoom
         }  // end if paused or not
+      } else {
+        frame_count++;
       }  // end if should send frame
 
-      if ( buffered_playback && !paused ) {
-        if ( monitor->shared_data->valid ) {
-          if ( monitor->shared_timestamps[index].tv_sec ) {
+      if (buffered_playback && !paused) {
+        if (monitor->shared_data->valid) {
+          if (monitor->shared_timestamps[index].tv_sec) {
             int temp_index = temp_write_index%temp_image_buffer_count;
             Debug(2, "Storing frame %d", temp_index);
             if ( !temp_image_buffer[temp_index].valid ) {
@@ -772,7 +771,7 @@ void MonitorStream::runStream() {
                 config.jpeg_file_quality
                 );
             temp_write_index = MOD_ADD(temp_write_index, 1, temp_image_buffer_count);
-            if ( temp_write_index == temp_read_index ) {
+            if (temp_write_index == temp_read_index) {
               // Go back to live viewing
               Warning("Exceeded temporary buffer, resuming live play");
               paused = false;
@@ -786,7 +785,6 @@ void MonitorStream::runStream() {
           Warning("Unable to store frame as shared memory invalid");
         }
       } // end if buffered playback
-      frame_count++;
     } else {
       Debug(3, "Waiting for capture last_write_index=%u", monitor->shared_data->last_write_index);
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
@@ -815,16 +813,16 @@ void MonitorStream::runStream() {
       Warning("no last_frame_sent.  Shouldn't happen. frame_mod was (%d) frame_count (%d)",
           frame_mod, frame_count);
     }
-  } // end while
+  } // end while ! zm_terminate
 
-  if ( buffered_playback ) {
+  if (buffered_playback) {
     Debug(1, "Cleaning swap files from %s", swap_path.c_str());
-    struct stat stat_buf;
-    if ( stat(swap_path.c_str(), &stat_buf) < 0 ) {
-      if ( errno != ENOENT ) {
+    struct stat stat_buf = {};
+    if (stat(swap_path.c_str(), &stat_buf) < 0) {
+      if (errno != ENOENT) {
         Error("Can't stat '%s': %s", swap_path.c_str(), strerror(errno));
       }
-    } else if ( !S_ISDIR(stat_buf.st_mode) ) {
+    } else if (!S_ISDIR(stat_buf.st_mode)) {
       Error("Swap image path '%s' is not a directory", swap_path.c_str());
     } else {
       char glob_pattern[PATH_MAX] = "";
@@ -832,21 +830,21 @@ void MonitorStream::runStream() {
       snprintf(glob_pattern, sizeof(glob_pattern), "%s/*.*", swap_path.c_str());
       glob_t pglob;
       int glob_status = glob(glob_pattern, 0, 0, &pglob);
-      if ( glob_status != 0 ) {
-        if ( glob_status < 0 ) {
+      if (glob_status != 0) {
+        if (glob_status < 0) {
           Error("Can't glob '%s': %s", glob_pattern, strerror(errno));
         } else {
           Debug(1, "Can't glob '%s': %d", glob_pattern, glob_status);
         }
       } else {
-        for ( unsigned int i = 0; i < pglob.gl_pathc; i++ ) {
-          if ( unlink(pglob.gl_pathv[i]) < 0 ) {
+        for (unsigned int i = 0; i < pglob.gl_pathc; i++) {
+          if (unlink(pglob.gl_pathv[i]) < 0) {
             Error("Can't unlink '%s': %s", pglob.gl_pathv[i], strerror(errno));
           }
         }
       }
       globfree(&pglob);
-      if ( rmdir(swap_path.c_str()) < 0 ) {
+      if (rmdir(swap_path.c_str()) < 0) {
         Error("Can't rmdir '%s': %s", swap_path.c_str(), strerror(errno));
       }
     } // end if checking for swap_path
@@ -867,14 +865,16 @@ void MonitorStream::SingleImage(int scale) {
   Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);
   Image *snap_image = monitor->image_buffer[index];
 
+  if (!config.timestamp_on_capture) {
+    monitor->TimestampImage(snap_image, monitor->shared_timestamps[index]);
+  }
+
   if ( scale != ZM_SCALE_BASE ) {
     scaled_image.Assign(*snap_image);
     scaled_image.Scale(scale);
     snap_image = &scaled_image;
   }
-  if ( !config.timestamp_on_capture ) {
-    monitor->TimestampImage(snap_image, monitor->shared_timestamps[index]);
-  }
+
   snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
 
   fprintf(stdout,

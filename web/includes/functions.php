@@ -264,7 +264,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? 'width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? 'width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'" loading="lazy" />';
   }
 }
 
@@ -316,7 +316,7 @@ function outputImageStill($id, $src, $width, $height, $title='') {
 function getImageStill($id, $src, $width, $height, $title='') {
   return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.
     (validInt($width)?' width="'.$width.'"':'').
-    (validInt($height)?' height="'.$height.'"':'').'/>';
+    (validInt($height)?' height="'.$height.'"':'').' loading="lazy" />';
 }
 
 function getWebSiteUrl($id, $src, $width, $height, $title='') {
@@ -1990,6 +1990,10 @@ function requestVar($name, $default='') {
 
 // For numbers etc in javascript or tags etc
 function validInt($input) {
+  return preg_replace('/[^\-\d]/', '', $input);
+}
+
+function validCardinal($input) {
   return preg_replace('/\D/', '', $input);
 }
 

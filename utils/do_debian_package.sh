@@ -58,6 +58,14 @@ case $i in
     PACKAGE_VERSION="${i#*=}"
     shift
     ;;
+    -x=*|--debbuild-extra=*)
+    DEBBUILD_EXTRA="${i#*=}"
+    shift
+    ;;
+    --dput=*)
+    DPUT="${i#*=}"
+    shift
+    ;;
     --default)
     DEFAULT=YES
     shift # past argument with no value
@@ -80,7 +88,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,focal,groovy,hirsute"
+    DISTROS="xenial,bionic,focal,hirsute,impish"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -112,6 +120,11 @@ else
     if [ "$BRANCH" == "" ]; then
       #REV=$(git rev-list --tags --max-count=1)
       BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
+      if [ -z "$BRANCH" ]; then
+        # This should only happen in CI environments where tag info isn't available
+        BRANCH=`cat version`
+        echo "Building branch $BRANCH"
+      fi
       if [ "$BRANCH" == "" ]; then
         echo "Unable to determine latest stable branch!"
         exit 0;
@@ -123,15 +136,18 @@ else
       echo "Defaulting to master branch";
       BRANCH="master";
     fi;
-    if [ "$SNAPSHOT" == "NOW" ]; then
-      SNAPSHOT=`date +%Y%m%d%H%M%S`;
-    else
-      if [ "$SNAPSHOT" == "CURRENT" ]; then
-        SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
-      fi;
-    fi;
   fi;
 fi
+
+if [ "$PACKAGE_VERSION" == "NOW" ]; then
+  PACKAGE_VERSION=`date +%Y%m%d%H%M%S`;
+else
+  if [ "$PACKAGE_VERSION" == "CURRENT" ]; then
+    # git the latest (short) commit hash of the version file
+    versionhash=$(git log -n1 --pretty=format:%h version)
+    PACKAGE_VERSION="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+  fi;
+fi;
 
 IFS='.' read -r -a VERSION_PARTS <<< "$RELEASE"
 if [ "$PPA" == "" ]; then
@@ -179,10 +195,19 @@ else
 fi;
 
 cd "${GITHUB_FORK}_zoneminder_release"
-  git checkout $BRANCH
-cd ../
+git checkout $BRANCH
 
-VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
+VERSION=`cat version`
+if [ "$SNAPSHOT" == "NOW" ]; then
+  SNAPSHOT=`date +%Y%m%d%H%M%S`;
+else
+  if [ "$SNAPSHOT" == "CURRENT" ]; then
+    # git the latest (short) commit hash of the version file
+    versionhash=$(git log -n1 --pretty=format:%h version)
+    SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+  fi;
+fi;
+cd ../
 
 if [ -z "$VERSION" ]; then
   exit 1;
@@ -216,8 +241,12 @@ rm -rf .git
 rm .gitignore
 cd ../
 
+
 if [ ! -e "$DIRECTORY.orig.tar.gz" ]; then
-  tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+  read -p "$DIRECTORY.orig.tar.gz does not exist, create it? [Y/n]"
+  if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
+    tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+  fi;
 fi;
 
 IFS=',' ;for DISTRO in `echo "$DISTROS"`; do 
@@ -229,7 +258,7 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ] || [ "$DISTRO" == "hirsute" ]; then 
+  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ] || [ "$DISTRO" == "hirsute" ] || [ "$DISTRO" == "impish" ]; then 
     cp -Rpd distros/ubuntu2004 debian
   elif [ "$DISTRO" == "beowulf" ]
   then
@@ -285,30 +314,37 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 EOF
   fi;
 
+  # Leave the .orig so that we don't pollute it when building deps
+  cd ..
   if [ $TYPE == "binary" ]; then
-    # Auto-install all ZoneMinder's depedencies using the Debian control file
-    sudo apt-get install devscripts equivs
-    sudo mk-build-deps -ir ./debian/control
-    echo "Status: $?"
-    DEBUILD=debuild
+	  # Auto-install all ZoneMinder's depedencies using the Debian control file
+	  sudo apt-get install devscripts equivs
+	  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
+	  echo "Status: $?"
+	  DEBUILD=debuild
   else
-    if [ $TYPE == "local" ]; then
-      # Auto-install all ZoneMinder's depedencies using the Debian control file
-      sudo apt-get install devscripts equivs
-      sudo mk-build-deps -ir ./debian/control
-      echo "Status: $?"
-      DEBUILD="debuild -i -us -uc -b"
-    else 
-      # Source build, don't need build depends.
-      DEBUILD="debuild -S -sa"
-    fi;
+	  if [ $TYPE == "local" ]; then
+		  # Auto-install all ZoneMinder's depedencies using the Debian control file
+		  sudo apt-get install devscripts equivs
+		  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
+		  echo "Status: $?"
+		  DEBUILD="debuild -i -us -uc -b"
+	  else 
+		  # Source build, don't need build depends.
+		  DEBUILD="debuild -S -sa"
+	  fi;
   fi;
+
+  cd $DIRECTORY.orig
+
   if [ "$DEBSIGN_KEYID" != "" ]; then
     DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
   fi
+  # Add any extra options specified on the CLI
+  DEBUILD="$DEBUILD $DEBBUILD_EXTRA"
   eval $DEBUILD
   if [ $? -ne 0 ]; then
-  echo "Error status code is: $?"
+    echo "Error status code is: $?"
     echo "Build failed.";
     exit $?;
   fi;
@@ -340,12 +376,14 @@ EOF
     dput="Y";
     if [ "$INTERACTIVE" != "no" ]; then
       read -p "Ready to dput $SC to $PPA ? Y/n...";
-      if [[ "$REPLY" == [yY] ]]; then
+      if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
         dput $PPA $SC
       fi;
     else
-      echo "dputting to $PPA";
-      dput $PPA $SC
+      if [ "$DPUT" != "no" ]; then
+        echo "dputting to $PPA";
+        dput $PPA $SC
+      fi;
     fi;
   fi;
 done; # foreach distro

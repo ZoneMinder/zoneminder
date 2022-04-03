@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Monitor_STatus Module
+# ZoneMinder Event_Summary Module
 # Copyright (C) 2020 ZoneMinder
 #
 # This program is free software; you can redistribute it and/or
@@ -22,7 +22,7 @@
 # This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
-package ZoneMinder::Monitor_Status;
+package ZoneMinder::Event_Summary;
 
 use 5.006;
 use strict;
@@ -35,21 +35,37 @@ require ZoneMinder::Object;
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
-$table = 'Monitor_Status';
+$table = 'Event_Summaries';
 $serial = $primary_key = 'MonitorId';
 %fields = map { $_ => $_ } qw(
   MonitorId
-  Status
-  CaptureFPS
-  AnalysisFPS
-  CaptureBandwidth
+  TotalEvents
+  TotalEventDiskSpace
+  HourEvents
+  HourEventDiskSpace
+  DayEvents
+  DayEventDiskSpace
+  WeekEvents
+  WeekEventDiskSpace
+  MonthEvents
+  MonthEventDiskSpace
+  ArchivedEvents
+  ArchivedEventDiskSpace
   );
 
 %defaults = (
-    Status => 'Unknown',
-    CaptureFPS => undef,
-    AnalysisFPS => undef,
-    CaptureBandwidth => undef,
+    TotalEvents => undef,
+    TotalEventDiskSpace => undef,
+    HourEvents =>   undef,
+    HourEventDiskSpace =>  undef,
+    DayEvents =>  undef,
+    DayEventDiskSpace =>  undef,
+    WeekEvents =>  undef,
+    WeekEventDiskSpace =>  undef,
+    MonthEvents =>  undef,
+    MonthEventDiskSpace =>  undef,
+    ArchivedEvents =>  undef,
+    ArchivedEventDiskSpace =>  undef,
     );
 
 sub Monitor {
@@ -61,11 +77,11 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Monitor_Status - Perl Class for Monitor Status
+ZoneMinder::Event_Summary - Perl Class for Event Summaries
 
 =head1 SYNOPSIS
 
-use ZoneMinder::Monitor_Status;
+use ZoneMinder::Event_Summary;
 
 =head1 AUTHOR
 

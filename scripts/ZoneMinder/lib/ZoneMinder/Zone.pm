@@ -40,6 +40,10 @@ $serial = $primary_key = 'Id';
   MonitorId 
   Type
   Units
+  NumCoords
+  Coords
+  Area
+  AlarmRGB
   CheckMethod
   MinPixelThreshold
   MaxPixelThreshold
@@ -59,9 +63,13 @@ $serial = $primary_key = 'Id';
 
 %defaults = (
   Name                => '',
-  Type => 'Active',
-  Units => 'Pixels',
-  CheckMethod => 'Blobs',
+  Type => q`'Active'`,
+  Units => q`'Pixels'`,
+  NumCoords => 0,
+  Coords => '',
+  Area => 0,
+  AlarmRGB => 0,
+  CheckMethod => q`'Blobs'`,
   MinPixelThreshold => undef,
   MaxPixelThreshold => undef,
   MinAlarmPixels => undef,

@@ -266,7 +266,7 @@ class MonitorsController extends AppController {
       if ($mToken) {
         $auth = ' -T '.$mToken;
       } else if (ZM_AUTH_RELAY == 'hashed') {
-        $auth = ' -A '.calculateAuthHash(ZM_AUTH_HASH_IPS?$_SERVER['REMOTE_ADDR']:'');
+        $auth = ' -A '.calculateAuthHash(''); # Can't do REMOTE_IP because zmu doesn't normally have access to it.
       } else if (ZM_AUTH_RELAY == 'plain') {
         # Plain requires the plain text password which must either be in request or stored in session
         $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');;
@@ -321,12 +321,20 @@ class MonitorsController extends AppController {
     }
 
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Id', 'Type', 'Device'),
+      'fields' => array('Id', 'Type', 'Device', 'Function'),
       'conditions' => array('Id' => $id)
     ));
 
     // Clean up the returned array
     $monitor = Set::extract('/Monitor/.', $monitor);
+    if ($monitor[0]['Function'] == 'None') {
+      $this->set(array(
+        'status' => false,
+        'statustext' => 'Monitor function is set to None',
+        '_serialize' => array('status','statustext'),
+      ));
+      return;
+    }
 
     // Pass -d for local, otherwise -m
     if ( $monitor[0]['Type'] == 'Local' ) {

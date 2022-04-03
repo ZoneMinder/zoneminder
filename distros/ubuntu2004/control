@@ -32,7 +32,7 @@ Build-Depends: debhelper (>= 12), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libcrypt-eksblowfish-perl
               ,libdata-entropy-perl
               ,libvncserver-dev
-              ,libjwt-gnutls-dev
+              ,libjwt-gnutls-dev|libjwt-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 

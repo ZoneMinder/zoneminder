@@ -51,11 +51,21 @@ sub open {
   my $self = shift;
 
   $self->loadMonitor();
-	if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
-		# Has no scheme at the beginning, so won't parse as a URI
-		$self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
-	}
-  $uri = URI->new($self->{Monitor}->{ControlAddress});
+
+  if ($self->{Monitor}->{ControlAddress} and ($self->{Monitor}->{ControlAddress} ne 'user:pass@ip')) {
+    Debug("Getting connection details from Control Address " . $self->{Monitor}->{ControlAddress});
+    if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
+      # Has no scheme at the beginning, so won't parse as a URI
+      $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
+    }
+    $uri = URI->new($self->{Monitor}->{ControlAddress});
+  } elsif ($self->{Monitor}->{Path}) {
+    Debug("Getting connection details from Path " . $self->{Monitor}->{Path});
+    $uri = URI->new($self->{Monitor}->{Path});
+    $uri->scheme('http');
+    $uri->port(80);
+    $uri->path('');
+  }
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
@@ -64,6 +74,7 @@ sub open {
   $self->{state} = 'closed';
 
   my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
+  Debug("Have username: $username password: $password host: $host from authority:" . $uri->authority());
   
   $uri->userinfo(undef);
 
@@ -75,40 +86,47 @@ sub open {
   # test auth
   my $res = $self->{ua}->get($uri->canonical().$url);
 
-  if ( $res->is_success ) {
-    if ( $res->content() ne "Properties.PTZ.PTZ=yes\n" ) {
+  if ($res->is_success) {
+    if ($res->content() ne "Properties.PTZ.PTZ=yes\n") {
       Warning('Response suggests that camera doesn\'t support PTZ. Content:('.$res->content().')');
     }
     $self->{state} = 'open';
     return;
   }
+  if ($res->status_line() eq '404 Not Found') {
+    #older style
+    $url = 'axis-cgi/com/ptz.cgi';
+    $res = $self->{ua}->get($uri->canonical().$url);
+    Debug("Result from getting ".$uri->canonical().$url . ':' . $res->status_line());
+  }
 
-  if ( $res->status_line() eq '401 Unauthorized' ) {
-
+  if ($res->status_line() eq '401 Unauthorized') {
     my $headers = $res->headers();
     foreach my $k ( keys %$headers ) {
       Debug("Initial Header $k => $$headers{$k}");
     }
 
     if ( $$headers{'www-authenticate'} ) {
-      my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
-      if ( $tokens =~ /\w+="([^"]+)"/i ) {
-        if ( $realm ne $1 ) {
-          $realm = $1;
-          $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
-          $res = $self->{ua}->get($uri->canonical().$url);
-          if ( $res->is_success() ) {
-            Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");
-            $self->{state} = 'open';
-            return;
+      foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
+        my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
+        if ( $tokens =~ /\w+="([^"]+)"/i ) {
+          if ( $realm ne $1 ) {
+            $realm = $1;
+            $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+            $res = $self->{ua}->get($uri->canonical().$url);
+            if ( $res->is_success() ) {
+              Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");
+              $self->{state} = 'open';
+              return;
+            }
+            Error('Authentication still failed after updating REALM status: '.$res->status_line);
+          } else {
+            Error('Authentication failed, not a REALM problem');
           }
-          Error('Authentication still failed after updating REALM status: '.$res->status_line);
         } else {
-          Error('Authentication failed, not a REALM problem');
-        }
-      } else {
-        Error('Failed to match realm in tokens');
-      } # end if
+          Error('Failed to match realm in tokens');
+        } # end if
+      } # end foreach auth header
     } else {
       Debug('No headers line');
     } # end if headers

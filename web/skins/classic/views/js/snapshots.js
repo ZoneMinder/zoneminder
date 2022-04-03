@@ -90,7 +90,7 @@ function getDelConfirmModal() {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEdit.Events ) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
@@ -98,7 +98,7 @@ function manageDelConfirmModalBtns() {
     var selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
+    $j.getJSON(thisUrl + '?request=snapshots&task=delete&ids[]='+selections.join('&ids[]='))
         .done( function(data) {
           $j('#snapshotTable').bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');

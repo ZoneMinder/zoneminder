@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_monitor.h"
 #include "zm_packet.h"
+#include "zm_signal.h"
 
 #if HAVE_LIBAVFORMAT
 
@@ -128,7 +129,7 @@ int RemoteCameraRtsp::Disconnect() {
 
 int RemoteCameraRtsp::PrimeCapture() {
   Debug(2, "Waiting for sources");
-  for ( int i = 0; (i < 100) && !rtspThread->hasSources(); i++ ) {
+  for (int i = 100; i && !zm_terminate && !rtspThread->hasSources(); i--) {
     usleep(100000);
   }
   if ( !rtspThread->hasSources() ) {
@@ -169,8 +170,10 @@ int RemoteCameraRtsp::PrimeCapture() {
     }
   } // end foreach stream
 
-  if ( mVideoStreamId == -1 )
-    Fatal("Unable to locate video stream");
+  if ( mVideoStreamId == -1 ) {
+    Error("Unable to locate video stream");
+    return -1;
+  }
   if ( mAudioStreamId == -1 )
     Debug(3, "Unable to locate audio stream");
 
@@ -184,16 +187,21 @@ int RemoteCameraRtsp::PrimeCapture() {
 
   // Find the decoder for the video stream
   AVCodec *codec = avcodec_find_decoder(mVideoCodecContext->codec_id);
-  if ( codec == nullptr )
-    Panic("Unable to locate codec %d decoder", mVideoCodecContext->codec_id);
+  if ( codec == nullptr ) {
+    Error("Unable to locate codec %d decoder", mVideoCodecContext->codec_id);
+    return -1;
+  }
 
   // Open codec
 #if !LIBAVFORMAT_VERSION_CHECK(53, 8, 0, 8, 0)
   if ( avcodec_open(mVideoCodecContext, codec) < 0 )
 #else
-  if ( avcodec_open2(mVideoCodecContext, codec, 0) < 0 )
+  if ( avcodec_open2(mVideoCodecContext, codec, nullptr) < 0 )
 #endif
-    Panic("Can't open codec");
+  {
+    Error("Can't open codec");
+    return -1;
+  }
 
 #if LIBAVUTIL_VERSION_CHECK(54, 6, 0, 6, 0)
   int pSize = av_image_get_buffer_size(imagePixFormat, width, height, 1);
@@ -202,7 +210,8 @@ int RemoteCameraRtsp::PrimeCapture() {
 #endif
 
   if ( (unsigned int)pSize != imagesize ) {
-    Fatal("Image size mismatch. Required: %d Available: %llu", pSize, imagesize);
+    Error("Image size mismatch. Required: %d Available: %llu", pSize, imagesize);
+    return -1;
   }
 
   return 1;
@@ -221,18 +230,13 @@ int RemoteCameraRtsp::PreCapture() {
 int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   int frameComplete = false;
   AVPacket *packet = &zm_packet->packet;
-  if ( !zm_packet->image ) {
-    Debug(1, "Allocating image %dx%d %d colours %d", width, height, colours, subpixelorder);
-    zm_packet->image = new Image(width, height, colours, subpixelorder);
-  }
 
-  
   while (!frameComplete) {
     buffer.clear();
-    if (!rtspThread || rtspThread->IsStopped())
+    if (!rtspThread || rtspThread->IsStopped() || zm_terminate)
       return -1;
 
-    if ( rtspThread->getFrame(buffer) ) {
+    if (rtspThread->getFrame(buffer)) {
       Debug(3, "Read frame %d bytes", buffer.size());
       Hexdump(4, buffer.head(), 16);
 
@@ -267,49 +271,20 @@ int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
       //while ( (!frameComplete) && (buffer.size() > 0) ) {
       if ( buffer.size() > 0 ) {
-        packet->data = buffer.head();
+        packet->data = (uint8_t*)av_malloc(buffer.size());
+        memcpy(packet->data, buffer.head(), buffer.size());
+        //packet->data = buffer.head();
         packet->size = buffer.size();
         bytes += packet->size;
+        buffer -= packet->size;
 
         struct timeval now;
-        gettimeofday(&now, NULL);
+        gettimeofday(&now, nullptr);
         packet->pts = packet->dts = now.tv_sec*1000000+now.tv_usec;
-
-        int bytes_consumed = zm_packet->decode(mVideoCodecContext);
-        if ( bytes_consumed < 0 ) {
-          Error("Error while decoding frame %d", frameCount);
-          //Hexdump(Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size());
-        }
-        buffer -= packet->size;
-        if ( bytes_consumed ) {
-          zm_dump_video_frame(zm_packet->in_frame, "remote_rtsp_decode");
-          if ( ! mVideoStream->
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-              codecpar
-#else
-              codec
-#endif
-              ->width ) {
-            zm_dump_codec(mVideoCodecContext);
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-            zm_dump_codecpar(mVideoStream->codecpar);
-            mVideoStream->codecpar->width = zm_packet->in_frame->width;
-            mVideoStream->codecpar->height = zm_packet->in_frame->height;
-#else
-            mVideoStream->codec->width = zm_packet->in_frame->width;
-            mVideoStream->codec->height = zm_packet->in_frame->height;
-#endif
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-            zm_dump_codecpar(mVideoStream->codecpar);
-#endif
-          }
-          zm_packet->codec_type = mVideoCodecContext->codec_type;
-          zm_packet->stream = mVideoStream;
-          frameComplete = true;
-          Debug(2, "Frame: %d - %d/%d", frameCount, bytes_consumed, buffer.size());
-          packet->data = nullptr;
-          packet->size = 0;
-        }
+        zm_packet->codec_type = mVideoCodecContext->codec_type;
+        zm_packet->stream = mVideoStream;
+        frameComplete = true;
+        Debug(2, "Frame: %d - %d/%d", frameCount, packet->size, buffer.size());
       }
     } /* getFrame() */
   } // end while true

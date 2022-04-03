@@ -10,6 +10,7 @@
 }
 
 textarea,
+input[name="newMonitor[Host]"],
 input[name="newMonitor[Name]"],
 input[name="newMonitor[Path]"],
 input[name="newMonitor[SecondPath]"],
@@ -50,6 +51,7 @@ select.chosen {
 }
 tr td:first-child {
   min-width: 300px;
+  vertical-align: top;
 }
 .OutputContainer {
   display: none;

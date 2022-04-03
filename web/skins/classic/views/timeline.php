@@ -685,7 +685,7 @@ xhtmlHeaders(__FILE__, translate('Timeline'));
       <div id="topPanel" class="graphWidth">
         <div id="imagePanel">
           <div id="image" class="imageHeight">
-		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>"/>
+		        <img id="imageSrc" class="imageWidth" src="graphics/transparent.png" alt="<?php echo translate('ViewEvent') ?>" title="<?php echo translate('ViewEvent') ?>" loading="lazy"/>
           </div>
         </div>
         <div id="dataPanel">

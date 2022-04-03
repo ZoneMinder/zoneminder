@@ -279,7 +279,7 @@ void RtpCtrlThread::Run() {
   time_t  last_receive = time(nullptr);
   bool  timeout = false; // used as a flag that we had a timeout, and then sent an RR to see if we wake back up. Real timeout will happen when this is true.
 
-  while (!mTerminate && select.wait() >= 0) {
+  while (!mTerminate && (select.wait() >= 0)) {
     time_t now = time(nullptr);
     ZM::Select::CommsList readable = select.getReadable();
     if ( readable.size() == 0 ) {

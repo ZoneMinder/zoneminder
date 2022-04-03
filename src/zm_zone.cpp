@@ -874,16 +874,23 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
       continue;
     }
 
-    if (polygon.Extent().Lo().x_ < 0 || polygon.Extent().Hi().x_ > static_cast<int32>(monitor->Width())
-        || polygon.Extent().Lo().y_ < 0 || polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
-      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), fixing",
+    if (polygon.Extent().Lo().x_ < 0
+        ||
+        polygon.Extent().Hi().x_ > static_cast<int32>(monitor->Width())
+        ||
+        polygon.Extent().Lo().y_ < 0
+        ||
+        polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
+      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d) != (%d,%d), fixing",
             Id,
             Name,
             monitor->Name(),
             polygon.Extent().Lo().x_,
             polygon.Extent().Lo().y_,
             polygon.Extent().Hi().x_,
-            polygon.Extent().Hi().y_);
+            polygon.Extent().Hi().y_,
+            monitor->Width(),
+            monitor->Height());
 
       polygon.Clip(Box(
           {0, 0},

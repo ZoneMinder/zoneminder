@@ -223,7 +223,7 @@ setdebpkgname () {
     if [ "" == "$VERSION" ]; then
       export VERSION="${versionfile}~${thedate}.${numcommits}"
     fi
-    export RELEASE="${DIST}"
+    export RELEASE="${DIST}${PACKAGE_VERSION}"
 
     checkvars
 
@@ -369,7 +369,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   setdebpkgname
   movecrud
 
-  if [ "${DIST}" == "focal" ] || [ "${DIST}" == "groovy" ] || [ "${DIST}" == "hirsuit" ] || [ "${DIST}" == "buster" ]; then
+  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ]; then
     ln -sfT distros/ubuntu2004 debian
   elif [ "${DIST}" == "beowulf" ]; then
     ln -sfT distros/beowulf debian

@@ -34,7 +34,7 @@ function streamReq(data) {
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(thisUrl, data)
+  $j.getJSON(monitorUrl, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -52,14 +52,19 @@ function vjsReplay() {
         var overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
       } else {
-        var endTime = (Date.parse(eventData.EndDateTime)).getTime();
+        if (!eventData.EndDateTime) {
+          // No EndTime but have a next event, just go to it.
+          streamNext(true);
+          return;
+        }
+        var endTime = Date.parse(eventData.EndDateTime).getTime();
         var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
         if ( nextStartTime <= endTime ) {
           streamNext(true);
           return;
         }
-        var overLaid = $j("#videoobj");
         vid.pause();
+        var overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
         var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
         var messageP = $j('.vjsMessage');
@@ -300,7 +305,7 @@ function getCmdResponse(respObj, respText) {
 
   if (streamStatus.auth) {
     // Try to reload the image stream.
-    var streamImg = $j('#evtStream');
+    var streamImg = document.getElementById('evtStream');
     if (streamImg) {
       streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
     }
@@ -657,6 +662,7 @@ function getFrameResponse(respObj, respText) {
 
 function frameQuery(eventId, frameId, loadImage) {
   var data = {};
+  if (auth_hash) data.auth = auth_hash;
   data.loopback = loadImage;
   data.id = {eventId, frameId};
 
@@ -708,7 +714,7 @@ function renameEvent() {
 }
 
 function exportEvent() {
-  window.location.assign('?view=export&eid='+eventData.Id);
+  window.location.assign('?view=export&eids[]='+eventData.Id);
 }
 
 function showEventFrames() {
@@ -767,14 +773,16 @@ function handleClick(event) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( !canEdit.Events ) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
 
+    pauseClicked();
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
+    $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
         .done(function(data) {
+          $j('#deleteConfirm').modal('hide');
           streamNext(true);
         })
         .fail(logAjaxFail);
@@ -890,6 +898,12 @@ function initPage() {
 
     vid.on('timeupdate', function() {
       $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
+    });
+    vid.on('ratechange', function() {
+      rate = vid.playbackRate() * 100;
+      console.log("rate change " + rate);
+      $j('select[name="rate"]').val(rate);
+      setCookie('zmEventRate', rate, 3600);
     });
 
     // rate is in % so 100 would be 1x
@@ -1009,20 +1023,13 @@ function initPage() {
   // Manage the EXPORT button
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
-    window.location.assign('?view=export&eids[]='+eventData.Id);
+    exportEvent();
   });
 
-  // Manage the DOWNLOAD VIDEO button
-  bindButton('#downloadBtn', 'click', null, function onDownloadClick(evt) {
+  // Manage the generateVideo button
+  bindButton('#videoBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=modal&modal=download&eids[]='+eventData.Id)
-        .done(function(data) {
-          insertModalHtml('downloadModal', data.html);
-          $j('#downloadModal').modal('show');
-          // Manage the GENERATE DOWNLOAD button
-          $j('#exportButton').click(exportEvent);
-        })
-        .fail(logAjaxFail);
+    videoEvent();
   });
 
   // Manage the Event STATISTICS Button

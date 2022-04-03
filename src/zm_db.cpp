@@ -102,13 +102,14 @@ bool zmDbConnect() {
   if ( mysql_query(&dbconn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
     Error("Can't set isolation level: %s", mysql_error(&dbconn));
   }
+  mysql_set_character_set(&dbconn, "utf8");
   zmDbConnected = true;
   return zmDbConnected;
 }
 
 void zmDbClose() {
+  std::lock_guard<std::mutex> lck(db_mutex);
   if (zmDbConnected) {
-    std::lock_guard<std::mutex> lck(db_mutex);
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()
@@ -237,8 +238,12 @@ zmDbQueue::~zmDbQueue() {
 }
 
 void zmDbQueue::stop() {
-  mTerminate = true;
+  {
+    std::unique_lock<std::mutex> lock(mMutex);
+    mTerminate = true;
+  }
   mCondition.notify_all();
+
   if (mThread.joinable()) mThread.join();
 }
 
@@ -262,8 +267,10 @@ void zmDbQueue::process() {
 }  // end void zmDbQueue::process()
 
 void zmDbQueue::push(std::string &&sql) {
-  if (mTerminate) return;
-  std::unique_lock<std::mutex> lock(mMutex);
-  mQueue.push(std::move(sql));
+  {
+    std::unique_lock<std::mutex> lock(mMutex);
+    if (mTerminate) return;
+    mQueue.push(std::move(sql));
+  }
   mCondition.notify_all();
 }

@@ -197,6 +197,7 @@ bool ValidateAccess(User *user, int mon_id, int function) {
 
 void exit_zmu(int exit_code) {
   logTerm();
+  dbQueue.stop();
   zmDbClose();
 
   exit(exit_code);
@@ -248,7 +249,7 @@ int main(int argc, char *argv[]) {
     {nullptr, 0, nullptr, 0}
   };
 
-  const char *device = nullptr;
+  std::string device;
   int mon_id = 0;
   bool verbose = false;
   int function = ZMU_BOGUS;
@@ -256,9 +257,16 @@ int main(int argc, char *argv[]) {
   int image_idx = -1;
   int scale = -1;
   int brightness = -1;
+  bool have_brightness = false;
+
   int contrast = -1;
+  bool have_contrast = false;
+
   int hue = -1;
+  bool have_hue = false;
   int colour = -1;
+  bool have_colour = false;
+
   char *zoneString = nullptr;
   char *username = nullptr;
   char *password = nullptr;
@@ -275,13 +283,13 @@ int main(int argc, char *argv[]) {
     int option_index = 0;
 
     int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
-    if ( c == -1 ) {
+    if (c == -1) {
       break;
     }
 
     switch (c) {
       case 'd':
-        if ( optarg )
+        if (optarg)
           device = optarg;
         break;
       case 'm':
@@ -295,7 +303,7 @@ int main(int argc, char *argv[]) {
         break;
       case 'i':
         function |= ZMU_IMAGE;
-        if ( optarg )
+        if (optarg)
           image_idx = atoi(optarg);
         break;
       case 'S':
@@ -303,7 +311,7 @@ int main(int argc, char *argv[]) {
         break;
       case 't':
         function |= ZMU_TIME;
-        if ( optarg )
+        if (optarg)
           image_idx = atoi(optarg);
         break;
       case 'R':
@@ -320,7 +328,7 @@ int main(int argc, char *argv[]) {
         break;
       case 'z':
         function |= ZMU_ZONES;
-        if ( optarg )
+        if (optarg)
           zoneString = optarg;
         break;
       case 'a':
@@ -352,23 +360,31 @@ int main(int argc, char *argv[]) {
         break;
       case 'B':
         function |= ZMU_BRIGHTNESS;
-        if ( optarg )
+        if (optarg) {
+          have_brightness = true;
           brightness = atoi(optarg);
+        }
         break;
       case 'C':
         function |= ZMU_CONTRAST;
-        if ( optarg )
+        if (optarg) {
+          have_contrast = true;
           contrast = atoi(optarg);
+        }
         break;
       case 'H':
         function |= ZMU_HUE;
-        if ( optarg )
+        if (optarg) {
+          have_hue = true;
           hue = atoi(optarg);
+        }
         break;
       case 'O':
         function |= ZMU_COLOUR;
-        if ( optarg )
+        if (optarg) {
+          have_colour = true;
           colour = atoi(optarg);
+        }
         break;
       case 'U':
         username = optarg;
@@ -408,7 +424,7 @@ int main(int argc, char *argv[]) {
     Usage();
   }
 
-  if ( device && !(function&ZMU_QUERY) ) {
+  if ( !device.empty() && !(function&ZMU_QUERY) ) {
     fprintf(stderr, "Error, -d option cannot be used with this option\n");
     Usage();
   }
@@ -470,7 +486,7 @@ int main(int argc, char *argv[]) {
       exit_zmu(-1);
     }
 		if ( !ValidateAccess(user, mon_id, function) ) {
-			Error("Insufficient privileges for requested action");
+			Error("Insufficient privileges for user %s for requested function %x", username, function);
 			exit_zmu(-1);
 		}
   } // end if auth
@@ -643,60 +659,60 @@ int main(int argc, char *argv[]) {
       monitor->DumpSettings(monString, verbose);
       printf("%s\n", monString);
     }
-    if ( function & ZMU_BRIGHTNESS ) {
-      if ( verbose ) {
-        if ( brightness >= 0 )
+    if (function & ZMU_BRIGHTNESS) {
+      if (verbose) {
+        if (have_brightness)
           printf("New brightness: %d\n", monitor->actionBrightness(brightness));
         else
           printf("Current brightness: %d\n", monitor->actionBrightness());
       } else {
-        if ( have_output ) fputc(separator, stdout);
-        if ( brightness >= 0 )
+        if (have_output) fputc(separator, stdout);
+        if (have_brightness)
           printf("%d", monitor->actionBrightness(brightness));
         else
           printf("%d", monitor->actionBrightness());
         have_output = true;
       }
     }
-    if ( function & ZMU_CONTRAST ) {
-      if ( verbose ) {
-        if ( contrast >= 0 )
-          printf("New brightness: %d\n", monitor->actionContrast(contrast));
+    if (function & ZMU_CONTRAST) {
+      if (verbose) {
+        if (have_contrast)
+          printf("New contrast: %d\n", monitor->actionContrast(contrast));
         else
           printf("Current contrast: %d\n", monitor->actionContrast());
       } else {
-        if ( have_output ) fputc(separator, stdout);
-        if ( contrast >= 0 )
+        if (have_output) fputc(separator, stdout);
+        if (have_contrast)
           printf("%d", monitor->actionContrast(contrast));
         else
           printf("%d", monitor->actionContrast());
         have_output = true;
       }
     }
-    if ( function & ZMU_HUE ) {
-      if ( verbose ) {
-        if ( hue >= 0 )
+    if (function & ZMU_HUE) {
+      if (verbose) {
+        if (have_hue)
           printf("New hue: %d\n", monitor->actionHue(hue));
         else
           printf("Current hue: %d\n", monitor->actionHue());
       } else {
-        if ( have_output ) fputc(separator, stdout);
-        if ( hue >= 0 )
+        if (have_output) fputc(separator, stdout);
+        if (have_hue)
           printf("%d", monitor->actionHue(hue));
         else
           printf("%d", monitor->actionHue());
         have_output = true;
       }
     }
-    if ( function & ZMU_COLOUR ) {
-      if ( verbose ) {
-        if ( colour >= 0 )
+    if (function & ZMU_COLOUR) {
+      if (verbose) {
+        if (have_colour)
           printf("New colour: %d\n", monitor->actionColour(colour));
         else
           printf("Current colour: %d\n", monitor->actionColour());
       } else {
-        if ( have_output ) fputc(separator, stdout);
-        if ( colour >= 0 )
+        if (have_output) fputc(separator, stdout);
+        if (have_colour)
           printf("%d", monitor->actionColour(colour));
         else
           printf("%d", monitor->actionColour());
@@ -704,7 +720,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    if ( have_output ) {
+    if (have_output) {
       printf("\n");
     }
     if ( !function ) {
@@ -714,7 +730,7 @@ int main(int argc, char *argv[]) {
     if ( function & ZMU_QUERY ) {
 #if ZM_HAS_V4L
 			char vidString[0x10000] = "";
-			bool ok = LocalCamera::GetCurrentSettings(device, vidString, v4lVersion, verbose);
+			bool ok = LocalCamera::GetCurrentSettings(device.empty()?nullptr:device.c_str(), vidString, v4lVersion, verbose);
 			printf("%s", vidString);
 			exit_zmu(ok ? 0 : -1);
 #else // ZM_HAS_V4L

@@ -169,7 +169,7 @@ function getBodyTopHTML() {
 ';
   global $error_message;
   if ( $error_message ) {
-   echo '<div class="error">'.$error_message.'</div>';
+   echo '<div id="error">'.$error_message.'</div>';
   }
 } // end function getBodyTopHTML
 
@@ -203,7 +203,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   $status = runtimeStatus($running);
 
 ?>
-<div class="fixed-top container-fluid p-0">
+<div class="container-fluid p-0">
   <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row">
 
     <div class="navbar-brand justify-content-start align-self-start">
@@ -423,7 +423,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<a class="dropdown-item '.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</a>';
+    return '<a class="dropdown-item '.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -754,7 +754,7 @@ function getAccountCircleHTML($skin, $user=null) {
   
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<li id="getAccountCircleHTML" class="navbar-text navbar-nav mr-2">'.PHP_EOL;
-    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
+    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  validHtmlStr($user['Username']),
       (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
@@ -766,25 +766,23 @@ function getAccountCircleHTML($skin, $user=null) {
 function getStatusBtnHTML($status) {
   $result = '';
   
-  if ( canEdit('System') ) {
-    //$result .= '<li class="nav-item dropdown">'.PHP_EOL;
+  if (canEdit('System')) {
     $result .= '<li id="getStatusBtnHTML">'.PHP_EOL;
     $result .= '<button type="button" class="btn btn-default navbar-btn" id="stateModalBtn">' .$status. '</button>'.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
-    //$result .= '</li>'.PHP_EOL;
 
-    if ( ZM_SYSTEM_SHUTDOWN ) {
-      $result .= '<li class="navbar-text pr-2 align-self-center">'.PHP_EOL;
-      $result .= '<button class="btn btn-outline" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate("Shutdown"). '" ><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
+    if (ZM_SYSTEM_SHUTDOWN) {
+      $result .= '<li class="pr-2">'.PHP_EOL;
+      $result .= '<button id="shutdownButton" class="btn btn-default navbar-btn" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate('Shutdown'). '"><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
       $result .= '</li>'.PHP_EOL;
      } 
 
-  } else if ( canView('System') ) {
+  } else if (canView('System')) {
     $result .= '<li id="getStatusBtnHTML" class="navbar-text">'.PHP_EOL;
     $result .= $status.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
-  
+
   return $result;
 }
 
@@ -900,7 +898,6 @@ function xhtmlFooter() {
   'js/Server.js',
 ), true );
 ?>
-  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();</script>
 <?php
   if ( $view == 'event' ) {
 ?>
@@ -914,7 +911,7 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
 ?>
-  <script nonce="<?php echo $cspNonce; ?>">
+  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();
 <?php
   if ( $skinJsPhpFile ) {
     require_once( $skinJsPhpFile );

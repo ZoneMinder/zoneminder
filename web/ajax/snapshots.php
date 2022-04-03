@@ -8,21 +8,23 @@ $data = array();
 // INITIALIZE AND CHECK SANITY
 //
 
-if ( !canView('Snapshots') ) $message = 'Insufficient permissions for user '.$user['Username'];
+if (!canView('Snapshots'))
+  $message = 'Insufficient permissions for user '.$user['Username'];
 
-if ( empty($_REQUEST['task']) ) {
+$task = '';
+if (empty($_REQUEST['task'])) {
   $message = 'Must specify a task';
 } else {
   $task = $_REQUEST['task'];
 }
 
-if ( empty($_REQUEST['ids']) ) {
-  if ( isset($_REQUEST['task']) && $_REQUEST['task'] != 'query' ) $message = 'No snapshot id(s) supplied';
+if (empty($_REQUEST['ids'])) {
+  if ($task != 'query') $message = 'No snapshot id(s) supplied';
 } else {
-  $eids = $_REQUEST['ids'];
+  $ids = $_REQUEST['ids'];
 }
 
-if ( $message ) {
+if ($message) {
   ajaxError($message);
   return;
 }
@@ -36,15 +38,15 @@ $advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'],
 
 // Sort specifies the name of the column to sort on
 $sort = 'Id';
-if ( isset($_REQUEST['sort']) ) {
+if (isset($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
 }
 
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
-if ( isset($_REQUEST['offset']) ) {
-  if ( ( !is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']) ) ) {
-    ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+if (isset($_REQUEST['offset'])) {
+  if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
+    ZM\Error('Invalid value for offset: '.$_REQUEST['offset']);
   } else {
     $offset = $_REQUEST['offset'];
   }
@@ -56,8 +58,8 @@ $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc'
 // Limit specifies the number of rows to return
 // Set the default to 0 for events view, to prevent an issue with ALL pagination
 $limit = 0;
-if ( isset($_REQUEST['limit']) ) {
-  if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
+if (isset($_REQUEST['limit'])) {
+  if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
     ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
   } else {
     $limit = $_REQUEST['limit'];
@@ -68,14 +70,14 @@ if ( isset($_REQUEST['limit']) ) {
 // MAIN LOOP
 //
 
-switch ( $task ) {
+switch ($task) {
   case 'delete' :
-		if ( !canEdit('Snapshots') )  {
+		if (!canEdit('Snapshots'))  {
 			ajaxError('Insufficient permissions for user '.$user['Username']);
 			return;
 		}
 
-    foreach ( $ids as $id ) $data[] = deleteRequest($id);
+    foreach ($ids as $id) $data[] = deleteRequest($id);
     break;
   case 'query' :
     $data = queryRequest($search, $advsearch, $sort, $offset, $order, $limit);
@@ -99,6 +101,7 @@ function deleteRequest($id) {
     //$message[] = array($id=>'Event is archived, cannot delete it.');
   } else {
     $snapshot->delete();
+    $message[] = array($id=>'Snapshot deleted.');
   }
   
   return $message;
@@ -197,7 +200,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
       $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
 
-      $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'"/>';
+      $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" loading="lazy" />';
     }
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Description'] = validHtmlStr($row['Description']);

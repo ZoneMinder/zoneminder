@@ -291,8 +291,8 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
             <td class="colId"><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Id'] ?></a></td>
 <?php
   }
-  $imgHTML='';
-  if (ZM_WEB_LIST_THUMBS && ($monitor['Status'] == 'Connected') && $running && canView('Stream')) {
+  $imgHTML = '';
+  if (ZM_WEB_LIST_THUMBS && $monitor['Function'] != 'None' && ($monitor['Status'] == 'Connected') && $running && canView('Stream')) {
     $options = array();
 
     $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
@@ -313,7 +313,7 @@ for( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
       .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.
       ($options['width'] ? ' width="'.$options['width'].'"' : '' ).
       ($options['height'] ? ' height="'.$options['height'].'"' : '' ).
-      '/></a></div>';
+      ' loading="lazy" /></a></div>';
   }
 ?>
             <td class="colName">

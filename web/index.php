@@ -139,11 +139,6 @@ $skinBase[] = $skin;
 
 zm_session_start();
 
-$cookie_options = array(
-  'expires'=>time()+3600*24*30*12*10,
-  'samesite' => 'Strict',
-);
-
 if (
   !isset($_SESSION['skin']) ||
   isset($_REQUEST['skin']) ||
@@ -151,11 +146,7 @@ if (
   ($_COOKIE['zmSkin'] != $skin)
 ) {
   $_SESSION['skin'] = $skin;
-	if (version_compare(phpversion(), '7.3.0', '>=')) {
-	setcookie('zmSkin', $skin, $cookie_options);
-	} else {
-	setcookie('zmSkin', $skin, $cookie_options['expires'], '/; samesite=strict');
-	}
+	zm_setcookie('zmSkin', $skin);
 }
 
 if (
@@ -165,11 +156,7 @@ if (
   ($_COOKIE['zmCSS'] != $css)
 ) {
   $_SESSION['css'] = $css;
-	if (version_compare(phpversion(), '7.3.0', '>=')) {
-    setcookie('zmCSS', $css, $cookie_options);
-	} else {
-	  setcookie('zmCSS', $css, $cookie_options['expires'], '/; samesite=strict');
-	}
+  zm_setcookie('zmCSS', $css);
 }
 
 # Running is global but only do the daemonCheck if it is actually needed
@@ -192,8 +179,6 @@ $user = null;
 if ( isset($_REQUEST['view']) )
   $view = detaintPath($_REQUEST['view']);
 
-# Add CSP Headers
-$cspNonce = bin2hex(zm_random_bytes(16));
 
 $request = null;
 if ( isset($_REQUEST['request']) )
@@ -294,8 +279,11 @@ if ( $request ) {
   return;
 }
 
+# Add CSP Headers
+$cspNonce = bin2hex(zm_random_bytes(16));
 if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   ob_start();
+  CSPHeaders($view, $cspNonce);
   foreach ( $includeFiles as $includeFile ) {
     if ( !file_exists($includeFile) )
       ZM\Fatal("View '$view' does not exist");
@@ -309,9 +297,7 @@ if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
     foreach ( getSkinIncludes('views/login.php', true, true) as $includeFile )
       require_once $includeFile;
   }
-
-  CSPHeaders($view, $cspNonce);
-  ob_end_flush();
+  while (ob_get_level() > 0) ob_end_flush();
 }
 // If the view is missing or the view still returned error with the user logged in,
 // then it is not recoverable.

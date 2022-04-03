@@ -220,14 +220,14 @@ sub moveConUpRight {
   my $self = shift;
   Debug('Move Diagonally Up Right');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=RightUp&channel=0&arg1=0&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=RightUp&channel=0&arg1=1&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDownRight {
   my $self = shift;
   Debug('Move Diagonally Down Right');
-  $$self{LastCmd} = 'code=RightDown&channel=0&arg1=0&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=RightDown&channel=0&arg1=1&arg2=1&arg3=0';
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
@@ -236,7 +236,7 @@ sub moveConUpLeft {
   my $self = shift;
   Debug('Move Diagonally Up Left');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=LeftUp&channel=0&arg1=0&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=LeftUp&channel=0&arg1=1&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
@@ -244,7 +244,7 @@ sub moveConDownLeft {
   my $self = shift;
   Debug('Move Diagonally Down Left');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=LeftDown&channel=0&arg1=0&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=LeftDown&channel=0&arg1=1&arg2=1&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 

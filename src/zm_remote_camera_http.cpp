@@ -144,6 +144,14 @@ void RemoteCameraHttp::Initialise() {
 int RemoteCameraHttp::Connect() {
   struct addrinfo *p = nullptr;
 
+  if (!hp) {
+    RemoteCamera::Initialise();
+    if (!hp) {
+      Error("Unable to resolve address for remote camera, aborting");
+      return -1;
+    }
+  }
+
   for ( p = hp; p != nullptr; p = p->ai_next ) {
     sd = socket( p->ai_family, p->ai_socktype, p->ai_protocol );
     if ( sd < 0 ) {

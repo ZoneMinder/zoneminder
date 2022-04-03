@@ -1072,8 +1072,10 @@ sub time_of_youngest_file {
   foreach my $file ( readdir( DIR ) ) {
     next if $file =~ /^\./;
     $_ = (stat($dir))[9];
-    $youngest = $_ if $_ and ( $_ < $youngest );
-    Debug("Found younger file $file at $youngest");
+    if ($_ and ($_ < $youngest)) {
+      $youngest = $_;
+      Debug("Found younger file $file at $youngest");
+    }
   }
   return $youngest;
 } # end sub time_of_youngest_file

@@ -231,7 +231,7 @@ foreach ( $monitors as $monitor ) {
             >
             <?php
   $monitor_options = $options;
-  $monitor_options['width'] = $monitor_options['width'].'px';
+  $monitor_options['width'] = $monitor_options['width']?$monitor_options['width'].'px' : null;
   $monitor_options['height'] = $monitor_options['height']?$monitor_options['height'].'px' : null;
   $monitor_options['connkey'] = $monitor->connKey();
 

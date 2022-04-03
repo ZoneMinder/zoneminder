@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 StreamBase::~StreamBase() {
 #if HAVE_LIBAVCODEC
@@ -34,6 +35,7 @@ StreamBase::~StreamBase() {
     vid_stream = nullptr;
   }
 #endif
+  delete temp_img_buffer;
   closeComms();
 }
 

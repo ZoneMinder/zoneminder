@@ -631,7 +631,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 #endif
 		pkt->stream_index = ost->index;
 		pkt->data = (uint8_t *)opicture_ptr;
-		pkt->size = sizeof (AVPicture);
+    pkt->size = buffer_size;
     got_packet = 1;
 	} else {
 		opicture_ptr->pts = codec_context->frame_number;

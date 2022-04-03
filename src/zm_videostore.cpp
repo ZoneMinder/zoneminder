@@ -56,6 +56,8 @@ VideoStore::CodecData VideoStore::codec_data[] = {
   { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P },
 #endif
+  { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
+  { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
 };
 
 VideoStore::VideoStore(
@@ -136,8 +138,8 @@ bool VideoStore::open() {
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
-  out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
-  AVCodec *video_out_codec = nullptr;
+  oc->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+  const AVCodec *video_out_codec = nullptr;
 
   AVDictionary *opts = nullptr;
   std::string Options = monitor->GetEncoderOptions();
@@ -1217,18 +1219,22 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
 
 #if 0
   if (pkt->dts == AV_NOPTS_VALUE) {
-    Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
-    pkt->dts = stream->cur_dts;
-  } else if (pkt->dts < stream->cur_dts) {
+    Error("undefined dts");
+//    Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
+//    pkt->dts = stream->cur_dts;
+/*  } else if (pkt->dts < stream->cur_dts) {
     Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream cur_dts %" PRId64, pkt->dts, stream->cur_dts);
-    pkt->dts = stream->cur_dts;
+    pkt->dts = stream->cur_dts;*/
   }
 
   if (pkt->dts > pkt->pts) {
-    Debug(1,
+    Warning("pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+            "Decompression must happen before presentation.",
+            pkt->dts, pkt->pts);
+/*    Debug(1,
           "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
           "Decompression must happen before presentation.",
-          pkt->dts, pkt->pts);
+          pkt->dts, pkt->pts);*/
     pkt->pts = pkt->dts;
   }
 #endif

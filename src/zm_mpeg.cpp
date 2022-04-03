@@ -97,16 +97,11 @@ int VideoStream::SetupCodec(
 		// Not sure what this value should be really...
 		ofc->packet_size = width*height;
     Debug(1,"Setting packet_size to %d", ofc->packet_size);
-
-		if (of->video_codec == AV_CODEC_ID_NONE) {
-			// RTP does not have a default codec in ffmpeg <= 0.8.
-			of->video_codec = AV_CODEC_ID_MPEG4;
-		}
 	}
 
 	_AVCODECID codec_id = of->video_codec;
 	if (codec_name) {
-    AVCodec *a = avcodec_find_encoder_by_name(codec_name);
+    const AVCodec *a = avcodec_find_encoder_by_name(codec_name);
     if (a) {
       codec_id = a->id;
       Debug(1, "Using codec \"%s\"", codec_name);

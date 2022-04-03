@@ -106,7 +106,7 @@ Event::Event(
 
   // Copy it in case opening the mp4 doesn't work we can set it to another value
   save_jpegs = monitor->GetOptSaveJPEGs();
-  Storage * storage = monitor->getStorage();
+  Storage *storage = monitor->getStorage();
 
   std::string sql = stringtf(
       "INSERT INTO `Events` "
@@ -134,7 +134,6 @@ Event::Event(
 } // Event::Event( Monitor *p_monitor, struct timeval p_start_time, const std::string &p_cause, const StringSetMap &p_noteSetMap, bool p_videoEvent )
 
 Event::~Event() {
-
   Stop();
   if (thread_.joinable()) thread_.join();
 
@@ -185,12 +184,12 @@ Event::~Event() {
 
 void Event::createNotes(std::string &notes) {
   notes.clear();
-  for ( StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter ) {
+  for (StringSetMap::const_iterator mapIter = noteSetMap.begin(); mapIter != noteSetMap.end(); ++mapIter) {
     notes += mapIter->first;
     notes += ": ";
     const StringSet &stringSet = mapIter->second;
-    for ( StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); ++setIter ) {
-      if ( setIter != stringSet.begin() )
+    for (StringSet::const_iterator setIter = stringSet.begin(); setIter != stringSet.end(); ++setIter) {
+      if (setIter != stringSet.begin())
         notes += ", ";
       notes += *setIter;
     }
@@ -333,9 +332,11 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
-void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
-  std::unique_lock<std::mutex> lck(packet_queue_mutex);
-  packet_queue.push(packet);
+void Event::AddPacket(ZMLockedPacket *packetlock) {
+  {
+    std::unique_lock<std::mutex> lck(packet_queue_mutex);
+    packet_queue.push(packetlock);
+  }
   packet_queue_condition.notify_one();
 }
 
@@ -356,7 +357,6 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
   }
 
   if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
-    //AddFrame(packet->image, packet->timestamp, packet->zone_stats, packet->score, packet->analysis_image);
     AddFrame(packet);
   }
   end_time = packet->timestamp;
@@ -406,15 +406,13 @@ void Event::WriteDbFrames() {
   }  // end while frames
   // The -1 is for the extra , added for values above
   frame_insert_sql.erase(frame_insert_sql.size()-1);
-  //zmDbDo(frame_insert_sql.c_str());
   dbQueue.push(std::move(frame_insert_sql));
   if (stats_insert_sql.size() > 208) {
     // The -1 is for the extra , added for values above
     stats_insert_sql.erase(stats_insert_sql.size()-1);
-    //zmDbDo(stats_insert_sql);
     dbQueue.push(std::move(stats_insert_sql));
   }
-} // end void Event::WriteDbFrames()
+}  // end void Event::WriteDbFrames()
 
 void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
   if (!packet->timestamp.tv_sec) {
@@ -496,9 +494,8 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
           if (!WriteFrameImage(&y_image, packet->timestamp, event_file.c_str(), true)) {
             Error("Failed to write y frame image to %s", event_file.c_str());
           }
-        }
-
-      }
+        }  // end if write y-channel image
+      }  // end if has analysis images turned on
     }  // end if is an alarm frame
   } else {
     Debug(1, "No image");
@@ -528,16 +525,15 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
     // The idea is to write out 1/sec
     frame_data.push(new Frame(id, frames, frame_type, packet->timestamp, delta_time, score, packet->zone_stats));
     double fps = monitor->get_capture_fps();
-		if ( write_to_db
-				or
-				( frame_data.size() >= MAX_DB_FRAMES )
-				or
-				( frame_type == BULK )
-				or
-				( fps and (frame_data.size() > fps) )
-			 ) {
-          Debug(1, "Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
-                frame_data.size(), write_to_db, fps, (frame_type == BULK));
+    if (write_to_db
+        or
+        (frame_data.size() >= MAX_DB_FRAMES)
+        or
+        (frame_type == BULK)
+        or
+        (fps and (frame_data.size() > 5*fps))) {
+      Debug(1, "Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK(%d)",
+            frame_data.size(), write_to_db, fps, (frame_type == BULK));
       WriteDbFrames();
       last_db_frame = frames;
 
@@ -555,10 +551,10 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
           );
       dbQueue.push(std::move(sql));
 		} else {
-          Debug(1, "Not Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
-                frame_data.size(), write_to_db, fps);
-    } // end if frame_type == BULK
-  } // end if db_frame
+      Debug(1, "Not Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
+          frame_data.size(), write_to_db, fps);
+    }  // end if frame_type == BULK
+  }  // end if db_frame
 
   if (score > (int)max_score)
     max_score = score;
@@ -578,7 +574,6 @@ bool Event::SetPath(Storage *storage) {
   tm stime = {};
   localtime_r(&start_time.tv_sec, &stime);
   if (scheme == Storage::DEEP) {
-
     int dt_parts[6];
     dt_parts[0] = stime.tm_year-100;
     dt_parts[1] = stime.tm_mon+1;
@@ -673,7 +668,7 @@ void Event::Run() {
 
       result = zmDbFetch(sql.c_str());
       if (result) {
-        for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
+        for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
           storage = new Storage(atoi(dbrow[0]));
           if (SetPath(storage))
             break;
@@ -707,7 +702,6 @@ void Event::Run() {
 
   if (monitor->GetOptVideoWriter() != 0) {
     /* Save as video */
-        
     videoStore = new VideoStore(
         video_file.c_str(),
         container.c_str(),
@@ -717,11 +711,11 @@ void Event::Run() {
         ( monitor->RecordAudio() ? monitor->GetAudioCodecContext() : nullptr ),
         monitor );
 
-    if ( !videoStore->open() ) {
+    if (!videoStore->open()) {
       Warning("Failed to open videostore, turning on jpegs");
       delete videoStore;
       videoStore = nullptr;
-      if ( ! ( save_jpegs & 1 ) ) {
+      if (!(save_jpegs & 1)) {
         save_jpegs |= 1; // Turn on jpeg storage
         zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id).c_str());
       }
@@ -736,12 +730,19 @@ void Event::Run() {
   // We only break if the queue is empty
   while (true) {
     if (!packet_queue.empty()) {
-      this->AddPacket_(packet_queue.front());
+      const ZMLockedPacket * packet_lock = packet_queue.front();
+      this->AddPacket_(packet_lock->packet_);
+      delete packet_lock;
       packet_queue.pop();
     } else {
-      if (terminate_ or zm_terminate)
+      if (terminate_ or zm_terminate) {
         break;
+      }
       packet_queue_condition.wait(lck);
     }
   }
+}  // end Run()
+
+int Event::MonitorId() {
+  return monitor->Id();
 }

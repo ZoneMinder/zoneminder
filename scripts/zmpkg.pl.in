@@ -217,7 +217,7 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     }
 
     foreach my $monitor (@monitors) {
-      if ( $monitor->{Capturing} ne 'None' && $monitor->{Type} ne 'WebSite' ) {
+      if (($monitor->{Capturing} ne 'None') and ($monitor->{Type} ne 'WebSite')) {
         if ( $monitor->{Type} eq 'Local' ) {
           runCommand("zmdc.pl start zmc -d $monitor->{Device}");
         } else {

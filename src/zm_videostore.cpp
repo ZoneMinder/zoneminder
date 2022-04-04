@@ -140,7 +140,7 @@ bool VideoStore::open() {
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
-  oc->format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+  oc->oformat->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
 
   if (video_in_stream) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)

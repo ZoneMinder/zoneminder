@@ -213,7 +213,7 @@ if ( $command =~ /^(?:start|restart)$/ ) {
       @monitors = ZoneMinder::Monitor->find(ServerId=>$Config{ZM_SERVER_ID});
     } else {
       Info('Single server configuration detected. Starting up services.');
-      @monitors = ZoneMinder::Monitor->find(ServerId=>$Config{ZM_SERVER_ID});
+      @monitors = ZoneMinder::Monitor->find();
     }
 
     foreach my $monitor (@monitors) {

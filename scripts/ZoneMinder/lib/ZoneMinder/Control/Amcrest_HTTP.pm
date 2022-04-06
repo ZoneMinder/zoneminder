@@ -255,16 +255,55 @@ sub moveConDownLeft {
 sub moveStop {
   my $self = shift;
   if ($$self{LastCmd}) {
-    Debug('Move Stop '.$$self{LastCmd});
-    $self->sendCmd('cgi-bin/ptz.cgi?action=stop&'.$$self{LastCmd});
-    $$self{LastCmd} = '';
-    $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+    if ( substr($$self{LastCmd},0,4) eq 'code' ) {
+      # last command was a PTZ move
+      Debug('Move Stop '.$$self{LastCmd});
+      $self->sendCmd('cgi-bin/ptz.cgi?action=stop&'.$$self{LastCmd});
+      $$self{LastCmd} = '';
+      $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+    } elsif ( substr($$self{LastCmd},0,5)  eq 'focus' ) {
+      # last command was a focus adjustment
+      Debug('focus Stop '.$$self{LastCmd});
+      $self->sendCmd('cgi-bin/devVideoInput.cgi?action=adjustFocusContinuously&focus=0&zoom=0');
+      $$self{LastCmd} = '';
+      $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+    } else {
+      Debug('focus Stop '.$$self{LastCmd});
+      Error('Unknown or unaccounted for lastcmd value: ' . $$self{LastCmd});
+      $$self{LastCmd} = '';
+    }
   } else {
     Debug('Move Stop/Center');
     $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1=0&arg2=0&arg3=0&arg4=1');
   }
 }
 
+#new focus stuff
+sub focusAuto {
+  my $self = shift;
+  Debug('Set AutoFocus on');
+  $self->sendCmd('cgi-bin/devVideoInput.cgi?action=autoFocus');
+}
+
+# focusConNear, focusConFar, focusStop is implemented above in sub moveStop 
+
+sub focusConFar {
+  my $self = shift;
+  Debug('Set Focus far');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=FocusFar&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
+}
+
+sub focusConNear {
+  my $self = shift;
+  Debug('Set Focus near');
+  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+  $$self{LastCmd} = 'code=FocusNear&channel=0&arg1=0&arg2=1&arg3=0';
+  $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
+}
+
+# end of new focus stuff
 # Move Camera to Home Position
 # The current API does not support a Home per se, so we'll just send the camera to preset #1
 # NOTE: It goes without saying that the user must have set up preset #1 for this to work.

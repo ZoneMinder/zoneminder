@@ -4,14 +4,20 @@
  * @param {*} new_layout - the name of a layout to switch to
  */
 function selectLayout(new_layout) {
-  var ddm = $j('#zmMontageLayout');
+  const ddm = $j('#zmMontageLayout');
   if (new_layout) {
+    console.log("Selecting new layout"+new_layout);
     $j('#zmMontageLayout option:contains("'+new_layout+'")').attr('selected', true);
   }
-  layout = ddm.val();
+  const layout_id = parseInt(ddm.val());
+  let layout = null;
 
-  if (layout_id = parseInt(layout)) {
-    layout = layouts[layout];
+  if (layout_id) {
+    layout = layouts[layout_id];
+    if (!layout) {
+      console.log("No layout found for " + layout_id);
+      return;
+    }
 
     for (var i = 0, length = monitors.length; i < length; i++) {
       monitor = monitors[i];
@@ -233,28 +239,27 @@ function initPage() {
   $j("#hdrbutton").click(function() {
     $j("#flipMontageHeader").slideToggle("slow");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-    setCookie( 'zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', 3600);
+    setCookie('zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', 3600);
   });
-  if ( getCookie('zmMontageHeaderFlip') == 'down' ) {
+  if (getCookie('zmMontageHeaderFlip') == 'down') {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
     $j("#flipMontageHeader").slideToggle("fast");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
-  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+  for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i] = new MonitorStream(monitorData[i]);
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
-    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    console.log("delay: " + delay);
+    const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].start(delay);
 
-    var interval = monitors[i].refresh;
+    const interval = monitors[i].refresh;
     if ( monitors[i].type == 'WebSite' && interval > 0 ) {
       setInterval(reloadWebSite, interval*1000, i);
     }
     monitors[i].setup_onclick(handleClick);
   }
-  selectLayout('Freeform');
+  selectLayout();
 }
 
 function watchFullscreen() {

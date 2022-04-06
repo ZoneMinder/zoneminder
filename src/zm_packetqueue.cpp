@@ -109,31 +109,31 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }  // end while
     }
     if (have_out_of_order) {
+      pktQueue.insert(rit.base(), add_packet);
       if (rit == pktQueue.rend()) {
         Warning("Unable to re-order packet");
       } else {
         Debug(1, "Found out of order packet");
+        dumpQueue();
       }
-      pktQueue.insert(rit.base(), add_packet);
     } else {
       pktQueue.push_back(add_packet);
+      for (
+          auto iterators_it = iterators.begin();
+          iterators_it != iterators.end();
+          ++iterators_it
+          ) {
+        packetqueue_iterator *iterator_it = *iterators_it;
+        if (*iterator_it == pktQueue.end()) {
+          --(*iterator_it);
+        }
+      }  // end foreach iterator
     }
 
     packet_counts[add_packet->packet.stream_index] += 1;
     Debug(2, "packet counts for %d is %d",
         add_packet->packet.stream_index,
         packet_counts[add_packet->packet.stream_index]);
-
-    for (
-        auto iterators_it = iterators.begin();
-        iterators_it != iterators.end();
-        ++iterators_it
-        ) {
-      packetqueue_iterator *iterator_it = *iterators_it;
-      if (*iterator_it == pktQueue.end()) {
-        --(*iterator_it);
-      }
-    }  // end foreach iterator
 
     if (
         (add_packet->packet.stream_index == video_stream_id)
@@ -605,7 +605,7 @@ void PacketQueue::dumpQueue() {
   std::list<std::shared_ptr<ZMPacket>>::reverse_iterator it;
   for ( it = pktQueue.rbegin(); it != pktQueue.rend(); ++ it ) {
     std::shared_ptr<ZMPacket> zm_packet = *it;
-    ZM_DUMP_PACKET(zm_packet->packet, "");
+    ZM_DUMP_PACKET(zm_packet->packet, is_there_an_iterator_pointing_to_packet(zm_packet) ? "*" : "");
   }
 }
 

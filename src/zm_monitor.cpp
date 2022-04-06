@@ -1735,7 +1735,7 @@ bool Monitor::Analyse() {
 
   // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
   if (snap->score != -1) {
-    Error("skipping because score was %d", snap->score);
+    Error("skipping because score was %d at index %d", snap->score, snap->image_index);
     packetqueue.unlock(packet_lock);
     packetqueue.increment_it(analysis_it);
     return false;

@@ -1237,6 +1237,26 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
           pkt->dts, pkt->pts);*/
     pkt->pts = pkt->dts;
   }
+#else
+  if (pkt->dts == AV_NOPTS_VALUE) {
+    Error("undefined dts");
+//    Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
+//    pkt->dts = stream->cur_dts;
+  } else if (pkt->dts < next_dts[stream->index]) {
+    Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream next_dts %" PRId64, pkt->dts, next_dts[stream->index]);
+    pkt->dts = next_dts[stream->index];
+  }
+
+  if (pkt->dts > pkt->pts) {
+    Warning("pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+            "Decompression must happen before presentation.",
+            pkt->dts, pkt->pts);
+/*    Debug(1,
+          "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+          "Decompression must happen before presentation.",
+          pkt->dts, pkt->pts);*/
+    pkt->pts = pkt->dts;
+  }
 #endif
 
   ZM_DUMP_STREAM_PACKET(stream, (*pkt), "finished pkt");

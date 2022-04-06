@@ -663,7 +663,8 @@ function getBrowser(&$browser, &$version) {
     ) {
       $version = $logVersion[1];
       $browser = 'ie';
-    } else if ( preg_match('/Chrome\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
+    } else if ( preg_match('/Chrome\/([0-9]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
+      // We only care about the major so don't count .
       $version = $logVersion[1];
       // Check for old version of Chrome with bug 5876
       if ( $version < 7 ) {
@@ -743,6 +744,7 @@ function canStreamIframe() {
 }
 
 function canStreamNative() {
+  ZM\Debug("ZM_WEB_CAN_STREAM:".ZM_WEB_CAN_STREAM.' isInternetExplorer: ' . isInternetExplorer() . ' isOldChrome:' . isOldChrome());
   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
   return ( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
 }

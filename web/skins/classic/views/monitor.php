@@ -908,7 +908,7 @@ include('_monitor_source_nvsocket.php');
               <td>
 <?php
         echo htmlSelect('newMonitor[Analysing]', ZM\Monitor::getAnalysingOptions(),
-            $monitor->Analysing(), array('on-change-this'=>'Analysing_onChange'));
+            $monitor->Analysing(), array('data-on-change-this'=>'Analysing_onChange'));
 ?>
                 <div id="Analysing_help">
 <?php
@@ -987,7 +987,9 @@ include('_monitor_source_nvsocket.php');
             <td class="text-right pr-3"><?php echo translate('Recording') ?></td>
             <td>
   <?php
-          echo htmlSelect('newMonitor[Recording]', ZM\Monitor::getRecordingOptions(), $monitor->Recording(), array('on-change-this'=>'Recording_onChange'));
+      echo htmlSelect('newMonitor[Recording]', ZM\Monitor::getRecordingOptions(),
+        $monitor->Recording(),
+        array('data-on-change-this'=>'Recording_onChange'));
   ?>
                 <div id="Recording_help">
   <?php
@@ -1113,7 +1115,6 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 <?php } ?>
               </td>
             </tr>
-        </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('Event Start Command') ?></td>
             <td><input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" /></td>

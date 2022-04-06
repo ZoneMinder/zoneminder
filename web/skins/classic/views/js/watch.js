@@ -641,24 +641,6 @@ function handleClick(event) {
   }
 }
 
-function appletRefresh() {
-  if (streamStatus && (!streamStatus.paused && !streamStatus.delayed)) {
-    var streamImg = $j('#liveStream'+monitorId);
-    if (streamImg) {
-      var parent = streamImg.parent();
-      streamImg.remove();
-      streamImg.append(parent);
-    } else {
-      console.error("Nothing found for liveStream"+monitorId);
-    }
-    if (appletRefreshTime) {
-      setTimeout(appletRefresh, appletRefreshTime*1000);
-    }
-  } else {
-    setTimeout(appletRefresh, 15*1000); // if we are paused or delayed check every 15 seconds if we are live yet...
-  }
-}
-
 var watchdogInactive = {
   'stream': false,
   'status': false
@@ -851,7 +833,7 @@ function initPage() {
       streamCmdTimer = setTimeout(streamCmdQuery, 200);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
     }
-    if (canStreamNative || (streamMode == 'single')) {
+    if (canStream || (streamMode == 'single')) {
       var streamImg = $j('#imageFeed img');
       if (!streamImg) streamImg = $j('#imageFeed object');
       if (!streamImg) {
@@ -872,10 +854,6 @@ function initPage() {
         }
       } // end if have streamImg
     } // streamMode native or single
-
-    if (refreshApplet && appletRefreshTime) {
-      setTimeout(appletRefresh, appletRefreshTime*1000);
-    }
     */
     if (window.history.length == 1) {
       $j('#closeControl').html('');

@@ -117,10 +117,7 @@ var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
-var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
-
-var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
-var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
+var canStream = <?php echo canStream()?'true':'false' ?>;
 
 var translate = {
   "Showing Analysis": '<?php echo translate('Showing Analysis'); ?>',

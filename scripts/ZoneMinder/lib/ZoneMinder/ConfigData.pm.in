@@ -731,55 +731,6 @@ our @options = (
     category    => 'images',
   },
   {
-    name        => 'ZM_OPT_CAMBOZOLA',
-    default     => 'no',
-    description => 'Is the (optional) cambozola java streaming client installed',
-    help        => q`
-      Cambozola is a handy low fat cheese flavoured Java applet that
-      ZoneMinder uses to view image streams on browsers such as
-      Internet Explorer that don't natively support this format. If
-      you use this browser it is highly recommended to install this
-      from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
-      However, if it is not installed still images at a lower refresh rate can
-      still be viewed.
-      `,
-    type        => $types{boolean},
-    category    => 'images',
-  },
-  {
-    name        => 'ZM_PATH_CAMBOZOLA',
-    default     => 'cambozola.jar',
-    description => 'Web path to (optional) cambozola java streaming client',
-    help        => q`
-      Cambozola is a handy low fat cheese flavoured Java applet that
-      ZoneMinder uses to view image streams on browsers such as
-      Internet Explorer that don't natively support this format. If
-      you use this browser it is highly recommended to install this
-      from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
-      However if it is not installed still images at a lower refresh rate can
-      still be viewed. Leave this as 'cambozola.jar' if cambozola is
-      installed in the same directory as the ZoneMinder web client
-      files.
-      `,
-    requires    => [ { name=>'ZM_OPT_CAMBOZOLA', value=>'yes' } ],
-    type        => $types{rel_path},
-    category    => 'images',
-  },
-  {
-    name        => 'ZM_RELOAD_CAMBOZOLA',
-    default     => '0',
-    description => 'After how many seconds should Cambozola be reloaded in live view',
-    help        => q`
-      Cambozola allows for the viewing of streaming MJPEG however it
-      caches the entire stream into cache space on the computer,
-      setting this to a number > 0 will cause it to automatically
-      reload after that many seconds to avoid filling up a hard
-      drive.
-      `,
-    type        => $types{integer},
-    category    => 'images',
-  },
-  {
     name        => 'ZM_TIMESTAMP_ON_CAPTURE',
     default     => 'yes',
     description => 'Timestamp images as soon as they are captured',

@@ -84,7 +84,7 @@ var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 var eventsRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_EVENTS ?>;
 var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
-var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
+var canStream = <?php echo canStream()?'true':'false' ?>;
 
 var imageControlMode = '<?php 
 $control = $monitor->Control();
@@ -97,13 +97,9 @@ if ($control->CanMoveMap()) {
 }
 ?>';
 
-var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
-var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
-
 var labels = new Array();
 <?php
 $labels = array();
-ZM\Debug("Presets");
 foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array($monitor->Id())) as $row) {
   $label = $labels[$row['Preset']] = $row['Label'];
   echo 'labels['. validInt($row['Preset']) .'] = \''.validJsStr($label).'\';'.PHP_EOL;

@@ -7,6 +7,7 @@
 #include "zm_swscale.h"
 
 #include <memory>
+#include <map>
 
 extern "C"  {
 #include <libswresample/swresample.h>
@@ -85,6 +86,7 @@ class VideoStore {
 
     // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
     int64_t *next_dts;
+    std::map<int, int64_t> last_dts;
     int64_t audio_next_pts;
 
     int max_stream_index;

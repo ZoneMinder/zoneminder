@@ -391,6 +391,8 @@ bool VideoStore::open() {
   }  // end if video_in_stream
 
   max_stream_index = video_out_stream->index;
+  last_dts[video_out_stream->index] = AV_NOPTS_VALUE;
+
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
 
   if (audio_in_stream and audio_in_ctx) {
@@ -472,6 +474,7 @@ bool VideoStore::open() {
 
     // We will assume that subsequent stream allocations will increase the index
     max_stream_index = audio_out_stream->index;
+    last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
   }  // end if audio_in_stream
 
   //max_stream_index is 0-based, so add 1
@@ -1239,15 +1242,19 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   }
 #else
   if (pkt->dts == AV_NOPTS_VALUE) {
-    Error("undefined dts");
-//    Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
-//    pkt->dts = stream->cur_dts;
-  } else if (pkt->dts < next_dts[stream->index]) {
-    Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream next_dts %" PRId64, pkt->dts, next_dts[stream->index]);
-    pkt->dts = next_dts[stream->index];
+    if (last_dts[stream->index] == AV_NOPTS_VALUE) {
+      last_dts[stream->index] = 0;
+    } 
+    pkt->dts = last_dts[stream->index];
+  } else if (pkt->dts < last_dts[stream->index]) {
+    Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d next_dts %" PRId64,
+        pkt->dts, stream->index, next_dts[stream->index]);
+    pkt->dts = last_dts[stream->index];
   }
 
-  if (pkt->dts > pkt->pts) {
+  if (pkt->pts == AV_NOPTS_VALUE) {
+    pkt->pts = pkt->dts;
+  } else if (pkt->dts > pkt->pts) {
     Warning("pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
             "Decompression must happen before presentation.",
             pkt->dts, pkt->pts);
@@ -1261,8 +1268,9 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
 
   ZM_DUMP_STREAM_PACKET(stream, (*pkt), "finished pkt");
   next_dts[stream->index] = pkt->dts + pkt->duration;
-  Debug(3, "next_dts for stream %d has become %" PRId64,
-      stream->index, next_dts[stream->index]);
+  last_dts[stream->index] = pkt->dts;
+  Debug(3, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
+      stream->index, next_dts[stream->index], last_dts[stream->index]);
 
   int ret = av_interleaved_write_frame(oc, pkt);
   if (ret != 0) {

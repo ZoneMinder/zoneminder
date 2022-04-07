@@ -932,7 +932,7 @@ function xhtmlFooter() {
   'js/bootstrap-table-cookie.min.js',
   'js/bootstrap-table-toolbar.min.js',
   'js/bootstrap-table-auto-refresh.min.js',
-  'js/chosen/chosen.jquery.min.js',
+  'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',
 ), true );

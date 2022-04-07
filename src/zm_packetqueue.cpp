@@ -86,6 +86,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
   }
   {
     std::unique_lock<std::mutex> lck(mutex);
+    if (deleting or zm_terminate) return false;
 
     bool have_out_of_order = false;
     auto rit = pktQueue.rbegin();

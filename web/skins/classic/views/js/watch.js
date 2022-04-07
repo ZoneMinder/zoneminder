@@ -170,12 +170,17 @@ function changeScale() {
     // This is so that we don't waste bandwidth and let the browser do all the scaling.
     if (autoScale > 100) autoScale = 100;
     if (scale > 100) scale = 100;
+    if (autoScale <= 0) autoScale = 100;
     const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
 
-    streamImg.css('width', newWidth+'px');
-    streamImg.width(newWidth);
-    streamImg.css('height', newHeight+'px');
-    streamImg.height(newHeight);
+    if (parseInt(newWidth) > 0) {
+      streamImg.css('width', newWidth+'px');
+      streamImg.width(newWidth);
+    }
+    if (parseInt(newHeight) > 0) {
+      streamImg.css('height', newHeight+'px');
+      streamImg.height(newHeight);
+    }
     streamImg.attr('src', newSrc);
   } else {
     console.log("Not an IMG, can't set size");

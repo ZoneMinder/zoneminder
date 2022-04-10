@@ -350,6 +350,9 @@ public static function getStatuses() {
         $args['scale'] = intval((100*intval($args['height']))/$this->ViewHeight());
       }
     }
+    if ($args['scale'] <= 0) {
+      $args['scale'] = 100;
+    }
     if (isset($args['width']))
       unset($args['width']);
     if (isset($args['height']))
@@ -816,5 +819,120 @@ public static function getStatuses() {
 ';
     return $html;
   }
+
+/* options['width'] is the desired view width not necessarily the image width requested.
+ * It can be % in which case we us it to set the scale
+ * It can be px in which case we can use it to calculate the scale
+ * Same width height.  If both are set we should calculate the smaller resulting scale
+ */
+  function getStreamHTML($options) {
+    if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
+      Debug("Have scale:" . $options['scale']);
+      if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {
+        #ZM\Warning('Setting dimensions from scale:'.$options['scale']);
+        $options['width'] = reScale($this->ViewWidth(), $options['scale']).'px';
+        $options['height'] = reScale($this->ViewHeight(), $options['scale']).'px';
+      } else if ( ! ( isset($options['width']) or isset($options['height']) ) ) {
+        $options['width'] = '100%';
+        $options['height'] = 'auto';
+      }
+    } else {
+      $options['scale'] = 100;
+      # scale is empty or 100
+      # There may be a fixed width applied though, in which case we need to leave the height empty
+      if ( ! ( isset($options['width']) and $options['width'] ) ) {
+        # Havn't specified width.  If we specified height, then we should
+        # use a width that keeps the aspect ratio, otherwise no scaling, 
+        # no dimensions, so assume the dimensions of the Monitor
+
+        if ( ! (isset($options['height']) and $options['height']) ) {
+          # If we havn't specified any scale or dimensions, then we must be using CSS to scale it in a dynamic way. Can't make any assumptions.
+          #$options['width'] = $monitor->ViewWidth().'px';
+          #$options['height'] = $monitor->ViewHeight().'px';
+        }
+      } else {
+        #ZM\Warning("Have width ".$options['width']);
+        if ( preg_match('/^(\d+)px$/', $options['width'], $matches) ) {
+          $scale = intval(100*$matches[1]/$this->ViewWidth());
+          #ZM\Warning("Scale is $scale");
+          if ( $scale < $options['scale'] )
+            $options['scale'] = $scale;
+        } else if ( preg_match('/^(\d+)%$/', $options['width'], $matches) ) {
+          $scale = intval($matches[1]);
+          if ( $scale < $options['scale'] )
+            $options['scale'] = $scale;
+        } else {
+          Warning('Invalid value for width: '.$options['width']);
+        }
+      }
+    }
+    if ( ! isset($options['mode'] ) ) {
+      $options['mode'] = 'stream';
+    }
+    if ( ! isset($options['width'] ) )
+      $options['width'] = 0;
+    if ( ! isset($options['height'] ) )
+      $options['height'] = 0;
+
+    if (!isset($options['maxfps'])) {
+      $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+    }
+    if ($this->StreamReplayBuffer())
+      $options['buffer'] = $this->StreamReplayBuffer();
+    //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+    $html = '
+          <div id="monitor'. $this->Id() . '" class="monitor">
+            <div
+              id="imageFeed'. $this->Id() .'"
+              class="monitorStream imageFeed"
+              data-monitor-id="'. $this->Id() .'"
+              data-width="'. $this->ViewWidth() .'"
+              data-height="'.$this->ViewHeight() .'" style="'.
+(($options['width'] and ($options['width'] != '0px')) ? 'width: '.$options['width'].';' : '').
+(($options['height'] and ($options['height'] != '0px')) ? 'height: '.$options['height'].';' : '').
+            '">';
+
+    if ($this->Type() == 'WebSite') {
+      $html .= getWebSiteUrl(
+        'liveStream'.$this->Id(), $this->Path(),
+        ( isset($options['width']) ? $options['width'] : NULL ),
+        ( isset($options['height']) ? $options['height'] : NULL ),
+        $this->Name()
+      );
+      //FIXME, the width and height of the image need to be scaled.
+    } else if ((ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT) {
+      $streamSrc = $this->getStreamSrc( array(
+        'mode'   => 'mpeg',
+        'scale'  => (isset($options['scale'])?$options['scale']:100),
+        'bitrate'=> ZM_WEB_VIDEO_BITRATE,
+        'maxfps' => ZM_WEB_VIDEO_MAXFPS,
+        'format' => ZM_MPEG_LIVE_FORMAT
+      ) );
+      $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
+    } else if ( $this->JanusEnabled() ) {
+      $html .= '<video id="liveStream'.$this->Id().'" width="'.$options['width'].'"autoplay muted controls playsinline="" ></video>';
+    } else if ( $options['mode'] == 'stream' and canStream() ) {
+      $options['mode'] = 'jpeg';
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
+    } else {
+      if ($options['mode'] == 'stream') {
+        Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
+      }
+      $options['mode'] = 'single';
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStill('liveStream'.$this->Id(), $streamSrc,
+        (isset($options['width']) ? $options['width'] : null),
+        (isset($options['height']) ? $options['height'] : null),
+        $this->Name());
+    }
+    $html .= PHP_EOL.'</div><!--monitorStream-->'.PHP_EOL;
+    if (isset($options['state']) and $options['state']) {
+    //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
+      $html .= $this->getMonitorStateHTML();
+    }
+    $html .= PHP_EOL.'</div>'.PHP_EOL;
+    return $html;
+  } // end getStreamHTML
 } // end class Monitor
 ?>

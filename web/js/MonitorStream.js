@@ -29,6 +29,17 @@ function MonitorStream(monitorData) {
     this.buttons[name] = element;
   };
 
+  this.bottomElement = null;
+  this.setBottomElement = function(e) {
+    if (!e) {
+      console.error("Empty bottomElement");
+    } else {
+      console.log("Setting bottomElement to ");
+      console.log(e);
+    }
+    this.bottomElement = e;
+  }
+
   this.element = null;
   this.getElement = function() {
     if (this.element) return this.element;
@@ -55,45 +66,66 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.setScale = function(newscale) {
+  this.setScale = function(newscale, width, height) {
     const img = this.getElement();
     if (!img) return;
 
     this.scale = newscale;
 
-    const oldSrc = img.getAttribute('src');
-    if (!oldSrc) {
-      console.log('No src on img?!');
-      console.log(img);
+    // Scale the frame
+    monitor_frame = $j('#monitor'+this.id);
+    if (!monitor_frame) {
+      console.log('Error finding frame');
       return;
     }
-    let newSrc = '';
+    stream_frame = $j('#monitor'+this.id);
 
-    img.setAttribute('src', '');
-    console.log("Scaling to: " + newscale);
-
-    if (newscale == '0' || newscale == 'auto') {
-      const bottomElement = document.getElementById('monitorState'+this.id);
-      var newSize = scaleToFit(this.width, this.height, $j(img), $j(bottomElement));
-
-      //console.log(newSize);
-      newWidth = newSize.width;
-      newHeight = newSize.height;
-      autoScale = parseInt(newSize.autoScale);
-      // This is so that we don't waste bandwidth and let the browser do all the scaling.
-      if (autoScale > 100) autoScale = 100;
-      if (autoScale) {
-        newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+autoScale);
+    if ((newscale == '0') || (newscale == 'auto') || (width=='auto' && height=='auto' && newscale=='fixed')) {
+      if (!this.bottomElement) {
+        console.log("No bottom element set. Setting to monitorStatus");
+        this.bottomElement = document.getElementById('monitorStatus'+this.id);
+        if (!this.bottomElement) {
+          console.log('bottomElement not found');
+        }
+      }
+      var newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
+      width = newSize.width;
+      height = newSize.height;
+      newscale = parseInt(newSize.autoScale);
+    } else if (newscale == 'fixed' || newscale == '') {
+      if (width) {
+        newscale = parseInt(100*parseInt(width)/this.width);
+      } else if (height) {
+        newscale = parseInt(100*parseInt(height)/this.height);
       }
     } else {
-      newWidth = this.width * newscale / SCALE_BASE;
-      newHeight = this.height * newscale / SCALE_BASE;
-      //img.width(newWidth);
-      //img.height(newHeight);
-      if (newscale > 100) newscale = 100;
-      newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+      // a numeric scale, must take actual monitor dimensions and calculate
+      width = parseInt(this.width * newscale / 100);
+      height = parseInt(this.height * newscale / 100);
+      console.log("Setting to " + width + "x" + height + " from " + newscale);
     }
-    img.setAttribute('src', newSrc);
+
+    if (img.nodeName == 'IMG') {
+      if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
+      const oldSrc = img.getAttribute('src');
+      if (!oldSrc) {
+        console.log('No src on img?!');
+        console.log(img);
+        return;
+      }
+      let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+      if (newSrc != oldSrc) {
+        console.log('Clear src'+oldSrc);
+        img.setAttribute('src', '');
+        img.setAttribute('src', newSrc);
+        console.log('Done Cleared src'+newSrc);
+      }
+    }
+
+    monitor_frame.css('width', parseInt(width) ? width : 'auto');
+    // monitor_frame never has fixed height
+    stream_frame.css('width', parseInt(width) ? width : 'auto');
+    //stream_frame.css('height', parseInt(height) ? height : 'auto');
   };
 
   this.start = function(delay) {
@@ -221,8 +253,6 @@ function MonitorStream(monitorData) {
       } else {
         stateValue.removeClass();
       }
-    } else {
-      console.log("No statevalue");
     }
     //const monitorState = $j('#monitorState'+this.id);
     //if (monitorState.length) this.setStateClass(monitorState, stateClass);

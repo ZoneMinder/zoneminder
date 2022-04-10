@@ -102,34 +102,17 @@ function changeSize() {
   var width = $j('#width').val();
   var height = $j('#height').val();
 
-  // Scale the frame
-  monitor_frame = $j('#imageFeed');
-  if (!monitor_frame) {
-    console.log('Error finding frame');
-    return;
-  }
-  if (width) monitor_frame.css('width', width);
-  if (height) monitor_frame.css('height', height);
-
-  var streamImg = document.getElementById('liveStream'+monitorData[monIdx].id);
-  if (streamImg) {
-    if (streamImg.nodeName == 'IMG') {
-      let src = streamImg.src;
-      streamImg.src = '';
-      src = src.replace(/width=[\.\d]+/i, 'width='+parseInt(width));
-      src = src.replace(/height=[\.\d]+/i, 'height='+parseInt(height));
-      src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-      streamImg.src = src;
-    }
-    streamImg.style.width = width ? width : null;
-    streamImg.style.height = height ? height : null;
+  if ((width == 'auto') && (height=='auto')) {
+    monitorStream.setScale('auto', width, height);
+    $j('#scale').val('auto');
+    setCookie('zmWatchScale', 'auto', 3600);
   } else {
-    console.log('Did not find liveStream'+monitorData[monIdx].id);
+    monitorStream.setScale('fixed', width, height);
+    $j('#scale').val('fixed');
+    setCookie('zmWatchScale', 'fixed', 3600);
   }
-  $j('#scale').val('');
-  setCookie('zmCycleScale', '', 3600);
-  setCookie('zmCycleWidth', width, 3600);
-  setCookie('zmCycleHeight', height, 3600);
+  setCookie('zmWatchWidth', width, 3600);
+  setCookie('zmWatchHeight', height, 3600);
 } // end function changeSize()
 
 function changeScale() {
@@ -138,53 +121,22 @@ function changeScale() {
   $j('#width').val('auto');
   $j('#height').val('auto');
   setCookie('zmCycleScale', scale, 3600);
-  setCookie('zmCycleWidth', 'auto', 3600);
-  setCookie('zmCycleHeight', 'auto', 3600);
+  setCookie('zmWatchWidth', 'auto', 3600);
+  setCookie('zmWatchHeight', 'auto', 3600);
 
-  var newWidth;
-  var newHeight;
-  var autoScale;
-
-  var streamImg = $j('#liveStream'+monitorId);
-  if (!streamImg.length) {
-    console.error('No element found for liveStream'+monitorId);
-  }
-
+  setScale();
+}
+// Implement current scale, as opposed to changing it
+function setScale() {
+  var scale = $j('#scale').val();
+  monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   if (scale == '0' || scale == 'auto') {
-    const newSize = scaleToFit(monitorWidth, monitorHeight, streamImg, $j('#dvrControls'));
-    newWidth = newSize.width;
-    newHeight = newSize.height;
-    autoScale = newSize.autoScale;
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-  } else {
-    newWidth = monitorWidth * scale / SCALE_BASE;
-    newHeight = monitorHeight * scale / SCALE_BASE;
   }
-
-  if (streamImg.prop('nodeName') == 'IMG') {
-    const oldSrc = streamImg.attr('src');
-    streamImg.attr('src', '');
-    // This is so that we don't waste bandwidth and let the browser do all the scaling.
-    if (autoScale > 100) autoScale = 100;
-    if (scale > 100) scale = 100;
-    if (autoScale <= 0) autoScale = 100;
-    const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
-
-    if (parseInt(newWidth) > 0) {
-      streamImg.css('width', newWidth+'px');
-      streamImg.width(newWidth);
-    }
-    if (parseInt(newHeight) > 0) {
-      streamImg.css('height', newHeight+'px');
-      streamImg.height(newHeight);
-    }
-    streamImg.attr('src', newSrc);
-  } else {
-    console.log("Not an IMG, can't set size");
-  }
+  return;
 } // end function changeScale
 
 function getStreamCmdResponse(respObj, respText) {
@@ -293,6 +245,7 @@ function getStreamCmdResponse(respObj, respText) {
           if (oldSrc) {
             const newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
             if (oldSrc != newSrc) {
+              streamImg.attr('src', ''); // Required or chrome doesn't stop the stream
               streamImg.attr('src', newSrc);
               table.bootstrapTable('refresh');
             }
@@ -805,9 +758,10 @@ function initPage() {
 
   if (monitorType != 'WebSite') {
     monitorStream = new MonitorStream(monitorData[monIdx]);
+    monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
-    monitorStream.setScale('auto');
+    monitorStream.setScale('0', $j('#width').val(), $j('#height').val());
     monitorStream.start(Math.round( (Math.random()+0.5)*statusRefreshTimeout ));
     if (streamMode == 'single') {
       monitorStream.setup_onclick(fetchImage);
@@ -866,7 +820,7 @@ function initPage() {
     document.querySelectorAll('select[name="scale"]').forEach(function(el) {
       el.onchange = window['changeScale'];
     });
-    changeScale();
+    setScale();
     document.querySelectorAll('select[name="changeRate"]').forEach(function(el) {
       el.onchange = window['changeRate'].bind(el, el);
     });

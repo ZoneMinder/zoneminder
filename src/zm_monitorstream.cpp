@@ -472,6 +472,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   }  // Not mpeg
 
   last_frame_sent = std::chrono::steady_clock::now();
+#if 0
   if (maxfps > 0.0) {
     TimePoint::duration frame_send_time = last_frame_sent - send_start_time;
     TimePoint::duration maxfps_milliseconds = Milliseconds(lround(Milliseconds::period::den / maxfps));
@@ -484,6 +485,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
           maxfps);
     }
   }
+#endif
   return true;
 }  // end bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp)
 

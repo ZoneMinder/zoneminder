@@ -8,6 +8,7 @@ require_once('Manufacturer.php');
 require_once('Model.php');
 require_once('Server.php');
 require_once('Storage.php');
+require_once('Zone.php');
 
 class Monitor extends ZM_Object {
 protected static $FunctionTypes = null;
@@ -926,6 +927,17 @@ public static function getStatuses() {
         (isset($options['height']) ? $options['height'] : null),
         $this->Name());
     }
+
+    if ($options['zones']) { 
+      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 '.$this->ViewWidth().' '.$this->ViewHeight() .'" preserveAspectRatio="none">'.PHP_EOL;
+      foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
+        $html .= $zone->svg_polygon();
+      } // end foreach zone
+      $html .= '
+  Sorry, your browser does not support inline SVG
+</svg>
+';
+    } # end if showZones
     $html .= PHP_EOL.'</div><!--monitorStream-->'.PHP_EOL;
     if (isset($options['state']) and $options['state']) {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {

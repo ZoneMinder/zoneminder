@@ -5,93 +5,107 @@
  */
 function selectLayout(new_layout) {
   const ddm = $j('#zmMontageLayout');
-  if (new_layout) {
-    console.log("Selecting new layout"+new_layout);
+  if (new_layout && (typeof(new_layout) != 'object')) {
+    $j('#zmMontageLayout option').attr('selected', false);
     $j('#zmMontageLayout option:contains("'+new_layout+'")').attr('selected', true);
   }
   const layout_id = parseInt(ddm.val());
-  let layout = null;
-
-  if (layout_id) {
-    layout = layouts[layout_id];
-    if (!layout) {
-      console.log("No layout found for " + layout_id);
-      return;
-    }
-
-    for (var i = 0, length = monitors.length; i < length; i++) {
-      monitor = monitors[i];
-      // Need to clear the current positioning, and apply the new
-
-      monitor_frame = $j('#monitorFrame'+monitor.id);
-      if (!monitor_frame) {
-        console.log('Error finding frame for ' + monitor.id);
-        continue;
-      }
-
-      // Apply default layout options, like float left
-      if (layout.Positions['default'] ) {
-        styles = layout.Positions['default'];
-        for (style in styles) {
-          monitor_frame.css(style, styles[style]);
-        }
-      } else {
-        console.log("No default styles to apply" + layout.Positions);
-      } // end if default styles
-
-      if (layout.Positions['mId'+monitor.id]) {
-        styles = layout.Positions['mId'+monitor.id];
-        for (style in styles) {
-          monitor_frame.css(style, styles[style]);
-        }
-      } // end if specific monitor style
-    } // end foreach monitor
-    setCookie('zmMontageLayout', layout_id, 3600);
-    if (layouts[layout_id].Name != 'Freeform') { // 'montage_freeform.css' ) {
-      // For freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
-      setCookie('zmMontageScale', '', 3600);
-      $j('#scale').val('');
-      $j('#width').val('0');
-    }
-  } // end if a stored layout
-
-  if (!layout) {
-    console.log('No layout?');
+  if (!layout_id) {
+    console.log("No layout_id?!");
     return;
   }
-  var width = parseInt($j('#width').val());
-  var height = parseInt($j('#height').val());
-  var scale = $j('#scale').val();
+
+  let layout = layouts[layout_id];
+  if (!layout) {
+    console.log("No layout found for " + layout_id);
+    return;
+  }
 
   for (var i = 0, length = monitors.length; i < length; i++) {
-    var monitor = monitors[i];
+    monitor = monitors[i];
+    // Need to clear the current positioning, and apply the new
 
-    var stream_scale = 0;
-    if (scale) {
-      stream_scale = scale;
-    } else if (width) {
-      stream_scale = parseInt(100*width/monitor.width);
-    } else if (height) {
-      stream_scale = parseInt(100*height/monitor.height);
-    } else if (layouts[layout_id].Name != 'Freeform') {
-      monitor_frame = $j('#monitorFrame'+monitor.id);
-      console.log("Monitor frame width : " + monitor_frame.width() + " monitor Width: " + monitor.width);
-      if (monitor_frame.width() < monitor.width) {
-        stream_scale = parseInt(100 * monitor_frame.width() / monitor.width);
-        // Round to a multiple of 5, so 53 become 50% etc
-        stream_scale = Math.floor(stream_scale/5)*5;
-      }
+    monitor_frame = $j('#monitor'+monitor.id);
+    if (!monitor_frame) {
+      console.log('Error finding frame for ' + monitor.id);
+      continue;
     }
-    monitor.setScale(stream_scale);
+
+    // Apply default layout options, like float left
+    if (layout.Positions['default']) {
+      styles = layout.Positions['default'];
+      for (style in styles) {
+        //console.log('Applying ' + style + '=>' + styles[style]);
+        monitor_frame.css(style, styles[style]);
+      }
+    } else {
+      console.log("No default styles to apply" + layout.Positions);
+    } // end if default styles
+
+    if (layout.Positions['mId'+monitor.id]) {
+      styles = layout.Positions['mId'+monitor.id];
+      for (style in styles) {
+        monitor_frame.css(style, styles[style]);
+      }
+    } // end if specific monitor style
   } // end foreach monitor
+  setCookie('zmMontageLayout', layout_id, 3600);
+  if (layouts[layout_id].Name != 'Freeform') { // 'montage_freeform.css' ) {
+    // For freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
+    setCookie('zmMontageScale', 'fixed', 3600);
+    setCookie('zmMontageWidth', 'auto', 3600);
+    //setCookie('zmMontageHeight', 'auto', 3600);
+    $j('#scale').val('fixed');
+    $j('#width').val('auto');
+    //$j('#height').val('auto');
+  }
+
+  if (0) {
+    var width = parseInt($j('#width').val());
+    var height = parseInt($j('#height').val());
+    var scale = $j('#scale').val();
+
+    for (var i = 0, length = monitors.length; i < length; i++) {
+      var monitor = monitors[i];
+
+      var stream_scale = 0;
+      if (scale) {
+        stream_scale = scale;
+      } else if (width) {
+        stream_scale = parseInt(100*width/monitor.width);
+      } else if (height) {
+        stream_scale = parseInt(100*height/monitor.height);
+      } else if (layouts[layout_id].Name != 'Freeform') {
+        monitor_frame = $j('#monitor'+monitor.id);
+        console.log("Monitor frame width : " + monitor_frame.width() + " monitor Width: " + monitor.width);
+        if (monitor_frame.width() < monitor.width) {
+          stream_scale = parseInt(100 * monitor_frame.width() / monitor.width);
+          // Round to a multiple of 5, so 53 become 50% etc
+          stream_scale = Math.floor(stream_scale/5)*5;
+        }
+      }
+      monitor.setScale('fixed');
+      //stream_scale, width, height);
+    } // end foreach monitor
+  }
 } // end function selectLayout(element)
 
+function changeHeight() {
+  var height = $j('#height').val();
+  setCookie('zmMontageHeight', height, 3600);
+  for (var i = 0, length = monitors.length; i < length; i++) {
+    var monitor = monitors[i];
+    monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
+    monitor_frame.css('height', height);
+  }
+}
+
 /**
- * called when the widthControl|heightControl select elements are changed
+ * called when the widthControl select element is changed
  */
-function changeSize() {
-  var width = parseInt($j('#width').val());
-  var height = parseInt($j('#height').val());
+function changeWidth() {
+  var width = $j('#width').val();
+  var height = $j('#height').val();
 
   selectLayout('Freeform');
   $j('#width').val(width);
@@ -99,26 +113,10 @@ function changeSize() {
 
   for (var i = 0, length = monitors.length; i < length; i++) {
     var monitor = monitors[i];
-
-    // Scale the frame
-    monitor_frame = $j('#monitorFrame'+monitor.id);
-    if ( !monitor_frame ) {
-      console.log("Error finding frame for " + monitor.id);
-      continue;
-    }
-    monitor_frame.css('width', ( width ? width+'px' : 'auto'));
-    monitor_frame.css('height', ( height ? height+'px' : 'auto'));
-
-    var scale = 100;
-    if ( width ) {
-      scale = parseInt(100*width/monitor.width);
-    } else if ( height ) {
-      scale = parseInt(100*height/monitor.height);
-    }
-    monitor.setScale(scale);
+    monitor.setScale('fixed', width, height);
   }
-  $j('#scale').val('');
-  setCookie('zmMontageScale', '', 3600);
+  $j('#scale').val('fixed');
+  setCookie('zmMontageScale', 'fixed', 3600);
   setCookie('zmMontageWidth', width, 3600);
   setCookie('zmMontageHeight', height, 3600);
 } // end function changeSize()
@@ -127,30 +125,17 @@ function changeSize() {
  * called when the scaleControl select element is changed
  */
 function changeScale() {
-  var scale = parseInt($j('#scale').val());
+  var scale = $j('#scale').val();
   selectLayout('Freeform'); // Will also clear width and height
   $j('#scale').val(scale);
   setCookie('zmMontageScale', scale, 3600);
+  setCookie('zmMontageWidth', 'auto', 3600);
+  setCookie('zmMontageHeight', 'auto', 3600);
+  $j('#width').val('auto');
+  $j('#height').val('auto');
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
-    const monitor = monitors[i];
-    const newWidth = ( monitorData[i].width * scale ) / SCALE_BASE;
-    //var newHeight = ( monitorData[i].height * scale ) / SCALE_BASE;
-    // Theoretically by setting to freeform layout, all heights have been set to auto
-
-    // Scale the frame
-    monitor_frame = $j('#monitorFrame'+monitor.id);
-    if (!monitor_frame) {
-      console.log("Error finding frame for " + monitor.id);
-      continue;
-    }
-    if (scale > 0) {
-      if (newWidth) {
-        monitor_frame.css('width', newWidth);
-      }
-    } else {
-      monitor_frame.css('width', '100%');
-    }
+    var monitor = monitors[i];
     monitor.setScale(scale);
   } // end foreach Monitor
 }
@@ -234,7 +219,7 @@ function takeSnapshot() {
   window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
 }
 
-var monitors = new Array();
+const monitors = new Array();
 function initPage() {
   $j("#hdrbutton").click(function() {
     $j("#flipMontageHeader").slideToggle("slow");
@@ -253,9 +238,8 @@ function initPage() {
     const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].start(delay);
 
-    const interval = monitors[i].refresh;
-    if ( monitors[i].type == 'WebSite' && interval > 0 ) {
-      setInterval(reloadWebSite, interval*1000, i);
+    if ((monitors[i].type == 'WebSite') && (monitors[i].refresh > 0)) {
+      setInterval(reloadWebSite, monitors.refresh*1000, i);
     }
     monitors[i].setup_onclick(handleClick);
   }

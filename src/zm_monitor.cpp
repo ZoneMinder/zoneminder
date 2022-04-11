@@ -2134,7 +2134,7 @@ bool Monitor::Analyse() {
             }
           } else if (state == ALERT) {
             alert_to_alarm_frame_count--;
-            Info("%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d",
+            Debug(1, "%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d",
                 name.c_str(), analysis_image_count, alert_to_alarm_frame_count);
             if (alert_to_alarm_frame_count == 0) {
               Info("%s: %03d - Gone back into alarm state", name.c_str(), analysis_image_count);

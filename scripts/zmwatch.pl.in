@@ -164,7 +164,7 @@ while (!$zm_terminate) {
       } elsif (!$image_time) {
 # We can't get the last capture time so can't be sure it's died.
         #$restart = 1;
-        Error("Last analyse time for $$monitor{Id} $$monitor{Name} was zero.");
+        Debug("Last analyse time for $$monitor{Id} $$monitor{Name} was zero.");
       } else {
         my $max_image_delay = ( $monitor->{MaxFPS}
             &&($monitor->{MaxFPS}>0)

@@ -145,11 +145,13 @@ class Image {
     explicit Image(const AVFrame *frame);
 
     ~Image();
+
     static void Initialise();
     static void Deinitialise();
 
     inline void DumpImgBuffer() {
-      DumpBuffer(buffer, buffertype);
+      if (buffertype != ZM_BUFTYPE_DONTFREE)
+        DumpBuffer(buffer, buffertype);
       buffertype = ZM_BUFTYPE_DONTFREE;
       buffer = nullptr;
       allocation = 0;
@@ -162,22 +164,7 @@ class Image {
     inline unsigned int SubpixelOrder() const { return subpixelorder; }
     inline unsigned int Size() const { return size; }
 
-    inline AVPixelFormat AVPixFormat() {
-      if ( colours == ZM_COLOUR_RGB32 ) {
-        return AV_PIX_FMT_RGBA;
-      } else if ( colours == ZM_COLOUR_RGB24 ) {
-        if ( subpixelorder == ZM_SUBPIX_ORDER_BGR){
-          return AV_PIX_FMT_BGR24;
-        } else {
-          return AV_PIX_FMT_RGB24;
-        }
-      } else if ( colours == ZM_COLOUR_GRAY8 ) {
-        return AV_PIX_FMT_GRAY8;
-      } else {
-        Error("Unknown colours (%d)",colours);
-        return AV_PIX_FMT_RGBA;
-      }
-    }
+    AVPixelFormat AVPixFormat() const;
 
     inline uint8_t* Buffer() { return buffer; }
     inline const uint8_t* Buffer() const { return buffer; }

@@ -41,7 +41,7 @@ class FFmpeg_Input {
   private:
     typedef struct {
         AVCodecContext *context;
-        AVCodec *codec;
+        const AVCodec *codec;
         int frame_count;
     } stream;
 

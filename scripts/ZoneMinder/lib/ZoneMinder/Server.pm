@@ -119,6 +119,66 @@ sub CpuLoad {
   return (undef, undef, undef);
 } # end sub CpuLoad
 
+sub PathToZMS {
+  my $this = shift;
+  $this->{PathToZMS} = shift if @_;
+  if ( $this->Id() and $this->{PathToZMS} ) {
+    return $this->{PathToZMS};
+  } else {
+    return $ZoneMinder::Config{ZM_PATH_ZMS};
+  }
+}
+
+sub UrlToZMS {
+  my $this = shift;
+  return $this->Url(@_).$this->PathToZMS();
+}
+
+sub Url {
+  my $this = shift;
+  my $port = shift if @_;
+
+  if (!$this->Id()) {
+    return '';
+  }
+
+  my $url = $this->Protocol().'://';
+  $url .= $this->Hostname();
+  if ( !$port ) {
+    $port = $this->Port();
+  }
+  if ( $this->Protocol() == 'https' and $port == 443 ) {
+  } elsif ( $this->Protocol() == 'http' and $port == 80 ) {
+  } else {
+    $url .= ':'.$port;
+  }
+  return $url;
+}
+
+sub PathToIndex {
+  my $this = shift;
+  $this->{PathToIndex} = shift if @_;
+
+  return $this->{PathToIndex} if $this->{PathToIndex};
+}
+
+sub UrlToIndex {
+  my $this = shift;
+  return $this->Url(@_).$this->PathToIndex();
+}
+
+sub UrlToApi {
+  my $this = shift;
+  return $this->Url(@_).$this->PathToApi();
+}
+
+sub PathToApi {
+  my $this = shift;
+  $this->{PathToApi} = shift if @_;
+  return $this->{'PathToApi'} if $this->{PathToApi};
+  return '/zm/api';
+}
+
 1;
 __END__
 # Below is stub documentation for your module. You'd better edit it!

@@ -2,8 +2,7 @@ name: Create packages
 
 on:
   push:
-    branches:
-      - '*'
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
@@ -21,6 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          fetch-depth: '0'
           submodules: recursive
       - name: Run packpack
         env:
@@ -29,3 +29,13 @@ jobs:
           DIST: ${{ matrix.os_dist.dist }}
           DOCKER_REPO: iconzm/packpack
         run: utils/packpack/startpackpack.sh
+
+      - name: Publish
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
+          ARGS: "-rltgoDzvO"
+          SOURCE: build/
+          REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
+          REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
+          TARGET: debian/master/mini-dinstall/incoming/

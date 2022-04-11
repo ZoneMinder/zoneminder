@@ -108,8 +108,8 @@ bool zmDbConnect() {
 }
 
 void zmDbClose() {
+  std::lock_guard<std::mutex> lck(db_mutex);
   if (zmDbConnected) {
-    std::lock_guard<std::mutex> lck(db_mutex);
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()
@@ -238,8 +238,13 @@ zmDbQueue::~zmDbQueue() {
 }
 
 void zmDbQueue::stop() {
-  mTerminate = true;
+  {
+    std::unique_lock<std::mutex> lock(mMutex);
+
+    mTerminate = true;
+  }
   mCondition.notify_all();
+
   if (mThread.joinable()) mThread.join();
 }
 
@@ -251,11 +256,11 @@ void zmDbQueue::process() {
       mCondition.wait(lock);
     }
     while (!mQueue.empty()) {
-      if (mQueue.size() > 10) {
+      if (mQueue.size() > 30) {
         Logger *log = Logger::fetch();
         Logger::Level db_level = log->databaseLevel();
         log->databaseLevel(Logger::NOLOG);
-        Warning("db queue size has grown larger %zu than 10 entries", mQueue.size());
+        Warning("db queue size has grown larger %zu than 20 entries", mQueue.size());
         log->databaseLevel(db_level);
       }
       std::string sql = mQueue.front();
@@ -270,9 +275,11 @@ void zmDbQueue::process() {
 }  // end void zmDbQueue::process()
 
 void zmDbQueue::push(std::string &&sql) {
-  if (mTerminate) return;
-  std::unique_lock<std::mutex> lock(mMutex);
-  mQueue.push(std::move(sql));
+  {
+    std::unique_lock<std::mutex> lock(mMutex);
+    if (mTerminate) return;
+    mQueue.push(std::move(sql));
+  }
   mCondition.notify_all();
 }
 

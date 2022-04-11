@@ -7,6 +7,7 @@
 #include "zm_swscale.h"
 
 #include <memory>
+#include <map>
 
 extern "C"  {
 #include <libswresample/swresample.h>
@@ -38,7 +39,7 @@ class VideoStore {
     CodecData *chosen_codec_data;
 
     Monitor *monitor;
-    AVOutputFormat *out_format;
+    const AVOutputFormat *out_format;
     AVFormatContext *oc;
     AVStream *video_out_stream;
     AVStream *audio_out_stream;
@@ -52,7 +53,7 @@ class VideoStore {
     const AVCodec *audio_in_codec;
     AVCodecContext *audio_in_ctx;
     // The following are used when encoding the audio stream to AAC
-    AVCodec *audio_out_codec;
+    const AVCodec *audio_out_codec;
     AVCodecContext *audio_out_ctx;
     // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
     AVPacket opkt;
@@ -85,6 +86,7 @@ class VideoStore {
 
     // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
     int64_t *next_dts;
+    std::map<int, int64_t> last_dts;
     int64_t audio_next_pts;
 
     int max_stream_index;

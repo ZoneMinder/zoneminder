@@ -40,11 +40,11 @@ protected:
   const char *format;
   const char *codec_name;
   enum _AVPIXELFORMAT pf;
-  AVOutputFormat *of;
+  const AVOutputFormat *of;
   AVFormatContext *ofc;
   AVStream *ost;
   AVCodecContext *codec_context;
-  AVCodec *codec;
+  const AVCodec *codec;
   AVFrame *opicture;
   AVFrame *tmp_opicture;
   uint8_t *video_outbuf;
@@ -68,7 +68,7 @@ protected:
   static void Initialise();
 
   void SetupFormat( );
-  void SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate );
+  int SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate );
   void SetParameters();
   void ActuallyOpenStream();
   double ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );

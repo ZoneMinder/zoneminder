@@ -118,41 +118,34 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 
 /* Convert RGB colour value into BGR\ARGB\ABGR */
 inline Rgb rgb_convert(Rgb p_col, int p_subpixorder) {
-  Rgb result;
+  Rgb result = 0;
   
-  switch(p_subpixorder) {
-    
+  switch (p_subpixorder) {
     case ZM_SUBPIX_ORDER_BGR:
     case ZM_SUBPIX_ORDER_BGRA:
-    {
-    BLUE_PTR_BGRA(&result) = BLUE_VAL_RGBA(p_col);
-    GREEN_PTR_BGRA(&result) = GREEN_VAL_RGBA(p_col);
-    RED_PTR_BGRA(&result) = RED_VAL_RGBA(p_col);
-    }
-    break;
+      BLUE_PTR_BGRA(&result) = BLUE_VAL_RGBA(p_col);
+      GREEN_PTR_BGRA(&result) = GREEN_VAL_RGBA(p_col);
+      RED_PTR_BGRA(&result) = RED_VAL_RGBA(p_col);
+      break;
     case ZM_SUBPIX_ORDER_ARGB:
-    {
-    BLUE_PTR_ARGB(&result) = BLUE_VAL_RGBA(p_col);
-    GREEN_PTR_ARGB(&result) = GREEN_VAL_RGBA(p_col);
-    RED_PTR_ARGB(&result) = RED_VAL_RGBA(p_col);
-    }
-    break;
+      BLUE_PTR_ARGB(&result) = BLUE_VAL_RGBA(p_col);
+      GREEN_PTR_ARGB(&result) = GREEN_VAL_RGBA(p_col);
+      RED_PTR_ARGB(&result) = RED_VAL_RGBA(p_col);
+      break;
     case ZM_SUBPIX_ORDER_ABGR:
-    {
-    BLUE_PTR_ABGR(&result) = BLUE_VAL_RGBA(p_col);
-    GREEN_PTR_ABGR(&result) = GREEN_VAL_RGBA(p_col);
-    RED_PTR_ABGR(&result) = RED_VAL_RGBA(p_col);
-    }
-    break;
-    /* Grayscale */
+      BLUE_PTR_ABGR(&result) = BLUE_VAL_RGBA(p_col);
+      GREEN_PTR_ABGR(&result) = GREEN_VAL_RGBA(p_col);
+      RED_PTR_ABGR(&result) = RED_VAL_RGBA(p_col);
+      break;
+      /* Grayscale */
     case ZM_SUBPIX_ORDER_NONE:
-    result = p_col & 0xff;
-    break;
+      result = p_col & 0xff;
+      break;
     default:
-    return p_col;
-    break;
+      result = p_col;
+      break;
   }
-  
+
   return result;
 }
 

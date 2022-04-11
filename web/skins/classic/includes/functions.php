@@ -169,7 +169,7 @@ function getBodyTopHTML() {
 ';
   global $error_message;
   if ( $error_message ) {
-   echo '<div class="error">'.$error_message.'</div>';
+   echo '<div id="error">'.$error_message.'</div>';
   }
 } // end function getBodyTopHTML
 
@@ -203,8 +203,8 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   $status = runtimeStatus($running);
 
 ?>
-<div class="fixed-top container-fluid p-0">
-  <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row">
+<div class="container-fluid p-0" id="navbar-container">
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row" id="navbar-one">
 
     <div class="navbar-brand justify-content-start align-self-start">
       <?php echo getNavBrandHTML() ?>
@@ -223,7 +223,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 
   // *** Build the navigation bar menu items ***
   if ( $user and $user['Username'] ) {
-        echo '<ul class="navbar-nav align-self-start justify-content-center">';
+        echo '<ul class="nav navbar-nav align-self-start justify-content-center">';
           echo getConsoleHTML();
           echo getOptionsHTML();
           echo getLogHTML();
@@ -247,7 +247,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     </div>
   </nav><!-- End First Navbar -->
 
-  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
+  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0" id="navbar-two">
     <div class="container-fluid" id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
 
@@ -281,9 +281,12 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
   
-  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
-    <?php echo getConsoleBannerHTML() ?>
-  </nav><!-- End Third Navbar -->
+<?php
+  $banner_html = getConsoleBannerHTML();
+  if ($banner_html) {
+    echo '<nav class="navbar navbar-expand-md bg-dark justify-content-center p-0" id="navbar-three">'.$banner_html.'</nav>';
+  }
+?>
 </div>
 <?php
 } // end function getNormalNavBarHTML()
@@ -425,7 +428,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<a class="dropdown-item '.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.$S->Name() . ': ' . $S->disk_usage_percent().'%' . '</a>';
+    return '<a class="dropdown-item '.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -472,19 +475,21 @@ function getRamHTML() {
   } else if ($mem_used_percent > 90) {
     $used_class = 'text-warning';
   }
-  $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
-  $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
-  $swap_class = '';
-  if ($swap_used_percent > 95) {
-    $swap_class = 'text-danger';
-  } else if ($swap_used_percent > 90) {
-    $swap_class = 'text-warning';
-  }
-
   $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
-    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> '.
-    '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> '.
-    '</li>'.PHP_EOL;
+    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> ';
+
+  if ($meminfo['SwapTotal']) {
+    $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
+    $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
+    $swap_class = '';
+    if ($swap_used_percent > 95) {
+      $swap_class = 'text-danger';
+    } else if ($swap_used_percent > 90) {
+      $swap_class = 'text-warning';
+    }
+    $result .= '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> ';
+  } # end if SwapTotal
+  $result .= '</li>'.PHP_EOL;
   
   return $result;
 }
@@ -787,7 +792,7 @@ function getAccountCircleHTML($skin, $user=null) {
   
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<li id="getAccountCircleHTML" class="navbar-text navbar-nav mr-2">'.PHP_EOL;
-    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '.  $user['Username'],
+    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '. validHtmlStr($user['Username']),
       (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
@@ -916,6 +921,7 @@ function xhtmlFooter() {
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
+  <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
@@ -926,7 +932,7 @@ function xhtmlFooter() {
   'js/bootstrap-table-cookie.min.js',
   'js/bootstrap-table-toolbar.min.js',
   'js/bootstrap-table-auto-refresh.min.js',
-  'js/chosen/chosen.jquery.min.js',
+  'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',
 ), true );
@@ -940,7 +946,8 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
 ?>
-  <script nonce="<?php echo $cspNonce; ?>">var $j = jQuery.noConflict();
+  <script nonce="<?php echo $cspNonce; ?>">
+    var $j = jQuery.noConflict();
 <?php
   if ( $skinJsPhpFile ) {
     require_once( $skinJsPhpFile );

@@ -143,8 +143,8 @@ bool Fifo::writePacket(std::string filename, const ZMPacket &packet) {
 bool Fifo::write(uint8_t *data, size_t bytes, int64_t pts) {
   if (!(outfile or open())) return false;
   // Going to write a brief header
-  Debug(1, "Writing header ZM %lu %" PRId64,  bytes, pts);
-  if ( fprintf(outfile, "ZM %lu %" PRId64 "\n", bytes, pts) < 0 ) {
+  Debug(1, "Writing header ZM %zu %" PRId64,  bytes, pts);
+  if (fprintf(outfile, "ZM %zu %" PRId64 "\n", bytes, pts) < 0) {
     if (errno != EAGAIN) {
       Error("Problem during writing: %s", strerror(errno));
     } else {

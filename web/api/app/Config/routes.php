@@ -23,8 +23,6 @@
 /**
  * Load the API / REST routes
  */
-	/* Add new API to retrieve camera controls - for PTZ */
-	/* refer to https://github.com/ZoneMinder/ZoneMinder/issues/799#issuecomment-105233112 */
 	Router::mapResources('configs');
 	Router::mapResources('controls');
 	Router::mapResources('events');
@@ -32,7 +30,11 @@
   Router::mapResources('groups');	
 	Router::mapResources('host');
 	Router::mapResources('logs');
+	Router::mapResources('manufacturers');
+	Router::mapResources('models');
+	Router::mapResources('cameramodels');
 	Router::mapResources('monitors');
+	Router::mapResources('servers');
 	Router::mapResources('states');
 	Router::mapResources('users');
 	Router::mapResources('zonepresets');

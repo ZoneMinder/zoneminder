@@ -86,7 +86,7 @@ $limitQuery = '';
 if ( $user['MonitorIds'] ) {
   $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
   $eventsSql .= $user_monitor_ids;
-} else {
+} else if ( !isset($_REQUEST['filter']) ) {
   $eventsSql .= ' 1';
 }
 
@@ -98,7 +98,7 @@ if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
   $eventsValues += $_REQUEST['eids'];
 } else if ( isset($_REQUEST['filter']) ) {
   parseSort();
-  $filter = Filter::parse($_REQUEST['filter']);
+  $filter = ZM\Filter::parse($_REQUEST['filter']);
   $filterQuery = $filter->querystring();
 
   if ( $filter->sql() ) {

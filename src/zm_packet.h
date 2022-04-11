@@ -57,6 +57,7 @@ class ZMPacket {
     int64_t   pts;                // pts in the packet can be in another time base. This MUST be in AV_TIME_BASE_Q
     bool decoded;
     std::vector<ZoneStats> zone_stats;
+    std::string  alarm_cause;
 
   public:
     AVPacket *av_packet() { return &packet; }

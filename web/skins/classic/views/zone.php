@@ -164,15 +164,18 @@ if ( count($other_zones) ) {
                 <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
                 Sorry, your browser does not support inline SVG
               </svg>
-            </div><?php # imageFrame?>
-            <div id="monitorState">
-              <?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps
-            </div>
+            </div><?php # imageFrame
+              echo $monitor->getMonitorStateHTML();
+?>
+
             <div id="StreamControlButtons">
-              <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>">
+              <button type="button" id="analyseBtn" class="btn btn-primary" title="<?php echo translate('Showing Analysis') ?>">
+                <i class="material-icons md-18">assessment</i>
+              </button>
+              <button type="button" id="pauseBtn" class="btn btn-primary" title="<?php echo translate('Pause') ?>">
                 <i class="material-icons md-18">pause</i>
               </button>
-              <button type="button" id="playBtn" title="<?php echo translate('Play') ?>">
+              <button type="button" id="playBtn" class="btn btn-primary" title="<?php echo translate('Play') ?>">
                 <i class="material-icons md-18">play_arrow</i>
               </button>
             </div>

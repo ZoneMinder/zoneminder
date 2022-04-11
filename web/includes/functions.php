@@ -264,7 +264,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? 'width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'"/>';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? 'width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'" loading="lazy" />';
   }
 }
 
@@ -295,28 +295,13 @@ function outputControlStream($src, $width, $height, $monitor, $scale, $target) {
 <?php
 }
 
-function outputHelperStream($id, $src, $width, $height, $title='') {
-  echo getHelperStream($id, $src, $width, $height, $title);
-}
-function getHelperStream($id, $src, $width, $height, $title='') {
-    return '<object type="application/x-java-applet" id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
-    archive="'. ZM_PATH_CAMBOZOLA .'"
-    align="middle"
-    width="'. $width .'"
-    height="'. $height .'"
-    title="'. $title .'">
-    <param name="accessories" value="none"/>
-    <param name="url" value="'. $src .'"/>
-    </object>';
-}
-
 function outputImageStill($id, $src, $width, $height, $title='') {
   echo getImageStill($id, $src, $width, $height, $title='');
 }
 function getImageStill($id, $src, $width, $height, $title='') {
   return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.
     (validInt($width)?' width="'.$width.'"':'').
-    (validInt($height)?' height="'.$height.'"':'').'/>';
+    (validInt($height)?' height="'.$height.'"':'').' loading="lazy" />';
 }
 
 function getWebSiteUrl($id, $src, $width, $height, $title='') {
@@ -678,7 +663,8 @@ function getBrowser(&$browser, &$version) {
     ) {
       $version = $logVersion[1];
       $browser = 'ie';
-    } else if ( preg_match('/Chrome\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
+    } else if ( preg_match('/Chrome\/([0-9]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
+      // We only care about the major so don't count .
       $version = $logVersion[1];
       // Check for old version of Chrome with bug 5876
       if ( $version < 7 ) {
@@ -758,20 +744,13 @@ function canStreamIframe() {
 }
 
 function canStreamNative() {
+  ZM\Debug("ZM_WEB_CAN_STREAM:".ZM_WEB_CAN_STREAM.' isInternetExplorer: ' . isInternetExplorer() . ' isOldChrome:' . isOldChrome());
   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
   return ( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
 }
 
-function canStreamApplet() {
-  if ( (ZM_OPT_CAMBOZOLA && !file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) ) {
-    ZM\Warning('ZM_OPT_CAMBOZOLA is enabled, but the system cannot find '.ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA);
-  }
-
-  return (ZM_OPT_CAMBOZOLA && file_exists(ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA));
-}
-
 function canStream() {
-  return canStreamNative() | canStreamApplet();
+  return canStreamNative();
 }
 
 function packageControl($command) {
@@ -1899,7 +1878,8 @@ define('HTTP_STATUS_BAD_REQUEST', 400);
 define('HTTP_STATUS_FORBIDDEN', 403);
 
 function ajaxError($message, $code=HTTP_STATUS_OK) {
-  ZM\Error($message);
+  $backTrace = debug_backtrace();
+  ZM\Error($message.' from '.print_r($backTrace,true));
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
@@ -2070,7 +2050,9 @@ function getStreamHTML($monitor, $options = array()) {
   if ( ! isset($options['height'] ) )
     $options['height'] = 0;
 
-  $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  if (!isset($options['maxfps'])) {
+    $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+  }
   if ( $monitor->StreamReplayBuffer() )
     $options['buffer'] = $monitor->StreamReplayBuffer();
   //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
@@ -2092,18 +2074,12 @@ function getStreamHTML($monitor, $options = array()) {
       'format' => ZM_MPEG_LIVE_FORMAT
     ) );
     return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
+  } else if ( $monitor->JanusEnabled() ) {
+    return '<video id="liveStream'.$monitor->Id().'" width="'.$options['width'].'"autoplay muted controls playsinline="" ></video>';
   } else if ( $options['mode'] == 'stream' and canStream() ) {
     $options['mode'] = 'jpeg';
     $streamSrc = $monitor->getStreamSrc($options);
-
-    if ( canStreamNative() )
-      return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
-    elseif ( canStreamApplet() )
-      // Helper, empty widths and heights really don't work.
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
-          $options['width'] ? $options['width'] : $monitor->ViewWidth(),
-          $options['height'] ? $options['height'] : $monitor->ViewHeight(),
-          $monitor->Name());
+    return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
   } else {
     if ( $options['mode'] == 'stream' ) {
       ZM\Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
@@ -2410,4 +2386,70 @@ function i18n() {
 
   return implode('-', $string);
 }
+
+function get_networks() {
+  $interfaces = array();
+
+  exec('ip link', $output, $status);
+  if ( $status ) {
+    $html_output = implode('<br/>', $output);
+    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+  } else {
+    foreach ( $output as $line ) {
+      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
+        if ( $matches[1] != 'lo' ) {
+          $interfaces[$matches[1]] = $matches[1];
+        } else {
+          ZM\Debug("No match for $line");
+        }
+      }
+    }
+  }
+  $routes = array();
+  exec('ip route', $output, $status);
+  if ( $status ) {
+    $html_output = implode('<br/>', $output);
+    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+  } else {
+    foreach ( $output as $line ) {
+      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
+        $interfaces['default'] = $matches[1];
+      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
+        $interfaces[$matches[2]] .= ' ' . $matches[1];
+        ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
+      } else {
+        ZM\Debug("Didn't match $line");
+      }
+    } # end foreach line of output
+  }
+  return $interfaces;
+}
+
+# Returns an array of subnets like 192.168.1.0/24 for a given interface.
+# Will ignore mdns networks.
+
+function get_subnets($interface) {
+  $subnets = array();
+  exec('ip route', $output, $status);
+  if ( $status ) {
+    $html_output = implode('<br/>', $output); 
+    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+  } else {
+    foreach ($output as $line) {
+      if (preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches)) {
+        if ($matches[1] == '169.254.0.0/16') {
+          # Ignore mdns
+        } else if ($matches[2] == $interface) {
+          $subnets[] = $matches[1];
+        } else {
+          ZM\Debug("Wrong interface $matches[1] != $interface");
+        }
+      } else {
+        ZM\Debug("Didn't match $line");
+      }
+    } # end foreach line of output
+  }
+  return $subnets;
+}
+
 ?>

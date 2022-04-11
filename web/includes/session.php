@@ -1,4 +1,21 @@
 <?php
+
+// Wrapper around setcookie that auto-sets samesite, and deals with older versions of php
+function zm_setcookie($cookie, $value, $options=array()) {
+  if (!isset($options['expires'])) {
+    $options['expires'] = time()+3600*24*30*12*10; // 10 years?!
+  }
+  if (!isset($options['samesite'])) {
+    $options['samesite'] = 'Strict';
+  }
+
+  if (version_compare(phpversion(), '7.3.0', '>=')) {
+    setcookie($cookie, $value, $options);
+  } else {
+    setcookie($cookie, $value, $options['expires'], '/; samesite=strict');
+  }
+}
+
 // ZM session start function support timestamp management
 function zm_session_start() {
 
@@ -46,9 +63,7 @@ function zm_session_start() {
 // session regenerate id function
 // Assumes that zm_session_start has been called previously
 function zm_session_regenerate_id() {
-  if ( session_status() != PHP_SESSION_ACTIVE ) {
-    session_start();
-  }
+  if (!is_session_started()) session_start();
 
   // Set deleted timestamp. Session data must not be deleted immediately for reasons.
   $_SESSION['last_time'] = time();
@@ -75,7 +90,7 @@ function is_session_started() {
 } // function is_session_started()
 
 function zm_session_clear() {
-  session_start();
+  if (!is_session_started()) session_start();
   $_SESSION = array();
   if ( ini_get('session.use_cookies') ) {
     $p = session_get_cookie_params();
@@ -85,9 +100,7 @@ function zm_session_clear() {
   session_unset();
   session_destroy();
   session_write_close();
-  session_start();
 } // function zm_session_clear()
-
 
 class Session {
   private $db;

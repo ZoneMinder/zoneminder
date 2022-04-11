@@ -374,6 +374,25 @@ sub reset {
   $self->sendCmdPost($url,$cmd);
 }
 
+sub reboot {
+  my $self = shift;
+  Debug('Camera Reboot');
+  $self->sendCmdPost('/eng/admin/reboot.cgi', { reboot => 'true' });
+  #$referer = 'http://'.$HI->ip().'/eng/admin/tools_default.cgi';
+  #$initial_url = $HI->ip().'/eng/admin/tools_default.cgi';
+}
+
+sub ping {
+  return -1 if ! $ADDRESS;
+
+  require Net::Ping;
+
+  my $p = Net::Ping->new();
+  my $rv = $p->ping($ADDRESS);
+  $p->close();
+  return $rv;
+}
+
 1;
 __END__
 

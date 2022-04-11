@@ -87,11 +87,12 @@ define('ZM_PCRE', '@ZM_PCRE@');                       // PCRE support enabled
 //
 // Alarm states
 //
-define('STATE_IDLE', 0);
-define('STATE_PREALARM', 1);
-define('STATE_ALARM', 2);
-define('STATE_ALERT', 3);
-define('STATE_TAPE', 4);
+define('STATE_UNKNOWN', 0);
+define('STATE_IDLE', 1);
+define('STATE_PREALARM', 2);
+define('STATE_ALARM', 3);
+define('STATE_ALERT', 4);
+define('STATE_TAPE', 5);
 
 //
 // DVR Control Commands
@@ -118,6 +119,9 @@ define('CMD_NEXT', 13);
 define('CMD_SEEK', 14 );
 define('CMD_VARPLAY', 15);
 define('CMD_QUIT', 17);
+define('CMD_MAXFPS', 18);
+define('CMD_ANALYZE_ON', 19);
+define('CMD_ANALYZE_OFF', 20);
 define('CMD_QUERY', 99);
 
 //
@@ -161,7 +165,7 @@ function loadConfig( $defineConsts=true ) {
 
   $config = array();
 
-  $result = $dbConn->query('SELECT Name,Value FROM Config');
+  $result = $dbConn->query('SELECT Name,Value,Private FROM Config');
   if ( !$result )
     echo mysql_error();
   while( $row = dbFetchNext($result) ) {

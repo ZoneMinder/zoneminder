@@ -145,6 +145,7 @@ function initPage() {
   });
   update_estimated_ram_use();
 
+  /*
   document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
     el.onchange = function() {
       $j('#function_help div').hide();
@@ -162,6 +163,7 @@ function initPage() {
     };
     el.onchange();
   });
+  */
 
   document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
     el.onchange = function() {
@@ -187,8 +189,20 @@ function initPage() {
               encoder_dropdown[0].options[0].selected = 1;
               option.selected = false;
             }
+          } else if ( this.value == 167 /* vp9 */ ) {
+            option.disabled = !(option.value.includes('vp9'));
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
           } else if ( this.value == 173 /* hevc */ ) {
             option.disabled = !(option.value.includes('hevc') || option.value.includes('265') );
+            if ( option.disabled && option.selected ) {
+              encoder_dropdown[0].options[0].selected = 1;
+              option.selected = false;
+            }
+          } else if ( this.value == 226 /* av1 */ ) {
+            option.disabled = !(option.value.includes('av1'));
             if ( option.disabled && option.selected ) {
               encoder_dropdown[0].options[0].selected = 1;
               option.selected = false;
@@ -204,7 +218,12 @@ function initPage() {
     el.onchange();
   });
 
-  $j('.chosen').chosen();
+  $j('.chosen').chosen({width: "95%"});
+  $j('#pills-tab li a').on('click', function(){
+    //$j('.chosen').chosen({width: "95%"});
+    // Store the selected tab in a cookie or something so that on reload it goes back to the tab
+  });
+
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
@@ -258,6 +277,38 @@ function initPage() {
   document.getElementById("cancelBtn").addEventListener("click", function onCancelClick(evt) {
     evt.preventDefault();
     window.location.assign('?view=console');
+  });
+
+  //manage the Janus audio check
+  if (document.getElementsByName("newMonitor[JanusEnabled]")[0].checked) {
+    document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+  } else {
+    document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+  }
+
+  document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
+    if (this.checked) {
+      document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+    } else {
+      document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+    }
+  });
+
+  // Amcrest API controller
+  if (document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[0].checked) {
+    document.getElementById("function_use_Amcrest_API").hidden = false;
+  } else {
+    document.getElementById("function_use_Amcrest_API").hidden = true;
+  }
+  document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[0].addEventListener('change', function() {
+    if (this.checked) {
+      document.getElementById("function_use_Amcrest_API").hidden = false;
+    }
+  });
+  document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[1].addEventListener('change', function() {
+    if (this.checked) {
+      document.getElementById("function_use_Amcrest_API").hidden = true;
+    }
   });
 
   if ( ZM_OPT_USE_GEOLOCATION ) {
@@ -324,7 +375,6 @@ function update_estimated_ram_use() {
   var max_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]')[0].value);
   if (max_buffer_count) {
     var max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
-    console.log(max_buffer_size);
     document.getElementById('estimated_ram_use').innerHTML += ' Max: ' + human_filesize(max_buffer_size);
   } else {
     document.getElementById('estimated_ram_use').innerHTML += ' Max: Unlimited';
@@ -344,6 +394,106 @@ function getLocation() {
   } else {
     console.log("Geolocation not available");
   }
+}
+
+function Capturing_onChange(e) {
+}
+
+function Analysing_onChange(e) {
+}
+
+function Recording_onChange(e) {
+}
+
+function SecondPath_onChange(e) {
+  if (e.value) {
+    $j('#AnalysingSource').show();
+    $j('#RecordingSource').show();
+  } else {
+    $j('#AnalysingSource').hide();
+    $j('#RecordingSource').hide();
+  }
+}
+
+function populate_models(ManufacturerId) {
+  const dropdown = $j('[name="newMonitor[ModelId]"]');
+  if (!dropdown.length) {
+    console.log("No element found for ModelId");
+    return;
+  }
+
+  dropdown.empty();
+  dropdown.append('<option value="" selected="true">Unknown</option>');
+  dropdown.prop('selectedIndex', 0);
+
+  if (ManufacturerId) {
+    // Populate dropdown with list of provinces
+    $j.getJSON(thisUrl+'?request=models&ManufacturerId='+ManufacturerId, function(data) {
+      if (data.result == 'Ok') {
+        $j.each(data.models, function(key, entry) {
+          dropdown.append($j('<option></option>').attr('value', entry.Id).text(entry.Name));
+        });
+        dropdown.chosen("destroy");
+        dropdown.chosen();
+      } else {
+        alert(data.result);
+      }
+    });
+  }
+  dropdown.chosen("destroy");
+  dropdown.chosen();
+}
+
+function ManufacturerId_onchange(ManufacturerId_select) {
+  if (ManufacturerId_select.value) {
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'none';
+    populate_models(ManufacturerId_select.value);
+  } else {
+    ManufacturerId_select.form.elements['newMonitor[Manufacturer]'].style['display'] = 'inline';
+    // Set models dropdown to Unknown, text area visible
+    const ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
+    ModelId_dropdown.empty();
+    ModelId_dropdown.append('<option selected="true">Unknown</option>');
+    ModelId_dropdown.prop('selectedIndex', 0);
+    $j('[name="newMonitor[Model]"]').show();
+  }
+}
+
+function select_by_value_case_insensitive(dropdown, value) {
+  const test_value = value.toLowerCase();
+  for (i=1; i < dropdown.options.length; i++) {
+    if (dropdown.options[i].text.toLowerCase() == test_value) {
+      dropdown.selectedIndex = i;
+      dropdown.options[i].selected = true;
+      $j(dropdown).chosen("destroy").chosen();
+      return;
+    }
+  }
+  if (dropdown.selectedIndex != 0) {
+    dropdown.selectedIndex = 0;
+    $j(dropdown).chosen("destroy").chosen();
+  }
+}
+
+function Manufacturer_onchange(input) {
+  if (!input.value) {
+    return;
+  }
+  ManufacturerId_select = input.form.elements['newMonitor[ManufacturerId]'];
+  select_by_value_case_insensitive(ManufacturerId_select, input.value);
+  populate_models(ManufacturerId_select.value);
+}
+
+function ModelId_onchange(ModelId_select) {
+  if (parseInt(ModelId_select.value)) {
+    $j('[name="newMonitor[Model]"]').hide();
+  } else {
+    $j('[name="newMonitor[Model]"]').show();
+  }
+}
+
+function Model_onchange(input) {
+  select_by_value_case_insensitive(input.form.elements['newMonitor[ModelId]'], input.value);
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

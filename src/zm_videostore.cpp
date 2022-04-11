@@ -49,6 +49,8 @@ VideoStore::CodecData VideoStore::codec_data[] = {
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE },
+  { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
+  { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
 #else
   { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
 
@@ -136,8 +138,8 @@ bool VideoStore::open() {
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
-  out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
-  AVCodec *video_out_codec = nullptr;
+  oc->oformat->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+  const AVCodec *video_out_codec = nullptr;
 
   AVDictionary *opts = nullptr;
   std::string Options = monitor->GetEncoderOptions();
@@ -389,6 +391,8 @@ bool VideoStore::open() {
   }  // end if video_in_stream
 
   max_stream_index = video_out_stream->index;
+  last_dts[video_out_stream->index] = AV_NOPTS_VALUE;
+
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
 
   if (audio_in_stream and audio_in_ctx) {
@@ -401,6 +405,10 @@ bool VideoStore::open() {
       } else {
         audio_in_ctx = avcodec_alloc_context3(audio_out_codec);
         ret = avcodec_parameters_to_context(audio_in_ctx, audio_in_stream->codecpar);
+        if (ret < 0)
+          Error("Failure from avcodec_parameters_to_context %s",
+              av_make_error_string(ret).c_str());
+
         audio_in_ctx->time_base = audio_in_stream->time_base;
 
         audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
@@ -466,6 +474,7 @@ bool VideoStore::open() {
 
     // We will assume that subsequent stream allocations will increase the index
     max_stream_index = audio_out_stream->index;
+    last_dts[audio_out_stream->index] = AV_NOPTS_VALUE;
   }  // end if audio_in_stream
 
   //max_stream_index is 0-based, so add 1
@@ -497,8 +506,16 @@ bool VideoStore::open() {
     Debug(1, "using movflags %s", movflags_entry->value);
   }
   if ((ret = avformat_write_header(oc, &opts)) < 0) {
-    Warning("Unable to set movflags trying with defaults.");
-    ret = avformat_write_header(oc, nullptr);
+    // we crash if we try again
+    if (ENOSPC != ret) {
+      Warning("Unable to set movflags trying with defaults.%d %s",
+          ret, av_make_error_string(ret).c_str());
+
+      ret = avformat_write_header(oc, nullptr);
+      Debug(1, "Done %d", ret);
+    } else {
+      Error("ENOSPC. fail");
+    }
   } else if (av_dict_count(opts) != 0) {
     Info("some options not used, turn on debugging for a list.");
     AVDictionaryEntry *e = nullptr;
@@ -729,7 +746,6 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
-  audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
   if (!audio_out_ctx->channel_layout) {
     Debug(3, "Correcting channel layout from (%" PRIi64 ") to (%" PRIi64 ")",
         audio_out_ctx->channel_layout,
@@ -852,7 +868,7 @@ bool VideoStore::setup_resampler() {
     return false;
   }
   if ((ret = swr_init(resample_ctx)) < 0) {
-    Error("Could not open resampler");
+    Error("Could not open resampler %d", ret);
     av_frame_free(&in_frame);
     av_frame_free(&out_frame);
     swr_free(&resample_ctx);
@@ -1130,9 +1146,9 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
   if (!audio_first_dts) {
     audio_first_dts = ipkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;
+    Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
   }
 
-  Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
   // Need to adjust pts before feeding to decoder.... should really copy the pkt instead of modifying it
 
   if (audio_out_codec) {
@@ -1204,26 +1220,57 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   pkt->pos = -1;
   pkt->stream_index = stream->index;
 
+#if 0
   if (pkt->dts == AV_NOPTS_VALUE) {
-    Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
-    pkt->dts = stream->cur_dts;
-  } else if (pkt->dts < stream->cur_dts) {
+    Error("undefined dts");
+//    Debug(1, "undef dts, fixing by setting to stream cur_dts %" PRId64, stream->cur_dts);
+//    pkt->dts = stream->cur_dts;
+/*  } else if (pkt->dts < stream->cur_dts) {
     Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream cur_dts %" PRId64, pkt->dts, stream->cur_dts);
-    pkt->dts = stream->cur_dts;
+    pkt->dts = stream->cur_dts;*/
   }
 
   if (pkt->dts > pkt->pts) {
-    Debug(1,
+    Warning("pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+            "Decompression must happen before presentation.",
+            pkt->dts, pkt->pts);
+/*    Debug(1,
           "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
           "Decompression must happen before presentation.",
-          pkt->dts, pkt->pts);
+          pkt->dts, pkt->pts);*/
     pkt->pts = pkt->dts;
   }
+#else
+  if (pkt->dts == AV_NOPTS_VALUE) {
+    if (last_dts[stream->index] == AV_NOPTS_VALUE) {
+      last_dts[stream->index] = 0;
+    } 
+    pkt->dts = last_dts[stream->index];
+  } else if (pkt->dts < last_dts[stream->index]) {
+    Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d next_dts %" PRId64,
+        pkt->dts, stream->index, next_dts[stream->index]);
+    pkt->dts = last_dts[stream->index];
+  }
+
+  if (pkt->pts == AV_NOPTS_VALUE) {
+    pkt->pts = pkt->dts;
+  } else if (pkt->dts > pkt->pts) {
+    Warning("pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+            "Decompression must happen before presentation.",
+            pkt->dts, pkt->pts);
+/*    Debug(1,
+          "pkt.dts(%" PRId64 ") must be <= pkt.pts(%" PRId64 ")."
+          "Decompression must happen before presentation.",
+          pkt->dts, pkt->pts);*/
+    pkt->pts = pkt->dts;
+  }
+#endif
 
   ZM_DUMP_STREAM_PACKET(stream, (*pkt), "finished pkt");
   next_dts[stream->index] = pkt->dts + pkt->duration;
-  Debug(3, "next_dts for stream %d has become %" PRId64,
-      stream->index, next_dts[stream->index]);
+  last_dts[stream->index] = pkt->dts;
+  Debug(3, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
+      stream->index, next_dts[stream->index], last_dts[stream->index]);
 
   int ret = av_interleaved_write_frame(oc, pkt);
   if (ret != 0) {

@@ -638,6 +638,7 @@ sub logInit( ;@ ) {
   $logger = ZoneMinder::Logger->new() if !$logger;
   $logger->initialise(%options);
   logSetSignal();
+  return $logger;
 }
 
 sub logReinit {
@@ -833,8 +834,6 @@ Used to end the debug session and close any logs etc. Not usually necessary.
 =item $level         = logLevel ( [$level] );
 
 =item $trace         = logTrace ( [$trace] );
-
-=item $level         = logLevel ( [$level] );
 
 =item $termLevel     = logTermLevel ( [$termLevel] );
 

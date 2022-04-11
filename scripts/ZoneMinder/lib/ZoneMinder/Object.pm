@@ -79,7 +79,8 @@ sub new {
   no strict 'refs';
   my $primary_key = ${$parent.'::primary_key'};
   if ( ! $primary_key ) {
-    Error( 'NO primary_key for type ' . $parent );
+      my ( $caller, undef, $line ) = caller;
+    Error( 'NO primary_key for type ' . $parent . ' called from '.$caller.$line);
     return;
   } # end if
 
@@ -466,11 +467,17 @@ $log->debug("find_operators: field($field) type($type) op($operator) value($valu
 
 my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
 
-	if ( sets::isin( $operator, [ '=', '!=', '<', '>', '<=', '>=', '<<=' ] ) ) {
+	if ( $operator eq '=' 
+      or $operator eq '!='
+      or $operator eq '<'
+      or $operator eq '>'
+      or $operator eq '<='
+      or $operator eq '>='
+      or $operator eq '<<=' ) {
 		return ( $field.$type.' ' . $operator . ( $add_placeholder ? ' ?' : '' ), $value );
 	} elsif ( $operator eq 'not' ) {
 		return ( '( NOT ' . $field.$type.')', $value );
-	} elsif ( sets::isin( $operator, [ '&&', '<@', '@>' ] ) ) {
+	} elsif ( $operator eq '&&' or $operator eq '<@' or $operator eq '@>' ) {
 		if ( ref $value eq 'ARRAY' ) {
 			if ( $field =~ /^\(/ ) {
 				return ( 'ARRAY('.$field.$type.') ' . $operator . ' ?', $value );
@@ -482,7 +489,7 @@ my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
 		} # end if
 	} elsif ( $operator eq 'exists' ) {
 			return ( $value ? '' : 'NOT ' ) . 'EXISTS ' . $field.$type;
-	} elsif ( sets::isin( $operator, [ 'in', 'not in' ] ) ) {
+	} elsif ( $operator eq 'in' or $operator eq 'not in' ) {
 		if ( ref $value eq 'ARRAY' ) {
 			return ( $field.$type.' ' . $operator . ' ('. join(',', map { '?' } @{$value} ) . ')', @{$value} );
 		} else {
@@ -492,7 +499,7 @@ my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
 		return ( '? IN '.$field.$type, $value );
 	} elsif ( $operator eq 'does not contain' ) {
 		return ( '? NOT IN '.$field.$type, $value );
-	} elsif ( sets::isin( $operator, [ 'like','ilike' ] ) ) {
+	} elsif ( $operator eq 'like' or $operator eq 'ilike' ) {
 		return $field.'::text ' . $operator . ' ?', $value;
 	} elsif ( $operator eq 'null_or_<=' ) {
 		return '('.$field.$type.' IS NULL OR '.$field.$type.' <= ?)', $value;
@@ -639,9 +646,9 @@ $log->debug("Have array for $k $$search{$k}") if DEBUG_ALL;
 						
 						if ( ! ( $db_field =~ /\?/ ) ) {
 							if ( @{$$search{$k}} != 1 ) {
-								push @where, $db_field .' IN ('.join(',', map {'?'} @{$$search{$k}} ) . ')';
+								push @where, '`'.$db_field .'` IN ('.join(',', map {'?'} @{$$search{$k}} ) . ')';
 							} else {
-								push @where, $db_field.'=?';
+								push @where, '`'.$db_field.'`=?';
 							} # end if
 						} else {
 $log->debug("Have question ? for $k $$search{$k} $db_field") if DEBUG_ALL;
@@ -656,10 +663,10 @@ $log->debug("Have question ? for $k $$search{$k} $db_field") if DEBUG_ALL;
 						foreach my $p_k ( keys %{$$search{$k}} ) {
 							my $v = $$search{$k}{$p_k};
 							if ( ref $v eq 'ARRAY' ) {
-								push @where, $db_field.' IN ('.join(',', map {'?'} @{$v} ) . ')';
+								push @where, '`'.$db_field.'` IN ('.join(',', map {'?'} @{$v} ) . ')';
 								push @values, $p_k, @{$v};
 							} else {
-								push @where, $db_field.'=?';
+								push @where, '`'.$db_field.'`=?';
 								push @values, $p_k, $v;
 							} # end if
 						} # end foreach p_k
@@ -667,7 +674,7 @@ $log->debug("Have question ? for $k $$search{$k} $db_field") if DEBUG_ALL;
 						push @where, $db_field.' IS NULL';
 					} else {
 						if ( ! ( $db_field =~ /\?/ ) ) {
-							push @where, $db_field .'=?';
+							push @where, '`'.$db_field .'`=?';
 						} else {
 							push @where, $db_field;
 						}
@@ -735,7 +742,8 @@ sub find {
 	my $fields = \%{$object_type.'::fields'};
   my $primary_key = ${$object_type.'::primary_key'};
   if ( ! $primary_key ) {
-    Error( 'NO primary_key for type ' . $object_type );
+    my ( $caller, undef, $line ) = caller;
+    Error( 'NO primary_key for type ' . $object_type . ' called from '.$caller.$line);
     return;
   } # end if
   if ( ! ($fields and keys %{$fields}) ) {

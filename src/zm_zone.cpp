@@ -219,7 +219,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   int alarm_mid_x = -1;
   int alarm_mid_y = -1;
 
-  unsigned int lo_x = polygon.Extent().Lo().x_;
+  //unsigned int lo_x = polygon.Extent().Lo().x_;
   unsigned int lo_y = polygon.Extent().Lo().y_;
   unsigned int hi_x = polygon.Extent().Hi().x_;
   unsigned int hi_y = polygon.Extent().Hi().y_;
@@ -699,6 +699,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
     if ((type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)) {
 
+      unsigned int lo_x = polygon.Extent().Lo().x_;
       // First mask out anything we don't want
       for (unsigned int y = lo_y; y <= hi_y; y++) {
         pdiff = diff_buff + ((diff_width * y) + lo_x);
@@ -878,16 +879,23 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
       continue;
     }
 
-    if (polygon.Extent().Lo().x_ < 0 || polygon.Extent().Hi().x_ > static_cast<int32>(monitor->Width())
-        || polygon.Extent().Lo().y_ < 0 || polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
-      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), fixing",
+    if (polygon.Extent().Lo().x_ < 0
+        ||
+        polygon.Extent().Hi().x_ > static_cast<int32>(monitor->Width())
+        ||
+        polygon.Extent().Lo().y_ < 0
+        ||
+        polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
+      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d) != (%d,%d), fixing",
             Id,
             Name,
             monitor->Name(),
             polygon.Extent().Lo().x_,
             polygon.Extent().Lo().y_,
             polygon.Extent().Hi().x_,
-            polygon.Extent().Hi().y_);
+            polygon.Extent().Hi().y_,
+            monitor->Width(),
+            monitor->Height());
 
       polygon.Clip(Box(
           {0, 0},

@@ -1,10 +1,3 @@
-var ZM_OPT_USE_GEOLOCATION = '<?php echo ZM_OPT_USE_GEOLOCATION ?>' == '1' ? true : false;
-<?php
-if ( ZM_OPT_USE_GEOLOCATION ) { 
-  echo 'var ZM_OPT_GEOLOCATION_TILE_PROVIDER=\''.ZM_OPT_GEOLOCATION_TILE_PROVIDER.'\''.PHP_EOL;
-  echo 'var ZM_OPT_GEOLOCATION_ACCESS_TOKEN=\''.ZM_OPT_GEOLOCATION_ACCESS_TOKEN.'\''.PHP_EOL;
-}
-?>
 var optControl = <?php echo ZM_OPT_CONTROL ?>;
 var hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
 var defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
@@ -46,8 +39,14 @@ rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;
 function validateForm( form ) {
   var errors = new Array();
   var warnings = new Array();
+  const elements = form.elements;
 
-  if ( form.elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
+  // No monitor input should have whitespace at beginning or end, so strip them out first.
+  for (var i=0; i<elements.length; i++) {
+    elements[i].value = elements[i].value.trim();
+  }
+
+  if ( elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
     errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
   else if ( monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
@@ -78,6 +77,13 @@ function validateForm( form ) {
     } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }
+/*
+ * Alternate way of testing for bad urls
+    let url = new URL(form.elements['newMonitor[Path]'].value);
+    if (url.href != form.elements['newMonitor[Path]'].value) {
+      warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
+    }
+*/
 
   } else if ( form.elements['newMonitor[Type]'].value == 'File' ) {
     if ( !form.elements['newMonitor[Path]'].value )
@@ -85,8 +91,8 @@ function validateForm( form ) {
     if ( form.elements['newMonitor[VideoWriter]'].value == 2 /* Passthrough */ )
       errors[errors.length] = "<?php echo translate('BadPassthrough') ?>";
   } else if ( form.elements['newMonitor[Type]'].value == 'WebSite' ) {
-    if ( form.elements['newMonitor[Function]'].value != 'Monitor' && form.elements['newMonitor[Function]'].value != 'None')
-      errors[errors.length] = "<?php echo translate('BadSourceType') ?>";
+    //if ( form.elements['newMonitor[Function]'].value != 'Monitor' && form.elements['newMonitor[Function]'].value != 'None')
+      //errors[errors.length] = "<?php echo translate('BadSourceType') ?>";
     if ( form.elements['newMonitor[Path]'].value.search(/^https?:\/\//i) )
       errors[errors.length] = "<?php echo translate('BadWebSitePath') ?>";
   }
@@ -163,7 +169,7 @@ function validateForm( form ) {
     return false;
   }
 
-  if ( (form.elements['newMonitor[Function]'].value != 'Monitor') && (form.elements['newMonitor[Function]'].value != 'None') ) {
+  if ( (form.elements['newMonitor[Recording]'].value == 'None') ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";
     }

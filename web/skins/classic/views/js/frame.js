@@ -40,8 +40,8 @@ function changeScale() {
 }
 
 function getFrameStatsCookie() {
-  var cookie = 'zmFrameStats';
-  var stats = getCookie(cookie);
+  const cookie = 'zmFrameStats';
+  let stats = getCookie(cookie);
 
   if (!stats) {
     stats = 'on';
@@ -53,7 +53,7 @@ function getFrameStatsCookie() {
 function getStat(params) {
   $j.getJSON(thisUrl + '?view=request&request=stats&raw=true', params)
       .done(function(data) {
-        var stats = data.raw;
+        const stats = data.raw;
 
 
         $j('#frameStatsTable').empty().append('<tbody>');

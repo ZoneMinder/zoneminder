@@ -1,15 +1,18 @@
 <?php
 namespace ZM;
 require_once('database.php');
-require_once('Server.php');
 require_once('Object.php');
 require_once('Control.php');
-require_once('Storage.php');
 require_once('Group.php');
+require_once('Manufacturer.php');
+require_once('Model.php');
+require_once('Server.php');
+require_once('Storage.php');
 
-$FunctionTypes = null;
+class Monitor extends ZM_Object {
+protected static $FunctionTypes = null;
 
-function getMonitorFunctionTypes() {
+public static function getFunctionTypes() {
   if (!isset($FunctionTypes)) {
     $FunctionTypes = array(
       'None'    => translate('FnNone'),
@@ -23,8 +26,79 @@ function getMonitorFunctionTypes() {
   return $FunctionTypes;
 }
 
-$Statuses = null;
-function getMonitorStatuses() {
+protected static $CapturingOptions = null;
+public static function getCapturingOptions() {
+  if (!isset($CapturingOptions)) {
+    $CapturingOptions = array(
+        'None'=>translate('None'),
+        'Ondemand'  =>  translate('On Demand'),
+        'Always'    =>  translate('Always'),
+        );
+  }
+  return $CapturingOptions;
+}
+
+protected static $AnalysingOptions = null;
+public static function getAnalysingOptions() {
+  if (!isset($AnalysingOptions)) {
+    $AnalysingOptions = array(
+        'None'   => translate('None'),
+        'Always' => translate('Always'),
+        );
+  }
+  return $AnalysingOptions;
+}
+
+protected static $AnalysisSourceOptions = null;
+public static function getAnalysisSourceOptions() {
+  if (!isset($AnalysisSourceOptions)) {
+    $AnalysisSourceOptions = array(
+        'Primary'   => translate('Primary'),
+        'Secondary' => translate('Secondary'),
+        );
+  }
+  return $AnalysisSourceOptions;
+}
+
+protected static $RecordingOptions = null;
+public static function getRecordingOptions() {
+  if (!isset($RecordingOptions)) {
+    $RecordingOptions = array(
+        'None'     => translate('None'),
+        'OnMotion' => translate('On Motion / Trigger / etc'),
+        'Always'   => translate('Always'),
+        );
+  }
+  return $RecordingOptions;
+}
+
+protected static $RecordingSourceOptions = null;
+public static function getRecordingSourceOptions() {
+  if (!isset($RecordingSourceOptions)) {
+    $RecordingSourceOptions = array(
+        'Primary'   => translate('Primary'),
+        'Secondary' => translate('Secondary'),
+        'Both'      => translate('Both'),
+        );
+  }
+  return $RecordingSourceOptions;
+}
+
+protected static $DecodingOptions = null;
+public static function getDecodingOptions() {
+  if (!isset($DecodingOptions)) {
+    $DecodingOptions = array(
+        'None'      =>  translate('None'),
+        'Ondemand'  =>  translate('On Demand'),
+        'KeyFrames' =>  translate('KeyFrames Only'),
+        'Always'    =>  translate('Always'),
+        );
+  }
+  return $DecodingOptions;
+}
+
+protected static $Statuses = null;
+public static function getStatuses() {
   if (!isset($Statuses)) {
     $Statuses = array(
       -1 => 'Unknown',
@@ -38,7 +112,6 @@ function getMonitorStatuses() {
   return $Statuses;
 }
 
-class Monitor extends ZM_Object {
   protected static $table = 'Monitors';
 
   protected $defaults = array(
@@ -47,16 +120,26 @@ class Monitor extends ZM_Object {
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,
+    'ManufacturerId'  => null,
+    'ModelId'         => null,
     'Type'      => 'Ffmpeg',
-    'Function'  => 'Mocord',
+    'Capturing' => 'Always',
+    'Analysing' => 'Always',
+    'Recording' => 'Always',
     'Enabled'   => array('type'=>'boolean','default'=>1),
-    'DecodingEnabled'   => array('type'=>'boolean','default'=>1),
+    'Decoding'  => 'Always',
+    'JanusEnabled'   => array('type'=>'boolean','default'=>0),
+    'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
+    'EventStartCommand' => '',
+    'EventEndCommand' => '',
     'ONVIF_URL' =>  '',
     'ONVIF_Username'  =>  '',
     'ONVIF_Password'  =>  '',
     'ONVIF_Options'   =>  '',
+    'ONVIF_Event_Listener'  =>  '0',
+    'use_Amcrest_API'  =>  '0',
     'Device'  =>  '',
     'Channel' =>  0,
     'Format'  =>  '0',
@@ -88,6 +171,7 @@ class Monitor extends ZM_Object {
     'OutputContainer' => null,
     'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\ncrf=23\n",
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
+    #'OutputSourceStream'  => 'Primary',
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
     'Brightness'  =>  -1,
     'Contrast'    =>  -1,
@@ -343,7 +427,7 @@ class Monitor extends ZM_Object {
         if ($mode == 'restart') {
           daemonControl('stop', 'zmc', $zmcArgs);
         }
-        if ($this->{'Function'} != 'None') {
+        if ($this->{'Capturing'} != 'None') {
           daemonControl('start', 'zmc', $zmcArgs);
         }
       }
@@ -493,6 +577,10 @@ class Monitor extends ZM_Object {
 
   public function UrlToIndex($port=null) {
     return $this->Server()->UrlToIndex($port);
+  }
+
+  public function UrlToZMS($port=null) {
+    return $this->Server()->UrlToZMS($port).'?mid='.$this->Id();
   }
 
   public function sendControlCommand($command) {
@@ -681,6 +769,52 @@ class Monitor extends ZM_Object {
   }
   function DisableAlarms() {
     $output = $this->AlarmCommand('disable');
+  }
+  function Model() {
+    if (!property_exists($this, 'Model')) {
+      if (property_exists($this, 'ModelId') and $this->{'ModelId'}) {
+        $this->{'Model'} = Model::find_one(array('Id'=>$this->ModelId()));
+        if (!$this->{'Model'})
+          $this->{'Model'} = new Model();
+      } else {
+        $this->{'Model'} = new Model();
+      }
+    }
+    return $this->{'Model'};
+  }
+  function Manufacturer() {
+    if (!property_exists($this, 'Manufacturer')) {
+      if (property_exists($this, 'ManufacturerId') and $this->{'ManufacturerId'}) {
+        $this->{'Manufacturer'} = Manufacturer::find_one(array('Id'=>$this->ManufacturerId()));
+        if (!$this->{'Manufacturer'})
+          $this->{'Manufacturer'} = new Manufacturer();
+      } else {
+          $this->{'Manufacturer'} = new Manufacturer();
+      }
+    }
+    return $this->{'Manufacturer'};
+  }
+  function getMonitorStateHTML() {
+    $html = '
+<div id="monitorStatus'.$this->Id().'" class="monitorStatus">
+  <div id="monitorState'.$this->Id().'" class="monitorState">
+    <span>'.translate('State').':<span id="stateValue'.$this->Id().'"></span></span>
+    <span id="viewingFPS'.$this->Id().'" title="'.translate('Viewing FPS').'"><span id="viewingFPSValue'.$this->Id().'"></span> fps</span>
+    <span id="captureFPS'.$this->Id().'" title="'.translate('Capturing FPS').'"><span id="captureFPSValue'.$this->Id().'"></span> fps</span>
+';
+    if ($this->Analysing() != 'None') {
+      $html .= '<span id="analysisFPS'.$this->Id().'" title="'.translate('Analysis FPS').'"><span id="analysisFPSValue'.$this->Id().'"></span> fps</span>
+      ';
+    }
+    $html .= '
+    <span id="rate'.$this->Id().'" class="rate hidden">'.translate('Rate').': <span id="rateValue'.$this->Id().'"></span>x</span>
+    <span id="delay'.$this->Id().'" class="delay hidden">'.translate('Delay').': <span id="delayValue'.$this->Id().'"></span>s</span>
+    <span id="level'.$this->Id().'" class="buffer hidden">'.translate('Buffer').': <span id="levelValue'.$this->Id().'"></span>%</span>
+    <span class="zoom hidden" id="zoom'.$this->Id().'">'. translate('Zoom').': <span id="zoomValue'.$this->Id().'"></span>x</span>
+  </div>
+</div>
+';
+    return $html;
   }
 } // end class Monitor
 ?>

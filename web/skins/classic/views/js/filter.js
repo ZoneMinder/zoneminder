@@ -378,7 +378,7 @@ function delTerm( element ) {
 }
 
 function debugFilter() {
-  getModal('filterdebug', 'fid='+filterid);
+  getModal('filterdebug', $j(form).serialize());
 }
 
 function manageModalBtns(id) {

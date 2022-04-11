@@ -113,6 +113,7 @@ $statusData = array(
       'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
+      'EndDateTimeShort' => array( 'sql' => 'date_format( EndDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'Width' => true,
       'Height' => true,
       'Length' => true,
@@ -141,6 +142,7 @@ $statusData = array(
       'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
+      'EndDateTimeShort' => array( 'sql' => 'date_format( EndDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'Width' => true,
       'Height' => true,
       'Length' => true,
@@ -387,6 +389,7 @@ function getFrameImage() {
 
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
   if ( !($frame = dbFetchOne($sql, NULL, array($eventId, $frameId))) ) {
+    ZM\Error("Frame not found for event $eventId frame $frameId");
     $frame = array();
     $frame['EventId'] = $eventId;
     $frame['FrameId'] = $frameId;

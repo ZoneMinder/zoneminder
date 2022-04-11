@@ -9,6 +9,8 @@ class Filter extends ZM_Object {
   protected $defaults = array(
     'Id'              =>  null,
     'Name'            =>  '',
+    'UserId'          =>  0,
+    'ExecuteInterval' =>  60,
     'AutoExecute'     =>  0,
     'AutoExecuteCmd'  =>  '',
     'AutoEmail'       =>  0,
@@ -26,7 +28,6 @@ class Filter extends ZM_Object {
     'AutoCopy'        =>  0,
     'AutoCopyTo'      =>  0,
     'UpdateDiskSpace' =>  0,
-    'UserId'          =>  0,
     'Background'      =>  0,
     'Concurrent'      =>  0,
     'Query_json'      =>  '',
@@ -62,6 +63,7 @@ class Filter extends ZM_Object {
       } # end foreach term
       $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_asc]').'='.$this->sort_asc();
       $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_field]').'='.$this->sort_field();
+      $this->_querystring .= $separator.urlencode($objectname.'[Query][skip_locked]').'='.$this->skip_locked();
       $this->_querystring .= $separator.urlencode($objectname.'[Query][limit]').'='.$this->limit();
       if ( $this->Id() ) {
         $this->_querystring .= $separator.$objectname.urlencode('[Id]').'='.$this->Id();
@@ -127,7 +129,7 @@ class Filter extends ZM_Object {
     foreach ( $this->Terms as $term ) {
       if ( $term->attr == 'StorageId' ) {
         # TODO handle other operators like !=
-        $storage_ids[] = $term->value;
+        $storage_ids[] = $term->val;
       }
     }
     if ( count($storage_ids) ) {
@@ -207,16 +209,27 @@ class Filter extends ZM_Object {
   }
 
   public function sort_asc( ) {
-    if ( func_num_args( ) ) {
+    if (func_num_args()) {
       $Query = $this->Query();
       $Query['sort_asc'] = func_get_arg(0);
       $this->Query($Query);
     }
-    if ( isset( $this->Query()['sort_asc'] ) ) {
+    if (isset($this->Query()['sort_asc'])) {
       return $this->{'Query'}['sort_asc'];
     }
     return ZM_WEB_EVENT_SORT_ORDER == 'asc' ? 1 : 0;
     #return $this->defaults{'sort_asc'};
+  }
+
+  public function skip_locked() {
+    if (func_num_args()) {
+      $Query = $this->Query();
+      $Query['skip_locked'] = func_get_arg(0);
+      $this->Query($Query);
+    }
+    if (isset($this->Query()['skip_locked']))
+      return $this->{'Query'}['skip_locked'];
+    return false;
   }
 
   public function limit( ) {
@@ -227,7 +240,7 @@ class Filter extends ZM_Object {
     }
     if ( isset( $this->Query()['limit'] ) )
       return $this->{'Query'}['limit'];
-    return 100;
+    return 0;
     #return $this->defaults{'limit'};
   }
 

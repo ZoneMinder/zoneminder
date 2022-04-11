@@ -298,6 +298,14 @@ int main(int argc, char *argv[]) {
               session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
           audioSource->setFrequency(monitor->GetAudioFrequency());
           audioSource->setChannels(monitor->GetAudioChannels());
+        } else if (std::string::npos != audioFifoPath.find("pcm_alaw")) {
+          Debug(1, "Adding G711A source at %dHz %d channels",
+              monitor->GetAudioFrequency(), monitor->GetAudioChannels());
+          session->AddSource(xop::channel_1, xop::G711ASource::CreateNew());
+          audioSource = new ADTS_ZoneMinderFifoSource(rtspServer,
+              session->GetMediaSessionId(), xop::channel_1, audioFifoPath);
+          audioSource->setFrequency(monitor->GetAudioFrequency());
+          audioSource->setChannels(monitor->GetAudioChannels());
         } else {
           Warning("Unknown format in %s", audioFifoPath.c_str());
         }
@@ -306,6 +314,10 @@ int main(int argc, char *argv[]) {
         }
         audio_sources[monitor->Id()] = audioSource;
       }  // end if ! sessions[monitor->Id()]
+      if (sessions[monitor->Id()]->GetNumClient() > 0) {
+        SystemTimePoint now = std::chrono::system_clock::now();
+        monitor->setLastViewed(now);
+      }
     }  // end foreach monitor
 
     sleep(10);

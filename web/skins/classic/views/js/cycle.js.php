@@ -20,7 +20,8 @@ monitorData[monitorData.length] = {
   'url': '<?php echo $monitor->UrlToIndex() ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
   'type': '<?php echo $monitor->Type() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>'
+  'refresh': '<?php echo $monitor->Refresh() ?>',
+  'janusEnabled': <?php echo $monitor->JanusEnabled() ?>
 };
 <?php
 } // end foreach monitor

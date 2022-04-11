@@ -47,5 +47,9 @@ ZM_PATH_SWAP=@ZM_TMPDIR@
 # ZoneMinder will find the arp binary automatically on most systems
 ZM_PATH_ARP="@ZM_PATH_ARP@"
 
+# Full path to optional arp-scan binary
+# ZoneMinder will find the arp-scan binary automatically on most systems
+ZM_PATH_ARP_SCAN="@ZM_PATH_ARP_SCAN@"
+
 #Full path to shutdown binary
 ZM_PATH_SHUTDOWN="@ZM_PATH_SHUTDOWN@"

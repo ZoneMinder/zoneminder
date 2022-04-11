@@ -83,6 +83,7 @@ mark_as_advanced(
   ZM_TARGET_DISTRO
   ZM_PATH_MAP
   ZM_PATH_ARP
+  ZM_PATH_ARP_SCAN
   ZM_CONFIG_DIR
   ZM_CONFIG_SUBDIR
   ZM_SYSTEMD
@@ -145,6 +146,8 @@ set(ZM_PATH_MAP "/dev/shm" CACHE PATH
   "Location to save mapped memory files, default: /dev/shm")
 set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")
+set(ZM_PATH_ARP_SCAN "" CACHE PATH
+  "Full path to compatible scan_arp binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
@@ -167,6 +170,8 @@ set(ZM_NO_X10 "OFF" CACHE BOOL
 set(ZM_ONVIF "ON" CACHE BOOL
   "Set to ON to enable basic ONVIF support. This is EXPERIMENTAL and may not
     work with all cameras claiming to be ONVIF compliant. default: ON")
+set(ZM_NO_PCRE "OFF" CACHE BOOL
+  "Set to ON to skip libpcre3 checks and force building ZM without libpcre3. default: OFF")
 set(ZM_NO_RTSPSERVER "OFF" CACHE BOOL
   "Set to ON to skip building ZM with rtsp server support. default: OFF")
 set(ZM_PERL_MM_PARMS INSTALLDIRS=vendor NO_PACKLIST=1 NO_PERLLOCAL=1 CACHE STRING
@@ -316,10 +321,10 @@ endif()
 # Do not check for cURL if ZM_NO_CURL is on
 if(NOT ZM_NO_CURL)
   # cURL
-  find_package(CURL)
+  find_package(CURL REQUIRED)
   if(CURL_FOUND)
     set(HAVE_LIBCURL 1)
-    #list(APPEND ZM_BIN_LIBS ${CURL_LIBRARIES})
+    list(APPEND ZM_BIN_LIBS ${CURL_LIBRARIES})
     include_directories(${CURL_INCLUDE_DIRS})
     set(CMAKE_REQUIRED_INCLUDES ${CURL_INCLUDE_DIRS})
     check_include_file("curl/curl.h" HAVE_CURL_CURL_H)
@@ -407,21 +412,24 @@ else()
   message(FATAL_ERROR "ZoneMinder requires pthread but it was not found on your system")
 endif()
 
-# pcre (using find_library and find_path)
-find_library(PCRE_LIBRARIES pcre)
-if(PCRE_LIBRARIES)
-  set(HAVE_LIBPCRE 1)
-  list(APPEND ZM_BIN_LIBS "${PCRE_LIBRARIES}")
-  find_path(PCRE_INCLUDE_DIR pcre.h)
-  if(PCRE_INCLUDE_DIR)
-    include_directories("${PCRE_INCLUDE_DIR}")
-    set(CMAKE_REQUIRED_INCLUDES "${PCRE_INCLUDE_DIR}")
+# Do not check for cURL if ZM_NO_CURL is on
+if(NOT ZM_NO_PRCE)
+  # pcre (using find_library and find_path)
+  find_library(PCRE_LIBRARIES pcre)
+  if(PCRE_LIBRARIES)
+    set(HAVE_LIBPCRE 1)
+    list(APPEND ZM_BIN_LIBS "${PCRE_LIBRARIES}")
+    find_path(PCRE_INCLUDE_DIR pcre.h)
+    if(PCRE_INCLUDE_DIR)
+      include_directories("${PCRE_INCLUDE_DIR}")
+      set(CMAKE_REQUIRED_INCLUDES "${PCRE_INCLUDE_DIR}")
+    endif()
+    mark_as_advanced(FORCE PCRE_LIBRARIES PCRE_INCLUDE_DIR)
+    check_include_file("pcre.h" HAVE_PCRE_H)
+    set(optlibsfound "${optlibsfound} PCRE")
+  else()
+    set(optlibsnotfound "${optlibsnotfound} PCRE")
   endif()
-  mark_as_advanced(FORCE PCRE_LIBRARIES PCRE_INCLUDE_DIR)
-  check_include_file("pcre.h" HAVE_PCRE_H)
-  set(optlibsfound "${optlibsfound} PCRE")
-else()
-  set(optlibsnotfound "${optlibsnotfound} PCRE")
 endif()
 
 # mysqlclient (using find_library and find_path)
@@ -513,6 +521,15 @@ endif()
 #list(APPEND ZM_BIN_LIBS "${Boost_LIBRARIES}")
 #endif()
 
+
+find_package(GSOAP 2.0.0)
+if (GSOAP_FOUND)
+  set(optlibsfound "${optlibsfound} gsoap")
+  add_compile_definitions(WITH_GSOAP)
+else()
+  set(optlibsnotfound "${optlibsnotfound} gsoap")
+endif()
+
 if(NOT ZM_NO_RTSPSERVER)
   set(HAVE_RTSP_SERVER 1)
 else()
@@ -540,6 +557,7 @@ set(ZM_PCRE 0)
 if(HAVE_LIBPCRE AND HAVE_PCRE_H)
   set(ZM_PCRE 1)
 endif()
+
 # Check for mmap and enable in all components
 set(ZM_MEM_MAPPED 0)
 set(ENABLE_MMAP no)
@@ -623,6 +641,18 @@ if(ZM_PATH_ARP STREQUAL "")
   endif()
   if(ARP_EXECUTABLE-NOTFOUND)
     message(WARNING "Unable to find a compatible arp binary. Monitor probe will not function.")
+  endif()
+endif()
+
+# Find the path to an arp-scan compatible executable
+if(ZM_PATH_ARP_SCAN STREQUAL "")
+  find_program(ARP_SCAN_EXECUTABLE arp-scan)
+  if(ARP_SCAN_EXECUTABLE)
+    set(ZM_PATH_ARP_SCAN "${ARP_SCAN_EXECUTABLE}")
+    mark_as_advanced(ARP_SCAN_EXECUTABLE)
+  endif()
+  if(ARP_SCAN_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible arp-scan binary. Monitor probe will be less powerful.")
   endif()
 endif()
 

@@ -9,7 +9,7 @@
 %global ceb_version 1.0-zm
 
 # RtspServer is configured as a git submodule
-%global rtspserver_commit     cd7fd49becad6010a1b8466bfebbd93999a39878
+%global rtspserver_commit     eab32851421ffe54fec0229c3efc44c642bc8d46
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
@@ -36,7 +36,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.37.1
+Version: 1.37.13
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -352,7 +352,8 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %{_unitdir}/zoneminder.service
-%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/actions/com.zoneminder.*
+%{_datadir}/polkit-1/rules.d/com.zoneminder.arp-scan.rules
 %{_bindir}/zmsystemctl.pl
 
 %{_bindir}/zmaudit.pl

@@ -93,7 +93,7 @@ if ( canView('Events') or canView('Snapshots') ) {
       $exportFormat,
       $exportCompress,
       $exportStructure,
-      (!empty($_REQUEST['exportFile'])?$_REQUEST['exportFile']:'zmExport'),
+      (!empty($_REQUEST['exportFile'])?$_REQUEST['exportFile']:'zmExport')
     )) {
       ajaxResponse(array('exportFile'=>$exportFile));
     } else {

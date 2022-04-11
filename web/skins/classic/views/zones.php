@@ -80,53 +80,50 @@ xhtmlHeaders(__FILE__, translate('Zones'));
           <?php echo getStreamHTML($monitor, $options); ?>
           <svg class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
 <?php
-      foreach( array_reverse($zones) as $zone ) {
+    foreach (array_reverse($zones) as $zone) {
 ?>
             <polygon points="<?php echo $zone['AreaCoords'] ?>"
                      class="zmlink <?php echo $zone['Type']?>"
-                     data-on-click-true="streamCmdQuit"
                      data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
             />
 <?php
-      } // end foreach zone
+    } // end foreach zone
 ?>
           Sorry, your browser does not support inline SVG
         </svg>
-        <div id="monitorState">
-          <?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps
+<?php echo $monitor->getMonitorStateHTML(); ?>
         </div>
-        </div>
-				<div class="zones">
-					<table id="zonesTable" class="major">
-						<thead>
-							<tr>
-								<th class="colName"><?php echo translate('Name') ?></th>
-								<th class="colType"><?php echo translate('Type') ?></th>
-								<th class="colUnits"><?php echo translate('AreaUnits') ?></th>
-								<th class="colMark"><?php echo translate('Mark') ?></th>
-							</tr>
-						</thead>
-						<tbody>
-	<?php
-	foreach( $zones as $zone ) {
-	?>
-							<tr>
-								<td class="colName"><?php echo makeLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
-								<td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
-								<td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', ($zone['Area']*100)/($monitor->ViewWidth()*$monitor->ViewHeight()) ) ?></td>
-								<td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit('Monitors') ) { ?> disabled="disabled"<?php } ?>/></td>
-							</tr>
-	<?php
-	}
-	?>
-						</tbody>
-					</table>
-                                     <div id="contentButtons">
-                                       <?php echo makeButton('?view=zone&mid='.$mid.'&zid=0', 'AddNewZone', canEdit('Monitors')); ?>
-                                       <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
-                                     </div>
-				</div><!--zones-->
-<br class="clear"/>
+        <div class="zones">
+          <table id="zonesTable" class="major">
+            <thead>
+              <tr>
+                <th class="colName"><?php echo translate('Name') ?></th>
+                <th class="colType"><?php echo translate('Type') ?></th>
+                <th class="colUnits"><?php echo translate('AreaUnits') ?></th>
+                <th class="colMark"><?php echo translate('Mark') ?></th>
+              </tr>
+            </thead>
+            <tbody>
+  <?php
+  foreach( $zones as $zone ) {
+  ?>
+              <tr>
+                <td class="colName"><?php echo makeLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
+                <td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
+                <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', ($zone['Area']*100)/($monitor->ViewWidth()*$monitor->ViewHeight()) ) ?></td>
+                <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit('Monitors') ) { ?> disabled="disabled"<?php } ?>/></td>
+              </tr>
+  <?php
+  }
+  ?>
+            </tbody>
+          </table>
+          <div id="contentButtons">
+            <?php echo makeButton('?view=zone&mid='.$mid.'&zid=0', 'AddNewZone', canEdit('Monitors')); ?>
+            <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+          </div>
+        </div><!--zones-->
+        <br class="clear"/>
       </div><!--Monitor-->
 <?php 
   } # end foreach monitor

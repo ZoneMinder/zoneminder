@@ -38,7 +38,7 @@ foreach ( $storage_areas as $S ) {
 
 $focusWindow = true;
 
-xhtmlHeaders(__FILE__, translate('Function'));
+xhtmlHeaders(__FILE__, translate('Monitors'));
 getBodyTopHTML();
 echo getNavBarHTML();
 
@@ -73,18 +73,37 @@ The following monitors will have these settings update when you click Save:<br/>
 <?php
   }
 ?>
-        <p class="Function"><label><?php echo translate('Function') ?></label>
+        <p class="Capturing"><label><?php echo translate('Capturing') ?></label>
 <?php
-  $options = array();
-  foreach ( getEnumValues('Monitors', 'Function') as $opt ) {
-    $options[$opt] = translate('Fn'.$opt);
-  }
-  echo htmlSelect('newMonitor[Function]', $options, $monitor->Function());
+  echo htmlSelect('newMonitor[Capturing]', ZM\Monitor::getCapturingOptions(), $monitor->Capturing());
 ?>
         </p>
+        <p class="Analysing"><label><?php echo translate('Analysing') ?></label>
+<?php
+  echo htmlSelect('newMonitor[Analysing]', ZM\Monitor::getAnalysingOptions(), $monitor->Analysing());
+?>
+        </p>
+        <p class="Recording"><label><?php echo translate('Recording') ?></label>
+<?php
+  echo htmlSelect('newMonitor[Recording]', ZM\Monitor::getRecordingOptions(), $monitor->Recording());
+?>
+        </p>
+<!--
         <p>
           <label for="newMonitor[Enabled]"><?php echo translate('Enabled') ?></label>
           <input type="checkbox" name="newMonitor[Enabled]" id="newMonitor[Enabled]" value="1"<?php if ( !empty($monitors[0]->Enabled()) ) { ?> checked="checked"<?php } ?>/>
+        </p>
+-->
+        <p>
+          <label for="newMonitor[Importance]"><?php echo translate('Importance'); echo makeHelpLink('OPTIONS_IMPORTANCE') ?></label>
+<?php
+      echo htmlselect('newMonitor[Importance]',
+              array(
+                'Normal'=>translate('Normal'),
+                'Less'=>translate('Less important'),
+                'Not'=>translate('Not important')
+              ), $monitor->Importance());
+?>
         </p>
         <div id="contentButtons">
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>

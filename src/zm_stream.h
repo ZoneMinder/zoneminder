@@ -40,6 +40,7 @@ public:
     STREAM_SINGLE,
     STREAM_MPEG
   } StreamType;
+  typedef enum { FRAME_NORMAL, FRAME_ANALYSIS } FrameType;
 
 protected:
   static constexpr Seconds MAX_STREAM_DELAY = Seconds(5);
@@ -88,6 +89,9 @@ protected:
     CMD_VARPLAY,
     CMD_GET_IMAGE,
     CMD_QUIT,
+    CMD_MAXFPS,
+    CMD_ANALYZE_ON,
+    CMD_ANALYZE_OFF,
     CMD_QUERY=99
   } MsgCommand;
 
@@ -96,6 +100,7 @@ protected:
   std::shared_ptr<Monitor> monitor;
 
   StreamType type;
+  FrameType   frame_type;
   const char *format;
   int replay_rate;
   int scale;
@@ -118,25 +123,29 @@ protected:
   bool paused;
   int step;
 
-  SystemTimePoint now;
-  SystemTimePoint last_comm_update;
+  TimePoint now;
+  TimePoint last_comm_update;
 
   double maxfps;
   double base_fps;        // Should be capturing fps, hence a rough target
   double effective_fps;   // Target fps after taking max_fps into account
   double actual_fps;      // sliding calculated actual streaming fps achieved
-  SystemTimePoint last_fps_update;
+  TimePoint last_fps_update;
   int frame_count;      // Count of frames sent
   int last_frame_count; // Used in calculating actual_fps from frame_count - last_frame_count
 
   int frame_mod;
 
-  SystemTimePoint last_frame_sent;
+  TimePoint last_frame_sent;
   SystemTimePoint last_frame_timestamp;
+  TimePoint when_to_send_next_frame;  // When to send next frame so if now < send_next_frame, skip
 
   VideoStream *vid_stream;
 
   CmdMsg msg;
+
+  unsigned char *temp_img_buffer;     // Used when encoding or sending file data
+  size_t temp_img_buffer_size;
 
 protected:
   bool loadMonitor(int monitor_id);
@@ -151,6 +160,7 @@ public:
     monitor_id(0),
     monitor(nullptr),
     type(DEFAULT_TYPE),
+    frame_type(FRAME_NORMAL),
     format(""),
     replay_rate(DEFAULT_RATE),
     scale(DEFAULT_SCALE),
@@ -175,7 +185,9 @@ public:
     actual_fps(0.0),
     frame_count(0),
     last_frame_count(0),
-    frame_mod(1)
+    frame_mod(1),
+    temp_img_buffer(nullptr),
+    temp_img_buffer_size(0)
   {
     memset(&loc_sock_path, 0, sizeof(loc_sock_path));
     memset(&loc_addr, 0, sizeof(loc_addr));
@@ -196,7 +208,9 @@ public:
       type = STREAM_RAW;
     }
 #endif
-
+  }
+  void setStreamFrameType(FrameType p_type) {
+    frame_type = p_type;
   }
   void setStreamFormat(const char *p_format) {
     format = p_format;
@@ -207,10 +221,11 @@ public:
       scale = DEFAULT_SCALE;
   }
   void setStreamReplayRate(int p_rate) {
-    Debug(2, "Setting replay_rate %d", p_rate);
+    Debug(1, "Setting replay_rate %d", p_rate);
     replay_rate = p_rate;
   }
   void setStreamMaxFPS(double p_maxfps) {
+    Debug(1, "Setting max fps to %f", p_maxfps);
     maxfps = p_maxfps;
   }
   void setStreamBitrate(int p_bitrate) {

@@ -217,7 +217,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 
 #define zm_av_frame_alloc() av_frame_alloc()
 
-int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
+int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt);
 enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat );
 
 bool is_video_stream(const AVStream *);

@@ -17,6 +17,7 @@ var NextEventDefVideoPath = "";
 var currEventId = null;
 var CurEventDefVideoPath = null;
 var vid = null;
+var playerObj = null;
 var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
 var intervalRewind;
 var revSpeed = .5;
@@ -353,7 +354,9 @@ function getCmdResponse(respObj, respText) {
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {
-  if (vid) {
+  if (playerObj) {
+    playerObj.pause();
+  } else if (vid) {
     if (intervalRewind) {
       stopFastRev();
     }
@@ -955,20 +958,37 @@ function initPage() {
       playerObj = player = window.new265webjs(videoUrl, config);
       //const playerCont = document.querySelector('#player-container');
       //const controllerCont = document.querySelector('#controller');
-      //const progressCont = document.querySelector('#progress-contaniner');
+      const progressCont = document.querySelector('#progress-contaniner');
       //const progressContW = progressCont.offsetWidth;
       const cachePts = progressCont.querySelector('#cachePts');
       //const progressPts = progressCont.querySelector('#progressPts');
       const progressVoice = document.querySelector('#progressVoice');
-      const playBar = document.querySelector('#playBar');
-      const playBtn = playBar.getElementsByTagName('a')[0];
       const showLabel = document.querySelector('#showLabel');
       const ptsLabel = document.querySelector('#ptsLabel');
       const coverToast = document.querySelector('#coverLayer');
       const coverBtn = document.querySelector('#coverLayerBtn');
-      //const muteBtn = document.querySelector('#muteBtn');
-      //const fullScreenBtn = document.querySelector('#fullScreenBtn');
-      const mediaInfo = null;
+
+      let muteState = false;
+      const muteBtn = document.querySelector('#muteBtn');
+      muteBtn.onclick = () => {
+        console.log(playerObj.getVolume());
+        if (muteState === true) {
+            playerObj.setVoice(1.0);
+            progressVoice.value = 100;
+        } else {
+            playerObj.setVoice(0.0);
+            progressVoice.value = 0;
+        }
+        muteState = !muteState;
+    };
+      const fullScreenBtn = document.querySelector('#fullScreenBtn');
+      fullScreenBtn.onclick = () => {
+        playerObj.fullScreen();
+        // setTimeout(() => {
+        //     playerObj.closeFullScreen();
+        // }, 2000);
+    };
+      let mediaInfo = null;
 
       playerObj.onRender = (width, height, imageBufferY, imageBufferB, imageBufferR) => {
         console.log("on render");
@@ -1001,8 +1021,8 @@ function initPage() {
       playerObj.onLoadFinish = () => {
         playerObj.setVoice(1.0);
         mediaInfo = playerObj.mediaInfo();
-        console.log("mediaInfo===========>", mediaInfo);
         /*
+        console.log("mediaInfo===========>", mediaInfo);
         meta:
             durationMs: 144400
             fps: 25
@@ -1024,8 +1044,6 @@ function initPage() {
         }
         //console.log("is HEVC/H.265 media.");
 
-        playBtn.disabled = false;
-
         if (mediaInfo.meta.audioNone) {
           progressVoice.value = 0;
           progressVoice.style.display = 'none';
@@ -1042,7 +1060,6 @@ function initPage() {
           ptsLabel.textContent = 'LIVE';
 
           if (mediaInfo.meta.audioNone === true) {
-            // playBar.textContent = '||';
             playerObj.play();
           } else {
             coverToast.removeAttribute('hidden');

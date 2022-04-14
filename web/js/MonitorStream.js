@@ -189,6 +189,7 @@ function MonitorStream(monitorData) {
           console.log('Reloading stream: ' + stream.src);
           src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
           if ( src != stream.src ) {
+            stream.src = '';
             stream.src = src;
           } else {
             console.log("Failed to update rand on stream src");

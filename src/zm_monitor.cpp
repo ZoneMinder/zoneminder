@@ -2212,11 +2212,12 @@ bool Monitor::Analyse() {
       // Only do these if it's a video packet.
       shared_data->last_read_index = snap->image_index;
       analysis_image_count++;
+      if (function == MODECT or function == MOCORD)
+        UpdateAnalysisFPS();
     }
     packetqueue.increment_it(analysis_it);
     if (!event) delete packet_lock;
   } // end scope for event_lock
-  //packetqueue.unlock(packet_lock);
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
   return true;

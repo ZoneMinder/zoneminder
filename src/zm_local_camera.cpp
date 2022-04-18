@@ -1023,7 +1023,8 @@ bool LocalCamera::GetCurrentSettings(
       if ( vidioctl(vid_fd, VIDIOC_CROPCAP, &cropcap) < 0 ) {
         if ( errno != EINVAL ) {
           /* Failed querying crop capability, write error to the log and continue as if crop is not supported */
-          Error("Failed to query crop capabilities: %s", strerror(errno));
+          Error("Failed to query crop capabilities for %s: %d, %s",
+              device.c_str(), errno, strerror(errno));
         }
 
         if ( verbose ) {
@@ -1075,7 +1076,8 @@ bool LocalCamera::GetCurrentSettings(
           if ( errno == EINVAL ) {
             break;
           } 
-          Error("Failed to enumerate input %d: %s", input.index, strerror(errno));
+          Error("Failed to enumerate input for %s %d: %d %s",
+              device.c_str(), input.index, errno, strerror(errno));
           if ( verbose )
             output_ptr += sprintf(output_ptr, "Error, failed to enumerate input %d: %s\n", input.index, strerror(errno));
           else

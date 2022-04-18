@@ -27,91 +27,103 @@ if (!canEdit('Monitors')) {
 function probeV4L() {
 
   $cameras = array();
-
-  $command = getZmuCommand(' --query --device');
-  if ( !empty($_REQUEST['device']) )
-    $command .= '='.escapeshellarg($_REQUEST['device']);
-  $result = exec(escapeshellcmd($command), $output, $status);
-  if ($status) {
-    ZM\Warning("Errors while probe local cameras using $command, status is '$status' " . implode("\n", $output));
-  }
-
   $monitors = array();
   foreach ( dbFetchAll("SELECT Id, Name, Device, Channel FROM Monitors WHERE Type = 'Local' ORDER BY Device, Channel" ) as $monitor )
     $monitors[$monitor['Device'].':'.$monitor['Channel']] = $monitor;
-
   $devices = array();
+  $devices_to_probe = array();
   $preferredStandards = array('PAL', 'NTSC');
   $preferredFormats = array('BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY');
-  foreach ( $output as $line ) {
-    if ( !preg_match('/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches) ) {
-      ZM\Error("Can't parse command output '$line'");
-      continue;
-    }
-    $standards = explode('/', $deviceMatches[2]);
-    $preferredStandard = false;
-    foreach ( $preferredStandards as $standard ) {
-      if ( in_array( $standard, $standards ) ) {
-        $preferredStandard = $standard;
-        break;
+
+  if ( !empty($_REQUEST['device']) ) {
+    $devices_to_probe[] = $_REQUEST['device'];
+  } else {
+    $it = new FilesystemIterator('/dev/');
+    foreach ($it as $fileinfo) {
+      if (preg_match('/^video\d+$/', $fileinfo->getFilename())) {
+        $devices_to_probe[] = '/dev/'.$fileinfo->getFilename();
       }
     }
-    $formats = explode('/', $deviceMatches[3]);
-    $preferredFormat = false;
-    foreach ( $preferredFormats as $format ) {
-      if ( in_array($format, $formats) ) {
-        $preferredFormat = $format;
-        break;
-      }
+  }
+
+  foreach ($devices_to_probe as $d) {
+    $command = getZmuCommand(' --query --device');
+    $command .= '='.escapeshellarg($d);
+    $result = exec(escapeshellcmd($command), $output, $status);
+    if ($status) {
+      ZM\Warning("Errors while probe local cameras using $command, status is '$status' " . implode("\n", $output));
     }
-    $device = array(
-      'device'            => $deviceMatches[1],
-      'standards'         => $standard,
-      'preferredStandard' => $preferredStandard,
-      'formats'           => $formats,
-      'preferredFormat'   => $preferredFormat,
-    );
-    $inputs = array();
-    for ( $i = 0; $i < $deviceMatches[4]; $i++ ) {
-      if ( !preg_match('/i'.$i.':([^|]+)\|i'.$i.'T:([^|]+)\|/', $deviceMatches[5], $inputMatches) ) {
-        ZM\Error("Can't parse input '".$deviceMatches[5]."'");
+
+    foreach ( $output as $line ) {
+      if ( !preg_match('/^d:([^|]+).*S:([^|]*).*F:([^|]+).*I:(\d+)\|(.+)$/', $line, $deviceMatches) ) {
+        ZM\Error("Can't parse command output '$line'");
         continue;
       }
-      if ( $inputMatches[2] == 'Camera' ) {
-        $input = array(
-          'index' => $i,
-          'id'    => $deviceMatches[1].':'.$i,
-          'name'  => $inputMatches[1],
-          'free'  => empty($monitors[$deviceMatches[1].':'.$i]),
-        );
-        $inputMonitor = array(
-          'Type'    => 'Local',
-          'Device'  => $deviceMatches[1],
-          'Channel' => $i,
-          'Colours' => 3,
-          'Format'  => $preferredStandard,
-          'Palette' => $preferredFormat,
-        );
-        if ( $preferredStandard == 'NTSC' ) {
-          $inputMonitor['Width'] = 320;
-          $inputMonitor['Height'] = 240;
-        } else {
-          $inputMonitor['Width'] = 384;
-          $inputMonitor['Height'] = 288;
+      $standards = explode('/', $deviceMatches[2]);
+      $preferredStandard = false;
+      foreach ( $preferredStandards as $standard ) {
+        if ( in_array( $standard, $standards ) ) {
+          $preferredStandard = $standard;
+          break;
         }
-        if ( $preferredFormat == 'GREY' ) {
-          $inputMonitor['Colours'] = 1;
-          $inputMonitor['SignalCheckColour'] = '#000023';
-        }
-        $inputDesc = base64_encode(json_encode($inputMonitor));
-        $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(' - '.translate('Available')):(' ('.$monitors[$input['id']]['Name'].')'));
-        $inputs[] = $input;
-        $cameras[$inputDesc] = $inputString;
       }
-    }
-    $device['inputs'] = $inputs;
-    $devices[] = $device;
-  } # end foreach output line
+      $formats = explode('/', $deviceMatches[3]);
+      $preferredFormat = false;
+      foreach ( $preferredFormats as $format ) {
+        if ( in_array($format, $formats) ) {
+          $preferredFormat = $format;
+          break;
+        }
+      }
+      $device = array(
+        'device'            => $deviceMatches[1],
+        'standards'         => $standard,
+        'preferredStandard' => $preferredStandard,
+        'formats'           => $formats,
+        'preferredFormat'   => $preferredFormat,
+      );
+      $inputs = array();
+      for ( $i = 0; $i < $deviceMatches[4]; $i++ ) {
+        if ( !preg_match('/i'.$i.':([^|]+)\|i'.$i.'T:([^|]+)\|/', $deviceMatches[5], $inputMatches) ) {
+          ZM\Error("Can't parse input '".$deviceMatches[5]."'");
+          continue;
+        }
+        if ( $inputMatches[2] == 'Camera' ) {
+          $input = array(
+            'index' => $i,
+            'id'    => $deviceMatches[1].':'.$i,
+            'name'  => $inputMatches[1],
+            'free'  => empty($monitors[$deviceMatches[1].':'.$i]),
+          );
+          $inputMonitor = array(
+            'Type'    => 'Local',
+            'Device'  => $deviceMatches[1],
+            'Channel' => $i,
+            'Colours' => 3,
+            'Format'  => $preferredStandard,
+            'Palette' => $preferredFormat,
+          );
+          if ( $preferredStandard == 'NTSC' ) {
+            $inputMonitor['Width'] = 320;
+            $inputMonitor['Height'] = 240;
+          } else {
+            $inputMonitor['Width'] = 384;
+            $inputMonitor['Height'] = 288;
+          }
+          if ( $preferredFormat == 'GREY' ) {
+            $inputMonitor['Colours'] = 1;
+            $inputMonitor['SignalCheckColour'] = '#000023';
+          }
+          $inputDesc = base64_encode(json_encode($inputMonitor));
+          $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(' - '.translate('Available')):(' ('.$monitors[$input['id']]['Name'].')'));
+          $inputs[] = $input;
+          $cameras[$inputDesc] = $inputString;
+        }
+      }
+      $device['inputs'] = $inputs;
+      $devices[] = $device;
+    } # end foreach output line
+  } # end foreach device in /dev
   return $cameras;
 } # end function probeV4L
 
@@ -347,7 +359,7 @@ function probeNetwork() {
       $macBase = $macBases[$macRoot];
       $camera = call_user_func($macBase['probeFunc'], $ip);
       $sourceDesc = base64_encode(json_encode($camera['monitor']));
-      $sourceString = $camera['model'].' @ '.$host;
+      $sourceString = $camera['model'].' @ '.$ip;
       if ( isset($monitors[$ip]) ) {
         $monitor = $monitors[$ip];
         $sourceString .= ' ('.$monitor['Name'].')';
@@ -370,7 +382,7 @@ function probeNetwork() {
           $macBase = $macBases[$macRoot];
           $camera = call_user_func($macBase['probeFunc'], $ip);
           $sourceDesc = base64_encode(json_encode($camera['monitor']));
-          $sourceString = $camera['model'].' @ '.$host;
+          $sourceString = $camera['model'].' @ '.$ip;
           if (isset($monitors[$ip])) {
             $monitor = $monitors[$ip];
             $sourceString .= ' ('.$monitor['Name'].')';

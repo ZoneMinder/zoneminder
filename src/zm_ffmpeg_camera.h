@@ -36,7 +36,9 @@ typedef struct DecodeContext {
 class FfmpegCamera : public Camera {
   protected:
     std::string         mPath;
+    std::string         mMaskedPath;
     std::string         mSecondPath;
+    std::string         mMaskedSecondPath;
     std::string         mMethod;
     std::string         mOptions;
 

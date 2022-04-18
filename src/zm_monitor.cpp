@@ -1870,9 +1870,6 @@ bool Monitor::Analyse() {
           if (decoding != DECODING_NONE) {
             while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
               // Need to wait for the decoder thread.
-              // decoder thread might be waiting on the lock for this packet.
-              // So we need to relinquish the lock and wait.  Waiting automatically relinquishes the lock
-              // So... 
               Debug(1, "Waiting for decode");
               packet_lock->wait();
             }  // end while ! decoded
@@ -2220,10 +2217,9 @@ bool Monitor::Analyse() {
 
       delete packet_lock;
     }
-  } // end scope for event_lock
+  }  // end scope for event_lock
 
   packetqueue.increment_it(analysis_it);
-  //packetqueue.unlock(packet_lock);
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
   return true;
@@ -2647,7 +2643,6 @@ bool Monitor::Decode() {
           ZMLockedPacket *deinterlace_packet_lock = packetqueue.get_packet(decoder_it);
           if (!deinterlace_packet_lock) {
             delete packet_lock;
-            //packetqueue.unlock(packet_lock);
             return false;
           }
           if (deinterlace_packet_lock->packet_->codec_type == packet->codec_type) {
@@ -2812,11 +2807,9 @@ Event * Monitor::openEvent(
 
     packetqueue.increment_it(start_it);
     if ((*start_it) == *analysis_it) {
-      //if (starting_packet_lock) delete starting_packet_lock;
       break;
     }
     ZMLockedPacket *lp = packetqueue.get_packet(start_it);
-    //delete starting_packet_lock;
     if (!lp) return nullptr; // only on terminate FIXME
     starting_packet_lock = lp;
     starting_packet = lp->packet_;

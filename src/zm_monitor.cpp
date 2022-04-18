@@ -1750,7 +1750,7 @@ bool Monitor::Analyse() {
 
   // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
   if (snap->score != -1) {
-    Error("skipping because score was %d", snap->score);
+    Error("skipping because score was %d at index %d", snap->score, snap->image_index);
     packetqueue.unlock(packet_lock);
     packetqueue.increment_it(analysis_it);
     return false;
@@ -1866,21 +1866,9 @@ bool Monitor::Analyse() {
             while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
               // Need to wait for the decoder thread.
               Debug(1, "Waiting for decode");
-              packetqueue.unlock(packet_lock); // This will delete packet_lock and notify_all
-              packetqueue.wait();
-
-              // Another thread may have moved our it. Unlikely but possible
-              packet_lock = packetqueue.get_packet(analysis_it);
-              if (!packet_lock) return false;
-              snap = packet_lock->packet_;
-
-              if (!snap->image and snap->decoded) {
-                Debug(1, "No image but was decoded, giving up");
-                delete packet_lock;
-                return false;
-              }
+              packet_lock->wait();
             }  // end while ! decoded
-            if (zm_terminate) {
+            if (zm_terminate or analysis_thread->Stopped()) {
               delete packet_lock;
               return false;
             }
@@ -2533,7 +2521,7 @@ bool Monitor::Decode() {
   std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
     Debug(4, "Not video");
-    packetqueue.unlock(packet_lock);
+    delete packet_lock;
     return true; // Don't need decode
   }
 
@@ -2608,14 +2596,14 @@ bool Monitor::Decode() {
         while (!zm_terminate) {
           ZMLockedPacket *second_packet_lock = packetqueue.get_packet(decoder_it);
           if (!second_packet_lock) {
-            packetqueue.unlock(packet_lock);
+            delete packet_lock;
             return false;
           }
           if (second_packet_lock->packet_->codec_type == packet->codec_type) {
             deinterlace_packet_lock = second_packet_lock;
             break;
           }
-          packetqueue.unlock(second_packet_lock);
+          delete second_packet_lock;
           packetqueue.increment_it(decoder_it);
         }
         if (zm_terminate) return false;
@@ -2661,7 +2649,7 @@ bool Monitor::Decode() {
   shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
   shared_data->last_write_time = packet->timestamp.tv_sec;
-  packetqueue.unlock(packet_lock);
+  delete packet_lock;
   return true;
 }  // end bool Monitor::Decode()
 
@@ -2744,11 +2732,9 @@ Event * Monitor::openEvent(
 
     packetqueue.increment_it(start_it);
     if ((*start_it) == *analysis_it) {
-      //if (starting_packet_lock) delete starting_packet_lock;
       break;
     }
     ZMLockedPacket *lp = packetqueue.get_packet(start_it);
-    //delete starting_packet_lock;
     if (!lp) return nullptr; // only on terminate FIXME
     starting_packet_lock = lp;
     starting_packet = lp->packet_;
@@ -2763,7 +2749,7 @@ Event * Monitor::openEvent(
 void Monitor::closeEvent() {
   if (!event) return;
 
-  if ( close_event_thread.joinable() ) {
+  if (close_event_thread.joinable()) {
     Debug(1, "close event thread is joinable");
     close_event_thread.join();
   } else {

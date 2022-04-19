@@ -762,7 +762,7 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     monitorStream.setScale('0', $j('#width').val(), $j('#height').val());
-    monitorStream.start(Math.round( (Math.random()+0.5)*statusRefreshTimeout ));
+    monitorStream.start();
     if (streamMode == 'single') {
       monitorStream.setup_onclick(fetchImage);
     } else {

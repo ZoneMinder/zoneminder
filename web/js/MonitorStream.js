@@ -14,6 +14,7 @@ function MonitorStream(monitorData) {
   this.scale = 100;
   this.status = null;
   this.lastAlarmState = STATE_IDLE;
+  this.statusCmdTimer = null;
   this.streamCmdTimer = null;
   this.streamCmdParms = {
     view: 'request',
@@ -39,6 +40,10 @@ function MonitorStream(monitorData) {
     }
     this.bottomElement = e;
   }
+
+  this.img_onerror = function() {
+    console.log('Failed loading image stream');
+  };
 
   this.element = null;
   this.getElement = function() {
@@ -68,7 +73,10 @@ function MonitorStream(monitorData) {
 
   this.setScale = function(newscale, width, height) {
     const img = this.getElement();
-    if (!img) return;
+    if (!img) {
+      console.log("No img in setScale");
+      return;
+    }
 
     this.scale = newscale;
 
@@ -92,11 +100,15 @@ function MonitorStream(monitorData) {
       width = newSize.width;
       height = newSize.height;
       newscale = parseInt(newSize.autoScale);
+      console.log("auto scale " + newscale);
     } else if (newscale == 'fixed' || newscale == '') {
       if (width) {
         newscale = parseInt(100*parseInt(width)/this.width);
       } else if (height) {
         newscale = parseInt(100*parseInt(height)/this.height);
+      } else { // unspecified
+        newscale = parseInt(100*$j(img).width()/this.width);
+        console.log("New scale from size: " + newscale);
       }
     } else {
       // a numeric scale, must take actual monitor dimensions and calculate
@@ -107,7 +119,7 @@ function MonitorStream(monitorData) {
 
     if (img.nodeName == 'IMG') {
       if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
-      const oldSrc = img.getAttribute('src');
+      const oldSrc = img.src;
       if (!oldSrc) {
         console.log('No src on img?!');
         console.log(img);
@@ -115,22 +127,22 @@ function MonitorStream(monitorData) {
       }
       let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
       if (newSrc != oldSrc) {
-        console.log('Clear src'+oldSrc);
-        img.setAttribute('src', '');
-        img.setAttribute('src', newSrc);
-        console.log('Done Cleared src'+newSrc);
+        this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+        console.log('Clear src', oldSrc);
+        img.src = '';
+        img.src = newSrc;
+        console.log('Done Cleared src', newSrc);
       }
     }
 
     monitor_frame.css('width', parseInt(width) ? width : 'auto');
     // monitor_frame never has fixed height
-    stream_frame.css('width', parseInt(width) ? width : 'auto');
+    //stream_frame.css('width', parseInt(width) ? width : 'auto');
     //stream_frame.css('height', parseInt(height) ? height : 'auto');
-  };
+  }; // setscale
 
   this.start = function(delay) {
     if (this.janusEnabled) {
-      var id = parseInt(this.id);
       var server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
@@ -146,10 +158,11 @@ function MonitorStream(monitorData) {
           janus = new Janus({server: server}); //new Janus
         }});
       }
-      attachVideo(id);
+      attachVideo(parseInt(this.id));
       return;
     }
 
+    // zms stream
     const stream = this.getElement();
     if (!stream) return;
     if (!stream.src) {
@@ -158,6 +171,7 @@ function MonitorStream(monitorData) {
       console.log(stream);
       return;
     }
+    clearTimeout(this.statusCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
     src = stream.src.replace(/mode=single/i, 'mode=jpeg');
     if (-1 == src.search('connkey')) {
@@ -168,8 +182,9 @@ function MonitorStream(monitorData) {
       stream.src = '';
       stream.src = src;
     }
-    setTimeout(this.statusQuery.bind(this), delay);
-  };
+    this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), delay);
+    stream.onerror = this.img_onerror.bind(this);
+  }; // this.start
 
   this.stop = function() {
     if ( 0 ) {
@@ -183,6 +198,8 @@ function MonitorStream(monitorData) {
       }
     }
     this.streamCommand(CMD_STOP);
+    clearTimeout(this.statusCmdTimer);
+    clearTimeout(this.streamCmdTimer);
   };
   this.pause = function() {
     this.streamCommand(CMD_PAUSE);
@@ -302,7 +319,9 @@ function MonitorStream(monitorData) {
 
   this.onFailure = function(jqxhr, textStatus, error) {
     // Assuming temporary problem, retry in a bit.
-    setTimeout(this.streamCmdQuery.bind(this), 1000*statusRefreshTimeout);
+
+    clearTimeout(this.streamCmdTimer);
+    this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), 10*statusRefreshTimeout);
     logAjaxFail(jqxhr, textStatus, error);
     if (textStatus == 'Unauthorized') {
       window.location.reload();
@@ -316,9 +335,7 @@ function MonitorStream(monitorData) {
     }
 
     //watchdogOk('stream');
-    if (this.streamCmdTimer) {
-      this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-    }
+    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
 
     if (respObj.result == 'Ok') {
       if (respObj.status) {
@@ -449,12 +466,7 @@ function MonitorStream(monitorData) {
 
         if (this.status.auth) {
           if (this.status.auth != this.auth_hash) {
-            // Try to reload the image stream.
-            if (stream && stream.src) {
-              const oldsrc = stream.src;
-              stream.src = '';
-              stream.src = oldsrc.replace(/auth=\w+/i, 'auth='+this.status.auth);
-            }
+            // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
             console.log("Changed auth from " + this.auth_hash + " to " + this.status.auth);
             this.auth_hash = this.status.auth;
           }
@@ -463,31 +475,28 @@ function MonitorStream(monitorData) {
     } else {
       console.error(respObj.message);
       // Try to reload the image stream.
-      if (stream) {
-        if (stream.src) {
-          console.log('Reloading stream: ' + stream.src);
-          src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-          // Maybe navbar updated auth FIXME
-          if (src != stream.src) {
-            stream.src = src;
-          } else {
-            console.log("Failed to update rand on stream src");
-          }
+      if (stream.src) {
+        console.log('Reloading stream: ' + stream.src);
+        src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+        src = src.replace(/auth=\w+/i, 'auth='+this.auth_hash);
+        // Maybe updated auth
+        if (src != stream.src) {
+          stream.src = '';
+          stream.src = src;
+        } else {
+          console.log("Failed to update rand on stream src");
         }
-      } else {
-        console.log('No stream to reload?');
       }
     } // end if Ok or not
   };
 
   this.statusQuery = function() {
     this.streamCmdQuery(CMD_QUERY);
-    setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
+    this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCmdQuery = function(resent) {
-    //console.log("Starting CmdQuery for " + this.connKey );
-    if ( this.type != 'WebSite' ) {
+    if (this.type != 'WebSite') {
       this.streamCmdParms.command = CMD_QUERY;
       this.streamCmdReq(this.streamCmdParms);
     }
@@ -524,8 +533,8 @@ function MonitorStream(monitorData) {
     $j.ajaxSetup({timeout: AJAX_TIMEOUT});
     if (auth_hash) {
       this.streamCmdParms.auth = auth_hash;
-    } else if ( auth_relay ) {
-      this.streamCmdParms.auth_relay = '';
+    } else if (auth_relay) {
+      this.streamCmdParms.auth_relay = auth_relay;
     }
 
     this.streamCmdReq = function(streamCmdParms) {

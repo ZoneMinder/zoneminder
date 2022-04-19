@@ -29,9 +29,6 @@ include('_monitor_filters.php');
 $filterbar = ob_get_contents();
 ob_end_clean();
 
-// This is for input sanitation
-$mid = isset($_REQUEST['mid']) ? intval($_REQUEST['mid']) : 0;
-
 $widths = array(
   'auto'  => translate('auto'),
   '100%'  => '100%',
@@ -51,10 +48,12 @@ $heights = array(
   '1080px'  =>  '1080px',
 );
 
+// This is for input sanitation
+$mid = isset($_REQUEST['mid']) ? intval($_REQUEST['mid']) : 0;
 $monitors = array();
-$monitor_index = 0;
+$monitor_index = -1;
 foreach ($displayMonitors as &$row) {
-  if ($row['Function'] == 'None') continue;
+  if ($row['Capturing'] == 'None') continue;
   if ($mid and ($row['Id'] == $mid)) $monitor_index = count($monitors);
   $monitors[] = new ZM\Monitor($row);
   if (!isset($widths[$row['Width'].'px'])) {
@@ -65,6 +64,10 @@ foreach ($displayMonitors as &$row) {
   }
   unset($row);
 } # end foreach Monitor
+
+if ($monitor_index == -1) {
+  ZM\Error("How did we not find monitor_index?");
+}
 
 if (!$mid) {
   $mid = $monitors[0]->Id();

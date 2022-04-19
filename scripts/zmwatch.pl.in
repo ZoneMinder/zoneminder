@@ -93,7 +93,8 @@ while (!$zm_terminate) {
     next if $monitor->{Capturing} eq 'None';
     next if $monitor->{Type} eq 'WebSite';
     next if $monitor->{Capturing} eq 'Ondemand';
-    next if $monitor->{Decoding} ne 'Always';
+    next if $monitor->{Decoding} eq 'None' or $monitor->{Decoding} eq 'Ondemand';
+
     my $now = time(); 
     my $restart = 0;
     zmMemInvalidate($monitor);

@@ -219,7 +219,7 @@ function initPage() {
   });
 
   $j('.chosen').chosen({width: "95%"});
-  $j('#pills-tab li a').on('click', function(){
+  $j('#pills-tab li a').on('click', function() {
     //$j('.chosen').chosen({width: "95%"});
     // Store the selected tab in a cookie or something so that on reload it goes back to the tab
   });

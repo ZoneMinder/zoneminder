@@ -130,10 +130,13 @@ int ZMPacket::decode(AVCodecContext *ctx) {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
-    if (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format))) {
-      Debug(3, "Have different format ctx->pix_fmt %s ?= ctx->sw_pix_fmt %s in_frame->format %s.",
+    if ((ctx->sw_pix_fmt != AV_PIX_FMT_NONE) and (fix_deprecated_pix_fmt(ctx->sw_pix_fmt) != fix_deprecated_pix_fmt(static_cast<AVPixelFormat>(in_frame->format)))) {
+      Debug(3, "Have different format ctx->pix_fmt %d %s ?= ctx->sw_pix_fmt %d %s in_frame->format %d %s.",
+          ctx->pix_fmt,
           av_get_pix_fmt_name(ctx->pix_fmt),
+          ctx->sw_pix_fmt,
           av_get_pix_fmt_name(ctx->sw_pix_fmt),
+          in_frame->format,
           av_get_pix_fmt_name(static_cast<AVPixelFormat>(in_frame->format))
           );
 #if 0

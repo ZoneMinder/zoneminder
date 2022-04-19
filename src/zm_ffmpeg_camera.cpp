@@ -27,6 +27,7 @@
 
 extern "C" {
 #include <libavutil/time.h>
+#include <libavdevice/avdevice.h>
 }
 
 TimePoint start_read_time;
@@ -254,6 +255,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   error_count = 0;
 
+  AVInputFormat *input_format = nullptr;
   // Handle options
   AVDictionary *opts = nullptr;
   ret = av_dict_parse_string(&opts, Options().c_str(), "=", ",", 0);
@@ -280,6 +282,14 @@ int FfmpegCamera::OpenFfmpeg() {
     if (ret < 0) {
       Warning("Could not set rtsp_transport method '%s'", method.c_str());
     }
+  } else if (protocol == "V4L2") {
+    avdevice_register_all();
+    input_format = av_find_input_format("video4linux2");
+    if (!input_format) {
+      Error("Cannot find v4l2 input format");
+      return -1;
+    }
+    mPath = mPath.substr(7);
   }  // end if RTSP
 
   Debug(1, "Calling avformat_open_input for %s", mPath.c_str());
@@ -289,7 +299,7 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext->interrupt_callback.opaque = this;
   mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
 
-  ret = avformat_open_input(&mFormatContext, mPath.c_str(), nullptr, &opts);
+  ret = avformat_open_input(&mFormatContext, mPath.c_str(), input_format, &opts);
   if (ret != 0) {
     logPrintf(Logger::ERROR + monitor->Importance(),
         "Unable to open input %s due to: %s", mPath.c_str(),

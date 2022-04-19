@@ -56,13 +56,6 @@ if (isset($_REQUEST['order'])) {
 $sort = $filter->sort_field();
 if (isset($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
-  if ($sort == 'EndDateTime') {
-    if ($order == 'ASC') {
-      $sort = 'EndDateTime IS NULL, EndDateTime';
-    } else {
-      $sort = 'EndDateTime IS NOT NULL, EndDateTime';
-    }
-  }
 }
 
 // Offset specifies the starting row to return, used for pagination
@@ -176,6 +169,12 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       $sort = '';
     } else if ( $sort == 'Monitor' ) {
       $sort = 'M.Name';
+    } else if ($sort == 'EndDateTime') {
+      if ($order == 'ASC') {
+        $sort = 'E.EndDateTime IS NULL, E.EndDateTime';
+      } else {
+        $sort = 'E.EndDateTime IS NOT NULL, E.EndDateTime';
+      }
     } else {
       $sort = 'E.'.$sort;
     }

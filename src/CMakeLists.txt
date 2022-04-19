@@ -142,6 +142,7 @@ endif()
 target_link_libraries(zm
   PUBLIC
     FFMPEG::avcodec
+    FFMPEG::avdevice
     FFMPEG::avformat
     FFMPEG::avutil
     FFMPEG::swresample

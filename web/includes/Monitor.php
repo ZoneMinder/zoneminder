@@ -928,7 +928,7 @@ public static function getStatuses() {
         $this->Name());
     }
 
-    if ($options['zones']) { 
+    if (isset($options['zones']) and $options['zones']) {
       $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 '.$this->ViewWidth().' '.$this->ViewHeight() .'" preserveAspectRatio="none">'.PHP_EOL;
       foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
         $html .= $zone->svg_polygon();

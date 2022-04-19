@@ -2,19 +2,19 @@
 // Import constants
 //
 
-var CMD_QUERY = <?php echo CMD_QUERY ?>;
+const CMD_QUERY = <?php echo CMD_QUERY ?>;
+const CMD_STOP = <?php echo CMD_STOP ?>;
 
-var SCALE_BASE = <?php echo SCALE_BASE ?>;
+const COMPACT_MONTAGE = <?php echo ZM_WEB_COMPACT_MONTAGE ?>;
+const SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
+const POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
 
-var COMPACT_MONTAGE = <?php echo ZM_WEB_COMPACT_MONTAGE ?>;
-var SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
-var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
+const statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
-var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
-
-var canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
+const canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 
 var monitorData = new Array();
+
 <?php
 global $monitors;
 foreach ( $monitors as $monitor ) {
@@ -26,6 +26,7 @@ monitorData[monitorData.length] = {
   'height':<?php echo $monitor->ViewHeight() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
+  'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
   'type': '<?php echo $monitor->Type() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>'

@@ -29,7 +29,6 @@ include('_monitor_filters.php');
 $filterbar = ob_get_contents();
 ob_end_clean();
 
-
 // This is for input sanitation
 $mid = isset($_REQUEST['mid']) ? intval($_REQUEST['mid']) : 0;
 
@@ -121,21 +120,28 @@ $options['scale'] = $scale;
 
 if (isset($_REQUEST['width'])) {
   $options['width'] = validInt($_REQUEST['width']); 
-} else if ( isset($_COOKIE['zmCycleWidth']) and $_COOKIE['zmCycleWidth'] ) {
-  $options['width'] = $_COOKIE['zmCycleWidth'];
+} else if ( isset($_COOKIE['zmWatchWidth']) and $_COOKIE['zmWatchWidth'] ) {
+  $options['width'] = $_COOKIE['zmWatchWidth'];
 } else {
   $options['width'] = '';
 }
 if (isset($_REQUEST['height'])) {
   $options['height'] =validInt($_REQUEST['height']);
-} else if (isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight']) {
-  $options['height'] = $_COOKIE['zmCycleHeight'];
+} else if (isset($_COOKIE['zmWatchHeight']) and $_COOKIE['zmWatchHeight']) {
+  $options['height'] = $_COOKIE['zmWatchHeight'];
 } else {
   $options['height'] = '';
 }
+if (
+  ($options['width'] and ($options['width'] != 'auto'))
+  or 
+  ($options['height'] and ($options['height'] != 'auto'))
+) {
+  $options['scale'] = 'fixed';
+}
 
 $connkey = generateConnKey();
-if ( $monitor->JanusEnabled() ) {
+if ($monitor->JanusEnabled()) {
     $streamMode = 'janus';
 } else {
   $streamMode = getStreamMode();
@@ -207,10 +213,10 @@ if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
   echo '<div class="warning">Monitor is not capturing. We will be unable to provide an image</div>';
 }
 ?>
-    <div class="container-fluid h-100">
-      <div class="row flex-nowrap h-100" id="content">
-        <nav id="sidebar" class="h-100"<?php echo $showCycle?'':' style="display:none;"'?>>
-          <div id="cycleButtons" class="buttons">
+  <div class="container-fluid h-100">
+    <div class="row flex-nowrap h-100" id="content">
+      <nav id="sidebar" class="h-100"<?php echo $showCycle?'':' style="display:none;"'?>>
+        <div id="cycleButtons" class="buttons">
 <?php
 $seconds = translate('seconds');
 $minute = translate('minute');
@@ -227,40 +233,42 @@ if (!isset($cyclePeriodOptions[ZM_WEB_REFRESH_CYCLE])) {
 }
 echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cyclePeriod'));
 ?>
-            <span id="secondsToCycle"></span><br/>
-            <button type="button" id="cyclePrevBtn" title="<?php echo translate('PreviousMonitor') ?>">
-            <i class="material-icons md-18">skip_previous</i>
-            </button>
-            <button type="button" id="cyclePauseBtn" title="<?php echo translate('PauseCycle') ?>">
-            <i class="material-icons md-18">pause</i>
-            </button>
-            <button type="button" id="cyclePlayBtn" title="<?php echo translate('PlayCycle') ?>">
-            <i class="material-icons md-18">play_arrow</i>
-            </button>
-            <button type="button" id="cycleNextBtn" title="<?php echo translate('NextMonitor') ?>">
-            <i class="material-icons md-18">skip_next</i>
-            </button>
-          </div>
-          <ul class="nav nav-pills flex-column h-100">
+          <span id="secondsToCycle"></span><br/>
+          <button type="button" id="cyclePrevBtn" title="<?php echo translate('PreviousMonitor') ?>">
+          <i class="material-icons md-18">skip_previous</i>
+          </button>
+          <button type="button" id="cyclePauseBtn" title="<?php echo translate('PauseCycle') ?>">
+          <i class="material-icons md-18">pause</i>
+          </button>
+          <button type="button" id="cyclePlayBtn" title="<?php echo translate('PlayCycle') ?>">
+          <i class="material-icons md-18">play_arrow</i>
+          </button>
+          <button type="button" id="cycleNextBtn" title="<?php echo translate('NextMonitor') ?>">
+          <i class="material-icons md-18">skip_next</i>
+          </button>
+        </div>
+        <ul class="nav nav-pills flex-column h-100">
 <?php
   foreach ($monitors as $m) {
     echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=watch&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
   }
  ?>
-          </ul>
-        </nav>
-      <div class="container-fluid col-sm-offset-2 h-100 pr-0">
-        <div id="imageFeed<?php echo $monitor->Id() ?>"
+        </ul>
+      </nav>
+      <div class="container-fluid col-sm-offset-2 h-100 pr-0"
 <?php
 if ($streamMode == 'jpeg') {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
-><?php echo getStreamHTML($monitor, $options); ?>
-        </div>
-<?php if ($monitor->Type() != 'WebSite') {
-    echo $monitor->getMonitorStateHTML();
- ?>
+>
+<?php 
+if ($monitor->Type() != 'WebSite') {
+  $options['state'] = true;
+}
+echo $monitor->getStreamHTML($options);
+if ($monitor->Type() != 'WebSite') {
+?>
         <div class="buttons" id="dvrControls">
 <?php
 if ($streamMode == 'jpeg') {

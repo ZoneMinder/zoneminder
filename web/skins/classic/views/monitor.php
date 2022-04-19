@@ -542,6 +542,7 @@ switch ($name) {
               <tr><td class="text-right pr-3"><?php echo translate('Triggers') ?></td><td>
 <?php
       $optTriggers = getSetValues('Monitors', 'Triggers');
+      ZM\Debug("Triggers: " . print_r($optTriggers, true));
       $breakCount = (int)(ceil(count($optTriggers)));
       $breakCount = min(3, $breakCount);
       $optCount = 0;

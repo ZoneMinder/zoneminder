@@ -264,7 +264,7 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? 'width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'" loading="lazy" />';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" loading="lazy" />';
   }
 }
 
@@ -901,7 +901,7 @@ function reScale($dimension, $dummy) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
     $scale = func_get_arg($i);
-    if ( !empty($scale) && ($scale != '0') && ($scale != 'auto') && ($scale != SCALE_BASE) )
+    if ( !empty($scale) && ($scale != '0') && ($scale != 'auto') && ($scale != 'fixed') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return $new_dimension;
@@ -2002,95 +2002,7 @@ function validHtmlStr($input) {
  * Same width height.  If both are set we should calculate the smaller resulting scale
  */
 function getStreamHTML($monitor, $options = array()) {
-
-  if ( isset($options['scale']) and $options['scale'] != '' ) {
-    if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {
-      #ZM\Warning('Setting dimensions from scale:'.$options['scale']);
-      $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
-      $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
-    } else if ( ! ( isset($options['width']) or isset($options['height']) ) ) {
-      $options['width'] = '100%';
-      $options['height'] = 'auto';
-    }
-  } else {
-    $options['scale'] = 100;
-    # scale is empty or 100
-    # There may be a fixed width applied though, in which case we need to leave the height empty
-    if ( ! ( isset($options['width']) and $options['width'] ) ) {
-      # Havn't specified width.  If we specified height, then we should
-      # use a width that keeps the aspect ratio, otherwise no scaling, 
-      # no dimensions, so assume the dimensions of the Monitor
-
-      if ( ! (isset($options['height']) and $options['height']) ) {
-        # If we havn't specified any scale or dimensions, then we must be using CSS to scale it in a dynamic way. Can't make any assumptions.
-        #$options['width'] = $monitor->ViewWidth().'px';
-        #$options['height'] = $monitor->ViewHeight().'px';
-      }
-    } else {
-      #ZM\Warning("Have width ".$options['width']);
-      if ( preg_match('/^(\d+)px$/', $options['width'], $matches) ) {
-        $scale = intval(100*$matches[1]/$monitor->ViewWidth());
-        #ZM\Warning("Scale is $scale");
-        if ( $scale < $options['scale'] )
-          $options['scale'] = $scale;
-      } else if ( preg_match('/^(\d+)%$/', $options['width'], $matches) ) {
-        $scale = intval($matches[1]);
-        if ( $scale < $options['scale'] )
-          $options['scale'] = $scale;
-      } else {
-        ZM\Warning('Invalid value for width: '.$options['width']);
-      }
-    }
-  }
-  if ( ! isset($options['mode'] ) ) {
-    $options['mode'] = 'stream';
-  }
-  if ( ! isset($options['width'] ) )
-    $options['width'] = 0;
-  if ( ! isset($options['height'] ) )
-    $options['height'] = 0;
-
-  if (!isset($options['maxfps'])) {
-    $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
-  }
-  if ( $monitor->StreamReplayBuffer() )
-    $options['buffer'] = $monitor->StreamReplayBuffer();
-  //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
-
-  if ( $monitor->Type() == 'WebSite' ) {
-    return getWebSiteUrl(
-      'liveStream'.$monitor->Id(), $monitor->Path(),
-      ( isset($options['width']) ? $options['width'] : NULL ),
-      ( isset($options['height']) ? $options['height'] : NULL ),
-      $monitor->Name()
-    );
-  //FIXME, the width and height of the image need to be scaled.
-  } else if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamSrc = $monitor->getStreamSrc( array(
-      'mode'   => 'mpeg',
-      'scale'  => (isset($options['scale'])?$options['scale']:100),
-      'bitrate'=> ZM_WEB_VIDEO_BITRATE,
-      'maxfps' => ZM_WEB_VIDEO_MAXFPS,
-      'format' => ZM_MPEG_LIVE_FORMAT
-    ) );
-    return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-  } else if ( $monitor->JanusEnabled() ) {
-    return '<video id="liveStream'.$monitor->Id().'" width="'.$options['width'].'"autoplay muted controls playsinline="" ></video>';
-  } else if ( $options['mode'] == 'stream' and canStream() ) {
-    $options['mode'] = 'jpeg';
-    $streamSrc = $monitor->getStreamSrc($options);
-    return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
-  } else {
-    if ( $options['mode'] == 'stream' ) {
-      ZM\Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
-    }
-    $options['mode'] = 'single';
-    $streamSrc = $monitor->getStreamSrc($options);
-    return getImageStill('liveStream'.$monitor->Id(), $streamSrc,
-      (isset($options['width']) ? $options['width'] : null),
-      (isset($options['height']) ? $options['height'] : null),
-      $monitor->Name());
-  }
+  return $monitor->getStreamHTML($options);
 } // end function getStreamHTML
 
 function getStreamMode( ) {

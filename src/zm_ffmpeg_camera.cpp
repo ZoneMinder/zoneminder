@@ -287,6 +287,7 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext = avformat_alloc_context();
   mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
   mFormatContext->interrupt_callback.opaque = this;
+  mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
 
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), nullptr, &opts);
   if (ret != 0) {

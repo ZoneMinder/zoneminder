@@ -119,6 +119,7 @@ function MonitorStream(monitorData) {
 
     if (img.nodeName == 'IMG') {
       if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
+      if (newscale < 0) newscale = 100;
       const oldSrc = img.src;
       if (!oldSrc) {
         console.log('No src on img?!');
@@ -128,10 +129,11 @@ function MonitorStream(monitorData) {
       let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
       if (newSrc != oldSrc) {
         this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-        console.log('Clear src', oldSrc);
-        img.src = '';
+        // We know that only the first zms will get the command because the 
+        // second can't open the commandQueue until the first exits
+        // This is necessary because safari will never close the first image
+        this.streamCommand(CMD_QUIT);
         img.src = newSrc;
-        console.log('Done Cleared src', newSrc);
       }
     }
 

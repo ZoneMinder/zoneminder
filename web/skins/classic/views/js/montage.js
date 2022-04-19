@@ -6,6 +6,7 @@
 function selectLayout(new_layout) {
   const ddm = $j('#zmMontageLayout');
   if (new_layout && (typeof(new_layout) != 'object')) {
+    console.log("Selecting " + new_layout);
     $j('#zmMontageLayout option').attr('selected', false);
     $j('#zmMontageLayout option:contains("'+new_layout+'")').attr('selected', true);
   }
@@ -60,34 +61,14 @@ function selectLayout(new_layout) {
     //$j('#height').val('auto');
   }
 
-  if (0) {
-    var width = parseInt($j('#width').val());
-    var height = parseInt($j('#height').val());
-    var scale = $j('#scale').val();
-
-    for (var i = 0, length = monitors.length; i < length; i++) {
-      var monitor = monitors[i];
-
-      var stream_scale = 0;
-      if (scale) {
-        stream_scale = scale;
-      } else if (width) {
-        stream_scale = parseInt(100*width/monitor.width);
-      } else if (height) {
-        stream_scale = parseInt(100*height/monitor.height);
-      } else if (layouts[layout_id].Name != 'Freeform') {
-        monitor_frame = $j('#monitor'+monitor.id);
-        console.log("Monitor frame width : " + monitor_frame.width() + " monitor Width: " + monitor.width);
-        if (monitor_frame.width() < monitor.width) {
-          stream_scale = parseInt(100 * monitor_frame.width() / monitor.width);
-          // Round to a multiple of 5, so 53 become 50% etc
-          stream_scale = Math.floor(stream_scale/5)*5;
-        }
-      }
-      monitor.setScale('fixed');
-      //stream_scale, width, height);
-    } // end foreach monitor
-  }
+  var width = parseInt($j('#width').val());
+  var height = parseInt($j('#height').val());
+  var scale = $j('#scale').val();
+  for (var i = 0, length = monitors.length; i < length; i++) {
+    var monitor = monitors[i];
+    monitor.setScale(scale, width, height);
+  } // end foreach monitor
+  console.log("Done selectLayout");
 } // end function selectLayout(element)
 
 function changeHeight() {
@@ -106,6 +87,7 @@ function changeHeight() {
 function changeWidth() {
   var width = $j('#width').val();
   var height = $j('#height').val();
+  console.log("changeWidth");
 
   selectLayout('Freeform');
   $j('#width').val(width);
@@ -125,6 +107,7 @@ function changeWidth() {
  * called when the scaleControl select element is changed
  */
 function changeScale() {
+  console.log("changeScale");
   var scale = $j('#scale').val();
   selectLayout('Freeform'); // Will also clear width and height
   $j('#scale').val(scale);
@@ -244,6 +227,16 @@ function initPage() {
     monitors[i].setup_onclick(handleClick);
   }
   selectLayout();
+
+  // If you click on the navigation links, shut down streaming so the browser can process it
+  document.querySelectorAll('#main-header-nav a').forEach(function (el) {
+    el.onclick = function() {
+      console.log("Stopping monitors");
+      for (var i = 0, length = monitors.length; i < length; i++) {
+        monitors[i].stop();
+      }
+    };
+  });
 }
 
 function watchFullscreen() {

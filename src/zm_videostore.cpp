@@ -1008,7 +1008,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     // Do this to allow the encoder to choose whether to use I/P/B frame
     //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
     //zm_packet->out_frame->key_frame = zm_packet->keyframe;
-    frame->pkt_duration = 0;
+    //frame->pkt_duration = 0;
+    frame->time_base = video_out_ctx->time_base;
 
     if (!video_first_pts) {
       video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
@@ -1064,8 +1065,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
             zm_packet->in_frame->pkt_duration,
             video_in_stream->time_base,
             video_out_stream->time_base);
-        Debug(1, "duration from ipkt: pts(%" PRId64 ") = pkt_duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
-            zm_packet->in_frame->pts,
+        Debug(1, "duration from ipkt: = pkt_duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
             zm_packet->in_frame->pkt_duration,
             duration,
             video_in_stream->time_base.num,

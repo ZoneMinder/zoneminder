@@ -108,7 +108,7 @@ function changeScale() {
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-  } else {
+  } else if (parseInt(scale) > 0) {
     newWidth = monitorWidth * scale / SCALE_BASE;
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
@@ -117,12 +117,15 @@ function changeScale() {
 
   var streamImg = $j('#liveStream'+monitorId);
   if (streamImg) {
-    var oldSrc = streamImg.attr('src');
-    var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
+    const oldSrc = streamImg.attr('src');
+    const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
 
     streamImg.width(newWidth);
     streamImg.height(newHeight);
-    streamImg.attr('src', newSrc);
+    if (newSrc != oldSrc) {
+      streamCommand(CMD_QUIT);
+      streamImg.attr('src', newSrc);
+    }
   } else {
     console.error('No element found for liveStream'+monitorId);
   }
@@ -178,6 +181,18 @@ function setAlarmState(currentAlarmState) {
 
   lastAlarmState = alarmState;
 } // end function setAlarmState( currentAlarmState )
+
+function streamCommand(command) {
+  var data = {};
+  if (auth_hash) data.auth = auth_hash;
+
+  if (typeof(command) == 'object') {
+    for (const key in command) data[key] = command[key];
+  } else {
+    data.command = command;
+  }
+  streamCmdReq(data);
+}
 
 function getStreamCmdError(text, error) {
   console.log(error);

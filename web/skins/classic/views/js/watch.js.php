@@ -45,6 +45,7 @@ var CMD_PREV = <?php echo CMD_PREV ?>;
 var CMD_NEXT = <?php echo CMD_NEXT ?>;
 var CMD_SEEK = <?php echo CMD_SEEK ?>;
 var CMD_QUERY = <?php echo CMD_QUERY ?>;
+var CMD_QUIT = <?php echo CMD_QUIT ?>;
 
 var SCALE_BASE = <?php echo SCALE_BASE ?>;
 

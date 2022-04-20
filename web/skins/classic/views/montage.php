@@ -68,22 +68,11 @@ zm_session_start();
 $layout_id = '';
 if ( isset($_COOKIE['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
-} elseif ( isset($_SESSION['zmMontageLayout']) ) {
+} else if ( isset($_SESSION['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'];
 }
 
 $options = array();
-$Layout = '';
-$Positions = '';
-if ( $layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id]) ) {
-  $Layout = $layoutsById[$layout_id];
-  $Positions = json_decode($Layout->Positions(), true);
-} else {
-  ZM\Debug('Layout not found');
-}
-if ( $Layout and ( $Layout->Name() != 'Freeform' ) ) {
-  // Use layout instead of other options
-}
 
 if ( isset($_COOKIE['zmMontageWidth']) ) {
   $_SESSION['zmMontageWidth'] = $options['width'] = validInt($_COOKIE['zmMontageWidth']);
@@ -135,6 +124,35 @@ foreach ( $displayMonitors as &$row ) {
   }
   $monitors[] = new ZM\Monitor($row);
 } # end foreach Monitor
+if (!$layout_id) {
+  $default_layout = '';
+  if (!$default_layout) {
+    if ((count($monitors) > 4) and (count($monitors)%4 == 0)) {
+      $default_layout = '4 Wide';
+    } else if (count($monitors)%3 == 0) {
+      $default_layout = '3 Wide';
+    } else {
+      $default_layout = '2 Wide';
+    }
+  }
+  foreach ($layouts as $l) {
+    if ($l->Name() == $default_layout) {
+      $layout_id = $l->Id();
+    }
+  }
+}
+
+$Layout = '';
+$Positions = '';
+if ($layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id])) {
+  $Layout = $layoutsById[$layout_id];
+  $Positions = json_decode($Layout->Positions(), true);
+} else {
+  ZM\Debug('Layout not found');
+}
+if ( $Layout and ( $Layout->Name() != 'Freeform' ) ) {
+  // Use layout instead of other options
+}
 
 xhtmlHeaders(__FILE__, translate('Montage'));
 getBodyTopHTML();

@@ -16,7 +16,7 @@ function selectLayout(new_layout) {
     return;
   }
 
-  let layout = layouts[layout_id];
+  const layout = layouts[layout_id];
   if (!layout) {
     console.log("No layout found for " + layout_id);
     return;
@@ -229,7 +229,7 @@ function initPage() {
   selectLayout();
 
   // If you click on the navigation links, shut down streaming so the browser can process it
-  document.querySelectorAll('#main-header-nav a').forEach(function (el) {
+  document.querySelectorAll('#main-header-nav a').forEach(function(el) {
     el.onclick = function() {
       console.log("Stopping monitors");
       for (var i = 0, length = monitors.length; i < length; i++) {

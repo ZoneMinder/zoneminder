@@ -39,7 +39,7 @@ function MonitorStream(monitorData) {
       console.log(e);
     }
     this.bottomElement = e;
-  }
+  };
 
   this.img_onerror = function() {
     console.log('Failed loading image stream');
@@ -126,10 +126,10 @@ function MonitorStream(monitorData) {
         console.log(img);
         return;
       }
-      let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+      const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
       if (newSrc != oldSrc) {
         this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-        // We know that only the first zms will get the command because the 
+        // We know that only the first zms will get the command because the
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
         this.streamCommand(CMD_QUIT);

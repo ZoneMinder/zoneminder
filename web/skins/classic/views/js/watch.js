@@ -292,7 +292,7 @@ function getStreamCmdResponse(respObj, respText) {
         enableAlmBtn.prop('disabled', false);
       } // end if canEdit.Monitors
 
-      if (streamStatus.auth) {
+      if (streamStatus.auth && (streamStatus.auth != auth_hash)) {
         auth_hash = streamStatus.auth;
         // Try to reload the image stream.
         var streamImg = $j('#liveStream'+monitorId);
@@ -300,6 +300,7 @@ function getStreamCmdResponse(respObj, respText) {
           var oldSrc = streamImg.attr('src');
           var newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
           if (oldSrc != newSrc) {
+            streamCommand(CMD_QUIT);
             streamImg.attr('src', newSrc);
             table.bootstrapTable('refresh');
           }
@@ -312,11 +313,12 @@ function getStreamCmdResponse(respObj, respText) {
     // If it's an auth error, we should reload the whole page.
     console.log("have error");
     //window.location.reload();
-    var streamImg = $j('#liveStream'+monitorId);
+    const streamImg = $j('#liveStream'+monitorId);
     if (streamImg) {
-      var oldSrc = streamImg.attr('src');
-      var newSrc = oldSrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+      const oldSrc = streamImg.attr('src');
+      const newSrc = oldSrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
 
+      streamCommand(CMD_QUIT);
       streamImg.attr('src', newSrc);
       console.log('Changing livestream src to ' + newSrc);
     } else {

@@ -141,7 +141,8 @@ span.alert {
   min-width: 40px;
   text-align: right;
 }
-.monitorStream img {
+.monitorStream img,
+.monitorStream video {
   margin: 0 auto;
   width: 100%;
   height: 100%;

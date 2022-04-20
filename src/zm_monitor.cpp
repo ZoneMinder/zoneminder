@@ -276,7 +276,9 @@ Monitor::Monitor()
   privacy_bitmask(nullptr),
   n_linked_monitors(0),
   linked_monitors(nullptr),
-  Event_Poller_Closes_Event(FALSE),
+  Poll_Trigger_State(false),
+  Event_Poller_Healthy(false),
+  Event_Poller_Closes_Event(false),
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
 #ifdef WITH_GSOAP
@@ -939,10 +941,10 @@ bool Monitor::connect() {
 
     //ONVIF and Amcrest Setup
     //For now, only support one event type per camera, so share some state.
-    Poll_Trigger_State = FALSE;
+    Poll_Trigger_State = false;
     if (onvif_event_listener) { //
       Debug(1, "Starting ONVIF");
-      Event_Poller_Healthy = FALSE;
+      Event_Poller_Healthy = false;
       if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
         Event_Poller_Closes_Event = TRUE;
       }
@@ -1673,7 +1675,7 @@ bool Monitor::Poll() {
       if (result != SOAP_OK) {
         if (result != SOAP_EOF) { //Ignore the timeout error
           Error("Failed to get ONVIF messages! %s", soap_fault_string(soap));
-          Event_Poller_Healthy = FALSE;
+          Event_Poller_Healthy = false;
         }
       } else {
         Debug(1, "Got Good Response! %i", result);
@@ -1697,7 +1699,7 @@ bool Monitor::Poll() {
               }
             } else {
               Debug(1, "Triggered off ONVIF");
-              Poll_Trigger_State = FALSE;
+              Poll_Trigger_State = false;
               if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
                 Event_Poller_Closes_Event = TRUE;
                 Debug(1,"Setting ClosesEvent");
@@ -1777,7 +1779,7 @@ bool Monitor::Analyse() {
           cause += "ONVIF";
           //If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
           if (!Event_Poller_Closes_Event && state == ALARM)
-            Poll_Trigger_State = FALSE;
+            Poll_Trigger_State = false;
         }  // end ONVIF_Trigger
       }  // end if (onvif_event_listener  && Event_Poller_Healthy)
 #endif

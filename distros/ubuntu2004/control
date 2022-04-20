@@ -5,6 +5,7 @@ Maintainer: Isaac Connor <isaac@zoneminder.com>
 Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-apache2
               ,cmake
               ,libavcodec-dev
+              ,libavdevice-dev
               ,libavformat-dev
               ,libavutil-dev
               ,libswresample-dev
@@ -39,6 +40,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
+        ,libavdevice
         ,libswscale5|libswscale4
         ,libswresample3|libswresample2
         ,ffmpeg

@@ -325,7 +325,7 @@ function MonitorStream(monitorData) {
     clearTimeout(this.streamCmdTimer);
     this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), 10*statusRefreshTimeout);
     logAjaxFail(jqxhr, textStatus, error);
-    if (textStatus == 'Unauthorized') {
+    if (error == 'Unauthorized') {
       window.location.reload();
     }
   };
@@ -470,7 +470,7 @@ function MonitorStream(monitorData) {
           if (this.status.auth != this.auth_hash) {
             // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
             console.log("Changed auth from " + this.auth_hash + " to " + this.status.auth);
-            this.auth_hash = this.status.auth;
+            this.streamCmdParms.auth = auth_hash = this.auth_hash = this.status.auth;
           }
         } // end if have a new auth hash
       } // end if has state

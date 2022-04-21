@@ -37,8 +37,7 @@ $rates = array(
 );
 
 $scales = array(
-    'auto' => translate('Scale to Fit'),
-    'fixed' => translate('Fixed Width/Height'),
+    '0' => translate('Auto'),
     '400' => '4x',
     '300' => '3x',
     '200' => '2x',

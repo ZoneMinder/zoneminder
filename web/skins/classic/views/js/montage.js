@@ -53,10 +53,10 @@ function selectLayout(new_layout) {
   setCookie('zmMontageLayout', layout_id, 3600);
   if (layouts[layout_id].Name != 'Freeform') { // 'montage_freeform.css' ) {
     // For freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
-    setCookie('zmMontageScale', 'fixed', 3600);
+    setCookie('zmMontageScale', '0', 3600);
     setCookie('zmMontageWidth', 'auto', 3600);
     //setCookie('zmMontageHeight', 'auto', 3600);
-    $j('#scale').val('fixed');
+    $j('#scale').val('0');
     $j('#width').val('auto');
     //$j('#height').val('auto');
   }
@@ -95,10 +95,10 @@ function changeWidth() {
 
   for (var i = 0, length = monitors.length; i < length; i++) {
     var monitor = monitors[i];
-    monitor.setScale('fixed', width, height);
+    monitor.setScale('0', width, height);
   }
-  $j('#scale').val('fixed');
-  setCookie('zmMontageScale', 'fixed', 3600);
+  $j('#scale').val('0');
+  setCookie('zmMontageScale', '0', 3600);
   setCookie('zmMontageWidth', width, 3600);
   setCookie('zmMontageHeight', height, 3600);
 } // end function changeSize()
@@ -107,7 +107,6 @@ function changeWidth() {
  * called when the scaleControl select element is changed
  */
 function changeScale() {
-  console.log("changeScale");
   var scale = $j('#scale').val();
   selectLayout('Freeform'); // Will also clear width and height
   $j('#scale').val(scale);

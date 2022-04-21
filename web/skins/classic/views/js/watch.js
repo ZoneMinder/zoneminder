@@ -102,15 +102,9 @@ function changeSize() {
   var width = $j('#width').val();
   var height = $j('#height').val();
 
-  if ((width == 'auto') && (height=='auto')) {
-    monitorStream.setScale('auto', width, height);
-    $j('#scale').val('auto');
-    setCookie('zmWatchScale', 'auto', 3600);
-  } else {
-    monitorStream.setScale('fixed', width, height);
-    $j('#scale').val('fixed');
-    setCookie('zmWatchScale', 'fixed', 3600);
-  }
+  monitorStream.setScale('0', width, height);
+  $j('#scale').val('0');
+  setCookie('zmWatchScale', '0', 3600);
   setCookie('zmWatchWidth', width, 3600);
   setCookie('zmWatchHeight', height, 3600);
 } // end function changeSize()
@@ -133,7 +127,7 @@ function setScale() {
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-  if (scale == '0' || scale == 'auto') {
+  if (scale == '0') {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   }
   return;

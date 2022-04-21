@@ -1009,7 +1009,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
     //zm_packet->out_frame->key_frame = zm_packet->keyframe;
     //frame->pkt_duration = 0;
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
     frame->time_base = video_out_ctx->time_base;
+#endif
 
     if (!video_first_pts) {
       video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());

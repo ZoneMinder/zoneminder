@@ -42,7 +42,7 @@ function selectLayout(element) {
     if (layouts[layout_id].Name != 'Freeform') { // 'montage_freeform.css' ) {
       // For freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
       setCookie('zmMontageScale', '', 3600);
-      $j('#scale').val('');
+      $j('#scale').val('0');
       $j('#width').val('0');
     }
   } // end if a stored layout
@@ -58,12 +58,12 @@ function selectLayout(element) {
     var monitor = monitors[i];
 
     var stream_scale = 0;
-    if (scale) {
+    if (parseInt(scale) > 0) {
       stream_scale = scale;
     } else if (width) {
-      stream_scale = parseInt(100*width/monitor.width);
+      stream_scale = parseInt(100*parseInt(width)/monitor.width);
     } else if (height) {
-      stream_scale = parseInt(100*height/monitor.height);
+      stream_scale = parseInt(100*parseInt(height)/monitor.height);
     } else if (layouts[layout_id].Name != 'Freeform') {
       monitor_frame = $j('#monitorFrame'+monitor.id);
       console.log("Monitor frame width : " + monitor_frame.width() + " monitor Width: " + monitor.width);
@@ -87,7 +87,6 @@ function setStreamScale(element_id, scale, width, height) {
         streamImg.style.height = 'auto';
       }
       if (src != streamImg.src) {
-        streamImg.src = '';
         streamImg.src = src;
       }
     } else if (streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT') {
@@ -115,32 +114,17 @@ function changeSize() {
     }
     monitor_frame.css('width', ( width ? width+'px' : 'auto'));
     monitor_frame.css('height', ( height ? height+'px' : 'auto'));
-
-    /*Stream could be an applet so can't use moo tools*/
-    var streamImg = document.getElementById('liveStream'+monitor.id);
-    if ( streamImg ) {
-      if ( streamImg.nodeName == 'IMG' ) {
-        var src = streamImg.src;
-        streamImg.src = '';
-        var scale = 100;
-        if ( width ) {
-          scale = parseInt(100*width/monitor.width);
-        } else if ( height ) {
-          scale = parseInt(100*height/monitor.height);
-        }
-        // Note zms ignores width and height
-        src = src.replace(/scale=\d*/i, 'scale='+scale);
-
-        src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-        streamImg.src = src;
-      }
-      streamImg.style.width = width ? width+'px' : null;
-      streamImg.style.height = height ? height+'px' : null;
-      //streamImg.style.height = '';
+    var scale = 100;
+    if ( width ) {
+      scale = parseInt(100*width/monitor.width);
+    } else if ( height ) {
+      scale = parseInt(100*height/monitor.height);
     }
-  }
-  $j('#scale').val('');
-  setCookie('zmMontageScale', '', 3600);
+
+    setStreamScale('liveStream'+monitor.id, scale, width, height);
+  } // end foreach monitor
+  $j('#scale').val('0');
+  setCookie('zmMontageScale', '0', 3600);
   setCookie('zmMontageWidth', width, 3600);
   setCookie('zmMontageHeight', height, 3600);
   $j("#zmMontageLayout option:selected").removeAttr("selected");

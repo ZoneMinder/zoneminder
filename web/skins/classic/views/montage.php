@@ -93,7 +93,6 @@ if (isset($_REQUEST['zmMontageHeight'])) {
 } else {
   $options['height'] = 0;
 }
-ZM\Debug("Height: ".$options['height']);
 
 $scale = '100';   # actual
 if (isset($_REQUEST['scale'])) {
@@ -135,10 +134,11 @@ foreach ($displayMonitors as &$row) {
 } # end foreach Monitor
 
 if (!$layout_id) {
+  $default_layout = '';
   if (!$default_layout) {
-    if ((count($monitors) > 4) and (count($monitors) %4 == 0)) {
+    if ((count($monitors) > 4) and (count($monitors)%4 == 0)) {
       $default_layout = '4 Wide';
-    } else if (count($monitors) %3 ==0) {
+    } else if (count($monitors)%3 == 0) {
       $default_layout = '3 Wide';
     } else {
       $default_layout = '2 Wide';

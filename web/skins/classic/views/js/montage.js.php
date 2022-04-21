@@ -15,6 +15,7 @@ stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
 stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 var CMD_QUERY = <?php echo CMD_QUERY ?>;
+var CMD_QUIT = <?php echo CMD_QUIT ?>;
 
 var SCALE_BASE = <?php echo SCALE_BASE ?>;
 

@@ -51,6 +51,7 @@
 }
 
 #monitors .imageFeed img,
+#monitors .imageFeed video,
 #monitors .imageFeed svg {
   border: 2px solid #ffffff;
   margin: 0;

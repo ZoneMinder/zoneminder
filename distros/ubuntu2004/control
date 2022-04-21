@@ -40,7 +40,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
-        ,libavdevice
+        ,libavdevice58
         ,libswscale5|libswscale4
         ,libswresample3|libswresample2
         ,ffmpeg

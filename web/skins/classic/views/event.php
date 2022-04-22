@@ -58,6 +58,9 @@ if (isset($_REQUEST['scale'])) {
 } else {
   $scale = $monitor->DefaultScale();
 }
+if (!validInt($scale) and $scale != '0') {
+  $scale = '0';
+}
 
 $showZones = false;
 if (isset($_REQUEST['showZones'])) {

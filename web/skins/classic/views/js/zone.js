@@ -324,27 +324,27 @@ function constrainValue(value, loVal, hiVal) {
 }
 
 function updateActivePoint(index) {
-  var point = $j('#point'+index);
-  var imageFrame = document.getElementById('imageFrame');
-  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
-  var padding_left = parseInt(style.paddingLeft);
-  var padding_top = parseInt(style.paddingTop);
-  var padding_right = parseInt(style.paddingRight);
-  var scale = (imageFrame.clientWidth - ( padding_top + padding_right )) / maxX;
-  var left = parseInt(point.css('left'), 10);
+  const point = $j('#point'+index);
+  const imageFrame = document.getElementById('imageFrame');
+  const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  const padding_left = parseInt(style.paddingLeft);
+  const padding_top = parseInt(style.paddingTop);
+  const padding_right = parseInt(style.paddingRight);
+  const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
-  if ( left < padding_left ) {
+  let point_left = parseInt(point.css('left'), 10);
+  if ( point_left < padding_left ) {
     point.css('left', style.paddingLeft);
-    left = parseInt(padding_left);
+    point_left = parseInt(padding_left);
   }
-  var top = parseInt(point.css('top'));
-  if ( top < padding_top ) {
+  let point_top = parseInt(point.css('top'));
+  if ( point_top < padding_top ) {
     point.css('top', style.paddingTop);
-    top = parseInt(padding_top);
+    point_top = parseInt(padding_top);
   }
 
-  var x = constrainValue(Math.ceil(left / scale)-Math.ceil(padding_left/scale), 0, maxX);
-  var y = constrainValue(Math.ceil(top / scale)-Math.ceil(padding_top/scale), 0, maxY);
+  var x = constrainValue(Math.ceil(point_left / scale)-Math.ceil(padding_left/scale), 0, maxX);
+  var y = constrainValue(Math.ceil(point_top / scale)-Math.ceil(padding_top/scale), 0, maxY);
 
   zone['Points'][index].x = document.getElementById('newZone[Points]['+index+'][x]').value = x;
   zone['Points'][index].y = document.getElementById('newZone[Points]['+index+'][y]').value = y;
@@ -393,6 +393,7 @@ function updateArea( ) {
   }
 }
 
+/* Updates the drawn point based on input from the coordinates text inputs */
 function updateX(input) {
   index = input.getAttribute('data-point-index');
 
@@ -400,22 +401,25 @@ function updateX(input) {
 
   var point = $j('#point'+index);
   var x = input.value;
+  const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
-  point.css('left', x+'px');
+  point.css('left', parseInt(x*scale)+'px');
   zone['Points'][index].x = x;
   var Point = document.getElementById('zonePoly').points.getItem(index);
   Point.x = x;
   updateArea();
 }
 
+/* Updates the drawn point based on input from the coordinates text inputs */
 function updateY(input) {
   index = input.getAttribute('data-point-index');
   limitPointValue(input, 0, maxY);
 
   var point = $j('#point'+index);
   var y = input.value;
+  const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
-  point.css('top', y+'px');
+  point.css('top', parseInt(y*scale)+'px');
   zone['Points'][index].y = y;
   var Point = document.getElementById('zonePoly').points.getItem(index);
   Point.y = y;
@@ -537,7 +541,7 @@ function drawZonePoints() {
   } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();
-}
+} // end drawZonePoints()
 
 function streamCmdPause() {
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
@@ -661,7 +665,6 @@ function initPage() {
 
   if ( el = analyseBtn[0] ) {
     el.onclick = function() {
-      console.log(analyse_frames);
       analyse_frames = !analyse_frames;
       if (analyse_frames) {
         analyseBtn.addClass('btn-primary');
@@ -685,7 +688,7 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    monitors[i].setScale('auto');
+    monitors[i].setStreamScale();
     monitors[i].show_analyse_frames(analyse_frames);
     monitors[i].start(delay);
   }

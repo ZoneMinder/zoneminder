@@ -17,10 +17,4 @@ monitorData[monitorData.length] = {
   }
 ?>
 
-var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
-var CMD_PLAY = <?php echo CMD_PLAY ?>;
-var CMD_STOP = <?php echo CMD_STOP ?>;
-var CMD_QUERY = <?php echo CMD_QUERY ?>;
-var CMD_QUIT = <?php echo CMD_QUIT ?>;
-
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;

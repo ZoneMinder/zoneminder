@@ -2,10 +2,6 @@
 // Import constants
 //
 
-const CMD_QUERY = <?php echo CMD_QUERY ?>;
-const CMD_STOP = <?php echo CMD_STOP ?>;
-const CMD_QUIT = <?php echo CMD_QUIT ?>;
-
 const COMPACT_MONTAGE = <?php echo ZM_WEB_COMPACT_MONTAGE ?>;
 const SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
 const POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;

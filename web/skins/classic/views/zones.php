@@ -72,26 +72,12 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       $zones[] = $row;
     }
 
-    $options = array('width'=>'100%', 'height'=>'auto');
+    $options = array('width'=>'100%', 'height'=>'auto', 'zones'=>true, 'state'=>true);
 ?>
     <div class="Monitor">
         <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
         <div class="ZonesImage">
           <?php echo getStreamHTML($monitor, $options); ?>
-          <svg class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
-<?php
-    foreach (array_reverse($zones) as $zone) {
-?>
-            <polygon points="<?php echo $zone['AreaCoords'] ?>"
-                     class="zmlink <?php echo $zone['Type']?>"
-                     data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
-            />
-<?php
-    } // end foreach zone
-?>
-          Sorry, your browser does not support inline SVG
-        </svg>
-<?php echo $monitor->getMonitorStateHTML(); ?>
         </div>
         <div class="zones">
           <table id="zonesTable" class="major">

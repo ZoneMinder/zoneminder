@@ -109,7 +109,6 @@ $selfIntersecting = isSelfIntersecting($newZone['Points']);
 $focusWindow = true;
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
 $monitor->connKey();
-$StreamHTML = getStreamHTML($monitor, array('mode'=>'single'));
 
 # So I'm thinking now that 50% of screen real-estate with a minimum of 640px. 
 # scale should be floor(whatever that width is/actual width)
@@ -144,7 +143,9 @@ xhtmlHeaders(__FILE__, translate('Zone'));
         <div id="definitionPanel">
 				  <div id="imagePanel">
             <div id="imageFrame">
-              <?php echo $StreamHTML; ?>
+              <?php echo 
+$monitor->getStreamHTML(array('mode'=>'single', 'zones'=>false, 'state'=>true));
+?>
               <svg id="zoneSVG" class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
 <?php
 if ( $zone['Id'] ) {
@@ -165,7 +166,6 @@ if ( count($other_zones) ) {
                 Sorry, your browser does not support inline SVG
               </svg>
             </div><?php # imageFrame
-              echo $monitor->getMonitorStateHTML();
 ?>
 
             <div id="StreamControlButtons">

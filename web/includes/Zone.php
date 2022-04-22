@@ -59,8 +59,7 @@ class Zone extends ZM_Object {
   }
 
   public function svg_polygon() {
-    return '<polygon points="'.$this->AreaCoords().'" class="'.$this->Type().'" />';
+    return '<polygon points="'.$this->AreaCoords().'" class="'.$this->Type().'" data-mid="'.$this->MonitorId().'" data-zid="'.$this->Id().'"/>';
   }
-
 } # end class Zone
 ?>

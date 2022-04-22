@@ -280,9 +280,11 @@ int FfmpegCamera::OpenFfmpeg() {
 #else
   // Handle options
   AVDictionary *opts = nullptr;
-  ret = av_dict_parse_string(&opts, Options().c_str(), "=", ",", 0);
-  if ( ret < 0 ) {
-    Warning("Could not parse ffmpeg input options '%s'", Options().c_str());
+  if (!mOptions.empty()) {
+    ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+    if (ret < 0) {
+      Warning("Could not parse ffmpeg input options '%s'", mOptions.c_str());
+    }
   }
 
   // Set transport method as specified by method field, rtpUni is default

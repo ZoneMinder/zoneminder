@@ -193,7 +193,7 @@ function changeScale() {
   var alarmCue = $j('div.alarmCue');
   var bottomEl = $j('#replayStatus');
 
-  if ( scale == '0' || scale == 'auto' ) {
+  if (scale == '0') {
     var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
@@ -205,7 +205,7 @@ function changeScale() {
   }
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
-  if ( !vid ) { // zms needs extra sizing
+  if (!vid) { // zms needs extra sizing
     streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();
   }
@@ -938,7 +938,7 @@ function initPage() {
   } // end if videojs or mjpeg stream
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
-  if (scale == '0' || scale == 'auto') changeScale();
+  if (scale == '0') changeScale();
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
     el.onchange = window['changeRate'];
   });

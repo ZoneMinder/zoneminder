@@ -1,4 +1,4 @@
-.monitor, #settingsPanel, .buttons, #zonePoints  {
+#settingsPanel, .buttons, #zonePoints  {
   float: left;
   margin: 2px;
 }
@@ -59,6 +59,9 @@
     position: relative;
     padding: 3px 4px 4px 3px;
 }
+#imageFrame .monitor {
+  width: 100%;
+}
 #imageFrame svg {
   box-sizing: border-box;
  position:absolute;
@@ -76,7 +79,7 @@
   padding: 1px;
 }
 
-#imageFrame div {
+#imageFrame div.zonePoint {
     position: absolute;
     width: 7px;
     height: 7px;
@@ -85,15 +88,15 @@
     z-index: 5;
 }
 
-#imageFrame div {
+#imageFrame div.zonePoint {
     background-image: url(../skins/classic/graphics/point-g.png);
 }
 
-#imageFrame div.highlight {
+#imageFrame div.zonePoint.highlight {
     background-image: url(../skins/classic/graphics/point-o.png);
 }
 
-#imageFrame div.active {
+#imageFrame div.zonePoint.active {
     background-image: url(../skins/classic/graphics/point-r.png);
 }
 

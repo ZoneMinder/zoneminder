@@ -169,7 +169,7 @@ function validateForm( form ) {
     return false;
   }
 
-  if ( (form.elements['newMonitor[Recording]'].value == 'None') ) {
+  if ( (form.elements['newMonitor[Recording]'].value != 'None') ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";
     }

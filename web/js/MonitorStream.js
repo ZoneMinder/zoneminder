@@ -88,7 +88,7 @@ function MonitorStream(monitorData) {
     }
     stream_frame = $j('#monitor'+this.id);
 
-    if ((newscale == '0') || (newscale == 'auto') || (width=='auto' && height=='auto' && newscale=='fixed')) {
+    if ((newscale == '0') || (width=='auto' && height=='auto' && newscale=='')) {
       if (!this.bottomElement) {
         console.log("No bottom element set. Setting to monitorStatus");
         this.bottomElement = document.getElementById('monitorStatus'+this.id);
@@ -101,19 +101,19 @@ function MonitorStream(monitorData) {
       height = newSize.height;
       newscale = parseInt(newSize.autoScale);
       console.log("auto scale " + newscale);
-    } else if (newscale == 'fixed' || newscale == '') {
+    } else if (parseInt(width) || parseInt(height)) {
       if (width) {
         newscale = parseInt(100*parseInt(width)/this.width);
+        if (!parseInt(height)) height = parseInt(this.height * newscale / 100);
       } else if (height) {
         newscale = parseInt(100*parseInt(height)/this.height);
-      } else { // unspecified
-        newscale = parseInt(100*$j(img).width()/this.width);
-        console.log("New scale from size: " + newscale);
+        width = parseInt(this.width * newscale / 100);
       }
+      console.log("New scale from size: " + newscale);
     } else {
       // a numeric scale, must take actual monitor dimensions and calculate
-      width = parseInt(this.width * newscale / 100);
-      height = parseInt(this.height * newscale / 100);
+      width = Math.round(parseInt(this.width) * newscale / 100);
+      height = Math.round(parseInt(this.height) * newscale / 100);
       console.log("Setting to " + width + "x" + height + " from " + newscale);
     }
 
@@ -129,15 +129,17 @@ function MonitorStream(monitorData) {
       const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
       if (newSrc != oldSrc) {
         this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+        this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
         // We know that only the first zms will get the command because the
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
         this.streamCommand(CMD_QUIT);
+        this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
         img.src = newSrc;
       }
     }
 
-    monitor_frame.css('width', parseInt(width) ? width : 'auto');
+    monitor_frame.css('width', parseInt(width) ? parseInt(width)+'px' : 'auto');
     // monitor_frame never has fixed height
     //stream_frame.css('width', parseInt(width) ? width : 'auto');
     //stream_frame.css('height', parseInt(height) ? height : 'auto');

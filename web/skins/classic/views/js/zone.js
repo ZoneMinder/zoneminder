@@ -401,6 +401,10 @@ function updateX(input) {
 
   var point = $j('#point'+index);
   var x = input.value;
+  const imageFrame = document.getElementById('imageFrame');
+  const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  const padding_left = parseInt(style.paddingLeft);
+  const padding_right = parseInt(style.paddingRight);
   const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
   point.css('left', parseInt(x*scale)+'px');
@@ -417,6 +421,10 @@ function updateY(input) {
 
   var point = $j('#point'+index);
   var y = input.value;
+  const imageFrame = document.getElementById('imageFrame');
+  const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  const padding_left = parseInt(style.paddingLeft);
+  const padding_right = parseInt(style.paddingRight);
   const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
   point.css('top', parseInt(y*scale)+'px');

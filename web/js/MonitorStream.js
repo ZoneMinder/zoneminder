@@ -88,7 +88,7 @@ function MonitorStream(monitorData) {
     }
     stream_frame = $j('#monitor'+this.id);
 
-    if ((newscale == '0') || (width=='auto' && height=='auto' && newscale=='')) {
+    if ((newscale == '0') || (newscale=='auto') || (width=='auto' && height=='auto' && newscale=='')) {
       if (!this.bottomElement) {
         console.log("No bottom element set. Setting to monitorStatus");
         this.bottomElement = document.getElementById('monitorStatus'+this.id);
@@ -116,7 +116,21 @@ function MonitorStream(monitorData) {
       height = Math.round(parseInt(this.height) * newscale / 100);
       console.log("Setting to " + width + "x" + height + " from " + newscale);
     }
+    monitor_frame.css('width', parseInt(width) ? parseInt(width)+'px' : 'auto');
+    this.setStreamScale(newscale);
+  }; // setscale
 
+  this.setStreamScale = function(newscale) {
+    const img = this.getElement();
+    if (!img) {
+      console.log("No img in setScale");
+      return;
+    }
+    const stream_frame = $j('#monitor'+this.id);
+    if (!newscale) {
+      newscale = parseInt(100*parseInt(stream_frame.width())/this.width);
+      console.log(newscale + " = " + this.width + " / " + stream_frame.width());
+    }
     if (img.nodeName == 'IMG') {
       if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
       if (newscale < 0) newscale = 100;
@@ -138,11 +152,6 @@ function MonitorStream(monitorData) {
         img.src = newSrc;
       }
     }
-
-    monitor_frame.css('width', parseInt(width) ? parseInt(width)+'px' : 'auto');
-    // monitor_frame never has fixed height
-    //stream_frame.css('width', parseInt(width) ? width : 'auto');
-    //stream_frame.css('height', parseInt(height) ? height : 'auto');
   }; // setscale
 
   this.start = function(delay) {

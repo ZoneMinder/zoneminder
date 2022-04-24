@@ -12,7 +12,7 @@ ubuntu_deb:
   script:
     - DEBIAN_FRONTEND=noninteractive TZ=America/Chicago apt-get -y install tzdata
     - yes "" | ./utils/do_debian_package.sh --snapshot=stable --type=binary --interactive=no --dput=no --debbuild-extra=--no-sign || true
-  timeout: 2h
+  timeout: 3h
   artifacts:
     paths:
       - '*.deb'
@@ -26,7 +26,7 @@ debian_deb:
     name: debian:latest
   script:
     - yes "" | ./utils/do_debian_package.sh --snapshot=stable --type=binary --interactive=no --dput=no --debbuild-extra=--no-sign || true
-  timeout: 2h
+  timeout: 3h
   artifacts:
     paths:
       - '*.deb'

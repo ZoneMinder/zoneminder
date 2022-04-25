@@ -48,9 +48,9 @@ Switch into root user and create database and database user
     sudo su
     mariadb
     CREATE DATABASE zm;
-    CREATE user
-    grant permission
-    flush privilege
+    CREATE USER zmuser@localhost IDENTIFIED BY 'zmpass';
+    GRANT ALL ON zm.* TO zmuser@localhost;
+    FLUSH PRIVILEGES;
     exit;
     exit
 
@@ -68,7 +68,7 @@ Run the following commands.
 
 :: 
 
-    mariadb -u zmuser -p < /usr/share/zoneminder/db/zm_create.sql
+    mariadb -u zmuser -pzmpass < /usr/share/zoneminder/db/zm_create.sql
 
 **Step 6:** Setup permissions for zm.conf
 
@@ -83,6 +83,7 @@ To make sure zoneminder can read the configuration file, run the following comma
 ::
 
     sudo a2enconf zoneminder
+    sudo systemctl reload apache2.service
     sudo systemctl reload zoneminder.service
     sudo systemctl restart zoneminder.service
     sudo systemctl status zoneminder.service

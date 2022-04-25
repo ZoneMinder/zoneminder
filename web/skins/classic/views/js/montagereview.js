@@ -202,7 +202,7 @@ function imagedone( obj, monId, success ) {
     if ( liveMode ) {
       writeText( monId, "Camera Offline" );
     } else {
-      writeText( monId, "No Data" );
+      writeText( monId, "No event" );
     }
   } else {
     if ( monitorLoadingStageURL[monId] == "" ) {
@@ -224,7 +224,7 @@ function loadNoData( monId ) {
     canvasCtx.fillStyle="white";
     canvasCtx.fillRect(0, 0, canvasObj.width, canvasObj.height);
     var textSize=canvasObj.width * 0.15;
-    var text="No Data";
+    var text="No Event";
     canvasCtx.font = "600 " + textSize.toString() + "px Arial";
     canvasCtx.fillStyle="black";
     var textWidth = canvasCtx.measureText(text).width;
@@ -258,7 +258,7 @@ function loadImage2Monitor( monId, url ) {
   } else {
     if ( monitorImageObject[monId].src == url ) return; // do nothing if it's the same
     if ( url == 'no data' ) {
-      writeText(monId, 'No Data');
+      writeText(monId, 'No Event');
     } else {
       //writeText(monId, 'Loading...');
       monitorLoading[monId] = true;

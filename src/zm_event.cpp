@@ -721,6 +721,9 @@ void Event::Run() {
         save_jpegs |= 1; // Turn on jpeg storage
         zmDbDo(stringtf("UPDATE Events SET SaveJpegs=%d WHERE Id=%" PRIu64, save_jpegs, id).c_str());
       }
+    } else {
+      std::string sql = stringtf("UPDATE Events SET Videoed=1, DefaultVideo = '%s' WHERE Id=%" PRIu64, video_name.c_str(), id);
+      zmDbDo(sql.c_str());
     }
   }  // end if GetOptVideoWriter
   if (storage != monitor->getStorage())

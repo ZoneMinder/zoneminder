@@ -68,7 +68,7 @@ Run the following commands.
 
 :: 
 
-    mariadb -u zmuser -p < /usr/share/zoneminder/db/zm_create.sql
+    mariadb -u zmuser -pzmpass < /usr/share/zoneminder/db/zm_create.sql
 
 **Step 6:** Setup permissions for zm.conf
 

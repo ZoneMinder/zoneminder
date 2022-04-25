@@ -30,11 +30,11 @@ Monitor::JanusManager::JanusManager(Monitor *parent_) { //constructor takes care
   if (janus_endpoint.back() == '/') janus_endpoint.pop_back(); //remove the trailing slash if present
   std::size_t at_pos = parent->path.find("@", 7);
   if (at_pos != std::string::npos) { //If we find an @ symbol, we have a username/password. Otherwise, passwordless login.
-    std::size_t colon_pos = parent->path.find(":", 7); //Search for the colon, but only after the RTSP:// text.
+    std::size_t colon_pos = parent->path.find(":", 7); //Search for the colon, but only after the rtsp:// text.
     if (colon_pos == std::string::npos) throw std::runtime_error("Cannot Parse URL for Janus."); //Looks like an invalid url
     rtsp_username = parent->path.substr(7, colon_pos-7);
     rtsp_password = parent->path.substr(colon_pos+1, at_pos - colon_pos - 1);
-    rtsp_path = "RTSP://";
+    rtsp_path = "rtsp://";
     rtsp_path += parent->path.substr(at_pos + 1);
   } else {
     rtsp_username = "";

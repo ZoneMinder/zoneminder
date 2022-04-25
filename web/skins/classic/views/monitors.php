@@ -84,7 +84,7 @@ The following monitors will have these settings update when you click Save:<br/>
         </p>
         <p>
           <label for="newMonitor[Enabled]"><?php echo translate('Enabled') ?></label>
-          <input type="checkbox" name="newMonitor[Enabled]" id="newMonitor[Enabled]" value="1"<?php if ( !empty($monitors[0]->Enabled()) ) { ?> checked="checked"<?php } ?>/>
+          <input type="checkbox" name="newMonitor[Enabled]" id="newMonitor[Enabled]" value="1"<?php echo $monitors[0]->Enabled() ? ' checked="checked"' : '' ?>/>
         </p>
         <div id="contentButtons">
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>

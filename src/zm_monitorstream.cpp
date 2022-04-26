@@ -388,7 +388,7 @@ bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
   if ( type == STREAM_MPEG ) {
     if ( !vid_stream ) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
-      fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
+      fprintf(stdout, "Content-Type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
     static struct timeval base_time;
@@ -479,24 +479,6 @@ void MonitorStream::runStream() {
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
-  /* This is all about waiting and showing a useful message if the monitor isn't available */
-  while (!zm_terminate) {
-    if (connkey)
-      checkCommandQueue();
-
-    if (!checkInitialised()) {
-      if (!loadMonitor(monitor_id)) {
-        if (!sendTextFrame("Not connected")) return;
-      } else {
-        if (!sendTextFrame("Unable to stream")) return;
-      }
-      sleep(1);
-    } else {
-      break;
-    }
-  }
-  if (zm_terminate) return;
-
   updateFrameRate(monitor->GetFPS());
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
@@ -562,14 +544,12 @@ void MonitorStream::runStream() {
   } // end if connkey && playback_buffer
 
   while (!zm_terminate) {
+    Debug(1, "!zm_terminate");
     if (feof(stdout)) {
       Debug(2, "feof stdout");
       break;
     } else if (ferror(stdout)) {
       Debug(2, "ferror stdout");
-      break;
-    } else if (!monitor->ShmValid()) {
-      Debug(2, "monitor not valid.... maybe we should wait until it comes back.");
       break;
     }
 
@@ -589,6 +569,25 @@ void MonitorStream::runStream() {
         last_comm_update = now;
       }
     }  // end if connkey
+    if (!checkInitialised()) {
+      Debug(1, "Not initialised");
+      if (!loadMonitor(monitor_id)) {
+        if (!sendTextFrame("Not connected")) {
+          Debug(1, "Failed Send not connected");
+          continue;
+        }
+      } else {
+        if (!sendTextFrame("Unable to stream")) {
+          Debug(1, "Failed Send unable to stream");
+          return;
+        }
+      }
+      Debug(1, "Sleeping 1sec");
+      usleep(MonitorStream::MAX_SLEEP_USEC);
+      Debug(1, "Done Sleeping 1sec");
+      continue;
+    }
+    Debug(1, "Init");
 
     if (paused) {
       if (!was_paused) {
@@ -849,6 +848,8 @@ void MonitorStream::runStream() {
       }
     } // end if checking for swap_path
   } // end if buffered_playback
+  if (zm_terminate)
+    Debug(1, "zm_terminate");
 
   closeComms();
 } // end MonitorStream::runStream

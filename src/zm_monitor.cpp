@@ -1751,7 +1751,7 @@ bool Monitor::Analyse() {
   // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
   if (snap->score != -1) {
     Error("skipping because score was %d at index %d", snap->score, snap->image_index);
-    packetqueue.unlock(packet_lock);
+    delete packet_lock;
     packetqueue.increment_it(analysis_it);
     return false;
   }
@@ -2714,8 +2714,8 @@ Event * Monitor::openEvent(
 
   // This gets a lock on the starting packet
 
+  std::shared_ptr<ZMPacket> starting_packet;
   ZMLockedPacket *starting_packet_lock = nullptr;
-  std::shared_ptr<ZMPacket> starting_packet = nullptr;
   if (*start_it != *analysis_it) {
     starting_packet_lock = packetqueue.get_packet(start_it);
     if (!starting_packet_lock) {
@@ -2733,18 +2733,13 @@ Event * Monitor::openEvent(
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
 
   // Write out starting packets, do not modify packetqueue it will garbage collect itself
-  while (starting_packet and ((*start_it) != *analysis_it)) {
+  while (starting_packet_lock && (*start_it != *analysis_it) && !zm_terminate) {
     event->AddPacket(starting_packet_lock);
-    // Have added the packet, don't want to unlock it until we have locked the next
 
     packetqueue.increment_it(start_it);
-    if ((*start_it) == *analysis_it) {
-      break;
+    if ((*start_it) != *analysis_it) {
+      starting_packet_lock = packetqueue.get_packet(start_it);
     }
-    ZMLockedPacket *lp = packetqueue.get_packet(start_it);
-    if (!lp) return nullptr; // only on terminate FIXME
-    starting_packet_lock = lp;
-    starting_packet = lp->packet_;
   }
   packetqueue.free_it(start_it);
   delete start_it;
@@ -3073,7 +3068,6 @@ int Monitor::Close() {
   if (analysis_thread) {
     analysis_thread->Stop();
   }
-  packetqueue.clear();
   if (audio_fifo) {
     delete audio_fifo;
     audio_fifo = nullptr;
@@ -3092,6 +3086,7 @@ int Monitor::Close() {
     closeEvent();
     close_event_thread.join();
   }
+  packetqueue.clear();
   if (camera) camera->Close();
   return 1;
 }

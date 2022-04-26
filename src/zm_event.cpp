@@ -735,6 +735,7 @@ void Event::Run() {
   // We only break if the queue is empty
   while (true) {
     if (!packet_queue.empty()) {
+      // Packets on this queue are locked. They are locked by analysis thread
       const ZMLockedPacket * packet_lock = packet_queue.front();
       this->AddPacket_(packet_lock->packet_);
       delete packet_lock;

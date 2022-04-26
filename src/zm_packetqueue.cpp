@@ -123,7 +123,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           // Start at second packet because the first is always a keyframe
           auto it = ++pktQueue.begin();
           //it != pktQueue.end() and  // can't git end because we added our packet
-          *it != add_packet;
+          (*it != add_packet) && !(deleting or zm_terminate);
           // iterator is incremented by erase
       ) {
         std::shared_ptr <ZMPacket>zm_packet = *it;
@@ -339,17 +339,17 @@ void PacketQueue::clear() {
     // Someone might have this packet, but not for very long and since we have locked the queue they won't be able to get another one
     ZMLockedPacket *lp = new ZMLockedPacket(packet);
     lp->lock();
-      Debug(1,
-            "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
-            packet->packet.stream_index,
-            packet->image_index,
-            packet->keyframe,
-            packet_counts[video_stream_id],
-            pre_event_video_packet_count,
-            pktQueue.size());
+    Debug(1,
+        "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
+        packet->packet.stream_index,
+        packet->image_index,
+        packet->keyframe,
+        packet_counts[video_stream_id],
+        pre_event_video_packet_count,
+        pktQueue.size());
+    packet_counts[packet->packet.stream_index] -= 1;
     pktQueue.pop_front();
     delete lp;
-    //delete packet;
   }
   Debug(1, "Packetqueue is clear, deleting iterators");
 

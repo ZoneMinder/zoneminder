@@ -275,9 +275,11 @@ int main(int argc, const char *argv[], char **envp) {
     if ( !stream.setStreamStart(monitor_id) ) {
       fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
       stream.sendTextFrame("Unable to connect to monitor");
+#if 0
       logTerm();
       zmDbClose();
       return -1;
+#endif
     }
     stream.setStreamFrameType(analysis_frames ? StreamBase::FRAME_ANALYSIS: StreamBase::FRAME_NORMAL);
 

@@ -40,7 +40,7 @@ ZMPacket::ZMPacket() :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(0)
+  decoded(false)
 {
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.
@@ -60,7 +60,7 @@ ZMPacket::ZMPacket(Image *i, const timeval &tv) :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(0)
+  decoded(false)
 {
   av_init_packet(&packet);
   packet.size = 0; // So we can detect whether it has been filled.
@@ -80,7 +80,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   image_index(-1),
   codec_imgsize(0),
   pts(0),
-  decoded(0)
+  decoded(false)
 {
   av_init_packet(&packet);
   packet.size = 0;

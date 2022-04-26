@@ -1661,19 +1661,19 @@ void Monitor::UpdateFPS() {
     // Also only do the update at most 1/sec
     if ( elapsed > 1.0 ) {
       // # of images per interval / the amount of time it took
-      double new_capture_fps = (image_count - last_capture_image_count) / elapsed.count();
+      double new_capture_fps = (image_count - last_capture_image_count) / elapsed;
       uint32 new_camera_bytes = camera->Bytes();
       uint32 new_capture_bandwidth =
-          static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
-      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
+          static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed);
+      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed;
 
       Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
             image_count,
             last_capture_image_count,
             image_count - last_capture_image_count,
-            FPSeconds(now.time_since_epoch()).count(),
-            FPSeconds(last_fps_time.time_since_epoch()).count(),
-            elapsed.count(),
+            now_double,
+            last_fps_time,
+            elapsed,
             new_capture_fps,
             new_analysis_fps);
 
@@ -2614,7 +2614,7 @@ bool Monitor::Decode() {
   shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
   shared_data->last_write_time = packet->timestamp.tv_sec;
-  delete packet_lock;
+  packetqueue.unlock(packet_lock);
   return true;
 }  // end bool Monitor::Decode()
 

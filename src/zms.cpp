@@ -267,9 +267,11 @@ int main(int argc, const char *argv[], char **envp) {
     if ( !stream.setStreamStart(monitor_id) ) {
       Error("Unable set start stream for monitor %d", monitor_id);
       stream.sendTextFrame("Unable to connect to monitor");
+#if 0
       logTerm();
       zmDbClose();
       return -1;
+#endif
     }
 
     if ( mode == ZMS_JPEG ) {

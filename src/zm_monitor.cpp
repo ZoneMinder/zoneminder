@@ -1826,6 +1826,7 @@ bool Monitor::Analyse() {
           if (decoding_enabled) {
             while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
               // Need to wait for the decoder thread.
+              packetqueue.notify_all();
               Debug(1, "Waiting for decode");
               packet_lock->wait();
             }  // end while ! decoded

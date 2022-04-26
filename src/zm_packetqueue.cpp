@@ -120,6 +120,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }
 
       for (
+          // Start at second packet because the first is always a keyframe
           auto it = ++pktQueue.begin();
           //it != pktQueue.end() and  // can't git end because we added our packet
           *it != add_packet;
@@ -129,6 +130,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
         ZMLockedPacket lp(zm_packet);
         if (!lp.trylock()) {
+          // Can't delete a locked packet, but can delete one after it.
           Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
           ++it;
           continue;
@@ -161,6 +163,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         if (zm_packet->packet.stream_index == video_stream_id)
           break;
       }  // end while
+    } else {
       has_warned = false;
     }  // end if not able catch up
   }  // end lock scope

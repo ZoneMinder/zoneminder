@@ -1,4 +1,5 @@
 var streamCmdTimer = null;
+var statusCmdTimer = null;
 var streamStatus;
 var alarmState = STATE_IDLE;
 var lastAlarmState = STATE_IDLE;
@@ -135,9 +136,7 @@ function setScale() {
 
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk('stream');
-  if (streamCmdTimer) {
-    streamCmdTimer = clearTimeout(streamCmdTimer);
-  }
+  streamCmdTimer = clearTimeout(streamCmdTimer);
   if (respObj.result == 'Ok') {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
@@ -415,9 +414,7 @@ function streamCmdPan(x, y) {
 /* getStatusCmd is used when not streaming, since there is no persistent zms */
 function getStatusCmdResponse(respObj, respText) {
   watchdogOk('status');
-  if (statusCmdTimer) {
-    statusCmdTimer = clearTimeout(statusCmdTimer);
-  }
+  statusCmdTimer = clearTimeout(statusCmdTimer);
 
   if (respObj.result == 'Ok') {
     $j('#captureFPSValue').text(respObj.monitor.FrameRate);

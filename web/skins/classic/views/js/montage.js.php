@@ -16,9 +16,9 @@ var monitorData = new Array();
 global $monitors;
 foreach ( $monitors as $monitor ) {
 ?>
-monitorData[monitorData.length] = { 
-  'id': <?php echo $monitor->Id() ?>, 
-  'connKey': <?php echo $monitor->connKey() ?>, 
+monitorData[monitorData.length] = {
+  'id': <?php echo $monitor->Id() ?>,
+  'connKey': '<?php echo $monitor->connKey() ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
@@ -40,4 +40,6 @@ foreach ( $layouts as $layout ) {
 layouts[<?php echo $layout->Id() ?>] = {"Name":"<?php echo $layout->Name()?>","Positions":<?php echo json_decode($layout->Positions())?$layout->Positions():'{}' ?>};
 <?php
 } // end foreach layout
+global $FreeFormLayoutId;
+echo 'freeform_layout_id='.$FreeFormLayoutId.';'
 ?>

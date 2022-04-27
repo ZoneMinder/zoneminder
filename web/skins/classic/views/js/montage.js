@@ -73,35 +73,34 @@ function selectLayout(element) {
         stream_scale = Math.floor(stream_scale/5)*5;
       }
     }
-    setStreamScale('liveStream'+monitor.id, stream_scale, width, height);
+    monitor.setStreamScale(stream_scale);
   } // end foreach monitor
 } // end function selectLayout(element)
 
-function setStreamScale(element_id, scale, width, height) {
-  var streamImg = document.getElementById(element_id);
-  if (streamImg) {
-    if (streamImg.nodeName == 'IMG') {
-      var src = streamImg.src;
-      src = src.replace(/scale=\d*/i, 'scale='+scale);
-      if (height == '0') {
-        streamImg.style.height = 'auto';
-      }
-      if (src != streamImg.src) {
-        streamImg.src = src;
-      }
-    } else if (streamImg.nodeName == 'APPLET' || streamImg.nodeName == 'OBJECT') {
-      // APPLET's and OBJECTS need to be re-initialized
-    }
-    //streamImg.style.width = '100%';
+function changeHeight() {
+  var height = $j('#height').val();
+  setCookie('zmMontageHeight', height, 3600);
+  for (var i = 0, length = monitors.length; i < length; i++) {
+    var monitor = monitors[i];
+    monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
+    monitor_frame.css('height', height);
+    monitor_img = $j('#liveStream'+monitor.id);
+    monitor_img.css('height', parseInt(height) ? height+'px' : 'auto');
   }
 }
 
 /**
- * called when the widthControl|heightControl select elements are changed
+ * called when the widthControl select elements are changed
  */
-function changeSize() {
+function changeWidth() {
   var width = parseInt($j('#width').val());
   var height = parseInt($j('#height').val());
+  $j('#width').val(width);
+  $j('#height').val(height);
+
+  // Reset frame css
+  $j('#zmMontageLayout').val(freeform_layout_id);
+  selectLayout();
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
@@ -120,8 +119,10 @@ function changeSize() {
     } else if ( height ) {
       scale = parseInt(100*height/monitor.height);
     }
+    monitor_img = $j('#liveStream'+monitor.id);
+    monitor_img.css('width', parseInt(width) ? width+'px' : 'auto');
 
-    setStreamScale('liveStream'+monitor.id, scale, width, height);
+    monitor.setStreamScale(scale);
   } // end foreach monitor
   $j('#scale').val('0');
   setCookie('zmMontageScale', '0', 3600);
@@ -141,10 +142,8 @@ function changeScale() {
   setCookie('zmMontageScale', scale, 3600);
   setCookie('zmMontageWidth', '', 3600);
   setCookie('zmMontageHeight', '', 3600);
-  if ( scale == '' ) {
-    selectLayout('#zmMontageLayout');
-    return;
-  }
+  $j('#zmMontageLayout').val(freeform_layout_id);
+  selectLayout('#zmMontageLayout');
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
     var newWidth = ( monitorData[i].width * scale ) / SCALE_BASE;
@@ -158,38 +157,15 @@ function changeScale() {
     }
     if ( scale != '0' ) {
       if ( newWidth ) {
+        console.log("Setting to " + newWidth);
         monitor_frame.css('width', newWidth);
       }
-    } else {
-      monitor_frame.css('width', '100%');
     }
-    // We don't set the frame height because it has the status bar as well
-    //if ( height ) {
-    ////monitor_frame.css('height', height+'px');
-    //}
-    /*Stream could be an applet so can't use moo tools*/
-    var streamImg = $j('#liveStream'+monitor.id)[0];
-    if ( streamImg ) {
-      if ( streamImg.nodeName == 'IMG' ) {
-        var src = streamImg.src;
-        streamImg.src = '';
-
-        //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-        if ( scale != '0' ) {
-          src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
-        } else {
-          src = src.replace(/scale=[\.\d]+/i, 'scale=100');
-        }
-        streamImg.src = src;
-      }
-      if ( scale != '0' ) {
-        streamImg.style.width = newWidth + 'px';
-        streamImg.style.height = newHeight + 'px';
-      } else {
-        streamImg.style.width = '100%';
-        streamImg.style.height = 'auto';
-      }
-    } // end if StreamImg
+      //monitor_frame.css('width', '100%');
+      monitor_img = $j('#liveStream'+monitor.id);
+      monitor_img.css('width', '100%');
+      monitor_img.css('height', 'auto');
+    monitor.setStreamScale(scale);
   } // end foreach Monitor
 }
 

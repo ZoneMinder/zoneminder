@@ -103,8 +103,6 @@ void RemoteCameraRtsp::Initialise() {
   buffer.size(max_size);
 
   FFMPEGInit();
-
-  Connect();
 }
 
 void RemoteCameraRtsp::Terminate() {
@@ -126,6 +124,9 @@ int RemoteCameraRtsp::Disconnect() {
 }
 
 int RemoteCameraRtsp::PrimeCapture() {
+  if (rtspThread) Disconnect();
+  Connect();
+
   Debug(2, "Waiting for sources");
   for (int i = 100; i && !zm_terminate && !rtspThread->hasSources(); i--) {
     std::this_thread::sleep_for(Microseconds(10000));

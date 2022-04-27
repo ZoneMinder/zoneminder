@@ -1,4 +1,5 @@
 var streamCmdTimer = null;
+var statusCmdTimer = null;
 var streamStatus;
 var alarmState = STATE_IDLE;
 var lastAlarmState = STATE_IDLE;
@@ -123,8 +124,11 @@ function changeScale() {
     streamImg.width(newWidth);
     streamImg.height(newHeight);
     if (newSrc != oldSrc) {
+      statusCmdTimer = clearTimeout(statusCmdTimer);
       streamCommand(CMD_QUIT);
+      streamImg.attr('src', '');
       streamImg.attr('src', newSrc);
+      statusCmdTimer = setTimeout(statusCmdQuery, statusRefreshTimeout);
     }
   } else {
     console.error('No element found for liveStream'+monitorId);
@@ -203,9 +207,7 @@ function getStreamCmdError(text, error) {
 
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk('stream');
-  if (streamCmdTimer) {
-    streamCmdTimer = clearTimeout(streamCmdTimer);
-  }
+  streamCmdTimer = clearTimeout(streamCmdTimer);
   if (respObj.result == 'Ok') {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
@@ -529,9 +531,7 @@ function streamCmdQuery() {
 
 function getStatusCmdResponse(respObj, respText) {
   watchdogOk('status');
-  if (statusCmdTimer) {
-    statusCmdTimer = clearTimeout(statusCmdTimer);
-  }
+  statusCmdTimer = clearTimeout(statusCmdTimer);
 
   if (respObj.result == 'Ok') {
     $j('#fpsValue').text(respObj.monitor.FrameRate);

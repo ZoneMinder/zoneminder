@@ -544,7 +544,6 @@ void MonitorStream::runStream() {
   } // end if connkey && playback_buffer
 
   while (!zm_terminate) {
-    Debug(1, "!zm_terminate");
     if (feof(stdout)) {
       Debug(2, "feof stdout");
       break;
@@ -570,7 +569,6 @@ void MonitorStream::runStream() {
       }
     }  // end if connkey
     if (!checkInitialised()) {
-      Debug(1, "Not initialised");
       if (!loadMonitor(monitor_id)) {
         if (!sendTextFrame("Not connected")) {
           Debug(1, "Failed Send not connected");
@@ -582,12 +580,9 @@ void MonitorStream::runStream() {
           return;
         }
       }
-      Debug(1, "Sleeping 1sec");
       usleep(MonitorStream::MAX_SLEEP_USEC);
-      Debug(1, "Done Sleeping 1sec");
       continue;
     }
-    Debug(1, "Init");
 
     if (paused) {
       if (!was_paused) {

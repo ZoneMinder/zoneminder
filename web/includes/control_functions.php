@@ -19,7 +19,7 @@ function buildControlCommand($monitor) {
       $dirn = $matches[3];
 
       switch ($command) {
-      case 'focus' : {
+      case 'focus' :
         if ($control->HasFocusSpeed()) {
           $speed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$yFactor)));
           $ctrlCommand .= ' --speed='.$speed;

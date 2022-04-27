@@ -5,13 +5,28 @@ default:
     - apt-get update -yq
     - DEBIAN_FRONTEND=noninteractive apt-get install -yq devscripts sudo
 
-deb:
+ubuntu_deb:
   stage: build
   tags:
     - docker
   script:
+    - DEBIAN_FRONTEND=noninteractive TZ=America/Chicago apt-get -y install tzdata
     - yes "" | ./utils/do_debian_package.sh --snapshot=stable --type=binary --interactive=no --dput=no --debbuild-extra=--no-sign || true
-  timeout: 2h
+  timeout: 3h
+  artifacts:
+    paths:
+      - '*.deb'
+    expire_in: 1 week
+
+debian_deb:
+  stage: build
+  tags:
+    - docker
+  image:
+    name: debian:latest
+  script:
+    - yes "" | ./utils/do_debian_package.sh --snapshot=stable --type=binary --interactive=no --dput=no --debbuild-extra=--no-sign || true
+  timeout: 3h
   artifacts:
     paths:
       - '*.deb'

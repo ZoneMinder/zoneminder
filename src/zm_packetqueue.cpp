@@ -184,8 +184,9 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   //
   // So start at the beginning, counting video packets until the next keyframe.  
   // Then if deleting those packets doesn't break 1 and 2, then go ahead and delete them.
+  //
+  // One assumption that we can make is that there will be packets in the queue. Because we call it while holding a locked packet
   if (deleting) return;
-  if (!pktQueue.size()) return;
 
   if (keep_keyframes and ! (
         add_packet->packet.stream_index == video_stream_id

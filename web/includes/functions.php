@@ -264,7 +264,8 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? 'width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'" loading="lazy" />';
+      #return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" />';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width?'width:'.$width.';' : '').($height?' height:'.$height.';':'').'" />';
   }
 }
 
@@ -316,7 +317,7 @@ function outputImageStill($id, $src, $width, $height, $title='') {
 function getImageStill($id, $src, $width, $height, $title='') {
   return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.
     (validInt($width)?' width="'.$width.'"':'').
-    (validInt($height)?' height="'.$height.'"':'').' loading="lazy" />';
+    (validInt($height)?' height="'.$height.'"':'').' />';
 }
 
 function getWebSiteUrl($id, $src, $width, $height, $title='') {
@@ -2026,8 +2027,8 @@ function validHtmlStr($input) {
 function getStreamHTML($monitor, $options = array()) {
 
   if ( isset($options['scale']) and $options['scale'] != '' ) {
-    if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {
-      #ZM\Warning('Setting dimensions from scale:'.$options['scale']);
+    if ($options['scale'] != 'auto' && $options['scale'] != '0') {
+      ZM\Warning('Setting dimensions from scale:'.$options['scale']);
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
     } else if ( ! ( isset($options['width']) or isset($options['height']) ) ) {

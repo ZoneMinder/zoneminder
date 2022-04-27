@@ -586,6 +586,7 @@ void MonitorStream::runStream() {
         Debug(2, "Have checking command Queue for connkey: %d", connkey);
         got_command = true;
       }
+      if (zm_terminate) break;
       // Update modified time of the socket .lock file so that we can tell which ones are stale.
       if (now - last_comm_update > Hours(1)) {
         touch(sock_path_lock);

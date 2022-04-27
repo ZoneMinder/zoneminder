@@ -12,7 +12,7 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    monitors[i].setScale('auto');
+    monitors[i].setStreamScale('0');
     monitors[i].start(delay);
   }
 

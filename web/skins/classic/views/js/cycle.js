@@ -45,7 +45,7 @@ function cyclePrev() {
 function initCycle() {
   intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   var scale = $j('#scale').val();
-  if ( scale == '0' || scale == 'auto' ) changeScale();
+  if ( scale == '0' || scale == 'auto' ) applyScale();
 }
 
 function changeSize() {
@@ -58,22 +58,23 @@ function changeSize() {
     console.log('Error finding frame');
     return;
   }
-  if ( width ) {
-    monitor_frame.css('width', width);
+  let scale = 100;
+  if ( width != 'auto' && width != '100%') {
+    scale = parseInt(100*parseInt(width) / monitorData[monIdx].width);
   }
-  if ( height ) {
-    monitor_frame.css('height', height);
-  }
+  monitor_frame.css('width', width);
+  monitor_frame.css('height', height);
+  if (scale > 100) scale = 100;
+  if (scale <= 0) scale = 100;
 
   /* Stream could be an applet so can't use moo tools */
   var streamImg = document.getElementById('liveStream'+monitorData[monIdx].id);
   if ( streamImg ) {
     if ( streamImg.nodeName == 'IMG' ) {
+
       var src = streamImg.src;
       streamImg.src = '';
-      console.log(parseInt(width));
-      src = src.replace(/width=[\.\d]+/i, 'width='+parseInt(width));
-      src = src.replace(/height=[\.\d]+/i, 'height='+parseInt(height));
+      if (scale) src = src.replace(/scale=\d+/i, 'scale='+scale);
       src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
       streamImg.src = src;
     }
@@ -82,8 +83,8 @@ function changeSize() {
   } else {
     console.log('Did not find liveStream'+monitorData[monIdx].id);
   }
-  $j('#scale').val('');
-  setCookie('zmCycleScale', '', 3600);
+  $j('#scale').val('0');
+  setCookie('zmCycleScale', '0', 3600);
   setCookie('zmCycleWidth', width, 3600);
   setCookie('zmCycleHeight', height, 3600);
 } // end function changeSize()
@@ -95,8 +96,13 @@ function changeScale() {
   setCookie('zmCycleScale', scale, 3600);
   setCookie('zmCycleWidth', 'auto', 3600);
   setCookie('zmCycleHeight', 'auto', 3600);
-  var newWidth = ( monitorData[monIdx].width * scale ) / SCALE_BASE;
-  var newHeight = ( monitorData[monIdx].height * scale ) / SCALE_BASE;
+  applyScale();
+} // end function changeScale()
+
+function applyScale() {
+  var scale = $j('#scale').val();
+  var width = $j('#width').val();
+  var height = $j('#height').val();
 
   // Scale the frame
   monitor_frame = $j('#imageFeed');
@@ -115,10 +121,16 @@ function changeScale() {
       monitor_frame.css('height', newHeight+'px');
     }
   } else {
+
     //var bottomEl = streamMode == 'stills' ? $j('#eventImageNav') : $j('#replayStatus');
     var newSize = scaleToFit(monitorData[monIdx].width, monitorData[monIdx].height, monitor_frame, $j('#buttons'));
-    newWidth = newSize.width;
-    newHeight = newSize.height;
+    if (width != 'auto' || height != 'auto') {
+      newWidth = width;
+      newHeight = height;
+    } else {
+      newWidth = newSize.width+'px';
+      newHeight = newSize.height+'px';
+    }
     autoScale = newSize.autoScale;
     monitor_frame.width(newWidth);
     monitor_frame.height(newHeight);
@@ -138,23 +150,16 @@ function changeScale() {
     //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
     src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
     // zms doesn't actually use width&height
-    if ( scale != '0' && scale != '' && scale != 'auto' ) {
-      src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
-      src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
-    } else {
-      src = src.replace(/width=[\.\d]+/i, 'width='+monitorData[monIdx].width);
-      src = src.replace(/height=[\.\d]+/i, 'height='+monitorData[monIdx].height);
-    }
     streamImg.src = src;
   }
 
-  if ( scale != '0' && scale != '' && scale != 'auto' ) {
-    streamImg.style.width = newWidth+'px';
-    streamImg.style.height = newHeight+'px';
-  } else {
-    streamImg.style.width = '100%';
-    streamImg.style.height = 'auto';
-  }
+  //if ( scale != '0' && scale != '' && scale != 'auto' ) {
+    streamImg.style.width = newWidth;
+    streamImg.style.height = newHeight;
+  //} else {
+    //streamImg.style.width = '100%';
+    //streamImg.style.height = 'auto';
+  //}
 } // end function changeScale()
 
 $j(document).ready(initCycle);

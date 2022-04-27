@@ -97,8 +97,6 @@ var STATE_ALARM = <?php echo STATE_ALARM ?>;
 var STATE_ALERT = <?php echo STATE_ALERT ?>;
 var STATE_TAPE = <?php echo STATE_TAPE ?>;
 
-const CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
-const CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;
 const CMD_NONE = <?php echo CMD_NONE ?>;
 const CMD_PAUSE = <?php echo CMD_PAUSE ?>;
 const CMD_PLAY = <?php echo CMD_PLAY ?>;
@@ -116,7 +114,6 @@ const CMD_NEXT = <?php echo CMD_NEXT ?>;
 const CMD_SEEK = <?php echo CMD_SEEK ?>;
 const CMD_QUERY = <?php echo CMD_QUERY ?>;
 const CMD_QUIT = <?php echo CMD_QUIT ?>;
-const CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;
 
 var stateStrings = new Array();
 stateStrings[STATE_UNKNOWN] = "<?php echo translate('Unknown') ?>";

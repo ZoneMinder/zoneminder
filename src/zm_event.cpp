@@ -729,22 +729,24 @@ void Event::Run() {
   if (storage != monitor->getStorage())
     delete storage;
 
-  std::unique_lock<std::mutex> lck(packet_queue_mutex);
 
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   while (true) {
-    if (!packet_queue.empty()) {
+    ZMLockedPacket * packet_lock = nullptr;
+    {
+      std::unique_lock<std::mutex> lck(packet_queue_mutex);
+
+      if (packet_queue.empty()) {
+        packet_queue_condition.wait(lck);
+        if (terminate_ or zm_terminate) break;
+        continue;
+      } 
       // Packets on this queue are locked. They are locked by analysis thread
-      const ZMLockedPacket * packet_lock = packet_queue.front();
-      this->AddPacket_(packet_lock->packet_);
-      delete packet_lock;
+      packet_lock = packet_queue.front();
       packet_queue.pop();
-    } else {
-      if (terminate_ or zm_terminate) {
-        break;
-      }
-      packet_queue_condition.wait(lck);
-    }
-  }
+    }  // end lock scope
+    this->AddPacket_(packet_lock->packet_);
+    delete packet_lock;
+  }  // end while
 }  // end Run()

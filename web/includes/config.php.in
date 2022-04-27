@@ -89,6 +89,7 @@ define('ZM_PCRE', '@ZM_PCRE@');                       // PCRE support enabled
 //
 // Alarm states
 //
+define('STATE_UNKNOWN', -1);
 define('STATE_IDLE', 0);
 define('STATE_PREALARM', 1);
 define('STATE_ALARM', 2);

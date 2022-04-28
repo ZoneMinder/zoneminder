@@ -265,7 +265,10 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
       #return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" />';
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width?'width:'.$width.';' : '').($height?' height:'.$height.';':'').'" />';
+    return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
+      #(($width and $width !='auto') ?'width:'.$width.';' : '').
+      (($height and $height != 'auto')?' height:'.$height.';':'').
+      '" />';
   }
 }
 

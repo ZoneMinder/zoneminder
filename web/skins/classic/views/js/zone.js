@@ -268,7 +268,7 @@ function highlightOn(index) {
 
 function highlightOff(index) {
   row = $j('#row'+index);
-  if ( row ) {
+  if ( row.length ) {
     row.removeClass('highlight');
   } else {
     console.log("No row for index " + index);
@@ -380,9 +380,9 @@ function limitPointValue(point, loVal, hiVal) {
 }
 
 function updateArea( ) {
-  area = Polygon_calcArea(zone['Points']);
+  const area = Polygon_calcArea(zone['Points']);
   zone.Area = area;
-  var form = document.getElementById('zoneForm');
+  const form = document.getElementById('zoneForm');
   form.elements['newZone[Area]'].value = area;
   if ( form.elements['newZone[Units]'].value == 'Percent' ) {
     form.elements['newZone[TempArea]'].value = Math.round( area/monitorArea*100 );
@@ -395,12 +395,12 @@ function updateArea( ) {
 
 /* Updates the drawn point based on input from the coordinates text inputs */
 function updateX(input) {
-  index = input.getAttribute('data-point-index');
+  const index = input.getAttribute('data-point-index');
 
   limitPointValue(input, 0, maxX);
 
-  var point = $j('#point'+index);
-  var x = input.value;
+  const point = $j('#point'+index);
+  const x = input.value;
   const imageFrame = document.getElementById('imageFrame');
   const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   const padding_left = parseInt(style.paddingLeft);
@@ -409,18 +409,18 @@ function updateX(input) {
 
   point.css('left', parseInt(x*scale)+'px');
   zone['Points'][index].x = x;
-  var Point = document.getElementById('zonePoly').points.getItem(index);
+  const Point = document.getElementById('zonePoly').points.getItem(index);
   Point.x = x;
   updateArea();
 }
 
 /* Updates the drawn point based on input from the coordinates text inputs */
 function updateY(input) {
-  index = input.getAttribute('data-point-index');
+  const index = input.getAttribute('data-point-index');
   limitPointValue(input, 0, maxY);
 
-  var point = $j('#point'+index);
-  var y = input.value;
+  const point = $j('#point'+index);
+  const y = input.value;
   const imageFrame = document.getElementById('imageFrame');
   const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   const padding_left = parseInt(style.paddingLeft);
@@ -429,7 +429,7 @@ function updateY(input) {
 
   point.css('top', parseInt(y*scale)+'px');
   zone['Points'][index].y = y;
-  var Point = document.getElementById('zonePoly').points.getItem(index);
+  const Point = document.getElementById('zonePoly').points.getItem(index);
   Point.y = y;
   updateArea();
 }
@@ -474,7 +474,7 @@ function drawZonePoints() {
     $j('#imageFrame').append(div);
 
     div.draggable({
-      'containment': imageFrame,
+      'containment': document.getElementById('imageFeed'+zone.MonitorId),
       'start': setActivePoint.bind(i, i),
       'stop': fixActivePoint.bind(i, i),
       'drag': updateActivePoint.bind(i, i)
@@ -488,7 +488,7 @@ function drawZonePoints() {
     var row = document.createElement('tr');
     row.id = 'row'+i;
     $j(row).mouseover(highlightOn.bind(i, i));
-    $j(row).mouseout(highlightOn.bind(i, i));
+    $j(row).mouseout(highlightOff.bind(i, i));
 
     var cell = document.createElement('td');
     $j(cell).text(i+1).appendTo(row);

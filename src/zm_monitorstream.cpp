@@ -600,7 +600,6 @@ void MonitorStream::runStream() {
           continue;
         }
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
-        monitor->setLastViewed();
         if (!sendTextFrame("Waiting for capture")) return;
       } else {
         if (!sendTextFrame("Unable to stream")) {

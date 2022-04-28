@@ -140,8 +140,7 @@ xhtmlHeaders(__FILE__, translate('Zone'));
         <input type="hidden" name="newZone[Area]" value="<?php echo $newZone['Area'] ?>"/>
         <input type="hidden" name="newZone[AlarmRGB]"/>
 
-        <div id="definitionPanel">
-				  <div id="imagePanel">
+				  <div id="imageAndPoints">
             <div id="imageFrame">
               <?php echo 
 $monitor->getStreamHTML(array('mode'=>'single', 'zones'=>false, 'state'=>true));
@@ -179,7 +178,48 @@ if ( count($other_zones) ) {
                 <i class="material-icons md-18">play_arrow</i>
               </button>
             </div>
-          </div><!--imagePanel-->
+            <div id="zonePoints">
+              <table>
+                <tbody>
+                  <tr>
+  <?php
+  $pointCols = 2;
+  for ( $i = 0; $i < $pointCols; $i++ ) {
+  ?>
+                    <td>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th><?php echo translate('Point') ?></th>
+                            <th><?php echo translate('X') ?></th>
+                            <th><?php echo translate('Y') ?></th>
+                            <th><?php echo translate('Action') ?></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                      </table>
+                    </td>
+  <?php
+  # I think this for horizontal filler
+      if ( $i < ($pointCols-1) ) {
+  ?>
+                    <td>&nbsp;</td>
+  <?php
+      }
+  } # end foreach pointcol
+  ?>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="buttons">
+                <button type="button" id="saveBtn" value="Save" <?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
+                <?php echo translate('Save') ?>
+                </button>
+                <button type="button" id="cancelBtn" value="Cancel"><?php echo translate('Cancel') ?></button>
+              </div>
+            </div><!--end ZonePoints-->
+          </div><!--image & points-->
 
 					<div id="settingsPanel">
 						<table id="zoneSettings">
@@ -272,49 +312,6 @@ if ( count($other_zones) ) {
 							</tbody>
 						</table>
 					</div>
-
-					<div id="zonePoints">
-					  <table>
- 					 	  <tbody>
-					 		  <tr>
-<?php
-$pointCols = 2;
-for ( $i = 0; $i < $pointCols; $i++ ) {
-?>
-									<td>
-										<table>
-											<thead>
-												<tr>
-													<th><?php echo translate('Point') ?></th>
-													<th><?php echo translate('X') ?></th>
-													<th><?php echo translate('Y') ?></th>
-													<th><?php echo translate('Action') ?></th>
-												</tr>
-											</thead>
-											<tbody>
-											</tbody>
-										</table>
-									</td>
-<?php
-# I think this for horizontal filler
-    if ( $i < ($pointCols-1) ) {
-?>
-									<td>&nbsp;</td>
-<?php
-    }
-} # end foreach pointcol
-?>
-								</tr>
-							</tbody>
-						</table>
-					<div class="buttons">
-						<button type="button" id="saveBtn" value="Save" <?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
-						<?php echo translate('Save') ?>
-						</button>
-						<button type="button" id="cancelBtn" value="Cancel"><?php echo translate('Cancel') ?></button>
-					</div>
-					</div><!--end ZonePoints-->
-        </div><!--definitionsPanel-->
       </form>
     </div><!--content-->
   </div><!--page-->

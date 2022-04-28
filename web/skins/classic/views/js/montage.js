@@ -144,10 +144,8 @@ function changeScale() {
   setCookie('zmMontageHeight', '', 3600);
   $j('#zmMontageLayout').val(freeform_layout_id);
   selectLayout('#zmMontageLayout');
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
-    var monitor = monitors[i];
-    var newWidth = ( monitorData[i].width * scale ) / SCALE_BASE;
-    var newHeight = ( monitorData[i].height * scale ) / SCALE_BASE;
+  for ( let i = 0, length = monitors.length; i < length; i++ ) {
+    const monitor = monitors[i];
 
     // Scale the frame
     monitor_frame = $j('#monitorFrame'+monitor.id);
@@ -156,15 +154,15 @@ function changeScale() {
       continue;
     }
     if ( scale != '0' ) {
+      const newWidth = ( monitorData[i].width * scale ) / SCALE_BASE;
       if ( newWidth ) {
         console.log("Setting to " + newWidth);
         monitor_frame.css('width', newWidth);
       }
     }
-      //monitor_frame.css('width', '100%');
-      monitor_img = $j('#liveStream'+monitor.id);
-      monitor_img.css('width', '100%');
-      monitor_img.css('height', 'auto');
+    monitor_img = $j('#liveStream'+monitor.id);
+    monitor_img.css('width', '100%');
+    monitor_img.css('height', 'auto');
     monitor.setStreamScale(scale);
   } // end foreach Monitor
 }

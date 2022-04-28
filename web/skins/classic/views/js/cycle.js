@@ -67,7 +67,7 @@ function changeSize() {
   monitor_frame.css('height', height);
   if (scale > 100) scale = 100;
   if (scale <= 0) scale = 100;
-  
+
   $j('#scale').val('0');
   setCookie('zmCycleScale', '0', 3600);
   setCookie('zmCycleWidth', width, 3600);
@@ -116,7 +116,7 @@ function applyScale() {
   }
   monitor_frame.width(newWidth);
   monitor_frame.height(newHeight);
-  let monitor_image = $j('#imageFeed'+monitor.id + ' img');
+  const monitor_image = $j('#imageFeed'+monitor.id + ' img');
   monitor_image.width('100%');
   monitor_image.height('auto');
 

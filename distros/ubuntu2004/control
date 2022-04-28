@@ -67,7 +67,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
         ,default-mysql-client | mariadb-client | virtual-mysql-client
-        ,php-mysql, php-gd, php-apcu, php-apc | php-apcu-bc, php-json
+        ,php-mysql, php-gd, php-apcu, php-json
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
@@ -75,7 +75,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
-        ,libjwt-gnutls0
+        ,libjwt-gnutls0|libjwt0
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

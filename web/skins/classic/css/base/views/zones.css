@@ -25,11 +25,6 @@
   min-width: 500px;
 	float: left;
 }
-.ZonesImage img {
-  top:0;
-  left:0;
-  position: relative;
-}
 .ZonesImage svg {
   width: 100%;
   position:absolute;

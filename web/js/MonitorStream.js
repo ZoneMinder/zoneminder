@@ -185,16 +185,12 @@ function MonitorStream(monitorData) {
           stateClass = 'idle';
         }
 
-        if ( (
-          (typeof COMPACT_MONTAGE === 'undefined') ||
-          !COMPACT_MONTAGE) &&
-          (this.type != 'WebSite')
-        ) {
+        if (this.type != 'WebSite') {
           var fpsValue = $j('#fpsValue'+this.id);
           var stateValue = $j('#stateValue'+this.id);
           var monitorState = $j('#monitorState'+this.id);
 
-          if ( fpsValue.length ) fpsValue.text(this.status.fps);
+          if ( fpsValue.length ) fpsValue.text(this.status.fps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
           if ( stateValue.length ) stateValue.text(stateStrings[this.alarmState]);
           if ( monitorState.length ) this.setStateClass(monitorState, stateClass);
         }

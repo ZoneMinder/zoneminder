@@ -124,11 +124,13 @@ function changeScale() {
     streamImg.width(newWidth);
     streamImg.height(newHeight);
     if (newSrc != oldSrc) {
-      statusCmdTimer = clearTimeout(statusCmdTimer);
+
+      clearTimeout(statusCmdTimer);
       streamCommand(CMD_QUIT);
       streamImg.attr('src', '');
       streamImg.attr('src', newSrc);
-      statusCmdTimer = setTimeout(statusCmdQuery, statusRefreshTimeout);
+      if (statusCmdTimer) // Only start it if one was set to begin with
+        statusCmdTimer = setTimeout(statusCmdQuery, statusRefreshTimeout);
     }
   } else {
     console.error('No element found for liveStream'+monitorId);
@@ -212,9 +214,9 @@ function getStreamCmdResponse(respObj, respText) {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
       streamStatus = respObj.status;
-      $j('#fpsValue').text(streamStatus.fps);
-      $j('#capturefpsValue').text(streamStatus.capturefps);
-      $j('#analysisfpsValue').text(streamStatus.analysisfps);
+      $j('#fpsValue').text(streamStatus.fps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
+      $j('#capturefpsValue').text(streamStatus.capturefps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
+      $j('#analysisfpsValue').text(streamStatus.analysisfps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
 
       setAlarmState(streamStatus.state);
 

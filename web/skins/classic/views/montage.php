@@ -52,8 +52,10 @@ $heights = array(
 
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
+$FreeFormLayoutId = 0;
 foreach ( $layouts as $l ) {
   if ( $l->Name() == 'Freeform' ) {
+    $FreeFormLayoutId = $l->Id();
     $layoutsById[$l->Id()] = $l;
     break;
   }
@@ -196,11 +198,11 @@ if ( canView('System') ) {
 
           <span id="widthControl">
             <label><?php echo translate('Width') ?></label>
-            <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change-this'=>'changeSize')); ?>
+            <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change'=>'changeWidth')); ?>
           </span>
           <span id="heightControl">
             <label><?php echo translate('Height') ?></label>
-            <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change-this'=>'changeSize')); ?>
+            <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change'=>'changeHeight')); ?>
           </span>
           <span id="scaleControl">
             <label><?php echo translate('Scale') ?></label>

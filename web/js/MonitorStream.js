@@ -71,6 +71,10 @@ function MonitorStream(monitorData) {
     }
   };
 
+  /* scale should be '0' for auto, or an integer value
+   * width should be auto, 100%, integer +px
+   * height should be auto, 100%, integer +px
+   * */
   this.setScale = function(newscale, width, height) {
     const img = this.getElement();
     if (!img) {
@@ -97,8 +101,8 @@ function MonitorStream(monitorData) {
         }
       }
       var newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
-      width = newSize.width;
-      height = newSize.height;
+      width = newSize.width+'px';
+      height = newSize.height+'px';
       newscale = parseInt(newSize.autoScale);
       console.log("auto scale " + newscale);
     } else if (parseInt(width) || parseInt(height)) {
@@ -107,7 +111,7 @@ function MonitorStream(monitorData) {
         if (!parseInt(height)) height = parseInt(this.height * newscale / 100);
       } else if (height) {
         newscale = parseInt(100*parseInt(height)/this.height);
-        width = parseInt(this.width * newscale / 100);
+        width = parseInt(this.width * newscale / 100)+'px';
       }
       console.log("New scale from size: " + newscale);
     } else {
@@ -117,6 +121,8 @@ function MonitorStream(monitorData) {
       console.log("Setting to " + width + "x" + height + " from " + newscale);
     }
     monitor_frame.css('width', parseInt(width) ? parseInt(width)+'px' : 'auto');
+    img.style.width = width;
+    img.style.height = height;
     this.setStreamScale(newscale);
   }; // setscale
 
@@ -148,8 +154,9 @@ function MonitorStream(monitorData) {
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
         this.streamCommand(CMD_QUIT);
-        this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
+        img.src = '';
         img.src = newSrc;
+        this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
       }
     }
   }; // setscale
@@ -502,7 +509,7 @@ function MonitorStream(monitorData) {
   };
 
   this.statusQuery = function() {
-    this.streamCmdQuery(CMD_QUERY);
+    this.streamCommand(CMD_QUERY);
     this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
   };
 

@@ -889,8 +889,8 @@ public static function getStatuses() {
               data-monitor-id="'. $this->Id() .'"
               data-width="'. $this->ViewWidth() .'"
               data-height="'.$this->ViewHeight() .'" style="'.
-(($options['width'] and ($options['width'] != '0px')) ? 'width: '.$options['width'].';' : '').
-(($options['height'] and ($options['height'] != '0px')) ? 'height: '.$options['height'].';' : '').
+#(($options['width'] and ($options['width'] != '0px')) ? 'width: '.$options['width'].';' : '').
+#(($options['height'] and ($options['height'] != '0px')) ? 'height: '.$options['height'].';' : '').
             '">';
 
     if ($this->Type() == 'WebSite') {

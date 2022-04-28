@@ -195,7 +195,7 @@ function applyScale() {
   monitor_frame.height(newHeight);
   const monitor_image = $j('#imageFeed'+monitor.id + ' img');
   monitor_image.width('100%');
-  monitor_image.height('auto');
+  monitor_image.height(height);
 
   monitor.setStreamScale(scale);
 } // end function changeScale()

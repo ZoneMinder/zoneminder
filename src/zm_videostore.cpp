@@ -138,7 +138,8 @@ bool VideoStore::open() {
 
   oc->metadata = pmetadata;
   out_format = oc->oformat;
-  oc->oformat->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+  //oc->oformat->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+
   const AVCodec *video_out_codec = nullptr;
 
   AVDictionary *opts = nullptr;

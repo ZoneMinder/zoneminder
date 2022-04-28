@@ -172,7 +172,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
         </nav>
         <div class="container-fluid col-sm-offset-2 h-100 pr-0">
 
-          <div id="imageFeed">
+          <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed">
           <?php 
             if ( $monitor ) {
               echo getStreamHTML($monitor, $options);
@@ -192,4 +192,5 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
         </div>
       </div>
     </div>
+  <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

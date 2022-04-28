@@ -608,7 +608,7 @@ void MonitorStream::runStream() {
           return;
         }
       }
-      usleep(MonitorStream::MAX_SLEEP_USEC);
+      std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
 

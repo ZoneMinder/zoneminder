@@ -130,7 +130,7 @@ xhtmlHeaders(__FILE__, translate('Zone'));
     </div>
     <div id="content">
       <form name="zoneForm" id="zoneForm" method="post" action="?">
-        <input type="hidden" name="REFERER" value="<?php echo $_SERVER['HTTP_REFERER'] ?>"/> 
+        <input type="hidden" name="REFERER" value="<?php echo isset($_SERVER['HTTP_REFERER']) ? validHtmlStr($_SERVER['HTTP_REFERER']) : '' ?>"/> 
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="zone"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
@@ -226,7 +226,7 @@ if ( count($other_zones) ) {
 							<tbody>
 								<tr>
 									<th scope="row"><?php echo translate('Name') ?></th>
-									<td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo $newZone['Name'] ?>"/></td>
+									<td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo validHtmlStr($newZone['Name']) ?>"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('Type') ?></th>

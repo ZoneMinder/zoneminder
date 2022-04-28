@@ -103,6 +103,7 @@ const CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;
 const CMD_NONE = <?php echo CMD_NONE ?>;
 const CMD_PAUSE = <?php echo CMD_PAUSE ?>;
 const CMD_PLAY = <?php echo CMD_PLAY ?>;
+const CMD_VARPLAY = <?php echo CMD_VARPLAY ?>;
 const CMD_STOP = <?php echo CMD_STOP ?>;
 const CMD_FASTFWD = <?php echo CMD_FASTFWD ?>;
 const CMD_SLOWFWD = <?php echo CMD_SLOWFWD ?>;

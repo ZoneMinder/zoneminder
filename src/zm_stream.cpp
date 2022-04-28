@@ -402,13 +402,9 @@ void StreamBase::closeComms() {
       close(sd);
       sd = -1;
     }
-    if ( loc_sock_path[0] ) {
-      unlink(loc_sock_path);
-    }
+    // Can't delete any files because another zms might have come along and opened them and is waiting on the lock.
     if ( lock_fd > 0 ) {
       close(lock_fd); //close it rather than unlock it incase it got deleted.
-      // You cannot unlink the lockfile.  You have to leave a mess around.  SUCKS
-      //unlink(sock_path_lock);
     }
   }
 } // end void StreamBase::closeComms

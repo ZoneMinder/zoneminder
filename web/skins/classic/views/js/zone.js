@@ -474,7 +474,7 @@ function drawZonePoints() {
     var row = document.createElement('tr');
     row.id = 'row'+i;
     $j(row).mouseover(highlightOn.bind(i, i));
-    $j(row).mouseout(highlightOn.bind(i, i));
+    $j(row).mouseout(highlightOff.bind(i, i));
 
     var cell = document.createElement('td');
     $j(cell).text(i+1).appendTo(row);

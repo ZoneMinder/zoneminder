@@ -55,7 +55,5 @@ select.chosen {
 tr td:first-child {
   min-width: 300px;
   vertical-align: top;
-}
-.OutputContainer {
-  display: none;
+  text-align: right;
 }

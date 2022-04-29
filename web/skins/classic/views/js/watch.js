@@ -1,8 +1,3 @@
-var streamCmdTimer = null;
-var statusCmdTimer = null;
-var streamStatus;
-var alarmState = STATE_IDLE;
-var lastAlarmState = STATE_IDLE;
 var backBtn = $j('#backBtn');
 var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
@@ -10,10 +5,6 @@ var forceAlmBtn = $j('#forceAlmBtn');
 var table = $j('#eventList');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
-var server;
-var janus = null;
-var opaqueId;
-var streaming2;
 /*
 This is the format of the json object sent by bootstrap-table
 
@@ -131,7 +122,6 @@ function setScale() {
   if (scale == '0') {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   }
-  return;
 } // end function changeScale
 
 function getStreamCmdResponse(respObj, respText) {
@@ -140,7 +130,7 @@ function getStreamCmdResponse(respObj, respText) {
   if (respObj.result == 'Ok') {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
-      streamStatus = respObj.status;
+      let streamStatus = respObj.status;
       if ($j('#viewingFPSValue').text() != streamStatus.fps) {
         $j('#viewingFPSValue').text(streamStatus.fps);
       }
@@ -714,17 +704,6 @@ function manageDelConfirmModalBtns() {
   });
 }
 
-function msieVer() {
-  var ua = window.navigator.userAgent;
-  var msie = ua.indexOf("MSIE ");
-
-  if (msie >= 0) { // If Internet Explorer, return version number
-    return msie;
-  } else { // If another browser, return 0
-    return 0;
-  }
-}
-
 function refresh_events_table() {
   table.bootstrapTable('refresh');
 }
@@ -752,7 +731,7 @@ function initPage() {
     monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
-    monitorStream.setScale('0', $j('#width').val(), $j('#height').val());
+    monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
     monitorStream.start();
     if (streamMode == 'single') {
       monitorStream.setup_onclick(fetchImage);
@@ -811,7 +790,6 @@ function initPage() {
     document.querySelectorAll('select[name="scale"]').forEach(function(el) {
       el.onchange = window['changeScale'];
     });
-    setScale();
     document.querySelectorAll('select[name="changeRate"]').forEach(function(el) {
       el.onchange = window['changeRate'].bind(el, el);
     });

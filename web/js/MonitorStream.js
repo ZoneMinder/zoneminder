@@ -76,7 +76,7 @@ function MonitorStream(monitorData) {
    * height should be auto, 100%, integer +px
    * */
   this.setScale = function(newscale, width, height) {
-    console.log(newscale, width, height);
+    //console.log(newscale, width, height);
     const img = this.getElement();
     if (!img) {
       console.log("No img in setScale");
@@ -95,11 +95,9 @@ function MonitorStream(monitorData) {
 
     if (((newscale == '0') || (newscale=='auto')) && (width=='auto')) {
       if (!this.bottomElement) {
-        console.log(monitor_frame.width(), this.width);
         newscale = parseInt(100*monitor_frame.width() / this.width);
-        //width = Math.round(parseInt(this.width) * newscale / 100)+'px';
-        //height = Math.round(parseInt(this.height) * newscale / 100)+'px';
-        console.log(newscale, width, height);
+        // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
+        width = monitor_frame.css('width');
       } else {
         var newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
         width = newSize.width+'px';
@@ -301,7 +299,8 @@ function MonitorStream(monitorData) {
     if (newAlarm) {
       if (ZM_WEB_SOUND_ON_ALARM) {
         // Enable the alarm sound
-        if (!msieVer) {
+        const isIE = window.document.documentMode ? true : false;
+        if (!isIE) {
           $j('#alarmSound').removeClass('hidden');
         } else {
           $j('#MediaPlayer').trigger('play');
@@ -317,7 +316,8 @@ function MonitorStream(monitorData) {
     if (oldAlarm) { // done with an event do a refresh
       if (ZM_WEB_SOUND_ON_ALARM) {
         // Disable alarm sound
-        if (!msieVer) {
+        const isIE = window.document.documentMode ? true : false;
+        if (!isIE) {
           $j('#alarmSound').addClass('hidden');
         } else {
           $j('#MediaPlayer').trigger('pause');

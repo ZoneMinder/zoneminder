@@ -500,7 +500,7 @@ CREATE TABLE `Monitors` (
   `VideoWriter` TINYINT NOT NULL DEFAULT '0',
   `OutputCodec` int(10) unsigned NOT NULL default 0,
   `Encoder`     varchar(32),
-  `OutputContainer` enum('auto','mp4','mkv'),
+  `OutputContainer` enum('auto','mp4','mkv','webm'),
   `EncoderParameters` TEXT,
   `RecordAudio` TINYINT NOT NULL DEFAULT '0',
   `RecordingSource`  enum('Primary','Secondary','Both') NOT NULL DEFAULT 'Primary',

@@ -299,7 +299,7 @@ function MonitorStream(monitorData) {
     const oldAlarm = ( !isAlarmed && wasAlarmed );
 
     if (newAlarm) {
-      if (ZM_SOUND_ON_ALARM) {
+      if (ZM_WEB_SOUND_ON_ALARM) {
         // Enable the alarm sound
         if (!msieVer) {
           $j('#alarmSound').removeClass('hidden');
@@ -315,7 +315,7 @@ function MonitorStream(monitorData) {
       }
     }
     if (oldAlarm) { // done with an event do a refresh
-      if (ZM_SOUND_ON_ALARM) {
+      if (ZM_WEB_SOUND_ON_ALARM) {
         // Disable alarm sound
         if (!msieVer) {
           $j('#alarmSound').addClass('hidden');

@@ -61,8 +61,8 @@ function selectLayout(new_layout) {
     //$j('#height').val('auto');
   }
 
-  var width = parseInt($j('#width').val());
-  var height = parseInt($j('#height').val());
+  var width = $j('#width').val();
+  var height = $j('#height').val();
   var scale = $j('#scale').val();
   for (var i = 0, length = monitors.length; i < length; i++) {
     var monitor = monitors[i];
@@ -215,7 +215,13 @@ function initPage() {
   }
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i] = new MonitorStream(monitorData[i]);
-
+  }
+  selectLayout();
+  const scale = $j('#scale').val();
+  const width = $j('#width').val();
+  const height = $j('#height').val();
+  for (let i = 0, length = monitorData.length; i < length; i++) {
+    monitors[i].setScale(scale, width, height);
     // Start the fps and status updates. give a random delay so that we don't assault the server
     const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].start(delay);
@@ -225,7 +231,6 @@ function initPage() {
     }
     monitors[i].setup_onclick(handleClick);
   }
-  selectLayout();
 
   // If you click on the navigation links, shut down streaming so the browser can process it
   document.querySelectorAll('#main-header-nav a').forEach(function(el) {

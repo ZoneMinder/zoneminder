@@ -76,6 +76,7 @@ function MonitorStream(monitorData) {
    * height should be auto, 100%, integer +px
    * */
   this.setScale = function(newscale, width, height) {
+    console.log(newscale, width, height);
     const img = this.getElement();
     if (!img) {
       console.log("No img in setScale");
@@ -92,36 +93,34 @@ function MonitorStream(monitorData) {
     }
     stream_frame = $j('#monitor'+this.id);
 
-    if ((newscale == '0') || (newscale=='auto') || (width=='auto' && height=='auto' && newscale=='')) {
+    if (((newscale == '0') || (newscale=='auto')) && (width=='auto')) {
       if (!this.bottomElement) {
-        console.log("No bottom element set. Setting to monitorStatus");
-        this.bottomElement = document.getElementById('monitorStatus'+this.id);
-        if (!this.bottomElement) {
-          console.log('bottomElement not found');
-        }
+        console.log(monitor_frame.width(), this.width);
+        newscale = parseInt(100*monitor_frame.width() / this.width);
+        //width = Math.round(parseInt(this.width) * newscale / 100)+'px';
+        //height = Math.round(parseInt(this.height) * newscale / 100)+'px';
+        console.log(newscale, width, height);
+      } else {
+        var newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
+        width = newSize.width+'px';
+        height = newSize.height+'px';
+        newscale = parseInt(newSize.autoScale);
+        console.log("Have ottom selement, doing auto scale", newSize);
       }
-      var newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
-      width = newSize.width+'px';
-      height = newSize.height+'px';
-      newscale = parseInt(newSize.autoScale);
-      console.log("auto scale " + newscale);
     } else if (parseInt(width) || parseInt(height)) {
       if (width) {
         newscale = parseInt(100*parseInt(width)/this.width);
-        if (!parseInt(height)) height = parseInt(this.height * newscale / 100);
       } else if (height) {
         newscale = parseInt(100*parseInt(height)/this.height);
         width = parseInt(this.width * newscale / 100)+'px';
       }
-      console.log("New scale from size: " + newscale);
     } else {
       // a numeric scale, must take actual monitor dimensions and calculate
-      width = Math.round(parseInt(this.width) * newscale / 100);
-      height = Math.round(parseInt(this.height) * newscale / 100);
-      console.log("Setting to " + width + "x" + height + " from " + newscale);
+      width = Math.round(parseInt(this.width) * newscale / 100)+'px';
+      height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    monitor_frame.css('width', parseInt(width) ? parseInt(width)+'px' : 'auto');
-    img.style.width = width;
+    monitor_frame.css('width', width);
+    //img.style.width = width;
     img.style.height = height;
     this.setStreamScale(newscale);
   }; // setscale
@@ -135,7 +134,6 @@ function MonitorStream(monitorData) {
     const stream_frame = $j('#monitor'+this.id);
     if (!newscale) {
       newscale = parseInt(100*parseInt(stream_frame.width())/this.width);
-      console.log(newscale + " = " + this.width + " / " + stream_frame.width());
     }
     if (img.nodeName == 'IMG') {
       if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
@@ -301,7 +299,7 @@ function MonitorStream(monitorData) {
     const oldAlarm = ( !isAlarmed && wasAlarmed );
 
     if (newAlarm) {
-      if (SOUND_ON_ALARM) {
+      if (ZM_SOUND_ON_ALARM) {
         // Enable the alarm sound
         if (!msieVer) {
           $j('#alarmSound').removeClass('hidden');
@@ -317,7 +315,7 @@ function MonitorStream(monitorData) {
       }
     }
     if (oldAlarm) { // done with an event do a refresh
-      if (SOUND_ON_ALARM) {
+      if (ZM_SOUND_ON_ALARM) {
         // Disable alarm sound
         if (!msieVer) {
           $j('#alarmSound').addClass('hidden');

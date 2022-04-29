@@ -97,7 +97,6 @@ var deleteString = "<?php echo translate('Delete') ?>";
 
 var SCALE_BASE = <?php echo SCALE_BASE ?>;
 
-const SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
 const POPUP_ON_ALARM = false;
 
 var streamMode = "<?php echo $streamMode ?>";

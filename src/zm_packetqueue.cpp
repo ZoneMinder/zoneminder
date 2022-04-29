@@ -87,7 +87,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
   {
     std::unique_lock<std::mutex> lck(mutex);
     if (deleting or zm_terminate) return false;
-
+#if 0
     bool have_out_of_order = false;
     auto rit = pktQueue.rbegin();
     if (add_packet->packet.dts != AV_NOPTS_VALUE) {
@@ -110,6 +110,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }  // end while
     }
     if (have_out_of_order) {
+      //auto it = rit.base(); it++; // insert inserts BEFORE the it, so we need to 
       pktQueue.insert(rit.base(), add_packet);
       if (rit == pktQueue.rend()) {
         Warning("Unable to re-order packet");
@@ -118,6 +119,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         dumpQueue();
       }
     } else {
+#endif
       pktQueue.push_back(add_packet);
       for (
           auto iterators_it = iterators.begin();
@@ -129,7 +131,10 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           --(*iterator_it);
         }
       }  // end foreach iterator
+#if 0
     }
+#endif
+
 
     packet_counts[add_packet->packet.stream_index] += 1;
     Debug(2, "packet counts for %d is %d",

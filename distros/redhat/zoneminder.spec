@@ -36,7 +36,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.37.13
+Version: 1.37.14
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons

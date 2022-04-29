@@ -732,7 +732,7 @@ void Event::Run() {
 
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
-  while (true) {
+  while (!(terminate_ or zm_terminate)) {
     ZMLockedPacket * packet_lock = nullptr;
     {
       std::unique_lock<std::mutex> lck(packet_queue_mutex);

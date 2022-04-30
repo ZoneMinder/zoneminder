@@ -47,7 +47,7 @@ class VideoStore {
     CodecData *chosen_codec_data;
 
     Monitor *monitor;
-    const AVOutputFormat *out_format;
+    AVOutputFormat *out_format;
     AVFormatContext *oc;
     AVStream *video_out_stream;
     AVStream *audio_out_stream;

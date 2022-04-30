@@ -478,23 +478,6 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
         if (!WriteFrameImage(packet->analysis_image, packet->timestamp, event_file.c_str(), true)) {
           Error("Failed to write analysis frame image to %s", event_file.c_str());
         }
-        if (packet->in_frame &&
-            (
-             ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
-             ||
-             ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
-            )
-           ) {
-          std::string event_file = stringtf("%s/%d-y.jpg", path.c_str(), frames);
-          Image y_image(
-              packet->in_frame->width,
-              packet->in_frame->height,
-              1, ZM_SUBPIX_ORDER_NONE,
-              packet->in_frame->data[0], 0);
-          if (!WriteFrameImage(&y_image, packet->timestamp, event_file.c_str(), true)) {
-            Error("Failed to write y frame image to %s", event_file.c_str());
-          }
-        }  // end if write y-channel image
       }  // end if has analysis images turned on
     }  // end if is an alarm frame
   } else {
@@ -738,15 +721,20 @@ void Event::Run() {
       std::unique_lock<std::mutex> lck(packet_queue_mutex);
 
       if (packet_queue.empty()) {
-        packet_queue_condition.wait(lck);
+        if (!(terminate_ or zm_terminate))
+          packet_queue_condition.wait(lck);
+        // Neccessary because we don't hold the lock in the while condition
         if (terminate_ or zm_terminate) break;
-        continue;
       } 
-      // Packets on this queue are locked. They are locked by analysis thread
-      packet_lock = packet_queue.front();
-      packet_queue.pop();
+      if (!packet_queue.empty()) {
+        // Packets on this queue are locked. They are locked by analysis thread
+        packet_lock = packet_queue.front();
+        packet_queue.pop();
+      }
     }  // end lock scope
-    this->AddPacket_(packet_lock->packet_);
-    delete packet_lock;
+    if (packet_lock) {
+      this->AddPacket_(packet_lock->packet_);
+      delete packet_lock;
+    }
   }  // end while
 }  // end Run()

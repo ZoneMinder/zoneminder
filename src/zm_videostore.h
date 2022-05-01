@@ -6,6 +6,7 @@
 #include "zm_ffmpeg.h"
 #include "zm_swscale.h"
 
+#include <list>
 #include <memory>
 #include <map>
 
@@ -55,8 +56,6 @@ class VideoStore {
     // The following are used when encoding the audio stream to AAC
     const AVCodec *audio_out_codec;
     AVCodecContext *audio_out_ctx;
-    // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
-    AVPacket opkt;
     // we are transcoding
     AVFrame *video_in_frame;
     AVFrame *in_frame;
@@ -90,6 +89,7 @@ class VideoStore {
     int64_t audio_next_pts;
 
     int max_stream_index;
+    std::list<AVPacket *> reorder_queue;
 
     bool setup_resampler();
     int write_packet(AVPacket *pkt, AVStream *stream);

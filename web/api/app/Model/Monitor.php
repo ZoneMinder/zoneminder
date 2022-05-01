@@ -139,15 +139,18 @@ class Monitor extends AppModel {
       'className' => 'Event_Summary',
       'foreignKey' => 'MonitorId',
       'joinTable' =>  'Event_Summaries',
-    ),
+    )
+  );
+  
+  public $belongsTo = array(
     'Manufacturer' => array(
       'className' => 'Manufacturer',
-      'foreignKey' => 'Id',
+      'foreignKey' => 'ManufacturerId',
       'joinTable' => 'Manufacturers',
     ),
     'CameraModel' => array(
       'className' => 'CameraModel',
-      'foreignKey' => 'Id',
+      'foreignKey' => 'ModelId',
       'joinTable' => 'Models',
     )
   );

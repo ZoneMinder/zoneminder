@@ -15,7 +15,7 @@ function initPage() {
     monitors[i].setStreamScale();
     monitors[i].start(delay);
   }
-  $j('svg polygon').on('click', function(e){
+  $j('svg polygon').on('click', function(e) {
     window.location='?view=zone&mid='+this.getAttribute('data-mid')+'&zid='+this.getAttribute('data-zid');
   });
 

@@ -130,7 +130,7 @@ function getStreamCmdResponse(respObj, respText) {
   if (respObj.result == 'Ok') {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
-      let streamStatus = respObj.status;
+      const streamStatus = respObj.status;
       if ($j('#viewingFPSValue').text() != streamStatus.fps) {
         $j('#viewingFPSValue').text(streamStatus.fps);
       }

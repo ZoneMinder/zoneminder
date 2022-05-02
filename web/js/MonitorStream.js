@@ -364,15 +364,15 @@ function MonitorStream(monitorData) {
           const captureFPSValue = $j('#captureFPSValue'+this.id);
           const analysisFPSValue = $j('#analysisFPSValue'+this.id);
 
-          this.status.fps = this.status.fps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1});
+          this.status.fps = this.status.fps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
           if (viewingFPSValue.length && (viewingFPSValue.text != this.status.fps)) {
             viewingFPSValue.text(this.status.fps);
           }
-          this.status.analysisfps = this.status.analysisfps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1});
+          this.status.analysisfps = this.status.analysisfps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
           if (analysisFPSValue.length && (analysisFPSValue.text != this.status.analysisfps)) {
             analysisFPSValue.text(this.status.analysisfps);
           }
-          this.status.capturefps = this.status.capturefps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1});
+          this.status.capturefps = this.status.capturefps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
           if (captureFPSValue.length && (captureFPSValue.text != this.status.capturefps)) {
             captureFPSValue.text(this.status.capturefps);
           }

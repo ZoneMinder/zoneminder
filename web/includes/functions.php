@@ -2031,7 +2031,7 @@ function getStreamHTML($monitor, $options = array()) {
 
   if ( isset($options['scale']) and $options['scale'] != '' ) {
     if ($options['scale'] != 'auto' && $options['scale'] != '0') {
-      ZM\Warning('Setting dimensions from scale:'.$options['scale']);
+      #ZM\Warning('Setting dimensions from scale:'.$options['scale']);
       $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
       $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
     } else if ( ! ( isset($options['width']) or isset($options['height']) ) ) {

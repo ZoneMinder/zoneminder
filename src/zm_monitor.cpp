@@ -3188,11 +3188,13 @@ int Monitor::Close() {
   if (close_event_thread.joinable()) {
     close_event_thread.join();
   }
-  std::lock_guard<std::mutex> lck(event_mutex);
-  if (event) {
-    Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), image_count, event->Id());
-    closeEvent();
-    close_event_thread.join();
+  {
+    std::lock_guard<std::mutex> lck(event_mutex);
+    if (event) {
+      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), image_count, event->Id());
+      closeEvent();
+      close_event_thread.join();
+    }
   }
   packetqueue.clear();
   if (camera) camera->Close();

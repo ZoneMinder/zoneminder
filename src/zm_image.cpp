@@ -315,12 +315,14 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
   temp_frame->pts = frame->pts;
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
 
-  if (sws_scale(convert_context,
+      int ret = sws_scale(convert_context,
         frame->data, frame->linesize, 0, frame->height,
-        temp_frame->data, temp_frame->linesize) < 0) {
-    Error("Unable to convert raw format %u %ux%u to target format %u %ux%u",
-        frame->format, frame->width, frame->height,
-        format, width, height);
+        temp_frame->data, temp_frame->linesize);
+  if (ret < 0) {
+    Error("Unable to convert raw format %u %s %ux%u to target format %u %s %ux%u: %s",
+        frame->format, av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame->format)), frame->width, frame->height,
+        format, av_get_pix_fmt_name(format), width, height,
+        av_make_error_string(ret).c_str());
     return false;
   }
   zm_dump_video_frame(temp_frame, "dest frame after convert");

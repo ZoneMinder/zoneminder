@@ -1001,10 +1001,15 @@ our @options = (
     name        => 'ZM_PATH_FFMPEG',
     default     => '@PATH_FFMPEG@',
     description => 'Path to (optional) ffmpeg mpeg encoder',
-    help        => 'This path should point to where ffmpeg has been installed.',
+    help        => 'This path should point to where ffmpeg has been installed.~~
+~~
+      Please note this cannot be edited through the Web UI or API.~~
+      It can only be changed through .conf files in @ZM_CONFIG_SUBDIR@~~
+    ',
     requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'yes' } ],
     type        => $types{abs_path},
     category    => 'images',
+    system      => 1,
   },
   {
     name        => 'ZM_FFMPEG_INPUT_OPTIONS',

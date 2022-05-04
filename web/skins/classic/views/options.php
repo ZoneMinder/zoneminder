@@ -181,7 +181,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           </tbody>
         </table>
         <div id="contentButtons">
-          <?php echo makeButton('?view=user&uid=0', 'AddNewUser', canEdit('System')); ?>
+          <?php echo makeButton('?view=user&uid=0', 'AddNewUser', $canEdit); ?>
           <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
         </div>
       </form>
@@ -402,15 +402,17 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
     $configCats = array();
 
     $result = $dbConn->query('SELECT * FROM `Config` ORDER BY `Id` ASC');
-    if ( !$result )
+    if ( !$result ) {
       echo mysql_error();
-    while ( $row = dbFetchNext($result) ) {
-      $config[$row['Name']] = $row;
-      if ( !($configCat = &$configCats[$row['Category']]) ) {
-        $configCats[$row['Category']] = array();
-        $configCat = &$configCats[$row['Category']];
+    } else {
+      while ( $row = dbFetchNext($result) ) {
+        $config[$row['Name']] = $row;
+        if ( !($configCat = &$configCats[$row['Category']]) ) {
+          $configCats[$row['Category']] = array();
+          $configCat = &$configCats[$row['Category']];
+        }
+        $configCat[$row['Name']] = $row;
       }
-      $configCat[$row['Name']] = $row;
     }
 
     if ( $tab == 'system' ) {
@@ -463,25 +465,24 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
         foreach ( $configCat as $name=>$value ) {
           $shortName = preg_replace( '/^ZM_/', '', $name );
           $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
+          $optionCanEdit = $canEdit && !$value['System'];
+          ZM\Debug($optionCanEdit . ' for ' . $value['Name'] . ' System: ' . $value['System']);
 ?>
             <div class="form-group form-row">
               <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
               <div class="col-md">
 <?php   
-        if ( $value['Type'] == 'boolean' ) {
+          if ( $value['Type'] == 'boolean' ) {
+            echo '<input type="checkbox" id="'.$name.'" name="newConfig['.$name.'" value="1"'.
+              ( $value['Value'] ? ' checked="checked"' : '').
+              ( $optionCanEdit ? '' : ' disabled="disabled"').' />'.PHP_EOL;
+          } else if ( is_array($value['Hint']) ) {
+            echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value']);
+          } else if ( preg_match('/\|/', $value['Hint']) ) {
+              $options = explode('|', $value['Hint']);
+              if ( count($options) > 3 ) {
 ?>
-              <input type="checkbox" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="1"<?php if ( $value['Value'] ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
-<?php
-        } elseif ( is_array($value['Hint']) ) {
-          echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value']);
-        } elseif ( preg_match('/\|/', $value['Hint']) ) {
-?>
-
-<?php
-            $options = explode('|', $value['Hint']);
-            if ( count($options) > 3 ) {
-?>
-                <select class="form-control-sm" name="newConfig[<?php echo $name ?>]"<?php echo $canEdit?'':' disabled="disabled"' ?>>
+                <select class="form-control-sm" name="newConfig[<?php echo $name ?>]"<?php echo $optionCanEdit?'':' disabled="disabled"' ?>>
 <?php
                 foreach ( $options as $option ) {
                   if ( preg_match('/^([^=]+)=(.+)$/', $option, $matches) ) {
@@ -507,7 +508,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
                   }
 ?>
                 <label class="font-weight-bold  form-control-sm">
-                  <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $canEdit?'':' disabled="disabled"' ?>/>
+                  <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
                   <?php echo htmlspecialchars($optionLabel) ?>
                 </label>
 <?php
@@ -517,23 +518,23 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
 <?php
         } else if ( $value['Type'] == 'text' ) {
 ?>
-              <textarea class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" rows="5" cols="40"<?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo validHtmlStr($value['Value']) ?></textarea>
+              <textarea class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" rows="5" cols="40"<?php echo $optionCanEdit?'':' disabled="disabled"' ?>><?php echo validHtmlStr($value['Value']) ?></textarea>
 <?php
         } else if ( $value['Type'] == 'integer' ) {
 ?>
-              <input type="number" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="number" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else if ( $value['Type'] == 'hexadecimal' ) {
 ?>
-              <input type="text" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else if ( $value['Type'] == 'decimal' ) {
 ?>
-              <input type="text" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
 <?php
         } else {
 ?>
-              <input type="text" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $canEdit?'':' disabled="disabled"' ?>/>
+              <input type="text" class="form-control-sm" id="<?php echo $name ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo validHtmlStr($value['Value']) ?>" <?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
 <?php
         }
 ?>
@@ -543,7 +544,6 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
 <?php
     }
 ?>
-
         <div id="contentButtons">
           <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
         </div>
@@ -551,9 +551,6 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
 <?php
 }
 ?>
-
-
-
     </div><!-- end #options -->
 	</div>
 </div> <!-- end row -->

@@ -2184,10 +2184,12 @@ void Monitor::Reload() {
   // Access to the event needs to be protected.  Either thread could call Reload.  Either thread could close the event. 
   // Need a mutex on it I guess.  FIXME
   // Need to guard around event creation/deletion This will prevent event creation until new settings are loaded
-  std::lock_guard<std::mutex> lck(event_mutex);
-  if (event) {
-    Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), image_count, event->Id());
-    closeEvent();
+  {
+    std::lock_guard<std::mutex> lck(event_mutex);
+    if (event) {
+      Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), image_count, event->Id());
+      closeEvent();
+    }
   }
 
   std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", id);
@@ -2707,6 +2709,7 @@ Event * Monitor::openEvent(
   return event;
 }
 
+/* Caller must hold the event lock */
 void Monitor::closeEvent() {
   if (!event) return;
 

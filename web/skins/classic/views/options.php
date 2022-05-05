@@ -473,7 +473,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               <div class="col-md">
 <?php   
     if ($value['Type'] == 'boolean') {
-      echo '<input type="checkbox" id="'.$name.'" name="newConfig['.$name.'" value="1"'.
+      echo '<input type="checkbox" id="'.$name.'" name="newConfig['.$name.']" value="1"'.
         ( $value['Value'] ? ' checked="checked"' : '').
         ( $optionCanEdit ? '' : ' disabled="disabled"').' />'.PHP_EOL;
     } else if (is_array($value['Hint'])) {

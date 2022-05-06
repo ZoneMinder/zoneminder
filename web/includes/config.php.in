@@ -118,6 +118,7 @@ define('CMD_PREV', 12);
 define('CMD_NEXT', 13);
 define('CMD_SEEK', 14 );
 define('CMD_VARPLAY', 15);
+define('CMD_GET_IMAGE', 16);
 define('CMD_QUIT', 17);
 define('CMD_MAXFPS', 18);
 define('CMD_ANALYZE_ON', 19);

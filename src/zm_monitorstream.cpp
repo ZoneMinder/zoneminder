@@ -189,46 +189,13 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     case CMD_ZOOMIN :
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
       y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-      Debug(1, "Got ZOOM IN command, to %d,%d", x, y);
-      switch (zoom) {
-        case 100:
-          zoom = 150;
-          break;
-        case 150:
-          zoom = 200;
-          break;
-        case 200:
-          zoom = 300;
-          break;
-        case 300:
-          zoom = 400;
-          break;
-        case 400:
-        default :
-          zoom = 500;
-          break;
-      }
+      zoom += 25;
+      Debug(1, "Got ZOOM IN command, to %d,%d zoom value %d%", x, y, zoom);
       break;
     case CMD_ZOOMOUT :
-      Debug(1, "Got ZOOM OUT command");
-      switch (zoom) {
-        case 500:
-          zoom = 400;
-          break;
-        case 400:
-          zoom = 300;
-          break;
-        case 300:
-          zoom = 200;
-          break;
-        case 200:
-          zoom = 150;
-          break;
-        case 150:
-        default :
-          zoom = 100;
-          break;
-      }
+      zoom -= 25;
+      if (zoom < 100) zoom = 100;
+      Debug(1, "Got ZOOM OUT command resulting zoom %d%", zoom);
       break;
     case CMD_PAN :
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
@@ -582,6 +549,7 @@ void MonitorStream::runStream() {
     bool got_command = false; // commands like zoom should output a frame even if paused
     if (connkey) {
       while (checkCommandQueue() && !zm_terminate) {
+        Debug(2, "checking command Queue for connkey: %d", connkey);
         // Loop in here until all commands are processed.
         Debug(2, "Have checking command Queue for connkey: %d", connkey);
         got_command = true;
@@ -592,6 +560,8 @@ void MonitorStream::runStream() {
         touch(sock_path_lock);
         last_comm_update = now;
       }
+    } else {
+      Debug(1, "No connkey");
     }  // end if connkey
     if (!checkInitialised()) {
       if (!loadMonitor(monitor_id)) {

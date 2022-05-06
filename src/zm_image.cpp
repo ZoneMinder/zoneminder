@@ -21,6 +21,7 @@
 
 #include "zm_font.h"
 #include "zm_poly.h"
+#include "zm_swscale.h"
 #include "zm_utils.h"
 #include <algorithm>
 #include <fcntl.h>
@@ -2745,6 +2746,28 @@ void Image::Flip( bool leftright ) {
   }
 
   AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
+}
+
+void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
+  if (width == new_width and height == new_height) return;
+
+  // Why larger than we need?
+  size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
+  size_t new_linesize = new_width * colours;
+  uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
+
+  AVPixelFormat format = AVPixFormat();
+  SWScale swscale;
+  swscale.init();
+  swscale.Convert( buffer, allocation,
+    scale_buffer,
+    scale_buffer_size,
+    format, format,
+    width,
+    height,
+    new_width,
+    new_height);
+  AssignDirect(new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
 }
 
 void Image::Scale(const unsigned int factor) {

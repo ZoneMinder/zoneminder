@@ -277,6 +277,7 @@ class Image {
     void Rotate( int angle );
     void Flip( bool leftright );
     void Scale( unsigned int factor );
+    void Scale(unsigned int x, unsigned int y);
 
     void Deinterlace_Discard();
     void Deinterlace_Linear();

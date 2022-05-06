@@ -138,6 +138,9 @@ bool StreamBase::checkCommandQueue() {
 }  // end bool StreamBase::checkCommandQueue()
 
 Image *StreamBase::prepareImage(Image *image) {
+  /* zooming should happen before scaling to preserve quality
+   * scale is relative to base dimensions, and represents the rough ration between desired view size and base dimensions
+   */
 
   // Do not bother to scale zoomed in images, just crop them and let the browser scale
   // Works in FF2 but breaks FF3 which doesn't like image sizes changing in mid stream.
@@ -185,66 +188,96 @@ Image *StreamBase::prepareImage(Image *image) {
       last_send_image_width, last_send_image_height
       );
 
-  if ( ( mag != ZM_SCALE_BASE ) && (act_mag != ZM_SCALE_BASE) ) {
-    Debug(3, "Magnifying by %d", mag);
-    static Image copy_image;
-    copy_image.Assign(*image);
-    image = &copy_image;
-    image_copied = true;
-    image->Scale(mag);
-  }
-
   Debug(3, "Real image width = %d, height = %d", image->Width(), image->Height());
 
   if ( disp_image_width < virt_image_width || disp_image_height < virt_image_height ) {
-    static Box last_crop;
 
-    if ( mag != last_mag || x != last_x || y != last_y ) {
-      Debug(3, "Got click at %d,%d x %d", x, y, mag);
+    /* x and y are scaled by web UI to base dimensions units. 
+     * So if we have scaled the image above, then we need to adjust the click to the new dimensions */
 
-      if ( !(last_disp_image_width < last_virt_image_width || last_disp_image_height < last_virt_image_height) )
-        last_crop = Box();
+    if (zoom) {
+      /* When zooming, we blow up the image by the amount 150 for first zoom, right? 150%, then cut out a base sized chunk
+       * However if we have zoomed before, then we are zooming into the previous cutout
+       * The box stored in last_crop should be in base_image units, So we need to turn x,y into percentages, then apply to last_crop
+       *
+       */
+      if (!last_crop.Hi().x_ or last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
 
-      // Recalculate crop parameters, as %ges
-      int click_x = (last_crop.Lo().x_ * 100) / last_act_image_width; // Initial crop offset from last image
-      click_x += (x * 100) / last_virt_image_width;
-      int click_y = (last_crop.Lo().y_ * 100) / last_act_image_height; // Initial crop offset from last image
-      click_y += (y * 100) / last_virt_image_height;
-      Debug(3, "Got adjusted click at %d%%,%d%%", click_x, click_y);
+      int x_percent = x * ZM_SCALE_BASE / base_image_width;
+      int y_percent = y * ZM_SCALE_BASE / base_image_height;
+      Debug(2, "click percent %dx%d => %dx%d", x, y, x_percent, y_percent);
 
-      // Convert the click locations to the current image pixels
-      click_x = ( click_x * act_image_width ) / 100;
-      click_y = ( click_y * act_image_height ) / 100;
-      Debug(3, "Got readjusted click at %d,%d", click_x, click_y);
+      int crop_x = last_crop.Lo().x_ + (x_percent * last_crop.Width() / ZM_SCALE_BASE);
+      int crop_y = last_crop.Lo().y_ + (y_percent * last_crop.Height() / ZM_SCALE_BASE);
+      Debug(2, "crop click %dx%d => %dx%d out of %dx%d", x, y, crop_x, crop_y, last_crop.Width(), last_crop.Height());
 
-      int lo_x = click_x - (send_image_width/2);
-      if ( lo_x < 0 )
+      int zoom_image_width = base_image_width * zoom / ZM_SCALE_BASE,
+          zoom_image_height = base_image_height * zoom / ZM_SCALE_BASE,
+          click_x = crop_x * zoom / ZM_SCALE_BASE,
+          click_y = crop_y * zoom / ZM_SCALE_BASE;
+      Debug(2, "adjusted click %dx%d => %dx%d out of %dx%d", x, y, click_x, click_y, zoom_image_width, zoom_image_height);
+
+      // These can go out of image. Resulting size will be less than base image. That's ok.
+      int lo_x = click_x - (base_image_width/2);
+      int hi_x = lo_x + base_image_width;
+      int lo_y = click_y - (base_image_height/2);
+      int hi_y = lo_y + base_image_height;
+
+      int amount_to_shrink_y = 0;
+      if (lo_x < 0) {
+        amount_to_shrink_y = ((-1 * lo_x) / base_image_width) * base_image_height;
         lo_x = 0;
-      int hi_x = lo_x + (send_image_width-1);
-      if ( hi_x >= act_image_width ) {
-        hi_x = act_image_width - 1;
-        lo_x = hi_x - (send_image_width - 1);
+      } else if (hi_x >= zoom_image_width) {
+        amount_to_shrink_y = ((hi_x - zoom_image_width) / base_image_width) * base_image_height;
+        hi_x = zoom_image_width - 1;
+      }
+      Debug(1, "Shrinking y by %d from %d->%d to %d->%d", amount_to_shrink_y, lo_y, hi_y, lo_y+amount_to_shrink_y/2, hi_y-amount_to_shrink_y/2);
+      if (amount_to_shrink_y) {
+        lo_y += amount_to_shrink_y/2;
+        hi_y -= amount_to_shrink_y/2;
       }
 
-      int lo_y = click_y - (send_image_height/2);
-      if ( lo_y < 0 ) lo_y = 0;
-      int hi_y = lo_y + (send_image_height-1);
-      if ( hi_y >= act_image_height ) {
-        hi_y = act_image_height - 1;
-        lo_y = hi_y - (send_image_height - 1);
+      int amount_to_shrink_x = 0;
+      if (lo_y < 0) {
+        amount_to_shrink_x = ((-1 * lo_y) / base_image_height) * base_image_width;
+        lo_y = 0;
+      } else if (hi_y >= zoom_image_height) {
+        amount_to_shrink_x = ((hi_y - zoom_image_height) / base_image_height) * base_image_width;
+        hi_y = zoom_image_height - 1;
       }
-      last_crop = Box({lo_x, lo_y}, {hi_x, hi_y});
-    }  // end if ( mag != last_mag || x != last_x || y != last_y )
+      Debug(1, "Shrinking y by %d from %d->%d to %d->%d", amount_to_shrink_x, lo_x, hi_x, lo_x+amount_to_shrink_x/2, hi_x-amount_to_shrink_x/2);
+      if (amount_to_shrink_x) {
+        lo_x += amount_to_shrink_x/2;
+        hi_x -= amount_to_shrink_x/2;
+      }
 
-    Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
-    if ( !image_copied ) {
+      Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
+      // Scaled back to base_image dimensions
+      last_crop = Box({lo_x*ZM_SCALE_BASE/zoom, lo_y*ZM_SCALE_BASE/zoom}, {hi_x*ZM_SCALE_BASE/zoom, hi_y*ZM_SCALE_BASE/zoom});
+
+      Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
+      if ( !image_copied ) {
+        static Image copy_image;
+        copy_image.Assign(*image);
+        image = &copy_image;
+        image_copied = true;
+      }
+      image->Crop(last_crop);
+      image->Scale(disp_image_width, disp_image_height);
+    } else
+    //}  // end if ( mag != last_mag || x != last_x || y != last_y )
+
+    if ( ( mag != ZM_SCALE_BASE ) && (act_mag != ZM_SCALE_BASE) ) {
+      Debug(3, "Magnifying by %d from %dx%d", mag, image->Width(), image->Height());
       static Image copy_image;
       copy_image.Assign(*image);
       image = &copy_image;
       image_copied = true;
+      image->Scale(mag);
+      Debug(3, "Magnifying by %d to %dx%d", mag, image->Width(), image->Height());
     }
-    image->Crop(last_crop);
   }  // end if difference in image vs displayed dimensions
+      Debug(3, "Sending %dx%d", image->Width(), image->Height());
 
   last_scale = scale;
   last_zoom = zoom;

@@ -20,6 +20,7 @@
 #ifndef ZM_STREAM_H
 #define ZM_STREAM_H
 
+#include "zm_box.h"
 #include "zm_logger.h"
 #include "zm_mpeg.h"
 #include <memory>
@@ -102,6 +103,7 @@ protected:
   int last_scale;
   int zoom;
   int last_zoom;
+  Box last_crop;
   int bitrate;
   unsigned short last_x, last_y;
   unsigned short x, y;

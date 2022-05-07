@@ -34,15 +34,15 @@ function MonitorStream(monitorData) {
   this.setBottomElement = function(e) {
     if (!e) {
       console.error("Empty bottomElement");
-    } else {
-      console.log("Setting bottomElement to ");
-      console.log(e);
     }
     this.bottomElement = e;
   };
 
   this.img_onerror = function() {
     console.log('Failed loading image stream');
+  };
+  this.img_onload = function() {
+    console.log('loaded image stream');
   };
 
   this.element = null;
@@ -150,7 +150,7 @@ function MonitorStream(monitorData) {
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
         this.streamCommand(CMD_QUIT);
-        img.src = '';
+        //img.src = '';
         img.src = newSrc;
         this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
       }
@@ -200,6 +200,7 @@ function MonitorStream(monitorData) {
     }
     this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), delay);
     stream.onerror = this.img_onerror.bind(this);
+    stream.onload = this.img_onload.bind(this);
   }; // this.start
 
   this.stop = function() {

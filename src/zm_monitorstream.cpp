@@ -177,13 +177,13 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     case CMD_ZOOMIN :
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
       y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-      zoom += 25;
-      Debug(1, "Got ZOOM IN command, to %d,%d zoom value %d%", x, y, zoom);
+      zoom += 10;
+      Debug(1, "Got ZOOM IN command, to %d,%d zoom value %d%%", x, y, zoom);
       break;
     case CMD_ZOOMOUT :
-      zoom -= 25;
+      zoom -= 10;
       if (zoom < 100) zoom = 100;
-      Debug(1, "Got ZOOM OUT command resulting zoom %d%", zoom);
+      Debug(1, "Got ZOOM OUT command resulting zoom %d%%", zoom);
       break;
     case CMD_PAN :
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];

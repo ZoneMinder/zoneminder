@@ -203,10 +203,11 @@ Image *StreamBase::prepareImage(Image *image) {
        */
       if (!last_crop.Hi().x_ or last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
 
-      int x_percent = x * ZM_SCALE_BASE / base_image_width;
-      int y_percent = y * ZM_SCALE_BASE / base_image_height;
-      Debug(2, "click percent %dx%d => %dx%d", x, y, x_percent, y_percent);
+      double x_percent = static_cast<double>(x * ZM_SCALE_BASE) / base_image_width;
+      double y_percent = static_cast<double>(y * ZM_SCALE_BASE) / base_image_height;
+      Debug(2, "click percent %dx%d => %.2fx%.2f", x, y, x_percent, y_percent);
 
+      // If we were previously zoomed in, then the coordinate percentages are into the crop, so calculate the click coordinates in base image
       int crop_x = last_crop.Lo().x_ + (x_percent * last_crop.Width() / ZM_SCALE_BASE);
       int crop_y = last_crop.Lo().y_ + (y_percent * last_crop.Height() / ZM_SCALE_BASE);
       Debug(2, "crop click %dx%d => %dx%d out of %dx%d", x, y, crop_x, crop_y, last_crop.Width(), last_crop.Height());
@@ -215,23 +216,30 @@ Image *StreamBase::prepareImage(Image *image) {
           zoom_image_height = base_image_height * zoom / ZM_SCALE_BASE,
           click_x = crop_x * zoom / ZM_SCALE_BASE,
           click_y = crop_y * zoom / ZM_SCALE_BASE;
-      Debug(2, "adjusted click %dx%d => %dx%d out of %dx%d", x, y, click_x, click_y, zoom_image_width, zoom_image_height);
+      Debug(2, "adjusted click %dx%d * %d zoom => %dx%d out of %dx%d", x, y, zoom, click_x, click_y, zoom_image_width, zoom_image_height);
 
       // These can go out of image. Resulting size will be less than base image. That's ok.
-      int lo_x = click_x - (base_image_width/2);
+      // We don't want to center it, we want to keep the relative offset from center where the click is.
+      int left_dist = base_image_width * x_percent/ZM_SCALE_BASE;
+      int top_dist = base_image_height * y_percent/ZM_SCALE_BASE;
+      Debug(2, "Dest at %d,%d", left_dist, top_dist);
+
+      int lo_x = click_x - left_dist;
       int hi_x = lo_x + base_image_width;
-      int lo_y = click_y - (base_image_height/2);
+      Debug(2, "hi_x = lo_x %d + base_image_width %d - left_dist %d = %d", lo_x, base_image_width, left_dist, hi_x);
+      int lo_y = click_y - top_dist;
       int hi_y = lo_y + base_image_height;
+      Debug(2, "hi_y = lo_y %d + base_image_h %d - top_dist %d = %d", lo_y, base_image_height, top_dist, hi_y);
 
       int amount_to_shrink_y = 0;
       if (lo_x < 0) {
-        amount_to_shrink_y = ((-1 * lo_x) / base_image_width) * base_image_height;
+        amount_to_shrink_y = (-1 * lo_x) * base_image_height / base_image_width;
         lo_x = 0;
       } else if (hi_x >= zoom_image_width) {
-        amount_to_shrink_y = ((hi_x - zoom_image_width) / base_image_width) * base_image_height;
+        amount_to_shrink_y = (hi_x - zoom_image_width) * base_image_height / base_image_width;
         hi_x = zoom_image_width - 1;
       }
-      Debug(1, "Shrinking y by %d from %d->%d to %d->%d", amount_to_shrink_y, lo_y, hi_y, lo_y+amount_to_shrink_y/2, hi_y-amount_to_shrink_y/2);
+      Debug(1, "Shrinking y by %d from %d,%d to %d,%d", amount_to_shrink_y, lo_y, hi_y, lo_y+(amount_to_shrink_y/2), hi_y-(amount_to_shrink_y/2));
       if (amount_to_shrink_y) {
         lo_y += amount_to_shrink_y/2;
         hi_y -= amount_to_shrink_y/2;
@@ -239,13 +247,14 @@ Image *StreamBase::prepareImage(Image *image) {
 
       int amount_to_shrink_x = 0;
       if (lo_y < 0) {
-        amount_to_shrink_x = ((-1 * lo_y) / base_image_height) * base_image_width;
+        amount_to_shrink_x = (-1 * lo_y) * base_image_width / base_image_height;
+        Debug(1, "%d to %d = %d", lo_y, -1*lo_y, amount_to_shrink_x);
         lo_y = 0;
       } else if (hi_y >= zoom_image_height) {
-        amount_to_shrink_x = ((hi_y - zoom_image_height) / base_image_height) * base_image_width;
+        amount_to_shrink_x = (hi_y - zoom_image_height) * base_image_width / base_image_height;
         hi_y = zoom_image_height - 1;
       }
-      Debug(1, "Shrinking y by %d from %d->%d to %d->%d", amount_to_shrink_x, lo_x, hi_x, lo_x+amount_to_shrink_x/2, hi_x-amount_to_shrink_x/2);
+      Debug(1, "Shrinking x by %d from %d,%d to %d,%d", amount_to_shrink_x, lo_x, hi_x, lo_x+(amount_to_shrink_x/2), hi_x-(amount_to_shrink_x/2));
       if (amount_to_shrink_x) {
         lo_x += amount_to_shrink_x/2;
         hi_x -= amount_to_shrink_x/2;

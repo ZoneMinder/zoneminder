@@ -29,6 +29,7 @@
   position: relative;
   min-width: 647px; /* extra 6 px for padding */
   float: left;
+  width: 50%;
 }
 
 /* NB: The size of the imageFrame determines the area within which the markers

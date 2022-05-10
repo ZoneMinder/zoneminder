@@ -2679,13 +2679,16 @@ Event * Monitor::openEvent(
   ZMLockedPacket *starting_packet_lock = nullptr;
   if (*start_it != *analysis_it) {
     starting_packet_lock = packetqueue.get_packet(start_it);
+    
     if (!starting_packet_lock) {
       Warning("Unable to get starting packet lock");
       return nullptr;
     }
     starting_packet = starting_packet_lock->packet_;
+    ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
   } else {
     starting_packet = snap;
+    ZM_DUMP_PACKET(starting_packet->packet, "First packet from alarm");
   }
 
   event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
@@ -2695,6 +2698,7 @@ Event * Monitor::openEvent(
 
   // Write out starting packets, do not modify packetqueue it will garbage collect itself
   while (starting_packet_lock && (*start_it != *analysis_it) && !zm_terminate) {
+    ZM_DUMP_PACKET(starting_packet_lock->packet_->packet, "Queuing packet for event");
     event->AddPacket(starting_packet_lock);
 
     packetqueue.increment_it(start_it);

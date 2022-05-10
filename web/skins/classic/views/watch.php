@@ -152,7 +152,7 @@ if (
   or 
   ($options['height'] and ($options['height'] != 'auto'))
 ) {
-  $options['scale'] = 'fixed';
+  $options['scale'] = 'auto';
 }
 
 $connkey = generateConnKey();

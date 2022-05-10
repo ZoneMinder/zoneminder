@@ -371,7 +371,9 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
               <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
               <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+<?php if (ZM_WEB_LIST_THUMBS) { ?>
               <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+<?php } ?>
             </tr>
           </thead>
 

@@ -144,6 +144,7 @@ std::string Decoding_Strings[] = {
   "None",
   "On demand",
   "Keyframes",
+  "Keyframes + Ondemand",
   "Always"
 };
 
@@ -2600,6 +2601,8 @@ bool Monitor::Decode() {
         ((decoding == DECODING_ONDEMAND) and this->hasViewers() )
         or
         ((decoding == DECODING_KEYFRAMES) and packet->keyframe)
+        or
+        ((decoding == DECODING_KEYFRAMESONDEMAND) and (this->hasViewers() or packet->keyframe))
        ) {
 
       // Allocate the image first so that it can be used by hwaccel

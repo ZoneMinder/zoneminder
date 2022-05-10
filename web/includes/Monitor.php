@@ -92,6 +92,7 @@ public static function getDecodingOptions() {
         'None'      =>  translate('None'),
         'Ondemand'  =>  translate('On Demand'),
         'KeyFrames' =>  translate('KeyFrames Only'),
+        'KeyFrames+Ondemand' => translate('Keyframes + Ondemand'),
         'Always'    =>  translate('Always'),
         );
   }

@@ -2764,7 +2764,6 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
 
   // Why larger than we need?
   size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
-  size_t new_linesize = new_width * colours;
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 
   AVPixelFormat format = AVPixFormat();

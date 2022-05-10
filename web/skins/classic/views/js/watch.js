@@ -881,6 +881,7 @@ function nextCycleView() {
 
 function cyclePause() {
   clearInterval(intervalId);
+  cycle = false;
   $j('#cyclePauseBtn').hide();
   $j('#cyclePlayBtn').show();
 }
@@ -888,6 +889,7 @@ function cyclePause() {
 function cycleStart() {
   secondsToCycle = $j('#cyclePeriod').val();
   intervalId = setInterval(nextCycleView, 1000);
+  cycle = true;
   $j('#cyclePauseBtn').show();
   $j('#cyclePlayBtn').hide();
 }

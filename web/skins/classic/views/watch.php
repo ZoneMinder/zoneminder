@@ -81,10 +81,21 @@ if (!visibleMonitor($mid)) {
 
 $monitor = new ZM\Monitor($mid);
 $nextMid = ($monitor_index == count($monitors)-1) ? $monitors[0]->Id() : $monitors[$monitor_index+1]->Id();
-$cycle = isset($_REQUEST['cycle']) and ($_REQUEST['cycle'] == 'true');
+
+# cycle is wether to do the countdown/move to next monitor bit.
+# showCycle is whether to show the cycle controls.
+# If cycle is true, then showcycle should also be true.
+# If showcycle is false, then cycle should be false
+# But showcycle can be true, and cycle false.
+$cycle = false;
+$showCycle = false;
+if (isset($_REQUEST['cycle']) and ($_REQUEST['cycle'] == 'true')) {
+  $cycle = true;
+}
 $showCycle = $cycle;
 if (isset($_COOKIE['zmCycleShow'])) {
   $showCycle = $_COOKIE['zmCycleShow'] == 'true';
+  if (!$showCycle) $cycle = false;
 }
 #Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );

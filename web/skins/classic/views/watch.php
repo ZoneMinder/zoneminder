@@ -127,7 +127,7 @@ if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScale'.$mid];
-  if ($scale == 'auto') $scale = '0';
+  if ($scale == '0') $scale = '0';
 } else {
   $scale = $monitor->DefaultScale();
 }

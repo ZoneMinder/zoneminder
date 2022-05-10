@@ -874,6 +874,7 @@ function nextCycleView() {
   if (secondsToCycle<=0) {
     clearInterval(intervalId);
     secondsToCycle = 0;
+    monitorStream.stop();
     window.location.replace('?view=watch&mid='+nextMid+'&mode='+mode+'&cycle=true');
   }
   $j('#secondsToCycle').text(secondsToCycle);
@@ -903,6 +904,7 @@ function cycleNext() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
+  monitorStream.stop();
   window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 
@@ -915,6 +917,7 @@ function cyclePrev() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
+  monitorStream.stop();
   window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 

@@ -1984,11 +1984,9 @@ bool Monitor::Analyse() {
                   event = openEvent(snap, cause, noteSetMap);
                   snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                   video_store_data->recording = event->StartTime();
-                  shared_data->state = state = ALARM;
                   Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
-                } else {
-                  shared_data->state = state = ALARM;
                 }  // end if no event, so start it
+                shared_data->state = state = ALARM;
                 if ( alarm_frame_count ) {
                   Debug(1, "alarm frame count so SavePreAlarmFrames");
                   event->SavePreAlarmFrames();
@@ -2011,7 +2009,6 @@ bool Monitor::Analyse() {
               Debug(1, "Was in TAPE, going into ALARM");
             } else {
               Debug(1, "Staying in %s", State_Strings[state].c_str());
-
             }
             if (state == ALARM) {
               last_alarm_count = analysis_image_count; 
@@ -2679,13 +2676,16 @@ Event * Monitor::openEvent(
   ZMLockedPacket *starting_packet_lock = nullptr;
   if (*start_it != *analysis_it) {
     starting_packet_lock = packetqueue.get_packet(start_it);
+    
     if (!starting_packet_lock) {
       Warning("Unable to get starting packet lock");
       return nullptr;
     }
     starting_packet = starting_packet_lock->packet_;
+    ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
   } else {
     starting_packet = snap;
+    ZM_DUMP_PACKET(starting_packet->packet, "First packet from alarm");
   }
 
   event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
@@ -2695,6 +2695,7 @@ Event * Monitor::openEvent(
 
   // Write out starting packets, do not modify packetqueue it will garbage collect itself
   while (starting_packet_lock && (*start_it != *analysis_it) && !zm_terminate) {
+    ZM_DUMP_PACKET(starting_packet_lock->packet_->packet, "Queuing packet for event");
     event->AddPacket(starting_packet_lock);
 
     packetqueue.increment_it(start_it);

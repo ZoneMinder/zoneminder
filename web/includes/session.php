@@ -30,7 +30,7 @@ function zm_session_start() {
     if ( version_compare(phpversion(), '7.3.0', '<') ) {
       session_set_cookie_params(
         $currentCookieParams['lifetime'],
-        $currentCookieParams['path'],
+        $currentCookieParams['path'].'; samesite=strict',
         $currentCookieParams['domain'],
         $currentCookieParams['secure'],
         $currentCookieParams['httponly']

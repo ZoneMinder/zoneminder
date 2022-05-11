@@ -754,6 +754,15 @@ a.flip {
 #modalLogout .modal-body {
   overflow:auto;
 }
+#getAccountCircleHTML {
+  padding: 4px 0 0 0;
+}
+#logoutButton {
+  padding: 4px 10px 7px 10px;
+}
+#stateModalBtn {
+  padding: 4px 10px 7px 10px;
+}
 #shutdownButton {
   padding: 3px 10px 5px 10px;
   color: white;

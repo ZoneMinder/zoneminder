@@ -251,9 +251,6 @@ class Monitor extends ZM_Object {
         $args['user'] = $_SESSION['username'];
       }
     }
-    if ((!isset($args['mode'])) or ($args['mode'] != 'single')) {
-      $args['connkey'] = $this->connKey();
-    }
     if (ZM_RAND_STREAM) {
       $args['rand'] = time();
     }

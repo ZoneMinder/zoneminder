@@ -258,13 +258,13 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ] || [ "$DISTRO" == "bullseye" ] || [ "$DISTRO" == "hirsute" ] || [ "$DISTRO" == "impish" ] || [ "$DISTRO" == "jammy" ] ; then 
-    cp -Rpd distros/ubuntu2004 debian
+  if [ "$DISTRO" == "xenial" ] || [ "$DISTRO" == "stretch" ]; then
+    cp -Rpd distros/ubuntu1604 debian
   elif [ "$DISTRO" == "beowulf" ]
   then
     cp -Rpd distros/beowulf debian
   else
-    cp -Rpd distros/ubuntu1604 debian
+    cp -Rpd distros/ubuntu2004 debian
   fi;
 
   if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then

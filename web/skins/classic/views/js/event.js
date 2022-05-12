@@ -25,7 +25,6 @@ var streamCmdTimer = null;
 var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
-var auth_hash;
 var wasHidden = false;
 
 function streamReq(data) {

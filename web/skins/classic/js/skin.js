@@ -877,11 +877,18 @@ function exportResponse(data, responseText) {
 }
 
 function exportEvent() {
-  var form = $j('#downloadForm').serialize();
-  $j.getJSON(thisUrl + '?view=request&request=event&action=download', form)
-      .done(exportResponse)
-      .fail(logAjaxFail);
-  $j('#exportProgress').removeClass( 'invisible' );
+  $j.ajax({
+    url: thisUrl + '?view=request&request=event&action=download',
+    dataType: 'json',
+    data: $j('#downloadForm').serialize(),
+    success: exportResponse,
+    timeout: 0,
+    error: function(jqXHR, status, errorThrown) {
+      logAjaxFail(jqXHR, status, errorThrown);
+      $j('#exportProgress').html('Failed: ' + errorThrown);
+    }
+  });
+  $j('#exportProgress').removeClass('invisible');
 }
 
 // Loads the shutdown modal

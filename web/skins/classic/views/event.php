@@ -39,10 +39,10 @@ if ( $user['MonitorIds'] ) {
 }
 $Monitor = $Event->Monitor();
 
-if ( isset($_REQUEST['rate']) ) {
+if (isset($_REQUEST['rate'])) {
   $rate = validInt($_REQUEST['rate']);
-} else if ( isset($_COOKIE['zmEventRate']) ) {
-  $rate = $_COOKIE['zmEventRate'];
+} else if (isset($_COOKIE['zmEventRate'])) {
+  $rate = validInt($_COOKIE['zmEventRate']);
 } else {
   $rate = reScale(RATE_BASE, $Monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
 }
@@ -271,7 +271,6 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 #rates are defined in skins/classic/includes/config.php
 echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
-<!--<span id="rateValue"><?php echo $rate/100 ?></span>x</span>-->
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>

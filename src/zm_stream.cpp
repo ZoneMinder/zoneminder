@@ -282,7 +282,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
   if ( type == STREAM_MPEG ) {
     if ( !vid_stream ) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height());
-      fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
+      fprintf(stdout, "Content-Type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
     /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
@@ -294,10 +294,17 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout);
-    fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
-    if (fwrite(buffer, n_bytes, 1, stdout) != 1) {
-      Error("Unable to send stream text frame: %s", strerror(errno));
+    if (0 > fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout)) {
+      Debug(1, "Error sending  --" BOUNDARY "\r\nContent-Type: image/jpeg\r\n");
+      return false;
+    }
+    if (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes)) {
+      Debug(1, "Error sending Content-Length: %d\r\n\r\n", n_bytes);
+      return false;
+    }
+    int rc = fwrite(buffer, n_bytes, 1, stdout);
+    if (rc != 1) {
+      Error("Unable to send stream text frame: %d %s", rc, strerror(errno));
       return false;
     }
     fputs("\r\n\r\n", stdout);

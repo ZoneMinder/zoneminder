@@ -24,6 +24,7 @@
 #include "zm_utils.h"
 #include <algorithm>
 #include <fcntl.h>
+#include <mutex>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -79,6 +80,8 @@ imgbufcpy_fptr_t fptr_imgbufcpy;
 
 /* Font */
 static ZmFont font;
+
+std::mutex              jpeg_mutex;
 
 void Image::update_function_pointers() {
   /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
@@ -312,12 +315,14 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
   temp_frame->pts = frame->pts;
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
 
-  if (sws_scale(convert_context,
+      int ret = sws_scale(convert_context,
         frame->data, frame->linesize, 0, frame->height,
-        temp_frame->data, temp_frame->linesize) < 0) {
-    Error("Unable to convert raw format %u %ux%u to target format %u %ux%u",
-        frame->format, frame->width, frame->height,
-        format, width, height);
+        temp_frame->data, temp_frame->linesize);
+  if (ret < 0) {
+    Error("Unable to convert raw format %u %s %ux%u to target format %u %s %ux%u: %s",
+        frame->format, av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame->format)), frame->width, frame->height,
+        format, av_get_pix_fmt_name(format), width, height,
+        av_make_error_string(ret).c_str());
     return false;
   }
   zm_dump_video_frame(temp_frame, "dest frame after convert");
@@ -1094,6 +1099,10 @@ bool Image::WriteJpeg(const char *filename, int quality_override, struct timeval
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.WriteJpeg(filename, quality_override, timestamp, on_blocking_abort);
   }
+
+  // jpeg libs are not thread safe
+  std::unique_lock<std::mutex> lck(jpeg_mutex);
+
   int quality = quality_override ? quality_override : config.jpeg_file_quality;
 
   struct jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
@@ -1367,6 +1376,8 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_overr
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.EncodeJpeg(outbuffer, outbuffer_size, quality_override);
   }
+
+  std::unique_lock<std::mutex> lck(jpeg_mutex);
 
   int quality = quality_override ? quality_override : config.jpeg_stream_quality;
 

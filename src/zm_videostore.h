@@ -7,6 +7,7 @@
 #include "zm_swscale.h"
 
 #include <memory>
+#include <map>
 
 extern "C"  {
 #ifdef HAVE_LIBSWRESAMPLE
@@ -46,12 +47,12 @@ class VideoStore {
     CodecData *chosen_codec_data;
 
     Monitor *monitor;
-    const AVOutputFormat *out_format;
+    AVOutputFormat *out_format;
     AVFormatContext *oc;
     AVStream *video_out_stream;
     AVStream *audio_out_stream;
 
-    AVCodec *video_out_codec;
+    const AVCodec *video_out_codec;
     AVCodecContext *video_in_ctx;
     AVCodecContext *video_out_ctx;
 
@@ -100,6 +101,7 @@ class VideoStore {
 
     // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
     int64_t *next_dts;
+    std::map<int, int64_t> last_dts;
     int64_t audio_next_pts;
 
     int max_stream_index;

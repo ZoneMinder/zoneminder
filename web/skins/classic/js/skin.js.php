@@ -89,3 +89,37 @@ unset($user_without_password['Password']);
 echo json_encode($user_without_password);
 ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
+
+const STATE_UNKNOWN = <?php echo STATE_UNKNOWN ?>;
+const STATE_IDLE = <?php echo STATE_IDLE ?>;
+const STATE_PREALARM = <?php echo STATE_PREALARM ?>;
+const STATE_ALARM = <?php echo STATE_ALARM ?>;
+const STATE_ALERT = <?php echo STATE_ALERT ?>;
+const STATE_TAPE = <?php echo STATE_TAPE ?>;
+
+const CMD_NONE = <?php echo CMD_NONE ?>;
+const CMD_PAUSE = <?php echo CMD_PAUSE ?>;
+const CMD_PLAY = <?php echo CMD_PLAY ?>;
+const CMD_VARPLAY = <?php echo CMD_VARPLAY ?>;
+const CMD_STOP = <?php echo CMD_STOP ?>;
+const CMD_FASTFWD = <?php echo CMD_FASTFWD ?>;
+const CMD_SLOWFWD = <?php echo CMD_SLOWFWD ?>;
+const CMD_SLOWREV = <?php echo CMD_SLOWREV ?>;
+const CMD_FASTREV = <?php echo CMD_FASTREV ?>;
+const CMD_ZOOMIN = <?php echo CMD_ZOOMIN ?>;
+const CMD_ZOOMOUT = <?php echo CMD_ZOOMOUT ?>;
+const CMD_PAN = <?php echo CMD_PAN ?>;
+const CMD_SCALE = <?php echo CMD_SCALE ?>;
+const CMD_PREV = <?php echo CMD_PREV ?>;
+const CMD_NEXT = <?php echo CMD_NEXT ?>;
+const CMD_SEEK = <?php echo CMD_SEEK ?>;
+const CMD_QUERY = <?php echo CMD_QUERY ?>;
+const CMD_QUIT = <?php echo CMD_QUIT ?>;
+
+var stateStrings = new Array();
+stateStrings[STATE_UNKNOWN] = "<?php echo translate('Unknown') ?>";
+stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
+stateStrings[STATE_PREALARM] = "<?php echo translate('Prealarm') ?>";
+stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
+stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
+stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";

@@ -81,6 +81,7 @@ class EventStream : public StreamBase {
     double curr_stream_time;
     bool  send_frame;
     struct timeval start;     // clock time when started the event
+    uint64_t start_usec;
 
     EventData *event_data;
 

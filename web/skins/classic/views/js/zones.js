@@ -12,6 +12,7 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    monitors[i].setStreamScale('0');
     monitors[i].start(delay);
   }
 
@@ -29,6 +30,13 @@ function initPage() {
     evt.preventDefault();
     window.location.reload(true);
   });
+}
+
+function streamCmdQuit() {
+  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+    monitors[i] = new MonitorStream(monitorData[i]);
+    monitors[i].stop();
+  }
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

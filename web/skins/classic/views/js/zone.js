@@ -474,7 +474,7 @@ function drawZonePoints() {
     var row = document.createElement('tr');
     row.id = 'row'+i;
     $j(row).mouseover(highlightOn.bind(i, i));
-    $j(row).mouseout(highlightOn.bind(i, i));
+    $j(row).mouseout(highlightOff.bind(i, i));
 
     var cell = document.createElement('td');
     $j(cell).text(i+1).appendTo(row);
@@ -661,6 +661,7 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    monitors[i].setStreamScale('0');
     monitors[i].start(delay);
   }
 

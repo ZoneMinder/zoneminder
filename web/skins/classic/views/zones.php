@@ -76,7 +76,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 ?>
     <div class="Monitor">
         <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
-        <div class="ZonesImage">
+        <div class="ZonesImage imageFeed" id="imageFeed<?php echo $monitor->Id() ?>">
           <?php echo getStreamHTML($monitor, $options); ?>
           <svg class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
 <?php

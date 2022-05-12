@@ -1,4 +1,5 @@
 var streamCmdTimer = null;
+var statusCmdTimer = null;
 var streamStatus;
 var alarmState = STATE_IDLE;
 var lastAlarmState = STATE_IDLE;
@@ -102,13 +103,13 @@ function changeScale() {
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-  if (scale == '0' || scale == 'auto') {
+  if (scale == '0') {
     var newSize = scaleToFit(monitorWidth, monitorHeight, $j('#liveStream'+monitorId), $j('#replayStatus'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-  } else {
+  } else if (parseInt(scale) > 0) {
     newWidth = monitorWidth * scale / SCALE_BASE;
     newHeight = monitorHeight * scale / SCALE_BASE;
   }
@@ -117,12 +118,20 @@ function changeScale() {
 
   var streamImg = $j('#liveStream'+monitorId);
   if (streamImg) {
-    var oldSrc = streamImg.attr('src');
-    var newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
+    const oldSrc = streamImg.attr('src');
+    const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == '0') ? autoScale : scale));
 
     streamImg.width(newWidth);
     streamImg.height(newHeight);
-    streamImg.attr('src', newSrc);
+    if (newSrc != oldSrc) {
+
+      clearTimeout(statusCmdTimer);
+      streamCommand(CMD_QUIT);
+      streamImg.attr('src', '');
+      streamImg.attr('src', newSrc);
+      if (statusCmdTimer) // Only start it if one was set to begin with
+        statusCmdTimer = setTimeout(statusCmdQuery, statusRefreshTimeout);
+    }
   } else {
     console.error('No element found for liveStream'+monitorId);
   }
@@ -179,6 +188,18 @@ function setAlarmState(currentAlarmState) {
   lastAlarmState = alarmState;
 } // end function setAlarmState( currentAlarmState )
 
+function streamCommand(command) {
+  var data = {};
+  if (auth_hash) data.auth = auth_hash;
+
+  if (typeof(command) == 'object') {
+    for (const key in command) data[key] = command[key];
+  } else {
+    data.command = command;
+  }
+  streamCmdReq(data);
+}
+
 function getStreamCmdError(text, error) {
   console.log(error);
   // Error are normally due to failed auth. reload the page.
@@ -188,16 +209,14 @@ function getStreamCmdError(text, error) {
 
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk('stream');
-  if (streamCmdTimer) {
-    streamCmdTimer = clearTimeout(streamCmdTimer);
-  }
+  streamCmdTimer = clearTimeout(streamCmdTimer);
   if (respObj.result == 'Ok') {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
       streamStatus = respObj.status;
-      $j('#fpsValue').text(streamStatus.fps);
-      $j('#capturefpsValue').text(streamStatus.capturefps);
-      $j('#analysisfpsValue').text(streamStatus.analysisfps);
+      $j('#fpsValue').text(streamStatus.fps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
+      $j('#capturefpsValue').text(streamStatus.capturefps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
+      $j('#analysisfpsValue').text(streamStatus.analysisfps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
 
       setAlarmState(streamStatus.state);
 
@@ -277,7 +296,7 @@ function getStreamCmdResponse(respObj, respText) {
         enableAlmBtn.prop('disabled', false);
       } // end if canEdit.Monitors
 
-      if (streamStatus.auth) {
+      if (streamStatus.auth && (streamStatus.auth != auth_hash)) {
         auth_hash = streamStatus.auth;
         // Try to reload the image stream.
         var streamImg = $j('#liveStream'+monitorId);
@@ -285,6 +304,7 @@ function getStreamCmdResponse(respObj, respText) {
           var oldSrc = streamImg.attr('src');
           var newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
           if (oldSrc != newSrc) {
+            streamCommand(CMD_QUIT);
             streamImg.attr('src', newSrc);
             table.bootstrapTable('refresh');
           }
@@ -297,11 +317,12 @@ function getStreamCmdResponse(respObj, respText) {
     // If it's an auth error, we should reload the whole page.
     console.log("have error");
     //window.location.reload();
-    var streamImg = $j('#liveStream'+monitorId);
+    const streamImg = $j('#liveStream'+monitorId);
     if (streamImg) {
-      var oldSrc = streamImg.attr('src');
-      var newSrc = oldSrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+      const oldSrc = streamImg.attr('src');
+      const newSrc = oldSrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
 
+      streamCommand(CMD_QUIT);
       streamImg.attr('src', newSrc);
       console.log('Changing livestream src to ' + newSrc);
     } else {
@@ -512,9 +533,7 @@ function streamCmdQuery() {
 
 function getStatusCmdResponse(respObj, respText) {
   watchdogOk('status');
-  if (statusCmdTimer) {
-    statusCmdTimer = clearTimeout(statusCmdTimer);
-  }
+  statusCmdTimer = clearTimeout(statusCmdTimer);
 
   if (respObj.result == 'Ok') {
     $j('#fpsValue').text(respObj.monitor.FrameRate);

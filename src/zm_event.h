@@ -22,12 +22,19 @@
 
 #include "zm_config.h"
 #include "zm_define.h"
+#include "zm_packet.h"
 #include "zm_storage.h"
 #include "zm_zone.h"
 
+#include <atomic>
+#include <condition_variable>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <queue>
 #include <set>
+#include <thread>
+
 
 class EventStream;
 class Frame;
@@ -75,8 +82,8 @@ class Event {
     int        frames;
     int        alarm_frames;
     bool alarm_frame_written;
-    unsigned int  tot_score;
-    unsigned int  max_score;
+    int  tot_score;
+    int  max_score;
     std::string path;
     std::string snapshot_file;
     std::string alarm_file;
@@ -90,6 +97,15 @@ class Event {
     int save_jpegs;
 
     void createNotes(std::string &notes);
+
+    std::queue<ZMLockedPacket *> packet_queue;
+    std::mutex packet_queue_mutex;
+    std::condition_variable packet_queue_condition;
+
+    void Run();
+
+    std::atomic<bool> terminate_;
+    std::thread thread_;
 
  public:
     static bool OpenFrameSocket(int);
@@ -111,7 +127,8 @@ class Event {
     const struct timeval &StartTime() const { return start_time; }
     const struct timeval &EndTime() const { return end_time; }
 
-    void AddPacket(const std::shared_ptr<ZMPacket> &p);
+    void AddPacket(ZMLockedPacket *);
+    void AddPacket_(const std::shared_ptr<ZMPacket> &p);
     bool WritePacket(const std::shared_ptr<ZMPacket> &p);
     bool SendFrameImage(const Image *image, bool alarm_frame=false);
     bool WriteFrameImage(
@@ -123,13 +140,16 @@ class Event {
 
     void updateNotes(const StringSetMap &stringSetMap);
 
-    void AddFrame(
-        Image *image,
-        struct timeval timestamp,
-        const std::vector<ZoneStats> &stats,
-        int score=0,
-        Image *alarm_image=nullptr
-        );
+    void AddFrame(const std::shared_ptr<ZMPacket>&packet);
+
+    void Stop() {
+      {
+        std::unique_lock<std::mutex> lck(packet_queue_mutex);
+        terminate_ = true;
+      }
+      packet_queue_condition.notify_all();
+    }
+    bool Stopped() const { return terminate_; }
 
  private:
     void WriteDbFrames();

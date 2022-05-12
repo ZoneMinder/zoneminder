@@ -139,9 +139,10 @@ bool VideoStore::open() {
   if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
 
   oc->metadata = pmetadata;
-  // Dirty hack to allow us to set flags. Needed for ffmpeg5
+#if !LIBAVFORMAT_VERSION_CHECK(59, 16, 0, 2, 0)
+  oc->oformat->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+#endif
   out_format = const_cast<AVOutputFormat *>(oc->oformat);
-  out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
 
   if (video_in_stream) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)

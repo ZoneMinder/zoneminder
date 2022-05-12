@@ -3040,6 +3040,9 @@ int Monitor::Close() {
     video_fifo = nullptr;
   }
 
+  // Wake everyone up
+  packetqueue.stop();
+
   if (close_event_thread.joinable()) {
     close_event_thread.join();
   }

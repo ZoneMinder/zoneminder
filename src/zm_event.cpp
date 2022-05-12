@@ -621,6 +621,7 @@ bool Event::SetPath(Storage *storage) {
 }  // end bool Event::SetPath
 
 void Event::Run() {
+  Debug(1, "Starting event thread");
   Storage *storage = monitor->getStorage();
   if (!SetPath(storage)) {
     // Try another
@@ -732,6 +733,7 @@ void Event::Run() {
       }
     }  // end lock scope
     if (packet_lock) {
+      Debug(1, "Adding packet %d", packet_lock->packet_->image_index);
       this->AddPacket_(packet_lock->packet_);
       delete packet_lock;
     }

@@ -60,6 +60,7 @@ class PacketQueue {
     void setKeepKeyframes(bool k) { keep_keyframes = k; };
 
     bool queuePacket(std::shared_ptr<ZMPacket> packet);
+    void stop();
     void clear();
     void dumpQueue();
     unsigned int size();

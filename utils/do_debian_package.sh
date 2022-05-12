@@ -88,7 +88,7 @@ fi;
 
 if [ "$DISTROS" == "" ]; then
   if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,focal,hirsute,impish"
+    DISTROS="xenial,bionic,focal,impish,jammy"
   else
     DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   fi;
@@ -258,7 +258,7 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
   fi;
 
   # Generate Changlog
-  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ] || [ "$DISTRO" == "hirsute" ] || [ "$DISTRO" == "impish" ]; then 
+  if [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "buster" ] || [ "$DISTRO" == "bullseye" ] || [ "$DISTRO" == "hirsute" ] || [ "$DISTRO" == "impish" ] || [ "$DISTRO" == "jammy" ] ; then 
     cp -Rpd distros/ubuntu2004 debian
   elif [ "$DISTRO" == "beowulf" ]
   then

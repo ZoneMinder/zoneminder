@@ -224,8 +224,7 @@ mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 %cmake \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
-        -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
-        .
+        -DZM_TARGET_DISTRO="%{zmtargetdistro}"
 
 %cmake_build
 

@@ -327,6 +327,11 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 	return;
 } // end voidPacketQueue::clearPackets(ZMPacket* zm_packet)
 
+void PacketQueue::stop() {
+  deleting = true;
+  condition.notify_all();
+}
+
 void PacketQueue::clear() {
   deleting = true;
   condition.notify_all();

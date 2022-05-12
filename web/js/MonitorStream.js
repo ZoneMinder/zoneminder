@@ -55,7 +55,7 @@ function MonitorStream(monitorData) {
         // This is necessary because safari will never close the first image
         this.streamCommand(CMD_QUIT);
         console.log("Changing src to " + newSrc);
-        img.src = '';
+        //img.src = '';
         img.src = newSrc;
       }
     }

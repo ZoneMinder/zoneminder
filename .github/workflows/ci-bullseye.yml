@@ -46,6 +46,7 @@ jobs:
           libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libwww-perl
           libpolkit-gobject-1-dev
           catch2
+          libgsoap-dev
           ${{ matrix.crypto_package }} ${{ matrix.jwt_package }}
       - name: Prepare
         run: mkdir build

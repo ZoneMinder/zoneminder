@@ -95,10 +95,10 @@ VideoStore::VideoStore(
   converted_in_samples(nullptr),
   filename(filename_in),
   format(format_in),
-  video_first_pts(0),
-  video_first_dts(0),
-  audio_first_pts(0),
-  audio_first_dts(0),
+  video_first_pts(AV_NOPTS_VALUE),
+  video_first_dts(AV_NOPTS_VALUE),
+  audio_first_pts(AV_NOPTS_VALUE),
+  audio_first_dts(AV_NOPTS_VALUE),
   video_last_pts(AV_NOPTS_VALUE),
   audio_last_pts(AV_NOPTS_VALUE),
   next_dts(nullptr),
@@ -1012,7 +1012,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     //zm_packet->out_frame->key_frame = zm_packet->keyframe;
     //frame->pkt_duration = 0;
 
-    if (!video_first_pts) {
+    if (video_first_pts == AV_NOPTS_VALUE) {
       video_first_pts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
       Debug(2, "No video_first_pts, set to (%" PRId64 ") secs(%.2f)",
             video_first_pts,
@@ -1107,19 +1107,19 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     opkt.duration = ipkt->duration;
 
     if (ipkt->dts != AV_NOPTS_VALUE) {
-      if (!video_first_dts) {
+      if (video_first_dts == AV_NOPTS_VALUE) {
         Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
         video_first_dts = ipkt->dts;
       }
       opkt.dts = ipkt->dts - video_first_dts;
-    } else {
-      opkt.dts = next_dts[video_out_stream->index] ? av_rescale_q(next_dts[video_out_stream->index], video_out_stream->time_base, video_in_stream->time_base) : 0;
-      Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, next_dts[video_out_stream->index]);
+    //} else {
+      //opkt.dts = next_dts[video_out_stream->index] ? av_rescale_q(next_dts[video_out_stream->index], video_out_stream->time_base, video_in_stream->time_base) : 0;
+      //Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, next_dts[video_out_stream->index]);
     }
-    if (ipkt->pts != AV_NOPTS_VALUE) {
+    if ((ipkt->pts != AV_NOPTS_VALUE) and (video_first_dts != AV_NOPTS_VALUE)) {
       opkt.pts = ipkt->pts - video_first_dts;
-    } else {
-      opkt.pts = AV_NOPTS_VALUE;
+    //} else {
+      //opkt.pts = opkt.dts;
     }
 
     av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);
@@ -1144,7 +1144,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
   int ret;
   ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "input packet");
 
-  if (!audio_first_dts) {
+  if (audio_first_dts != AV_NOPTS_VALUE) {
     audio_first_dts = ipkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;
     Debug(3, "audio first_dts to %" PRId64, audio_first_dts);
@@ -1203,8 +1203,13 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     opkt.flags = ipkt->flags;
 
     opkt.duration = ipkt->duration;
-    opkt.pts = ipkt->pts - audio_first_dts;
-    opkt.dts = ipkt->dts - audio_first_dts;
+    if (audio_first_dts != AV_NOPTS_VALUE) {
+      opkt.pts = ipkt->pts - audio_first_dts;
+      opkt.dts = ipkt->dts - audio_first_dts;
+    } else {
+      opkt.pts = ipkt->pts;
+      opkt.dts = ipkt->dts;
+    }
 
     ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "after pts adjustment");
     av_packet_rescale_ts(&opkt, audio_in_stream->time_base, audio_out_stream->time_base);
@@ -1247,10 +1252,14 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
       last_dts[stream->index] = 0;
     } 
     pkt->dts = last_dts[stream->index];
-  } else if (pkt->dts < last_dts[stream->index]) {
-    Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64,
-        pkt->dts, stream->index, last_dts[stream->index]);
-    pkt->dts = last_dts[stream->index];
+  } else {
+    if ((last_dts[stream->index] != AV_NOPTS_VALUE) and (pkt->dts < last_dts[stream->index])) {
+      Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64,
+          pkt->dts, stream->index, last_dts[stream->index]);
+      pkt->dts = last_dts[stream->index];
+    }
+    next_dts[stream->index] = pkt->dts + pkt->duration;
+    last_dts[stream->index] = pkt->dts;
   }
 
   if (pkt->pts == AV_NOPTS_VALUE) {
@@ -1268,8 +1277,6 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
 #endif
 
   ZM_DUMP_STREAM_PACKET(stream, (*pkt), "finished pkt");
-  next_dts[stream->index] = pkt->dts + pkt->duration;
-  last_dts[stream->index] = pkt->dts;
   Debug(3, "next_dts for stream %d has become %" PRId64 " last_dts %" PRId64,
       stream->index, next_dts[stream->index], last_dts[stream->index]);
 

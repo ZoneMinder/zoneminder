@@ -1240,7 +1240,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
   int ret;
   ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "input packet");
 
-  if (audio_first_dts != AV_NOPTS_VALUE) {
+  if (audio_first_dts == AV_NOPTS_VALUE) {
     audio_first_dts = ipkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;
     Debug(3, "audio first_dts to %" PRId64, audio_first_dts);

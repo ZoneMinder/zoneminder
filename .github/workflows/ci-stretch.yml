@@ -31,7 +31,7 @@ jobs:
           libcurl4-gnutls-dev libvlc-dev libvncserver-dev
           libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libwww-perl
           libpolkit-gobject-1-dev
-          libgsoap-dev
+          libgsoap-dev gsoap
           libssl-dev
           libgsoap-dev
       - name: Prepare

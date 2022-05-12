@@ -54,7 +54,6 @@ function MonitorStream(monitorData) {
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
         this.streamCommand(CMD_QUIT);
-        //this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
         console.log("Changing src to " + newSrc);
         img.src = '';
         img.src = newSrc;
@@ -79,13 +78,14 @@ function MonitorStream(monitorData) {
       stream.setAttribute('loading', 'eager');
     }
     stream.addEventListener('load', (event) => {
-      console.log('Logo has been loaded! starting streamMcnd + '+delay + ' ' + statusRefreshTimeout);
-      clearTimeout(this.streamCmdTimer);
-      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), delay);
+      if (!this.streamCmdTimer) {
+        console.log('Logo has been loaded! starting streamMcnd + '+delay + ' ' + statusRefreshTimeout);
+        this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), delay);
+      }
     });
     stream.addEventListener('error', (event) => {
       console.log('Logo has been stoppd! stopping streamMcnd');
-      clearTimeout(this.streamCmdTimer);
+      this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
     });
     src = stream.src.replace(/mode=single/i, 'mode=jpeg');
     if ( -1 == src.search('connkey') ) {

@@ -91,12 +91,12 @@ echo json_encode($user_without_password);
 ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 
-var STATE_UNKNOWN = <?php echo STATE_UNKNOWN ?>;
-var STATE_IDLE = <?php echo STATE_IDLE ?>;
-var STATE_PREALARM = <?php echo STATE_PREALARM ?>;
-var STATE_ALARM = <?php echo STATE_ALARM ?>;
-var STATE_ALERT = <?php echo STATE_ALERT ?>;
-var STATE_TAPE = <?php echo STATE_TAPE ?>;
+const STATE_UNKNOWN = <?php echo STATE_UNKNOWN ?>;
+const STATE_IDLE = <?php echo STATE_IDLE ?>;
+const STATE_PREALARM = <?php echo STATE_PREALARM ?>;
+const STATE_ALARM = <?php echo STATE_ALARM ?>;
+const STATE_ALERT = <?php echo STATE_ALERT ?>;
+const STATE_TAPE = <?php echo STATE_TAPE ?>;
 
 const CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
 const CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;

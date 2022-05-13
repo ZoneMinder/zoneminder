@@ -71,7 +71,7 @@
 //Workaround for the gsoap library on RHEL
 struct Namespace namespaces[] =
 {
-   {NULL, NULL} // end of table
+   {NULL, NULL, NULL, NULL} // end of table
 };
 #endif
 

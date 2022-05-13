@@ -234,9 +234,8 @@ function initPage() {
   // If you click on the navigation links, shut down streaming so the browser can process it
   document.querySelectorAll('#main-header-nav a').forEach(function(el) {
     el.onclick = function() {
-      console.log("Stopping monitors");
       for (var i = 0, length = monitors.length; i < length; i++) {
-        monitors[i].stop();
+        monitors[i].kill();
       }
     };
   });
@@ -260,8 +259,10 @@ function handleClick(evt) {
 // Kick everything off
 $j(document).ready(initPage);
 
+/*
 window.onbeforeunload = function (e) {
-  event.preventDefault();
+  console.log('unload');
+  //event.preventDefault();
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i].kill();
   }
@@ -269,9 +270,10 @@ window.onbeforeunload = function (e) {
 
   // For IE and Firefox
   if (e) {
-    e.returnValue = false;
+    e.returnValue = undefined;
   }
 
   // For Safari
-  return false;
+  return undefined;
 };
+*/

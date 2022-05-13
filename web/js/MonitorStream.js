@@ -39,10 +39,14 @@ function MonitorStream(monitorData) {
   };
 
   this.img_onerror = function() {
-    console.log('Failed loading image stream');
+    console.log('Image stream has been stoppd! stopping streamCmd');
+    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
   };
   this.img_onload = function() {
-    console.log('loaded image stream');
+    if (!this.streamCmdTimer) {
+      console.log('Image stream has loaded! starting streamCmd');
+      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+    }
   };
 
   this.element = null;
@@ -149,7 +153,9 @@ function MonitorStream(monitorData) {
         // We know that only the first zms will get the command because the
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
-        this.streamCommand(CMD_QUIT);
+        if (-1 != img.src.search('connkey') && -1 != img.src.search('mode=single')) {
+          this.streamCommand(CMD_QUIT);
+        }
         console.log("Changing src to " + newSrc);
         //img.src = '';
         img.src = newSrc;
@@ -188,21 +194,11 @@ function MonitorStream(monitorData) {
       console.log(stream);
       return;
     }
-    clearTimeout(this.statusCmdTimer);
+    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');
     }
-    stream.addEventListener('load', (event) => {
-      if (!this.streamCmdTimer) {
-        console.log('Logo has been loaded! starting streamMcnd + '+delay + ' ' + statusRefreshTimeout);
-        this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), delay);
-      }
-    });
-    stream.addEventListener('error', (event) => {
-      console.log('Logo has been stoppd! stopping streamMcnd');
-      this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-    });
     src = stream.src.replace(/mode=single/i, 'mode=jpeg');
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
@@ -215,6 +211,7 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), delay);
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
+
   }; // this.start
 
   this.stop = function() {
@@ -229,8 +226,16 @@ function MonitorStream(monitorData) {
       }
     }
     this.streamCommand(CMD_STOP);
-    clearTimeout(this.statusCmdTimer);
-    clearTimeout(this.streamCmdTimer);
+    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
+    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+  };
+  this.kill = function() {
+    const stream = this.getElement();
+    if (!stream) return;
+    stream.onerror = null;
+    stream.onload = null;
+    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
+    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
   };
   this.pause = function() {
     this.streamCommand(CMD_PAUSE);
@@ -368,7 +373,7 @@ function MonitorStream(monitorData) {
     }
 
     //watchdogOk('stream');
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    //this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
 
     if (respObj.result == 'Ok') {
       if (respObj.status) {

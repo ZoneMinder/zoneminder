@@ -36,7 +36,6 @@ function selectLayout(new_layout) {
     if (layout.Positions['default']) {
       styles = layout.Positions['default'];
       for (style in styles) {
-        //console.log('Applying ' + style + '=>' + styles[style]);
         monitor_frame.css(style, styles[style]);
       }
     } else {
@@ -260,3 +259,19 @@ function handleClick(evt) {
 
 // Kick everything off
 $j(document).ready(initPage);
+
+window.onbeforeunload = function (e) {
+  event.preventDefault();
+  for (let i = 0, length = monitorData.length; i < length; i++) {
+    monitors[i].kill();
+  }
+  var e = e || window.event;
+
+  // For IE and Firefox
+  if (e) {
+    e.returnValue = false;
+  }
+
+  // For Safari
+  return false;
+};

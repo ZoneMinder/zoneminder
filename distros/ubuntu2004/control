@@ -32,7 +32,6 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libvncserver-dev
               ,libjwt-gnutls-dev|libjwt-dev
               ,libgsoap-dev
-              ,gsoap
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 

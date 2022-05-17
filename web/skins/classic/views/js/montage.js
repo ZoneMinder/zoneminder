@@ -260,7 +260,7 @@ function handleClick(evt) {
 $j(document).ready(initPage);
 
 /*
-window.onbeforeunload = function (e) {
+window.onbeforeunload = function(e) {
   console.log('unload');
   //event.preventDefault();
   for (let i = 0, length = monitorData.length; i < length; i++) {

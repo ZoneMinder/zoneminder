@@ -383,8 +383,8 @@ int main(int argc, char *argv[]) {
 
   Image::Deinitialise();
   Debug(1, "terminating");
-  logTerm();
   dbQueue.stop();
+  logTerm();
   zmDbClose();
 
   return zm_terminate ? 0 : result;

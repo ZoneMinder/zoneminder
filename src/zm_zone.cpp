@@ -897,7 +897,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
             monitor->Width(),
             monitor->Height());
 
-      ssize_t n_coords = polygon.GetVertices().size();
+      auto n_coords = polygon.GetVertices().size();
       polygon.Clip(Box(
           {0, 0},
           {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}

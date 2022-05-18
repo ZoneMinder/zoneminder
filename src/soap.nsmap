@@ -1,0 +1,25 @@
+
+#include "stdsoap2.h"
+/* This defines the global XML namespaces[] table to #include and compile */
+SOAP_NMAC struct Namespace soap_namespaces[] = {
+        { "SOAP-ENV", "http://www.w3.org/2003/05/soap-envelope", "http://schemas.xmlsoap.org/soap/envelope/", NULL },
+        { "SOAP-ENC", "http://www.w3.org/2003/05/soap-encoding", "http://schemas.xmlsoap.org/soap/encoding/", NULL },
+        { "xsi", "http://www.w3.org/2001/XMLSchema-instance", "http://www.w3.org/*/XMLSchema-instance", NULL },
+        { "xsd", "http://www.w3.org/2001/XMLSchema", "http://www.w3.org/*/XMLSchema", NULL },
+        { "chan", "http://schemas.microsoft.com/ws/2005/02/duplex", NULL, NULL },
+        { "wsa5", "http://www.w3.org/2005/08/addressing", "http://schemas.xmlsoap.org/ws/2004/08/addressing", NULL },
+        { "wsrfbf", "http://docs.oasis-open.org/wsrf/bf-2", NULL, NULL },
+        { "wstop", "http://docs.oasis-open.org/wsn/t-1", NULL, NULL },
+        { "wsrfr", "http://docs.oasis-open.org/wsrf/r-2", NULL, NULL },
+        { "tev", "http://www.onvif.org/ver10/events/wsdl", NULL, NULL },
+        { "wsnt", "http://docs.oasis-open.org/wsn/b-2", NULL, NULL },
+        { "c14n", "http://www.w3.org/2001/10/xml-exc-c14n#", NULL, NULL },
+        { "ds", "http://www.w3.org/2000/09/xmldsig#", NULL, NULL },
+        { "saml1", "urn:oasis:names:tc:SAML:1.0:assertion", NULL, NULL },
+        { "saml2", "urn:oasis:names:tc:SAML:2.0:assertion", NULL, NULL },
+        { "wsu", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd", NULL, NULL },
+        { "xenc", "http://www.w3.org/2001/04/xmlenc#", NULL, NULL },
+        { "wsc", "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512", "http://schemas.xmlsoap.org/ws/2005/02/sc", NULL },
+        { "wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd", "http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd", NULL },
+        { NULL, NULL, NULL, NULL}
+    };

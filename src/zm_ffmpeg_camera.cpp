@@ -257,7 +257,10 @@ int FfmpegCamera::OpenFfmpeg() {
 
   error_count = 0;
 
-  const AVInputFormat *input_format = nullptr;
+#if LIBAVFORMAT_VERSION_CHECK(59, 16, 100, 16, 100)
+  const
+#endif
+    AVInputFormat *input_format = nullptr;
   // Handle options
   AVDictionary *opts = nullptr;
   if (!mOptions.empty()) {

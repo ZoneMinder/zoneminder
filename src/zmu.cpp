@@ -196,8 +196,8 @@ bool ValidateAccess(User *user, int mon_id, int function) {
 }
 
 void exit_zmu(int exit_code) {
-  logTerm();
   dbQueue.stop();
+  logTerm();
   zmDbClose();
 
   exit(exit_code);

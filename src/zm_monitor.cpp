@@ -2712,7 +2712,11 @@ bool Monitor::Decode() {
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;
-    shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
+    shared_data->last_write_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    if (std::chrono::system_clock::now() - packet->timestamp > Seconds(ZM_WATCH_MAX_DELAY)) {
+      Warning("Decoding is not keeping up. We are %.2f seconds behind capture.",
+          FPSeconds(std::chrono::system_clock::now() - packet->timestamp).count());
+    }
   }  // end if have image
   packet->decoded = true;
   packetqueue.unlock(packet_lock);

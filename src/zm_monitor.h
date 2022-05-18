@@ -64,7 +64,7 @@ public:
   } Function;
 
   typedef enum {
-    LOCAL,
+    LOCAL=1,
     REMOTE,
     FILE,
     FFMPEG,

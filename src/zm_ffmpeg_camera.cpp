@@ -257,7 +257,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   error_count = 0;
 
-  AVInputFormat *input_format = nullptr;
+  const AVInputFormat *input_format = nullptr;
   // Handle options
   AVDictionary *opts = nullptr;
   if (!mOptions.empty()) {

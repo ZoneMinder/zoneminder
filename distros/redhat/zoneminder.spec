@@ -19,6 +19,7 @@
 
 # Newer php's keep json functions in a subpackage
 %if 0%{?fedora} || 0%{?rhel} >= 8
+%global with_gsoap 1
 %global with_php_json 1
 %endif
 
@@ -93,7 +94,7 @@ BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
 BuildRequires: gzip
 BuildRequires: zlib-devel
-BuildRequires: gsoap-devel
+%{?with_gsoap:BuildRequires: gsoap-devel}
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
@@ -141,7 +142,7 @@ Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: ca-certificates
 Requires: zip
-Requires: gsoap
+%{?with_gsoap:Requires: gsoap}
 %{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd

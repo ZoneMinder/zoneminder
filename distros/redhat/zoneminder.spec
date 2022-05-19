@@ -374,6 +374,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmonvif-trigger.pl
 %{_bindir}/zmstats.pl
 %{_bindir}/zmrecover.pl
+%{_bindir}/zmeventtool.pl
 %{_bindir}/zm_rtsp_server
 
 %{perl_vendorlib}/ZoneMinder*

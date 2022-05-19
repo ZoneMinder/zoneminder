@@ -258,6 +258,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (lp->trylock()) {
+    int keyframe_interval = 1;
     int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
     Debug(4, "Have lock on first packet");
     ++it;
@@ -285,8 +286,11 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
       if (zm_packet->packet.stream_index == video_stream_id) {
         if (zm_packet->keyframe) {
-          Debug(3, "Have a video keyframe so setting next front to it");
+          Debug(1, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval);
+          keyframe_interval = 1;
           next_front = it;
+        } else {
+          keyframe_interval++;
         }
         ++video_packets_to_delete;
         Debug(3, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",

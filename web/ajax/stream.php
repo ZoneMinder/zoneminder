@@ -1,5 +1,5 @@
 <?php
-  error_reporting(0);
+error_reporting(0);
 
 $start_time = time();
 
@@ -13,19 +13,15 @@ if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
 mkdir(ZM_PATH_SOCKS);
 
 # The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
-$key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock', 'Z');
-$semaphore = sem_get($key,1);
-if ( sem_acquire($semaphore,1) !== false ) {
+$key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf('%06d', $_REQUEST['connkey']).'s.sock', 'Z');
+$semaphore = sem_get($key, 1);
+if (sem_acquire($semaphore, 1) !== false) {
   if ( !($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0)) ) {
     ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
   }
 
   $localSocketFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'w.sock';
-  if ( file_exists($localSocketFile) ) {
-    ZM\Warning("sock file $localSocketFile already exists?!  Is someone else talking to zms?");
-    // They could be.  We can maybe have concurrent requests from a browser.  
-  }
-  if ( !socket_bind($socket, $localSocketFile) ) {
+  if (!socket_bind($socket, $localSocketFile)) {
     ajaxError("socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()));
   }
 
@@ -129,8 +125,6 @@ if ( sem_acquire($semaphore,1) !== false ) {
       if (isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash)) {
         $data['auth'] = $auth_hash;
         ZM\Debug('including new auth hash '.$data['auth'].'because doesnt match request auth hash '.$_REQUEST['auth']);
-      } else {
-        ZM\Debug('Not including new auth hash becase it hasn\'t changed '.$auth_hash);
       } 
     }
     ajaxResponse(array('status'=>$data));

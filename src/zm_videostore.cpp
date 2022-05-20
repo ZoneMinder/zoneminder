@@ -1118,8 +1118,8 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     }
     if ((ipkt->pts != AV_NOPTS_VALUE) and (video_first_dts != AV_NOPTS_VALUE)) {
       opkt.pts = ipkt->pts - video_first_dts;
-    //} else {
-      //opkt.pts = opkt.dts;
+    } else {
+      opkt.pts = opkt.dts;
     }
 
     av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);

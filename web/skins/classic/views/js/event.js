@@ -97,7 +97,6 @@ function setAlarmCues(data) {
   } else if (!data.frames) {
     Error('No data.frames in setAlarmCues for event ' + eventData.Id);
   } else {
-    console.log(data);
     cueFrames = data.frames;
     alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
     $j(".alarmCue").html(alarmSpans);
@@ -735,7 +734,11 @@ function videoEvent() {
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
   var barWidth = $j('#evtStream').width();
-  $j('#progressBar').css('width', barWidth);
+  if (barWidth) {
+    $j('#progressBar').css('width', barWidth);
+  } else {
+    console.log("No bar width: " + barWidth);
+  }
 }
 
 // Shows current stream progress.

@@ -11,7 +11,7 @@ SET @s = (SELECT IF(
   AND column_name = 'System'
   ) > 0,
 "SELECT 'Column System already exists in Config'",
-"ALTER TABLE `Config` ADD COLUMN `System` BOOLEAN NOT NULL DEFAULT FALSE AFTER `Private`"
+"ALTER TABLE `Config` ADD COLUMN `System` BOOLEAN NOT NULL DEFAULT FALSE AFTER `Readonly`"
 ));
 
 PREPARE stmt FROM @s;

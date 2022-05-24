@@ -253,24 +253,23 @@ function initPage() {
   $j("#hdrbutton").click(function() {
     $j("#flipMontageHeader").slideToggle("slow");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-    setCookie( 'zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', 3600);
+    setCookie('zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', 3600);
   });
-  if ( getCookie('zmMontageHeaderFlip') == 'down' ) {
+  if (getCookie('zmMontageHeaderFlip') == 'down') {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
     $j("#flipMontageHeader").slideToggle("fast");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
 
-  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+  for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i] = new MonitorStream(monitorData[i]);
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
-    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    console.log("delay: " + delay);
+    var delay = Math.round((Math.random()+0.5)*statusRefreshTimeout);
     monitors[i].start(delay);
 
     var interval = monitors[i].refresh;
-    if ( monitors[i].type == 'WebSite' && interval > 0 ) {
+    if (monitors[i].type == 'WebSite' && interval > 0) {
       setInterval(reloadWebSite, interval*1000, i);
     }
     monitors[i].setup_onclick();

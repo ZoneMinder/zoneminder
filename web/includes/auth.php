@@ -128,8 +128,6 @@ function validateToken($token, $allowed_token_type='access') {
       ZM\Error("Token type mismatch. Expected $allowed_token_type but got $type");
       return array(false, 'Incorrect token type');
     }
-  } else {
-    ZM\Debug('Not comparing token types as [any] was passed');
   }
   
   $username = $jwt_payload['user'];

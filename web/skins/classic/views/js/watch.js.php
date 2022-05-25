@@ -38,6 +38,20 @@ var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
 var monitorStreamReplayBuffer = <?php echo $monitor->StreamReplayBuffer() ?>;
 var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
+var monIdx = 0;
+var monitorData = new Array();
+monitorData[monitorData.length] = {
+  'id': <?php echo $monitor->Id() ?>,
+  'connKey': <?php echo $monitor->connKey() ?>,
+  'width': <?php echo $monitor->ViewWidth() ?>,
+  'height':<?php echo $monitor->ViewHeight() ?>,
+  'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
+  'url': '<?php echo $monitor->UrlToIndex() ?>',
+  'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
+  'type': '<?php echo $monitor->Type() ?>',
+  'refresh': '<?php echo $monitor->Refresh() ?>'
+};
+
 var scale = '<?php echo $scale ?>';
 
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;

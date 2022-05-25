@@ -844,8 +844,6 @@ void MonitorStream::runStream() {
       }
     } // end if checking for swap_path
   } // end if buffered_playback
-  if (zm_terminate)
-    Debug(1, "zm_terminate");
 
   closeComms();
 } // end MonitorStream::runStream

@@ -873,6 +873,18 @@ function initPage() {
   }
 
   if (monitorType != 'WebSite') {
+      monitorStream = new MonitorStream(monitorData[monIdx]);
+    monitorStream.setBottomElement(document.getElementById('dvrControls'));
+
+    // Start the fps and status updates. give a random delay so that we don't assault the server
+    monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
+    monitorStream.start();
+    if (streamMode == 'single') {
+      monitorStream.setup_onclick(fetchImage);
+    } else {
+      monitorStream.setup_onclick(handleClick);
+    }
+/*
     if (streamMode == 'single') {
       statusCmdTimer = setTimeout(statusCmdQuery, (Math.random()+0.1)*statusRefreshTimeout);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
@@ -899,6 +911,7 @@ function initPage() {
         }
       } // end if have streamImg
     } // streamMode native or single
+    */
 
     if (refreshApplet && appletRefreshTime) {
       setTimeout(appletRefresh, appletRefreshTime*1000);

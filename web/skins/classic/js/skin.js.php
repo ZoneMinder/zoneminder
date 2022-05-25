@@ -127,12 +127,6 @@ stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 <?php
 global $config;
 foreach ($config as $name=>$c) {
-<<<<<<< HEAD
-    echo 'const '. $name . ' = \''.$c['Value'].'\''.PHP_EOL;
-=======
-  if (!$c['Private']) {
     echo 'const '. $name . ' = \''.preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']).'\';'.PHP_EOL;
-  }
->>>>>>> bc4884afe... fix replacement on escape. For some reason needs double bacl slash
 }
 ?>

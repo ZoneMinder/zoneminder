@@ -84,13 +84,13 @@ if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
 }
 ?>
     <div id="content">
-      <div id="imageFeed"
+      <div id="imageFeed<?php echo $monitor->Id() ?>"
 <?php
 if ( $streamMode == 'jpeg' ) {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
-><?php echo getStreamHTML($monitor, array('scale'=>$scale, 'connkey'=>$monitor->connkey())); ?></div>
+><?php echo getStreamHTML($monitor, array('scale'=>$scale, 'connkey'=>$monitor->connkey(), 'mode'=>'single')); ?></div>
 
 
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
@@ -246,4 +246,5 @@ if ( ZM_WEB_SOUND_ON_ALARM ) {
 ?>
     </div>
   </div>
+ <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

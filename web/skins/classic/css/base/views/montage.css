@@ -68,15 +68,15 @@
   background: none;
 }
 
-#monitors .imageFeed img.idle {
+#monitors .idle .imageFeed img {
   border: 2px solid #ffffff;
 }
 
-#monitors .imageFeed img.alarm {
+#monitors .alarm .imageFeed img {
   border: 2px solid #ff0000;
 }
 
-#monitors .imageFeed img.alert {
+#monitors .alert .imageFeed img {
   border: 2px solid #ffa500;
 }
 

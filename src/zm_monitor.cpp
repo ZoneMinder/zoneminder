@@ -2618,7 +2618,7 @@ bool Monitor::Decode() {
   gettimeofday(&now, nullptr);
   shared_data->last_write_time = now.tv_sec;
   if (now.tv_sec - packet->timestamp.tv_sec > ZM_WATCH_MAX_DELAY) {
-    Warning("Decoding is not keeping up. We are %d seconds behind capture.",
+    Warning("Decoding is not keeping up. We are %ld seconds behind capture.",
         now.tv_sec - packet->timestamp.tv_sec);
   }
 

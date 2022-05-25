@@ -46,7 +46,7 @@ class PacketQueue {
 
     std::mutex mutex;
     std::condition_variable condition;
-    bool has_warned;
+    int warned_count;
 
   public:
     PacketQueue();

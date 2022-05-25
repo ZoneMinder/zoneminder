@@ -90,7 +90,7 @@ if ( $streamMode == 'jpeg' ) {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
-><?php echo getStreamHTML($monitor, array('scale'=>$scale)); ?></div>
+><?php echo getStreamHTML($monitor, array('scale'=>$scale, 'connkey'=>$monitor->connkey())); ?></div>
 
 
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>

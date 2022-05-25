@@ -55,11 +55,11 @@
  * may be moved.  When adjusting the padding and margins of the imageFrame and
  * the DIVs within it, test that the markers behave sensibly when dragged to
  * the extreme edges of the imageFrame. */
-#imageFrame {
+.imageFrame {
     position: relative;
     padding: 3px 4px 4px 3px;
 }
-#imageFrame svg {
+.imageFrame svg {
   box-sizing: border-box;
  position:absolute;
  top: 3px;
@@ -67,16 +67,16 @@
  right: 3px;
  background: none;
  }
-#imageFrame img {
+.imageFrame img {
   width: 100%;
   display: block;
 }
-#imageFrame img.alarm ,
-#imageFrame img.alert {
+.imageFrame img.alarm ,
+.imageFrame img.alert {
   padding: 1px;
 }
 
-#imageFrame div {
+.imageFrame div {
     position: absolute;
     width: 7px;
     height: 7px;
@@ -85,15 +85,15 @@
     z-index: 5;
 }
 
-#imageFrame div {
+.imageFrame div {
     background-image: url(../skins/classic/graphics/point-g.png);
 }
 
-#imageFrame div.highlight {
+.imageFrame div.highlight {
     background-image: url(../skins/classic/graphics/point-o.png);
 }
 
-#imageFrame div.active {
+.imageFrame div.active {
     background-image: url(../skins/classic/graphics/point-r.png);
 }
 

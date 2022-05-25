@@ -323,7 +323,7 @@ function constrainValue(value, loVal, hiVal) {
 
 function updateActivePoint(index) {
   var point = $j('#point'+index);
-  var imageFrame = document.getElementById('imageFrame');
+  var imageFrame = document.getElementById('imageFrame'+monitorId);
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   var padding_left = parseInt(style.paddingLeft);
   var padding_top = parseInt(style.paddingTop);
@@ -397,14 +397,14 @@ function updateX(input) {
   limitPointValue(input, 0, maxX);
 
   const point = $j('#point'+index);
-  const x = input.value;
-  const imageFrame = document.getElementById('imageFrame');
+  const x = parseInt(input.value);
+  const imageFrame = document.getElementById('imageFrame'+monitorId);
   const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   const padding_left = parseInt(style.paddingLeft);
   const padding_right = parseInt(style.paddingRight);
   const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
-  point.css('left', x+'px');
+  point.css('left', parseInt(x*scale)+'px');
   zone['Points'][index].x = x;
   const Point = document.getElementById('zonePoly').points.getItem(index);
   Point.x = x;
@@ -417,13 +417,13 @@ function updateY(input) {
 
   const point = $j('#point'+index);
   const y = input.value;
-  const imageFrame = document.getElementById('imageFrame');
+  const imageFrame = document.getElementById('imageFrame'+monitorId);
   const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   const padding_left = parseInt(style.paddingLeft);
   const padding_right = parseInt(style.paddingRight);
   const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
-  point.css('top', y+'px');
+  point.css('top', parseInt(y*scale)+'px');
   zone['Points'][index].y = y;
   const Point = document.getElementById('zonePoly').points.getItem(index);
   Point.y = y;
@@ -443,7 +443,11 @@ function saveChanges(element) {
 }
 
 function drawZonePoints() {
-  var imageFrame = document.getElementById('imageFrame');
+  var imageFrame = document.getElementById('imageFrame'+monitorId);
+  if (!imageFrame) {
+    console.log("No imageFrame for " + monitorId);
+    return;
+  }
   $j('.zonePoint').remove();
   var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
   var padding_left = parseInt(style.paddingLeft);
@@ -467,7 +471,7 @@ function drawZonePoints() {
     div.mouseover(highlightOn.bind(i, i));
     div.mouseout(highlightOff.bind(i, i));
 
-    $j('#imageFrame').append(div);
+    $j(imageFrame).append(div);
 
     div.draggable({
       'containment': document.getElementById('imageFeed'+zone.MonitorId),
@@ -671,11 +675,11 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    monitors[i].setStreamScale('0');
+    monitors[i].setScale('0');
     monitors[i].start(delay);
   }
 
-  document.querySelectorAll('#imageFrame img').forEach(function(el) {
+  document.querySelectorAll('.imageFrame img').forEach(function(el) {
     el.addEventListener("load", imageLoadEvent, {passive: true});
   });
   window.addEventListener("resize", drawZonePoints, {passive: true});
@@ -701,7 +705,7 @@ function initPage() {
 function imageLoadEvent() {
   // We only need this event on the first image load to set dimensions.
   // Turn it off after it has been called.
-  document.querySelectorAll('#imageFrame img').forEach(function(el) {
+  document.querySelectorAll('.imageFrame img').forEach(function(el) {
     el.removeEventListener("load", imageLoadEvent, {passive: true});
   });
   drawZonePoints();

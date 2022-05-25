@@ -306,8 +306,8 @@ function MonitorStream(monitorData) {
         stateValue.removeClass();
       }
     }
-    //const monitorState = $j('#monitorState'+this.id);
-    //if (monitorState.length) this.setStateClass(monitorState, stateClass);
+    const monitorFrame = $j('#monitor'+this.id);
+    if (monitorFrame.length) this.setStateClass(monitorFrame, stateClass);
 
     const isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
     const wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );

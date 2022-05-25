@@ -213,7 +213,7 @@ int main(int argc, const char *argv[], char **envp) {
       if (nph) {
         fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
       }
-      fputs("Status: 403\r\n");
+      fputs("Status: 403\r\nContent-Type: text/html\r\n", stdout);
 
       const char *referer = getenv("HTTP_REFERER");
       Error("Unable to authenticate user from %s", referer);
@@ -227,7 +227,7 @@ int main(int argc, const char *argv[], char **envp) {
       if (nph) {
         fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
       }
-      fputs("Status: 403\r\n");
+      fputs("Status: 403\r\nContent-Type: text/html\r\n\r\n", stdout);
       logTerm();
       zmDbClose();
       return 0;

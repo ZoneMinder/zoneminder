@@ -24,7 +24,6 @@ void AnalysisThread::Start() {
 void AnalysisThread::Run() {
   while (!(terminate_ or zm_terminate)) {
     // Some periodic updates are required for variable capturing framerate
-    Debug(2, "Analyzing");
     if (!monitor_->Analyse()) {
       if (!(terminate_ or zm_terminate)) {
         Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);

@@ -1,7 +1,7 @@
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered
- * @param {*} new_layout - the name of a layout to switch to
+ * @param {*} new_layout_id - the id of a layout to switch to
  */
 function selectLayout(new_layout_id) {
   const ddm = $j('#zmMontageLayout');

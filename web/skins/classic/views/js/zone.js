@@ -667,7 +667,7 @@ function initPage() {
   }
   if ( el = cancelBtn[0] ) {
     el.onclick = function() {
-      window.location.reload(true);
+      window.history.back();
     };
   }
 

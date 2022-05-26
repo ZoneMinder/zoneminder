@@ -322,7 +322,7 @@ function MonitorStream(monitorData) {
           $j('#MediaPlayer').trigger('play');
         }
       }
-      if (POPUP_ON_ALARM) {
+      if (ZM_WEB_POPUP_ON_ALARM) {
         window.focus();
       }
       if (this.onalarm) {

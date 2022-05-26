@@ -106,7 +106,6 @@ function MonitorStream(monitorData) {
         width = newSize.width+'px';
         height = newSize.height+'px';
         newscale = parseInt(newSize.autoScale);
-        console.log("Have ottom selement, doing auto scale", newSize);
       }
     } else if (parseInt(width) || parseInt(height)) {
       if (width) {
@@ -120,7 +119,7 @@ function MonitorStream(monitorData) {
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    if (width && width != '0px') monitor_frame.css('width', width);
+    if (width && width != '0px' && monitor_frame.css('width') == 'auto') monitor_frame.css('width', width);
     if (height && height != '0px') img.style.height = height;
 
     this.setStreamScale(newscale);

@@ -97,7 +97,7 @@ function MonitorStream(monitorData) {
     }
     stream_frame = $j('#monitor'+this.id);
 
-    if (((newscale == '0') || (newscale=='auto')) && (width=='auto')) {
+    if (((newscale == '0' || newscale == 0) || (newscale=='auto')) && (width=='auto' || !width)) {
       if (!this.bottomElement) {
         newscale = parseInt(100*monitor_frame.width() / this.width);
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
@@ -121,9 +121,9 @@ function MonitorStream(monitorData) {
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    monitor_frame.css('width', width);
-    //img.style.width = width;
-    img.style.height = height;
+    if (width && width != '0px') monitor_frame.css('width', width);
+    if (height && height != '0px') img.style.height = height;
+
     this.setStreamScale(newscale);
   }; // setscale
 

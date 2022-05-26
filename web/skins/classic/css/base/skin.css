@@ -776,10 +776,54 @@ a.flip {
 .imageFeed {
   margin: 0 auto;
   text-align: center;
+  /*
   vertical-align: middle;
+  */
   position: relative;
 }
-.imageFeed img {
+.imageFeed img,
+.imageFeed svg {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  display: block;
   width: 100%;
+  /*
   height: 100%;
+  */
+}
+.imageFeed svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: none;
+}
+.Monitor {
+  border: 2px solid #ffffff;
+}
+.Monitor .monitor {
+  position: relative;
+}
+.Monitor .monitor:after {
+  clear: both;
+}
+
+.Monitor .idle img {
+    border: 2px solid #ffffff;
+}
+
+.Monitor .alarm img {
+    border: 2px solid #ff0000;
+}
+
+.Monitor .alert img {
+    border: 2px solid #ffa500;
+}
+.Monitor .alert {
+    color: #ffa500;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    border: none;
 }

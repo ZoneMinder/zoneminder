@@ -29,57 +29,6 @@
   position: relative;
 }
 
-#monitors .alarm {
-  color: #ff0000;
-  border: none;
-}
-
-#monitors .alert {
-  color: #ffa500;
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-  border: none;
-}
-
-#monitors .imageFeed {
-  /*
-  text-align: center;
-  vertical-align: middle;
-  position: relative;
-  */
-}
-
-#monitors .imageFeed img,
-#monitors .imageFeed video,
-#monitors .imageFeed svg {
-  border: 2px solid #ffffff;
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-#monitors .imageFeed svg {
-  position:absolute;
-  top: 0;
-  left: 0;
-  background: none;
-}
-
-#monitors .idle .imageFeed img {
-  border: 2px solid #ffffff;
-}
-
-#monitors .alarm .imageFeed img {
-  border: 2px solid #ff0000;
-}
-
-#monitors .alert .imageFeed img {
-  border: 2px solid #ffa500;
-}
-
 #monitors .monitorStatus {
   margin: 2px auto;
   text-align: center;

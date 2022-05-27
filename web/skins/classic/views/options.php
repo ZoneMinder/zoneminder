@@ -466,7 +466,6 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
     $shortName = preg_replace('/^ZM_/', '', $name);
     $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
     $optionCanEdit = $canEdit && !$value['System'];
-    ZM\Debug($optionCanEdit . ' for ' . $value['Name'] . ' System: ' . $value['System']);
 ?>
             <div class="form-group form-row">
               <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>

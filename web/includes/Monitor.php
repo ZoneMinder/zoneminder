@@ -128,6 +128,8 @@ public static function getStatuses() {
     'Capturing' => 'Always',
     'Analysing' => 'Always',
     'Recording' => 'Always',
+    'RecordingSource' => 'Primary',
+    'AnalysisSource' => 'Primary',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),

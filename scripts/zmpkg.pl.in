@@ -235,6 +235,8 @@ if ( $command =~ /^(?:start|restart)$/ ) {
             } # end if track motion
           } # end if controllable
         } # end if ZM_OPT_CONTROL        
+      } else {
+        Debug("Not running process for Monitor $$monitor{Id} Because Capturing($$monitor{Capturing})== None or Type($$monitor{Type})==Website");
       } # end if capturing is not none or Website
     } # end foreach monitor
 

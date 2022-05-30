@@ -57,3 +57,8 @@ tr td:first-child {
   vertical-align: top;
   text-align: right;
 }
+
+tr td input[type="checkbox"],
+tr td input[type="radio"] {
+  margin: 6px 0;
+}

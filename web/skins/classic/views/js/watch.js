@@ -264,12 +264,14 @@ function onPause() {
     setButtonState('fastRevBtn', 'inactive');
   }
 }
+
 function streamCmdPause(action) {
   onPause();
   if (action) {
     monitorStream.streamCommand(CMD_PAUSE);
   }
 }
+
 function onPlay() {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'active');

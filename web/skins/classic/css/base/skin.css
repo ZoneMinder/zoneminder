@@ -791,6 +791,7 @@ a.flip {
   /*
   height: 100%;
   */
+  border: 2px solid #ffffff;
 }
 .imageFeed svg {
   position: absolute;
@@ -799,31 +800,27 @@ a.flip {
   right: 0;
   background: none;
 }
-.Monitor {
-  border: 2px solid #ffffff;
-}
-.Monitor .monitor {
+.monitor {
   position: relative;
 }
-.Monitor .monitor:after {
+.monitor:after {
   clear: both;
 }
 
-.Monitor .idle img {
-    border: 2px solid #ffffff;
+.monitor.idle img {
+  border: 2px solid #ffffff;
 }
 
-.Monitor .alarm img {
-    border: 2px solid #ff0000;
+.monitor.alarm img {
+  border: 2px solid #ff0000;
 }
 
-.Monitor .alert img {
-    border: 2px solid #ffa500;
+.monitor.alert img {
+  border: 2px solid #ffa500;
 }
-.Monitor .alert {
-    color: #ffa500;
-    margin: 0;
-    padding: 0;
-    border-radius: 0;
-    border: none;
+.monitor.alert {
+  color: #ffa500;
+  padding: 0;
+  border-radius: 0;
+  border: none;
 }

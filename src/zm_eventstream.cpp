@@ -647,6 +647,7 @@ bool EventStream::checkEventLoaded() {
         curr_frame_id = 1;
       Debug(2, "New frame id = %ld", curr_frame_id);
       gettimeofday(&start, nullptr);
+      start_usec = start.tv_sec * 1000000 + start.tv_usec;
       return true;
     } else {
       Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
@@ -839,7 +840,7 @@ void EventStream::runStream() {
 
   updateFrameRate((event_data->frame_count and event_data->duration) ? (double)event_data->frame_count/event_data->duration : 1);
   gettimeofday(&start, nullptr);
-  uint64_t start_usec = start.tv_sec * 1000000 + start.tv_usec;
+  start_usec = start.tv_sec * 1000000 + start.tv_usec;
   uint64_t last_frame_offset = 0;
 
   double time_to_event = 0;

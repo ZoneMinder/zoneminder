@@ -892,10 +892,14 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
             monitor->Width(),
             monitor->Height());
 
+      auto n_coords = polygon.GetVertices().size();
       polygon.Clip(Box(
           {0, 0},
           {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
       ));
+      if (polygon.GetVertices().size() != n_coords) {
+        Error("Cropping altered the number of vertices! From %zu to %zu", n_coords, polygon.GetVertices().size());
+      }
     }
 
     if ( false && !strcmp( Units, "Percent" ) ) {
@@ -1039,4 +1043,3 @@ Zone::Zone(const Zone &z) :
   //z.stats.debug("Copy Source");
   stats.DumpToLog("Copy dest");
 }
-

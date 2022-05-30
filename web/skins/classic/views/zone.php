@@ -143,7 +143,9 @@ xhtmlHeaders(__FILE__, translate('Zone'));
 
         <div id="definitionPanel">
 				  <div id="imagePanel">
-            <div id="imageFrame">
+            <div class="Monitor">
+              <div id="monitor<?php echo $monitor->Id() ?>">
+            <div id="imageFrame<?php echo $monitor->Id()?>" class="imageFrame">
               <?php echo $StreamHTML; ?>
               <svg id="zoneSVG" class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
 <?php
@@ -175,6 +177,8 @@ if ( count($other_zones) ) {
               <button type="button" id="playBtn" title="<?php echo translate('Play') ?>">
                 <i class="material-icons md-18">play_arrow</i>
               </button>
+            </div>
+            </div>
             </div>
           </div><!--imagePanel-->
 

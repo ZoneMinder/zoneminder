@@ -14,7 +14,7 @@ function selectLayout(element) {
       monitor = monitors[i];
       // Need to clear the current positioning, and apply the new
 
-      monitor_frame = $j('#monitorFrame'+monitor.id);
+      monitor_frame = $j('#monitor'+monitor.id);
       if (!monitor_frame) {
         console.log('Error finding frame for ' + monitor.id);
         continue;
@@ -56,26 +56,7 @@ function selectLayout(element) {
 
   for (var i = 0, length = monitors.length; i < length; i++) {
     var monitor = monitors[i];
-
-    var stream_scale = 0;
-    if (parseInt(scale) > 0) {
-      stream_scale = scale;
-    } else if (width != 'auto') {
-      stream_scale = parseInt(100*parseInt(width)/monitor.width);
-    } else if (height != 'auto') {
-      stream_scale = parseInt(100*parseInt(height)/monitor.height);
-    } else if (layouts[layout_id].Name != 'Freeform') {
-      monitor_frame = $j('#monitorFrame'+monitor.id);
-      console.log("Monitor frame width : " + monitor_frame.width() + " monitor Width: " + monitor.width);
-      if (monitor_frame.width() < monitor.width) {
-        stream_scale = parseInt(100 * monitor_frame.width() / monitor.width);
-        // Round to a multiple of 5, so 53 become 50% etc
-        stream_scale = Math.floor(stream_scale/5)*5;
-      }
-    }
-    img = document.getElementById('liveStream'+monitor.id);
-    img.style.height = height;
-    monitor.setStreamScale(stream_scale);
+    monitor.setScale(scale, width, height);
   } // end foreach monitor
 } // end function selectLayout(element)
 
@@ -106,25 +87,7 @@ function changeWidth() {
 
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-
-    // Scale the frame
-    monitor_frame = $j('#monitorFrame'+monitor.id);
-    if ( !monitor_frame ) {
-      console.log("Error finding frame for " + monitor.id);
-      continue;
-    }
-    monitor_frame.css('width', width);
-    monitor_frame.css('height', height);
-    var scale = 100;
-    if (width != 'auto') {
-      scale = parseInt(100*parseInt(width)/monitor.width);
-    } else if (height != 'auto') {
-      scale = parseInt(100*parseInt(height)/monitor.height);
-    }
-    monitor_img = $j('#liveStream'+monitor.id);
-    monitor_img.css('width', width);
-
-    monitor.setStreamScale(scale);
+    monitor.setScale('0', width, height);
   } // end foreach monitor
   $j('#scale').val('0');
   setCookie('zmMontageScale', '0', 3600);
@@ -150,7 +113,7 @@ function changeScale() {
     const monitor = monitors[i];
 
     // Scale the frame
-    monitor_frame = $j('#monitorFrame'+monitor.id);
+    monitor_frame = $j('#monitor'+monitor.id);
     if ( !monitor_frame ) {
       console.log("Error finding frame for " + monitor.id);
       continue;
@@ -253,29 +216,29 @@ function initPage() {
   $j("#hdrbutton").click(function() {
     $j("#flipMontageHeader").slideToggle("slow");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-    setCookie( 'zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', 3600);
+    setCookie('zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', 3600);
   });
-  if ( getCookie('zmMontageHeaderFlip') == 'down' ) {
+  if (getCookie('zmMontageHeaderFlip') == 'down') {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
     $j("#flipMontageHeader").slideToggle("fast");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
 
-  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+  for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i] = new MonitorStream(monitorData[i]);
-
+  }
+  selectLayout('#zmMontageLayout');
+  for (let i = 0, length = monitorData.length; i < length; i++) {
     // Start the fps and status updates. give a random delay so that we don't assault the server
-    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    console.log("delay: " + delay);
+    var delay = Math.round((Math.random()+0.5)*statusRefreshTimeout);
     monitors[i].start(delay);
 
     var interval = monitors[i].refresh;
-    if ( monitors[i].type == 'WebSite' && interval > 0 ) {
+    if (monitors[i].type == 'WebSite' && interval > 0) {
       setInterval(reloadWebSite, interval*1000, i);
     }
     monitors[i].setup_onclick();
   }
-  selectLayout('#zmMontageLayout');
 }
 // Kick everything off
 $j(document).ready(initPage);

@@ -118,11 +118,11 @@ foreach ( $displayMonitors as &$row ) {
 
   if ( ZM_OPT_CONTROL && $row['ControlId'] && $row['Controllable'] )
     $showControl = true;
-  if ( ! isset($widths[$row['Width']]) ) {
-    $widths[$row['Width']] = $row['Width'].'px';
+  if ( ! isset($widths[$row['Width'].'px']) ) {
+    $widths[$row['Width'].'px'] = $row['Width'].'px';
   }
-  if ( ! isset($heights[$row['Height']]) ) {
-    $heights[$row['Height']] = $row['Height'].'px';
+  if ( ! isset($heights[$row['Height'].'px']) ) {
+    $heights[$row['Height'].'px'] = $row['Height'].'px';
   }
   $monitors[] = new ZM\Monitor($row);
 } # end foreach Monitor
@@ -237,13 +237,10 @@ if ( canView('System') ) {
 <?php
 foreach ( $monitors as $monitor ) {
 ?>
-        <div
-          id="monitorFrame<?php echo $monitor->Id() ?>"
-          class="monitorFrame"
+          <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle"
           title="<?php echo $monitor->Id() . ' ' .$monitor->Name() ?>"
           style="<?php echo $options['width'] ? 'width:'.$options['width'].'px;':''?>"
-        >
-          <div id="monitor<?php echo $monitor->Id() ?>" class="monitor idle">
+>
             <div
               id="imageFeed<?php echo $monitor->Id() ?>"
               class="imageFeed"
@@ -256,6 +253,7 @@ foreach ( $monitors as $monitor ) {
   $monitor_options['width'] = $monitor_options['width']?$monitor_options['width'].'px' : null;
   $monitor_options['height'] = $monitor_options['height']?$monitor_options['height'].'px' : null;
   $monitor_options['connkey'] = $monitor->connKey();
+  $monitor_options['mode'] = 'single';
 
   #ZM\Warning('Options: ' . print_r($monitor_options,true));
 
@@ -328,7 +326,6 @@ foreach ( array_reverse($zones) as $zone ) {
   }
 ?>
           </div>
-        </div>
 <?php
 } # end foreach monitor
 ?>

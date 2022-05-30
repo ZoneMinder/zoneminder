@@ -39,6 +39,7 @@ CREATE TABLE `Config` (
   `Help` text,
   `Category` varchar(32) NOT NULL default '',
   `Readonly` tinyint(3) unsigned NOT NULL default '0',
+  `System` BOOLEAN NOT NULL DEFAULT FALSE,
   `Requires` text,
   PRIMARY KEY (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -1081,9 +1082,9 @@ CREATE TABLE MontageLayouts (
 );
 
 INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('Freeform', '{ "default":{"float":"left","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('2 Wide', '{ "default":{"float":"left", "width":"49%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('3 Wide', '{ "default":{"float":"left", "width":"33%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
-INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('4 Wide', '{ "default":{"float":"left", "width":"24.5%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('2 Wide', '{ "default":{"float":"left", "width":"50%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('3 Wide', '{ "default":{"float":"left", "width":"33.3%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('4 Wide', '{ "default":{"float":"left", "width":"25%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
 INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('5 Wide', '{ "default":{"float":"left", "width":"19%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
 
 CREATE TABLE Sessions (

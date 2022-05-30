@@ -139,9 +139,10 @@ bool VideoStore::open() {
   if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
 
   oc->metadata = pmetadata;
-  // Dirty hack to allow us to set flags. Needed for ffmpeg5
+#if !LIBAVFORMAT_VERSION_CHECK(59, 16, 0, 2, 0)
+  oc->oformat->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+#endif
   out_format = const_cast<AVOutputFormat *>(oc->oformat);
-  out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
 
   if (video_in_stream) {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -1239,7 +1240,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
   int ret;
   ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "input packet");
 
-  if (audio_first_dts != AV_NOPTS_VALUE) {
+  if (audio_first_dts == AV_NOPTS_VALUE) {
     audio_first_dts = ipkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;
     Debug(3, "audio first_dts to %" PRId64, audio_first_dts);

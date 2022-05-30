@@ -337,7 +337,7 @@ function getStreamCmdResponse(respObj, respText) {
   streamCmdTimer = setTimeout(streamCmdQuery, streamCmdTimeout);
 }
 
-function streamCmdPause(action) {
+function onPause() {
   setButtonState('pauseBtn', 'active');
   setButtonState('playBtn', 'inactive');
   setButtonState('stopBtn', 'inactive');
@@ -347,18 +347,19 @@ function streamCmdPause(action) {
     setButtonState('slowRevBtn', 'inactive');
     setButtonState('fastRevBtn', 'inactive');
   }
+}
+
+function streamCmdPause(action) {
+  onPause();
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_PAUSE;
-    streamCmdReq(data);
+    monitorStream.streamCommand(CMD_PAUSE);
   }
 }
 
-function streamCmdPlay(action) {
+function onPlay() {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'active');
-  if (streamStatus.delayed == true) {
+  if (monitorStream.status.delayed == true) {
     setButtonState('stopBtn', 'inactive');
     if (monitorStreamReplayBuffer) {
       setButtonState('fastFwdBtn', 'inactive');
@@ -375,11 +376,12 @@ function streamCmdPlay(action) {
       setButtonState('fastRevBtn', 'unavail');
     }
   }
+}
+
+function streamCmdPlay(action) {
+  onPlay();
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_PLAY;
-    streamCmdReq(data);
+    monitorStream.streamCommand(CMD_PLAY);
   }
 }
 
@@ -571,6 +573,7 @@ function alarmCmdReq(data) {
 
 function getAlarmCmdResponse(respObj, respText) {
   checkStreamForErrors('getAlarmCmdResponse', respObj);
+  if (respObj.message) alert(respObj.message);
 }
 
 function cmdDisableAlarms() {
@@ -864,6 +867,10 @@ function msieVer() {
   }
 }
 
+function refresh_events_table() {
+  table.bootstrapTable('refresh');
+}
+
 function initPage() {
   if (canView.Control) {
     // Load the PTZ Preset modal into the DOM
@@ -873,6 +880,34 @@ function initPage() {
   }
 
   if (monitorType != 'WebSite') {
+      monitorStream = new MonitorStream(monitorData[monIdx]);
+    monitorStream.setBottomElement(document.getElementById('dvrControls'));
+
+    // Start the fps and status updates. give a random delay so that we don't assault the server
+    monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
+    monitorStream.start();
+    if (streamMode == 'single') {
+      monitorStream.setup_onclick(fetchImage);
+    } else {
+      monitorStream.setup_onclick(handleClick);
+    }
+    monitorStream.setup_onpause(onPause);
+    monitorStream.setup_onplay(onPlay);
+    monitorStream.setup_onalarm(refresh_events_table);
+
+    monitorStream.setButton('enableAlarmButton', enableAlmBtn);
+    monitorStream.setButton('forceAlarmButton', forceAlmBtn);
+    monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+    if (canEdit.Monitors) {
+      // Will be enabled by streamStatus ajax
+      enableAlmBtn.on('click', cmdAlarm);
+      forceAlmBtn.on('click', cmdForce);
+    } else {
+      forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
+      enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
+    }
+
+/*
     if (streamMode == 'single') {
       statusCmdTimer = setTimeout(statusCmdQuery, (Math.random()+0.1)*statusRefreshTimeout);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
@@ -899,6 +934,7 @@ function initPage() {
         }
       } // end if have streamImg
     } // streamMode native or single
+    */
 
     if (refreshApplet && appletRefreshTime) {
       setTimeout(appletRefresh, appletRefreshTime*1000);
@@ -909,7 +945,6 @@ function initPage() {
     document.querySelectorAll('select[name="scale"]').forEach(function(el) {
       el.onchange = window['changeScale'];
     });
-    changeScale();
   } else if (monitorRefresh > 0) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }

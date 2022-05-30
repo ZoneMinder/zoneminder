@@ -33,7 +33,7 @@ PacketQueue::PacketQueue():
   packet_counts(nullptr),
   deleting(false),
   keep_keyframes(false),
-  has_warned(false)
+  warned_count(0)
 {
 }
 
@@ -111,8 +111,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         and
         (packet_counts[video_stream_id] > max_video_packet_count)
        ) {
-      if (!has_warned) {
-        has_warned = true;
+      if (!warned_count) {
+        warned_count++;
         Warning("You have set the max video packets in the queue to %u."
             " The queue is full. Either Analysis is not keeping up or"
             " your camera's keyframe interval is larger than this setting."
@@ -130,8 +130,11 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
         ZMLockedPacket lp(zm_packet);
         if (!lp.trylock()) {
-          // Can't delete a locked packet, but can delete one after it.
-          Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
+          if (warned_count <2) {
+            warned_count++;
+            // Can't delete a locked packet, but can delete one after it.
+            Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
+          }
           ++it;
           continue;
         }
@@ -164,7 +167,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           break;
       }  // end while
     } else {
-      has_warned = false;
+      warned_count--;
     }  // end if not able catch up
   }  // end lock scope
   // We signal on every packet because someday we may analyze sound
@@ -258,6 +261,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (lp->trylock()) {
+    int keyframe_interval = 1;
     int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
     Debug(4, "Have lock on first packet");
     ++it;
@@ -285,8 +289,11 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
       if (zm_packet->packet.stream_index == video_stream_id) {
         if (zm_packet->keyframe) {
-          Debug(3, "Have a video keyframe so setting next front to it");
+          Debug(1, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval);
+          keyframe_interval = 1;
           next_front = it;
+        } else {
+          keyframe_interval++;
         }
         ++video_packets_to_delete;
         Debug(3, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",

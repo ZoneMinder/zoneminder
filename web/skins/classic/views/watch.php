@@ -66,8 +66,8 @@ xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
         <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
         <button type="button" id="settingsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Settings') ?>" disabled><i class="fa fa-sliders"></i></button>
-        <button type="button" id="enableAlmBtn" class="btn btn-normal" data-on-click="cmdAlarm" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DisableAlarms') ?>" disabled><i class="fa fa-bell"></i></button>
-        <button type="button" id="forceAlmBtn" class="btn btn-danger" data-on-click="cmdForce" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ForceAlarm') ?>" disabled><i class="fa fa-exclamation-circle"></i></button>
+        <button type="button" id="enableAlmBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DisableAlarms') ?>" disabled><i class="fa fa-bell"></i></button>
+        <button type="button" id="forceAlmBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ForceAlarm') ?>" disabled><i class="fa fa-exclamation-circle"></i></button>
       </div>
 
       <div>
@@ -84,24 +84,24 @@ if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
 }
 ?>
     <div id="content">
-      <div id="imageFeed"
+      <div id="imageFeed<?php echo $monitor->Id() ?>"
 <?php
 if ( $streamMode == 'jpeg' ) {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
-><?php echo getStreamHTML($monitor, array('scale'=>$scale)); ?></div>
+><?php echo getStreamHTML($monitor, array('scale'=>$scale, 'mode'=>'single')); ?></div>
 
 
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
         <div id="monitorState">
           <?php echo translate('State') ?>:
-          <span id="stateValue"></span> -
-          <span title="<?php echo translate('Viewing FPS')?>"><span id="fpsValue"></span> fps</span>
-          <span title="<?php echo translate('Capturing FPS')?>"><span id="capturefpsValue"></span> fps</span>
+          <span id="stateValue<?php echo $monitor->Id() ?>"></span> -
+          <span title="<?php echo translate('Viewing FPS')?>"><span id="viewingFPSValue<?php echo $monitor->Id() ?>"></span> fps</span>
+          <span title="<?php echo translate('Capturing FPS')?>"><span id="captureFPSValue<?php echo $monitor->Id() ?>"></span> fps</span>
           <?php if ( $monitor->Function() == 'Modect' or $monitor->Function() == 'Mocord' ) { ?>
-          <span title="<?php echo translate('Analysis FPS')?>"><span id="analysisfpsValue"></span> fps</span>
+          <span title="<?php echo translate('Analysis FPS')?>"><span id="analysisFPSValue<?php echo $monitor->Id() ?>"></span> fps</span>
           <?php } ?>
         </div>
       </div>
@@ -148,11 +148,11 @@ if ( $streamMode == 'jpeg' ) {
 ?>
       </div>
       <div id="replayStatus"<?php echo $streamMode=="single" ? ' class="hidden"' : '' ?>>
-        <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue"></span></span>
-        <span id="rate"><?php echo translate('Rate') ?>: <span id="rateValue"></span>x</span>
-        <span id="delay"><?php echo translate('Delay') ?>: <span id="delayValue"></span>s</span>
-        <span id="level"><?php echo translate('Buffer') ?>: <span id="levelValue"></span>%</span>
-        <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue"></span>x</span>
+        <span id="mode<?php echo $monitor->Id() ?>"><?php echo translate('Mode') ?>: <span id="modeValue<?php echo $monitor->Id() ?>"></span></span>
+        <span id="rate<?php echo $monitor->Id() ?>"><?php echo translate('Rate') ?>: <span id="rateValue<?php echo $monitor->Id() ?>"></span>x</span>
+        <span id="delay<?php echo $monitor->Id() ?>"><?php echo translate('Delay') ?>: <span id="delayValue<?php echo $monitor->Id() ?>"></span>s</span>
+        <span id="level<?php echo $monitor->Id() ?>"><?php echo translate('Buffer') ?>: <span id="levelValue<?php echo $monitor->Id() ?>"></span>%</span>
+        <span id="zoom<?php echo $monitor->Id() ?>"><?php echo translate('Zoom') ?>: <span id="zoomValue<?php echo $monitor->Id() ?>"></span>x</span>
       </div>
 <?php } // end if $monitor->Type() != 'WebSite' ?>
 <?php
@@ -246,4 +246,5 @@ if ( ZM_WEB_SOUND_ON_ALARM ) {
 ?>
     </div>
   </div>
+ <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

@@ -45,7 +45,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       </div>
       <div class="w-100 pt-2">
-        <h2><?php echo translate('Zones') ?></h2>
+        <h2><?php echo translate('Zones').(isset($_REQUEST['mid']) ? ' '.translate('for').' '.$monitors[$_REQUEST['mid']]->Name() : '')?></h2>
       </div>
     </div>
     <div id="content">
@@ -72,9 +72,9 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       $zones[] = $row;
     }
 
-    $options = array('width'=>'100%', 'height'=>'auto');
+    $options = array('width'=>'100%', 'height'=>'auto', 'mode'=>'single');
 ?>
-    <div class="Monitor">
+    <div class="Monitor"><div id="monitor<?php echo $mid ?>" class="monitor">
         <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
         <div class="ZonesImage imageFeed" id="imageFeed<?php echo $monitor->Id() ?>">
           <?php echo getStreamHTML($monitor, $options); ?>
@@ -96,6 +96,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
           <?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps
         </div>
         </div>
+        </div>
 				<div class="zones">
 					<table id="zonesTable" class="major">
 						<thead>
@@ -107,26 +108,26 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 							</tr>
 						</thead>
 						<tbody>
-	<?php
-	foreach( $zones as $zone ) {
-	?>
+<?php
+	foreach ($zones as $zone) {
+?>
 							<tr>
 								<td class="colName"><?php echo makeLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
 								<td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
 								<td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', ($zone['Area']*100)/($monitor->ViewWidth()*$monitor->ViewHeight()) ) ?></td>
 								<td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit('Monitors') ) { ?> disabled="disabled"<?php } ?>/></td>
 							</tr>
-	<?php
+<?php
 	}
-	?>
+?>
 						</tbody>
 					</table>
-                                     <div id="contentButtons">
-                                       <?php echo makeButton('?view=zone&mid='.$mid.'&zid=0', 'AddNewZone', canEdit('Monitors')); ?>
-                                       <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
-                                     </div>
+          <div id="contentButtons">
+            <?php echo makeButton('?view=zone&mid='.$mid.'&zid=0', 'AddNewZone', canEdit('Monitors')); ?>
+            <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+          </div>
 				</div><!--zones-->
-<br class="clear"/>
+        <br class="clear"/>
       </div><!--Monitor-->
 <?php 
   } # end foreach monitor

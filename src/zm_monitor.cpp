@@ -2613,7 +2613,15 @@ bool Monitor::Decode() {
   packet->decoded = true;
   shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
   shared_data->last_write_index = index;
-  shared_data->last_write_time = packet->timestamp.tv_sec;
+
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+  shared_data->last_write_time = now.tv_sec;
+  if (now.tv_sec - packet->timestamp.tv_sec > ZM_WATCH_MAX_DELAY) {
+    Warning("Decoding is not keeping up. We are %ld seconds behind capture.",
+        now.tv_sec - packet->timestamp.tv_sec);
+  }
+
   packetqueue.unlock(packet_lock);
   return true;
 }  // end bool Monitor::Decode()

@@ -488,8 +488,6 @@ function controlCmd(event) {
   if (event.type !='mouseup') {
     control = button.getAttribute('value');
   } else {
-    console.log('stop');
-    console.log(event);
     control = 'moveStop';
   }
   xtell = button.getAttribute('data-xtell');
@@ -872,10 +870,7 @@ var secondsToCycle = 0;
 function nextCycleView() {
   secondsToCycle --;
   if (secondsToCycle<=0) {
-    clearInterval(intervalId);
-    secondsToCycle = 0;
-    monitorStream.stop();
-    window.location.replace('?view=watch&mid='+nextMid+'&mode='+mode+'&cycle=true');
+    cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);
 }
@@ -904,7 +899,7 @@ function cycleNext() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
-  monitorStream.stop();
+  monitorStream.kill();
   window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 

@@ -119,7 +119,11 @@ function MonitorStream(monitorData) {
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    if (width && width != '0px' && monitor_frame.css('width') == 'auto') monitor_frame.css('width', width);
+    if (width && (width != '0px') &&
+      ((monitor_frame[0].style.width===undefined) || (-1 == monitor_frame[0].style.width.search('%')))
+      ) {
+      monitor_frame.css('width', width);
+    }
     if (height && height != '0px') img.style.height = height;
 
     this.setStreamScale(newscale);
@@ -153,7 +157,7 @@ function MonitorStream(monitorData) {
         if (-1 != img.src.search('connkey') && -1 != img.src.search('mode=single')) {
           this.streamCommand(CMD_QUIT);
         }
-        console.log("Changing src to " + newSrc);
+        console.log("Changing src from " + img.src + " to " + newSrc);
         img.src = '';
         img.src = newSrc;
         this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
@@ -287,7 +291,7 @@ function MonitorStream(monitorData) {
   };
 
   this.setAlarmState = function(alarmState) {
-    var stateClass = '';
+    let stateClass = '';
     if (alarmState == STATE_ALARM) {
       stateClass = 'alarm';
     } else if (alarmState == STATE_ALERT) {
@@ -296,11 +300,9 @@ function MonitorStream(monitorData) {
 
     const stateValue = $j('#stateValue'+this.id);
     if (stateValue.length) {
-      stateValue.text(stateStrings[alarmState]);
-      if (stateClass) {
-        stateValue.addClass(stateClass);
-      } else {
-        stateValue.removeClass();
+      if (stateValue.text() != stateStrings[alarmState]) {
+        stateValue.text(stateStrings[alarmState]);
+        this.setStateClass(stateValue, stateClass);
       }
     }
     const monitorFrame = $j('#monitor'+this.id);
@@ -520,7 +522,6 @@ function MonitorStream(monitorData) {
         }
       }
     } // end if Ok or not
-    if (respObj.message) alert(respObj.message);
   };
 
   this.statusQuery = function() {

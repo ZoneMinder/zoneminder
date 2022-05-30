@@ -520,6 +520,7 @@ function MonitorStream(monitorData) {
         }
       }
     } // end if Ok or not
+    if (respObj.message) alert(respObj.message);
   };
 
   this.statusQuery = function() {

@@ -1118,8 +1118,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     }
     if ((ipkt->pts != AV_NOPTS_VALUE) and (video_first_dts != AV_NOPTS_VALUE)) {
       opkt.pts = ipkt->pts - video_first_dts;
-    } else {
-      opkt.pts = opkt.dts;
     }
 
     av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);
@@ -1141,7 +1139,6 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
   }
 
   AVPacket *ipkt = &zm_packet->packet;
-  int ret;
   ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "input packet");
 
   if (audio_first_dts == AV_NOPTS_VALUE) {
@@ -1154,7 +1151,7 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
 
   if (audio_out_codec) {
     // I wonder if we can get multiple frames per packet? Probably
-    ret = zm_send_packet_receive_frame(audio_in_ctx, in_frame, *ipkt);
+    int ret = zm_send_packet_receive_frame(audio_in_ctx, in_frame, *ipkt);
     if (ret < 0) {
       Debug(3, "failed to receive frame code: %d", ret);
       return 0;
@@ -1248,6 +1245,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   }
 #else
   if (pkt->dts == AV_NOPTS_VALUE) {
+    Debug(1, "undef dts, fixing by setting to stream last_dts %" PRId64, last_dts[stream->index]);
     if (last_dts[stream->index] == AV_NOPTS_VALUE) {
       last_dts[stream->index] = 0;
     } 

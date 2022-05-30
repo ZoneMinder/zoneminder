@@ -575,16 +575,18 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
 
   *it = snapshot_it;
   std::shared_ptr<ZMPacket> packet = *(*it);
-  ZM_DUMP_PACKET(packet->packet, "");
+  //ZM_DUMP_PACKET(packet->packet, "");
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
   // snapshot it might already point to the beginning
   if (pre_event_count) {
     while ((*it) != pktQueue.begin()) {
       packet = *(*it);
+      /*
       Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d score %d",
           pre_event_count, packet->packet.stream_index, packet->keyframe, packet->score);
       ZM_DUMP_PACKET(packet->packet, "");
+      */
       if (packet->packet.stream_index == video_stream_id) {
         pre_event_count --;
         if (!pre_event_count)
@@ -603,7 +605,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     } else {
       Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
     }
-    ZM_DUMP_PACKET(packet->packet, "");
+    //ZM_DUMP_PACKET(packet->packet, "");
     return it;
   } else if (!keep_keyframes) {
     // Are encoding, so don't care about keyframes
@@ -612,7 +614,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
 
   while ((*it) != pktQueue.begin()) {
     packet = *(*it);
-    ZM_DUMP_PACKET(packet->packet, "No keyframe");
+    //ZM_DUMP_PACKET(packet->packet, "No keyframe");
     if ((packet->packet.stream_index == video_stream_id) and packet->keyframe)
       return it; // Success
     --(*it);

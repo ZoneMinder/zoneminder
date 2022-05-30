@@ -914,6 +914,9 @@ public static function getStatuses() {
       $options['mode'] = 'jpeg';
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
+    } else if ( $options['mode'] == 'single' and canStream() ) {
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
     } else {
       if ($options['mode'] == 'stream') {
         Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');

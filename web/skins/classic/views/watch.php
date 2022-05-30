@@ -93,14 +93,14 @@ if (isset($_REQUEST['cycle']) and ($_REQUEST['cycle'] == 'true')) {
   $cycle = true;
 }
 $showCycle = $cycle;
-if (isset($_COOKIE['zmCycleShow'])) {
+if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
   $showCycle = $_COOKIE['zmCycleShow'] == 'true';
-  if (!$showCycle) $cycle = false;
 }
 #Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
 
 $options = array();
+if (0) {
 if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode']=='stream')) {
   $options['mode'] = validHtmlStr($_REQUEST['mode']);
 } else if (isset($_COOKIE['zmWatchMode'])) {
@@ -108,6 +108,9 @@ if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode
 } else {
   $options['mode'] = canStream() ? 'stream' : 'still';
 }
+}
+$options['mode'] = 'single';
+
 if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
   $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
 } else if (isset($_COOKIE['zmWatchRate'])) {
@@ -154,10 +157,8 @@ if (
 ) {
   $options['scale'] = 'auto';
 }
-
-$connkey = generateConnKey();
 if ($monitor->JanusEnabled()) {
-    $streamMode = 'janus';
+  $streamMode = 'janus';
 } else {
   $streamMode = getStreamMode();
 }
@@ -277,11 +278,15 @@ if ($streamMode == 'jpeg') {
 }
 ?>
 >
+<div class="Monitor">
 <?php 
 if ($monitor->Type() != 'WebSite') {
   $options['state'] = true;
 }
 echo $monitor->getStreamHTML($options);
+?>
+</div>
+<?php
 if ($monitor->Type() != 'WebSite') {
 ?>
         <div class="buttons" id="dvrControls">

@@ -43,6 +43,7 @@ use ZoneMinder::Logger qw(:all);
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
+$debug = 1;
 $table = 'Monitors';
 $serial = $primary_key = 'Id';
 %fields = map { $_ => $_ } qw(

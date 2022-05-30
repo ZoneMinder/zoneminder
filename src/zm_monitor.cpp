@@ -1603,6 +1603,7 @@ void Monitor::CheckAction() {
     SystemTimePoint now = std::chrono::system_clock::now();
     if (now >= auto_resume_time) {
       Info("Auto resuming at count %d", image_count);
+      auto_resume_time = {};
       shared_data->analysing = analysing;
       ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
     }

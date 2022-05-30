@@ -38,6 +38,7 @@ if ( empty($_REQUEST['mode']) ) {
 } else {
   $options['mode'] = validHtmlStr($_REQUEST['mode']);
 }
+$options['mode'] = 'single';
 
 $widths = array(
   'auto'  => translate('auto'),
@@ -89,7 +90,6 @@ if ( $monitors ) {
 if ( !$monitor ) {
   ZM\Error('There was no monitor to display.');
 }
-$options['connkey'] = generateConnKey();
 
 zm_session_start();
 
@@ -121,8 +121,6 @@ if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] ) {
 }
 
 session_write_close();
-
-ZM\Debug(print_r($options,true));
 
 noCacheHeaders();
 xhtmlHeaders(__FILE__, translate('CycleWatch'));
@@ -175,7 +173,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
           <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed">
           <?php 
             if ( $monitor ) {
-              echo getStreamHTML($monitor, $options);
+              echo $monitor->getStreamHTML($options);
             } else {
               echo 'There are no monitors to view.';
             }

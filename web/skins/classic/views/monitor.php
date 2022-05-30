@@ -135,12 +135,6 @@ $sourceTypes = array(
 if (!ZM_HAS_V4L2)
   unset($sourceTypes['Local']);
 
-$localMethods = array(
-    'v4l2' => 'Video For Linux version 2',
-    );
-
-if (!ZM_HAS_V4L2)
-  unset($localMethods['v4l2']);
 
 $remoteProtocols = array(
     'http' => 'HTTP',
@@ -623,7 +617,16 @@ switch ($name) {
           </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('CaptureMethod') ?></td>
-            <td><?php echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), array('onchange'=>'submitTab', 'data-tab-name'=>$tab) ); ?></td>
+            <td><?php 
+$localMethods = array(
+    'v4l2' => 'Video For Linux version 2',
+    );
+if (!ZM_HAS_V4L2)
+  unset($localMethods['v4l2']);
+echo htmlSelect('newMonitor[Method]', $localMethods, 
+  ((count($localMethods)<=1) ? array_key_first($localMethods) : $monitor->Method()),
+  array('data-on-change'=>'submitTab', 'data-tab-name'=>$tab) );
+?></td>
           </tr>
 <?php
         if ( ZM_HAS_V4L2 && $monitor->Method() == 'v4l2' ) {

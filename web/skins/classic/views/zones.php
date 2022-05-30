@@ -76,9 +76,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 ?>
     <div class="Monitor">
         <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
-        <div class="ZonesImage imageFeed" id="imageFeed<?php echo $monitor->Id() ?>">
-          <?php echo getStreamHTML($monitor, $options); ?>
-        </div>
+        <?php echo getStreamHTML($monitor, $options); ?>
         <div class="zones">
           <table id="zonesTable" class="major">
             <thead>

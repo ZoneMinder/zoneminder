@@ -95,9 +95,8 @@ function MonitorStream(monitorData) {
       console.log('Error finding frame');
       return;
     }
-    stream_frame = $j('#monitor'+this.id);
 
-    if (((newscale == '0') || (newscale=='auto')) && (width=='auto')) {
+    if (((newscale == '0') || (newscale == 0) || (newscale=='auto')) && (width=='auto' || !width)) {
       if (!this.bottomElement) {
         newscale = parseInt(100*monitor_frame.width() / this.width);
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
@@ -107,7 +106,6 @@ function MonitorStream(monitorData) {
         width = newSize.width+'px';
         height = newSize.height+'px';
         newscale = parseInt(newSize.autoScale);
-        console.log("Have ottom selement, doing auto scale", newSize);
       }
     } else if (parseInt(width) || parseInt(height)) {
       if (width) {
@@ -121,9 +119,9 @@ function MonitorStream(monitorData) {
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    monitor_frame.css('width', width);
-    //img.style.width = width;
-    img.style.height = height;
+    if (width && width != '0px' && monitor_frame.css('width') == 'auto') monitor_frame.css('width', width);
+    if (height && height != '0px') img.style.height = height;
+
     this.setStreamScale(newscale);
   }; // setscale
 
@@ -139,11 +137,10 @@ function MonitorStream(monitorData) {
     }
     if (img.nodeName == 'IMG') {
       if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
-      if (newscale < 0) newscale = 100;
+      if (newscale <= 0) newscale = 100;
       const oldSrc = img.src;
       if (!oldSrc) {
-        console.log('No src on img?!');
-        console.log(img);
+        console.log('No src on img?!', img);
         return;
       }
       const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
@@ -157,7 +154,7 @@ function MonitorStream(monitorData) {
           this.streamCommand(CMD_QUIT);
         }
         console.log("Changing src to " + newSrc);
-        //img.src = '';
+        img.src = '';
         img.src = newSrc;
         this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
       }
@@ -306,8 +303,8 @@ function MonitorStream(monitorData) {
         stateValue.removeClass();
       }
     }
-    //const monitorState = $j('#monitorState'+this.id);
-    //if (monitorState.length) this.setStateClass(monitorState, stateClass);
+    const monitorFrame = $j('#monitor'+this.id);
+    if (monitorFrame.length) this.setStateClass(monitorFrame, stateClass);
 
     const isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
     const wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );

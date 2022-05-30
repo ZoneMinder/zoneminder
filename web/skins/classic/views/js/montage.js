@@ -1,14 +1,13 @@
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered
- * @param {*} new_layout - the name of a layout to switch to
+ * @param {*} new_layout_id - the id of a layout to switch to
  */
-function selectLayout(new_layout) {
+function selectLayout(new_layout_id) {
   const ddm = $j('#zmMontageLayout');
-  if (new_layout && (typeof(new_layout) != 'object')) {
-    console.log("Selecting " + new_layout);
-    $j('#zmMontageLayout option').attr('selected', false);
-    $j('#zmMontageLayout option:contains("'+new_layout+'")').attr('selected', true);
+  if (new_layout_id && (typeof(new_layout_id) != 'object')) {
+    console.log("Selecting " + new_layout_id);
+    ddm.val(new_layout_id);
   }
   const layout_id = parseInt(ddm.val());
   if (!layout_id) {
@@ -88,13 +87,12 @@ function changeWidth() {
   var height = $j('#height').val();
   console.log("changeWidth");
 
-  selectLayout('Freeform');
+  selectLayout(freeform_layout_id);
   $j('#width').val(width);
   $j('#height').val(height);
 
   for (var i = 0, length = monitors.length; i < length; i++) {
-    var monitor = monitors[i];
-    monitor.setScale('0', width, height);
+    monitors[i].setScale('0', width, height);
   }
   $j('#scale').val('0');
   setCookie('zmMontageScale', '0', 3600);
@@ -107,7 +105,7 @@ function changeWidth() {
  */
 function changeScale() {
   var scale = $j('#scale').val();
-  selectLayout('Freeform'); // Will also clear width and height
+  selectLayout(freeform_layout_id); // Will also clear width and height
   $j('#scale').val(scale);
   setCookie('zmMontageScale', scale, 3600);
   setCookie('zmMontageWidth', 'auto', 3600);
@@ -186,7 +184,7 @@ function cancel_layout(button) {
     //monitor_feed = $j('#imageFeed'+monitor.id);
     //monitor_feed.click(monitor.onclick);
   };
-  selectLayout('Freeform');
+  selectLayout(freeform_layout_id);
 }
 
 function reloadWebSite(ndx) {
@@ -216,11 +214,7 @@ function initPage() {
     monitors[i] = new MonitorStream(monitorData[i]);
   }
   selectLayout();
-  const scale = $j('#scale').val();
-  const width = $j('#width').val();
-  const height = $j('#height').val();
   for (let i = 0, length = monitorData.length; i < length; i++) {
-    monitors[i].setScale(scale, width, height);
     // Start the fps and status updates. give a random delay so that we don't assault the server
     const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].start(delay);

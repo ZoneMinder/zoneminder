@@ -212,11 +212,17 @@ function takeSnapshot() {
 }
 
 function handleClick(evt) {
-  var el = evt.currentTarget;
-  var id = el.getAttribute("data-monitor-id");
-  var url = '?view=watch&mid='+id;
   evt.preventDefault();
-  window.location.assign(url);
+
+  const el = evt.currentTarget;
+  const id = el.getAttribute("data-monitor-id");
+
+  const url = '?view=watch&mid='+id;
+  if (evt.ctrlKey) {
+    window.open(url, '_blank');
+  } else {
+    window.location.assign(url);
+  }
 }
 
 var monitors = new Array();

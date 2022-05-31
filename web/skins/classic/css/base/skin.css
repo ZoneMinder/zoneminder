@@ -795,28 +795,26 @@ a.flip {
   right: 0;
   background: none;
 }
-.Monitor {
+.monitor {
+  position: relative;
   border: 2px solid #ffffff;
 }
-.Monitor .monitor {
-  position: relative;
-}
-.Monitor .monitor:after {
+.monitor:after {
   clear: both;
 }
 
-.Monitor .idle img {
+.monitor.idle img {
     border: 2px solid #ffffff;
 }
 
-.Monitor .alarm img {
+.monitor.alarm img {
     border: 2px solid #ff0000;
 }
 
-.Monitor .alert img {
+.monitor.alert img {
     border: 2px solid #ffa500;
 }
-.Monitor .alert {
+.monitor.alert {
     color: #ffa500;
     margin: 0;
     padding: 0;

@@ -428,6 +428,8 @@ class ZM_Object {
       if ( ! $this->{'Id'} )
         $this->{'Id'} = dbInsertId();
       return true;
+    } else {
+      $this->_last_error = dbError($sql);
     }
     return false;
   } // end function insert

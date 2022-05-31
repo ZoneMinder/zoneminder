@@ -84,18 +84,16 @@ if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
 }
 ?>
     <div id="content">
-<div class="monitor" id="monitor<?php echo $monitor->Id() ?>">
-      <div id="imageFeed<?php echo $monitor->Id() ?>"
+      <div class="monitor" id="monitor<?php echo $monitor->Id() ?>">
+        <div id="imageFeed<?php echo $monitor->Id() ?>"
 <?php
 if ( $streamMode == 'jpeg' ) {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
 ><?php echo getStreamHTML($monitor, array('scale'=>$scale, 'mode'=>'single')); ?>
-</div>
-</div>
-
-
+        </div>
+      </div>
 <?php if ( $monitor->Type() != 'WebSite' ) { ?>
       <div id="monitorStatus">
         <div id="monitorState">

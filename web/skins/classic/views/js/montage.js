@@ -211,6 +211,14 @@ function takeSnapshot() {
   window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
 }
 
+function handleClick(evt) {
+  var el = evt.currentTarget;
+  var id = el.getAttribute("data-monitor-id");
+  var url = '?view=watch&mid='+id;
+  evt.preventDefault();
+  window.location.assign(url);
+}
+
 var monitors = new Array();
 function initPage() {
   $j("#hdrbutton").click(function() {
@@ -237,7 +245,7 @@ function initPage() {
     if (monitors[i].type == 'WebSite' && interval > 0) {
       setInterval(reloadWebSite, interval*1000, i);
     }
-    monitors[i].setup_onclick();
+    monitors[i].setup_onclick(handleClick);
   }
 }
 // Kick everything off

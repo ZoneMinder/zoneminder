@@ -385,14 +385,6 @@ function streamCmdPlay(action) {
   }
 }
 
-function streamCmdReq(data) {
-  $j.getJSON(monitorUrl + '?view=request&request=stream&connkey='+connKey, data)
-      .done(getStreamCmdResponse)
-      .fail(getStreamCmdError);
-
-  streamCmdTimer = null;
-}
-
 function streamCmdStop(action) {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'unavail');
@@ -404,10 +396,7 @@ function streamCmdStop(action) {
     setButtonState('fastRevBtn', 'unavail');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_STOP;
-    streamCmdReq(data);
+    monitorStream.streamCommand(CMD_STOP);
   }
   setButtonState('stopBtn', 'unavail');
   setButtonState('playBtn', 'active');
@@ -424,10 +413,7 @@ function streamCmdFastFwd(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_FASTFWD;
-    streamCmdReq(data);
+    monitorStream.streamCommand(CMD_FASTFWD);
   }
 }
 
@@ -442,10 +428,7 @@ function streamCmdSlowFwd(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_SLOWFWD;
-    streamCmdReq(data);
+    monitorStream.streamCommand(CMD_SLOWFWD);
   }
   setButtonState('pauseBtn', 'active');
   if (monitorStreamReplayBuffer) {
@@ -464,10 +447,7 @@ function streamCmdSlowRev(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_SLOWREV;
-    streamCmdReq(data);
+    monitorStream.streamCommand(CMD_SLOWREV);
   }
   setButtonState('pauseBtn', 'active');
   if (monitorStreamReplayBuffer) {
@@ -486,44 +466,24 @@ function streamCmdFastRev(action) {
     setButtonState('fastRevBtn', 'inactive');
   }
   if (action) {
-    var data = {};
-    if (auth_hash) data.auth = auth_hash;
-    data.command = CMD_FASTREV;
-    streamCmdReq(data);
+    monitorStream.streamCommand(CMD_FASTREV);
   }
 }
 
 function streamCmdZoomIn(x, y) {
-  var data = {};
-  if (auth_hash) data.auth = auth_hash;
-  data.x = x;
-  data.y = y;
-  data.command = CMD_ZOOMIN;
-  streamCmdReq(data);
+  monitorStream.streamCommand({x: x, y:y, command: CMD_ZOOMIN});
 }
 
 function streamCmdZoomOut() {
-  var data = {};
-  if (auth_hash) data.auth = auth_hash;
-  data.command = CMD_ZOOMOUT;
-  streamCmdReq(data);
+  monitorStream.streamCommand(CMD_ZOOMOUT);
 }
 
 function streamCmdScale(scale) {
-  var data = {};
-  if (auth_hash) data.auth = auth_hash;
-  data.command = CMD_SCALE;
-  data.scale = scale;
-  streamCmdReq(data);
+  monitorStream.streamCommand({scale: scale, command: CMD_SCALE});
 }
 
 function streamCmdPan(x, y) {
-  var data = {};
-  if (auth_hash) data.auth = auth_hash;
-  data.x = x;
-  data.y = y;
-  data.command = CMD_PAN;
-  streamCmdReq(data);
+  monitorStream.streamCommand({x: x, y:y, command: CMD_pAN});
 }
 
 function streamCmdQuery() {

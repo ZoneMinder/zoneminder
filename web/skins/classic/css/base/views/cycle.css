@@ -1,4 +1,7 @@
 
+.monitor {
+  margin: 0 auto;
+}
 #sidebar {
   min-width: 200px;
 }

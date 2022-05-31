@@ -114,7 +114,12 @@ function MonitorStream(monitorData) {
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    if (width && width != '0px') monitor_frame.css('width', width);
+    if (width && (width != '0px') &&
+      ((monitor_frame[0].style.width===undefined) || (-1 == monitor_frame[0].style.width.search('%')))
+      ) {
+      monitor_frame.css('width', width);
+    }
+
     //img.style.width = width;
     if (height && height != '0px') img.style.height = height;
     this.setStreamScale(newscale);

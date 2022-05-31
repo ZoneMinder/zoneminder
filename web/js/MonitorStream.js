@@ -44,7 +44,7 @@ function MonitorStream(monitorData) {
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
-      console.log('Image stream has loaded! starting streamCmd');
+      console.log('Image stream has loaded! starting streamCmd for '+this.connKey);
       this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };

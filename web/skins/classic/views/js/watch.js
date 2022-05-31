@@ -96,45 +96,17 @@ function showPtzControls() {
 }
 
 function changeScale() {
-  var scale = $j('#scale').val();
-  var newWidth;
-  var newHeight;
+  const scale = $j('#scale').val();
 
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   if (scale == '0') {
-    var newSize = scaleToFit(monitorWidth, monitorHeight, $j('#liveStream'+monitorId), $j('#replayStatus'));
-    newWidth = newSize.width;
-    newHeight = newSize.height;
-    autoScale = newSize.autoScale;
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-  } else if (parseInt(scale) > 0) {
-    newWidth = monitorWidth * scale / SCALE_BASE;
-    newHeight = monitorHeight * scale / SCALE_BASE;
   }
 
   setCookie('zmWatchScale'+monitorId, scale, 3600);
-
-  var streamImg = $j('#liveStream'+monitorId);
-  if (streamImg) {
-    const oldSrc = streamImg.attr('src');
-    const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == '0') ? autoScale : scale));
-
-    streamImg.width(newWidth);
-    streamImg.height(newHeight);
-    if (newSrc != oldSrc) {
-
-      clearTimeout(statusCmdTimer);
-      streamCommand(CMD_QUIT);
-      streamImg.attr('src', '');
-      streamImg.attr('src', newSrc);
-      if (statusCmdTimer) // Only start it if one was set to begin with
-        statusCmdTimer = setTimeout(statusCmdQuery, statusRefreshTimeout);
-    }
-  } else {
-    console.error('No element found for liveStream'+monitorId);
-  }
+  monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
 } // end function changeScale
 
 function setAlarmState(currentAlarmState) {

@@ -198,6 +198,20 @@ function takeSnapshot() {
   window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
 }
 
+function handleClick(evt) {
+  evt.preventDefault();
+
+  const el = evt.currentTarget;
+  const id = el.getAttribute("data-monitor-id");
+
+  const url = '?view=watch&mid='+id;
+  if (evt.ctrlKey) {
+    window.open(url, '_blank');
+  } else {
+    window.location.assign(url);
+  }
+}
+
 const monitors = new Array();
 function initPage() {
   $j("#hdrbutton").click(function() {
@@ -238,14 +252,6 @@ function initPage() {
 function watchFullscreen() {
   const content = document.getElementById('content');
   openFullscreen(content);
-}
-
-function handleClick(evt) {
-  var el = evt.currentTarget;
-  var id = el.getAttribute("data-monitor-id");
-  var url = '?view=watch&mid='+id;
-  evt.preventDefault();
-  window.location.assign(url);
 }
 
 // Kick everything off

@@ -122,6 +122,8 @@ function MonitorStream(monitorData) {
 
     //img.style.width = width;
     if (height && height != '0px') img.style.height = height;
+    img.setAttribute('width', '100%');
+    img.setAttribute('height', 'auto');
     this.setStreamScale(newscale);
   }; // setscale
 

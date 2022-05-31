@@ -12,6 +12,10 @@
     margin: 0 0 0 1em;
 }
 
+.monitor {
+  margin: 0 auto;
+}
+
 #imageFeed{
     text-align: center;
 }

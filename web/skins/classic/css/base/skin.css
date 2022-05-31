@@ -797,27 +797,26 @@ a.flip {
 }
 .monitor {
   position: relative;
-  border: 2px solid #ffffff;
 }
 .monitor:after {
   clear: both;
 }
 
+.monitor img,
 .monitor.idle img {
-    border: 2px solid #ffffff;
+  border: 2px solid #ffffff;
 }
 
 .monitor.alarm img {
-    border: 2px solid #ff0000;
+  border: 2px solid #ff0000;
 }
 
 .monitor.alert img {
-    border: 2px solid #ffa500;
+  border: 2px solid #ffa500;
 }
 .monitor.alert {
-    color: #ffa500;
-    margin: 0;
-    padding: 0;
-    border-radius: 0;
-    border: none;
+  color: #ffa500;
+  padding: 0;
+  border-radius: 0;
+  border: none;
 }

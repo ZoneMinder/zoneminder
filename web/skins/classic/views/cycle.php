@@ -29,14 +29,15 @@ $filterbar = ob_get_contents();
 ob_end_clean();
 
 $options = array();
+$options['mode'] = 'single';
 
 if ( empty($_REQUEST['mode']) ) {
   if ( canStream() )
-    $options['mode'] = 'stream';
+    $mode = 'stream';
   else
-    $options['mode'] = 'still';
+    $mode = 'still';
 } else {
-  $options['mode'] = validHtmlStr($_REQUEST['mode']);
+  $mode = validHtmlStr($_REQUEST['mode']);
 }
 
 $widths = array(
@@ -89,7 +90,6 @@ if ( $monitors ) {
 if ( !$monitor ) {
   ZM\Error('There was no monitor to display.');
 }
-$options['connkey'] = generateConnKey();
 
 zm_session_start();
 
@@ -122,8 +122,6 @@ if ( isset($_COOKIE['zmCycleHeight']) and $_COOKIE['zmCycleHeight'] ) {
 
 session_write_close();
 
-ZM\Debug(print_r($options,true));
-
 noCacheHeaders();
 xhtmlHeaders(__FILE__, translate('CycleWatch'));
 ?>
@@ -132,7 +130,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
     <?php echo $navbar = getNavBarHTML(); ?>
     <div id="header">
       <div id="headerButtons">
-<?php if ( $options['mode'] == 'stream' ) { ?>
+<?php if ( $mode == 'stream' ) { ?>
         <a href="?view=<?php echo $view ?>&amp;mode=still&amp;mid=<?php echo $monitor ? $monitor->Id() : '' ?>"><?php echo translate('Stills') ?></a>
 <?php } else { ?>
         <a href="?view=<?php echo $view ?>&amp;mode=stream&amp;mid=<?php echo $monitor ? $monitor->Id() : '' ?>"><?php echo translate('Stream') ?></a>
@@ -171,8 +169,8 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
           </ul>
         </nav>
         <div class="container-fluid col-sm-offset-2 h-100 pr-0">
-
-          <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed">
+          <div class="monitor" id="monitor<?php echo $monitor->Id() ?>">
+            <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed">
           <?php 
             if ( $monitor ) {
               echo getStreamHTML($monitor, $options);
@@ -180,6 +178,7 @@ xhtmlHeaders(__FILE__, translate('CycleWatch'));
               echo 'There are no monitors to view.';
             }
           ?>
+            </div>
           </div>
 
           <div id="buttons" class="buttons">

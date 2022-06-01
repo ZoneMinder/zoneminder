@@ -112,9 +112,9 @@ class Event extends ZM_Object {
     $event_path = '';
 
     if ( $this->{'Scheme'} == 'Deep' ) {
-      $event_path = $this->{'MonitorId'}.'/'.strftime('%y/%m/%d/%H/%M/%S', $this->Time());
+      $event_path = $this->{'MonitorId'}.'/'.date('Y/m/d/H/i/s', $this->Time());
     } else if ( $this->{'Scheme'} == 'Medium' ) {
-      $event_path = $this->{'MonitorId'}.'/'.strftime('%Y-%m-%d', $this->Time()).'/'.$this->{'Id'};
+      $event_path = $this->{'MonitorId'}.'/'.date('Y-m-d', $this->Time()).'/'.$this->{'Id'};
     } else {
       $event_path = $this->{'MonitorId'}.'/'.$this->{'Id'};
     }
@@ -124,7 +124,7 @@ class Event extends ZM_Object {
 
   public function Link_Path() {
     if ( $this->{'Scheme'} == 'Deep' ) {
-      return $this->{'MonitorId'}.'/'.strftime('%y/%m/%d/.', $this->Time()).$this->{'Id'};
+      return $this->{'MonitorId'}.'/'.date('y/m/d/.', $this->Time()).$this->{'Id'};
     }
     Error('Calling Link_Path when not using deep storage');
     return '';

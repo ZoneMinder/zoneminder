@@ -56,10 +56,13 @@ if (ZM_LOCALE_DEFAULT) {
   $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
 }
 if (ZM_DATE_FORMAT_PATTERN) {
-  $dateFormatter->setPatter(ZM_DATETIME_FORMAT_PATTERN);
+  $dateFormatter->setPatter(ZM_DATE_FORMAT_PATTERN);
 }
 if (ZM_DATETIME_FORMAT_PATTERN) {
   $dateTimeFormatter->setPattern(ZM_DATETIME_FORMAT_PATTERN);
+}
+if (ZM_TIME_FORMAT_PATTERN) {
+  $timeFormatter->setPattern(ZM_TIME_FORMAT_PATTERN);
 }
 require_once('includes/session.php');
 require_once('includes/logger.php');

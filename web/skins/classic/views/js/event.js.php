@@ -1,4 +1,6 @@
 <?php
+  ini_set('display_errors', '0');
+  global $dateTimeFormatter;
   global $connkey;
   global $Event;
   global $monitor;
@@ -30,9 +32,9 @@ var eventData = {
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',
     StartDateTime: '<?php echo $Event->StartDateTime() ?>',
-    StartDateTimeShort: '<?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?>',
+    StartDateTimeShort: '<?php echo $dateTimeFormatter->format(strtotime($Event->StartDateTime())) ?>',
     EndDateTime: '<?php echo $Event->EndDateTime() ?>',
-    EndDateTimeShort: '<?php echo $Event->EndDateTime()? strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->EndDateTime())) : '' ?>',
+    EndDateTimeShort: '<?php echo $Event->EndDateTime()? $dateTimeFormatter->format(strtotime($Event->EndDateTime())) : '' ?>',
     Frames: '<?php echo $Event->Frames() ?>',
     AlarmFrames: '<?php echo $Event->AlarmFrames() ?>',
     TotScore: '<?php echo $Event->TotScore() ?>',

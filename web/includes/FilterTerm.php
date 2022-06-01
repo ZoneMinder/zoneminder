@@ -116,7 +116,7 @@ class FilterTerm {
       case 'StartDateTime':
       case 'EndDateTime':
         if ( $value_upper != 'NULL' )
-          $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
+          $value = '\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
         break;
       case 'Date':
       case 'StartDate':
@@ -124,14 +124,14 @@ class FilterTerm {
         if ( $value_upper == 'CURDATE()' or $value_upper == 'NOW()' ) {
           $value = 'to_days('.$value.')';
         } else if ( $value_upper != 'NULL' ) {
-          $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+          $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
         }
         break;
       case 'Time':
       case 'StartTime':
       case 'EndTime':
         if ( $value_upper != 'NULL' )
-          $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+          $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
         break;
       default :
         if ( $value == 'Odd' ) {

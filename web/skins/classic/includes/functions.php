@@ -391,7 +391,7 @@ function getSysLoadHTML() {
 
   $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
   $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
-  $result .= '&nbsp;'.translate('Load').': '.getLoad().PHP_EOL;
+  $result .= '&nbsp;'.translate('Load').': '.number_format(getLoad(), 2, '.', '').PHP_EOL;
   $result .= '</li>'.PHP_EOL;
   
   return $result;

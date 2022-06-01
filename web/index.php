@@ -51,6 +51,7 @@ $dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlD
 $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
 require_once('includes/config.php');
 if (ZM_LOCALE_DEFAULT) {
+  setlocale(LC_ALL, ZM_LOCALE_DEFAULT);
   $dateFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
   $dateTimeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
   $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG);

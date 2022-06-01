@@ -44,8 +44,20 @@ if ( false ) {
 }
 
 global $dateFormatter;
-$dateFormatter = new IntlDateFormatter('en_US', IntlDateFormatter::LONG, IntlDateFormatter::NONE);
+global $dateTimeFormatter;
+$dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+$dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
 require_once('includes/config.php');
+if (ZM_LOCALE_DEFAULT) {
+  $dateFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+  $dateTimeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+}
+if (ZM_DATE_FORMAT_PATTERN) {
+  $dateFormatter->setPatter(ZM_DATETIME_FORMAT_PATTERN);
+}
+if (ZM_DATETIME_FORMAT_PATTERN) {
+  $dateTimeFormatter->setPattern(ZM_DATETIME_FORMAT_PATTERN);
+}
 require_once('includes/session.php');
 require_once('includes/logger.php');
 require_once('includes/Server.php');

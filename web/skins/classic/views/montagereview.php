@@ -167,8 +167,8 @@ if ( isset($_SESSION['archive_status']) ) {
 
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   $time = time();
-  $maxTime = strftime('%FT%T',$time);
-  $minTime = strftime('%FT%T',$time - 3600);
+  $maxTime = date('c', $time);
+  $minTime = date('c', $time - 3600);
 }
 if ( isset($_REQUEST['minTime']) )
   $minTime = validHtmlStr($_REQUEST['minTime']);

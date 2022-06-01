@@ -8,7 +8,7 @@ class Storage extends ZM_Object {
   protected static $table = 'Storage';
   protected $defaults = array(
     'Id'        => null,
-    'Path'      => array('type'=>'text','filter_regexp'=>array('/[^\w\-\.\(\)\:\/ ]/','/\/$/')),
+    'Path'      => array('type'=>'text','filter_regexp'=>array('/[^\w\-\.\(\)\:\/ ]/','/\/$/'), 'default'=>''),
     'Name'      => '',
     'Type'      => 'local',
     'Url'       => '',

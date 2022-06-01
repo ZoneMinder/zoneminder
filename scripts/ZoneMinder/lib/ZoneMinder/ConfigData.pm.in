@@ -246,6 +246,17 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_TIME_FORMAT_PATTERN',
+    default     => '',
+    description => 'Time format override',
+    help        => q`Pattern to use to override the format string used for times without dates.
+      Leave it empty to use the defaults for the set locale.
+      See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_DATETIME_FORMAT_PATTERN',
     default     => '',
     description => 'Date/time format override',

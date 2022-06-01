@@ -43,9 +43,9 @@ $Frame = new ZM\Frame($frame);
 $maxFid = $Event->Frames();
 
 $firstFid = 1;
-$prevFid = $fid-1;
-$nextFid = $fid+1;
-$lastFid = $maxFid;
+$prevFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId < ?', 'FrameId', array($eid, $fid));
+$nextFid = dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId > ?', 'FrameId', array($eid, $fid));
+$lastFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid));
 
 $alarmFrame = ( $Frame->Type() == 'Alarm' ) ? 1 : 0;
 

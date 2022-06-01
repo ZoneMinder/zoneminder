@@ -166,8 +166,9 @@ function queryRequest() {
   $rows = array();
   $results = dbFetchAll($query['sql'], NULL, $query['values']);
 
+  global $dateTimeFormatter;
   foreach ( $results as $row ) {
-    $row['DateTime'] = strftime('%Y-%m-%d %H:%M:%S', intval($row['TimeKey']));
+    $row['DateTime'] = $dateTimeFormatter->format($row['TimeKey']);
     $Server = ZM\Server::find_one(array('Id'=>$row['ServerId']));
 
     $row['Server'] = $Server ? $Server->Name() : '';
@@ -178,7 +179,7 @@ function queryRequest() {
   }
   $data['rows'] = $rows;
   $data['logstate'] = logState();
-  $data['updated'] = preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG);
+  $data['updated'] = $dateTimeFormatter->format();
 
   return $data;
 }

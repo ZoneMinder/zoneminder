@@ -38,8 +38,6 @@
 //
 
 //
-setlocale( LC_ALL, 'ro_RO' ); 
-//
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => 'Color &#226;n 24 bi&#355;i',

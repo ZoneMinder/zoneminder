@@ -241,9 +241,7 @@ function watchFullscreen() {
 }
 
 function handleClick(evt) {
-  console.log("handleClick");
   var el = evt.currentTarget;
-  console.log(el);
   var id = el.getAttribute("data-monitor-id");
   var url = '?view=watch&mid='+id;
   evt.preventDefault();

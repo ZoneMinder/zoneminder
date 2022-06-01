@@ -588,17 +588,17 @@ class Filter extends ZM_Object {
           case 'EndDateTime':
           case 'StartDateTime':
             if ( $value_upper != 'NULL' )
-              $value = "'".strftime(STRF_FMT_DATETIME_DB, strtotime($value))."'";
+              $value = "'".date(STRF_FMT_DATETIME_DB, strtotime($value))."'";
             break;
           case 'Date':
           case 'EndDate':
           case 'StartDate':
-            $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
             break;
           case 'Time':
           case 'EndTime':
           case 'StartTime':
-            $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
             break;
           default :
             if ( $value_upper != 'NULL' )

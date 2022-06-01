@@ -43,6 +43,8 @@ if ( false ) {
   ob_end_clean();
 }
 
+global $dateFormatter;
+$dateFormatter = new IntlDateFormatter('en_US', IntlDateFormatter::LONG, IntlDateFormatter::NONE);
 require_once('includes/config.php');
 require_once('includes/session.php');
 require_once('includes/logger.php');

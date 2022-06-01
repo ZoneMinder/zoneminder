@@ -135,8 +135,8 @@ define('SCALE_BASE', 100);           // The additional scaling factor used to he
 //
 // Date and time formats, not to be modified by language files
 //
-define('STRF_FMT_DATETIME_DB', '%Y-%m-%d %H:%M:%S');      // Strftime format for database queries, don't change
-define('MYSQL_FMT_DATETIME_SHORT', '%y/%m/%d %H:%i:%S');  // MySQL date_format shorter format for dates with time
+define('STRF_FMT_DATETIME_DB', 'Y-m-d H:i:s');      // Strftime format for database queries, don't change
+define('MYSQL_FMT_DATETIME_SHORT', 'Y/m/d H:i:s');  // MySQL date_format shorter format for dates with time
 
 require_once('database.php');
 require_once('logger.php');

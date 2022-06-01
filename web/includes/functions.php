@@ -450,9 +450,12 @@ function htmlOptions($options, $values) {
     } else {
       $text = $option;
     }
-    $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
-    if ( !$has_selected ) 
-      $has_selected = $selected;
+    $selected = false;
+    if ($values) {
+      $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
+      if ( !$has_selected ) 
+        $has_selected = $selected;
+    }
 
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
@@ -2000,6 +2003,9 @@ function folder_size($dir) {
 } // end function folder_size
 
 function human_filesize($size, $precision = 2) {
+  if ($size === null) {
+    return 'null';
+  }
   $units = array('B ','kB','MB','GB','TB','PB','EB','ZB','YB');
   $step = 1024;
   $i = 0;

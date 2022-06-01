@@ -76,11 +76,12 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
     $user_cache[$_SESSION['username']] = $user;
   }
 
+  global $dateTimeFormatter;
   echo '
   <tr>
     <td>'.validHtmlStr($user->Username()).'</td>
     <td>'.validHtmlStr($_SESSION['remoteAddr']).'</td>
-    <td>'.strftime(STRF_FMT_DATETIME_SHORTER, $row['access']).'</td>
+    <td>'.$dateTimeFormatter->formatter($row['access']).'</td>
   </tr>
 ';
 } # end while

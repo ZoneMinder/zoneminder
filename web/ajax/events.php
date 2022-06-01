@@ -1,5 +1,5 @@
 <?php
-error_reporting(0);
+ini_set('display_errors', '');
 $message = '';
 $data = array();
 
@@ -153,12 +153,12 @@ function deleteRequest($eid) {
 }
 
 function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit) {
-  global $dateFormatter;
+  global $dateTimeFormatter;
   $data = array(
     'total'   =>  0,
     'totalNotFiltered' => 0,
     'rows'    =>  array(),
-    'updated' =>  $dateFormatter->format(time())
+    'updated' =>  $dateTimeFormatter->format(time())
   );
 
   $failed = !$filter->test_pre_sql_conditions();
@@ -287,8 +287,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     $row['Cause'] = validHtmlStr($row['Cause']);
-    $row['StartDateTime'] = $dateFormatter->format(strtotime($row['StartDateTime']));
-    $row['EndDateTime'] = $row['EndDateTime'] ? $dateFormatter->format(strtotime($row['EndDateTime'])) : null;
+    $row['StartDateTime'] = $dateTimeFormatter->format(strtotime($row['StartDateTime']));
+    $row['EndDateTime'] = $row['EndDateTime'] ? $dateTimeFormatter->format(strtotime($row['EndDateTime'])) : null;
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
     $row['Notes'] = nl2br(htmlspecialchars($row['Notes']));
     $row['DiskSpace'] = human_filesize($event->DiskSpace());

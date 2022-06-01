@@ -156,7 +156,7 @@ $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Nam
 
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ ) {
-  $weekdays[$i] = strftime('%A', mktime(12, 0, 0, 1, $i+1, 2001));
+  $weekdays[$i] = date('D', mktime(12, 0, 0, 1, $i+1, 2001));
 }
 $states = array();
 foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `States` ORDER BY lower(`Name`) ASC') as $state_row ) {

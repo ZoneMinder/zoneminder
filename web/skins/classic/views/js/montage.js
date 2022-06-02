@@ -1,3 +1,9 @@
+
+const VIEWING = 0;
+const EDITING = 1;
+
+var mode = 0; // start up in viewing mode
+
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered
@@ -123,16 +129,17 @@ function toGrid(value) {
   return Math.round(value / 80) * 80;
 }
 
-// Makes monitorFrames draggable.
+// Makes monitors draggable.
 function edit_layout(button) {
-  // Turn off the onclick on the image.
+  mode = EDITING;
 
+  // Turn off the onclick on the image.
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
     monitor.disable_onclick();
   };
 
-  $j('#monitors .monitorFrame').draggable({
+  $j('#monitors .monitor').draggable({
     cursor: 'crosshair',
     //revert: 'invalid'
   });
@@ -141,6 +148,8 @@ function edit_layout(button) {
 } // end function edit_layout
 
 function save_layout(button) {
+  mode = VIEWING;
+
   var form = button.form;
   var name = form.elements['Name'].value;
 
@@ -157,7 +166,7 @@ function save_layout(button) {
   var Positions = {};
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor_frame = $j('#monitorFrame'+monitor.id);
+    monitor_frame = $j('#monitor'+monitor.id);
 
     Positions['mId'+monitor.id] = {
       width: monitor_frame.css('width'),
@@ -175,6 +184,7 @@ function save_layout(button) {
 } // end function save_layout
 
 function cancel_layout(button) {
+  mode = VIEWING;
   $j('#SaveLayout').hide();
   $j('#EditLayout').show();
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
@@ -200,6 +210,7 @@ function takeSnapshot() {
 
 function handleClick(evt) {
   evt.preventDefault();
+  if (mode == EDITING) return;
 
   const el = evt.currentTarget;
   const id = el.getAttribute("data-monitor-id");

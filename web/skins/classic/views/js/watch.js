@@ -186,9 +186,9 @@ function getStreamCmdResponse(respObj, respText) {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
       streamStatus = respObj.status;
-      $j('#fpsValue').text(streamStatus.fps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
-      $j('#capturefpsValue').text(streamStatus.capturefps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
-      $j('#analysisfpsValue').text(streamStatus.analysisfps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1}));
+      $j('#fpsValue').text(streamStatus.fps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1}));
+      $j('#capturefpsValue').text(streamStatus.capturefps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1}));
+      $j('#analysisfpsValue').text(streamStatus.analysisfps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1}));
 
       setAlarmState(streamStatus.state);
 
@@ -443,7 +443,7 @@ function streamCmdFastRev(action) {
 }
 
 function streamCmdZoomIn(x, y) {
-  monitorStream.streamCommand({x: x, y:y, command: CMD_ZOOMIN});
+  monitorStream.streamCommand({x: x, y: y, command: CMD_ZOOMIN});
 }
 
 function streamCmdZoomOut() {
@@ -455,7 +455,7 @@ function streamCmdScale(scale) {
 }
 
 function streamCmdPan(x, y) {
-  monitorStream.streamCommand({x: x, y:y, command: CMD_pAN});
+  monitorStream.streamCommand({x: x, y: y, command: CMD_pAN});
 }
 
 function streamCmdQuery() {
@@ -812,7 +812,7 @@ function initPage() {
   }
 
   if (monitorType != 'WebSite') {
-      monitorStream = new MonitorStream(monitorData[monIdx]);
+    monitorStream = new MonitorStream(monitorData[monIdx]);
     monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
@@ -839,7 +839,7 @@ function initPage() {
       enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
     }
 
-/*
+    /*
     if (streamMode == 'single') {
       statusCmdTimer = setTimeout(statusCmdQuery, (Math.random()+0.1)*statusRefreshTimeout);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');

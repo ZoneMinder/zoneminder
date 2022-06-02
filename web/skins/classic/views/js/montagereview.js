@@ -904,7 +904,7 @@ function showOneMonitor(monId, event) {
   // We know the monitor, need to determine the event based on current time
   let url = '';
   if ( liveMode != 0 ) {
-      url = '?view=watch&mid=' + monId.toString();
+    url = '?view=watch&mid=' + monId.toString();
   } else {
     const Frame = getFrame(monId, currentTimeSecs);
     if ( Frame ) {

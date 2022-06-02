@@ -43,7 +43,9 @@ function validateForm( form ) {
 
   // No monitor input should have whitespace at beginning or end, so strip them out first.
   for (var i=0; i<elements.length; i++) {
-    elements[i].value = elements[i].value.trim();
+    if (elements[i].nodeName != 'SELECT') {
+      elements[i].value = elements[i].value.trim();
+    }
   }
 
   if ( elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )

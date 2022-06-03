@@ -81,7 +81,7 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
   <tr>
     <td>'.validHtmlStr($user->Username()).'</td>
     <td>'.validHtmlStr($_SESSION['remoteAddr']).'</td>
-    <td>'.$dateTimeFormatter->formatter($row['access']).'</td>
+    <td>'.$dateTimeFormatter->format($row['access']).'</td>
   </tr>
 ';
 } # end while

@@ -179,7 +179,7 @@ function queryRequest() {
   }
   $data['rows'] = $rows;
   $data['logstate'] = logState();
-  $data['updated'] = $dateTimeFormatter->format();
+  $data['updated'] = $dateTimeFormatter->format(time());
 
   return $data;
 }

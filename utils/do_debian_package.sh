@@ -15,6 +15,8 @@ if [ "$DEBUILD" == "" ]; then
   exit;
 fi
 
+sudo apt-get install debhelper sphinx-doc python3-sphinx dh-linktree dh-apache2 libavcodec-dev libavdevice-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev ffmpeg libbz2-dev libjpeg-turbo8-dev libpolkit-gobject-1-dev libv4l-dev libvlc-dev libdate-manip-perl libdbd-mysql-perl libphp-serialization-perl libsys-mmap-perl libdata-uuid-perl libssl-dev libcrypt-eksblowfish-perl libdata-entropy-perl libvncserver-dev libgsoap-dev
+
 for i in "$@"
 do
 case $i in

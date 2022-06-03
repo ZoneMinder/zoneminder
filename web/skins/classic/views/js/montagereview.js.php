@@ -136,8 +136,8 @@ if ( !$liveMode ) {
 
   // We only reset the calling time if there was no calling time
   if ( !isset($minTime) || !isset($maxTime) ) {
-    $maxTime = strftime($maxTimeSecs);
-    $minTime = strftime($minTimeSecs);
+    $maxTime = date('c', $maxTimeSecs);
+    $minTime = date('c', $minTimeSecs);
   } else {
     $minTimeSecs = strtotime($minTime);
     $maxTimeSecs = strtotime($maxTime);

@@ -1,3 +1,9 @@
+
+const VIEWING = 0;
+const EDITING = 1;
+
+var mode = 0; // start up in viewing mode
+
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered
@@ -123,16 +129,17 @@ function toGrid(value) {
   return Math.round(value / 80) * 80;
 }
 
-// Makes monitorFrames draggable.
+// Makes monitors draggable.
 function edit_layout(button) {
-  // Turn off the onclick on the image.
+  mode = EDITING;
 
+  // Turn off the onclick on the image.
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
     monitor.disable_onclick();
   };
 
-  $j('#monitors .monitorFrame').draggable({
+  $j('#monitors .monitor').draggable({
     cursor: 'crosshair',
     //revert: 'invalid'
   });
@@ -141,6 +148,8 @@ function edit_layout(button) {
 } // end function edit_layout
 
 function save_layout(button) {
+  mode = VIEWING;
+
   var form = button.form;
   var name = form.elements['Name'].value;
 
@@ -157,7 +166,7 @@ function save_layout(button) {
   var Positions = {};
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor_frame = $j('#monitorFrame'+monitor.id);
+    monitor_frame = $j('#monitor'+monitor.id);
 
     Positions['mId'+monitor.id] = {
       width: monitor_frame.css('width'),
@@ -175,6 +184,7 @@ function save_layout(button) {
 } // end function save_layout
 
 function cancel_layout(button) {
+  mode = VIEWING;
   $j('#SaveLayout').hide();
   $j('#EditLayout').show();
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
@@ -196,6 +206,21 @@ function takeSnapshot() {
     return 'monitor_ids[]='+monitor.id;
   });
   window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+}
+
+function handleClick(evt) {
+  evt.preventDefault();
+  if (mode == EDITING) return;
+
+  const el = evt.currentTarget;
+  const id = el.getAttribute("data-monitor-id");
+
+  const url = '?view=watch&mid='+id;
+  if (evt.ctrlKey) {
+    window.open(url, '_blank');
+  } else {
+    window.location.assign(url);
+  }
 }
 
 const monitors = new Array();
@@ -238,16 +263,6 @@ function initPage() {
 function watchFullscreen() {
   const content = document.getElementById('content');
   openFullscreen(content);
-}
-
-function handleClick(evt) {
-  console.log("handleClick");
-  var el = evt.currentTarget;
-  console.log(el);
-  var id = el.getAttribute("data-monitor-id");
-  var url = '?view=watch&mid='+id;
-  evt.preventDefault();
-  window.location.assign(url);
 }
 
 // Kick everything off

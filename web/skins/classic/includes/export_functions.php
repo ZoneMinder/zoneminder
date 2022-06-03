@@ -72,6 +72,7 @@ function exportEventDetail($event, $exportFrames, $exportImages) {
 	if ( $exportFrames ) $otherlinks .= ' <a href="zmEventFrames.html">'.translate('Frames').'</a>,';
 	if ( $exportImages ) $otherlinks .= ' <a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks, 0, -1);
+  global $dateTimeFormatter;
 ?>
 <body>
   <div id="page">
@@ -83,7 +84,7 @@ function exportEventDetail($event, $exportFrames, $exportImages) {
         <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event->Monitor()->Name()) ?> (<?php echo $event->MonitorId() ?>)</td></tr>
         <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event->Cause()) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event->Notes()) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartDateTime())) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo $dateTimeFormatter->format(strtotime($event->StartDateTime())) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event->Length() ?></td></tr>
         <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event->Frames() ?></td></tr>
         <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event->AlarmFrames() ?></td></tr>
@@ -143,11 +144,12 @@ function exportEventFrames($event, $exportDetail, $exportImages) {
         }
 
         $class = strtolower($frame['Type']);
+        global $timeFormatter;
 ?>
         <tr class="<?php echo $class ?>">
           <td><?php echo $frame['FrameId'] ?></td>
           <td><?php echo $frame['Type'] ?></td>
-          <td><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
+          <td><?php echo $timeFormatter->format($frame['UnixTimeStamp']) ?></td>
           <td><?php echo number_format($frame['Delta'], 2) ?></td>
           <td><?php echo $frame['Score'] ?></td>
 <?php

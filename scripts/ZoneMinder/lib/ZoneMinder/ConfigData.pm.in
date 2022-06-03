@@ -224,6 +224,50 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_LOCALE_DEFAULT',
+    default     => '',
+    description => 'Default locale used when formatting date/time strings',
+    help        => q`ZoneMinder will default to the system set locale. This
+      option allows to override it. The locale is used to determine the format
+      string used when formatting dates and times.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_DATE_FORMAT_PATTERN',
+    default     => '',
+    description => 'Date format override',
+    help        => q`Pattern to use to override the format string used for dates.
+      Leave it empty to use the defaults for the set locale.
+      See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_TIME_FORMAT_PATTERN',
+    default     => '',
+    description => 'Time format override',
+    help        => q`Pattern to use to override the format string used for times without dates.
+      Leave it empty to use the defaults for the set locale.
+      See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_DATETIME_FORMAT_PATTERN',
+    default     => '',
+    description => 'Date/time format override',
+    help        => q`Pattern to use to override the format string used for dates
+      and times. Leave it empty to use the defaults for the set locale.
+      See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_OPT_USE_AUTH',
     default     => 'no',
     description => 'Authenticate user logins to ZoneMinder',

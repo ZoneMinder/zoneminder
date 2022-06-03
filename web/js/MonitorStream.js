@@ -44,7 +44,7 @@ function MonitorStream(monitorData) {
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
-      console.log('Image stream has loaded! starting streamCmd');
+      console.log('Image stream has loaded! starting streamCmd for '+this.connKey);
       this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
@@ -253,10 +253,14 @@ function MonitorStream(monitorData) {
   };
 
   this.setup_onclick = function(func) {
-    this.onclick = func;
-    const el = this.getFrame();
-    if (!el) return;
-    el.addEventListener('click', this.onclick, false);
+    if (func) {
+      this.onclick = func;
+    }
+    if (this.onclick) {
+      const el = this.getFrame();
+      if (!el) return;
+      el.addEventListener('click', this.onclick, false);
+    }
   };
 
   this.disable_onclick = function() {

@@ -224,11 +224,6 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
       </div><!--sizeControl-->
     </div><!--control header-->
   </div><!--header-->
-<?php
-if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
-  echo '<div class="warning">Monitor is not capturing. We will be unable to provide an image</div>';
-}
-?>
   <div class="container-fluid h-100">
     <div class="row flex-nowrap h-100" id="content">
       <nav id="sidebar" class="h-100"<?php echo $showCycle?'':' style="display:none;"'?>>

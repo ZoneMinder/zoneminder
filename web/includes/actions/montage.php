@@ -38,11 +38,10 @@ if ( isset($_REQUEST['object']) ) {
       $Layout->save();
       zm_session_start();
       $_SESSION['zmMontageLayout'] = $Layout->Id();
-      zm_setcookie('zmMontageLayout', $Layout->Id());
       session_write_close();
+      zm_setcookie('zmMontageLayout', $Layout->Id());
       $redirect = '?view=montage';
     } // end if save
-
   } # end if isset($_REQUEST['object'] )
 } # end if isset($_REQUEST['object'] )
 ?>

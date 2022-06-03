@@ -121,7 +121,7 @@ function MonitorStream(monitorData) {
     }
     if (width && (width != '0px') &&
       ((monitor_frame[0].style.width===undefined) || (-1 == monitor_frame[0].style.width.search('%')))
-      ) {
+    ) {
       monitor_frame.css('width', width);
     }
     if (height && height != '0px') img.style.height = height;

@@ -31,6 +31,9 @@
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
+#include "zm_zone.h"
+
+#include <list>
 #include <memory>
 #include <sys/time.h>
 #include <vector>
@@ -266,6 +269,7 @@ protected:
 
     int        last_state;
     uint64_t   last_event_id;
+    std::list<Zone> zones;
 
     public:
       MonitorLink(unsigned int p_id, const char *p_name);

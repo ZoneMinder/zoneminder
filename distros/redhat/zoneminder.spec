@@ -122,6 +122,7 @@ Summary: Common files for ZoneMinder, not tied to a specific web server
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
+Requires: php-intl
 %{?with_php_json:Requires: php-json}
 %{?fedora:Requires: php-pecl-memcached}
 %{?rhel:Requires: php-pecl-apcu}

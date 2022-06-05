@@ -562,8 +562,8 @@ switch ( $name ) {
       echo htmlSelect(
         'newMonitor[LinkedMonitors][]',
         $monitor_options,
-        ( $monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array() ),
-        array('class'=>'chosen','multiple'=>'multiple')
+        ($monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array()),
+        array('class'=>'chosen', 'multiple'=>'multiple')
       );
 ?>
           </td>

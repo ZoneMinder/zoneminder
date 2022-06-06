@@ -43,8 +43,9 @@ if ( false ) {
   ob_end_clean();
 }
 
+require_once('includes/config.php');
 require_once('includes/session.php');
-require_once('includes/logger.php');
+require_once('includes/logger.php'); // already included in config
 require_once('includes/Server.php');
 
 // Useful debugging lines for mobile devices

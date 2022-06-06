@@ -34,7 +34,7 @@ jobs:
           add-apt-repository ppa:git-core/ppa
           apt-get -qq update
           apt-get -qq install git
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Install dependencies

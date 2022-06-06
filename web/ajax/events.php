@@ -101,7 +101,12 @@ switch ($task) {
 			ajaxError('Insufficient permissions for user '.$user['Username']);
 			return;
 		}
-    foreach ($eids as $eid) $data[] = deleteRequest($eid);
+    foreach ($eids as $eid) {
+      $message = deleteRequest($eid);
+      if (count($message)) {
+        $data[] = $message;
+      }
+    }
     break;
   case 'query' :
     $data = queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit);

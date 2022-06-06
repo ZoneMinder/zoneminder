@@ -20,6 +20,7 @@
 
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
+require_once('includes/Zone.php');
 
 if (!canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid'])) {
   $view = 'error';
@@ -967,19 +968,19 @@ include('_monitor_source_nvsocket.php');
               <td>
 <?php
       $zones_by_monitor_id = array();
-      foreach (Zone::find() as $zone) {
-        if (! isset($zones_by_monitor_id[$zone['MonitorId']]) ) {
-          $zones_by_monitor_id[$zone['MonitorId']] = array();
-          $zones_by_monitor_id[$zone['MonitorId']][] = $zone;
+      foreach (ZM\Zone::find() as $zone) {
+        if (! isset($zones_by_monitor_id[$zone->MonitorId()]) ) {
+          $zones_by_monitor_id[$zone->MonitorId()] = array();
+          $zones_by_monitor_id[$zone->MonitorId()][] = $zone;
         }
       }
       $monitor_options = array();
       foreach ($monitors as $linked_monitor) {
         if ( (!$monitor->Id() || ($monitor->Id() != $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {
-          $monitor_options[$linked_monitor['Id'] = validHtmlStr($linked_monitor['Name']) . ' : ' . translate('All Zones');
+          $monitor_options[$linked_monitor['Id']] = validHtmlStr($linked_monitor['Name']) . ' : ' . translate('All Zones');
           if (isset($zones_by_monitor_id[$linked_monitor['Id']])) {
             foreach ( $zones_by_monitor_id[$linked_monitor['Id']] as $zone) {
-              $monitor_options[$linked_monitor['Id'].':'.$zone['Id']] = validHtmlStr($linked_monitor['Name']) . ' : ' . validHtmlStr($zone['Name']);
+              $monitor_options[$linked_monitor['Id'].':'.$zone->Id()] = validHtmlStr($linked_monitor['Name']) . ' : ' . validHtmlStr($zone->Name());
             }
           }
         }

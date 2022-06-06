@@ -29,7 +29,7 @@ jobs:
         run: yum -y install https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
       - name: Install git
         run: yum -y install https://repo.ius.io/ius-release-el7.rpm && yum -y install git224
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Install dependencies

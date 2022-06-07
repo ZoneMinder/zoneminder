@@ -56,7 +56,7 @@ class Group;
 // This is the main class for monitors. Each monitor is associated
 // with a camera and is effectively a collector for events.
 //
-class Monitor {
+class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
 
 public:
@@ -248,10 +248,12 @@ protected:
 
   class MonitorLink {
   protected:
-    unsigned int  monitor_id;
-    unsigned int  zone_id;
+    std::shared_ptr<Monitor>  monitor;
+    unsigned int zone_id;
+    const Zone    *zone;
+    unsigned int  zone_index;  // index into zone_scores for our zone
 
-    char      name[64];
+    std::string   name;
 
     bool      connected;
     time_t    last_connect_time;
@@ -275,12 +277,11 @@ protected:
     std::vector<Zone> zones;
 
     public:
-      MonitorLink(unsigned int p_id, const char *p_name);
-      MonitorLink(unsigned int p_id, unsigned int p_zone_id, const char *p_name);
+      MonitorLink(std::shared_ptr<Monitor> p_monitor, unsigned int p_zone_id);
       ~MonitorLink();
 
-      inline unsigned int Id() const { return monitor_id; }
-      inline const char *Name() const { return name; }
+      inline unsigned int Id() const { return monitor->Id(); }
+      inline const char *Name() const { return name.c_str(); }
 
       inline bool isConnected() const { return connected && shared_data->valid; }
       inline time_t getLastConnectTime() const { return last_connect_time; }

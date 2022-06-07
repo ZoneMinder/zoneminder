@@ -122,7 +122,7 @@ bool Monitor::MonitorLink::connect() {
 
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
-    zone_scores = (int *)(trigger_data + sizeof(TriggerData);
+    zone_scores = (int *)(trigger_data + sizeof(TriggerData));
 
     if (!shared_data->valid) {
       Debug(3, "Linked memory not initialised by capture daemon");

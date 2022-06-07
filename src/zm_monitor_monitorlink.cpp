@@ -30,8 +30,9 @@
 #include <sys/shm.h>
 #endif // ZM_MEM_MAPPED
 
-Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
-  id(p_id),
+Monitor::MonitorLink::MonitorLink(unsigned int p_monitor_id, unsigned int p_zone_id, const char *p_name) :
+  monitor_id(p_monitor_id),
+  zone_id(p_zone_id),
   shared_data(nullptr),
   trigger_data(nullptr),
   video_store_data(nullptr)
@@ -40,7 +41,7 @@ Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
-  mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
+  mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), monitor_id);
 #else // ZM_MEM_MAPPED
   shm_id = 0;
 #endif // ZM_MEM_MAPPED

@@ -229,6 +229,7 @@ Monitor::Monitor()
   rtsp_server(false),
   rtsp_streamname(""),
   importance(0),
+  zone_count(0),
   capture_max_fps(0),
   purpose(QUERY),
   last_camera_bytes(0),
@@ -872,12 +873,18 @@ bool Monitor::connect() {
   }
 #endif // ZM_MEM_MAPPED
 
+  Debug(1, "Zone count %d", zone_count);
   shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
+# if 0
+  zone_scores = (int *)(trigger_data + sizeof(TriggerData));
+  video_store_data = (VideoStoreData *)((char *)zone_scores + zone_count*sizeof(int));
+#else
   video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
-  zone_scores = (int *)(video_store_data + sizeof(VideoStoreData));
-  shared_timestamps = (struct timeval *)(zone_scores + zone_count*sizeof(int));
+#endif
+  shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
+
 
   if (((unsigned long)shared_images % 64) != 0) {
     /* Align images buffer to nearest 64 byte boundary */

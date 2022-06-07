@@ -799,9 +799,9 @@ void Image::Assign(const Image &image) {
     subpixelorder = image.subpixelorder;
     size = new_size;
     linesize = image.linesize;
+    update_function_pointers();
   }
 
-  update_function_pointers();
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }

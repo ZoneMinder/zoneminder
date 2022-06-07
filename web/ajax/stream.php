@@ -25,7 +25,7 @@ while ($semaphore_tries) {
   usleep(100000);
   $semaphore_tries -= 1;
 }
-if ($have_semaphore) {
+if ($have_semaphore !== false) {
   if ( !($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0)) ) {
     ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
   }

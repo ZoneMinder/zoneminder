@@ -58,7 +58,7 @@ void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
     Error("Unknown log level %d", level);
   }
 
-  if (log) {
+  if (log and (log->level() >= log_level) ) {
     char logString[8192];
     int length = vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
     if (length > 0) {

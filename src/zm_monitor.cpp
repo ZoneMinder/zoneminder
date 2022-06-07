@@ -276,6 +276,7 @@ Monitor::Monitor()
   convert_context(nullptr),
   //zones(nullptr),
   privacy_bitmask(nullptr),
+  //linked_monitors_string
   n_linked_monitors(0),
   linked_monitors(nullptr),
   Poll_Trigger_State(false),
@@ -371,7 +372,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
 
-  ReloadLinkedMonitors(dbrow[col]); col++;
+  linked_monitors_string = std::string(dbrow[col]); col++;
+  //ReloadLinkedMonitors(dbrow[col]); col++;
   event_start_command = dbrow[col] ? dbrow[col] : ""; col++;
   event_end_command = dbrow[col] ? dbrow[col] : ""; col++;
 
@@ -1442,7 +1444,7 @@ int Monitor::actionColour() {
 } // end int Monitor::actionColour(int p_colour)
 
 void Monitor::DumpZoneImage(const char *zone_string) {
-  int exclude_id = 0;
+  unsigned int exclude_id = 0;
   int extra_colour = 0;
   Polygon extra_zone;
 

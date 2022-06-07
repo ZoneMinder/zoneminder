@@ -422,8 +422,8 @@ protected:
   int        pre_event_count;    // How many images to hold and prepend to an alarm event
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
-  Seconds section_length;      // How long events should last in continuous modes
-  Seconds min_section_length;   // Minimum event length when using event_close_mode == ALARM
+  Seconds    section_length;      // How long events should last in continuous modes
+  Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
@@ -513,6 +513,7 @@ protected:
 
   const unsigned char  *privacy_bitmask;
 
+  std::string linked_monitors_string;
   int      n_linked_monitors;
   MonitorLink    **linked_monitors;
   std::string   event_start_command;

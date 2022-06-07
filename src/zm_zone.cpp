@@ -788,7 +788,7 @@ bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
   return !vertices.empty();
 }  // end bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon)
 
-bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon) {
+bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon) {
   Debug(3, "Parsing zone string '%s'", zone_string);
 
   char *str_ptr = new char[strlen(zone_string)+1];

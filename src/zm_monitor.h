@@ -248,7 +248,9 @@ protected:
 
   class MonitorLink {
   protected:
-    unsigned int  id;
+    unsigned int  monitor_id;
+    unsigned int  zone_id;
+
     char      name[64];
 
     bool      connected;
@@ -269,13 +271,14 @@ protected:
 
     int        last_state;
     uint64_t   last_event_id;
-    std::list<Zone> zones;
+    std::vector<Zone> zones;
 
     public:
       MonitorLink(unsigned int p_id, const char *p_name);
+      MonitorLink(unsigned int p_id, unsigned int p_zone_id, const char *p_name);
       ~MonitorLink();
 
-      inline unsigned int Id() const { return id; }
+      inline unsigned int Id() const { return monitor_id; }
       inline const char *Name() const { return name; }
 
       inline bool isConnected() const { return connected && shared_data->valid; }

@@ -96,7 +96,7 @@ std::string load_monitor_sql =
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
-"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1 FROM `Monitors`";
+"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
   "Unknown",
@@ -323,7 +323,7 @@ Monitor::Monitor()
    "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
    "`RTSPServer`,`RTSPStreamName`,
    "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
-   "SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors";
+   "SignalCheckPoints, SignalCheckColour, Importance-1, ZoneCount FROM Monitors";
 */
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
@@ -510,6 +510,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
   if (importance < 0) importance = 0; // Should only be >= 0
+  zone_count = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
 
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
@@ -533,6 +534,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
        + (image_buffer_count*sizeof(struct timeval))
        + (image_buffer_count*image_size)
        + image_size // alarm_image
+       + (zone_count * sizeof(int))
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
@@ -2275,72 +2277,64 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
   }
 
   n_linked_monitors = 0;
-  if ( p_linked_monitors ) {
-    int n_link_ids = 0;
-    unsigned int link_ids[256];
-
-    // This nasty code picks out strings of digits from p_linked_monitors and tries to load them. 
-    char link_id_str[8];
-    char *dest_ptr = link_id_str;
-    const char *src_ptr = p_linked_monitors;
-    while ( 1 ) {
-      dest_ptr = link_id_str;
-      while ( *src_ptr >= '0' && *src_ptr <= '9' ) {
-        if ( (unsigned int)(dest_ptr-link_id_str) < (unsigned int)(sizeof(link_id_str)-1) ) {
-          *dest_ptr++ = *src_ptr++;
-        } else {
-          break;
-        }
-      }
-      // Add the link monitor
-      if ( dest_ptr != link_id_str ) {
-        *dest_ptr = '\0';
-        unsigned int link_id = atoi(link_id_str);
-        if ( link_id > 0 && link_id != id ) {
-          Debug(3, "Found linked monitor id %d", link_id);
-          int j;
-          for ( j = 0; j < n_link_ids; j++ ) {
-            if ( link_ids[j] == link_id )
-              break;
-          }
-          if ( j == n_link_ids ) {
-            // Not already found
-            link_ids[n_link_ids++] = link_id;
-          }
-        }
-      }
-      if ( !*src_ptr )
-        break;
-      while( *src_ptr && (*src_ptr < '0' || *src_ptr > '9') )
-        src_ptr++;
-      if ( !*src_ptr )
-        break;
-    }
-    if ( n_link_ids > 0 ) {
+  if (p_linked_monitors) {
+    StringVector link_strings = Split(std::string(p_linked_monitors), ',');
+    int n_link_ids = link_strings.size();
+    if (n_link_ids > 0) {
       Debug(1, "Linking to %d monitors", n_link_ids);
       linked_monitors = new MonitorLink *[n_link_ids];
+
       int count = 0;
-      for ( int i = 0; i < n_link_ids; i++ ) {
-        Debug(1, "Checking linked monitor %d", link_ids[i]);
+      for (std::string link : link_strings) {
+        auto colon_position = link.find(':');
+        unsigned int monitor_id = 0;
+        unsigned int zone_id = 0;
+        std::string monitor_name;
+        std::string zone_name;
 
-        std::string sql = stringtf(
-            "SELECT `Id`, `Name` FROM `Monitors` WHERE `Id` = %d",
-            link_ids[i]);
-
-        MYSQL_RES *result = zmDbFetch(sql);
-        if (!result) {
-          continue;
-        }
-
-        int n_monitors = mysql_num_rows(result);
-        if (n_monitors == 1) {
-          MYSQL_ROW dbrow = mysql_fetch_row(result);
-          Debug(1, "Linking to monitor %d %s", atoi(dbrow[0]), dbrow[1]);
-          linked_monitors[count++] = new MonitorLink(link_ids[i], dbrow[1]);
+        if (colon_position > 0) {
+          // Has a zone specification
+          monitor_id = std::stoul(link.substr(0, colon_position));
+          zone_id = std::stoul(link.substr(++colon_position, std::string::npos));
         } else {
-          Warning("Can't link to monitor %d, invalid id or database error", link_ids[i]);
+          monitor_id = std::stoul(link);
         }
-        mysql_free_result(result);
+        Debug(1, "Checking linked monitor %d zone %d", monitor_id, zone_id);
+
+        {
+          std::string sql = stringtf(
+              "SELECT `Name` FROM `Monitors` WHERE `Id` = %d",
+              monitor_id);
+
+          MYSQL_RES *result = zmDbFetch(sql);
+          if (!result or (mysql_num_rows(result) != 1)) {
+            Warning("Can't link to monitor %d, invalid id or database error", monitor_id);
+            continue;
+          }
+
+          MYSQL_ROW dbrow = mysql_fetch_row(result);
+          monitor_name = dbrow[0];
+          mysql_free_result(result);
+        }
+
+        {
+          std::string sql = stringtf("SELECT Name FROM Zones WHERE Id=%d", zone_id);
+          MYSQL_RES *result = zmDbFetch(sql);
+          if (!result or (mysql_num_rows(result) != 1)) {
+            Warning("Can't link to zone %d, invalid id or database error", zone_id);
+            continue;
+          }
+
+          MYSQL_ROW dbrow = mysql_fetch_row(result);
+          zone_name = dbrow[0];
+          mysql_free_result(result);
+        }
+
+        std::string link_name = monitor_name;
+        if (!zone_name.empty()) link_name += " : " + zone_name;
+        Debug(1, "Linking to monitor %d %s %d %s",
+            monitor_id, monitor_name.c_str(), zone_id, zone_name.c_str());
+        linked_monitors[count++] = new MonitorLink(monitor_id, zone_id, link_name.c_str());
       }  // end foreach link_id
       n_linked_monitors = count;
     }  // end if has link_ids

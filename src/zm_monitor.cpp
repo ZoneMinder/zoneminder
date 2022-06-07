@@ -531,10 +531,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
        + sizeof(VideoStoreData) //Information to pass back to the capture process
+       + (zone_count * sizeof(int)) // Per zone scores
        + (image_buffer_count*sizeof(struct timeval))
        + (image_buffer_count*image_size)
        + image_size // alarm_image
-       + (zone_count * sizeof(int))
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
@@ -875,7 +875,8 @@ bool Monitor::connect() {
   shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
   video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
-  shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
+  zone_scores = (int *)(video_store_data + sizeof(VideoStoreData));
+  shared_timestamps = (struct timeval *)(zone_scores + zone_count*sizeof(int));
   shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
   if (((unsigned long)shared_images % 64) != 0) {
@@ -883,6 +884,7 @@ bool Monitor::connect() {
     Debug(3, "Aligning shared memory images to the next 64 byte boundary");
     shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
   }
+
   if (!camera) LoadCamera();
 
   image_buffer.resize(image_buffer_count);

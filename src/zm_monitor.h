@@ -268,6 +268,7 @@ protected:
     volatile SharedData  *shared_data;
     volatile TriggerData  *trigger_data;
     volatile VideoStoreData *video_store_data;
+    volatile int * zone_scores;
 
     int        last_state;
     uint64_t   last_event_id;
@@ -442,6 +443,7 @@ protected:
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
   int         importance;           // Importance of this monitor, affects Connection logging errors.
+  int         zone_count;
 
   int capture_max_fps;
 
@@ -479,6 +481,7 @@ protected:
   SharedData      *shared_data;
   TriggerData     *trigger_data;
   VideoStoreData  *video_store_data;
+  int             *zone_scores;
 
   struct timeval *shared_timestamps;
   unsigned char *shared_images;

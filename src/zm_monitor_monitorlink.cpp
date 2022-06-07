@@ -35,7 +35,8 @@ Monitor::MonitorLink::MonitorLink(unsigned int p_monitor_id, unsigned int p_zone
   zone_id(p_zone_id),
   shared_data(nullptr),
   trigger_data(nullptr),
-  video_store_data(nullptr)
+  video_store_data(nullptr),
+  zone_scores(nullptr)
 {
   strncpy(name, p_name, sizeof(name)-1);
 
@@ -121,6 +122,7 @@ bool Monitor::MonitorLink::connect() {
 
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
+    zone_scores = (int *)(trigger_data + sizeof(TriggerData);
 
     if (!shared_data->valid) {
       Debug(3, "Linked memory not initialised by capture daemon");

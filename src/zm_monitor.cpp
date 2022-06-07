@@ -531,18 +531,20 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   mem_size = sizeof(SharedData)
        + sizeof(TriggerData)
-       + sizeof(VideoStoreData) //Information to pass back to the capture process
        + (zone_count * sizeof(int)) // Per zone scores
+       + sizeof(VideoStoreData) //Information to pass back to the capture process
        + (image_buffer_count*sizeof(struct timeval))
        + (image_buffer_count*image_size)
        + image_size // alarm_image
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
-        "mem.size(%zu) SharedData=%zu TriggerData=%zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
+        "mem.size(%zu) SharedData=%zu TriggerData=%zu zone_count %d * sizeof int %zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
         sizeof(mem_size),
         sizeof(SharedData),
         sizeof(TriggerData),
+        zone_count,
+        sizeof(int),
         sizeof(VideoStoreData),
         (image_buffer_count * sizeof(struct timeval)),
         image_buffer_count,
@@ -556,6 +558,10 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   if ( purpose != QUERY ) {
     LoadCamera();
     ReloadZones();
+    if (zones.size() != zone_count) {
+      Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count, zones.size());
+      zone_count = zones.size();
+    }
 
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
@@ -876,7 +882,7 @@ bool Monitor::connect() {
   Debug(1, "Zone count %d", zone_count);
   shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
-# if 0
+# if 1
   zone_scores = (int *)(trigger_data + sizeof(TriggerData));
   video_store_data = (VideoStoreData *)((char *)zone_scores + zone_count*sizeof(int));
 #else

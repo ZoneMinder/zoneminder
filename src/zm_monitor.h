@@ -443,7 +443,7 @@ protected:
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
   int         importance;           // Importance of this monitor, affects Connection logging errors.
-  int         zone_count;
+  unsigned int         zone_count;
 
   int capture_max_fps;
 

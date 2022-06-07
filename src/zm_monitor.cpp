@@ -491,6 +491,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
 
+   /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_username = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_password = std::string(dbrow[col] ? dbrow[col] : ""); col++;
@@ -509,7 +510,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   blue_val = BLUE_VAL_BGRA(signal_check_colour);
   grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
 
-  importance = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
+  importance = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
   if (importance < 0) importance = 0; // Should only be >= 0
   zone_count = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
 
@@ -528,29 +529,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     event_close_mode = CLOSE_ALARM;
   else
     event_close_mode = CLOSE_IDLE;
-
-  mem_size = sizeof(SharedData)
-       + sizeof(TriggerData)
-       + (zone_count * sizeof(int)) // Per zone scores
-       + sizeof(VideoStoreData) //Information to pass back to the capture process
-       + (image_buffer_count*sizeof(struct timeval))
-       + (image_buffer_count*image_size)
-       + image_size // alarm_image
-       + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
-
-  Debug(1,
-        "mem.size(%zu) SharedData=%zu TriggerData=%zu zone_count %d * sizeof int %zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
-        sizeof(mem_size),
-        sizeof(SharedData),
-        sizeof(TriggerData),
-        zone_count,
-        sizeof(int),
-        sizeof(VideoStoreData),
-        (image_buffer_count * sizeof(struct timeval)),
-        image_buffer_count,
-        image_size,
-        (image_buffer_count * image_size),
-        mem_size);
 
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%u", storage->Path(), id);
@@ -580,7 +558,28 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     }
   }  // end if purpose
 
-  Debug(1, "Loaded monitor %d(%s), %zu zones", id, name.c_str(), zones.size());
+  mem_size = sizeof(SharedData)
+       + sizeof(TriggerData)
+       + (zone_count * sizeof(int)) // Per zone scores
+       + sizeof(VideoStoreData) //Information to pass back to the capture process
+       + (image_buffer_count*sizeof(struct timeval))
+       + (image_buffer_count*image_size)
+       + image_size // alarm_image
+       + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
+
+  Debug(1,
+        "mem.size(%zu) SharedData=%zu TriggerData=%zu zone_count %d * sizeof int %zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
+        sizeof(mem_size),
+        sizeof(SharedData),
+        sizeof(TriggerData),
+        zone_count,
+        sizeof(int),
+        sizeof(VideoStoreData),
+        (image_buffer_count * sizeof(struct timeval)),
+        image_buffer_count,
+        image_size,
+        (image_buffer_count * image_size),
+        mem_size);
 } // Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY)
 
 void Monitor::LoadCamera() {
@@ -879,42 +878,42 @@ bool Monitor::connect() {
   }
 #endif // ZM_MEM_MAPPED
 
-  Debug(1, "Zone count %d", zone_count);
   shared_data = (SharedData *)mem_ptr;
   trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
-# if 1
-  zone_scores = (int *)(trigger_data + sizeof(TriggerData));
-  video_store_data = (VideoStoreData *)((char *)zone_scores + zone_count*sizeof(int));
-#else
-  video_store_data = (VideoStoreData *)((char *)trigger_data + sizeof(TriggerData));
-#endif
+  zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
+  video_store_data = (VideoStoreData *)((unsigned long)zone_scores + (zone_count*sizeof(int)));
   shared_timestamps = (struct timeval *)((char *)video_store_data + sizeof(VideoStoreData));
   shared_images = (unsigned char *)((char *)shared_timestamps + (image_buffer_count*sizeof(struct timeval)));
 
-
   if (((unsigned long)shared_images % 64) != 0) {
     /* Align images buffer to nearest 64 byte boundary */
-    Debug(3, "Aligning shared memory images to the next 64 byte boundary");
-    shared_images = (uint8_t*)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
+    unsigned char * aligned_shared_images = (unsigned char *)((unsigned long)shared_images + (64 - ((unsigned long)shared_images % 64)));
+    Debug(3, "Aligning shared memory images to the next 64 byte boundary %p to %p moved %lu bytes",
+        shared_images, aligned_shared_images,
+        (unsigned long)(aligned_shared_images - shared_images)
+        );
+    shared_images = (unsigned char *)aligned_shared_images;
   }
 
   if (!camera) LoadCamera();
+  uint64_t image_size = camera->ImageSize();
 
   image_buffer.resize(image_buffer_count);
   for (int32_t i = 0; i < image_buffer_count; i++) {
-    image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*camera->ImageSize()]));
+    image_buffer[i] = new Image(width, height, camera->Colours(), camera->SubpixelOrder(), &(shared_images[i*image_size]));
     image_buffer[i]->HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   }
   alarm_image.AssignDirect(width, height, camera->Colours(), camera->SubpixelOrder(),
-      &(shared_images[image_buffer_count*camera->ImageSize()]),
-        camera->ImageSize(),
+      &(shared_images[image_buffer_count*image_size]),
+        image_size,
         ZM_BUFTYPE_DONTFREE
         );
   alarm_image.HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
-  Debug(3, "Allocated %zu %zu image buffers", image_buffer.capacity(), image_buffer.size());
+  if (alarm_image.Buffer() + image_size > mem_ptr + mem_size) {
+    Warning("We will exceed memsize by %ld bytes!", alarm_image.Buffer() + image_size - (mem_ptr + mem_size));
+  }
 
   if (purpose == CAPTURE) {
-    curl_global_init(CURL_GLOBAL_DEFAULT); //May not be the appropriate place. Need to do this before any other curl calls, and any other threads start.
     memset(mem_ptr, 0, mem_size);
     shared_data->size = sizeof(SharedData);
     shared_data->analysing = analysing;
@@ -1029,7 +1028,7 @@ bool Monitor::disconnect() {
   }
 
   if (purpose == CAPTURE) {
-    alarm_image.HoldBuffer(false); /* Allow to reset buffer */
+    //alarm_image.HoldBuffer(false); /* Allow to reset buffer */
     if (unlink(mem_file.c_str()) < 0) {
       Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
     }
@@ -1076,11 +1075,14 @@ bool Monitor::disconnect() {
 
 Monitor::~Monitor() {
   Close();
+  Debug(1, "Done close");
 
   if (mem_ptr != nullptr) {
     if (purpose != QUERY) {
+      Debug(1, "Memsetting");
       memset(mem_ptr, 0, mem_size);
     }  // end if purpose != query
+    Debug(1, "disconnect");
     disconnect();
   }  // end if mem_ptr
 
@@ -1089,6 +1091,7 @@ Monitor::~Monitor() {
   decoder_it = nullptr;
 
   delete storage;
+  Debug(1, "Done storage");
   if (n_linked_monitors) {
     for ( int i=0; i < n_linked_monitors; i++ ) {
       delete linked_monitors[i];
@@ -1097,18 +1100,23 @@ Monitor::~Monitor() {
     linked_monitors = nullptr;
   }
 
+  Debug(1, "Don linked monitors");
   if (video_fifo) delete video_fifo;
   if (audio_fifo) delete audio_fifo;
+  Debug(1, "Don fifo");
   if (dest_frame) av_frame_free(&dest_frame);
+  Debug(1, "Don fifo");
   if (convert_context) {
+  Debug(1, "Don fifo");
     sws_freeContext(convert_context);
     convert_context = nullptr;
   }
+  Debug(1, "Don fifo");
   if (Amcrest_Manager != nullptr) {
+  Debug(1, "Don fifo");
     delete Amcrest_Manager;
-  }
-  if (purpose == CAPTURE) {
-    curl_global_cleanup(); //not sure about this location.
+  } else {
+Debug(1, "No amcrest");
   }
 }  // end Monitor::~Monitor()
 
@@ -1948,6 +1956,7 @@ bool Monitor::Analyse() {
                   snap->analysis_image = new Image(*(snap->image));
                 // lets construct alarm cause. It will contain cause + names of zones alarmed
                 snap->zone_stats.reserve(zones.size());
+                int zone_index = 0;
                 for (const Zone &zone : zones) {
                   const ZoneStats &stats = zone.GetStats();
                   stats.DumpToLog("After detect motion");
@@ -1958,6 +1967,7 @@ bool Monitor::Analyse() {
                     if (zone.AlarmImage())
                       snap->analysis_image->Overlay(*(zone.AlarmImage()));
                   }
+                  zone_scores[zone_index++] = zone.Score();
                 }
                 alarm_image.Assign(*(snap->analysis_image));
                 Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
@@ -2275,7 +2285,7 @@ void Monitor::Reload() {
 
 void Monitor::ReloadZones() {
   Debug(3, "Reloading zones for monitor %s have %zu", name.c_str(), zones.size());
-  zones = Zone::Load(this);
+  zones = Zone::Load(shared_from_this());
   Debug(1, "Reloading zones for monitor %s have %zu", name.c_str(), zones.size());
   this->AddPrivacyBitmask();
   //DumpZoneImage();
@@ -2316,40 +2326,8 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
         }
         Debug(1, "Checking linked monitor %d zone %d", monitor_id, zone_id);
 
-        {
-          std::string sql = stringtf(
-              "SELECT `Name` FROM `Monitors` WHERE `Id` = %d",
-              monitor_id);
-
-          MYSQL_RES *result = zmDbFetch(sql);
-          if (!result or (mysql_num_rows(result) != 1)) {
-            Warning("Can't link to monitor %d, invalid id or database error", monitor_id);
-            continue;
-          }
-
-          MYSQL_ROW dbrow = mysql_fetch_row(result);
-          monitor_name = dbrow[0];
-          mysql_free_result(result);
-        }
-
-        {
-          std::string sql = stringtf("SELECT Name FROM Zones WHERE Id=%d", zone_id);
-          MYSQL_RES *result = zmDbFetch(sql);
-          if (!result or (mysql_num_rows(result) != 1)) {
-            Warning("Can't link to zone %d, invalid id or database error", zone_id);
-            continue;
-          }
-
-          MYSQL_ROW dbrow = mysql_fetch_row(result);
-          zone_name = dbrow[0];
-          mysql_free_result(result);
-        }
-
-        std::string link_name = monitor_name;
-        if (!zone_name.empty()) link_name += " : " + zone_name;
-        Debug(1, "Linking to monitor %d %s %d %s",
-            monitor_id, monitor_name.c_str(), zone_id, zone_name.c_str());
-        linked_monitors[count++] = new MonitorLink(monitor_id, zone_id, link_name.c_str());
+        std::shared_ptr<Monitor> linked_monitor = Load(monitor_id, false, QUERY);
+        linked_monitors[count++] = new MonitorLink(linked_monitor, zone_id);
       }  // end foreach link_id
       n_linked_monitors = count;
     }  // end if has link_ids

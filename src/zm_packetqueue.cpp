@@ -671,7 +671,7 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
     }
     ++(*it);
   }
-  Debug(1, "DIdn't Found a keyframe for stream %d, so returning the it to it", video_stream_id);
+  Debug(1, "Didn't find a keyframe for stream %d, so returning the it to it", video_stream_id);
   return it;
 }  // get video_it
 

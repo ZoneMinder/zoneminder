@@ -33,6 +33,7 @@
 Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned int p_zone_id) :
   monitor(p_monitor),
   zone_id(p_zone_id),
+  zone(nullptr),
   zone_index(-1),
   shared_data(nullptr),
   trigger_data(nullptr),

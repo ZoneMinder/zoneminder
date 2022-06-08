@@ -211,6 +211,12 @@ bool Monitor::MonitorLink::inAlarm() {
 }
 
 bool Monitor::MonitorLink::hasAlarmed() {
+  if (zone_id and (zone_index >= 0)) {
+    Debug(1, "Checking zone %u, score is %d", zone_id, zone_index);
+    if (zone_scores[zone_index] > 0) {
+      return true;
+    }
+  }
   if (shared_data->state == ALARM) {
     return true;
   }

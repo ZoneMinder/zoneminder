@@ -372,8 +372,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
 
-  linked_monitors_string = std::string(dbrow[col]); col++;
-  //ReloadLinkedMonitors(dbrow[col]); col++;
+  linked_monitors_string = dbrow[col] ? dbrow[col] : ""; col++;
   event_start_command = dbrow[col] ? dbrow[col] : ""; col++;
   event_end_command = dbrow[col] ? dbrow[col] : ""; col++;
 
@@ -537,6 +536,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   if ( purpose != QUERY ) {
     LoadCamera();
+    ReloadLinkedMonitors();
     ReloadZones();
     if (zones.size() != zone_count) {
       Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count, zones.size());
@@ -1130,7 +1130,6 @@ void Monitor::AddPrivacyBitmask() {
   Image *privacy_image = nullptr;
 
   for (const Zone &zone : zones) {
-  //for (int i=0; i < zones.size(); i++) {
     if (zone.IsPrivacy()) {
       if (!privacy_image) {
         privacy_image = new Image(width, height, 1, ZM_SUBPIX_ORDER_NONE);
@@ -1969,7 +1968,8 @@ bool Monitor::Analyse() {
                     if (zone.AlarmImage())
                       snap->analysis_image->Overlay(*(zone.AlarmImage()));
                   }
-                  zone_scores[zone_index++] = zone.Score();
+                  Debug(1, "Setting zone score %d to %d", zone_index, zone.Score());
+                  zone_scores[zone_index] = zone.Score(); zone_index ++;
                 }
                 alarm_image.Assign(*(snap->analysis_image));
                 Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
@@ -2293,8 +2293,8 @@ void Monitor::ReloadZones() {
   //DumpZoneImage();
 } // end void Monitor::ReloadZones()
 
-void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
-  Debug(1, "Reloading linked monitors for monitor %s, '%s'", name.c_str(), p_linked_monitors);
+void Monitor::ReloadLinkedMonitors() {
+  Debug(1, "Reloading linked monitors for monitor %s, '%s'", name.c_str(), linked_monitors_string.c_str());
   if (n_linked_monitors) {
     for (int i=0; i < n_linked_monitors; i++) {
       delete linked_monitors[i];
@@ -2304,8 +2304,8 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
   }
 
   n_linked_monitors = 0;
-  if (p_linked_monitors) {
-    StringVector link_strings = Split(std::string(p_linked_monitors), ',');
+  if (!linked_monitors_string.empty()) {
+    StringVector link_strings = Split(linked_monitors_string, ',');
     int n_link_ids = link_strings.size();
     if (n_link_ids > 0) {
       Debug(1, "Linking to %d monitors", n_link_ids);
@@ -2334,7 +2334,7 @@ void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors) {
       n_linked_monitors = count;
     }  // end if has link_ids
   }  // end if p_linked_monitors
-}  // end void Monitor::ReloadLinkedMonitors(const char *p_linked_monitors)
+}  // end void Monitor::ReloadLinkedMonitors()
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &where, Purpose purpose) {
   std::string sql = load_monitor_sql + " WHERE " + where;

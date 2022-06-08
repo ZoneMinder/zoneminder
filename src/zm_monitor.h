@@ -251,7 +251,7 @@ protected:
     std::shared_ptr<Monitor>  monitor;
     unsigned int zone_id;
     const Zone    *zone;
-    unsigned int  zone_index;  // index into zone_scores for our zone
+    int  zone_index;  // index into zone_scores for our zone
 
     std::string   name;
 
@@ -783,7 +783,7 @@ public:
 
   void Reload();
   void ReloadZones();
-  void ReloadLinkedMonitors( const char * );
+  void ReloadLinkedMonitors();
 
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );

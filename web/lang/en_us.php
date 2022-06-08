@@ -70,6 +70,7 @@ require_once( 'lang/en_gb.php' );
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
 // Simple String Replacements
+setlocale( LC_TIME, 'en_US' );
 $SLANG['24BitColour']          = '24 bit color';
 $SLANG['32BitColour']          = '32 bit color';
 $SLANG['8BitGrey']             = '8 bit grayscale';

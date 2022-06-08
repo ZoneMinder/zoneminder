@@ -162,8 +162,6 @@ MYSQL_RES *zmDbRow::fetch(const std::string &query) {
     mysql_free_result(result_set);
     result_set = nullptr;
     Error("Error getting row from query %s. Error is %s", query.c_str(), mysql_error(&dbconn));
-  } else {
-    Debug(5, "Success");
   }
   return result_set;
 }

@@ -92,7 +92,7 @@ RemoteCameraHttp::RemoteCameraHttp(
 }
 
 RemoteCameraHttp::~RemoteCameraHttp() {
-  if ( capture ) {
+  if (capture and (sd != -1)) {
     Terminate();
   }
 }
@@ -854,9 +854,9 @@ int RemoteCameraHttp::GetResponse() {
             while (!zm_terminate) {
               int crlf_len = memspn(subheader_ptr, "\r\n", subheader_len);
               if (n_subheaders) {
-                if ( (crlf_len == 2 && !strncmp(subheader_ptr, "\n\n", crlf_len))
+                if ((crlf_len == 2 && !strncmp(subheader_ptr, "\n\n", crlf_len))
                     ||
-                    (crlf_len == 4 && !strncmp( subheader_ptr, "\r\n\r\n", crlf_len ))
+                    (crlf_len == 4 && !strncmp(subheader_ptr, "\r\n\r\n", crlf_len))
                     ) {
                   *subheader_ptr = '\0';
                   subheader_ptr += crlf_len;

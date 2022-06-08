@@ -62,7 +62,7 @@ class Zone {
 
   protected:
     // Inputs
-    std::shared_ptr<Monitor>&monitor;
+    const std::shared_ptr<Monitor> monitor;
 
     unsigned int         id;
     std::string label;
@@ -126,7 +126,7 @@ class Zone {
 
   public:
     Zone(
-        std::shared_ptr<Monitor>p_monitor,
+        const std::shared_ptr<Monitor> &p_monitor,
         unsigned int p_id,
         const char *p_label,
         ZoneType p_type,
@@ -156,7 +156,7 @@ class Zone {
       Setup(p_type, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames, p_extend_alarm_frames );
     }
 
-    Zone(std::shared_ptr<Monitor>&p_monitor, unsigned int p_id, const char *p_label, const Polygon &p_polygon)
+    Zone(const std::shared_ptr<Monitor>&p_monitor, unsigned int p_id, const char *p_label, const Polygon &p_polygon)
       :
         monitor(p_monitor),
         id(p_id),
@@ -166,7 +166,7 @@ class Zone {
     {
       Setup(Zone::INACTIVE, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Vector2(0, 0), 0, 0, 0, 0, 0, 0, 0, 0);
     }
-    Zone(std::shared_ptr<Monitor>&p_monitor, unsigned int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon)
+    Zone(const std::shared_ptr<Monitor>&p_monitor, unsigned int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon)
       :
         monitor(p_monitor),
         id(p_id),
@@ -215,7 +215,7 @@ class Zone {
 
     static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
     static bool ParseZoneString( const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon );
-    static std::vector<Zone> Load(std::shared_ptr<Monitor>monitor);
+    static std::vector<Zone> Load(const std::shared_ptr<Monitor> &monitor);
     //=================================================
     bool CheckOverloadCount();
     int GetOverloadCount();

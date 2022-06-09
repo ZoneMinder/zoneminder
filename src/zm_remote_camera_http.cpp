@@ -185,9 +185,11 @@ int RemoteCameraHttp::Connect() {
 } // end int RemoteCameraHttp::Connect()
 
 int RemoteCameraHttp::Disconnect() {
-  close(sd);
-  sd = -1;
-  Debug(3, "Disconnected from host");
+  if (sd != -1) {
+    close(sd);
+    sd = -1;
+    Debug(3, "Disconnected from host");
+  }
   return 0;
 }
 

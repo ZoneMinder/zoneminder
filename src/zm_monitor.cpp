@@ -522,7 +522,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   state = IDLE;
   last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.
                         // Instead initial failure to capture will cause a loss of signal change which I think makes more sense.
-  uint64_t image_size = width * height * colours;
 
   if ( strcmp(config.event_close_mode, "time") == 0 )
     event_close_mode = CLOSE_TIME;
@@ -536,12 +535,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   if ( purpose != QUERY ) {
     LoadCamera();
-    ReloadLinkedMonitors();
-    ReloadZones();
-    if (zones.size() != zone_count) {
-      Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count, zones.size());
-      zone_count = zones.size();
-    }
 
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
       Error("Can't mkdir %s: %s", monitor_dir.c_str(), strerror(errno));
@@ -560,28 +553,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     }
   }  // end if purpose
 
-  mem_size = sizeof(SharedData)
-       + sizeof(TriggerData)
-       + (zone_count * sizeof(int)) // Per zone scores
-       + sizeof(VideoStoreData) //Information to pass back to the capture process
-       + (image_buffer_count*sizeof(struct timeval))
-       + (image_buffer_count*image_size)
-       + image_size // alarm_image
-       + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
-
-  Debug(1,
-        "mem.size(%zu) SharedData=%zu TriggerData=%zu zone_count %d * sizeof int %zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
-        sizeof(mem_size),
-        sizeof(SharedData),
-        sizeof(TriggerData),
-        zone_count,
-        sizeof(int),
-        sizeof(VideoStoreData),
-        (image_buffer_count * sizeof(struct timeval)),
-        image_buffer_count,
-        image_size,
-        (image_buffer_count * image_size),
-        mem_size);
 } // Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY)
 
 void Monitor::LoadCamera() {
@@ -797,9 +768,39 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
 }
 
 bool Monitor::connect() {
+  ReloadLinkedMonitors();
+  ReloadZones();
+  if (zones.size() != zone_count) {
+    Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count, zones.size());
+    zone_count = zones.size();
+  }
   if (mem_ptr != nullptr) {
     Warning("Already connected. Please call disconnect first.");
   }
+  if (!camera) LoadCamera();
+  uint64_t image_size = camera->ImageSize();
+  mem_size = sizeof(SharedData)
+       + sizeof(TriggerData)
+       + (zone_count * sizeof(int)) // Per zone scores
+       + sizeof(VideoStoreData) //Information to pass back to the capture process
+       + (image_buffer_count*sizeof(struct timeval))
+       + (image_buffer_count*image_size)
+       + image_size // alarm_image
+       + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
+
+  Debug(1,
+        "mem.size(%zu) SharedData=%zu TriggerData=%zu zone_count %d * sizeof int %zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
+        sizeof(mem_size),
+        sizeof(SharedData),
+        sizeof(TriggerData),
+        zone_count,
+        sizeof(int),
+        sizeof(VideoStoreData),
+        (image_buffer_count * sizeof(struct timeval)),
+        image_buffer_count,
+        image_size,
+        (image_buffer_count * image_size),
+        mem_size);
   Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
 #if ZM_MEM_MAPPED
   mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
@@ -897,8 +898,6 @@ bool Monitor::connect() {
     shared_images = (unsigned char *)aligned_shared_images;
   }
 
-  if (!camera) LoadCamera();
-  uint64_t image_size = camera->ImageSize();
 
   image_buffer.resize(image_buffer_count);
   for (int32_t i = 0; i < image_buffer_count; i++) {
@@ -1024,13 +1023,22 @@ bool Monitor::connect() {
 } // Monitor::connect
 
 bool Monitor::disconnect() {
+  zones.clear();
+  if (n_linked_monitors) {
+    for ( int i=0; i < n_linked_monitors; i++ ) {
+      delete linked_monitors[i];
+    }
+    delete[] linked_monitors;
+    linked_monitors = nullptr;
+    n_linked_monitors = 0;
+  }
   if (mem_ptr == nullptr) {
     Debug(1, "Already disconnected");
     return true;
   }
 
   if (purpose == CAPTURE) {
-    //alarm_image.HoldBuffer(false); /* Allow to reset buffer */
+    alarm_image.HoldBuffer(false); /* Allow to reset buffer when we connect */
     if (unlink(mem_file.c_str()) < 0) {
       Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
     }
@@ -1939,54 +1947,77 @@ bool Monitor::Analyse() {
                   ref_image.Assign(*(snap->image));
                 }
                 alarm_image.Assign(*(snap->image));
-              } else if (!(analysis_image_count % (motion_frame_skip+1))) {
-                Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
-                // Get new score.
-                if (USE_Y_CHANNEL && snap->in_frame && (
-                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
-                      ||
-                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                      ) ) {
-                  Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                  snap->score = DetectMotion(y_image, zoneSet);
-                } else {
-                  snap->score = DetectMotion(*(snap->image), zoneSet);
-                }
-
-                if (!snap->analysis_image)
-                  snap->analysis_image = new Image(*(snap->image));
-                // lets construct alarm cause. It will contain cause + names of zones alarmed
-                snap->zone_stats.reserve(zones.size());
-                int zone_index = 0;
-                for (const Zone &zone : zones) {
-                  const ZoneStats &stats = zone.GetStats();
-                  stats.DumpToLog("After detect motion");
-                  snap->zone_stats.push_back(stats);
-                  if (zone.Alarmed()) {
-                    if (!snap->alarm_cause.empty()) snap->alarm_cause += ",";
-                    snap->alarm_cause += std::string(zone.Label());
-                    if (zone.AlarmImage())
-                      snap->analysis_image->Overlay(*(zone.AlarmImage()));
-                  }
-                  Debug(1, "Setting zone score %d to %d", zone_index, zone.Score());
-                  zone_scores[zone_index] = zone.Score(); zone_index ++;
-                }
-                alarm_image.Assign(*(snap->analysis_image));
-                Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                    score, last_motion_score, snap->score);
-                motion_frame_count += 1;
-                last_motion_score = snap->score;
-
-                if (snap->score) {
-                  if (cause.length()) cause += ", ";
-                  cause += MOTION_CAUSE + std::string(":") + snap->alarm_cause;
-                  noteSetMap[MOTION_CAUSE] = zoneSet;
-                  score += snap->score;
-                } // end if motion_score
               } else {
-                Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
-                alarm_image.Assign(*(snap->image));
-              }
+                // didn't assign, do motion detection maybe and blending definitely
+                if (!(analysis_image_count % (motion_frame_skip+1))) {
+                  Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
+                  // Get new score.
+                  if (USE_Y_CHANNEL && snap->in_frame && (
+                        ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
+                        ||
+                        ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
+                        ) ) {
+                    Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
+                    snap->score = DetectMotion(y_image, zoneSet);
+                  } else {
+                    snap->score = DetectMotion(*(snap->image), zoneSet);
+                  }
+
+                  if (!snap->analysis_image)
+                    snap->analysis_image = new Image(*(snap->image));
+                  // lets construct alarm cause. It will contain cause + names of zones alarmed
+                  snap->zone_stats.reserve(zones.size());
+                  int zone_index = 0;
+                  for (const Zone &zone : zones) {
+                    const ZoneStats &stats = zone.GetStats();
+                    stats.DumpToLog("After detect motion");
+                    snap->zone_stats.push_back(stats);
+                    if (zone.Alarmed()) {
+                      if (!snap->alarm_cause.empty()) snap->alarm_cause += ",";
+                      snap->alarm_cause += std::string(zone.Label());
+                      if (zone.AlarmImage())
+                        snap->analysis_image->Overlay(*(zone.AlarmImage()));
+                    }
+                    Debug(1, "Setting zone score %d to %d", zone_index, zone.Score());
+                    zone_scores[zone_index] = zone.Score(); zone_index ++;
+                  }
+                  alarm_image.Assign(*(snap->analysis_image));
+                  Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
+                      score, last_motion_score, snap->score);
+                  motion_frame_count += 1;
+                  last_motion_score = snap->score;
+
+                  if (snap->score) {
+                    if (cause.length()) cause += ", ";
+                    cause += MOTION_CAUSE + std::string(":") + snap->alarm_cause;
+                    noteSetMap[MOTION_CAUSE] = zoneSet;
+                    score += snap->score;
+                  } // end if motion_score
+                } else {
+                  Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
+                  alarm_image.Assign(*(snap->image));
+                }
+
+                if (USE_Y_CHANNEL && snap->in_frame &&
+                    ( 
+                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
+                     ||
+                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
+                    )
+                   ) {
+                  Debug(1, "Blending from y-channel");
+                  Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
+                  ref_image.Blend(y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                } else if (snap->image) {
+                  Debug(1, "Blending because %p and format %d != %d, %d", snap->in_frame,
+                      (snap->in_frame ? snap->in_frame->format : -1),
+                      AV_PIX_FMT_YUV420P,
+                      AV_PIX_FMT_YUVJ420P
+                      );
+                  ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  Debug(1, "Done Blending");
+                }
+              } // end if had ref_image_buffer or not
             } else {
               Debug(1, "no image so skipping motion detection");
             }  // end if has image
@@ -2171,42 +2202,6 @@ bool Monitor::Analyse() {
             } // end if ! event
           } // end if RECORDING
 
-          if ((shared_data->analysing == ANALYSING_ALWAYS) and snap->image) {
-            if (!ref_image.Buffer()) {
-              if (USE_Y_CHANNEL && snap->in_frame && (
-                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
-                    ||
-                    ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                    ) ) {
-                Debug(1, "Assigning from y-channel");
-                Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                ref_image.Assign(y_image);
-              } else if (snap->image) {
-                Debug(1, "Assigning");
-                ref_image.Assign(*(snap->image));
-              }
-            } else {
-              if (USE_Y_CHANNEL && snap->in_frame &&
-                  ( 
-                   ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
-                   ||
-                   ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                  )
-                 ) {
-                Debug(1, "Blending from y-channel");
-                Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                ref_image.Blend(y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-              } else if (snap->image) {
-                Debug(1, "Blending because %p and format %d != %d, %d", snap->in_frame,
-                    (snap->in_frame ? snap->in_frame->format : -1),
-                    AV_PIX_FMT_YUV420P,
-                    AV_PIX_FMT_YUVJ420P
-                    );
-                ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
-                Debug(1, "Done Blending");
-              }
-            } // end if have image
-          } // end if detecting
           last_signal = signal;
         } // end if videostream
       } // end if signal

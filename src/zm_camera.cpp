@@ -72,7 +72,9 @@ Camera::Camera(
 Camera::~Camera() {
   if ( mFormatContext ) {
     // Should also free streams
-    avformat_free_context(mFormatContext);
+    Debug(1, "Freeing mFormatContext");
+    //avformat_free_context(mFormatContext);
+    avformat_close_input(&mFormatContext);
   }
   if ( mSecondFormatContext ) {
     // Should also free streams

@@ -51,7 +51,7 @@ Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned in
       }
       zone_index ++;
     }
-    if (zone_index > zones.size()) {
+    if (static_cast<unsigned int>(zone_index) > zones.size()) {
       Error("Unable to find zone %u", zone_id);
       zone_index = -1;
     }
@@ -75,6 +75,7 @@ Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned in
 }
 
 Monitor::MonitorLink::~MonitorLink() {
+  zones.clear();
   disconnect();
 }
 

@@ -786,7 +786,7 @@ void Image::Assign(const Image &image) {
         return;
       }
     } else {
-      if (new_size > allocation || !buffer) {
+      if ((new_size > allocation) || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
         AllocImgBuffer(new_size);
       }

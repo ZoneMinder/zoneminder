@@ -1,14 +1,19 @@
+
+const VIEWING = 0;
+const EDITING = 1;
+
+var mode = 0; // start up in viewing mode
+
 /**
  * called when the layoutControl select element is changed, or the page
  * is rendered
- * @param {*} new_layout - the name of a layout to switch to
+ * @param {*} new_layout_id - the id of a layout to switch to
  */
-function selectLayout(new_layout) {
+function selectLayout(new_layout_id) {
   const ddm = $j('#zmMontageLayout');
-  if (new_layout && (typeof(new_layout) != 'object')) {
-    console.log("Selecting " + new_layout);
-    $j('#zmMontageLayout option').attr('selected', false);
-    $j('#zmMontageLayout option:contains("'+new_layout+'")').attr('selected', true);
+  if (new_layout_id && (typeof(new_layout_id) != 'object')) {
+    console.log("Selecting " + new_layout_id);
+    ddm.val(new_layout_id);
   }
   const layout_id = parseInt(ddm.val());
   if (!layout_id) {
@@ -36,7 +41,6 @@ function selectLayout(new_layout) {
     if (layout.Positions['default']) {
       styles = layout.Positions['default'];
       for (style in styles) {
-        //console.log('Applying ' + style + '=>' + styles[style]);
         monitor_frame.css(style, styles[style]);
       }
     } else {
@@ -89,13 +93,12 @@ function changeWidth() {
   var height = $j('#height').val();
   console.log("changeWidth");
 
-  selectLayout('Freeform');
+  selectLayout(freeform_layout_id);
   $j('#width').val(width);
   $j('#height').val(height);
 
   for (var i = 0, length = monitors.length; i < length; i++) {
-    var monitor = monitors[i];
-    monitor.setScale('0', width, height);
+    monitors[i].setScale('0', width, height);
   }
   $j('#scale').val('0');
   setCookie('zmMontageScale', '0', 3600);
@@ -108,7 +111,7 @@ function changeWidth() {
  */
 function changeScale() {
   var scale = $j('#scale').val();
-  selectLayout('Freeform'); // Will also clear width and height
+  selectLayout(freeform_layout_id); // Will also clear width and height
   $j('#scale').val(scale);
   setCookie('zmMontageScale', scale, 3600);
   setCookie('zmMontageWidth', 'auto', 3600);
@@ -126,16 +129,17 @@ function toGrid(value) {
   return Math.round(value / 80) * 80;
 }
 
-// Makes monitorFrames draggable.
+// Makes monitors draggable.
 function edit_layout(button) {
-  // Turn off the onclick on the image.
+  mode = EDITING;
 
+  // Turn off the onclick on the image.
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
     monitor.disable_onclick();
   };
 
-  $j('#monitors .monitorFrame').draggable({
+  $j('#monitors .monitor').draggable({
     cursor: 'crosshair',
     //revert: 'invalid'
   });
@@ -144,6 +148,8 @@ function edit_layout(button) {
 } // end function edit_layout
 
 function save_layout(button) {
+  mode = VIEWING;
+
   var form = button.form;
   var name = form.elements['Name'].value;
 
@@ -160,7 +166,7 @@ function save_layout(button) {
   var Positions = {};
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor_frame = $j('#monitorFrame'+monitor.id);
+    monitor_frame = $j('#monitor'+monitor.id);
 
     Positions['mId'+monitor.id] = {
       width: monitor_frame.css('width'),
@@ -178,6 +184,7 @@ function save_layout(button) {
 } // end function save_layout
 
 function cancel_layout(button) {
+  mode = VIEWING;
   $j('#SaveLayout').hide();
   $j('#EditLayout').show();
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
@@ -187,7 +194,7 @@ function cancel_layout(button) {
     //monitor_feed = $j('#imageFeed'+monitor.id);
     //monitor_feed.click(monitor.onclick);
   };
-  selectLayout('Freeform');
+  selectLayout(freeform_layout_id);
 }
 
 function reloadWebSite(ndx) {
@@ -199,6 +206,21 @@ function takeSnapshot() {
     return 'monitor_ids[]='+monitor.id;
   });
   window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+}
+
+function handleClick(evt) {
+  evt.preventDefault();
+  if (mode == EDITING) return;
+
+  const el = evt.currentTarget;
+  const id = el.getAttribute("data-monitor-id");
+
+  const url = '?view=watch&mid='+id;
+  if (evt.ctrlKey) {
+    window.open(url, '_blank');
+  } else {
+    window.location.assign(url);
+  }
 }
 
 const monitors = new Array();
@@ -217,11 +239,7 @@ function initPage() {
     monitors[i] = new MonitorStream(monitorData[i]);
   }
   selectLayout();
-  const scale = $j('#scale').val();
-  const width = $j('#width').val();
-  const height = $j('#height').val();
   for (let i = 0, length = monitorData.length; i < length; i++) {
-    monitors[i].setScale(scale, width, height);
     // Start the fps and status updates. give a random delay so that we don't assault the server
     const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].start(delay);
@@ -235,9 +253,8 @@ function initPage() {
   // If you click on the navigation links, shut down streaming so the browser can process it
   document.querySelectorAll('#main-header-nav a').forEach(function(el) {
     el.onclick = function() {
-      console.log("Stopping monitors");
       for (var i = 0, length = monitors.length; i < length; i++) {
-        monitors[i].stop();
+        monitors[i].kill();
       }
     };
   });
@@ -248,15 +265,24 @@ function watchFullscreen() {
   openFullscreen(content);
 }
 
-function handleClick(evt) {
-  console.log("handleClick");
-  var el = evt.currentTarget;
-  console.log(el);
-  var id = el.getAttribute("data-monitor-id");
-  var url = '?view=watch&mid='+id;
-  evt.preventDefault();
-  window.location.assign(url);
-}
-
 // Kick everything off
 $j(document).ready(initPage);
+
+/*
+window.onbeforeunload = function(e) {
+  console.log('unload');
+  //event.preventDefault();
+  for (let i = 0, length = monitorData.length; i < length; i++) {
+    monitors[i].kill();
+  }
+  var e = e || window.event;
+
+  // For IE and Firefox
+  if (e) {
+    e.returnValue = undefined;
+  }
+
+  // For Safari
+  return undefined;
+};
+*/

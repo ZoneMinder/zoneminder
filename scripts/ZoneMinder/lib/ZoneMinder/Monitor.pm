@@ -43,6 +43,7 @@ use ZoneMinder::Logger qw(:all);
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
+$debug = 1;
 $table = 'Monitors';
 $serial = $primary_key = 'Id';
 %fields = map { $_ => $_ } qw(
@@ -238,6 +239,12 @@ $serial = $primary_key = 'Id';
     Longitude =>  undef,
     );
 
+  use constant CAPTURING_NONE     => 1;
+  use constant CAPTURING_ONDEMAND => 2;
+  use constant CAPTURING_ALWAYS   => 3;
+  use constant ANALYSING_ALWAYS   => 2;
+  use constant ANALYSING_NONE     => 1;
+
 sub Server {
 	return new ZoneMinder::Server( $_[0]{ServerId} );
 } # end sub Server
@@ -320,7 +327,9 @@ sub suspendMotionDetection {
   return 0 if ! ZoneMinder::Memory::zmMemVerify($self);
   return if $$self{Capturing} eq 'None' or $$self{Analysing} eq 'None';
   my $count = 50;
-  while ($count and ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1)) {
+  while ($count and 
+    ( ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1) != ANALYSING_NONE)
+  ) {
     ZoneMinder::Logger::Debug(1, 'Suspending motion detection');
     ZoneMinder::Memory::zmMonitorSuspend($self);
     usleep(100000);

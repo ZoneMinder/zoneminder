@@ -20,6 +20,7 @@
 
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
+require_once('includes/Zone.php');
 
 if (!canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid'])) {
   $view = 'error';
@@ -135,12 +136,6 @@ $sourceTypes = array(
 if (!ZM_HAS_V4L2)
   unset($sourceTypes['Local']);
 
-$localMethods = array(
-    'v4l2' => 'Video For Linux version 2',
-    );
-
-if (!ZM_HAS_V4L2)
-  unset($localMethods['v4l2']);
 
 $remoteProtocols = array(
     'http' => 'HTTP',
@@ -623,7 +618,16 @@ switch ($name) {
           </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('CaptureMethod') ?></td>
-            <td><?php echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), array('onchange'=>'submitTab', 'data-tab-name'=>$tab) ); ?></td>
+            <td><?php 
+$localMethods = array(
+    'v4l2' => 'Video For Linux version 2',
+    );
+if (!ZM_HAS_V4L2)
+  unset($localMethods['v4l2']);
+echo htmlSelect('newMonitor[Method]', $localMethods, 
+  ((count($localMethods)<=1) ? array_key_first($localMethods) : $monitor->Method()),
+  array('data-on-change'=>'submitTab', 'data-tab-name'=>$tab) );
+?></td>
           </tr>
 <?php
         if ( ZM_HAS_V4L2 && $monitor->Method() == 'v4l2' ) {
@@ -963,10 +967,22 @@ include('_monitor_source_nvsocket.php');
               <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
               <td>
 <?php
+      $zones_by_monitor_id = array();
+      foreach (ZM\Zone::find() as $zone) {
+        if (! isset($zones_by_monitor_id[$zone->MonitorId()]) ) {
+          $zones_by_monitor_id[$zone->MonitorId()] = array();
+          $zones_by_monitor_id[$zone->MonitorId()][] = $zone;
+        }
+      }
       $monitor_options = array();
       foreach ($monitors as $linked_monitor) {
-        if ( (!$monitor->Id() || ($monitor->Id()!= $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {
-          $monitor_options[$linked_monitor['Id']] = validHtmlStr($linked_monitor['Name']);
+        if ( (!$monitor->Id() || ($monitor->Id() != $linked_monitor['Id'])) && visibleMonitor($linked_monitor['Id']) ) {
+          $monitor_options[$linked_monitor['Id']] = validHtmlStr($linked_monitor['Name']) . ' : ' . translate('All Zones');
+          if (isset($zones_by_monitor_id[$linked_monitor['Id']])) {
+            foreach ( $zones_by_monitor_id[$linked_monitor['Id']] as $zone) {
+              $monitor_options[$linked_monitor['Id'].':'.$zone->Id()] = validHtmlStr($linked_monitor['Name']) . ' : ' . validHtmlStr($zone->Name());
+            }
+          }
         }
       }
       echo htmlSelect(

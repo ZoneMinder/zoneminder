@@ -33,7 +33,7 @@ PacketQueue::PacketQueue():
   packet_counts(nullptr),
   deleting(false),
   keep_keyframes(false),
-  has_warned(false)
+  warned_count(0)
 {
 }
 
@@ -148,8 +148,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         and
         (packet_counts[video_stream_id] > max_video_packet_count)
        ) {
-      if (!has_warned) {
-        has_warned = true;
+      if (!warned_count) {
+        warned_count++;
         Warning("You have set the max video packets in the queue to %u."
             " The queue is full. Either Analysis is not keeping up or"
             " your camera's keyframe interval is larger than this setting."
@@ -167,8 +167,11 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
         ZMLockedPacket lp(zm_packet);
         if (!lp.trylock()) {
-          // Can't delete a locked packet, but can delete one after it.
-          Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
+          if (warned_count <2) {
+            warned_count++;
+            // Can't delete a locked packet, but can delete one after it.
+            Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
+          }
           ++it;
           continue;
         }
@@ -201,7 +204,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           break;
       }  // end while
     } else {
-      has_warned = false;
+      warned_count--;
     }  // end if not able catch up
   }  // end lock scope
   // We signal on every packet because someday we may analyze sound
@@ -295,6 +298,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (lp->trylock()) {
+    int keyframe_interval = 1;
     int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
     Debug(4, "Have lock on first packet");
     ++it;
@@ -322,8 +326,11 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
       if (zm_packet->packet.stream_index == video_stream_id) {
         if (zm_packet->keyframe) {
-          Debug(3, "Have a video keyframe so setting next front to it");
+          Debug(1, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval);
+          keyframe_interval = 1;
           next_front = it;
+        } else {
+          keyframe_interval++;
         }
         ++video_packets_to_delete;
         Debug(3, "Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
@@ -363,6 +370,11 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
 	return;
 } // end voidPacketQueue::clearPackets(ZMPacket* zm_packet)
+
+void PacketQueue::stop() {
+  deleting = true;
+  condition.notify_all();
+}
 
 void PacketQueue::clear() {
   deleting = true;
@@ -563,16 +575,18 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
 
   *it = snapshot_it;
   std::shared_ptr<ZMPacket> packet = *(*it);
-  ZM_DUMP_PACKET(packet->packet, "");
+  //ZM_DUMP_PACKET(packet->packet, "");
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
   // snapshot it might already point to the beginning
   if (pre_event_count) {
     while ((*it) != pktQueue.begin()) {
       packet = *(*it);
+      /*
       Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d score %d",
           pre_event_count, packet->packet.stream_index, packet->keyframe, packet->score);
       ZM_DUMP_PACKET(packet->packet, "");
+      */
       if (packet->packet.stream_index == video_stream_id) {
         pre_event_count --;
         if (!pre_event_count)
@@ -591,7 +605,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     } else {
       Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
     }
-    ZM_DUMP_PACKET(packet->packet, "");
+    //ZM_DUMP_PACKET(packet->packet, "");
     return it;
   } else if (!keep_keyframes) {
     // Are encoding, so don't care about keyframes
@@ -600,7 +614,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
 
   while ((*it) != pktQueue.begin()) {
     packet = *(*it);
-    ZM_DUMP_PACKET(packet->packet, "No keyframe");
+    //ZM_DUMP_PACKET(packet->packet, "No keyframe");
     if ((packet->packet.stream_index == video_stream_id) and packet->keyframe)
       return it; // Success
     --(*it);
@@ -657,7 +671,7 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
     }
     ++(*it);
   }
-  Debug(1, "DIdn't Found a keyframe for stream %d, so returning the it to it", video_stream_id);
+  Debug(1, "Didn't find a keyframe for stream %d, so returning the it to it", video_stream_id);
   return it;
 }  // get video_it
 

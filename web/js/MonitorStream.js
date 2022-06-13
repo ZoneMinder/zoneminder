@@ -34,15 +34,19 @@ function MonitorStream(monitorData) {
   this.setBottomElement = function(e) {
     if (!e) {
       console.error("Empty bottomElement");
-    } else {
-      console.log("Setting bottomElement to ");
-      console.log(e);
     }
     this.bottomElement = e;
   };
 
   this.img_onerror = function() {
-    console.log('Failed loading image stream');
+    console.log('Image stream has been stoppd! stopping streamCmd');
+    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+  };
+  this.img_onload = function() {
+    if (!this.streamCmdTimer) {
+      console.log('Image stream has loaded! starting streamCmd for '+this.connKey);
+      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+    }
   };
 
   this.element = null;
@@ -91,9 +95,8 @@ function MonitorStream(monitorData) {
       console.log('Error finding frame');
       return;
     }
-    stream_frame = $j('#monitor'+this.id);
 
-    if (((newscale == '0') || (newscale=='auto')) && (width=='auto')) {
+    if (((newscale == '0') || (newscale == 0) || (newscale=='auto')) && (width=='auto' || !width)) {
       if (!this.bottomElement) {
         newscale = parseInt(100*monitor_frame.width() / this.width);
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
@@ -103,7 +106,6 @@ function MonitorStream(monitorData) {
         width = newSize.width+'px';
         height = newSize.height+'px';
         newscale = parseInt(newSize.autoScale);
-        console.log("Have ottom selement, doing auto scale", newSize);
       }
     } else if (parseInt(width) || parseInt(height)) {
       if (width) {
@@ -117,9 +119,13 @@ function MonitorStream(monitorData) {
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    monitor_frame.css('width', width);
-    //img.style.width = width;
-    img.style.height = height;
+    if (width && (width != '0px') &&
+      ((monitor_frame[0].style.width===undefined) || (-1 == monitor_frame[0].style.width.search('%')))
+    ) {
+      monitor_frame.css('width', width);
+    }
+    if (height && height != '0px') img.style.height = height;
+
     this.setStreamScale(newscale);
   }; // setscale
 
@@ -135,11 +141,10 @@ function MonitorStream(monitorData) {
     }
     if (img.nodeName == 'IMG') {
       if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
-      if (newscale < 0) newscale = 100;
+      if (newscale <= 0) newscale = 100;
       const oldSrc = img.src;
       if (!oldSrc) {
-        console.log('No src on img?!');
-        console.log(img);
+        console.log('No src on img?!', img);
         return;
       }
       const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
@@ -149,7 +154,10 @@ function MonitorStream(monitorData) {
         // We know that only the first zms will get the command because the
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
-        this.streamCommand(CMD_QUIT);
+        if (-1 != img.src.search('connkey') && -1 != img.src.search('mode=single')) {
+          this.streamCommand(CMD_QUIT);
+        }
+        console.log("Changing src from " + img.src + " to " + newSrc);
         img.src = '';
         img.src = newSrc;
         this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
@@ -187,8 +195,11 @@ function MonitorStream(monitorData) {
       console.log(stream);
       return;
     }
-    clearTimeout(this.statusCmdTimer);
+    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
+    if (stream.getAttribute('loading') == 'lazy') {
+      stream.setAttribute('loading', 'eager');
+    }
     src = stream.src.replace(/mode=single/i, 'mode=jpeg');
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
@@ -200,6 +211,7 @@ function MonitorStream(monitorData) {
     }
     this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), delay);
     stream.onerror = this.img_onerror.bind(this);
+    stream.onload = this.img_onload.bind(this);
   }; // this.start
 
   this.stop = function() {
@@ -214,8 +226,16 @@ function MonitorStream(monitorData) {
       }
     }
     this.streamCommand(CMD_STOP);
-    clearTimeout(this.statusCmdTimer);
-    clearTimeout(this.streamCmdTimer);
+    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
+    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+  };
+  this.kill = function() {
+    const stream = this.getElement();
+    if (!stream) return;
+    stream.onerror = null;
+    stream.onload = null;
+    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
+    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
   };
   this.pause = function() {
     this.streamCommand(CMD_PAUSE);
@@ -233,10 +253,14 @@ function MonitorStream(monitorData) {
   };
 
   this.setup_onclick = function(func) {
-    this.onclick = func;
-    const el = this.getFrame();
-    if (!el) return;
-    el.addEventListener('click', this.onclick, false);
+    if (func) {
+      this.onclick = func;
+    }
+    if (this.onclick) {
+      const el = this.getFrame();
+      if (!el) return;
+      el.addEventListener('click', this.onclick, false);
+    }
   };
 
   this.disable_onclick = function() {
@@ -271,7 +295,7 @@ function MonitorStream(monitorData) {
   };
 
   this.setAlarmState = function(alarmState) {
-    var stateClass = '';
+    let stateClass = '';
     if (alarmState == STATE_ALARM) {
       stateClass = 'alarm';
     } else if (alarmState == STATE_ALERT) {
@@ -280,15 +304,13 @@ function MonitorStream(monitorData) {
 
     const stateValue = $j('#stateValue'+this.id);
     if (stateValue.length) {
-      stateValue.text(stateStrings[alarmState]);
-      if (stateClass) {
-        stateValue.addClass(stateClass);
-      } else {
-        stateValue.removeClass();
+      if (stateValue.text() != stateStrings[alarmState]) {
+        stateValue.text(stateStrings[alarmState]);
+        this.setStateClass(stateValue, stateClass);
       }
     }
-    //const monitorState = $j('#monitorState'+this.id);
-    //if (monitorState.length) this.setStateClass(monitorState, stateClass);
+    const monitorFrame = $j('#monitor'+this.id);
+    if (monitorFrame.length) this.setStateClass(monitorFrame, stateClass);
 
     const isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
     const wasAlarmed = ( this.lastAlarmState == STATE_ALARM || this.lastAlarmState == STATE_ALERT );
@@ -306,7 +328,7 @@ function MonitorStream(monitorData) {
           $j('#MediaPlayer').trigger('play');
         }
       }
-      if (POPUP_ON_ALARM) {
+      if (ZM_WEB_POPUP_ON_ALARM) {
         window.focus();
       }
       if (this.onalarm) {
@@ -353,7 +375,7 @@ function MonitorStream(monitorData) {
     }
 
     //watchdogOk('stream');
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    //this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
 
     if (respObj.result == 'Ok') {
       if (respObj.status) {
@@ -364,15 +386,15 @@ function MonitorStream(monitorData) {
           const captureFPSValue = $j('#captureFPSValue'+this.id);
           const analysisFPSValue = $j('#analysisFPSValue'+this.id);
 
-          this.status.fps = this.status.fps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1});
+          this.status.fps = this.status.fps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
           if (viewingFPSValue.length && (viewingFPSValue.text != this.status.fps)) {
             viewingFPSValue.text(this.status.fps);
           }
-          this.status.analysisfps = this.status.analysisfps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1});
+          this.status.analysisfps = this.status.analysisfps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
           if (analysisFPSValue.length && (analysisFPSValue.text != this.status.analysisfps)) {
             analysisFPSValue.text(this.status.analysisfps);
           }
-          this.status.capturefps = this.status.capturefps.toLocaleString(undefined, { minimumFractionDigits:1, maximumFractionDigits:1});
+          this.status.capturefps = this.status.capturefps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
           if (captureFPSValue.length && (captureFPSValue.text != this.status.capturefps)) {
             captureFPSValue.text(this.status.capturefps);
           }

@@ -130,7 +130,7 @@ function getStreamCmdResponse(respObj, respText) {
   if (respObj.result == 'Ok') {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
-      let streamStatus = respObj.status;
+      const streamStatus = respObj.status;
       if ($j('#viewingFPSValue').text() != streamStatus.fps) {
         $j('#viewingFPSValue').text(streamStatus.fps);
       }
@@ -264,12 +264,14 @@ function onPause() {
     setButtonState('fastRevBtn', 'inactive');
   }
 }
+
 function streamCmdPause(action) {
   onPause();
   if (action) {
     monitorStream.streamCommand(CMD_PAUSE);
   }
 }
+
 function onPlay() {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'active');
@@ -488,8 +490,6 @@ function controlCmd(event) {
   if (event.type !='mouseup') {
     control = button.getAttribute('value');
   } else {
-    console.log('stop');
-    console.log(event);
     control = 'moveStop';
   }
   xtell = button.getAttribute('data-xtell');
@@ -872,15 +872,14 @@ var secondsToCycle = 0;
 function nextCycleView() {
   secondsToCycle --;
   if (secondsToCycle<=0) {
-    clearInterval(intervalId);
-    secondsToCycle = 0;
-    window.location.replace('?view=watch&mid='+nextMid+'&mode='+mode+'&cycle=true');
+    cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);
 }
 
 function cyclePause() {
   clearInterval(intervalId);
+  cycle = false;
   $j('#cyclePauseBtn').hide();
   $j('#cyclePlayBtn').show();
 }
@@ -888,6 +887,7 @@ function cyclePause() {
 function cycleStart() {
   secondsToCycle = $j('#cyclePeriod').val();
   intervalId = setInterval(nextCycleView, 1000);
+  cycle = true;
   $j('#cyclePauseBtn').show();
   $j('#cyclePlayBtn').hide();
 }
@@ -901,7 +901,8 @@ function cycleNext() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
-  window.location.replace('?view=watch&cycle=true&mid='+monitorData[monIdx].id+'&mode='+mode);
+  monitorStream.kill();
+  window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 
 function cyclePrev() {
@@ -913,7 +914,8 @@ function cyclePrev() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
-  window.location.replace('?view=watch&cycle=true&mid='+monitorData[monIdx].id+'&mode='+mode);
+  monitorStream.stop();
+  window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 
 function cyclePeriodChange() {

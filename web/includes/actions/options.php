@@ -51,8 +51,8 @@ if ( $action == 'delete' ) {
 
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
 
-  $result = dbQuery('SELECT Name,Value,Type FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
-  if ( !$result ) {
+  $result = dbQuery('SELECT Name,Value,Type,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
+  if (!$result) {
     echo mysql_error();
     return;
   }
@@ -62,11 +62,11 @@ if ( $action == 'delete' ) {
     unset($newValue);
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       $newValue = 0;
-    } else if ( isset($_REQUEST['newConfig'][$config['Name']]) ) {
-      $newValue = preg_replace("/\r\n/", "\n", stripslashes($_REQUEST['newConfig'][$config['Name']]));
+    } else if (isset($_REQUEST['newConfig'][$config['Name']])) {
+      $newValue = preg_replace('/\r\n/', '\n', stripslashes($_REQUEST['newConfig'][$config['Name']]));
     }
 
-    if ( isset($newValue) && ($newValue != $config['Value']) ) {
+    if (isset($newValue) && ($newValue != $config['Value'])) {
       # Handle special cases first
       if ($config['Name'] == 'ZM_LANG_DEFAULT') {
         # Verify that the language file exists in the lang directory.

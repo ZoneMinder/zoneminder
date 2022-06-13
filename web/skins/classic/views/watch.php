@@ -81,15 +81,26 @@ if (!visibleMonitor($mid)) {
 
 $monitor = new ZM\Monitor($mid);
 $nextMid = ($monitor_index == count($monitors)-1) ? $monitors[0]->Id() : $monitors[$monitor_index+1]->Id();
-$cycle = isset($_REQUEST['cycle']) and ($_REQUEST['cycle'] == 'true');
+
+# cycle is wether to do the countdown/move to next monitor bit.
+# showCycle is whether to show the cycle controls.
+# If cycle is true, then showcycle should also be true.
+# If showcycle is false, then cycle should be false
+# But showcycle can be true, and cycle false.
+$cycle = false;
+$showCycle = false;
+if (isset($_REQUEST['cycle']) and ($_REQUEST['cycle'] == 'true')) {
+  $cycle = true;
+}
 $showCycle = $cycle;
-if (isset($_COOKIE['zmCycleShow'])) {
+if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
   $showCycle = $_COOKIE['zmCycleShow'] == 'true';
 }
 #Whether to show the controls button
 $showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
 
 $options = array();
+if (0) {
 if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode']=='stream')) {
   $options['mode'] = validHtmlStr($_REQUEST['mode']);
 } else if (isset($_COOKIE['zmWatchMode'])) {
@@ -97,6 +108,9 @@ if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode
 } else {
   $options['mode'] = canStream() ? 'stream' : 'still';
 }
+}
+$options['mode'] = 'single';
+
 if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
   $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
 } else if (isset($_COOKIE['zmWatchRate'])) {
@@ -116,7 +130,7 @@ if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScale'.$mid];
-  if ($scale == 'auto') $scale = '0';
+  if ($scale == '0') $scale = '0';
 } else {
   $scale = $monitor->DefaultScale();
 }
@@ -141,12 +155,10 @@ if (
   or 
   ($options['height'] and ($options['height'] != 'auto'))
 ) {
-  $options['scale'] = 'fixed';
+  $options['scale'] = 'auto';
 }
-
-$connkey = generateConnKey();
 if ($monitor->JanusEnabled()) {
-    $streamMode = 'janus';
+  $streamMode = 'janus';
 } else {
   $streamMode = getStreamMode();
 }
@@ -212,11 +224,6 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
       </div><!--sizeControl-->
     </div><!--control header-->
   </div><!--header-->
-<?php
-if ( $monitor->Status() != 'Connected' and $monitor->Type() != 'WebSite' ) {
-  echo '<div class="warning">Monitor is not capturing. We will be unable to provide an image</div>';
-}
-?>
   <div class="container-fluid h-100">
     <div class="row flex-nowrap h-100" id="content">
       <nav id="sidebar" class="h-100"<?php echo $showCycle?'':' style="display:none;"'?>>
@@ -266,11 +273,15 @@ if ($streamMode == 'jpeg') {
 }
 ?>
 >
+<div class="Monitor">
 <?php 
 if ($monitor->Type() != 'WebSite') {
   $options['state'] = true;
 }
 echo $monitor->getStreamHTML($options);
+?>
+</div>
+<?php
 if ($monitor->Type() != 'WebSite') {
 ?>
         <div class="buttons" id="dvrControls">
@@ -360,7 +371,9 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
               <th data-sortable="false" data-field="AvgScore"><?php echo translate('AvgBrScore') ?></th>
               <th data-sortable="false" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+<?php if (ZM_WEB_LIST_THUMBS) { ?>
               <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+<?php } ?>
             </tr>
           </thead>
 

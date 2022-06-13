@@ -92,6 +92,7 @@ public static function getDecodingOptions() {
         'None'      =>  translate('None'),
         'Ondemand'  =>  translate('On Demand'),
         'KeyFrames' =>  translate('KeyFrames Only'),
+        'KeyFrames+Ondemand' => translate('Keyframes + Ondemand'),
         'Always'    =>  translate('Always'),
         );
   }
@@ -127,6 +128,8 @@ public static function getStatuses() {
     'Capturing' => 'Always',
     'Analysing' => 'Always',
     'Recording' => 'Always',
+    'RecordingSource' => 'Primary',
+    'AnalysisSource' => 'Primary',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
@@ -335,9 +338,6 @@ public static function getStatuses() {
       } elseif ( ZM_AUTH_RELAY == 'none' ) {
         $args['user'] = $_SESSION['username'];
       }
-    }
-    if ((!isset($args['mode'])) or ($args['mode'] != 'single')) {
-      $args['connkey'] = $this->connKey();
     }
     if (ZM_RAND_STREAM) {
       $args['rand'] = time();
@@ -914,6 +914,9 @@ public static function getStatuses() {
       $html .= '<video id="liveStream'.$this->Id().'" width="'.$options['width'].'"autoplay muted controls playsinline="" ></video>';
     } else if ( $options['mode'] == 'stream' and canStream() ) {
       $options['mode'] = 'jpeg';
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
+    } else if ( $options['mode'] == 'single' and canStream() ) {
       $streamSrc = $this->getStreamSrc($options);
       $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
     } else {

@@ -185,12 +185,9 @@ while (!$zm_terminate) {
     last if $zm_terminate;
 
     my $elapsed = ($now - ($$filter{last_ran} ? $$filter{last_ran} : 0));
-    if ($$filter{last_ran} and ($elapsed < $$filter{ExecuteInterval})) {
-      my $filter_delay = $$filter{ExecuteInterval} - ($now - $$filter{last_ran});
-      $delay = $filter_delay if $filter_delay < $delay;
-      Debug("Setting delay to $delay because ExecuteInterval=$$filter{ExecuteInterval} and $elapsed have elapsed");
-      next;
-    }
+    my $filter_delay = $$filter{ExecuteInterval} - $elapsed;
+    $delay = $filter_delay > 0 ? $filter_delay : 0;
+    Debug("Setting delay to $delay because ExecuteInterval=$$filter{ExecuteInterval} and $elapsed have elapsed");
 
     if ($$filter{Concurrent} and !($filter_id or $filter_name)) {
       my ( $proc ) = $0 =~ /(\S+)/;

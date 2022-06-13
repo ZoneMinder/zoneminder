@@ -40,6 +40,7 @@ CREATE TABLE `Config` (
   `Category` varchar(32) NOT NULL default '',
   `Readonly` tinyint(3) unsigned NOT NULL default '0',
   `Private` BOOLEAN NOT NULL DEFAULT FALSE,
+  `System` BOOLEAN NOT NULL DEFAULT FALSE,
   `Requires` text,
   PRIMARY KEY (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -460,7 +461,7 @@ CREATE TABLE `Monitors` (
   `Recording` enum('None', 'OnMotion', 'Always') NOT NULL default 'Always',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `DecodingEnabled` tinyint(3) unsigned NOT NULL default '1',
-  `Decoding` enum('None','Ondemand','KeyFrames','Always') NOT NULL default 'Always',
+  `Decoding` enum('None','Ondemand','KeyFrames','KeyFrames+Ondemand', 'Always') NOT NULL default 'Always',
   `JanusEnabled` BOOLEAN NOT NULL default false,
   `JanusAudioEnabled` BOOLEAN NOT NULL default false,
   `LinkedMonitors` varchar(255),

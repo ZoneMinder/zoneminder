@@ -86,6 +86,11 @@ class ConfigsController extends AppController {
 			throw new NotFoundException(__('Invalid config'));
 		}
 		if ($this->request->is(array('post', 'put'))) {
+			$options = array('conditions' => array('Config.' . $this->Config->primaryKey => $id));
+			$config = $this->Config->find('first', $options);
+      if ($config['Config']['System']) {
+        throw new ForbiddenException(__('Cannot edit a system Config entry. Must be changed in /etc/zm/zm.conf'));
+      }
 			if ($this->Config->save($this->request->data)) {
 				return $this->flash(__('The config has been saved.'), array('action' => 'index'));
 			}

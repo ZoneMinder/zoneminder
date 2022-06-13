@@ -188,6 +188,7 @@ int main(int argc, char *argv[]) {
   logInit(log_id_string);
 
   HwCapsDetect();
+  curl_global_init(CURL_GLOBAL_DEFAULT);
 
   std::vector<std::shared_ptr<Monitor>> monitors;
 #if ZM_HAS_V4L2
@@ -380,11 +381,13 @@ int main(int argc, char *argv[]) {
     zmDbDo(sql);
   }
   monitors.clear();
+  Debug(1, "Cleared monitors");
 
   Image::Deinitialise();
+  curl_global_cleanup();
   Debug(1, "terminating");
-  logTerm();
   dbQueue.stop();
+  logTerm();
   zmDbClose();
 
   return zm_terminate ? 0 : result;

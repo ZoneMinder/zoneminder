@@ -27,7 +27,7 @@ if (!canEdit('System') && !$selfEdit) {
 
 require_once('includes/User.php');
 
-if ( $_REQUEST['uid'] ) {
+if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
 	if ( !($newUser = new ZM\User($_REQUEST['uid'])) ) {
 		$view = 'error';
 		return;

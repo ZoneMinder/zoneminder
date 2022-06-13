@@ -46,7 +46,7 @@ class PacketQueue {
 
     std::mutex mutex;
     std::condition_variable condition;
-    bool has_warned;
+    int warned_count;
 
   public:
     PacketQueue();
@@ -60,6 +60,7 @@ class PacketQueue {
     void setKeepKeyframes(bool k) { keep_keyframes = k; };
 
     bool queuePacket(std::shared_ptr<ZMPacket> packet);
+    void stop();
     void clear();
     void dumpQueue();
     unsigned int size();

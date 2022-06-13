@@ -54,6 +54,8 @@ unsigned int Buffer::expand(unsigned int count) {
     if ( mStorage ) {
       memcpy(newStorage, mHead, mSize);
       delete[] mStorage;
+    } else {
+      memset(newStorage, 0, mAllocation);
     }
     mStorage = newStorage;
     mHead = mStorage;

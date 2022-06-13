@@ -899,23 +899,26 @@ function maxfit2(divW, divH) {
 
 // >>>>>>>>>>>>>>>> Handles individual monitor clicks and navigation to the standard event/watch display
 
-function showOneMonitor(monId) {
+function showOneMonitor(monId, event) {
   // link out to the normal view of one event's data
   // We know the monitor, need to determine the event based on current time
-  var url;
+  let url = '';
   if ( liveMode != 0 ) {
     url = '?view=watch&mid=' + monId.toString();
-    window.location.assign(url);
   } else {
-    var Frame = getFrame(monId, currentTimeSecs);
+    const Frame = getFrame(monId, currentTimeSecs);
     if ( Frame ) {
       url = '?view=event&eid=' + Frame.EventId + '&fid=' + Frame.FrameId;
-      window.location.assign(url);
     } else {
       url = '?view=watch&mid=' + monId.toString();
-      window.location.assign(url);
     }
   } // end if live/events
+
+  if (event.ctrlKey) {
+    window.open(url, '_blank');
+  } else {
+    window.location.assign(url);
+  }
 }
 
 function zoom(monId, scale) {
@@ -939,7 +942,7 @@ function clickMonitor(event) {
   } else if ( pos_x > element.width * 3/4 && pos_y < element.height/4 ) {
     zoom(monId, 1/1.15);
   } else {
-    showOneMonitor(monId);
+    showOneMonitor(monId, event);
   }
   return;
 }

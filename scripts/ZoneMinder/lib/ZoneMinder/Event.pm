@@ -356,7 +356,7 @@ sub GenerateVideo {
 # commits unless we started the transaction.
 
 sub delete {
-  my $event = $_[0];
+  my $event = shift;
 
   if ( !$event->canEdit() ) {
     Warning('No permission to delete event.');
@@ -442,37 +442,7 @@ sub delete_files {
       ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
       ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
 
-      my $deleted = 0;
-      if ( $$Storage{Type} and ( $$Storage{Type} eq 's3fs' ) ) {
-        my $url = $$Storage{Url};
-        $url =~ s/^(s3|s3fs):\/\///ig;
-        my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
-        Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
-        eval {
-          require Net::Amazon::S3;
-          my $s3 = Net::Amazon::S3->new( {
-              aws_access_key_id     => $aws_id,
-              aws_secret_access_key => $aws_secret,
-              ( $aws_host ? ( host => $aws_host ) : () ),
-              authorization_method => 'Net::Amazon::S3::Signature::V4',
-            });
-          my $bucket = $s3->bucket($aws_bucket);
-          if ( ! $bucket ) {
-            Error("S3 bucket $bucket not found.");
-            die;
-          }
-          if ( $bucket->delete_key($subpath.$event_path) ) {
-            $deleted = 1;
-          } else {
-            Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
-          }
-        };
-        Error($@) if $@;
-      } # end if s3fs
-      if ( !$deleted ) {
-        my $command = "/bin/rm -rf $storage_path/$event_path";
-        ZoneMinder::General::executeShellCommand($command);
-      }
+      $Storage->delete_path($event_path);
     } else {
       Error('No event path in delete files. ' . $event->to_string());
     } # end if event_path
@@ -513,6 +483,46 @@ sub delete_files {
       pop @path_parts;
     } # end while path_parts
 
+  } # end foreach Storage
+} # end sub delete_files
+
+sub delete_analysis_jpegs {
+  my $event = shift;
+
+  if ( !$event->canEdit() ) {
+    Warning('No permission to delete event.');
+    return 'No permission to delete event.';
+  }
+
+  foreach my $Storage (
+    @_ ? ($_[0]) : (
+      new ZoneMinder::Storage($$event{StorageId}),
+      ( $$event{SecondaryStorageId} ? new ZoneMinder::Storage($$event{SecondaryStorageId}) : () ),
+    ) ) {
+    my $storage_path = $Storage->Path();
+
+    if ( !$storage_path ) {
+      Error("Empty storage path when deleting files for event $$event{Id} with storage id $$event{StorageId}");
+      return;
+    }
+
+    if ( !$$event{MonitorId} ) {
+      Error("No monitor id assigned to event $$event{Id}");
+      return;
+    }
+    my $event_path = $event->RelativePath();
+    Debug("Deleting analysis jpegs for Event $$event{Id} from $storage_path///$event_path, scheme is $$event{Scheme}.");
+    if ( $event_path ) {
+      ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
+      ( $event_path ) = ( $event_path =~ /^(.*)$/ ); # De-taint
+      my @files = glob("$storage_path/$event_path/*analyse.jpg");
+      Debug(@files . ' analysis jpegs found to delete');
+      foreach my $file (@files) {
+        $Storage->delete_path($event_path.'/'.$file);
+      }
+    } else {
+      Error('No event path in delete files. ' . $event->to_string());
+    } # end if event_path
   } # end foreach Storage
 } # end sub delete_files
 

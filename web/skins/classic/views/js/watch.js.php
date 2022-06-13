@@ -5,7 +5,6 @@
   global $monitors;
   global $streamMode;
   global $showPtzControls;
-  global $connkey;
   global $monitor;
   global $scale;
   global $labels;
@@ -22,7 +21,6 @@ var streamMode = "<?php echo $streamMode ?>";
 var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"events" ?>";
 var cycle = <?php echo $cycle ? 'true' : 'false' ?>;
 
-var connKey = '<?php echo $connkey ?>';
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 
 var monitorId = <?php echo $monitor->Id() ?>;

@@ -91,12 +91,12 @@ echo json_encode($user_without_password);
 ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 
-var STATE_UNKNOWN = <?php echo STATE_UNKNOWN ?>;
-var STATE_IDLE = <?php echo STATE_IDLE ?>;
-var STATE_PREALARM = <?php echo STATE_PREALARM ?>;
-var STATE_ALARM = <?php echo STATE_ALARM ?>;
-var STATE_ALERT = <?php echo STATE_ALERT ?>;
-var STATE_TAPE = <?php echo STATE_TAPE ?>;
+const STATE_UNKNOWN = <?php echo STATE_UNKNOWN ?>;
+const STATE_IDLE = <?php echo STATE_IDLE ?>;
+const STATE_PREALARM = <?php echo STATE_PREALARM ?>;
+const STATE_ALARM = <?php echo STATE_ALARM ?>;
+const STATE_ALERT = <?php echo STATE_ALERT ?>;
+const STATE_TAPE = <?php echo STATE_TAPE ?>;
 
 const CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
 const CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;
@@ -129,10 +129,14 @@ stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
 stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 <?php
-global $config;
-foreach ($config as $name=>$c) {
-  if (!$c['Private']) {
-    echo 'const '. $name . ' = \''.preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']).'\';'.PHP_EOL;
+global $user;
+if ($user) {
+  // Only include config if logged in or auth turned off. The login view doesn't require any config.
+  global $config;
+  foreach ($config as $name=>$c) {
+    if (!$c['Private']) {
+      echo 'const '. $name . ' = \''.preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']).'\';'.PHP_EOL;
+    }
   }
 }
 ?>

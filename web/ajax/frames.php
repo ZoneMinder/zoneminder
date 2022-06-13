@@ -85,12 +85,13 @@ ajaxResponse($data);
 //
 
 function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit) {
-
+  global $dateTimeFormatter;
+  
   $data = array(
     'total'   =>  0,
     'totalNotFiltered' => 0,
     'rows'    =>  array(),
-    'updated' =>  preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG)
+    'updated' =>  $dateTimeFormatter->format(time())
   );
 
   // The names of the dB columns in the events table we are interested in

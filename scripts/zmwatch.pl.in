@@ -92,8 +92,6 @@ while (!$zm_terminate) {
   foreach my $monitor (ZoneMinder::Monitor->find($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ())) {
     next if $monitor->{Capturing} eq 'None';
     next if $monitor->{Type} eq 'WebSite';
-    next if $monitor->{Capturing} eq 'Ondemand';
-    next if $monitor->{Decoding} eq 'None' or $monitor->{Decoding} eq 'Ondemand';
 
     my $now = time(); 
     my $restart = 0;
@@ -103,6 +101,8 @@ while (!$zm_terminate) {
       $monitor->control('restart');
       next;
     }
+    next if $monitor->{Capturing} eq 'Ondemand';
+    next if $monitor->{Decoding} eq 'None' or $monitor->{Decoding} eq 'Ondemand';
 
     # Check we have got an image recently
     my $capture_time = zmGetLastWriteTime($monitor);

@@ -138,7 +138,9 @@ foreach ($displayMonitors as &$row) {
 if (!$layout_id) {
   $default_layout = '';
   if (!$default_layout) {
-    if ((count($monitors) > 4) and (count($monitors)%4 == 0)) {
+    if ((count($monitors) > 5) and (count($monitors)%5 == 0)) {
+      $default_layout = '5 Wide';
+    } else if ((count($monitors) > 4) and (count($monitors)%4 == 0)) {
       $default_layout = '4 Wide';
     } else if (count($monitors)%3 == 0) {
       $default_layout = '3 Wide';
@@ -243,7 +245,7 @@ if (canView('System')) {
 <?php
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
-  $monitor_options['connkey'] = $monitor->connKey();
+  #$monitor_options['connkey'] = $monitor->connKey();
 
   #ZM\Warning('Options: ' . print_r($monitor_options,true));
 
@@ -258,6 +260,7 @@ foreach ($monitors as $monitor) {
   } else {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
+    $monitor_options['mode'] = 'single';
     echo $monitor->getStreamHTML($monitor_options);
   }
 } # end foreach monitor

@@ -12,16 +12,17 @@ class ZM_Object {
 
     $row = NULL;
     if ($IdOrRow) {
-
-      if (is_integer($IdOrRow) or ctype_digit($IdOrRow)) {
+      if (is_array($IdOrRow)) {
+        $row = $IdOrRow;
+      } else if (is_integer($IdOrRow) or ctype_digit($IdOrRow)) {
         $table = $class::$table;
         $row = dbFetchOne("SELECT * FROM `$table` WHERE `Id`=?", NULL, array($IdOrRow));
         if (!$row) {
           Error("Unable to load $class record for Id=$IdOrRow");
           return;
         }
-      } else if (is_array($IdOrRow)) {
-        $row = $IdOrRow;
+      } else {
+        Error("Invalid IdOrRow for $class: $IdOrRow");
       }
 
       if ( $row ) {

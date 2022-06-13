@@ -19,6 +19,7 @@
 
 # Newer php's keep json functions in a subpackage
 %if 0%{?fedora} || 0%{?rhel} >= 8
+%global with_gsoap 1
 %global with_php_json 1
 %endif
 
@@ -36,7 +37,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.37.14
+Version: 1.37.16
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -93,6 +94,7 @@ BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
 BuildRequires: gzip
 BuildRequires: zlib-devel
+%{?with_gsoap:BuildRequires: gsoap-devel}
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
@@ -120,10 +122,10 @@ Summary: Common files for ZoneMinder, not tied to a specific web server
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
+Requires: php-intl
 %{?with_php_json:Requires: php-json}
 %{?fedora:Requires: php-pecl-memcached}
 %{?rhel:Requires: php-pecl-apcu}
-Requires: cambozola
 Requires: net-tools
 Requires: psmisc
 Requires: polkit
@@ -141,6 +143,7 @@ Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: ca-certificates
 Requires: zip
+%{?with_gsoap:Requires: gsoap}
 %{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd
@@ -212,7 +215,6 @@ rm -rf ./dep/RtspServer
 mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 
 # Change the following default values
-./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
 
@@ -224,8 +226,7 @@ mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 %cmake \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
-        -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
-        .
+        -DZM_TARGET_DISTRO="%{zmtargetdistro}"
 
 %cmake_build
 
@@ -375,6 +376,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmonvif-trigger.pl
 %{_bindir}/zmstats.pl
 %{_bindir}/zmrecover.pl
+%{_bindir}/zmeventtool.pl
 %{_bindir}/zm_rtsp_server
 
 %{perl_vendorlib}/ZoneMinder*

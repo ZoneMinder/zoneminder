@@ -30,17 +30,37 @@
 #include <sys/shm.h>
 #endif // ZM_MEM_MAPPED
 
-Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
-  id(p_id),
+Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned int p_zone_id) :
+  monitor(p_monitor),
+  zone_id(p_zone_id),
+  zone(nullptr),
+  zone_index(-1),
   shared_data(nullptr),
   trigger_data(nullptr),
-  video_store_data(nullptr)
+  video_store_data(nullptr),
+  zone_scores(nullptr)
 {
-  strncpy(name, p_name, sizeof(name)-1);
+  name = monitor->Name();
+  if (zone_id) {
+    zones = Zone::Load(monitor);
+    zone_index = 0;
+    for (const Zone &z : zones) {
+      if (z.Id() == zone_id) {
+        zone = &z;
+        break;
+      }
+      zone_index ++;
+    }
+    if (static_cast<unsigned int>(zone_index) > zones.size()) {
+      Error("Unable to find zone %u", zone_id);
+      zone_index = -1;
+    }
+  }
+  if (zone) name += " : " + zone->Name();
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
-  mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
+  mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), monitor->Id());
 #else // ZM_MEM_MAPPED
   shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -55,6 +75,7 @@ Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
 }
 
 Monitor::MonitorLink::~MonitorLink() {
+  zones.clear();
   disconnect();
 }
 
@@ -120,6 +141,7 @@ bool Monitor::MonitorLink::connect() {
 
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
+    zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
 
     if (!shared_data->valid) {
       Debug(3, "Linked memory not initialised by capture daemon");
@@ -191,6 +213,12 @@ bool Monitor::MonitorLink::inAlarm() {
 }
 
 bool Monitor::MonitorLink::hasAlarmed() {
+  if (zone_id and (zone_index >= 0)) {
+    Debug(1, "Checking zone %u, score is %d", zone_id, zone_index);
+    if (zone_scores[zone_index] > 0) {
+      return true;
+    }
+  }
   if (shared_data->state == ALARM) {
     return true;
   }

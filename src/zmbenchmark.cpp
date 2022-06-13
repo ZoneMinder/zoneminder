@@ -196,7 +196,7 @@ class TestMonitor : public Monitor {
                         Vector2(width - 1, height - 1),
                         Vector2(0, height - 1)});
 
-    Zone zone(this,
+    Zone zone(shared_from_this(),
               zone_id,
               zone_label.c_str(),
               zone_type,

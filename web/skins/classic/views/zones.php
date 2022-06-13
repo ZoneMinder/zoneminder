@@ -55,7 +55,6 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 <?php
   foreach ( $mids as $mid ) {
     $monitor = $monitors[$mid];
-    $monitor->connKey();
     # ViewWidth() and ViewHeight() are already rotated
     $minX = 0;
     $maxX = $monitor->ViewWidth()-1;
@@ -72,13 +71,11 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       $zones[] = $row;
     }
 
-    $options = array('width'=>'100%', 'height'=>'auto', 'zones'=>true, 'state'=>true);
+    $options = array('zones'=>true, 'state'=>true, 'mode'=>'single');
 ?>
     <div class="Monitor">
         <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
-        <div class="ZonesImage imageFeed" id="imageFeed<?php echo $monitor->Id() ?>">
-          <?php echo getStreamHTML($monitor, $options); ?>
-        </div>
+        <?php echo $monitor->getStreamHTML($options); ?>
         <div class="zones">
           <table id="zonesTable" class="major">
             <thead>
@@ -90,18 +87,18 @@ xhtmlHeaders(__FILE__, translate('Zones'));
               </tr>
             </thead>
             <tbody>
-  <?php
-  foreach( $zones as $zone ) {
-  ?>
+<?php
+  foreach ($zones as $zone) {
+?>
               <tr>
                 <td class="colName"><?php echo makeLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
                 <td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
                 <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', ($zone['Area']*100)/($monitor->ViewWidth()*$monitor->ViewHeight()) ) ?></td>
                 <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit('Monitors') ) { ?> disabled="disabled"<?php } ?>/></td>
               </tr>
-  <?php
+<?php
   }
-  ?>
+?>
             </tbody>
           </table>
           <div id="contentButtons">

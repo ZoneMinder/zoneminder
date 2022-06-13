@@ -19,7 +19,12 @@ $semaphore_tries = 10;
 $have_semaphore = false;
 
 while ($semaphore_tries) {
-  $have_semaphore = sem_acquire($semaphore, 1);
+  if ( version_compare( phpversion(), '5.6.1', '<') ) {
+    # don't have support for non-blocking
+    $have_semaphore = sem_acquire($semaphore);
+  } else {
+    $have_semaphore = sem_acquire($semaphore, 1);
+  }
   if ($have_semaphore !== false) break;
   ZM\Debug('Failed to get semaphore, trying again');
   usleep(100000);

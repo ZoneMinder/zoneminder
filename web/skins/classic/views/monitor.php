@@ -934,6 +934,14 @@ include('_monitor_source_nvsocket.php');
 ?>
               </td>
             </tr>
+            <tr id="AnalysisImage">
+              <td class="text-right pr-3"><?php echo translate('Analysis Image') ?></td>
+              <td>
+<?php
+        echo htmlSelect('newMonitor[AnalysisImage]', ZM\Monitor::getAnalysisImageOptions(), $monitor->AnalysisImage());
+?>
+              </td>
+            </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('AnalysisFPS') ?></td>
               <td><input type="number" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" min="0" step="any"/></td>
@@ -1434,7 +1442,6 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         <tr>
           <td colspan="2"><div id="LocationMap" style="height: 500px; width: 500px;"></div></td>
         </tr>
-            
 <?php
     break;
   default :

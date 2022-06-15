@@ -61,6 +61,17 @@ public static function getAnalysisSourceOptions() {
   return $AnalysisSourceOptions;
 }
 
+protected static $AnalysisImageOptions = null;
+public static function getAnalysisImageOptions() {
+  if (!isset($AnalysisImageOptions)) {
+    $AnalysisImageOptions = array(
+        'FullColour'   => translate('Full Colour'),
+        'YChannel' => translate('Y-Channel (Greyscale)'),
+        );
+  }
+  return $AnalysisImageOptions;
+}
+
 protected static $RecordingOptions = null;
 public static function getRecordingOptions() {
   if (!isset($RecordingOptions)) {
@@ -130,6 +141,7 @@ public static function getStatuses() {
     'Recording' => 'Always',
     'RecordingSource' => 'Primary',
     'AnalysisSource' => 'Primary',
+    'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),

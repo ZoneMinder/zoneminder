@@ -83,6 +83,11 @@ public:
   } AnalysisSourceOption;
 
   typedef enum {
+    ANALYSISIMAGE_FULLCOLOUR=1,
+    ANALYSISIMAGE_YCHANNEL
+  } AnalysisImageOption;
+
+  typedef enum {
     RECORDING_NONE=1,
     RECORDING_ONMOTION,
     RECORDING_ALWAYS
@@ -352,6 +357,7 @@ protected:
   CapturingOption capturing;          // None, OnDemand, Always
   AnalysingOption analysing;          // None, Always
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
+  AnalysisImageOption   analysis_image;     // FullColour, YChannel
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 

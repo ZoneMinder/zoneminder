@@ -923,7 +923,9 @@ public static function getStatuses() {
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
     } else if ( $this->JanusEnabled() ) {
-      $html .= '<video id="liveStream'.$this->Id().'" width="'.$options['width'].'"autoplay muted controls playsinline="" ></video>';
+      $html .= '<video id="liveStream'.$this->Id().'" '.
+        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
+        ' autoplay muted controls playsinline=""></video>';
     } else if ( $options['mode'] == 'stream' and canStream() ) {
       $options['mode'] = 'jpeg';
       $streamSrc = $this->getStreamSrc($options);

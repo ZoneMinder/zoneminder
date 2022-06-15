@@ -485,7 +485,10 @@ class FilterTerm {
       'Cause',
       'Notes',
       'StateId',
-      'Archived'
+      'Archived',
+      # The following are for snapshots
+      'CreatedOn', 
+      'Description'
     );
     return in_array($attr, $attrs);
   }

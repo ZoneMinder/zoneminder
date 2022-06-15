@@ -12,7 +12,7 @@ function MonitorStream(monitorData) {
   this.height = monitorData.height;
   this.janusEnabled = monitorData.janusEnabled;
   this.scale = 100;
-  this.status = { capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
+  this.status = {capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
   this.lastAlarmState = STATE_IDLE;
   this.statusCmdTimer = null; // timer for requests using ajax to get monitor status
   this.statusCmdParms = {
@@ -545,7 +545,7 @@ function MonitorStream(monitorData) {
       const analysisFPSValue = $j('#analysisFPSValue'+this.id);
 
       const fpses = respObj.monitor.FrameRate.split(",");
-      fpses.forEach(function(fps){
+      fpses.forEach(function(fps) {
         const name_values = fps.split(':');
         const name = name_values[0].trim();
         const value = name_values[1].trim().toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
@@ -606,15 +606,15 @@ function MonitorStream(monitorData) {
     }
 
     this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-  }
+  };
 
   this.statusCmdQuery=function() {
     $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+this.id+'&'+this.auth_relay)
-      .done(this.getStatusCmdResponse.bind(this))
-      .fail(logAjaxFail);
+        .done(this.getStatusCmdResponse.bind(this))
+        .fail(logAjaxFail);
 
     this.statusCmdTimer = null;
-  }
+  };
 
   this.statusQuery = function() {
     this.streamCommand(CMD_QUERY);

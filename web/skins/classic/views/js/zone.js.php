@@ -65,6 +65,7 @@ monitorData[monitorData.length] = {
   'connKey': <?php echo $monitor->connKey() ?>,
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
+  'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',

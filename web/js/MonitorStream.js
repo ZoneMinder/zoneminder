@@ -535,12 +535,12 @@ function MonitorStream(monitorData) {
 
   /* getStatusCmd is used when not streaming, since there is no persistent zms */
   this.getStatusCmdResponse=function(respObj, respText) {
-    watchdogOk('status');
+    //watchdogOk('status');
     this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
 
-    const alarmState = respObj.monitor.Status;
 
     if (respObj.result == 'Ok') {
+      const monitorStatus = respObj.monitor.Status;
       const captureFPSValue = $j('#captureFPSValue'+this.id);
       const analysisFPSValue = $j('#analysisFPSValue'+this.id);
 
@@ -564,15 +564,47 @@ function MonitorStream(monitorData) {
         }
       });
 
-      this.setAlarmState(alarmState);
+      if (canEdit.Monitors) {
+        if (monitorStatus.enabled) {
+          if ('enableAlarmButton' in this.buttons) {
+            if (!this.buttons.enableAlarmButton.hasClass('disabled')) {
+              this.buttons.enableAlarmButton.addClass('disabled');
+              this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
+            }
+          }
+          if ('forceAlarmButton' in this.buttons) {
+            if (monitorStatus.forced) {
+              if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
+                this.buttons.forceAlarmButton.addClass('disabled');
+                this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+              }
+            } else {
+              if (this.buttons.forceAlarmButton.hasClass('disabled')) {
+                this.buttons.forceAlarmButton.removeClass('disabled');
+                this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+              }
+            }
+            this.buttons.forceAlarmButton.prop('disabled', false);
+          }
+        } else {
+          if ('enableAlarmButton' in this.buttons) {
+            this.buttons.enableAlarmButton.removeClass('disabled');
+            this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);
+          }
+          if ('forceAlarmButton' in this.buttons) {
+            this.buttons.forceAlarmButton.prop('disabled', true);
+          }
+        }
+        if ('enableAlarmButton' in this.buttons) {
+          this.buttons.enableAlarmButton.prop('disabled', false);
+        }
+      } // end if canEdit.Monitors
+
+      this.setAlarmState(monitorStatus);
     } else {
       checkStreamForErrors('getStatusCmdResponse', respObj);
     }
 
-    let statusCmdTimeout = statusRefreshTimeout;
-    if (alarmState == STATE_ALARM || alarmState == STATE_ALERT) {
-      statusCmdTimeout = statusCmdTimeout/5;
-    }
     this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), statusRefreshTimeout);
   }
 

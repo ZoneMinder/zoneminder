@@ -335,7 +335,7 @@ function initPage() {
         zoomOffset: -1,
         accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
       }).addTo(map);
-      marker = L.marker([latitude, longitude], {draggable:'true'});
+      marker = L.marker([latitude, longitude], {draggable: 'true'});
       marker.addTo(map);
       marker.on('dragend', function(event) {
         const marker = event.target;
@@ -403,9 +403,10 @@ function updateLatitudeAndLongitude(latitude, longitude) {
   form.elements['newMonitor[Longitude]'].value = longitude;
   const latlng = new L.LatLng(latitude, longitude);
   marker.setLatLng(latlng);
-  map.setView(latlng, 8, { animation: true });
-  //map.panTo(latlng);
-  setTimeout(function () {map.invalidateSize(true)}, 100);
+  map.setView(latlng, 8, {animation: true});
+  setTimeout(function() {
+    map.invalidateSize(true);
+  }, 100);
 }
 function getLocation() {
   if ('geolocation' in navigator) {

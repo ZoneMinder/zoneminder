@@ -137,24 +137,24 @@ function deleteEvents(event_ids) {
   console.log("Deleting " + chunk.length + " selections.  " + event_ids.length);
 
   $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+chunk.join('&eids[]='))
-    .done( function(data) {
-      if (!event_ids.length) {
+      .done( function(data) {
+        if (!event_ids.length) {
+          $j('#eventTable').bootstrapTable('refresh');
+          $j('#deleteConfirm').modal('hide');
+        } else {
+          if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+            ticker.innerHTML = '.';
+          } else {
+            ticker.innerHTML = ticker.innerHTML + '.';
+          }
+          deleteEvents(event_ids);
+        }
+      })
+      .fail( function(jqxhr) {
+        logAjaxFail(jqxhr);
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
-      } else {
-        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
-          ticker.innerHTML = '.';
-        } else {
-          ticker.innerHTML = ticker.innerHTML + '.';
-        }
-        deleteEvents(event_ids);
-      }
-    })
-    .fail( function(jqxhr) {
-      logAjaxFail(jqxhr);
-      $j('#eventTable').bootstrapTable('refresh');
-      $j('#deleteConfirm').modal('hide');
-    });
+      });
 }
 
 function getEventDetailModal(eid) {

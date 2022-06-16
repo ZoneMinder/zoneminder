@@ -107,6 +107,7 @@ VideoStore::VideoStore(
 {
   FFMPEGInit();
   swscale.init();
+  opkt = new AVPacket;
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {
@@ -395,6 +396,8 @@ bool VideoStore::open() {
   max_stream_index = video_out_stream->index;
   last_dts[video_out_stream->index] = AV_NOPTS_VALUE;
 
+  reorder_queues[video_out_stream->index] = {};
+
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
 
   if (audio_in_stream and audio_in_ctx) {
@@ -630,12 +633,14 @@ void VideoStore::flush_codecs() {
 
 VideoStore::~VideoStore() {
 
-  while (!reorder_queue.empty()) {
-    AVPacket *pkt = reorder_queue.front();
-    write_packet(pkt, video_out_stream);
-    zm_av_packet_unref(pkt);
-    delete pkt;
-    reorder_queue.pop_front();
+  for (const auto &n : reorder_queues) {
+    auto queue = n.second;
+    while (!queue.empty()) {
+      auto pkt = queue.front();
+      writePacket(pkt);
+      //delete pkt;
+      queue.pop_front();
+    }
   }
 
   if (oc->pb) {
@@ -921,13 +926,62 @@ bool VideoStore::setup_resampler() {
   return true;
 }  // end bool VideoStore::setup_resampler()
 
-int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &ipkt) {
-  if (ipkt->codec_type == AVMEDIA_TYPE_VIDEO) {
-    return writeVideoFramePacket(ipkt);
-  } else if (ipkt->codec_type == AVMEDIA_TYPE_AUDIO) {
-    return writeAudioFramePacket(ipkt);
+int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
+  int stream_index;
+  if (zm_pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
+    stream_index = video_out_stream->index;
+  } else if (zm_pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
+    stream_index = audio_out_stream->index;
+  } else {
+    Error("Unknown stream type in packet (%d)", zm_pkt->codec_type);
+    return -1;
   }
-  Error("Unknown stream type in packet (%d)", ipkt->codec_type);
+  auto queue = reorder_queues[stream_index];
+
+  AVPacket *av_pkt = &zm_pkt->packet;
+
+  if (av_pkt->flags & AV_PKT_FLAG_KEY) {
+    // Write out all packets in the queue
+    while (!queue.empty()) {
+      auto pkt = queue.front();
+
+      if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
+        return writeVideoFramePacket(pkt);
+      } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
+        return writeAudioFramePacket(pkt);
+      }
+
+      //delete pkt;
+      queue.pop_front();
+    }
+  } else {
+    // queue the packet
+    bool have_out_of_order = false;
+    auto rit = queue.rbegin();
+    // Find the previous packet for the stream, and check dts
+    while (rit != queue.rend()) {
+      AVPacket *p = &((*rit)->packet);
+      if (p->dts <= av_pkt->dts) {
+        Debug(1, "Found in order packet");
+        // packets are in order, everything is fine
+        break;
+      } else {
+        have_out_of_order = true;
+      }
+      rit++;
+    }  // end while
+    if (have_out_of_order) {
+      queue.insert(rit.base(), zm_pkt);
+      if (rit == queue.rend()) {
+        Warning("Unable to re-order packet");
+      } else {
+        Debug(1, "Found out of order packet");
+      }
+      return 0;
+    }
+  }  // end if keyframe
+
+  queue.push_back(zm_pkt);
   return 0;
 }
 
@@ -1113,7 +1167,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     AVPacket *ipkt = &zm_packet->packet;
     ZM_DUMP_STREAM_PACKET(video_in_stream, (*ipkt), "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
-    AVPacket *opkt = new AVPacket;
     av_init_packet(opkt);
     opkt->data = ipkt->data;
     opkt->size = ipkt->size;
@@ -1126,56 +1179,24 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
         Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
         video_first_dts = ipkt->dts;
       }
-      opkt.dts = ipkt->dts - video_first_dts;
+      opkt->dts = ipkt->dts - video_first_dts;
     //} else {
       //opkt.dts = next_dts[video_out_stream->index] ? av_rescale_q(next_dts[video_out_stream->index], video_out_stream->time_base, video_in_stream->time_base) : 0;
       //Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, next_dts[video_out_stream->index]);
     }
     if ((ipkt->pts != AV_NOPTS_VALUE) and (video_first_dts != AV_NOPTS_VALUE)) {
-      opkt.pts = ipkt->pts - video_first_dts;
+      opkt->pts = ipkt->pts - video_first_dts;
     }
 
-    av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);
-    if (opkt.flags & AV_PKT_FLAG_KEY) {
-      // Write out all packets in the queue
-      while (!reorder_queue.empty()) {
-        AVPacket *pkt = reorder_queue.front();
-        write_packet(pkt, video_out_stream);
-        zm_av_packet_unref(pkt);
-        delete pkt;
-        reorder_queue.pop_front();
-      }
-    } else {
-      // queue the packet
-      bool have_out_of_order = false;
-      auto rit = reorder_queue.rbegin();
-      // Find the previous packet for the stream, and check dts
-      while (rit != reorder_queue.rend()) {
-        if ((*rit)->dts <= opkt.dts) {
-          Debug(1, "Found in order packet");
-          // packets are in order, everything is fine
-          break;
-        } else {
-          have_out_of_order = true;
-        }
-        rit++;
-      }  // end while
-      if (have_out_of_order) {
-        reorder_queue.insert(rit.base(), &opkt);
-        if (rit == reorder_queue.rend()) {
-          Warning("Unable to re-order packet");
-        } else {
-          Debug(1, "Found out of order packet");
-        }
-      }
-    }  // end if keyframe
-    reorder_queue.push_back(opkt);
+    av_packet_rescale_ts(opkt, video_in_stream->time_base, video_out_stream->time_base);
   }  // end if codec matches
 
   return 1;
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )
 
 int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
+  AVPacket *opkt;
+
   if (!audio_out_stream) {
     Debug(1, "Called writeAudioFramePacket when no audio_out_stream");
     return 0;
@@ -1220,17 +1241,17 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
 
       zm_dump_frame(out_frame, "Out frame after resample");
 
-      av_init_packet(&opkt);
-      if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, opkt) <= 0)
+      av_init_packet(opkt);
+      if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, *opkt) <= 0)
         break;
 
       // Scale the PTS of the outgoing packet to be the correct time base
-      av_packet_rescale_ts(&opkt,
+      av_packet_rescale_ts(opkt,
           audio_out_ctx->time_base,
           audio_out_stream->time_base);
 
-      write_packet(&opkt, audio_out_stream);
-      zm_av_packet_unref(&opkt);
+      write_packet(opkt, audio_out_stream);
+      zm_av_packet_unref(opkt);
 
       if (zm_resample_get_delay(resample_ctx, out_frame->sample_rate) < out_frame->nb_samples)
         break;
@@ -1238,26 +1259,25 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
       input_frame = nullptr;
     }  // end while there is data in the resampler
   } else {
-    av_init_packet(&opkt);
-    opkt.data = ipkt->data;
-    opkt.size = ipkt->size;
-    opkt.flags = ipkt->flags;
-
-    opkt.duration = ipkt->duration;
+    av_init_packet(opkt);
+    opkt->data = ipkt->data;
+    opkt->size = ipkt->size;
+    opkt->flags = ipkt->flags;
+    opkt->duration = ipkt->duration;
     if (audio_first_dts != AV_NOPTS_VALUE) {
-      opkt.pts = ipkt->pts - audio_first_dts;
-      opkt.dts = ipkt->dts - audio_first_dts;
+      opkt->pts = ipkt->pts - audio_first_dts;
+      opkt->dts = ipkt->dts - audio_first_dts;
     } else {
-      opkt.pts = ipkt->pts;
-      opkt.dts = ipkt->dts;
+      opkt->pts = ipkt->pts;
+      opkt->dts = ipkt->dts;
     }
 
     ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "after pts adjustment");
-    av_packet_rescale_ts(&opkt, audio_in_stream->time_base, audio_out_stream->time_base);
-    ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
-    write_packet(&opkt, audio_out_stream);
+    av_packet_rescale_ts(opkt, audio_in_stream->time_base, audio_out_stream->time_base);
+    ZM_DUMP_STREAM_PACKET(audio_out_stream, (*opkt), "after stream pts adjustment");
+    write_packet(opkt, audio_out_stream);
 
-    zm_av_packet_unref(&opkt);
+    zm_av_packet_unref(opkt);
   }  // end if encoding or copying
 
   return 0;

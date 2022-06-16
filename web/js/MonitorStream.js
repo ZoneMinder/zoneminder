@@ -164,7 +164,7 @@ function MonitorStream(monitorData) {
         console.log("Changing src from " + img.src + " to " + newSrc);
         img.src = '';
         img.src = newSrc;
-        this.streamCmdTimer = setTimeout(this.streamQuery.bind(this), statusRefreshTimeout);
+        this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       }
     }
   }; // setscale
@@ -214,7 +214,6 @@ function MonitorStream(monitorData) {
       stream.src = '';
       stream.src = src;
     }
-    //this.streamCmdTimer = setTimeout(this.streamQuery.bind(this), delay);
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
   }; // this.start

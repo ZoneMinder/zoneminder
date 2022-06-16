@@ -1,3 +1,7 @@
+
+var map = null;
+var marker = null;
+
 function updateMonitorDimensions(element) {
   var form = element.form;
   if ( element.type == 'number' ) {
@@ -313,12 +317,12 @@ function initPage() {
 
   if ( ZM_OPT_USE_GEOLOCATION ) {
     if ( window.L ) {
-      var form = document.getElementById('contentForm');
-      var latitude = form.elements['newMonitor[Latitude]'].value;
-      var longitude = form.elements['newMonitor[Longitude]'].value;
+      const form = document.getElementById('contentForm');
+      const latitude = form.elements['newMonitor[Latitude]'].value;
+      const longitude = form.elements['newMonitor[Longitude]'].value;
       map = L.map('LocationMap', {
         center: L.latLng(latitude, longitude),
-        zoom: 13,
+        zoom: 8,
         onclick: function() {
           alert('click');
         }
@@ -331,10 +335,22 @@ function initPage() {
         zoomOffset: -1,
         accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
       }).addTo(map);
-      L.marker([latitude, longitude]).addTo(map);
+      marker = L.marker([latitude, longitude], {draggable: 'true'});
+      marker.addTo(map);
+      marker.on('dragend', function(event) {
+        const marker = event.target;
+        const position = marker.getLatLng();
+        const form = document.getElementById('contentForm');
+        form.elements['newMonitor[Latitude]'].value = position.lat;
+        form.elements['newMonitor[Longitude]'].value = position.lng;
+      });
     } else {
       console.log('Location turned on but leaflet not installed.');
     }
+    map.invalidateSize();
+    $j("a[href='#pills-location']").on('shown.bs.tab', function(e) {
+      map.invalidateSize();
+    });
   } // end if ZM_OPT_USE_GEOLOCATION
 } // end function initPage()
 
@@ -385,6 +401,12 @@ function updateLatitudeAndLongitude(latitude, longitude) {
   var form = document.getElementById('contentForm');
   form.elements['newMonitor[Latitude]'].value = latitude;
   form.elements['newMonitor[Longitude]'].value = longitude;
+  const latlng = new L.LatLng(latitude, longitude);
+  marker.setLatLng(latlng);
+  map.setView(latlng, 8, {animation: true});
+  setTimeout(function() {
+    map.invalidateSize(true);
+  }, 100);
 }
 function getLocation() {
   if ('geolocation' in navigator) {

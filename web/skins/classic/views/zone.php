@@ -315,5 +315,13 @@ if ( count($other_zones) ) {
       </form>
     </div><!--content-->
   </div><!--page-->
+<?php
+if ($monitor->JanusEnabled()) {
+?>
+  <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+  <script src="/javascript/janus/janus.js"></script>
+<?php
+}
+?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

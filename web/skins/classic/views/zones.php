@@ -71,7 +71,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       $zones[] = $row;
     }
 
-    $options = array('zones'=>true, 'state'=>true, 'mode'=>'single');
+    $options = array('zones'=>true, 'state'=>true, 'mode'=>'single', 'width'=>'auto');
 ?>
     <div class="Monitor">
         <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
@@ -114,5 +114,13 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       </form>
     </div>
   </div>
+<?php
+if ($monitor->JanusEnabled()) {
+?>
+  <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+  <script src="/javascript/janus/janus.js"></script>
+<?php
+}
+?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

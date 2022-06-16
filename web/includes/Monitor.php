@@ -61,6 +61,17 @@ public static function getAnalysisSourceOptions() {
   return $AnalysisSourceOptions;
 }
 
+protected static $AnalysisImageOptions = null;
+public static function getAnalysisImageOptions() {
+  if (!isset($AnalysisImageOptions)) {
+    $AnalysisImageOptions = array(
+        'FullColour'   => translate('Full Colour'),
+        'YChannel' => translate('Y-Channel (Greyscale)'),
+        );
+  }
+  return $AnalysisImageOptions;
+}
+
 protected static $RecordingOptions = null;
 public static function getRecordingOptions() {
   if (!isset($RecordingOptions)) {
@@ -130,6 +141,7 @@ public static function getStatuses() {
     'Recording' => 'Always',
     'RecordingSource' => 'Primary',
     'AnalysisSource' => 'Primary',
+    'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
@@ -911,7 +923,9 @@ public static function getStatuses() {
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
     } else if ( $this->JanusEnabled() ) {
-      $html .= '<video id="liveStream'.$this->Id().'" width="'.$options['width'].'"autoplay muted controls playsinline="" ></video>';
+      $html .= '<video id="liveStream'.$this->Id().'" '.
+        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
+        ' autoplay muted controls playsinline=""></video>';
     } else if ( $options['mode'] == 'stream' and canStream() ) {
       $options['mode'] = 'jpeg';
       $streamSrc = $this->getStreamSrc($options);

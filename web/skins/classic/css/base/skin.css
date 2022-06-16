@@ -782,6 +782,7 @@ a.flip {
   position: relative;
 }
 .imageFeed img,
+.imageFeed video,
 .imageFeed svg {
   margin: 0;
   padding: 0;

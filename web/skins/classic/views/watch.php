@@ -424,10 +424,10 @@ if ( ZM_WEB_SOUND_ON_ALARM ) {
 ?>
     </div>
   </div>
-  <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
 <?php
 if ( $monitor->JanusEnabled() ) {
 ?>
+  <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
   <script src="/javascript/janus/janus.js"></script>
 <?php
 }

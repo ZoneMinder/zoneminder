@@ -12,10 +12,15 @@ function MonitorStream(monitorData) {
   this.height = monitorData.height;
   this.janusEnabled = monitorData.janusEnabled;
   this.scale = 100;
-  this.status = null;
+  this.status = {capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
   this.lastAlarmState = STATE_IDLE;
-  this.statusCmdTimer = null;
-  this.streamCmdTimer = null;
+  this.statusCmdTimer = null; // timer for requests using ajax to get monitor status
+  this.statusCmdParms = {
+    view: 'request',
+    request: 'status',
+    connkey: this.connKey
+  };
+  this.streamCmdTimer = null; // timer for requests to zms for status
   this.streamCmdParms = {
     view: 'request',
     request: 'stream',
@@ -150,7 +155,6 @@ function MonitorStream(monitorData) {
       const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
       if (newSrc != oldSrc) {
         this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-        this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
         // We know that only the first zms will get the command because the
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
@@ -160,7 +164,7 @@ function MonitorStream(monitorData) {
         console.log("Changing src from " + img.src + " to " + newSrc);
         img.src = '';
         img.src = newSrc;
-        this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
+        this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       }
     }
   }; // setscale
@@ -183,6 +187,7 @@ function MonitorStream(monitorData) {
         }});
       }
       attachVideo(parseInt(this.id));
+      this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
       return;
     }
 
@@ -195,7 +200,7 @@ function MonitorStream(monitorData) {
       console.log(stream);
       return;
     }
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
+    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
     // Step 1 make sure we are streaming instead of a static image
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');
@@ -209,7 +214,6 @@ function MonitorStream(monitorData) {
       stream.src = '';
       stream.src = src;
     }
-    this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), delay);
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
   }; // this.start
@@ -528,6 +532,89 @@ function MonitorStream(monitorData) {
     } // end if Ok or not
   };
 
+  /* getStatusCmd is used when not streaming, since there is no persistent zms */
+  this.getStatusCmdResponse=function(respObj, respText) {
+    //watchdogOk('status');
+    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
+
+
+    if (respObj.result == 'Ok') {
+      const monitorStatus = respObj.monitor.Status;
+      const captureFPSValue = $j('#captureFPSValue'+this.id);
+      const analysisFPSValue = $j('#analysisFPSValue'+this.id);
+
+      const fpses = respObj.monitor.FrameRate.split(",");
+      fpses.forEach(function(fps) {
+        const name_values = fps.split(':');
+        const name = name_values[0].trim();
+        const value = name_values[1].trim().toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+
+        if (name == 'analysis') {
+          this.status.analysisfps = value;
+          if (analysisFPSValue.length && (analysisFPSValue.text() != value)) {
+            analysisFPSValue.text(value);
+          }
+        } else if (name == 'capture') {
+          if (captureFPSValue.length && (captureFPSValue.text() != value)) {
+            captureFPSValue.text(value);
+          }
+        } else {
+          console.log("Unknown fps name " + name);
+        }
+      });
+
+      if (canEdit.Monitors) {
+        if (monitorStatus.enabled) {
+          if ('enableAlarmButton' in this.buttons) {
+            if (!this.buttons.enableAlarmButton.hasClass('disabled')) {
+              this.buttons.enableAlarmButton.addClass('disabled');
+              this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
+            }
+          }
+          if ('forceAlarmButton' in this.buttons) {
+            if (monitorStatus.forced) {
+              if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
+                this.buttons.forceAlarmButton.addClass('disabled');
+                this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+              }
+            } else {
+              if (this.buttons.forceAlarmButton.hasClass('disabled')) {
+                this.buttons.forceAlarmButton.removeClass('disabled');
+                this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+              }
+            }
+            this.buttons.forceAlarmButton.prop('disabled', false);
+          }
+        } else {
+          if ('enableAlarmButton' in this.buttons) {
+            this.buttons.enableAlarmButton.removeClass('disabled');
+            this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);
+          }
+          if ('forceAlarmButton' in this.buttons) {
+            this.buttons.forceAlarmButton.prop('disabled', true);
+          }
+        }
+        if ('enableAlarmButton' in this.buttons) {
+          this.buttons.enableAlarmButton.prop('disabled', false);
+        }
+      } // end if canEdit.Monitors
+
+      this.setAlarmState(monitorStatus);
+    } else {
+      checkStreamForErrors('getStatusCmdResponse', respObj);
+    }
+
+    this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+  };
+
+  this.statusCmdQuery=function() {
+    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+this.id+'&'+this.auth_relay)
+        .done(this.getStatusCmdResponse.bind(this))
+        .fail(logAjaxFail);
+
+    this.statusCmdTimer = null;
+  };
+
   this.statusQuery = function() {
     this.streamCommand(CMD_QUERY);
     this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
@@ -535,9 +622,9 @@ function MonitorStream(monitorData) {
 
   this.streamCmdQuery = function(resent) {
     if (this.type != 'WebSite') {
-      this.streamCmdParms.command = CMD_QUERY;
-      this.streamCmdReq(this.streamCmdParms);
+      this.streamCommand(CMD_QUERY);
     }
+    this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCommand = function(command) {

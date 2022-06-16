@@ -75,12 +75,11 @@ struct Namespace namespaces[] =
 };
 #endif
 
-#define USE_Y_CHANNEL 0
-
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`, `Decoding`+0, "
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+"`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
 "`JanusEnabled`, `JanusAudioEnabled`, "
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
@@ -310,7 +309,8 @@ Monitor::Monitor()
 
 /*
    std::string load_monitor_sql =
-   "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`, `Recording`+0, `RecordingSource`,
+   "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+   "`Recording`+0, `RecordingSource`+0,
    `Decoding`+0, JanusEnabled, JanusAudioEnabled, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
@@ -364,6 +364,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   capturing = (CapturingOption)atoi(dbrow[col]); col++;
   analysing = (AnalysingOption)atoi(dbrow[col]); col++;
   analysis_source = (AnalysisSourceOption)atoi(dbrow[col]); col++;
+  analysis_image = (AnalysisImageOption)atoi(dbrow[col]); col++;
   recording = (RecordingOption)atoi(dbrow[col]); col++;
   recording_source = (RecordingSourceOption)atoi(dbrow[col]); col++;
 
@@ -1848,7 +1849,7 @@ bool Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if (USE_Y_CHANNEL && snap->in_frame && (
+          if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->in_frame && (
                 ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                 ||
                 ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
@@ -1934,7 +1935,7 @@ bool Monitor::Analyse() {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
-                if (USE_Y_CHANNEL && snap->in_frame && (
+                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->in_frame && (
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                       ||
                       ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
@@ -1952,7 +1953,7 @@ bool Monitor::Analyse() {
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
                   Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                   // Get new score.
-                  if (USE_Y_CHANNEL && snap->in_frame && (
+                  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->in_frame && (
                         ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
                         ||
                         ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
@@ -1998,7 +1999,7 @@ bool Monitor::Analyse() {
                   alarm_image.Assign(*(snap->image));
                 }
 
-                if (USE_Y_CHANNEL && snap->in_frame &&
+                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->in_frame &&
                     ( 
                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
                      ||
@@ -2009,13 +2010,16 @@ bool Monitor::Analyse() {
                   Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
                   ref_image.Blend(y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 } else if (snap->image) {
-                  Debug(1, "Blending because %p and format %d != %d, %d", snap->in_frame,
+                  Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
+                      analysis_image, snap->in_frame,
                       (snap->in_frame ? snap->in_frame->format : -1),
                       AV_PIX_FMT_YUV420P,
                       AV_PIX_FMT_YUVJ420P
                       );
                   ref_image.Blend(*(snap->image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                   Debug(1, "Done Blending");
+                } else {
+                  Debug(1, "Not able to blend");
                 }
               } // end if had ref_image_buffer or not
             } else {
@@ -3210,6 +3214,7 @@ Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 // This function is deprecated.
 void Monitor::get_ref_image() {
   ZMLockedPacket *snap_lock = nullptr;
+  Warning("get_ref_image is deprecated");
 
   if ( !analysis_it ) 
     analysis_it = packetqueue.get_video_it(true);

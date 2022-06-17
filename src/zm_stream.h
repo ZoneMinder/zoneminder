@@ -93,6 +93,7 @@ protected:
     CMD_MAXFPS,
     CMD_ANALYZE_ON,
     CMD_ANALYZE_OFF,
+    CMD_ZOOMSTOP,
     CMD_QUERY=99
   } MsgCommand;
 

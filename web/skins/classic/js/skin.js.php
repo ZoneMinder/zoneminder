@@ -111,6 +111,7 @@ const CMD_SLOWREV = <?php echo CMD_SLOWREV ?>;
 const CMD_FASTREV = <?php echo CMD_FASTREV ?>;
 const CMD_ZOOMIN = <?php echo CMD_ZOOMIN ?>;
 const CMD_ZOOMOUT = <?php echo CMD_ZOOMOUT ?>;
+const CMD_ZOOMSTOP = <?php echo CMD_ZOOMSTOP ?>;
 const CMD_PAN = <?php echo CMD_PAN ?>;
 const CMD_SCALE = <?php echo CMD_SCALE ?>;
 const CMD_PREV = <?php echo CMD_PREV ?>;

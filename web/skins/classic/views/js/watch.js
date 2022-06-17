@@ -556,16 +556,15 @@ function fetchImage(streamImage) {
 
 function handleClick(event) {
   // target should be the img tag
-  var target = $j(event.target);
-  console.log("click " + showMode);
-  var width = target.width();
-  var height = target.height();
+  const target = $j(event.target);
+  const width = target.width();
+  const height = target.height();
 
-  var scaleX = parseInt(monitorWidth / width);
-  var scaleY = parseInt(monitorHeight / height);
-  var pos = target.offset();
-  var x = parseInt((event.pageX - pos.left) * scaleX);
-  var y = parseInt((event.pageY - pos.top) * scaleY);
+  const scaleX = parseInt(monitorWidth / width);
+  const scaleY = parseInt(monitorHeight / height);
+  const pos = target.offset();
+  const x = parseInt((event.pageX - pos.left) * scaleX);
+  const y = parseInt((event.pageY - pos.top) * scaleY);
 
   if (showMode == 'events' || !imageControlMode) {
     if ( event.shift ) {

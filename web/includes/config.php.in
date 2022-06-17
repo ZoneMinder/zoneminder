@@ -123,6 +123,7 @@ define('CMD_QUIT', 17);
 define('CMD_MAXFPS', 18);
 define('CMD_ANALYZE_ON', 19);
 define('CMD_ANALYZE_OFF', 20);
+define('CMD_ZOOMSTOP', 21);
 define('CMD_QUERY', 99);
 
 //

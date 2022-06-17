@@ -131,7 +131,9 @@ if ($user) {
   global $config;
   foreach ($config as $name=>$c) {
     if (!(isset($c['Private']) and $c['Private'])) {
-      echo 'const '. $name . ' = \''.preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']).'\';'.PHP_EOL;
+      $value = preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']);
+      $value = preg_replace('/\'/', '\\\\\'', $value);
+      echo 'const '. $name . ' = \''.$value.'\';'.PHP_EOL;
     }
   }
 }

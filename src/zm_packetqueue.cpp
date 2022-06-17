@@ -293,11 +293,12 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   // First packet is special because we know it is a video keyframe and only need to check for lock
   std::shared_ptr<ZMPacket> zm_packet = *it;
   if (zm_packet == add_packet) {
+    Debug(1, "First packet in queue is the analysis packet.");
     return;
   }
 
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
-  if (lp->trylock()) {
+  if (!lp->trylock()) {
     Debug(4, "Failed getting lock on first packet");
     delete lp;
     return;
@@ -331,7 +332,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
     if (zm_packet->packet.stream_index == video_stream_id) {
       if (zm_packet->keyframe) {
-        Debug(5, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval);
+        Debug(4, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval);
         keyframe_interval = 1;
         next_front = it;
       } else {

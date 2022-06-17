@@ -238,14 +238,14 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 } else {
   $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
   if ( canStreamNative() ) {
-    outputImageStream('evtStream', $streamSrc, '100%', '100%', validHtmlStr($Event->Name()));
+    outputImageStream('evtStream', $streamSrc, '100%', 'auto', validHtmlStr($Event->Name()));
   } else {
     outputHelperStream('evtStream', $streamSrc, '100%', '100%');
   }
 } // end if stream method
 ?>
         <div id="alarmCue" class="alarmCue"></div>
-        <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
+        <div id="progressBar" style="width: 100%;">
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->
 <?php
@@ -282,7 +282,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
           <i class="material-icons md-18">fast_forward</i>
           </button>
-          <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="streamZoomOut">
+          <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
           <i class="material-icons md-18">zoom_out</i>
           </button>
           <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">

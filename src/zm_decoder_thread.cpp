@@ -10,7 +10,6 @@ DecoderThread::DecoderThread(Monitor *monitor) :
 
 DecoderThread::~DecoderThread() {
   Stop();
-  if (thread_.joinable()) thread_.join();
 }
 
 void DecoderThread::Start() {
@@ -18,6 +17,12 @@ void DecoderThread::Start() {
   terminate_ = false;
   thread_ = std::thread(&DecoderThread::Run, this);
 }
+
+void DecoderThread::Stop() {
+  terminate_ = true;
+  if (thread_.joinable()) thread_.join();
+}
+
 void DecoderThread::Run() {
   Debug(2, "DecoderThread::Run() for %d", monitor_->Id());
 

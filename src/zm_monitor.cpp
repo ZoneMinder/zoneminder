@@ -2215,9 +2215,9 @@ bool Monitor::Analyse() {
       shared_data->state = state = IDLE;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
-    packetqueue.clearPackets(snap);
 
     if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
+      packetqueue.clearPackets(snap);
       // Only do these if it's a video packet.
       shared_data->last_read_index = snap->image_index;
       analysis_image_count++;
@@ -3144,8 +3144,14 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
+  Debug(1, "Stopping packetqueue");
+  // Wake everyone up
+  packetqueue.stop();
+  Debug(1, "Stopped packetqueue");
+
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
+    Debug(1, "Decoder stopping");
     decoder->Stop();
     Debug(1, "Decoder stopped");
   }
@@ -3187,10 +3193,6 @@ int Monitor::Close() {
     video_fifo = nullptr;
   }
 
-  Debug(1, "Stopping packetqueue");
-  // Wake everyone up
-  packetqueue.stop();
-  Debug(1, "Stopped packetqueue");
 
   if (close_event_thread.joinable()) {
     Debug(1, "Joining event thread");

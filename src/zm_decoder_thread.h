@@ -15,7 +15,7 @@ class DecoderThread {
   DecoderThread(DecoderThread &&rhs) = delete;
 
   void Start();
-  void Stop() { terminate_ = true; }
+  void Stop();
 
  private:
   void Run();

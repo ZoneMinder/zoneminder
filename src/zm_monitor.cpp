@@ -3147,14 +3147,17 @@ int Monitor::Close() {
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
     decoder->Stop();
+    Debug(1, "Decoder stopped");
   }
   if (analysis_thread) {
     analysis_thread->Stop();
+    Debug(1, "Analysi stopped");
   }
 
   //ONVIF Teardown
   if (Poller) {
     Poller->Stop();
+    Debug(1, "Polleri stopped");
   }
 #ifdef WITH_GSOAP
   if (onvif_event_listener && (soap != nullptr)) {
@@ -3176,17 +3179,23 @@ int Monitor::Close() {
   if (audio_fifo) {
     delete audio_fifo;
     audio_fifo = nullptr;
+    Debug(1, "audio fifo deleted");
   }
   if (video_fifo) {
     delete video_fifo;
+    Debug(1, "video fifo deleted");
     video_fifo = nullptr;
   }
 
+  Debug(1, "Stopping packetqueue");
   // Wake everyone up
   packetqueue.stop();
+  Debug(1, "Stopped packetqueue");
 
   if (close_event_thread.joinable()) {
+    Debug(1, "Joining event thread");
     close_event_thread.join();
+    Debug(1, "Joined event thread");
   }
   {
     std::lock_guard<std::mutex> lck(event_mutex);

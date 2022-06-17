@@ -790,8 +790,7 @@ bool Monitor::connect() {
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
-        "mem.size(%zu) SharedData=%zu TriggerData=%zu zone_count %d * sizeof int %zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
-        sizeof(mem_size),
+        "SharedData=%zu TriggerData=%zu zone_count %d * sizeof int %zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
         sizeof(SharedData),
         sizeof(TriggerData),
         zone_count,
@@ -802,7 +801,6 @@ bool Monitor::connect() {
         image_size,
         (image_buffer_count * image_size),
         mem_size);
-  Debug(3, "Connecting to monitor.  Purpose is %d", purpose);
 #if ZM_MEM_MAPPED
   mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
   if (purpose != CAPTURE) {
@@ -898,7 +896,6 @@ bool Monitor::connect() {
         );
     shared_images = (unsigned char *)aligned_shared_images;
   }
-
 
   image_buffer.resize(image_buffer_count);
   for (int32_t i = 0; i < image_buffer_count; i++) {
@@ -1038,8 +1035,8 @@ bool Monitor::disconnect() {
     return true;
   }
 
+  alarm_image.HoldBuffer(false); /* Allow to reset buffer when we connect */
   if (purpose == CAPTURE) {
-    alarm_image.HoldBuffer(false); /* Allow to reset buffer when we connect */
     if (unlink(mem_file.c_str()) < 0) {
       Warning("Can't unlink '%s': %s", mem_file.c_str(), strerror(errno));
     }
@@ -2684,12 +2681,10 @@ bool Monitor::Decode() {
     } // end if have rotation
 
     if (privacy_bitmask) {
-      Debug(3, "Applying privacy");
       capture_image->MaskPrivacy(privacy_bitmask);
     }
 
     if (config.timestamp_on_capture) {
-      Debug(3, "Timestamping");
       TimestampImage(capture_image, packet->timestamp);
     }
 
@@ -2697,7 +2692,6 @@ bool Monitor::Decode() {
     index++;
     index = index % image_buffer_count;
     image_buffer[index]->Assign(*(packet->image));
-    Debug(3, "Assigned shared image %u", index);
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;

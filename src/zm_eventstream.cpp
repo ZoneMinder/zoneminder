@@ -450,46 +450,18 @@ void EventStream::processCommand(const CmdMsg *msg) {
         x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
         y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
         Debug(1, "Got ZOOM IN command, to %d,%d", x, y);
-        switch ( zoom ) {
-          case 100:
-            zoom = 150;
-            break;
-          case 150:
-            zoom = 200;
-            break;
-          case 200:
-            zoom = 300;
-            break;
-          case 300:
-            zoom = 400;
-            break;
-          case 400:
-          default :
-            zoom = 500;
-            break;
-        }
+        zoom += 10;
         send_frame = true;
         break;
     case CMD_ZOOMOUT :
         Debug(1, "Got ZOOM OUT command");
-        switch ( zoom ) {
-          case 500:
-            zoom = 400;
-            break;
-          case 400:
-            zoom = 300;
-            break;
-          case 300:
-            zoom = 200;
-            break;
-          case 200:
-            zoom = 150;
-            break;
-          case 150:
-          default :
-            zoom = 100;
-            break;
-        }
+        zoom -= 10;
+        if (zoom < 100) zoom = 100;
+        send_frame = true;
+        break;
+    case CMD_ZOOMSTOP :
+        Debug(1, "Got ZOOM STOP command");
+        zoom = 100;
         send_frame = true;
         break;
     case CMD_PAN :

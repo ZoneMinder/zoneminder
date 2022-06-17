@@ -65,6 +65,7 @@ class ZMPacket {
     AVFrame *av_frame() { return out_frame; }
     Image *get_image(Image *i=nullptr);
     Image *set_image(Image *);
+    ssize_t ram();
 
     int is_keyframe() { return keyframe; };
     int decode(AVCodecContext *ctx);

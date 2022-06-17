@@ -51,8 +51,9 @@ ZoneMinderFifoSource::~ZoneMinderFifoSource() {
 // thread mainloop
 void ZoneMinderFifoSource::ReadRun() {
   if (stop_) Warning("bad value for stop_ in ReadRun");
-	while (!stop_) {
+	while (!stop_ and !zm_terminate) {
 		if (getNextFrame() < 0) {
+      if (!stop_ and !zm_terminate) return;
       Debug(1, "Sleeping because couldn't getNextFrame");
       sleep(1);
     }

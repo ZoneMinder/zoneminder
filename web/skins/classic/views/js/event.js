@@ -776,7 +776,6 @@ function progressBarNav() {
 }
 
 function handleClick(event) {
-
   // target should be the img tag
   const target = $j(event.target);
   const width = target.width();

@@ -6,6 +6,7 @@
 #include "zm_ffmpeg.h"
 #include "zm_swscale.h"
 
+#include <list>
 #include <memory>
 #include <map>
 
@@ -56,8 +57,8 @@ class VideoStore {
     const AVCodec *audio_out_codec;
     AVCodecContext *audio_out_ctx;
     // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
-    AVPacket opkt;
-    // we are transcoding
+    AVPacket *opkt;
+
     AVFrame *video_in_frame;
     AVFrame *in_frame;
     AVFrame *out_frame;
@@ -90,6 +91,7 @@ class VideoStore {
     int64_t audio_next_pts;
 
     int max_stream_index;
+    std::map<int, std::list<std::shared_ptr<ZMPacket>>> reorder_queues;
 
     bool setup_resampler();
     int write_packet(AVPacket *pkt, AVStream *stream);

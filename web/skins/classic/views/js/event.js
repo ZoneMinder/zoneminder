@@ -187,7 +187,7 @@ function changeScale() {
   var newWidth;
   var newHeight;
   var autoScale;
-  var eventViewer= $j(vid ? '#videoobj' : '#videoFeed');
+  var eventViewer = $j(vid ? '#videoobj' : '#videoFeed');
   var alarmCue = $j('div.alarmCue');
   var bottomEl = $j('#replayStatus');
 
@@ -202,7 +202,7 @@ function changeScale() {
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
   eventViewer.width(newWidth);
-  //eventViewer.height(newHeight);
+  eventViewer.height(newHeight);
   if (!vid) { // zms needs extra sizing
     streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();

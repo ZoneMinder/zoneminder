@@ -309,9 +309,9 @@ sub Event_Summary {
 
 sub connect {
   my $self = shift;
-  ZoneMinder::Logger::Debug(4, "Connecting");
   if (!ZoneMinder::Memory::zmMemVerify($self)) {
     $self->disconnect();
+    return undef;
   }
   return !undef;
 }

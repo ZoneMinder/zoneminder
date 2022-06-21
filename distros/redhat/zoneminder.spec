@@ -120,6 +120,8 @@ Summary: Common files for ZoneMinder, not tied to a specific web server
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
+Requires: php-intl
+Requires: php-process
 %{?with_php_json:Requires: php-json}
 %{?fedora:Requires: php-pecl-memcached}
 %{?rhel:Requires: php-pecl-apcu}
@@ -139,6 +141,7 @@ Requires: perl(MIME::Lite)
 Requires: perl(Net::SMTP)
 Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
+Requires: perl(Module::Load::Conditional)
 Requires: ca-certificates
 Requires: zip
 %{?systemd_requires}

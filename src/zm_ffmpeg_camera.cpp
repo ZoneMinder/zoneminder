@@ -309,7 +309,7 @@ int FfmpegCamera::OpenFfmpeg() {
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), input_format, &opts);
   if (ret != 0) {
     logPrintf(Logger::ERROR + monitor->Importance(),
-        "Unable to open input %s due to: %s", mPath.c_str(),
+        "Unable to open input %s due to: %s", mMaskedPath.c_str(),
         av_make_error_string(ret).c_str());
     avformat_close_input(&mFormatContext);
     mFormatContext = nullptr;

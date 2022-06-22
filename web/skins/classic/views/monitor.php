@@ -979,8 +979,8 @@ include('_monitor_source_nvsocket.php');
       foreach (ZM\Zone::find() as $zone) {
         if (! isset($zones_by_monitor_id[$zone->MonitorId()]) ) {
           $zones_by_monitor_id[$zone->MonitorId()] = array();
-          $zones_by_monitor_id[$zone->MonitorId()][] = $zone;
         }
+        $zones_by_monitor_id[$zone->MonitorId()][] = $zone;
       }
       $monitor_options = array();
       foreach ($monitors as $linked_monitor) {
@@ -988,7 +988,7 @@ include('_monitor_source_nvsocket.php');
           $monitor_options[$linked_monitor['Id']] = validHtmlStr($linked_monitor['Name']) . ' : ' . translate('All Zones');
           if (isset($zones_by_monitor_id[$linked_monitor['Id']])) {
             foreach ( $zones_by_monitor_id[$linked_monitor['Id']] as $zone) {
-              $monitor_options[$linked_monitor['Id'].':'.$zone->Id()] = validHtmlStr($linked_monitor['Name']) . ' : ' . validHtmlStr($zone->Name());
+              $monitor_options[$linked_monitor['Id'].':'.$zone->Id()] = validHtmlStr($linked_monitor['Name']). ' : ' . validHtmlStr($zone->Name()) . ' ('.$zone->Type().')';
             }
           }
         }

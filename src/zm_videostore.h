@@ -6,6 +6,7 @@
 #include "zm_ffmpeg.h"
 #include "zm_swscale.h"
 
+#include <list>
 #include <memory>
 #include <map>
 

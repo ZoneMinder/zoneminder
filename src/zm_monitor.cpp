@@ -1611,7 +1611,6 @@ void Monitor::CheckAction() {
       if (Active()) {
         Info("Received suspend indication at count %d", image_count);
         shared_data->analysing = ANALYSING_NONE;
-        //closeEvent();
       } else {
         Info("Received suspend indication at count %d, but wasn't active", image_count);
       }
@@ -2581,7 +2580,6 @@ bool Monitor::Decode() {
   }
 
   if ((!packet->image) and packet->packet.size and !packet->in_frame) {
-    Debug(1, "Decoding ? %s", Decoding_Strings[decoding].c_str());
     if ((decoding == DECODING_ALWAYS)
         or
         ((decoding == DECODING_ONDEMAND) and this->hasViewers() )

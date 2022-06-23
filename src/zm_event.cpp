@@ -142,8 +142,6 @@ Event::~Event() {
   if (thread_.joinable()) {
     // Should be.  Issuing the stop and then getting the lock
     thread_.join();
-  } else {
-    Warning("Event thread not joinable?");
   }
 
   /* Close the video file */
@@ -691,10 +689,11 @@ void Event::Run() {
     {
       std::unique_lock<std::mutex> lck(packet_queue_mutex);
 
-      if (packet_queue.empty() and (!(terminate_ or zm_terminate)) {
+      if (packet_queue.empty()) {
+        if (!(terminate_ or zm_terminate))
           packet_queue_condition.wait(lck);
         // Neccessary because we don't hold the lock in the while condition
-        //if (terminate_ or zm_terminate) break;
+        if (terminate_ or zm_terminate) break;
       } 
       if (!packet_queue.empty()) {
         // Packets on this queue are locked. They are locked by analysis thread

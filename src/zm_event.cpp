@@ -690,10 +690,9 @@ void Event::Run() {
       std::unique_lock<std::mutex> lck(packet_queue_mutex);
 
       if (packet_queue.empty()) {
-        if (!(terminate_ or zm_terminate))
-          packet_queue_condition.wait(lck);
-        // Neccessary because we don't hold the lock in the while condition
         if (terminate_ or zm_terminate) break;
+        packet_queue_condition.wait(lck);
+        // Neccessary because we don't hold the lock in the while condition
       } 
       if (!packet_queue.empty()) {
         // Packets on this queue are locked. They are locked by analysis thread

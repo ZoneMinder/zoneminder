@@ -62,7 +62,7 @@ sub open {
 
   if ( $res->is_success ) {
     $self->{state} = 'open';
-    return;
+    return !undef;
   }
 
   if ( $res->status_line() eq '401 Unauthorized' ) {
@@ -82,7 +82,7 @@ sub open {
           $res = $self->{ua}->get($PROTOCOL.$ADDRESS.'/cgi/ptdc.cgi');
           if ( $res->is_success() ) {
             $self->{state} = 'open';
-            return;
+            return !undef;
           }
           Error('Authentication still failed after updating REALM' . $res->status_line);
           $headers = $res->headers();
@@ -99,6 +99,7 @@ sub open {
       Debug('No headers line');
     } # end if headers
   } # end if $res->status_line() eq '401 Unauthorized'
+  return undef;
 } # end sub open
 
 sub sendCmd {

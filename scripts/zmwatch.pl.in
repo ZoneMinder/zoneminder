@@ -116,7 +116,7 @@ while (!$zm_terminate) {
       # We can't get the last capture time so can't be sure it's died, it might just be starting up.
       my $startup_time = zmGetStartupTime($monitor);
       if (($now - $startup_time) > $Config{ZM_WATCH_MAX_DELAY}) {
-        $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->Importance(),
+        $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
           "Restarting capture daemon for $$monitor{Name}, no image since startup. ".
           "Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}"
         );
@@ -135,7 +135,7 @@ while (!$zm_terminate) {
     my $image_delay = $now - $capture_time;
     Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
     if ($image_delay > $max_image_delay) {
-        $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->Importance(),
+        $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
           'Restarting capture daemon for '.$monitor->{Name}.
           ", time since last capture $image_delay seconds ($now-$capture_time)");
       $monitor->control('restart');
@@ -163,7 +163,7 @@ while (!$zm_terminate) {
         my $image_delay = $now-$image_time;
         Debug("Monitor $monitor->{Id} last analysed $image_delay seconds ago, max is $max_image_delay");
         if ($image_delay > $max_image_delay) {
-          $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->Importance(),
+          $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
             "daemon for $$monitor{Id} $$monitor{Name} needs restarting,"
             ." time since last analysis $image_delay seconds ($now-$image_time)");
           $monitor->control('restart');

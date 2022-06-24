@@ -377,7 +377,7 @@ sub zmMemInvalidate {
   if ( $mem_key ) {
     zmMemDetach($monitor);
   } else {
-    Error("No mem_key for $monitor $$monitor{Name}");
+    Debug("called zmMemInvalidate when already detached for $$monitor{Id} $$monitor{Name}");
   }
 } # end sub zmMemInvalidate
 

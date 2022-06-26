@@ -43,15 +43,17 @@ Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned in
   name = monitor->Name();
   if (zone_id) {
     zones = Zone::Load(monitor);
-    zone_index = 0;
+
+    int zone_i = 0;
     for (const Zone &z : zones) {
       if (z.Id() == zone_id) {
         zone = &z;
+        zone_index = zone_i;
         break;
       }
-      zone_index ++;
+      ++zone_i;
     }
-    if (static_cast<unsigned int>(zone_index) > zones.size()) {
+    if (zone_index == -1) {
       Error("Unable to find zone %u", zone_id);
       zone_index = -1;
     }
@@ -214,12 +216,13 @@ bool Monitor::MonitorLink::inAlarm() {
 
 bool Monitor::MonitorLink::hasAlarmed() {
   if (zone_id and (zone_index >= 0)) {
-    Debug(1, "Checking zone %u, score is %d", zone_id, zone_index);
+    Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
     if (zone_scores[zone_index] > 0) {
       return true;
     }
   }
   if (shared_data->state == ALARM) {
+    Debug(1, "State is %d", shared_data->state);
     return true;
   }
   last_event_id = shared_data->last_event_id;

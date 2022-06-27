@@ -2314,10 +2314,10 @@ void Monitor::ReloadLinkedMonitors() {
         std::string monitor_name;
         std::string zone_name;
 
-        if (colon_position > 0) {
+        if (colon_position != std::string::npos) {
           // Has a zone specification
           monitor_id = std::stoul(link.substr(0, colon_position));
-          zone_id = std::stoul(link.substr(++colon_position, std::string::npos));
+          zone_id = std::stoul(link.substr(colon_position+1, std::string::npos));
         } else {
           monitor_id = std::stoul(link);
         }

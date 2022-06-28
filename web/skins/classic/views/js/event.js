@@ -855,6 +855,11 @@ function getStat() {
       case 'Emailed':
         tdString = eventData[key] ? yesStr : noStr;
         break;
+      case 'Length':
+        const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
+        date.setSeconds(eventData[key]);
+        tdString = date.toISOString().substr(11, 8);
+        break;
       default:
         tdString = eventData[key];
     }

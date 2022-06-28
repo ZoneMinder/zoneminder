@@ -56,7 +56,6 @@ function ajaxRequest(params) {
 }
 
 function processRows(rows) {
-  const date = new Date(0);
   $j.each(rows, function(ndx, row) {
     var eid = row.Id;
     var archived = row.Archived == yesString ? archivedString : '';
@@ -75,6 +74,8 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+
+    const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
     date.setSeconds(row.Length);
     row.Length = date.toISOString().substr(11, 8);
 

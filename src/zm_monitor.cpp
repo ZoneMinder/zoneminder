@@ -24,6 +24,7 @@
 #include "zm_ffmpeg_camera.h"
 #include "zm_fifo.h"
 #include "zm_file_camera.h"
+#include "zm_monitorlink_expression.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_remote_camera_nvsocket.h"
@@ -32,6 +33,7 @@
 #include "zm_time.h"
 #include "zm_utils.h"
 #include "zm_zone.h"
+
 
 #if ZM_HAS_V4L2
 #include "zm_local_camera.h"
@@ -1022,14 +1024,8 @@ bool Monitor::connect() {
 
 bool Monitor::disconnect() {
   zones.clear();
-  if (n_linked_monitors) {
-    for ( int i=0; i < n_linked_monitors; i++ ) {
-      delete linked_monitors[i];
-    }
-    delete[] linked_monitors;
-    linked_monitors = nullptr;
-    n_linked_monitors = 0;
-  }
+  delete linked_monitors;
+  linked_monitors = nullptr;
   if (mem_ptr == nullptr) {
     Debug(1, "Already disconnected");
     return true;
@@ -1100,13 +1096,8 @@ Monitor::~Monitor() {
 
   delete storage;
   Debug(1, "Done storage");
-  if (n_linked_monitors) {
-    for ( int i=0; i < n_linked_monitors; i++ ) {
-      delete linked_monitors[i];
-    }
-    delete[] linked_monitors;
-    linked_monitors = nullptr;
-  }
+  delete linked_monitors;
+  linked_monitors = nullptr;
 
   Debug(1, "Don linked monitors");
   if (video_fifo) delete video_fifo;
@@ -1865,6 +1856,7 @@ bool Monitor::Analyse() {
       if (signal) {
         if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
           // Check to see if linked monitors are triggering.
+# if 0
           if (n_linked_monitors > 0) {
             Debug(1, "Checking linked monitors");
             // FIXME improve logic here
@@ -1900,6 +1892,25 @@ bool Monitor::Analyse() {
             if (noteSet.size() > 0)
               noteSetMap[LINKED_CAUSE] = noteSet;
           } // end if linked_monitors
+#else
+          if (linked_monitors) {
+            bool eval = linked_monitors->evaluate();
+            Debug(1, "evaluate %d", eval ? 1 : 0);
+            if (eval) {
+              if (!event) {
+                if (cause.length())
+                  cause += ", ";
+                cause += LINKED_CAUSE;
+              }
+              //Event::StringSet noteSet;
+              //noteSet.insert(linked_monitors[i]->Name());
+              //score += linked_monitors->score();
+              score += 20;
+            }
+          } else {
+            Debug(1, "Not linked_monitors");
+          }
+#endif
 
           /* try to stay behind the decoder. */
           if (decoding != DECODING_NONE) {
@@ -2289,17 +2300,14 @@ void Monitor::ReloadZones() {
 } // end void Monitor::ReloadZones()
 
 void Monitor::ReloadLinkedMonitors() {
-  Debug(1, "Reloading linked monitors for monitor %s, '%s'", name.c_str(), linked_monitors_string.c_str());
-  if (n_linked_monitors) {
-    for (int i=0; i < n_linked_monitors; i++) {
-      delete linked_monitors[i];
-    }
-    delete[] linked_monitors;
-    linked_monitors = nullptr;
-  }
+  Debug(1, "Reloading linked monitors for monitor %s, '%s'",
+      name.c_str(), linked_monitors_string.c_str());
+  delete linked_monitors;
+  linked_monitors = nullptr;
 
   n_linked_monitors = 0;
   if (!linked_monitors_string.empty()) {
+#if 0
     StringVector link_strings = Split(linked_monitors_string, ',');
     int n_link_ids = link_strings.size();
     if (n_link_ids > 0) {
@@ -2328,6 +2336,17 @@ void Monitor::ReloadLinkedMonitors() {
       }  // end foreach link_id
       n_linked_monitors = count;
     }  // end if has link_ids
+  } else {
+      // Logical expression
+       booleval::evaluator evaluator { booleval::make_field( "field", &Monitor::MonitorLink::hasAlarmed ) };
+    }
+#endif
+    linked_monitors = new MonitorLinkExpression(linked_monitors_string);
+    if (!linked_monitors->parse()) {
+      Warning("Failed parsing linked_monitors");
+      delete linked_monitors;
+      linked_monitors = nullptr;
+    }
   }  // end if p_linked_monitors
 }  // end void Monitor::ReloadLinkedMonitors()
 

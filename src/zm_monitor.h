@@ -28,6 +28,9 @@
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
+#if 0
+#include "zm_monitorlink_expression.h"
+#endif
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
@@ -46,6 +49,7 @@
 #endif
 
 class Group;
+class MonitorLinkExpression;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -58,6 +62,7 @@ class Group;
 //
 class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
+  friend class MonitorLinkExpression;
 
 public:
   typedef enum {
@@ -251,6 +256,7 @@ protected:
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
   } VideoStoreData;
 
+public:
   class MonitorLink {
   protected:
     std::shared_ptr<Monitor>  monitor;
@@ -302,6 +308,7 @@ protected:
       bool inAlarm();
       bool hasAlarmed();
   };
+protected:
 
   class AmcrestAPI {
   protected:
@@ -520,8 +527,10 @@ protected:
   const unsigned char  *privacy_bitmask;
 
   std::string linked_monitors_string;
+
   int      n_linked_monitors;
-  MonitorLink    **linked_monitors;
+  MonitorLinkExpression *linked_monitors;
+  //MonitorLink    **linked_monitors;
   std::string   event_start_command;
   std::string   event_end_command;
 

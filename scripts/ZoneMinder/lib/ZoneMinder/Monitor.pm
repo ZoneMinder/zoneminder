@@ -265,7 +265,7 @@ sub control {
   my $command = shift;
   my $process = shift;
 
-  if ($command eq 'stop' or $command eq 'restart') {
+  if ($command eq 'stop') {
     if ($process) {
       ZoneMinder::General::runCommand("zmdc.pl stop $process -m $$monitor{Id}");
     } else {
@@ -275,8 +275,7 @@ sub control {
         ZoneMinder::General::runCommand('zmdc.pl stop zmc -m '.$monitor->{Id});
       }
     }
-  }
-  if ( $command eq 'start' or $command eq 'restart' ) {
+  } elsif ($command eq 'start') {
     if ( $process ) {
       ZoneMinder::General::runCommand("zmdc.pl start $process -m $$monitor{Id}");
     } else {
@@ -286,6 +285,16 @@ sub control {
         ZoneMinder::General::runCommand('zmdc.pl start zmc -m '.$monitor->{Id});
       }
     } # end if
+  } elsif ( $command eq 'restart' ) {
+    if ( $process ) {
+      ZoneMinder::General::runCommand("zmdc.pl restart $process -m $$monitor{Id}");
+    } else {
+      if ($monitor->{Type} eq 'Local') {
+        ZoneMinder::General::runCommand('zmdc.pl restart zmc -d '.$monitor->{Device});
+      } else {
+        ZoneMinder::General::runCommand('zmdc.pl restart zmc -m '.$monitor->{Id});
+      }
+    }
   }
 } # end sub control
 

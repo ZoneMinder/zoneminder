@@ -238,3 +238,59 @@ TEST_CASE("QueryString") {
     REQUIRE(p2->values()[0] == "value2");
   }
 }
+
+TEST_CASE("mask_authentication") {
+  SECTION("no authentication") {
+    std::string url("http://192.168.1.1");
+    std::string result = mask_authentication(url);
+    REQUIRE(url == result);
+  }
+  SECTION("has username no password has scheme") {
+    std::string url("http://username@192.168.1.1");
+    std::string result = mask_authentication(url);
+    REQUIRE(result == "http://********@192.168.1.1");
+  }
+  SECTION("has username no password no scheme") {
+    std::string url("username@192.168.1.1");
+    std::string result = mask_authentication(url);
+    REQUIRE(result == "********@192.168.1.1");
+  }
+  SECTION("has username has password no scheme") {
+    std::string url("username:password@192.168.1.1");
+    std::string result = mask_authentication(url);
+    REQUIRE(result == "********:********@192.168.1.1");
+  }
+  SECTION("has username has password has scheme") {
+    std::string url("http://username:password@192.168.1.1");
+    std::string result = mask_authentication(url);
+    REQUIRE(result == "http://********:********@192.168.1.1");
+  }
+}
+
+TEST_CASE("remove_authentication") {
+  SECTION("no authentication") {
+    std::string url("http://192.168.1.1");
+    std::string result = remove_authentication(url);
+    REQUIRE(url == result);
+  }
+  SECTION("has username no password has scheme") {
+    std::string url("http://username@192.168.1.1");
+    std::string result = remove_authentication(url);
+    REQUIRE(result == "http://192.168.1.1");
+  }
+  SECTION("has username no password no scheme") {
+    std::string url("username@192.168.1.1");
+    std::string result = remove_authentication(url);
+    REQUIRE(result == "192.168.1.1");
+  }
+  SECTION("has username has password no scheme") {
+    std::string url("username:password@192.168.1.1");
+    std::string result = remove_authentication(url);
+    REQUIRE(result == "192.168.1.1");
+  }
+  SECTION("has username has password has scheme") {
+    std::string url("http://username:password@192.168.1.1");
+    std::string result = remove_authentication(url);
+    REQUIRE(result == "http://192.168.1.1");
+  }
+}

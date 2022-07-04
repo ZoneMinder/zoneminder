@@ -440,3 +440,30 @@ std::string mask_authentication(const std::string &url) {
   }
   return masked_url;
 }
+
+std::string remove_authentication(const std::string &url) {
+  std::size_t at_at = url.find("@");
+  if (at_at == std::string::npos) {
+    return url;
+  }
+  std::string result;
+  std::size_t password_at = url.rfind(":", at_at);
+
+  if (password_at == std::string::npos) {
+    // no : means no http:// either so something like username@192.168.1.1
+    result = url.substr(at_at+1);
+  } else if (url[password_at+1] == '/') {
+    // no password, something like http://username@192.168.1.1
+    result = url.substr(0, password_at+3) + url.substr(at_at+1);
+  } else {
+    std::size_t username_at = url.rfind("/", password_at);
+    if (username_at == std::string::npos) {
+      // Something like username:password@192.168.1.1
+      result = url.substr(at_at+1);
+    } else {
+      // have username and password, something like http://username:password@192.168.1.1/
+      result = url.substr(0, username_at+1) + url.substr(at_at+1);
+    }
+  }
+  return result;
+}

@@ -128,6 +128,7 @@ constexpr std::size_t size(const T(&)[N]) noexcept { return N; }
 }
 
 std::string mask_authentication(const std::string &url);
+std::string remove_authentication(const std::string &url);
 
 std::string UriDecode(const std::string &encoded);
 

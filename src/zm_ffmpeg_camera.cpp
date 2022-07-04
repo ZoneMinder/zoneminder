@@ -131,8 +131,8 @@ FfmpegCamera::FfmpegCamera(
   hwaccel_name(p_hwaccel_name),
   hwaccel_device(p_hwaccel_device)
 {
-  mMaskedPath = mask_authentication(mPath);
-  mMaskedSecondPath = mask_authentication(mSecondPath);
+  mMaskedPath = remove_authentication(mPath);
+  mMaskedSecondPath = remove_authentication(mSecondPath);
   if ( capture ) {
     FFMPEGInit();
   }

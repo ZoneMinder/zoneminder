@@ -973,7 +973,8 @@ include('_monitor_source_nvsocket.php');
 ?>
             <tr class="LinkedMonitors">
               <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
-              <td>
+              <td><input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>"/><br/>
+    
 <?php
       $zones_by_monitor_id = array();
       foreach (ZM\Zone::find() as $zone) {
@@ -994,11 +995,12 @@ include('_monitor_source_nvsocket.php');
         }
       }
       echo htmlSelect(
-        'newMonitor[LinkedMonitors][]',
+        'newMonitor[AvailableLinkedMonitors][]',
         $monitor_options,
         ( $monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array() ),
-        array('class'=>'chosen','multiple'=>'multiple')
+        array('class'=>'chosen')
       );
+
 ?>
               </td>
             </tr>

@@ -344,13 +344,13 @@ function initPage() {
         form.elements['newMonitor[Latitude]'].value = position.lat;
         form.elements['newMonitor[Longitude]'].value = position.lng;
       });
+      map.invalidateSize();
+      $j("a[href='#pills-location']").on('shown.bs.tab', function(e) {
+          map.invalidateSize();
+          });
     } else {
       console.log('Location turned on but leaflet not installed.');
     }
-    map.invalidateSize();
-    $j("a[href='#pills-location']").on('shown.bs.tab', function(e) {
-      map.invalidateSize();
-    });
   } // end if ZM_OPT_USE_GEOLOCATION
 } // end function initPage()
 

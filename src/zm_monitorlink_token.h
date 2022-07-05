@@ -85,6 +85,7 @@ class Token {
     Token(TokenType const type, std::string_view const value)
       : type_(type)
         , value_(value)
+        , monitor_link_(nullptr)
   {
     if (type_ == TokenType::monitorlink) {
       auto colon_position = value_.find(':');
@@ -110,6 +111,7 @@ class Token {
 
     constexpr Token() noexcept :
       type_(TokenType::unknown),
+      value_(""),
       monitor_link_(nullptr)
       {
       }
@@ -120,6 +122,7 @@ class Token {
 
     constexpr Token( TokenType const type ) noexcept
       : type_ ( type )
+      , value_("")
       , monitor_link_(nullptr)
       {}
 

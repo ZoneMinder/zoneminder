@@ -65,7 +65,7 @@ class MonitorLinkExpression {
       /**
        * Message in case of the fault.
        */
-      std::string message{};
+      std::string_view message{};
     };
 
   public:

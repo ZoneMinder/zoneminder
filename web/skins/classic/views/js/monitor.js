@@ -346,8 +346,8 @@ function initPage() {
       });
       map.invalidateSize();
       $j("a[href='#pills-location']").on('shown.bs.tab', function(e) {
-          map.invalidateSize();
-          });
+        map.invalidateSize();
+      });
     } else {
       console.log('Location turned on but leaflet not installed.');
     }

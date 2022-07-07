@@ -28,6 +28,8 @@ extern "C" {
 #include <libavutil/time.h>
 }
 
+#include <string>
+
 /*
       AVCodecID codec_id;
       char *codec_codec;
@@ -103,7 +105,8 @@ VideoStore::VideoStore(
   audio_last_pts(AV_NOPTS_VALUE),
   next_dts(nullptr),
   audio_next_pts(0),
-  max_stream_index(-1)
+  max_stream_index(-1),
+  reorder_queue_size(0)
 {
   FFMPEGInit();
   swscale.init();
@@ -137,26 +140,27 @@ bool VideoStore::open() {
   ret = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
   if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
 
+  std::string options = monitor->GetEncoderOptions();
+  AVDictionary *opts = nullptr;
+  ret = av_dict_parse_string(&opts, options.c_str(), "=", "#,\n", 0);
+  if (ret < 0) {
+    Warning("Could not parse ffmpeg output options '%s'", options.c_str());
+  } else {
+    const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    if (entry) {
+      reorder_queue_size = std::stoul(entry->value);
+      Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+      // remove it to prevent complaining later.
+      av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    }
+  }
+
   oc->metadata = pmetadata;
   // Dirty hack to allow us to set flags. Needed for ffmpeg5
   out_format = const_cast<AVOutputFormat *>(oc->oformat);
   out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
 
   const AVCodec *video_out_codec = nullptr;
-
-  AVDictionary *opts = nullptr;
-  std::string Options = monitor->GetEncoderOptions();
-  Debug(2, "Options? %s", Options.c_str());
-  ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
-  if (ret < 0) {
-    Warning("Could not parse ffmpeg encoder options list '%s'", Options.c_str());
-  } else {
-    AVDictionaryEntry *e = nullptr;
-    while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-      Debug(3, "Encoder Option %s=%s", e->key, e->value);
-    }
-  }
-  av_dict_free(&opts);
 
   if (video_in_stream) {
     zm_dump_codecpar(video_in_stream->codecpar);
@@ -190,7 +194,6 @@ bool VideoStore::open() {
         }
       } // end if orientation
 
-      av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
       if (av_dict_get(opts, "new_extradata", nullptr, AV_DICT_MATCH_CASE)) {
         av_dict_set(&opts, "new_extradata", nullptr, 0);
         // Special flag to tell us to open a codec to get new extraflags to fix weird h265
@@ -238,6 +241,15 @@ bool VideoStore::open() {
           Error("Could not initialize stream parameteres");
         }
         av_dict_free(&opts);
+        // Reload it for next attempt and/or avformat open
+        ret = av_dict_parse_string(&opts, options.c_str(), "=", "#,\n", 0);
+        if (ret < 0) {
+          Warning("Could not parse ffmpeg output options '%s'", options.c_str());
+        } else {
+          if (reorder_queue_size) {
+            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          }
+        }
       }  // end if extradata_entry
     } else if (monitor->GetOptVideoWriter() == Monitor::ENCODE) {
       int wanted_codec = monitor->OutputCodec();
@@ -347,7 +359,13 @@ bool VideoStore::open() {
           av_buffer_unref(&hw_device_ctx);
         }  // end if hwdevice_type != NONE
 #endif
-        av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
+
+        // We have to re-parse the options because each attempt to open destroys the dictionary
+        AVDictionary *opts = 0;
+        ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+        if (ret < 0) {
+          Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+        }
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
             Warning("Can't open video codec (%s) %s",
@@ -368,6 +386,17 @@ bool VideoStore::open() {
           Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
         }
         av_dict_free(&opts);
+
+        // Reload it for next attempt and/or avformat open
+        ret = av_dict_parse_string(&opts, options.c_str(), "=", "#,\n", 0);
+        if (ret < 0) {
+          Warning("Could not parse ffmpeg output options '%s'", options.c_str());
+        } else {
+          if (reorder_queue_size) {
+            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          }
+        }
+
         if (video_out_codec) {
           break;
         }
@@ -501,7 +530,6 @@ bool VideoStore::open() {
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
-  av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if (!movflags_entry) {
     Debug(1, "setting movflags to frag_keyframe+empty_moov");
@@ -531,7 +559,7 @@ bool VideoStore::open() {
       }
     }
   }
-  if (opts) av_dict_free(&opts);
+  av_dict_free(&opts);
   if (ret < 0) {
     Error("Error occurred when writing out file header to %s: %s",
         filename, av_make_error_string(ret).c_str());
@@ -973,7 +1001,7 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
     Debug(1, "Pushing on queue %d, size is %zu", stream_index, queue.size());
   }
 
-  if (queue.size() > 10) {
+  if (queue.size() > reorder_queue_size) {
     auto pkt = queue.front();
     queue.pop_front();
     if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {

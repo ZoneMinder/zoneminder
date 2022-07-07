@@ -105,7 +105,8 @@ VideoStore::VideoStore(
   audio_last_pts(AV_NOPTS_VALUE),
   next_dts(nullptr),
   audio_next_pts(0),
-  max_stream_index(-1)
+  max_stream_index(-1),
+  reorder_queue_size(0)
 {
   FFMPEGInit();
   swscale.init();
@@ -137,7 +138,22 @@ bool VideoStore::open() {
 
   AVDictionary *pmetadata = nullptr;
   ret = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
-  if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+  if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+
+  AVDictionary *opts = 0;
+  std::string options = monitor->GetEncoderOptions();
+  ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+  if (ret < 0) {
+    Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+  } else {
+    const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    if (entry) {
+      reorder_queue_size = atoi(entry->value);
+      Debug(1, "reorder_queue_size set to %d", reorder_queue_size);
+      // remove it to prevent complaining later.
+      av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    }
+  }
 
   oc->metadata = pmetadata;
 #if !LIBAVFORMAT_VERSION_CHECK(59, 16, 0, 2, 0)
@@ -288,19 +304,6 @@ bool VideoStore::open() {
         }  // end if hwdevice_type != NONE
 #endif
 
-        AVDictionary *opts = 0;
-        std::string Options = monitor->GetEncoderOptions();
-        Debug(2, "Options? %s", Options.c_str());
-        ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg encoder options list '%s'", Options.c_str());
-        } else {
-          AVDictionaryEntry *e = nullptr;
-          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-            Debug(3, "Encoder Option %s=%s", e->key, e->value);
-          }
-        }
-
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
             Warning("Can't open video codec (%s) %s",
@@ -320,6 +323,8 @@ bool VideoStore::open() {
         while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
           Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
         }
+        av_dict_free(&opts);
+
         if (video_out_codec) break;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
         // We allocate and copy in newer ffmpeg, so need to free it
@@ -499,12 +504,11 @@ bool VideoStore::open() {
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
-  AVDictionary *opts = nullptr;
-
-  std::string option_string = monitor->GetEncoderOptions();
-  ret = av_dict_parse_string(&opts, option_string.c_str(), "=", "#,\n", 0);
-  if (ret < 0) {
-    Warning("Could not parse ffmpeg output options '%s'", option_string.c_str());
+  if (!opts) {
+    ret = av_dict_parse_string(&opts, options.c_str(), "=", "#,\n", 0);
+    if (ret < 0) {
+      Warning("Could not parse ffmpeg output options '%s'", options.c_str());
+    }
   }
 
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
@@ -1066,7 +1070,7 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
     Debug(1, "Pushing on queue %d, size is %zu", stream_index, queue.size());
   }
 
-  if (queue.size() > 10) {
+  if (queue.size() > reorder_queue_size) {
     auto pkt = queue.front();
     queue.pop_front();
     if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {

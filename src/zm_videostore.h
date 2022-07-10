@@ -107,7 +107,7 @@ class VideoStore {
 
     int max_stream_index;
 
-    int reorder_queue_size;
+    size_t reorder_queue_size;
     std::map<int, std::list<std::shared_ptr<ZMPacket>>> reorder_queues;
 
     bool setup_resampler();

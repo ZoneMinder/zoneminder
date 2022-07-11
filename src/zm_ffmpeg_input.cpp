@@ -198,6 +198,13 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       } else {
         zm_dump_frame(frame, "resulting frame");
       }
+      if (frame->pts == AV_NOPTS_VALUE) {
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+        frame->pts = frame->pkt_dts;
+#else
+        frame->pts = frame->pkt_pts;
+#endif
+      }
     }
 
     frameComplete = 1;

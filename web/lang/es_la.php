@@ -908,7 +908,6 @@ $SLANG = array(
     'Continuous'           => 'Continuo',
 
 //   ****************Prompts *************************
-//    'Default skin used by web interface' => 'Prueba absurda',
     'Add jpeg timestamp annotations as file header comments'    =>  'Agregar anotaciones de marca de tiempo jpeg como comentarios de encabezado de archivo',
     'How often to check database and filesystem consistency'    =>  'Con qué frecuencia verificar la consistencia de la base de datos y del sistema de archivos',
     'The minimum age in seconds event data must be in order to be deleted.'    =>  'La antigüedad mínima en segundos de los datos del evento debe ser para poder ser eliminados.',

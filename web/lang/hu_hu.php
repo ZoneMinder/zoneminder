@@ -80,39 +80,6 @@
 //header( "Content-Type: text/html; charset=iso8859-2" );
 header( "Content-Type: text/html; charset=utf-8" );
 
-// You may need to change your locale here if your default one is incorrect for the
-// language described in this file, or if you have multiple languages supported.
-// If you do need to change your locale, be aware that the format of this function
-// is subtlely different in versions of PHP before and after 4.3.0, see
-// http://uk2.php.net/manual/en/function.setlocale.php for details.
-// Also be aware that changing the whole locale may affect some floating point or decimal 
-// arithmetic in the database, if this is the case change only the individual locale areas
-// that don't affect this rather than all at once. See the examples below.
-// Finally, depending on your setup, PHP may not enjoy have multiple locales in a shared 
-// threaded environment, if you get funny errors it may be this.
-//
-// Examples
-// setlocale( 'LC_ALL', 'en_GB' ); All locale settings pre-4.3.0
-// setlocale( LC_ALL, 'hu_HU' ); //All locale settings 4.3.0 and after
-//setlocale( LC_CTYPE, 'hu_HU'); //Character class settings 4.3.0 and after
-//setlocale( LC_TIME, 'hu_HU'); //Date and time formatting 4.3.0 and after
-
-setlocale( LC_CTYPE, 'hu_HU.UTF-8');
-setlocale( LC_TIME, 'hu_HU.UTF-8' );
-
-//
-// Date and time formats, specific to this language
-//
-define( "DATE_FMT_CONSOLE_LONG", "%Y. %b. %e. %A, %H:%M" );     // This is the main console date/time, date() or strftime() format
-define( "DATE_FMT_CONSOLE_SHORT", "%H:%M" );                    // This is the xHTML console date/time, date() or strftime() format
-
-define( "STRF_FMT_DATETIME", "%Y. %b. %e., %H:%M" );            // Strftime locale aware format for dates with times
-define( "STRF_FMT_DATE", "%Y. %b. %e." );                       // Strftime locale aware format for dates without times
-define( "STRF_FMT_TIME", "%H:%M:%S" );                          // Strftime locale aware format for times without dates
-
-define( "STRF_FMT_DATETIME_SHORT", "%y/%m/%d %H:%M:%S" );       // Strftime shorter format for dates with time
-define( "STRF_FMT_DATETIME_SHORTER", "%m.%d. %H:%M:%S" );       // Strftime shorter format for dates with time, used where space is tight (events list)
-
 // Simple String Replacements
 $SLANG = array(
     '24BitColour'          => '24 bites szín',

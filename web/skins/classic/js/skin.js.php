@@ -125,8 +125,16 @@ stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
 stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 <?php
-global $config;
-foreach ($config as $name=>$c) {
-    echo 'const '. $name . ' = \''.preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']).'\';'.PHP_EOL;
+global $user;
+if ($user) {
+  // Only include config if logged in or auth turned off. The login view doesn't require any config.
+  global $config;
+  foreach ($config as $name=>$c) {
+    if (!(isset($c['Private']) and $c['Private'])) {
+      $value = preg_replace('/(\n\r?)/', '\\\\$1', $c['Value']);
+      $value = preg_replace('/\'/', '\\\\\'', $value);
+      echo 'const '. $name . ' = \''.$value.'\';'.PHP_EOL;
+    }
+  }
 }
 ?>

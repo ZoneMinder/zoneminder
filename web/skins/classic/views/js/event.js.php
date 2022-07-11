@@ -1,4 +1,6 @@
 <?php
+  ini_set('display_errors', '0');
+  global $dateTimeFormatter;
   global $connkey;
   global $Event;
   global $Monitor;
@@ -29,9 +31,9 @@ var eventData = {
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',
     StartDateTime: '<?php echo $Event->StartDateTime() ?>',
-    StartDateTimeShort: '<?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?>',
+    StartDateTimeFormatted: '<?php echo $dateTimeFormatter->format(strtotime($Event->StartDateTime())) ?>',
     EndDateTime: '<?php echo $Event->EndDateTime() ?>',
-    EndDateTimeShort: '<?php echo $Event->EndDateTime()? strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->EndDateTime())) : '' ?>',
+    EndDateTimeFormatted: '<?php echo $Event->EndDateTime()? $dateTimeFormatter->format(strtotime($Event->EndDateTime())) : '' ?>',
     Frames: '<?php echo $Event->Frames() ?>',
     AlarmFrames: '<?php echo $Event->AlarmFrames() ?>',
     TotScore: '<?php echo $Event->TotScore() ?>',
@@ -53,8 +55,9 @@ var eventDataStrings = {
     MonitorId: '<?php echo translate('AttrMonitorId') ?>',
     MonitorName: '<?php echo translate('AttrMonitorName') ?>',
     Cause: '<?php echo translate('Cause') ?>',
-    StartDateTimeShort: '<?php echo translate('AttrStartTime') ?>',
-    EndDateTimeShort: '<?php echo translate('AttrEndTime') ?>',
+    Notes: '<?php echo translate('Notes') ?>',
+    StartDateTimeFormatted: '<?php echo translate('AttrStartTime') ?>',
+    EndDateTimeFormatted: '<?php echo translate('AttrEndTime') ?>',
     Length: '<?php echo translate('Duration') ?>',
     Frames: '<?php echo translate('AttrFrames') ?>',
     AlarmFrames: '<?php echo translate('AttrAlarmFrames') ?>',

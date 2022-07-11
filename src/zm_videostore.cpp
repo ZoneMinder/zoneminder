@@ -27,6 +27,8 @@ extern "C" {
 #include "libavutil/time.h"
 }
 
+#include <string>
+
 /*
       AVCodecID codec_id;
       char *codec_codec;
@@ -105,10 +107,12 @@ VideoStore::VideoStore(
   audio_last_pts(AV_NOPTS_VALUE),
   next_dts(nullptr),
   audio_next_pts(0),
-  max_stream_index(-1)
+  max_stream_index(-1),
+  reorder_queue_size(0)
 {
   FFMPEGInit();
   swscale.init();
+  opkt = new AVPacket;
 }  // VideoStore::VideoStore
 
 bool VideoStore::open() {
@@ -136,7 +140,22 @@ bool VideoStore::open() {
 
   AVDictionary *pmetadata = nullptr;
   ret = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
-  if ( ret < 0 ) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+  if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
+
+  AVDictionary *opts = nullptr;
+  std::string options = monitor->GetEncoderOptions();
+  ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+  if (ret < 0) {
+    Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+  } else {
+    const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    if (entry) {
+      reorder_queue_size = std::stoul(entry->value);
+      Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+      // remove it to prevent complaining later.
+      av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    }
+  }
 
   oc->metadata = pmetadata;
 #if !LIBAVFORMAT_VERSION_CHECK(59, 16, 0, 2, 0)
@@ -287,19 +306,6 @@ bool VideoStore::open() {
         }  // end if hwdevice_type != NONE
 #endif
 
-        AVDictionary *opts = 0;
-        std::string Options = monitor->GetEncoderOptions();
-        Debug(2, "Options? %s", Options.c_str());
-        ret = av_dict_parse_string(&opts, Options.c_str(), "=", ",#\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg encoder options list '%s'", Options.c_str());
-        } else {
-          AVDictionaryEntry *e = nullptr;
-          while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
-            Debug(3, "Encoder Option %s=%s", e->key, e->value);
-          }
-        }
-
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
             Warning("Can't open video codec (%s) %s",
@@ -319,6 +325,12 @@ bool VideoStore::open() {
         while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
           Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
         }
+        av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+        if (reorder_queue_size) {
+          // remove it to prevent complaining later.
+          av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+        }
+
         if (video_out_codec) break;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
         // We allocate and copy in newer ffmpeg, so need to free it
@@ -352,6 +364,8 @@ bool VideoStore::open() {
   avcodec_copy_context(video_out_stream->codec, video_out_ctx);
 #endif
   last_dts[video_out_stream->index] = AV_NOPTS_VALUE;
+
+  reorder_queues[video_out_stream->index] = {};
 
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
   if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
@@ -496,12 +510,11 @@ bool VideoStore::open() {
   zm_dump_stream_format(oc, 0, 0, 1);
   if (audio_out_stream) zm_dump_stream_format(oc, 1, 0, 1);
 
-  AVDictionary *opts = nullptr;
-
-  std::string option_string = monitor->GetEncoderOptions();
-  ret = av_dict_parse_string(&opts, option_string.c_str(), "=", "#,\n", 0);
-  if (ret < 0) {
-    Warning("Could not parse ffmpeg output options '%s'", option_string.c_str());
+  if (!opts) {
+    ret = av_dict_parse_string(&opts, options.c_str(), "=", "#,\n", 0);
+    if (ret < 0) {
+      Warning("Could not parse ffmpeg output options '%s'", options.c_str());
+    }
   }
 
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
@@ -634,6 +647,22 @@ void VideoStore::flush_codecs() {
 }  // end flush_codecs
 
 VideoStore::~VideoStore() {
+
+  for (auto &n : reorder_queues) {
+    auto &queue = n.second;
+    Debug(1, "Queue for %d length is %zu", n.first, queue.size());
+    while (!queue.empty()) {
+      auto pkt = queue.front();
+      queue.pop_front();
+      if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
+        writeVideoFramePacket(pkt);
+      } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
+        writeAudioFramePacket(pkt);
+      }
+      //delete pkt;
+    }
+  }
+
   if (oc->pb) {
     flush_codecs();
 
@@ -1005,13 +1034,57 @@ bool VideoStore::setup_resampler() {
 #endif
 }  // end bool VideoStore::setup_resampler()
 
-int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &ipkt) {
-  if (ipkt->codec_type == AVMEDIA_TYPE_VIDEO) {
-    return writeVideoFramePacket(ipkt);
-  } else if (ipkt->codec_type == AVMEDIA_TYPE_AUDIO) {
-    return writeAudioFramePacket(ipkt);
+int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
+  int stream_index;
+  if (zm_pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
+    stream_index = video_out_stream->index;
+  } else if (zm_pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
+    stream_index = audio_out_stream->index;
+  } else {
+    Error("Unknown stream type in packet (%d)", zm_pkt->codec_type);
+    return -1;
   }
-  Error("Unknown stream type in packet (%d)", ipkt->codec_type);
+  auto &queue = reorder_queues[stream_index];
+  Debug(1, "Queue size for %d is %zu", stream_index, queue.size());
+
+  AVPacket *av_pkt = &zm_pkt->packet;
+  // queue the packet
+  bool have_out_of_order = false;
+  auto rit = queue.rbegin();
+  // Find the previous packet for the stream, and check dts
+  while (rit != queue.rend()) {
+    AVPacket *p = &((*rit)->packet);
+    if (p->dts <= av_pkt->dts) {
+      Debug(1, "Found in order packet");
+      // packets are in order, everything is fine
+      break;
+    } else {
+      have_out_of_order = true;
+    }
+    rit++;
+  }  // end while
+
+  if (have_out_of_order) {
+    queue.insert(rit.base(), zm_pkt);
+    if (rit == queue.rend()) {
+      Warning("Unable to re-order packet");
+    } else {
+      Debug(1, "Found out of order packet");
+    }
+  } else {
+    queue.push_back(zm_pkt);
+    Debug(1, "Pushing on queue %d, size is %zu", stream_index, queue.size());
+  }
+
+  if (queue.size() > reorder_queue_size) {
+    auto pkt = queue.front();
+    queue.pop_front();
+    if (pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
+      return writeVideoFramePacket(pkt);
+    } else if (pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
+      return writeAudioFramePacket(pkt);
+    }
+  }
   return 0;
 }
 
@@ -1130,24 +1203,24 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
             video_out_ctx->time_base.den);
     }
 
-    av_init_packet(&opkt);
-    opkt.data = nullptr;
-    opkt.size = 0;
+    av_init_packet(opkt);
+    opkt->data = nullptr;
+    opkt->size = 0;
 
-    int ret = zm_send_frame_receive_packet(video_out_ctx, frame, opkt);
+    int ret = zm_send_frame_receive_packet(video_out_ctx, frame, *opkt);
     if (ret <= 0) {
       if (ret < 0) {
         Error("Could not send frame (error '%s')", av_make_error_string(ret).c_str());
       }
       return ret;
     }
-    ZM_DUMP_PACKET(opkt, "packet returned by codec");
+    ZM_DUMP_PACKET((*opkt), "packet returned by codec");
 
     // Need to adjust pts/dts values from codec time to stream time
-    if (opkt.pts != AV_NOPTS_VALUE)
-      opkt.pts = av_rescale_q(opkt.pts, video_out_ctx->time_base, video_out_stream->time_base);
-    if (opkt.dts != AV_NOPTS_VALUE)
-      opkt.dts = av_rescale_q(opkt.dts, video_out_ctx->time_base, video_out_stream->time_base);
+    if (opkt->pts != AV_NOPTS_VALUE)
+      opkt->pts = av_rescale_q(opkt->pts, video_out_ctx->time_base, video_out_stream->time_base);
+    if (opkt->dts != AV_NOPTS_VALUE)
+      opkt->dts = av_rescale_q(opkt->dts, video_out_ctx->time_base, video_out_stream->time_base);
     Debug(1, "Timebase conversions using %d/%d -> %d/%d",
         video_out_ctx->time_base.num,
         video_out_ctx->time_base.den,
@@ -1191,39 +1264,37 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     } else {
       //duration = av_rescale_q(zm_packet->out_frame->pts - video_last_pts, video_in_stream->time_base, video_out_stream->time_base);
     }  // end if in_frmae
-    opkt.duration = duration;
+    opkt->duration = duration;
   } else { // Passthrough
     AVPacket *ipkt = &zm_packet->packet;
     ZM_DUMP_STREAM_PACKET(video_in_stream, (*ipkt), "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
-    av_init_packet(&opkt);
-    opkt.data = ipkt->data;
-    opkt.size = ipkt->size;
-    opkt.flags = ipkt->flags;
-    opkt.duration = ipkt->duration;
+    av_init_packet(opkt);
+    opkt->data = ipkt->data;
+    opkt->size = ipkt->size;
+    opkt->flags = ipkt->flags;
+    opkt->duration = ipkt->duration;
+    av_packet_ref(opkt, ipkt);
 
     if (ipkt->dts != AV_NOPTS_VALUE) {
       if (video_first_dts == AV_NOPTS_VALUE) {
         Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
         video_first_dts = ipkt->dts;
       }
-      opkt.dts = ipkt->dts - video_first_dts;
+      opkt->dts = ipkt->dts - video_first_dts;
     //} else {
       //opkt.dts = next_dts[video_out_stream->index] ? av_rescale_q(next_dts[video_out_stream->index], video_out_stream->time_base, video_in_stream->time_base) : 0;
       //Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, next_dts[video_out_stream->index]);
     }
     if ((ipkt->pts != AV_NOPTS_VALUE) and (video_first_dts != AV_NOPTS_VALUE)) {
-      opkt.pts = ipkt->pts - video_first_dts;
-    //} else {
-      //opkt.pts = opkt.dts;
+      opkt->pts = ipkt->pts - video_first_dts;
     }
 
-    av_packet_rescale_ts(&opkt, video_in_stream->time_base, video_out_stream->time_base);
-    ZM_DUMP_STREAM_PACKET(video_out_stream, opkt, "after pts adjustment");
-  } // end if codec matches
+    av_packet_rescale_ts(opkt, video_in_stream->time_base, video_out_stream->time_base);
+  }  // end if codec matches
 
-  write_packet(&opkt, video_out_stream);
-  zm_av_packet_unref(&opkt);
+  write_packet(opkt, video_out_stream);
+  zm_av_packet_unref(opkt);
   if (hw_frame) av_frame_free(&hw_frame);
 
   return 1;
@@ -1275,17 +1346,17 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
 
       zm_dump_frame(out_frame, "Out frame after resample");
 
-      av_init_packet(&opkt);
-      if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, opkt) <= 0)
+      av_init_packet(opkt);
+      if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, *opkt) <= 0)
         break;
 
       // Scale the PTS of the outgoing packet to be the correct time base
-      av_packet_rescale_ts(&opkt,
+      av_packet_rescale_ts(opkt,
           audio_out_ctx->time_base,
           audio_out_stream->time_base);
 
-      write_packet(&opkt, audio_out_stream);
-      zm_av_packet_unref(&opkt);
+      write_packet(opkt, audio_out_stream);
+      zm_av_packet_unref(opkt);
 
       if (zm_resample_get_delay(resample_ctx, out_frame->sample_rate) < out_frame->nb_samples)
         break;
@@ -1293,26 +1364,25 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
       input_frame = nullptr;
     }  // end while there is data in the resampler
   } else {
-    av_init_packet(&opkt);
-    opkt.data = ipkt->data;
-    opkt.size = ipkt->size;
-    opkt.flags = ipkt->flags;
-
-    opkt.duration = ipkt->duration;
+    av_init_packet(opkt);
+    opkt->data = ipkt->data;
+    opkt->size = ipkt->size;
+    opkt->flags = ipkt->flags;
+    opkt->duration = ipkt->duration;
     if (audio_first_dts != AV_NOPTS_VALUE) {
-      opkt.pts = ipkt->pts - audio_first_dts;
-      opkt.dts = ipkt->dts - audio_first_dts;
+      opkt->pts = ipkt->pts - audio_first_dts;
+      opkt->dts = ipkt->dts - audio_first_dts;
     } else {
-      opkt.pts = ipkt->pts;
-      opkt.dts = ipkt->dts;
+      opkt->pts = ipkt->pts;
+      opkt->dts = ipkt->dts;
     }
 
     ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "after pts adjustment");
-    av_packet_rescale_ts(&opkt, audio_in_stream->time_base, audio_out_stream->time_base);
-    ZM_DUMP_STREAM_PACKET(audio_out_stream, opkt, "after stream pts adjustment");
-    write_packet(&opkt, audio_out_stream);
+    av_packet_rescale_ts(opkt, audio_in_stream->time_base, audio_out_stream->time_base);
+    ZM_DUMP_STREAM_PACKET(audio_out_stream, (*opkt), "after stream pts adjustment");
+    write_packet(opkt, audio_out_stream);
 
-    zm_av_packet_unref(&opkt);
+    zm_av_packet_unref(opkt);
   }  // end if encoding or copying
 
   return 0;

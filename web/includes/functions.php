@@ -45,7 +45,7 @@ function CSPHeaders($view, $nonce) {
 
   $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
-    case 'login': {
+    case 'login':
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
@@ -53,42 +53,12 @@ function CSPHeaders($view, $nonce) {
         $additionalScriptSrc .= ' https://www.google.com';
       }
       // fall through
-    }
-    case 'bandwidth':
-    case 'blank':
-    case 'console':
-    case 'controlcap':
-    case 'cycle':
-    case 'donate':
-    case 'download':
-    case 'error':
-    case 'events':
-    case 'export':
-    case 'frame':
-    case 'function':
-    case 'log':
-    case 'logout':
-    case 'optionhelp':
-    case 'options':
-    case 'plugin':
-    case 'postlogin':
-    case 'privacy':
-    case 'server':
-    case 'state':
-    case 'status':
-    case 'storage':
-    case 'version': {
+    default:
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      header("Content-Security-Policy: script-src 'self' 'nonce-$nonce' $additionalScriptSrc");
-      break;
-    }
-    default: {
-      // Use Report-Only mode on all other pages.
-      header("Content-Security-Policy-Report-Only: script-src 'self' 'nonce-$nonce' $additionalScriptSrc;".
-        (ZM_CSP_REPORT_URI ? ' report-uri '.ZM_CSP_REPORT_URI : '' )
+      header("Content-Security-Policy: script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
+        (ZM_CSP_REPORT_URI ? '; report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;
-    }
   }
 }
 
@@ -496,9 +466,12 @@ function htmlOptions($options, $values) {
     } else {
       $text = $option;
     }
-    $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
-    if ( !$has_selected ) 
-      $has_selected = $selected;
+    $selected = false;
+    if ($values) {
+      $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
+      if ( !$has_selected ) 
+        $has_selected = $selected;
+    }
 
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
@@ -2008,16 +1981,19 @@ function validNum( $input ) {
 
 // For general strings
 function validStr($input) {
+  if (is_null($input)) return '';
   return strip_tags($input);
 }
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
 function validJsStr($input) {
+  if (is_null($input)) return '';
   return strip_tags(addslashes($input));
 }
 
 // For general text in pages outside of tags or quotes so quotes converted to entities
 function validHtmlStr($input) {
+  if (is_null($input)) return '';
   return htmlspecialchars($input, ENT_QUOTES);
 }
 
@@ -2144,6 +2120,9 @@ function folder_size($dir) {
 } // end function folder_size
 
 function human_filesize($size, $precision = 2) {
+  if ($size === null) {
+    return 'null';
+  }
   $units = array('B ','kB','MB','GB','TB','PB','EB','ZB','YB');
   $step = 1024;
   $i = 0;

@@ -386,7 +386,7 @@ function getSysLoadHTML() {
 
   $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
   $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
-  $result .= '&nbsp;'.translate('Load').': '.getLoad().PHP_EOL;
+  $result .= '&nbsp;'.translate('Load').': '.number_format(getLoad(), 2, '.', '').PHP_EOL;
   $result .= '</li>'.PHP_EOL;
   
   return $result;
@@ -884,7 +884,7 @@ function xhtmlFooter() {
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
-  <script src="<?php echo cache_bust('skins/'.$skin.'/js/bootstrap.min.js'); ?>"></script>
+  <script src="<?php echo 'skins/'.$skin.'/js/bootstrap.min.js' ?>"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
   'js/bootstrap-table.min.js',

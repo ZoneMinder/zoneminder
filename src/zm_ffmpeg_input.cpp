@@ -43,7 +43,6 @@ int FFmpeg_Input::Open(
 }
 
 int FFmpeg_Input::Open(const char *filepath) {
-
   int error;
 
   /** Open the input file to read from it. */
@@ -209,8 +208,13 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 
     frameComplete = 1;
 
-    zm_av_packet_unref(&packet);
+    // Convert timestamps to stream timebase instead of codec timebase
+    frame->pts = av_rescale_q(frame->pts,
+        context->time_base,
+        input_format_context->streams[stream_id]->time_base
+        );
 
+    zm_av_packet_unref(&packet);
   } // end while !frameComplete
   return frame;
 }  // end AVFrame *FFmpeg_Input::get_frame
@@ -270,6 +274,17 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 
 	last_seek_request = seek_target;
 
+  if (frame->pts + frame->pkt_duration < seek_target) {
+    Debug(1, "Jumping ahead");
+    if (( ret = av_seek_frame(input_format_context, stream_id, seek_target,
+            AVSEEK_FLAG_FRAME
+            ) ) < 0) {
+      Error("Unable to seek in stream %d", ret);
+      return nullptr;
+    }
+    // Have to grab a frame to update our current frame to know where we are
+    get_frame(stream_id);
+  }
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
   if ( frame->pts <= seek_target ) {
     if ( is_video_stream(input_format_context->streams[stream_id]) ) {

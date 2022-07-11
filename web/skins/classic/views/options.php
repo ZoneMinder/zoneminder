@@ -467,6 +467,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   foreach ($configCat as $name=>$value) {
     $shortName = preg_replace('/^ZM_/', '', $name);
     $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
+    $optionPromptText = translate(optionPromptText);
     $optionCanEdit = $canEdit && !$value['System'];
 ?>
             <div class="form-group form-row">

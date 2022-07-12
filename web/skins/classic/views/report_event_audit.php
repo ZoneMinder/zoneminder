@@ -114,8 +114,8 @@ while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
     <div class="filterBar">
       <?php echo $filterbar ?>
       <div id="DateTimeDiv">
-        <label>Event Start Time</label>
-        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> to 
+        <label><?php echo translate('Event Start Time') ?></label>
+        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> <?php echo translate('to') ?> 
         <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>"/>
       </div>
     </div><!--FilterBar-->

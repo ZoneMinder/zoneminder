@@ -27,6 +27,8 @@ extern "C" {
 #include "libavutil/time.h"
 }
 
+#include <string>
+
 /*
       AVCodecID codec_id;
       char *codec_codec;
@@ -140,7 +142,7 @@ bool VideoStore::open() {
   ret = av_dict_set(&pmetadata, "title", "Zoneminder Security Recording", 0);
   if (ret < 0) Warning("%s:%d: title set failed", __FILE__, __LINE__);
 
-  AVDictionary *opts = 0;
+  AVDictionary *opts = nullptr;
   std::string options = monitor->GetEncoderOptions();
   ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
   if (ret < 0) {
@@ -148,8 +150,8 @@ bool VideoStore::open() {
   } else {
     const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     if (entry) {
-      reorder_queue_size = atoi(entry->value);
-      Debug(1, "reorder_queue_size set to %d", reorder_queue_size);
+      reorder_queue_size = std::stoul(entry->value);
+      Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     }
@@ -323,7 +325,11 @@ bool VideoStore::open() {
         while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
           Warning("Encoder Option %s not recognized by ffmpeg codec", e->key);
         }
-        av_dict_free(&opts);
+        av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+        if (reorder_queue_size) {
+          // remove it to prevent complaining later.
+          av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+        }
 
         if (video_out_codec) break;
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)

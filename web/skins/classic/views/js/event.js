@@ -450,6 +450,7 @@ function streamFastRev(action) {
 function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
+    if (vid==null) streamReq({command: CMD_QUIT});
     location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     return;
 
@@ -484,6 +485,7 @@ function streamNext(action) {
   // We used to try to dynamically update all the bits in the page, which is really complex
   // How about we just reload the page?
   //
+  if (vid==null) streamReq({command: CMD_QUIT});
   location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
   return;
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {

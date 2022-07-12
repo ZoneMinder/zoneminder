@@ -166,6 +166,7 @@ if (ZM_TIME_FORMAT_PATTERN) {
 ZM\Logger::fetch()->initialise();
 
 $GLOBALS['defaultUser'] = array(
+  'Id'        => 0,
   'Username'  => 'admin',
   'Password'  => '',
   'Language'  => '',

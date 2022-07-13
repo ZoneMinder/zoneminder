@@ -1715,7 +1715,8 @@ bool Monitor::Poll() {
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
           if (msg->Topic->__any.text != NULL &&
 	  // need to modify this for something more standardized
-          std::strstr(msg->Topic->__any.text, "MotionAlarm") &&
+          // std::strstr(msg->Topic->__any.text, "MotionAlarm") && org. line
+	  std::strstr(msg->Topic->__any.text, "CellMotionDetector") &&    
           msg->Message.__any.elts != NULL &&
           msg->Message.__any.elts->next != NULL &&
           msg->Message.__any.elts->next->elts != NULL &&

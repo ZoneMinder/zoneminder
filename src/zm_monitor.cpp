@@ -1714,6 +1714,7 @@ bool Monitor::Poll() {
         Debug(1, "Got Good Response! %i", result);
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
           if (msg->Topic->__any.text != NULL &&
+	  // need to modify this for something more standardized
           std::strstr(msg->Topic->__any.text, "MotionAlarm") &&
           msg->Message.__any.elts != NULL &&
           msg->Message.__any.elts->next != NULL &&

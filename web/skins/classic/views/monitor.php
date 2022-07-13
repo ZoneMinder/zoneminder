@@ -290,14 +290,14 @@ $orientations = array(
     );
 
 $deinterlaceopts = array(
-  0x00000000 => 'Disabled',
-  0x00001E04 => 'Four field motion adaptive - Soft', /* 30 change */
-  0x00001404 => 'Four field motion adaptive - Medium', /* 20 change */
-  0x00000A04 => 'Four field motion adaptive - Hard', /* 10 change */
-  0x00000001 => 'Discard',
-  0x00000002 => 'Linear',
-  0x00000003 => 'Blend',
-  0x00000205 => 'Blend (25%)',
+  0x00000000 => translate('Disabled'),
+  0x00001E04 => translate('Four field motion adaptive - Soft'), /* 30 change */
+  0x00001404 => translate('Four field motion adaptive - Medium'), /* 20 change */
+  0x00000A04 => translate('Four field motion adaptive - Hard'), /* 10 change */
+  0x00000001 => translate('Discard'),
+  0x00000002 => translate('Linear'),
+  0x00000003 => translate('Blend'),
+  0x00000205 => translate('Blend (25%)'),
 );
 
 $deinterlaceopts_v4l2 = array(
@@ -317,23 +317,23 @@ $deinterlaceopts_v4l2 = array(
 );
 
 $fastblendopts = array(
-    0  => 'No blending',
+    0  => translate ('No blending'),
     1  => '1.5625%',
     3  => '3.125%',
-    6  => '6.25% (Indoor)',
-    12 => '12.5% (Outdoor)',
+    6  => translate('6.25% (Indoor)'),
+    12 => translate('12.5% (Outdoor)'),
     25 => '25%',
     50 => '50%',
     );
 
 $fastblendopts_alarm = array(
-    0  => 'No blending (Alarm lasts forever)',
+    0  => translate('No blending (Alarm lasts forever)'),
     1  => '1.5625%',
     3  => '3.125%',
     6  => '6.25%',
     12 => '12.5%',
     25 => '25%',
-    50 => '50% (Alarm lasts a moment)',
+    50 => translate('50% (Alarm lasts a moment)'),
     );
 
 $label_size = array(
@@ -580,11 +580,11 @@ switch ($name) {
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('ONVIF_Event_Listener') ?></td>
-              <td><?php echo html_radio('newMonitor[ONVIF_Event_Listener]', array('1'=>translate('Enabled'), '0'=>'Disabled'), $monitor->ONVIF_Event_Listener()); ?></td>
+              <td><?php echo html_radio('newMonitor[ONVIF_Event_Listener]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->ONVIF_Event_Listener()); ?></td>
             </tr>
             <tr id="function_use_Amcrest_API">
               <td class="text-right pr-3"><?php echo translate('use_Amcrest_API') ?></td>
-              <td><?php echo html_radio('newMonitor[use_Amcrest_API]', array('1'=>translate('Enabled'), '0'=>'Disabled'), $monitor->use_Amcrest_API()); ?></td>
+              <td><?php echo html_radio('newMonitor[use_Amcrest_API]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->use_Amcrest_API()); ?></td>
             </tr>
 <?php
         break;
@@ -1052,10 +1052,10 @@ include('_monitor_source_nvsocket.php');
             <td>
 <?php
       $savejpegopts = array(
-        0 => 'Disabled',
-        1 => 'Frames only',
-        2 => 'Analysis images only (if available)',
-        3 => 'Frames + Analysis images (if available)',
+        0 => translate('Disabled'),
+        1 => translate('Frames only'),
+        2 => translate('Analysis images only (if available)'),
+        3 => translate('Frames + Analysis images (if available)'),
       );
       echo htmlSelect('newMonitor[SaveJPEGs]', $savejpegopts, $monitor->SaveJPEGs());
 ?>
@@ -1064,15 +1064,15 @@ include('_monitor_source_nvsocket.php');
             <tr><td class="text-right pr-3"><?php echo translate('VideoWriter') ?></td><td>
 <?php
 	$videowriteropts = array(
-			0 => 'Disabled',
+			0 => translate('Disabled'),
 			);
 
-  $videowriteropts[1] = 'Encode';
+  $videowriteropts[1] = translate('Encode');
 
   if ( $monitor->Type() == 'Ffmpeg' )
-    $videowriteropts[2] = 'Camera Passthrough';
+    $videowriteropts[2] = translate('Camera Passthrough');
   else
-    $videowriteropts[2] = array('text'=>'Camera Passthrough - only for FFMPEG','disabled'=>1);
+    $videowriteropts[2] = array('text'=>translate('Camera Passthrough - only for FFMPEG'),'disabled'=>1);
 	echo htmlSelect('newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter());
 ?>
               </td>
@@ -1135,7 +1135,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
               <input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/>
 <?php } else { ?>
-              Audio recording only available with FFMPEG
+              <?php echo translate('Audio recording only available with FFMPEG')?>
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
               </td>

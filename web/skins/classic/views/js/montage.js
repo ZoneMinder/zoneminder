@@ -145,22 +145,34 @@ function edit_layout(button) {
   });
   $j('#SaveLayout').show();
   $j('#EditLayout').hide();
+
+  const layout = layouts[document.getElementById('zmMontageLayout').value];
+  if (user.Id && (layout.UserId == 0 || layout.UserId != user.Id)) {
+    alert('You may not edit this layout, but you can create a new one from it. Please give it a name.');
+  }
 } // end function edit_layout
 
 function save_layout(button) {
   mode = VIEWING;
 
-  var form = button.form;
-  var name = form.elements['Name'].value;
+  const form = button.form;
+  let name = form.elements['Name'].value;
+  const layout = layouts[form.zmMontageLayout.value];
 
-  if ( !name ) {
+  if (!name) {
     name = form.elements['zmMontageLayout'].options[form.elements['zmMontageLayout'].selectedIndex].text;
-  }
-
-  if ( name=='Freeform' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' ) {
-    alert('You cannot edit the built in layouts.  Please give the layout a new name.');
+    if ( name=='Freeform' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' ) {
+      alert('You cannot edit the built in layouts.  Please give the layout a new name.');
+      return;
+    } else if (user.Id && (layout.UserId != user.Id) && !canEdit('System') && (name != layout.Name)) {
+      alert('You cannot edit someone else\'s layouts.  Please give the layout a new name.');
+      return;
+    }
+  } else if ( name=='Freeform' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' ) {
+    alert('You cannot use that name. It conflicts with the built in layouts.  Please give the layout a new name.');
     return;
   }
+
 
   // In fixed positioning, order doesn't matter.  In floating positioning, it does.
   var Positions = {};

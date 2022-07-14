@@ -45,7 +45,7 @@ RemoteCamera::RemoteCamera(
     host( p_host ),
     port( p_port ),
     path( p_path ),
-    hp( 0 ),
+    hp( nullptr ),
     mNeedAuth(false),
     mAuthenticator(nullptr)
 {

@@ -2477,8 +2477,8 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   colour = rgb_convert(colour, subpixelorder);
 
   size_t n_coords = polygon.GetVertices().size();
-  if (!n_coords) {
-    Error("No vertices from polygon!");
+  if (n_coords < 3) {
+    Error("Not enough vertices in polygon!");
     return;
   }
 

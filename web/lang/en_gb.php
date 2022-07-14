@@ -69,11 +69,6 @@
 // setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
 // setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
 
-setlocale( LC_TIME, 'en_GB.utf8' );
-define("DATE_FMT_CONSOLE_LONG", "%a %d %b, %Hh%M");
-define( "STRF_FMT_DATETIME_SHORT", "%d/%m/%y %H:%M:%S" );
-define( "STRF_FMT_DATETIME_SHORTER", "%x %H:%M:%S" );
-
 // Simple String Replacements
 $SLANG = array(
     'SystemLog'             => 'System Log',

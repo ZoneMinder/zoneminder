@@ -35,8 +35,6 @@ bool FifoStream::sendRAWFrames() {
     return false;
   }
   while ( (bytes_read = read(fd, buffer, RAW_BUFFER)) ) {
-    if ( bytes_read == 0 )
-      continue;
     if ( bytes_read < 0 ) {
       Error("Problem during reading: %s", strerror(errno));
       close(fd);

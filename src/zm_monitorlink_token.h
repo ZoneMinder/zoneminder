@@ -55,6 +55,7 @@ class Token {
       token_type_pair{ "(", TokenType::lp          },
       token_type_pair{ ")", TokenType::rp          }
     };
+
     //constexpr TokenType to_token_type( std::string_view const value ) noexcept;
     constexpr TokenType to_token_type( std::string_view const value ) noexcept {
       auto find_matching {
@@ -71,50 +72,49 @@ class Token {
         }
       };
 
-      if (
-          auto const symbol{ find_matching( symbols ) };
-          symbol != std::cend( symbols )
-         ) {
+      auto const symbol{ find_matching(symbols) };
+      if (symbol != std::cend(symbols)) {
         return symbol->second;
       }
 
       return TokenType::monitorlink;
-    }
+    } // end constexpr TokenType to_token_type( std::string_view const value )
+
   public:
 
     Token(TokenType const type, std::string_view const value)
       : type_(type)
         , value_(value)
         , monitor_link_(nullptr)
-  {
-    if (type_ == TokenType::monitorlink) {
-      auto colon_position = value_.find(':');
-      unsigned int monitor_id = 0;
-      unsigned int zone_id = 0;
-      std::string monitor_name;
-      std::string zone_name;
+    {
+      if (type_ == TokenType::monitorlink) {
+        auto colon_position = value_.find(':');
+        unsigned int monitor_id = 0;
+        unsigned int zone_id = 0;
+        std::string monitor_name;
+        std::string zone_name;
 
-      if (colon_position != std::string::npos) {
-        // Has a zone specification
-        monitor_id = std::stoul(std::string(value_.substr(0, colon_position)));
-        zone_id = std::stoul(std::string(value_.substr(colon_position+1, std::string::npos)));
+        if (colon_position != std::string::npos) {
+          // Has a zone specification
+          monitor_id = std::stoul(std::string(value_.substr(0, colon_position)));
+          zone_id = std::stoul(std::string(value_.substr(colon_position+1, std::string::npos)));
+        } else {
+          monitor_id = std::stoul(std::string(value_));
+        }
+        Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
 
+        std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
+        monitor_link_ = new Monitor::MonitorLink(monitor, zone_id);
       } else {
-        monitor_id = std::stoul(std::string(value_));
+        Debug( 1, "Not a monitor link value is %s", std::string(value_).c_str());
       }
-      Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
-
-      std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-      monitor_link_ = new Monitor::MonitorLink(monitor, zone_id);
     }
-  }
 
     constexpr Token() noexcept :
       type_(TokenType::unknown),
       value_(""),
       monitor_link_(nullptr)
-      {
-      }
+      { }
     //Token( TokenType const type, std::string_view const value );
 
     constexpr Token( Token       && rhs ) noexcept = default;
@@ -126,11 +126,33 @@ class Token {
       , monitor_link_(nullptr)
       {}
 
-    constexpr Token( std::string_view const value ) noexcept
+    Token( std::string_view const value ) noexcept
       : type_ (to_token_type(value))
       , value_(value)
       , monitor_link_(nullptr)
-      {}
+      {
+      if (type_ == TokenType::monitorlink) {
+        auto colon_position = value_.find(':');
+        unsigned int monitor_id = 0;
+        unsigned int zone_id = 0;
+        std::string monitor_name;
+        std::string zone_name;
+
+        if (colon_position != std::string::npos) {
+          // Has a zone specification
+          monitor_id = std::stoul(std::string(value_.substr(0, colon_position)));
+          zone_id = std::stoul(std::string(value_.substr(colon_position+1, std::string::npos)));
+        } else {
+          monitor_id = std::stoul(std::string(value_));
+        }
+        Debug(1, "Have linked monitor %d zone %d", monitor_id, zone_id);
+
+        std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
+        monitor_link_ = new Monitor::MonitorLink(monitor, zone_id);
+      } else {
+        Debug( 1, "Not a monitor link value is %s", std::string(value_).c_str());
+      }
+      }
 
     Token & operator=( Token       && rhs ) noexcept = default;
     Token & operator=( Token const  & rhs ) noexcept = default;
@@ -145,6 +167,7 @@ class Token {
         type_  = type;
         value_ = "";//to_token_keyword( type );
       }
+
     }
 
     constexpr TokenType type() const noexcept { return type_; }
@@ -152,6 +175,7 @@ class Token {
     constexpr void value( std::string_view const value ) noexcept {
       type_  = to_token_type( value );
       value_ = value;
+
     }
 
     [[ nodiscard ]] constexpr std::string_view value() const noexcept {
@@ -172,6 +196,26 @@ class Token {
         ) const noexcept
     {
       return is(first) || is(second);
+    }
+
+    [[ nodiscard ]] constexpr bool hasAlarmed() const {
+      return (monitor_link_ && monitor_link_->connect() && monitor_link_->hasAlarmed());
+    }
+
+    [[ nodiscard ]] constexpr int score() const {
+      if ( monitor_link_ ) {
+        if (!monitor_link_->isConnected() ) {
+          Debug(1, "connecting");
+          if (!monitor_link_->connect()) {
+            Debug(1, "failed");
+            return 0;
+          }
+        }
+        int s = monitor_link_->score();
+        Debug(1, "Score from monitor %s is %d", monitor_link_->Name(), s);
+        return s;
+      }
+      return 0;
     }
 
   private:

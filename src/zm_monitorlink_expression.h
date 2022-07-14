@@ -66,6 +66,7 @@ class MonitorLinkExpression {
        * Message in case of the fault.
        */
       std::string_view message{};
+      int score {-1};
     };
 
   public:

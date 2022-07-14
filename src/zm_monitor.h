@@ -307,6 +307,7 @@ public:
       bool isAlarmed();
       bool inAlarm();
       bool hasAlarmed();
+      int score();
   };
 protected:
 

@@ -389,7 +389,7 @@ void PacketQueue::clear() {
     *iterator_it = pktQueue.begin();
   }  // end foreach iterator
 
-  if (packet_counts) delete[] packet_counts;
+  delete[] packet_counts;
   packet_counts = nullptr;
   max_stream_id = -1;
 

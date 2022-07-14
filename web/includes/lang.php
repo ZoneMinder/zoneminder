@@ -68,3 +68,4 @@ if ( $langFile = loadLanguage() ) {
       $SLANG[$key] = $DLANG[$key];
   }
 }
+?>

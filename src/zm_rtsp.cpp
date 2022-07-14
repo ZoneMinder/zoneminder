@@ -395,9 +395,7 @@ void RtspThread::Run() {
       if (mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
         // Check if control Url is absolute or relative
         controlUrl = mediaDesc->getControlUrl();
-        if (trackUrl == controlUrl) {
-          trackUrl = controlUrl;
-        } else {
+        if (trackUrl != controlUrl) {
           if ( *trackUrl.rbegin() != '/' ) {
             trackUrl += "/" + controlUrl;
           } else {

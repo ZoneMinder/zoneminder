@@ -8,6 +8,3 @@
 [submodule "dep/RtspServer"]
 	path = dep/RtspServer
 	url = https://github.com/ZoneMinder/RtspServer
-[submodule "dep/booleval"]
-	path = dep/booleval
-	url = git@github.com:m-peko/booleval.git

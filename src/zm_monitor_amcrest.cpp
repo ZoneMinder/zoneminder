@@ -40,7 +40,6 @@ int Monitor::AmcrestAPI::start_Amcrest() {
   //init the transfer and start it in multi-handle
   int running_handles;
   long response_code;
-  struct CURLMsg *m;
   CURLMcode curl_error;
   if (Amcrest_handle != nullptr) {  //potentially clean up the old handle
     curl_multi_remove_handle(curl_multi, Amcrest_handle);
@@ -69,7 +68,7 @@ int Monitor::AmcrestAPI::start_Amcrest() {
   if (curl_error == CURLM_OK) {
     curl_easy_getinfo(Amcrest_handle, CURLINFO_RESPONSE_CODE, &response_code);
     int msgq = 0;
-    m = curl_multi_info_read(curl_multi, &msgq);
+    struct CURLMsg *m = curl_multi_info_read(curl_multi, &msgq);
     if (m && (m->msg == CURLMSG_DONE)) {
       Warning("Libcurl exited Early: %i", m->data.result);
     }

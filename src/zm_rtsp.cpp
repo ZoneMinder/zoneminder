@@ -395,9 +395,7 @@ void RtspThread::Run() {
       if (mFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
         // Check if control Url is absolute or relative
         controlUrl = mediaDesc->getControlUrl();
-        if (trackUrl == controlUrl) {
-          trackUrl = controlUrl;
-        } else {
+        if (trackUrl != controlUrl) {
           if ( *trackUrl.rbegin() != '/' ) {
             trackUrl += "/" + controlUrl;
           } else {
@@ -545,7 +543,7 @@ void RtspThread::Run() {
   } else {
     Debug( 2, "Got RTP Info %s", rtpInfo.c_str() );
     // More than one stream can be included in the RTP Info
-    streams = Split(rtpInfo.c_str(), ",");
+    streams = Split(rtpInfo, ",");
     for ( size_t i = 0; i < streams.size(); i++ ) {
       // We want the stream that matches the trackUrl we are using
       if ( streams[i].find(controlUrl.c_str()) != std::string::npos ) {
@@ -684,14 +682,14 @@ void RtspThread::Run() {
             if ( keepaliveResponse.compare( 0, keepaliveResponse.size(), (char *)buffer, keepaliveResponse.size() ) == 0 ) {
               Debug( 4, "Got keepalive response '%s'", (char *)buffer );
               //buffer.consume( keepaliveResponse.size() );
-              if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
+              if ( const char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
                 int discardBytes = charPtr-(char *)buffer;
                 buffer -= discardBytes;
               } else {
                 buffer.clear();
               }
             } else {
-              if ( char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
+              if ( const char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
                 int discardBytes = charPtr-(char *)buffer;
                 Warning( "Unexpected format RTSP interleaved data, resyncing by %d bytes", discardBytes );
                 Hexdump( -1, (char *)buffer, discardBytes );

@@ -48,7 +48,6 @@ protected:
 
   int frameCount;
 
-  AVFormatContext     *mFormatContext;
   _AVPIXELFORMAT         imagePixFormat;
 
 public:

@@ -319,7 +319,7 @@ protected:
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
   public:
-    AmcrestAPI( Monitor *parent_);
+    explicit AmcrestAPI(Monitor *parent_);
     ~AmcrestAPI();
     int API_Connect();
     void WaitForMessage();
@@ -343,7 +343,7 @@ protected:
     std::string rtsp_path;
 
   public:
-    JanusManager(Monitor *parent_);
+    explicit JanusManager(Monitor *parent_);
     ~JanusManager();
     int add_to_janus();
     int check_janus();

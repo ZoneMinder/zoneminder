@@ -117,7 +117,7 @@ bool Fifo::writePacket(const ZMPacket &packet) {
   return true;
 }
 
-bool Fifo::writePacket(std::string filename, const ZMPacket &packet) {
+bool Fifo::writePacket(const std::string &filename, const ZMPacket &packet) {
   FILE *outfile = nullptr;
 
   int raw_fd = ::open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
@@ -159,7 +159,7 @@ bool Fifo::write(uint8_t *data, size_t bytes, int64_t pts) {
   return true;
 }
 
-bool Fifo::write(std::string filename, uint8_t *data, size_t bytes) {
+bool Fifo::write(const std::string &filename, uint8_t *data, size_t bytes) {
   FILE *outfile = nullptr;
 
   int raw_fd = ::open(filename.c_str(), O_WRONLY|O_NONBLOCK|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);

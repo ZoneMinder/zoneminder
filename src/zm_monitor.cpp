@@ -2163,10 +2163,8 @@ bool Monitor::Analyse() {
                 event = openEvent(snap, cause, noteSetMap);
               }
             } else if (shared_data->recording != RECORDING_NONE) {
-              if (!event) {
-                event = openEvent(snap, cause, noteSetMap);
-                Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
-              }  // end if no event, so start it
+              event = openEvent(snap, cause, noteSetMap);
+              Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
               if (alarm_frame_count) {
                 Debug(1, "alarm frame count so SavePreAlarmFrames");
                 event->SavePreAlarmFrames();

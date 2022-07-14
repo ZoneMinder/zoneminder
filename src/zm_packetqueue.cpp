@@ -227,7 +227,10 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
       std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
       ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
-      if (!lp->trylock()) break;
+      if (!lp->trylock()) {
+        delete lp;
+        break;
+      }
       delete lp;
 
       if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
@@ -245,7 +248,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
             packet_counts[video_stream_id],
             pre_event_video_packet_count,
             pktQueue.size());
-      //delete zm_packet;
     } // end while
     return;
   }
@@ -380,7 +382,7 @@ void PacketQueue::clear() {
     *iterator_it = pktQueue.begin();
   }  // end foreach iterator
 
-  if (packet_counts) delete[] packet_counts;
+  delete[] packet_counts;
   packet_counts = nullptr;
   max_stream_id = -1;
 

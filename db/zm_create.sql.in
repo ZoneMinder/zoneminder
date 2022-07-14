@@ -1094,6 +1094,7 @@ DROP TABLE IF EXISTS MontageLayouts;
 CREATE TABLE MontageLayouts (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name`    TEXT  NOT NULL,
+  `UserId`  int(10) UNSIGNED NOT NULL default 0,
   `Positions` LONGTEXT,
   /*`Positions` JSON,*/
   PRIMARY KEY (`Id`)

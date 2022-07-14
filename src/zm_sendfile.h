@@ -22,7 +22,7 @@ ssize_t zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
   return err;
 
 #elif HAVE_SENDFILE7_SUPPORT
-  ssize_t err = sendfile(in_fd, out_fd, *offset, size, nullptr, &size, 0);
+  ssize_t err = sendfile(in_fd, out_fd, offset, size, nullptr, &size, 0);
   if (err && errno != EAGAIN)
     return -errno;
   return size;

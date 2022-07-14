@@ -21,7 +21,6 @@
 
 #include "zm_packet.h"
 #include "zm_signal.h"
-#include "zm_utils.h"
 #include <dlfcn.h>
 
 #if HAVE_LIBVLC
@@ -213,7 +212,7 @@ void LibvlcCamera::Terminate() {
 int LibvlcCamera::PrimeCapture() {
   Debug(1, "Priming capture from %s, libvlc version %s", mPath.c_str(), (*libvlc_get_version_f)());
 
-  StringVector opVect = Split(Options(), ",");
+  opVect = Split(Options(), ",");
 
   // Set transport method as specified by method field, rtpUni is default
   if ( Method() == "rtpMulti" )

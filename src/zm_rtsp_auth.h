@@ -27,7 +27,7 @@ namespace zm {
 enum AuthMethod { AUTH_UNDEFINED = 0, AUTH_BASIC = 1, AUTH_DIGEST = 2 };
 class Authenticator {
 public:
-  Authenticator(std::string username, std::string password);
+  Authenticator(const std::string &username, const std::string &password);
   virtual ~Authenticator();
   void reset();
 
@@ -37,7 +37,7 @@ public:
   AuthMethod  auth_method() const { return fAuthMethod; } 
   
   std::string computeDigestResponse(const std::string &cmd, const std::string &url);
-  void authHandleHeader(std::string headerData);
+  void authHandleHeader(const std::string &headerData);
   std::string getAuthHeader(const std::string &method, const std::string &path);
   void checkAuthResponse(const std::string &response);
   

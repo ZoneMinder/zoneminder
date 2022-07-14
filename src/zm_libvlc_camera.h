@@ -21,6 +21,7 @@
 #define ZM_LIBVLC_CAMERA_H
 
 #include "zm_camera.h"
+#include "zm_utils.h"
 #include <condition_variable>
 #include <mutex>
 
@@ -50,6 +51,7 @@ protected:
   std::string mPath;
   std::string mMethod;
   std::string mOptions;
+  StringVector opVect; // mOptArgV will point into opVect so it needs to hang around
   char **mOptArgV;
   LibvlcPrivateData mLibvlcData;
   std::string mTargetChroma;

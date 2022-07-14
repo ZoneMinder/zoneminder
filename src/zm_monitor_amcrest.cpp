@@ -20,8 +20,10 @@
 #include "zm_monitor.h"
 
 
-Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) {
-  parent = parent_;
+Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
+  parent(parent_),
+  Amcrest_Alarmed(false)
+{
   curl_multi = curl_multi_init();
   start_Amcrest();
 }

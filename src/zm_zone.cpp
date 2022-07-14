@@ -99,7 +99,7 @@ void Zone::Setup(
       diag_path = stringtf("%s/diagpipe-%d-poly.jpg",
           staticConfig.PATH_SOCKS.c_str(), id);
 
-      Fifo::fifo_create_if_missing(diag_path.c_str());
+      Fifo::fifo_create_if_missing(diag_path);
     } else {
       diag_path = stringtf("%s/diag-%d-poly.jpg",
           monitor->getStorage()->Path(), id);
@@ -937,7 +937,7 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
 bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
   output[0] = 0;
 
-  sprintf(output+strlen(output), "  Id : %d\n", id );
+  sprintf(output+strlen(output), "  Id : %u\n", id );
   sprintf(output+strlen(output), "  Label : %s\n", label.c_str() );
   sprintf(output+strlen(output), "  Type: %d - %s\n", type,
       type==ACTIVE?"Active":(

@@ -20,7 +20,11 @@
 #include "zm_monitor.h"
 
 
-Monitor::JanusManager::JanusManager(Monitor *parent_) { //constructor takes care of init and calls add_to
+Monitor::JanusManager::JanusManager(Monitor *parent_) :
+  parent(parent_),
+  Janus_Healthy(false)
+{
+  //constructor takes care of init and calls add_to
   parent = parent_;
   if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
     janus_endpoint = config.janus_path; //TODO: strip trailing /

@@ -319,6 +319,7 @@ class Socket : public CommsBase {
 
 class InetSocket : virtual public Socket {
  public:
+  InetSocket() : mAddressFamily(AF_UNSPEC) {}
   int getDomain() const override { return mAddressFamily; }
   socklen_t getAddrSize() const override { return SockAddrInet::addrSize(); }
 

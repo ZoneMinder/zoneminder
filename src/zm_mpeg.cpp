@@ -244,8 +244,7 @@ bool VideoStream::OpenStream( ) {
         Error( "Could not allocate tmp_opicture" );
         return false;
       }
-      int size = av_image_get_buffer_size( pf, codec_context->width, codec_context->height,1 );
-
+      size = av_image_get_buffer_size(pf, codec_context->width, codec_context->height, 1);
       uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
       if ( !tmp_opicture_buf ) {
         av_frame_free( &tmp_opicture );
@@ -477,14 +476,12 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 
 	AVPacket *pkt = packet_buffers[packet_index];
 	av_init_packet( pkt );
-  int got_packet = 0;
   if (codec_context->codec_type == AVMEDIA_TYPE_VIDEO &&
       codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
     pkt->flags |= AV_PKT_FLAG_KEY;
     pkt->stream_index = ost->index;
     pkt->data = (uint8_t *)opicture_ptr;
     pkt->size = buffer_size;
-    got_packet = 1;
 	} else {
 		opicture_ptr->pts = codec_context->frame_number;
 		opicture_ptr->quality = codec_context->global_quality;
@@ -493,13 +490,9 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
     int ret = avcodec_receive_packet(codec_context, pkt);
     if (ret < 0) {
       if (AVERROR_EOF != ret) {
-        Error("ERror encoding video (%d) (%s)", ret, av_err2str(ret));
+        Error("Error encoding video (%d) (%s)", ret, av_err2str(ret));
       }
     } else {
-      got_packet = 1;
-    }
-
-    if (got_packet) {
       //      if ( c->coded_frame->key_frame )
       //      {
       //        pkt->flags |= AV_PKT_FLAG_KEY;

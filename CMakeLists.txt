@@ -88,6 +88,7 @@ mark_as_advanced(
   ZM_PATH_ARP_SCAN
   ZM_CONFIG_DIR
   ZM_CONFIG_SUBDIR
+  ZM_DETECT_SYSTEMD
   ZM_SYSTEMD
   ZM_MANPAGE_DEST_PREFIX)
 
@@ -188,6 +189,8 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING
   "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc27, fc26, el7, OS13, FreeBSD")
+set(ZM_DETECT_SYSTEMD "ON" CACHE BOOL
+  "Set to OFF to disable detection of systemd. default: ON")
 set(ZM_SYSTEMD "OFF" CACHE BOOL
   "Set to ON to force building ZM with systemd support. default: OFF")
 set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH
@@ -270,7 +273,7 @@ set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} stdio.h stdlib.h math
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
 # Set the systemd flag if systemd is autodetected or ZM_SYSTEMD has been set
-if(ZM_SYSTEMD OR (IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/systemd/system))
+if(ZM_SYSTEMD OR (ZM_DETECT_SYSTEMD AND ((IS_DIRECTORY /usr/lib/systemd/system) OR (IS_DIRECTORY /lib/systemd/system))))
   set(WITH_SYSTEMD 1)
 endif()
 

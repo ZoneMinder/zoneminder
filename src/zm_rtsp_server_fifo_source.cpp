@@ -215,7 +215,7 @@ int ZoneMinderFifoSource::getNextFrame() {
       return 0;
     }
     if (header_start != m_buffer) {
-      Debug(4, "ZM Packet didn't start at beginning of buffer %ld. %c%c",
+      Debug(4, "ZM Packet didn't start at beginning of buffer %td. %c%c",
             header_start - m_buffer.head(), m_buffer[0], m_buffer[1]);
     }
 

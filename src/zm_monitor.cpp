@@ -802,7 +802,7 @@ bool Monitor::connect() {
         image_buffer_count,
         image_size,
         (image_buffer_count * image_size),
-        mem_size);
+        static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED
   mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
   if (purpose != CAPTURE) {
@@ -831,25 +831,25 @@ bool Monitor::connect() {
     if (purpose == CAPTURE) {
       // Allocate the size
       if (ftruncate(map_fd, mem_size) < 0) {
-        Error("Can't extend memory map file %s to %jd bytes: %s", mem_file.c_str(), mem_size, strerror(errno));
+        Error("Can't extend memory map file %s to %jd bytes: %s", mem_file.c_str(), static_cast<intmax_t>(mem_size), strerror(errno));
         close(map_fd);
         map_fd = -1;
         return false;
       }
     } else if (map_stat.st_size == 0) {
-      Error("Got empty memory map file size %ld, is the zmc process for this monitor running?", map_stat.st_size);
+      Error("Got empty memory map file size %jd, is the zmc process for this monitor running?", static_cast<intmax_t>(map_stat.st_size));
       close(map_fd);
       map_fd = -1;
       return false;
     } else {
-      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, static_cast<intmax_t>(mem_size));
+      Error("Got unexpected memory map file size %jd, expected %jd", static_cast<intmax_t>(map_stat.st_size), static_cast<intmax_t>(mem_size));
       close(map_fd);
       map_fd = -1;
       return false;
     }
   }  // end if map_stat.st_size != mem_size
 
-  Debug(3, "MMap file size is %ld", map_stat.st_size);
+  Debug(3, "MMap file size is %jd", static_cast<intmax_t>(map_stat.st_size));
 #ifdef MAP_LOCKED
   mem_ptr = (unsigned char *)mmap(nullptr, mem_size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED, map_fd, 0);
   if (mem_ptr == MAP_FAILED) {
@@ -911,7 +911,7 @@ bool Monitor::connect() {
         );
   alarm_image.HoldBuffer(true); /* Don't release the internal buffer or replace it with another */
   if (alarm_image.Buffer() + image_size > mem_ptr + mem_size) {
-    Warning("We will exceed memsize by %ld bytes!", alarm_image.Buffer() + image_size - (mem_ptr + mem_size));
+    Warning("We will exceed memsize by %td bytes!", (alarm_image.Buffer() + image_size) - (mem_ptr + mem_size));
   }
 
   if (purpose == CAPTURE) {

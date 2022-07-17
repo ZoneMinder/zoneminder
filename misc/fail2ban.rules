@@ -1,2 +1,40 @@
+# Fail2Ban filter for Zoneminder login failures
+
+[INCLUDES]
+before = apache-common.conf
+
+[Definition]
+
+#CLI testing
+#fail2ban-regex -v /var/log/zm/web_php.log /etc/fail2ban/filter.d/zoneminder.conf
+
+# Example pattern from 1.36.19
+# pattern=07/02/22 13:14:52.114080 web_php[3628].ERR [192.168.0.3] [Could not retrieve user test details] at /usr/share/zoneminder/www/includes/auth.php line 312
+
+# Example pattern from 1.36.20
+# pattern=7/17/22, 3:01:06 PM GMT+1.104844 web_php[281296].ERR [192.168.0.3] [Could not retrieve user test details] at /usr/share/zoneminder/www/includes/auth.php line 312
+#
+# Option:  failregex
+# Notes.:  regex to match the password failure messages in the logfile - /var/log/zm/web_php.log (Debian)
+
 failregex = ^\s*web_php\[\d+\]\.ERR \[<HOST>\].*includes/auth.php
 datepattern = ^%%m/%%d/%%y %%H:%%M:%%S(?:\.%%f)
+
+ignoreregex =
+
+# Notes:
+#       Tested on Zoneminder 1.36.19
+#
+# From Zoneminder 1.36.20 the log date stamp is defined by the system local and might not be compatible with the datepattern
+# to resolve this use the DATETIME_FORMAT_PATTERN as MM/dd/YY HH:mm:ss
+#
+# The below is to be placed in the jail.local removing the single #
+#
+#[zoneminder]
+## Zoneminder HTTP/HTTPS web interface auth
+## Logs auth failures to apache2 error log
+##enabled = true
+##port    = http,https
+##logpath = /var/log/zm/web_php.log
+
+# Author: Clipo

@@ -907,7 +907,7 @@ $SLANG = array(
     'Showing Analysis'     => 'Mostrar Analisis',
     'ConfirmDeleteTitle'   => 'Borrar Seleccionados',
     'Continuous'           => 'Continuo',
-
+    'ONVIF_Alarm_Txt'      => 'Texto Alarma ONVIF', //added 18/07/2022
 
 );
 

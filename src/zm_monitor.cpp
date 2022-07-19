@@ -96,9 +96,6 @@ std::string load_monitor_sql =
 "`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Txt`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount FROM `Monitors`";
-//"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount FROM `Monitors`";
-
-
 
 
 std::string CameraType_Strings[] = {
@@ -1722,8 +1719,6 @@ bool Monitor::Poll() {
         Debug(1, "Got Good Response! %i", result);
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
           if (msg->Topic->__any.text != NULL &&
-//          std::strstr(msg->Topic->__any.text, "MotionAlarm") &&
-//          std::strstr(msg->Topic->__any.text, "CellMotionDetector") &&
           std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
           msg->Message.__any.elts != NULL &&
           msg->Message.__any.elts->next != NULL &&

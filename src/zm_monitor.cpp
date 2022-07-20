@@ -95,9 +95,10 @@ std::string load_monitor_sql =
 "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
-"`RTSPServer`, `RTSPStreamName`,"
+"`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Txt`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount FROM `Monitors`";
+
 
 std::string CameraType_Strings[] = {
   "Unknown",
@@ -229,6 +230,7 @@ Monitor::Monitor()
   embed_exif(false),
   rtsp_server(false),
   rtsp_streamname(""),
+  onvif_alarm_txt(""),
   importance(0),
   zone_count(0),
   capture_max_fps(0),
@@ -494,6 +496,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
  /* "`RTSPServer`,`RTSPStreamName`, */
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
+// get alarm text from table.
+  onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+
 
    /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
@@ -1705,7 +1710,7 @@ bool Monitor::Poll() {
         Debug(1, "Got Good Response! %i", result);
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
           if (msg->Topic->__any.text != NULL &&
-          std::strstr(msg->Topic->__any.text, "MotionAlarm") &&
+          std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
           msg->Message.__any.elts != NULL &&
           msg->Message.__any.elts->next != NULL &&
           msg->Message.__any.elts->next->elts != NULL &&
@@ -2065,7 +2070,7 @@ bool Monitor::Analyse() {
                       (event_close_mode == CLOSE_ALARM));
               }
               if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
-                Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
+                Info("%s: %03d - ExtAlm - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                     name.c_str(), snap->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
                 shared_data->state = state = ALARM;
 
@@ -2078,7 +2083,7 @@ bool Monitor::Analyse() {
               Debug(1, "%s: %03d - Alarmed frame while in alert state. Consecutive alarmed frames left to return to alarm state: %03d",
                   name.c_str(), analysis_image_count, alert_to_alarm_frame_count);
               if (alert_to_alarm_frame_count == 0) {
-                Info("%s: %03d - Gone back into alarm state", name.c_str(), analysis_image_count);
+                Info("%s: %03d - ExtAlm - Gone back into alarm state Cause:ONVIF", name.c_str(), analysis_image_count);
                 shared_data->state = state = ALARM;
               }
             } else if (state == TAPE) {

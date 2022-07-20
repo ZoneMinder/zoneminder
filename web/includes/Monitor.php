@@ -154,6 +154,7 @@ public static function getStatuses() {
     'ONVIF_Username'  =>  '',
     'ONVIF_Password'  =>  '',
     'ONVIF_Options'   =>  '',
+    'Onvif_Alarm_Txt'   =>  '',
     'ONVIF_Event_Listener'  =>  '0',
     'use_Amcrest_API'  =>  '0',
     'Device'  =>  '',

@@ -457,6 +457,7 @@ protected:
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
+  std::string onvif_alarm_txt;     // def onvif_alarm_txt
   int         importance;           // Importance of this monitor, affects Connection logging errors.
   unsigned int         zone_count;
 

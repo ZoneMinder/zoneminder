@@ -82,8 +82,8 @@ Logger::Logger() :
     smSyslogPriorities[PANIC] = LOG_ERR;
 
     char code[4] = "";
-    for (int i = DEBUG1; i <= DEBUG9; i++) {
-      snprintf(code, sizeof(code), "DB%d", i);
+    for (unsigned int i = DEBUG1; i <= DEBUG9; i++) {
+      snprintf(code, sizeof(code), "DB%u", i);
       smCodes[i] = code;
       smSyslogPriorities[i] = LOG_DEBUG;
     }

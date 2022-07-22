@@ -171,8 +171,8 @@ Monitor::Monitor()
   //options
   //host
   //port
-  //user
-  //pass
+  user(),
+  pass(),
   //path
   //device
   palette(0),
@@ -620,6 +620,8 @@ void Monitor::LoadCamera() {
                                                    host, // Host
                                                    port, // Port
                                                    path, // Path
+                                                   user,
+                                                   pass,
                                                    camera_width,
                                                    camera_height,
                                                    rtsp_describe,

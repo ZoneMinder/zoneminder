@@ -30,6 +30,8 @@ RemoteCameraRtsp::RemoteCameraRtsp(
     const std::string &p_host,
     const std::string &p_port,
     const std::string &p_path,
+    const std::string &p_user,
+    const std::string &p_pass,
     int p_width,
     int p_height,
     bool p_rtsp_describe,
@@ -47,7 +49,9 @@ RemoteCameraRtsp::RemoteCameraRtsp(
       p_brightness, p_contrast, p_hue, p_colour,
       p_capture, p_record_audio),
   rtsp_describe(p_rtsp_describe),
-  frameCount(0)
+  frameCount(0),
+  user(p_user),
+  pass(p_pass)
 {
   if ( p_method == "rtpUni" )
     method = RtspThread::RTP_UNICAST;
@@ -110,7 +114,7 @@ void RemoteCameraRtsp::Terminate() {
 }
 
 int RemoteCameraRtsp::Connect() {
-  rtspThread = zm::make_unique<RtspThread>(monitor->Id(), method, protocol, host, port, path, auth, rtsp_describe);
+  rtspThread = zm::make_unique<RtspThread>(monitor->Id(), method, protocol, host, port, path, user, pass, rtsp_describe);
 
   return 0;
 }

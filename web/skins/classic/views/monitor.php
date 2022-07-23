@@ -579,8 +579,8 @@ switch ($name) {
               <td><input type="text" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/></td>
             </tr>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('ONVIF_Alarm_Txt') ?></td>
-              <td><input type="text" name="newMonitor[Onvif_Alarm_Txt]" value="<?php echo validHtmlStr($monitor->Onvif_Alarm_Txt()) ?>"/></td>
+              <td class="text-right pr-3"><?php echo translate('ONVIF_Alarm_Text') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_Alarm_Text]" value="<?php echo validHtmlStr($monitor->ONVIF_Alarm_Text()) ?>"/></td>
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('ONVIF_Event_Listener') ?></td>

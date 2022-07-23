@@ -95,7 +95,7 @@ std::string load_monitor_sql =
 "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
 "`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
-"`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Txt`,"
+"`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount FROM `Monitors`";
 

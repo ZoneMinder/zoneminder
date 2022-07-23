@@ -43,7 +43,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_definitions(_FILE_OFFSET_BITS=64)
+add_compile_options(-D_FILE_OFFSET_BITS=64)
 
 include(ConfigureBaseTargets)
 include(CheckPlatform)

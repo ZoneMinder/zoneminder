@@ -973,9 +973,11 @@ include('_monitor_source_nvsocket.php');
 ?>
             <tr class="LinkedMonitors">
               <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
-              <td><input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>"/><br/>
+              <td><input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
+                  <div id="LinkedMonitorsUI"></div>
     
 <?php
+      $zones = ZM\Zone::find();
       $zones_by_monitor_id = array();
       foreach (ZM\Zone::find() as $zone) {
         if (! isset($zones_by_monitor_id[$zone->MonitorId()]) ) {
@@ -994,12 +996,21 @@ include('_monitor_source_nvsocket.php');
           }
         }
       }
+
+      $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
+      $obracketTypes = array();
+      $cbracketTypes = array();
+
+      $ops = array('or' => translate('or'), 'and' => translate('and'));
+  
+/*
       echo htmlSelect(
         'newMonitor[AvailableLinkedMonitors][]',
         $monitor_options,
         ( $monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array() ),
         array('class'=>'chosen')
       );
+*/
 
 ?>
               </td>
@@ -1466,4 +1477,5 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     </div>
     </div>
   </div>
+  <script src="/js/MonitorLinkExpression.js"></script>
 <?php xhtmlFooter() ?>

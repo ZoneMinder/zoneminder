@@ -20,6 +20,7 @@
 #ifndef ZM_PACKET_H
 #define ZM_PACKET_H
 
+#include "zm_ffmpeg.h"
 #include "zm_logger.h"
 #include "zm_zone.h"
 

@@ -338,10 +338,8 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 	SetParameters( );
 
   // Allocate buffered packets.
-  packet_buffers = new AVPacket*[2];
-  packet_buffers[0] = new AVPacket();
-  packet_buffers[1] = new AVPacket();
-  packet_index = 0;
+  for (auto &pkt : packet_buffers)
+    pkt = av_packet_ptr{av_packet_alloc()};
 
 	// Initialize mutex used by streaming thread.
 	if ( pthread_mutex_init( buffer_copy_lock, nullptr ) != 0 ) {
@@ -374,12 +372,6 @@ VideoStream::~VideoStream( ) {
 		}
 		delete buffer_copy_lock;
 	}
-
-  if (packet_buffers) {
-    delete packet_buffers[0];
-    delete packet_buffers[1];
-    delete[] packet_buffers;
-  }
 
 	/* close each codec */
 	if ( ost ) {
@@ -474,8 +466,8 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 	}
 	AVFrame *opicture_ptr = opicture;
 
-	AVPacket *pkt = packet_buffers[packet_index];
-	av_init_packet( pkt );
+	AVPacket *pkt = packet_buffers[packet_index].get();
+
   if (codec_context->codec_type == AVMEDIA_TYPE_VIDEO &&
       codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
     pkt->flags |= AV_PKT_FLAG_KEY;
@@ -550,7 +542,7 @@ void *VideoStream::StreamingThreadCallback(void *ctx) {
     // Since this lag is not constant the client may skip frames.
 
     // Get the last rendered packet.
-    AVPacket *packet = videoStream->packet_buffers[videoStream->packet_index];
+    AVPacket *packet = videoStream->packet_buffers[videoStream->packet_index].get();
     if (packet->size) {
       videoStream->SendPacket(packet);
     }

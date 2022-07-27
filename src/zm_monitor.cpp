@@ -2469,10 +2469,10 @@ int Monitor::Capture() {
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
-        packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count);
+        packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count);
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
-      packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
+      packet->packet->stream_index = video_stream_id; // Convert to packetQueue's index
       if (video_fifo) {
         if (packet->keyframe) {
           // avcodec strips out important nals that describe the stream and
@@ -2493,7 +2493,7 @@ int Monitor::Capture() {
       if (record_audio and (packetqueue.packet_count(video_stream_id) or event)) {
         packet->image_index=-1;
         Debug(2, "Queueing audio packet");
-        packet->packet.stream_index = audio_stream_id; // Convert to packetQueue's index
+        packet->packet->stream_index = audio_stream_id; // Convert to packetQueue's index
         packetqueue.queuePacket(packet);
       } else {
         Debug(4, "Not Queueing audio packet");
@@ -2601,7 +2601,7 @@ bool Monitor::Decode() {
     return true; // Don't need decode
   }
 
-  if ((!packet->image) and packet->packet.size and !packet->in_frame) {
+  if ((!packet->image) and packet->packet->size and !packet->in_frame) {
     if ((decoding == DECODING_ALWAYS)
         or
         ((decoding == DECODING_ONDEMAND) and this->hasViewers() )
@@ -2632,7 +2632,7 @@ bool Monitor::Decode() {
           }  // end if have convert_context
         }  // end if need transfer to image
       } else {
-        Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
+        Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame);
       }
     } else {
       Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
@@ -3268,7 +3268,7 @@ void Monitor::get_ref_image() {
 
   std::shared_ptr<ZMPacket> snap = snap_lock->packet_;
   Debug(1, "get_ref_image: packet.stream %d ?= video_stream %d, packet image id %d packet image %p",
-      snap->packet.stream_index, video_stream_id, snap->image_index, snap->image );
+      snap->packet->stream_index, video_stream_id, snap->image_index, snap->image );
   // Might not have been decoded yet FIXME
   if (snap->image) {
     ref_image.Assign(width, height, camera->Colours(),

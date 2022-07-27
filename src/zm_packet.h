@@ -44,7 +44,7 @@ class ZMPacket {
 
     int keyframe;
     AVStream  *stream;            // Input stream
-    AVPacket  packet;             // Input packet, undecoded
+    av_packet_ptr packet;         // Input packet, undecoded
     AVFrame   *in_frame;          // Input image, decoded Theoretically only filled if needed.
     AVFrame   *out_frame;         // output image, Only filled if needed.
     SystemTimePoint timestamp;
@@ -61,7 +61,7 @@ class ZMPacket {
     std::string  alarm_cause;
 
   public:
-    AVPacket *av_packet() { return &packet; }
+    AVPacket *av_packet() { return packet.get(); }
     AVPacket *set_packet(AVPacket *p) ;
     AVFrame *av_frame() { return out_frame; }
     Image *get_image(Image *i=nullptr);

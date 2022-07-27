@@ -192,37 +192,40 @@ protected:
     uint8_t recording;          /* +55   */
     uint8_t signal;             /* +56   */
     uint8_t format;             /* +57   */
-    uint32_t imagesize;         /* +58   */
-    uint32_t last_frame_score;  /* +62   */
-    uint32_t  audio_frequency;  /* +66   */
-    uint32_t  audio_channels;   /* +70   */
+    uint8_t reserved1;          /* +58   */
+    uint8_t reserved2;          /* +59   */
+    uint32_t imagesize;         /* +60   */
+    uint32_t last_frame_score;  /* +64   */
+    uint32_t audio_frequency;   /* +68   */
+    uint32_t audio_channels;    /* +72   */
+    uint32_t reserved3;         /* +76   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
      */
-    union {                     /* +72   */
+    union {                     /* +80   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +80   */
+    union {                     /* +88   */
       time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {                     /* +88  */
+    union {                     /* +96   */
       time_t last_write_time;
       uint64_t extrapad3;
     };
-    union {                     /* +96  */
+    union {                     /* +104  */
       time_t last_read_time;
       uint64_t extrapad4;
     };
-    union {                     /* +104  */
+    union {                     /* +112  */
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    uint8_t control_state[256];  /* +112   */
+    uint8_t control_state[256]; /* +120  */
 
     char alarm_cause[256];
     char video_fifo_path[64];

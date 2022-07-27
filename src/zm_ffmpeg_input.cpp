@@ -166,11 +166,10 @@ int FFmpeg_Input::Close( ) {
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id) {
   int frameComplete = false;
-  AVPacket packet;
-  av_init_packet(&packet);
+  av_packet_ptr packet{av_packet_alloc()};
 
   while (!frameComplete) {
-    int ret = av_read_frame(input_format_context, &packet);
+    int ret = av_read_frame(input_format_context, packet.get());
     if (ret < 0) {
       if (
           // Check if EOF.
@@ -182,17 +181,18 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
         return nullptr;
       }
       Error("Unable to read packet from stream %d: error %d \"%s\".",
-          packet.stream_index, ret, av_make_error_string(ret).c_str());
+          packet->stream_index, ret, av_make_error_string(ret).c_str());
       return nullptr;
     }
-    ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet.stream_index], packet, "Received packet");
+    ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet->stream_index], packet, "Received packet");
 
-    if ((stream_id >= 0) && (packet.stream_index != stream_id)) {
-      Debug(1,"Packet is not for our stream (%d)", packet.stream_index );
+    if ((stream_id >= 0) && (packet->stream_index != stream_id)) {
+      Debug(1,"Packet is not for our stream (%d)", packet->stream_index );
+      zm_av_packet_unref(packet.get());
       continue;
     }
 
-    AVCodecContext *context = streams[packet.stream_index].context;
+    AVCodecContext *context = streams[packet->stream_index].context;
 
     if ( frame ) {
       av_frame_free(&frame);
@@ -200,15 +200,15 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     } else {
       frame = zm_av_frame_alloc();
     }
-    ret = zm_send_packet_receive_frame(context, frame, packet);
+    ret = zm_send_packet_receive_frame(context, frame, *packet);
     if ( ret < 0 ) {
       Error("Unable to decode frame at frame %d: %d %s, continuing",
-          streams[packet.stream_index].frame_count, ret, av_make_error_string(ret).c_str());
-      zm_av_packet_unref(&packet);
+          streams[packet->stream_index].frame_count, ret, av_make_error_string(ret).c_str());
+      zm_av_packet_unref(packet.get());
       av_frame_free(&frame);
       continue;
     } else {
-      if (is_video_stream(input_format_context->streams[packet.stream_index])) {
+      if (is_video_stream(input_format_context->streams[packet->stream_index])) {
         zm_dump_video_frame(frame, "resulting video frame");
       } else {
         zm_dump_frame(frame, "resulting frame");
@@ -239,7 +239,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       zm_dump_frame(frame, "resulting frame");
     }
 
-    zm_av_packet_unref(&packet);
+    zm_av_packet_unref(packet.get());
   } // end while !frameComplete
   return frame;
 }  // end AVFrame *FFmpeg_Input::get_frame

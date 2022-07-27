@@ -214,7 +214,7 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   }
   zm_packet->keyframe = 1;
   zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
-  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->packet->stream_index = mVideoStreamId;
   zm_packet->stream = mVideoStream;
 
   uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);

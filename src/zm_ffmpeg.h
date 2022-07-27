@@ -23,6 +23,8 @@
 #include "zm_config.h"
 #include "zm_define.h"
 
+#include <memory>
+
 extern "C" {
 
 #ifdef HAVE_LIBSWRESAMPLE
@@ -389,34 +391,34 @@ void zm_dump_codecpar(const AVCodecParameters *par);
   Debug(2, "%s: pts: %" PRId64 ", dts: %" PRId64 \
     ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64 ", duration: %" AV_PACKET_DURATION_FMT, \
     text,\
-    pkt.pts,\
-    pkt.dts,\
-    pkt.size,\
-    pkt.stream_index,\
-    pkt.flags,\
-    pkt.flags & AV_PKT_FLAG_KEY,\
-    pkt.pos,\
-    pkt.duration)
+    pkt->pts,\
+    pkt->dts,\
+    pkt->size,\
+    pkt->stream_index,\
+    pkt->flags,\
+    pkt->flags & AV_PKT_FLAG_KEY,\
+    pkt->pos,\
+    pkt->duration)
 
 # define ZM_DUMP_STREAM_PACKET(stream, pkt, text) \
   if (logDebugging()) { \
-    double pts_time = static_cast<double>(av_rescale_q(pkt.pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE; \
+    double pts_time = static_cast<double>(av_rescale_q(pkt->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE; \
     \
     Debug(2, "%s: pts: %" PRId64 " * %u/%u=%f, dts: %" PRId64 \
       ", size: %d, stream_index: %d, %s flags: %04x, keyframe(%d) pos: %" PRId64", duration: %" AV_PACKET_DURATION_FMT, \
       text, \
-      pkt.pts, \
+      pkt->pts, \
       stream->time_base.num, \
       stream->time_base.den, \
       pts_time, \
-      pkt.dts, \
-      pkt.size, \
-      pkt.stream_index, \
+      pkt->dts, \
+      pkt->size, \
+      pkt->stream_index, \
       av_get_media_type_string(CODEC_TYPE(stream)), \
-      pkt.flags, \
-      pkt.flags & AV_PKT_FLAG_KEY, \
-      pkt.pos, \
-    pkt.duration); \
+      pkt->flags, \
+      pkt->flags & AV_PKT_FLAG_KEY, \
+      pkt->pos, \
+    pkt->duration); \
   }
 
 #else
@@ -500,5 +502,15 @@ int zm_resample_get_delay(
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);
 int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame);
+
+struct zm_free_av_packet
+{
+    void operator()(AVPacket *pkt) const
+    {
+        av_packet_free(&pkt);
+    }
+};
+
+using av_packet_ptr = std::unique_ptr<AVPacket, zm_free_av_packet>;
 
 #endif // ZM_FFMPEG_H

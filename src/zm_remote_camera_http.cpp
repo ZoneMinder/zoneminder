@@ -1095,7 +1095,7 @@ int RemoteCameraHttp::Capture(std::shared_ptr<ZMPacket> &packet) {
   Image *image = packet->image;
   packet->keyframe = 1;
   packet->codec_type = AVMEDIA_TYPE_VIDEO;
-  packet->packet.stream_index = mVideoStreamId;
+  packet->packet->stream_index = mVideoStreamId;
   packet->stream = mVideoStream;
 
   switch (format) {

@@ -166,6 +166,7 @@ FfmpegCamera::FfmpegCamera(
     Panic("Unexpected colours: %d", colours);
   }
 
+  packet = av_packet_ptr{av_packet_alloc()};
 }  // FfmpegCamera::FfmpegCamera
 
 FfmpegCamera::~FfmpegCamera() {
@@ -218,7 +219,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         );
   }
 
-  if ((ret = av_read_frame(formatContextPtr, &packet)) < 0) {
+  if ((ret = av_read_frame(formatContextPtr, packet.get())) < 0) {
     if (
         // Check if EOF.
         (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
@@ -226,15 +227,15 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         (ret == -110)
        ) {
       Info("Unable to read packet from stream %d: error %d \"%s\".",
-          packet.stream_index, ret, av_make_error_string(ret).c_str());
+          packet->stream_index, ret, av_make_error_string(ret).c_str());
     } else {
       Error("Unable to read packet from stream %d: error %d \"%s\".",
-          packet.stream_index, ret, av_make_error_string(ret).c_str());
+          packet->stream_index, ret, av_make_error_string(ret).c_str());
     }
     return -1;
   }
 
-  AVStream *stream = formatContextPtr->streams[packet.stream_index];
+  AVStream *stream = formatContextPtr->streams[packet->stream_index];
   ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -242,24 +243,24 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 #else
   zm_packet->codec_type = stream->codec->codec_type;
 #endif
-  bytes += packet.size;
-  zm_packet->set_packet(&packet);
+  bytes += packet->size;
+  zm_packet->set_packet(packet.get());
   zm_packet->stream = stream;
-  zm_packet->pts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
-  if ( packet.pts != AV_NOPTS_VALUE ) {
+  zm_packet->pts = av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q);
+  if ( packet->pts != AV_NOPTS_VALUE ) {
     if ( stream == mVideoStream ) {
       if (mFirstVideoPTS == AV_NOPTS_VALUE)
-        mFirstVideoPTS = packet.pts;
+        mFirstVideoPTS = packet->pts;
 
-      mLastVideoPTS = packet.pts - mFirstVideoPTS;
+      mLastVideoPTS = packet->pts - mFirstVideoPTS;
     } else {
       if (mFirstAudioPTS == AV_NOPTS_VALUE)
-        mFirstAudioPTS = packet.pts;
+        mFirstAudioPTS = packet->pts;
 
-      mLastAudioPTS = packet.pts - mFirstAudioPTS;
+      mLastAudioPTS = packet->pts - mFirstAudioPTS;
     }
   }
-  zm_av_packet_unref(&packet);
+  zm_av_packet_unref(packet.get());
 
   return 1;
 } // FfmpegCamera::Capture

@@ -58,7 +58,7 @@ class FfmpegCamera : public Camera {
     // Used to store the incoming packet, it will get copied when queued. 
     // We only ever need one at a time, so instead of constantly allocating
     // and freeing this structure, we will just make it a member of the object.
-    AVPacket packet;       
+    av_packet_ptr packet;
 
     int OpenFfmpeg();
     int Close() override;

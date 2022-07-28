@@ -88,6 +88,11 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
   AVFrame *frame = zm_av_frame_alloc();
   char errbuf[AV_ERROR_MAX_STRING_SIZE];
 
+  if (!packet) {
+    Error("Unable to allocate packet.");
+    return nullptr;
+  }
+
   while ( !frameComplete ) {
     int ret = av_read_frame( input_format_context, packet.get() );
     if ( ret < 0 ) {
@@ -105,6 +110,8 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
       return NULL;
     }
 
+    av_packet_guard pkt_guard{packet};
+
     if ( (stream_id < 0 ) || ( packet->stream_index == stream_id ) ) {
       Debug(1,"Packet is for our stream (%d)", packet->stream_index );
 
@@ -114,7 +121,6 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
       Error( "Unable to send packet at frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
-      zm_av_packet_unref( packet.get() );
       continue;
     } else {
       Debug(1, "Success getting a packet");
@@ -126,14 +132,12 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
         Error( "Unable to receive frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
-        zm_av_packet_unref( packet.get() );
         continue;
       }
       ret = av_hwframe_transfer_data(frame, hwFrame, 0);
       if (ret < 0) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
         Error( "Unable to transfer frame at frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
-        zm_av_packet_unref( packet.get() );
         continue;
       }
     } else {
@@ -143,7 +147,6 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
         Error( "Unable to send packet at frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
-        zm_av_packet_unref( packet.get() );
         continue;
       }
 
@@ -153,8 +156,6 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
 
     frameComplete = 1;
   } // end if it's the right stream
-
-      zm_av_packet_unref( packet.get() );
 
   } // end while ! frameComplete
   return frame;

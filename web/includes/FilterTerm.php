@@ -77,7 +77,7 @@ class FilterTerm {
       switch ( $this->attr ) {
 
       case 'AlarmedZoneId':
-        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.' AND Score > 0)';
         break;
       case 'ExistsInFileSystem':
         $value = '';

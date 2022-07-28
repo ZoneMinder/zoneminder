@@ -3177,13 +3177,13 @@ int Monitor::Close() {
   }
   if (analysis_thread) {
     analysis_thread->Stop();
-    Debug(1, "Analysi stopped");
+    Debug(1, "Analysis stopped");
   }
 
   //ONVIF Teardown
   if (Poller) {
     Poller->Stop();
-    Debug(1, "Polleri stopped");
+    Debug(1, "Poller stopped");
   }
 #ifdef WITH_GSOAP
   if (onvif_event_listener && (soap != nullptr)) {
@@ -3198,8 +3198,9 @@ int Monitor::Close() {
   }  //End ONVIF
 #endif
    //Janus Teardown
-  if (janus_enabled && (purpose == CAPTURE)) {
+  if (janus_enabled and (purpose == CAPTURE) and Janus_Manager) {
     delete Janus_Manager;
+    Janus_Manager = nullptr;
   }
 
   if (audio_fifo) {

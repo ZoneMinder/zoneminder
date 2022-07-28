@@ -1275,10 +1275,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
     ZM_DUMP_STREAM_PACKET(video_in_stream, (*ipkt), "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
     av_init_packet(opkt);
-    opkt->data = ipkt->data;
-    opkt->size = ipkt->size;
-    opkt->flags = ipkt->flags;
-    opkt->duration = ipkt->duration;
     av_packet_ref(opkt, ipkt);
 
     if (ipkt->dts != AV_NOPTS_VALUE) {

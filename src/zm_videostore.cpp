@@ -1039,6 +1039,11 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
   if (zm_pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
     stream_index = video_out_stream->index;
   } else if (zm_pkt->codec_type == AVMEDIA_TYPE_AUDIO) {
+    if (!audio_out_stream) {
+      Debug(1, "Called writeAudioFramePacket when no audio_out_stream");
+      return 0;
+      // FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
+    }
     stream_index = audio_out_stream->index;
   } else {
     Error("Unknown stream type in packet (%d)", zm_pkt->codec_type);
@@ -1301,12 +1306,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )
 
 int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
-  if (!audio_out_stream) {
-    Debug(1, "Called writeAudioFramePacket when no audio_out_stream");
-    return 0;
-    // FIXME -ve return codes do not free packet in ffmpeg_camera at the moment
-  }
-
   AVPacket *ipkt = &zm_packet->packet;
   int ret;
   ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "input packet");

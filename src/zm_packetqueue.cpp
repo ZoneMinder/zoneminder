@@ -90,14 +90,14 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     std::unique_lock<std::mutex> lck(mutex);
     if (deleting or zm_terminate) return false;
 
-    if (!has_out_of_order_packets_ and (add_packet->packet.dts != AV_NOPTS_VALUE)) {
+    if (!has_out_of_order_packets_ and (add_packet->packet->dts != AV_NOPTS_VALUE)) {
       auto rit = pktQueue.rbegin();
       // Find the previous packet for the stream, and check dts
       while (rit != pktQueue.rend()) {
         std::shared_ptr<ZMPacket> prev_packet = *rit;
 
-        if (prev_packet->packet.stream_index == add_packet->packet.stream_index) {
-          if (prev_packet->packet.dts >= add_packet->packet.dts) {
+        if (prev_packet->packet->stream_index == add_packet->packet->stream_index) {
+          if (prev_packet->packet->dts >= add_packet->packet->dts) {
             Debug(1, "Have out of order packets");
             ZM_DUMP_PACKET(prev_packet->packet, "queued_packet");
             ZM_DUMP_PACKET(add_packet->packet, "add_packet");

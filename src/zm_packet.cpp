@@ -95,14 +95,6 @@ ZMPacket::~ZMPacket() {
   delete image;
 }
 
-ssize_t ZMPacket::ram() {
-  return packet->size +
-    (in_frame ? in_frame->linesize[0] * in_frame->height : 0) +
-    (out_frame ? out_frame->linesize[0] * out_frame->height : 0) +
-    (image ? image->Size() : 0) +
-    (analysis_image ? analysis_image->Size() : 0);
-}
-
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success 
  * This functions job is to populate in_frame with the image in an appropriate
  * format. It MAY also populate image if able to.  In this case in_frame is populated

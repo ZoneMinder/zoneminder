@@ -513,4 +513,38 @@ struct zm_free_av_packet
 
 using av_packet_ptr = std::unique_ptr<AVPacket, zm_free_av_packet>;
 
+struct av_packet_guard
+{
+    av_packet_guard() : packet{nullptr}
+    {
+    }
+    explicit av_packet_guard(const av_packet_ptr& p) : packet{p.get()}
+    {
+    }
+    explicit av_packet_guard(AVPacket *p) : packet{p}
+    {
+    }
+    ~av_packet_guard()
+    {
+	if (packet)
+	    av_packet_unref(packet);
+    }
+
+    void acquire(const av_packet_ptr& p)
+    {
+	packet = p.get();
+    }
+    void acquire(AVPacket *p)
+    {
+	packet = p;
+    }
+    void release()
+    {
+	packet = nullptr;
+    }
+
+private:
+    AVPacket *packet;
+};
+
 #endif // ZM_FFMPEG_H

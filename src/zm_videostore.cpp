@@ -560,6 +560,11 @@ void VideoStore::flush_codecs() {
   // whatever we get. Failures are not fatal.
   av_packet_ptr pkt{av_packet_alloc()};
 
+  if (!pkt) {
+    Error("Unable to allocate packet.");
+    return;
+  }
+
   // I got crashes if the codec didn't do DELAY, so let's test for it.
   if (video_out_ctx->codec && ( video_out_ctx->codec->capabilities & 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -570,11 +575,11 @@ void VideoStore::flush_codecs() {
         )) {
     // Put encoder into flushing mode
     while ((zm_send_frame_receive_packet(video_out_ctx, nullptr, *pkt)) > 0) {
+      av_packet_guard pkt_guard{pkt};
       av_packet_rescale_ts(pkt.get(),
           video_out_ctx->time_base,
           video_out_stream->time_base);
       write_packet(pkt.get(), video_out_stream);
-      zm_av_packet_unref(pkt.get());
     } // while have buffered frames
     Debug(1, "Done writing buffered video.");
   } // end if have delay capability
@@ -594,11 +599,11 @@ void VideoStore::flush_codecs() {
         // Should probably set the frame size to what is reported FIXME
         if (zm_get_samples_from_fifo(fifo, out_frame)) {
           if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, *pkt) > 0) {
+            av_packet_guard pkt_guard{pkt};
             av_packet_rescale_ts(pkt.get(),
                 audio_out_ctx->time_base,
                 audio_out_stream->time_base);
             write_packet(pkt.get(), audio_out_stream);
-            zm_av_packet_unref(pkt.get());
           }
         }  // end if data returned from fifo
       }
@@ -615,13 +620,13 @@ void VideoStore::flush_codecs() {
       // SHould probably set the frame size to what is reported FIXME
       if (av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size)) {
         if (zm_send_frame_receive_packet(audio_out_ctx, out_frame, *pkt)) {
+          av_packet_guard pkt_guard{pkt};
           pkt->stream_index = audio_out_stream->index;
 
           av_packet_rescale_ts(pkt.get(),
               audio_out_ctx->time_base,
               audio_out_stream->time_base);
           write_packet(pkt.get(), audio_out_stream);
-          zm_av_packet_unref(pkt.get());
         }
       }  // end if data returned from fifo
     }  // end while still data in the fifo
@@ -636,12 +641,12 @@ void VideoStore::flush_codecs() {
         Debug(1, "No more packets");
         break;
       }
+      av_packet_guard pkt_guard{pkt};
 
       ZM_DUMP_PACKET(pkt, "raw from encoder");
       av_packet_rescale_ts(pkt.get(), audio_out_ctx->time_base, audio_out_stream->time_base);
       ZM_DUMP_STREAM_PACKET(audio_out_stream, pkt, "writing flushed packet");
       write_packet(pkt.get(), audio_out_stream);
-      zm_av_packet_unref(pkt.get());
     }  // while have buffered frames
   }  // end if audio_out_codec
 }  // end flush_codecs
@@ -1150,6 +1155,8 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
 }
 
 int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
+  av_packet_guard pkt_guard;
+
   frame_count += 1;
 
   // if we have to transcode
@@ -1271,6 +1278,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
       }
       return ret;
     }
+    pkt_guard.acquire(opkt);
     ZM_DUMP_PACKET(opkt, "packet returned by codec");
 
     // Need to adjust pts/dts values from codec time to stream time
@@ -1327,6 +1335,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     ZM_DUMP_STREAM_PACKET(video_in_stream, ipkt, "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
     av_packet_ref(opkt.get(), ipkt);
+    pkt_guard.acquire(opkt);
 
     if (ipkt->dts != AV_NOPTS_VALUE) {
       if (video_first_dts == AV_NOPTS_VALUE) {
@@ -1345,7 +1354,6 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   }  // end if codec matches
 
   write_packet(opkt.get(), video_out_stream);
-  zm_av_packet_unref(opkt.get());
   if (hw_frame) av_frame_free(&hw_frame);
 
   return 1;

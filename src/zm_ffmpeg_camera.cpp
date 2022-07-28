@@ -235,6 +235,8 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     return -1;
   }
 
+  av_packet_guard pkt_guard{packet};
+
   AVStream *stream = formatContextPtr->streams[packet->stream_index];
   ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
 
@@ -260,7 +262,6 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       mLastAudioPTS = packet->pts - mFirstAudioPTS;
     }
   }
-  zm_av_packet_unref(packet.get());
 
   return 1;
 } // FfmpegCamera::Capture

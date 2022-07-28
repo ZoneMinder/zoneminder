@@ -168,6 +168,11 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
   int frameComplete = false;
   av_packet_ptr packet{av_packet_alloc()};
 
+  if (!packet) {
+    Error("Unable to allocate packet.");
+    return nullptr;
+  }
+
   while (!frameComplete) {
     int ret = av_read_frame(input_format_context, packet.get());
     if (ret < 0) {
@@ -186,9 +191,9 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     }
     ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet->stream_index], packet, "Received packet");
 
+    av_packet_guard pkt_guard{packet};
     if ((stream_id >= 0) && (packet->stream_index != stream_id)) {
       Debug(1,"Packet is not for our stream (%d)", packet->stream_index );
-      zm_av_packet_unref(packet.get());
       continue;
     }
 
@@ -204,7 +209,6 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     if ( ret < 0 ) {
       Error("Unable to decode frame at frame %d: %d %s, continuing",
           streams[packet->stream_index].frame_count, ret, av_make_error_string(ret).c_str());
-      zm_av_packet_unref(packet.get());
       av_frame_free(&frame);
       continue;
     } else {
@@ -239,7 +243,6 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       zm_dump_frame(frame, "resulting frame");
     }
 
-    zm_av_packet_unref(packet.get());
   } // end while !frameComplete
   return frame;
 }  // end AVFrame *FFmpeg_Input::get_frame

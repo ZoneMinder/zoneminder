@@ -130,7 +130,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
 
         ZMLockedPacket lp(zm_packet);
         if (!lp.trylock()) {
-          if (warned_count <2) {
+          if (warned_count < 2) {
             warned_count++;
             // Can't delete a locked packet, but can delete one after it.
             Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
@@ -166,7 +166,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         if (zm_packet->packet.stream_index == video_stream_id)
           break;
       }  // end while
-    } else {
+    } else if (warned_count > 0) {
       warned_count--;
     }  // end if not able catch up
   }  // end lock scope
@@ -262,6 +262,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     return;
   }
 
+  int keyframe_interval = 1;
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (!lp->trylock()) {
     Debug(4, "Failed getting lock on first packet");
@@ -269,7 +270,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     return;
   }  // end if first packet not locked
      
-  int keyframe_interval = 1;
   int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
   ++it;
   delete lp;
@@ -313,9 +313,13 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     ++it;
   } // end while
 
-  Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d",
+  if (keyframe_interval > pre_event_video_packet_count) {
+    Warning("Max Image Buffer setting is too low! Needs to be great than keyframe interval. Keyframe interval is at least %d", keyframe_interval);
+  }
+  Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d, Keyframe interval %d",
       ( *it == add_packet ),
-      ( next_front == pktQueue.begin() )
+      ( next_front == pktQueue.begin() ),
+      keyframe_interval
       );
   if (next_front != pktQueue.begin()) {
     while (pktQueue.begin() != next_front) {

@@ -260,7 +260,7 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  if ( ZM_OPT_USE_GEOLOCATION ) {
+  if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
     if ( window.L ) {
       var form = document.getElementById('contentForm');
       var latitude = form.elements['newMonitor[Latitude]'].value;

@@ -315,7 +315,7 @@ function initPage() {
     }
   });
 
-  if ( ZM_OPT_USE_GEOLOCATION ) {
+  if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
     if ( window.L ) {
       const form = document.getElementById('contentForm');
       const latitude = form.elements['newMonitor[Latitude]'].value;

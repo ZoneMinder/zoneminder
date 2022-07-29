@@ -302,14 +302,12 @@ class Filter extends ZM_Object {
       return true;
     } # end if pre_sql_conditions
 
-    $failed = false;
     foreach ( $this->pre_sql_conditions() as $term ) {
       if ( !$term->test() ) {
-        $failed = true;
-        break;
+        return false;
       }
     }
-    return $failed;
+    return true;
   }
 
   public function test_post_sql_conditions($event) {

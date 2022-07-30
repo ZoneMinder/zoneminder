@@ -46,8 +46,8 @@ protected:
   AVStream *ost;
   AVCodecContext *codec_context;
   const AVCodec *codec;
-  AVFrame *opicture;
-  AVFrame *tmp_opicture;
+  av_frame_ptr opicture;
+  av_frame_ptr tmp_opicture;
   uint8_t *video_outbuf;
   int video_outbuf_size;
   double last_pts;

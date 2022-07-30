@@ -275,7 +275,6 @@ Monitor::Monitor()
   analysis_thread(nullptr),
   decoder_it(nullptr),
   decoder(nullptr),
-  dest_frame(nullptr),
   convert_context(nullptr),
   //zones(nullptr),
   privacy_bitmask(nullptr),
@@ -1107,8 +1106,6 @@ Monitor::~Monitor() {
   Debug(1, "Don linked monitors");
   if (video_fifo) delete video_fifo;
   if (audio_fifo) delete audio_fifo;
-  Debug(1, "Don fifo");
-  if (dest_frame) av_frame_free(&dest_frame);
   Debug(1, "Don fifo");
   if (convert_context) {
   Debug(1, "Don fifo");
@@ -2023,7 +2020,7 @@ bool Monitor::Analyse() {
                   ref_image.Blend(y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 } else if (snap->image) {
                   Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
-                      analysis_image, snap->in_frame,
+                      analysis_image, snap->in_frame.get(),
                       (snap->in_frame ? snap->in_frame->format : -1),
                       AV_PIX_FMT_YUV420P,
                       AV_PIX_FMT_YUVJ420P
@@ -2255,8 +2252,7 @@ bool Monitor::Analyse() {
         }
       }
       // Free up the decoded frame as well, we won't be using it for anything at this time.
-      if (snap->out_frame) av_frame_free(&snap->out_frame);
-      if (snap->buffer) av_freep(&snap->buffer);
+      snap->out_frame = nullptr;
 
       delete packet_lock;
     }
@@ -2620,19 +2616,19 @@ bool Monitor::Decode() {
         if (packet->in_frame and !packet->image) {
           packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
-          if (convert_context || this->setupConvertContext(packet->in_frame, packet->image)) {
-            if (!packet->image->Assign(packet->in_frame, convert_context, dest_frame)) {
+          if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
+            if (!packet->image->Assign(packet->in_frame.get(), convert_context, dest_frame.get())) {
               delete packet->image;
               packet->image = nullptr;
             }
-            av_frame_unref(dest_frame);
+            av_frame_unref(dest_frame.get());
           } else {
             delete packet->image;
             packet->image = nullptr;
           }  // end if have convert_context
         }  // end if need transfer to image
       } else {
-        Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame);
+        Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
       }
     } else {
       Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
@@ -3134,7 +3130,7 @@ int Monitor::PrimeCapture() {
   }
 
   if (decoding != DECODING_NONE) {
-    if (!dest_frame) dest_frame = zm_av_frame_alloc();
+    if (!dest_frame) dest_frame = av_frame_ptr{zm_av_frame_alloc()};
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
       Debug(1, "Creating decoder thread");

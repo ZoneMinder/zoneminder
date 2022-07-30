@@ -284,4 +284,14 @@ private:
     AVPacket *packet;
 };
 
+struct zm_free_av_frame
+{
+    void operator()(AVFrame *frame) const
+    {
+        av_frame_free(&frame);
+    }
+};
+
+using av_frame_ptr = std::unique_ptr<AVFrame, zm_free_av_frame>;
+
 #endif // ZM_FFMPEG_H

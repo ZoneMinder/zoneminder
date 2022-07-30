@@ -59,10 +59,8 @@ class VideoStore {
     // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
     av_packet_ptr opkt;
 
-    AVFrame *video_in_frame;
-    AVFrame *in_frame;
-    AVFrame *out_frame;
-    AVFrame *hw_frame;
+    av_frame_ptr in_frame;
+    av_frame_ptr out_frame;
 
     SWScale swscale;
     unsigned int packets_written;

@@ -85,11 +85,16 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
 
   int frameComplete = false;
   av_packet_ptr packet{av_packet_alloc()};
-  AVFrame *frame = zm_av_frame_alloc();
   char errbuf[AV_ERROR_MAX_STRING_SIZE];
 
   if (!packet) {
-    Error("Unable to allocate packet.");
+    Error("Unable to allocate packet.", );
+    return nullptr;
+  }
+
+  frame = av_frame_ptr{zm_av_frame_alloc()};
+  if (!frame) {
+    Error("Unable to allocate frame.");
     return nullptr;
   }
 
@@ -143,7 +148,7 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
     } else {
 #endif
       Debug(1,"Getting a frame?");
-      ret = avcodec_receive_frame( context, frame );
+      ret = avcodec_receive_frame( context, frame.get() );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
         Error( "Unable to send packet at frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
@@ -158,6 +163,6 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
   } // end if it's the right stream
 
   } // end while ! frameComplete
-  return frame;
+  return frame.get();
 
 } //  end AVFrame *FFmpeg_Output::get_frame

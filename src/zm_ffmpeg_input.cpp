@@ -9,17 +9,12 @@ FFmpeg_Input::FFmpeg_Input() {
   audio_stream_id = -1;
   FFMPEGInit();
   streams = nullptr;
-  frame = nullptr;
 	last_seek_request = -1;
 }
 
 FFmpeg_Input::~FFmpeg_Input() {
   if ( input_format_context ) {
     Close();
-  }
-  if ( frame ) {
-    av_frame_free(&frame);
-    frame = nullptr;
   }
 }  // end ~FFmpeg_Input()
 
@@ -171,23 +166,22 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 
     AVCodecContext *context = streams[packet->stream_index].context;
 
-    if ( frame ) {
-      av_frame_free(&frame);
-      frame = zm_av_frame_alloc();
-    } else {
-      frame = zm_av_frame_alloc();
+    frame = av_frame_ptr{zm_av_frame_alloc()};
+    if (!frame) {
+      Error("Unable to allocate frame.");
+      return nullptr;
     }
-    ret = zm_send_packet_receive_frame(context, frame, *packet);
+    ret = zm_send_packet_receive_frame(context, frame.get(), *packet);
     if ( ret < 0 ) {
       Error("Unable to decode frame at frame %d: %d %s, continuing",
           streams[packet->stream_index].frame_count, ret, av_make_error_string(ret).c_str());
-      av_frame_free(&frame);
+      frame = nullptr;
       continue;
     } else {
       if ( is_video_stream(input_format_context->streams[packet->stream_index]) ) {
-        zm_dump_video_frame(frame, "resulting video frame");
+        zm_dump_video_frame(frame.get(), "resulting video frame");
       } else {
-        zm_dump_frame(frame, "resulting frame");
+        zm_dump_frame(frame.get(), "resulting frame");
       }
     }
 
@@ -200,7 +194,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
         );
 
   } // end while !frameComplete
-  return frame;
+  return frame.get();
 }  // end AVFrame *FFmpeg_Input::get_frame
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
@@ -253,7 +247,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     }
   } else if ( last_seek_request == seek_target ) {
     // paused case, sending keepalives
-    return frame;
+    return frame.get();
   } // end if frame->pts > seek_target
 
 	last_seek_request = seek_target;
@@ -279,11 +273,11 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     while ( frame && (frame->pts < seek_target) ) {
       if ( !get_frame(stream_id) ) {
         Warning("Got no frame. returning nothing");
-        return frame;
+        return frame.get();
       }
     }
     zm_dump_frame(frame, "frame->pts <= seek_target, got");
-    return frame;
+    return frame.get();
   }
 
   return get_frame(stream_id);

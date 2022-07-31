@@ -314,7 +314,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   } // end while
 
   if (keyframe_interval > pre_event_video_packet_count) {
-    Warning("Max Image Buffer setting is too low! Needs to be great than keyframe interval. Keyframe interval is at least %d", keyframe_interval);
+    Warning("Pre Event Image Count setting is too low! Needs to be great than keyframe interval. Keyframe interval is at least %d", keyframe_interval);
   }
   Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d, Keyframe interval %d",
       ( *it == add_packet ),

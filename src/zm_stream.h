@@ -147,7 +147,7 @@ protected:
 
   CmdMsg msg;
 
-  unsigned char *temp_img_buffer;     // Used when encoding or sending file data
+  uint8_t *temp_img_buffer;     // Used when encoding or sending file data
   size_t temp_img_buffer_size;
 
 protected:
@@ -157,6 +157,7 @@ protected:
   Image *prepareImage(Image *image);
   bool checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
+  void reserveTempImgBuffer(size_t size);
 
 public:
   StreamBase(): 

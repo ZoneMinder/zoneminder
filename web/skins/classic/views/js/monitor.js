@@ -87,7 +87,7 @@ function initPage() {
     };
   });
   $j('#contentForm').submit(function(event) {
-    if ( validateForm(this) ) {
+    if (validateForm(this)) {
       $j('#contentButtons').hide();
       return true;
     } else {
@@ -115,7 +115,7 @@ function initPage() {
   });
   document.querySelectorAll('input[name="newMonitor[AlarmMaxFPS]"]').forEach(function(el) {
     el.oninput = el.onclick = function(e) {
-      if ( e.target.value ) {
+      if (e.target.value) {
         $j('#newMonitor\\[AlarmMaxFPS\\]').show();
       } else {
         $j('#newMonitor\\[AlarmMaxFPS\\]').hide();
@@ -149,29 +149,9 @@ function initPage() {
   });
   update_estimated_ram_use();
 
-  /*
-  document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
-    el.onchange = function() {
-      $j('#function_help div').hide();
-      $j('#'+this.value+'Help').show();
-      if ( this.value == 'Monitor' || this.value == 'None' ) {
-        $j('#FunctionEnabled').hide();
-      } else {
-        $j('#FunctionEnabled').show();
-      }
-      if ( this.value == 'Record' || this.value == 'Nodect' ) {
-        $j('#FunctionDecodingEnabled').show();
-      } else {
-        $j('#FunctionDecodingEnabled').hide();
-      }
-    };
-    el.onchange();
-  });
-  */
-
   document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
     el.onchange = function() {
-      if ( this.value == 1 /* Encode */ ) {
+      if (this.value == 1 /* Encode */) {
         $j('.OutputCodec').show();
         $j('.Encoder').show();
       } else {
@@ -227,7 +207,6 @@ function initPage() {
     //$j('.chosen').chosen({width: "95%"});
     // Store the selected tab in a cookie or something so that on reload it goes back to the tab
   });
-
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
@@ -565,10 +544,10 @@ function parseRows(rows) {
       inputTds.eq(0).html(conjSelect).children().val(cnjVal === undefined ? 'and' : cnjVal);
     }var brackets = rows.length - 2;
     if ( brackets > 0 ) { // add bracket select to all rows
-      var obrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][obr]').attr('id', queryPrefix + rowNum + '][obr]');
-      var cbrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cbr]').attr('id', queryPrefix + rowNum + '][cbr]');
-      obrSelect.append('<option value="0"</option>');
-      cbrSelect.append('<option value="0"</option>');
+      const obrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][obr]').attr('id', queryPrefix + rowNum + '][obr]');
+      const cbrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cbr]').attr('id', queryPrefix + rowNum + '][cbr]');
+      obrSelect.append('<option value="0"></option>');
+      cbrSelect.append('<option value="0"></option>');
       for ( var i = 1; i <= brackets; i++ ) { // build bracket options
         obrSelect.append('<option value="' + i + '">' + '('.repeat(i) + '</option>');
         cbrSelect.append('<option value="' + i + '">' + ')'.repeat(i) + '</option>');

@@ -2416,7 +2416,7 @@ int Monitor::Capture() {
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
   packet->image_index = image_count;
   packet->timestamp = std::chrono::system_clock::now();
-  shared_data->zmc_heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
+  shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
   Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
 

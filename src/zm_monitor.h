@@ -202,7 +202,7 @@ protected:
       uint64_t extrapad1;
     };
     union {                     /* +80   */
-      time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
+      time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
     union {                     /* +88  */
@@ -579,11 +579,11 @@ public:
       gettimeofday(&now, nullptr);
       Debug(3, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
             static_cast<int64>(now.tv_sec),
-            static_cast<int64>(shared_data->zmc_heartbeat_time),
-            static_cast<int64>(now.tv_sec - shared_data->zmc_heartbeat_time),
+            static_cast<int64>(shared_data->heartbeat_time),
+            static_cast<int64>(now.tv_sec - shared_data->heartbeat_time),
             config.watch_max_delay);
 
-      if ((now.tv_sec - shared_data->zmc_heartbeat_time) < config.watch_max_delay)
+      if ((now.tv_sec - shared_data->heartbeat_time) < config.watch_max_delay)
         return true;
     }
     return false;
@@ -742,7 +742,7 @@ public:
   SystemTimePoint GetStartupTime() const { return std::chrono::system_clock::from_time_t(shared_data->startup_time); }
   void SetStartupTime(SystemTimePoint time) { shared_data->startup_time = std::chrono::system_clock::to_time_t(time); }
   void SetHeartbeatTime(SystemTimePoint time) {
-    shared_data->zmc_heartbeat_time = std::chrono::system_clock::to_time_t(time);
+    shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(time);
   }
   void get_ref_image();
 

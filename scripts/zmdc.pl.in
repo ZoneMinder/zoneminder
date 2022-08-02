@@ -103,6 +103,7 @@ my @daemons = (
     'zmcontrol.pl',
     'zm_rtsp_server',
     'zmtelemetry.pl'
+    'zmalarm-server.py'
     );
 
 if ( $Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {

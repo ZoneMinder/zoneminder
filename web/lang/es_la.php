@@ -1190,6 +1190,11 @@ $OLANG = array(
 	'X10_DB_RELOAD_INTERVAL' => array ( 'Prompt'=>'Con qué frecuencia (en segundos) el demonio (daemon) X10 recarga los monitores desde la base de datos'),
 	'X10_DEVICE' => array ( 'Prompt'=>'A qué dispositivo está conectado su controlador X10'),
 	'X10_HOUSE_CODE' => array ( 'Prompt'=>'Qué código de casa X10 se debe usar'),
+        'OPT_USE_ALARMSERVER' => array ( 'Prompt'=>'Habilitar el Servidor de Alarmas para Camaras NETSurveillance WEB'),
+        'OPT_ALS_LOGENTRY' => array ( 'Prompt'=>'Hacer que el Servidor de Alarmas cree una entrada en el LOG'),
+        'OPT_ALS_ALARM' => array ( 'Prompt'=>'Pasar la Alarma de Humano Detectado en el Servidor de Alarmas al Zoneminder, No funciona en conjunto con el OPT_ALS_TRIGGEREVENT'),
+        'OPT_ALS_TRIGGEREVENT' => array ( 'Prompt'=>'Dispara un evento en Zoneminder en el caso de Humano Detectado presente en el servidor de Alarmas, Require zmTrigger'),
+        'OPT_ALS_PORT' => array ( 'Prompt'=>'Número de Puerto para recibir eventos de camaras con Servidor de Alarmas NETSurveillance WEB'),
 
 //   ***************End Prompts **********************
 

@@ -288,6 +288,30 @@ if ( $command =~ /^(?:start|restart)$/ ) {
     if ( $Config{ZM_MIN_RTSP_PORT} ) {
       runCommand('zmdc.pl start zm_rtsp_server');
     }
+    # run and pass parameters to AlarmServer.py
+    if ($Config{ZM_OPT_USE_ALARMSERVER} ) {
+       my $cmd='zmdc.pl start zmalarm-server.py '. $Config{ZM_OPT_ALS_PORT};
+       if ($Config{ZM_OPT_ALS_LOGENTRY} ) {
+             $cmd = $cmd . ' y';
+           }
+       else {
+             $cmd = $cmd . ' n';
+           }
+       if ($Config{ZM_OPT_ALS_TRIGGEREVENT} ) {
+             $cmd = $cmd . ' y';
+           }
+       else {
+             $cmd = $cmd . ' n';
+           }
+
+       if ($Config{ZM_OPT_ALS_ALARM} ) {
+             $cmd = $cmd . ' y';
+           }
+       else {
+             $cmd = $cmd . ' n';
+          }
+       runCommand($cmd);
+    }
   } else {
     $retval = 1;
   }

@@ -102,7 +102,7 @@ my @daemons = (
     'zmtrack.pl',
     'zmcontrol.pl',
     'zm_rtsp_server',
-    'zmtelemetry.pl'
+    'zmtelemetry.pl',
     'zmalarm-server.py'
     );
 

@@ -1477,5 +1477,5 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     </div>
     </div>
   </div>
-  <script src="/js/MonitorLinkExpression.js"></script>
+  <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
 <?php xhtmlFooter() ?>

@@ -303,6 +303,44 @@ sub moveRelDownLeft {
   $self->sendCmd($cmd);
 }
 
+sub zoomConTele {
+  my $self = shift;
+  my $params = shift;
+  my $speed = 20;
+  Debug('Zoom ConTele');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
+sub zoomConWide {
+  my $self = shift;
+  my $params = shift;
+  #my $step = $self->getParam($params, 'step');
+  my $speed = -20;
+  Debug('Zoom ConWide');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
+sub zoomStop {
+  my $self = shift;
+  my $params = shift;
+  my $speed = 0;
+  Debug('Zoom Stop');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
+sub moveStop {
+  my $self = shift;
+  my $params = shift;
+  my $speed = 0;
+  Debug('Move Stop');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$speed,$speed";
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
 sub zoomRelTele {
   my $self = shift;
   my $params = shift;

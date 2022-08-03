@@ -350,6 +350,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 void PacketQueue::stop() {
   deleting = true;
   condition.notify_all();
+  for (const auto p : pktQueue) p->notify_all();
 }
 
 void PacketQueue::clear() {

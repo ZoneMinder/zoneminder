@@ -876,7 +876,10 @@ public static function getStatuses() {
           if ( $scale < $options['scale'] )
             $options['scale'] = $scale;
         } else {
-          Warning('Invalid value for width: '.$options['width']);
+          $backTrace = debug_backtrace();
+          $file = $backTrace[1]['file'];
+          $line = $backTrace[1]['line'];
+          Warning('Invalid value for width: '.$options['width']. ' from '.$file.':'.$line);
         }
       }
     }

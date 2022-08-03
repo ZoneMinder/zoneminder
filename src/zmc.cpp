@@ -251,36 +251,31 @@ int main(int argc, char *argv[]) {
           monitor->Id());
       zmDbDo(sql);
 
-
       if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         while (!zm_terminate and !monitor->hasViewers()) {
           Debug(1, "ONDEMAND and no Viewers.  Sleeping");
           std::this_thread::sleep_for(Seconds(1));
+          monitor->SetHeartbeatTime(std::chrono::system_clock::now());
         }
       }
 
       Seconds sleep_time = Seconds(0);
-      while (monitor->PrimeCapture() <= 0) {
+      while ((monitor->PrimeCapture() <= 0) and !zm_terminate) {
         if (prime_capture_log_count % 60) {
-          logPrintf(Logger::ERROR + monitor->Importance(),
-                    "Failed to prime capture of initial monitor");
+          logPrintf(Logger::ERROR + monitor->Importance(), "Failed to prime capture of initial monitor");
         } else {
           Debug(1, "Failed to prime capture of initial monitor");
         }
 
         prime_capture_log_count++;
-        if (zm_terminate) {
-          break;
-        }
-        if (sleep_time < Seconds(60)) {
+        if (sleep_time < Seconds(ZM_WATCH_MAX_DELAY)) {
           sleep_time++;
         }
 
         std::this_thread::sleep_for(sleep_time);
+        monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       }
-      if (zm_terminate) {
-        break;
-      }
+      if (zm_terminate) break;
 
       sql = stringtf(
           "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
@@ -288,9 +283,7 @@ int main(int argc, char *argv[]) {
       zmDbDo(sql);
     }  // end foreach monitor
 
-    if (zm_terminate) {
-      break;
-    }
+    if (zm_terminate) break;
 
     std::vector<SystemTimePoint> last_capture_times = std::vector<SystemTimePoint>(monitors.size());
     Microseconds sleep_time = Microseconds(0);
@@ -325,11 +318,13 @@ int main(int argc, char *argv[]) {
         }
         monitors[i]->UpdateFPS();
 
+        SystemTimePoint now = std::chrono::system_clock::now();
+        monitors[i]->SetHeartbeatTime(now);
+
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()
                                                                          : monitors[i]->GetCaptureDelay();
         if (delay != Seconds(0)) {
-          SystemTimePoint now = std::chrono::system_clock::now();
           if (last_capture_times[i].time_since_epoch() != Seconds(0)) {
             Microseconds delta_time = std::chrono::duration_cast<Microseconds>(now - last_capture_times[i]);
 

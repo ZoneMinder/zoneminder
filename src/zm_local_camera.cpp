@@ -219,7 +219,7 @@ int LocalCamera::vid_fd = -1;
 int LocalCamera::v4l_version = 0;
 LocalCamera::V4L2Data LocalCamera::v4l2_data;
 
-AVFrame **LocalCamera::capturePictures = nullptr;
+av_frame_ptr *LocalCamera::capturePictures;
 
 LocalCamera *LocalCamera::last_camera = nullptr;
 
@@ -436,7 +436,7 @@ LocalCamera::LocalCamera(
 
   /* Initialize swscale stuff */
   if (capture and (conversion_type == 1)) {
-    tmpPicture = av_frame_alloc();
+    tmpPicture = av_frame_ptr{zm_av_frame_alloc()};
 
     if (!tmpPicture)
       Fatal("Could not allocate temporary picture");
@@ -456,7 +456,6 @@ LocalCamera::LocalCamera(
       Fatal("Unable to initialise image scaling context");
     }
   } else {
-    tmpPicture = nullptr;
     imgConversionContext = nullptr;
   } // end if capture and conversion_tye == swscale
   if (capture and device_prime)
@@ -471,8 +470,6 @@ LocalCamera::~LocalCamera() {
   if (capture && (conversion_type == 1)) {
     sws_freeContext(imgConversionContext);
     imgConversionContext = nullptr;
-
-    av_frame_free(&tmpPicture);
   }
 } // end LocalCamera::~LocalCamera
 
@@ -658,7 +655,7 @@ void LocalCamera::Initialise() {
       channel_count, v4l_multi_buffer, v4l2_data.reqbufs.count);
 
   v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count];
-  capturePictures = new AVFrame *[v4l2_data.reqbufs.count];
+  capturePictures = new av_frame_ptr[v4l2_data.reqbufs.count];
 
   for (unsigned int i = 0; i < v4l2_data.reqbufs.count; i++) {
     struct v4l2_buffer vid_buf;
@@ -681,7 +678,7 @@ void LocalCamera::Initialise() {
       Fatal("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
           i, vid_buf.length, strerror(errno), errno);
 
-    capturePictures[i] = av_frame_alloc();
+    capturePictures[i] = av_frame_ptr{zm_av_frame_alloc()};
 
     if (!capturePictures[i])
       Fatal("Could not allocate picture");
@@ -738,7 +735,7 @@ void LocalCamera::Terminate() {
 
     Debug(3, "Unmapping video buffers");
     for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
-      av_frame_free(&capturePictures[i]);
+      capturePictures[i] = nullptr;
 
       if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
         Error("Failed to munmap buffer %d: %s", i, strerror(errno));
@@ -1376,7 +1373,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
   } // end if doing conversion or not
 
-  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->packet->stream_index = mVideoStreamId;
   zm_packet->stream = mVideoStream;
   zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
   zm_packet->keyframe = 1;

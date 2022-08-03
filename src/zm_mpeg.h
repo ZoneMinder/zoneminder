@@ -22,6 +22,7 @@
 
 #include "zm_ffmpeg.h"
 #include <pthread.h>
+#include <array>
 
 class VideoStream {
 protected:
@@ -45,8 +46,8 @@ protected:
   AVStream *ost;
   AVCodecContext *codec_context;
   const AVCodec *codec;
-  AVFrame *opicture;
-  AVFrame *tmp_opicture;
+  av_frame_ptr opicture;
+  av_frame_ptr tmp_opicture;
   uint8_t *video_outbuf;
   int video_outbuf_size;
   double last_pts;
@@ -59,7 +60,7 @@ protected:
   pthread_mutex_t *buffer_copy_lock;
   int buffer_copy_size;
   int buffer_copy_used;
-  AVPacket** packet_buffers;
+  std::array<av_packet_ptr, 2> packet_buffers;
   int packet_index;
   int SendPacket(AVPacket *packet);
   static void* StreamingThreadCallback(void *ctx);

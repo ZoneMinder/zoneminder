@@ -115,7 +115,7 @@ bool Monitor::MonitorLink::connect() {
       disconnect();
       return false;
     } else if (map_stat.st_size < mem_size) {
-      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, static_cast<intmax_t>(mem_size));
+      Error("Got unexpected memory map file size %jd, expected %jd", static_cast<intmax_t>(map_stat.st_size), static_cast<intmax_t>(mem_size));
       disconnect();
       return false;
     }
@@ -157,7 +157,7 @@ bool Monitor::MonitorLink::connect() {
 
     return true;
   }
-  return false;
+  return connected;
 }  // end bool Monitor::MonitorLink::connect()
 
 bool Monitor::MonitorLink::disconnect() {
@@ -214,17 +214,21 @@ bool Monitor::MonitorLink::inAlarm() {
   return( shared_data->state == ALARM || shared_data->state == ALERT );
 }
 
-bool Monitor::MonitorLink::hasAlarmed() {
+int Monitor::MonitorLink::score() {
   if (zone_id and (zone_index >= 0)) {
     Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
-    if (zone_scores[zone_index] > 0) {
-      return true;
-    }
+    return zone_scores[zone_index];
   }
   if (shared_data->state == ALARM) {
-    Debug(1, "State is %d", shared_data->state);
-    return true;
+    Debug(1, "Checking all zones score is %d", shared_data->last_frame_score);
+    return shared_data->last_frame_score;
   }
+  Debug(1, "not alarmed. %d", shared_data->state);
+  return 0;
+}
+
+bool Monitor::MonitorLink::hasAlarmed() {
+  return this->score() > 0;
   last_event_id = shared_data->last_event_id;
   return false;
 }

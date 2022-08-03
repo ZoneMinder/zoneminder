@@ -7,6 +7,7 @@ class MontageLayout extends ZM_Object {
   protected $defaults = array(
     'Id' => null,
     'Name' => '',
+    'UserId'  =>  0,
     'Positions' => 0,
   );
 

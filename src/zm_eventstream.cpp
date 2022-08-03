@@ -734,9 +734,8 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
         AVFrame *frame =
             ffmpeg_input->get_frame(ffmpeg_input->get_video_stream_id(), FPSeconds(frame_data->offset).count());
-        if ( frame ) {
+        if (frame) {
           image = new Image(frame);
-          //av_frame_free(&frame);
         } else {
           Error("Failed getting a frame.");
           return false;
@@ -1097,7 +1096,7 @@ bool EventStream::send_file(const std::string &filepath) {
     Info("File size is zero. Unable to send raw frame %d: %s", curr_frame_id, strerror(errno));
     return false;
   }
-  if (0 > fprintf(stdout, "Content-Length: %jd\r\n\r\n", filestat.st_size)) {
+  if (0 > fprintf(stdout, "Content-Length: %jd\r\n\r\n", static_cast<intmax_t>(filestat.st_size))) {
     fclose(fdj); /* Close the file handle */
     Info("Unable to send raw frame %d: %s", curr_frame_id, strerror(errno));
     return false;

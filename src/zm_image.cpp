@@ -289,7 +289,11 @@ bool Image::Assign(const AVFrame *frame) {
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
-  AVFrame *dest_frame = zm_av_frame_alloc();
+  av_frame_ptr dest_frame{zm_av_frame_alloc()};
+  if (!dest_frame) {
+    Error("Unable to allocate destination frame");
+    return false;
+  }
   sws_convert_context = sws_getCachedContext(
       sws_convert_context,
       frame->width, frame->height, (AVPixelFormat)frame->format,
@@ -301,8 +305,7 @@ bool Image::Assign(const AVFrame *frame) {
     Error("Unable to create conversion context");
     return false;
   }
-  bool result = Assign(frame, sws_convert_context, dest_frame);
-  av_frame_free(&dest_frame);
+  bool result = Assign(frame, sws_convert_context, dest_frame.get());
   update_function_pointers();
   return result;
 }  // end Image::Assign(const AVFrame *frame)
@@ -914,7 +917,7 @@ bool Image::ReadRaw(const char *filename) {
 
   if ( (unsigned int)statbuf.st_size != size ) {
     fclose(infile);
-    Error("Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size);
+    Error("Raw file size mismatch, expected %d bytes, found %jd", size, static_cast<intmax_t>(statbuf.st_size));
     return false;
   }
 
@@ -2477,8 +2480,8 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   colour = rgb_convert(colour, subpixelorder);
 
   size_t n_coords = polygon.GetVertices().size();
-  if (!n_coords) {
-    Error("No vertices from polygon!");
+  if (n_coords < 3) {
+    Error("Not enough vertices in polygon!");
     return;
   }
 

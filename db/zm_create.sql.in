@@ -474,6 +474,7 @@ CREATE TABLE `Monitors` (
   `ONVIF_Password` VARCHAR(64) NOT NULL DEFAULT '',
   `ONVIF_Options` VARCHAR(64) NOT NULL DEFAULT '',
   `ONVIF_Event_Listener`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `ONVIF_Alarm_Text` VARCHAR(30) DEFAULT 'MotionAlarm',
   `use_Amcrest_API`  BOOLEAN NOT NULL DEFAULT FALSE,
   `Device` tinytext NOT NULL default '',
   `Channel` tinyint(3) unsigned NOT NULL default '0',
@@ -1094,6 +1095,7 @@ DROP TABLE IF EXISTS MontageLayouts;
 CREATE TABLE MontageLayouts (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name`    TEXT  NOT NULL,
+  `UserId`  int(10) UNSIGNED NOT NULL default 0,
   `Positions` LONGTEXT,
   /*`Positions` JSON,*/
   PRIMARY KEY (`Id`)

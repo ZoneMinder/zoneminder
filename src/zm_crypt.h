@@ -28,7 +28,7 @@
 
 bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash);
 
-std::pair<std::string, unsigned int> verifyToken(std::string token, std::string key);
+std::pair<std::string, unsigned int> verifyToken(const std::string &token, const std::string &key);
 
 namespace zm {
 namespace crypto {

@@ -158,7 +158,7 @@ if ($have_semaphore !== false) {
     ajaxResponse(array('status'=>$data));
     break;
   case MSG_DATA_EVENT :
-    if ( version_compare( phpversion(), '5.6.0', '<') ) {
+    if ( PHP_INT_SIZE===4 || version_compare( phpversion(), '5.6.0', '<') ) {
       ZM\Debug('Using old unpack methods to handle 64bit event id');
       $data = unpack('ltype/ieventlow/ieventhigh/dduration/dprogress/irate/izoom/Cpaused', $msg);
       $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];

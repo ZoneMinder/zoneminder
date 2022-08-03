@@ -36,6 +36,8 @@ set(ZM_BIN_SRC_FILES
   zm_monitor_monitorlink.cpp
   zm_monitor_janus.cpp
   zm_monitor_amcrest.cpp
+  zm_monitorlink_expression.cpp
+  #zm_monitorlink_token.cpp
   zm_monitorstream.cpp
   zm_ffmpeg.cpp
   zm_ffmpeg_camera.cpp
@@ -129,7 +131,9 @@ add_library(zm STATIC ${ZM_BIN_SRC_FILES})
 target_include_directories(zm
   PUBLIC
     ${CMAKE_BINARY_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR})
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ../dep/booleval/include
+    )
 
 if(GSOAP_FOUND)
 target_include_directories(zm

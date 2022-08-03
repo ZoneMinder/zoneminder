@@ -44,7 +44,7 @@ foreach ( $states as $state ) {
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Run State</h5>
+        <h5 class="modal-title"><?php echo translate('Run State')?> </h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -59,7 +59,7 @@ foreach ( $states as $state ) {
             <input type="hidden" name="action" value="state"/>
             <input type="hidden" name="apply" value="1"/>
             <div class="form-group">
-              <label for="runState" class="col-md-3 col-form-label float-left">Change State</label>
+              <label for="runState" class="col-md-3 col-form-label float-left"><?php echo translate('Change State')?></label>
               <div class="col-md-9">
                 <select id="runState" name="runState" class="form-control">
                   <?php echo $content ?>

@@ -14,7 +14,7 @@
 
 // returns username if valid, "" if not
 #if HAVE_LIBJWT
-std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
+std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_str, const std::string &key) {
   std::string username = "";
   unsigned int token_issued_at = 0;
   int err = 0;
@@ -74,7 +74,7 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
   return std::make_pair(username, token_issued_at);
 }
 #else // HAVE_LIBJWT
-std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
+std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_str, const std::string &key) {
   std::string username = "";
   unsigned int token_issued_at = 0;
   try {

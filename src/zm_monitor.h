@@ -28,6 +28,9 @@
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
+#if 0
+#include "zm_monitorlink_expression.h"
+#endif
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
@@ -46,6 +49,7 @@
 #endif
 
 class Group;
+class MonitorLinkExpression;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -58,6 +62,7 @@ class Group;
 //
 class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
+  friend class MonitorLinkExpression;
 
 public:
   typedef enum {
@@ -187,37 +192,40 @@ protected:
     uint8_t recording;          /* +55   */
     uint8_t signal;             /* +56   */
     uint8_t format;             /* +57   */
-    uint32_t imagesize;         /* +58   */
-    uint32_t last_frame_score;  /* +62   */
-    uint32_t  audio_frequency;  /* +66   */
-    uint32_t  audio_channels;   /* +70   */
+    uint8_t reserved1;          /* +58   */
+    uint8_t reserved2;          /* +59   */
+    uint32_t imagesize;         /* +60   */
+    uint32_t last_frame_score;  /* +64   */
+    uint32_t audio_frequency;   /* +68   */
+    uint32_t audio_channels;    /* +72   */
+    uint32_t reserved3;         /* +76   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
      */
-    union {                     /* +72   */
+    union {                     /* +80   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +80   */
+    union {                     /* +88   */
       time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {                     /* +88  */
+    union {                     /* +96   */
       time_t last_write_time;
       uint64_t extrapad3;
     };
-    union {                     /* +96  */
+    union {                     /* +104  */
       time_t last_read_time;
       uint64_t extrapad4;
     };
-    union {                     /* +104  */
+    union {                     /* +112  */
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    uint8_t control_state[256];  /* +112   */
+    uint8_t control_state[256]; /* +120  */
 
     char alarm_cause[256];
     char video_fifo_path[64];
@@ -251,6 +259,7 @@ protected:
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
   } VideoStoreData;
 
+public:
   class MonitorLink {
   protected:
     std::shared_ptr<Monitor>  monitor;
@@ -301,7 +310,9 @@ protected:
       bool isAlarmed();
       bool inAlarm();
       bool hasAlarmed();
+      int score();
   };
+protected:
 
   class AmcrestAPI {
   protected:
@@ -312,7 +323,7 @@ protected:
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
   public:
-    AmcrestAPI( Monitor *parent_);
+    explicit AmcrestAPI(Monitor *parent_);
     ~AmcrestAPI();
     int API_Connect();
     void WaitForMessage();
@@ -336,7 +347,7 @@ protected:
     std::string rtsp_path;
 
   public:
-    JanusManager(Monitor *parent_);
+    explicit JanusManager(Monitor *parent_);
     ~JanusManager();
     int add_to_janus();
     int check_janus();
@@ -449,6 +460,7 @@ protected:
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
+  std::string onvif_alarm_txt;     // def onvif_alarm_txt
   int         importance;           // Importance of this monitor, affects Connection logging errors.
   unsigned int         zone_count;
 
@@ -511,7 +523,7 @@ protected:
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
-  AVFrame *dest_frame;                    // Used by decoding thread doing colorspace conversions
+  av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 
@@ -520,8 +532,10 @@ protected:
   const unsigned char  *privacy_bitmask;
 
   std::string linked_monitors_string;
+
   int      n_linked_monitors;
-  MonitorLink    **linked_monitors;
+  MonitorLinkExpression *linked_monitors;
+  //MonitorLink    **linked_monitors;
   std::string   event_start_command;
   std::string   event_end_command;
 

@@ -447,7 +447,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
              ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
             )
            ) {
-          std::string event_file = stringtf("%s/%d-y.jpg", path.c_str(), frames);
+          event_file = stringtf("%s/%d-y.jpg", path.c_str(), frames);
           Image y_image(
               packet->in_frame->width,
               packet->in_frame->height,

@@ -292,7 +292,7 @@ getBodyTopHTML();
         </div>
 <?php if ( !$liveMode ) { ?>
         <div id="eventfilterdiv" class="input-group">
-          <label>Archive Status 
+          <label><?php echo translate('Archive Status') ?> 
   <?php echo htmlSelect(
     'archive_status',
     array(

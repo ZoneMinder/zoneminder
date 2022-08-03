@@ -379,7 +379,7 @@ int RemoteCameraHttp::GetResponse() {
                   request += stringtf( "Host: %s\r\n", host.c_str());
                   if ( strcmp( config.http_version, "1.0" ) == 0 )
                     request += "Connection: Keep-Alive\r\n";
-                  request += mAuthenticator->getAuthHeader( "GET", path.c_str() );
+                  request += mAuthenticator->getAuthHeader("GET", path);
                   request += "\r\n";
 
                   Debug( 2, "New request header: %s", request.c_str() );
@@ -750,7 +750,7 @@ int RemoteCameraHttp::GetResponse() {
                   request += stringtf("Host: %s\r\n", host.c_str());
                   if ( strcmp(config.http_version, "1.0") == 0 )
                     request += "Connection: Keep-Alive\r\n";
-                  request += mAuthenticator->getAuthHeader("GET", path.c_str());
+                  request += mAuthenticator->getAuthHeader("GET", path);
                   request += "\r\n";
 
                   Debug(2, "New request header: %s", request.c_str());
@@ -999,7 +999,7 @@ int RemoteCameraHttp::GetResponse() {
 
                   if (mode == MULTI_IMAGE) {
                     // Look for the boundary marker, determine content length using it's position
-                    if (char *start_ptr = (char *)memstr( (char *)buffer, "\r\n--", buffer_size)) {
+                    if (const char *start_ptr = (char *)memstr( (char *)buffer, "\r\n--", buffer_size)) {
                       content_length = start_ptr - (char *)buffer;
                       Debug(2, "Got end of image by pattern (crlf--), content-length = %d", content_length);
                     } else {
@@ -1099,7 +1099,7 @@ int RemoteCameraHttp::Capture(std::shared_ptr<ZMPacket> &packet) {
   Image *image = packet->image;
   packet->keyframe = 1;
   packet->codec_type = AVMEDIA_TYPE_VIDEO;
-  packet->packet.stream_index = mVideoStreamId;
+  packet->packet->stream_index = mVideoStreamId;
   packet->stream = mVideoStream;
 
   switch (format) {

@@ -9,17 +9,12 @@ FFmpeg_Input::FFmpeg_Input() {
   audio_stream_id = -1;
   FFMPEGInit();
   streams = nullptr;
-  frame = nullptr;
 	last_seek_request = -1;
 }
 
 FFmpeg_Input::~FFmpeg_Input() {
   if ( input_format_context ) {
     Close();
-  }
-  if ( frame ) {
-    av_frame_free(&frame);
-    frame = nullptr;
   }
 }  // end ~FFmpeg_Input()
 
@@ -42,7 +37,6 @@ int FFmpeg_Input::Open(
 }
 
 int FFmpeg_Input::Open(const char *filepath) {
-
   int error;
 
   /** Open the input file to read from it. */
@@ -138,11 +132,15 @@ int FFmpeg_Input::Close( ) {
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id) {
   int frameComplete = false;
-  AVPacket packet;
-  av_init_packet(&packet);
+  av_packet_ptr packet{av_packet_alloc()};
+
+  if (!packet) {
+    Error("Unable to allocate packet.");
+    return nullptr;
+  }
 
   while ( !frameComplete ) {
-    int ret = av_read_frame(input_format_context, &packet);
+    int ret = av_read_frame(input_format_context, packet.get());
     if ( ret < 0 ) {
       if (
           // Check if EOF.
@@ -154,45 +152,49 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
         return nullptr;
       }
       Error("Unable to read packet from stream %d: error %d \"%s\".",
-          packet.stream_index, ret, av_make_error_string(ret).c_str());
+          packet->stream_index, ret, av_make_error_string(ret).c_str());
       return nullptr;
     }
-    ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet.stream_index], packet, "Received packet");
+    ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet->stream_index], packet, "Received packet");
 
-    if ( (stream_id >= 0) && (packet.stream_index != stream_id) ) {
-      Debug(1,"Packet is not for our stream (%d)", packet.stream_index );
+    av_packet_guard pkt_guard{packet};
+
+    if ( (stream_id >= 0) && (packet->stream_index != stream_id) ) {
+      Debug(1,"Packet is not for our stream (%d)", packet->stream_index );
       continue;
     }
 
-    AVCodecContext *context = streams[packet.stream_index].context;
+    AVCodecContext *context = streams[packet->stream_index].context;
 
-    if ( frame ) {
-      av_frame_free(&frame);
-      frame = zm_av_frame_alloc();
-    } else {
-      frame = zm_av_frame_alloc();
+    frame = av_frame_ptr{zm_av_frame_alloc()};
+    if (!frame) {
+      Error("Unable to allocate frame.");
+      return nullptr;
     }
-    ret = zm_send_packet_receive_frame(context, frame, packet);
+    ret = zm_send_packet_receive_frame(context, frame.get(), *packet);
     if ( ret < 0 ) {
       Error("Unable to decode frame at frame %d: %d %s, continuing",
-          streams[packet.stream_index].frame_count, ret, av_make_error_string(ret).c_str());
-      zm_av_packet_unref(&packet);
-      av_frame_free(&frame);
+          streams[packet->stream_index].frame_count, ret, av_make_error_string(ret).c_str());
+      frame = nullptr;
       continue;
     } else {
-      if ( is_video_stream(input_format_context->streams[packet.stream_index]) ) {
-        zm_dump_video_frame(frame, "resulting video frame");
+      if ( is_video_stream(input_format_context->streams[packet->stream_index]) ) {
+        zm_dump_video_frame(frame.get(), "resulting video frame");
       } else {
-        zm_dump_frame(frame, "resulting frame");
+        zm_dump_frame(frame.get(), "resulting frame");
       }
     }
 
     frameComplete = 1;
 
-    zm_av_packet_unref(&packet);
+    // Convert timestamps to stream timebase instead of codec timebase
+    frame->pts = av_rescale_q(frame->pts,
+        context->time_base,
+        input_format_context->streams[stream_id]->time_base
+        );
 
   } // end while !frameComplete
-  return frame;
+  return frame.get();
 }  // end AVFrame *FFmpeg_Input::get_frame
 
 AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
@@ -245,11 +247,22 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     }
   } else if ( last_seek_request == seek_target ) {
     // paused case, sending keepalives
-    return frame;
+    return frame.get();
   } // end if frame->pts > seek_target
 
 	last_seek_request = seek_target;
 
+  if (frame->pts + frame->pkt_duration < seek_target) {
+    Debug(1, "Jumping ahead");
+    if (( ret = av_seek_frame(input_format_context, stream_id, seek_target,
+            AVSEEK_FLAG_FRAME
+            ) ) < 0) {
+      Error("Unable to seek in stream %d", ret);
+      return nullptr;
+    }
+    // Have to grab a frame to update our current frame to know where we are
+    get_frame(stream_id);
+  }
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
   if ( frame->pts <= seek_target ) {
     if ( is_video_stream(input_format_context->streams[stream_id]) ) {
@@ -260,11 +273,11 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     while ( frame && (frame->pts < seek_target) ) {
       if ( !get_frame(stream_id) ) {
         Warning("Got no frame. returning nothing");
-        return frame;
+        return frame.get();
       }
     }
     zm_dump_frame(frame, "frame->pts <= seek_target, got");
-    return frame;
+    return frame.get();
   }
 
   return get_frame(stream_id);

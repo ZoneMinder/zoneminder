@@ -192,37 +192,40 @@ protected:
     uint8_t recording;          /* +55   */
     uint8_t signal;             /* +56   */
     uint8_t format;             /* +57   */
-    uint32_t imagesize;         /* +58   */
-    uint32_t last_frame_score;  /* +62   */
-    uint32_t  audio_frequency;  /* +66   */
-    uint32_t  audio_channels;   /* +70   */
+    uint8_t reserved1;          /* +58   */
+    uint8_t reserved2;          /* +59   */
+    uint32_t imagesize;         /* +60   */
+    uint32_t last_frame_score;  /* +64   */
+    uint32_t audio_frequency;   /* +68   */
+    uint32_t audio_channels;    /* +72   */
+    uint32_t reserved3;         /* +76   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
      */
-    union {                     /* +72   */
+    union {                     /* +80   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +80   */
-      time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
+    union {                     /* +88   */
+      time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {                     /* +88  */
+    union {                     /* +96   */
       time_t last_write_time;
       uint64_t extrapad3;
     };
-    union {                     /* +96  */
+    union {                     /* +104  */
       time_t last_read_time;
       uint64_t extrapad4;
     };
-    union {                     /* +104  */
+    union {                     /* +112  */
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    uint8_t control_state[256];  /* +112   */
+    uint8_t control_state[256]; /* +120  */
 
     char alarm_cause[256];
     char video_fifo_path[64];
@@ -457,6 +460,7 @@ protected:
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
+  std::string onvif_alarm_txt;     // def onvif_alarm_txt
   int         importance;           // Importance of this monitor, affects Connection logging errors.
   unsigned int         zone_count;
 
@@ -519,7 +523,7 @@ protected:
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
-  AVFrame *dest_frame;                    // Used by decoding thread doing colorspace conversions
+  av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 
@@ -589,11 +593,11 @@ public:
       gettimeofday(&now, nullptr);
       Debug(3, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
             static_cast<int64>(now.tv_sec),
-            static_cast<int64>(shared_data->zmc_heartbeat_time),
-            static_cast<int64>(now.tv_sec - shared_data->zmc_heartbeat_time),
+            static_cast<int64>(shared_data->heartbeat_time),
+            static_cast<int64>(now.tv_sec - shared_data->heartbeat_time),
             config.watch_max_delay);
 
-      if ((now.tv_sec - shared_data->zmc_heartbeat_time) < config.watch_max_delay)
+      if ((now.tv_sec - shared_data->heartbeat_time) < config.watch_max_delay)
         return true;
     }
     return false;
@@ -752,7 +756,7 @@ public:
   SystemTimePoint GetStartupTime() const { return std::chrono::system_clock::from_time_t(shared_data->startup_time); }
   void SetStartupTime(SystemTimePoint time) { shared_data->startup_time = std::chrono::system_clock::to_time_t(time); }
   void SetHeartbeatTime(SystemTimePoint time) {
-    shared_data->zmc_heartbeat_time = std::chrono::system_clock::to_time_t(time);
+    shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(time);
   }
   void get_ref_image();
 

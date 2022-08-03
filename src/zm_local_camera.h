@@ -73,11 +73,11 @@ protected:
 
   static V4L2Data         v4l2_data;
 
-  static AVFrame      **capturePictures;
+  static av_frame_ptr    *capturePictures;
   _AVPIXELFORMAT         imagePixFormat;
   _AVPIXELFORMAT         capturePixFormat;
   struct SwsContext   *imgConversionContext;
-  AVFrame             *tmpPicture;    
+  av_frame_ptr        tmpPicture;
 
   static LocalCamera      *last_camera;
 

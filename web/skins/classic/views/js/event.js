@@ -922,7 +922,7 @@ function initPage() {
     vid.on('volumechange', function() {
       setCookie('volume', vid.volume(), 3600);
     });
-    var cookie = getCookie('volume');
+    const cookie = getCookie('volume');
     if (cookie) vid.volume(cookie);
 
     vid.on('timeupdate', function() {
@@ -930,7 +930,6 @@ function initPage() {
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
-      console.log("rate change " + rate);
       $j('select[name="rate"]').val(rate);
       setCookie('zmEventRate', rate, 3600);
     });
@@ -947,7 +946,7 @@ function initPage() {
       if (!$j('#videoFeed')) {
         console.log('No element with id tag videoFeed found.');
       } else {
-        var streamImg = $j('#videoFeed img');
+        let streamImg = $j('#videoFeed img');
         if (!streamImg) {
           streamImg = $j('#videoFeed object');
         }

@@ -101,6 +101,17 @@ while (!$zm_terminate) {
       $monitor->control('restart');
       next;
     }
+
+    my $heartbeat_time = zmMemRead($monitor, 'shared_data:heartbeat_time');
+    my $heartbeat_elapsed = $now-$heartbeat_time;
+    if ($heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}) {
+      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, $now - heartbeat time $heartbeat_time $heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}");
+      $monitor->control('restart');
+      next;
+    } else {
+      Debug("Monitor $monitor->{Id} $monitor->{Name}, heartbeat time $now - $heartbeat_time $heartbeat_elapsed < $Config{ZM_WATCH_MAX_DELAY}");
+    }
+
     next if $monitor->{Capturing} eq 'Ondemand';
     next if $monitor->{Decoding} eq 'None' or $monitor->{Decoding} eq 'Ondemand';
 

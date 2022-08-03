@@ -57,12 +57,10 @@ class VideoStore {
     const AVCodec *audio_out_codec;
     AVCodecContext *audio_out_ctx;
     // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
-    AVPacket *opkt;
+    av_packet_ptr opkt;
 
-    AVFrame *video_in_frame;
-    AVFrame *in_frame;
-    AVFrame *out_frame;
-    AVFrame *hw_frame;
+    av_frame_ptr in_frame;
+    av_frame_ptr out_frame;
 
     SWScale swscale;
     unsigned int packets_written;

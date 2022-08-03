@@ -21,18 +21,35 @@ def writezmlog(m,s):
     zmlog.Info(m+s)
 #    zmlog.close()
 
-def alarm_thread(m, monid):
+def alarm_thread(m, monid,eventlenght):
     import subprocess
     print("Monitor " + str(monid)+" entered alarm_thread...")
     result = subprocess.run(['zmu','-m', str(monid), '-s'] ,stdout=subprocess.PIPE)
     if result.stdout.decode('utf-8') != '3\n':
         print('Changing monitor '+ str(monid) + ' status to Alarm...')
         m.arm()
-        sleep(30)
+        sleep(eventlenght)
         m.disarm()
     else:
         print('Monitor '+ str(monid) + ' already in status Alarm...')
     print('Finishing thread...')
+
+
+def event_thread(m_id,eventlenght):
+    import subprocess
+    print("Monitor " + str(m_id)+" entered event_thread...")
+    result = subprocess.run(['zmu','-m', str(m_id), '-x'] ,stdout=subprocess.PIPE)
+    if result.stdout.decode('utf-8') == '0\n':
+        print('Firing monitor '+ str(m_id) + ' trigger...')
+        telbuff = str(m_id) + '|on+'+str(eventlenght)+'|1|Human Motion Detected|'
+        with Telnet('localhost', 6802) as tn:
+          tn.write(telbuff.encode('ascii') + alarm_desc.encode('ascii') + b'\n')
+          tn.read_until(b'off')
+    else:
+        print('Monitor '+ str(m_id) + ' already triggered, doing nothing...')
+    print('Finishing thread...')
+
+
 
 def tolog(s):
     logfile = open(datetime.now().strftime('%Y_%m_%d_') + log, 'a+')
@@ -45,7 +62,7 @@ def GetIP(s):
 
 
 # config variables
-eventlenght = 45
+eventlenght = 60
 wrzmlog = 'n'
 wrzmevent ='n'
 rsealm = 'n'
@@ -123,14 +140,12 @@ while True:
                writezmlog(alarm_desc+' in monitor ',str(list_monit[ip_v4]))
             if rsealm == 'y':
                print ("Triggering Alarm...")
-               mthread = Thread(target=alarm_thread, args=(zm_monitors.find(list_monit[ip_v4]),list_monit[ip_v4]))
+               mthread = Thread(target=alarm_thread, args=(zm_monitors.find(list_monit[ip_v4]),list_monit[ip_v4],eventlenght))
                mthread.start()
             elif wrzmevent == 'y':
                print ("Triggering Event Rec on zmtrigger...")
-               telbuff = str(list_monit[ip_v4]) + '|on+'+str(eventlenght)+'|1|External Motion|'
-               with Telnet('localhost', 6802) as tn:
-                 tn.write(telbuff.encode('ascii') + alarm_desc.encode('ascii') + b'\n')
-                 tn.read_until(b'off')
+               mthread = Thread(target=event_thread, args=(list_monit[ip_v4],eventlenght))
+               mthread.start()
     except (KeyboardInterrupt, SystemExit):
         break
 server.close()

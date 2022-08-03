@@ -123,7 +123,11 @@ function manageDelConfirmModalBtns() {
     evt.preventDefault();
 
     const selections = getIdSelections();
-    deleteEvents(selections);
+    if (!selections.length) {
+      alert('Please select events to delete.');
+    } else {
+      deleteEvents(selections);
+    }
   });
 
   // Manage the CANCEL modal button

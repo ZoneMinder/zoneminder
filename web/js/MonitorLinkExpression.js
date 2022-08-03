@@ -79,22 +79,26 @@ function expr_to_ui(expr, container) {
   if (!tokens.length) return;
 
   // Every monitorlink should have possible parenthesis on either side of it
-  if (tokens[0].type != '(') {
-    tokens.unshift({type: '(', value: ''});
-  }
-  if (tokens[tokens.length-1].type != ')') {
-    tokens.push({type: ')', value: ''});
-  }
-  if (tokens.length > 2) {
+  if (tokens.length > 3) {
+    if (tokens[0].type != '(') {
+      tokens.unshift({type: '(', value: ''});
+    }
+    if (tokens[tokens.length-1].type != ')') {
+      tokens.push({type: ')', value: ''});
+    }
     for (let token_index = 1; token_index < tokens.length-1; token_index++) {
       const token = tokens[token_index];
 
       if (token.type == 'link') {
         if (tokens[token_index-1].type != '(' && tokens[token_index-1].type != ')') {
-          tokens.splice(token_index-1, {type: '()', value: ''});
+          console.log("Adding () before ", token, token_index);
+          tokens.splice(token_index, 0, {type: '()', value: ''});
+          token_index ++;
         }
         if (tokens[token_index+1].type != '(' && tokens[token_index+1].type != ')') {
-          tokens.splice(token_index+1, {type: '()', value: ''});
+          console.log("Adding () after ", token, token_index);
+          tokens.splice(token_index+1, 0, {type: '()', value: ''});
+          token_index ++;
         }
         brackets++;
         used_monitorlinks.push(token.value);
@@ -119,7 +123,7 @@ function expr_to_ui(expr, container) {
         } // end foreach zone
       } // end foreach monitor
       select.val(token.value);
-      select.on('change', updateExpr);
+      select.on('change', update_expr);
       token.html = select;
     } else if (token.type == '(' || token.type == ')') {
       const select = $j('<select></select>');
@@ -128,7 +132,7 @@ function expr_to_ui(expr, container) {
         select.append('<option value="' + token.type.repeat(i) + '">' + token.type.repeat(i) + '</option>');
       }
       select.val(token.value);
-      select.on('change', updateExpr);
+      select.on('change', update_expr);
       token.html = select;
     } else if (token.type == '()') {
       const select = $j('<select></select>');
@@ -140,14 +144,14 @@ function expr_to_ui(expr, container) {
         select.append('<option value="' + String(")").repeat(i) + '">' + String(")").repeat(i) + '</option>');
       }
       select.val(token.value);
-      select.on('change', updateExpr);
+      select.on('change', update_expr);
       token.html = select;
     } else {
       const select = $j('<select></select>');
       select.append('<option value="|">or</option>');
       select.append('<option value="&">and</option>');
       select.val(token.type); 
-      select.on('change', updateExpr);
+      select.on('change', update_expr);
       token.html = select;
     }
     container.append(token.html);
@@ -167,7 +171,7 @@ function expr_to_ui(expr, container) {
       }
     } // end foreach zone
   } // end foreach monitor
-  select.on('change', addToExpr);
+  select.on('change', add_to_expr);
   container.append(select);
 } // end expr_to_ui
 
@@ -178,13 +182,13 @@ function array_search(needle, haystack) {
   return false;
 }
 
-function addToExpr() {
+function add_to_expr() {
   $j('[name="newMonitor[LinkedMonitors]"]').val($j('[name="newMonitor[LinkedMonitors]"]').val() + '|' + $j('#monitorLinks').val());
-  ui_to_expr( $j('#LinkedMonitorsUI'), $j('[name="newMonitor[LinkedMonitors]"]'));
+  expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
 }
 
-function updateExpr(ev) {
-  ui_to_expr( $j('#LinkedMonitorsUI'), $j('[name="newMonitor[LinkedMonitors]"]'));
+function update_expr(ev) {
+  ui_to_expr($j('#LinkedMonitorsUI'), $j('[name="newMonitor[LinkedMonitors]"]'));
 }
 
 function ui_to_expr(container, expr_input) {

@@ -22,6 +22,7 @@
 
 #include "zm_crypto_generics.h"
 #include "zm_utils.h"
+
 #include <gnutls/crypto.h>
 
 namespace zm {
@@ -29,20 +30,20 @@ namespace crypto {
 namespace impl {
 namespace gnutls {
 
-template<HashAlgorithms Algorithm>
+template <HashAlgorithms Algorithm>
 struct HashAlgorithmMapper;
 
-template<>
+template <>
 struct HashAlgorithmMapper<HashAlgorithms::kMD5> {
   static constexpr gnutls_digest_algorithm_t algorithm = GNUTLS_DIG_MD5;
 };
 
-template<>
+template <>
 struct HashAlgorithmMapper<HashAlgorithms::kSHA1> {
   static constexpr gnutls_digest_algorithm_t algorithm = GNUTLS_DIG_SHA1;
 };
 
-template<HashAlgorithms Algorithm>
+template <HashAlgorithms Algorithm>
 class GenericHashImpl : public GenericHash<GenericHashImpl<Algorithm>, Algorithm> {
  public:
   GenericHashImpl() {
@@ -55,9 +56,7 @@ class GenericHashImpl : public GenericHash<GenericHashImpl<Algorithm>, Algorithm
     ASSERT(res == 0);
   }
 
-  void DoFinalize() {
-    gnutls_hash_deinit(handle_, digest_.data());
-  }
+  void DoFinalize() { gnutls_hash_deinit(handle_, digest_.data()); }
 
  private:
   gnutls_hash_hd_t handle_ = {};
@@ -65,11 +64,11 @@ class GenericHashImpl : public GenericHash<GenericHashImpl<Algorithm>, Algorithm
   using Base = GenericHash<GenericHashImpl<Algorithm>, Algorithm>;
   using Base::digest_;
 };
-}
-}
-}
-}
+}  // namespace gnutls
+}  // namespace impl
+}  // namespace crypto
+}  // namespace zm
 
-#endif // HAVE_LIBGNUTLS
+#endif  // HAVE_LIBGNUTLS
 
-#endif // ZONEMINDER_SRC_ZM_CRYPTO_GNUTLS_H_
+#endif  // ZONEMINDER_SRC_ZM_CRYPTO_GNUTLS_H_

@@ -4,14 +4,11 @@
 #include "zm_signal.h"
 #include "zm_time.h"
 
-PollThread::PollThread(Monitor *monitor) :
-    monitor_(monitor), terminate_(false) {
+PollThread::PollThread(Monitor *monitor) : monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&PollThread::Run, this);
 }
 
-PollThread::~PollThread() {
-  Stop();
-}
+PollThread::~PollThread() { Stop(); }
 
 void PollThread::Start() {
   if (thread_.joinable()) thread_.join();

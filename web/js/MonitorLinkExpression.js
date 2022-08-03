@@ -27,13 +27,13 @@ function tokenize(expr) {
 
     if (character == '&' || character == '|' || character == ',') {
       if (first_index != second_index) {
-        tokens[tokens.length] = { type: 'link', value: expr.substring(first_index, second_index) };
+        tokens[tokens.length] = {type: 'link', value: expr.substring(first_index, second_index)};
       }
-      tokens[tokens.length] = { type: character, value: character };
+      tokens[tokens.length] = {type: character, value: character};
       first_index = second_index+1;
     } else if (character == '(' || character == ')') {
       if (first_index != second_index) {
-        tokens[tokens.length] = { type: 'link', value: expr.substring(first_index, second_index) };
+        tokens[tokens.length] = {type: 'link', value: expr.substring(first_index, second_index)};
       }
       // Now check for repeats
       let third = second_index+1;
@@ -42,18 +42,18 @@ function tokenize(expr) {
         if (expr.at(i) != character) break;
       }
       if (third != second_index+1) {
-        tokens[tokens.length] = { type: character, value: expr.substring(second_index, third) };
+        tokens[tokens.length] = {type: character, value: expr.substring(second_index, third)};
       } else {
-        tokens[tokens.length] = { type: character, value: character };
+        tokens[tokens.length] = {type: character, value: character};
       }
       first_index = third;
     }
-    second_index ++;
+    second_index++;
   } // end for second_index
 
   if (second_index) {
     if (second_index != first_index) {
-      tokens[tokens.length] = { type: 'link', value: expr.substring(first_index, second_index) };
+      tokens[tokens.length] = {type: 'link', value: expr.substring(first_index, second_index)};
     }
   }
   return tokens;
@@ -71,10 +71,9 @@ function expr_to_ui(expr, container) {
   container.html('');
   var tokens = tokenize(expr);
   console.log(tokens);
-  let term_count = count_terms(tokens);
-  let div;
+  //const term_count = count_terms(tokens);
   let brackets = 0;
-  let used_monitorlinks = [];
+  const used_monitorlinks = [];
 
   if (!tokens.length) return;
 
@@ -150,7 +149,7 @@ function expr_to_ui(expr, container) {
       const select = $j('<select></select>');
       select.append('<option value="|">or</option>');
       select.append('<option value="&">and</option>');
-      select.val(token.type); 
+      select.val(token.type);
       select.on('change', update_expr);
       token.html = select;
     }
@@ -161,13 +160,15 @@ function expr_to_ui(expr, container) {
   select.append('<option value="">Add MonitorLink</option>');
   for (monitor_id in monitors) {
     const monitor = monitors[monitor_id];
-    if (!array_search(monitor.Id, used_monitorlinks))     
+    if (!array_search(monitor.Id, used_monitorlinks)) {
       select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
+    }
     for ( zone_id in zones ) {
       const zone = zones[zone_id];
       if ( monitor.Id == zone.MonitorId ) {
-        if (!array_search(monitor.Id+':'+zone.Id, used_monitorlinks))     
+        if (!array_search(monitor.Id+':'+zone.Id, used_monitorlinks)) {
           select.append('<option value="' + monitor.Id+':'+zone.Id + '">' + monitor.Name + ' : ' +zone.Name + '</option>');
+        }
       }
     } // end foreach zone
   } // end foreach monitor
@@ -203,7 +204,7 @@ function ui_to_expr(container, expr_input) {
 
 function parse_expression(tokens) {
   if (tokens.length == 1) {
-    return { token: tokens[0] };
+    return {token: tokens[0]};
   }
 
   let left = parse_and(tokens);
@@ -212,7 +213,7 @@ function parse_expression(tokens) {
   }
 
   while (token_index < tokens.length && ( tokens[token_index] == '|' || tokens[token_index] == ',')) {
-    var logical_or = { type: '|' };
+    var logical_or = {type: '|'};
     token_index++;
 
     var right = parse_and(tokens);
@@ -220,7 +221,7 @@ function parse_expression(tokens) {
       return null;
     }
 
-    logical_or.left  = left;
+    logical_or.left = left;
     logical_or.right = right;
     left = logical_or;
   }
@@ -238,14 +239,14 @@ function parse_and(tokens) {
   while ((token_index < tokens.length) && (tokens[token_index] == '&')) {
     ++token_index;
 
-    var logical_and = { type: '&' };
+    var logical_and = {type: '&'};
 
     right = parse_parentheses(tokens);
     if (right == null) {
       return null;
     }
 
-    logical_and.left  = left;
+    logical_and.left = left;
     logical_and.right = right;
     left = logical_and;
   }
@@ -266,11 +267,11 @@ function parse_parentheses(tokens) {
     // Because we are parsing a left, there SHOULD be a remaining right. If not, invalid.
     if (token_index == tokens.length) return null;
 
-    if (tokens[ token_index++ ] == ')') {
+    if (tokens[token_index++] == ')') {
       return expression;
     }
   } else if (tokens[token_index].type == MONITORLINK) {
-    var link = { token: tokens[token_index] };
+    var link = {token: tokens[token_index]};
     token_index++;
     return link;
   }

@@ -3155,7 +3155,7 @@ int Monitor::Close() {
   }
   if (analysis_thread) {
     analysis_thread->Stop();
-    Debug(1, "Analysi stopped");
+    Debug(1, "Analysis stopped");
   }
 
   //ONVIF Teardown

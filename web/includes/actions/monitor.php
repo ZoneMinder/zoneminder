@@ -109,7 +109,7 @@ if ($action == 'save') {
     }
   } # end foreach type
 
-  if ($newMonitor['ServerId'] == 'auto') {
+  if (isset($newMonitor['ServerId']) and ($newMonitor['ServerId'] == 'auto')) {
     $newMonitor['ServerId'] = dbFetchOne(
       'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
     ZM\Debug('Auto selecting server: Got ' . $newMonitor['ServerId']);

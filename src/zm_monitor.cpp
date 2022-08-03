@@ -775,7 +775,6 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
 }
 
 bool Monitor::connect() {
-  ReloadLinkedMonitors();
   ReloadZones();
   if (zones.size() != zone_count) {
     Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count, zones.size());
@@ -960,6 +959,7 @@ bool Monitor::connect() {
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
 
+    ReloadLinkedMonitors();
 
     //ONVIF and Amcrest Setup
     //For now, only support one event type per camera, so share some state.

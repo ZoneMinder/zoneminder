@@ -37,17 +37,16 @@ getBodyTopHTML();
   <div id="page" class="container-fluid p-3">
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
-      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
-      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-      <!--<button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>-->
-      <!--<button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>" disabled><i class="fa fa-external-link"></i></button>-->
-      <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
+      <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+      <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      <button type="button" id="newBtn" class="btn btn-normal" value="AddNew" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Add New Report') ?>"><i class="fa fa-plus"></i></button>
+      <button type="button" id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
     </div>
 
       <!-- Table styling handled by bootstrap-tables -->
       <div class="row justify-content-center table-responsive-sm">
         <table
-          id="reportTable"
+          id="reportsTable"
           data-locale="<?php echo i18n() ?>"
           data-side-pagination="server"
           data-ajax="ajaxRequest"
@@ -78,10 +77,11 @@ getBodyTopHTML();
             <tr>
               <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
               <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
-              <th data-sortable="true" data-field="Name"><?php echo translate('Reference') ?></th>
-              <th data-sortable="false" data-field="Description"><?php echo translate('Notes') ?></th>
-              <th data-sortable="true" data-field="CreatedOn"><?php echo translate('When') ?></th>
-              <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+              <th data-sortable="true" data-field="Name"><?php echo translate('Name') ?></th>
+              <th data-sortable="false" data-field="Description"><?php echo translate('Description') ?></th>
+              <th data-sortable="true" data-field="StartDateTime"><?php echo translate('Starting') ?></th>
+              <th data-sortable="true" data-field="EndDateTime"><?php echo translate('Ending') ?></th>
+              <th data-sortable="true" data-field="Interval"><?php echo translate('Interval') ?></th>
             </tr>
           </thead>
 

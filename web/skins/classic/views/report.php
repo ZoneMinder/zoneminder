@@ -25,66 +25,135 @@
   #$view = 'console';
   #return;
 #}
+#
 
 require_once('includes/Event.php');
 require_once('includes/Filter.php');
-#require_once('includes/Report.php');
+require_once('includes/Report.php');
+
+$report_id = isset($_REQUEST['id']) ? validInt($_REQUEST['id']) : '';
+$report = new ZM\Report($report_id);
 
 xhtmlHeaders(__FILE__, translate('Reports'));
 getBodyTopHTML();
    echo getNavBarHTML();
 ?>
   <div id="page" class="container-fluid p-3">
-    <!-- Toolbar button placement and styling handled by bootstrap-tables -->
-    <div id="toolbar">
-      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
-      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-      <!--<button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>-->
-      <!--<button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>" disabled><i class="fa fa-external-link"></i></button>-->
-      <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
+    <div class="Edit">
+      <form name="report" id="reportForm" method="post" action="?view=report&id=<?php echo $report_id ?>">
+      <!-- Toolbar button placement and styling handled by bootstrap-tables -->
+      <div id="toolbar">
+        <button id="backBtn" type="button" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <!--<button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>-->
+        <!--<button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>" disabled><i class="fa fa-external-link"></i></button>-->
+        <button id="saveBtn" name="action" value="save" type="submit" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"><i class="fa fa-save"></i></button>
+        <button id="deleteBtn" name="action" value="delete" type="submit" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
+      </div>
+        <table class="major table table-sm">
+          <tbody>
+            <tr>
+              <th class="text-right" scope="row"><?php echo translate('Name') ?></th>
+              <td><input type="text" name="Report[Name]" value="<?php echo $report->Name() ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right " scope="row"><?php echo translate('Filter') ?></th>
+              <td>
+<?php
+  $FilterById = array();
+  foreach (ZM\Filter::find() as $F) {
+    $FiltersById[$F->Id()] = $F;
+  }
+echo htmlSelect('Report[FilterId]', array(''=>translate('select')) + $FiltersById, $report->FilterId()) 
+?></td>
+            </tr>
+            <tr>
+              <th class="text-right" scope="row"><?php echo translate('Starting') ?></th>
+              <td><input type="text" name="Report[StartDateTime]" value="<?php echo $report->StartDateTime() ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right" scope="row"><?php echo translate('Ending') ?></th>
+              <td><input type="text" name="Report[EndDateTime]" value="<?php echo $report->EndDateTime() ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right" scope="row"><?php echo translate('Interval') ?></th>
+              <td><input type="text" name="Report[Interval]" value="<?php echo $report->Interval() ?>"/></td>
+            </tr>
+          </tbody>
+        </table>
+      </form>
     </div>
     <canvas id="bar-chart" width=300" height="150"></canvas>
 
   <script src="/skins/classic/js/Chart.min.js"></script>
-<script>
+<script nonce="<?php echo $cspNonce; ?>">
 var events = Array();
+
 <?php
 require_once('includes/Filter.php');
-$filter = new ZM\Filter($_REQUEST['filter_id']);
+if (!$report->FilterId()) return;
+
+$filter = new ZM\Filter($report->FilterId());
 if ($user['MonitorIds']) {
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
 }
 $events = $filter->Events();
 foreach ($events as $event) {
-  echo 'events[] = '.$event->to_json().PHP_EOL;
+  echo 'events[events.length] = '.$event->to_json().PHP_EOL;
 }
 ?>
-var start = (new Date()).getDate();
-console.log(start);
-for (let i=0; i < 24; i++) {
-  let current = start;
-  current.setTime(i*60 * 60 * 1000);
-  console.log(current);
 
+time_labels = Array();
+datasets = Array();
+for (i=0; i < 24; i++) {
+  time_labels[time_labels.length] = `${i}:00`;
 }
+months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
+
+for (event_index=0; event_index < events.length; event_index++) {
+  const event = events[event_index];
+  const event_start = new Date(event.StartDateTime);
+  const day = event_start.getDay()+1;
+  if (!datasets[day]) {
+    datasets[day] = {
+      label: months[event_start.getMonth()] + ' ' + day,
+      fill: false,
+      borderColor: 'rgb('+parseInt(255*Math.random())+', '+parseInt(255*Math.random())+', '+parseInt(255*Math.random())+')',
+      tension: 0.1,
+      data: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+    };
+  }
+
+  datasets[day].data[event_start.getHours()] += parseFloat(event.Length);
+}
+for (i=0; i < datasets.length; i++) {
+  if (!datasets[i]) {
+    datasets[i] = {
+      label: '',
+      fill: false,
+      borderColor: 'rgb(192, 192, 192)',
+      tension: 0.1,
+      data: []
+    };
+  }
+}
+console.log(datasets);
+
+const data = {
+    labels: time_labels,
+    datasets: datasets,
+};
 
 new Chart(document.getElementById("bar-chart"), {
     type: 'line',
-    data: {
-      labels: ["North America", "Latin America", "Europe", "Asia", "Africa"],
-      datasets: [
-        {
-          label: "Sleeping",
-          backgroundColor: ["red", "blue","yellow","green","pink"],
-          data: [7,4,6,9,3]
-        }
-      ]
-    },
+    data: data
+});
+/*
+{
     options: {
       legend: { display: false },
       title: {
         display: true,
-        text: 'Number of Developers in Every Continent'
+        text: report.Name
       },
 
       scales: {
@@ -97,6 +166,7 @@ new Chart(document.getElementById("bar-chart"), {
 
     }
 });
+ */
 </script>
   </div>
 <?php xhtmlFooter() ?>

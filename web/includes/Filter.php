@@ -42,7 +42,7 @@ class Filter extends ZM_Object {
   protected $_Terms;
 
   public function sql() {
-    if ( ! isset($this->_sql) ) {
+    if (!isset($this->_sql)) {
       $this->_sql = '';
       foreach ( $this->FilterTerms() as $term ) {
         #if ( ! ($term->is_pre_sql() or $term->is_post_sql()) ) {
@@ -196,12 +196,12 @@ class Filter extends ZM_Object {
 
   // The following three fields are actually stored in the Query
   public function sort_field( ) {
-    if ( func_num_args( ) ) {
+    if (func_num_args()) {
       $Query = $this->Query();
       $Query['sort_field'] = func_get_arg(0);
       $this->Query($Query);
     }
-    if ( isset( $this->Query()['sort_field'] ) ) {
+    if (isset($this->Query()['sort_field'])) {
       return $this->{'Query'}['sort_field'];
     }
     return ZM_WEB_EVENT_SORT_FIELD;
@@ -674,11 +674,11 @@ class Filter extends ZM_Object {
     }
 
     $where = $this->sql() ? ' WHERE ('.$this->sql().')' : '';
-    $sort = $this->sort_field() ? $this->sort_field() .' '.$this->sort_asc() : '';
+    $sort = $this->sort_field() ? $this->sort_field() .' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
 
     $col_str = 'E.*, M.Name AS Monitor';
     $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort:'');
-    if ($filter->limit() and !count($this->pre_sql_conditions()) and !count($this->post_sql_conditions())) {
+    if ($this->limit() and !count($this->pre_sql_conditions()) and !count($this->post_sql_conditions())) {
       $sql .= ' LIMIT '.$this->limit();
     }
 
@@ -687,7 +687,7 @@ class Filter extends ZM_Object {
     if (!$query) return $events;
 
     while ($row = dbFetchNext($query)) {
-      $event = new ZM\Event($row);
+      $event = new Event($row);
       $event->remove_from_cache();
       if (!$this->test_post_sql_conditions($event)) {
         continue;

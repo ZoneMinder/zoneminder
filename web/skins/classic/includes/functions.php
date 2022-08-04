@@ -234,6 +234,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
           echo getSnapshotsHTML($view);
+          echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getHeaderFlipHTML();
         echo '</ul>';
@@ -368,6 +369,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getMontageHTML($view);
             echo getMontageReviewHTML($view);
             echo getSnapshotsHTML($view);
+            echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);
           echo '</ul>';
       }
@@ -759,6 +761,17 @@ function getSnapshotsHTML($view) {
   if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
     $class = $view == 'snapshots' ? ' selected' : '';
     $result .= '<li id="getSnapshotsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
+  }
+  
+  return $result;
+}
+
+function getReportsHTML($view) {
+  $result = '';
+  
+  if (canView('Events')) {
+    $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
+    $result .= '<li id="getReportsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
   }
   
   return $result;

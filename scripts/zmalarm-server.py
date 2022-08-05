@@ -108,7 +108,7 @@ if len(sys.argv) > 1:
 
 else:
     print('Usage: %s [--port|-p=<value> --log|-l=<y/n> --alarm|-a=<y/n> --event|-e=<y/n>]' % os.path.basename(sys.argv[0]))
-    sys.exit() 
+    sys.exit(1) 
 
 print ('Create log entry: ', wrzmlog)
 print ('Trigger event: ', wrzmlog)

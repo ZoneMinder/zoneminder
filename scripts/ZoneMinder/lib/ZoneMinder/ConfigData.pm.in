@@ -3834,6 +3834,53 @@ our @options = (
     type        => $types{string},
     category    => 'config',
   },
+# Add options for Alarm Server
+  {
+    name        => 'ZM_OPT_USE_ALARMSERVER',
+    default     => 'no',
+    description => 'Enable NETSurveillance WEB Camera ALARM SERVER',
+    help        => q`
+      Alarm Server that works with cameras that use Netsurveillance Web Server, 
+      and has the Alarm Server option it receives alarms sent by this cameras 
+      (once enabled), and pass to Zoneminder the events. 
+      It requires pyzm installed, visit https://pyzm.readthedocs.io/en/latest/
+      for installation instructions.
+      `,
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_LOGENTRY',
+    default     => 'no',
+    description => 'Makes ALARM SERVER create a log entry in ZoneMinder on Human Detected',
+    help        => '',
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_ALARM',
+    default     => 'no',
+    description => 'Send the Human Detected alarm from ALARM SERVER to ZoneMinder, It does not work along with OPT_ALS_TRIGGEREVENT',
+    help        => '',
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_TRIGGEREVENT',
+    default     => 'no',
+    description => 'Trigger an event on Human Detected alarm from ALARM SERVER to ZoneMinder. Requires the zmTrigger option Enabled',
+    help        => '',
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_PORT',
+    default     => '15002',
+    description => 'Port Number to receive alarms from Alarm Server',
+    help        => '',
+    type        => $types{integer},
+    category    => 'system',
+  },
 );
 
 our %options_hash = map { ( $_->{name}, $_ ) } @options;

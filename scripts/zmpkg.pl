@@ -1,0 +1,418 @@
+#!/usr/bin/perl -wT
+#
+# ==========================================================================
+#
+# ZoneMinder Package Control Script, $Date$, $Revision$
+# Copyright (C) 2001-2008 Philip Coombes
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# ==========================================================================
+
+use strict;
+use bytes;
+
+# ==========================================================================
+#
+# Don't change anything below here
+#
+# ==========================================================================
+
+# Include from system perl paths only
+use ZoneMinder;
+use ZoneMinder::Monitor;
+use ZoneMinder::State;
+use ZoneMinder::Filter;
+use DBI;
+use POSIX;
+use Time::HiRes qw/gettimeofday/;
+use autouse 'Pod::Usage'=>qw(pod2usage);
+
+# Detaint our environment
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+my $store_state=''; # PP - will remember state name passed
+
+logInit();
+
+my $command = $ARGV[0]||'';
+if ( $command eq 'version' ) {
+  print ZoneMinder::Base::ZM_VERSION . "\n";
+  exit(0);
+}
+
+my $state;
+
+my $dbh = zmDbConnect();
+Debug("Command: $command");
+if ( $command and ( $command !~ /^(?:start|stop|restart|status|logrot|version)$/ ) ) {
+  # Check to see if it's a valid run state
+  if ($state = ZoneMinder::State->find_one(Name=>$command)) {
+    $state->{Definitions} = [];
+    foreach (split(',', $state->{Definition})) {
+      my @state = split(':', $_);
+      my ($id, $capturing, $analysing, $recording);
+      if (@state == 3) {
+        ($id, my $function, my $enabled) = @state;
+        if (!$enabled) {
+          ($capturing, $analysing, $recording) = ('None','None','None');
+        } elsif ($function eq 'None') {
+          ($capturing, $analysing, $recording) = ('None','None','None');
+        } elsif ($function eq 'Monitor') {
+          ($capturing, $analysing, $recording) = ('Always','None','None');
+        } elsif ($function eq 'Modect') {
+          ($capturing, $analysing, $recording) = ('Always','Always','OnMotion');
+        } elsif ($function eq 'Mocord') {
+          ($capturing, $analysing, $recording) = ('Always','Always','OnMotion');
+        } elsif ($function eq 'Record') {
+          ($capturing, $analysing, $recording) = ('Always','Always','Always');
+        } else {
+          Error("Unknown function $function, defaulting to Mocord"); 
+        }
+      } elsif (@state == 4) {
+        ($id, $capturing, $analysing, $recording) = @state;
+      } else {
+        Error("Unknown state in @state");
+      }
+      push @{$state->{Definitions}}, {Id=>$id, Capturing=>$capturing, Analysing=>$analysing, Recording=>$recording};
+    } # end foreach state definition
+    $store_state = $command; # PP - Remember the name that was passed to search in DB
+    $command = 'state';
+  } else {
+    $command = undef;
+  }
+} # end if not one of the usual commands
+
+if ( !$command ) {
+  pod2usage(-exitstatus => -1);
+}
+
+# PP - Sane state check
+isActiveSanityCheck();
+
+# Move to the right place
+chdir($Config{ZM_PATH_WEB}) or Fatal("Can't chdir to $Config{ZM_PATH_WEB}: $!");
+
+my $dbg_id = '';
+
+Info("Command: $command");
+
+my $retval = 0;
+
+if ( $command eq 'state' ) {
+  Info("Updating DB: $state->{Name}");
+  foreach my $monitor (ZoneMinder::Monitor->find(
+        ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : () ), order=>'Id ASC')
+      ) {
+    foreach my $definition ( @{$state->{Definitions}} ) {
+# FIXME WHY a REGEXP
+      if ( $monitor->{Id} =~ /^$definition->{Id}$/ ) {
+        $monitor->{NewFunction} = $definition->{Function};
+        $monitor->{NewEnabled} = $definition->{Enabled};
+        if (
+            ($monitor->{Capturing} ne $definition->{Capturing})
+            or
+            ($monitor->{Analysing} ne $definition->{Analysing})
+            or 
+            ($monitor->{Recording} ne $definition->{Recording})
+            ) {
+              $monitor->save({ map { $_ => $$definition{$_} } qw(Capturing Analysing Recording) });
+              last; # definition
+        } # end if
+      } # end if
+    } # end foreach definition
+  } # end foreach monitor
+
+  # PP - Now mark a specific state as active
+  resetStates();
+  Info("Marking $store_state as Enabled");
+  $state->save({IsActive=>1});
+
+  # PP - zero out other states isActive
+  $command = 'restart';
+} # end if command = state
+
+# Check if we are running systemd and if we have been called by the system
+if ( $command =~ /^(start|stop|restart)$/ ) {
+# We have to detaint to keep perl from complaining
+  $command = $1;
+
+  if ( systemdRunning() && !calledBysystem() ) {
+    qx(/usr/local/bin/zmsystemctl.pl $command);
+    $command = '';
+  }
+}
+
+if ( $command =~ /^(?:stop|restart)$/ ) {
+  my $status = runCommand('zmdc.pl check');
+  Debug("zmdc.pl check = $status");
+
+  if ( $status eq 'running' ) {
+    runCommand('zmdc.pl shutdown');
+    zmMemTidy();
+  } else {
+    $retval = 1;
+  }
+}
+
+if ( $command =~ /^(?:start|restart)$/ ) {
+  my $status = runCommand('zmdc.pl check');
+  Debug("zmdc.pl check = $status");
+
+  if ( $status eq 'stopped' ) {
+    if ( $Config{ZM_DYN_DB_VERSION}
+        and ( $Config{ZM_DYN_DB_VERSION} ne ZM_VERSION )
+       ) {
+         my ( $db_major, $db_minor, $db_micro ) = split(/\./, $Config{ZM_DYN_DB_VERSION});
+         my ( $major, $minor, $micro ) = split(/\./, ZM_VERSION);
+         if ( $db_major != $major or $db_minor != $minor ) {
+           Fatal('Version mismatch, system is version '.ZM_VERSION
+             .', database is '.$Config{ZM_DYN_DB_VERSION}
+             .', please run zmupdate.pl to update.'
+           );
+           exit(-1);
+         } else {
+           Error('Version mismatch, system is version '.ZM_VERSION
+             .', database is '.$Config{ZM_DYN_DB_VERSION}
+             .', please run zmupdate.pl to update.'
+           );
+         }
+    } # end if version mismatch
+
+# Recreate the temporary directory if it's been wiped
+    verifyFolder('/var/tmp/zm');
+
+# Recreate the run directory if it's been wiped
+    verifyFolder('/var/run/zm');
+
+# Recreate the sock directory if it's been wiped
+    verifyFolder('/var/run/zm');
+
+    zmMemTidy();
+    runCommand('zmdc.pl startup');
+
+    my $Server = undef;
+    my @monitors;
+    if ( $Config{ZM_SERVER_ID} ) {
+      require ZoneMinder::Server;
+      Info("Multi-server configuration detected. Starting up services for server $Config{ZM_SERVER_ID}");
+      $Server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
+      @monitors = ZoneMinder::Monitor->find(ServerId=>$Config{ZM_SERVER_ID});
+    } else {
+      Info('Single server configuration detected. Starting up services.');
+      @monitors = ZoneMinder::Monitor->find();
+    }
+
+    foreach my $monitor (@monitors) {
+      if (($monitor->{Capturing} ne 'None') and ($monitor->{Type} ne 'WebSite')) {
+        if ( $monitor->{Type} eq 'Local' ) {
+          runCommand("zmdc.pl start zmc -d $monitor->{Device}");
+        } else {
+          runCommand("zmdc.pl start zmc -m $monitor->{Id}");
+        }
+        if ( $Config{ZM_OPT_CONTROL} ) {
+          if ( $monitor->{Controllable} ) {
+            runCommand("zmdc.pl start zmcontrol.pl --id $monitor->{Id}");
+            if ( $monitor->{TrackMotion} ) {
+              if ($monitor->{Analysing} ne 'None') {
+                runCommand("zmdc.pl start zmtrack.pl -m $monitor->{Id}");
+              } else {
+                Warning('Monitor is set to track motion, but does not have motion detection enabled.');
+              } # end if Has motion enabled
+            } # end if track motion
+          } # end if controllable
+        } # end if ZM_OPT_CONTROL        
+      } else {
+        Debug("Not running process for Monitor $$monitor{Id} Because Capturing($$monitor{Capturing})== None or Type($$monitor{Type})==Website");
+      } # end if capturing is not none or Website
+    } # end foreach monitor
+
+    my @filters = ZoneMinder::Filter->find(Background=>1);
+    if (@filters) {
+      foreach my $filter (@filters) {
+        runCommand("zmdc.pl start zmfilter.pl --filter_id=$$filter{Id} --daemon");
+      }
+    } else {
+      runCommand('zmdc.pl start zmfilter.pl');
+    }
+
+    if ( $Config{ZM_RUN_AUDIT} ) {
+      if ( $Server and exists $$Server{zmaudit} and ! $$Server{zmaudit} ) {
+        Debug('Not running zmaudit.pl because it is turned off for this server.');
+      } else {
+        runCommand('zmdc.pl start zmaudit.pl -c');
+      }
+    }
+    if ( $Config{ZM_OPT_TRIGGERS} ) {
+      if ( $Server and exists $$Server{zmtrigger} and ! $$Server{zmtrigger} ) {
+        Debug('Not running zmtrigger.pl because it is turned off for this server.');
+      } else {
+        runCommand('zmdc.pl start zmtrigger.pl');
+      }
+    }
+    if ( $Config{ZM_OPT_X10} ) {
+      runCommand('zmdc.pl start zmx10.pl -c start');
+    }
+    runCommand('zmdc.pl start zmwatch.pl');
+    if ( $Config{ZM_CHECK_FOR_UPDATES} ) {
+      runCommand('zmdc.pl start zmupdate.pl -c');
+    }
+    if ( $Config{ZM_TELEMETRY_DATA} ) {
+      runCommand('zmdc.pl start zmtelemetry.pl');
+    }
+    if ($Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
+      if ( $Server and exists $$Server{zmeventnotification} and ! $$Server{zmeventnotification} ) {
+        Debug('Not running zmnotification.pl because it is turned off for this server.');
+      } else {
+        runCommand('zmdc.pl start zmeventnotification.pl');
+      }
+    }
+    if ( $Server and exists $$Server{zmstats} and ! $$Server{zmstats} ) {
+      Debug('Not running zmstats.pl because it is turned off for this server.');
+    } else {
+      runCommand('zmdc.pl start zmstats.pl');
+    }
+    if ( $Config{ZM_MIN_RTSP_PORT} ) {
+      runCommand('zmdc.pl start zm_rtsp_server');
+    }
+    # run and pass parameters to AlarmServer.py
+    if ($Config{ZM_OPT_USE_ALARMSERVER} ) {
+       my $cmd='zmdc.pl start zmalarm-server.py '. $Config{ZM_OPT_ALS_PORT};
+       if ($Config{ZM_OPT_ALS_LOGENTRY} ) {
+             $cmd = $cmd . ' --log=y';
+           }
+       else {
+             $cmd = $cmd . ' --log=n';
+           }
+       if ($Config{ZM_OPT_ALS_TRIGGEREVENT} ) {
+             $cmd = $cmd . ' --event=y';
+           }
+       else {
+             $cmd = $cmd . ' --event=n';
+           }
+
+       if ($Config{ZM_OPT_ALS_ALARM} ) {
+             $cmd = $cmd . ' --alarm=y';
+           }
+       else {
+             $cmd = $cmd . ' --alarm=n';
+          }
+       runCommand($cmd);
+    }
+  } else {
+    $retval = 1;
+  }
+} # end if command is start or restart
+
+if ($command eq 'status') {
+  my $status = runCommand('zmdc.pl check');
+
+  print(STDOUT $status."\n");
+} elsif ($command eq 'logrot') {
+  runCommand('zmdc.pl logrot');
+}
+
+exit($retval);
+
+# PP - Make sure isActive is on and only one
+sub isActiveSanityCheck {
+  Info('Sanity checking States table...');
+  $dbh = zmDbConnect() if ! $dbh;
+
+# PP - First, make sure default exists and there is only one
+  my @states = ZoneMinder::State->find(Name=>'default', order=>'Id ASC');
+# PP - no row, or too many rows. Either case is an error
+
+  my $default_state;
+  while (@states > 1) {
+    my $state = shift @states;
+    $state->delete();
+  }
+  if (!@states) {
+    $default_state = new ZoneMinder::State();
+    $default_state->save({Name=>'default', Definition=>'', IsActive=>1});
+  } else {
+    $default_state = shift @states;
+  }
+
+  @states = ZoneMinder::State->find(IsActive=>1);
+  if (@states != 1) {
+    Info('Fixing States table so only one run state is active');
+    resetStates();
+    $default_state->save({IsActive=>1});
+  }
+} # end sub isActiveSanityCheck
+
+# PP - zeroes out isActive for all states
+sub resetStates {
+  $dbh = zmDbConnect() if ! $dbh;
+  $dbh->do('UPDATE `States` SET `IsActive`=0')
+    or Fatal("Can't execute: ".$dbh->errstr());
+}
+
+sub systemdRunning {
+  my $output = qx(ps -o comm="" -p 1);
+  return scalar ( $output =~ /systemd/ );
+}
+
+sub calledBysystem {
+  my $ppid = getppid();
+
+  my $output = qx(ps -o comm="" -p $ppid);
+  #chomp( $output );
+
+  return ($output =~ /^(?:systemd|init)$/);
+}
+
+sub verifyFolder {
+  my $folder = shift;
+
+  # Recreate the temporary directory if it's been wiped
+  if ( !-e $folder ) {
+    Debug("Recreating directory '$folder'");
+    mkdir($folder, 0774)
+      or Fatal( "Can't create missing temporary directory '$folder': $!" );
+    my ( $runName ) = getpwuid($>);
+    if ( $runName ne $Config{ZM_WEB_USER} ) {
+      # Not running as web user, so should be root in which case
+      # chown the directory
+      my ( $webName, $webPass, $webUid, $webGid ) = getpwnam($Config{ZM_WEB_USER})
+        or Fatal("Can't get details for web user '$Config{ZM_WEB_USER}': $!");
+      chown($webUid, $webGid, $folder)
+        or Fatal("Can't change ownership of '$folder' to '"
+            .$Config{ZM_WEB_USER}.':'.$Config{ZM_WEB_GROUP}."': $!"
+            );
+    } # end if runName ne ZM_WEB_USER
+  } # end if folder doesn't exist
+} # end sub verifyFolder
+
+1;
+__END__
+
+=head1 NAME
+
+zmpkg.pl - ZoneMinder Package Control Script
+
+=head1 SYNOPSIS
+
+zmpkg.pl {start|stop|restart|status|logrot|state|version}
+
+=head1 DESCRIPTION
+
+  This script is used to start and stop the ZoneMinder package primarily to
+allow command line control for automatic restart on reboot (see zm script)
+
+=cut

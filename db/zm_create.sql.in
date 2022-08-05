@@ -667,7 +667,7 @@ CREATE TABLE `Stats` (
   `MaxY` smallint(5) unsigned NOT NULL default '0',
   `Score` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
-  KEY `EventId` (`EventId`),
+  KEY `EventId_ZoneId` (`EventId`, `ZoneId`),
   KEY `MonitorId` (`MonitorId`),
   KEY `ZoneId` (`ZoneId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

@@ -309,8 +309,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
             video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
         break;
       }
-      ++it;
     } // end while
+    ++it;
   }  // end if first packet not locked
 
   if ((keyframe_interval == 1) and max_video_packet_count) {

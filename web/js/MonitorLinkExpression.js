@@ -76,8 +76,6 @@ function expr_to_ui(expr, container) {
   let brackets = 0;
   let used_monitorlinks = [];
 
-  if (!tokens.length) return;
-
   // Every monitorlink should have possible parenthesis on either side of it
   if (tokens.length > 3) {
     if (tokens[0].type != '(') {
@@ -162,7 +160,7 @@ function expr_to_ui(expr, container) {
   for (monitor_id in monitors) {
     const monitor = monitors[monitor_id];
     //if (!array_search(monitor.Id, used_monitorlinks))     
-      //select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
+    select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
     for ( zone_id in zones ) {
       const zone = zones[zone_id];
       if ( monitor.Id == zone.MonitorId ) {

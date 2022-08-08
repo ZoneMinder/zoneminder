@@ -262,7 +262,9 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     return;
   }
 
-  int keyframe_interval = 1;
+  int max_keyframe_interval = 1;
+  int keyframe_interval_count = 1;
+
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (!lp->trylock()) {
     Debug(4, "Failed getting lock on first packet");
@@ -297,11 +299,13 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
     if (zm_packet->packet->stream_index == video_stream_id) {
       if (zm_packet->keyframe) {
-        Debug(4, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval);
-        keyframe_interval = 1;
+        Debug(4, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval_count);
+
+        if (max_keyframe_interval < keyframe_interval_count) max_keyframe_interval = keyframe_interval_count;
+        keyframe_interval_count = 1;
         next_front = it;
       } else {
-        keyframe_interval++;
+        keyframe_interval_count++;
       }
       ++video_packets_to_delete;
       if (packet_counts[video_stream_id] - video_packets_to_delete <= pre_event_video_packet_count + tail_count) {
@@ -313,7 +317,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     ++it;
   } // end while
 
-  if ((keyframe_interval == 1) and max_video_packet_count) {
+  if ((max_keyframe_interval == 1) and max_video_packet_count) {
     Warning("Did not find a second keyframe in the packet queue. It may be that"
         " the Max Image Buffer setting is lower than the keyframe interval. We"
         " need it to be greater than the keyframe interval.");
@@ -321,7 +325,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d, Keyframe interval %d",
       ( *it == add_packet ),
       ( next_front == pktQueue.begin() ),
-      keyframe_interval
+      keyframe_interval_count
       );
   if (next_front != pktQueue.begin()) {
     while (pktQueue.begin() != next_front) {
@@ -350,7 +354,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 void PacketQueue::stop() {
   deleting = true;
   condition.notify_all();
-  for (const auto p : pktQueue) p->notify_all();
+  for (const auto &p : pktQueue) p->notify_all();
 }
 
 void PacketQueue::clear() {

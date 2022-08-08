@@ -183,7 +183,11 @@ function array_search(needle, haystack) {
 }
 
 function add_to_expr() {
-  $j('[name="newMonitor[LinkedMonitors]"]').val($j('[name="newMonitor[LinkedMonitors]"]').val() + '|' + $j('#monitorLinks').val());
+  let value = $j('[name="newMonitor[LinkedMonitors]"]').val();
+  if (value != '') value += '|';
+  value += $j('#monitorLinks').val();
+
+  $j('[name="newMonitor[LinkedMonitors]"]').val(value);
   expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
 }
 

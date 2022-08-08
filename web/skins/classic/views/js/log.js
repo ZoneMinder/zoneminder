@@ -42,7 +42,11 @@ function ajaxRequest(params) {
 }
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
-    row.Message = decodeURIComponent(row.Message);
+    try {
+      row.Message = decodeURIComponent(row.Message);
+    } catch(e) {
+      // ignore errors
+    }
   });
   return rows;
 }

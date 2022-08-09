@@ -44,7 +44,7 @@ function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     try {
       row.Message = decodeURIComponent(row.Message);
-    } catch(e) {
+    } catch (e) {
       // ignore errors
     }
   });

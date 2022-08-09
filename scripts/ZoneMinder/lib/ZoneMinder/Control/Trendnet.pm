@@ -25,22 +25,43 @@ our $ADDRESS = '';
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+use URI;
+
+sub credentials {
+  my $self = shift;
+  ($USERNAME, $PASSWORD) = @_;
+  Debug("Setting credentials to $USERNAME/$PASSWORD");
+}
 
 sub open {
   my $self = shift;
   $self->loadMonitor();
 
-  if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/ ) ) {
+  if ($self->{Monitor}{ControlAddress}
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
+      and
+    ($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/)
+  ) {
     $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
     $USERNAME = $+{USERNAME} if $+{USERNAME};
     $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
     $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
+  } elsif ($self->{Monitor}{Path}) {
+    Debug("Using Path for credentials: $self->{Monitor}{Path}");
+
+    my $uri = URI->new($self->{Monitor}{Path});
+    Debug("Using Path for credentials: $self->{Monitor}{Path}" . $uri->userinfo());
+    ( $USERNAME, $PASSWORD ) = split(/:/, $uri->userinfo()) if $uri->userinfo();
+    $ADDRESS = $uri->host();
   } else {
     Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
   if ( !($ADDRESS =~ /:/) ) {
-    Error('You generally need to also specify the port.  I will append :80');
+    Debug('You generally need to also specify the port.  I will append :80');
     $ADDRESS .= ':80';
   }
 
@@ -58,7 +79,7 @@ sub open {
   $self->{ua}->credentials($ADDRESS,$REALM,$USERNAME,$PASSWORD);
 
   # Detect REALM
-  my $res = $self->{ua}->get($PROTOCOL.$ADDRESS.'/cgi/ptdc.cgi');
+  my $res = $self->{ua}->get($PROTOCOL.$ADDRESS.'/');
 
   if ( $res->is_success ) {
     $self->{state} = 'open';
@@ -79,7 +100,7 @@ sub open {
           $REALM = $1;
           Debug("Changing REALM to $REALM");
           $self->{ua}->credentials($ADDRESS,$REALM,$USERNAME,$PASSWORD);
-          $res = $self->{ua}->get($PROTOCOL.$ADDRESS.'/cgi/ptdc.cgi');
+          $res = $self->{ua}->get($PROTOCOL.$ADDRESS.'/');
           if ( $res->is_success() ) {
             $self->{state} = 'open';
             return !undef;

@@ -338,6 +338,7 @@ protected:
     //helper class for CURL
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool Janus_Healthy;
+    bool Use_RTSP_Restream;
     std::string janus_session;
     std::string janus_handle;
     std::string janus_endpoint;
@@ -345,6 +346,7 @@ protected:
     std::string rtsp_username;
     std::string rtsp_password;
     std::string rtsp_path;
+    std::string profile_override;
 
   public:
     explicit JanusManager(Monitor *parent_);
@@ -375,6 +377,8 @@ protected:
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
+  std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
+  bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
 
   std::string protocol;
   std::string method;

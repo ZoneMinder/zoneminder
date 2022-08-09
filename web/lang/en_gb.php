@@ -891,6 +891,16 @@ None: No frames will be decoded, live view and thumbnails will not be available~
       Attempt to enable audio in the Janus stream. Has no effect for cameras without audio support,
       but can prevent a stream playing if your camera sends an audio format unsupported by the browser.'
   ),
+  'FUNCTION_JANUS_PROFILE_OVERRIDE' => array(
+    'Help' => '
+      Manually set a Profile-ID, which can force a browser to try to play a given stream. Try "42e01f"
+      for a universally supported value, or leave this blank to use the Profile-ID specified by the source.'
+  ),
+  'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
+    'Help' => '
+      If your camera will not work under Janus with any other options, enable this to use the ZoneMinder
+      RTSP restream as the Janus source.'
+  ),
   'ImageBufferCount' => array(
     'Help' => '
     Number of raw images available in /dev/shm. Currently should be set in the 3-5 range.  Used for live viewing.'

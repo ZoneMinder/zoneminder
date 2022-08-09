@@ -1180,6 +1180,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 ?>
               </td>
             </tr>
+            <div name="JanusSettings">
             <tr id="FunctionJanusAudioEnabled">
               <td class="text-right pr-3"><?php echo translate('Janus Live Stream Audio') ?></td>
               <td><input type="checkbox" name="newMonitor[JanusAudioEnabled]" value="1"<?php echo $monitor->JanusAudioEnabled() ? ' checked="checked"' : '' ?>/>
@@ -1190,6 +1191,27 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 ?>
               </td>
             </tr>
+            <tr id="FunctionJanusProfileOverride">
+              <td class="text-right pr-3"><?php echo translate('Janus Profile-ID Override') ?></td>
+              <td><input type="text" name="newMonitor[Janu_Profile_Override]" value="<?php echo $monitor->Janus_Profile_Override()?>"/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']['Help'].'</div>';
+  }
+?>
+              </td>
+            </tr>
+            <tr id="FunctionJanusUseRTSPRestream">
+              <td class="text-right pr-3"><?php echo translate('Janus Use RTSP Restream') ?></td>
+              <td><input type="checkbox" name="newMonitor[Janus_Use_RTSP_Restream]" value="1"<?php echo $monitor->Janus_Use_RTSP_Restream() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']['Help'].'</div>';
+  }
+?>
+              </td>
+            </tr>
+            </div>
             <tr>
               <td class="text-right pr-3"><?php echo translate('DefaultRate') ?></td>
               <td><?php echo htmlSelect('newMonitor[DefaultRate]', $rates, $monitor->DefaultRate()); ?></td>

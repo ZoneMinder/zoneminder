@@ -262,18 +262,26 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  //manage the Janus audio check
+  //manage the Janus settings div
   if (document.getElementsByName("newMonitor[JanusEnabled]")[0].checked) {
     document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+    document.getElementById("FunctionJanusProfileOverride").hidden = false;
+    document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
   } else {
     document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+    document.getElementById("FunctionJanusProfileOverride").hidden = true;
+    document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
   }
 
   document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
     if (this.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+      document.getElementById("FunctionJanusProfileOverride").hidden = false;
+      document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
     } else {
       document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+      document.getElementById("FunctionJanusProfileOverride").hidden = true;
+      document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
     }
   });
 

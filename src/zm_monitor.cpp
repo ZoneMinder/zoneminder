@@ -82,7 +82,7 @@ struct Namespace namespaces[] =
 std::string load_monitor_sql =
 "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
 "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-"`JanusEnabled`, `JanusAudioEnabled`, "
+"`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`,"
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
@@ -166,6 +166,8 @@ Monitor::Monitor()
   decoding(DECODING_ALWAYS),
   janus_enabled(false),
   janus_audio_enabled(false),
+  janus_profile_override(""),
+  janus_use_rtsp_restream(false),
   //protocol
   //method
   //options
@@ -313,8 +315,7 @@ Monitor::Monitor()
 /*
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0,
-   `Decoding`+0, JanusEnabled, JanusAudioEnabled, "
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream"
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -375,6 +376,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // See below after save_jpegs for a recalculation of decoding_enabled
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  janus_profile_override = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+  janus_use_rtsp_restream = dbrow[col] ? atoi(dbrow[col]) : false; col++;
 
   linked_monitors_string = dbrow[col] ? dbrow[col] : ""; col++;
   event_start_command = dbrow[col] ? dbrow[col] : ""; col++;

@@ -1181,7 +1181,6 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 ?>
               </td>
             </tr>
-            <div name="JanusSettings">
             <tr id="FunctionJanusAudioEnabled">
               <td class="text-right pr-3"><?php echo translate('Janus Live Stream Audio') ?></td>
               <td><input type="checkbox" name="newMonitor[JanusAudioEnabled]" value="1"<?php echo $monitor->JanusAudioEnabled() ? ' checked="checked"' : '' ?>/>
@@ -1212,7 +1211,6 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 ?>
               </td>
             </tr>
-            </div>
             <tr>
               <td class="text-right pr-3"><?php echo translate('DefaultRate') ?></td>
               <td><?php echo htmlSelect('newMonitor[DefaultRate]', $rates, $monitor->DefaultRate()); ?></td>

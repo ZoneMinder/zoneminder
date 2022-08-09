@@ -629,7 +629,7 @@ $localMethods = array(
 if (!ZM_HAS_V4L2)
   unset($localMethods['v4l2']);
 echo htmlSelect('newMonitor[Method]', $localMethods, 
-  ((count($localMethods)<=1) ? array_key_first($localMethods) : $monitor->Method()),
+  ((count($localMethods)==1) ? array_keys($localMethods)[0] : $monitor->Method()),
   array('data-on-change'=>'submitTab', 'data-tab-name'=>$tab) );
 ?></td>
           </tr>
@@ -1125,6 +1125,7 @@ $videowriter_encoders = array(
   'hevc_vaapi' => 'hevc_vaapi',
   'libvpx-vp9' => 'libvpx-vp9',
   'libsvtav1' => 'libsvtav1',
+  'libaom-av1'  => 'libaom-av1'
 );
  echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
             <tr class="OutputContainer">

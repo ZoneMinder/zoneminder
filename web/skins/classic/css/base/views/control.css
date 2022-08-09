@@ -32,6 +32,7 @@
 .ptzControls .controlsPanel .arrowControl {
     width: 60px;
     margin: 0 4px;
+    padding: 0;
 }
 
 .ptzControls .controlsPanel .arrowControl button.longArrowBtn {
@@ -42,6 +43,7 @@
     width: 32px;
     height: 48px;
     margin: 0 auto;
+    padding: 0;
     cursor: pointer;
 }
 

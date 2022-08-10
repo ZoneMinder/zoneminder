@@ -843,12 +843,10 @@ public static function getStatuses() {
  */
   function getStreamHTML($options) {
     if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
-      Debug("Have scale:" . $options['scale']);
-      if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {
-        #ZM\Warning('Setting dimensions from scale:'.$options['scale']);
+      if ($options['scale'] != 'auto' && $options['scale'] != '0') {
         $options['width'] = reScale($this->ViewWidth(), $options['scale']).'px';
         $options['height'] = reScale($this->ViewHeight(), $options['scale']).'px';
-      } else if ( ! ( isset($options['width']) or isset($options['height']) ) ) {
+      } else if (!(isset($options['width']) or isset($options['height']))) {
         $options['width'] = '100%';
         $options['height'] = 'auto';
       }
@@ -856,41 +854,35 @@ public static function getStatuses() {
       $options['scale'] = 100;
       # scale is empty or 100
       # There may be a fixed width applied though, in which case we need to leave the height empty
-      if ( ! ( isset($options['width']) and $options['width'] ) ) {
+      if (!(isset($options['width']) and $options['width'])) {
         # Havn't specified width.  If we specified height, then we should
         # use a width that keeps the aspect ratio, otherwise no scaling, 
         # no dimensions, so assume the dimensions of the Monitor
 
-        if ( ! (isset($options['height']) and $options['height']) ) {
+        if (!(isset($options['height']) and $options['height'])) {
           # If we havn't specified any scale or dimensions, then we must be using CSS to scale it in a dynamic way. Can't make any assumptions.
-          #$options['width'] = $monitor->ViewWidth().'px';
-          #$options['height'] = $monitor->ViewHeight().'px';
         }
       } else {
-        #ZM\Warning("Have width ".$options['width']);
-        if ( preg_match('/^(\d+)px$/', $options['width'], $matches) ) {
+        if (preg_match('/^(\d+)px$/', $options['width'], $matches)) {
           $scale = intval(100*$matches[1]/$this->ViewWidth());
-          #ZM\Warning("Scale is $scale");
-          if ( $scale < $options['scale'] )
+          if ($scale < $options['scale'])
             $options['scale'] = $scale;
-        } else if ( preg_match('/^(\d+)%$/', $options['width'], $matches) ) {
+        } else if (preg_match('/^(\d+)%$/', $options['width'], $matches)) {
           $scale = intval($matches[1]);
-          if ( $scale < $options['scale'] )
+          if ($scale < $options['scale'])
             $options['scale'] = $scale;
         } else {
           $backTrace = debug_backtrace();
-          $file = $backTrace[1]['file'];
-          $line = $backTrace[1]['line'];
-          Warning('Invalid value for width: '.$options['width']. ' from '.$file.':'.$line);
+          Warning('Invalid value for width: '.$options['width']. ' from '.print_r($backTrace, true));
         }
       }
     }
-    if ( ! isset($options['mode'] ) ) {
+    if (!isset($options['mode'])) {
       $options['mode'] = 'stream';
     }
-    if ( ! isset($options['width'] ) )
+    if (!isset($options['width']))
       $options['width'] = 0;
-    if ( ! isset($options['height'] ) )
+    if (!isset($options['height']))
       $options['height'] = 0;
 
     if (!isset($options['maxfps'])) {

@@ -47,6 +47,7 @@ class PacketQueue {
     std::mutex mutex;
     std::condition_variable condition;
     int warned_count;
+    bool has_out_of_order_packets_;
 
   public:
     PacketQueue();
@@ -65,6 +66,7 @@ class PacketQueue {
     void dumpQueue();
     unsigned int size();
     unsigned int get_packet_count(int stream_id) const { return packet_counts[stream_id]; };
+    bool has_out_of_order_packets() const { return has_out_of_order_packets_; };
 
     void clearPackets(const std::shared_ptr<ZMPacket> &packet);
     int packet_count(int stream_id);

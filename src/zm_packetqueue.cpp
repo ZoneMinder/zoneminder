@@ -298,14 +298,13 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 #endif
 
     if (zm_packet->packet->stream_index == video_stream_id) {
+      keyframe_interval_count++;
       if (zm_packet->keyframe) {
         Debug(4, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval_count);
 
         if (max_keyframe_interval < keyframe_interval_count) max_keyframe_interval = keyframe_interval_count;
         keyframe_interval_count = 1;
         next_front = it;
-      } else {
-        keyframe_interval_count++;
       }
       ++video_packets_to_delete;
       if (packet_counts[video_stream_id] - video_packets_to_delete <= pre_event_video_packet_count + tail_count) {

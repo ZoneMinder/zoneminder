@@ -1193,7 +1193,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </tr>
             <tr id="FunctionJanusProfileOverride">
               <td class="text-right pr-3"><?php echo translate('Janus Profile-ID Override') ?></td>
-              <td><input type="text" name="newMonitor[Janu_Profile_Override]" value="<?php echo $monitor->Janus_Profile_Override()?>"/>
+              <td><input type="text" name="newMonitor[Janus_Profile_Override]" value="<?php echo $monitor->Janus_Profile_Override()?>"/>
 <?php
   if ( isset($OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']['Help'].'</div>';

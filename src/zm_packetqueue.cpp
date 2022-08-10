@@ -33,7 +33,8 @@ PacketQueue::PacketQueue():
   packet_counts(nullptr),
   deleting(false),
   keep_keyframes(false),
-  warned_count(0)
+  warned_count(0),
+  has_out_of_order_packets_(false)
 {
 }
 
@@ -87,6 +88,24 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
   {
     std::unique_lock<std::mutex> lck(mutex);
     if (deleting or zm_terminate) return false;
+
+    if (!has_out_of_order_packets_ and (add_packet->packet->dts != AV_NOPTS_VALUE)) {
+      auto rit = pktQueue.rbegin();
+      // Find the previous packet for the stream, and check dts
+      while (rit != pktQueue.rend()) {
+        if ((*rit)->packet->stream_index == add_packet->packet->stream_index) {
+          if ((*rit)->packet->dts >= add_packet->packet->dts) {
+            Debug(1, "Have out of order packets");
+            ZM_DUMP_PACKET((*rit)->packet, "queued_packet");
+            ZM_DUMP_PACKET(add_packet->packet, "add_packet");
+            has_out_of_order_packets_ = true;
+          }
+          break;
+        }
+        rit++;
+      }  // end while
+    }
+
     pktQueue.push_back(add_packet);
     for (
         auto iterators_it = iterators.begin();
@@ -358,6 +377,7 @@ void PacketQueue::stop() {
 
 void PacketQueue::clear() {
   deleting = true;
+  // Why are we notifying?
   condition.notify_all();
   if (!packet_counts) // special case, not initialised
     return;

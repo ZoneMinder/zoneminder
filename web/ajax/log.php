@@ -154,7 +154,7 @@ function queryRequest() {
 
   global $dateTimeFormatter;
   foreach ($results as $row) {
-    $row['DateTime'] = $dateTimeFormatter->format($row['TimeKey']);
+    $row['DateTime'] = empty($row['TimeKey']) ? '' : $dateTimeFormatter->format(intval($row['TimeKey']));
     $Server = ZM\Server::find_one(array('Id'=>$row['ServerId']));
 
     $row['Server'] = $Server ? $Server->Name() : '';

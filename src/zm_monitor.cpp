@@ -1919,13 +1919,13 @@ bool Monitor::Analyse() {
 
           /* try to stay behind the decoder. */
           if (decoding != DECODING_NONE) {
-            while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
+            while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped() and !packetqueue.stopping()) {
               // Need to wait for the decoder thread.
               packetqueue.notify_all();
               Debug(1, "Waiting for decode");
               packet_lock->wait();
             }  // end while ! decoded
-            if (zm_terminate or analysis_thread->Stopped()) {
+            if (zm_terminate or analysis_thread->Stopped() or packetqueue.stopping()) {
               delete packet_lock;
               return false;
             }

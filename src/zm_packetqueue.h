@@ -63,6 +63,7 @@ class PacketQueue {
 
     bool queuePacket(std::shared_ptr<ZMPacket> packet);
     void stop();
+    bool stopping() const { return deleting; };
     void clear();
     void dumpQueue();
     unsigned int size();

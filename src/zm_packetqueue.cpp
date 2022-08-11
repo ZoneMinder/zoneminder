@@ -34,7 +34,8 @@ PacketQueue::PacketQueue():
   deleting(false),
   keep_keyframes(false),
   warned_count(0),
-  has_out_of_order_packets_(false)
+  has_out_of_order_packets_(false),
+  max_keyframe_interval_(0)
 {
 }
 
@@ -134,8 +135,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         warned_count++;
         Warning("You have set the max video packets in the queue to %u."
             " The queue is full. Either Analysis is not keeping up or"
-            " your camera's keyframe interval is larger than this setting."
-            , max_video_packet_count);
+            " your camera's keyframe interval %d is larger than this setting."
+            , max_video_packet_count, max_keyframe_interval_);
       }
 
       for (
@@ -318,8 +319,9 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     if (zm_packet->packet->stream_index == video_stream_id) {
       keyframe_interval_count++;
       if (zm_packet->keyframe) {
-        Debug(4, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval_count);
-
+        Debug(3, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval_count);
+        if (keyframe_interval_count > max_keyframe_interval_)
+          max_keyframe_interval_ = keyframe_interval_count;
         keyframe_interval_count = 1;
         next_front = it;
       }

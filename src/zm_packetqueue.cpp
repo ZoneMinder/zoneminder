@@ -358,12 +358,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       pktQueue.pop_front();
       packet_counts[zm_packet->packet->stream_index] -= 1;
     }
-  } else {
-    if (max_video_packet_count >= packet_counts[video_stream_id]) {
-      Warning("Did not find a second keyframe in the packet queue. It may be that"
-          " the Max Image Buffer setting is lower than the keyframe interval. We"
-          " need it to be greater than the keyframe interval + pre event count.");
-    }
   }  // end if have at least max_video_packet_count video packets remaining
 
 	return;

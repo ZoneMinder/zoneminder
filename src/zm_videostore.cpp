@@ -155,7 +155,10 @@ bool VideoStore::open() {
   oc->metadata = pmetadata;
   // Dirty hack to allow us to set flags. Needed for ffmpeg5
   out_format = const_cast<AVOutputFormat *>(oc->oformat);
+  // ffmpeg 5 crashes if we do this
+#if !LIBAVFORMAT_VERSION_CHECK(59, 16,100, 9, 0)
   out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+#endif
 
   const AVCodec *video_out_codec = nullptr;
 

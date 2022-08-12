@@ -362,7 +362,11 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
             pre_event_video_packet_count,
             pktQueue.size());
       pktQueue.pop_front();
+<<<<<<< HEAD
       packet_counts[zm_packet->packet.stream_index] -= 1;
+=======
+      packet_counts[zm_packet->packet->stream_index] -= 1;
+>>>>>>> 39afe4fd2 (Remove warning about maxImageBuffer. It will be handled in queuePacket as it was before, only now we actually tell about the keyframe interval. It is entirely common to not get to another keyframe due to locked packets during event writing.)
     }
   }  // end if have at least max_video_packet_count video packets remaining
 

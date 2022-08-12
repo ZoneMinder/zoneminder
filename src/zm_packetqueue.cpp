@@ -172,6 +172,9 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           }
         }  // end foreach iterator
 
+        zm_packet->decoded = true; // Have to in case analysis is waiting on it
+        zm_packet->notify_all();
+
         it = pktQueue.erase(it);
         packet_counts[zm_packet->packet->stream_index] -= 1;
         Debug(1,
@@ -246,12 +249,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
     while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
       std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
-      ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
-      if (!lp->trylock()) {
-        delete lp;
-        break;
-      }
-      delete lp;
+      ZMLockedPacket lp(zm_packet);
+      if (!lp.trylock()) break;
 
       if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
         Warning("Found iterator at beginning of queue. Some thread isn't keeping up");
@@ -373,7 +372,9 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 void PacketQueue::stop() {
   deleting = true;
   condition.notify_all();
-  for (const auto &p : pktQueue) p->notify_all();
+  for (const auto &p : pktQueue) {
+    p->notify_all();
+  }
 }
 
 void PacketQueue::clear() {

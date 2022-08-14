@@ -154,8 +154,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     'updated' =>  $dateTimeFormatter->format(time())
   );
 
-  $failed = !$filter->test_pre_sql_conditions();
-  if ($failed) {
+  if (!$filter->test_pre_sql_conditions()) {
     ZM\Debug('Pre conditions failed, not doing sql');
     return $data;
   }
@@ -193,7 +192,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $col_str = 'E.*, M.Name AS Monitor';
   $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
-  if ($filter->limit() and !count($filter->pre_sql_conditions()) and !count($filter->post_sql_conditions())) {
+  if ($filter->limit() and !count($filter->post_sql_conditions())) {
     $sql .= ' LIMIT '.$filter->limit();
   }
 

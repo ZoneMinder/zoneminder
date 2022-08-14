@@ -2,6 +2,7 @@
 #define ZM_FFMPEG_INPUT_H
 
 #include "zm_define.h"
+#include "zm_ffmpeg.h"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -49,7 +50,7 @@ class FFmpeg_Input {
     int video_stream_id;
     int audio_stream_id;
     AVFormatContext *input_format_context;
-    AVFrame *frame;
+    av_frame_ptr frame;
 		int64_t last_seek_request;
 };
 

@@ -3,8 +3,6 @@ name: Create packages
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 jobs:
   package:
@@ -15,6 +13,10 @@ jobs:
             dist: buster
           - os: debian
             dist: bullseye
+          - os: ubuntu
+            dist: bionic
+          - os: ubuntu
+            dist: focal
     runs-on: ubuntu-latest
 
     steps:

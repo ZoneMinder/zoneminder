@@ -82,8 +82,9 @@ Logger::Logger() :
     smSyslogPriorities[PANIC] = LOG_ERR;
 
     char code[4] = "";
-    for (unsigned int i = DEBUG1; i <= DEBUG9; i++) {
-      snprintf(code, sizeof(code), "DB%u", i);
+    // Extra comparison against DEBUG1 to ensure GCC knows we are printing a single byte.
+    for (int i = DEBUG1; i>=DEBUG1 && i <= DEBUG9; i++) {
+      snprintf(code, sizeof(code), "DB%d", i);
       smCodes[i] = code;
       smSyslogPriorities[i] = LOG_DEBUG;
     }

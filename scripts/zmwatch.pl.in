@@ -78,7 +78,7 @@ $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
 
 Info('Watchdog starting, pausing for '.START_DELAY.' seconds');
-sleep(START_DELAY);
+#sleep(START_DELAY);
 
 my $dbh = zmDbConnect();
 
@@ -101,6 +101,17 @@ while (!$zm_terminate) {
       $monitor->control('restart');
       next;
     }
+
+    my $heartbeat_time = zmMemRead($monitor, 'shared_data:heartbeat_time');
+    my $heartbeat_elapsed = $now-$heartbeat_time;
+    if ($heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}) {
+      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, $now - heartbeat time $heartbeat_time $heartbeat_elapsed > $Config{ZM_WATCH_MAX_DELAY}");
+      $monitor->control('restart');
+      next;
+    } else {
+      Debug("Monitor $monitor->{Id} $monitor->{Name}, heartbeat time $now - $heartbeat_time $heartbeat_elapsed < $Config{ZM_WATCH_MAX_DELAY}");
+    }
+
     next if $monitor->{Capturing} eq 'Ondemand';
     next if $monitor->{Decoding} eq 'None' or $monitor->{Decoding} eq 'Ondemand';
 
@@ -116,6 +127,12 @@ while (!$zm_terminate) {
       # We can't get the last capture time so can't be sure it's died, it might just be starting up.
       my $startup_time = zmGetStartupTime($monitor);
       if (($now - $startup_time) > $Config{ZM_WATCH_MAX_DELAY}) {
+        if ($monitor->ControlId()) {
+          my $control = $monitor->Control();
+          if ($control->CanReboot() and $control->open()) {
+            $control->reboot();
+          }
+        }
         $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
           "Restarting capture daemon for $$monitor{Name}, no image since startup. ".
           "Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}"
@@ -135,9 +152,9 @@ while (!$zm_terminate) {
     my $image_delay = $now - $capture_time;
     Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
     if ($image_delay > $max_image_delay) {
-        $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
-          'Restarting capture daemon for '.$monitor->{Name}.
-          ", time since last capture $image_delay seconds ($now-$capture_time)");
+      $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
+        'Restarting capture daemon for '.$monitor->{Name}.
+        ", time since last capture $image_delay seconds ($now-$capture_time)");
       $monitor->control('restart');
       next;
     }

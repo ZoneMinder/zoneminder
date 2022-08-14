@@ -579,8 +579,8 @@ switch ($name) {
               <td><input type="text" name="newMonitor[ONVIF_Options]" value="<?php echo validHtmlStr($monitor->ONVIF_Options()) ?>"/></td>
             </tr>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('ONVIF_Alarm_Txt') ?></td>
-              <td><input type="text" name="newMonitor[Onvif_Alarm_Txt]" value="<?php echo validHtmlStr($monitor->Onvif_Alarm_Txt()) ?>"/></td>
+              <td class="text-right pr-3"><?php echo translate('ONVIF_Alarm_Text') ?></td>
+              <td><input type="text" name="newMonitor[ONVIF_Alarm_Text]" value="<?php echo validHtmlStr($monitor->ONVIF_Alarm_Text()) ?>"/></td>
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('ONVIF_Event_Listener') ?></td>
@@ -629,7 +629,7 @@ $localMethods = array(
 if (!ZM_HAS_V4L2)
   unset($localMethods['v4l2']);
 echo htmlSelect('newMonitor[Method]', $localMethods, 
-  ((count($localMethods)<=1) ? array_key_first($localMethods) : $monitor->Method()),
+  ((count($localMethods)==1) ? array_keys($localMethods)[0] : $monitor->Method()),
   array('data-on-change'=>'submitTab', 'data-tab-name'=>$tab) );
 ?></td>
           </tr>
@@ -979,9 +979,11 @@ include('_monitor_source_nvsocket.php');
 ?>
             <tr class="LinkedMonitors">
               <td class="text-right pr-3"><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></td>
-              <td><input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>"/><br/>
+              <td><input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
+                  <div id="LinkedMonitorsUI"></div>
     
 <?php
+      $zones = ZM\Zone::find();
       $zones_by_monitor_id = array();
       foreach (ZM\Zone::find() as $zone) {
         if (! isset($zones_by_monitor_id[$zone->MonitorId()]) ) {
@@ -1000,12 +1002,21 @@ include('_monitor_source_nvsocket.php');
           }
         }
       }
+
+      $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
+      $obracketTypes = array();
+      $cbracketTypes = array();
+
+      $ops = array('or' => translate('or'), 'and' => translate('and'));
+  
+/*
       echo htmlSelect(
         'newMonitor[AvailableLinkedMonitors][]',
         $monitor_options,
         ( $monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array() ),
         array('class'=>'chosen')
       );
+*/
 
 ?>
               </td>
@@ -1116,6 +1127,7 @@ $videowriter_encoders = array(
   'hevc_vaapi' => 'hevc_vaapi',
   'libvpx-vp9' => 'libvpx-vp9',
   'libsvtav1' => 'libsvtav1',
+  'libaom-av1'  => 'libaom-av1'
 );
  echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
             <tr class="OutputContainer">
@@ -1177,6 +1189,26 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 <?php
   if ( isset($OLANG['FUNCTION_JANUS_AUDIO_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_AUDIO_ENABLED']['Help'].'</div>';
+  }
+?>
+              </td>
+            </tr>
+            <tr id="FunctionJanusProfileOverride">
+              <td class="text-right pr-3"><?php echo translate('Janus Profile-ID Override') ?></td>
+              <td><input type="text" name="newMonitor[Janus_Profile_Override]" value="<?php echo $monitor->Janus_Profile_Override()?>"/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']['Help'].'</div>';
+  }
+?>
+              </td>
+            </tr>
+            <tr id="FunctionJanusUseRTSPRestream">
+              <td class="text-right pr-3"><?php echo translate('Janus Use RTSP Restream') ?></td>
+              <td><input type="checkbox" name="newMonitor[Janus_Use_RTSP_Restream]" value="1"<?php echo $monitor->Janus_Use_RTSP_Restream() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']['Help'].'</div>';
   }
 ?>
               </td>
@@ -1472,4 +1504,5 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     </div>
     </div>
   </div>
+  <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
 <?php xhtmlFooter() ?>

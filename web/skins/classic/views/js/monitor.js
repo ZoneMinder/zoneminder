@@ -87,7 +87,7 @@ function initPage() {
     };
   });
   $j('#contentForm').submit(function(event) {
-    if ( validateForm(this) ) {
+    if (validateForm(this)) {
       $j('#contentButtons').hide();
       return true;
     } else {
@@ -115,7 +115,7 @@ function initPage() {
   });
   document.querySelectorAll('input[name="newMonitor[AlarmMaxFPS]"]').forEach(function(el) {
     el.oninput = el.onclick = function(e) {
-      if ( e.target.value ) {
+      if (e.target.value) {
         $j('#newMonitor\\[AlarmMaxFPS\\]').show();
       } else {
         $j('#newMonitor\\[AlarmMaxFPS\\]').hide();
@@ -149,29 +149,9 @@ function initPage() {
   });
   update_estimated_ram_use();
 
-  /*
-  document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
-    el.onchange = function() {
-      $j('#function_help div').hide();
-      $j('#'+this.value+'Help').show();
-      if ( this.value == 'Monitor' || this.value == 'None' ) {
-        $j('#FunctionEnabled').hide();
-      } else {
-        $j('#FunctionEnabled').show();
-      }
-      if ( this.value == 'Record' || this.value == 'Nodect' ) {
-        $j('#FunctionDecodingEnabled').show();
-      } else {
-        $j('#FunctionDecodingEnabled').hide();
-      }
-    };
-    el.onchange();
-  });
-  */
-
   document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
     el.onchange = function() {
-      if ( this.value == 1 /* Encode */ ) {
+      if (this.value == 1 /* Encode */) {
         $j('.OutputCodec').show();
         $j('.Encoder').show();
       } else {
@@ -228,7 +208,6 @@ function initPage() {
     // Store the selected tab in a cookie or something so that on reload it goes back to the tab
   });
 
-
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
 
@@ -283,18 +262,26 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  //manage the Janus audio check
+  //manage the Janus settings div
   if (document.getElementsByName("newMonitor[JanusEnabled]")[0].checked) {
     document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+    document.getElementById("FunctionJanusProfileOverride").hidden = false;
+    document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
   } else {
     document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+    document.getElementById("FunctionJanusProfileOverride").hidden = true;
+    document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
   }
 
   document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
     if (this.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+      document.getElementById("FunctionJanusProfileOverride").hidden = false;
+      document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
     } else {
       document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+      document.getElementById("FunctionJanusProfileOverride").hidden = true;
+      document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
     }
   });
 
@@ -315,7 +302,7 @@ function initPage() {
     }
   });
 
-  if ( ZM_OPT_USE_GEOLOCATION ) {
+  if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
     if ( window.L ) {
       const form = document.getElementById('contentForm');
       const latitude = form.elements['newMonitor[Latitude]'].value;
@@ -352,6 +339,8 @@ function initPage() {
       console.log('Location turned on but leaflet not installed.');
     }
   } // end if ZM_OPT_USE_GEOLOCATION
+
+  updateLinkedMonitorsUI();
 } // end function initPage()
 
 function change_WebColour() {
@@ -516,6 +505,10 @@ function ModelId_onchange(ModelId_select) {
 
 function Model_onchange(input) {
   select_by_value_case_insensitive(input.form.elements['newMonitor[ModelId]'], input.value);
+}
+
+function updateLinkedMonitorsUI() {
+  expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

@@ -219,3 +219,6 @@ function updateMethods(element) {
   }
   return true;
 }
+var monitors = <?php global $monitors; echo isset($monitors) ? json_encode($monitors) : '{}' ?>;
+var sorted_monitor_ids = <?php echo isset($monitors) ? json_encode(array_keys($monitors)) : '[]' ?>;
+var zones = <?php global $zones; echo isset($zones) ? json_encode($zones) : '{}' ?>;

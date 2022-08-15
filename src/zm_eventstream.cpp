@@ -842,24 +842,16 @@ void EventStream::runStream() {
   SystemTimePoint::duration last_frame_offset = Seconds(0);
   SystemTimePoint::duration time_to_event = Seconds(0);
 
+  std::thread command_processor;
+  if (connkey) {
+    command_processor = std::thread(&EventStream::checkCommandQueue, this);
+  }
+
   while ( !zm_terminate ) {
     now = std::chrono::steady_clock::now();
 
     Microseconds delta = Microseconds(0);
     send_frame = false;
-
-    if ( connkey ) {
-      // commands may set send_frame to true
-      while ( checkCommandQueue() && !zm_terminate ) {
-        // The idea is to loop here processing all commands before proceeding.
-      }
-
-      // Update modified time of the socket .lock file so that we can tell which ones are stale.
-      if (now - last_comm_update > Hours(1)) {
-        touch(sock_path_lock);
-        last_comm_update = now;
-      }
-    }
 
     // Get current frame data
     FrameData *frame_data = &event_data->frames[curr_frame_id-1];
@@ -1075,7 +1067,15 @@ void EventStream::runStream() {
     delete vid_stream;
   }
 
-  closeComms();
+  if (connkey) {
+    if (command_processor.joinable()) {
+      Debug(1, "command_processor is joinable");
+      command_processor.join();
+    } else {
+      Debug(1, "command_processor is not joinable");
+    }
+    command_processor.join();
+  }
 } // end void EventStream::runStream()
 
 bool EventStream::send_file(const std::string &filepath) {

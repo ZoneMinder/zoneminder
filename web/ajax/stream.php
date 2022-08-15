@@ -19,14 +19,14 @@ $semaphore_tries = 10;
 $have_semaphore = false;
 
 while ($semaphore_tries) {
-  if ( version_compare( phpversion(), '5.6.1', '<') ) {
+  if (version_compare( phpversion(), '5.6.1', '<')) {
     # don't have support for non-blocking
     $have_semaphore = sem_acquire($semaphore);
   } else {
     $have_semaphore = sem_acquire($semaphore, 1);
   }
   if ($have_semaphore !== false) break;
-  ZM\Debug("Failed to get semaphore, trying again");
+  ZM\Debug('Failed to get semaphore, trying again');
   usleep(100000);
   $semaphore_tries -= 1;
 }
@@ -114,7 +114,7 @@ if ($have_semaphore !== false) {
   } else if ( $numSockets < 0 ) {
     ajaxError("Socket closed $remSockFile");
   } else if ( $numSockets == 0 ) {
-    ZM\Error("Timed out waiting for msg $remSockFile");
+    ZM\Error("Timed out waiting for msg $remSockFile after waiting $timeout seconds");
     socket_set_nonblock($socket);
     #ajaxError("Timed out waiting for msg $remSockFile");
   } else if ( $numSockets > 0 ) {
@@ -123,7 +123,7 @@ if ($have_semaphore !== false) {
     }
   }
 
-  switch( $nbytes = @socket_recvfrom($socket, $msg, MSG_DATA_SIZE, 0, $remSockFile) ) {
+  switch ($nbytes = @socket_recvfrom($socket, $msg, MSG_DATA_SIZE, 0, $remSockFile)) {
   case -1 :
     ajaxError("socket_recvfrom( $remSockFile ) failed: ".socket_strerror(socket_last_error()));
     break;
@@ -180,7 +180,7 @@ if ($have_semaphore !== false) {
   }
   sem_release($semaphore);
 } else {
-  ajaxError("Unable to get semaphore.");
+  ajaxError('Unable to get semaphore.');
 }
 
 ajaxError('Unrecognised action or insufficient permissions in ajax/stream');

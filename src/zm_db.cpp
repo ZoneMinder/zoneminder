@@ -229,9 +229,10 @@ zmDbRow::~zmDbRow() {
 }
 
 zmDbQueue::zmDbQueue() :
-  mThread(&zmDbQueue::process, this),
   mTerminate(false)
-{ }
+{
+  mThread = std::thread(&zmDbQueue::process, this);
+}
 
 zmDbQueue::~zmDbQueue() {
   stop();

@@ -287,12 +287,12 @@ int Monitor::JanusManager::get_janus_handle() {
 
 std::string escape_json_string( std::string input ) {
   std::string tmp;
-  tmp = std::regex_replace(input, std::regex("\n"), "\\n");
-  tmp = std::regex_replace(tmp,   std::regex("\b"), "\\b");
-  tmp = std::regex_replace(tmp,   std::regex("\f"), "\\f");
-  tmp = std::regex_replace(tmp,   std::regex("\r"), "\\r");
-  tmp = std::regex_replace(tmp,   std::regex("\t"), "\\t");
-  tmp = std::regex_replace(tmp,   std::regex("\""), "\\\"");
-  tmp = std::regex_replace(tmp,   std::regex("\\"), "\\\\");
+  tmp = regex_replace(input, regex("\n"), "\\n");
+  tmp = regex_replace(tmp,   regex("\b"), "\\b");
+  tmp = regex_replace(tmp,   regex("\f"), "\\f");
+  tmp = regex_replace(tmp,   regex("\r"), "\\r");
+  tmp = regex_replace(tmp,   regex("\t"), "\\t");
+  tmp = regex_replace(tmp,   regex("\""), "\\\"");
+  tmp = regex_replace(tmp,   regex("[\\\\]"), "\\\\");
   return tmp;
 }

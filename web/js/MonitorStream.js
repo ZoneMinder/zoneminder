@@ -114,7 +114,13 @@ function MonitorStream(monitorData) {
       }
     } else if (parseInt(width) || parseInt(height)) {
       if (width) {
-        newscale = parseInt(100*parseInt(width)/this.width);
+        if (width.search('px') != -1) {
+          newscale = parseInt(100*parseInt(width)/this.width);
+        } else { // %
+          // Set it, then get the calculated width
+          monitor_frame.css('width', width);
+          newscale = parseInt(100*parseInt(monitor_frame.width())/this.width);
+        }
       } else if (height) {
         newscale = parseInt(100*parseInt(height)/this.height);
         width = parseInt(this.width * newscale / 100)+'px';
@@ -124,10 +130,11 @@ function MonitorStream(monitorData) {
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
-    if (width && (width != '0px') &&
-      ((monitor_frame[0].style.width===undefined) || (-1 == monitor_frame[0].style.width.search('%')))
+    if (width && (width != '0px')
+      // This next is for montage layouts where we use things like 33%
+      //&& ((monitor_frame[0].style.width===undefined) || (-1 == monitor_frame[0].style.width.search('%')))
     ) {
-      monitor_frame.css('width', width);
+      monitor_frame.css('width', parseInt(width));
     }
     if (height && height != '0px') img.style.height = height;
 
@@ -143,6 +150,7 @@ function MonitorStream(monitorData) {
     const stream_frame = $j('#monitor'+this.id);
     if (!newscale) {
       newscale = parseInt(100*parseInt(stream_frame.width())/this.width);
+      console.log("Calculated stream scale from ", stream_frame.width(), '/', this.width, '=', newscale);
     }
     if (img.nodeName == 'IMG') {
       if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth

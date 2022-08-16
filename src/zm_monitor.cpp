@@ -2132,11 +2132,12 @@ bool Monitor::Analyse() {
               shared_data->state = state = ((shared_data->recording == RECORDING_ALWAYS) ? IDLE : TAPE);
             } else {
               Debug(1,
-                    "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
+                    "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) = %d > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
                     state,
                     State_Strings[state].c_str(),
                     analysis_image_count,
                     last_alarm_count,
+                    analysis_image_count - last_alarm_count,
                     post_event_count,
                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
                     static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
@@ -2155,8 +2156,6 @@ bool Monitor::Analyse() {
             Event::AddPreAlarmFrame(snap->image, snap->timestamp, score, nullptr);
           } else if (state == ALARM) {
             if (event) {
-              if (noteSetMap.size() > 0)
-                event->updateNotes(noteSetMap);
               if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
                 Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                         name.c_str(), analysis_image_count, event->Id(),
@@ -2166,6 +2165,8 @@ bool Monitor::Analyse() {
                         static_cast<int64>(Seconds(section_length).count()));
                 closeEvent();
                 event = openEvent(snap, cause, noteSetMap);
+              } else if (noteSetMap.size() > 0) {
+                event->updateNotes(noteSetMap);
               }
             } else if (shared_data->recording != RECORDING_NONE) {
               event = openEvent(snap, cause, noteSetMap);
@@ -2804,6 +2805,7 @@ Event * Monitor::openEvent(
   event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
 
   shared_data->last_event_id = event->Id();
+  SetVideoWriterStartTime(starting_packet->timestamp);
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
 
   if (!event_start_command.empty()) {

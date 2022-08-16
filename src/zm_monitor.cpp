@@ -2805,6 +2805,7 @@ Event * Monitor::openEvent(
   event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
 
   shared_data->last_event_id = event->Id();
+  SetVideoWriterStartTime(starting_packet->timestamp);
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
 
   if (!event_start_command.empty()) {

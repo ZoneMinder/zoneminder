@@ -14,7 +14,7 @@ FFmpeg_Input::FFmpeg_Input() {
 }
 
 FFmpeg_Input::~FFmpeg_Input() {
-  if ( input_format_context ) {
+  if (input_format_context) {
     Close();
   }
   if ( frame ) {
@@ -31,10 +31,9 @@ int FFmpeg_Input::Open(
     const AVStream * audio_in_stream,
     const AVCodecContext * audio_in_ctx
     ) {
-  video_stream_id = video_in_stream->index;
-  int max_stream_index = video_in_stream->index;
+  int max_stream_index = video_stream_id = video_in_stream->index;
 
-  if ( audio_in_stream ) {
+  if (audio_in_stream) {
     max_stream_index = video_in_stream->index > audio_in_stream->index ? video_in_stream->index : audio_in_stream->index;
     audio_stream_id = audio_in_stream->index;
   }
@@ -67,17 +66,17 @@ int FFmpeg_Input::Open(const char *filepath) {
   streams = new stream[input_format_context->nb_streams];
   Debug(2, "Have %d streams", input_format_context->nb_streams);
 
-  for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
-    if ( is_video_stream(input_format_context->streams[i]) ) {
+  for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
+    if (is_video_stream(input_format_context->streams[i])) {
       zm_dump_stream_format(input_format_context, i, 0, 0);
-      if ( video_stream_id == -1 ) {
+      if (video_stream_id == -1) {
         video_stream_id = i;
         // if we break, then we won't find the audio stream
       } else {
         Warning("Have another video stream.");
       }
-    } else if ( is_audio_stream(input_format_context->streams[i]) ) {
-      if ( audio_stream_id == -1 ) {
+    } else if (is_audio_stream(input_format_context->streams[i])) {
+      if (audio_stream_id == -1) {
         Debug(2, "Audio stream is %d", i);
         audio_stream_id = i;
       } else {
@@ -88,14 +87,8 @@ int FFmpeg_Input::Open(const char *filepath) {
     }
 
     streams[i].frame_count = 0;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-    streams[i].context = avcodec_alloc_context3(nullptr);
-    avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
-#else
-    streams[i].context = input_format_context->streams[i]->codec;
-#endif
 
-    if ( !(streams[i].codec = avcodec_find_decoder(streams[i].context->codec_id)) ) {
+    if (!(streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id))) {
       Error("Could not find input codec");
       avformat_close_input(&input_format_context);
       return AVERROR_EXIT;
@@ -103,8 +96,20 @@ int FFmpeg_Input::Open(const char *filepath) {
       Debug(1, "Using codec (%s) for stream %d", streams[i].codec->name, i);
     }
 
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+    streams[i].context = avcodec_alloc_context3(nullptr);
+    avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
+#else
+    streams[i].context = input_format_context->streams[i]->codec;
+#endif
+    avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
+    // Some codecs will change the time base others might not. h265 seems to not.  So let's set a sane value
+    streams[i].context->time_base.num = 1;
+    streams[i].context->time_base.den = 90000;
+    zm_dump_codec(streams[i].context);
+
     error = avcodec_open2(streams[i].context, streams[i].codec, nullptr);
-    if ( error < 0 ) {
+    if (error < 0) {
       Error("Could not open input codec (error '%s')",
           av_make_error_string(error).c_str());
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -114,19 +119,25 @@ int FFmpeg_Input::Open(const char *filepath) {
       input_format_context = nullptr;
       return error;
     }
+    zm_dump_codec(streams[i].context);
+    if (!(streams[i].context->time_base.num && streams[i].context->time_base.den)) {
+      Warning("Setting to default time base 1/90000");
+      streams[i].context->time_base.num = 1;
+      streams[i].context->time_base.den = 90000;
+    }
   } // end foreach stream
 
-  if ( video_stream_id == -1 )
+  if (video_stream_id == -1)
     Debug(1, "Unable to locate video stream in %s", filepath);
-  if ( audio_stream_id == -1 )
+  if (audio_stream_id == -1)
     Debug(3, "Unable to locate audio stream in %s", filepath);
 
   return 1;
 } // end int FFmpeg_Input::Open( const char * filepath )
 
 int FFmpeg_Input::Close( ) {
-  if ( streams ) {
-    for ( unsigned int i = 0; i < input_format_context->nb_streams; i += 1 ) {
+  if (streams) {
+    for (unsigned int i = 0; i < input_format_context->nb_streams; i += 1) {
       avcodec_close(streams[i].context);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_free_context(&streams[i].context);
@@ -137,7 +148,7 @@ int FFmpeg_Input::Close( ) {
     streams = nullptr;
   }
 
-  if ( input_format_context ) {
+  if (input_format_context) {
 #if !LIBAVFORMAT_VERSION_CHECK(53, 17, 0, 25, 0)
     av_close_input_file(input_format_context);
 #else
@@ -153,9 +164,9 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
   AVPacket packet;
   av_init_packet(&packet);
 
-  while ( !frameComplete ) {
+  while (!frameComplete) {
     int ret = av_read_frame(input_format_context, &packet);
-    if ( ret < 0 ) {
+    if (ret < 0) {
       if (
           // Check if EOF.
           (ret == AVERROR_EOF || (input_format_context->pb && input_format_context->pb->eof_reached)) ||
@@ -171,7 +182,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     }
     ZM_DUMP_STREAM_PACKET(input_format_context->streams[packet.stream_index], packet, "Received packet");
 
-    if ( (stream_id >= 0) && (packet.stream_index != stream_id) ) {
+    if ((stream_id >= 0) && (packet.stream_index != stream_id)) {
       Debug(1,"Packet is not for our stream (%d)", packet.stream_index );
       continue;
     }
@@ -192,7 +203,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       av_frame_free(&frame);
       continue;
     } else {
-      if ( is_video_stream(input_format_context->streams[packet.stream_index]) ) {
+      if (is_video_stream(input_format_context->streams[packet.stream_index])) {
         zm_dump_video_frame(frame, "resulting video frame");
       } else {
         zm_dump_frame(frame, "resulting frame");
@@ -206,13 +217,22 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       }
     }
 
-    frameComplete = 1;
+    frameComplete = true;
 
+    if (context->time_base.num && context->time_base.den) {
     // Convert timestamps to stream timebase instead of codec timebase
     frame->pts = av_rescale_q(frame->pts,
         context->time_base,
         input_format_context->streams[stream_id]->time_base
         );
+    } else {
+      Warning("No timebase set in context!");
+    }
+    if (is_video_stream(input_format_context->streams[packet.stream_index])) {
+      zm_dump_video_frame(frame, "resulting video frame");
+    } else {
+      zm_dump_frame(frame, "resulting frame");
+    }
 
     zm_av_packet_unref(&packet);
   } // end while !frameComplete
@@ -274,7 +294,8 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 
 	last_seek_request = seek_target;
 
-  if (frame->pts + frame->pkt_duration < seek_target) {
+  // Normally it is likely just the next packet. Need a heuristic for seeking, something like duration * keyframe interval
+  if (frame->pts + 10*frame->pkt_duration < seek_target) {
     Debug(1, "Jumping ahead");
     if (( ret = av_seek_frame(input_format_context, stream_id, seek_target,
             AVSEEK_FLAG_FRAME
@@ -286,14 +307,14 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     get_frame(stream_id);
   }
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
-  if ( frame->pts <= seek_target ) {
-    if ( is_video_stream(input_format_context->streams[stream_id]) ) {
-      zm_dump_video_frame(frame, "pts <= seek_target");
-    } else {
-      zm_dump_frame(frame, "pts <= seek_target");
-    }
-    while ( frame && (frame->pts < seek_target) ) {
-      if ( !get_frame(stream_id) ) {
+  if (frame->pts <= seek_target) {
+    while (frame && (frame->pts + frame->pkt_duration < seek_target)) {
+      if (is_video_stream(input_format_context->streams[stream_id])) {
+        zm_dump_video_frame(frame, "pts <= seek_target");
+      } else {
+        zm_dump_frame(frame, "pts <= seek_target");
+      }
+      if (!get_frame(stream_id)) {
         Warning("Got no frame. returning nothing");
         return frame;
       }

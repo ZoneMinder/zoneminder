@@ -865,7 +865,6 @@ void MonitorStream::runStream() {
     } else {
       Debug(1, "command_processor is not joinable");
     }
-    command_processor.join();
   }
 } // end MonitorStream::runStream
 

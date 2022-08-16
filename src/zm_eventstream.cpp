@@ -717,9 +717,8 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   } else {
     bool send_raw = (type == STREAM_JPEG) && ((scale >= ZM_SCALE_BASE) && (zoom == ZM_SCALE_BASE)) && !filepath.empty();
 
-    fprintf(stdout, "--" BOUNDARY "\r\n");
-
     if (send_raw) {
+      fprintf(stdout, "--" BOUNDARY "\r\n");
       if (!send_file(filepath)) {
         Error("Can't send %s: %s", filepath.c_str(), strerror(errno));
         return false;
@@ -784,6 +783,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       int img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
+      fprintf(stdout, "--" BOUNDARY "\r\n");
       switch ( type ) {
         case STREAM_JPEG :
           send_image->EncodeJpeg(img_buffer, &img_buffer_size);
@@ -1074,7 +1074,6 @@ void EventStream::runStream() {
     } else {
       Debug(1, "command_processor is not joinable");
     }
-    command_processor.join();
   }
 } // end void EventStream::runStream()
 

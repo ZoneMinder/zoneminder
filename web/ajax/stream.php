@@ -38,7 +38,7 @@ if ($have_semaphore !== false) {
   $localSocketFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'w.sock';
   if ( file_exists($localSocketFile) ) {
     ZM\Warning("sock file $localSocketFile already exists?!  Is someone else talking to zms?");
-    // They could be.  We can maybe have concurrent requests from a browser.  
+    // They could be.  We can maybe have concurrent requests from a browser.
   }
   if ( !socket_bind($socket, $localSocketFile) ) {
     ajaxError("socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()));
@@ -85,8 +85,8 @@ if ($have_semaphore !== false) {
   $max_socket_tries = 1000;
   // FIXME This should not exceed web_ajax_timeout
   while ( !file_exists($remSockFile) && $max_socket_tries-- ) {
-		//sometimes we are too fast for our own good, if it hasn't been setup yet give it a second. 
-    // WHY? We will just send another one... 
+		//sometimes we are too fast for our own good, if it hasn't been setup yet give it a second.
+    // WHY? We will just send another one...
     // ANSWER: Because otherwise we get a log of errors logged
 
     //ZM\Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
@@ -146,14 +146,17 @@ if ($have_semaphore !== false) {
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-    if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed')) {
-      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-      if (isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash)) {
-        $data['auth'] = $auth_hash;
-        ZM\Debug('including new auth hash '.$data['auth'].'because doesnt match request auth hash '.$_REQUEST['auth']);
-      } else {
-        ZM\Debug('Not including new auth hash becase it hasn\'t changed '.$auth_hash);
-      } 
+    if (ZM_OPT_USE_AUTH) {
+     if (ZM_AUTH_RELAY == 'hashed') {
+       $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+       if (isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash)) {
+         $data['auth'] = $auth_hash;
+         ZM\Debug('including new auth hash '.$data['auth'].'because doesnt match request auth hash '.$_REQUEST['auth']);
+       } else {
+         ZM\Debug('Not including new auth hash becase it hasn\'t changed '.$auth_hash);
+       }
+     }
+     $data['auth_relay'] = get_auth_relay();
     }
     ajaxResponse(array('status'=>$data));
     break;
@@ -167,11 +170,14 @@ if ($have_semaphore !== false) {
     }
     $data['rate'] /= RATE_BASE;
     $data['zoom'] = round($data['zoom']/SCALE_BASE, 1);
-    if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
-      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-      if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
-        $data['auth'] = $auth_hash;
-      } 
+    if ( ZM_OPT_USE_AUTH ) {
+      if (ZM_AUTH_RELAY == 'hashed') {
+        $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+        if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
+          $data['auth'] = $auth_hash;
+        }
+      }
+      $data['auth_relay'] = get_auth_relay();
     }
     ajaxResponse(array('status'=>$data));
     break;

@@ -880,9 +880,9 @@ public static function getStatuses() {
     if (!isset($options['mode'])) {
       $options['mode'] = 'stream';
     }
-    if (!isset($options['width']))
+    if (!isset($options['width']) or $options['width'] == 'auto')
       $options['width'] = 0;
-    if (!isset($options['height']))
+    if (!isset($options['height']) or $options['height'] == 'auto')
       $options['height'] = 0;
 
     if (!isset($options['maxfps'])) {

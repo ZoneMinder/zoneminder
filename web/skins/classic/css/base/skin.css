@@ -130,6 +130,12 @@ label {
     margin: 0 4px;
 }
 
+a.btn,
+button.btn {
+  line-height: 1;
+  font-size: 18px;
+}
+
 input,textarea,select,button,.btn-primary {
     border: 1px #ccc solid;
     padding: 5px;

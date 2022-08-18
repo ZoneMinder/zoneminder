@@ -47,7 +47,8 @@ function evaluateLoadTimes() {
 } // end evaluateLoadTimes()
 
 function findEventByTime(arr, x) {
-  let start=0, end=arr.length-1;
+  let start=0;
+  let end=arr.length-1;
 
   // Iterate while start not meets end
   while (start <= end) {
@@ -60,10 +61,11 @@ function findEventByTime(arr, x) {
       return arr[mid];
     } else {
       // Else look in left or right half accordingly
-      if (arr[mid].StartTimeSecs < x)
+      if (arr[mid].StartTimeSecs < x) {
         start = mid + 1;
-      else
+      } else {
         end = mid - 1;
+      }
     }
   }
 
@@ -71,22 +73,24 @@ function findEventByTime(arr, x) {
 }
 
 function findFrameByTime(arr, x) {
-  let start=0, end=arr.length-1;
+  let start=0;
+  let end=arr.length-1;
 
   // Iterate while start not meets end
   while (start <= end) {
-
     // Find the mid index
     const mid = Math.floor((start + end)/2);
 
     // If element is present at mid, return True
-    if (arr[mid].StartTimeSecs <= x && arr[mid].EndTimeSec >= x) return true;
+    if (arr[mid].StartTimeSecs <= x && arr[mid].EndTimeSec >= x) {
+      return true;
 
     // Else look in left or right half accordingly
-    else if (arr[mid].StartTimeSecs < x)
+    } else if (arr[mid].StartTimeSecs < x) {
       start = mid + 1;
-    else
+    } else {
       end = mid - 1;
+    }
   }
 
   return false;
@@ -108,7 +112,7 @@ function getFrame(monId, time, last_Frame) {
     return;
   }
 
-  const events_for_monitor = events_by_monitor_id[monId].map(x=>events[x]);
+  const events_for_monitor = events_by_monitor_id[monId].map((x)=>events[x]);
   if (!events_for_monitor.length) {
     //console.log("No events for monitor " + monId);
     return;
@@ -131,8 +135,9 @@ function getFrame(monId, time, last_Frame) {
         break;
       }
     }
-    if (Event)
+    if (Event) {
       console.log("Failed to find event for ", time, " but found it using linear search");
+    }
   }
   if (!Event) return;
 

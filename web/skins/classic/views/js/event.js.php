@@ -13,8 +13,6 @@
   global $popup;
 ?>
 
-var SCALE_BASE = <?php echo SCALE_BASE ?>;
-
 //
 // PHP variables to JS
 //

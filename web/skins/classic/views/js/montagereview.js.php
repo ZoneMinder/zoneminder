@@ -225,8 +225,8 @@ var minTime='$minTime';
 var maxTime='$maxTime';
 ";
 echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
-if ( isset($defaultCurrentTime) )
-  echo 'var currentTimeSecs=parseInt('.strtotime($defaultCurrentTime).");\n";
+if ( isset($defaultCurrentTimeSecs) )
+  echo 'var currentTimeSecs=parseInt('.$defaultCurrentTimeSecs.");\n";
 else
   echo 'var currentTimeSecs=parseInt('.(($minTimeSecs + $maxTimeSecs)/2).");\n";
 

@@ -130,6 +130,7 @@ label {
     margin: 0 4px;
 }
 
+a.btn,
 button.btn {
   line-height: 1;
   font-size: 18px;

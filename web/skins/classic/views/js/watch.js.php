@@ -55,7 +55,6 @@ monitorData[monitorData.length] = {
 } // end foreach monitor
 ?>
 
-var SCALE_BASE = <?php echo SCALE_BASE ?>;
 var scale = '<?php echo $scale ?>';
 
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;

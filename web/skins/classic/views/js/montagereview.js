@@ -1,27 +1,28 @@
 
 function evaluateLoadTimes() {
+  if (liveMode != 1 && currentSpeed == 0) return; // don't evaluate when we are not moving as we can do nothing really fast.
+
   // Only consider it a completed event if we load ALL monitors, then zero all and start again
-  var start=0;
-  var end=0;
-  if ( liveMode != 1 && currentSpeed == 0 ) return; // don't evaluate when we are not moving as we can do nothing really fast.
-  for ( var i = 0; i < monitorIndex.length; i++ ) {
-    if ( monitorName[i] > "" ) {
+  let start=0;
+  let end=0;
+  for (let i = 0; i < monitorIndex.length; i++) {
+    if (monitorName[i] > '') {
       if ( monitorLoadEndTimems[i] == 0 ) return; // if we have a monitor with no time yet just wait
       if ( start == 0 || start > monitorLoadStartTimems[i] ) start = monitorLoadStartTimems[i];
       if ( end == 0 || end < monitorLoadEndTimems[i] ) end = monitorLoadEndTimems[i];
     }
   }
   if ( start == 0 || end == 0 ) return; // we really should not get here
-  for ( var i=0; i < numMonitors; i++ ) {
-    var monId = monitorPtr[i];
+  for (let i=0; i < numMonitors; i++) {
+    const monId = monitorPtr[i];
     monitorLoadStartTimems[monId] = 0;
     monitorLoadEndTimems[monId] = 0;
   }
 
   freeTimeLastIntervals[imageLoadTimesEvaluated++] = 1 - ((end - start)/currentDisplayInterval);
-  if ( imageLoadTimesEvaluated < imageLoadTimesNeeded ) return;
-  var avgFrac=0;
-  for ( var i=0; i < imageLoadTimesEvaluated; i++ ) {
+  if (imageLoadTimesEvaluated < imageLoadTimesNeeded) return;
+  let avgFrac=0;
+  for (let i=0; i < imageLoadTimesEvaluated; i++) {
     avgFrac += freeTimeLastIntervals[i];
   }
   avgFrac = avgFrac / imageLoadTimesEvaluated;
@@ -45,8 +46,55 @@ function evaluateLoadTimes() {
   $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
+function findEventByTime(arr, x) {
+  let start=0, end=arr.length-1;
+
+  // Iterate while start not meets end
+  while (start <= end) {
+    // Find the mid index
+    const mid = Math.floor((start + end)/2);
+
+    // If element is present at mid, return True
+    //console.log(mid, arr[mid], x);
+    if (arr[mid].StartTimeSecs <= x && arr[mid].EndTimeSecs >= x) {
+      return arr[mid];
+    } else {
+      // Else look in left or right half accordingly
+      if (arr[mid].StartTimeSecs < x)
+        start = mid + 1;
+      else
+        end = mid - 1;
+    }
+  }
+
+  return false;
+}
+
+function findFrameByTime(arr, x) {
+  let start=0, end=arr.length-1;
+
+  // Iterate while start not meets end
+  while (start <= end) {
+
+    // Find the mid index
+    const mid = Math.floor((start + end)/2);
+
+    // If element is present at mid, return True
+    if (arr[mid].StartTimeSecs <= x && arr[mid].EndTimeSec >= x) return true;
+
+    // Else look in left or right half accordingly
+    else if (arr[mid].StartTimeSecs < x)
+      start = mid + 1;
+    else
+      end = mid - 1;
+  }
+
+  return false;
+}
+
+
 function getFrame(monId, time, last_Frame) {
-  if ( last_Frame ) {
+  if (last_Frame) {
     if (
       (last_Frame.TimeStampSecs <= time) &&
       (last_Frame.EndTimeStampSecs >= time)
@@ -55,72 +103,69 @@ function getFrame(monId, time, last_Frame) {
     }
   }
 
-  var events_for_monitor = events_by_monitor_id[monId];
-  if ( !events_for_monitor ) {
+  if (!events_by_monitor_id[monId]) {
+    // Need to load them?
+    return;
+  }
+
+  const events_for_monitor = events_by_monitor_id[monId].map(x=>events[x]);
+  if (!events_for_monitor.length) {
     //console.log("No events for monitor " + monId);
     return;
   }
 
-  var Frame = null;
-  for ( var i = 0; i < events_for_monitor.length; i++ ) {
-  //for ( var event_id_idx in events_for_monitor ) {
-    var event_id = events_for_monitor[i];
-    // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
-    e = events[event_id];
-    if ( !e ) {
-      console.log("No event found for " + event_id);
-      break;
-    }
-    if ( e.MonitorId != monId || e.StartTimeSecs > time || e.EndTimeSecs < time ) {
-      //console.log("Event not for " + time);
-      continue;
-    }
-
-    if ( !e.FramesById ) {
-      console.log("No FramesById for event " + event_id);
-      return;
-    }
-    var duration = e.EndTimeSecs - e.StartTimeSecs;
-
-    // I think this is an estimate to jump near the desired frame.
-    var frame = parseInt((time - e.StartTimeSecs)/(duration)*Object.keys(e.FramesById).length)+1;
-    //console.log("frame_id for " + time + " is " + frame);
-
-    // Need to get frame by time, not some fun calc that assumes frames have the same length.
-    // Frames are sorted in descreasing order (or not sorted).
-    // This is likely not efficient.  Would be better to start at the last frame viewed, see if it is still relevant
-    // Then move forward or backwards as appropriate
-
-    for ( var frame_id in e.FramesById ) {
-      if ( 0 ) {
-        if ( frame == 0 ) {
-          console.log("Found frame for time " + time);
-          console.log(Frame);
-          Frame = e.FramesById[frame_id];
-          break;
-        }
-        frame --;
-        continue;
-      }
-      if (
-        e.FramesById[frame_id].TimeStampSecs == time ||
-          (
-            e.FramesById[frame_id].TimeStampSecs < time &&
-            (
-              (!e.FramesById[frame_id].NextTimeStampSecs) || // only if event.EndTime is null
-             (e.FramesById[frame_id].NextTimeStampSecs > time)
-            )
-          )
-      ) {
-        Frame = e.FramesById[frame_id];
+  let Frame = null;
+  let Event = findEventByTime(events_for_monitor, time);
+  if (Event === false) {
+    // This might be better with a binary search
+    for (let i = 0; i < events_for_monitor.length; i++) {
+      const event_id = events_for_monitor[i].Id;
+      // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
+      const e = events[event_id];
+      if (!e) {
+        console.error('No event found for ', event_id);
         break;
       }
-    } // end foreach frame in the event.
-    if ( !Frame ) {
-      console.log("Didn't find frame for " + time);
-      return null;
+      if (e.StartTimeSecs <= time && e.EndTimeSecs >= time) {
+        Event = e;
+        break;
+      }
     }
-  } // end foreach event
+    if (Event)
+      console.log("Failed to find event for ", time, " but found it using linear search");
+  }
+  if (!Event) return;
+
+  if (!Event.FramesById) {
+    console.log('No FramesById for event ', Event);
+    return;
+  }
+
+  // Need to get frame by time, not some fun calc that assumes frames have the same length.
+  // Frames are sorted in descreasing order (or not sorted).
+  // This is likely not efficient.  Would be better to start at the last frame viewed, see if it is still relevant
+  // Then move forward or backwards as appropriate
+
+  for (const frame_id in Event.FramesById) {
+    // Again need binary search
+    if (
+      Event.FramesById[frame_id].TimeStampSecs == time ||
+      (
+        Event.FramesById[frame_id].TimeStampSecs < time &&
+        (
+          (!Event.FramesById[frame_id].NextTimeStampSecs) || // only if event.EndTime is null
+          (Event.FramesById[frame_id].NextTimeStampSecs > time)
+        )
+      )
+    ) {
+      Frame = Event.FramesById[frame_id];
+      break;
+    }
+  } // end foreach frame in the event.
+
+  if (!Frame) {
+    console.log("Didn't find frame for " + time);
+  }
   return Frame;
 }
 
@@ -157,7 +202,6 @@ function getImageSource(monId, time) {
       }
     } else {
       frame_id = Frame.FrameId;
-      console.log("No NextFrame");
     }
     Event = events[Frame.EventId];
 

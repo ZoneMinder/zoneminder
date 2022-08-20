@@ -699,6 +699,8 @@ void Monitor::LoadCamera() {
 #if HAVE_LIBVLC
       camera = zm::make_unique<LibvlcCamera>(this,
                                              path.c_str(),
+                                             user,
+                                             pass,
                                              method,
                                              options,
                                              camera_width,

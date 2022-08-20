@@ -49,9 +49,9 @@ RemoteCameraRtsp::RemoteCameraRtsp(
       p_brightness, p_contrast, p_hue, p_colour,
       p_capture, p_record_audio),
   rtsp_describe(p_rtsp_describe),
-  frameCount(0),
   user(p_user),
-  pass(p_pass)
+  pass(p_pass),
+  frameCount(0)
 {
   if ( p_method == "rtpUni" )
     method = RtspThread::RTP_UNICAST;

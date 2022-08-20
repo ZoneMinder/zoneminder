@@ -379,6 +379,26 @@ std::string UriDecode(const std::string &encoded) {
   return retbuf;
 }
 
+std::string UriEncode(const std::string &value) {
+  const char *src = value.c_str();
+  std::string retbuf;
+  retbuf.reserve(value.length() * 3); // at most all characters get replaced with the escape
+
+  char tmp[5] = "";
+  while(*src) {
+    if ( *src == ' ' ) {
+      retbuf.append("%%20");
+    } else if ( !( (*src >= 'a' && *src <= 'z') || (*src >= 'A' && *src <= 'Z') ) ) {
+      sprintf(tmp, "%%%02X", *src);
+      retbuf.append(tmp);
+    } else {
+      retbuf.push_back(*src);
+    }
+    src++;
+  }
+  return retbuf;
+}
+
 QueryString::QueryString(std::istream &input) {
   while (!input.eof() && input.peek() > 0) {
     //Should eat "param1="

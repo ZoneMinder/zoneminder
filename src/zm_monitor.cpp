@@ -660,6 +660,8 @@ void Monitor::LoadCamera() {
       camera = zm::make_unique<FfmpegCamera>(this,
                                              path,
                                              second_path,
+                                             user,
+                                             pass,
                                              method,
                                              options,
                                              camera_width,

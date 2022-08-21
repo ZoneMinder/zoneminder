@@ -289,6 +289,78 @@ public static function getStatuses() {
     return $this->{'Server'};
   }
 
+  public function Path($new=null) {
+    // set the new value if requested
+    if( $new !== null ) {
+      $this->{'Path'} = $new;
+    }
+
+    $old_us = $this->{'User'};
+    $old_ps = $this->{'Pass'};
+  
+    // empty value or old auth values terminate
+    if( strlen($this->{'Path'}) == 0 )
+      return $this->{'Path'};
+
+    // extract the authentication part from the path given
+    $values = extract_auth_values_from_url($this->{'Path'});
+
+    // If no values for User and Pass fields are present then terminate
+    if( count( $values ) !== 2 ) {
+      return $this->{'Path'};
+    }
+
+    $us = $values[0];
+    $ps = $values[1];
+
+    // Update the auth fields if they were empty and remove them from the path
+    // or if they are equal between the path and field
+    if( (strlen($old_us) == 0 || strlen($old_ps) == 0) ||
+        ($us == $old_us && $ps == $old_ps) ) 
+    {
+      $this->{'Path'} = str_replace("$us:$ps@", "", $this->{'Path'});
+      $this->{'User'} = $us;
+      $this->{'Pass'} = $ps;
+    }
+    return $this->{'Path'};
+  }
+
+  public function User($new=null) {
+    if( $new !== null ) {
+      // no url check if the update has different value
+      $this->{'User'} = $new;
+    }
+
+    if( strlen($this->{'User'}) > 0 )
+      return $this->{'User'};
+
+    // Only try to update from path if the field is empty
+    $values = extract_auth_values_from_url($this->{'Path'});
+    if( count( $values ) == 2 ) {
+      $us = $values[0];
+      $this->{'User'} = $values[0];
+    }
+    return $this->{'User'};
+  }
+
+  public function Pass($new=null) {
+    if( $new !== null ) {
+      // no url check if the update has different value
+      $this->{'Pass'} = $new;
+    }
+
+    if( strlen($this->{'Pass'}) > 0 )
+      return $this->{'Pass'};
+
+    // Only try to update from path if the field is empty
+    $values = extract_auth_values_from_url($this->{'Path'});
+    if( count( $values ) == 2 ) {
+      $ps = $values[1];
+      $this->{'Pass'} = $values[1];
+    }
+    return $this->{'Pass'};
+  }
+
   public function __call($fn, array $args) {
     if (count($args)) {
       if (is_array($this->defaults[$fn]) and $this->defaults[$fn]['type'] == 'set') {

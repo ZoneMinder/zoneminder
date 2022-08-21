@@ -2345,4 +2345,23 @@ function get_subnets($interface) {
   return $subnets;
 }
 
+function extract_auth_values_from_url($url): array {
+  $protocolPrefixPos = strpos($url, '://');
+  if( $protocolPrefixPos === false )
+    return array();
+
+  $authSeparatorPos = strpos($url, '@', $protocolPrefixPos+3);
+  if( $authSeparatorPos === false )
+    return array();
+
+  $fieldsSeparatorPos = strpos($url, ':', $protocolPrefixPos+3);
+  if( $fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos )
+    return array();
+
+  $username = substr( $url, $protocolPrefixPos+3, $fieldsSeparatorPos-($protocolPrefixPos+3) );
+  $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
+
+  return array( $username, $password );
+}
+
 ?>

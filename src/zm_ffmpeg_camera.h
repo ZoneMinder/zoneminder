@@ -38,6 +38,8 @@ class FfmpegCamera : public Camera {
     std::string         mPath;
     std::string         mMaskedPath;
     std::string         mSecondPath;
+    std::string         mUser;
+    std::string         mPass;
     std::string         mMaskedSecondPath;
     std::string         mMethod;
     std::string         mOptions;
@@ -71,8 +73,10 @@ class FfmpegCamera : public Camera {
   public:
     FfmpegCamera(
         const Monitor *monitor,
-        const std::string &path,
-        const std::string &second_path,
+        const std::string &p_path,
+        const std::string &p_second_path,
+        const std::string &p_user,
+        const std::string &p_pass,
         const std::string &p_method,
         const std::string &p_options,
         int p_width,

@@ -85,6 +85,8 @@ FfmpegCamera::FfmpegCamera(
     const Monitor *monitor,
     const std::string &p_path,
     const std::string &p_second_path,
+    const std::string &p_user,
+    const std::string &p_pass,
     const std::string &p_method,
     const std::string &p_options,
     int p_width,
@@ -114,10 +116,13 @@ FfmpegCamera::FfmpegCamera(
       ),
   mPath(p_path),
   mSecondPath(p_second_path),
+  mUser(UriEncode(p_user)),
+  mPass(UriEncode(p_pass)),
   mMethod(p_method),
   mOptions(p_options),
   hwaccel_name(p_hwaccel_name),
-  hwaccel_device(p_hwaccel_device)
+  hwaccel_device(p_hwaccel_device),
+  frameCount(0)
 {
   mMaskedPath = remove_authentication(mPath);
   mMaskedSecondPath = remove_authentication(mSecondPath);
@@ -125,7 +130,6 @@ FfmpegCamera::FfmpegCamera(
     FFMPEGInit();
   }
 
-  frameCount = 0;
   mCanCapture = false;
   error_count = 0;
   use_hwaccel = true;
@@ -276,6 +280,13 @@ int FfmpegCamera::OpenFfmpeg() {
   std::string protocol = mPath.substr(0, 4);
   protocol = StringToUpper(protocol);
   if ( protocol == "RTSP" ) {
+    if( mUser.length() > 0 ) {
+      ret = av_dict_set(&opts, "auth_type", "basic", 0);
+      if (ret < 0) {
+        Warning("Could not set auth_type method to 'basic'");
+      }
+    }
+
     const std::string method = Method();
     if ( method == "rtpMulti" ) {
       ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);
@@ -307,6 +318,12 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
   mFormatContext->interrupt_callback.opaque = this;
   mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
+
+  if( mUser.length() > 0 ) {
+    // build the actual uri string with encoded parameters (from the user and pass fields)
+    mPath = StringToLower(protocol) + "://" + mUser + ":" + mPass + "@" + mMaskedPath.substr(7, std::string::npos);
+    Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
+  }
 
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), input_format, &opts);
   if (ret != 0) {

@@ -173,8 +173,8 @@ Monitor::Monitor()
   //options
   //host
   //port
-  //user
-  //pass
+  user(),
+  pass(),
   //path
   //device
   palette(0),
@@ -622,6 +622,8 @@ void Monitor::LoadCamera() {
                                                    host, // Host
                                                    port, // Port
                                                    path, // Path
+                                                   user,
+                                                   pass,
                                                    camera_width,
                                                    camera_height,
                                                    rtsp_describe,
@@ -658,6 +660,8 @@ void Monitor::LoadCamera() {
       camera = zm::make_unique<FfmpegCamera>(this,
                                              path,
                                              second_path,
+                                             user,
+                                             pass,
                                              method,
                                              options,
                                              camera_width,
@@ -695,6 +699,8 @@ void Monitor::LoadCamera() {
 #if HAVE_LIBVLC
       camera = zm::make_unique<LibvlcCamera>(this,
                                              path.c_str(),
+                                             user,
+                                             pass,
                                              method,
                                              options,
                                              camera_width,

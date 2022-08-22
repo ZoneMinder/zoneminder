@@ -291,34 +291,30 @@ public static function getStatuses() {
 
   public function Path($new=null) {
     // set the new value if requested
-    if( $new !== null ) {
+    if ($new !== null) {
       $this->{'Path'} = $new;
     }
-
-    $old_us = $this->{'User'};
-    $old_ps = $this->{'Pass'};
-  
     // empty value or old auth values terminate
-    if( strlen($this->{'Path'}) == 0 )
+    if (!isset($this->{'Path'}) or ($this->{'Path'}==''))
       return $this->{'Path'};
 
     // extract the authentication part from the path given
     $values = extract_auth_values_from_url($this->{'Path'});
 
     // If no values for User and Pass fields are present then terminate
-    if( count( $values ) !== 2 ) {
+    if (count($values) !== 2) {
       return $this->{'Path'};
     }
 
+    $old_us = isset($this->{'User'}) ? $this->{'User'} : '';
+    $old_ps = isset($this->{'Pass'}) ? $this->{'Pass'} : '';
     $us = $values[0];
     $ps = $values[1];
 
     // Update the auth fields if they were empty and remove them from the path
     // or if they are equal between the path and field
-    if( (strlen($old_us) == 0 || strlen($old_ps) == 0) ||
-        ($us == $old_us && $ps == $old_ps) ) 
-    {
-      $this->{'Path'} = str_replace("$us:$ps@", "", $this->{'Path'});
+    if ( (!$old_us && !$old_ps) || ($us == $old_us && $ps == $old_ps) ) {
+      $this->{'Path'} = str_replace("$us:$ps@", '', $this->{'Path'});
       $this->{'User'} = $us;
       $this->{'Pass'} = $ps;
     }
@@ -926,7 +922,7 @@ public static function getStatuses() {
       $options['scale'] = 100;
       # scale is empty or 100
       # There may be a fixed width applied though, in which case we need to leave the height empty
-      if (!(isset($options['width']) and $options['width'])) {
+      if (!(isset($options['width']) and $options['width']) or ($options['width']=='auto')) {
         # Havn't specified width.  If we specified height, then we should
         # use a width that keeps the aspect ratio, otherwise no scaling, 
         # no dimensions, so assume the dimensions of the Monitor

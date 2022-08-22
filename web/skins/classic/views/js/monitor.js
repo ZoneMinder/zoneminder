@@ -302,17 +302,19 @@ function initPage() {
     }
   });
 
-  let monitorPath = document.getElementsByName("newMonitor[Path]")[0];
+  const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
   monitorPath.addEventListener('keyup', change_Path); // on edit sync path -> user & pass
-  monitorPath.addEventListener('blur', change_Path);  // remove fields from path if user & pass equal on end of edit
+  monitorPath.addEventListener('blur', change_Path); // remove fields from path if user & pass equal on end of edit
 
-  let monitorUser = document.getElementsByName("newMonitor[User]");
-  if( monitorUser.length > 0 )
+  const monitorUser = document.getElementsByName("newMonitor[User]");
+  if ( monitorUser.length > 0 ) {
     monitorUser[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
+  }
 
-  let monitorPass = document.getElementsByName("newMonitor[Pass]");
-  if( monitorPass.length > 0 )
+  const monitorPass = document.getElementsByName("newMonitor[Pass]");
+  if ( monitorPass.length > 0 ) {
     monitorPass[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
+  }
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
     if ( window.L ) {
@@ -359,25 +361,26 @@ function change_Path(event) {
   var pathInput = document.getElementsByName("newMonitor[Path]")[0];
 
   var protoPrefixPos = pathInput.value.indexOf('://');
-  if( protoPrefixPos == -1 )
+  if ( protoPrefixPos == -1 ) {
     return;
+  }
 
   // check the formatting of the url
   var authSeparatorPos = pathInput.value.indexOf( '@', protoPrefixPos+3 );
-  if( authSeparatorPos == -1 ) {
+  if ( authSeparatorPos == -1 ) {
     console.warn('ignoring URL incorrectly formatted, missing "@"');
     return;
   }
 
   var fieldsSeparatorPos = pathInput.value.indexOf( ':', protoPrefixPos+3 );
-  if( authSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
+  if ( authSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
     console.warn('ignoring URL incorrectly formatted, missing ":"');
     return;
   }
 
   var usernameValue = pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos );
   var passwordValue = pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos );
-  if( usernameValue.length == 0 || passwordValue.length == 0 ) {
+  if ( usernameValue.length == 0 || passwordValue.length == 0 ) {
     console.warn('ignoring URL incorrectly formatted, empty username or password');
     return;
   }
@@ -387,20 +390,18 @@ function change_Path(event) {
   var passInput = document.getElementsByName("newMonitor[Pass]");
 
   if (userInput.length != 1 || passInput.length != 1) {
-    return
+    return;
   }
 
   // on editing update the fields only if they are empty or a prefix of the new value
-  if( event.type != 'blur' ) {
-    if( userInput[0].value.length == 0 || usernameValue.indexOf(userInput[0].value) == 0 ||
-        userInput[0].value.indexOf(usernameValue) == 0 )
-    {
+  if ( event.type != 'blur' ) {
+    if ( userInput[0].value.length == 0 || usernameValue.indexOf(userInput[0].value) == 0 ||
+        userInput[0].value.indexOf(usernameValue) == 0 ) {
       userInput[0].value = usernameValue;
     }
 
-    if( passInput[0].value.length == 0 || passwordValue.indexOf(passInput[0].value) == 0 ||
-        passInput[0].value.indexOf(passwordValue) == 0 )
-    {
+    if ( passInput[0].value.length == 0 || passwordValue.indexOf(passInput[0].value) == 0 ||
+        passInput[0].value.indexOf(passwordValue) == 0 ) {
       passInput[0].value = passwordValue;
     }
 
@@ -409,8 +410,9 @@ function change_Path(event) {
 
   // on leaving the input sync the values and remove it from the url
   // only if they already match (to not overwrite already present values)
-  if( userInput[0].value == usernameValue && passInput[0].value == passwordValue )
+  if ( userInput[0].value == usernameValue && passInput[0].value == passwordValue ) {
     pathInput.value = pathInput.value.substring(0, protoPrefixPos+3) + pathInput.value.substring(authSeparatorPos+1, pathInput.value.length);
+  }
 }
 
 function change_WebColour() {

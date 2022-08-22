@@ -48,7 +48,7 @@ function vjsReplay() {
       break;
     case 'all':
       if ( nextEventId == 0 ) {
-        var overLaid = $j("#videoobj");
+        const overLaid = $j('#videoobj');
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
       } else {
         if (!eventData.EndDateTime) {
@@ -56,20 +56,26 @@ function vjsReplay() {
           streamNext(true);
           return;
         }
-        var endTime = Date.parse(eventData.EndDateTime).getTime();
-        var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+        const date = Date.parse(eventData.EndDateTime);
+        if (!date) {
+          console.error('Got no date from ', eventData);
+          streamNext(true);
+          return;
+        }
+        const endTime = date.getTime();
+        const nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
         if ( nextStartTime <= endTime ) {
           streamNext(true);
           return;
         }
         vid.pause();
-        var overLaid = $j("#videoobj");
+        const overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-        var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
-        var messageP = $j('.vjsMessage');
-        var x = setInterval(function() {
-          var now = new Date().getTime();
-          var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
+        const gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+        const messageP = $j('.vjsMessage');
+        const x = setInterval(function() {
+          const now = new Date().getTime();
+          const remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
           messageP.html(remainder + ' to next event.');
           if ( remainder < 0 ) {
             clearInterval(x);

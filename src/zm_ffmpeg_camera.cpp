@@ -280,13 +280,6 @@ int FfmpegCamera::OpenFfmpeg() {
   std::string protocol = mPath.substr(0, 4);
   protocol = StringToUpper(protocol);
   if ( protocol == "RTSP" ) {
-    if( mUser.length() > 0 ) {
-      ret = av_dict_set(&opts, "auth_type", "basic", 0);
-      if (ret < 0) {
-        Warning("Could not set auth_type method to 'basic'");
-      }
-    }
-
     const std::string method = Method();
     if ( method == "rtpMulti" ) {
       ret = av_dict_set(&opts, "rtsp_transport", "udp_multicast", 0);

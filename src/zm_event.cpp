@@ -58,6 +58,7 @@ Event::Event(
   max_score(-1),
   //path(""),
   //snapshit_file(),
+  snapshot_file_written(false),
   //alarm_file(""),
   videoStore(nullptr),
   //video_file(""),
@@ -412,10 +413,11 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
 
     Debug(1, "frames %d, score %d max_score %d", frames, score, max_score);
     // If this is the first frame, we should add a thumbnail to the event directory
-    if ((frames == 1) || (score > max_score)) {
+    if ((frames == 1) || (score > max_score) || (!snapshot_file_written)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
       WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str());
+      snapshot_file_written = true;
     } else {
       Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);
     }

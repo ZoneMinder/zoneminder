@@ -34,7 +34,7 @@ constexpr Milliseconds StreamBase::MAX_SLEEP;
 
 StreamBase::~StreamBase() {
   delete vid_stream;
-  delete temp_img_buffer;
+  delete[] temp_img_buffer;
   closeComms();
 }
 
@@ -403,3 +403,13 @@ void StreamBase::closeComms() {
     }
   }
 } // end void StreamBase::closeComms
+
+void StreamBase::reserveTempImgBuffer(size_t size)
+{
+  if (temp_img_buffer_size < size) {
+    Debug(1, "Resizing image buffer from %zu to %zu", temp_img_buffer_size, size);
+    delete[] temp_img_buffer;
+    temp_img_buffer = new uint8_t[size];
+    temp_img_buffer_size = size;
+  }
+}

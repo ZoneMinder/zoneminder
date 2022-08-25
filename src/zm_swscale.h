@@ -24,8 +24,8 @@ class SWScale {
   protected:
     bool gotdefaults;
     struct SwsContext* swscale_ctx;
-    AVFrame* input_avframe;
-    AVFrame* output_avframe;
+    av_frame_ptr input_avframe;
+    av_frame_ptr output_avframe;
     enum _AVPIXELFORMAT default_input_pf;
     enum _AVPIXELFORMAT default_output_pf;
     unsigned int default_width;

@@ -38,6 +38,8 @@ class FfmpegCamera : public Camera {
     std::string         mPath;
     std::string         mMaskedPath;
     std::string         mSecondPath;
+    std::string         mUser;
+    std::string         mPass;
     std::string         mMaskedSecondPath;
     std::string         mMethod;
     std::string         mOptions;
@@ -58,7 +60,7 @@ class FfmpegCamera : public Camera {
     // Used to store the incoming packet, it will get copied when queued. 
     // We only ever need one at a time, so instead of constantly allocating
     // and freeing this structure, we will just make it a member of the object.
-    AVPacket packet;       
+    av_packet_ptr packet;
 
     int OpenFfmpeg();
     int Close() override;
@@ -71,8 +73,10 @@ class FfmpegCamera : public Camera {
   public:
     FfmpegCamera(
         const Monitor *monitor,
-        const std::string &path,
-        const std::string &second_path,
+        const std::string &p_path,
+        const std::string &p_second_path,
+        const std::string &p_user,
+        const std::string &p_pass,
         const std::string &p_method,
         const std::string &p_options,
         int p_width,

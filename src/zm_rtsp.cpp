@@ -135,7 +135,8 @@ RtspThread::RtspThread(
     const std::string &host,
     const std::string &port,
     const std::string &path,
-    const std::string &auth,
+    const std::string &user,
+    const std::string &pass,
     bool rtsp_describe) :
   mId(id),
   mMethod(method),
@@ -169,12 +170,16 @@ RtspThread::RtspThread(
     mHttpSession = stringtf("%d", rand());
   
   mNeedAuth = false;
-  StringVector parts = Split(auth, ":");
-  Debug(2, "# of auth parts %zu", parts.size());
-  if ( parts.size() > 1 ) 
-    mAuthenticator = new zm::Authenticator(parts[0], parts[1]);
-  else
-    mAuthenticator = new zm::Authenticator(parts[0], "");
+  if ( user.length() > 0 && pass.length() > 0 ) {
+    Debug(2, "# of auth parts 2");
+    mAuthenticator = new zm::Authenticator(user, pass);
+  } else if( user.length() > 0 ) {
+    Debug(2, "# of auth parts 1");
+    mAuthenticator = new zm::Authenticator(user, "");
+  } else {
+    Debug(2, "# of auth parts 0");
+    mAuthenticator = new zm::Authenticator("", "");
+  }
 
   mThread = std::thread(&RtspThread::Run, this);
 }

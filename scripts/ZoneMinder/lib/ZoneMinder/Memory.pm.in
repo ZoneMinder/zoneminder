@@ -172,7 +172,7 @@ our %mem_data = (
     audio_frequency  => { type=>'uint32', seq=>$mem_seq++ },
     audio_channels   => { type=>'uint32', seq=>$mem_seq++ },
     startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
-    zmc_heartbeat_time  => { type=>'time_t64', seq=>$mem_seq++ },
+    heartbeat_time   => { type=>'time_t64', seq=>$mem_seq++ },
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
     last_viewed_time => { type=>'time_t64', seq=>$mem_seq++ },

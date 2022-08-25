@@ -210,7 +210,7 @@ protected:
       uint64_t extrapad1;
     };
     union {                     /* +88   */
-      time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
+      time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
     union {                     /* +96   */
@@ -338,6 +338,7 @@ protected:
     //helper class for CURL
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool Janus_Healthy;
+    bool Use_RTSP_Restream;
     std::string janus_session;
     std::string janus_handle;
     std::string janus_endpoint;
@@ -345,6 +346,7 @@ protected:
     std::string rtsp_username;
     std::string rtsp_password;
     std::string rtsp_path;
+    std::string profile_override;
 
   public:
     explicit JanusManager(Monitor *parent_);
@@ -375,6 +377,8 @@ protected:
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
+  std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
+  bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
 
   std::string protocol;
   std::string method;
@@ -523,7 +527,7 @@ protected:
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
-  AVFrame *dest_frame;                    // Used by decoding thread doing colorspace conversions
+  av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 
@@ -593,11 +597,11 @@ public:
       gettimeofday(&now, nullptr);
       Debug(3, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
             static_cast<int64>(now.tv_sec),
-            static_cast<int64>(shared_data->zmc_heartbeat_time),
-            static_cast<int64>(now.tv_sec - shared_data->zmc_heartbeat_time),
+            static_cast<int64>(shared_data->heartbeat_time),
+            static_cast<int64>(now.tv_sec - shared_data->heartbeat_time),
             config.watch_max_delay);
 
-      if ((now.tv_sec - shared_data->zmc_heartbeat_time) < config.watch_max_delay)
+      if ((now.tv_sec - shared_data->heartbeat_time) < config.watch_max_delay)
         return true;
     }
     return false;
@@ -756,7 +760,7 @@ public:
   SystemTimePoint GetStartupTime() const { return std::chrono::system_clock::from_time_t(shared_data->startup_time); }
   void SetStartupTime(SystemTimePoint time) { shared_data->startup_time = std::chrono::system_clock::to_time_t(time); }
   void SetHeartbeatTime(SystemTimePoint time) {
-    shared_data->zmc_heartbeat_time = std::chrono::system_clock::to_time_t(time);
+    shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(time);
   }
   void get_ref_image();
 

@@ -85,6 +85,8 @@ FfmpegCamera::FfmpegCamera(
     const Monitor *monitor,
     const std::string &p_path,
     const std::string &p_second_path,
+    const std::string &p_user,
+    const std::string &p_pass,
     const std::string &p_method,
     const std::string &p_options,
     int p_width,
@@ -114,10 +116,13 @@ FfmpegCamera::FfmpegCamera(
       ),
   mPath(p_path),
   mSecondPath(p_second_path),
+  mUser(UriEncode(p_user)),
+  mPass(UriEncode(p_pass)),
   mMethod(p_method),
   mOptions(p_options),
   hwaccel_name(p_hwaccel_name),
-  hwaccel_device(p_hwaccel_device)
+  hwaccel_device(p_hwaccel_device),
+  frameCount(0)
 {
   mMaskedPath = remove_authentication(mPath);
   mMaskedSecondPath = remove_authentication(mSecondPath);
@@ -125,7 +130,6 @@ FfmpegCamera::FfmpegCamera(
     FFMPEGInit();
   }
 
-  frameCount = 0;
   mCanCapture = false;
   error_count = 0;
   use_hwaccel = true;
@@ -152,6 +156,7 @@ FfmpegCamera::FfmpegCamera(
     Panic("Unexpected colours: %d", colours);
   }
 
+  packet = av_packet_ptr{av_packet_alloc()};
 }  // FfmpegCamera::FfmpegCamera
 
 FfmpegCamera::~FfmpegCamera() {
@@ -204,7 +209,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         );
   }
 
-  if ((ret = av_read_frame(formatContextPtr, &packet)) < 0) {
+  if ((ret = av_read_frame(formatContextPtr, packet.get())) < 0) {
     if (
         // Check if EOF.
         (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
@@ -212,37 +217,38 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         (ret == -110)
        ) {
       Info("Unable to read packet from stream %d: error %d \"%s\".",
-          packet.stream_index, ret, av_make_error_string(ret).c_str());
+          packet->stream_index, ret, av_make_error_string(ret).c_str());
     } else {
       Error("Unable to read packet from stream %d: error %d \"%s\".",
-          packet.stream_index, ret, av_make_error_string(ret).c_str());
+          packet->stream_index, ret, av_make_error_string(ret).c_str());
     }
     return -1;
   }
 
-  AVStream *stream = formatContextPtr->streams[packet.stream_index];
+  av_packet_guard pkt_guard{packet};
+
+  AVStream *stream = formatContextPtr->streams[packet->stream_index];
   ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
 
   zm_packet->codec_type = stream->codecpar->codec_type;
 
-  bytes += packet.size;
-  zm_packet->set_packet(&packet);
+  bytes += packet->size;
+  zm_packet->set_packet(packet.get());
   zm_packet->stream = stream;
-  zm_packet->pts = av_rescale_q(packet.pts, stream->time_base, AV_TIME_BASE_Q);
-  if (packet.pts != AV_NOPTS_VALUE) {
+  zm_packet->pts = av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q);
+  if (packet->pts != AV_NOPTS_VALUE) {
     if (stream == mVideoStream) {
       if (mFirstVideoPTS == AV_NOPTS_VALUE)
-        mFirstVideoPTS = packet.pts;
+        mFirstVideoPTS = packet->pts;
 
-      mLastVideoPTS = packet.pts - mFirstVideoPTS;
+      mLastVideoPTS = packet->pts - mFirstVideoPTS;
     } else {
       if (mFirstAudioPTS == AV_NOPTS_VALUE)
-        mFirstAudioPTS = packet.pts;
+        mFirstAudioPTS = packet->pts;
 
-      mLastAudioPTS = packet.pts - mFirstAudioPTS;
+      mLastAudioPTS = packet->pts - mFirstAudioPTS;
     }
   }
-  zm_av_packet_unref(&packet);
 
   return 1;
 } // FfmpegCamera::Capture
@@ -305,6 +311,12 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext->interrupt_callback.callback = FfmpegInterruptCallback;
   mFormatContext->interrupt_callback.opaque = this;
   mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
+
+  if( mUser.length() > 0 ) {
+    // build the actual uri string with encoded parameters (from the user and pass fields)
+    mPath = StringToLower(protocol) + "://" + mUser + ":" + mPass + "@" + mMaskedPath.substr(7, std::string::npos);
+    Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
+  }
 
   ret = avformat_open_input(&mFormatContext, mPath.c_str(), input_format, &opts);
   if (ret != 0) {

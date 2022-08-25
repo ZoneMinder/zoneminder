@@ -82,7 +82,7 @@ struct Namespace namespaces[] =
 std::string load_monitor_sql =
 "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
 "`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-"`JanusEnabled`, `JanusAudioEnabled`, "
+"`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`,"
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
 "`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
@@ -166,13 +166,15 @@ Monitor::Monitor()
   decoding(DECODING_ALWAYS),
   janus_enabled(false),
   janus_audio_enabled(false),
+  janus_profile_override(""),
+  janus_use_rtsp_restream(false),
   //protocol
   //method
   //options
   //host
   //port
-  //user
-  //pass
+  user(),
+  pass(),
   //path
   //device
   palette(0),
@@ -275,7 +277,6 @@ Monitor::Monitor()
   analysis_thread(nullptr),
   decoder_it(nullptr),
   decoder(nullptr),
-  dest_frame(nullptr),
   convert_context(nullptr),
   //zones(nullptr),
   privacy_bitmask(nullptr),
@@ -314,8 +315,7 @@ Monitor::Monitor()
 /*
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0,
-   `Decoding`+0, JanusEnabled, JanusAudioEnabled, "
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream"
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -376,6 +376,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // See below after save_jpegs for a recalculation of decoding_enabled
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  janus_profile_override = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+  janus_use_rtsp_restream = dbrow[col] ? atoi(dbrow[col]) : false; col++;
 
   linked_monitors_string = dbrow[col] ? dbrow[col] : ""; col++;
   event_start_command = dbrow[col] ? dbrow[col] : ""; col++;
@@ -620,6 +622,8 @@ void Monitor::LoadCamera() {
                                                    host, // Host
                                                    port, // Port
                                                    path, // Path
+                                                   user,
+                                                   pass,
                                                    camera_width,
                                                    camera_height,
                                                    rtsp_describe,
@@ -656,6 +660,8 @@ void Monitor::LoadCamera() {
       camera = zm::make_unique<FfmpegCamera>(this,
                                              path,
                                              second_path,
+                                             user,
+                                             pass,
                                              method,
                                              options,
                                              camera_width,
@@ -693,6 +699,8 @@ void Monitor::LoadCamera() {
 #if HAVE_LIBVLC
       camera = zm::make_unique<LibvlcCamera>(this,
                                              path.c_str(),
+                                             user,
+                                             pass,
                                              method,
                                              options,
                                              camera_width,
@@ -776,7 +784,6 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
 }
 
 bool Monitor::connect() {
-  ReloadLinkedMonitors();
   ReloadZones();
   if (zones.size() != zone_count) {
     Warning("Monitor %d has incorrect zone_count %d != %zu", id, zone_count, zones.size());
@@ -961,6 +968,7 @@ bool Monitor::connect() {
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
     shared_data->valid = true;
 
+    ReloadLinkedMonitors();
 
     //ONVIF and Amcrest Setup
     //For now, only support one event type per camera, so share some state.
@@ -1107,8 +1115,6 @@ Monitor::~Monitor() {
   Debug(1, "Don linked monitors");
   if (video_fifo) delete video_fifo;
   if (audio_fifo) delete audio_fifo;
-  Debug(1, "Don fifo");
-  if (dest_frame) av_frame_free(&dest_frame);
   Debug(1, "Don fifo");
   if (convert_context) {
   Debug(1, "Don fifo");
@@ -1919,13 +1925,13 @@ bool Monitor::Analyse() {
 
           /* try to stay behind the decoder. */
           if (decoding != DECODING_NONE) {
-            while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped()) {
+            while (!snap->decoded and !zm_terminate and !analysis_thread->Stopped() and !packetqueue.stopping()) {
               // Need to wait for the decoder thread.
               packetqueue.notify_all();
               Debug(1, "Waiting for decode");
               packet_lock->wait();
             }  // end while ! decoded
-            if (zm_terminate or analysis_thread->Stopped()) {
+            if (zm_terminate or analysis_thread->Stopped() or packetqueue.stopping()) {
               delete packet_lock;
               return false;
             }
@@ -2023,7 +2029,7 @@ bool Monitor::Analyse() {
                   ref_image.Blend(y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 } else if (snap->image) {
                   Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
-                      analysis_image, snap->in_frame,
+                      analysis_image, snap->in_frame.get(),
                       (snap->in_frame ? snap->in_frame->format : -1),
                       AV_PIX_FMT_YUV420P,
                       AV_PIX_FMT_YUVJ420P
@@ -2132,11 +2138,12 @@ bool Monitor::Analyse() {
               shared_data->state = state = ((shared_data->recording == RECORDING_ALWAYS) ? IDLE : TAPE);
             } else {
               Debug(1,
-                    "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
+                    "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) = %d > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
                     state,
                     State_Strings[state].c_str(),
                     analysis_image_count,
                     last_alarm_count,
+                    analysis_image_count - last_alarm_count,
                     post_event_count,
                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
                     static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
@@ -2155,8 +2162,6 @@ bool Monitor::Analyse() {
             Event::AddPreAlarmFrame(snap->image, snap->timestamp, score, nullptr);
           } else if (state == ALARM) {
             if (event) {
-              if (noteSetMap.size() > 0)
-                event->updateNotes(noteSetMap);
               if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
                 Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                         name.c_str(), analysis_image_count, event->Id(),
@@ -2166,6 +2171,8 @@ bool Monitor::Analyse() {
                         static_cast<int64>(Seconds(section_length).count()));
                 closeEvent();
                 event = openEvent(snap, cause, noteSetMap);
+              } else if (noteSetMap.size() > 0) {
+                event->updateNotes(noteSetMap);
               }
             } else if (shared_data->recording != RECORDING_NONE) {
               event = openEvent(snap, cause, noteSetMap);
@@ -2255,8 +2262,7 @@ bool Monitor::Analyse() {
         }
       }
       // Free up the decoded frame as well, we won't be using it for anything at this time.
-      if (snap->out_frame) av_frame_free(&snap->out_frame);
-      if (snap->buffer) av_freep(&snap->buffer);
+      snap->out_frame = nullptr;
 
       delete packet_lock;
     }
@@ -2438,7 +2444,7 @@ int Monitor::Capture() {
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
   packet->image_index = image_count;
   packet->timestamp = std::chrono::system_clock::now();
-  shared_data->zmc_heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
+  shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
   int captureResult = camera->Capture(packet);
   Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
 
@@ -2469,10 +2475,10 @@ int Monitor::Capture() {
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
-        packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count);
+        packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count);
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
-      packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
+      packet->packet->stream_index = video_stream_id; // Convert to packetQueue's index
       if (video_fifo) {
         if (packet->keyframe) {
           // avcodec strips out important nals that describe the stream and
@@ -2493,7 +2499,7 @@ int Monitor::Capture() {
       if (record_audio and (packetqueue.packet_count(video_stream_id) or event)) {
         packet->image_index=-1;
         Debug(2, "Queueing audio packet");
-        packet->packet.stream_index = audio_stream_id; // Convert to packetQueue's index
+        packet->packet->stream_index = audio_stream_id; // Convert to packetQueue's index
         packetqueue.queuePacket(packet);
       } else {
         Debug(4, "Not Queueing audio packet");
@@ -2601,7 +2607,7 @@ bool Monitor::Decode() {
     return true; // Don't need decode
   }
 
-  if ((!packet->image) and packet->packet.size and !packet->in_frame) {
+  if ((!packet->image) and packet->packet->size and !packet->in_frame) {
     if ((decoding == DECODING_ALWAYS)
         or
         ((decoding == DECODING_ONDEMAND) and this->hasViewers() )
@@ -2620,19 +2626,19 @@ bool Monitor::Decode() {
         if (packet->in_frame and !packet->image) {
           packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
 
-          if (convert_context || this->setupConvertContext(packet->in_frame, packet->image)) {
-            if (!packet->image->Assign(packet->in_frame, convert_context, dest_frame)) {
+          if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
+            if (!packet->image->Assign(packet->in_frame.get(), convert_context, dest_frame.get())) {
               delete packet->image;
               packet->image = nullptr;
             }
-            av_frame_unref(dest_frame);
+            av_frame_unref(dest_frame.get());
           } else {
             delete packet->image;
             packet->image = nullptr;
           }  // end if have convert_context
         }  // end if need transfer to image
       } else {
-        Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet.size, packet->in_frame);
+        Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
       }
     } else {
       Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
@@ -2810,6 +2816,7 @@ Event * Monitor::openEvent(
   event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
 
   shared_data->last_event_id = event->Id();
+  SetVideoWriterStartTime(starting_packet->timestamp);
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
 
   if (!event_start_command.empty()) {
@@ -3139,7 +3146,7 @@ int Monitor::PrimeCapture() {
   }
 
   if (decoding != DECODING_NONE) {
-    if (!dest_frame) dest_frame = zm_av_frame_alloc();
+    if (!dest_frame) dest_frame = av_frame_ptr{zm_av_frame_alloc()};
     if (!decoder_it) decoder_it = packetqueue.get_video_it(false);
     if (!decoder) {
       Debug(1, "Creating decoder thread");
@@ -3273,7 +3280,7 @@ void Monitor::get_ref_image() {
 
   std::shared_ptr<ZMPacket> snap = snap_lock->packet_;
   Debug(1, "get_ref_image: packet.stream %d ?= video_stream %d, packet image id %d packet image %p",
-      snap->packet.stream_index, video_stream_id, snap->image_index, snap->image );
+      snap->packet->stream_index, video_stream_id, snap->image_index, snap->image );
   // Might not have been decoded yet FIXME
   if (snap->image) {
     ref_image.Assign(width, height, camera->Colours(),

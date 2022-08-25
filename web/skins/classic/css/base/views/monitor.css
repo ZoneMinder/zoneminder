@@ -16,12 +16,15 @@ input[name="newMonitor[SecondPath]"],
 input[name="newMonitor[LabelFormat]"],
 input[name="newMonitor[ControlDevice]"],
 input[name="newMonitor[ControlAddress]"],
-input[name="newMonitor[ONVIF_URL]"],
-input[name="newMonitor[ONVIF_Username]"],
-input[name="newMonitor[ONVIF_Password]"],
 input[name="newMonitor[ONVIF_Options]"] {
   width: 100%;
+	min-width: 240px;
 }
+input[name="newMonitor[ONVIF_URL]"] {
+	min-width: 340px;
+}
+input[name="newMonitor[ONVIF_Username]"],
+input[name="newMonitor[ONVIF_Password]"],
 input[name="newMonitor[LabelFormat]"]{
 	min-width: 240px;
 }

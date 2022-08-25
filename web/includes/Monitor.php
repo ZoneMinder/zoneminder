@@ -146,6 +146,8 @@ public static function getStatuses() {
     'Decoding'  => 'Always',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
+    'Janus_Profile_Override'   => '',
+    'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
     'EventStartCommand' => '',
@@ -285,6 +287,74 @@ public static function getStatuses() {
       }
     }
     return $this->{'Server'};
+  }
+
+  public function Path($new=null) {
+    // set the new value if requested
+    if ($new !== null) {
+      $this->{'Path'} = $new;
+    }
+    // empty value or old auth values terminate
+    if (!isset($this->{'Path'}) or ($this->{'Path'}==''))
+      return $this->{'Path'};
+
+    // extract the authentication part from the path given
+    $values = extract_auth_values_from_url($this->{'Path'});
+
+    // If no values for User and Pass fields are present then terminate
+    if (count($values) !== 2) {
+      return $this->{'Path'};
+    }
+
+    $old_us = isset($this->{'User'}) ? $this->{'User'} : '';
+    $old_ps = isset($this->{'Pass'}) ? $this->{'Pass'} : '';
+    $us = $values[0];
+    $ps = $values[1];
+
+    // Update the auth fields if they were empty and remove them from the path
+    // or if they are equal between the path and field
+    if ( (!$old_us && !$old_ps) || ($us == $old_us && $ps == $old_ps) ) {
+      $this->{'Path'} = str_replace("$us:$ps@", '', $this->{'Path'});
+      $this->{'User'} = $us;
+      $this->{'Pass'} = $ps;
+    }
+    return $this->{'Path'};
+  }
+
+  public function User($new=null) {
+    if( $new !== null ) {
+      // no url check if the update has different value
+      $this->{'User'} = $new;
+    }
+
+    if( strlen($this->{'User'}) > 0 )
+      return $this->{'User'};
+
+    // Only try to update from path if the field is empty
+    $values = extract_auth_values_from_url($this->{'Path'});
+    if( count( $values ) == 2 ) {
+      $us = $values[0];
+      $this->{'User'} = $values[0];
+    }
+    return $this->{'User'};
+  }
+
+  public function Pass($new=null) {
+    if( $new !== null ) {
+      // no url check if the update has different value
+      $this->{'Pass'} = $new;
+    }
+
+    if( strlen($this->{'Pass'}) > 0 )
+      return $this->{'Pass'};
+
+    // Only try to update from path if the field is empty
+    $values = extract_auth_values_from_url($this->{'Path'});
+    if( count( $values ) == 2 ) {
+      $ps = $values[1];
+      $this->{'Pass'} = $values[1];
+    }
+    return $this->{'Pass'};
   }
 
   public function __call($fn, array $args) {
@@ -841,12 +911,10 @@ public static function getStatuses() {
  */
   function getStreamHTML($options) {
     if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
-      Debug("Have scale:" . $options['scale']);
-      if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {
-        #ZM\Warning('Setting dimensions from scale:'.$options['scale']);
+      if ($options['scale'] != 'auto' && $options['scale'] != '0') {
         $options['width'] = reScale($this->ViewWidth(), $options['scale']).'px';
         $options['height'] = reScale($this->ViewHeight(), $options['scale']).'px';
-      } else if ( ! ( isset($options['width']) or isset($options['height']) ) ) {
+      } else if (!(isset($options['width']) or isset($options['height']))) {
         $options['width'] = '100%';
         $options['height'] = 'auto';
       }
@@ -854,38 +922,35 @@ public static function getStatuses() {
       $options['scale'] = 100;
       # scale is empty or 100
       # There may be a fixed width applied though, in which case we need to leave the height empty
-      if ( ! ( isset($options['width']) and $options['width'] ) ) {
+      if (!(isset($options['width']) and $options['width']) or ($options['width']=='auto')) {
         # Havn't specified width.  If we specified height, then we should
         # use a width that keeps the aspect ratio, otherwise no scaling, 
         # no dimensions, so assume the dimensions of the Monitor
 
-        if ( ! (isset($options['height']) and $options['height']) ) {
+        if (!(isset($options['height']) and $options['height'])) {
           # If we havn't specified any scale or dimensions, then we must be using CSS to scale it in a dynamic way. Can't make any assumptions.
-          #$options['width'] = $monitor->ViewWidth().'px';
-          #$options['height'] = $monitor->ViewHeight().'px';
         }
       } else {
-        #ZM\Warning("Have width ".$options['width']);
-        if ( preg_match('/^(\d+)px$/', $options['width'], $matches) ) {
+        if (preg_match('/^(\d+)px$/', $options['width'], $matches)) {
           $scale = intval(100*$matches[1]/$this->ViewWidth());
-          #ZM\Warning("Scale is $scale");
-          if ( $scale < $options['scale'] )
+          if ($scale < $options['scale'])
             $options['scale'] = $scale;
-        } else if ( preg_match('/^(\d+)%$/', $options['width'], $matches) ) {
+        } else if (preg_match('/^(\d+)%$/', $options['width'], $matches)) {
           $scale = intval($matches[1]);
-          if ( $scale < $options['scale'] )
+          if ($scale < $options['scale'])
             $options['scale'] = $scale;
         } else {
-          Warning('Invalid value for width: '.$options['width']);
+          $backTrace = debug_backtrace();
+          Warning('Invalid value for width: '.$options['width']. ' from '.print_r($backTrace, true));
         }
       }
     }
-    if ( ! isset($options['mode'] ) ) {
+    if (!isset($options['mode'])) {
       $options['mode'] = 'stream';
     }
-    if ( ! isset($options['width'] ) )
+    if (!isset($options['width']) or $options['width'] == 'auto')
       $options['width'] = 0;
-    if ( ! isset($options['height'] ) )
+    if (!isset($options['height']) or $options['height'] == 'auto')
       $options['height'] = 0;
 
     if (!isset($options['maxfps'])) {

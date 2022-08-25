@@ -44,11 +44,10 @@ class ZMPacket {
 
     int keyframe;
     AVStream  *stream;            // Input stream
-    AVPacket  packet;             // Input packet, undecoded
-    AVFrame   *in_frame;          // Input image, decoded Theoretically only filled if needed.
-    AVFrame   *out_frame;         // output image, Only filled if needed.
+    av_packet_ptr packet;         // Input packet, undecoded
+    av_frame_ptr in_frame;        // Input image, decoded Theoretically only filled if needed.
+    av_frame_ptr out_frame;       // output image, Only filled if needed.
     SystemTimePoint timestamp;
-    uint8_t   *buffer;            // buffer used in image
     Image     *image;
     Image     *analysis_image;
     int       score;
@@ -61,9 +60,9 @@ class ZMPacket {
     std::string  alarm_cause;
 
   public:
-    AVPacket *av_packet() { return &packet; }
+    AVPacket *av_packet() { return packet.get(); }
     AVPacket *set_packet(AVPacket *p) ;
-    AVFrame *av_frame() { return out_frame; }
+    AVFrame *av_frame() { return out_frame.get(); }
     Image *get_image(Image *i=nullptr);
     Image *set_image(Image *);
     ssize_t ram();
@@ -78,6 +77,9 @@ class ZMPacket {
     //AVFrame *get_out_frame(const AVCodecContext *ctx);
     AVFrame *get_out_frame(int width, int height, AVPixelFormat format);
     int get_codec_imgsize() { return codec_imgsize; };
+    void notify_all() {
+      this->condition_.notify_all();
+    }
 };
 
 class ZMLockedPacket {
@@ -120,6 +122,10 @@ class ZMLockedPacket {
       Debug(4, "packet %d waiting", packet_->image_index);
       packet_->condition_.wait(lck_);
     }
+    void notify_all() {
+      packet_->notify_all();
+    }
+    
 };
 
 #endif /* ZM_PACKET_H */

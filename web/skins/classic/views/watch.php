@@ -65,7 +65,7 @@ foreach ($displayMonitors as &$row) {
   unset($row);
 } # end foreach Monitor
 
-if ($monitor_index == -1) {
+if ($mid and ($monitor_index == -1)) {
   ZM\Error("How did we not find monitor_index?");
 }
 

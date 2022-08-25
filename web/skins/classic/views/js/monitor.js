@@ -87,7 +87,7 @@ function initPage() {
     };
   });
   $j('#contentForm').submit(function(event) {
-    if ( validateForm(this) ) {
+    if (validateForm(this)) {
       $j('#contentButtons').hide();
       return true;
     } else {
@@ -115,7 +115,7 @@ function initPage() {
   });
   document.querySelectorAll('input[name="newMonitor[AlarmMaxFPS]"]').forEach(function(el) {
     el.oninput = el.onclick = function(e) {
-      if ( e.target.value ) {
+      if (e.target.value) {
         $j('#newMonitor\\[AlarmMaxFPS\\]').show();
       } else {
         $j('#newMonitor\\[AlarmMaxFPS\\]').hide();
@@ -149,29 +149,9 @@ function initPage() {
   });
   update_estimated_ram_use();
 
-  /*
-  document.querySelectorAll('select[name="newMonitor[Function]"]').forEach(function(el) {
-    el.onchange = function() {
-      $j('#function_help div').hide();
-      $j('#'+this.value+'Help').show();
-      if ( this.value == 'Monitor' || this.value == 'None' ) {
-        $j('#FunctionEnabled').hide();
-      } else {
-        $j('#FunctionEnabled').show();
-      }
-      if ( this.value == 'Record' || this.value == 'Nodect' ) {
-        $j('#FunctionDecodingEnabled').show();
-      } else {
-        $j('#FunctionDecodingEnabled').hide();
-      }
-    };
-    el.onchange();
-  });
-  */
-
   document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
     el.onchange = function() {
-      if ( this.value == 1 /* Encode */ ) {
+      if (this.value == 1 /* Encode */) {
         $j('.OutputCodec').show();
         $j('.Encoder').show();
       } else {
@@ -228,7 +208,6 @@ function initPage() {
     // Store the selected tab in a cookie or something so that on reload it goes back to the tab
   });
 
-
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
 
@@ -283,18 +262,26 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
-  //manage the Janus audio check
+  //manage the Janus settings div
   if (document.getElementsByName("newMonitor[JanusEnabled]")[0].checked) {
     document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+    document.getElementById("FunctionJanusProfileOverride").hidden = false;
+    document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
   } else {
     document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+    document.getElementById("FunctionJanusProfileOverride").hidden = true;
+    document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
   }
 
   document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
     if (this.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+      document.getElementById("FunctionJanusProfileOverride").hidden = false;
+      document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
     } else {
       document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+      document.getElementById("FunctionJanusProfileOverride").hidden = true;
+      document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
     }
   });
 
@@ -314,6 +301,20 @@ function initPage() {
       document.getElementById("function_use_Amcrest_API").hidden = true;
     }
   });
+
+  const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
+  monitorPath.addEventListener('keyup', change_Path); // on edit sync path -> user & pass
+  monitorPath.addEventListener('blur', change_Path); // remove fields from path if user & pass equal on end of edit
+
+  const monitorUser = document.getElementsByName("newMonitor[User]");
+  if ( monitorUser.length > 0 ) {
+    monitorUser[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
+  }
+
+  const monitorPass = document.getElementsByName("newMonitor[Pass]");
+  if ( monitorPass.length > 0 ) {
+    monitorPass[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
+  }
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
     if ( window.L ) {
@@ -352,7 +353,67 @@ function initPage() {
       console.log('Location turned on but leaflet not installed.');
     }
   } // end if ZM_OPT_USE_GEOLOCATION
+
+  updateLinkedMonitorsUI();
 } // end function initPage()
+
+function change_Path(event) {
+  var pathInput = document.getElementsByName("newMonitor[Path]")[0];
+
+  var protoPrefixPos = pathInput.value.indexOf('://');
+  if ( protoPrefixPos == -1 ) {
+    return;
+  }
+
+  // check the formatting of the url
+  var authSeparatorPos = pathInput.value.indexOf( '@', protoPrefixPos+3 );
+  if ( authSeparatorPos == -1 ) {
+    console.warn('ignoring URL incorrectly formatted, missing "@"');
+    return;
+  }
+
+  var fieldsSeparatorPos = pathInput.value.indexOf( ':', protoPrefixPos+3 );
+  if ( authSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
+    console.warn('ignoring URL incorrectly formatted, missing ":"');
+    return;
+  }
+
+  var usernameValue = pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos );
+  var passwordValue = pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos );
+  if ( usernameValue.length == 0 || passwordValue.length == 0 ) {
+    console.warn('ignoring URL incorrectly formatted, empty username or password');
+    return;
+  }
+
+  // get the username / password inputs
+  var userInput = document.getElementsByName("newMonitor[User]");
+  var passInput = document.getElementsByName("newMonitor[Pass]");
+
+  if (userInput.length != 1 || passInput.length != 1) {
+    return;
+  }
+
+  // on editing update the fields only if they are empty or a prefix of the new value
+  if ( event.type != 'blur' ) {
+    if ( userInput[0].value.length == 0 || usernameValue.indexOf(userInput[0].value) == 0 ||
+        userInput[0].value.indexOf(usernameValue) == 0 ) {
+      userInput[0].value = usernameValue;
+    }
+
+    if ( passInput[0].value.length == 0 || passwordValue.indexOf(passInput[0].value) == 0 ||
+        passInput[0].value.indexOf(passwordValue) == 0 ) {
+      passInput[0].value = passwordValue;
+    }
+
+    return;
+  }
+
+  // on leaving the input sync the values and remove it from the url
+  // only if they already match (to not overwrite already present values)
+  if ( userInput[0].value == usernameValue && passInput[0].value == passwordValue ) {
+    pathInput.value = pathInput.value.substring(0, protoPrefixPos+3) + pathInput.value.substring(authSeparatorPos+1, pathInput.value.length);
+  }
+}
 
 function change_WebColour() {
   $j('#WebSwatch').css(
@@ -516,6 +577,10 @@ function ModelId_onchange(ModelId_select) {
 
 function Model_onchange(input) {
   select_by_value_case_insensitive(input.form.elements['newMonitor[ModelId]'], input.value);
+}
+
+function updateLinkedMonitorsUI() {
+  expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

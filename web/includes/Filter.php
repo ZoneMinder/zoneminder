@@ -666,6 +666,39 @@ class Filter extends ZM_Object {
     }
     return $this;
   }
+  function Events() {
+    $events = array();
+    if (!$this->test_pre_sql_conditions()) {
+      ZM\Debug('Pre conditions failed, not doing sql');
+      return $events;
+    }
+
+    $where = $this->sql() ? ' WHERE ('.$this->sql().')' : '';
+    $sort = $this->sort_field() ? $this->sort_field() .' '.$this->sort_asc() : '';
+
+    $col_str = 'E.*, M.Name AS Monitor';
+    $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort:'');
+    if ($filter->limit() and !count($this->pre_sql_conditions()) and !count($this->post_sql_conditions())) {
+      $sql .= ' LIMIT '.$this->limit();
+    }
+
+    Debug('Calling the following sql query: ' .$sql);
+    $query = dbQuery($sql);
+    if (!$query) return $events;
+
+    while ($row = dbFetchNext($query)) {
+      $event = new ZM\Event($row);
+      $event->remove_from_cache();
+      if (!$this->test_post_sql_conditions($event)) {
+        continue;
+      }
+      $events[] = $event;
+      if ($this->limit() and (count($events) > $this->limit())) {
+        break;
+      }
+    } # end foreach row
+    return $events;
+  } # end Events()
 
 } # end class Filter
 ?>

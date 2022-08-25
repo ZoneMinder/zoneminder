@@ -81,7 +81,7 @@ Options for use with monitors:
   -U, --username <username>               - When running in authenticated mode the username and
   -P, --password <password>               - password combination of the given user
   -A, --auth <authentication>             - Pass authentication hash string instead of user details
-
+  -x, --xtrigger                          - Output the current monitor trigger state, 0 = not triggered, 1 = triggered 
 =cut
 
 */
@@ -137,7 +137,9 @@ void Usage(int status=-1) {
 			"  -U, --username <username>    : When running in authenticated mode the username and\n"
 			"  -P, --password <password>    : password combination of the given user\n"
 			"  -A, --auth <authentication>  : Pass authentication hash string instead of user details\n"
-      "  -T, --token <token>  : Pass JWT token string instead of user details\n"
+                        "  -T, --token <token>  : Pass JWT token string instead of user details\n"
+                        "  -x, --xtrigger       : Output the current monitor trigger state, 0 = not triggered, 1 = triggered\n"
+
 	 "", stderr );
 
   exit(status);
@@ -167,11 +169,12 @@ typedef enum {
 	ZMU_SUSPEND    = 0x00400000,
 	ZMU_RESUME     = 0x00800000,
 	ZMU_LIST       = 0x10000000,
+        ZMU_TRIGGER    = 0x20000000,
 } Function;
 
 bool ValidateAccess(User *user, int mon_id, int function) {
   bool allowed = true;
-  if ( function & (ZMU_STATE|ZMU_IMAGE|ZMU_TIME|ZMU_READ_IDX|ZMU_WRITE_IDX|ZMU_FPS) ) {
+  if ( function & (ZMU_STATE|ZMU_IMAGE|ZMU_TIME|ZMU_READ_IDX|ZMU_WRITE_IDX|ZMU_FPS|ZMU_TRIGGER) ) {
     if ( user->getStream() < User::PERM_VIEW )
       allowed = false;
   }
@@ -246,6 +249,7 @@ int main(int argc, char *argv[]) {
     {"version", 1, nullptr, 'V'},
     {"help", 0, nullptr, 'h'},
     {"list", 0, nullptr, 'l'},
+    {"xtrigger", 0, nullptr, 'x'},
     {nullptr, 0, nullptr, 0}
   };
 
@@ -278,7 +282,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsEDLurweix::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
     if (c == -1) {
       break;
     }
@@ -296,6 +300,9 @@ int main(int argc, char *argv[]) {
         break;
       case 's':
         function |= ZMU_STATE;
+        break;
+      case 'x':
+        function |= ZMU_TRIGGER;
         break;
       case 'i':
         function |= ZMU_IMAGE;
@@ -520,6 +527,15 @@ int main(int argc, char *argv[]) {
         printf("Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"));
       } else {
         printf("%d", state);
+        have_output = true;
+      }
+    }
+    if ( function & ZMU_TRIGGER ) {
+      int trgstate = monitor->GetTriggerState();
+      if ( verbose ) {
+        printf("Current Triggered state: %s\n", trgstate==0?"Not Triggered":(trgstate==1?"Triggered":"NA"));
+      } else {
+        printf("%d", trgstate);
         have_output = true;
       }
     }
@@ -750,33 +766,35 @@ int main(int argc, char *argv[]) {
       exit_zmu(-1);
 #endif // ZM_HAS_V4L2
     }
+  } // end if monitor id or not
 
-    if ( function & ZMU_LIST ) {
-      std::string sql = "SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors`";
-      if (!verbose) {
-        sql += " WHERE `Capturing` != 'None'";
-      }
-      sql += " ORDER BY Id ASC";
+  if (function & ZMU_LIST) {
+    std::string sql = "SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors`";
+    if (!verbose) {
+      sql += " WHERE `Capturing` != 'None'";
+    }
+    sql += " ORDER BY Id ASC";
 
-      MYSQL_RES *result = zmDbFetch(sql);
-      if (!result) {
-        exit_zmu(-1);
-      }
-      Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(mysql_num_rows(result)));
+    MYSQL_RES *result = zmDbFetch(sql);
+    if (!result) {
+      exit_zmu(-1);
+    }
+    Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(mysql_num_rows(result)));
 
-      printf("%4s %9s %9s %9s %5s %8s %13s %5s %5s %9s %9s\n",
-          "Id", "Capturing", "Analysing", "Recording", "State", "TrgState",
-          "LastImageTime", "RdIdx", "WrIdx", "LastEvent", "FrameRate");
-      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-        int monitor_id = atoi(dbrow[0]);
+    printf("%4s %9s %9s %9s %5s %8s %13s %5s %5s %9s %9s\n",
+        "Id", "Capturing", "Analysing", "Recording", "State", "TrgState",
+        "LastImageTime", "RdIdx", "WrIdx", "LastEvent", "FrameRate");
+    for (int i=0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+      int monitor_id = atoi(dbrow[0]);
+      if (mon_id and (monitor_id != mon_id)) continue;
+      if (!user || user->canAccess(monitor_id)) {
         int monitor_capturing = atoi(dbrow[1]);
-        if ( !user || user->canAccess(monitor_id) ) {
-          if (monitor_capturing > Monitor::CAPTURING_NONE) {
-            std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-            if ( monitor && monitor->connect() ) {
-              SystemTimePoint timestamp = monitor->GetTimestamp();
+        if (monitor_capturing > Monitor::CAPTURING_NONE) {
+          std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
+          if (monitor && monitor->connect()) {
+            SystemTimePoint timestamp = monitor->GetTimestamp();
 
-              printf("%4d %9d %9d %9d %5d %8d %13.2f %5d %5d %9" PRIu64 "%10.2f\n",
+            printf("%4d %9d %9d %9d %5d %8d %13.2f %5d %5d %9" PRIu64 "%10.2f\n",
                 monitor->Id(),
                 monitor->Capturing(),
                 monitor->Analysing(),
@@ -788,11 +806,11 @@ int main(int argc, char *argv[]) {
                 monitor->GetLastWriteIndex(),
                 monitor->GetLastEventId(),
                 monitor->GetFPS()
-              );
-            }
-          } else {
-            printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
-              mon_id,
+                );
+          }
+        } else {
+          printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
+              monitor_id,
               function,
               0,
               0,
@@ -801,13 +819,12 @@ int main(int argc, char *argv[]) {
               0,
               0,
               0.0
-            );
-          } // end if function filter
-        } // endif !user || canAccess(mon_id)
-      } // end foreach row
-      mysql_free_result(result);
-    } // end if function && ZMU_LIST
-  } // end if monitor id or not
+              );
+        } // end if function filter
+      } // endif !user || canAccess(mon_id)
+    } // end foreach row
+    mysql_free_result(result);
+  } // end if function && ZMU_LIST
   delete user;
 
   exit_zmu(0);

@@ -25,24 +25,24 @@
 
 global $user;
 ?>
-var AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
-var navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
-var currentView = '<?php echo $view ?>';
+const AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
+const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
+const currentView = '<?php echo $view ?>';
 
-var exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
-var exportFailedString = '<?php echo translate('ExportFailed') ?>';
-var exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
-var cancelString = '<?php echo translate('Cancel') ?>';
+const exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
+const exportFailedString = '<?php echo translate('ExportFailed') ?>';
+const exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
+const cancelString = '<?php echo translate('Cancel') ?>';
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,
    try to avoid using PHP_SELF but here I try to replace everything after '.php'. */ ?>
-var thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
-var skinPath = '<?php echo ZM_SKIN_PATH ?>';
-var serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
+const thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
+const skinPath = '<?php echo ZM_SKIN_PATH ?>';
+const serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
 
-var canView = {};
-var canEdit = {};
+const canView = {};
+const canEdit = {};
 <?php
 $perms = array('Stream', 'Events', 'Control', 'Monitors', 'Groups', 'Snapshots', 'System', 'Devices');
 foreach ( $perms as $perm ) {
@@ -53,8 +53,8 @@ foreach ( $perms as $perm ) {
 }
 ?>
 
-var ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
-var SCALE_BASE = <?php echo SCALE_BASE ?>;
+const ANIMATE_THUMBS = <?php echo ZM_WEB_ANIMATE_THUMBS?'true':'false' ?>;
+const SCALE_BASE = <?php echo SCALE_BASE ?>;
 
 var refreshParent = <?php
 if ( ! empty($refreshParent) ) {
@@ -80,7 +80,7 @@ if ( ( ! empty($closePopup) ) and ( $closePopup == true ) ) {
 
 var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
-var imagePrefix = "<?php echo '?view=image&eid=' ?>";
+const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 
 var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 var auth_relay = '<?php echo get_auth_relay() ?>';
@@ -121,7 +121,7 @@ const CMD_QUERY = <?php echo CMD_QUERY ?>;
 const CMD_QUIT = <?php echo CMD_QUIT ?>;
 const CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;
 
-var stateStrings = new Array();
+const stateStrings = new Array();
 stateStrings[STATE_UNKNOWN] = "<?php echo translate('Unknown') ?>";
 stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
 stateStrings[STATE_PREALARM] = "<?php echo translate('Prealarm') ?>";

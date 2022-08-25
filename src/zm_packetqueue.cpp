@@ -334,6 +334,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     ++it;
   } // end while
 
+
   Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d, Keyframe interval %d",
       ( *it == add_packet ),
       ( next_front == pktQueue.begin() ),

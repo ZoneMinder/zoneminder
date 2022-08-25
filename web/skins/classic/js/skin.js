@@ -1005,7 +1005,7 @@ function closeFullscreen() {
 }
 
 function toggle_password_visibility(element) {
-  input = document.getElementById(element.getAttribute('data-password-input'));
+  const input = document.getElementById(element.getAttribute('data-password-input'));
   if (!input) {
     console.log("Input not found! " + element.getAttribute('data-password-input'));
     return;

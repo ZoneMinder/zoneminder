@@ -22,7 +22,13 @@ input[name="newMonitor[ONVIF_Password]"],
 input[name="newMonitor[ONVIF_Options]"],
 input[name="newMonitor[MQTT_Subscriptions]"] {
   width: 100%;
+	min-width: 240px;
 }
+input[name="newMonitor[ONVIF_URL]"] {
+	min-width: 340px;
+}
+input[name="newMonitor[ONVIF_Username]"],
+input[name="newMonitor[ONVIF_Password]"],
 input[name="newMonitor[LabelFormat]"]{
 	min-width: 240px;
 }

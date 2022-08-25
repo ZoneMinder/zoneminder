@@ -573,7 +573,10 @@ switch ($name) {
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('Password') ?></td>
-              <td><input type="text" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/></td>
+              <td>
+                <input type="password" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
+                <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[ONVIF_Password]">visibility</span>
+              </td>
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('ONVIF_Options') ?></td>
@@ -684,13 +687,22 @@ include('_monitor_source_nvsocket.php');
         </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('Password') ?></td>
-          <td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td>
+          <td>
+            <input type="password" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+            <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
+          </td>
         </tr>
 <?php
       } else if ( $monitor->Type() == 'Remote' ) {
 ?>
           <tr><td class="text-right pr-3"><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/></td></tr>
-          <tr><td class="text-right pr-3"><?php echo 'Password' ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo 'Password' ?></td>
+            <td>
+              <input type="password" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
+            </td>
+          </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('RemoteProtocol') ?></td>
             <td><?php echo htmlSelect('newMonitor[Protocol]', $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?></td>
@@ -724,7 +736,13 @@ include('_monitor_source_nvsocket.php');
 ?>
           <tr><td class="text-right pr-3"><?php echo 'URL' ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/></td></tr>
           <tr><td class="text-right pr-3"><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/></td></tr>
-          <tr><td class="text-right pr-3"><?php echo 'Password' ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo 'Password' ?></td>
+            <td>
+              <input type="password" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
+            </td>
+          </tr>
 <?php
       } elseif ( $monitor->Type() == 'WebSite' ) {
 ?>
@@ -752,7 +770,13 @@ include('_monitor_source_nvsocket.php');
             <td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" /></td>
           </tr>
           <tr><td class="text-right pr-3"><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/></td></tr>
-          <tr><td class="text-right pr-3"><?php echo 'Password' ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo 'Password' ?></td>
+            <td>
+              <input type="password" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
+            </td>
+          </tr>
           <tr>
             <td class="text-right pr-3">
               <?php echo translate('RemoteMethod'); echo makeHelpLink('OPTIONS_RTSPTrans') ?></td>

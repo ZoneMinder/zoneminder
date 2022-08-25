@@ -773,13 +773,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
 
       Image *send_image = prepareImage(image);
-      if (temp_img_buffer_size < send_image->Size()) {
-        Debug(1, "Resizing image buffer from %zu to %u",
-            temp_img_buffer_size, send_image->Size());
-        delete[] temp_img_buffer;
-        temp_img_buffer = new uint8_t[send_image->Size()];
-        temp_img_buffer_size = send_image->Size();
-      }
+      reserveTempImgBuffer(send_image->Size());
       int img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 

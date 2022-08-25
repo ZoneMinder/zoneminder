@@ -368,7 +368,7 @@ function change_Path(event) {
   // check the formatting of the url
   var authSeparatorPos = pathInput.value.indexOf( '@', protoPrefixPos+3 );
   if ( authSeparatorPos == -1 ) {
-    console.warn('ignoring URL incorrectly formatted, missing "@"');
+    console.log('ignoring URL without "@"');
     return;
   }
 

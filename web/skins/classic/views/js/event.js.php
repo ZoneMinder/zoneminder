@@ -1,4 +1,6 @@
 <?php
+  ini_set('display_errors', '0');
+  global $dateTimeFormatter;
   global $connkey;
   global $Event;
   global $monitor;
@@ -10,28 +12,6 @@
   global $streamMode;
   global $popup;
 ?>
-//
-// Import constants
-//
-var CMD_NONE = <?php echo CMD_NONE ?>;
-var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
-var CMD_PLAY = <?php echo CMD_PLAY ?>;
-var CMD_VARPLAY = <?php echo CMD_VARPLAY ?>;
-var CMD_STOP = <?php echo CMD_STOP ?>;
-var CMD_FASTFWD = <?php echo CMD_FASTFWD ?>;
-var CMD_SLOWFWD = <?php echo CMD_SLOWFWD ?>;
-var CMD_SLOWREV = <?php echo CMD_SLOWREV ?>;
-var CMD_FASTREV = <?php echo CMD_FASTREV ?>;
-var CMD_ZOOMIN = <?php echo CMD_ZOOMIN ?>;
-var CMD_ZOOMOUT = <?php echo CMD_ZOOMOUT ?>;
-var CMD_PAN = <?php echo CMD_PAN ?>;
-var CMD_SCALE = <?php echo CMD_SCALE ?>;
-var CMD_PREV = <?php echo CMD_PREV ?>;
-var CMD_NEXT = <?php echo CMD_NEXT ?>;
-var CMD_SEEK = <?php echo CMD_SEEK ?>;
-var CMD_QUERY = <?php echo CMD_QUERY ?>;
-
-var SCALE_BASE = <?php echo SCALE_BASE ?>;
 
 //
 // PHP variables to JS
@@ -50,9 +30,9 @@ var eventData = {
     Height: '<?php echo $Event->Height() ?>',
     Length: '<?php echo $Event->Length() ?>',
     StartDateTime: '<?php echo $Event->StartDateTime() ?>',
-    StartDateTimeShort: '<?php echo strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->StartDateTime())) ?>',
+    StartDateTimeFormatted: '<?php echo $dateTimeFormatter->format(strtotime($Event->StartDateTime())) ?>',
     EndDateTime: '<?php echo $Event->EndDateTime() ?>',
-    EndDateTimeShort: '<?php echo $Event->EndDateTime()? strftime(STRF_FMT_DATETIME_SHORT, strtotime($Event->EndDateTime())) : '' ?>',
+    EndDateTimeFormatted: '<?php echo $Event->EndDateTime()? $dateTimeFormatter->format(strtotime($Event->EndDateTime())) : '' ?>',
     Frames: '<?php echo $Event->Frames() ?>',
     AlarmFrames: '<?php echo $Event->AlarmFrames() ?>',
     TotScore: '<?php echo $Event->TotScore() ?>',
@@ -75,8 +55,8 @@ var eventDataStrings = {
     MonitorName: '<?php echo translate('AttrMonitorName') ?>',
     Cause: '<?php echo translate('Cause') ?>',
     Notes: '<?php echo translate('Notes') ?>',
-    StartDateTimeShort: '<?php echo translate('AttrStartTime') ?>',
-    EndDateTimeShort: '<?php echo translate('AttrEndTime') ?>',
+    StartDateTimeFormatted: '<?php echo translate('AttrStartTime') ?>',
+    EndDateTimeFormatted: '<?php echo translate('AttrEndTime') ?>',
     Length: '<?php echo translate('Duration') ?>',
     Frames: '<?php echo translate('AttrFrames') ?>',
     AlarmFrames: '<?php echo translate('AttrAlarmFrames') ?>',

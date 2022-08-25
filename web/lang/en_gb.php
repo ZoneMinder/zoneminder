@@ -52,28 +52,6 @@
 // Example
 // header( "Content-Type: text/html; charset=iso-8859-1" );
 
-// You may need to change your locale here if your default one is incorrect for the
-// language described in this file, or if you have multiple languages supported.
-// If you do need to change your locale, be aware that the format of this function
-// is subtlely different in versions of PHP before and after 4.3.0, see
-// http://uk2.php.net/manual/en/function.setlocale.php for details.
-// Also be aware that changing the whole locale may affect some floating point or decimal
-// arithmetic in the database, if this is the case change only the individual locale areas
-// that don't affect this rather than all at once. See the examples below.
-// Finally, depending on your setup, PHP may not enjoy have multiple locales in a shared
-// threaded environment, if you get funny errors it may be this.
-//
-// Examples
-// setlocale( 'LC_ALL', 'en_GB' ); All locale settings pre-4.3.0
-// setlocale( LC_ALL, 'en_GB' ); All locale settings 4.3.0 and after
-// setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
-// setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
-
-setlocale( LC_TIME, 'en_GB.utf8' );
-define("DATE_FMT_CONSOLE_LONG", "%a %d %b, %Hh%M");
-define( "STRF_FMT_DATETIME_SHORT", "%d/%m/%y %H:%M:%S" );
-define( "STRF_FMT_DATETIME_SHORTER", "%x %H:%M:%S" );
-
 // Simple String Replacements
 $SLANG = array(
     'SystemLog'             => 'System Log',
@@ -893,11 +871,15 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
       no events will be created.
       '
   ),
-  'FUNCTION_DECODING_ENABLED' => array(
+  'FUNCTION_DECODING' => array(
     'Help' => '
       When not performing motion detection and using H264Passthrough with no jpegs being saved, we can
-      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
-      but will make live view unavailable for this monitor.'
+      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use.~~~~
+Always: every frame will be decoded, live view and thumbnails will be available.~~~~
+OnDemand: only do decoding when someone is watching.~~~~
+KeyFrames: Only keyframes will be decoded, so viewing frame rate will be very low, depending on the keyframe interval set in the camera.~~~~
+None: No frames will be decoded, live view and thumbnails will not be available~~~~
+'
   ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '
@@ -908,6 +890,16 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
     'Help' => '
       Attempt to enable audio in the Janus stream. Has no effect for cameras without audio support,
       but can prevent a stream playing if your camera sends an audio format unsupported by the browser.'
+  ),
+  'FUNCTION_JANUS_PROFILE_OVERRIDE' => array(
+    'Help' => '
+      Manually set a Profile-ID, which can force a browser to try to play a given stream. Try "42e01f"
+      for a universally supported value, or leave this blank to use the Profile-ID specified by the source.'
+  ),
+  'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
+    'Help' => '
+      If your camera will not work under Janus with any other options, enable this to use the ZoneMinder
+      RTSP restream as the Janus source.'
   ),
   'ImageBufferCount' => array(
     'Help' => '

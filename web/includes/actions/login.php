@@ -88,7 +88,7 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
   $password = $_REQUEST['password'];
 
   ZM\Info("Login successful for user \"$username\"");
-  $password_type = password_type($password);
+  $password_type = password_type($user['Password']);
 
   if ( $password_type == 'mysql' or $password_type == 'mysql+bcrypt' ) {
     ZM\Info('Migrating password, if possible for future logins');

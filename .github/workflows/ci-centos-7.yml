@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   build:
     strategy:
@@ -19,21 +23,15 @@ jobs:
           - crypto_backend: gnutls
             jwt_backend: libjwt
     runs-on: ubuntu-latest
-    container: centos:7
+    container: ghcr.io/dougnazar/centos7-gcc8-zm:latest
 
     steps:
-      - name: Enable RPMFusion and EPEL
-        run: yum -y install https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-      - name: Install git
-        run: yum -y install https://repo.ius.io/ius-release-el7.rpm && yum -y install git224
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Install dependencies
-        run: yum -y update && yum -y install make cmake3 gcc-c++ mariadb-devel ffmpeg-devel libcurl-devel vlc-devel libvncserver-devel libjpeg-turbo-devel "perl(Date::Manip)" "perl(DBD::mysql)" "perl(ExtUtils::MakeMaker)" "perl(Sys::Mmap)" "perl(Sys::Syslog)" "perl(LWP::UserAgent)" polkit-devel libjwt-devel
       - name: Prepare
         run: mkdir build
       - name: Configure
-        run: cd build && cmake3 --version && cmake3 .. -DBUILD_MAN=0 -DENABLE_WERROR=1 -DZM_CRYPTO_BACKEND=${{ matrix.crypto_backend }} -DZM_JWT_BACKEND=${{ matrix.jwt_backend }}
+        run: source /usr/bin/scl_source enable devtoolset-8 && cd build && cmake3 --version && cmake3 .. -DBUILD_MAN=0 -DENABLE_WERROR=1 -DZM_CRYPTO_BACKEND=${{ matrix.crypto_backend }} -DZM_JWT_BACKEND=${{ matrix.jwt_backend }}
       - name: Build
-        run: cd build && make -j3 | grep --line-buffered -Ev '^(cp lib\/|Installing.+\.pm)' && (exit ${PIPESTATUS[0]})
+        run: source /usr/bin/scl_source enable devtoolset-8 && cd build && make -j3 | grep --line-buffered -Ev '^(cp lib\/|Installing.+\.pm)' && (exit ${PIPESTATUS[0]})

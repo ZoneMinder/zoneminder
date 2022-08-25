@@ -30,7 +30,7 @@ class ZMLockedPacket;
 typedef std::list<std::shared_ptr<ZMPacket>>::iterator packetqueue_iterator;
 
 class PacketQueue {
-  public: // For now just to ease development
+  private: // For now just to ease development
     std::list<std::shared_ptr<ZMPacket>>    pktQueue;
     std::list<std::shared_ptr<ZMPacket>>::iterator analysis_it;
 
@@ -46,6 +46,9 @@ class PacketQueue {
 
     std::mutex mutex;
     std::condition_variable condition;
+    int warned_count;
+    bool has_out_of_order_packets_;
+    int max_keyframe_interval_;
 
   public:
     PacketQueue();
@@ -59,10 +62,14 @@ class PacketQueue {
     void setKeepKeyframes(bool k) { keep_keyframes = k; };
 
     bool queuePacket(std::shared_ptr<ZMPacket> packet);
+    void stop();
+    bool stopping() const { return deleting; };
     void clear();
     void dumpQueue();
     unsigned int size();
     unsigned int get_packet_count(int stream_id) const { return packet_counts[stream_id]; };
+    bool has_out_of_order_packets() const { return has_out_of_order_packets_; };
+    int get_max_keyframe_interval() const { return max_keyframe_interval_; };
 
     void clearPackets(const std::shared_ptr<ZMPacket> &packet);
     int packet_count(int stream_id);

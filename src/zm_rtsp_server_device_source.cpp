@@ -141,7 +141,7 @@ int ZoneMinderDeviceSource::getNextFrame() {
     m_packetqueue_it = m_packetqueue->get_video_it(true);
   }
   ZMPacket *zm_packet = m_packetqueue->get_packet(m_packetqueue_it);
-  while ( zm_packet and (zm_packet->packet.stream_index != m_stream->index) ) {
+  while ( zm_packet and (zm_packet->packet->stream_index != m_stream->index) ) {
     zm_packet->unlock();
     // We want our stream to start at the same it as the video
     // but if this is an audio stream we need to increment past that first packet

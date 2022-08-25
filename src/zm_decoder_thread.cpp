@@ -10,7 +10,6 @@ DecoderThread::DecoderThread(Monitor *monitor) :
 
 DecoderThread::~DecoderThread() {
   Stop();
-  if (thread_.joinable()) thread_.join();
 }
 
 void DecoderThread::Start() {
@@ -18,10 +17,23 @@ void DecoderThread::Start() {
   terminate_ = false;
   thread_ = std::thread(&DecoderThread::Run, this);
 }
+
+void DecoderThread::Stop() {
+  terminate_ = true;
+  if (thread_.joinable()) thread_.join();
+}
+
 void DecoderThread::Run() {
   Debug(2, "DecoderThread::Run() for %d", monitor_->Id());
 
   while (!(terminate_ or zm_terminate)) {
-    monitor_->Decode();
+    if (!monitor_->Decode()) {
+      if (!(terminate_ or zm_terminate)) {
+        // We only sleep when Decode returns false because it is an error condition and we will spin like mad if it persists.
+        Microseconds sleep_for = monitor_->Active() ? Microseconds(ZM_SAMPLE_RATE) : Microseconds(ZM_SUSPENDED_RATE);
+        Debug(2, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+      }
+    }
   }
 }

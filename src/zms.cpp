@@ -272,13 +272,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamTTL(ttl);
     stream.setStreamQueue(connkey);
     stream.setStreamBuffer(playback_buffer);
-    if ( !stream.setStreamStart(monitor_id) ) {
-      fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
-      stream.sendTextFrame("Unable to connect to monitor");
-      logTerm();
-      zmDbClose();
-      return -1;
-    }
+    stream.setStreamStart(monitor_id);
     stream.setStreamFrameType(analysis_frames ? StreamBase::FRAME_ANALYSIS: StreamBase::FRAME_NORMAL);
 
     if ( mode == ZMS_JPEG ) {
@@ -331,8 +325,8 @@ int main(int argc, const char *argv[], char **envp) {
 
   Debug(1, "Terminating");
   Image::Deinitialise();
-  logTerm();
   dbQueue.stop();
+  logTerm();
   zmDbClose();
 
   return 0;

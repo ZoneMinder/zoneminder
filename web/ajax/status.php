@@ -1,4 +1,5 @@
 <?php
+
 if ( $_REQUEST['entity'] == 'navBar' ) {
   global $bandwidth_options, $user;
   $data = array();
@@ -109,11 +110,16 @@ $statusData = array(
       'Cause' => true,
       'Notes' => true,
       'StartDateTime' => true,
+      'StartDateTimeFormatted' => array('postFunction'=>function($row){
+        global $dateTimeFormatter;
+        return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
+      }),
       # Left for backwards compatability. Remove in 1.37
-      'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
-      'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
-      'EndDateTimeShort' => array( 'sql' => 'date_format( EndDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'EndDateTimeFormatted' => array('postFunction'=>function($row){
+        global $dateTimeFormatter;
+        return $dateTimeFormatter->format(strtotime($row['EndDateTime']));
+      }),
       'Width' => true,
       'Height' => true,
       'Length' => true,
@@ -138,11 +144,16 @@ $statusData = array(
       'DiskSpace' => true,
       'Storage' => array('sql' => '(SELECT Storage.Name FROM Storage WHERE Storage.Id=Events.StorageId)'),
       'StartDateTime' => true,
+      'StartDateTimeFormatted' => array('postFunction'=>function($row){
+        global $dateTimeFormatter;
+        return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
+      }),
       # Left for backwards compatability. Remove in 1.37
-      'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
-      'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
-      'EndDateTimeShort' => array( 'sql' => 'date_format( EndDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
+      'EndDateTimeFormatted' => array('postFunction'=>function($row){
+        global $dateTimeFormatter;
+        return $dateTimeFormatter->format(strtotime($row['EndDateTime']));
+      }),
       'Width' => true,
       'Height' => true,
       'Length' => true,
@@ -220,6 +231,7 @@ function collectData() {
   } else {
     $data = array();
     $postFuncs = array();
+    $postFunctions = array();
 
     $fieldSql = array();
     $joinSql = array();
@@ -256,6 +268,8 @@ function collectData() {
         $data[$element] = eval('return( '.$elementData['func'].' );');
       else if ( isset($elementData['postFunc']) )
         $postFuncs[$element] = $elementData['postFunc'];
+      else if ( isset($elementData['postFunction']) )
+        $postFunctions[$element] = $elementData['postFunction'];
       else if ( isset($elementData['zmu']) )
         $data[$element] = exec(escapeshellcmd(getZmuCommand(' '.$elementData['zmu'])));
       else {
@@ -325,10 +339,12 @@ function collectData() {
         $limit_offset = validInt($_REQUEST['offset']) . ', ';
       if ( !empty($limit) )
         $sql .= ' limit '.$limit_offset.$limit;
-      if ( isset($limit) && $limit == 1 ) {
+      if ( isset($limit) && ($limit == 1) ) {
         if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
           foreach ( $postFuncs as $element=>$func )
             $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
+          foreach ( $postFunctions as $element=>$function )
+            $sqlData[$element] = $function($sqlData);
           $data = array_merge($data, $sqlData);
         }
       } else {
@@ -336,6 +352,8 @@ function collectData() {
         foreach ( dbFetchAll($sql, NULL, $values) as $sqlData ) {
           foreach ( $postFuncs as $element=>$func )
             $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
+          foreach ( $postFunctions as $element=>$function )
+            $sqlData[$element] = $function($sqlData);
           $data[] = $sqlData;
           if ( isset($limit) && ++$count >= $limit )
             break;
@@ -343,8 +361,12 @@ function collectData() {
       } # end if have limit == 1
     }
   }
-  #ZM\Debug(print_r($data, true));
+  ZM\Debug(print_r($data, true));
   return $data;
+}
+
+function formatDateTime($dt) {
+  return $dateTimeFormatter->format(strtotime($dt));
 }
 
 $data = collectData();

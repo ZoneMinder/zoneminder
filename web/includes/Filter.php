@@ -311,33 +311,21 @@ class Filter extends ZM_Object {
   }
 
   public function test_pre_sql_conditions() {
-    if ( !count($this->pre_sql_conditions()) ) {
-      return true;
-    } # end if pre_sql_conditions
-
-    $failed = false;
-    foreach ( $this->pre_sql_conditions() as $term ) {
-      if ( !$term->test() ) {
-        $failed = true;
-        break;
+    if (count($this->pre_sql_conditions())) {
+      foreach ($this->pre_sql_conditions() as $term) {
+        if (!$term->test()) return false;
       }
-    }
-    return $failed;
+    } # end if pre_sql_conditions
+    return true;
   }
 
   public function test_post_sql_conditions($event) {
-    if ( !count($this->post_sql_conditions()) ) {
-      return true;
-    } # end if pre_sql_conditions
-
-    $failed = true;
-    foreach ( $this->post_sql_conditions() as $term ) {
-      if ( !$term->test($event) ) {
-        $failed = false;
-        break;
+    if (count($this->post_sql_conditions())) {
+      foreach ($this->post_sql_conditions() as $term) {
+        if (!$term->test($event)) return false;
       }
-    }
-    return $failed;
+    } # end if pre_sql_conditions
+    return true;
   }
 
   function tree() {
@@ -588,17 +576,17 @@ class Filter extends ZM_Object {
           case 'EndDateTime':
           case 'StartDateTime':
             if ( $value_upper != 'NULL' )
-              $value = "'".strftime(STRF_FMT_DATETIME_DB, strtotime($value))."'";
+              $value = "'".date(STRF_FMT_DATETIME_DB, strtotime($value))."'";
             break;
           case 'Date':
           case 'EndDate':
           case 'StartDate':
-            $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
             break;
           case 'Time':
           case 'EndTime':
           case 'StartTime':
-            $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
             break;
           default :
             if ( $value_upper != 'NULL' )
@@ -678,6 +666,39 @@ class Filter extends ZM_Object {
     }
     return $this;
   }
+  function Events() {
+    $events = array();
+    if (!$this->test_pre_sql_conditions()) {
+      ZM\Debug('Pre conditions failed, not doing sql');
+      return $events;
+    }
+
+    $where = $this->sql() ? ' WHERE ('.$this->sql().')' : '';
+    $sort = $this->sort_field() ? $this->sort_field() .' '.$this->sort_asc() : '';
+
+    $col_str = 'E.*, M.Name AS Monitor';
+    $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort:'');
+    if ($filter->limit() and !count($this->pre_sql_conditions()) and !count($this->post_sql_conditions())) {
+      $sql .= ' LIMIT '.$this->limit();
+    }
+
+    Debug('Calling the following sql query: ' .$sql);
+    $query = dbQuery($sql);
+    if (!$query) return $events;
+
+    while ($row = dbFetchNext($query)) {
+      $event = new ZM\Event($row);
+      $event->remove_from_cache();
+      if (!$this->test_post_sql_conditions($event)) {
+        continue;
+      }
+      $events[] = $event;
+      if ($this->limit() and (count($events) > $this->limit())) {
+        break;
+      }
+    } # end foreach row
+    return $events;
+  } # end Events()
 
 } # end class Filter
 ?>

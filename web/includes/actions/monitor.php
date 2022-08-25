@@ -91,6 +91,7 @@ if ($action == 'save') {
       'DecodingEnabled' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
+      'Janus_Use_RTSP_Restream' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,
       'V4LMultiBuffer'  => '',
@@ -109,7 +110,7 @@ if ($action == 'save') {
     }
   } # end foreach type
 
-  if ($newMonitor['ServerId'] == 'auto') {
+  if (isset($newMonitor['ServerId']) and ($newMonitor['ServerId'] == 'auto')) {
     $newMonitor['ServerId'] = dbFetchOne(
       'SELECT Id FROM Servers WHERE Status=\'Running\' ORDER BY FreeMem DESC, CpuLoad ASC LIMIT 1', 'Id');
     ZM\Debug('Auto selecting server: Got ' . $newMonitor['ServerId']);

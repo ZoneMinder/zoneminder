@@ -18,27 +18,37 @@
 //
 
 #include "zm_monitor.h"
+#include <regex>
 
+std::string escape_json_string( std::string input );
 
-Monitor::JanusManager::JanusManager(Monitor *parent_) { //constructor takes care of init and calls add_to
-  parent = parent_;
+Monitor::JanusManager::JanusManager(Monitor *parent_) :
+  parent(parent_),
+  Janus_Healthy(false)
+{
+  //constructor takes care of init and calls add_to
+  //parent = parent_;
+  Use_RTSP_Restream = parent->janus_use_rtsp_restream;
+  profile_override = parent->janus_profile_override;
   if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
-    janus_endpoint = config.janus_path; //TODO: strip trailing /
+    janus_endpoint = config.janus_path;
+    //remove the trailing slash if present
+    if (janus_endpoint.back() == '/') janus_endpoint.pop_back();
   } else {
     janus_endpoint = "127.0.0.1:8088/janus";
   }
-  if (janus_endpoint.back() == '/') janus_endpoint.pop_back(); //remove the trailing slash if present
-  std::size_t at_pos = parent->path.find("@", 7);
-  if (at_pos != std::string::npos) { //If we find an @ symbol, we have a username/password. Otherwise, passwordless login.
-    std::size_t colon_pos = parent->path.find(":", 7); //Search for the colon, but only after the RTSP:// text.
-    if (colon_pos == std::string::npos) throw std::runtime_error("Cannot Parse URL for Janus."); //Looks like an invalid url
-    rtsp_username = parent->path.substr(7, colon_pos-7);
-    rtsp_password = parent->path.substr(colon_pos+1, at_pos - colon_pos - 1);
-    rtsp_path = "RTSP://";
-    rtsp_path += parent->path.substr(at_pos + 1);
+
+  rtsp_username = "";
+  rtsp_password = "";
+  if( parent->user.length() > 0 ) {
+    rtsp_username = escape_json_string(parent->user);
+    rtsp_password = escape_json_string(parent->pass);
+  }
+
+  if (Use_RTSP_Restream) {
+    int restream_port = config.min_rtsp_port;
+    rtsp_path = "rtsp://127.0.0.1:" + std::to_string(restream_port) + "/" + parent->rtsp_streamname;
   } else {
-    rtsp_username = "";
-    rtsp_password = "";
     rtsp_path = parent->path;
   }
 }
@@ -99,7 +109,7 @@ int Monitor::JanusManager::check_janus() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) { //may mean an error code thrown by Janus, because of a bad session
-    Warning("Attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("Attempted to send %s to %s and got %s", postData.c_str(), endpoint.c_str(), curl_easy_strerror(res));
     janus_session = "";
     janus_handle = "";
     return -1;
@@ -142,7 +152,11 @@ int Monitor::JanusManager::add_to_janus() {
   postData += "\", \"type\" : \"rtsp\", \"rtsp_quirk\" : true, ";
   postData += "\"url\" : \"";
   postData += rtsp_path;
-  if (rtsp_username != "") {
+  if (profile_override[0] != '\0') {
+    postData += "\", \"videofmtp\" : \"";
+    postData += profile_override;
+  }
+  if (rtsp_username.length() > 0) {
     postData += "\", \"rtsp_user\" : \"";
     postData += rtsp_username;
     postData += "\", \"rtsp_pwd\" : \"";
@@ -157,12 +171,12 @@ int Monitor::JanusManager::add_to_janus() {
   CURLcode res;
   std::string response;
 
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   res = curl_easy_perform(curl);
-    curl_easy_cleanup(curl);
+  curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
     Error("Failed to curl_easy_perform adding rtsp stream");
@@ -188,8 +202,8 @@ int Monitor::JanusManager::add_to_janus() {
 
 size_t Monitor::JanusManager::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
-    return size * nmemb;
+  ((std::string*)userp)->append((char*)contents, size * nmemb);
+  return size * nmemb;
 }
 
 /*
@@ -212,11 +226,10 @@ void Monitor::JanusManager::generateKey()
 }
 */
 
-
 int Monitor::JanusManager::get_janus_session() {
   janus_session = "";
   curl = curl_easy_init();
-  if(!curl) return -1;
+  if (!curl) return -1;
 
   std::string endpoint = janus_endpoint;
   std::string response;
@@ -245,15 +258,14 @@ int Monitor::JanusManager::get_janus_session() {
 
 int Monitor::JanusManager::get_janus_handle() {
   curl = curl_easy_init();
-  if(!curl) return -1;
-
+  if (!curl) return -1;
 
   CURLcode res;
   std::string response = "";
 
   std::string endpoint = janus_endpoint+"/"+janus_session;
   std::string postData = "{\"janus\" : \"attach\", \"plugin\" : \"janus.plugin.streaming\", \"transaction\" : \"randomString\"}";
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
@@ -272,3 +284,15 @@ int Monitor::JanusManager::get_janus_handle() {
   janus_handle = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_handle
+
+std::string escape_json_string( std::string input ) {
+  std::string tmp;
+  tmp = regex_replace(input, std::regex("\n"), "\\n");
+  tmp = regex_replace(tmp,   std::regex("\b"), "\\b");
+  tmp = regex_replace(tmp,   std::regex("\f"), "\\f");
+  tmp = regex_replace(tmp,   std::regex("\r"), "\\r");
+  tmp = regex_replace(tmp,   std::regex("\t"), "\\t");
+  tmp = regex_replace(tmp,   std::regex("\""), "\\\"");
+  tmp = regex_replace(tmp,   std::regex("[\\\\]"), "\\\\");
+  return tmp;
+}

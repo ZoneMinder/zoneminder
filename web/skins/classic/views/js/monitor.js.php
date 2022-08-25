@@ -39,8 +39,16 @@ rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;
 function validateForm( form ) {
   var errors = new Array();
   var warnings = new Array();
+  const elements = form.elements;
 
-  if ( form.elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
+  // No monitor input should have whitespace at beginning or end, so strip them out first.
+  for (var i=0; i<elements.length; i++) {
+    if (elements[i].nodeName != 'SELECT') {
+      elements[i].value = elements[i].value.trim();
+    }
+  }
+
+  if ( elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
     errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
   else if ( monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
@@ -71,6 +79,13 @@ function validateForm( form ) {
     } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }
+/*
+ * Alternate way of testing for bad urls
+    let url = new URL(form.elements['newMonitor[Path]'].value);
+    if (url.href != form.elements['newMonitor[Path]'].value) {
+      warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
+    }
+*/
 
   } else if ( form.elements['newMonitor[Type]'].value == 'File' ) {
     if ( !form.elements['newMonitor[Path]'].value )
@@ -156,7 +171,7 @@ function validateForm( form ) {
     return false;
   }
 
-  if ( (form.elements['newMonitor[Recording]'].value == 'None') ) {
+  if ( (form.elements['newMonitor[Recording]'].value != 'None') ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";
     }
@@ -204,3 +219,6 @@ function updateMethods(element) {
   }
   return true;
 }
+var monitors = <?php global $monitors; echo isset($monitors) ? json_encode($monitors) : '{}' ?>;
+var sorted_monitor_ids = <?php echo isset($monitors) ? json_encode(array_keys($monitors)) : '[]' ?>;
+var zones = <?php global $zones; echo isset($zones) ? json_encode($zones) : '{}' ?>;

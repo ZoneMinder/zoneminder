@@ -74,6 +74,11 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+
+    const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
+    date.setSeconds(row.Length);
+    row.Length = date.toISOString().substr(11, 8);
+
     if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
   });
 
@@ -115,26 +120,46 @@ function manageDelConfirmModalBtns() {
       enoperm();
       return;
     }
-
-    var selections = getIdSelections();
-
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
-        .done( function(data) {
-          $j('#eventTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
-        })
-        .fail( function(jqxhr) {
-          logAjaxFail(jqxhr);
-          $j('#eventTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
-        });
+
+    const selections = getIdSelections();
+    if (!selections.length) {
+      alert('Please select events to delete.');
+    } else {
+      deleteEvents(selections);
+    }
   });
 
   // Manage the CANCEL modal button
   document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
     $j('#deleteConfirm').modal('hide');
   });
+}
+
+function deleteEvents(event_ids) {
+  const ticker = document.getElementById('deleteProgressTicker');
+  const chunk = event_ids.splice(0, 10);
+  console.log("Deleting " + chunk.length + " selections.  " + event_ids.length);
+
+  $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+chunk.join('&eids[]='))
+      .done( function(data) {
+        if (!event_ids.length) {
+          $j('#eventTable').bootstrapTable('refresh');
+          $j('#deleteConfirm').modal('hide');
+        } else {
+          if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+            ticker.innerHTML = '.';
+          } else {
+            ticker.innerHTML = ticker.innerHTML + '.';
+          }
+          deleteEvents(event_ids);
+        }
+      })
+      .fail( function(jqxhr) {
+        logAjaxFail(jqxhr);
+        $j('#eventTable').bootstrapTable('refresh');
+        $j('#deleteConfirm').modal('hide');
+      });
 }
 
 function getEventDetailModal(eid) {

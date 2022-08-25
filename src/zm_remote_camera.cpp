@@ -45,7 +45,7 @@ RemoteCamera::RemoteCamera(
     host( p_host ),
     port( p_port ),
     path( p_path ),
-    hp( 0 ),
+    hp( nullptr ),
     mNeedAuth(false),
     mAuthenticator(nullptr)
 {
@@ -58,10 +58,7 @@ RemoteCamera::~RemoteCamera() {
     freeaddrinfo(hp);
     hp = nullptr;
   }
-	if (mAuthenticator) {
-		delete mAuthenticator;
-		mAuthenticator = nullptr;
-	}
+	delete mAuthenticator;
 }
 
 void RemoteCamera::Initialise() {
@@ -89,7 +86,7 @@ void RemoteCamera::Initialise() {
   }
 
   mNeedAuth = false;
-	mAuthenticator = new zm::Authenticator(username,password);
+	mAuthenticator = new zm::Authenticator(username, password);
 
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(hints));

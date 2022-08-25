@@ -178,6 +178,10 @@ height: 100%;
     height: 300px;
 }
 
+#videoFeed img {
+  width: 100%;
+}
+
 #eventThumbs img {
     height: 25px; /* HACK - Although this is pixels it will be interpreted as a scale %ge, so 25px = 25% scaling for thumbnails */
     margin: 2px;
@@ -276,4 +280,11 @@ svg.zones {
 #videoobj {
   width: 100%;
   height: 100%;
+}
+#downloadBtn {
+  line-height: 1;
+  font-size: 18px;
+}
+#toggleZonesButton span.material-icons {
+  font-size: 18px;
 }

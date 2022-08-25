@@ -30,17 +30,39 @@
 #include <sys/shm.h>
 #endif // ZM_MEM_MAPPED
 
-Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
-  id(p_id),
+Monitor::MonitorLink::MonitorLink(std::shared_ptr<Monitor>p_monitor, unsigned int p_zone_id) :
+  monitor(p_monitor),
+  zone_id(p_zone_id),
+  zone(nullptr),
+  zone_index(-1),
   shared_data(nullptr),
   trigger_data(nullptr),
-  video_store_data(nullptr)
+  video_store_data(nullptr),
+  zone_scores(nullptr)
 {
-  strncpy(name, p_name, sizeof(name)-1);
+  name = monitor->Name();
+  if (zone_id) {
+    zones = Zone::Load(monitor);
+
+    int zone_i = 0;
+    for (const Zone &z : zones) {
+      if (z.Id() == zone_id) {
+        zone = &z;
+        zone_index = zone_i;
+        break;
+      }
+      ++zone_i;
+    }
+    if (zone_index == -1) {
+      Error("Unable to find zone %u", zone_id);
+      zone_index = -1;
+    }
+  }
+  if (zone) name += " : " + zone->Name();
 
 #if ZM_MEM_MAPPED
   map_fd = -1;
-  mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
+  mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), monitor->Id());
 #else // ZM_MEM_MAPPED
   shm_id = 0;
 #endif // ZM_MEM_MAPPED
@@ -55,6 +77,7 @@ Monitor::MonitorLink::MonitorLink(unsigned int p_id, const char *p_name) :
 }
 
 Monitor::MonitorLink::~MonitorLink() {
+  zones.clear();
   disconnect();
 }
 
@@ -92,7 +115,7 @@ bool Monitor::MonitorLink::connect() {
       disconnect();
       return false;
     } else if (map_stat.st_size < mem_size) {
-      Error("Got unexpected memory map file size %ld, expected %jd", map_stat.st_size, static_cast<intmax_t>(mem_size));
+      Error("Got unexpected memory map file size %jd, expected %jd", static_cast<intmax_t>(map_stat.st_size), static_cast<intmax_t>(mem_size));
       disconnect();
       return false;
     }
@@ -120,6 +143,7 @@ bool Monitor::MonitorLink::connect() {
 
     shared_data = (SharedData *)mem_ptr;
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
+    zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
 
     if (!shared_data->valid) {
       Debug(3, "Linked memory not initialised by capture daemon");
@@ -133,7 +157,7 @@ bool Monitor::MonitorLink::connect() {
 
     return true;
   }
-  return false;
+  return connected;
 }  // end bool Monitor::MonitorLink::connect()
 
 bool Monitor::MonitorLink::disconnect() {
@@ -190,10 +214,21 @@ bool Monitor::MonitorLink::inAlarm() {
   return( shared_data->state == ALARM || shared_data->state == ALERT );
 }
 
-bool Monitor::MonitorLink::hasAlarmed() {
-  if (shared_data->state == ALARM) {
-    return true;
+int Monitor::MonitorLink::score() {
+  if (zone_id and (zone_index >= 0)) {
+    Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
+    return zone_scores[zone_index];
   }
+  if (shared_data->state == ALARM) {
+    Debug(1, "Checking all zones score is %d", shared_data->last_frame_score);
+    return shared_data->last_frame_score;
+  }
+  Debug(1, "not alarmed. %d", shared_data->state);
+  return 0;
+}
+
+bool Monitor::MonitorLink::hasAlarmed() {
+  return this->score() > 0;
   last_event_id = shared_data->last_event_id;
   return false;
 }

@@ -20,6 +20,7 @@
 #ifndef ZM_STREAM_H
 #define ZM_STREAM_H
 
+#include "zm_box.h"
 #include "zm_logger.h"
 #include "zm_mpeg.h"
 #include "zm_time.h"
@@ -92,6 +93,7 @@ protected:
     CMD_MAXFPS,
     CMD_ANALYZE_ON,
     CMD_ANALYZE_OFF,
+    CMD_ZOOMSTOP,
     CMD_QUERY=99
   } MsgCommand;
 
@@ -107,6 +109,7 @@ protected:
   int last_scale;
   int zoom;
   int last_zoom;
+  Box last_crop;
   int bitrate;
   unsigned short last_x, last_y;
   unsigned short x, y;
@@ -143,6 +146,7 @@ protected:
   VideoStream *vid_stream;
 
   CmdMsg msg;
+  bool got_command = false; // commands like zoom should output a frame even if paused
 
   unsigned char *temp_img_buffer;     // Used when encoding or sending file data
   size_t temp_img_buffer_size;
@@ -152,7 +156,7 @@ protected:
   bool checkInitialised();
   void updateFrameRate(double fps);
   Image *prepareImage(Image *image);
-  bool checkCommandQueue();
+  void checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
 
 public:
@@ -186,6 +190,7 @@ public:
     frame_count(0),
     last_frame_count(0),
     frame_mod(1),
+    got_command(false),
     temp_img_buffer(nullptr),
     temp_img_buffer_size(0)
   {

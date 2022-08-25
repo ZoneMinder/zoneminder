@@ -12,21 +12,25 @@
 }
 
 #menuControls {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
 
 #menuControls div {
-    margin: 0 0 0 1em;
+  margin: 0 0 0 1em;
 }
 
-#imageFeed{
-    text-align: center;
+.monitor {
+  margin: 0 auto;
+}
+.monitorStream {
+  text-align: center;
+  margin: 0 auto;
 }
 
 #monitorStatus {
-    margin: 4px auto;
-    text-align: center;
+  margin: 4px auto;
+  text-align: center;
   display: inline-block;
 }
 
@@ -136,4 +140,13 @@ span.alert {
   display: inline-block;
   min-width: 40px;
   text-align: right;
+}
+.monitorStream img,
+.monitorStream video {
+  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+}
+.bootstrap-table {
+  width: 100%;
 }

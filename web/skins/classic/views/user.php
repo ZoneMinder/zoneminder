@@ -27,7 +27,7 @@ if (!canEdit('System') && !$selfEdit) {
 
 require_once('includes/User.php');
 
-if ( $_REQUEST['uid'] ) {
+if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
 	if ( !($newUser = new ZM\User($_REQUEST['uid'])) ) {
 		$view = 'error';
 		return;
@@ -76,7 +76,7 @@ echo getNavBarHTML();
         <table id="contentTable" class="table">
           <tbody>
 <?php
-if ( canEdit('System') ) {
+if (canEdit('System')) {
 ?>
             <tr>
               <th class="text-right" scope="row"><?php echo translate('Username') ?></th>
@@ -102,7 +102,7 @@ if ( canEdit('System') ) {
               <td><input type="text" name="newUser[HomeView]" value="<?php echo validHtmlStr($newUser->HomeView()); ?>"/></td>
             </tr>
 <?php
-if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
+if (canEdit('System')) {
 ?>
             <tr>
               <th class="text-right" scope="row"><?php echo translate('Enabled') ?></th>
@@ -119,7 +119,7 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
         </table>
       </div><!--end basic information-->
 <?php
-if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
+if (canEdit('System')) {
 ?>
       <div class="Permissions">
         <table id="contentTable" class="table">
@@ -132,10 +132,12 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
               <th class="text-right" scope="row"><?php echo translate('Events') ?></th>
               <td><?php echo htmlSelect('newUser[Events]', $nve, $newUser->Events()) ?></td>
             </tr>
+<?php if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS) { ?>
             <tr>
               <th class="text-right" scope="row"><?php echo translate('Snapshots') ?></th>
               <td><?php echo htmlSelect('newUser[Snapshots]', $nve, $newUser->Snapshots()) ?></td>
             </tr>
+<?php } ?>
             <tr>
               <th class="text-right" scope="row"><?php echo translate('Control') ?></th>
               <td><?php echo htmlSelect('newUser[Control]', $nve, $newUser->Control()) ?></td>
@@ -167,7 +169,7 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
 ?>
               </td>
             </tr>
-<?php if ( ZM_OPT_USE_API ) { ?>
+<?php if (ZM_OPT_USE_API) { ?>
             <tr>
               <th class="text-right" scope="row"><?php echo translate('APIEnabled')?></th>
               <td><?php echo htmlSelect('newUser[APIEnabled]', $yesno, $newUser->APIEnabled()) ?></td>
@@ -176,18 +178,17 @@ if ( canEdit('System') and ( $newUser->Username() != 'admin' ) ) {
 <?php
       } // end if ZM_OPT_USE_API
 ?>
-            
           </tbody>
         </table>
-        </div><!--Permissions-->
+      </div><!--Permissions-->
 <?php
 } // end if canEdit(System)
 ?>
-        <div id="contentButtons">
-          <button type="submit" name="action" value="Save"><?php echo translate('Save') ?></button>
-          <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
-        </div>
-      </form>
-    </div>
+      <div id="contentButtons">
+        <button type="submit" name="action" value="Save"><?php echo translate('Save') ?></button>
+        <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
+      </div>
+    </form>
   </div>
+</div>
 <?php xhtmlFooter() ?>

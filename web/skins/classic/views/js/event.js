@@ -25,11 +25,10 @@ var streamCmdTimer = null;
 var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
-var auth_hash;
 var wasHidden = false;
 
 function streamReq(data) {
-  if ( auth_hash ) data.auth = auth_hash;
+  if (auth_hash) data.auth = auth_hash;
   data.connkey = connKey;
   data.view = 'request';
   data.request = 'stream';
@@ -49,7 +48,7 @@ function vjsReplay() {
       break;
     case 'all':
       if ( nextEventId == 0 ) {
-        var overLaid = $j("#videoobj");
+        const overLaid = $j('#videoobj');
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
       } else {
         if (!eventData.EndDateTime) {
@@ -57,20 +56,26 @@ function vjsReplay() {
           streamNext(true);
           return;
         }
-        var endTime = Date.parse(eventData.EndDateTime).getTime();
-        var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+        const date = Date.parse(eventData.EndDateTime);
+        if (!date) {
+          console.error('Got no date from ', eventData);
+          streamNext(true);
+          return;
+        }
+        const endTime = date.getTime();
+        const nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
         if ( nextStartTime <= endTime ) {
           streamNext(true);
           return;
         }
         vid.pause();
-        var overLaid = $j("#videoobj");
+        const overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-        var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
-        var messageP = $j('.vjsMessage');
-        var x = setInterval(function() {
-          var now = new Date().getTime();
-          var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
+        const gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+        const messageP = $j('.vjsMessage');
+        const x = setInterval(function() {
+          const now = new Date().getTime();
+          const remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
           messageP.html(remainder + ' to next event.');
           if ( remainder < 0 ) {
             clearInterval(x);
@@ -98,7 +103,6 @@ function setAlarmCues(data) {
   } else if (!data.frames) {
     Error('No data.frames in setAlarmCues for event ' + eventData.Id);
   } else {
-    console.log(data);
     cueFrames = data.frames;
     alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
     $j(".alarmCue").html(alarmSpans);
@@ -189,11 +193,11 @@ function changeScale() {
   var newWidth;
   var newHeight;
   var autoScale;
-  var eventViewer= $j(vid ? '#videoobj' : '#videoFeed');
+  var eventViewer = $j(vid ? '#videoobj' : '#videoFeed');
   var alarmCue = $j('div.alarmCue');
   var bottomEl = $j('#replayStatus');
 
-  if ( scale == '0' || scale == 'auto' ) {
+  if (scale == '0') {
     var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
@@ -205,7 +209,7 @@ function changeScale() {
   }
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
-  if ( !vid ) { // zms needs extra sizing
+  if (!vid) { // zms needs extra sizing
     streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();
   }
@@ -314,11 +318,7 @@ function getCmdResponse(respObj, respText) {
   updateProgressBar();
 
   if (streamStatus.auth) {
-    // Try to reload the image stream.
-    var streamImg = document.getElementById('evtStream');
-    if (streamImg) {
-      streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-    }
+    auth_hash = streamStatus.auth;
   } // end if haev a new auth hash
 
   streamCmdTimer = setTimeout(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
@@ -462,6 +462,7 @@ function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
     if (prevEventId != 0) {
+      if (vid==null) streamReq({command: CMD_QUIT});
       location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
       return;
     }
@@ -497,6 +498,7 @@ function streamNext(action) {
   // We used to try to dynamically update all the bits in the page, which is really complex
   // How about we just reload the page?
   //
+  if (vid==null) streamReq({command: CMD_QUIT});
   location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
   return;
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
@@ -561,6 +563,22 @@ function streamZoomIn(x, y) {
     vjsPanZoom('zoom', x, y);
   } else {
     streamReq({command: CMD_ZOOMIN, x: x, y: y});
+  }
+}
+
+function clickZoomOut(event) {
+  if (event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
+    streamZoomStop();
+  } else {
+    streamZoomOut();
+  }
+}
+
+function streamZoomStop() {
+  if (vid) {
+    vjsPanZoom('zoomOut');
+  } else {
+    streamReq({command: CMD_ZOOMSTOP});
   }
 }
 
@@ -736,7 +754,11 @@ function videoEvent() {
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
   var barWidth = $j('#evtStream').width();
-  $j('#progressBar').css('width', barWidth);
+  if (barWidth) {
+    $j('#progressBar').css('width', barWidth);
+  } else {
+    console.log("No bar width: " + barWidth);
+  }
 }
 
 // Shows current stream progress.
@@ -758,21 +780,21 @@ function progressBarNav() {
 }
 
 function handleClick(event) {
-  var target = event.target;
-  var rect = target.getBoundingClientRect();
-  if (vid) {
-    if (target.id != 'videoobj') return; // ignore clicks on control bar
-    var x = event.offsetX;
-    var y = event.offsetY;
-  } else {
-    var x = event.page.x - rect.left;
-    var y = event.page.y - rect.top;
-  }
+  // target should be the img tag
+  const target = $j(event.target);
+  const width = target.width();
+  const height = target.height();
+
+  const scaleX = parseInt(eventData.Width / width);
+  const scaleY = parseInt(eventData.Height / height);
+  const pos = target.offset();
+  const x = parseInt((event.pageX - pos.left) * scaleX);
+  const y = parseInt((event.pageY - pos.top) * scaleY);
 
   if (event.shift || event.shiftKey) { // handle both jquery and mootools
     streamPan(x, y);
-  } else if (vid && event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
-    vjsPanZoom('zoomOut', x, y);
+  } else if (event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
+    streamZoomOut();
   } else {
     streamZoomIn(x, y);
   }
@@ -836,6 +858,11 @@ function getStat() {
       case 'Archived':
       case 'Emailed':
         tdString = eventData[key] ? yesStr : noStr;
+        break;
+      case 'Length':
+        const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
+        date.setSeconds(eventData[key]);
+        tdString = date.toISOString().substr(11, 8);
         break;
       default:
         tdString = eventData[key];
@@ -901,7 +928,7 @@ function initPage() {
     vid.on('volumechange', function() {
       setCookie('volume', vid.volume(), 3600);
     });
-    var cookie = getCookie('volume');
+    const cookie = getCookie('volume');
     if (cookie) vid.volume(cookie);
 
     vid.on('timeupdate', function() {
@@ -909,7 +936,6 @@ function initPage() {
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
-      console.log("rate change " + rate);
       $j('select[name="rate"]').val(rate);
       setCookie('zmEventRate', rate, 3600);
     });
@@ -926,7 +952,7 @@ function initPage() {
       if (!$j('#videoFeed')) {
         console.log('No element with id tag videoFeed found.');
       } else {
-        var streamImg = $j('#videoFeed img');
+        let streamImg = $j('#videoFeed img');
         if (!streamImg) {
           streamImg = $j('#videoFeed object');
         }
@@ -938,7 +964,7 @@ function initPage() {
   } // end if videojs or mjpeg stream
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
-  if (scale == '0' || scale == 'auto') changeScale();
+  if (scale == '0') changeScale();
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
     el.onchange = window['changeRate'];
   });

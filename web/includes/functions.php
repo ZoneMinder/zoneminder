@@ -45,7 +45,7 @@ function CSPHeaders($view, $nonce) {
 
   $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
-    case 'login': {
+    case 'login':
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
@@ -53,42 +53,12 @@ function CSPHeaders($view, $nonce) {
         $additionalScriptSrc .= ' https://www.google.com';
       }
       // fall through
-    }
-    case 'bandwidth':
-    case 'blank':
-    case 'console':
-    case 'controlcap':
-    case 'cycle':
-    case 'donate':
-    case 'download':
-    case 'error':
-    case 'events':
-    case 'export':
-    case 'frame':
-    case 'function':
-    case 'log':
-    case 'logout':
-    case 'optionhelp':
-    case 'options':
-    case 'plugin':
-    case 'postlogin':
-    case 'privacy':
-    case 'server':
-    case 'state':
-    case 'status':
-    case 'storage':
-    case 'version': {
+    default:
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      header("Content-Security-Policy: script-src 'self' 'nonce-$nonce' $additionalScriptSrc");
-      break;
-    }
-    default: {
-      // Use Report-Only mode on all other pages.
-      header("Content-Security-Policy-Report-Only: script-src 'self' 'nonce-$nonce' $additionalScriptSrc;".
-        (ZM_CSP_REPORT_URI ? ' report-uri '.ZM_CSP_REPORT_URI : '' )
+      header("Content-Security-Policy: script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
+        (ZM_CSP_REPORT_URI ? '; report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;
-    }
   }
 }
 
@@ -264,7 +234,10 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
   if ( canStreamIframe() ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
-      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.($width? 'width:'.$width.';' : '' ).($height ? ' height:'. $height.';' : '' ).'" loading="lazy" />';
+      return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
+      #(($width and $width !='auto') ?'width:'.$width.';' : '').
+      (($height and $height != 'auto')?' height:'.$height.';':'').
+      '" />';
   }
 }
 
@@ -295,28 +268,13 @@ function outputControlStream($src, $width, $height, $monitor, $scale, $target) {
 <?php
 }
 
-function outputHelperStream($id, $src, $width, $height, $title='') {
-  echo getHelperStream($id, $src, $width, $height, $title);
-}
-function getHelperStream($id, $src, $width, $height, $title='') {
-    return '<object type="application/x-java-applet" id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
-    archive="'. ZM_PATH_CAMBOZOLA .'"
-    align="middle"
-    width="'. $width .'"
-    height="'. $height .'"
-    title="'. $title .'">
-    <param name="accessories" value="none"/>
-    <param name="url" value="'. $src .'"/>
-    </object>';
-}
-
 function outputImageStill($id, $src, $width, $height, $title='') {
   echo getImageStill($id, $src, $width, $height, $title='');
 }
 function getImageStill($id, $src, $width, $height, $title='') {
   return '<img id="'.$id.'" src="'.$src.'" alt="'.$title.'"'.
     (validInt($width)?' width="'.$width.'"':'').
-    (validInt($height)?' height="'.$height.'"':'').' loading="lazy" />';
+    (validInt($height)?' height="'.$height.'"':'').' />';
 }
 
 function getWebSiteUrl($id, $src, $width, $height, $title='') {
@@ -492,9 +450,12 @@ function htmlOptions($options, $values) {
     } else {
       $text = $option;
     }
-    $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
-    if ( !$has_selected ) 
-      $has_selected = $selected;
+    $selected = false;
+    if ($values) {
+      $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
+      if ( !$has_selected ) 
+        $has_selected = $selected;
+    }
 
     $options_html .= '<option value="'.htmlspecialchars($value, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"'.
       ($selected?' selected="selected"':'').
@@ -678,7 +639,8 @@ function getBrowser(&$browser, &$version) {
     ) {
       $version = $logVersion[1];
       $browser = 'ie';
-    } else if ( preg_match('/Chrome\/([0-9.]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
+    } else if ( preg_match('/Chrome\/([0-9]+)/', $_SERVER['HTTP_USER_AGENT'], $logVersion) ) {
+      // We only care about the major so don't count .
       $version = $logVersion[1];
       // Check for old version of Chrome with bug 5876
       if ( $version < 7 ) {
@@ -762,16 +724,8 @@ function canStreamNative() {
   return ( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
 }
 
-function canStreamApplet() {
-  if ( (ZM_OPT_CAMBOZOLA && !file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) ) {
-    ZM\Warning('ZM_OPT_CAMBOZOLA is enabled, but the system cannot find '.ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA);
-  }
-
-  return (ZM_OPT_CAMBOZOLA && file_exists(ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA));
-}
-
 function canStream() {
-  return canStreamNative() | canStreamApplet();
+  return canStreamNative();
 }
 
 function packageControl($command) {
@@ -922,7 +876,7 @@ function reScale($dimension, $dummy) {
   $new_dimension = $dimension;
   for ( $i = 1; $i < func_num_args(); $i++ ) {
     $scale = func_get_arg($i);
-    if ( !empty($scale) && ($scale != '0') && ($scale != 'auto') && ($scale != SCALE_BASE) )
+    if ( !empty($scale) && ($scale != '0') && ($scale != 'auto') && ($scale != 'fixed') && ($scale != SCALE_BASE) )
       $new_dimension = (int)(($new_dimension*$scale)/SCALE_BASE);
   }
   return $new_dimension;
@@ -1899,7 +1853,8 @@ define('HTTP_STATUS_BAD_REQUEST', 400);
 define('HTTP_STATUS_FORBIDDEN', 403);
 
 function ajaxError($message, $code=HTTP_STATUS_OK) {
-  ZM\Error($message);
+  $backTrace = debug_backtrace();
+  ZM\Error($message.' from '.print_r($backTrace,true));
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
@@ -2003,16 +1958,19 @@ function validNum( $input ) {
 
 // For general strings
 function validStr($input) {
+  if (is_null($input)) return '';
   return strip_tags($input);
 }
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
 function validJsStr($input) {
+  if (is_null($input)) return '';
   return strip_tags(addslashes($input));
 }
 
 // For general text in pages outside of tags or quotes so quotes converted to entities
 function validHtmlStr($input) {
+  if (is_null($input)) return '';
   return htmlspecialchars($input, ENT_QUOTES);
 }
 
@@ -2022,103 +1980,7 @@ function validHtmlStr($input) {
  * Same width height.  If both are set we should calculate the smaller resulting scale
  */
 function getStreamHTML($monitor, $options = array()) {
-
-  if ( isset($options['scale']) and $options['scale'] != '' ) {
-    if ( $options['scale'] != 'auto' && $options['scale'] != '0' ) {
-      #ZM\Warning('Setting dimensions from scale:'.$options['scale']);
-      $options['width'] = reScale($monitor->ViewWidth(), $options['scale']).'px';
-      $options['height'] = reScale($monitor->ViewHeight(), $options['scale']).'px';
-    } else if ( ! ( isset($options['width']) or isset($options['height']) ) ) {
-      $options['width'] = '100%';
-      $options['height'] = 'auto';
-    }
-  } else {
-    $options['scale'] = 100;
-    # scale is empty or 100
-    # There may be a fixed width applied though, in which case we need to leave the height empty
-    if ( ! ( isset($options['width']) and $options['width'] ) ) {
-      # Havn't specified width.  If we specified height, then we should
-      # use a width that keeps the aspect ratio, otherwise no scaling, 
-      # no dimensions, so assume the dimensions of the Monitor
-
-      if ( ! (isset($options['height']) and $options['height']) ) {
-        # If we havn't specified any scale or dimensions, then we must be using CSS to scale it in a dynamic way. Can't make any assumptions.
-        #$options['width'] = $monitor->ViewWidth().'px';
-        #$options['height'] = $monitor->ViewHeight().'px';
-      }
-    } else {
-      #ZM\Warning("Have width ".$options['width']);
-      if ( preg_match('/^(\d+)px$/', $options['width'], $matches) ) {
-        $scale = intval(100*$matches[1]/$monitor->ViewWidth());
-        #ZM\Warning("Scale is $scale");
-        if ( $scale < $options['scale'] )
-          $options['scale'] = $scale;
-      } else if ( preg_match('/^(\d+)%$/', $options['width'], $matches) ) {
-        $scale = intval($matches[1]);
-        if ( $scale < $options['scale'] )
-          $options['scale'] = $scale;
-      } else {
-        ZM\Warning('Invalid value for width: '.$options['width']);
-      }
-    }
-  }
-  if ( ! isset($options['mode'] ) ) {
-    $options['mode'] = 'stream';
-  }
-  if ( ! isset($options['width'] ) )
-    $options['width'] = 0;
-  if ( ! isset($options['height'] ) )
-    $options['height'] = 0;
-
-  if (!isset($options['maxfps'])) {
-    $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
-  }
-  if ( $monitor->StreamReplayBuffer() )
-    $options['buffer'] = $monitor->StreamReplayBuffer();
-  //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
-
-  if ( $monitor->Type() == 'WebSite' ) {
-    return getWebSiteUrl(
-      'liveStream'.$monitor->Id(), $monitor->Path(),
-      ( isset($options['width']) ? $options['width'] : NULL ),
-      ( isset($options['height']) ? $options['height'] : NULL ),
-      $monitor->Name()
-    );
-  //FIXME, the width and height of the image need to be scaled.
-  } else if ( ZM_WEB_STREAM_METHOD == 'mpeg' && ZM_MPEG_LIVE_FORMAT ) {
-    $streamSrc = $monitor->getStreamSrc( array(
-      'mode'   => 'mpeg',
-      'scale'  => (isset($options['scale'])?$options['scale']:100),
-      'bitrate'=> ZM_WEB_VIDEO_BITRATE,
-      'maxfps' => ZM_WEB_VIDEO_MAXFPS,
-      'format' => ZM_MPEG_LIVE_FORMAT
-    ) );
-    return getVideoStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $monitor->Name() );
-  } else if ( $monitor->JanusEnabled() ) {
-    return '<video id="liveStream'.$monitor->Id().'" width="'.$options['width'].'"autoplay muted controls playsinline="" ></video>';
-  } else if ( $options['mode'] == 'stream' and canStream() ) {
-    $options['mode'] = 'jpeg';
-    $streamSrc = $monitor->getStreamSrc($options);
-
-    if ( canStreamNative() )
-      return getImageStreamHTML( 'liveStream'.$monitor->Id(), $streamSrc, $options['width'], $options['height'], $monitor->Name());
-    elseif ( canStreamApplet() )
-      // Helper, empty widths and heights really don't work.
-      return getHelperStream( 'liveStream'.$monitor->Id(), $streamSrc,
-          $options['width'] ? $options['width'] : $monitor->ViewWidth(),
-          $options['height'] ? $options['height'] : $monitor->ViewHeight(),
-          $monitor->Name());
-  } else {
-    if ( $options['mode'] == 'stream' ) {
-      ZM\Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
-    }
-    $options['mode'] = 'single';
-    $streamSrc = $monitor->getStreamSrc($options);
-    return getImageStill('liveStream'.$monitor->Id(), $streamSrc,
-      (isset($options['width']) ? $options['width'] : null),
-      (isset($options['height']) ? $options['height'] : null),
-      $monitor->Name());
-  }
+  return $monitor->getStreamHTML($options);
 } // end function getStreamHTML
 
 function getStreamMode( ) {
@@ -2143,6 +2005,9 @@ function folder_size($dir) {
 } // end function folder_size
 
 function human_filesize($size, $precision = 2) {
+  if ($size === null) {
+    return 'null';
+  }
   $units = array('B ','kB','MB','GB','TB','PB','EB','ZB','YB');
   $step = 1024;
   $i = 0;
@@ -2478,6 +2343,25 @@ function get_subnets($interface) {
     } # end foreach line of output
   }
   return $subnets;
+}
+
+function extract_auth_values_from_url($url): array {
+  $protocolPrefixPos = strpos($url, '://');
+  if( $protocolPrefixPos === false )
+    return array();
+
+  $authSeparatorPos = strpos($url, '@', $protocolPrefixPos+3);
+  if( $authSeparatorPos === false )
+    return array();
+
+  $fieldsSeparatorPos = strpos($url, ':', $protocolPrefixPos+3);
+  if( $fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos )
+    return array();
+
+  $username = substr( $url, $protocolPrefixPos+3, $fieldsSeparatorPos-($protocolPrefixPos+3) );
+  $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
+
+  return array( $username, $password );
 }
 
 ?>

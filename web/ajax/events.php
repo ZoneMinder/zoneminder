@@ -1,4 +1,5 @@
 <?php
+ini_set('display_errors', '');
 $message = '';
 $data = array();
 
@@ -56,13 +57,6 @@ if (isset($_REQUEST['order'])) {
 $sort = $filter->sort_field();
 if (isset($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
-  if ($sort == 'EndDateTime') {
-    if ($order == 'ASC') {
-      $sort = 'EndDateTime IS NULL, EndDateTime';
-    } else {
-      $sort = 'EndDateTime IS NOT NULL, EndDateTime';
-    }
-  }
 }
 
 // Offset specifies the starting row to return, used for pagination
@@ -107,7 +101,12 @@ switch ($task) {
 			ajaxError('Insufficient permissions for user '.$user['Username']);
 			return;
 		}
-    foreach ($eids as $eid) $data[] = deleteRequest($eid);
+    foreach ($eids as $eid) {
+      $message = deleteRequest($eid);
+      if (count($message)) {
+        $data[] = $message;
+      }
+    }
     break;
   case 'query' :
     $data = queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit);
@@ -147,15 +146,15 @@ function deleteRequest($eid) {
 }
 
 function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit) {
+  global $dateTimeFormatter;
   $data = array(
     'total'   =>  0,
     'totalNotFiltered' => 0,
     'rows'    =>  array(),
-    'updated' =>  preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG)
+    'updated' =>  $dateTimeFormatter->format(time())
   );
 
-  $failed = !$filter->test_pre_sql_conditions();
-  if ($failed) {
+  if (!$filter->test_pre_sql_conditions()) {
     ZM\Debug('Pre conditions failed, not doing sql');
     return $data;
   }
@@ -176,6 +175,12 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       $sort = '';
     } else if ( $sort == 'Monitor' ) {
       $sort = 'M.Name';
+    } else if ($sort == 'EndDateTime') {
+      if ($order == 'ASC') {
+        $sort = 'E.EndDateTime IS NULL, E.EndDateTime';
+      } else {
+        $sort = 'E.EndDateTime IS NOT NULL, E.EndDateTime';
+      }
     } else {
       $sort = 'E.'.$sort;
     }
@@ -187,7 +192,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $col_str = 'E.*, M.Name AS Monitor';
   $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
-  if ($filter->limit() and !count($filter->pre_sql_conditions()) and !count($filter->post_sql_conditions())) {
+  if ($filter->limit() and !count($filter->post_sql_conditions())) {
     $sql .= ' LIMIT '.$filter->limit();
   }
 
@@ -280,9 +285,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     $row['Cause'] = validHtmlStr($row['Cause']);
-    $row['StartDateTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartDateTime']));
-    $row['EndDateTime'] = $row['EndDateTime'] ? strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['EndDateTime'])) : null;
-    $row['Length'] = gmdate('H:i:s', $row['Length'] );
+    $row['StartDateTime'] = $dateTimeFormatter->format(strtotime($row['StartDateTime']));
+    $row['EndDateTime'] = $row['EndDateTime'] ? $dateTimeFormatter->format(strtotime($row['EndDateTime'])) : null;
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
     $row['Notes'] = nl2br(htmlspecialchars($row['Notes']));
     $row['DiskSpace'] = human_filesize($event->DiskSpace());

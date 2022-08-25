@@ -39,10 +39,10 @@ if (!$monitor->canView()) {
 }
 
 zm_session_start();
-if (isset($_REQUEST['rate']) ) {
+if (isset($_REQUEST['rate'])) {
   $rate = validInt($_REQUEST['rate']);
 } else if (isset($_COOKIE['zmEventRate'])) {
-  $rate = $_COOKIE['zmEventRate'];
+  $rate = validInt($_COOKIE['zmEventRate']);
 } else {
   $rate = reScale(RATE_BASE, $monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
 }
@@ -57,6 +57,9 @@ if (isset($_REQUEST['scale'])) {
   $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
 } else {
   $scale = $monitor->DefaultScale();
+}
+if (!validInt($scale) and $scale != '0') {
+  $scale = '0';
 }
 
 $showZones = false;
@@ -170,6 +173,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         <button id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
         <button id="framesBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Frames') ?>" ><i class="fa fa-picture-o"></i></button>
         <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
+        <a href="?view=montagereview&live=0&current=<?php echo urlencode($Event->StartDateTime()) ?>" class="btn btn-normal" title="<?php echo translate('Montage Review') ?>"><i class="material-icons md-18">grid_view</i></a>
 <?php
   if (canView('System')) { ?>
     <button id="toggleZonesButton" class="btn btn-<?php echo $showZones?'normal':'secondary'?>" title="<?php echo translate(($showZones?'Hide':'Show').' Zones')?>" ><span class="material-icons"><?php echo $showZones?'layers_clear':'layers'?></span</button>
@@ -235,14 +239,14 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 } else {
   $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
   if ( canStreamNative() ) {
-    outputImageStream('evtStream', $streamSrc, '100%', '100%', validHtmlStr($Event->Name()));
+    outputImageStream('evtStream', $streamSrc, '100%', 'auto', validHtmlStr($Event->Name()));
   } else {
     outputHelperStream('evtStream', $streamSrc, '100%', '100%');
   }
 } // end if stream method
 ?>
         <div id="alarmCue" class="alarmCue"></div>
-        <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
+        <div id="progressBar" style="width: 100%;">
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->
 <?php
@@ -279,7 +283,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
           <i class="material-icons md-18">fast_forward</i>
           </button>
-          <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="streamZoomOut">
+          <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
           <i class="material-icons md-18">zoom_out</i>
           </button>
           <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
@@ -293,7 +297,6 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   #rates are defined in skins/classic/includes/config.php
   echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
-<!--<span id="rateValue"><?php echo $rate/100 ?></span>x</span>-->
           <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>

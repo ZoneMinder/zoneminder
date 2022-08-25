@@ -51,8 +51,9 @@ ZoneMinderFifoSource::~ZoneMinderFifoSource() {
 // thread mainloop
 void ZoneMinderFifoSource::ReadRun() {
   if (stop_) Warning("bad value for stop_ in ReadRun");
-	while (!stop_) {
+	while (!stop_ and !zm_terminate) {
 		if (getNextFrame() < 0) {
+      if (!stop_ and !zm_terminate) return;
       Debug(1, "Sleeping because couldn't getNextFrame");
       sleep(1);
     }
@@ -214,7 +215,7 @@ int ZoneMinderFifoSource::getNextFrame() {
       return 0;
     }
     if (header_start != m_buffer) {
-      Debug(4, "ZM Packet didn't start at beginning of buffer %ld. %c%c",
+      Debug(4, "ZM Packet didn't start at beginning of buffer %td. %c%c",
             header_start - m_buffer.head(), m_buffer[0], m_buffer[1]);
     }
 

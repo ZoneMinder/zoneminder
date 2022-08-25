@@ -75,7 +75,7 @@
 
 .consoleTable .colMark {
     width: 32px;
-    text-align: left;
+    text-align: center;
 }
 
 .consoleTable .colEvents {

@@ -11,7 +11,6 @@ AnalysisThread::AnalysisThread(Monitor *monitor) :
 
 AnalysisThread::~AnalysisThread() {
   Stop();
-  if (thread_.joinable()) thread_.join();
 }
 
 void AnalysisThread::Start() {
@@ -19,6 +18,11 @@ void AnalysisThread::Start() {
   terminate_ = false;
   Debug(3, "Starting analysis thread");
   thread_ = std::thread(&AnalysisThread::Run, this);
+}
+
+void AnalysisThread::Stop() {
+  terminate_ = true;
+  if (thread_.joinable()) thread_.join();
 }
 
 void AnalysisThread::Run() {

@@ -116,7 +116,7 @@ if ( canView('Events') or canView('Snapshots') ) {
       false,#Misc
       $exportFormat,
       false#,#Compress
-      #$exportStructure
+      , $exportStructure
     ) ) {
     ajaxResponse(array(
       'exportFile'=>$exportFile,

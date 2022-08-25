@@ -1,7 +1,3 @@
-var streamCmdTimer = null;
-var streamStatus;
-var alarmState = STATE_IDLE;
-var lastAlarmState = STATE_IDLE;
 var backBtn = $j('#backBtn');
 var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
@@ -9,10 +5,6 @@ var forceAlmBtn = $j('#forceAlmBtn');
 var table = $j('#eventList');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
-var server;
-var janus = null;
-var opaqueId;
-var streaming2;
 /*
 This is the format of the json object sent by bootstrap-table
 
@@ -102,34 +94,11 @@ function changeSize() {
   var width = $j('#width').val();
   var height = $j('#height').val();
 
-  // Scale the frame
-  monitor_frame = $j('#imageFeed');
-  if (!monitor_frame) {
-    console.log('Error finding frame');
-    return;
-  }
-  if (width) monitor_frame.css('width', width);
-  if (height) monitor_frame.css('height', height);
-
-  var streamImg = document.getElementById('liveStream'+monitorData[monIdx].id);
-  if (streamImg) {
-    if (streamImg.nodeName == 'IMG') {
-      let src = streamImg.src;
-      streamImg.src = '';
-      src = src.replace(/width=[\.\d]+/i, 'width='+parseInt(width));
-      src = src.replace(/height=[\.\d]+/i, 'height='+parseInt(height));
-      src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-      streamImg.src = src;
-    }
-    streamImg.style.width = width ? width : null;
-    streamImg.style.height = height ? height : null;
-  } else {
-    console.log('Did not find liveStream'+monitorData[monIdx].id);
-  }
-  $j('#scale').val('');
-  setCookie('zmCycleScale', '', 3600);
-  setCookie('zmCycleWidth', width, 3600);
-  setCookie('zmCycleHeight', height, 3600);
+  monitorStream.setScale('0', width, height);
+  $j('#scale').val('0');
+  setCookie('zmWatchScale', '0', 3600);
+  setCookie('zmWatchWidth', width, 3600);
+  setCookie('zmWatchHeight', height, 3600);
 } // end function changeSize()
 
 function changeScale() {
@@ -138,59 +107,30 @@ function changeScale() {
   $j('#width').val('auto');
   $j('#height').val('auto');
   setCookie('zmCycleScale', scale, 3600);
-  setCookie('zmCycleWidth', 'auto', 3600);
-  setCookie('zmCycleHeight', 'auto', 3600);
+  setCookie('zmWatchWidth', 'auto', 3600);
+  setCookie('zmWatchHeight', 'auto', 3600);
 
-  var newWidth;
-  var newHeight;
-  var autoScale;
-
-  var streamImg = $j('#liveStream'+monitorId);
-  if (!streamImg.length) {
-    console.error('No element found for liveStream'+monitorId);
-  }
-
+  setScale();
+}
+// Implement current scale, as opposed to changing it
+function setScale() {
+  var scale = $j('#scale').val();
+  monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-  if (scale == '0' || scale == 'auto') {
-    const newSize = scaleToFit(monitorWidth, monitorHeight, streamImg, $j('#dvrControls'));
-    newWidth = newSize.width;
-    newHeight = newSize.height;
-    autoScale = newSize.autoScale;
+  if (scale == '0') {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
-  } else {
-    newWidth = monitorWidth * scale / SCALE_BASE;
-    newHeight = monitorHeight * scale / SCALE_BASE;
-  }
-
-  if (streamImg.prop('nodeName') == 'IMG') {
-    const oldSrc = streamImg.attr('src');
-    streamImg.attr('src', '');
-    // This is so that we don't waste bandwidth and let the browser do all the scaling.
-    if (autoScale > 100) autoScale = 100;
-    if (scale > 100) scale = 100;
-    const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+((scale == 'auto' || scale == '0') ? autoScale : scale));
-
-    streamImg.css('width', newWidth+'px');
-    streamImg.width(newWidth);
-    streamImg.css('height', newHeight+'px');
-    streamImg.height(newHeight);
-    streamImg.attr('src', newSrc);
-  } else {
-    console.log("Not an IMG, can't set size");
   }
 } // end function changeScale
 
 function getStreamCmdResponse(respObj, respText) {
   watchdogOk('stream');
-  if (streamCmdTimer) {
-    streamCmdTimer = clearTimeout(streamCmdTimer);
-  }
+  streamCmdTimer = clearTimeout(streamCmdTimer);
   if (respObj.result == 'Ok') {
     // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
     if (respObj.status) {
-      streamStatus = respObj.status;
+      const streamStatus = respObj.status;
       if ($j('#viewingFPSValue').text() != streamStatus.fps) {
         $j('#viewingFPSValue').text(streamStatus.fps);
       }
@@ -288,6 +228,7 @@ function getStreamCmdResponse(respObj, respText) {
           if (oldSrc) {
             const newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
             if (oldSrc != newSrc) {
+              streamImg.attr('src', ''); // Required or chrome doesn't stop the stream
               streamImg.attr('src', newSrc);
               table.bootstrapTable('refresh');
             }
@@ -323,12 +264,14 @@ function onPause() {
     setButtonState('fastRevBtn', 'inactive');
   }
 }
+
 function streamCmdPause(action) {
   onPause();
   if (action) {
     monitorStream.streamCommand(CMD_PAUSE);
   }
 }
+
 function onPlay() {
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'active');
@@ -463,9 +406,7 @@ function streamCmdPan(x, y) {
 /* getStatusCmd is used when not streaming, since there is no persistent zms */
 function getStatusCmdResponse(respObj, respText) {
   watchdogOk('status');
-  if (statusCmdTimer) {
-    statusCmdTimer = clearTimeout(statusCmdTimer);
-  }
+  statusCmdTimer = clearTimeout(statusCmdTimer);
 
   if (respObj.result == 'Ok') {
     $j('#captureFPSValue').text(respObj.monitor.FrameRate);
@@ -549,8 +490,6 @@ function controlCmd(event) {
   if (event.type !='mouseup') {
     control = button.getAttribute('value');
   } else {
-    console.log('stop');
-    console.log(event);
     control = 'moveStop';
   }
   xtell = button.getAttribute('data-xtell');
@@ -617,16 +556,15 @@ function fetchImage(streamImage) {
 
 function handleClick(event) {
   // target should be the img tag
-  var target = $j(event.target);
-  console.log("click " + showMode);
-  var width = target.width();
-  var height = target.height();
+  const target = $j(event.target);
+  const width = target.width();
+  const height = target.height();
 
-  var scaleX = parseInt(monitorWidth / width);
-  var scaleY = parseInt(monitorHeight / height);
-  var pos = target.offset();
-  var x = parseInt((event.pageX - pos.left) * scaleX);
-  var y = parseInt((event.pageY - pos.top) * scaleY);
+  const scaleX = parseInt(monitorWidth / width);
+  const scaleY = parseInt(monitorHeight / height);
+  const pos = target.offset();
+  const x = parseInt((event.pageX - pos.left) * scaleX);
+  const y = parseInt((event.pageY - pos.top) * scaleY);
 
   if (showMode == 'events' || !imageControlMode) {
     if ( event.shift ) {
@@ -638,24 +576,6 @@ function handleClick(event) {
     }
   } else {
     controlCmdImage(x, y);
-  }
-}
-
-function appletRefresh() {
-  if (streamStatus && (!streamStatus.paused && !streamStatus.delayed)) {
-    var streamImg = $j('#liveStream'+monitorId);
-    if (streamImg) {
-      var parent = streamImg.parent();
-      streamImg.remove();
-      streamImg.append(parent);
-    } else {
-      console.error("Nothing found for liveStream"+monitorId);
-    }
-    if (appletRefreshTime) {
-      setTimeout(appletRefresh, appletRefreshTime*1000);
-    }
-  } else {
-    setTimeout(appletRefresh, 15*1000); // if we are paused or delayed check every 15 seconds if we are live yet...
   }
 }
 
@@ -783,17 +703,6 @@ function manageDelConfirmModalBtns() {
   });
 }
 
-function msieVer() {
-  var ua = window.navigator.userAgent;
-  var msie = ua.indexOf("MSIE ");
-
-  if (msie >= 0) { // If Internet Explorer, return version number
-    return msie;
-  } else { // If another browser, return 0
-    return 0;
-  }
-}
-
 function refresh_events_table() {
   table.bootstrapTable('refresh');
 }
@@ -818,10 +727,11 @@ function initPage() {
 
   if (monitorType != 'WebSite') {
     monitorStream = new MonitorStream(monitorData[monIdx]);
+    monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
-    monitorStream.setScale('auto');
-    monitorStream.start(Math.round( (Math.random()+0.5)*statusRefreshTimeout ));
+    monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
+    monitorStream.start();
     if (streamMode == 'single') {
       monitorStream.setup_onclick(fetchImage);
     } else {
@@ -851,7 +761,7 @@ function initPage() {
       streamCmdTimer = setTimeout(streamCmdQuery, 200);
       setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
     }
-    if (canStreamNative || (streamMode == 'single')) {
+    if (canStream || (streamMode == 'single')) {
       var streamImg = $j('#imageFeed img');
       if (!streamImg) streamImg = $j('#imageFeed object');
       if (!streamImg) {
@@ -872,10 +782,6 @@ function initPage() {
         }
       } // end if have streamImg
     } // streamMode native or single
-
-    if (refreshApplet && appletRefreshTime) {
-      setTimeout(appletRefresh, appletRefreshTime*1000);
-    }
     */
     if (window.history.length == 1) {
       $j('#closeControl').html('');
@@ -883,7 +789,6 @@ function initPage() {
     document.querySelectorAll('select[name="scale"]').forEach(function(el) {
       el.onchange = window['changeScale'];
     });
-    changeScale();
     document.querySelectorAll('select[name="changeRate"]').forEach(function(el) {
       el.onchange = window['changeRate'].bind(el, el);
     });
@@ -966,15 +871,14 @@ var secondsToCycle = 0;
 function nextCycleView() {
   secondsToCycle --;
   if (secondsToCycle<=0) {
-    clearInterval(intervalId);
-    secondsToCycle = 0;
-    window.location.replace('?view=watch&mid='+nextMid+'&mode='+mode+'&cycle=true');
+    cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);
 }
 
 function cyclePause() {
   clearInterval(intervalId);
+  cycle = false;
   $j('#cyclePauseBtn').hide();
   $j('#cyclePlayBtn').show();
 }
@@ -982,6 +886,7 @@ function cyclePause() {
 function cycleStart() {
   secondsToCycle = $j('#cyclePeriod').val();
   intervalId = setInterval(nextCycleView, 1000);
+  cycle = true;
   $j('#cyclePauseBtn').show();
   $j('#cyclePlayBtn').hide();
 }
@@ -995,7 +900,8 @@ function cycleNext() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
-  window.location.replace('?view=watch&cycle=true&mid='+monitorData[monIdx].id+'&mode='+mode);
+  monitorStream.kill();
+  window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 
 function cyclePrev() {
@@ -1007,7 +913,8 @@ function cyclePrev() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
-  window.location.replace('?view=watch&cycle=true&mid='+monitorData[monIdx].id+'&mode='+mode);
+  monitorStream.stop();
+  window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 
 function cyclePeriodChange() {

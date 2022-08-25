@@ -56,9 +56,12 @@ select.chosen {
 tr td:first-child {
   min-width: 300px;
   vertical-align: top;
+  text-align: right;
 }
-.OutputContainer {
-  display: none;
+
+tr td input[type="checkbox"],
+tr td input[type="radio"] {
+  margin: 6px 0;
 }
 .tab-content,
 .tab-content .active {

@@ -55,7 +55,6 @@ xhtmlHeaders(__FILE__, translate('Zones'));
 <?php
   foreach ( $mids as $mid ) {
     $monitor = $monitors[$mid];
-    $monitor->connKey();
     # ViewWidth() and ViewHeight() are already rotated
     $minX = 0;
     $maxX = $monitor->ViewWidth()-1;
@@ -72,27 +71,11 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       $zones[] = $row;
     }
 
-    $options = array('width'=>'100%', 'height'=>'auto');
+    $options = array('zones'=>true, 'state'=>true, 'mode'=>'single', 'width'=>'auto');
 ?>
     <div class="Monitor">
         <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
-        <div class="ZonesImage">
-          <?php echo getStreamHTML($monitor, $options); ?>
-          <svg class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
-<?php
-    foreach (array_reverse($zones) as $zone) {
-?>
-            <polygon points="<?php echo $zone['AreaCoords'] ?>"
-                     class="zmlink <?php echo $zone['Type']?>"
-                     data-url="?view=zone&amp;mid=<?php echo $mid ?>&amp;zid=<?php echo $zone['Id'] ?>"
-            />
-<?php
-    } // end foreach zone
-?>
-          Sorry, your browser does not support inline SVG
-        </svg>
-<?php echo $monitor->getMonitorStateHTML(); ?>
-        </div>
+        <?php echo $monitor->getStreamHTML($options); ?>
         <div class="zones">
           <table id="zonesTable" class="major">
             <thead>
@@ -104,18 +87,18 @@ xhtmlHeaders(__FILE__, translate('Zones'));
               </tr>
             </thead>
             <tbody>
-  <?php
-  foreach( $zones as $zone ) {
-  ?>
+<?php
+  foreach ($zones as $zone) {
+?>
               <tr>
                 <td class="colName"><?php echo makeLink('?view=zone&mid='.$mid.'&zid='.$zone['Id'], validHtmlStr($zone['Name']), true, 'data-on-click-true="streamCmdQuit"'); ?></td>
                 <td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
                 <td class="colUnits"><?php echo $zone['Area'] ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', ($zone['Area']*100)/($monitor->ViewWidth()*$monitor->ViewHeight()) ) ?></td>
                 <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit('Monitors') ) { ?> disabled="disabled"<?php } ?>/></td>
               </tr>
-  <?php
+<?php
   }
-  ?>
+?>
             </tbody>
           </table>
           <div id="contentButtons">
@@ -131,5 +114,13 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       </form>
     </div>
   </div>
+<?php
+if ($monitor->JanusEnabled()) {
+?>
+  <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+  <script src="/javascript/janus/janus.js"></script>
+<?php
+}
+?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

@@ -165,12 +165,14 @@ our %mem_data = (
     recording        => { type=>'uint8', seq=>$mem_seq++ },
     signal           => { type=>'uint8', seq=>$mem_seq++ },
     format           => { type=>'uint8', seq=>$mem_seq++ },
+    reserved1        => { type=>'uint8', seq=>$mem_seq++ },
+    reserved2        => { type=>'uint8', seq=>$mem_seq++ },
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
     last_frame_score => { type=>'uint32', seq=>$mem_seq++ },
     audio_frequency  => { type=>'uint32', seq=>$mem_seq++ },
     audio_channels   => { type=>'uint32', seq=>$mem_seq++ },
     startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
-    zmc_heartbeat_time  => { type=>'time_t64', seq=>$mem_seq++ },
+    heartbeat_time   => { type=>'time_t64', seq=>$mem_seq++ },
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
     last_viewed_time => { type=>'time_t64', seq=>$mem_seq++ },
@@ -266,8 +268,15 @@ sub zmMemVerify {
   }
   my $valid = zmMemRead($monitor, 'shared_data:valid', 1);
   if (!$valid) {
-    Error("Shared data not valid for monitor $$monitor{Id}");
-    return undef;
+    zmMemInvalidate($monitor);
+    if (!zmMemAttach($monitor, $mem_size)) {
+      return undef;
+    }
+    $valid = zmMemRead($monitor, 'shared_data:valid', 1);
+    if (!$valid) {
+      Error("Shared data not valid for monitor $$monitor{Id}");
+      return undef;
+    }
   } else {
     Debug(4, "Shared data appears valid for monitor $$monitor{Id}: $valid");
   }
@@ -370,7 +379,7 @@ sub zmMemInvalidate {
   if ( $mem_key ) {
     zmMemDetach($monitor);
   } else {
-    Error("No mem_key for $monitor $$monitor{Name}");
+    Debug("called zmMemInvalidate when already detached for $$monitor{Id} $$monitor{Name}");
   }
 } # end sub zmMemInvalidate
 

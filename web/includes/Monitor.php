@@ -8,6 +8,7 @@ require_once('Manufacturer.php');
 require_once('Model.php');
 require_once('Server.php');
 require_once('Storage.php');
+require_once('Zone.php');
 
 class Monitor extends ZM_Object {
 protected static $FunctionTypes = null;
@@ -28,7 +29,7 @@ public static function getFunctionTypes() {
 
 protected static $CapturingOptions = null;
 public static function getCapturingOptions() {
-  if (!isset($MonitorCapturingOptions)) {
+  if (!isset($CapturingOptions)) {
     $CapturingOptions = array(
         'None'=>translate('None'),
         'Ondemand'  =>  translate('On Demand'),
@@ -49,15 +50,26 @@ public static function getAnalysingOptions() {
   return $AnalysingOptions;
 }
 
-protected static $MonitorAnalysisSourceOptions = null;
+protected static $AnalysisSourceOptions = null;
 public static function getAnalysisSourceOptions() {
-  if (!isset($MonitorAnalysisSourceOptions)) {
-    $MonitorAnalysisSourceOptions = array(
+  if (!isset($AnalysisSourceOptions)) {
+    $AnalysisSourceOptions = array(
         'Primary'   => translate('Primary'),
         'Secondary' => translate('Secondary'),
         );
   }
-  return $MonitorAnalysisSourceOptions;
+  return $AnalysisSourceOptions;
+}
+
+protected static $AnalysisImageOptions = null;
+public static function getAnalysisImageOptions() {
+  if (!isset($AnalysisImageOptions)) {
+    $AnalysisImageOptions = array(
+        'FullColour'   => translate('Full Colour'),
+        'YChannel' => translate('Y-Channel (Greyscale)'),
+        );
+  }
+  return $AnalysisImageOptions;
 }
 
 protected static $RecordingOptions = null;
@@ -72,16 +84,30 @@ public static function getRecordingOptions() {
   return $RecordingOptions;
 }
 
-protected static $MonitorRecordingSourceOptions = null;
+protected static $RecordingSourceOptions = null;
 public static function getRecordingSourceOptions() {
-  if (!isset($MonitorRecordingSourceOptions)) {
-    $MonitorRecordingSourceOptions = array(
+  if (!isset($RecordingSourceOptions)) {
+    $RecordingSourceOptions = array(
         'Primary'   => translate('Primary'),
         'Secondary' => translate('Secondary'),
         'Both'      => translate('Both'),
         );
   }
-  return $MonitorRecordingSourceOptions;
+  return $RecordingSourceOptions;
+}
+
+protected static $DecodingOptions = null;
+public static function getDecodingOptions() {
+  if (!isset($DecodingOptions)) {
+    $DecodingOptions = array(
+        'None'      =>  translate('None'),
+        'Ondemand'  =>  translate('On Demand'),
+        'KeyFrames' =>  translate('KeyFrames Only'),
+        'KeyFrames+Ondemand' => translate('Keyframes + Ondemand'),
+        'Always'    =>  translate('Always'),
+        );
+  }
+  return $DecodingOptions;
 }
 
 protected static $Statuses = null;
@@ -113,10 +139,15 @@ public static function getStatuses() {
     'Capturing' => 'Always',
     'Analysing' => 'Always',
     'Recording' => 'Always',
+    'RecordingSource' => 'Primary',
+    'AnalysisSource' => 'Primary',
+    'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
-    'DecodingEnabled'   => array('type'=>'boolean','default'=>1),
+    'Decoding'  => 'Always',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
+    'Janus_Profile_Override'   => '',
+    'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
     'EventStartCommand' => '',
@@ -125,6 +156,7 @@ public static function getStatuses() {
     'ONVIF_Username'  =>  '',
     'ONVIF_Password'  =>  '',
     'ONVIF_Options'   =>  '',
+    'ONVIF_Alarm_Text'   =>  '',
     'ONVIF_Event_Listener'  =>  '0',
     'use_Amcrest_API'  =>  '0',
     'Device'  =>  '',
@@ -259,6 +291,74 @@ public static function getStatuses() {
     return $this->{'Server'};
   }
 
+  public function Path($new=null) {
+    // set the new value if requested
+    if ($new !== null) {
+      $this->{'Path'} = $new;
+    }
+    // empty value or old auth values terminate
+    if (!isset($this->{'Path'}) or ($this->{'Path'}==''))
+      return $this->{'Path'};
+
+    // extract the authentication part from the path given
+    $values = extract_auth_values_from_url($this->{'Path'});
+
+    // If no values for User and Pass fields are present then terminate
+    if (count($values) !== 2) {
+      return $this->{'Path'};
+    }
+
+    $old_us = isset($this->{'User'}) ? $this->{'User'} : '';
+    $old_ps = isset($this->{'Pass'}) ? $this->{'Pass'} : '';
+    $us = $values[0];
+    $ps = $values[1];
+
+    // Update the auth fields if they were empty and remove them from the path
+    // or if they are equal between the path and field
+    if ( (!$old_us && !$old_ps) || ($us == $old_us && $ps == $old_ps) ) {
+      $this->{'Path'} = str_replace("$us:$ps@", '', $this->{'Path'});
+      $this->{'User'} = $us;
+      $this->{'Pass'} = $ps;
+    }
+    return $this->{'Path'};
+  }
+
+  public function User($new=null) {
+    if( $new !== null ) {
+      // no url check if the update has different value
+      $this->{'User'} = $new;
+    }
+
+    if( strlen($this->{'User'}) > 0 )
+      return $this->{'User'};
+
+    // Only try to update from path if the field is empty
+    $values = extract_auth_values_from_url($this->{'Path'});
+    if( count( $values ) == 2 ) {
+      $us = $values[0];
+      $this->{'User'} = $values[0];
+    }
+    return $this->{'User'};
+  }
+
+  public function Pass($new=null) {
+    if( $new !== null ) {
+      // no url check if the update has different value
+      $this->{'Pass'} = $new;
+    }
+
+    if( strlen($this->{'Pass'}) > 0 )
+      return $this->{'Pass'};
+
+    // Only try to update from path if the field is empty
+    $values = extract_auth_values_from_url($this->{'Path'});
+    if( count( $values ) == 2 ) {
+      $ps = $values[1];
+      $this->{'Pass'} = $values[1];
+    }
+    return $this->{'Pass'};
+  }
+
   public function __call($fn, array $args) {
     if (count($args)) {
       if (is_array($this->defaults[$fn]) and $this->defaults[$fn]['type'] == 'set') {
@@ -324,9 +424,6 @@ public static function getStatuses() {
         $args['user'] = $_SESSION['username'];
       }
     }
-    if ((!isset($args['mode'])) or ($args['mode'] != 'single')) {
-      $args['connkey'] = $this->connKey();
-    }
     if (ZM_RAND_STREAM) {
       $args['rand'] = time();
     }
@@ -338,6 +435,9 @@ public static function getStatuses() {
       } else if (isset($args['height']) and intval($args['height'])) {
         $args['scale'] = intval((100*intval($args['height']))/$this->ViewHeight());
       }
+    }
+    if ($args['scale'] <= 0) {
+      $args['scale'] = 100;
     }
     if (isset($args['width']))
       unset($args['width']);
@@ -805,5 +905,131 @@ public static function getStatuses() {
 ';
     return $html;
   }
+
+/* options['width'] is the desired view width not necessarily the image width requested.
+ * It can be % in which case we us it to set the scale
+ * It can be px in which case we can use it to calculate the scale
+ * Same width height.  If both are set we should calculate the smaller resulting scale
+ */
+  function getStreamHTML($options) {
+    if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
+      if ($options['scale'] != 'auto' && $options['scale'] != '0') {
+        $options['width'] = reScale($this->ViewWidth(), $options['scale']).'px';
+        $options['height'] = reScale($this->ViewHeight(), $options['scale']).'px';
+      } else if (!(isset($options['width']) or isset($options['height']))) {
+        $options['width'] = '100%';
+        $options['height'] = 'auto';
+      }
+    } else {
+      $options['scale'] = 100;
+      # scale is empty or 100
+      # There may be a fixed width applied though, in which case we need to leave the height empty
+      if (!(isset($options['width']) and $options['width']) or ($options['width']=='auto')) {
+        # Havn't specified width.  If we specified height, then we should
+        # use a width that keeps the aspect ratio, otherwise no scaling, 
+        # no dimensions, so assume the dimensions of the Monitor
+
+        if (!(isset($options['height']) and $options['height'])) {
+          # If we havn't specified any scale or dimensions, then we must be using CSS to scale it in a dynamic way. Can't make any assumptions.
+        }
+      } else {
+        if (preg_match('/^(\d+)px$/', $options['width'], $matches)) {
+          $scale = intval(100*$matches[1]/$this->ViewWidth());
+          if ($scale < $options['scale'])
+            $options['scale'] = $scale;
+        } else if (preg_match('/^(\d+)%$/', $options['width'], $matches)) {
+          $scale = intval($matches[1]);
+          if ($scale < $options['scale'])
+            $options['scale'] = $scale;
+        } else {
+          $backTrace = debug_backtrace();
+          Warning('Invalid value for width: '.$options['width']. ' from '.print_r($backTrace, true));
+        }
+      }
+    }
+    if (!isset($options['mode'])) {
+      $options['mode'] = 'stream';
+    }
+    if (!isset($options['width']) or $options['width'] == 'auto')
+      $options['width'] = 0;
+    if (!isset($options['height']) or $options['height'] == 'auto')
+      $options['height'] = 0;
+
+    if (!isset($options['maxfps'])) {
+      $options['maxfps'] = ZM_WEB_VIDEO_MAXFPS;
+    }
+    if ($this->StreamReplayBuffer())
+      $options['buffer'] = $this->StreamReplayBuffer();
+    //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+    $html = '
+          <div id="monitor'. $this->Id() . '" class="monitor">
+            <div
+              id="imageFeed'. $this->Id() .'"
+              class="monitorStream imageFeed"
+              data-monitor-id="'. $this->Id() .'"
+              data-width="'. $this->ViewWidth() .'"
+              data-height="'.$this->ViewHeight() .'" style="'.
+#(($options['width'] and ($options['width'] != '0px')) ? 'width: '.$options['width'].';' : '').
+#(($options['height'] and ($options['height'] != '0px')) ? 'height: '.$options['height'].';' : '').
+            '">';
+
+    if ($this->Type() == 'WebSite') {
+      $html .= getWebSiteUrl(
+        'liveStream'.$this->Id(), $this->Path(),
+        ( isset($options['width']) ? $options['width'] : NULL ),
+        ( isset($options['height']) ? $options['height'] : NULL ),
+        $this->Name()
+      );
+      //FIXME, the width and height of the image need to be scaled.
+    } else if ((ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT) {
+      $streamSrc = $this->getStreamSrc( array(
+        'mode'   => 'mpeg',
+        'scale'  => (isset($options['scale'])?$options['scale']:100),
+        'bitrate'=> ZM_WEB_VIDEO_BITRATE,
+        'maxfps' => ZM_WEB_VIDEO_MAXFPS,
+        'format' => ZM_MPEG_LIVE_FORMAT
+      ) );
+      $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
+    } else if ( $this->JanusEnabled() ) {
+      $html .= '<video id="liveStream'.$this->Id().'" '.
+        ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
+        ' autoplay muted controls playsinline=""></video>';
+    } else if ( $options['mode'] == 'stream' and canStream() ) {
+      $options['mode'] = 'jpeg';
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
+    } else if ( $options['mode'] == 'single' and canStream() ) {
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStreamHTML('liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], $this->Name());
+    } else {
+      if ($options['mode'] == 'stream') {
+        Info('The system has fallen back to single jpeg mode for streaming. Consider enabling Cambozola or upgrading the client browser.');
+      }
+      $options['mode'] = 'single';
+      $streamSrc = $this->getStreamSrc($options);
+      $html .= getImageStill('liveStream'.$this->Id(), $streamSrc,
+        (isset($options['width']) ? $options['width'] : null),
+        (isset($options['height']) ? $options['height'] : null),
+        $this->Name());
+    }
+
+    if (isset($options['zones']) and $options['zones']) {
+      $html .= '<svg class="zones" id="zones'.$this->Id().'" viewBox="0 0 '.$this->ViewWidth().' '.$this->ViewHeight() .'" preserveAspectRatio="none">'.PHP_EOL;
+      foreach (Zone::find(array('MonitorId'=>$this->Id()), array('order'=>'Area DESC')) as $zone) {
+        $html .= $zone->svg_polygon();
+      } // end foreach zone
+      $html .= '
+  Sorry, your browser does not support inline SVG
+</svg>
+';
+    } # end if showZones
+    $html .= PHP_EOL.'</div><!--monitorStream-->'.PHP_EOL;
+    if (isset($options['state']) and $options['state']) {
+    //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
+      $html .= $this->getMonitorStateHTML();
+    }
+    $html .= PHP_EOL.'</div>'.PHP_EOL;
+    return $html;
+  } // end getStreamHTML
 } // end class Monitor
 ?>

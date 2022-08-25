@@ -69,17 +69,8 @@ tr td input[type="checkbox"],
 tr td input[type="radio"] {
   margin: 6px 0;
 }
-.tab-content,
-.tab-content .active {
-width: 100%;
-}
-.tab-content .active table {
-width: 100%;
-table-layout: fixed;
-}
-.tab-content .active table tr {
-  height: 32px;
-}
-.tab-content .active table td.text-right {
-width: 245px;
+
+.tab-pane td:first-child {
+  padding-right: 1rem;
+  text-align: right;
 }

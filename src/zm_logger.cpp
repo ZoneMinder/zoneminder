@@ -387,7 +387,7 @@ void Logger::openFile() {
   if (mLogFile.size()) {
     if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
       mFileLevel = NOLOG;
-      Error("fopen() for %s %d, error = %s", mLogFile.c_str(), mLogFile.size(), strerror(errno));
+      Error("fopen() for %s %zu, error = %s", mLogFile.c_str(), mLogFile.size(), strerror(errno));
     }
   } else {
     puts("Called Logger::openFile() without a filename");

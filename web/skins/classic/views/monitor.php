@@ -574,7 +574,7 @@ switch ($name) {
             <tr>
               <td class="text-right pr-3"><?php echo translate('Password') ?></td>
               <td>
-                <input type="password" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
+                <input type="password" id="newMonitor[ONVIF_Password]" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
                 <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[ONVIF_Password]">visibility</span>
               </td>
             </tr>
@@ -688,7 +688,7 @@ include('_monitor_source_nvsocket.php');
         <tr>
           <td class="text-right pr-3"><?php echo translate('Password') ?></td>
           <td>
-            <input type="password" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+            <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
             <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </td>
         </tr>
@@ -699,7 +699,7 @@ include('_monitor_source_nvsocket.php');
           <tr>
             <td class="text-right pr-3"><?php echo 'Password' ?></td>
             <td>
-              <input type="password" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
             </td>
           </tr>
@@ -739,7 +739,7 @@ include('_monitor_source_nvsocket.php');
           <tr>
             <td class="text-right pr-3"><?php echo 'Password' ?></td>
             <td>
-              <input type="password" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
             </td>
           </tr>
@@ -773,7 +773,7 @@ include('_monitor_source_nvsocket.php');
           <tr>
             <td class="text-right pr-3"><?php echo 'Password' ?></td>
             <td>
-              <input type="password" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
             </td>
           </tr>

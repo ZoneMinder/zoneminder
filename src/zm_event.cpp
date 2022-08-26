@@ -76,7 +76,7 @@ Event::Event(
 
   if (start_time.time_since_epoch() == Seconds(0)) {
     Warning("Event has zero time, setting to now");
-    start_time = now;
+    end_time = start_time = now;
   } else if (start_time > now) {
     char buffer[26];
     char buffer_now[26];
@@ -92,7 +92,7 @@ Event::Event(
     Error("StartDateTime in the future. Difference: %" PRIi64 " s\nstarttime: %s\nnow: %s",
           static_cast<int64>(std::chrono::duration_cast<Seconds>(now - start_time).count()),
           buffer, buffer_now);
-    start_time = now;
+    end_time = start_time = now;
   }
 
   unsigned int state_id = 0;

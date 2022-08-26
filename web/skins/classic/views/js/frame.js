@@ -152,6 +152,12 @@ function initPage() {
   } else {
     onStatsResize($j('#base_width').val() * scale / SCALE_BASE);
   }
+
+  // Manage the FRAMES Button
+  bindButton('#framesBtn', 'click', null, function onFramesClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=frames&eid='+eid);
+  });
 }
 
 // Kick everything off

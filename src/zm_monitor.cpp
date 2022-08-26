@@ -98,7 +98,9 @@ std::string load_monitor_sql =
 "`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`,"
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount,"
+#if MOSQUITTOPP_FOUND
 "`MQTT_Enabled`, `MQTT_Subscriptions`"
+#endif
 " FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
@@ -280,9 +282,11 @@ Monitor::Monitor()
   decoder(nullptr),
   convert_context(nullptr),
   //zones(nullptr),
+#if MOSQUITTOPP_FOUND
   mqtt_enabled(false),
   // mqtt_subscriptions,
   mqtt(nullptr),
+#endif
   privacy_bitmask(nullptr),
   //linked_monitors_string
   n_linked_monitors(0),
@@ -529,10 +533,12 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   if (importance < 0) importance = 0; // Should only be >= 0
   zone_count = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
 
+#if MOSQUITTOPP_FOUND
   mqtt_enabled = (*dbrow[col] != '0'); col++;
   std::string mqtt_subscriptions_string = std::string(dbrow[col] ? dbrow[col] : "");
   mqtt_subscriptions = Split(mqtt_subscriptions_string, ','); col++;
-  Error("MQTT enableed ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+  Error("MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+#endif
 
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
@@ -1031,6 +1037,7 @@ bool Monitor::connect() {
       Janus_Manager = new JanusManager(this);
     }
 
+#if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
       mqtt = zm::make_unique<MQTT>(this);
       for (const std::string &subscription : mqtt_subscriptions) {
@@ -1038,6 +1045,7 @@ bool Monitor::connect() {
           mqtt->add_subscription(subscription);
       }
     }
+#endif
   } else if (!shared_data->valid) {
     Error("Shared data not initialised by capture daemon for monitor %s", name.c_str());
     return false;
@@ -1107,9 +1115,11 @@ bool Monitor::disconnect() {
 }  // end bool Monitor::disconnect()
 
 Monitor::~Monitor() {
+#if MOSQUITTOPP_FOUND
   if (mqtt) {
     mqtt->send("offline");
   }
+#endif
   Close();
 
   if (mem_ptr != nullptr) {
@@ -1686,8 +1696,10 @@ void Monitor::UpdateFPS() {
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
           name.c_str(), image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
 
+#if MOSQUITTOPP_FOUND
       if (mqtt) mqtt->send(stringtf("Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
           new_capture_fps, new_capture_bandwidth, new_analysis_fps));
+#endif
 
       shared_data->capture_fps = new_capture_fps;
       last_fps_time = now;
@@ -2831,7 +2843,9 @@ Event * Monitor::openEvent(
   SetVideoWriterStartTime(starting_packet->timestamp);
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
 
+#if MOSQUITTOPP_FOUND
   if (mqtt) mqtt->send(stringtf("event start: %" PRId64, event->Id()));
+#endif
 
   if (!event_start_command.empty()) {
     if (fork() == 0) {
@@ -2871,7 +2885,9 @@ void Monitor::closeEvent() {
   } else {
     Debug(1, "close event thread is not joinable");
   }
+#if MOSQUITTOPP_FOUND
   if (mqtt) mqtt->send(stringtf("event end: %" PRId64, event->Id()));
+#endif
   Debug(1, "Starting thread to close event");
   close_event_thread = std::thread([](Event *e, const std::string &command){
         int64_t event_id = e->Id();

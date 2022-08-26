@@ -1,3 +1,5 @@
+
+#ifdef MOSQUITTOPP_FOUND
 #include "zm.h"
 #include "zm_logger.h"
 #include "zm_mqtt.h"
@@ -116,3 +118,4 @@ void MQTT::listValues(const std::string &sensor_name) {
 
 MQTT::~MQTT() {
 }
+#endif

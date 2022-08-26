@@ -531,9 +531,11 @@ protected:
 
   std::vector<Zone> zones;
 
+#if MOSQUITTOPP_FOUND
   bool                      mqtt_enabled;
   std::vector<std::string>  mqtt_subscriptions;
   std::unique_ptr<MQTT> mqtt;
+#endif
 
   const unsigned char  *privacy_bitmask;
 

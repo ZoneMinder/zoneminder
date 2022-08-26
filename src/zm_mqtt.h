@@ -1,6 +1,8 @@
 #ifndef ZM_MQTT_H
 #define ZM_MQTT_H
 
+#if MOSQUITTOPP_FOUND
+
 #include "mosquittopp.h"
 
 #include <stdint.h>
@@ -43,5 +45,7 @@ class MQTT : public mosqpp::mosquittopp {
     Monitor *monitor_;
     bool connected_;
 };
+#endif // MOSQUITTOPP_FOUND
 
 #endif // ZM_MQTT_H
+

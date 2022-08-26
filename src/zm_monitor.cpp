@@ -97,9 +97,9 @@ std::string load_monitor_sql =
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`,"
-"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount,"
+"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
 #if MOSQUITTOPP_FOUND
-"`MQTT_Enabled`, `MQTT_Subscriptions`"
+", `MQTT_Enabled`, `MQTT_Subscriptions`"
 #endif
 " FROM `Monitors`";
 

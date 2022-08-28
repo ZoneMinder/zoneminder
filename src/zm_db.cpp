@@ -59,19 +59,23 @@ void zmDbClose()
   zmDbConnected = false;
 }
 
-zmDbQuery *zmDbGetQuery(const zmDbQueryID &id)
+bool zmDbIsConnected() {
+  return zmDbConnected && database.connected();
+}
+
+zmDbQuery &zmDbGetQuery(const zmDbQueryID &id)
 {
   if (!zmDbConnected || id < 0 || id >= LAST_QUERY)
-    return nullptr;
+    return zmDbQuery( nullptr, LAST_QUERY );
 
   return database->getQuery(id);
 }
 
 // --- Query handling --- //
-zmDbQuery::zmDbQuery(zmDb *db, zmDbQueryID queryID)
-    : zmDb(db, queryID)
+zmDbQuery::zmDbQuery(zmDb *dbInst, soci::statement* statement)
 {
-  stmt = mapStatements[queryID];
+  db = dbInst;
+  stmt = statement;
   result = nullptr;
 }
 
@@ -82,7 +86,7 @@ zmDbQuery::~zmDbQuery()
   stmt = nullptr;
 }
 
-void zmDbQuery::run(bool data_exchange)
+zmDbQuery &zmDbQuery::run(bool data_exchange)
 {
   if (stmt == nullptr || result != nullptr)
     return;
@@ -95,6 +99,8 @@ void zmDbQuery::run(bool data_exchange)
 
   stmt.define_and_bind();
   stmt.execute(data_exchange);
+
+  return *this;
 }
 bool zmDbQuery::next()
 {
@@ -115,6 +121,17 @@ void zmDbQuery::reset()
     delete result;
   }
   result = nullptr;
+}
+
+zmDbQuery &zmDbQuery::fetchOne()
+{
+  if (stmt == nullptr || result != nullptr)
+    return this;
+
+  this->run(true)
+      ->next();
+
+  return *this;
 }
 
 // --- Query Queue handling --- //

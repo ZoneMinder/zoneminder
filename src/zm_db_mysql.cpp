@@ -84,8 +84,8 @@ zmDbMySQLAdapter::~zmMySQLAdapterDb () {
     }
 }
 
-zmDbQuery* zmDbMySQLAdapter::getQuery(zmDbQueryID queryID) {
-    return new zmDbQuery( db, queryID );
+zmDbQuery& zmDbMySQLAdapter::getQuery(zmDbQueryID queryID) {
+    return zmDbQuery( db, db->mapStatements[queryID] );
 }
 
 void zmDbMySQLAdapter::prepareStatements() {

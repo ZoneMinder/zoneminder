@@ -60,7 +60,7 @@ void zmLoadStaticConfig() {
 }
 
 void zmLoadDBConfig() {
-  if (!zmDbConnected) {
+  if (!zmDbIsConnected()) {
     Fatal("Not connected to the database. Can't continue.");
   }
   config.Load();
@@ -71,26 +71,20 @@ void zmLoadDBConfig() {
     if (!staticConfig.SERVER_NAME.empty()) {
 
       Debug(1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str());
-      std::string sql = stringtf("SELECT `Id` FROM `Servers` WHERE `Name`='%s'",
-                                 staticConfig.SERVER_NAME.c_str());
-      zmDbRow dbrow;
-      if (dbrow.fetch(sql)) {
-        staticConfig.SERVER_ID = atoi(dbrow[0]);
-      } else {
-        Fatal("Can't get ServerId for Server %s", staticConfig.SERVER_NAME.c_str());
-      }
+
+      staticConfig.SERVER_ID = zmDbGetQuery( SELECT_SERVER_ID_WITH_NAME )
+        .bind<std::string>( "name", staticConfig.SERVER_NAME )
+        .fetchOne()
+        .get<int>("Id");
 
     } // end if has SERVER_NAME
   } else if (staticConfig.SERVER_NAME.empty()) {
     Debug(1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID);
-    std::string sql = stringtf("SELECT `Name` FROM `Servers` WHERE `Id`='%d'", staticConfig.SERVER_ID);
 
-    zmDbRow dbrow;
-    if (dbrow.fetch(sql)) {
-      staticConfig.SERVER_NAME = std::string(dbrow[0]);
-    } else {
-      Fatal("Can't get ServerName for Server ID %d", staticConfig.SERVER_ID);
-    }
+    staticConfig.SERVER_NAME = zmDbGetQuery( SELECT_SERVER_NAME_WITH_ID )
+      .bind<int>( "id", staticConfig.SERVER_ID )
+      .fetchOne()
+      .get<std::string>("Name");
 
     if (staticConfig.SERVER_ID) {
       Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);

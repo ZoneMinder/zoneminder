@@ -93,7 +93,13 @@ public:
   zmDb(){};
   virtual ~zmDb();
 
-  virtual zmDbQuery *getQuery(zmDbQueryID queryID) = 0;
+  virtual zmDbQuery getQuery(zmDbQueryID queryID) = 0;
+
+  bool connected() {
+    return db.is_connected();
+  }
+
+  friend class zmDbQuery;
 };
 
 class zmDbQuery
@@ -104,32 +110,37 @@ protected:
   soci::row* result;
 
 public:
-  zmDbQuery(zmDb *inst, zmDbQueryID queryID) : db(inst){};
-  ~zmDbQuery(){};
+  zmDbQuery(zmDb *inst, soci::statement* stmt);
+  virtual ~zmDbQuery();
+
+  zmDbQuery(const zmDbQuery& other) : db(other.db), stmt(other.stmt) {}
 
   template <typename T>
-  zmDbQuery *bind(const std::string &name, const T &value)
+  zmDbQuery& bind(const std::string &name, const T &value)
   {
     if (stmt == nullptr)
-      return this;
+      return *this;
 
     stmt->exchange(soci::use<T>(value, name));
-
-    return this;
+    return *this;
   }
 
   template <typename T>
   T get(const std::string &name)
   {
-    if (stmt == nullptr || result == nullptr)
-      return;
+    if (stmt == nullptr || result == nullptr) {
+      T zero;
+      return zero;
+    }
 
     return result->get<T>(name);
   }
 
-  virtual bool run(bool data_exchange);
+  virtual zmDbQuery &run(bool data_exchange);
   virtual bool next();
   virtual void reset();
+
+  virtual zmDbQuery &fetchOne();
 };
 
 class zmDbQueue
@@ -157,7 +168,7 @@ public:
 
 bool zmDbIsConnected();
 bool zmDbConnect(const std::string &backend);
-zmDbQuery *zmDbGetQuery(const zmDbQueryID &id);
+zmDbQuery &zmDbGetQuery(const zmDbQueryID &id);
 void zmDbClose();
 
 #endif // ZM_DB_H

@@ -31,9 +31,9 @@
 class zmDbMySQLAdapter : public zmDb {
 public:
     zmDbMySQLAdapter();
-    ~zmDbMySQLAdapter();
+    virtual ~zmDbMySQLAdapter();
 
-    zmDbQuery* getQuery(zmDbQueryID queryID) override;
+    zmDbQuery& getQuery(zmDbQueryID queryID) override;
 
 private:
     void prepareStatements();

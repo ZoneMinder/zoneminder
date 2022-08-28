@@ -333,7 +333,7 @@ Logger::Level Logger::databaseLevel(Logger::Level databaseLevel) {
     databaseLevel = limit(databaseLevel);
     if (mDatabaseLevel != databaseLevel) {
       if ((databaseLevel > NOLOG) && (mDatabaseLevel <= NOLOG)) { // <= NOLOG would be NOOPT
-        if (!zmDbConnected) {
+        if (!zmDbIsConnected()) {
           databaseLevel = NOLOG;
         }
       }
@@ -518,7 +518,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   }  // end if level <= mFileLevel
 
   if (level <= mDatabaseLevel) {
-    if (zmDbConnected) {
+    if (zmDbIsConnected()) {
       std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
 
       std::string sql_string = stringtf(

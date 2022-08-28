@@ -15,6 +15,7 @@ set(ZM_BIN_SRC_FILES
   zm_crypt.cpp
   zm.cpp
   zm_db.cpp
+  zm_db_mysql.cpp
   zm_decoder_thread.cpp
   zm_logger.cpp
   zm_event.cpp

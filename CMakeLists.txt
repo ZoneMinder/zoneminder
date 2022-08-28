@@ -341,6 +341,24 @@ if(NOT ZM_NO_CURL)
   endif()
 endif()
 
+# Soci
+find_package(Soci COMPONENTS mysql) #postgresql)
+if(SOCI_FOUND)
+  if(NOT SOCI_mysql_FOUND)
+    message(FATAL_ERROR
+      "ZoneMinder requires libsoci_mysql package but it was not found on your system")
+  endif()
+  set(HAVE_LIBSOCI 1)
+  list(APPEND ZM_BIN_LIBS "${SOCI_LIBRARY}")
+  list(APPEND ZM_BIN_LIBS "${SOCI_mysql_PLUGIN}")
+  #list(APPEND ZM_BIN_LIBS "${SOCI_postgresql_PLUGIN}")
+  include_directories("${SOCI_INCLUDE_DIRS}")
+  set(CMAKE_REQUIRED_INCLUDES "${SOCI_INCLUDE_DIRS}")
+else()
+  message(FATAL_ERROR
+    "ZoneMinder requires Soci but it was not found on your system")
+endif()
+
 # jpeg
 find_package(JPEG)
 if(JPEG_FOUND)

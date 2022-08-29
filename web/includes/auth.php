@@ -48,7 +48,7 @@ function migrateHash($user, $pass) {
     //ZM\Info ("hased bcrypt $pass is $bcrypt_hash");
     $update_password_sql = 'UPDATE Users SET Password=\''.$bcrypt_hash.'\' WHERE Username=\''.$user.'\'';
     dbQuery($update_password_sql);
-    $user['Pasword'] = $bcrypt_hash;
+    $user['Password'] = $bcrypt_hash;
     # Since password field has changed, existing auth_hash is no longer valid
     generateAuthHash(ZM_AUTH_HASH_IPS, true);
   } else {

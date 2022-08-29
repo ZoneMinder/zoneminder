@@ -335,11 +335,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     ++it;
   }  // end if first packet not locked
 
-  if ((max_keyframe_interval == 1) and max_video_packet_count) {
-    Warning("Did not find a second keyframe in the packet queue. It may be that"
-        " the Max Image Buffer setting is lower than the keyframe interval. We"
-        " need it to be greater than the keyframe interval.");
-  }
   Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d, Keyframe interval %d",
       ( *it == add_packet ),
       ( next_front == pktQueue.begin() ),

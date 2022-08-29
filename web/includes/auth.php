@@ -39,15 +39,14 @@ function password_type($password) {
 
 // this function migrates mysql hashing to bcrypt, if you are using PHP >= 5.5
 // will be called after successful login, only if mysql hashing is detected
-function migrateHash($user, $pass) {
+function migrateHash($username, $password) {
   if ( function_exists('password_hash') ) {
-    ZM\Info("Migrating $user to bcrypt scheme");
+    global $user;
+    ZM\Info("Migrating $username to bcrypt scheme");
     // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
     // we can modify this later to support argon2 etc as switch to its own password signature detection 
-    $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
-    //ZM\Info ("hased bcrypt $pass is $bcrypt_hash");
-    $update_password_sql = 'UPDATE Users SET Password=\''.$bcrypt_hash.'\' WHERE Username=\''.$user.'\'';
-    dbQuery($update_password_sql);
+    $bcrypt_hash = password_hash($password, PASSWORD_BCRYPT);
+    dbQuery('UPDATE Users SET Password=? WHERE Username=?', array($bcrypt_hash, $username));
     $user['Password'] = $bcrypt_hash;
     # Since password field has changed, existing auth_hash is no longer valid
     generateAuthHash(ZM_AUTH_HASH_IPS, true);

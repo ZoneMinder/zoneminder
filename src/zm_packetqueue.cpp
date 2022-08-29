@@ -289,7 +289,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     return;
   }  // end if first packet not locked
      
-  int max_keyframe_interval = 1;
   int keyframe_interval_count = 1;
   int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
   ++it;

@@ -60,22 +60,14 @@ void zmDbClose()
 }
 
 bool zmDbIsConnected() {
-  return zmDbConnected && database.connected();
-}
-
-zmDbQuery &zmDbGetQuery(const zmDbQueryID &id)
-{
-  if (!zmDbConnected || id < 0 || id >= LAST_QUERY)
-    return zmDbQuery( nullptr, LAST_QUERY );
-
-  return database->getQuery(id);
+  return zmDbConnected && database->connected();
 }
 
 // --- Query handling --- //
-zmDbQuery::zmDbQuery(zmDb *dbInst, soci::statement* statement)
+zmDbQuery::zmDbQuery(const zmDbQueryID& id)
 {
-  db = dbInst;
-  stmt = statement;
+  db = database;
+  stmt = database->mapStatements[id];
   result = nullptr;
 }
 
@@ -89,32 +81,32 @@ zmDbQuery::~zmDbQuery()
 zmDbQuery &zmDbQuery::run(bool data_exchange)
 {
   if (stmt == nullptr || result != nullptr)
-    return;
+    return *this;
 
   if (data_exchange)
   {
     result = new soci::row();
-    stmt.exchange(soci::into(result));
+    stmt->exchange(soci::into(*result));
   }
 
-  stmt.define_and_bind();
-  stmt.execute(data_exchange);
+  stmt->define_and_bind();
+  stmt->execute(data_exchange);
 
   return *this;
 }
 bool zmDbQuery::next()
 {
   if (stmt == nullptr || result == nullptr)
-    return;
+    return false;
 
-  return stmt.fetch();
+  return stmt->fetch();
 }
 void zmDbQuery::reset()
 {
   if (stmt == nullptr)
     return;
 
-  stmt.bind_clean_up();
+  stmt->bind_clean_up();
 
   if (result != nullptr)
   {
@@ -126,10 +118,10 @@ void zmDbQuery::reset()
 zmDbQuery &zmDbQuery::fetchOne()
 {
   if (stmt == nullptr || result != nullptr)
-    return this;
+    return *this;
 
-  this->run(true)
-      ->next();
+  run(true)
+    .next();
 
   return *this;
 }

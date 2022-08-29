@@ -72,7 +72,7 @@ void zmLoadDBConfig() {
 
       Debug(1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str());
 
-      staticConfig.SERVER_ID = zmDbGetQuery( SELECT_SERVER_ID_WITH_NAME )
+      staticConfig.SERVER_ID = zmDbQuery( SELECT_SERVER_ID_WITH_NAME )
         .bind<std::string>( "name", staticConfig.SERVER_NAME )
         .fetchOne()
         .get<int>("Id");
@@ -81,7 +81,7 @@ void zmLoadDBConfig() {
   } else if (staticConfig.SERVER_NAME.empty()) {
     Debug(1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID);
 
-    staticConfig.SERVER_NAME = zmDbGetQuery( SELECT_SERVER_NAME_WITH_ID )
+    staticConfig.SERVER_NAME = zmDbQuery( SELECT_SERVER_NAME_WITH_ID )
       .bind<int>( "id", staticConfig.SERVER_ID )
       .fetchOne()
       .get<std::string>("Name");
@@ -330,12 +330,20 @@ Config::~Config() {
 }
 
 void Config::Load() {
-  MYSQL_RES *result = zmDbFetch("SELECT `Name`, `Value`, `Type` FROM `Config` ORDER BY `Id`");
-  if (!result) {
-    exit(-1);
-  }
+  zmDbQuery q = zmDbQuery( SELECT_ALL_CONFIGS ).run(true);
 
-  n_items = mysql_num_rows(result);
+  n_items = 0;
+
+  std::vector<ConfigItem*> cfg_items;
+  while( q.next() ) {
+    std::string cfg_name  = q.get<std::string>("Name");
+    std::string cfg_value = q.get<std::string>("Value");
+    std::string cfg_type  = q.get<std::string>("Type");
+
+    cfg_items.push_back( new ConfigItem( cfg_name.c_str(), cfg_value.c_str(), cfg_type.c_str() ) );
+
+    n_items++;
+  }
 
   if ( n_items <= ZM_MAX_CFG_ID ) {
     Error("Config mismatch, expected %d items, read %d. Try running 'zmupdate.pl -f' to reload config.", ZM_MAX_CFG_ID+1, n_items);
@@ -343,10 +351,9 @@ void Config::Load() {
   }
 
   items = new ConfigItem *[n_items];
-  for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-    items[i] = new ConfigItem(dbrow[0], dbrow[1], dbrow[2]);
+  for ( int i = 0; i < n_items; i++ ) {
+    items[i] = cfg_items.at(i);
   }
-  mysql_free_result(result);
 }
 
 void Config::Assign() {

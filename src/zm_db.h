@@ -87,13 +87,11 @@ class zmDb
 protected:
   std::mutex db_mutex;
   soci::session db;
-  std::unordered_map<int, soci::statement> mapsStatements;
+  std::unordered_map<int, soci::statement*> mapStatements;
 
 public:
   zmDb(){};
   virtual ~zmDb();
-
-  virtual zmDbQuery getQuery(zmDbQueryID queryID) = 0;
 
   bool connected() {
     return db.is_connected();
@@ -110,7 +108,7 @@ protected:
   soci::row* result;
 
 public:
-  zmDbQuery(zmDb *inst, soci::statement* stmt);
+  zmDbQuery(const zmDbQueryID& id);
   virtual ~zmDbQuery();
 
   zmDbQuery(const zmDbQuery& other) : db(other.db), stmt(other.stmt) {}

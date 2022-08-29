@@ -20,8 +20,6 @@
 #ifndef ZM_DB_MYSQL_H
 #define ZM_DB_MYSQL_H
 
-#include "zm_db.h"
-
 #include "zm_logger.h"
 #include "zm_signal.h"
 #include <cstdlib>
@@ -32,8 +30,6 @@ class zmDbMySQLAdapter : public zmDb {
 public:
     zmDbMySQLAdapter();
     virtual ~zmDbMySQLAdapter();
-
-    zmDbQuery& getQuery(zmDbQueryID queryID) override;
 
 private:
     void prepareStatements();

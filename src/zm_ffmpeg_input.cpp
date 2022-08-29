@@ -88,7 +88,13 @@ int FFmpeg_Input::Open(const char *filepath) {
 
     streams[i].frame_count = 0;
 
-    if (!(streams[i].codec = avcodec_find_decoder(input_format_context->streams[i]->codecpar->codec_id))) {
+    if (!(streams[i].codec = avcodec_find_decoder(
+#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+            input_format_context->streams[i]->codecpar->codec_id
+#else
+            input_format_context->streams[i]->codec->codec_id
+#endif
+            ))) {
       Error("Could not find input codec");
       avformat_close_input(&input_format_context);
       return AVERROR_EXIT;
@@ -102,7 +108,6 @@ int FFmpeg_Input::Open(const char *filepath) {
 #else
     streams[i].context = input_format_context->streams[i]->codec;
 #endif
-    avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
     // Some codecs will change the time base others might not. h265 seems to not.  So let's set a sane value
     streams[i].context->time_base.num = 1;
     streams[i].context->time_base.den = 90000;

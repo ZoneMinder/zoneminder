@@ -58,6 +58,7 @@ Event::Event(
   max_score(-1),
   //path(""),
   //snapshit_file(),
+  snapshot_file_written(false),
   //alarm_file(""),
   videoStore(nullptr),
   //video_file(""),
@@ -75,7 +76,7 @@ Event::Event(
 
   if (start_time.time_since_epoch() == Seconds(0)) {
     Warning("Event has zero time, setting to now");
-    start_time = now;
+    end_time = start_time = now;
   } else if (start_time > now) {
     char buffer[26];
     char buffer_now[26];
@@ -91,7 +92,7 @@ Event::Event(
     Error("StartDateTime in the future. Difference: %" PRIi64 " s\nstarttime: %s\nnow: %s",
           static_cast<int64>(std::chrono::duration_cast<Seconds>(now - start_time).count()),
           buffer, buffer_now);
-    start_time = now;
+    end_time = start_time = now;
   }
 
   unsigned int state_id = 0;
@@ -412,10 +413,11 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
 
     Debug(1, "frames %d, score %d max_score %d", frames, score, max_score);
     // If this is the first frame, we should add a thumbnail to the event directory
-    if ((frames == 1) || (score > max_score)) {
+    if ((frames == 1) || (score > max_score) || (!snapshot_file_written)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
       WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str());
+      snapshot_file_written = true;
     } else {
       Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);
     }
@@ -447,7 +449,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
              ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
             )
            ) {
-          std::string event_file = stringtf("%s/%d-y.jpg", path.c_str(), frames);
+          event_file = stringtf("%s/%d-y.jpg", path.c_str(), frames);
           Image y_image(
               packet->in_frame->width,
               packet->in_frame->height,
@@ -681,23 +683,30 @@ void Event::Run() {
   if (storage != monitor->getStorage())
     delete storage;
 
-  std::unique_lock<std::mutex> lck(packet_queue_mutex);
 
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   while (true) {
-    if (!packet_queue.empty()) {
-      const ZMLockedPacket * packet_lock = packet_queue.front();
+    ZMLockedPacket * packet_lock = nullptr;
+    {
+      std::unique_lock<std::mutex> lck(packet_queue_mutex);
+
+      if (packet_queue.empty()) {
+        if (terminate_ or zm_terminate) break;
+        packet_queue_condition.wait(lck);
+        // Neccessary because we don't hold the lock in the while condition
+      } 
+      if (!packet_queue.empty()) {
+        // Packets on this queue are locked. They are locked by analysis thread
+        packet_lock = packet_queue.front();
+        packet_queue.pop();
+      }
+    }  // end lock scope
+    if (packet_lock) {
       this->AddPacket_(packet_lock->packet_);
       delete packet_lock;
-      packet_queue.pop();
-    } else {
-      if (terminate_ or zm_terminate) {
-        break;
-      }
-      packet_queue_condition.wait(lck);
     }
-  }
+  }  // end while
 }  // end Run()
 
 int Event::MonitorId() {

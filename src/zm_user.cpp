@@ -118,15 +118,15 @@ User *zmLoadUser(const char *username, const char *password) {
 
 User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
   std::string key = config.auth_hash_secret;
-  std::string remote_addr = "";
+  std::string remote_addr;
 
   if ( use_remote_addr ) {
     remote_addr = std::string(getenv("REMOTE_ADDR"));
-    if ( remote_addr == "" ) {
+    if (remote_addr == "") {
       Warning("Can't determine remote address, using null");
-      remote_addr = "";
+    } else {
+      key += remote_addr;
     }
-    key += remote_addr;
   }
 
   Debug(1, "Inside zmLoadTokenUser, formed key=%s", key.c_str());

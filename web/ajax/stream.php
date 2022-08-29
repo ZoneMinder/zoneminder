@@ -18,14 +18,19 @@ $semaphore = sem_get($key,1);
 $semaphore_tries = 10;
 $have_semaphore = false;
 
-while ( $semaphore_tries ) {
-  $have_semaphore = sem_acquire($semaphore,1);
+while ($semaphore_tries) {
+  if (version_compare( phpversion(), '5.6.1', '<')) {
+    # don't have support for non-blocking
+    $have_semaphore = sem_acquire($semaphore);
+  } else {
+    $have_semaphore = sem_acquire($semaphore, 1);
+  }
   if ($have_semaphore !== false) break;
-  ZM\Debug("Failed to get semaphore, trying again");
+  ZM\Debug('Failed to get semaphore, trying again');
   usleep(100000);
   $semaphore_tries -= 1;
 }
-if ($have_semaphore) {
+if ($have_semaphore !== false) {
   if ( !($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0)) ) {
     ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
   }
@@ -33,7 +38,7 @@ if ($have_semaphore) {
   $localSocketFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'w.sock';
   if ( file_exists($localSocketFile) ) {
     ZM\Warning("sock file $localSocketFile already exists?!  Is someone else talking to zms?");
-    // They could be.  We can maybe have concurrent requests from a browser.  
+    // They could be.  We can maybe have concurrent requests from a browser.
   }
   if ( !socket_bind($socket, $localSocketFile) ) {
     ajaxError("socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()));
@@ -80,8 +85,8 @@ if ($have_semaphore) {
   $max_socket_tries = 1000;
   // FIXME This should not exceed web_ajax_timeout
   while ( !file_exists($remSockFile) && $max_socket_tries-- ) {
-		//sometimes we are too fast for our own good, if it hasn't been setup yet give it a second. 
-    // WHY? We will just send another one... 
+		//sometimes we are too fast for our own good, if it hasn't been setup yet give it a second.
+    // WHY? We will just send another one...
     // ANSWER: Because otherwise we get a log of errors logged
 
     //ZM\Debug("$remSockFile does not exist, waiting, current " . (time() - $start_time) . ' seconds' );
@@ -109,7 +114,7 @@ if ($have_semaphore) {
   } else if ( $numSockets < 0 ) {
     ajaxError("Socket closed $remSockFile");
   } else if ( $numSockets == 0 ) {
-    ZM\Error("Timed out waiting for msg $remSockFile");
+    ZM\Error("Timed out waiting for msg $remSockFile after waiting $timeout seconds");
     socket_set_nonblock($socket);
     #ajaxError("Timed out waiting for msg $remSockFile");
   } else if ( $numSockets > 0 ) {
@@ -118,7 +123,7 @@ if ($have_semaphore) {
     }
   }
 
-  switch( $nbytes = @socket_recvfrom($socket, $msg, MSG_DATA_SIZE, 0, $remSockFile) ) {
+  switch ($nbytes = @socket_recvfrom($socket, $msg, MSG_DATA_SIZE, 0, $remSockFile)) {
   case -1 :
     ajaxError("socket_recvfrom( $remSockFile ) failed: ".socket_strerror(socket_last_error()));
     break;
@@ -141,19 +146,22 @@ if ($have_semaphore) {
     $data['rate'] /= RATE_BASE;
     $data['delay'] = round( $data['delay'], 2 );
     $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
-    if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed')) {
-      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-      if (isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash)) {
-        $data['auth'] = $auth_hash;
-        ZM\Debug('including new auth hash '.$data['auth'].'because doesnt match request auth hash '.$_REQUEST['auth']);
-      } else {
-        ZM\Debug('Not including new auth hash becase it hasn\'t changed '.$auth_hash);
-      } 
+    if (ZM_OPT_USE_AUTH) {
+     if (ZM_AUTH_RELAY == 'hashed') {
+       $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+       if (isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash)) {
+         $data['auth'] = $auth_hash;
+         ZM\Debug('including new auth hash '.$data['auth'].'because doesnt match request auth hash '.$_REQUEST['auth']);
+       } else {
+         ZM\Debug('Not including new auth hash becase it hasn\'t changed '.$auth_hash);
+       }
+     }
+     $data['auth_relay'] = get_auth_relay();
     }
     ajaxResponse(array('status'=>$data));
     break;
   case MSG_DATA_EVENT :
-    if ( version_compare( phpversion(), '5.6.0', '<') ) {
+    if ( PHP_INT_SIZE===4 || version_compare( phpversion(), '5.6.0', '<') ) {
       ZM\Debug('Using old unpack methods to handle 64bit event id');
       $data = unpack('ltype/ieventlow/ieventhigh/dduration/dprogress/irate/izoom/Cpaused', $msg);
       $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];
@@ -162,11 +170,14 @@ if ($have_semaphore) {
     }
     $data['rate'] /= RATE_BASE;
     $data['zoom'] = round($data['zoom']/SCALE_BASE, 1);
-    if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
-      $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
-      if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
-        $data['auth'] = $auth_hash;
-      } 
+    if ( ZM_OPT_USE_AUTH ) {
+      if (ZM_AUTH_RELAY == 'hashed') {
+        $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+        if ( isset($_REQUEST['auth']) and ($_REQUEST['auth'] != $auth_hash) ) {
+          $data['auth'] = $auth_hash;
+        }
+      }
+      $data['auth_relay'] = get_auth_relay();
     }
     ajaxResponse(array('status'=>$data));
     break;
@@ -175,7 +186,7 @@ if ($have_semaphore) {
   }
   sem_release($semaphore);
 } else {
-  ajaxError("Unable to get semaphore.");
+  ajaxError('Unable to get semaphore.');
 }
 
 ajaxError('Unrecognised action or insufficient permissions in ajax/stream');

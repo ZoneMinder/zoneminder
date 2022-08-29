@@ -88,6 +88,7 @@ class Event {
     int  max_score;
     std::string path;
     std::string snapshot_file;
+    bool snapshot_file_written;
     std::string alarm_file;
     VideoStore *videoStore;
 

@@ -76,6 +76,12 @@ RtpSource::RtpSource(
   mLastSrTimeNtp = {};
   mLastSrTimeRtp = 0;
 
+  mLastSrTimeNtpSecs = 0;
+  mLastSrTimeNtpFrac = 0;
+  mExpectedPackets = 0;
+  mLostPackets = 0;
+  mLostFraction = 0;
+
   if ( mCodecId != AV_CODEC_ID_H264 && mCodecId != AV_CODEC_ID_MPEG4 )
     Warning("The device is using a codec (%d) that may not be supported. Do not be surprised if things don't work.", mCodecId);
 }
@@ -235,7 +241,7 @@ void RtpSource::updateRtcpStats() {
   mExpectedPrior = mExpectedPackets;
   uint32_t receivedInterval = mReceivedPackets - mReceivedPrior;
   mReceivedPrior = mReceivedPackets;
-  uint32_t lostInterval = expectedInterval - receivedInterval;
+  int32_t lostInterval = expectedInterval - receivedInterval;
 
   if ( expectedInterval == 0 || lostInterval <= 0 )
     mLostFraction = 0;

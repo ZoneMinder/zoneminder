@@ -65,6 +65,7 @@ monitorData[monitorData.length] = {
   'connKey': <?php echo $monitor->connKey() ?>,
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
+  'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',
@@ -94,16 +95,8 @@ var deleteString = "<?php echo translate('Delete') ?>";
 // Imported from watch.js.php and modified for new zone edit view
 //
 
-var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
-var CMD_PLAY = <?php echo CMD_PLAY ?>;
-var CMD_STOP = <?php echo CMD_STOP ?>;
-var CMD_ANALYZE_ON = <?php echo CMD_ANALYZE_ON ?>;
-var CMD_ANALYZE_OFF = <?php echo CMD_ANALYZE_OFF ?>;
-var CMD_QUERY = <?php echo CMD_QUERY ?>;
 
-var SCALE_BASE = <?php echo SCALE_BASE ?>;
-
-var SOUND_ON_ALARM = <?php echo ZM_WEB_SOUND_ON_ALARM ?>;
+const POPUP_ON_ALARM = false;
 
 var streamMode = "<?php echo $streamMode ?>";
 

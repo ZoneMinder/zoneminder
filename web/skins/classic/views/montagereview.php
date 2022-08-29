@@ -29,12 +29,14 @@
 // Valid query string:
 //
 //        &maxTime, minTime = string formats (locale) of starting and ending time for history (pass both or none), default = last hour
+//                            if not specified, but current is, then should center 1 hour on current
 //
 //        &current = string format of time, where the slider is positioned first in history mode (normally only used in reloads, default = half scale)
+//                   also used when jumping from event view to montagereview
 //
 //        &speed = one of the valid speeds below (see $speeds in php section, default = 1.0)
 //
-//        &scale = image sie scale (.1 to 1.0, or 1.1 = fit, default = fit)
+//        &scale = image size scale (.1 to 1.0, or 1.1 = fit, default = fit)
 //
 //        &live=1 whether to start in live mode, 1 = yes, 0 = no
 //
@@ -59,12 +61,47 @@ include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
+// Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
+// Live overrides all the min/max stuff but it is still processed
+
+// The default (nothing at all specified) is for 1 hour so we do not read the whole database
+
+if (isset($_REQUEST['current'])) {
+  $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
+  $defaultCurrentTimeSecs = strtotime($defaultCurrentTime);
+}
+
+if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
+  if (isset($defaultCurrentTimeSecs)) {
+    $minTime = date('c', $defaultCurrentTimeSecs - 1800);
+    $maxTime = date('c', $defaultCurrentTimeSecs + 1800);
+  } else {
+    $time = time();
+    $maxTime = date('c', $time);
+    $minTime = date('c', $time - 3600);
+  }
+} else {
+  if (isset($_REQUEST['minTime']))
+    $minTime = validHtmlStr($_REQUEST['minTime']);
+
+  if (isset($_REQUEST['maxTime']))
+    $maxTime = validHtmlStr($_REQUEST['maxTime']);
+}
+
+// AS a special case a "all" is passed in as an extreme interval - if so, clear them here and let the database query find them
+
+if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
+  // test years
+  $minTime = null;
+  $maxTime = null;
+}
+
 $filter = array();
-if ( isset($_REQUEST['filter']) ) {
+if (isset($_REQUEST['filter'])) {
   $filter = $_REQUEST['filter'];
 
 	# Try to guess min/max time from filter
-	foreach ( $filter['Query'] as $term ) {
+	foreach ($filter['Query'] as $term) {
 		if ( $term['attr'] == 'StartDateTime' ) {
 			if ( $term['op'] == '<=' or $term['op'] == '<' ) {
 				$maxTime = $term['val'];
@@ -160,29 +197,6 @@ if ( isset($_SESSION['archive_status']) ) {
   }
 }
 
-// Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
-// Live overrides all the min/max stuff but it is still processed
-
-// The default (nothing at all specified) is for 1 hour so we do not read the whole database
-
-if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
-  $time = time();
-  $maxTime = strftime('%FT%T',$time);
-  $minTime = strftime('%FT%T',$time - 3600);
-}
-if ( isset($_REQUEST['minTime']) )
-  $minTime = validHtmlStr($_REQUEST['minTime']);
-
-if ( isset($_REQUEST['maxTime']) )
-  $maxTime = validHtmlStr($_REQUEST['maxTime']);
-
-// AS a special case a "all" is passed in as an extreme interval - if so, clear them here and let the database query find them
-
-if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
-  // test years
-  $minTime = null;
-  $maxTime = null;
-}
 
 $fitMode = 1;
 if ( isset($_REQUEST['fit']) && ($_REQUEST['fit'] == '0') )
@@ -208,8 +222,6 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-if ( isset($_REQUEST['current']) )
-  $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
 
 $liveMode = 1; // default to live
 if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
@@ -292,7 +304,7 @@ getBodyTopHTML();
         </div>
 <?php if ( !$liveMode ) { ?>
         <div id="eventfilterdiv" class="input-group">
-          <label>Archive Status 
+          <label><?php echo translate('Archive Status') ?> 
   <?php echo htmlSelect(
     'archive_status',
     array(

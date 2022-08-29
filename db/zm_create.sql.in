@@ -40,6 +40,7 @@ CREATE TABLE `Config` (
   `Category` varchar(32) NOT NULL default '',
   `Readonly` tinyint(3) unsigned NOT NULL default '0',
   `Private` BOOLEAN NOT NULL DEFAULT FALSE,
+  `System` BOOLEAN NOT NULL DEFAULT FALSE,
   `Requires` text,
   PRIMARY KEY (`Name`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -457,12 +458,15 @@ CREATE TABLE `Monitors` (
   `Capturing` enum('None','Ondemand', 'Always') NOT NULL default 'Always',
   `Analysing` enum('None','Always') NOT NULL default 'Always',
   `AnalysisSource` enum('Primary','Secondary') NOT NULL DEFAULT 'Primary',
+  `AnalysisImage` enum('FullColour','YChannel') NOT NULL DEFAULT 'FullColour',
   `Recording` enum('None', 'OnMotion', 'Always') NOT NULL default 'Always',
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `DecodingEnabled` tinyint(3) unsigned NOT NULL default '1',
-  `Decoding` enum('None','Ondemand','KeyFrames','Always') NOT NULL default 'Always',
+  `Decoding` enum('None','Ondemand','KeyFrames','KeyFrames+Ondemand', 'Always') NOT NULL default 'Always',
   `JanusEnabled` BOOLEAN NOT NULL default false,
   `JanusAudioEnabled` BOOLEAN NOT NULL default false,
+  `Janus_Profile_Override` VARCHAR(30) NOT NULL DEFAULT '',
+  `Janus_Use_RTSP_Restream` BOOLEAN NOT NULL default false,
   `LinkedMonitors` varchar(255),
   `Triggers` set('X10') NOT NULL default '',
   `EventStartCommand` VARCHAR(255) NOT NULL DEFAULT '',
@@ -472,6 +476,7 @@ CREATE TABLE `Monitors` (
   `ONVIF_Password` VARCHAR(64) NOT NULL DEFAULT '',
   `ONVIF_Options` VARCHAR(64) NOT NULL DEFAULT '',
   `ONVIF_Event_Listener`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `ONVIF_Alarm_Text` VARCHAR(30) DEFAULT 'MotionAlarm',
   `use_Amcrest_API`  BOOLEAN NOT NULL DEFAULT FALSE,
   `Device` tinytext NOT NULL default '',
   `Channel` tinyint(3) unsigned NOT NULL default '0',
@@ -500,7 +505,7 @@ CREATE TABLE `Monitors` (
   `VideoWriter` TINYINT NOT NULL DEFAULT '0',
   `OutputCodec` int(10) unsigned NOT NULL default 0,
   `Encoder`     varchar(32),
-  `OutputContainer` enum('auto','mp4','mkv'),
+  `OutputContainer` enum('auto','mp4','mkv','webm'),
   `EncoderParameters` TEXT,
   `RecordAudio` TINYINT NOT NULL DEFAULT '0',
   `RecordingSource`  enum('Primary','Secondary','Both') NOT NULL DEFAULT 'Primary',
@@ -557,6 +562,8 @@ CREATE TABLE `Monitors` (
   `RTSPServer`  BOOLEAN NOT NULL DEFAULT FALSE,
   `RTSPStreamName`  varchar(255) NOT NULL default '',
   `Importance`  enum('Normal','Less','Not') NOT NULL default 'Normal',
+  `MQTT_Enabled`  BOOLEAN NOT NULL DEFAULT false,
+  `MQTT_Subscriptions`  varchar(255) default '',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -664,7 +671,7 @@ CREATE TABLE `Stats` (
   `MaxY` smallint(5) unsigned NOT NULL default '0',
   `Score` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
-  KEY `EventId` (`EventId`),
+  KEY `EventId_ZoneId` (`EventId`, `ZoneId`),
   KEY `MonitorId` (`MonitorId`),
   KEY `ZoneId` (`ZoneId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -1092,6 +1099,7 @@ DROP TABLE IF EXISTS MontageLayouts;
 CREATE TABLE MontageLayouts (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name`    TEXT  NOT NULL,
+  `UserId`  int(10) UNSIGNED NOT NULL default 0,
   `Positions` LONGTEXT,
   /*`Positions` JSON,*/
   PRIMARY KEY (`Id`)

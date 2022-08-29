@@ -21,6 +21,7 @@
 
 #include "zm_font.h"
 #include "zm_poly.h"
+#include "zm_swscale.h"
 #include "zm_utils.h"
 #include <algorithm>
 #include <fcntl.h>
@@ -288,7 +289,11 @@ bool Image::Assign(const AVFrame *frame) {
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
-  AVFrame *dest_frame = zm_av_frame_alloc();
+  av_frame_ptr dest_frame{zm_av_frame_alloc()};
+  if (!dest_frame) {
+    Error("Unable to allocate destination frame");
+    return false;
+  }
   sws_convert_context = sws_getCachedContext(
       sws_convert_context,
       frame->width, frame->height, (AVPixelFormat)frame->format,
@@ -300,8 +305,7 @@ bool Image::Assign(const AVFrame *frame) {
     Error("Unable to create conversion context");
     return false;
   }
-  bool result = Assign(frame, sws_convert_context, dest_frame);
-  av_frame_free(&dest_frame);
+  bool result = Assign(frame, sws_convert_context, dest_frame.get());
   update_function_pointers();
   return result;
 }  // end Image::Assign(const AVFrame *frame)
@@ -312,12 +316,14 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
   temp_frame->pts = frame->pts;
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
 
-  if (sws_scale(convert_context,
+      int ret = sws_scale(convert_context,
         frame->data, frame->linesize, 0, frame->height,
-        temp_frame->data, temp_frame->linesize) < 0) {
-    Error("Unable to convert raw format %u %ux%u to target format %u %ux%u",
-        frame->format, frame->width, frame->height,
-        format, width, height);
+        temp_frame->data, temp_frame->linesize);
+  if (ret < 0) {
+    Error("Unable to convert raw format %u %s %ux%u to target format %u %s %ux%u: %s",
+        frame->format, av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame->format)), frame->width, frame->height,
+        format, av_get_pix_fmt_name(format), width, height,
+        av_make_error_string(ret).c_str());
     return false;
   }
   zm_dump_video_frame(temp_frame, "dest frame after convert");
@@ -661,7 +667,7 @@ void Image::AssignDirect(
     return;
   }
 
-  size_t new_buffer_size = p_width * p_height * p_colours;
+  size_t new_buffer_size = static_cast<size_t>(p_width) * p_height * p_colours;
 
   if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",
@@ -783,7 +789,7 @@ void Image::Assign(const Image &image) {
         return;
       }
     } else {
-      if (new_size > allocation || !buffer) {
+      if ((new_size > allocation) || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
         AllocImgBuffer(new_size);
       }
@@ -796,9 +802,9 @@ void Image::Assign(const Image &image) {
     subpixelorder = image.subpixelorder;
     size = new_size;
     linesize = image.linesize;
+    update_function_pointers();
   }
 
-  update_function_pointers();
   if ( image.buffer != buffer )
     (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
@@ -911,7 +917,7 @@ bool Image::ReadRaw(const char *filename) {
 
   if ( (unsigned int)statbuf.st_size != size ) {
     fclose(infile);
-    Error("Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size);
+    Error("Raw file size mismatch, expected %d bytes, found %jd", size, static_cast<intmax_t>(statbuf.st_size));
     return false;
   }
 
@@ -2474,6 +2480,10 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   colour = rgb_convert(colour, subpixelorder);
 
   size_t n_coords = polygon.GetVertices().size();
+  if (n_coords < 3) {
+    Error("Not enough vertices in polygon!");
+    return;
+  }
 
   std::vector<PolygonFill::Edge> global_edges;
   global_edges.reserve(n_coords);
@@ -2745,6 +2755,27 @@ void Image::Flip( bool leftright ) {
   AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
 }
 
+void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
+  if (width == new_width and height == new_height) return;
+
+  // Why larger than we need?
+  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
+  uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
+
+  AVPixelFormat format = AVPixFormat();
+  SWScale swscale;
+  swscale.init();
+  swscale.Convert( buffer, allocation,
+    scale_buffer,
+    scale_buffer_size,
+    format, format,
+    width,
+    height,
+    new_width,
+    new_height);
+  AssignDirect(new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
+}
+
 void Image::Scale(const unsigned int factor) {
   if ( !factor ) {
     Error("Bogus scale factor %d found", factor);
@@ -2758,7 +2789,7 @@ void Image::Scale(const unsigned int factor) {
   unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
 
   // Why larger than we need?
-  size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
+  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
 
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 

@@ -30,12 +30,12 @@ xhtmlHeaders( __FILE__, translate('Console'));
 if ( isset($_REQUEST['minTime']) ) {
   $minTime = validHtmlStr($_REQUEST['minTime']);
 } else {
-  $minTime = strftime('%FT%T', time() - (2*3600));
+  $minTime = date('c', time() - (2*3600));
 }
 if ( isset($_REQUEST['maxTime']) ) {
   $maxTime = validHtmlStr($_REQUEST['maxTime']);
 } else {
-  $maxTime = strftime('%FT%T',time() - 3600);
+  $maxTime = date('c', time() - 3600);
 }
 
 $filter = new ZM\Filter();
@@ -60,7 +60,7 @@ ZM\Debug($filterQuery);
 
 $eventsSql = 'SELECT *,
     UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-    UNIX_TIMESTAMP(EndDateTime) AS EndTimeSecs
+    UNIX_TIMESTAMP(E.EndDateTime) AS EndTimeSecs
   FROM Events AS E
   WHERE 1 > 0 
 ';
@@ -114,8 +114,8 @@ while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
     <div class="filterBar">
       <?php echo $filterbar ?>
       <div id="DateTimeDiv">
-        <label>Event Start Time</label>
-        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> to 
+        <label><?php echo translate('Event Start Time') ?></label>
+        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> <?php echo translate('to') ?> 
         <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>"/>
       </div>
     </div><!--FilterBar-->

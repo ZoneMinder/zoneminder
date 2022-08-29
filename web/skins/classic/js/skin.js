@@ -103,7 +103,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
 
 // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
 function dataOnClickThis() {
-  document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
+  document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this], span[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
       console.error("Nothing found to bind to " + fnName + " on element " + el.name);
@@ -580,6 +580,13 @@ function endOfResize(e) {
   resizeTimer = setTimeout(changeScale, 250);
 }
 
+/* scaleToFit
+ *
+ * Tries to figure out the available space to fit an image into
+ * Uses the #content element
+ * figures out where bottomEl is in the viewport
+ * does calculations
+ * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   var ratio = baseWidth / baseHeight;
@@ -592,23 +599,25 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   if (!bottomEl || !bottomEl.length) {
     bottomEl = $j(container[0].lastElementChild);
   }
-  //console.log(bottomEl);
   var viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
-  //console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true));
+  console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
   var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
-  //console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true));
+  console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
+
   var newWidth = ratio * newHeight;
+  console.log("newWidth = " + newWidth);
   if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth();
     newHeight = newWidth / ratio;
   }
+  console.log("newWidth = " + newWidth);
   var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
   var scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
-  scales.shift();
+  scales.shift(); // pop off Scale To Fit
   var closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
@@ -616,6 +625,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
     }
   });
   if (closest) {
+    console.log("Setting to closest: " + closest + " instead of " + autoScale);
     autoScale = closest;
   }
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
@@ -890,11 +900,18 @@ function exportResponse(data, responseText) {
 }
 
 function exportEvent() {
-  var form = $j('#downloadForm').serialize();
-  $j.getJSON(thisUrl + '?view=request&request=event&action=download', form)
-      .done(exportResponse)
-      .fail(logAjaxFail);
-  $j('#exportProgress').removeClass( 'invisible' );
+  $j.ajax({
+    url: thisUrl + '?view=request&request=event&action=download',
+    dataType: 'json',
+    data: $j('#downloadForm').serialize(),
+    success: exportResponse,
+    timeout: 0,
+    error: function(jqXHR, status, errorThrown) {
+      logAjaxFail(jqXHR, status, errorThrown);
+      $j('#exportProgress').html('Failed: ' + errorThrown);
+    }
+  });
+  $j('#exportProgress').removeClass('invisible');
 }
 
 // Loads the shutdown modal
@@ -984,5 +1001,20 @@ function closeFullscreen() {
   } else if (document.msExitFullscreen) {
     /* IE11 */
     document.msExitFullscreen();
+  }
+}
+
+function toggle_password_visibility(element) {
+  const input = document.getElementById(element.getAttribute('data-password-input'));
+  if (!input) {
+    console.log("Input not found! " + element.getAttribute('data-password-input'));
+    return;
+  }
+  if (element.innerHTML=='visibility') {
+    input.type = 'text';
+    element.innerHTML = 'visibility_off';
+  } else {
+    input.type = 'password';
+    element.innerHTML='visibility';
   }
 }

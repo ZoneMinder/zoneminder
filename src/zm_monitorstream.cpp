@@ -189,46 +189,13 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     case CMD_ZOOMIN :
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
       y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-      Debug(1, "Got ZOOM IN command, to %d,%d", x, y);
-      switch (zoom) {
-        case 100:
-          zoom = 150;
-          break;
-        case 150:
-          zoom = 200;
-          break;
-        case 200:
-          zoom = 300;
-          break;
-        case 300:
-          zoom = 400;
-          break;
-        case 400:
-        default :
-          zoom = 500;
-          break;
-      }
+      zoom += 10;
+      Debug(1, "Got ZOOM IN command, to %d,%d zoom value %d%%", x, y, zoom);
       break;
     case CMD_ZOOMOUT :
-      Debug(1, "Got ZOOM OUT command");
-      switch (zoom) {
-        case 500:
-          zoom = 400;
-          break;
-        case 400:
-          zoom = 300;
-          break;
-        case 300:
-          zoom = 200;
-          break;
-        case 200:
-          zoom = 150;
-          break;
-        case 150:
-        default :
-          zoom = 100;
-          break;
-      }
+      zoom -= 10;
+      if (zoom < 100) zoom = 100;
+      Debug(1, "Got ZOOM OUT command resulting zoom %d%%", zoom);
       break;
     case CMD_PAN :
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
@@ -406,7 +373,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   if (type == STREAM_MPEG) {
     if (!vid_stream) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, send_image->Colours(), send_image->SubpixelOrder(), send_image->Width(), send_image->Height());
-      fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
+      fprintf(stdout, "Content-Type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
 
@@ -418,13 +385,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
   } else {
-    if (temp_img_buffer_size < send_image->Size()) {
-      Debug(1, "Resizing image buffer from %zu to %u",
-          temp_img_buffer_size, send_image->Size());
-      delete[] temp_img_buffer;
-      temp_img_buffer = new uint8_t[send_image->Size()];
-      temp_img_buffer_size = send_image->Size();
-    }
+    reserveTempImgBuffer(send_image->Size());
 
     int img_buffer_size = 0;
     unsigned char *img_buffer = temp_img_buffer;
@@ -462,7 +423,8 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
        ) {
       if (!zm_terminate) {
         // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
-        Warning("Unable to send stream frame: %s", strerror(errno));
+        // ICON: zm_terminate might not get set yet. Make it a debug
+        Debug(1, "Unable to send stream frame: %s", strerror(errno));
       }
       return false;
     }
@@ -478,7 +440,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     if (frame_send_time > maxfps_milliseconds) {
       //maxfps /= 1.5;
-      Warning("Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", throttling maxfps to %.3f",
+      Debug(1, "Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", %.3f",
           static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
           static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
           maxfps);
@@ -502,27 +464,6 @@ void MonitorStream::runStream() {
 
   if (type == STREAM_JPEG)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
-
-  /* This is all about waiting and showing a useful message if the monitor isn't available */
-  while (!zm_terminate) {
-    if (connkey)
-      checkCommandQueue();
-
-    if (!checkInitialised()) {
-      if (!loadMonitor(monitor_id)) {
-        if (!sendTextFrame("Not connected")) return;
-      } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
-        monitor->setLastViewed();
-        if (!sendTextFrame("Waiting for capture")) return;
-      } else {
-        if (!sendTextFrame("Unable to stream")) return;
-      }
-      sleep(1);
-    } else {
-      break;
-    }
-  }
-  if (zm_terminate) return;
 
   updateFrameRate(monitor->GetFPS());
 
@@ -586,6 +527,12 @@ void MonitorStream::runStream() {
   } else {
     Debug(2, "Not using playback_buffer");
   } // end if connkey && playback_buffer
+    
+  std::thread command_processor;
+  if (connkey) {
+    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
+  }
+
 
   while (!zm_terminate) {
     if (feof(stdout)) {
@@ -594,28 +541,29 @@ void MonitorStream::runStream() {
     } else if (ferror(stdout)) {
       Debug(2, "ferror stdout");
       break;
-    } else if (!monitor->ShmValid()) {
-      Debug(2, "monitor not valid.... maybe we should wait until it comes back.");
-      break;
     }
 
     now = std::chrono::steady_clock::now();
     monitor->setLastViewed();
 
     bool was_paused = paused;
-    bool got_command = false; // commands like zoom should output a frame even if paused
-    if (connkey) {
-      while (checkCommandQueue() && !zm_terminate) {
-        // Loop in here until all commands are processed.
-        Debug(2, "Have checking command Queue for connkey: %d", connkey);
-        got_command = true;
+    if (!checkInitialised()) {
+      if (!loadMonitor(monitor_id)) {
+        if (!sendTextFrame("Not connected")) {
+          Debug(1, "Failed Send not connected");
+          continue;
+        }
+      } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        if (!sendTextFrame("Waiting for capture")) return;
+      } else {
+        if (!sendTextFrame("Unable to stream")) {
+          Debug(1, "Failed Send unable to stream");
+          return;
+        }
       }
-      // Update modified time of the socket .lock file so that we can tell which ones are stale.
-      if (now - last_comm_update > Hours(1)) {
-        touch(sock_path_lock);
-        last_comm_update = now;
-      }
-    }  // end if connkey
+      std::this_thread::sleep_for(MAX_SLEEP);
+      continue;
+    }
 
     if (paused) {
       if (!was_paused) {
@@ -901,8 +849,17 @@ void MonitorStream::runStream() {
       }
     } // end if checking for swap_path
   } // end if buffered_playback
+  if (zm_terminate)
+    Debug(1, "zm_terminate");
 
-  closeComms();
+  if (connkey) {
+    if (command_processor.joinable()) {
+      Debug(1, "command_processor is joinable");
+      command_processor.join();
+    } else {
+      Debug(1, "command_processor is not joinable");
+    }
+  }
 } // end MonitorStream::runStream
 
 void MonitorStream::SingleImage(int scale) {

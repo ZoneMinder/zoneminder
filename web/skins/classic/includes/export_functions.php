@@ -72,6 +72,7 @@ function exportEventDetail($event, $exportFrames, $exportImages) {
 	if ( $exportFrames ) $otherlinks .= ' <a href="zmEventFrames.html">'.translate('Frames').'</a>,';
 	if ( $exportImages ) $otherlinks .= ' <a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks, 0, -1);
+  global $dateTimeFormatter;
 ?>
 <body>
   <div id="page">
@@ -83,7 +84,7 @@ function exportEventDetail($event, $exportFrames, $exportImages) {
         <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event->Monitor()->Name()) ?> (<?php echo $event->MonitorId() ?>)</td></tr>
         <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event->Cause()) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event->Notes()) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartDateTime())) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo $dateTimeFormatter->format(strtotime($event->StartDateTime())) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event->Length() ?></td></tr>
         <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event->Frames() ?></td></tr>
         <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event->AlarmFrames() ?></td></tr>
@@ -143,11 +144,12 @@ function exportEventFrames($event, $exportDetail, $exportImages) {
         }
 
         $class = strtolower($frame['Type']);
+        global $timeFormatter;
 ?>
         <tr class="<?php echo $class ?>">
           <td><?php echo $frame['FrameId'] ?></td>
           <td><?php echo $frame['Type'] ?></td>
-          <td><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
+          <td><?php echo $timeFormatter->format($frame['UnixTimeStamp']) ?></td>
           <td><?php echo number_format($frame['Delta'], 2) ?></td>
           <td><?php echo $frame['Score'] ?></td>
 <?php
@@ -583,7 +585,7 @@ function eventlist_html($Event, $exportDetail, $exportFrames, $exportStructure) 
 ';
 	} # end if has jpegs
 	if ($Event->DefaultVideo()) {
-    $html .= '<a href="'.$Event->Id().'/'.$Event->DefaultVideo() .'">';
+    $html .= '<a href="'.$Event->Id().($exportStructure == 'flat'?'_':'/').$Event->DefaultVideo() .'">';
     $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().($exportStructure=='flat'?'_':'/').'snapshot.jpg" alt="'.$Event->Id().'" loading="lazy" />';
     $html .= '</a><br/>'.PHP_EOL;
 	}
@@ -931,14 +933,21 @@ function exportEvents(
       ZM\Error("Can't mkdir $event_dir");
     }
     $event_exportFileList = exportFileList($event, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc);
-    $exportFileList = array_merge($exportFileList, $event_exportFileList);
+    #$exportFileList = array_merge($exportFileList, $event_exportFileList);
     foreach ($event_exportFileList as $file) {
      #if ( preg_match('/\.html$/', $file) )
         #continue;
       if ($exportStructure == 'flat') {
-        $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'_'.$file. ' 2>&1';
+        if (false !== strpos($file, $event->Id())) {
+          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$file. ' 2>&1';
+          $exportFileList[] = $file;
+        } else {
+          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'_'.$file. ' 2>&1';
+          $exportFileList[] = $event->Id().'_'.$file;
+        }
       } else {
         $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
+        $exportFileList[] = $event->Id().'/'.$file;
       }
       exec($cmd, $output, $return);
       ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
@@ -954,16 +963,18 @@ function exportEvents(
   }
   //if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/video.js', $export_dir.'/video.js') )
     //Error("Failed linking video.js");
+  //
+  if (!($exportDetail or $exportFrames or $exportImages or $exportVideo or $exportMisc)) {
+    $html_eventMaster_file = 'zmEventImagesMaster.html';
+    $html_eventMaster_path = $export_dir.'/'.$html_eventMaster_file;
 
-  $html_eventMaster_file = 'zmEventImagesMaster.html';
-  $html_eventMaster_path = $export_dir.'/'.$html_eventMaster_file;
-
-  if (($fp = fopen($html_eventMaster_path, 'w'))) {
-    fwrite($fp, exportEventImagesMaster($eids, $exportDetail, $exportFrames, $exportStructure));
-    fclose($fp);
-    $exportFileList[] = $html_eventMaster_file;
-  } else {
-    ZM\Error("Can't open event images export file '$html_eventMaster_path'");
+    if (($fp = fopen($html_eventMaster_path, 'w'))) {
+      fwrite($fp, exportEventImagesMaster($eids, $exportDetail, $exportFrames, $exportStructure));
+      fclose($fp);
+      $exportFileList[] = $html_eventMaster_file;
+    } else {
+      ZM\Error("Can't open event images export file '$html_eventMaster_path'");
+    }
   }
 
   $listFile = $export_dir.'/'.$export_listFile;

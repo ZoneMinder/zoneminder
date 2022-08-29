@@ -8,6 +8,7 @@ monitorData[monitorData.length] = {
   'connKey': <?php echo $monitor->connKey() ?>,
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
+  'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',
@@ -16,11 +17,5 @@ monitorData[monitorData.length] = {
 <?php
   }
 ?>
-
-var CMD_PAUSE = <?php echo CMD_PAUSE ?>;
-var CMD_PLAY = <?php echo CMD_PLAY ?>;
-var CMD_STOP = <?php echo CMD_STOP ?>;
-var CMD_QUERY = <?php echo CMD_QUERY ?>;
-var CMD_QUIT = <?php echo CMD_QUIT ?>;
 
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;

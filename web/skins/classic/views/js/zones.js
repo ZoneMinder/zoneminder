@@ -12,9 +12,12 @@ function initPage() {
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    monitors[i].setScale('auto');
+    monitors[i].setStreamScale();
     monitors[i].start(delay);
   }
+  $j('svg polygon').on('click', function(e) {
+    window.location='?view=zone&mid='+this.getAttribute('data-mid')+'&zid='+this.getAttribute('data-zid');
+  });
 
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {

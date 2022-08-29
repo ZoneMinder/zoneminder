@@ -323,7 +323,7 @@ int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
           }
           zm_packet->keyframe = 1;
           zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
-          zm_packet->packet.stream_index = mVideoStreamId;
+          zm_packet->packet->stream_index = mVideoStreamId;
           zm_packet->stream = mVideoStream;
           zm_packet->image->DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
           frameComplete = true;
@@ -351,7 +351,7 @@ int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
           }
           zm_packet->keyframe = 1;
           zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
-          zm_packet->packet.stream_index = mVideoStreamId;
+          zm_packet->packet->stream_index = mVideoStreamId;
           zm_packet->stream = mVideoStream;
           zm_packet->image->DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
           single_offsets.pop_front();

@@ -24,7 +24,7 @@ Now your terminal session is back under your normal user. You can check that
 you are now part of the sudo group with the command ``groups``, "sudo" should
 appear in the list. If not, run ``newgrp sudo`` and check again with ``groups``.
 
-**Step 2:** Update system and install zoneminder
+**Step 2:** Update system
 
 Run the following commands.
 
@@ -32,12 +32,45 @@ Run the following commands.
 
     sudo apt update
     sudo apt upgrade
+
+**Step 3:** Install MariaDB and do initial database configuration
+
+Run the following commands.
+
+::
+
     sudo apt install mariadb-server
-    sudo apt install zoneminder
+
+Switch into root user and create database and database user
+
+::
+
+    sudo su
+    mariadb
+    CREATE DATABASE zm;
+    CREATE USER zmuser@localhost IDENTIFIED BY 'zmpass';
+    GRANT ALL ON zm.* TO zmuser@localhost;
+    FLUSH PRIVILEGES;
+    exit;
+    exit
 
 By default MariaDB uses `unix socket authentication`_, so no root user password is required (root MariaDB user access only available to local root Linux user). If you wish, you can set a root MariaDB password (and apply other security tweaks) by running `mariadb-secure-installation`_.
 
-**Step 3:** Setup permissions for zm.conf
+**Step 4:** Install zoneminder
+
+Run the following commands.
+
+::
+
+    sudo apt install zoneminder
+
+**Step 5:** Configure database
+
+:: 
+
+    mariadb -u zmuser -pzmpass < /usr/share/zoneminder/db/zm_create.sql
+
+**Step 6:** Setup permissions for zm.conf
 
 To make sure zoneminder can read the configuration file, run the following command.
 
@@ -45,7 +78,17 @@ To make sure zoneminder can read the configuration file, run the following comma
 
     sudo chgrp -c www-data /etc/zm/zm.conf
 
-Congratulations! You should now be able to access zoneminder at ``http://yourhostname/zm``
+**Step 7:** Tweak Apache configuration
+
+::
+
+    sudo a2enconf zoneminder
+    sudo systemctl reload apache2.service
+    sudo systemctl reload zoneminder.service
+    sudo systemctl restart zoneminder.service
+    sudo systemctl status zoneminder.service
+
+If the zoneminder.service show to be active and without any errors, you should be able to access zoneminder at ``http://yourhostname/zm``
 
 Easy Way: Debian Buster
 ------------------------

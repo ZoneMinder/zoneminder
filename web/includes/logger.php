@@ -361,9 +361,10 @@ class Logger {
     $string = preg_replace('/[\r\n]+$/', '', $string);
     $code = self::$codes[$level];
 
+    global $dateTimeFormatter;
     $time = gettimeofday();
     $message = sprintf('%s.%06d %s[%d].%s [%s] [%s]',
-      strftime('%x %H:%M:%S', $time['sec']), $time['usec'],
+      $dateTimeFormatter->format($time['sec']), $time['usec'],
       $this->id, getmypid(), $code, $_SERVER['REMOTE_ADDR'], $string);
 
     if ( is_null($file) ) {

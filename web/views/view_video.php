@@ -25,7 +25,7 @@
 //      Does not support scaling at this time.
 //
 
-if ( !canView('Events') ) {
+if (!canView('Events')) {
   $view = 'error';
   return;
 }
@@ -39,23 +39,23 @@ $path = '';
 
 $Event = null;
 
-if ( ! empty($_REQUEST['eid']) ) {
+if (!empty($_REQUEST['eid'])) {
   $Event = new ZM\Event($_REQUEST['eid']);
   $path = $Event->Path().'/'.$Event->DefaultVideo();
-} else if ( ! empty($_REQUEST['event_id']) ) {
+} else if (!empty($_REQUEST['event_id'])) {
   $Event = new ZM\Event($_REQUEST['event_id']);
   $path = $Event->Path().'/'.$Event->DefaultVideo();
 } else {
   $errorText = 'No video path';
 }
 
-if ( $errorText ) {
+if ($errorText) {
   ZM\Error($errorText);
   header('HTTP/1.0 404 Not Found');
   die();
 } 
 
-if ( ! ($fh = @fopen($path, 'rb') ) ) {
+if (!($fh = @fopen($path, 'rb'))) {
   ZM\Error('Can\'t open video at '.$path);
   header('HTTP/1.0 404 Not Found');
   die();
@@ -78,7 +78,8 @@ if ( isset($_SERVER['HTTP_RANGE']) ) {
   }
 } # end if HTTP_RANGE
 
-header('Content-type: video/mp4');
+$path_info = pathinfo($Event->DefaultVideo());
+header('Content-type: video/'.$path_info['extension']);
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
 # This is so that Save Image As give a useful filename

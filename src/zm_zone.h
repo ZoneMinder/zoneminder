@@ -62,9 +62,9 @@ class Zone {
 
   protected:
     // Inputs
-    Monitor     *monitor;
+    const std::shared_ptr<Monitor> monitor;
 
-    int         id;
+    unsigned int         id;
     std::string label;
     ZoneType    type;
     Polygon     polygon;
@@ -126,8 +126,8 @@ class Zone {
 
   public:
     Zone(
-        Monitor *p_monitor,
-        int p_id,
+        const std::shared_ptr<Monitor> &p_monitor,
+        unsigned int p_id,
         const char *p_label,
         ZoneType p_type,
         const Polygon &p_polygon,
@@ -156,7 +156,7 @@ class Zone {
       Setup(p_type, p_polygon, p_alarm_rgb, p_check_method, p_min_pixel_threshold, p_max_pixel_threshold, p_min_alarm_pixels, p_max_alarm_pixels, p_filter_box, p_min_filter_pixels, p_max_filter_pixels, p_min_blob_pixels, p_max_blob_pixels, p_min_blobs, p_max_blobs, p_overload_frames, p_extend_alarm_frames );
     }
 
-    Zone(Monitor *p_monitor, int p_id, const char *p_label, const Polygon &p_polygon)
+    Zone(const std::shared_ptr<Monitor>&p_monitor, unsigned int p_id, const char *p_label, const Polygon &p_polygon)
       :
         monitor(p_monitor),
         id(p_id),
@@ -166,7 +166,7 @@ class Zone {
     {
       Setup(Zone::INACTIVE, p_polygon, kRGBBlack, (Zone::CheckMethod)0, 0, 0, 0, 0, Vector2(0, 0), 0, 0, 0, 0, 0, 0, 0, 0);
     }
-    Zone(Monitor *p_monitor, int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon)
+    Zone(const std::shared_ptr<Monitor>&p_monitor, unsigned int p_id, const char *p_label, ZoneType p_type, const Polygon &p_polygon)
       :
         monitor(p_monitor),
         id(p_id),
@@ -180,8 +180,9 @@ class Zone {
     Zone(const Zone &z);
     ~Zone();
 
-    inline int Id() const { return id; }
+    inline unsigned int Id() const { return id; }
     inline const char *Label() const { return label.c_str(); }
+    const std::string &Name() const { return label; }
     inline ZoneType Type() const { return type; }
     inline bool IsActive() const { return( type == ACTIVE ); }
     inline bool IsInclusive() const { return( type == INCLUSIVE ); }
@@ -213,8 +214,8 @@ class Zone {
     bool DumpSettings(char *output, bool verbose) const;
 
     static bool ParsePolygonString( const char *polygon_string, Polygon &polygon );
-    static bool ParseZoneString( const char *zone_string, int &zone_id, int &colour, Polygon &polygon );
-    static std::vector<Zone> Load(Monitor *monitor);
+    static bool ParseZoneString( const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon );
+    static std::vector<Zone> Load(const std::shared_ptr<Monitor> &monitor);
     //=================================================
     bool CheckOverloadCount();
     int GetOverloadCount();

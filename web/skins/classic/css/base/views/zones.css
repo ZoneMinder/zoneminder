@@ -19,17 +19,13 @@
 	fill: #0000FF;
 }
 
-.zones, .ZonesImage {
+.zones, .monitor {
   position: relative;
   width: 50%;
   min-width: 500px;
 	float: left;
 }
-.ZonesImage img {
-  top:0;
-  left:0;
-  position: relative;
-}
+/*
 .ZonesImage svg {
   width: 100%;
   position:absolute;
@@ -38,12 +34,14 @@
   right: 0;
   background: none;
 }
+*/
 
 #content {
 width: 97%;
 position: relative;
 }
 
+.monitor:after,
 .Monitor:after {
   content: ".";
   display: block;

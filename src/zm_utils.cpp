@@ -379,6 +379,26 @@ std::string UriDecode(const std::string &encoded) {
   return retbuf;
 }
 
+std::string UriEncode(const std::string &value) {
+  const char *src = value.c_str();
+  std::string retbuf;
+  retbuf.reserve(value.length() * 3); // at most all characters get replaced with the escape
+
+  char tmp[5] = "";
+  while(*src) {
+    if ( *src == ' ' ) {
+      retbuf.append("%%20");
+    } else if ( !( (*src >= 'a' && *src <= 'z') || (*src >= 'A' && *src <= 'Z') ) ) {
+      sprintf(tmp, "%%%02X", *src);
+      retbuf.append(tmp);
+    } else {
+      retbuf.push_back(*src);
+    }
+    src++;
+  }
+  return retbuf;
+}
+
 QueryString::QueryString(std::istream &input) {
   while (!input.eof() && input.peek() > 0) {
     //Should eat "param1="
@@ -441,4 +461,60 @@ std::string QueryString::parseValue(std::istream &input) {
   }
 
   return UriDecode(url_encoded_value);
+}
+
+std::string mask_authentication(const std::string &url) {
+  std::string masked_url = url;
+  std::size_t at_at = masked_url.find("@");
+  if (at_at == std::string::npos) {
+    return masked_url;
+  }
+  std::size_t password_at = masked_url.rfind(":", at_at);
+
+  if (password_at == std::string::npos) {
+    // no : means no http:// either so something liek username@192.168.1.1
+    masked_url.replace(0, at_at, at_at, '*');
+  } else if (masked_url[password_at+1] == '/') {
+    // no password, something like http://username@192.168.1.1
+    masked_url.replace(password_at+3, at_at-(password_at+3), at_at-(password_at+3), '*');
+  } else {
+    // have username and password, something like http://username:password@192.168.1.1/
+    masked_url.replace(password_at+1, at_at - (password_at+1), at_at - (password_at+1), '*');
+    std::size_t username_at = masked_url.rfind("/", password_at);
+    if (username_at == std::string::npos) {
+      // Something like username:password@192.168.1.1
+      masked_url.replace(0, password_at, password_at, '*');
+    } else {
+      masked_url.replace(username_at+1, password_at-(username_at+1), password_at-(username_at+1), '*');
+      // something like http://username:password@192.168.1.1/
+    }
+  }
+  return masked_url;
+}
+
+std::string remove_authentication(const std::string &url) {
+  std::size_t at_at = url.find("@");
+  if (at_at == std::string::npos) {
+    return url;
+  }
+  std::string result;
+  std::size_t password_at = url.rfind(":", at_at);
+
+  if (password_at == std::string::npos) {
+    // no : means no http:// either so something like username@192.168.1.1
+    result = url.substr(at_at+1);
+  } else if (url[password_at+1] == '/') {
+    // no password, something like http://username@192.168.1.1
+    result = url.substr(0, password_at+3) + url.substr(at_at+1);
+  } else {
+    std::size_t username_at = url.rfind("/", password_at);
+    if (username_at == std::string::npos) {
+      // Something like username:password@192.168.1.1
+      result = url.substr(at_at+1);
+    } else {
+      // have username and password, something like http://username:password@192.168.1.1/
+      result = url.substr(0, username_at+1) + url.substr(at_at+1);
+    }
+  }
+  return result;
 }

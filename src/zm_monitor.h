@@ -28,9 +28,13 @@
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
+#include "zm_mqtt.h"
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
+#include "zm_zone.h"
+
+#include <list>
 #include <memory>
 #include <sys/time.h>
 #include <vector>
@@ -43,6 +47,7 @@
 #endif
 
 class Group;
+class MonitorLinkExpression;
 
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
@@ -53,8 +58,9 @@ class Group;
 // This is the main class for monitors. Each monitor is associated
 // with a camera and is effectively a collector for events.
 //
-class Monitor {
+class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
+  friend class MonitorLinkExpression;
 
 public:
   typedef enum {
@@ -80,6 +86,11 @@ public:
   } AnalysisSourceOption;
 
   typedef enum {
+    ANALYSISIMAGE_FULLCOLOUR=1,
+    ANALYSISIMAGE_YCHANNEL
+  } AnalysisImageOption;
+
+  typedef enum {
     RECORDING_NONE=1,
     RECORDING_ONMOTION,
     RECORDING_ALWAYS
@@ -95,6 +106,7 @@ public:
     DECODING_NONE=1,
     DECODING_ONDEMAND,
     DECODING_KEYFRAMES,
+    DECODING_KEYFRAMESONDEMAND,
     DECODING_ALWAYS
   } DecodingOption;
 
@@ -178,37 +190,40 @@ protected:
     uint8_t recording;          /* +55   */
     uint8_t signal;             /* +56   */
     uint8_t format;             /* +57   */
-    uint32_t imagesize;         /* +58   */
-    uint32_t last_frame_score;  /* +62   */
-    uint32_t  audio_frequency;  /* +66   */
-    uint32_t  audio_channels;   /* +70   */
+    uint8_t reserved1;          /* +58   */
+    uint8_t reserved2;          /* +59   */
+    uint32_t imagesize;         /* +60   */
+    uint32_t last_frame_score;  /* +64   */
+    uint32_t audio_frequency;   /* +68   */
+    uint32_t audio_channels;    /* +72   */
+    uint32_t reserved3;         /* +76   */
     /* 
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
      */
-    union {                     /* +72   */
+    union {                     /* +80   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +80   */
-      time_t zmc_heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
+    union {                     /* +88   */
+      time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {                     /* +88  */
+    union {                     /* +96   */
       time_t last_write_time;
       uint64_t extrapad3;
     };
-    union {                     /* +96  */
+    union {                     /* +104  */
       time_t last_read_time;
       uint64_t extrapad4;
     };
-    union {                     /* +104  */
+    union {                     /* +112  */
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    uint8_t control_state[256];  /* +112   */
+    uint8_t control_state[256]; /* +120  */
 
     char alarm_cause[256];
     char video_fifo_path[64];
@@ -242,10 +257,15 @@ protected:
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
   } VideoStoreData;
 
+public:
   class MonitorLink {
   protected:
-    unsigned int  id;
-    char      name[64];
+    std::shared_ptr<Monitor>  monitor;
+    unsigned int zone_id;
+    const Zone    *zone;
+    int  zone_index;  // index into zone_scores for our zone
+
+    std::string   name;
 
     bool      connected;
     time_t    last_connect_time;
@@ -262,16 +282,18 @@ protected:
     volatile SharedData  *shared_data;
     volatile TriggerData  *trigger_data;
     volatile VideoStoreData *video_store_data;
+    volatile int * zone_scores;
 
     int        last_state;
     uint64_t   last_event_id;
+    std::vector<Zone> zones;
 
     public:
-      MonitorLink(unsigned int p_id, const char *p_name);
+      MonitorLink(std::shared_ptr<Monitor> p_monitor, unsigned int p_zone_id);
       ~MonitorLink();
 
-      inline unsigned int Id() const { return id; }
-      inline const char *Name() const { return name; }
+      inline unsigned int Id() const { return monitor->Id(); }
+      inline const char *Name() const { return name.c_str(); }
 
       inline bool isConnected() const { return connected && shared_data->valid; }
       inline time_t getLastConnectTime() const { return last_connect_time; }
@@ -286,7 +308,9 @@ protected:
       bool isAlarmed();
       bool inAlarm();
       bool hasAlarmed();
+      int score();
   };
+protected:
 
   class AmcrestAPI {
   protected:
@@ -297,7 +321,7 @@ protected:
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
   public:
-    AmcrestAPI( Monitor *parent_);
+    explicit AmcrestAPI(Monitor *parent_);
     ~AmcrestAPI();
     int API_Connect();
     void WaitForMessage();
@@ -312,6 +336,7 @@ protected:
     //helper class for CURL
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool Janus_Healthy;
+    bool Use_RTSP_Restream;
     std::string janus_session;
     std::string janus_handle;
     std::string janus_endpoint;
@@ -319,9 +344,10 @@ protected:
     std::string rtsp_username;
     std::string rtsp_password;
     std::string rtsp_path;
+    std::string profile_override;
 
   public:
-    JanusManager(Monitor *parent_);
+    explicit JanusManager(Monitor *parent_);
     ~JanusManager();
     int add_to_janus();
     int check_janus();
@@ -342,12 +368,15 @@ protected:
   CapturingOption capturing;          // None, OnDemand, Always
   AnalysingOption analysing;          // None, Always
   AnalysisSourceOption  analysis_source;    // Primary, Secondary
+  AnalysisImageOption   analysis_image;     // FullColour, YChannel
   RecordingOption recording;          // None, OnMotion, Always
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
+  std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
+  bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
 
   std::string protocol;
   std::string method;
@@ -412,8 +441,8 @@ protected:
   int        pre_event_count;    // How many images to hold and prepend to an alarm event
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
-  Seconds section_length;      // How long events should last in continuous modes
-  Seconds min_section_length;   // Minimum event length when using event_close_mode == ALARM
+  Seconds    section_length;      // How long events should last in continuous modes
+  Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
@@ -433,7 +462,9 @@ protected:
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
+  std::string onvif_alarm_txt;     // def onvif_alarm_txt
   int         importance;           // Importance of this monitor, affects Connection logging errors.
+  unsigned int         zone_count;
 
   int capture_max_fps;
 
@@ -471,6 +502,7 @@ protected:
   SharedData      *shared_data;
   TriggerData     *trigger_data;
   VideoStoreData  *video_store_data;
+  int             *zone_scores;
 
   struct timeval *shared_timestamps;
   unsigned char *shared_images;
@@ -493,16 +525,25 @@ protected:
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
-  AVFrame *dest_frame;                    // Used by decoding thread doing colorspace conversions
+  av_frame_ptr dest_frame;                    // Used by decoding thread doing colorspace conversions
   SwsContext   *convert_context;
   std::thread  close_event_thread;
 
   std::vector<Zone> zones;
 
+#if MOSQUITTOPP_FOUND
+  bool                      mqtt_enabled;
+  std::vector<std::string>  mqtt_subscriptions;
+  std::unique_ptr<MQTT> mqtt;
+#endif
+
   const unsigned char  *privacy_bitmask;
 
+  std::string linked_monitors_string;
+
   int      n_linked_monitors;
-  MonitorLink    **linked_monitors;
+  MonitorLinkExpression *linked_monitors;
+  //MonitorLink    **linked_monitors;
   std::string   event_start_command;
   std::string   event_end_command;
 
@@ -560,11 +601,11 @@ public:
       gettimeofday(&now, nullptr);
       Debug(3, "Shared data is valid, checking heartbeat %" PRIi64 " - %" PRIi64 " = %" PRIi64"  < %f",
             static_cast<int64>(now.tv_sec),
-            static_cast<int64>(shared_data->zmc_heartbeat_time),
-            static_cast<int64>(now.tv_sec - shared_data->zmc_heartbeat_time),
+            static_cast<int64>(shared_data->heartbeat_time),
+            static_cast<int64>(now.tv_sec - shared_data->heartbeat_time),
             config.watch_max_delay);
 
-      if ((now.tv_sec - shared_data->zmc_heartbeat_time) < config.watch_max_delay)
+      if ((now.tv_sec - shared_data->heartbeat_time) < config.watch_max_delay)
         return true;
     }
     return false;
@@ -723,7 +764,7 @@ public:
   SystemTimePoint GetStartupTime() const { return std::chrono::system_clock::from_time_t(shared_data->startup_time); }
   void SetStartupTime(SystemTimePoint time) { shared_data->startup_time = std::chrono::system_clock::to_time_t(time); }
   void SetHeartbeatTime(SystemTimePoint time) {
-    shared_data->zmc_heartbeat_time = std::chrono::system_clock::to_time_t(time);
+    shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(time);
   }
   void get_ref_image();
 
@@ -770,7 +811,7 @@ public:
 
   void Reload();
   void ReloadZones();
-  void ReloadLinkedMonitors( const char * );
+  void ReloadLinkedMonitors();
 
   bool DumpSettings( char *output, bool verbose );
   void DumpZoneImage( const char *zone_string=0 );

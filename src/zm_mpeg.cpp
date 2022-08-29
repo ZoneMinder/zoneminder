@@ -213,8 +213,8 @@ bool VideoStream::OpenStream( ) {
 		Debug( 1, "Opened codec" );
 
 		/* allocate the encoded raw picture */
-		opicture = zm_av_frame_alloc( );
-    if ( !opicture ) {
+		opicture = av_frame_ptr{zm_av_frame_alloc()};
+    if (!opicture) {
       Error("Could not allocate opicture");
       return false;
     }
@@ -224,37 +224,33 @@ bool VideoStream::OpenStream( ) {
 
     int size = av_image_get_buffer_size(codec_context->pix_fmt, codec_context->width, codec_context->height, 1);
 
-    uint8_t *opicture_buf = (uint8_t *)av_malloc(size);
-    if ( !opicture_buf ) {
-      av_frame_free( &opicture );
-      Error( "Could not allocate opicture_buf" );
+    opicture->buf[0] = av_buffer_alloc(size);
+    if (!opicture->buf[0]) {
+      Error( "Could not allocate opicture buffer" );
       return false;
     }
     av_image_fill_arrays(opicture->data, opicture->linesize,
-      opicture_buf, codec_context->pix_fmt, codec_context->width, codec_context->height, 1);
+      opicture->buf[0]->data, codec_context->pix_fmt, codec_context->width, codec_context->height, 1);
 
     /* if the output format is not identical to the input format, then a temporary
        picture is needed too. It is then converted to the required
        output format */
-    tmp_opicture = nullptr;
     if ( codec_context->pix_fmt != pf ) {
-      tmp_opicture = av_frame_alloc();
+      tmp_opicture = av_frame_ptr{av_frame_alloc()};
 
-      if ( !tmp_opicture ) {
-        Error( "Could not allocate tmp_opicture" );
+      if (!tmp_opicture) {
+        Error("Could not allocate tmp_opicture");
         return false;
       }
-      int size = av_image_get_buffer_size( pf, codec_context->width, codec_context->height,1 );
-
-      uint8_t *tmp_opicture_buf = (uint8_t *)av_malloc( size );
-      if ( !tmp_opicture_buf ) {
-        av_frame_free( &tmp_opicture );
-        Error( "Could not allocate tmp_opicture_buf" );
+      size = av_image_get_buffer_size(pf, codec_context->width, codec_context->height, 1);
+      tmp_opicture->buf[0] = av_buffer_alloc(size);
+      if (!tmp_opicture->buf[0]) {
+        Error( "Could not allocate tmp_opicture buffer" );
         return false;
       }
 
       av_image_fill_arrays(tmp_opicture->data,
-        tmp_opicture->linesize, tmp_opicture_buf, pf,
+        tmp_opicture->linesize, tmp_opicture->buf[0]->data, pf,
         codec_context->width, codec_context->height, 1);
     }
   } // end if ost
@@ -301,8 +297,6 @@ bool VideoStream::OpenStream( ) {
 VideoStream::VideoStream( const char *in_filename, const char *in_format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height ) :
 		filename(in_filename),
 		format(in_format),
-    opicture(nullptr),
-    tmp_opicture(nullptr),
     video_outbuf(nullptr),
     video_outbuf_size(0),
 		last_pts( -1 ),
@@ -339,10 +333,8 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
 	SetParameters( );
 
   // Allocate buffered packets.
-  packet_buffers = new AVPacket*[2];
-  packet_buffers[0] = new AVPacket();
-  packet_buffers[1] = new AVPacket();
-  packet_index = 0;
+  for (auto &pkt : packet_buffers)
+    pkt = av_packet_ptr{av_packet_alloc()};
 
 	// Initialize mutex used by streaming thread.
 	if ( pthread_mutex_init( buffer_copy_lock, nullptr ) != 0 ) {
@@ -376,21 +368,9 @@ VideoStream::~VideoStream( ) {
 		delete buffer_copy_lock;
 	}
 
-  if (packet_buffers) {
-    delete packet_buffers[0];
-    delete packet_buffers[1];
-    delete[] packet_buffers;
-  }
-
 	/* close each codec */
 	if ( ost ) {
 		avcodec_close( codec_context );
-		av_free( opicture->data[0] );
-		av_frame_free( &opicture );
-		if ( tmp_opicture ) {
-			av_free( tmp_opicture->data[0] );
-			av_frame_free( &tmp_opicture );
-		}
 		av_free( video_outbuf );
 	}
 
@@ -473,18 +453,16 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 	} else {
 		memcpy( opicture->data[0], buffer, buffer_size );
 	}
-	AVFrame *opicture_ptr = opicture;
 
-	AVPacket *pkt = packet_buffers[packet_index];
-	av_init_packet( pkt );
-  int got_packet = 0;
+	AVFrame *opicture_ptr = opicture.get();
+	AVPacket *pkt = packet_buffers[packet_index].get();
+
   if (codec_context->codec_type == AVMEDIA_TYPE_VIDEO &&
       codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
     pkt->flags |= AV_PKT_FLAG_KEY;
     pkt->stream_index = ost->index;
     pkt->data = (uint8_t *)opicture_ptr;
     pkt->size = buffer_size;
-    got_packet = 1;
 	} else {
 		opicture_ptr->pts = codec_context->frame_number;
 		opicture_ptr->quality = codec_context->global_quality;
@@ -493,13 +471,9 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
     int ret = avcodec_receive_packet(codec_context, pkt);
     if (ret < 0) {
       if (AVERROR_EOF != ret) {
-        Error("ERror encoding video (%d) (%s)", ret, av_err2str(ret));
+        Error("Error encoding video (%d) (%s)", ret, av_err2str(ret));
       }
     } else {
-      got_packet = 1;
-    }
-
-    if (got_packet) {
       //      if ( c->coded_frame->key_frame )
       //      {
       //        pkt->flags |= AV_PKT_FLAG_KEY;
@@ -557,7 +531,7 @@ void *VideoStream::StreamingThreadCallback(void *ctx) {
     // Since this lag is not constant the client may skip frames.
 
     // Get the last rendered packet.
-    AVPacket *packet = videoStream->packet_buffers[videoStream->packet_index];
+    AVPacket *packet = videoStream->packet_buffers[videoStream->packet_index].get();
     if (packet->size) {
       videoStream->SendPacket(packet);
     }

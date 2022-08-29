@@ -43,9 +43,9 @@ $Frame = new ZM\Frame($frame);
 $maxFid = $Event->Frames();
 
 $firstFid = 1;
-$prevFid = $fid-1;
-$nextFid = $fid+1;
-$lastFid = $maxFid;
+$prevFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId < ?', 'FrameId', array($eid, $fid));
+$nextFid = dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId > ?', 'FrameId', array($eid, $fid));
+$lastFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid));
 
 $alarmFrame = ( $Frame->Type() == 'Alarm' ) ? 1 : 0;
 
@@ -91,6 +91,7 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
     <div class="d-flex flex-row justify-content-between px-3 pt-1">
       <div id="toolbar" >
         <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="framesBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Frames') ?>" ><i class="fa fa-picture-o"></i></button>
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
         <button type="button" id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
         <button type="button" id="statsViewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats').' '.translate('View') ?>" ><i class="fa fa-table"></i></button>

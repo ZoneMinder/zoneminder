@@ -89,7 +89,7 @@ while (!$zm_terminate) {
   my $rows;
   do {
     # Delete any sessions that are more than a week old. Limiting to 100 because mysql sucks
-    $rows = zmDbDo('DELETE FROM Sessions WHERE access < ? LIMIT 100', time - (60*60*24*7));
+    $rows = zmDbDo('DELETE FROM Sessions WHERE access < ? LIMIT 100', time - $Config{ZM_COOKIE_LIFETIME});
     Debug("Deleted $rows sessions") if $rows;
   } while ($rows and ($rows == 100) and !$zm_terminate);
 

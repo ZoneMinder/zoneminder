@@ -58,6 +58,9 @@ if (isset($_REQUEST['scale'])) {
 } else {
   $scale = $monitor->DefaultScale();
 }
+if (!validInt($scale) and $scale != '0') {
+  $scale = '0';
+}
 
 $showZones = false;
 if (isset($_REQUEST['showZones'])) {
@@ -111,7 +114,8 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
 $player = 'mjpeg';
 if ( $Event->DefaultVideo() and ( $codec == 'MP4' or $codec == 'auto' ) ) {
   if (strpos($Event->DefaultVideo(), 'h265') or strpos($Event->DefaultVideo(), 'hevc')) {
-    $player = 'h265web.js';
+    $player = 'libde265.js';
+    #$player = 'h265web.js';
   } else {
     $player = 'video.js';
   }
@@ -173,6 +177,7 @@ else if (!file_exists($Event->Path()))
         <button id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
         <button id="framesBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Frames') ?>" ><i class="fa fa-picture-o"></i></button>
         <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
+        <a href="?view=montagereview&live=0&current=<?php echo urlencode($Event->StartDateTime()) ?>" class="btn btn-normal" title="<?php echo translate('Montage Review') ?>"><i class="material-icons md-18">grid_view</i></a>
 <?php
   if (canView('System')) { ?>
     <button id="toggleZonesButton" class="btn btn-<?php echo $showZones?'normal':'secondary'?>" title="<?php echo translate(($showZones?'Hide':'Show').' Zones')?>" ><span class="material-icons"><?php echo $showZones?'layers_clear':'layers'?></span</button>
@@ -240,17 +245,19 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 } else {
   $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
   if ( canStreamNative() ) {
-    outputImageStream('evtStream', $streamSrc, '100%', '100%', validHtmlStr($Event->Name()));
+    outputImageStream('evtStream', $streamSrc, '100%', 'auto', validHtmlStr($Event->Name()));
   } else {
     outputHelperStream('evtStream', $streamSrc, '100%', '100%');
   }
 } // end if stream method
 ?>
         <div id="alarmCue" class="alarmCue"></div>
-        <div id="progressBar" style="width: <?php echo reScale($Event->Width(), $scale);?>px;">
+        <div id="progressBar" style="width: 100%;">
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
         </div><!--progressBar-->
 <?php
+} else if ($player == 'libde265.js') {
+  echo '<canvas id="video" width="0" height="0"></canvas>';
 } else if ($player == 'h265web.js') {
 ?>
       <div id="player-container">
@@ -323,7 +330,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
           <i class="material-icons md-18">fast_forward</i>
           </button>
-          <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="streamZoomOut">
+          <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
           <i class="material-icons md-18">zoom_out</i>
           </button>
           <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
@@ -356,6 +363,8 @@ if ($player == 'video.js') {
   <script src="skins/<?php echo $skin ?>/js/video.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
 <?php 
+} else if ($player == 'libde265.js') {
+  echo '<script src="js/libde265.js"></script>';
 } else if ($player == 'h265web.js') {
 ?>
   <script src="skins/<?php echo $skin ?>/js/h265web.js/missile.js"></script>

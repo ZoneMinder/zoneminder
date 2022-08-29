@@ -99,7 +99,7 @@ void Zone::Setup(
       diag_path = stringtf("%s/diagpipe-%d-poly.jpg",
           staticConfig.PATH_SOCKS.c_str(), id);
 
-      Fifo::fifo_create_if_missing(diag_path.c_str());
+      Fifo::fifo_create_if_missing(diag_path);
     } else {
       diag_path = stringtf("%s/diag-%d-poly.jpg",
           monitor->getStorage()->Path(), id);
@@ -788,7 +788,7 @@ bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
   return !vertices.empty();
 }  // end bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon)
 
-bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon) {
+bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon) {
   Debug(3, "Parsing zone string '%s'", zone_string);
 
   char *str_ptr = new char[strlen(zone_string)+1];
@@ -825,7 +825,7 @@ bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, P
   return result;
 }  // end bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon)
 
-std::vector<Zone> Zone::Load(Monitor *monitor) {
+std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   std::vector<Zone> zones;
 
   std::string sql = stringtf("SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
@@ -897,10 +897,14 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
             monitor->Width(),
             monitor->Height());
 
+      auto n_coords = polygon.GetVertices().size();
       polygon.Clip(Box(
           {0, 0},
           {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
       ));
+      if (polygon.GetVertices().size() != n_coords) {
+        Error("Cropping altered the number of vertices! From %zu to %zu", n_coords, polygon.GetVertices().size());
+      }
     }
 
     if ( false && !strcmp( Units, "Percent" ) ) {
@@ -933,7 +937,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
 bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
   output[0] = 0;
 
-  sprintf(output+strlen(output), "  Id : %d\n", id );
+  sprintf(output+strlen(output), "  Id : %u\n", id );
   sprintf(output+strlen(output), "  Label : %s\n", label.c_str() );
   sprintf(output+strlen(output), "  Type: %d - %s\n", type,
       type==ACTIVE?"Active":(
@@ -1044,4 +1048,3 @@ Zone::Zone(const Zone &z) :
   //z.stats.debug("Copy Source");
   stats.DumpToLog("Copy dest");
 }
-

@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     defaults:
@@ -34,14 +37,14 @@ jobs:
         run: apt-get -qq update && apt-get -qq upgrade
       - name: Install git
         run: apt-get -qq install git
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Install dependencies
         run: >
           apt-get -qq install make cmake g++
           default-libmysqlclient-dev
-          libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev
+          libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev libavdevice-dev
           libcurl4-gnutls-dev libvlc-dev libvncserver-dev
           libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libwww-perl
           libpolkit-gobject-1-dev

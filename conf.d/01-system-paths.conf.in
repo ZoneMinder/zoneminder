@@ -53,3 +53,6 @@ ZM_PATH_ARP_SCAN="@ZM_PATH_ARP_SCAN@"
 
 #Full path to shutdown binary
 ZM_PATH_SHUTDOWN="@ZM_PATH_SHUTDOWN@"
+
+# Path to FFmpeg binary
+ZM_PATH_FFMPEG="@FFMPEG_EXECUTABLE@"

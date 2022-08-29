@@ -450,46 +450,18 @@ void EventStream::processCommand(const CmdMsg *msg) {
         x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
         y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
         Debug(1, "Got ZOOM IN command, to %d,%d", x, y);
-        switch ( zoom ) {
-          case 100:
-            zoom = 150;
-            break;
-          case 150:
-            zoom = 200;
-            break;
-          case 200:
-            zoom = 300;
-            break;
-          case 300:
-            zoom = 400;
-            break;
-          case 400:
-          default :
-            zoom = 500;
-            break;
-        }
+        zoom += 10;
         send_frame = true;
         break;
     case CMD_ZOOMOUT :
         Debug(1, "Got ZOOM OUT command");
-        switch ( zoom ) {
-          case 500:
-            zoom = 400;
-            break;
-          case 400:
-            zoom = 300;
-            break;
-          case 300:
-            zoom = 200;
-            break;
-          case 200:
-            zoom = 150;
-            break;
-          case 150:
-          default :
-            zoom = 100;
-            break;
-        }
+        zoom -= 10;
+        if (zoom < 100) zoom = 100;
+        send_frame = true;
+        break;
+    case CMD_ZOOMSTOP :
+        Debug(1, "Got ZOOM STOP command");
+        zoom = 100;
         send_frame = true;
         break;
     case CMD_PAN :
@@ -745,9 +717,8 @@ bool EventStream::sendFrame(Microseconds delta_us) {
   } else {
     bool send_raw = (type == STREAM_JPEG) && ((scale >= ZM_SCALE_BASE) && (zoom == ZM_SCALE_BASE)) && !filepath.empty();
 
-    fprintf(stdout, "--" BOUNDARY "\r\n");
-
     if (send_raw) {
+      fprintf(stdout, "--" BOUNDARY "\r\n");
       if (!send_file(filepath)) {
         Error("Can't send %s: %s", filepath.c_str(), strerror(errno));
         return false;
@@ -762,9 +733,8 @@ bool EventStream::sendFrame(Microseconds delta_us) {
         FrameData *frame_data = &event_data->frames[curr_frame_id-1];
         AVFrame *frame =
             ffmpeg_input->get_frame(ffmpeg_input->get_video_stream_id(), FPSeconds(frame_data->offset).count());
-        if ( frame ) {
+        if (frame) {
           image = new Image(frame);
-          //av_frame_free(&frame);
         } else {
           Error("Failed getting a frame.");
           return false;
@@ -803,16 +773,11 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
 
       Image *send_image = prepareImage(image);
-      if (temp_img_buffer_size < send_image->Size()) {
-        Debug(1, "Resizing image buffer from %zu to %u",
-            temp_img_buffer_size, send_image->Size());
-        delete[] temp_img_buffer;
-        temp_img_buffer = new uint8_t[send_image->Size()];
-        temp_img_buffer_size = send_image->Size();
-      }
+      reserveTempImgBuffer(send_image->Size());
       int img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
+      fprintf(stdout, "--" BOUNDARY "\r\n");
       switch ( type ) {
         case STREAM_JPEG :
           send_image->EncodeJpeg(img_buffer, &img_buffer_size);
@@ -871,24 +836,16 @@ void EventStream::runStream() {
   SystemTimePoint::duration last_frame_offset = Seconds(0);
   SystemTimePoint::duration time_to_event = Seconds(0);
 
+  std::thread command_processor;
+  if (connkey) {
+    command_processor = std::thread(&EventStream::checkCommandQueue, this);
+  }
+
   while ( !zm_terminate ) {
     now = std::chrono::steady_clock::now();
 
     Microseconds delta = Microseconds(0);
     send_frame = false;
-
-    if ( connkey ) {
-      // commands may set send_frame to true
-      while ( checkCommandQueue() && !zm_terminate ) {
-        // The idea is to loop here processing all commands before proceeding.
-      }
-
-      // Update modified time of the socket .lock file so that we can tell which ones are stale.
-      if (now - last_comm_update > Hours(1)) {
-        touch(sock_path_lock);
-        last_comm_update = now;
-      }
-    }
 
     // Get current frame data
     FrameData *frame_data = &event_data->frames[curr_frame_id-1];
@@ -1104,7 +1061,14 @@ void EventStream::runStream() {
     delete vid_stream;
   }
 
-  closeComms();
+  if (connkey) {
+    if (command_processor.joinable()) {
+      Debug(1, "command_processor is joinable");
+      command_processor.join();
+    } else {
+      Debug(1, "command_processor is not joinable");
+    }
+  }
 } // end void EventStream::runStream()
 
 bool EventStream::send_file(const std::string &filepath) {
@@ -1125,7 +1089,7 @@ bool EventStream::send_file(const std::string &filepath) {
     Info("File size is zero. Unable to send raw frame %d: %s", curr_frame_id, strerror(errno));
     return false;
   }
-  if (0 > fprintf(stdout, "Content-Length: %jd\r\n\r\n", filestat.st_size)) {
+  if (0 > fprintf(stdout, "Content-Length: %jd\r\n\r\n", static_cast<intmax_t>(filestat.st_size))) {
     fclose(fdj); /* Close the file handle */
     Info("Unable to send raw frame %d: %s", curr_frame_id, strerror(errno));
     return false;

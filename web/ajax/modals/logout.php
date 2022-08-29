@@ -43,7 +43,8 @@ global $CLANG;
   <tbody>
 <?php
 require_once('includes/User.php');
-$result = dbQuery('SELECT * FROM Sessions ORDER BY access DESC LIMIT 1000');
+$result = dbQuery('SELECT * FROM Sessions WHERE access > ? ORDER BY access DESC LIMIT 100',
+array(time() - ZM_COOKIE_LIFETIME));
 if (!$result) return;
 
 $current_session = $_SESSION;
@@ -75,11 +76,12 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
     $user_cache[$_SESSION['username']] = $user;
   }
 
+  global $dateTimeFormatter;
   echo '
   <tr>
     <td>'.validHtmlStr($user->Username()).'</td>
     <td>'.validHtmlStr($_SESSION['remoteAddr']).'</td>
-    <td>'.strftime(STRF_FMT_DATETIME_SHORTER, $row['access']).'</td>
+    <td>'.$dateTimeFormatter->format($row['access']).'</td>
   </tr>
 ';
 } # end while

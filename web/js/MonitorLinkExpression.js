@@ -76,8 +76,6 @@ function expr_to_ui(expr, container) {
   let brackets = 0;
   let used_monitorlinks = [];
 
-  if (!tokens.length) return;
-
   // Every monitorlink should have possible parenthesis on either side of it
   if (tokens.length > 3) {
     if (tokens[0].type != '(') {

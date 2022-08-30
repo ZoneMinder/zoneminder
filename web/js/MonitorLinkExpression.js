@@ -159,7 +159,7 @@ function expr_to_ui(expr, container) {
   for (monitor_id in monitors) {
     const monitor = monitors[monitor_id];
     //if (!array_search(monitor.Id, used_monitorlinks)) {
-      //select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
+      select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
     //}
     for ( zone_id in zones ) {
       const zone = zones[zone_id];
@@ -182,8 +182,10 @@ function array_search(needle, haystack) {
 }
 
 function add_to_expr() {
-  $j('[name="newMonitor[LinkedMonitors]"]').val($j('[name="newMonitor[LinkedMonitors]"]').val() + '|' + $j('#monitorLinks').val());
-  expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
+  const expr = $j('[name="newMonitor[LinkedMonitors]"]');
+  const oldval = expr.val();
+  expr.val(oldval == '' ? $j('#monitorLinks').val() : oldval + '|' + $j('#monitorLinks').val());
+  expr_to_ui(expr.val(), $j('#LinkedMonitorsUI'));
 }
 
 function update_expr(ev) {

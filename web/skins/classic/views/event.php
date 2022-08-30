@@ -114,8 +114,8 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
 $player = 'mjpeg';
 if ( $Event->DefaultVideo() and ( $codec == 'MP4' or $codec == 'auto' ) ) {
   if (strpos($Event->DefaultVideo(), 'h265') or strpos($Event->DefaultVideo(), 'hevc')) {
-    $player = 'libde265.js';
-    #$player = 'h265web.js';
+    #$player = 'libde265.js';
+    $player = 'h265web.js';
   } else {
     $player = 'video.js';
   }

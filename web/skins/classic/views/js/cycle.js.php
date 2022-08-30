@@ -28,5 +28,3 @@ monitorData[monitorData.length] = {
 <?php
 } // end foreach monitor
 ?>
-
-var SCALE_BASE = <?php echo SCALE_BASE ?>;

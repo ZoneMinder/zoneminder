@@ -667,7 +667,7 @@ void Image::AssignDirect(
     return;
   }
 
-  size_t new_buffer_size = p_width * p_height * p_colours;
+  size_t new_buffer_size = static_cast<size_t>(p_width) * p_height * p_colours;
 
   if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",
@@ -2759,7 +2759,7 @@ void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
   if (width == new_width and height == new_height) return;
 
   // Why larger than we need?
-  size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
+  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 
   AVPixelFormat format = AVPixFormat();
@@ -2789,7 +2789,7 @@ void Image::Scale(const unsigned int factor) {
   unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
 
   // Why larger than we need?
-  size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
+  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
 
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 

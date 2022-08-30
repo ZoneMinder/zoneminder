@@ -50,6 +50,10 @@ inline std::string StringToUpper(std::string str) {
   std::transform(str.begin(), str.end(), str.begin(), ::toupper);
   return str;
 }
+inline std::string StringToLower(std::string str) {
+  std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+  return str;
+}
 
 StringVector Split(const std::string &str, char delim);
 StringVector Split(const std::string &str, const std::string &delim, size_t limit = 0);
@@ -130,6 +134,7 @@ constexpr std::size_t size(const T(&)[N]) noexcept { return N; }
 std::string mask_authentication(const std::string &url);
 std::string remove_authentication(const std::string &url);
 
+std::string UriEncode(const std::string &value);
 std::string UriDecode(const std::string &encoded);
 
 class QueryParameter {

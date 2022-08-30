@@ -33,7 +33,9 @@ PacketQueue::PacketQueue():
   packet_counts(nullptr),
   deleting(false),
   keep_keyframes(false),
-  warned_count(0)
+  warned_count(0),
+  has_out_of_order_packets_(false),
+  max_keyframe_interval_(0)
 {
 }
 
@@ -87,6 +89,24 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
   {
     std::unique_lock<std::mutex> lck(mutex);
     if (deleting or zm_terminate) return false;
+
+    if (!has_out_of_order_packets_ and (add_packet->packet->dts != AV_NOPTS_VALUE)) {
+      auto rit = pktQueue.rbegin();
+      // Find the previous packet for the stream, and check dts
+      while (rit != pktQueue.rend()) {
+        if ((*rit)->packet->stream_index == add_packet->packet->stream_index) {
+          if ((*rit)->packet->dts >= add_packet->packet->dts) {
+            Debug(1, "Have out of order packets");
+            ZM_DUMP_PACKET((*rit)->packet, "queued_packet");
+            ZM_DUMP_PACKET(add_packet->packet, "add_packet");
+            has_out_of_order_packets_ = true;
+          }
+          break;
+        }
+        rit++;
+      }  // end while
+    }
+
     pktQueue.push_back(add_packet);
     for (
         auto iterators_it = iterators.begin();
@@ -115,8 +135,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         warned_count++;
         Warning("You have set the max video packets in the queue to %u."
             " The queue is full. Either Analysis is not keeping up or"
-            " your camera's keyframe interval is larger than this setting."
-            , max_video_packet_count);
+            " your camera's keyframe interval %d is larger than this setting."
+            , max_video_packet_count, max_keyframe_interval_);
       }
 
       for (
@@ -151,6 +171,9 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
             ++(*iterator_it);
           }
         }  // end foreach iterator
+
+        zm_packet->decoded = true; // Have to in case analysis is waiting on it
+        zm_packet->notify_all();
 
         it = pktQueue.erase(it);
         packet_counts[zm_packet->packet->stream_index] -= 1;
@@ -226,12 +249,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
     while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
       std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
-      ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
-      if (!lp->trylock()) {
-        delete lp;
-        break;
-      }
-      delete lp;
+      ZMLockedPacket lp(zm_packet);
+      if (!lp.trylock()) break;
 
       if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
         Warning("Found iterator at beginning of queue. Some thread isn't keeping up");
@@ -262,7 +281,8 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     return;
   }
 
-  int keyframe_interval = 1;
+  int keyframe_interval_count = 1;
+
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (!lp->trylock()) {
     Debug(4, "Failed getting lock on first packet");
@@ -296,12 +316,13 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 #endif
 
     if (zm_packet->packet->stream_index == video_stream_id) {
+      keyframe_interval_count++;
       if (zm_packet->keyframe) {
-        Debug(4, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval);
-        keyframe_interval = 1;
+        Debug(3, "Have a video keyframe so setting next front to it. Keyframe interval so far is %d", keyframe_interval_count);
+        if (keyframe_interval_count > max_keyframe_interval_)
+          max_keyframe_interval_ = keyframe_interval_count;
+        keyframe_interval_count = 1;
         next_front = it;
-      } else {
-        keyframe_interval++;
       }
       ++video_packets_to_delete;
       if (packet_counts[video_stream_id] - video_packets_to_delete <= pre_event_video_packet_count + tail_count) {
@@ -313,15 +334,11 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     ++it;
   } // end while
 
-  if ((keyframe_interval == 1) and max_video_packet_count) {
-    Warning("Did not find a second keyframe in the packet queue. It may be that"
-        " the Max Image Buffer setting is lower than the keyframe interval. We"
-        " need it to be greater than the keyframe interval.");
-  }
+
   Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d, Keyframe interval %d",
       ( *it == add_packet ),
       ( next_front == pktQueue.begin() ),
-      keyframe_interval
+      keyframe_interval_count
       );
   if (next_front != pktQueue.begin()) {
     while (pktQueue.begin() != next_front) {
@@ -350,11 +367,14 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 void PacketQueue::stop() {
   deleting = true;
   condition.notify_all();
-  for (const auto p : pktQueue) p->notify_all();
+  for (const auto &p : pktQueue) {
+    p->notify_all();
+  }
 }
 
 void PacketQueue::clear() {
   deleting = true;
+  // Why are we notifying?
   condition.notify_all();
   if (!packet_counts) // special case, not initialised
     return;

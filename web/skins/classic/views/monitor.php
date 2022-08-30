@@ -370,6 +370,7 @@ if ( $monitor->Type() != 'WebSite' ) {
     $tabs['x10'] = translate('X10');
   $tabs['misc'] = translate('Misc');
   $tabs['location'] = translate('Location');
+  $tabs['mqtt'] = translate('MQTT');
 }
 
 if (isset($_REQUEST['tab']) and isset($tabs[$_REQUEST['tab']]) ) {
@@ -572,7 +573,10 @@ switch ($name) {
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('Password') ?></td>
-              <td><input type="text" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/></td>
+              <td>
+                <input type="password" id="newMonitor[ONVIF_Password]" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
+                <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[ONVIF_Password]">visibility</span>
+              </td>
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('ONVIF_Options') ?></td>
@@ -629,7 +633,7 @@ $localMethods = array(
 if (!ZM_HAS_V4L2)
   unset($localMethods['v4l2']);
 echo htmlSelect('newMonitor[Method]', $localMethods, 
-  ((count($localMethods)<=1) ? array_key_first($localMethods) : $monitor->Method()),
+  ((count($localMethods)==1) ? array_keys($localMethods)[0] : $monitor->Method()),
   array('data-on-change'=>'submitTab', 'data-tab-name'=>$tab) );
 ?></td>
           </tr>
@@ -683,11 +687,22 @@ include('_monitor_source_nvsocket.php');
         </tr>
         <tr>
           <td class="text-right pr-3"><?php echo translate('Password') ?></td>
-          <td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td>
+          <td>
+            <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+            <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
+          </td>
         </tr>
 <?php
       } else if ( $monitor->Type() == 'Remote' ) {
 ?>
+          <tr><td class="text-right pr-3"><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo 'Password' ?></td>
+            <td>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
+            </td>
+          </tr>
           <tr>
             <td class="text-right pr-3"><?php echo translate('RemoteProtocol') ?></td>
             <td><?php echo htmlSelect('newMonitor[Protocol]', $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?></td>
@@ -721,7 +736,13 @@ include('_monitor_source_nvsocket.php');
 ?>
           <tr><td class="text-right pr-3"><?php echo 'URL' ?></td><td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/></td></tr>
           <tr><td class="text-right pr-3"><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/></td></tr>
-          <tr><td class="text-right pr-3"><?php echo 'Password' ?></td><td><input type="text" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo 'Password' ?></td>
+            <td>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
+            </td>
+          </tr>
 <?php
       } elseif ( $monitor->Type() == 'WebSite' ) {
 ?>
@@ -747,6 +768,14 @@ include('_monitor_source_nvsocket.php');
           <tr class="SourcePath">
             <td class="text-right pr-3"><?php echo translate('SourcePath') ?></td>
             <td><input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" /></td>
+          </tr>
+          <tr><td class="text-right pr-3"><?php echo 'Username' ?></td><td><input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/></td></tr>
+          <tr>
+            <td class="text-right pr-3"><?php echo 'Password' ?></td>
+            <td>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
+            </td>
           </tr>
           <tr>
             <td class="text-right pr-3">
@@ -1125,6 +1154,7 @@ $videowriter_encoders = array(
   'hevc_vaapi' => 'hevc_vaapi',
   'libvpx-vp9' => 'libvpx-vp9',
   'libsvtav1' => 'libsvtav1',
+  'libaom-av1'  => 'libaom-av1'
 );
  echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());?></td></tr>
             <tr class="OutputContainer">
@@ -1186,6 +1216,26 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 <?php
   if ( isset($OLANG['FUNCTION_JANUS_AUDIO_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_AUDIO_ENABLED']['Help'].'</div>';
+  }
+?>
+              </td>
+            </tr>
+            <tr id="FunctionJanusProfileOverride">
+              <td class="text-right pr-3"><?php echo translate('Janus Profile-ID Override') ?></td>
+              <td><input type="text" name="newMonitor[Janus_Profile_Override]" value="<?php echo $monitor->Janus_Profile_Override()?>"/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']['Help'].'</div>';
+  }
+?>
+              </td>
+            </tr>
+            <tr id="FunctionJanusUseRTSPRestream">
+              <td class="text-right pr-3"><?php echo translate('Janus Use RTSP Restream') ?></td>
+              <td><input type="checkbox" name="newMonitor[Janus_Use_RTSP_Restream]" value="1"<?php echo $monitor->Janus_Use_RTSP_Restream() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_USE_RTSP_RESTREAM']['Help'].'</div>';
   }
 ?>
               </td>
@@ -1458,6 +1508,18 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         </tr>
         <tr>
           <td colspan="2"><div id="LocationMap" style="height: 500px; width: 500px;"></div></td>
+        </tr>
+<?php
+    break;
+  case 'mqtt':
+?>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('MQTT Enabled') ?></td>
+          <td><?php echo html_radio('newMonitor[MQTT_Enabled]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->MQTT_Enabled()) ?></td>
+        </tr>
+        <tr>
+          <td class="text-right pr-3"><?php echo translate('MQTT Subscriptions') ?></td>
+          <td><input type="text" name="newMonitor[MQTT_Subscriptions]" value="<?php echo $monitor->MQTT_Subscriptions() ?>" /></td>
         </tr>
 <?php
     break;

@@ -103,7 +103,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
 
 // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
 function dataOnClickThis() {
-  document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
+  document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this], span[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
       console.error("Nothing found to bind to " + fnName + " on element " + el.name);
@@ -1001,5 +1001,20 @@ function closeFullscreen() {
   } else if (document.msExitFullscreen) {
     /* IE11 */
     document.msExitFullscreen();
+  }
+}
+
+function toggle_password_visibility(element) {
+  const input = document.getElementById(element.getAttribute('data-password-input'));
+  if (!input) {
+    console.log("Input not found! " + element.getAttribute('data-password-input'));
+    return;
+  }
+  if (element.innerHTML=='visibility') {
+    input.type = 'text';
+    element.innerHTML = 'visibility_off';
+  } else {
+    input.type = 'password';
+    element.innerHTML='visibility';
   }
 }

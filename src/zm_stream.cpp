@@ -21,6 +21,8 @@
 
 #include "zm_box.h"
 #include "zm_monitor.h"
+#include "zm_signal.h"
+
 #include <cmath>
 #include <sys/file.h>
 #include <sys/socket.h>
@@ -32,7 +34,7 @@ constexpr Milliseconds StreamBase::MAX_SLEEP;
 
 StreamBase::~StreamBase() {
   delete vid_stream;
-  delete temp_img_buffer;
+  delete[] temp_img_buffer;
   closeComms();
 }
 
@@ -108,34 +110,35 @@ void StreamBase::updateFrameRate(double fps) {
   }
 } // void StreamBase::updateFrameRate(double fps)
 
-bool StreamBase::checkCommandQueue() {
-  if ( sd >= 0 ) {
-    CmdMsg msg;
-    memset(&msg, 0, sizeof(msg));
-    int nbytes = recvfrom(sd, &msg, sizeof(msg), MSG_DONTWAIT, 0, 0);
-    if ( nbytes < 0 ) {
-      if ( errno != EAGAIN ) {
-        Error("recvfrom(), errno = %d, error = %s", errno, strerror(errno));
-        return false;
+void StreamBase::checkCommandQueue() {
+  while (!zm_terminate) {
+    // Update modified time of the socket .lock file so that we can tell which ones are stale.
+    if (now - last_comm_update > Hours(1)) {
+      touch(sock_path_lock);
+      last_comm_update = now;
+    }
+
+    if (sd >= 0) {
+      CmdMsg msg;
+      memset(&msg, 0, sizeof(msg));
+      int nbytes = recvfrom(sd, &msg, sizeof(msg), 0, /*MSG_DONTWAIT*/ 0, 0);
+      if (nbytes < 0) {
+        if (errno != EAGAIN) {
+          Error("recvfrom(), errno = %d, error = %s", errno, strerror(errno));
+        }
+      } else {
+        Debug(2, "Message length is (%d)", nbytes);
+        processCommand(&msg);
+        got_command = true;
       }
+    } else if (connkey) {
+      Warning("No sd in checkCommandQueue, comms not open for connkey %06d?", connkey);
+    } else {
+      // Perfectly valid if only getting a snapshot
+      Debug(1, "No sd in checkCommandQueue, comms not open.");
     }
-    //else if ( (nbytes != sizeof(msg)) )
-    //{
-      //Error( "Partial message received, expected %d bytes, got %d", sizeof(msg), nbytes );
-    //}
-    else {
-      Debug(2, "Message length is (%d)", nbytes);
-      processCommand(&msg);
-      return true;
-    }
-  } else if ( connkey ) {
-    Warning("No sd in checkCommandQueue, comms not open for connkey %06d?", connkey);
-  } else {
-    // Perfectly valid if only getting a snapshot
-    Debug(1, "No sd in checkCommandQueue, comms not open.");
-  }
-  return false;
-}  // end bool StreamBase::checkCommandQueue()
+  } // end while !zm_terminate
+}  // end void StreamBase::checkCommandQueue()
 
 Image *StreamBase::prepareImage(Image *image) {
   /* zooming should happen before scaling to preserve quality
@@ -400,3 +403,13 @@ void StreamBase::closeComms() {
     }
   }
 } // end void StreamBase::closeComms
+
+void StreamBase::reserveTempImgBuffer(size_t size)
+{
+  if (temp_img_buffer_size < size) {
+    Debug(1, "Resizing image buffer from %zu to %zu", temp_img_buffer_size, size);
+    delete[] temp_img_buffer;
+    temp_img_buffer = new uint8_t[size];
+    temp_img_buffer_size = size;
+  }
+}

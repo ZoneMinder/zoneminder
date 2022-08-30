@@ -32,6 +32,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libvncserver-dev
               ,libjwt-gnutls-dev|libjwt-dev
               ,libgsoap-dev
+              ,libmosquittopp-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 
@@ -78,6 +79,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libvncclient1|libvncclient0
         ,libjwt-gnutls0|libjwt0
         ,libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
+        ,libmosquittopp1
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

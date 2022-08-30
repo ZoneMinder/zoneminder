@@ -38,6 +38,9 @@ protected:
   int rtcp_sd;
   bool rtsp_describe;
 
+  const std::string user;
+  const std::string pass;
+
   Buffer buffer;
   Buffer lastSps;
   Buffer lastPps;
@@ -57,6 +60,8 @@ public:
       const std::string &host,
       const std::string &port,
       const std::string &path,
+      const std::string &user,
+      const std::string &pass,
       int p_width,
       int p_height,
       bool p_rtsp_describe,

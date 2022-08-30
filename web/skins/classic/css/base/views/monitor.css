@@ -19,9 +19,16 @@ input[name="newMonitor[ControlAddress]"],
 input[name="newMonitor[ONVIF_URL]"],
 input[name="newMonitor[ONVIF_Username]"],
 input[name="newMonitor[ONVIF_Password]"],
-input[name="newMonitor[ONVIF_Options]"] {
+input[name="newMonitor[ONVIF_Options]"],
+input[name="newMonitor[MQTT_Subscriptions]"] {
   width: 100%;
+	min-width: 240px;
 }
+input[name="newMonitor[ONVIF_URL]"] {
+	min-width: 340px;
+}
+input[name="newMonitor[ONVIF_Username]"],
+input[name="newMonitor[ONVIF_Password]"],
 input[name="newMonitor[LabelFormat]"]{
 	min-width: 240px;
 }
@@ -61,4 +68,18 @@ tr td:first-child {
 tr td input[type="checkbox"],
 tr td input[type="radio"] {
   margin: 6px 0;
+}
+.tab-content,
+.tab-content .active {
+width: 100%;
+}
+.tab-content .active table {
+width: 100%;
+table-layout: fixed;
+}
+.tab-content .active table tr {
+  height: 32px;
+}
+.tab-content .active table td.text-right {
+width: 245px;
 }

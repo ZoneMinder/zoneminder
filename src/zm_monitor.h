@@ -28,9 +28,7 @@
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
-#if 0
-#include "zm_monitorlink_expression.h"
-#endif
+#include "zm_mqtt.h"
 #include "zm_packet.h"
 #include "zm_packetqueue.h"
 #include "zm_utils.h"
@@ -338,6 +336,7 @@ protected:
     //helper class for CURL
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
     bool Janus_Healthy;
+    bool Use_RTSP_Restream;
     std::string janus_session;
     std::string janus_handle;
     std::string janus_endpoint;
@@ -345,6 +344,7 @@ protected:
     std::string rtsp_username;
     std::string rtsp_password;
     std::string rtsp_path;
+    std::string profile_override;
 
   public:
     explicit JanusManager(Monitor *parent_);
@@ -375,6 +375,8 @@ protected:
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
+  std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
+  bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
 
   std::string protocol;
   std::string method;
@@ -528,6 +530,12 @@ protected:
   std::thread  close_event_thread;
 
   std::vector<Zone> zones;
+
+#if MOSQUITTOPP_FOUND
+  bool                      mqtt_enabled;
+  std::vector<std::string>  mqtt_subscriptions;
+  std::unique_ptr<MQTT> mqtt;
+#endif
 
   const unsigned char  *privacy_bitmask;
 

@@ -720,7 +720,6 @@ function canStreamIframe() {
 }
 
 function canStreamNative() {
-  ZM\Debug("ZM_WEB_CAN_STREAM:".ZM_WEB_CAN_STREAM.' isInternetExplorer: ' . isInternetExplorer() . ' isOldChrome:' . isOldChrome());
   // Old versions of Chrome can display the stream, but then it blocks everything else (Chrome bug 5876)
   return ( ZM_WEB_CAN_STREAM == 'yes' || ( ZM_WEB_CAN_STREAM == 'auto' && (!isInternetExplorer() && !isOldChrome()) ) );
 }
@@ -2344,6 +2343,25 @@ function get_subnets($interface) {
     } # end foreach line of output
   }
   return $subnets;
+}
+
+function extract_auth_values_from_url($url): array {
+  $protocolPrefixPos = strpos($url, '://');
+  if( $protocolPrefixPos === false )
+    return array();
+
+  $authSeparatorPos = strpos($url, '@', $protocolPrefixPos+3);
+  if( $authSeparatorPos === false )
+    return array();
+
+  $fieldsSeparatorPos = strpos($url, ':', $protocolPrefixPos+3);
+  if( $fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos )
+    return array();
+
+  $username = substr( $url, $protocolPrefixPos+3, $fieldsSeparatorPos-($protocolPrefixPos+3) );
+  $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
+
+  return array( $username, $password );
 }
 
 ?>

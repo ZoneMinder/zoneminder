@@ -53,6 +53,7 @@ VideoStore::CodecData VideoStore::codec_data[] = {
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
   { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
+  { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
 #else
   { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
 
@@ -154,7 +155,10 @@ bool VideoStore::open() {
   oc->metadata = pmetadata;
   // Dirty hack to allow us to set flags. Needed for ffmpeg5
   out_format = const_cast<AVOutputFormat *>(oc->oformat);
+  // ffmpeg 5 crashes if we do this
+#if !LIBAVFORMAT_VERSION_CHECK(59, 16,100, 9, 0)
   out_format->flags |= AVFMT_TS_NONSTRICT; // allow non increasing dts
+#endif
 
   const AVCodec *video_out_codec = nullptr;
 

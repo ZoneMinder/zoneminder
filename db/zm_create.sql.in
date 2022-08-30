@@ -465,6 +465,8 @@ CREATE TABLE `Monitors` (
   `Decoding` enum('None','Ondemand','KeyFrames','KeyFrames+Ondemand', 'Always') NOT NULL default 'Always',
   `JanusEnabled` BOOLEAN NOT NULL default false,
   `JanusAudioEnabled` BOOLEAN NOT NULL default false,
+  `Janus_Profile_Override` VARCHAR(30) NOT NULL DEFAULT '',
+  `Janus_Use_RTSP_Restream` BOOLEAN NOT NULL default false,
   `LinkedMonitors` varchar(255),
   `Triggers` set('X10') NOT NULL default '',
   `EventStartCommand` VARCHAR(255) NOT NULL DEFAULT '',
@@ -560,6 +562,8 @@ CREATE TABLE `Monitors` (
   `RTSPServer`  BOOLEAN NOT NULL DEFAULT FALSE,
   `RTSPStreamName`  varchar(255) NOT NULL default '',
   `Importance`  enum('Normal','Less','Not') NOT NULL default 'Normal',
+  `MQTT_Enabled`  BOOLEAN NOT NULL DEFAULT false,
+  `MQTT_Subscriptions`  varchar(255) default '',
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -667,7 +671,7 @@ CREATE TABLE `Stats` (
   `MaxY` smallint(5) unsigned NOT NULL default '0',
   `Score` smallint(5) unsigned NOT NULL default '0',
   PRIMARY KEY (`Id`),
-  KEY `EventId` (`EventId`),
+  KEY `EventId_ZoneId` (`EventId`, `ZoneId`),
   KEY `MonitorId` (`MonitorId`),
   KEY `ZoneId` (`ZoneId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;

@@ -39,6 +39,7 @@ set(ZM_BIN_SRC_FILES
   zm_monitorlink_expression.cpp
   #zm_monitorlink_token.cpp
   zm_monitorstream.cpp
+  zm_mqtt.cpp
   zm_ffmpeg.cpp
   zm_ffmpeg_camera.cpp
   zm_ffmpeg_input.cpp

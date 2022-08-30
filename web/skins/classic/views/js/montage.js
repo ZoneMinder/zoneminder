@@ -1,3 +1,4 @@
+const monitors = new Array();
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -65,14 +66,9 @@ function selectLayout(new_layout_id) {
     //$j('#height').val('auto');
   }
 
-  var width = $j('#width').val();
-  var height = $j('#height').val();
-  var scale = $j('#scale').val();
-  for (var i = 0, length = monitors.length; i < length; i++) {
-    var monitor = monitors[i];
-    monitor.setScale(scale, width, height);
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    monitors[i].setStreamScale();
   } // end foreach monitor
-  console.log("Done selectLayout");
 } // end function selectLayout(element)
 
 function changeHeight() {
@@ -235,7 +231,6 @@ function handleClick(evt) {
   }
 }
 
-const monitors = new Array();
 function initPage() {
   $j("#hdrbutton").click(function() {
     $j("#flipMontageHeader").slideToggle("slow");
@@ -265,8 +260,8 @@ function initPage() {
   // If you click on the navigation links, shut down streaming so the browser can process it
   document.querySelectorAll('#main-header-nav a').forEach(function(el) {
     el.onclick = function() {
-      for (var i = 0, length = monitors.length; i < length; i++) {
-        monitors[i].kill();
+      for (let i = 0, length = monitors.length; i < length; i++) {
+        if (monitors[i]) monitors[i].kill();
       }
     };
   });

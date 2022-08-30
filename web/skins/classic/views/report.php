@@ -104,6 +104,7 @@ foreach ($events as $event) {
 
 time_labels = Array();
 datasets = Array();
+dataset_indexes = {}; // Associative array from a date String like July 20 to an index into the datasets.
 for (i=0; i < 24; i++) {
   time_labels[time_labels.length] = `${i}:00`;
 }
@@ -112,10 +113,16 @@ months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct',
 for (event_index=0; event_index < events.length; event_index++) {
   const event = events[event_index];
   const event_start = new Date(event.StartDateTime);
-  const day = event_start.getDay()+1;
-  if (!datasets[day]) {
-    datasets[day] = {
-      label: months[event_start.getMonth()] + ' ' + day,
+  const day = event_start.getDate();
+  const date_key = months[event_start.getMonth()] + ' ' + day;
+  if (!dataset_indexes[date_key]) {
+    dataset_indexes[date_key] = datasets.length;
+  }
+  const dataset_index = dataset_indexes[date_key];
+
+  if (!datasets[dataset_index]) {
+    datasets[dataset_index] = {
+      label: date_key,
       fill: false,
       borderColor: 'rgb('+parseInt(255*Math.random())+', '+parseInt(255*Math.random())+', '+parseInt(255*Math.random())+')',
       tension: 0.1,
@@ -123,8 +130,9 @@ for (event_index=0; event_index < events.length; event_index++) {
     };
   }
 
-  datasets[day].data[event_start.getHours()] += parseFloat(event.Length);
+  datasets[dataset_index].data[event_start.getHours()] += parseFloat(event.Length);
 }
+/*
 for (i=0; i < datasets.length; i++) {
   if (!datasets[i]) {
     datasets[i] = {
@@ -136,6 +144,7 @@ for (i=0; i < datasets.length; i++) {
     };
   }
 }
+ */
 console.log(datasets);
 
 const data = {

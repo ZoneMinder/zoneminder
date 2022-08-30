@@ -2345,17 +2345,17 @@ function get_subnets($interface) {
   return $subnets;
 }
 
-function extract_auth_values_from_url($url): array {
+function extract_auth_values_from_url($url) {
   $protocolPrefixPos = strpos($url, '://');
-  if( $protocolPrefixPos === false )
+  if ($protocolPrefixPos === false)
     return array();
 
   $authSeparatorPos = strpos($url, '@', $protocolPrefixPos+3);
-  if( $authSeparatorPos === false )
+  if ($authSeparatorPos === false)
     return array();
 
   $fieldsSeparatorPos = strpos($url, ':', $protocolPrefixPos+3);
-  if( $fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos )
+  if ($fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos)
     return array();
 
   $username = substr( $url, $protocolPrefixPos+3, $fieldsSeparatorPos-($protocolPrefixPos+3) );

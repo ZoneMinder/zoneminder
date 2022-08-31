@@ -8,6 +8,7 @@ class Group extends ZM_Object {
       'Name'            => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Group'),
       'ParentId'        =>  null,
       );
+  protected static $monitor_ids_cache = array();
 
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(get_class(), $parameters, $options);
@@ -47,7 +48,10 @@ class Group extends ZM_Object {
 
   public function MonitorIds( ) {
     if ( ! property_exists($this, 'MonitorIds') ) {
-      $this->{'MonitorIds'} = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($this->{'Id'}));
+      if (!isset($monitor_ids_cache[$this->{'Id'}])) {
+        $monitor_ids_cache[$this->{'Id'}] = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($this->{'Id'}));
+      }
+      $this->{'MonitorIds'} = &$monitor_ids_cache[$this->{'Id'}];
     }
     return $this->{'MonitorIds'};
   }

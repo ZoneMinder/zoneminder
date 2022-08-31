@@ -63,9 +63,10 @@ getBodyTopHTML();
   foreach (ZM\Filter::find() as $F) {
     $FiltersById[$F->Id()] = $F;
   }
-echo htmlSelect('Report[FilterId]', array(''=>translate('select')) + $FiltersById, $report->FilterId()) 
+  echo htmlSelect('Report[FilterId]', array(''=>translate('select')) + $FiltersById, $report->FilterId()) 
 ?></td>
             </tr>
+<!--
             <tr>
               <th class="text-right" scope="row"><?php echo translate('Starting') ?></th>
               <td><input type="text" name="Report[StartDateTime]" value="<?php echo $report->StartDateTime() ?>"/></td>
@@ -78,6 +79,7 @@ echo htmlSelect('Report[FilterId]', array(''=>translate('select')) + $FiltersByI
               <th class="text-right" scope="row"><?php echo translate('Interval') ?></th>
               <td><input type="text" name="Report[Interval]" value="<?php echo $report->Interval() ?>"/></td>
             </tr>
+-->
           </tbody>
         </table>
       </form>
@@ -115,12 +117,12 @@ for (event_index=0; event_index < events.length; event_index++) {
   const event_start = new Date(event.StartDateTime);
   const day = event_start.getDate();
   const date_key = months[event_start.getMonth()] + ' ' + day;
-  if (!dataset_indexes[date_key]) {
+  if (! (date_key in dataset_indexes)) {
     dataset_indexes[date_key] = datasets.length;
   }
   const dataset_index = dataset_indexes[date_key];
 
-  if (!datasets[dataset_index]) {
+  if (!(dataset_index in datasets)) {
     datasets[dataset_index] = {
       label: date_key,
       fill: false,

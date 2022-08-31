@@ -2662,11 +2662,13 @@ bool Monitor::Decode() {
           }  // end if have convert_context
         }  // end if need transfer to image
       } else {
-        Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
+        Debug(1, "Ret from decode %d, zm_terminate %d", ret, zm_terminate);
       }
     } else {
       Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
     } // end if doing decoding
+  } else {
+    Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
   }  // end if need_decoding
 
   if (packet->image) {

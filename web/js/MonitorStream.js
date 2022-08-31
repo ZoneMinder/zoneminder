@@ -548,25 +548,27 @@ function MonitorStream(monitorData) {
       const captureFPSValue = $j('#captureFPSValue'+this.id);
       const analysisFPSValue = $j('#analysisFPSValue'+this.id);
 
-      const fpses = respObj.monitor.FrameRate.split(",");
-      fpses.forEach(function(fps) {
-        const name_values = fps.split(':');
-        const name = name_values[0].trim();
-        const value = name_values[1].trim().toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+      if (respObj.monitor.FrameRate) {
+        const fpses = respObj.monitor.FrameRate.split(",");
+        fpses.forEach(function(fps) {
+          const name_values = fps.split(':');
+          const name = name_values[0].trim();
+          const value = name_values[1].trim().toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
 
-        if (name == 'analysis') {
-          this.status.analysisfps = value;
-          if (analysisFPSValue.length && (analysisFPSValue.text() != value)) {
-            analysisFPSValue.text(value);
+          if (name == 'analysis') {
+            this.status.analysisfps = value;
+            if (analysisFPSValue.length && (analysisFPSValue.text() != value)) {
+              analysisFPSValue.text(value);
+            }
+          } else if (name == 'capture') {
+            if (captureFPSValue.length && (captureFPSValue.text() != value)) {
+              captureFPSValue.text(value);
+            }
+          } else {
+            console.log("Unknown fps name " + name);
           }
-        } else if (name == 'capture') {
-          if (captureFPSValue.length && (captureFPSValue.text() != value)) {
-            captureFPSValue.text(value);
-          }
-        } else {
-          console.log("Unknown fps name " + name);
-        }
-      });
+        });
+      }
 
       if (canEdit.Monitors) {
         if (monitorStatus.enabled) {

@@ -27,8 +27,11 @@ var params =
 
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
-  $j.getJSON(thisUrl + '?view=request&request=log&task=query', params.data)
-      .done(function(data) {
+  $j.ajax({
+    url: thisUrl + '?view=request&request=log&task=query',
+    data: params.data,
+    timeout: 0,
+    success: function(data) {
         //console.log('Ajax parameters: ' + JSON.stringify(params));
         // rearrange the result into what bootstrap-table expects
         params.success({
@@ -37,9 +40,13 @@ function ajaxRequest(params) {
           rows: processRows(data.rows)
         });
         updateHeaderStats(data);
-      })
-      .fail(logAjaxFail);
+      },
+    error: function(jqxhr) {
+      logAjaxFail(jqxhr);
+    }
+  });
 }
+
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     try {

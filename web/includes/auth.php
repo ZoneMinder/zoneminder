@@ -60,7 +60,12 @@ function migrateHash($user, $pass) {
 function validateUser($username='', $password='') {
   $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
   // local user, shouldn't affect the global user
-  $user = dbFetchOne($sql, NULL, array($username));
+  $user = null; // Not global
+  if (ZM_AUTH_CASE_INSENSITIVE_USERNAMES) {
+      $user = dbFetchOne($sql, NULL, array(strtolower($username)));
+  } else {
+      $user = dbFetchOne($sql, NULL, array($username));
+  }
   if (!$user) {
     return array(false, "Could not retrieve user $username details");
   }
@@ -268,7 +273,11 @@ function userFromSession() {
     } else {
       # Need to refresh permissions and validate that the user still exists
       $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
-      $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
+      if (ZM_AUTH_CASE_INSENSITIVE_USERNAMES) {
+        $user = dbFetchOne($sql, NULL, array(strtolower($_SESSION['username'])));
+      } else {
+        $user = dbFetchOne($sql, NULL, array(c));
+      }
     }
   }
   return $user;
@@ -318,7 +327,11 @@ if (ZM_OPT_USE_AUTH) {
     } else if ((ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER'])) {
       $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       // local user, shouldn't affect the global user
-      $user = dbFetchOne($sql, NULL, array($_SERVER['REMOTE_USER']));
+      if (ZM_AUTH_CASE_INSENSITIVE_USERNAMES) {
+        $user = dbFetchOne($sql, NULL, array(strtolower($_SERVER['REMOTE_USER'])));
+      } else {
+        $user = dbFetchOne($sql, NULL, array($_SERVER['REMOTE_USER']));
+      }
     } else {
       $user = userFromSession();
     }

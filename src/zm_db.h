@@ -29,6 +29,7 @@
 #include <thread>
 
 #include <unordered_map>
+#include <functional>
 
 #include "soci.h"
 
@@ -60,6 +61,7 @@ typedef enum
 
   /* UPDATE QUERIES */
   UPDATE_NEW_EVENT_WITH_ID,
+  UPDATE_NEW_EVENT_WITH_ID_NO_NAME,
   UPDATE_EVENT_WITH_ID_SET_NOTES,
   UPDATE_EVENT_WITH_ID_SET_SCORE,
   UPDATE_EVENT_WITH_ID_SET_STORAGEID,
@@ -88,6 +90,7 @@ protected:
   std::mutex db_mutex;
   soci::session db;
   std::unordered_map<int, soci::statement*> mapStatements;
+  std::unordered_map<int, std::string> autoIncrementTable;
 
 public:
   zmDb(){};
@@ -96,6 +99,7 @@ public:
   bool connected() {
     return db.is_connected();
   }
+  virtual uint64_t lastInsertID(const zmDbQueryID&);
 
   friend class zmDbQuery;
 };
@@ -104,6 +108,7 @@ class zmDbQuery
 {
 protected:
   zmDb *db;
+  zmDbQueryID id;
   soci::statement *stmt;
   soci::row* result;
 
@@ -111,7 +116,8 @@ public:
   zmDbQuery(const zmDbQueryID& id);
   virtual ~zmDbQuery();
 
-  zmDbQuery(const zmDbQuery& other) : db(other.db), stmt(other.stmt) {}
+  zmDbQuery(const zmDbQuery& other) : db(other.db), 
+    id(other.id), stmt(other.stmt) {}
 
   template <typename T>
   zmDbQuery& bind(const std::string &name, const T &value)
@@ -120,6 +126,16 @@ public:
       return *this;
 
     stmt->exchange(soci::use<T>(value, name));
+    return *this;
+  }
+
+  template <typename T>
+  zmDbQuery& bind(const T &value)
+  {
+    if (stmt == nullptr)
+      return *this;
+
+    stmt->exchange(soci::use<T>(value));
     return *this;
   }
 
@@ -139,23 +155,28 @@ public:
   virtual void reset();
 
   virtual zmDbQuery &fetchOne();
+  virtual uint64_t insert();
+  virtual uint64_t update();
+
+  void deferOnClose( std::function<void()> );
 };
 
 class zmDbQueue
 {
 private:
-  std::queue<std::string> mQueue;
+  std::queue<zmDbQuery> mQueue;
   std::thread mThread;
-  std::mutex mMutex;
   std::condition_variable mCondition;
   bool mTerminate;
 
 public:
   zmDbQueue();
   ~zmDbQueue();
-  void push(std::string &&sql);
+  void push(zmDbQuery &&query);
   void process();
   void stop();
+
+  static void pushToQueue( zmDbQuery &&query );
 };
 
 // extern MYSQL dbconn;
@@ -166,7 +187,6 @@ public:
 
 bool zmDbIsConnected();
 bool zmDbConnect(const std::string &backend);
-zmDbQuery &zmDbGetQuery(const zmDbQueryID &id);
 void zmDbClose();
 
 #endif // ZM_DB_H

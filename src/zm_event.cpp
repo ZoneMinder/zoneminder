@@ -31,6 +31,7 @@
 #include <list>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <functional>
 
 const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 #define MAX_DB_FRAMES 100
@@ -97,10 +98,7 @@ Event::Event(
 
   unsigned int state_id = 0;
   {
-    zmDbRow dbrow;
-    if (dbrow.fetch("SELECT Id FROM States WHERE IsActive=1")) {
-      state_id = atoi(dbrow[0]);
-    }
+    state_id = zmDbQuery( SELECT_ALL_ACTIVE_STATES_ID ).fetchOne().get<int>( "Id" );
   }
 
   // Copy it in case opening the mp4 doesn't work we can set it to another value
@@ -114,26 +112,21 @@ Event::Event(
     video_incomplete_file = "incomplete."+container;
   }
 
-  std::string sql = stringtf(
-      "INSERT INTO `Events` "
-      "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
-      " VALUES "
-      "( %d, %d, 'New Event', from_unixtime(%" PRId64 "), %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
-      monitor->Id(), 
-      storage->Id(),
-      static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)),
-      monitor->Width(),
-      monitor->Height(),
-      cause.c_str(),
-      notes.c_str(), 
-      state_id,
-      monitor->getOrientation(),
-      0,
-      video_incomplete_file.c_str(),
-      save_jpegs,
-      storage->SchemeString().c_str()
-      );
-  id = zmDbDoInsert(sql);
+  id = zmDbQuery( INSERT_EVENTS )
+    .bind( "monitor_id", monitor->Id() )
+    .bind( "storage_id", storage->Id() )
+    .bind( "start_datetime", static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)) )
+    .bind( "width", monitor->Width() )
+    .bind( "height", monitor->Height() )
+    .bind( "cause", cause )
+    .bind( "notes", notes )
+    .bind( "state_id", state_id )
+    .bind( "orientation", monitor->getOrientation() )
+    .bind( "videoed", 0 )
+    .bind( "default_video", video_incomplete_file )
+    .bind( "save_jpegs", save_jpegs )
+    .bind( "scheme", storage->SchemeString() )
+    .insert();
 
   thread_ = std::thread(&Event::Run, this);
 }
@@ -174,26 +167,35 @@ Event::~Event() {
     WriteDbFrames();
   }
 
-  std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64 " AND Name='New Event'",
-      monitor->EventPrefix(), id, std::chrono::system_clock::to_time_t(end_time),
-      delta_time.count(),
-      frames, alarm_frames,
-      tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
-      video_file.c_str(), // defaults to ""
-      id);
+  std::string name = stringtf("%s%" PRIu64, monitor->EventPrefix(), id);
 
-  if (!zmDbDoUpdate(sql)) {
+  uint64_t res = zmDbQuery( UPDATE_NEW_EVENT_WITH_ID )
+    .bind("name", name)
+    .bind("enddatetime", std::chrono::system_clock::to_time_t(end_time))
+    .bind("length", delta_time.count())
+    .bind("frames", frames)
+    .bind("alarm_frames", alarm_frames)
+    .bind("total_score", tot_score)
+    .bind("avg_score", static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0))
+    .bind("max_score", max_score)
+    .bind("default_video", video_file)
+    .bind("id", id)
+    .update();
+
+  if (!res) {
     // Name might have been changed during recording, so just do the update without changing the name.
-    sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64,
-        std::chrono::system_clock::to_time_t(end_time),
-        delta_time.count(),
-        frames, alarm_frames,
-        tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
-        video_file.c_str(), // defaults to ""
-        id);
-    zmDbDoUpdate(sql);
+    zmDbQuery( UPDATE_NEW_EVENT_WITH_ID_NO_NAME )
+      .bind("enddatetime", std::chrono::system_clock::to_time_t(end_time))
+      .bind("length", delta_time.count())
+      .bind("frames", frames)
+      .bind("alarm_frames", alarm_frames)
+      .bind("total_score", tot_score)
+      .bind("avg_score", static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0))
+      .bind("max_score", max_score)
+      .bind("default_video", video_file)
+      .bind("id", id)
+      .update();
+
   }  // end if no changed rows due to Name change during recording
 }  // Event::~Event()
 
@@ -290,9 +292,11 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
 
     Debug(2, "Updating notes for event %" PRIu64 ", '%s'", id, notes.c_str());
 
-    std::string sql = stringtf("UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64,
-                               zmDbEscapeString(notes).c_str(), id);
-    dbQueue.push(std::move(sql));
+    zmDbQuery query = zmDbQuery( UPDATE_EVENT_WITH_ID_SET_NOTES )
+      .bind( "notes", notes )
+      .bind( "id", id );
+
+    zmDbQueue::pushToQueue(std::move(query));
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
@@ -328,52 +332,51 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
 }
 
 void Event::WriteDbFrames() {
-  std::string frame_insert_sql = "INSERT INTO `Frames` (`EventId`, `FrameId`, `Type`, `TimeStamp`, `Delta`, `Score`) VALUES ";
-  std::string stats_insert_sql = "INSERT INTO `Stats` (`EventId`, `FrameId`, `MonitorId`, `ZoneId`, "
-                                              "`PixelDiff`, `AlarmPixels`, `FilterPixels`, `BlobPixels`,"
-                                              "`Blobs`,`MinBlobSize`, `MaxBlobSize`, "
-                                              "`MinX`, `MinY`, `MaxX`, `MaxY`,`Score`) VALUES ";
+  zmDbQuery framesQuery( INSERT_FRAMES );
+  zmDbQuery zoneStatsQuery( INSERT_STATS_MULTIPLE );
+
+  std::vector<Frame*> frames;
 
   Debug(1, "Inserting %zu frames", frame_data.size());
   while (frame_data.size()) {
     Frame *frame = frame_data.front();
     frame_data.pop();
-    frame_insert_sql += stringtf("\n( %" PRIu64 ", %d, '%s', from_unixtime( %ld ), %.2f, %d ),",
-                                 id, frame->frame_id,
-                                 frame_type_names[frame->type],
-                                 std::chrono::system_clock::to_time_t(frame->timestamp),
-                                 std::chrono::duration_cast<FPSeconds>(frame->delta).count(),
-                                 frame->score);
+
+    frames.push_back( frame );
+
     if (config.record_event_stats and frame->zone_stats.size()) {
+      std::vector<unsigned int> monitor_ids;
+      std::vector<ZoneStats> zonestats;
+
       for (ZoneStats &stats : frame->zone_stats) {
-        stats_insert_sql += stringtf("\n(%" PRIu64 ",%d,%u,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u),",
-            id, frame->frame_id,
-            monitor->Id(),
-            stats.zone_id_,
-            stats.pixel_diff_,
-            stats.alarm_pixels_,
-            stats.alarm_filter_pixels_,
-            stats.alarm_blob_pixels_,
-            stats.alarm_blobs_,
-            stats.min_blob_size_,
-            stats.max_blob_size_,
-            stats.alarm_box_.Lo().x_,
-            stats.alarm_box_.Lo().y_,
-            stats.alarm_box_.Hi().x_,
-            stats.alarm_box_.Hi().y_,
-            stats.score_);
+        monitor_ids.push_back(monitor->Id());
+        zonestats.push_back( stats );
       }  // end foreach zone stats
+
+      zoneStatsQuery.bind( "monitor_id", monitor_ids );
+      zoneStatsQuery.bind( zonestats ); // see specialization of TypeConversion in zm_db_adapters.h
+
     }  // end if recording stats
-    delete frame;
   }  // end while frames
-  // The -1 is for the extra , added for values above
-  frame_insert_sql.erase(frame_insert_sql.size()-1);
-  dbQueue.push(std::move(frame_insert_sql));
-  if (stats_insert_sql.size() > 208) {
-    // The -1 is for the extra , added for values above
-    stats_insert_sql.erase(stats_insert_sql.size()-1);
-    dbQueue.push(std::move(stats_insert_sql));
-  }
+
+  // see specialization of TypeConversion in zm_db_adapters.h
+  framesQuery.bind( frames );
+
+  // will happen on the destructor of framesQuery object
+  // after execution in the queue to prevent memory leak
+  // of the frames
+  framesQuery.deferOnClose([&](){
+    for (Frame* frame : frames) {
+      delete frame;
+    }
+  });
+
+  zmDbQueue::pushToQueue(std::move(framesQuery));
+  zmDbQueue::pushToQueue(std::move(zoneStatsQuery));
+
+  //if (stats_insert_sql.size() > 208) {
+    //zmDbQueue::pushToQueue(std::move(stats_insert_sql));
+  //}
 }  // end void Event::WriteDbFrames()
 
 void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
@@ -512,7 +515,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
           static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0),
           max_score,
           id);
-      dbQueue.push(std::move(sql));
+      zmDbQueue::pushToQueue(std::move(sql));
     } else {
       Debug(1, "Not Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",
             frame_data.size(), write_to_db, fps);

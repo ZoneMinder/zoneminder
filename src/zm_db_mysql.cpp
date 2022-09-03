@@ -66,6 +66,7 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb() {
 
         for( int i=0; i<LAST_QUERY; i++ ) {
             mapStatements[i] = new soci::statement(db);
+            mapStatements[i]->alloc();
         }
         prepareStatements();
         for( int i=0; i<LAST_QUERY; i++ ) {
@@ -87,6 +88,17 @@ zmDbMySQLAdapter::~zmDbMySQLAdapter () {
     catch( const std::exception& err ) {
         Error("Can't disconnect server: %s", staticConfig.DB_HOST.c_str());
     }
+}
+
+uint64_t zmDbMySQLAdapter::lastInsertID(const zmDbQueryID& queryId) {
+    if( !db.is_connected() )
+        return 0;
+
+    long long id = 0;
+    if( db.get_last_insert_id(autoIncrementTable[queryId], id) )
+        return id;
+    
+    return 0;
 }
 
 void zmDbMySQLAdapter::prepareStatements() {
@@ -183,8 +195,12 @@ FROM Zones WHERE MonitorId = :id ORDER BY Type");
     
     mapStatements[UPDATE_NEW_EVENT_WITH_ID]->prepare(
         "UPDATE Events SET Name=:name, EndDateTime = from_unixtime(:enddatetime), Length = :length, Frames = :frames, \
-AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = avg_score, MaxScore = max_score, DefaultVideo=default_video \
+AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score, DefaultVideo=:default_video \
 WHERE Id = :id AND Name='New Event'");
+
+    mapStatements[UPDATE_NEW_EVENT_WITH_ID_NO_NAME]->prepare(
+        "UPDATE Events SET EndDateTime = from_unixtime(:enddatetime), Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, \
+        TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score, DefaultVideo=:default_video WHERE Id = :id");
 
     mapStatements[UPDATE_EVENT_WITH_ID_SET_NOTES]->prepare("UPDATE `Events` SET `Notes` = ':notes' WHERE `Id` = :id");
 
@@ -195,8 +211,8 @@ SET Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = 
 
     mapStatements[UPDATE_EVENT_WITH_ID_SET_SAVEJPEGS]->prepare("UPDATE Events SET SaveJpegs=:save_jpegs WHERE Id=:id");
 
-    mapStatements[UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS]->prepare(
-        "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = :capture_fps, CaptureBandwidth=capture_bandwitdh, AnalysisFPS = analysis_fps WHERE MonitorId=:id");
+    mapStatements[UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS]->prepare("UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = :capture_fps, CaptureBandwidth=capture_bandwitdh, AnalysisFPS = analysis_fps WHERE MonitorId=:id");
+
     mapStatements[INSERT_EVENTS]->prepare("INSERT INTO `Events` \
 ( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` ) \
 VALUES \
@@ -231,5 +247,25 @@ VALUES (:id, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=
 
     mapStatements[INSERT_MONITOR_STATUS_NOTRUNNING]->prepare(
         "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (:id, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'");
+}
 
+void zmDbMySQLAdapter::prepareAutoIncrementTables() {
+    // auto increment table
+    /*
+    autoIncrementTable[UPDATE_NEW_EVENT_WITH_ID] = "Events";
+    autoIncrementTable[UPDATE_NEW_EVENT_WITH_ID_NO_NAME] = "Events";
+    autoIncrementTable[UPDATE_EVENT_WITH_ID_SET_NOTES] = "Events";
+    autoIncrementTable[UPDATE_EVENT_WITH_ID_SET_SCORE] = "Events";
+    autoIncrementTable[UPDATE_EVENT_WITH_ID_SET_STORAGEID] = "Events";
+    autoIncrementTable[UPDATE_EVENT_WITH_ID_SET_SAVEJPEGS] = "Events";
+    autoIncrementTable[UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS] = "Monitor_Status";
+    */
+    autoIncrementTable[INSERT_EVENTS] = "Events";
+    autoIncrementTable[INSERT_FRAMES] = "Frames";
+    autoIncrementTable[INSERT_STATS_SINGLE] = "Stats";
+    autoIncrementTable[INSERT_STATS_MULTIPLE] = "Stats";
+    autoIncrementTable[INSERT_LOGS] = "Logs";
+    autoIncrementTable[INSERT_MONITOR_STATUS_RUNNING] = "Monitor_Status";
+    autoIncrementTable[INSERT_MONITOR_STATUS_CONNECTED] = "Monitor_Status";
+    autoIncrementTable[INSERT_MONITOR_STATUS_NOTRUNNING] = "Monitor_Status";
 }

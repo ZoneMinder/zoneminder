@@ -58,14 +58,13 @@ function migrateHash($user, $pass) {
 
 // core function used to load a User record by username and password
 function validateUser($username='', $password='') {
-  $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
-  // local user, shouldn't affect the global user
-  $user = null; // Not global
   if (ZM_CASE_INSENSITIVE_USERNAMES) {
-      $user = dbFetchOne($sql, NULL, array(strtolower($username)));
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
   } else {
-      $user = dbFetchOne($sql, NULL, array($username));
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
   }
+  // local user, shouldn't affect the global user
+  $user = dbFetchOne($sql, NULL, array($username)); // Not global
   if (!$user) {
     return array(false, "Could not retrieve user $username details");
   }
@@ -137,7 +136,11 @@ function validateToken($token, $allowed_token_type='access') {
   }
   
   $username = $jwt_payload['user'];
-  $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+  if (ZM_CASE_INSENSITIVE_USERNAMES) {
+    $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
+  } else {
+    $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+  }
   $saved_user_details = dbFetchOne($sql, NULL, array($username));
 
   if ($saved_user_details) {
@@ -192,7 +195,11 @@ function getAuthUser($auth) {
 
     if (isset($_SESSION['username'])) {
 			# In a multi-server case, we might be logged in as another user and so the auth hash didn't work
-			$sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
+			if (ZM_CASE_INSENSITIVE_USERNAMES) {
+                          $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND LOWER(Username) != LOWER(?)';
+			} else {
+			  $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
+			}
 
 			foreach (dbFetchAll($sql, NULL, $values) as $user) {
 				$now = time();
@@ -272,12 +279,12 @@ function userFromSession() {
         ZM\Debug('No auth hash in session, there should have been');
     } else {
       # Need to refresh permissions and validate that the user still exists
-      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       if (ZM_CASE_INSENSITIVE_USERNAMES) {
-        $user = dbFetchOne($sql, NULL, array(strtolower($_SESSION['username'])));
+        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
       } else {
-        $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
+        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       }
+      $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
     }
   }
   return $user;
@@ -325,13 +332,13 @@ if (ZM_OPT_USE_AUTH) {
       }
       $user = $ret[0];
     } else if ((ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER'])) {
-      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
-      // local user, shouldn't affect the global user
       if (ZM_CASE_INSENSITIVE_USERNAMES) {
-        $user = dbFetchOne($sql, NULL, array(strtolower($_SERVER['REMOTE_USER'])));
+        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
       } else {
-        $user = dbFetchOne($sql, NULL, array($_SERVER['REMOTE_USER']));
+        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       }
+      // local user, shouldn't affect the global user
+      $user = dbFetchOne($sql, NULL, array($_SERVER['REMOTE_USER']));
     } else {
       $user = userFromSession();
     }

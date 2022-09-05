@@ -967,6 +967,7 @@ bool Monitor::connect() {
     shared_data->alarm_cause[0] = 0;
     shared_data->video_fifo_path[0] = 0;
     shared_data->audio_fifo_path[0] = 0;
+    shared_data->janus_pin[0] = 0;
     shared_data->last_frame_score = 0;
     shared_data->audio_frequency = -1;
     shared_data->audio_channels = -1;

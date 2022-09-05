@@ -228,7 +228,7 @@ protected:
     char alarm_cause[256];
     char video_fifo_path[64];
     char audio_fifo_path[64];
-
+    char janus_pin[64];
   } SharedData;
 
   enum TriggerState : uint32 {
@@ -355,7 +355,6 @@ protected:
     int get_janus_session();
     int get_janus_handle();
     int get_janus_plugin();
-    std::string get_stream_key();
   };
 
 
@@ -377,6 +376,7 @@ protected:
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
   bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
+  std::string     janus_pin;  // For security, we generate a pin required to view the stream.
 
   std::string protocol;
   std::string method;
@@ -639,6 +639,10 @@ public:
   bool JanusAudioEnabled() {
     return janus_audio_enabled;
   }
+  inline const char* get_stream_key() {
+    return shared_data->janus_pin;
+  }
+
   bool OnvifEnabled() {
     return onvif_event_listener;
   }

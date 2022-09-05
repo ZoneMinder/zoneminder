@@ -18,6 +18,7 @@
 //
 
 #include "zm_monitor.h"
+#include "zm_crypt.h"
 #include <regex>
 
 std::string escape_json_string( std::string input );
@@ -51,6 +52,9 @@ Monitor::JanusManager::JanusManager(Monitor *parent_) :
   } else {
     rtsp_path = parent->path;
   }
+  parent->janus_pin = generateKey(16);
+  Debug(1, "Monitor %u assigned secret %s", parent->id, parent->janus_pin.c_str());
+  strncpy(parent->shared_data->janus_pin, parent->janus_pin.c_str(), 17); //copy the null termination, as we're in C land
 }
 
 Monitor::JanusManager::~JanusManager() {
@@ -64,6 +68,8 @@ Monitor::JanusManager::~JanusManager() {
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
   postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"";
   postData += config.janus_secret;
+  postData += "\", \"secret\" : \"";
+  postData += parent->janus_pin;
   postData += "\", \"id\" : ";
   postData += std::to_string(parent->id);
   postData += "}}";
@@ -152,6 +158,12 @@ int Monitor::JanusManager::add_to_janus() {
   postData += "\", \"type\" : \"rtsp\", \"rtsp_quirk\" : true, ";
   postData += "\"url\" : \"";
   postData += rtsp_path;
+  //secret prevents querying the mount for info, which leaks the camera's secrets.
+  postData += "\", \"secret\" : \"";
+  postData += parent->janus_pin;
+  //pin prevents viewing the video.
+  postData += "\", \"pin\" : \"";
+  postData += parent->janus_pin;
   if (profile_override[0] != '\0') {
     postData += "\", \"videofmtp\" : \"";
     postData += profile_override;
@@ -205,26 +217,6 @@ size_t Monitor::JanusManager::WriteCallback(void *contents, size_t size, size_t 
   ((std::string*)userp)->append((char*)contents, size * nmemb);
   return size * nmemb;
 }
-
-/*
-void Monitor::JanusManager::generateKey()
-{
-    const std::string CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
-    std::random_device random_device;
-    std::mt19937 generator(random_device());
-    std::uniform_int_distribution<> distribution(0, CHARACTERS.size() - 1);
-
-    std::string random_string;
-
-    for (std::size_t i = 0; i < 16; ++i)
-    {
-        random_string += CHARACTERS[distribution(generator)];
-    }
-
-    stream_key = random_string;
-}
-*/
 
 int Monitor::JanusManager::get_janus_session() {
   janus_session = "";

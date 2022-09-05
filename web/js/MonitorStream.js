@@ -11,6 +11,7 @@ function MonitorStream(monitorData) {
   this.width = monitorData.width;
   this.height = monitorData.height;
   this.janusEnabled = monitorData.janusEnabled;
+  this.janusPin = monitorData.janus_pin;
   this.scale = 100;
   this.status = {capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
   this.lastAlarmState = STATE_IDLE;
@@ -191,7 +192,7 @@ function MonitorStream(monitorData) {
           janus = new Janus({server: server}); //new Janus
         }});
       }
-      attachVideo(parseInt(this.id));
+      attachVideo(parseInt(this.id), this.janusPin);
       this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
       return;
     }
@@ -683,14 +684,14 @@ function MonitorStream(monitorData) {
   };
 } // end function MonitorStream
 
-async function attachVideo(id) {
+async function attachVideo(id, pin) {
   await waitUntil(() => janus.isConnected() );
   janus.attach({
     plugin: "janus.plugin.streaming",
     opaqueId: "streamingtest-"+Janus.randomString(12),
     success: function(pluginHandle) {
       streaming[id] = pluginHandle;
-      var body = {"request": "watch", "id": id};
+      var body = {"request": "watch", "id": id, "pin": pin};
       streaming[id].send({"message": body});
     },
     error: function(error) {

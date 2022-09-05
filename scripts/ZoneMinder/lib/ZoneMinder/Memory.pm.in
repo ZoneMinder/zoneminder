@@ -180,6 +180,7 @@ our %mem_data = (
     alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
     video_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
     audio_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
+    janus_pin        => { type=>'int8[64]', seq=>$mem_seq++ },
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {

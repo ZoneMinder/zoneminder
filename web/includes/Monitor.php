@@ -268,7 +268,12 @@ public static function getStatuses() {
     'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
-
+  public function Janus_Pin() {
+    $cmd = getZmuCommand(' --janus-pin -m '.$this->{'Id'});
+    $output = shell_exec($cmd);
+    Debug("Running $cmd output: $output");
+    return trim($output);
+  }
   public function Control() {
     if (!property_exists($this, 'Control')) {
       if ($this->ControlId())

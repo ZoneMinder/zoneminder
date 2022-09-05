@@ -28,6 +28,8 @@
 
 bool verifyPassword(const char *username, const char *input_password, const char *db_password_hash);
 
+std::string generateKey(const int length);
+
 std::pair<std::string, unsigned int> verifyToken(const std::string &token, const std::string &key);
 
 namespace zm {

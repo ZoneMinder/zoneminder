@@ -5,6 +5,7 @@
 #include "BCrypt.hpp"
 #include <algorithm>
 #include <cstring>
+#include <random>
 
 #if HAVE_LIBJWT
 #include <jwt.h>
@@ -166,4 +167,20 @@ bool verifyPassword(const char *username, const char *input_password, const char
   } 
   
   return password_correct;
+}
+
+std::string generateKey(const int length) {
+
+    const std::string lookup = "0123456789ABCDEF";
+
+    std::random_device rnd;
+    std::mt19937 rng(rnd());
+    std::uniform_int_distribution<> genDigit(0,15);
+    std::string keyBuffer (length, '0');
+    for ( int i = 0; i < length; i++ ) {
+        keyBuffer[i] = lookup[genDigit(rng)];
+    }
+    return keyBuffer;
+
+
 }

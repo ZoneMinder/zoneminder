@@ -274,7 +274,7 @@ function userFromSession() {
       if (ZM_CASE_INSENSITIVE_USERNAMES) {
         $user = dbFetchOne($sql, NULL, array(strtolower($_SESSION['username'])));
       } else {
-        $user = dbFetchOne($sql, NULL, array(c));
+        $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
       }
     }
   }

@@ -313,9 +313,7 @@ our @options = (
     description => 'Case insensitive username authentication',
     help        => q`
       This option makes usernames case insensitive when
-      authenticating. Matches against lower-case usernames in the
-      database. May be used with "remote" AUTH_TYPE and LDAP
-      authentication.
+      authenticating.
       `,
     requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
     type        => $types{boolean},

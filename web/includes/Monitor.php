@@ -245,7 +245,7 @@ public static function getStatuses() {
     'RTSPServer' => array('type'=>'boolean', 'default'=>0),
     'RTSPStreamName'  => '',
     'Importance'      =>  'Normal',
-    'MQTT_Enabled'    =>  false,
+    'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
     'MQTT_Subscriptions'  =>  '',
   );
   private $status_fields = array(

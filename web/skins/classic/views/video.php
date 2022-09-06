@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Events') ) {
+if (!canView('Events')) {
   $view = 'error';
   return;
 }
@@ -29,7 +29,7 @@ $eid = validInt($_REQUEST['eid']);
 
 $event = new ZM\Event($eid);
 
-if ( ! canView('Monitors', $event->MonitorId() ) ) {
+if (!canView('Monitors', $event->MonitorId())) {
   $view = 'error';
   return;
 }
@@ -61,11 +61,11 @@ foreach ( $ffmpegFormats as $ffmpegFormat ) {
 }
 
 $videoFiles = array();
-if ( $dir = opendir($event_path) ) {
-  while ( ($file = readdir($dir)) !== false ) {
+if ($dir = opendir($event_path)) {
+  while (($file = readdir($dir)) !== false) {
     $file = $event_path.'/'.$file;
-    if ( is_file($file) ) {
-      if ( preg_match('/\.(?:'.join('|', $videoFormats).')$/', $file) ) {
+    if (is_file($file)) {
+      if (preg_match('/\.(?:'.join('|', $videoFormats).')$/', $file)) {
         $videoFiles[] = $file;
       }
     }
@@ -73,17 +73,17 @@ if ( $dir = opendir($event_path) ) {
   closedir($dir);
 }
 
-if ( isset($_REQUEST['deleteIndex']) ) {
+if (isset($_REQUEST['deleteIndex'])) {
   $deleteIndex = validInt($_REQUEST['deleteIndex']);
   unlink($videoFiles[$deleteIndex]);
   unset($videoFiles[$deleteIndex]);
 }
 
-if ( isset($_REQUEST['downloadIndex']) ) {
+if (isset($_REQUEST['downloadIndex'])) {
   // can't be output buffering, as this file might be large
   ob_end_clean();
   $downloadIndex = validInt($_REQUEST['downloadIndex']);
-  ZM\Error("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
+  ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
   header('Pragma: public');
   header('Expires: 0');
   header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
@@ -195,7 +195,7 @@ if ( isset($_REQUEST['showIndex']) ) {
 ?>
         <tr>
           <td><?php echo $matches[4] ?></td>
-          <td><?php echo filesize($file) ?></td>
+          <td><?php echo human_filesize(filesize($file)) ?></td>
           <td><?php echo $rateText ?></td>
           <td><?php echo $scaleText ?></td>
           <td>

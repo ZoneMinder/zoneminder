@@ -62,6 +62,7 @@ if ($action == 'save') {
       }
     }
     $newMonitor['ManufacturerId'] = $newManufacturer->Id();
+    unset($newMonitor['Manufacturer']);
   }
 
   if (!$newMonitor['ModelId'] and ($newMonitor['Model'] != '')) {
@@ -77,6 +78,7 @@ if ($action == 'save') {
       }
     }
     $newMonitor['ModelId'] = $newModel->Id();
+    unset($newMonitor['Model']);
   }
 
   $monitor = new ZM\Monitor($mid);

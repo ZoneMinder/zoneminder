@@ -32,15 +32,15 @@ function ajaxRequest(params) {
     data: params.data,
     timeout: 0,
     success: function(data) {
-        //console.log('Ajax parameters: ' + JSON.stringify(params));
-        // rearrange the result into what bootstrap-table expects
-        params.success({
-          total: data.total,
-          totalNotFiltered: data.totalNotFiltered,
-          rows: processRows(data.rows)
-        });
-        updateHeaderStats(data);
-      },
+      //console.log('Ajax parameters: ' + JSON.stringify(params));
+      // rearrange the result into what bootstrap-table expects
+      params.success({
+        total: data.total,
+        totalNotFiltered: data.totalNotFiltered,
+        rows: processRows(data.rows)
+      });
+      updateHeaderStats(data);
+    },
     error: function(jqxhr) {
       logAjaxFail(jqxhr);
     }

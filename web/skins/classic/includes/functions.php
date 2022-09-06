@@ -945,7 +945,7 @@ function xhtmlFooter() {
 ), true );
 ?>
 <?php
-  if ( $view == 'event' ) {
+  if ($view == 'event' || $view == 'video') {
 ?>
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
   <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">

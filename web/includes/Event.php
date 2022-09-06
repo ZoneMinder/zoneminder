@@ -661,6 +661,29 @@ class Event extends ZM_Object {
     }
     return true;
   }
+
+  function createVideo($format, $rate, $scale, $transform, $overwrite=false) {
+    $command = ZM_PATH_BIN.'/zmvideo.pl -e '.$this->{'Id'}.' -f '.$format.' -r '.sprintf('%.2F', ($rate/RATE_BASE));
+    if (preg_match('/\d+x\d+/', $scale)) {
+      $command .= ' -S '.$scale;
+    } else {
+      if ( version_compare(phpversion(), '4.3.10', '>=') )
+        $command .= ' -s '.sprintf('%.2F', ($scale/SCALE_BASE));
+      else
+        $command .= ' -s '.sprintf('%.2f', ($scale/SCALE_BASE));
+    }
+    if ($transform != '') {
+      $transform = preg_replace('/[^\w=]/', '', $transform);
+      $command .= ' -t '.$transform;
+    }
+    if ($overwrite)
+      $command .= ' -o';
+    $command = escapeshellcmd($command);
+    $result = exec($command, $output, $status);
+    Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
+    return $status ? '' : rtrim($result);
+  }
+
 } # end class
 
 ?>

@@ -101,6 +101,7 @@ if ($action == 'save') {
       'Method' => 'raw',
       'GroupIds'  =>  array(),
       'LinkedMonitors'  => array(),
+      'MQTT_Enabled'  =>  0,
       'RTSPServer' => 0
       );
 

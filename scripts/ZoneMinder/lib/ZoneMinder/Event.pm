@@ -264,7 +264,7 @@ sub createIdFile {
 }
 
 sub GenerateVideo {
-  my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
+  my ( $self, $rate, $fps, $scale, $size, $overwrite, $format, $transforms ) = @_;
 
   my $event_path = $self->Path();
   chdir($event_path);
@@ -277,14 +277,14 @@ sub GenerateVideo {
     $file_rate =~ s/_00//;
     $file_rate =~ s/(_\d+)0+$/$1/;
     $file_rate = 'r'.$file_rate;
-    push( @file_parts, $file_rate );
+    push @file_parts, $file_rate;
   } elsif ( $fps ) {
     my $file_fps = $fps;
     $file_fps =~ s/\./_/;
     $file_fps =~ s/_00//;
     $file_fps =~ s/(_\d+)0+$/$1/;
     $file_fps = 'R'.$file_fps;
-    push( @file_parts, $file_fps );
+    push @file_parts, $file_fps;
   }
 
   if ( $scale ) {
@@ -298,7 +298,11 @@ sub GenerateVideo {
     my $file_size = 'S'.$size;
     push @file_parts, $file_size;
   }
-  my $video_file = join('-', $video_name, $file_parts[0], $file_parts[1] ).'.'.$format;
+  my @transforms = split(',', $transforms);
+  foreach (@transforms) {
+    push @file_parts, $_;
+  }
+  my $video_file = join('-', $video_name, @file_parts).'.'.$format;
   if ( $overwrite || !-s $video_file ) {
     Info("Creating video file $video_file for event $self->{Id}");
 
@@ -329,7 +333,10 @@ sub GenerateVideo {
       .$Config{ZM_FFMPEG_INPUT_OPTIONS}
     .' -i ' . ( $$self{DefaultVideo} ? $$self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
 #. " -f concat -i /tmp/event_files.txt"
-      ." -s $video_size "
+    #
+   .join(' ', map { ' -vf '.$_ } @transforms)
+       ." -s $video_size "
+
       .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
     ." '$video_file' > ffmpeg.log 2>&1"
       ;

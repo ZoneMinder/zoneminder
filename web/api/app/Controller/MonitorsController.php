@@ -299,6 +299,8 @@ class MonitorsController extends AppController {
         '_serialize' => array('status','code','error'),
       ));
     } else {
+      // In 1.36.16 the values got shifted up so that we could index into an array of strings.
+      $status -= 1;
       $this->set(array(
         'status' => $status,
         'output' => implode(PHP_EOL, $output),

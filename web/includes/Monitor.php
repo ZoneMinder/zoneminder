@@ -272,7 +272,8 @@ public static function getStatuses() {
     $cmd = getZmuCommand(' --janus-pin -m '.$this->{'Id'});
     $output = shell_exec($cmd);
     Debug("Running $cmd output: $output");
-    return trim($output);
+    
+    return $output ? trim($output) : $output;
   }
   public function Control() {
     if (!property_exists($this, 'Control')) {

@@ -17,7 +17,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "zm_db.h"
-#include "zm_db_adapters.h"
 #include "zm_db_mysql.h"
 
 #include "zm_logger.h"

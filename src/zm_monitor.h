@@ -36,6 +36,8 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
+#include "soci.h"
+
 #include <list>
 #include <memory>
 #include <sys/time.h>
@@ -836,6 +838,32 @@ public:
   }
   int Importance() const { return importance; }
 };
+
+namespace soci {
+  // Database conversion specialization 
+  // needed to be here because of issues with forward
+  // declarations of various types, see zm_db_adapters.h
+
+  template <> struct type_conversion<Monitor::Orientation>
+  {
+      typedef int base_type;
+
+      static void from_base(int i, indicator ind, Monitor::Orientation & mi)
+      {
+          if (ind == i_null)
+          {
+              throw soci_error("Null value not allowed for this type");
+          }
+          mi = (Monitor::Orientation)i;
+      }
+
+      static void to_base(const Monitor::Orientation & mi, int & i, indicator & ind)
+      {
+          i = (int)mi;
+          ind = i_ok;
+      }
+  };
+}
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))
 

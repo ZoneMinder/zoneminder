@@ -47,8 +47,10 @@ typedef enum
   SELECT_USER_AND_DATA_PLUS_TOKEN_WITH_USERNAME_ENABLED,
   SELECT_ALL_ACTIVE_STATES_ID,
   SELECT_ALL_CONFIGS,
-  SELECT_ALL_STORAGE_ID_DIFFERENT_THAN,
+  SELECT_ALL_STORAGE_ID,
+  SELECT_ALL_STORAGE_ID_AND_SERVER_ID,
   SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL,
+  SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL_OR_DIFFERENT,
   SELECT_ALL_EVENTS_ID_WITH_MONITORID_EQUAL,
   SELECT_ALL_FRAMES_WITH_DATA_OF_EVENT_WITH_ID,
   SELECT_ALL_FRAMES_OF_EVENT_WITH_ID,
@@ -140,6 +142,17 @@ public:
   }
 
   template <typename T>
+  zmDbQuery& bindVec(const std::vector<T> &values)
+  {
+    if (stmt == nullptr)
+      return *this;
+
+    for( auto& it : values )
+      stmt->exchange(soci::use<T>(it));
+    return *this;
+  }
+
+  template <typename T>
   T get(const std::string &name)
   {
     if (stmt == nullptr || result == nullptr) {
@@ -148,6 +161,25 @@ public:
     }
 
     return result->get<T>(name);
+  }
+
+  template <typename U>
+  std::vector<U> getVec(const std::string &name)
+  {
+    if (stmt == nullptr || result == nullptr) {
+      U zero;
+      return zero;
+    }
+
+    std::vector<U> outvector;
+    soci::rowset<U> results = result->get<soci::rowset<U>>(name);
+
+    for (auto it = results.cbegin(); it != results.cend(); ++it)
+    {
+      outvector.push_back( it->second );
+    }
+
+    return outvector;
   }
 
   virtual zmDbQuery &run(bool data_exchange);

@@ -24,6 +24,8 @@
 #include <string>
 #include <sys/time.h>
 
+#include "soci.h"
+
 typedef std::chrono::microseconds Microseconds;
 typedef std::chrono::milliseconds Milliseconds;
 typedef std::chrono::seconds Seconds;
@@ -123,5 +125,49 @@ class TimeSegmentAdder {
 
 std::string SystemTimePointToString(SystemTimePoint tp);
 std::string TimePointToString(TimePoint tp);
+
+namespace soci {
+  template <> struct type_conversion<Microseconds>
+  {
+      typedef int64 base_type;
+
+      static void from_base(int64 i, indicator ind, Microseconds & mi)
+      {
+          if (ind == i_null)
+          {
+              throw soci_error("Null value not allowed for this type");
+          }
+          
+          mi = Microseconds(i);
+      }
+
+      static void to_base(const Microseconds & mi, int64 & i, indicator & ind)
+      {
+          i = static_cast<int64>(mi.count());
+          ind = i_ok;
+      }
+  };
+
+  template <> struct type_conversion<SystemTimePoint>
+  {
+      typedef int64 base_type;
+
+      static void from_base(int64 i, indicator ind, SystemTimePoint & mi)
+      {
+          if (ind == i_null)
+          {
+              throw soci_error("Null value not allowed for this type");
+          }
+          
+          mi = static_cast<SystemTimePoint>(std::chrono::system_clock::from_time_t(i));
+      }
+
+      static void to_base(const SystemTimePoint & mi, int64 & i, indicator & ind)
+      {
+          i = static_cast<int64>(std::chrono::system_clock::to_time_t(mi));
+          ind = i_ok;
+      }
+  };
+}
 
 #endif // ZM_TIME_H

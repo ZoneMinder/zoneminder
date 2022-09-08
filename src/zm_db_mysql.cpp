@@ -18,6 +18,7 @@
 // 
 #include "zm_db.h"
 
+#include "zm_signal.h"
 #include "zm_db_mysql.h"
 
 // --- zmDb subclass --- //
@@ -136,9 +137,13 @@ WHERE `Username` = :username AND `Enabled` = 1");
 
     mapStatements[SELECT_ALL_CONFIGS]->prepare("SELECT `Name`, `Value`, `Type` FROM `Config` ORDER BY `Id`");
 
-    mapStatements[SELECT_ALL_STORAGE_ID_DIFFERENT_THAN]->prepare("SELECT `Id` FROM `Storage` WHERE `Id` != :id");
+    mapStatements[SELECT_ALL_STORAGE_ID]->prepare("SELECT `Id` FROM `Storage` WHERE `Id` != :id");
+
+    mapStatements[SELECT_ALL_STORAGE_ID_AND_SERVER_ID]->prepare("SELECT `Id` FROM `Storage` WHERE `Id` != :id AND ServerId = :server_id");
 
     mapStatements[SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL]->prepare("SELECT `Id` FROM `Storage` WHERE ServerId IS NULL");
+
+    mapStatements[SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL_OR_DIFFERENT]->prepare("SELECT `Id` FROM `Storage` WHERE ServerId IS NULL OR ServerId != :server_id");
 
     mapStatements[SELECT_ALL_EVENTS_ID_WITH_MONITORID_EQUAL]->prepare(
         "SELECT `Id` FROM `Events` WHERE `MonitorId` = :id AND unix_timestamp(`EndDateTime`) > :timestamp \
@@ -207,7 +212,7 @@ WHERE Id = :id AND Name='New Event'");
     mapStatements[UPDATE_EVENT_WITH_ID_SET_SCORE]->prepare("UPDATE Events \
 SET Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = total_score, AvgScore = avg_score, MaxScore = max_score WHERE Id = :id");
 
-    mapStatements[UPDATE_EVENT_WITH_ID_SET_STORAGEID]->prepare("UPDATE Events SET StorageId = :storageId WHERE Id=:id");
+    mapStatements[UPDATE_EVENT_WITH_ID_SET_STORAGEID]->prepare("UPDATE Events SET StorageId = :storage_id WHERE Id=:id");
 
     mapStatements[UPDATE_EVENT_WITH_ID_SET_SAVEJPEGS]->prepare("UPDATE Events SET SaveJpegs=:save_jpegs WHERE Id=:id");
 

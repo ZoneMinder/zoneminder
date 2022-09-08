@@ -793,26 +793,28 @@ function initPage() {
       el.onchange = window['changeRate'].bind(el, el);
     });
 
-    // Init the bootstrap-table
-    table.bootstrapTable({icons: icons});
-    // Update table rows each time after new data is loaded
-    table.on('post-body.bs.table', function(data) {
-      $j('#eventList tr:contains("New Event")').addClass('recent');
-    });
+    if (canView.Events) {
+      // Init the bootstrap-table
+      table.bootstrapTable({icons: icons});
+      // Update table rows each time after new data is loaded
+      table.on('post-body.bs.table', function(data) {
+        $j('#eventList tr:contains("New Event")').addClass('recent');
+      });
 
-    // Take appropriate action when the user clicks on a cell
-    table.on('click-cell.bs.table', processClicks);
+      // Take appropriate action when the user clicks on a cell
+      table.on('click-cell.bs.table', processClicks);
 
-    // Some toolbar events break the thumbnail animation, so re-init eventlistener
-    table.on('all.bs.table', initThumbAnimation);
+      // Some toolbar events break the thumbnail animation, so re-init eventlistener
+      table.on('all.bs.table', initThumbAnimation);
 
-    // Update table links each time after new data is loaded
-    table.on('post-body.bs.table', function(data) {
-      var thumb_ndx = $j('#eventList tr th').filter(function() {
-        return $j(this).text().trim() == 'Thumbnail';
-      }).index();
-      table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
-    });
+      // Update table links each time after new data is loaded
+      table.on('post-body.bs.table', function(data) {
+        var thumb_ndx = $j('#eventList tr th').filter(function() {
+          return $j(this).text().trim() == 'Thumbnail';
+        }).index();
+        table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
+      });
+    } // end if canView.Events
   } else if (monitorRefresh > 0) {
     setInterval(reloadWebSite, monitorRefresh*1000);
   }

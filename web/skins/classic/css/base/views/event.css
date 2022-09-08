@@ -10,23 +10,35 @@
     display: inline-block;
 }
 
+#alarmCues,
 .alarmCue {
+  position: relative;
+  background: none;
+
+  /*
     background-color: #222222;
-    height: 1.25em;
+    */
+    height: 16px;
     text-align: left;
     margin: 0 auto 0 auto;
-    border-radius: 0 0 .3em .3em;
+    z-index: 10;
 }
 
-.alarmCue span {
-    background-color:red;
+#alarmCues span {
     height: 100%;
     display: inline-block;
     border-radius: 0;
+    z-index: 11;
+}
+
+span.alarmCue {
+    background-color:red;
+    z-index: 9;
 }
 
 span.noneCue {
     background: none;
+    z-index: 9;
 }
 
 #header {
@@ -150,16 +162,27 @@ height: 100%;
 
 #progressBar {
     position: relative;
+    /*
     top: -1.25em;
+    */
     height: 1.25em;
+    /*
     margin: 0 auto -1.25em auto;
+    */
+  margin: 0;
+    z-index: 5;
 }
 
 #progressBar .progressBox {
     transition: width .1s;
     height: 100%;
+    position: absolute;
+    top: 0;
     background: rgba(170, 170, 170, .7);
+    /*
     border-radius: 0 0 .3em .3em;
+    */
+    z-index: 5;
 }
 
 #eventStills {

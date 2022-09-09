@@ -1200,6 +1200,14 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     }
   case 'viewing' :
 ?>
+            <tr>
+              <td><?php echo translate('RTSPServer'); echo makeHelpLink('OPTIONS_RTSPSERVER') ?></td>
+              <td><input type="checkbox" name="newMonitor[RTSPServer]" value="1"<?php echo $monitor->RTSPServer() ? ' checked="checked"' : '' ?>/></td>
+            </tr>
+            <tr>
+              <td><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></td>
+              <td><input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/></td>
+            </tr>
             <tr id="FunctionJanusEnabled">
               <td><?php echo translate('Janus Live Stream') ?></td>
               <td><input type="checkbox" name="newMonitor[JanusEnabled]" value="1"<?php echo $monitor->JanusEnabled() ? ' checked="checked"' : '' ?>/>
@@ -1467,14 +1475,6 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         <tr>
           <td><?php echo translate('Exif'); echo makeHelpLink('OPTIONS_EXIF') ?></td>
           <td><input type="checkbox" name="newMonitor[Exif]" value="1"<?php echo $monitor->Exif() ? ' checked="checked"' : '' ?>/></td>
-        </tr>
-        <tr>
-          <td><?php echo translate('RTSPServer'); echo makeHelpLink('OPTIONS_RTSPSERVER') ?></td>
-          <td><input type="checkbox" name="newMonitor[RTSPServer]" value="1"<?php echo $monitor->RTSPServer() ? ' checked="checked"' : '' ?>/></td>
-        </tr>
-        <tr>
-          <td><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></td>
-          <td><input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/></td>
         </tr>
         <tr>
           <td><?php echo translate('Importance'); echo makeHelpLink('OPTIONS_IMPORTANCE') ?></td>

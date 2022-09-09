@@ -68,6 +68,8 @@ inline bool StartsWith(const std::string &haystack, const std::string &needle) {
 __attribute__((format(printf, 1, 2)))
 std::string stringtf(const char* format, ...);
 
+void frexp10(double arg, int& exp, double& mantissa );
+
 std::string ByteArrayToHexString(nonstd::span<const uint8> bytes);
 
 std::string Base64Encode(const std::string &str);

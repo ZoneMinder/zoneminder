@@ -20,7 +20,6 @@
 #ifndef ZM_LOGGER_H
 #define ZM_LOGGER_H
 
-#include "zm_db.h"
 #include "zm_config.h"
 #include "zm_define.h"
 #include <map>

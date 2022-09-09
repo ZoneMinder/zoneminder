@@ -138,6 +138,16 @@ std::string stringtf(const char* format, ...) {
   return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
+void frexp10(double arg, int& exp, double& mantissa )
+{
+  if( arg == 0 )
+    exp = 0
+  else
+    exp = 1 + (int)std::floor(std::log10(std::fabs(arg) ) );
+  
+  mantissa = arg * std::pow(10 , -(exp));
+}
+
 std::string ByteArrayToHexString(nonstd::span<const uint8> bytes) {
   static constexpr char lowercase_table[] = "0123456789abcdef";
   std::string buf;

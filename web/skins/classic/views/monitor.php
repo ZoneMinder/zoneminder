@@ -1085,7 +1085,7 @@ include('_monitor_source_nvsocket.php');
             <td><?php echo translate('StorageArea') ?></td>
             <td>
 <?php
-      $storage_areas = array(0=>'Default');
+      $storage_areas = array(0=>translate('Unspecified'));
       foreach ( ZM\Storage::find(array('Enabled'=>true), array('order'=>'lower(Name)')) as $Storage ) {
         $storage_areas[$Storage->Id()] = $Storage->Name();
       }

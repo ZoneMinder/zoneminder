@@ -183,8 +183,8 @@ public static function getStatuses() {
     'Deinterlacing' =>  0,
     'DecoderHWAccelName'  =>  null,
     'DecoderHWAccelDevice'  =>  null,
-    'SaveJPEGs' =>  3,
-    'VideoWriter' =>  '0',
+    'SaveJPEGs' =>  2,
+    'VideoWriter' =>  '2',
     'OutputCodec' =>  null,
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
@@ -200,7 +200,7 @@ public static function getStatuses() {
     'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
     'LabelX'      =>  0,
     'LabelY'      =>  0,
-    'LabelSize'   =>  1,
+    'LabelSize'   =>  2,
     'ImageBufferCount'  =>  3,
     'MaxImageBufferCount'  =>  0,
     'WarmupCount' =>  0,
@@ -304,7 +304,7 @@ public static function getStatuses() {
     }
     // empty value or old auth values terminate
     if (!isset($this->{'Path'}) or ($this->{'Path'}==''))
-      return $this->{'Path'};
+      return '';
 
     // extract the authentication part from the path given
     $values = extract_auth_values_from_url($this->{'Path'});
@@ -330,38 +330,32 @@ public static function getStatuses() {
   }
 
   public function User($new=null) {
-    if( $new !== null ) {
+    if ($new !== null) {
       // no url check if the update has different value
       $this->{'User'} = $new;
     }
 
-    if( strlen($this->{'User'}) > 0 )
+    if (isset($this->{'User'}) and $this->{'User'} != '')
       return $this->{'User'};
 
     // Only try to update from path if the field is empty
-    $values = extract_auth_values_from_url($this->{'Path'});
-    if( count( $values ) == 2 ) {
-      $us = $values[0];
-      $this->{'User'} = $values[0];
-    }
+    $values = extract_auth_values_from_url($this->Path());
+    $this->{'User'} = count($values) == 2 ? $values[0] : '';
     return $this->{'User'};
   }
 
   public function Pass($new=null) {
-    if( $new !== null ) {
+    if ($new !== null) {
       // no url check if the update has different value
       $this->{'Pass'} = $new;
     }
 
-    if( strlen($this->{'Pass'}) > 0 )
+    if (isset($this->{'Pass'}) and $this->{'Pass'} != '')
       return $this->{'Pass'};
 
     // Only try to update from path if the field is empty
-    $values = extract_auth_values_from_url($this->{'Path'});
-    if( count( $values ) == 2 ) {
-      $ps = $values[1];
-      $this->{'Pass'} = $values[1];
-    }
+    $values = extract_auth_values_from_url($this->Path());
+    $this->{'Pass'} = count($values) == 2 ? $values[1] : '';
     return $this->{'Pass'};
   }
 

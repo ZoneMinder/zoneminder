@@ -72,6 +72,21 @@ function loadLocations( element ) {
   }
 }
 
+function Janus_Use_RTSP_Restream_onclick(e) {
+  console.log("hello");
+  Janus_Use_RTSP_Restream = $j('[name="newMonitor[Janus_Use_RTSP_Restream]"]');
+  if (Janus_Use_RTSP_Restream.length) {
+    const Janus_RTSP_User = $j('#Janus_RTSP_User');
+    if (Janus_Use_RTSP_Restream[0].checked) {
+      Janus_RTSP_User.show();
+    } else {
+      Janus_RTSP_User.hide();
+    }
+  } else {
+    console.log("DIdn't find newMonitor[Janus_Use_RTSP_Restream]");
+  }
+}
+
 function initPage() {
   var backBtn = $j('#backBtn');
   var onvifBtn = $j('#onvifBtn');
@@ -285,6 +300,14 @@ function initPage() {
     }
   });
 
+  const Janus_Use_RTSP_Restream = document.getElementsByName('newMonitor[Janus_Use_RTSP_Restream]');
+  if (Janus_Use_RTSP_Restream.length) {
+    Janus_Use_RTSP_Restream[0].onclick = Janus_Use_RTSP_Restream_onclick;
+    console.log("Setup Janus_RTSP_Restream.onclick");
+  } else {
+    console.log("newMonitor[Janus_Use_RTSP_Restream] not found");
+  }
+
   // Amcrest API controller
   if (document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[0].checked) {
     document.getElementById("function_use_Amcrest_API").hidden = false;
@@ -469,6 +492,7 @@ function updateLatitudeAndLongitude(latitude, longitude) {
     map.invalidateSize(true);
   }, 100);
 }
+
 function getLocation() {
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition((position) => {

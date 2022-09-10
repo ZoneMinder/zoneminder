@@ -148,6 +148,7 @@ public static function getStatuses() {
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
     'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
+    'Janus_RTSP_User'           => null,
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
     'EventStartCommand' => '',

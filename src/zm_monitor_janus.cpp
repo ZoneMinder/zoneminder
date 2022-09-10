@@ -17,6 +17,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+#include "zm_crypt.h"
 #include "zm_monitor.h"
 #include "zm_crypt.h"
 #include <regex>
@@ -41,16 +42,51 @@ Monitor::JanusManager::JanusManager(Monitor *parent_) :
 
   rtsp_username = "";
   rtsp_password = "";
-  if( parent->user.length() > 0 ) {
-    rtsp_username = escape_json_string(parent->user);
-    rtsp_password = escape_json_string(parent->pass);
-  }
 
   if (Use_RTSP_Restream) {
     int restream_port = config.min_rtsp_port;
     rtsp_path = "rtsp://127.0.0.1:" + std::to_string(restream_port) + "/" + parent->rtsp_streamname;
+    if (ZM_OPT_USE_AUTH) {
+      SystemTimePoint now = std::chrono::system_clock::now();
+      time_t now_t = std::chrono::system_clock::to_time_t(now);
+      tm now_tm = {};
+      localtime_r(&now_t, &now_tm);
+      if (parent->janus_rtsp_user) {
+        std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
+          " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
+          " `MonitorIds` FROM `Users` WHERE `Enabled`=1 AND `Id`=" + std::to_string(parent->janus_rtsp_user);
+
+        MYSQL_RES *result = zmDbFetch(sql);
+        if (result) {
+          MYSQL_ROW dbrow = mysql_fetch_row(result);
+          const char *username = dbrow[1];
+          const char *password = dbrow[2];
+
+          std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
+              config.auth_hash_secret,
+              username,
+              password,
+              (config.auth_hash_ips ? "127.0.0.1" : ""),
+              now_tm.tm_hour,
+              now_tm.tm_mday,
+              now_tm.tm_mon,
+              now_tm.tm_year);
+          Debug(1, "Creating auth_key '%s'", auth_key.c_str());
+
+          zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
+          mysql_free_result(result);
+          rtsp_path += "?auth=" + ByteArrayToHexString(md5_digest);
+        } else {
+          Warning("No user selected for RTSP_Server authentication!");
+        }
+      }
+    }
   } else {
     rtsp_path = parent->path;
+    if (parent->user.length() > 0) {
+      rtsp_username = escape_json_string(parent->user);
+      rtsp_password = escape_json_string(parent->pass);
+    }
   }
   parent->janus_pin = generateKey(16);
   Debug(1, "Monitor %u assigned secret %s", parent->id, parent->janus_pin.c_str());

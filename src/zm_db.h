@@ -62,13 +62,15 @@ protected:
   zmDbQueryID id;
   soci::statement *stmt;
   soci::row* result;
+  bool exitOnError;
 
 public:
-  zmDbQuery(const zmDbQueryID& id);
-  virtual ~zmDbQuery();
+  zmDbQuery(const zmDbQueryID& id = LAST_QUERY, bool exitOnError = false);
 
   zmDbQuery(const zmDbQuery& other) : db(other.db), 
-    id(other.id), stmt(other.stmt) {}
+    id(other.id), stmt(other.stmt), exitOnError(other.exitOnError) {};
+
+  virtual ~zmDbQuery();
 
   template <typename T>
   zmDbQuery& bind(const std::string &name, const T &value)
@@ -105,19 +107,27 @@ public:
   T get(const std::string &name)
   {
     if (stmt == nullptr || result == nullptr) {
-      T zero = 0;
-      return zero;
+      return T();
     }
 
     return result->get<T>(name);
+  }
+
+  template <typename T>
+  T get(const int position)
+  {
+    if (stmt == nullptr || result == nullptr) {
+      return T();
+    }
+
+    return result->get<T>(position);
   }
 
   template <typename U>
   std::vector<U> getVec(const std::string &name)
   {
     if (stmt == nullptr || result == nullptr) {
-      U zero;
-      return zero;
+      return U();
     }
 
     std::vector<U> outvector;
@@ -131,6 +141,8 @@ public:
     return outvector;
   }
 
+  zmDbQueryID getID() { return id; };
+
   virtual zmDbQuery &run(bool data_exchange);
   virtual bool next();
   virtual void reset();
@@ -138,6 +150,8 @@ public:
   virtual zmDbQuery &fetchOne();
   virtual uint64_t insert();
   virtual uint64_t update();
+
+  virtual int affectedRows();
 
   void deferOnClose( std::function<void()> );
 };

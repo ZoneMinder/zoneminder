@@ -34,6 +34,7 @@ typedef enum
   SELECT_GROUPS_PARENT_OF_MONITOR_ID,
   SELECT_MONITOR_ID_REMOTE_RTSP_AND_RTPUNI,
   SELECT_STORAGE_WITH_ID,
+  SELECT_EVENT_WITH_ID,
   SELECT_USER_AND_DATA_WITH_USERNAME_ENABLED,
   SELECT_USER_AND_DATA_PLUS_TOKEN_WITH_USERNAME_ENABLED,
   SELECT_ALL_ACTIVE_STATES_ID,
@@ -43,7 +44,6 @@ typedef enum
   SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL,
   SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL_OR_DIFFERENT,
   SELECT_ALL_EVENTS_ID_WITH_MONITORID_EQUAL,
-  SELECT_ALL_FRAMES_WITH_DATA_OF_EVENT_WITH_ID,
   SELECT_ALL_FRAMES_OF_EVENT_WITH_ID,
   SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LESSER_THAN,
   SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LARGER_THAN,
@@ -76,7 +76,6 @@ typedef enum
 
 class zmDb;
 class zmDbQuery;
-
 
 class zmDecimal
 {
@@ -135,8 +134,8 @@ public:
 
     int ignoredExponent;
     double mantissa = 0.0;
-    // this divides the part of the full value without the integral part
-    // meaning fullValue - integerConvertPart = 0.789456 into an
+    // this divides the full value without the integral part
+    // meaning fullValue - integerConvertPart = 0.789456 and
     // exponent value (0, ignored) and the mantissa, which will be
     // exactly 789456 and can be now casted safely (hopefully) without 
     // rounding or loss of precision
@@ -157,7 +156,7 @@ namespace soci
 template<> struct type_conversion<zmDecimal>
 {
     typedef double base_type;
-    static void from_base(double & v, indicator & ind, zmDecimal & p)
+    static void from_base(const double & v, indicator & ind, zmDecimal & p)
     {
         p = zmDecimal( v );
     }

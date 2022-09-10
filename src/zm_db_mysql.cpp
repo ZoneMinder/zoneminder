@@ -1,21 +1,21 @@
 //
 // ZoneMinder MySQL Database Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 #include "zm_db.h"
 
 #include "zm_signal.h"
@@ -23,8 +23,9 @@
 
 // --- zmDb subclass --- //
 
-zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb() {
-    if( db.is_connected() )
+zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
+{
+    if (db.is_connected())
         return;
 
     std::string paramsStr("");
@@ -35,75 +36,91 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb() {
 
     std::string::size_type colonIndex = staticConfig.DB_HOST.find(":");
 
-    if ( colonIndex == std::string::npos ) {
+    if (colonIndex == std::string::npos)
+    {
         // HOST
         paramsStr += " host='" + staticConfig.DB_HOST + "'";
-    } else {
+    }
+    else
+    {
         std::string dbHost = staticConfig.DB_HOST.substr(0, colonIndex);
-        std::string dbPortOrSocket = staticConfig.DB_HOST.substr(colonIndex+1);
-        if ( dbPortOrSocket[0] == '/' ) {
+        std::string dbPortOrSocket = staticConfig.DB_HOST.substr(colonIndex + 1);
+        if (dbPortOrSocket[0] == '/')
+        {
             // SOCKET
             paramsStr += " unix_socket='" + dbPortOrSocket + "'";
-        } else {
+        }
+        else
+        {
             // HOST + PORT
             paramsStr += " host='" + dbHost + "'";
             paramsStr += " port=" + dbPortOrSocket;
         }
     }
 
-    soci::connection_parameters params( "mysql", paramsStr );
+    soci::connection_parameters params("mysql", paramsStr);
 
-    try {
+    try
+    {
         db.open(params);
-        if( !db.is_connected() ) {
+        if (!db.is_connected())
+        {
             Error("Can't connect to server: %s", paramsStr.c_str());
             return;
         }
 
-        soci::mysql_session_backend* concreteDb = (soci::mysql_session_backend*)db.get_backend();
+        soci::mysql_session_backend *concreteDb = (soci::mysql_session_backend *)db.get_backend();
 
-        if ( mysql_options(concreteDb->conn_, MYSQL_OPT_RECONNECT, NULL) )
-           Error("Can't set database auto reconnect option: %s", mysql_error(concreteDb->conn_));
+        if (mysql_options(concreteDb->conn_, MYSQL_OPT_RECONNECT, NULL))
+            Error("Can't set database auto reconnect option: %s", mysql_error(concreteDb->conn_));
 
-        for( int i=0; i<LAST_QUERY; i++ ) {
+        for (int i = 0; i < LAST_QUERY; i++)
+        {
             mapStatements[i] = new soci::statement(db);
             mapStatements[i]->alloc();
         }
         prepareStatements();
-        for( int i=0; i<LAST_QUERY; i++ ) {
+        for (int i = 0; i < LAST_QUERY; i++)
+        {
             mapStatements[i]->define_and_bind();
         }
     }
-    catch( const std::exception& err ) {
+    catch (const std::exception &err)
+    {
         Error("Can't connect to server: %s", paramsStr.c_str());
     }
 }
 
-zmDbMySQLAdapter::~zmDbMySQLAdapter () {
-    if( !db.is_connected() )
+zmDbMySQLAdapter::~zmDbMySQLAdapter()
+{
+    if (!db.is_connected())
         return;
 
-    try {
+    try
+    {
         db.close();
     }
-    catch( const std::exception& err ) {
+    catch (const std::exception &err)
+    {
         Error("Can't disconnect server: %s", staticConfig.DB_HOST.c_str());
     }
 }
 
-uint64_t zmDbMySQLAdapter::lastInsertID(const zmDbQueryID& queryId) {
-    if( !db.is_connected() )
+uint64_t zmDbMySQLAdapter::lastInsertID(const zmDbQueryID &queryId)
+{
+    if (!db.is_connected())
         return 0;
 
     long long id = 0;
-    if( db.get_last_insert_id(autoIncrementTable[queryId], id) )
+    if (db.get_last_insert_id(autoIncrementTable[queryId], id))
         return id;
-    
+
     return 0;
 }
 
-void zmDbMySQLAdapter::prepareStatements() {
-    if( !db.is_connected() )
+void zmDbMySQLAdapter::prepareStatements()
+{
+    if (!db.is_connected())
         return;
 
     mapStatements[SELECT_SERVER_ID_WITH_NAME]->prepare("SELECT `Id` FROM `Servers` WHERE `Name`=':name'");
@@ -149,20 +166,20 @@ WHERE `Username` = :username AND `Enabled` = 1");
         "SELECT `Id` FROM `Events` WHERE `MonitorId` = :id AND unix_timestamp(`EndDateTime`) > :timestamp \
         ORDER BY `Id` ASC LIMIT 1");
 
-    mapStatements[SELECT_ALL_FRAMES_WITH_DATA_OF_EVENT_WITH_ID]->prepare(
-        "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, \
-unix_timestamp( `EndDateTime` ) AS EndTimestamp, (SELECT max(`Delta`)-min(`Delta`) FROM `Frames` \
-WHERE `EventId`=`Events`.`Id`) AS FramesDuration, `DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` \
-WHERE `Id` = :id");
+    mapStatements[SELECT_EVENT_WITH_ID]->prepare(
+        "SELECT `Events`.`Id`, `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, \
+unix_timestamp( `EndDateTime` ) AS EndTimestamp, `DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0, \
+max(f.`Delta`)-min(f.`Delta`) AS FramesDuration FROM `Events` \
+JOIN `Frames` f ON `Events`.`Id` = f.`Id` WHERE `Events`.`Id` = :id");
 
     mapStatements[SELECT_ALL_FRAMES_OF_EVENT_WITH_ID]->prepare("SELECT `FrameId`, unix_timestamp(`TimeStamp`), `Delta` FROM `Frames` \
-        WHERE `EventId` = :id  ORDER BY `FrameId` ASC");
+    WHERE `EventId` = :id  ORDER BY `FrameId` ASC");
 
     mapStatements[SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LESSER_THAN]->prepare(
-        "SELECT `Id` FROM `Events` WHERE `MonitorId` = :monitorId AND `Id` < :eventId  ORDER BY `Id` DESC LIMIT 1");
+        "SELECT `Id` FROM `Events` WHERE `MonitorId` = :monitor_id AND `Id` < :event_id  ORDER BY `Id` DESC LIMIT 1");
 
     mapStatements[SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LARGER_THAN]->prepare(
-        "SELECT `Id` FROM `Events` WHERE `MonitorId` = :monitorId AND `Id` > :eventId  ORDER BY `Id` ASC LIMIT 1");
+        "SELECT `Id` FROM `Events` WHERE `MonitorId` = :monitor_id AND `Id` > :event_id  ORDER BY `Id` ASC LIMIT 1");
 
     mapStatements[SELECT_ALL_MONITORS_DATA_OFFICIAL]->prepare(
         "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, \
@@ -197,7 +214,7 @@ OverloadFrames,ExtendAlarmFrames \
 FROM Zones WHERE MonitorId = :id ORDER BY Type");
 
     mapStatements[SELECT_ALL_MONITORS_DATA]->prepare("SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors`");
-    
+
     mapStatements[UPDATE_NEW_EVENT_WITH_ID]->prepare(
         "UPDATE Events SET Name=:name, EndDateTime = from_unixtime(:enddatetime), Length = :length, Frames = :frames, \
 AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score, DefaultVideo=:default_video \
@@ -254,7 +271,8 @@ VALUES (:id, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=
         "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (:id, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'");
 }
 
-void zmDbMySQLAdapter::prepareAutoIncrementTables() {
+void zmDbMySQLAdapter::prepareAutoIncrementTables()
+{
     // auto increment table
     /*
     autoIncrementTable[UPDATE_NEW_EVENT_WITH_ID] = "Events";

@@ -42,24 +42,12 @@ const std::string EventStream::StreamMode_Strings[4] = {
 constexpr Milliseconds EventStream::STREAM_PAUSE_WAIT;
 
 bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_time) {
-  std::string sql = stringtf("SELECT `Id` FROM `Events` WHERE "
-                             "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %ld "
-                             "ORDER BY `Id` ASC LIMIT 1", monitor_id, std::chrono::system_clock::to_time_t(event_time));
-
-  MYSQL_RES *result = zmDbFetch(sql);
-  if (!result)
-    exit(-1);
-
-  MYSQL_ROW dbrow = mysql_fetch_row(result);
-
-  if ( mysql_errno(&dbconn) ) {
-    Error("Can't fetch row: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
-
-  uint64_t init_event_id = atoll(dbrow[0]);
-
-  mysql_free_result(result);
+  // second parameter to query will cause the program to exit with errorcode
+  uint64_t init_event_id = zmDbQuery( SELECT_ALL_EVENTS_ID_WITH_MONITORID_EQUAL, true )
+    .bind( "id", monitor_id )
+    .bind( "timestamp", std::chrono::system_clock::to_time_t(event_time) )
+    .fetchOne()
+    .get<uint64_t>("Id");
 
   loadEventData(init_event_id);
 
@@ -111,52 +99,14 @@ bool EventStream::loadInitialEventData(
 }
 
 bool EventStream::loadEventData(uint64_t event_id) {
-  std::string sql = stringtf(
-      "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, "
-      "unix_timestamp( `EndDateTime` ) AS EndTimestamp, "
-      "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS FramesDuration, "
-      "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
-
-  MYSQL_RES *result = zmDbFetch(sql);
-  if (!result) {
-    exit(-1);
-  }
-
-  if ( !mysql_num_rows(result) ) {
-    Fatal("Unable to load event %" PRIu64 ", not found in DB", event_id);
-  }
-
-  MYSQL_ROW dbrow = mysql_fetch_row(result);
-
-  if ( mysql_errno(&dbconn) ) {
-    Error("Can't fetch row: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
+  // second parameter to query will cause the program to exit with errorcode
+  EventData* data = zmDbQuery( SELECT_EVENT_WITH_ID, true )
+    .bind( "id", event_id )
+    .fetchOne()
+    .get<EventData*>(0);
 
   delete event_data;
-  event_data = new EventData;
-  event_data->event_id = event_id;
-
-  event_data->monitor_id = atoi(dbrow[0]);
-  event_data->storage_id = dbrow[1] ? atoi(dbrow[1]) : 0;
-  event_data->frame_count = dbrow[2] == nullptr ? 0 : atoi(dbrow[2]);
-  event_data->start_time = SystemTimePoint(Seconds(atoi(dbrow[3])));
-  event_data->end_time = dbrow[4] ? SystemTimePoint(Seconds(atoi(dbrow[4]))) : std::chrono::system_clock::now();
-  event_data->duration = std::chrono::duration_cast<Microseconds>(event_data->end_time - event_data->start_time);
-  event_data->frames_duration =
-      std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : FPSeconds(0.0));
-  event_data->video_file = std::string(dbrow[6]);
-  std::string scheme_str = std::string(dbrow[7]);
-  if ( scheme_str == "Deep" ) {
-    event_data->scheme = Storage::DEEP;
-  } else if ( scheme_str == "Medium" ) {
-    event_data->scheme = Storage::MEDIUM;
-  } else {
-    event_data->scheme = Storage::SHALLOW;
-  }
-  event_data->SaveJPEGs = dbrow[8] == nullptr ? 0 : atoi(dbrow[8]);
-  event_data->Orientation = (Monitor::Orientation)(dbrow[9] == nullptr ? 0 : atoi(dbrow[9]));
-  mysql_free_result(result);
+  event_data = data;
 
   if ( !monitor ) {
     monitor = Monitor::Load(event_data->monitor_id, false, Monitor::QUERY);
@@ -223,14 +173,11 @@ bool EventStream::loadEventData(uint64_t event_id) {
   }
   updateFrameRate(fps);
 
-  sql = stringtf("SELECT `FrameId`, unix_timestamp(`TimeStamp`), `Delta` "
-                 "FROM `Frames` WHERE `EventId` = %" PRIu64 " ORDER BY `FrameId` ASC", event_id);
-  result = zmDbFetch(sql);
-  if (!result) {
-    exit(-1);
-  }
+  zmDbQuery framesQuery = zmDbQuery( SELECT_ALL_FRAMES_OF_EVENT_WITH_ID, true )
+    .bind( "id", event_id )
+    .run(true);
 
-  event_data->n_frames = mysql_num_rows(result);
+  event_data->n_frames = framesQuery.affectedRows();
   event_data->frames = new FrameData[event_data->frame_count];
   if (event_data->frame_count < event_data->n_frames) {
     event_data->frame_count = event_data->n_frames;
@@ -242,10 +189,13 @@ bool EventStream::loadEventData(uint64_t event_id) {
   SystemTimePoint last_timestamp = event_data->start_time;
   Microseconds last_delta = Seconds(0);
 
-  while ((dbrow = mysql_fetch_row(result))) {
-    int id = atoi(dbrow[0]);
-    //timestamp = atof(dbrow[1]);
-    Microseconds delta = std::chrono::duration_cast<Microseconds>(FPSeconds(atof(dbrow[2])));
+  while (framesQuery.next()) {
+
+    int id = framesQuery.get<int>("FrameId");
+
+    zmDecimal dec = framesQuery.get<zmDecimal>("Delta");
+
+    Microseconds delta = std::chrono::duration_cast<Microseconds>(FPSeconds(dec.toValue()));
     int id_diff = id - last_id;
     Microseconds frame_delta =
         std::chrono::duration_cast<Microseconds>(id_diff ? (delta - last_delta) / id_diff : (delta - last_delta));
@@ -283,12 +233,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
   }
   // Incomplete events might not have any frame data
   event_data->last_frame_id = last_id;
-
-  if (mysql_errno(&dbconn)) {
-    Error("Can't fetch row: %s", mysql_error(&dbconn));
-    exit(mysql_errno(&dbconn));
-  }
-  mysql_free_result(result);
 
   if (!event_data->video_file.empty() || (monitor->GetOptVideoWriter() > 0)) {
     if (event_data->video_file.empty()) {
@@ -589,12 +533,13 @@ void EventStream::processCommand(const CmdMsg *msg) {
 }  // void EventStream::processCommand(const CmdMsg *msg)
 
 bool EventStream::checkEventLoaded() {
-  std::string sql;
+  zmDbQuery eventQuery;
 
   if ( curr_frame_id <= 0 ) {
-    sql = stringtf(
-        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` < %" PRIu64 " ORDER BY `Id` DESC LIMIT 1",
-        event_data->monitor_id, event_data->event_id);
+    eventQuery = zmDbQuery( SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LESSER_THAN, true )
+      .bind( "monitor_id", event_data->monitor_id )
+      .bind( "event_id", event_data->event_id );
+
   } else if (curr_frame_id > event_data->last_frame_id) {
     if (event_data->end_time.time_since_epoch() == Seconds(0)) {
       // We are viewing an in-process event, so just reload it.
@@ -603,9 +548,11 @@ bool EventStream::checkEventLoaded() {
         curr_frame_id = event_data->last_frame_id;
       return false;
     }
-    sql = stringtf(
-        "SELECT `Id` FROM `Events` WHERE `MonitorId` = %d AND `Id` > %" PRIu64 " ORDER BY `Id` ASC LIMIT 1",
-        event_data->monitor_id, event_data->event_id);
+
+    eventQuery = zmDbQuery( SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LARGER_THAN, true )
+      .bind( "monitor_id", event_data->monitor_id )
+      .bind( "event_id", event_data->event_id );
+
   } else {
     // No event change required
     Debug(3, "No event change required, as curr frame %d <=> event frames %d",
@@ -615,25 +562,12 @@ bool EventStream::checkEventLoaded() {
 
   // Event change required.
   if ( forceEventChange || ( (mode != MODE_SINGLE) && (mode != MODE_NONE) ) ) {
-    Debug(1, "Checking for next event %s", sql.c_str());
+    Debug(1, "Checking for next event, query id: %d", eventQuery.getID());
 
-    MYSQL_RES *result = zmDbFetch(sql);
-    if (!result) {
-      exit(-1);
-    }
+    eventQuery.run(true);
 
-    if ( mysql_num_rows(result) != 1 ) {
-      Debug(1, "No rows returned for %s", sql.c_str());
-    }
-    MYSQL_ROW dbrow = mysql_fetch_row(result);
-
-    if ( mysql_errno(&dbconn)) {
-      Error("Can't fetch row: %s", mysql_error(&dbconn));
-      exit(mysql_errno(&dbconn));
-    }
-
-    if ( dbrow ) {
-      uint64_t event_id = atoll(dbrow[0]);
+    if( eventQuery.affectedRows() == 1 ) {
+      uint64_t event_id = eventQuery.get<uint64_t>("Id");
       Debug(1, "Loading new event %" PRIu64, event_id);
 
       loadEventData(event_id);
@@ -645,17 +579,19 @@ bool EventStream::checkEventLoaded() {
       Debug(2, "New frame id = %d", curr_frame_id);
       start = std::chrono::steady_clock::now();
       return true;
-    } else {
-      Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
-      if ( curr_frame_id <= 0 )
-        curr_frame_id = 1;
-      else
-        curr_frame_id = event_data->frame_count;
-      paused = true;
-      sendTextFrame("No more event data found");
-    }  // end if found a new event or not
-    mysql_free_result(result);
+    }
+
+    Debug(1, "No rows returned for query");
+    Debug(2, "No next event loaded using query id: %d. Pausing.", eventQuery.getID());
+    if ( curr_frame_id <= 0 )
+      curr_frame_id = 1;
+    else
+      curr_frame_id = event_data->frame_count;
+    paused = true;
+    sendTextFrame("No more event data found");
+
     forceEventChange = false;
+
   } else {
     Debug(2, "Pausing because mode is %s", StreamMode_Strings[mode].c_str());
     if ( curr_frame_id <= 0 )

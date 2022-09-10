@@ -64,10 +64,11 @@ bool zmDbIsConnected() {
 }
 
 // --- Query handling --- //
-zmDbQuery::zmDbQuery(const zmDbQueryID& queryId)
+zmDbQuery::zmDbQuery(const zmDbQueryID& queryId, bool exitError /* = false */)
 {
   db = database;
   id = queryId;
+  exitOnError = exitError;
   stmt = database->mapStatements[id];
   result = nullptr;
 }
@@ -91,7 +92,27 @@ zmDbQuery &zmDbQuery::run(bool data_exchange)
   }
 
   stmt->define_and_bind();
-  stmt->execute(data_exchange);
+
+  bool result = false;
+  unsigned int errcode = 0;
+  try {
+    result = stmt->execute(data_exchange);
+  }
+  catch (soci::mysql_soci_error const & e)
+  {
+    Error("Database error [code %d]: %s", e.err_num_, e.what());
+    errcode = e.err_num_;
+    result = false;
+  }
+  catch (soci::soci_error const & e)
+  {
+    Error("Database error [code -1]: %s", e.what());
+    errcode = 0;
+    result = false;
+  }
+  if( !result && exitOnError ) {
+    exit(errcode);
+  }
 
   return *this;
 }
@@ -121,8 +142,7 @@ zmDbQuery &zmDbQuery::fetchOne()
   if (stmt == nullptr || result != nullptr)
     return *this;
 
-  run(true)
-    .next();
+  run(true).next();
 
   return *this;
 }
@@ -143,6 +163,14 @@ uint64_t zmDbQuery::update()
     return 0;
 
   run(false);
+
+  return stmt->get_affected_rows();
+}
+
+int zmDbQuery::affectedRows()
+{
+  if (stmt == nullptr || result != nullptr)
+    return -1;
 
   return stmt->get_affected_rows();
 }

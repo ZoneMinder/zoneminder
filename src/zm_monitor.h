@@ -377,6 +377,7 @@ protected:
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
   bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
+  int             janus_rtsp_user;          // User Id of a user to use for auth to RTSP_Server
 
   std::string protocol;
   std::string method;

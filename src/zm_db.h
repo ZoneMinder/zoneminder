@@ -72,6 +72,7 @@ public:
 
   virtual ~zmDbQuery();
 
+  // Bind single value
   template <typename T>
   zmDbQuery& bind(const std::string &name, const T &value)
   {
@@ -92,6 +93,7 @@ public:
     return *this;
   }
 
+  // Bind vector value
   template <typename T>
   zmDbQuery& bindVec(const std::vector<T> &values)
   {
@@ -103,6 +105,7 @@ public:
     return *this;
   }
 
+  // Get values from results
   template <typename T>
   T get(const std::string &name)
   {
@@ -123,6 +126,7 @@ public:
     return result->get<T>(position);
   }
 
+  // Get list of values via vector
   template <typename U>
   std::vector<U> getVec(const std::string &name)
   {
@@ -139,6 +143,20 @@ public:
     }
 
     return outvector;
+  }
+
+  // Return if field is present in result
+  bool fieldPresent(std::size_t & pos) {
+    if (stmt == nullptr || result == nullptr) {
+      return false;
+    }
+    return result->get_indicator(pos) == soci::indicator::i_ok;
+  }
+  bool fieldPresent(std::string const & name) {
+    if (stmt == nullptr || result == nullptr) {
+      return false;
+    }
+    return result->get_indicator(name) == soci::indicator::i_ok;
   }
 
   zmDbQueryID getID() { return id; };

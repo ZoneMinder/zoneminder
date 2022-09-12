@@ -19,7 +19,7 @@
 
 #include "zm_crypt.h"
 #include "zm_monitor.h"
-#include "zm_crypt.h"
+#include "zm_server.h"
 #include <regex>
 
 std::string escape_json_string( std::string input );
@@ -45,7 +45,13 @@ Monitor::JanusManager::JanusManager(Monitor *parent_) :
 
   if (Use_RTSP_Restream) {
     int restream_port = config.min_rtsp_port;
-    rtsp_path = "rtsp://127.0.0.1:" + std::to_string(restream_port) + "/" + parent->rtsp_streamname;
+    if (parent->server_id) {
+      Server server(parent->server_id);
+      rtsp_path = "rtsp://"+server.Hostname();
+    } else {
+      rtsp_path = "rtsp://127.0.0.1";
+    }
+    rtsp_path += ":" + std::to_string(restream_port) + "/" + parent->rtsp_streamname;
     if (ZM_OPT_USE_AUTH) {
       SystemTimePoint now = std::chrono::system_clock::now();
       time_t now_t = std::chrono::system_clock::to_time_t(now);

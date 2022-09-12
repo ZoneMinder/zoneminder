@@ -196,7 +196,7 @@ function getAuthUser($auth) {
     if (isset($_SESSION['username'])) {
 			# In a multi-server case, we might be logged in as another user and so the auth hash didn't work
 			if (ZM_CASE_INSENSITIVE_USERNAMES) {
-                          $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND LOWER(Username) != LOWER(?)';
+        $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND LOWER(Username) != LOWER(?)';
 			} else {
 			  $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
 			}
@@ -216,7 +216,7 @@ function getAuthUser($auth) {
     } // end if 
   } // end if using auth hash
 
-  ZM\Error("Unable to authenticate user from auth hash '$auth'");
+  ZM\Info("Unable to authenticate user from auth hash '$auth'");
   return null;
 } // end getAuthUser($auth)
 

@@ -32,6 +32,8 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 }
 
+#include <mutex>
+
 class EventStream : public StreamBase {
   public:
     typedef enum { MODE_NONE, MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
@@ -73,6 +75,7 @@ class EventStream : public StreamBase {
     StreamMode mode;
     bool forceEventChange;
 
+    std::mutex  mutex;
     int curr_frame_id;
     SystemTimePoint curr_stream_time;
     bool  send_frame;

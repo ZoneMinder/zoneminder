@@ -815,8 +815,10 @@ function updateProgressBar() {
 // Handles seeking when clicking on the progress bar.
 function progressBarNav() {
   $j('#progressBar').click(function(e) {
-    var x = e.pageX - $j(this).offset().left;
-    var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    let x = e.pageX - $j(this).offset().left;
+    if (x<0) x=0;
+    const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    console.log("clicked at ", x, seekTime);
     streamSeek(seekTime);
   });
   $j('#progressBar').mouseover(function(e) {

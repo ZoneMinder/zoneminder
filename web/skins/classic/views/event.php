@@ -248,7 +248,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
         <div id="progressBar" style="width: 100%;">
         <div id="alarmCues" style="width: 100%;"></div>
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
-          <div id="indicator" style="display: none; height: 3.75em; position: absolute; border-left: 1px solid blue; margin-top: -1.25em;"></div>
+          <div id="indicator" style="display: none; height: 2.75em; position: absolute; border-left: 1px solid blue; margin-top: -2.25em;"></div>
         </div><!--progressBar-->
 <?php
 } /*end if !DefaultVideo*/

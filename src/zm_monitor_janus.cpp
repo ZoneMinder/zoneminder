@@ -38,19 +38,29 @@ Monitor::JanusManager::JanusManager(Monitor *parent_) :
   } else {
     janus_endpoint = "127.0.0.1:8088/janus";
   }
-
-  rtsp_username = "";
-  rtsp_password = "";
-  if( parent->user.length() > 0 ) {
-    rtsp_username = escape_json_string(parent->user);
-    rtsp_password = escape_json_string(parent->pass);
-  }
-
   if (Use_RTSP_Restream) {
     int restream_port = config.min_rtsp_port;
+    rtsp_username = "";
+    rtsp_password = "";
     rtsp_path = "rtsp://127.0.0.1:" + std::to_string(restream_port) + "/" + parent->rtsp_streamname;
   } else {
-    rtsp_path = parent->path;
+    std::size_t at_pos = parent->path.find("@", 7);
+    if (at_pos != std::string::npos) {
+      //If we find an @ symbol, we have a username/password. Otherwise, passwordless login.
+      std::size_t colon_pos = parent->path.find(":", 7); //Search for the colon, but only after the rtsp:// text.
+      if (colon_pos == std::string::npos) {
+        //Looks like an invalid url
+        throw std::runtime_error("Cannot Parse URL for Janus.");
+      }
+      rtsp_username = parent->path.substr(7, colon_pos-7);
+      rtsp_password = parent->path.substr(colon_pos+1, at_pos - colon_pos - 1);
+      rtsp_path = "rtsp://";
+      rtsp_path += parent->path.substr(at_pos + 1);
+    } else {
+      rtsp_username = "";
+      rtsp_password = "";
+      rtsp_path = parent->path;
+    }
   }
   parent->janus_pin = generateKey(16);
   Debug(1, "Monitor %u assigned secret %s", parent->id, parent->janus_pin.c_str());

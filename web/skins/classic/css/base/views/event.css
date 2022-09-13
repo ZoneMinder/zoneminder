@@ -12,7 +12,7 @@
 
 #alarmCues,
 .alarmCue {
-  position: relative;
+  position: absolute;
   background: none;
 
   /*
@@ -22,18 +22,25 @@
     text-align: left;
     margin: 0 auto 0 auto;
     z-index: 10;
+    border: none;
+    border-right: 1px solid black;
 }
 
 #alarmCues span {
-    height: 100%;
-    display: inline-block;
-    border-radius: 0;
-    z-index: 11;
+  border-left: 1px solid black;
+  top: 0;
+  position: absolute;
+  height: 100%;
+  display: inline-block;
+  border-radius: 0;
+  z-index: 11;
+  font-size: 8px;
 }
 
 span.alarmCue {
-    background-color:red;
-    z-index: 9;
+  background-color:red;
+  z-index: 9;
+  opacity: 0.33;
 }
 
 span.noneCue {
@@ -310,4 +317,10 @@ svg.zones {
 }
 #toggleZonesButton span.material-icons {
   font-size: 18px;
+}
+#indicator {
+  height: 2.75em;
+  position: absolute;
+  border-left: 1px solid blue;
+  margin-top: -1.25em;
 }

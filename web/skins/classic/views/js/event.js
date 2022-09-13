@@ -131,11 +131,16 @@ function renderAlarmCues(containerEl) {
   }
   */
   cues_div = document.getElementById('alarmCues');
-  let span_count = containerEl.width() / eventData.Length;
+  const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
+  let span_count = 10;
+  let span_seconds = parseInt(event_length / span_count);
+  let span_width = parseInt(containerEl.width() / span_count);
+  console.log(span_width, containerEl.width(), span_count);
+  //let span_width = 
   const date = new Date(eventData.StartDateTime);
-  for (let i=0; i< eventData.Length; i++) {
-    date.setTime(date.getTime() + 1000);
-    html += '<span title="'+date.toLocaleTimeString()+ '" style="left:'+i+'px; width: '+span_count+'px; position: relative;"></span>';
+  for (let i=0; i < span_count; i += 1) {
+    html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
+    date.setTime(date.getTime() + span_seconds*1000);
   }
 
   if (!(cueFrames && cueFrames.length)) {
@@ -144,7 +149,7 @@ function renderAlarmCues(containerEl) {
   }
   // This uses the Delta of the last frame to get the length of the event.  I can't help but wonder though
   // if we shouldn't just use the event length endtime-starttime
-  var cueRatio = containerEl.width() / (cueFrames[cueFrames.length - 1].Delta * 100);
+  var cueRatio = containerEl.width() / (event_length * 100);
   var minAlarm = Math.ceil(1/cueRatio);
   var spanTimeStart = 0;
   var spanTimeEnd = 0;
@@ -153,24 +158,28 @@ function renderAlarmCues(containerEl) {
   var pixSkew = 0;
   var skip = 0;
   var num_cueFrames = cueFrames.length;
+  let left = 0;
+
   for (let i=0; i < num_cueFrames; i++) {
     skip = 0;
     frame = cueFrames[i];
+
     if ((frame.Type == 'Alarm') && (alarmed == 0)) { //From nothing to alarm.  End nothing and start alarm.
       alarmed = 1;
       if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
       spanTimeEnd = frame.Delta * 100;
       spanTime = spanTimeEnd - spanTimeStart;
-      var pix = cueRatio * spanTime;
+      let pix = cueRatio * spanTime;
       pixSkew += pix - Math.round(pix);//average out the rounding errors.
       pix = Math.round(pix);
       if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-      date.setSeconds(spanTimeStart);
-      alarmHtml += '<span class="alarmCue noneCue" style="width: ' + pix + 'px;">'+date.toISOString().substr(11, 8)+'</span>';
+
+      alarmHtml += '<span class="alarmCue noneCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      left = parseInt((frame.Delta / event_length) * containerEl.width());
+      console.log(left, frame.Delta, event_length, containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
       futNone = 0;
@@ -200,9 +209,8 @@ function renderAlarmCues(containerEl) {
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-      date.setSeconds(spanTimeStart);
-      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;">'+date.toISOString().substr(11, 8)+'</span>';
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      left = parseInt((frame.Delta / event_length) * containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type == 'Alarm') && (alarmed == 1) && (i + 1 >= cueFrames.length) ) { //event ends on an alarm
       spanTimeEnd = frame.Delta * 100;
@@ -211,9 +219,7 @@ function renderAlarmCues(containerEl) {
       pix = Math.round(cueRatio * spanTime);
       if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
 
-      const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-      date.setSeconds(spanTimeStart);
-      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;">'+date.toISOString().substr(11, 8)+'</span>';
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
     }
   }
   return html + alarmHtml;

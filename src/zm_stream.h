@@ -125,6 +125,7 @@ protected:
   int lock_fd;
   bool paused;
   int step;
+  bool send_twice;        // flag to send the same frame twice
 
   TimePoint now;
   TimePoint last_comm_update;

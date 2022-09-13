@@ -32,6 +32,8 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 }
 
+#include <mutex>
+
 class EventStream : public StreamBase {
   public:
     typedef enum { MODE_NONE, MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
@@ -39,11 +41,20 @@ class EventStream : public StreamBase {
 
   protected:
     struct FrameData {
-      //unsigned long   id;
+      unsigned int id;
       SystemTimePoint timestamp;
-      Microseconds offset;
-      Microseconds delta;
+      Microseconds offset;        // distance from event->starttime
+      Microseconds delta;         // distance from last frame
       bool in_db;
+      public:
+      FrameData(unsigned int p_id, SystemTimePoint p_timestamp, Microseconds p_offset, Microseconds p_delta, bool p_in_db) :
+        id(p_id),
+        timestamp(p_timestamp),
+        offset(p_offset),
+        delta(p_delta),
+        in_db(p_in_db)
+      {
+      }
     };
 
     struct EventData {
@@ -58,7 +69,7 @@ class EventStream : public StreamBase {
       Microseconds frames_duration;
       std::string path;
       int             n_frames;       // # of frame rows returned from database
-      FrameData       *frames;
+      std::vector<FrameData> frames;
       std::string video_file;
       Storage::Schemes  scheme;
       int             SaveJPEGs;
@@ -73,6 +84,7 @@ class EventStream : public StreamBase {
     StreamMode mode;
     bool forceEventChange;
 
+    std::mutex  mutex;
     int curr_frame_id;
     SystemTimePoint curr_stream_time;
     bool  send_frame;
@@ -101,22 +113,9 @@ class EventStream : public StreamBase {
     {}
 
     ~EventStream() {
-        if ( event_data ) {
-          if ( event_data->frames ) {
-            delete[] event_data->frames;
-            event_data->frames = nullptr;
-          }
-          delete event_data;
-          event_data = nullptr;
-        }
-        if ( storage ) {
-          delete storage;
-          storage = nullptr;
-        }
-        if ( ffmpeg_input ) {
-          delete ffmpeg_input;
-          ffmpeg_input = nullptr;
-        }
+      delete event_data;
+      delete storage;
+      delete ffmpeg_input;
     }
     void setStreamStart(uint64_t init_event_id, int init_frame_id);
     void setStreamStart(int monitor_id, time_t event_time);

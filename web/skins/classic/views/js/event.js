@@ -848,10 +848,8 @@ function progressBarNav() {
     if (x<0) x=0;
     if (x > bar.width()) x = bar.width();
 
-    console.log(x);
     let seekTime = (x / bar.width()) * parseFloat(eventData.Length);
 
-    console.log(seekTime);
     const indicator = document.getElementById('indicator');
 
     const date = new Date(eventData.StartDateTime);

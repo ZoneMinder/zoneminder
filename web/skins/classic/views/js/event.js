@@ -234,7 +234,8 @@ function changeScale() {
   var newWidth;
   var newHeight;
   var autoScale;
-  var eventViewer = $j(vid ? '#videoobj' : '#videoFeed');
+  const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
+
   var alarmCue = $j('#alarmCues');
   var bottomEl = $j('#replayStatus');
 
@@ -242,7 +243,6 @@ function changeScale() {
     var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
-    newHeight = 'auto';
     autoScale = newSize.autoScale;
   } else {
     $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active

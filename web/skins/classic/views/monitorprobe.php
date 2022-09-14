@@ -344,6 +344,7 @@ function probeNetwork() {
 
   $macBases = array(
     '00:0f:7c' => array('type'=>'ACTi','probeFunc'=>'probeACTi'),
+    #'9c:8e:cd' => array('type'=>'Amcrest', 'probeFunc'=>'probeAmcrest'),
     '00:40:8c' => array('type'=>'Axis', 'probeFunc'=>'probeAxis'),
     '2c:a5:9c' => array('type'=>'Hikvision', 'probeFunc'=>'probeHikvision'),
     '00:80:f0' => array('type'=>'Panasonic','probeFunc'=>'probePana'),

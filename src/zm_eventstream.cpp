@@ -1070,6 +1070,7 @@ void EventStream::runStream() {
               );
         } else {
           Debug(1, "invalid curr_frame_id %d !< %d", curr_frame_id, event_data->frame_count);
+          curr_frame_id = event_data->frame_count;
         }  // end if not at end of event
       } else {
         // Paused

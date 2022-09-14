@@ -275,7 +275,7 @@ sub zmMemVerify {
     }
     $valid = zmMemRead($monitor, 'shared_data:valid', 1);
     if (!$valid) {
-      Error("Shared data not valid for monitor $$monitor{Id}");
+      Debug(1, "Shared data not valid for monitor $$monitor{Id}");
       return undef;
     }
   } else {

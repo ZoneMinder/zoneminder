@@ -245,9 +245,10 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   }
 } // end if stream method
 ?>
-        <div id="alarmCue" class="alarmCue"></div>
         <div id="progressBar" style="width: 100%;">
+        <div id="alarmCues" style="width: 100%;"></div>
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+          <div id="indicator" style="display: none;"></div>
         </div><!--progressBar-->
 <?php
 } /*end if !DefaultVideo*/

@@ -710,7 +710,7 @@ function renameEvent() {
   actQuery('rename', {eventName: newName});
 }
 
-function exportEvent() {
+function goToExportEvent() {
   window.location.assign('?view=export&eids[]='+eventData.Id);
 }
 
@@ -1020,7 +1020,7 @@ function initPage() {
   // Manage the EXPORT button
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
-    exportEvent();
+    goToExportEvent();
   });
 
   // Manage the generateVideo button

@@ -20,16 +20,24 @@
 #include "zm_crypt.h"
 #include "zm_monitor.h"
 #include "zm_server.h"
+#include "zm_time.h"
 #include <regex>
 
-std::string escape_json_string( std::string input );
+std::string escape_json_string(std::string input);
 
 Monitor::JanusManager::JanusManager(Monitor *parent_) :
   parent(parent_),
   Janus_Healthy(false)
 {
+  load_from_monitor();
+}
+
+Monitor::JanusManager::~JanusManager() {
+  remove_from_janus();
+}
+
+void Monitor::JanusManager::load_from_monitor() {
   //constructor takes care of init and calls add_to
-  //parent = parent_;
   Use_RTSP_Restream = parent->janus_use_rtsp_restream;
   profile_override = parent->janus_profile_override;
   if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
@@ -42,6 +50,7 @@ Monitor::JanusManager::JanusManager(Monitor *parent_) :
 
   rtsp_username = "";
   rtsp_password = "";
+  rtsp_auth_time = std::chrono::steady_clock::now();
 
   if (Use_RTSP_Restream) {
     int restream_port = config.min_rtsp_port;
@@ -99,44 +108,18 @@ Monitor::JanusManager::JanusManager(Monitor *parent_) :
   strncpy(parent->shared_data->janus_pin, parent->janus_pin.c_str(), 17); //copy the null termination, as we're in C land
 }
 
-Monitor::JanusManager::~JanusManager() {
-  if (janus_session.empty()) get_janus_session();
-  if (janus_handle.empty()) get_janus_handle();
-
-  curl = curl_easy_init();
-  if (!curl) return;
-
-  //Assemble our actual request
-  std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
-  postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"";
-  postData += config.janus_secret;
-  postData += "\", \"secret\" : \"";
-  postData += parent->janus_pin;
-  postData += "\", \"id\" : ";
-  postData += std::to_string(parent->id);
-  postData += "}}";
-
-  std::string endpoint = janus_endpoint+"/"+janus_session+"/"+janus_handle;
-  std::string response;
-
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  CURLcode res = curl_easy_perform(curl);
-  if (res != CURLE_OK) {
-    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
-  } else {
-    Debug(1, "Removed stream from Janus: %s", response.c_str());
-  }
-
-  curl_easy_cleanup(curl);
-  return;
-}
-
 int Monitor::JanusManager::check_janus() {
   if (janus_session.empty()) get_janus_session();
   if (janus_handle.empty()) get_janus_handle();
+
+  if (Use_RTSP_Restream) {
+    Hours hours = Hours(config.auth_hash_ttl);
+    if (std::chrono::steady_clock::now()-rtsp_auth_time > hours/2) {
+      remove_from_janus();
+      load_from_monitor();
+      return add_to_janus();
+    }
+  }
 
   curl = curl_easy_init();
   if (!curl) return -1;
@@ -251,6 +234,41 @@ int Monitor::JanusManager::add_to_janus() {
   }
 
   Debug(1,"Added stream to Janus: %s", response.c_str());
+  return 0;
+}
+
+int Monitor::JanusManager::remove_from_janus() {
+  if (janus_session.empty()) get_janus_session();
+  if (janus_handle.empty()) get_janus_handle();
+
+  curl = curl_easy_init();
+  if (!curl) return -1;
+
+  //Assemble our actual request
+  std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
+  postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"";
+  postData += config.janus_secret;
+  postData += "\", \"secret\" : \"";
+  postData += parent->janus_pin;
+  postData += "\", \"id\" : ";
+  postData += std::to_string(parent->id);
+  postData += "}}";
+
+  std::string endpoint = janus_endpoint+"/"+janus_session+"/"+janus_handle;
+  std::string response;
+
+  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  CURLcode res = curl_easy_perform(curl);
+  if (res != CURLE_OK) {
+    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+  } else {
+    Debug(1, "Removed stream from Janus: %s", response.c_str());
+  }
+
+  curl_easy_cleanup(curl);
   return 0;
 }
 

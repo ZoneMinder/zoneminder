@@ -343,12 +343,14 @@ protected:
     std::string stream_key;
     std::string rtsp_username;
     std::string rtsp_password;
+    TimePoint   rtsp_auth_time;
     std::string rtsp_path;
     std::string profile_override;
 
   public:
     explicit JanusManager(Monitor *parent_);
     ~JanusManager();
+    void load_from_monitor();
     int add_to_janus();
     int check_janus();
     int remove_from_janus();

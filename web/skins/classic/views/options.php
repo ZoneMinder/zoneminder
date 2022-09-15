@@ -454,7 +454,13 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
           return $name;
         }
         $configCats[$tab]['ZM_TIMEZONE']['Hint'] = array(''=> translate('TZUnset')) + timezone_list();
-        $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'] = array(''=> translate('System Default')) + ResourceBundle::getLocales('');
+        $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'] = array(''=> translate('System Default'));
+        $locales = ResourceBundle::getLocales('');
+        if ($locales) {
+          foreach ( $locales as $locale) {
+            $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'][$locale] = $locale;
+          }
+        }
     } # end if tab == system
 ?>
       <form name="optionsForm" class="" method="post" action="?">

@@ -49,7 +49,7 @@ input[name="newMonitor[Height]"] {
 select.chosen {
   width: 100%;
 }
-tr td:first-child {
+#page tr td:first-child {
   min-width: 300px;
   vertical-align: top;
 }

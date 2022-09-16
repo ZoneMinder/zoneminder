@@ -95,7 +95,10 @@ function zm_session_clear() {
   if ( ini_get('session.use_cookies') ) {
     $p = session_get_cookie_params();
     # Update the cookie to expire in the past.
-    setcookie(session_name(), '', time() - 31536000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+    $p['expires'] = time() - 31536000;
+    unset($p['lifetime']); // Not valid for a cookie
+
+    zm_setcookie(session_name(), '', $p);
   }
   session_unset();
   session_destroy();

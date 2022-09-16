@@ -1774,7 +1774,6 @@ bool Monitor::Poll() {
     }
   }
   if (janus_enabled) {
-
     if (Janus_Manager->check_janus() == 0) {
       Janus_Manager->add_to_janus();
     }

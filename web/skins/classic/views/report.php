@@ -110,7 +110,7 @@ dataset_indexes = {}; // Associative array from a date String like July 20 to an
 for (i=0; i < 24; i++) {
   time_labels[time_labels.length] = `${i}:00`;
 }
-months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
+months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 for (event_index=0; event_index < events.length; event_index++) {
   const event = events[event_index];
@@ -128,7 +128,7 @@ for (event_index=0; event_index < events.length; event_index++) {
       fill: false,
       borderColor: 'rgb('+parseInt(255*Math.random())+', '+parseInt(255*Math.random())+', '+parseInt(255*Math.random())+')',
       tension: 0.1,
-      data: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     };
   }
 

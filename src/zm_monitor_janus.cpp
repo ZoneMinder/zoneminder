@@ -48,19 +48,16 @@ void Monitor::JanusManager::load_from_monitor() {
     janus_endpoint = "127.0.0.1:8088/janus";
   }
 
-  rtsp_username = "";
-  rtsp_password = "";
   rtsp_auth_time = std::chrono::steady_clock::now();
 
   if (Use_RTSP_Restream) {
-    int restream_port = config.min_rtsp_port;
     if (parent->server_id) {
       Server server(parent->server_id);
       rtsp_path = "rtsp://"+server.Hostname();
     } else {
       rtsp_path = "rtsp://127.0.0.1";
     }
-    rtsp_path += ":" + std::to_string(restream_port) + "/" + parent->rtsp_streamname;
+    rtsp_path += ":" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
     if (ZM_OPT_USE_AUTH) {
       SystemTimePoint now = std::chrono::system_clock::now();
       time_t now_t = std::chrono::system_clock::to_time_t(now);
@@ -74,13 +71,11 @@ void Monitor::JanusManager::load_from_monitor() {
         MYSQL_RES *result = zmDbFetch(sql);
         if (result) {
           MYSQL_ROW dbrow = mysql_fetch_row(result);
-          const char *username = dbrow[1];
-          const char *password = dbrow[2];
 
           std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
               config.auth_hash_secret,
-              username,
-              password,
+              dbrow[1],  // username
+              dbrow[2],  // password
               (config.auth_hash_ips ? "127.0.0.1" : ""),
               now_tm.tm_hour,
               now_tm.tm_mday,
@@ -98,13 +93,14 @@ void Monitor::JanusManager::load_from_monitor() {
     }
   } else {
     rtsp_path = parent->path;
-    if (parent->user.length() > 0) {
+    if (!parent->user.empty()) {
       rtsp_username = escape_json_string(parent->user);
       rtsp_password = escape_json_string(parent->pass);
     }
+    rtsp_path = parent->path;
   }
   parent->janus_pin = generateKey(16);
-  Debug(1, "Monitor %u assigned secret %s", parent->id, parent->janus_pin.c_str());
+  Debug(1, "Monitor %u assigned secret %s, rtsp url is %s", parent->id, parent->janus_pin.c_str(), rtsp_path.c_str());
   strncpy(parent->shared_data->janus_pin, parent->janus_pin.c_str(), 17); //copy the null termination, as we're in C land
 }
 
@@ -193,7 +189,7 @@ int Monitor::JanusManager::add_to_janus() {
     postData += "\", \"videofmtp\" : \"";
     postData += profile_override;
   }
-  if (rtsp_username.length() > 0) {
+  if (!rtsp_username.empty()) {
     postData += "\", \"rtsp_user\" : \"";
     postData += rtsp_username;
     postData += "\", \"rtsp_pwd\" : \"";
@@ -203,7 +199,7 @@ int Monitor::JanusManager::add_to_janus() {
   postData += std::to_string(parent->id);
   if (parent->janus_audio_enabled)  postData += ", \"audio\" : true";
   postData += ", \"video\" : true}}";
-  Warning("Sending %s to %s", postData.c_str(), endpoint.c_str());
+  Debug(1, "Sending %s to %s", postData.c_str(), endpoint.c_str());
 
   CURLcode res;
   std::string response;

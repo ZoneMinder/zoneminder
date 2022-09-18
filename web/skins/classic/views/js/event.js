@@ -132,11 +132,11 @@ function renderAlarmCues(containerEl) {
   */
   cues_div = document.getElementById('alarmCues');
   const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
-  let span_count = 10;
-  let span_seconds = parseInt(event_length / span_count);
-  let span_width = parseInt(containerEl.width() / span_count);
+  const span_count = 10;
+  const span_seconds = parseInt(event_length / span_count);
+  const span_width = parseInt(containerEl.width() / span_count);
   console.log(span_width, containerEl.width(), span_count);
-  //let span_width = 
+  //let span_width =
   const date = new Date(eventData.StartDateTime);
   for (let i=0; i < span_count; i += 1) {
     html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
@@ -848,7 +848,7 @@ function progressBarNav() {
     if (x<0) x=0;
     if (x > bar.width()) x = bar.width();
 
-    let seekTime = (x / bar.width()) * parseFloat(eventData.Length);
+    const seekTime = (x / bar.width()) * parseFloat(eventData.Length);
 
     const indicator = document.getElementById('indicator');
 

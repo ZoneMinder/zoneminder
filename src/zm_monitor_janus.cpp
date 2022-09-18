@@ -38,17 +38,16 @@ Monitor::JanusManager::JanusManager(Monitor *parent_) :
   }
   // std:: strings default to "", don't need to set them =""
   if (Use_RTSP_Restream) {
-    int restream_port = config.min_rtsp_port;
-    rtsp_path = "rtsp://127.0.0.1:" + std::to_string(restream_port) + "/" + parent->rtsp_streamname;
+    rtsp_path = "rtsp://127.0.0.1:" + std::to_string(config.min_rtsp_port) + "/" + parent->rtsp_streamname;
   } else {
-    if (parent->user.length() > 0) {
+    if (!parent->user.empty()) {
       rtsp_username = escape_json_string(parent->user);
       rtsp_password = escape_json_string(parent->pass);
     }
     rtsp_path = parent->path;
   }
   parent->janus_pin = generateKey(16);
-  Debug(1, "Monitor %u assigned secret %s", parent->id, parent->janus_pin.c_str());
+  Debug(1, "Monitor %u assigned secret %s, rtsp url is %s", parent->id, parent->janus_pin.c_str(), rtsp_path.c_str());
   strncpy(parent->shared_data->janus_pin, parent->janus_pin.c_str(), 17); //copy the null termination, as we're in C land
 }
 
@@ -163,7 +162,7 @@ int Monitor::JanusManager::add_to_janus() {
     postData += "\", \"videofmtp\" : \"";
     postData += profile_override;
   }
-  if (rtsp_username.length() > 0) {
+  if (!rtsp_username.empty()) {
     postData += "\", \"rtsp_user\" : \"";
     postData += rtsp_username;
     postData += "\", \"rtsp_pwd\" : \"";
@@ -173,7 +172,7 @@ int Monitor::JanusManager::add_to_janus() {
   postData += std::to_string(parent->id);
   if (parent->janus_audio_enabled)  postData += ", \"audio\" : true";
   postData += ", \"video\" : true}}";
-  Warning("Sending %s to %s", postData.c_str(), endpoint.c_str());
+  Debug(1, "Sending %s to %s", postData.c_str(), endpoint.c_str());
 
   CURLcode res;
   std::string response;

@@ -55,9 +55,22 @@ class ZoneStats {
           "ZoneStat: %s zone_id: %d pixel_diff=%d alarm_pixels=%d alarm_filter_pixels=%d "
           "alarm_blob_pixels=%d alarm_blobs=%d min_blob_size=%d max_blob_size=%d "
           "alarm_box=(%d,%d=>%d,%d) alarm_center=(%d,%d) score=%d",
-          prefix, zone_id_, pixel_diff_, alarm_pixels_, alarm_filter_pixels_, alarm_blob_pixels_,
-          alarm_blobs_, min_blob_size_, max_blob_size_, alarm_box_.Lo().x_, alarm_box_.Lo().y_,
-          alarm_box_.Hi().x_, alarm_box_.Hi().y_, alarm_centre_.x_, alarm_centre_.y_, score_);
+          prefix,
+          zone_id_,
+          pixel_diff_,
+          alarm_pixels_,
+          alarm_filter_pixels_,
+          alarm_blob_pixels_,
+          alarm_blobs_,
+          min_blob_size_,
+          max_blob_size_,
+          alarm_box_.Lo().x_,
+          alarm_box_.Lo().y_,
+          alarm_box_.Hi().x_,
+          alarm_box_.Hi().y_,
+          alarm_centre_.x_,
+          alarm_centre_.y_,
+          score_);
   }
 
  public:

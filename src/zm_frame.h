@@ -33,8 +33,13 @@ enum FrameType { NORMAL = 0, BULK, ALARM };
 //
 class Frame {
  public:
-  Frame(event_id_t p_event_id, int p_frame_id, FrameType p_type, SystemTimePoint p_timestamp,
-        Microseconds p_delta, int p_score, std::vector<ZoneStats> p_stats);
+  Frame(event_id_t p_event_id,
+        int p_frame_id,
+        FrameType p_type,
+        SystemTimePoint p_timestamp,
+        Microseconds p_delta,
+        int p_score,
+        std::vector<ZoneStats> p_stats);
 
   event_id_t event_id;
   int frame_id;

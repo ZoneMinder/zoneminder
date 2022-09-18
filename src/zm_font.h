@@ -58,7 +58,9 @@ class FontVariant {
   static constexpr uint8 kMaxCharWidth = 64;
 
   FontVariant();
-  FontVariant(uint16 char_height, uint16 char_width, uint8 char_padding,
+  FontVariant(uint16 char_height,
+              uint16 char_width,
+              uint8 char_padding,
               std::vector<uint64> bitmap);
 
   uint16 GetCharHeight() const { return char_height_; }

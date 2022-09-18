@@ -31,7 +31,9 @@ std::string SystemTimePointToString(SystemTimePoint tp) {
   char *timePtr = &*(timeString.begin());
   tm tp_tm = {};
   timePtr += strftime(timePtr, timeString.capacity(), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
-  snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64,
+  snprintf(timePtr,
+           timeString.capacity() - (timePtr - timeString.data()),
+           ".%06" PRIi64,
            static_cast<int64_t>(now_frac.count()));
   return timeString;
 }
@@ -49,7 +51,9 @@ std::string TimePointToString(TimePoint tp) {
   char *timePtr = &*(timeString.begin());
   tm tp_tm = {};
   timePtr += strftime(timePtr, timeString.capacity(), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
-  snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64,
+  snprintf(timePtr,
+           timeString.capacity() - (timePtr - timeString.data()),
+           ".%06" PRIi64,
            static_cast<int64_t>(now_frac.count()));
   return timeString;
 }

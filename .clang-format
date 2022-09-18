@@ -18,3 +18,8 @@ IncludeCategories:
     Priority:        4
     SortPriority:    0
     CaseSensitive:   false
+
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false

@@ -19,7 +19,7 @@ Monitor Tab
 -----------
 
 Name 
-    The name for your monitor. This should be made up of alphanumeric characters (a-z,A-Z,0-9) and hyphen (-) and underscore(_) only. Whitespace is not allowed. 
+    The name for your monitor. This should be made up of alphanumeric characters (a-z,A-Z,0-9), the following special characters ()_-.: and whitespace. 
 
 Server
     Multi-Server implementation allows the ability to define multiple ZoneMinder servers sharing a single database. When servers are configured this setting allows you nominate the server for each monitor.

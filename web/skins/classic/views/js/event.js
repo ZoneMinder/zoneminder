@@ -17,7 +17,7 @@ var NextEventDefVideoPath = "";
 var currEventId = null;
 var CurEventDefVideoPath = null;
 var vid = null;
-var playerObj = null;
+var player = null;
 var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
 var intervalRewind;
 var revSpeed = .5;
@@ -69,11 +69,15 @@ function streamReq(data) {
 
 // Function called when video.js hits the end of the video
 function vjsReplay() {
-  switch ( replayMode.value ) {
+  switch (replayMode.value) {
     case 'none':
       break;
     case 'single':
-      vid.play();
+      if (player) {
+        player.play();
+      } else if (vid) {
+        vid.play();
+      }
       break;
     case 'all':
       if ( nextEventId == 0 ) {
@@ -97,7 +101,11 @@ function vjsReplay() {
           streamNext(true);
           return;
         }
-        vid.pause();
+        if (player) {
+          player.pause();
+        } else if (vid) {
+          vid.pause();
+        }
         const overLaid = $j("#videoobj");
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
         const gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
@@ -134,18 +142,49 @@ function setAlarmCues(data) {
   } else {
     cueFrames = data.frames;
     alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
-    $j(".alarmCue").html(alarmSpans);
+    $j('#alarmCues').html(alarmSpans);
   }
 }
 
 function renderAlarmCues(containerEl) {
-  if ( !( cueFrames && cueFrames.length ) ) {
+  let html = '';
+
+  /*
+  grid_size = 25;
+  const canvas = document.getElementById('alarmCues');
+
+  canvas_width = canvas.width = containerEl.width();
+  pixPerSegment = canvas_width / eventData.Length
+  console.log(pixPerSegment);
+  console.log(canvas);
+  const ctx = canvas.getContext('2d');
+  for (let i=0; i <= pixPerSegment; i++) {
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#000000";
+    ctx.moveTo(grid_size*i, 0);
+    ctx.lineTo(grid_size*i, canvas.height);
+    ctx.stroke();
+  }
+  */
+  cues_div = document.getElementById('alarmCues');
+  const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
+  let span_count = 10;
+  let span_seconds = parseInt(event_length / span_count);
+  let span_width = parseInt(containerEl.width() / span_count);
+  const date = new Date(eventData.StartDateTime);
+  for (let i=0; i < span_count; i += 1) {
+    html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
+    date.setTime(date.getTime() + span_seconds*1000);
+  }
+
+  if (!(cueFrames && cueFrames.length)) {
     console.log('No cue frames for event');
-    return;
+    return html;
   }
   // This uses the Delta of the last frame to get the length of the event.  I can't help but wonder though
   // if we shouldn't just use the event length endtime-starttime
-  var cueRatio = containerEl.width() / (cueFrames[cueFrames.length - 1].Delta * 100);
+  var cueRatio = containerEl.width() / (event_length * 100);
   var minAlarm = Math.ceil(1/cueRatio);
   var spanTimeStart = 0;
   var spanTimeEnd = 0;
@@ -154,22 +193,27 @@ function renderAlarmCues(containerEl) {
   var pixSkew = 0;
   var skip = 0;
   var num_cueFrames = cueFrames.length;
-  for ( var i = 0; i < num_cueFrames; i++ ) {
+  let left = 0;
+
+  for (let i=0; i < num_cueFrames; i++) {
     skip = 0;
     frame = cueFrames[i];
-    if ( (frame.Type == 'Alarm') && (alarmed == 0) ) { //From nothing to alarm.  End nothing and start alarm.
+
+    if ((frame.Type == 'Alarm') && (alarmed == 0)) { //From nothing to alarm.  End nothing and start alarm.
       alarmed = 1;
       if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
       spanTimeEnd = frame.Delta * 100;
       spanTime = spanTimeEnd - spanTimeStart;
-      var pix = cueRatio * spanTime;
+      let pix = cueRatio * spanTime;
       pixSkew += pix - Math.round(pix);//average out the rounding errors.
       pix = Math.round(pix);
       if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      alarmHtml += '<span class="alarmCue noneCue" style="width: ' + pix + 'px;"></span>';
+
+      alarmHtml += '<span class="alarmCue noneCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      left = parseInt((frame.Delta / event_length) * containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
       futNone = 0;
@@ -199,7 +243,8 @@ function renderAlarmCues(containerEl) {
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      left = parseInt((frame.Delta / event_length) * containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type == 'Alarm') && (alarmed == 1) && (i + 1 >= cueFrames.length) ) { //event ends on an alarm
       spanTimeEnd = frame.Delta * 100;
@@ -207,10 +252,11 @@ function renderAlarmCues(containerEl) {
       alarmed = 0;
       pix = Math.round(cueRatio * spanTime);
       if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
-      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
     }
   }
-  return alarmHtml;
+  return html + alarmHtml;
 }
 
 function changeCodec() {
@@ -222,8 +268,9 @@ function changeScale() {
   var newWidth;
   var newHeight;
   var autoScale;
-  var eventViewer = $j(vid ? '#videoobj' : '#videoFeed');
-  var alarmCue = $j('div.alarmCue');
+  const eventViewer = $j((vid||player) ? '#videoobj' : '#evtStream');
+
+  var alarmCue = $j('#alarmCues');
   var bottomEl = $j('#replayStatus');
 
   if (scale == '0') {
@@ -236,10 +283,22 @@ function changeScale() {
     newWidth = eventData.Width * scale / SCALE_BASE;
     newHeight = eventData.Height * scale / SCALE_BASE;
   }
-  eventViewer.width(newWidth);
-  eventViewer.height(newHeight);
+  if (player) {
+    if (player.resize) {
+      console.log("resize in player to ", newWidth, newHeight);
+      player.resize(newWidth, newHeight);
+    } else {
+      console.log("No resize support in player");
+    }
+  } else {
+  }
+    eventViewer.width(newWidth);
+    eventViewer.height(newHeight);
+
   if (!vid) { // zms needs extra sizing
-    streamScale(scale == '0' ? autoScale : scale);
+    if (!player) {
+      streamScale(scale == '0' ? autoScale : scale);
+    }
     drawProgressBar();
   }
   if (cueFrames) {
@@ -344,7 +403,7 @@ function getCmdResponse(respObj, respText) {
     setButtonState('zoomOutBtn', 'inactive');
   }
 
-  updateProgressBar();
+  updateProgressBar(streamStatus.progress);
 
   if (streamStatus.auth) {
     auth_hash = streamStatus.auth;
@@ -354,8 +413,8 @@ function getCmdResponse(respObj, respText) {
 } // end function getCmdResponse( respObj, respText )
 
 function pauseClicked() {
-  if (playerObj) {
-    playerObj.pause();
+  if (player) {
+    player.pause();
   } else if (vid) {
     if (intervalRewind) {
       stopFastRev();
@@ -800,20 +859,60 @@ function drawProgressBar() {
 }
 
 // Shows current stream progress.
-function updateProgressBar() {
-  if (!(eventData && streamStatus)) {
+function updateProgressBar(progress) {
+  if (!eventData) {
     return;
-  } // end if ! eventData && streamStatus
-  var curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
-  $j("#progressBox").css('width', curWidth + '%');
+  } // end if ! eventData
+  const curWidth = (progress / parseFloat(eventData.Length)) * 100;
+
+  const progressDate = new Date(eventData.StartDateTime);
+  progressDate.setTime(progressDate.getTime() + (progress*1000));
+
+  const progressBox = $j("#progressBox");
+  progressBox.css('width', curWidth + '%');
+  progressBox.attr('title', progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
 
 // Handles seeking when clicking on the progress bar.
 function progressBarNav() {
   $j('#progressBar').click(function(e) {
-    var x = e.pageX - $j(this).offset().left;
-    var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    let x = e.pageX - $j(this).offset().left;
+    if (x<0) x=0;
+    const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    console.log("clicked at ", x, seekTime);
     streamSeek(seekTime);
+  });
+  $j('#progressBar').mouseover(function(e) {
+    let x = e.pageX - $j(this).offset().left;
+    if (x<0) x=0;
+    console.log(x);
+    const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    const indicator = document.getElementById('indicator');
+    indicator.style.display = 'block';
+    indicator.style.left = x + 'px';
+    indicator.setAttribute('title', seekTime);
+  });
+  $j('#progressBar').mouseout(function(e) {
+    const indicator = document.getElementById('indicator');
+    indicator.style.display = 'none';
+  });
+  $j('#progressBar').mousemove(function(e) {
+    const bar = $j(this);
+
+    let x = e.pageX - bar.offset().left;
+    if (x<0) x=0;
+    if (x > bar.width()) x = bar.width();
+
+    let seekTime = (x / bar.width()) * parseFloat(eventData.Length);
+
+    const indicator = document.getElementById('indicator');
+
+    const date = new Date(eventData.StartDateTime);
+    date.setTime(date.getTime() + (seekTime*1000));
+
+    indicator.innerHTML = date.toLocaleTimeString();
+    indicator.style.left = x+'px';
+    indicator.setAttribute('title', seekTime);
   });
 }
 
@@ -887,6 +986,20 @@ function getStat() {
       case 'AlarmFrames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
         break;
+      case 'MonitorId':
+        if (canView["Monitors"]) {
+          tdString = '<a href=">view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
+        } else {
+          tdString = eventData[key];
+        }
+        break;
+      case 'MonitorName':
+        if (canView["Monitors"]) {
+          tdString = '<a href=">view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
+        } else {
+          tdString = eventData[key];
+        }
+        break;
       case 'MaxScore':
         tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
         break;
@@ -951,45 +1064,43 @@ function initPage() {
   } else {
     onStatsResize(eventData.Width);
   }
-  if (eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0) {
-    console.log(playerType);
-    if (playerType == 'libde265.js') {
-      var video = document.getElementById("video");
-      console.log(video);
 
-      player = new libde265.RawPlayer(video);
-      player.set_status_callback(function(msg, fps) {
-        console.log("libdeh265: "+msg + " fps: " + fps);
-      });
-      console.log("Setting url to " + videoUrl);
-      player.playback(videoUrl);
-    } else if(playerType == 'h265web.js') {
+  if (eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0) {
+    console.log("Using " + playerType);
+    if (playerType == 'h265web.js') {
+      // clear cache count
+      function clear() {
+        window.STATICE_MEM_playerCount = -1;
+        window.STATICE_MEM_playerIndexPtr = 0;
+      }
+      clear();
+      const PLAYER_CORE_TYPE_DEFAULT = 0;
+      const PLAYER_CORE_TYPE_CNATIVE = 1;
       var token = "base64:QXV0aG9yOmNoYW5neWFubG9uZ3xudW1iZXJ3b2xmLEdpdGh1YjpodHRwczovL2dpdGh1Yi5jb20vbnVtYmVyd29sZixFbWFpbDpwb3JzY2hlZ3QyM0Bmb3htYWlsLmNvbSxRUTo1MzEzNjU4NzIsSG9tZVBhZ2U6aHR0cDovL3h2aWRlby52aWRlbyxEaXNjb3JkOm51bWJlcndvbGYjODY5NCx3ZWNoYXI6bnVtYmVyd29sZjExLEJlaWppbmcsV29ya0luOkJhaWR1";
 
       var config = {
-        player: "glplayer",
-        width: '100%',
-        height: 720,
-        accurateSeek: true,
+        player: 'videoobj',
+        width: eventData.Width,
+        height: eventData.Height,
+        //accurateSeek: true,
         token: token,
         extInfo: {
-          //moovStartFlag: true,
-          //readyShow: true,
+          //autoPlay : true,
+          moovStartFlag: true,
+          readyShow: true,
           //autoCrop: false,
-          //core: PLAYER_CORE_TYPE_DEFAULT,
-          // core : PLAYER_CORE_TYPE_CNATIVE,
-          coreProbePart: 0.4,
+         //core: PLAYER_CORE_TYPE_DEFAULT,
+          core : PLAYER_CORE_TYPE_CNATIVE,
+          coreProbePart: 1.0,
           probeSize: 8192,
           ignoreAudio: 0
         }
       };
-      playerObj = player = window.new265webjs(videoUrl, config);
-      //const playerCont = document.querySelector('#player-container');
-      //const controllerCont = document.querySelector('#controller');
-      const progressCont = document.querySelector('#progress-contaniner');
+      player = window.new265webjs(videoUrl, config);
+      const progressCont = document.querySelector('#progress-container');
       //const progressContW = progressCont.offsetWidth;
       const cachePts = progressCont.querySelector('#cachePts');
-      //const progressPts = progressCont.querySelector('#progressPts');
+      const progressPts = progressCont.querySelector('#progressPts');
       const progressVoice = document.querySelector('#progressVoice');
       const showLabel = document.querySelector('#showLabel');
       const ptsLabel = document.querySelector('#ptsLabel');
@@ -999,58 +1110,68 @@ function initPage() {
       let muteState = false;
       const muteBtn = document.querySelector('#muteBtn');
       muteBtn.onclick = () => {
-        console.log(playerObj.getVolume());
+        console.log(player.getVolume());
         if (muteState === true) {
-            playerObj.setVoice(1.0);
-            progressVoice.value = 100;
+          player.setVoice(1.0);
+          progressVoice.value = 100;
         } else {
-            playerObj.setVoice(0.0);
-            progressVoice.value = 0;
+          player.setVoice(0.0);
+          progressVoice.value = 0;
         }
         muteState = !muteState;
-    };
-      const fullScreenBtn = document.querySelector('#fullScreenBtn');
+      };
+      const fullScreenBtn = document.querySelector('#fullscreenBtn');
       fullScreenBtn.onclick = () => {
-        playerObj.fullScreen();
+        player.fullScreen();
         // setTimeout(() => {
-        //     playerObj.closeFullScreen();
+        //     player.closeFullScreen();
         // }, 2000);
-    };
+      };
       let mediaInfo = null;
 
-      playerObj.onRender = (width, height, imageBufferY, imageBufferB, imageBufferR) => {
+      player.onRender = (width, height, imageBufferY, imageBufferB, imageBufferR) => {
         console.log("on render");
       };
 
-      playerObj.onOpenFullScreen = () => {
+      player.onOpenFullScreen = () => {
         console.log("onOpenFullScreen");
       };
 
-      playerObj.onCloseFullScreen = () => {
+      player.onCloseFullScreen = () => {
         console.log("onCloseFullScreen");
       };
 
-      playerObj.onSeekFinish = () => {
-        showLabel.textContent = SHOW_DONE;
+      player.onPlayTime = (videoPTS) => {
+        updateProgressBar(videoPTS);
       };
 
-      playerObj.onLoadCache = () => {
+      player.onPlayFinish = () => {
+        console.log("Done Play Finish");
+        vjsReplay();
+      };
+      
+      player.onSeekFinish = () => {
+        console.log("Done Seek Finish");
+        //showLabel.textContent = SHOW_DONE;
+        //vjsReplay();
+      };
+
+      player.onLoadCache = () => {
         showLabel.textContent = "Caching...";
       };
 
-      playerObj.onLoadCacheFinshed = () => {
-        showLabel.textContent = SHOW_DONE;
+      player.onLoadCacheFinshed = () => {
+        showLabel.textContent = 'Caching '+SHOW_DONE;
       };
 
-      playerObj.onReadyShowDone = () => {
+      player.onReadyShowDone = () => {
         console.log("onReadyShowDone");
         showLabel.textContent = "Cover Img OK";
       };
-      playerObj.onLoadFinish = () => {
-        playerObj.setVoice(1.0);
-        mediaInfo = playerObj.mediaInfo();
-        /*
+      player.onLoadFinish = () => {
+        mediaInfo = player.mediaInfo();
         console.log("mediaInfo===========>", mediaInfo);
+        /*
         meta:
             durationMs: 144400
             fps: 25
@@ -1076,19 +1197,25 @@ function initPage() {
           progressVoice.value = 0;
           progressVoice.style.display = 'none';
         } else {
-          playerObj.setVoice(0.5);
+          let volume = getCookie('volume');
+          if (volume !== null) {
+            player.setVoice(volume/100);
+            progressVoice.value = volume;
+          }
         }
         if (mediaInfo.videoType == "vod") {
           cachePts.max = mediaInfo.meta.durationMs / 1000;
           progressCont.max = mediaInfo.meta.durationMs / 1000;
           ptsLabel.textContent = durationText(0) + '/' + durationText(progressCont.max);
+          console.log("vod");
         } else {
           cachePts.hidden = true;
           progressCont.hidden = true;
           ptsLabel.textContent = 'LIVE';
 
+          console.log("Not vod");
           if (mediaInfo.meta.audioNone === true) {
-            playerObj.play();
+            player.play();
           } else {
             coverToast.removeAttribute('hidden');
             coverBtn.onclick = () => {
@@ -1101,7 +1228,8 @@ function initPage() {
 
         showLabel.textContent = SHOW_DONE;
       };
-      playerObj.do();
+      console.log("do");
+      player.do();
     } else {
       console.error("Unknown playerType: " + playerType);
     }
@@ -1120,8 +1248,9 @@ function initPage() {
       vid.on('volumechange', function() {
         setCookie('volume', vid.volume(), 3600);
       });
-      var cookie = getCookie('volume');
-      if (cookie) vid.volume(cookie);
+      let volume = getCookie('volume');
+      console.log(volume);
+      if (volume) vid.volume(volume);
 
       vid.on('timeupdate', function() {
         $j('#progressValue').html(secsToTime(Math.floor(vid.currentTime())));
@@ -1302,9 +1431,10 @@ function initPage() {
     }
     $j('#deleteConfirm').modal('show');
   });
+
+  document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
 } // end initPage
 
-document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
 
 function toggleZones(e) {
   const zones = $j('#zones'+eventData.MonitorId);

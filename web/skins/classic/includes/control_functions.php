@@ -248,7 +248,7 @@ function ptzControls($monitor) {
   </div>
 <?php
   }
-  if ( $control->CanWake() || $control->CanSleep() || $control->CanReset() )
+  if ( $control->CanWake() || $control->CanSleep() || $control->CanReset() || $control->CanReboot() )
     echo controlPower($monitor, $cmds);
   if ( $control->HasPresets() )
     echo controlPresets($monitor, $cmds);

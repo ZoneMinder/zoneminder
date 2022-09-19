@@ -213,7 +213,25 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
             </object>';
     } # end switch
   } # end if use object tags
-  return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
+
+  switch( $mimeType ) {
+    case 'video/mp4' :
+      global $rates;
+      return '<video autoplay id="videoobj" class="video-js vjs-default-skin"'
+        .($width ? ' width="'.$width.'"' : '').($height ? ' height="'.$height.'"' : '').'
+            style="transform: matrix(1, 0, 0, 1, 0, 0);"
+            data-setup=\'{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ '. implode(',',
+              array_map(function($r){return $r/100;},
+                array_filter(
+                  array_keys($rates),
+                  function($r){return $r >= 0 ? true : false;}
+                ))).']}\' 
+          >
+          <source src="'. $src.'" type="video/mp4">
+          Your browser does not support the video tag.
+          </video>';
+    default:
+    return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
       src="'.$src.'"
       name="'.$title.'"
       width="'.$width.'"
@@ -223,6 +241,7 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
       showcontrols="0"
       controller="0">
       </embed>';
+  }
 }
 
 function outputImageStream( $id, $src, $width, $height, $title='' ) {
@@ -851,23 +870,6 @@ function createListThumbnail($event, $overwrite=false) {
   $thumbData['Height'] = (int)$thumbHeight;
 
   return $thumbData;
-}
-
-function createVideo($event, $format, $rate, $scale, $overwrite=false) {
-  $command = ZM_PATH_BIN.'/zmvideo.pl -e '.$event['Id'].' -f '.$format.' -r '.sprintf('%.2F', ($rate/RATE_BASE));
-  if ( preg_match('/\d+x\d+/', $scale) )
-    $command .= ' -S '.$scale;
-  else
-    if ( version_compare(phpversion(), '4.3.10', '>=') )
-      $command .= ' -s '.sprintf('%.2F', ($scale/SCALE_BASE));
-    else
-      $command .= ' -s '.sprintf('%.2f', ($scale/SCALE_BASE));
-  if ( $overwrite )
-    $command .= ' -o';
-  $command = escapeshellcmd($command);
-  $result = exec($command, $output, $status);
-  ZM\Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
-  return $status ? '' : rtrim($result);
 }
 
 # This takes more than one scale amount, so it runs through each and alters dimension.

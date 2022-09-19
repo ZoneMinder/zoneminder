@@ -39,20 +39,25 @@ function ajaxRequest(params) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }
-  $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
-      .done(function(data) {
-        if (data.result == 'Error') {
-          alert(data.message);
-          return;
-        }
-        var rows = processRows(data.rows);
-        // rearrange the result into what bootstrap-table expects
-        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
-      })
-      .fail(function(jqXHR) {
-        logAjaxFail(jqXHR);
-        $j('#eventTable').bootstrapTable('refresh');
-      });
+  $j.ajax({
+    url: thisUrl + '?view=request&request=events&task=query'+filterQuery,
+    data: params.data,
+    timeout: 0,
+    success: function(data) {
+      if (data.result == 'Error') {
+        alert(data.message);
+        return;
+      }
+      var rows = processRows(data.rows);
+      // rearrange the result into what bootstrap-table expects
+      params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+    },
+    error: function(jqXHR) {
+      console.log("error", jqXHR);
+      //logAjaxFail(jqXHR);
+      //$j('#eventTable').bootstrapTable('refresh');
+    }
+  });
 }
 
 function processRows(rows) {
@@ -110,7 +115,10 @@ function getDelConfirmModal() {
         insertModalHtml('deleteConfirm', data.html);
         manageDelConfirmModalBtns();
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR) {
+        console.log("error getting delconfirm", jqXHR);
+        logAjaxFail(jqXHR);
+      });
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -156,6 +164,7 @@ function deleteEvents(event_ids) {
         }
       })
       .fail( function(jqxhr) {
+        console.log("Fail delete");
         logAjaxFail(jqxhr);
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
@@ -173,7 +182,10 @@ function getEventDetailModal(eid) {
           $j('#eventDetailForm').submit();
         });
       })
-      .fail(logAjaxFail);
+      .fail(function(jqxhr) {
+        console.log("Fail get event details");
+        logAjaxFail(jqxhr);
+      });
 }
 
 function getObjdetectModal(eid) {
@@ -182,7 +194,10 @@ function getObjdetectModal(eid) {
         insertModalHtml('objdetectModal', data.html);
         $j('#objdetectModal').modal('show');
       })
-      .fail(logAjaxFail);
+      .fail(function(jqxhr) {
+        console.log("Fail get objdetect details");
+        logAjaxFail(jqxhr);
+      });
 }
 
 function initPage() {

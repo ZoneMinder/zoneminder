@@ -251,50 +251,44 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   }
 } // end if stream method
 ?>
-        <div id="alarmCue" class="alarmCue"></div>
         <div id="progressBar" style="width: 100%;">
+        <div id="alarmCues" style="width: 100%;"></div>
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+          <div id="indicator" style="display: none;"></div>
         </div><!--progressBar-->
 <?php
-} else if ($player == 'libde265.js') {
-  echo '<canvas id="video" width="0" height="0"></canvas>';
 } else if ($player == 'h265web.js') {
 ?>
-      <div id="player-container">
-        <div id="glplayer" class="glplayer"></div>
+      <div id="evtStream">
+        <div id="videoobj" class="glplayer"></div>
         <div id="controller" class="controller">
-          <div id="progress-contaniner" class="progress-common progress-contaniner">
+          <div id="progress-container" class="progress-common progress-container">
             <div id="cachePts" class="progress-common cachePts"></div>
             <div id="progressPts" class="progress-common progressPts"></div>
           </div>
 
           <div id="operate-container" class="operate-container">
-
-              <span id="ptsLabel" class="ptsLabel">00:00:00/00:00:00</span>
-              <div class="voice-div">
-                  <span>
-                      <a id="muteBtn" class="muteBtn">
-                          <svg class="icon" style="width: 1em;height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="488">
-                              <path d="M153.6 665.6V358.4h204.8V256H153.6c-56.32 0-102.4 46.08-102.4 102.4v307.2c0 56.32 46.08 102.4 102.4 102.4h204.8v-102.4H153.6zM358.4 256v102.4l204.8-128v563.2L358.4 665.6v102.4l307.2 204.8V51.2zM768 261.12v107.52c61.44 20.48 102.4 76.8 102.4 143.36s-40.96 122.88-102.4 143.36v107.52c117.76-25.6 204.8-128 204.8-250.88s-87.04-225.28-204.8-250.88z" p-id="489">
-                              </path>
-                          </svg>
-                      </a>
-                  </span>
-                  <progress id="progressVoice" class="progressVoice" value="50" max="100"></progress>
-              </div>
-
-              <a id="fullScreenBtn" class="fullScreenBtn">
-                  <svg class="icon" style="width: 1em;height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="403">
-                      <path d="M167.8 903.1c-11.5 0-22.9-4.4-31.7-13.1-17.5-17.5-17.5-45.8 0-63.3l221.1-221.1c17.5-17.5 45.9-17.5 63.3 0 17.5 17.5 17.5 45.8 0 63.3L199.4 890c-8.7 8.7-20.2 13.1-31.6 13.1zM638.5 432.4c-11.5 0-22.9-4.4-31.7-13.1-17.5-17.5-17.5-45.8 0-63.3l221.7-221.7c17.5-17.5 45.8-17.5 63.3 0s17.5 45.8 0 63.3L670.1 419.3c-8.7 8.7-20.2 13.1-31.6 13.1zM859.7 903.8c-11.5 0-23-4.4-31.7-13.1L606.7 668.8c-17.5-17.5-17.4-45.9 0.1-63.4s45.9-17.4 63.3 0.1l221.4 221.9c17.5 17.5 17.4 45.9-0.1 63.4-8.8 8.7-20.2 13-31.7 13zM389 432.1c-11.5 0-23-4.4-31.7-13.1L136.1 197.2c-17.5-17.5-17.4-45.9 0.1-63.4s45.9-17.4 63.3 0.1l221.2 221.7c17.5 17.5 17.4 45.9-0.1 63.4-8.7 8.7-20.2 13.1-31.6 13.1z" fill="#ffffff" p-id="404">
-                      </path>
-                      <path d="M145 370c-24.7 0-44.8-20.1-44.8-44.8V221.8C100.2 153.5 155.7 98 224 98h103.4c24.7 0 44.8 20.1 44.8 44.8s-20.1 44.8-44.8 44.8H224c-18.9 0-34.2 15.3-34.2 34.2v103.4c0 24.7-20.1 44.8-44.8 44.8zM883.3 370c-24.7 0-44.8-20.1-44.8-44.8V221.8c0-18.9-15.3-34.2-34.2-34.2H700.8c-24.7 0-44.8-20.1-44.8-44.8S676.1 98 700.8 98h103.5c68.2 0 123.8 55.5 123.8 123.8v103.5c0 24.7-20.1 44.7-44.8 44.7zM327.5 926.6H224c-68.2 0-123.8-55.5-123.8-123.8V699.4c0-24.7 20.1-44.8 44.8-44.8s44.8 20.1 44.8 44.8v103.5c0 18.9 15.3 34.2 34.2 34.2h103.5c24.7 0 44.8 20.1 44.8 44.8s-20.1 44.7-44.8 44.7zM804.3 926.6H700.8c-24.7 0-44.8-20.1-44.8-44.8s20.1-44.8 44.8-44.8h103.5c18.9 0 34.2-15.4 34.2-34.2V699.4c0-24.7 20.1-44.8 44.8-44.8 24.7 0 44.8 20.1 44.8 44.8v103.5c0 68.2-55.6 123.7-123.8 123.7z" fill="#ffffff" p-id="405">
-                      </path>
+            <span id="ptsLabel" class="ptsLabel">00:00:00/00:00:00</span>
+            <div class="voice-div">
+              <span>
+                <a id="muteBtn" class="muteBtn">
+                  <svg class="icon" style="width: 1em;height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="488">
+                    <path d="M153.6 665.6V358.4h204.8V256H153.6c-56.32 0-102.4 46.08-102.4 102.4v307.2c0 56.32 46.08 102.4 102.4 102.4h204.8v-102.4H153.6zM358.4 256v102.4l204.8-128v563.2L358.4 665.6v102.4l307.2 204.8V51.2zM768 261.12v107.52c61.44 20.48 102.4 76.8 102.4 143.36s-40.96 122.88-102.4 143.36v107.52c117.76-25.6 204.8-128 204.8-250.88s-87.04-225.28-204.8-250.88z" p-id="489">
+                    </path>
                   </svg>
-              </a>
-              <span id="showLabel" class="showLabel"></span>
+                </a>
+              </span>
+              <progress id="progressVoice" class="progressVoice" value="50" max="100"></progress>
             </div>
+            <span id="showLabel" class="showLabel"></span>
           </div>
-       </div> <!-- end player container -->
+        </div>
+      </div> <!-- end player container -->
+      <div id="progressBar" style="width: 100%;">
+      <div id="alarmCues" style="width: 100%;"></div>
+        <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+        <div id="indicator" style="display: none;"></div>
+      </div><!--progressBar-->
 <br/>
 <?php
 } /*end if player */
@@ -333,6 +327,9 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
           <i class="material-icons md-18">zoom_out</i>
           </button>
+          <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail">
+          <i class="material-icons md-18">fullscreen</i>
+          </button>
           <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
           <i class="material-icons md-18">skip_next</i>
           </button>
@@ -366,10 +363,18 @@ if ($player == 'video.js') {
 } else if ($player == 'libde265.js') {
   echo '<script src="js/libde265.js"></script>';
 } else if ($player == 'h265web.js') {
+  $version = 20220916;
+  if ($version == 20211026) {
 ?>
   <script src="skins/<?php echo $skin ?>/js/h265web.js/missile.js"></script>
   <script src="skins/<?php echo $skin ?>/js/h265web.js/h265webjs-v20211026.js"></script>
 <?php
+  } else if ($version == 20220916) {
+?>
+  <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/missile.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/h265webjs-v20220916.js"></script>
+<?php
+  }
 }
   echo output_link_if_exists(array('css/base/zones.css'));
   xhtmlFooter();

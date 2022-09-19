@@ -112,6 +112,7 @@ void Usage(int status=-1) {
 			"  -q, --query          : Query the current settings for the monitor\n"
 			"  -s, --state          : Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,\n"
 			"                   3 = alert, 4 = tape\n"
+			"  -j, --janus-pin     : Output the pin, if set, used to secure Janus for this monitor \n"
 			"  -B, --brightness [value]     : Output the current brightness, set to value if given \n"
 			"  -C, --contrast [value]     : Output the current contrast, set to value if given \n"
 			"  -H, --hue [value]        : Output the current hue, set to value if given \n"
@@ -170,11 +171,12 @@ typedef enum {
 	ZMU_RESUME     = 0x00800000,
 	ZMU_LIST       = 0x10000000,
         ZMU_TRIGGER    = 0x20000000,
+        ZMU_JANUS      = 0x40000000,
 } Function;
 
 bool ValidateAccess(User *user, int mon_id, int function) {
   bool allowed = true;
-  if ( function & (ZMU_STATE|ZMU_IMAGE|ZMU_TIME|ZMU_READ_IDX|ZMU_WRITE_IDX|ZMU_FPS|ZMU_TRIGGER) ) {
+  if ( function & (ZMU_STATE|ZMU_IMAGE|ZMU_TIME|ZMU_READ_IDX|ZMU_WRITE_IDX|ZMU_FPS|ZMU_TRIGGER|ZMU_JANUS) ) {
     if ( user->getStream() < User::PERM_VIEW )
       allowed = false;
   }
@@ -224,6 +226,7 @@ int main(int argc, char *argv[]) {
     {"scale", 1, nullptr, 'S'},
     {"timestamp", 2, nullptr, 't'},
     {"state", 0, nullptr, 's'},
+    {"janus-pin", 0, nullptr, 'j'},
     {"brightness", 2, nullptr, 'B'},
     {"contrast", 2, nullptr, 'C'},
     {"hue", 2, nullptr, 'H'},
@@ -282,7 +285,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsEDLurweix::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsjEDLurweix::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
     if (c == -1) {
       break;
     }
@@ -300,6 +303,9 @@ int main(int argc, char *argv[]) {
         break;
       case 's':
         function |= ZMU_STATE;
+        break;
+      case 'j':
+        function |= ZMU_JANUS;
         break;
       case 'x':
         function |= ZMU_TRIGGER;
@@ -521,6 +527,10 @@ int main(int argc, char *argv[]) {
 
     char separator = ' ';
     bool have_output = false;
+    if ( function & ZMU_JANUS ) {
+        printf("%s", monitor->get_stream_key());
+        have_output = true;
+    }
     if ( function & ZMU_STATE ) {
       Monitor::State state = monitor->GetState();
       if ( verbose ) {

@@ -43,7 +43,8 @@ var eventData = {
     Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>,
-    DefaultVideo: '<?php echo $Event->DefaultVideo() ?>'
+    DefaultVideo: '<?php echo $Event->DefaultVideo() ?>',
+    Path: '<?php echo $Event->Path() ?>'
 <?php } ?>
 };
 
@@ -67,6 +68,7 @@ var eventDataStrings = {
     MaxScore: '<?php echo translate('AttrMaxScore') ?>',
     DiskSpace: '<?php echo translate('DiskSpace') ?>',
     Storage: '<?php echo translate('Storage') ?>',
+    Path: '<?php echo translate('Path') ?>',
     Archived: '<?php echo translate('Archived') ?>',
     Emailed: '<?php echo translate('Emailed') ?>'
 };

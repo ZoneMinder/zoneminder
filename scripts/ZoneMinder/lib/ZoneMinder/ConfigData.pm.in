@@ -314,6 +314,18 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_CASE_INSENSITIVE_USERNAMES',
+    default     => 'no',
+    description => 'Case insensitive username authentication',
+    help        => q`
+      This option makes usernames case insensitive when
+      authenticating.
+      `,
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_AUTH_RELAY',
     default     => 'hashed',
     description => 'Method used to relay authentication information',

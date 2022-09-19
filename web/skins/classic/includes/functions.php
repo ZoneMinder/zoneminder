@@ -120,7 +120,7 @@ echo output_link_if_exists(array(
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-));
+), true);
 if ( $css != 'base' )
   echo output_link_if_exists(array(
     'css/'.$css.'/skin.css',
@@ -234,6 +234,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
           echo getSnapshotsHTML($view);
+          echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getHeaderFlipHTML();
         echo '</ul>';
@@ -368,6 +369,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getMontageHTML($view);
             echo getMontageReviewHTML($view);
             echo getSnapshotsHTML($view);
+            echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);
           echo '</ul>';
       }
@@ -419,8 +421,7 @@ function getStorageHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
 
-  $func = function($S) {
-    $class = '';
+  $func = function($S, $class='') {
     if ( $S->disk_usage_percent() > 98 ) {
       $class = 'text-danger';
     } else if ( $S->disk_usage_percent() > 90 ) {
@@ -428,7 +429,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<a class="dropdown-item '.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
+    return '<a class="'.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -448,15 +449,23 @@ function getStorageHTML() {
     $class = 'text-warning'; 
   }
   
-  $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-  $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
-  $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
-  
-  foreach ( $storage_areas as $area ) {  
-    $result .= $func($area).PHP_EOL;
-  } 
-  $result .= '</div>'.PHP_EOL;
-  $result .= '</li>'.PHP_EOL;
+  if (count($storage_areas) <= 2) {
+    $result .= '<li id="getStorageHTML" class="nav-item mx-2">'.PHP_EOL;
+    foreach ( $storage_areas as $area ) {  
+      $result .= $func($area).PHP_EOL;
+    } 
+    $result .= '</li>'.PHP_EOL;
+  } else {
+    $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
+    
+    foreach ( $storage_areas as $area ) {  
+      $result .= $func($area, 'dropdown-item ').PHP_EOL;
+    } 
+    $result .= '</div>'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  }
   
   return $result;
 }
@@ -764,6 +773,17 @@ function getSnapshotsHTML($view) {
   return $result;
 }
 
+function getReportsHTML($view) {
+  $result = '';
+  
+  if (canView('Events')) {
+    $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
+    $result .= '<li id="getReportsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
+  }
+  
+  return $result;
+}
+
 // Returns the html representing the Audit Events Report menu item
 function getRprtEvntAuditHTML($view) {
   $result = '';
@@ -938,7 +958,7 @@ function xhtmlFooter() {
 ), true );
 ?>
 <?php
-  if ( $view == 'event' ) {
+  if ($view == 'event' || $view == 'video') {
 ?>
 <?php
   }

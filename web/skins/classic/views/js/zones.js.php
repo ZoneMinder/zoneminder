@@ -12,7 +12,8 @@ monitorData[monitorData.length] = {
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>'
+  'refresh': '<?php echo $monitor->Refresh() ?>',
+  'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
 };
 <?php
   }

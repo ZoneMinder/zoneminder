@@ -183,8 +183,8 @@ public static function getStatuses() {
     'Deinterlacing' =>  0,
     'DecoderHWAccelName'  =>  null,
     'DecoderHWAccelDevice'  =>  null,
-    'SaveJPEGs' =>  3,
-    'VideoWriter' =>  '0',
+    'SaveJPEGs' =>  2,
+    'VideoWriter' =>  '2',
     'OutputCodec' =>  null,
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
@@ -200,7 +200,7 @@ public static function getStatuses() {
     'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
     'LabelX'      =>  0,
     'LabelY'      =>  0,
-    'LabelSize'   =>  1,
+    'LabelSize'   =>  2,
     'ImageBufferCount'  =>  3,
     'MaxImageBufferCount'  =>  0,
     'WarmupCount' =>  0,
@@ -245,7 +245,7 @@ public static function getStatuses() {
     'RTSPServer' => array('type'=>'boolean', 'default'=>0),
     'RTSPStreamName'  => '',
     'Importance'      =>  'Normal',
-    'MQTT_Enabled'    =>  false,
+    'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
     'MQTT_Subscriptions'  =>  '',
   );
   private $status_fields = array(
@@ -268,7 +268,13 @@ public static function getStatuses() {
     'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
-
+  public function Janus_Pin() {
+    $cmd = getZmuCommand(' --janus-pin -m '.$this->{'Id'});
+    $output = shell_exec($cmd);
+    Debug("Running $cmd output: $output");
+    
+    return $output ? trim($output) : $output;
+  }
   public function Control() {
     if (!property_exists($this, 'Control')) {
       if ($this->ControlId())
@@ -298,7 +304,7 @@ public static function getStatuses() {
     }
     // empty value or old auth values terminate
     if (!isset($this->{'Path'}) or ($this->{'Path'}==''))
-      return $this->{'Path'};
+      return '';
 
     // extract the authentication part from the path given
     $values = extract_auth_values_from_url($this->{'Path'});
@@ -324,38 +330,32 @@ public static function getStatuses() {
   }
 
   public function User($new=null) {
-    if( $new !== null ) {
+    if ($new !== null) {
       // no url check if the update has different value
       $this->{'User'} = $new;
     }
 
-    if( strlen($this->{'User'}) > 0 )
+    if (isset($this->{'User'}) and $this->{'User'} != '')
       return $this->{'User'};
 
     // Only try to update from path if the field is empty
-    $values = extract_auth_values_from_url($this->{'Path'});
-    if( count( $values ) == 2 ) {
-      $us = $values[0];
-      $this->{'User'} = $values[0];
-    }
+    $values = extract_auth_values_from_url($this->Path());
+    $this->{'User'} = count($values) == 2 ? $values[0] : '';
     return $this->{'User'};
   }
 
   public function Pass($new=null) {
-    if( $new !== null ) {
+    if ($new !== null) {
       // no url check if the update has different value
       $this->{'Pass'} = $new;
     }
 
-    if( strlen($this->{'Pass'}) > 0 )
+    if (isset($this->{'Pass'}) and $this->{'Pass'} != '')
       return $this->{'Pass'};
 
     // Only try to update from path if the field is empty
-    $values = extract_auth_values_from_url($this->{'Path'});
-    if( count( $values ) == 2 ) {
-      $ps = $values[1];
-      $this->{'Pass'} = $values[1];
-    }
+    $values = extract_auth_values_from_url($this->Path());
+    $this->{'Pass'} = count($values) == 2 ? $values[1] : '';
     return $this->{'Pass'};
   }
 

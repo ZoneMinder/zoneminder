@@ -238,8 +238,18 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     packetqueue_iterator it = pktQueue.end();
     --it;
     while (*it != add_packet) {
-      if ((*it)->packet->stream_index == video_stream_id)
+      if (!(*it))  {
+        Error("null packet");
+        break;
+      }
+      if (!((*it)->packet)) {
+        Error("null av packet");
         ++tail_count;
+      } else {
+        if ((*it)->packet->stream_index == video_stream_id)
+          ++tail_count;
+      }
+      
       --it;
     }
   }
@@ -258,10 +268,11 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       }
 
       pktQueue.pop_front();
-      packet_counts[zm_packet->packet->stream_index] -= 1;
+      int stream_index = zm_packet->packet ? zm_packet->packet->stream_index : 0;
+      packet_counts[stream_index] -= 1;
       Debug(1,
             "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
-            zm_packet->packet->stream_index,
+            stream_index,
             zm_packet->image_index,
             zm_packet->keyframe,
             packet_counts[video_stream_id],
@@ -333,7 +344,6 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     }
     ++it;
   } // end while
-
 
   Debug(1, "Resulting it pointing at latest packet? %d, next front points to begin? %d, Keyframe interval %d",
       ( *it == add_packet ),

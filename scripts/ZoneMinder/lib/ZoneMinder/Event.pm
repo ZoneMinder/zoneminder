@@ -628,7 +628,6 @@ sub CopyTo {
 	$NewPath .= '/'.$self->RelativePath();
 	($NewPath) = ( $NewPath =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
-    $ZoneMinder::Database::dbh->commit();
     return "New path and old path are the same! $NewPath";
   }
   Debug("Copying event $$self{Id} from $OldPath to $NewPath");
@@ -738,7 +737,10 @@ sub MoveTo {
   my $OldStorage = $self->Storage(undef);
 
   my $error = $self->CopyTo($NewStorage);
-  return $error if $error;
+  if ($error) {
+    $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+    return $error;
+  }
 
   # Succeeded in copying all files, so we may now update the Event.
   $$self{StorageId} = $$NewStorage{Id};

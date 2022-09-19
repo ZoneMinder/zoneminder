@@ -18,6 +18,8 @@ The options are divided into a set of tabs to make it easier to edit. You do not
 Monitor Tab
 -----------
 
+Id
+    You can reuse or specify an Id # to use here.  Normally you should leave this blank.
 Name 
     The name for your monitor. This should be made up of alphanumeric characters (a-z,A-Z,0-9), the following special characters ()_-.: and whitespace. 
 

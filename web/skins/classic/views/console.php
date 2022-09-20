@@ -166,6 +166,7 @@ xhtmlHeaders(__FILE__, translate('Console'));
 getBodyTopHTML();
 ?>
   <?php echo $navbar ?>
+  <div id="content">
   <form name="monitorForm" method="get" action="?">
     <input type="hidden" name="view" value="<?php echo $view ?>"/>
     <input type="hidden" name="action" value=""/>
@@ -451,6 +452,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 	    </div>
     </div>
   </form>
+</div><!--content-->
 <?php
   xhtmlFooter();
 ?>

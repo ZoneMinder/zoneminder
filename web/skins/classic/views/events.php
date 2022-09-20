@@ -48,7 +48,9 @@ getBodyTopHTML();
 
 ?>
   <?php echo getNavBarHTML() ?>
-  <div id="page" class="container-fluid p-3">
+  <div id="page">
+    <div id="content" class="container-fluid p-3">
+
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
@@ -126,5 +128,6 @@ getBodyTopHTML();
 
         </table>
       </div>       
+    </div><!--content-->
   </div>
 <?php xhtmlFooter() ?>

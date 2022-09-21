@@ -2,3 +2,10 @@
   width: 50%;
   float: left;
 }
+
+.Groups .name {
+  min-width: 200px;
+}
+.Groups .permission {
+  min-width: 300px;
+}

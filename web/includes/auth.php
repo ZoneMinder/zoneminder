@@ -192,25 +192,25 @@ function getAuthUser($auth) {
     } // end foreach user
 
     if (isset($_SESSION['username'])) {
-			# In a multi-server case, we might be logged in as another user and so the auth hash didn't work
-			if (ZM_CASE_INSENSITIVE_USERNAMES) {
-                          $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND LOWER(Username) != LOWER(?)';
-			} else {
-			  $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
-			}
+      # In a multi-server case, we might be logged in as another user and so the auth hash didn't work
+      if (ZM_CASE_INSENSITIVE_USERNAMES) {
+        $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND LOWER(Username) != LOWER(?)';
+      } else {
+        $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
+      }
 
-			foreach (dbFetchAll($sql, NULL, $values) as $user) {
-				$now = time();
-				for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
-					$time = localtime($now);
-					$authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-					$authHash = md5($authKey);
+      foreach (dbFetchAll($sql, NULL, $values) as $user) {
+        $now = time();
+        for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
+          $time = localtime($now);
+          $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
+          $authHash = md5($authKey);
 
-					if ($auth == $authHash) {
-						return $user;
-					} // end if $auth == $authHash
-				} // end foreach hour
-			} // end foreach user
+          if ($auth == $authHash) {
+            return $user;
+          } // end if $auth == $authHash
+        } // end foreach hour
+      } // end foreach user
     } // end if 
   } // end if using auth hash
 

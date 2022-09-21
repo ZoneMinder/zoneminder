@@ -2080,31 +2080,32 @@ bool Monitor::Analyse() {
           // If motion detecting, score will be > 0 on motion, but if skipping frames, might not be. So also test snap->score
           if ((score > 0) or (snap->score > 0)) {
             if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
-              // If we should end then previous continuous event and start a new non-continuous event
-              if (event && event->Frames()
-                  && (event->AlarmFrames() < alarm_frame_count)
-                  && (event_close_mode == CLOSE_ALARM)
-                  // FIXME since we won't be including this snap in the event if we close it, we should be looking at event->duration() instead
-                  && (event->Duration() >= min_section_length)
-                  && ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count - 1))) {
-                Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
-                    name.c_str(), snap->image_index, event->Id());
-                closeEvent();
-              } else if (event) {
-                // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
-                Debug(3,
-                      "pre_alarm_count in event %d of %d, event frames %d, alarm frames %d event length %" PRIi64 " >=? %" PRIi64 " min close mode is ALARM? %d",
-                      Event::PreAlarmCount(), pre_event_count,
-                      event->Frames(),
-                      event->AlarmFrames(),
-                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
-                      static_cast<int64>(Seconds(min_section_length).count()),
-                      (event_close_mode == CLOSE_ALARM));
-              }
+
               if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
                 Info("%s: %03d - ExtAlm - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                     name.c_str(), snap->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
                 shared_data->state = state = ALARM;
+
+                // If we should end then previous continuous event and start a new non-continuous event
+                if (event && event->Frames()
+                    && (event->AlarmFrames() < alarm_frame_count)
+                    && (event_close_mode == CLOSE_ALARM)
+                    && (event->Duration() >= min_section_length)
+                    ) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
+                      name.c_str(), snap->image_index, event->Id());
+                  closeEvent();
+                } else if (event) {
+                  // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
+                  Debug(3,
+                        "pre_alarm_count in event %d of %d, event frames %d, alarm frames %d event length %" PRIi64 " >=? %" PRIi64 " min close mode is ALARM? %d",
+                        Event::PreAlarmCount(), pre_event_count,
+                        event->Frames(),
+                        event->AlarmFrames(),
+                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                        static_cast<int64>(Seconds(min_section_length).count()),
+                        (event_close_mode == CLOSE_ALARM));
+                }
 
               } else if (state != PREALARM) {
                 Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
@@ -2213,7 +2214,17 @@ bool Monitor::Analyse() {
             if ((noteSetMap.size() > 0) and event)
               event->updateNotes(noteSetMap);
           } else if (state == TAPE) {
-            // bulk frame code moved to event.
+            if (event) {
+              if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
+                Debug(1, "%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                        name.c_str(), event->Id(),
+                        static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                        static_cast<int64>(Seconds(section_length).count()));
+                closeEvent();
+              }
+            }
           } // end if state machine
 
           if (shared_data->recording > RECORDING_NONE) {

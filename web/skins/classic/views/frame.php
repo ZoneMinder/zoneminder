@@ -46,6 +46,7 @@ $firstFid = 1;
 $prevFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId < ?', 'FrameId', array($eid, $fid));
 $nextFid = dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId > ?', 'FrameId', array($eid, $fid));
 $lastFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid));
+if ($maxFid > $lastFid) $maxFid = $lastFid;
 
 $alarmFrame = ( $Frame->Type() == 'Alarm' ) ? 1 : 0;
 

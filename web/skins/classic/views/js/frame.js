@@ -41,7 +41,7 @@ function changeScale() {
 
 function getFrameStatsCookie() {
   const cookie = 'zmFrameStats';
-  let stats = getCookie(cookie);
+  const stats = getCookie(cookie);
 
   if (!stats) {
     stats = 'on';

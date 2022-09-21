@@ -1254,7 +1254,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <td><?php
                 $users = array(''=>translate('None'));
                 foreach (ZM\User::find() as $u) {
-                  if ($u->MonitorIds() and (!$monitor->Id() or in_array($monitor->Id(), explode(',', $u->monitorIds()))))
+                  if ($u->MonitorIds() and (!$monitor->Id() or in_array($monitor->Id(), explode(',', $u->MonitorIds()))))
                     continue;
                   $users[$u->Id()] = $u->Username();
                 }

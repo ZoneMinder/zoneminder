@@ -19,6 +19,7 @@
 //
 //
 require_once('session.php');
+require_once('Group_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
 
@@ -257,8 +258,19 @@ function generateAuthHash($useRemoteAddr, $force=false) {
   return '';
 }
 
+$group_permissions = null;
 function visibleMonitor($mid) {
   global $user;
+  global $group_permissions;
+  if (!$group_permissions)
+    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+
+  # If denied view in any group, then can't view it.
+  foreach ($group_permissions as $permission) {
+    if (!$permission->canViewMonitor($mid)) {
+      return false;
+    }
+  }
 
   return ( $user && empty($user['MonitorIds']) || in_array($mid, explode(',', $user['MonitorIds'])) );
 }

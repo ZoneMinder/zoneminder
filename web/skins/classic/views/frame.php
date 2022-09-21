@@ -63,7 +63,7 @@ $scale = $scale ? $scale : 0;
 $imageData = $Event->getImageSrc($frame, $scale, 0);
 if (!$imageData) {
   ZM\Error("No data found for Event $eid frame $fid");
-  $imageData = array();
+  $imageData = array('hasAnalImage'=>0, 'thumbPath' => '', 'eventPath'=>'');
 }
 
 $show = 'capt';

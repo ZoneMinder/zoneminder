@@ -14,7 +14,8 @@ if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
 mkdir(ZM_PATH_SOCKS);
 
 # The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
-$key = ftok(ZM_PATH_SOCKS.'/zms-'.$connkey.'s.sock', 'Z');
+$key = $connkey;
+#$key = ftok(ZM_PATH_SOCKS.'/zms-'.$connkey.'s.sock', 'Z');
 $semaphore = sem_get($key, 1);
 $semaphore_tries = 10;
 $have_semaphore = false;

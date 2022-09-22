@@ -2,6 +2,7 @@
 error_reporting(0);
 
 $start_time = time();
+$connkey = sprintf('%06d', $_REQUEST['connkey']);
 
 define('MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT/2);
 define('MSG_DATA_SIZE', 4+256);
@@ -13,7 +14,7 @@ if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
 mkdir(ZM_PATH_SOCKS);
 
 # The file that we point ftok to has to exist, and only exist if zms is running, so we are pointing it at the .sock
-$key = ftok(ZM_PATH_SOCKS.'/zms-'.sprintf('%06d', $_REQUEST['connkey']).'s.sock', 'Z');
+$key = ftok(ZM_PATH_SOCKS.'/zms-'.$connkey.'s.sock', 'Z');
 $semaphore = sem_get($key, 1);
 $semaphore_tries = 10;
 $have_semaphore = false;
@@ -26,21 +27,23 @@ while ($semaphore_tries) {
     $have_semaphore = sem_acquire($semaphore, 1);
   }
   if ($have_semaphore !== false) break;
-  ZM\Debug('Failed to get semaphore, trying again');
+  ZM\Debug('Failed to get semaphore for '.$connkey.' '.$key.', trying again');
   usleep(100000);
   $semaphore_tries -= 1;
 }
 if ($have_semaphore !== false) {
-  if ( !($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0)) ) {
+  if (!($socket = @socket_create(AF_UNIX, SOCK_DGRAM, 0))) {
+    sem_release($semaphore);
     ajaxError('socket_create() failed: '.socket_strerror(socket_last_error()));
   }
 
-  $localSocketFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'w.sock';
+  $localSocketFile = ZM_PATH_SOCKS.'/zms-'.$connkey.'w.sock';
   if (!socket_bind($socket, $localSocketFile)) {
+    sem_release($semaphore);
     ajaxError("socket_bind( $localSocketFile ) failed: ".socket_strerror(socket_last_error()));
   }
 
-  switch ( $_REQUEST['command'] ) {
+  switch ($_REQUEST['command']) {
   case CMD_VARPLAY :
     ZM\Debug('Varplaying to '.$_REQUEST['rate']);
     $msg = pack('lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['rate']+32768);
@@ -69,7 +72,7 @@ if ($have_semaphore !== false) {
     break;
   }
 
-  $remSockFile = ZM_PATH_SOCKS.'/zms-'.sprintf('%06d',$_REQUEST['connkey']).'s.sock';
+  $remSockFile = ZM_PATH_SOCKS.'/zms-'.$connkey.'s.sock';
   // Pi can take up to 3 seconds for zms to start up.
   $max_socket_tries = 1000;
   // FIXME This should not exceed web_ajax_timeout
@@ -82,10 +85,12 @@ if ($have_semaphore !== false) {
     usleep(1000);
   }
 
-  if ( !file_exists($remSockFile) ) {
+  if (!file_exists($remSockFile)) {
+    sem_release($semaphore);
     ajaxError("Socket $remSockFile does not exist.  This file is created by zms, and since it does not exist, either zms did not run, or zms exited early.  Please check your zms logs and ensure that CGI is enabled in apache and check that the PATH_ZMS is set correctly.  Make sure that ZM is actually recording.  If you are trying to view a live stream and the capture process (zmc) is not running then zms will exit. Please go to http://zoneminder.readthedocs.io/en/latest/faq.html#why-can-t-i-see-streamed-images-when-i-can-see-stills-in-the-zone-window-etc for more information.");
   } else {
-    if ( !@socket_sendto($socket, $msg, strlen($msg), 0, $remSockFile) ) {
+    if (!@socket_sendto($socket, $msg, strlen($msg), 0, $remSockFile)) {
+      sem_release($semaphore);
       ajaxError("socket_sendto( $remSockFile ) failed: ".socket_strerror(socket_last_error()));
     }
   }
@@ -99,8 +104,10 @@ if ($have_semaphore !== false) {
   $numSockets = socket_select($rSockets, $wSockets, $eSockets, intval($timeout/1000), ($timeout%1000)*1000);
 
   if ( $numSockets === false ) {
+    sem_release($semaphore);
     ajaxError('socket_select failed: '.socket_strerror(socket_last_error()));
   } else if ( $numSockets < 0 ) {
+    sem_release($semaphore);
     ajaxError("Socket closed $remSockFile");
   } else if ( $numSockets == 0 ) {
     ZM\Error("Timed out waiting for msg $remSockFile");
@@ -108,20 +115,25 @@ if ($have_semaphore !== false) {
     #ajaxError("Timed out waiting for msg $remSockFile");
   } else if ( $numSockets > 0 ) {
     if ( count($rSockets) != 1 ) {
+      sem_release($semaphore);
       ajaxError('Bogus return from select, '.count($rSockets).' sockets available');
     }
   }
 
-  switch( $nbytes = @socket_recvfrom($socket, $msg, MSG_DATA_SIZE, 0, $remSockFile) ) {
+  switch ($nbytes = @socket_recvfrom($socket, $msg, MSG_DATA_SIZE, 0, $remSockFile)) {
   case -1 :
+    sem_release($semaphore);
     ajaxError("socket_recvfrom( $remSockFile ) failed: ".socket_strerror(socket_last_error()));
     break;
   case 0 :
+    sem_release($semaphore);
     ajaxError('No data to read from socket');
     break;
   default :
-    if ( $nbytes != MSG_DATA_SIZE )
+    if ( $nbytes != MSG_DATA_SIZE ) {
+      sem_release($semaphore);
       ajaxError("Got unexpected message size, got $nbytes, expected ".MSG_DATA_SIZE);
+    }
     break;
   }
 
@@ -142,6 +154,7 @@ if ($have_semaphore !== false) {
         ZM\Debug('including new auth hash '.$data['auth'].'because doesnt match request auth hash '.$_REQUEST['auth']);
       } 
     }
+    sem_release($semaphore);
     ajaxResponse(array('status'=>$data));
     break;
   case MSG_DATA_EVENT :
@@ -160,14 +173,17 @@ if ($have_semaphore !== false) {
         $data['auth'] = $auth_hash;
       } 
     }
+
+    sem_release($semaphore);
     ajaxResponse(array('status'=>$data));
     break;
   default :
+    sem_release($semaphore);
     ajaxError('Unexpected received message type '.$data['type']);
   }
   sem_release($semaphore);
 } else {
-  ajaxError("Unable to get semaphore.");
+  ajaxError("Unable to get semaphore for $connkey $key.");
 }
 
 ajaxError('Unrecognised action or insufficient permissions in ajax/stream');

@@ -938,7 +938,7 @@ function exportEvents(
      #if ( preg_match('/\.html$/', $file) )
         #continue;
       if ($exportStructure == 'flat') {
-        if (false !== strpos($file, $event->Id())) {
+        if (false !== strpos($file, strval($event->Id()))) {
           $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$file. ' 2>&1';
           $exportFileList[] = $file;
         } else {

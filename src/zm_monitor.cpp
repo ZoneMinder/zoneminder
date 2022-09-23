@@ -2213,7 +2213,7 @@ bool Monitor::Analyse() {
             // Alert means this frame has no motion, but we were alarmed and are still recording.
             if ((noteSetMap.size() > 0) and event)
               event->updateNotes(noteSetMap);
-          } else if (state == TAPE) {
+          } else if (state == TAPE || state == IDLE) {
             if (event) {
               if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
                 Debug(1, "%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,

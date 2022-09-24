@@ -54,7 +54,7 @@ Group::Group(unsigned int p_id) {
 
     } else {
       id = groupQuery.get<unsigned int>("Id");
-      parent_id = groupQuery.fieldPresent("ParentId") ? groupQuery.get<unsigned int>("ParentId") : 0;
+      parent_id = groupQuery.has("ParentId") ? groupQuery.get<unsigned int>("ParentId") : 0;
       std::string nameStr = groupQuery.get<std::string>("Name");
       strncpy(name, nameStr.c_str(), sizeof(name) - 1);
       Debug(1, "Loaded Group area %d '%s'", id, this->Name());

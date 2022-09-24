@@ -146,13 +146,13 @@ public:
   }
 
   // Return if field is present in result
-  bool fieldPresent(std::size_t & pos) {
+  bool has(std::size_t & pos) {
     if (stmt == nullptr || result == nullptr) {
       return false;
     }
     return result->get_indicator(pos) == soci::indicator::i_ok;
   }
-  bool fieldPresent(std::string const & name) {
+  bool has(std::string const & name) {
     if (stmt == nullptr || result == nullptr) {
       return false;
     }

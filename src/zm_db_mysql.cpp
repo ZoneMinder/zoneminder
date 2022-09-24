@@ -21,7 +21,25 @@
 #include "zm_signal.h"
 #include "zm_db_mysql.h"
 
-// --- zmDb subclass --- //
+std::string load_monitor_sql =
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+"`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+"`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`,"
+"`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
+"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
+"`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
+"`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
+"`OutputCodec`, `Encoder`, `OutputContainer`, "
+"`RecordAudio`, "
+"`Brightness`, `Contrast`, `Hue`, `Colour`, "
+"`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
+"`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
+"`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
+"`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
+"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
+"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount FROM `Monitors`";
 
 zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
 {
@@ -79,7 +97,13 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
             mapStatements[i] = new soci::statement(db);
             mapStatements[i]->alloc();
         }
-        prepareStatements();
+
+        prepareSelectStatements();
+        prepareSelectAllStatements();
+        prepareSelectMonitorStatements();
+        prepareUpdateStatements();
+        prepareInsertStatements();
+
         for (int i = 0; i < LAST_QUERY; i++)
         {
             mapStatements[i]->define_and_bind();
@@ -118,7 +142,7 @@ uint64_t zmDbMySQLAdapter::lastInsertID(const zmDbQueryID &queryId)
     return 0;
 }
 
-void zmDbMySQLAdapter::prepareStatements()
+void zmDbMySQLAdapter::prepareSelectStatements()
 {
     if (!db.is_connected())
         return;
@@ -149,6 +173,56 @@ WHERE `Username` = :username AND `Enabled` = 1");
     mapStatements[SELECT_USER_AND_DATA_PLUS_TOKEN_WITH_USERNAME_ENABLED]->prepare(
         "SELECT `Id`, `Username`, `Password`, `Enabled`,`Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, \
 `TokenMinExpiry` FROM `Users` WHERE `Username` = :username AND `Enabled` = 1");
+}
+
+void zmDbMySQLAdapter::prepareSelectMonitorStatements()
+{
+    if (!db.is_connected())
+        return;
+
+    std::string op_and = " AND ";
+    std::string cond_id = "`Id` = :id";
+    std::string cond_type = " `Capturing` != 'None' AND `Type` = :type";
+    std::string cond_device = "`Device` = :device";
+    std::string cond_server_id = "`ServerId` = :server_id";
+    std::string cond_protocol = "`Protocol` = :protocol AND `Host` = :host AND `Port` = :port AND `Path` = :path";
+    std::string cond_path = "`Path` = :path";
+    std::string cond_rtsp = "`Function` != 'None' AND `RTSPerver` != false";
+
+    std::string base_query = load_monitor_sql + cond_type + op_and;
+
+    mapStatements[SELECT_MONITOR_WITH_ID]->prepare(load_monitor_sql + cond_id);
+
+    mapStatements[SELECT_MONITOR_TYPE]->prepare(load_monitor_sql + cond_type);
+
+    mapStatements[SELECT_MONITOR_TYPE_AND_DEVICE]->prepare(base_query + cond_device);
+
+    mapStatements[SELECT_MONITOR_TYPE_AND_SERVER]->prepare(base_query + cond_server_id);
+
+    mapStatements[SELECT_MONITOR_TYPE_AND_DEVICE_AND_SERVER]->prepare(base_query + cond_device + op_and + cond_server_id);
+
+    mapStatements[SELECT_MONITOR_TYPE_AND_PROTOCOL]->prepare(base_query + cond_protocol);
+
+    mapStatements[SELECT_MONITOR_TYPE_AND_SERVER_AND_PROTOCOL]->prepare(base_query + cond_server_id + op_and + cond_protocol);
+
+    mapStatements[SELECT_MONITOR_TYPE_AND_PATH]->prepare(base_query + cond_path);
+
+    mapStatements[SELECT_MONITOR_TYPE_AND_PATH_AND_SERVER]->prepare(base_query + cond_path + op_and + cond_server_id);
+
+    mapStatements[SELECT_MONITOR_TYPE_RTSP]->prepare(load_monitor_sql + cond_rtsp);
+
+    mapStatements[SELECT_MONITOR_TYPE_RTSP_AND_SERVER]->prepare(load_monitor_sql + cond_rtsp + op_and + cond_server_id);
+
+    mapStatements[SELECT_MONITOR_TYPE_RTSP_AND_ID]->prepare(load_monitor_sql + cond_rtsp + op_and + cond_id);
+
+    mapStatements[SELECT_MONITOR_TYPE_RTSP_AND_SERVER_AND_ID]->prepare(load_monitor_sql + cond_rtsp + op_and + cond_server_id + op_and + cond_id);
+
+}
+
+void zmDbMySQLAdapter::prepareSelectAllStatements()
+{
+    if (!db.is_connected())
+        return;
 
     mapStatements[SELECT_ALL_ACTIVE_STATES_ID]->prepare("SELECT Id FROM States WHERE IsActive=1");
 
@@ -214,6 +288,12 @@ OverloadFrames,ExtendAlarmFrames \
 FROM Zones WHERE MonitorId = :id ORDER BY Type");
 
     mapStatements[SELECT_ALL_MONITORS_DATA]->prepare("SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors`");
+}
+
+void zmDbMySQLAdapter::prepareUpdateStatements()
+{
+    if (!db.is_connected())
+        return;
 
     mapStatements[UPDATE_NEW_EVENT_WITH_ID]->prepare(
         "UPDATE Events SET Name=:name, EndDateTime = from_unixtime(:enddatetime), Length = :length, Frames = :frames, \
@@ -234,6 +314,12 @@ SET Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = 
     mapStatements[UPDATE_EVENT_WITH_ID_SET_SAVEJPEGS]->prepare("UPDATE Events SET SaveJpegs=:save_jpegs WHERE Id=:id");
 
     mapStatements[UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS]->prepare("UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = :capture_fps, CaptureBandwidth=capture_bandwitdh, AnalysisFPS = analysis_fps WHERE MonitorId=:id");
+}
+
+void zmDbMySQLAdapter::prepareInsertStatements()
+{
+    if (!db.is_connected())
+        return;
 
     mapStatements[INSERT_EVENTS]->prepare("INSERT INTO `Events` \
 ( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` ) \

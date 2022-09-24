@@ -824,7 +824,7 @@ public:
   static std::vector<std::shared_ptr<Monitor>> LoadFileMonitors(const char *file, Purpose purpose);
   static std::vector<std::shared_ptr<Monitor>> LoadFfmpegMonitors(const char *file, Purpose purpose);
   static std::shared_ptr<Monitor> Load(unsigned int id, bool load_zones, Purpose purpose);
-  void Load(MYSQL_ROW dbrow, bool load_zones, Purpose purpose);
+  void Load(zmDbQuery& dbrow, bool load_zones, Purpose purpose);
   //void writeStreamImage( Image *image, struct timeval *timestamp, int scale, int mag, int x, int y );
   //void StreamImages( int scale=100, int maxfps=10, time_t ttl=0, int msq_id=0 );
   //void StreamImagesRaw( int scale=100, int maxfps=10, time_t ttl=0 );

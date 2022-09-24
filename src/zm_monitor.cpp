@@ -55,6 +55,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <chrono>
+#include <regex>
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -76,29 +77,6 @@ struct Namespace namespaces[] =
    {NULL, NULL, NULL, NULL} // end of table
 };
 #endif
-
-// This is the official SQL (and ordering of the fields) to load a Monitor.
-// It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
-std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-"`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
-"`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`,"
-"`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
-"`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
-"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
-"`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
-"`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
-"`OutputCodec`, `Encoder`, `OutputContainer`, "
-"`RecordAudio`, "
-"`Brightness`, `Contrast`, `Hue`, `Colour`, "
-"`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
-"`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
-"`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
-"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
-"`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
-"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
-"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount FROM `Monitors`";
-
 
 std::string CameraType_Strings[] = {
   "Unknown",
@@ -332,187 +310,203 @@ Monitor::Monitor()
    "SignalCheckPoints, SignalCheckColour, Importance-1, ZoneCount FROM Monitors";
 */
 
-void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
+void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   purpose = p;
-  int col = 0;
 
-  id = atoi(dbrow[col]); col++;
-  name = dbrow[col]; col++;
-  server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  id = dbrow.get<unsigned int>("Id");
+  name = dbrow.get<std::string>("Name");
+  id = dbrow.has("ServerId") ? dbrow.get<unsigned int>("ServerId") : 0;
 
-  storage_id = atoi(dbrow[col]); col++;
+  storage_id = dbrow.get<unsigned int>("StorageId");
   delete storage;
   storage = new Storage(storage_id);
 
-  if ( ! strcmp(dbrow[col], "Local") ) {
+  std::string typeDb = dbrow.get<std::string>("Type");
+
+  if ( typeDb.compare("Local") == 0 ) {
     type = LOCAL;
-  } else if ( ! strcmp(dbrow[col], "Ffmpeg") ) {
+  } else if ( typeDb.compare("Ffmpeg") == 0 ) {
     type = FFMPEG;
-  } else if ( ! strcmp(dbrow[col], "Remote") ) {
+  } else if ( typeDb.compare("Remote") == 0 ) {
     type = REMOTE;
-  } else if ( ! strcmp(dbrow[col], "File") ) {
+  } else if ( typeDb.compare("File") == 0 ) {
     type = FILE;
-  } else if ( ! strcmp(dbrow[col], "NVSocket") ) {
+  } else if ( typeDb.compare("NVSocket") == 0 ) {
     type = NVSOCKET;
-  } else if ( ! strcmp(dbrow[col], "Libvlc") ) {
+  } else if ( typeDb.compare("Libvlc") == 0 ) {
     type = LIBVLC;
-  } else if ( ! strcmp(dbrow[col], "cURL") ) {
+  } else if ( typeDb.compare("cURL") == 0 ) {
     type = LIBCURL;
-  } else if ( ! strcmp(dbrow[col], "VNC") ) {
+  } else if ( typeDb.compare("VNC") == 0 ) {
     type = VNC;
   } else {
-    Fatal("Bogus monitor type '%s' for monitor %d", dbrow[col], id);
+    Fatal("Bogus monitor type '%s' for monitor %d", typeDb.c_str(), id);
   }
   Debug(1, "Have camera type %s", CameraType_Strings[type].c_str());
-  col++;
-  capturing = (CapturingOption)atoi(dbrow[col]); col++;
-  analysing = (AnalysingOption)atoi(dbrow[col]); col++;
-  analysis_source = (AnalysisSourceOption)atoi(dbrow[col]); col++;
-  analysis_image = (AnalysisImageOption)atoi(dbrow[col]); col++;
-  recording = (RecordingOption)atoi(dbrow[col]); col++;
-  recording_source = (RecordingSourceOption)atoi(dbrow[col]); col++;
 
-  decoding = (DecodingOption)atoi(dbrow[col]); col++;
+  capturing = (CapturingOption)dbrow.get<int>("Capturing");
+  analysing = (AnalysingOption)dbrow.get<int>("Analysing");
+  analysis_source = (AnalysisSourceOption)dbrow.get<int>("AnalysisSource");
+  analysis_image = (AnalysisImageOption)dbrow.get<int>("AnalysisImage");
+  recording = (RecordingOption)dbrow.get<int>("Recording");
+  recording_source = (RecordingSourceOption)dbrow.get<int>("RecordingSource");
+
+  decoding = (DecodingOption)dbrow.get<int>("Decoding");
+
   // See below after save_jpegs for a recalculation of decoding_enabled
-  janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
-  janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
-  janus_profile_override = std::string(dbrow[col] ? dbrow[col] : ""); col++;
-  janus_use_rtsp_restream = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  janus_enabled = dbrow.has("JanusEnabled") ? (dbrow.get<unsigned int>("JanusEnabled")==1) : false;
+  janus_audio_enabled = dbrow.has("JanusAudioEnabled") ? (dbrow.get<unsigned int>("JanusAudioEnabled")==1) : false;
+  janus_profile_override = dbrow.has("Janus_Profile_Override") ? dbrow.get<std::string>("Janus_Profile_Override") : "";
+  janus_use_rtsp_restream = dbrow.has("Janus_Use_RTSP_Restream") ? (dbrow.get<unsigned int>("Janus_Use_RTSP_Restream")==1) : false;
 
-  linked_monitors_string = dbrow[col] ? dbrow[col] : ""; col++;
-  event_start_command = dbrow[col] ? dbrow[col] : ""; col++;
-  event_end_command = dbrow[col] ? dbrow[col] : ""; col++;
+  linked_monitors_string = dbrow.has("LinkedMonitors") ? dbrow.get<std::string>("LinkedMonitors") : "";
+  event_start_command = dbrow.has("EventStartCommand") ? dbrow.get<std::string>("EventStartCommand") : "";
+  event_end_command = dbrow.has("EventEndCommand") ? dbrow.get<std::string>("EventEndCommand") : "";
 
   /* "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS," */
-  analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], nullptr) : 0.0; col++;
-  analysis_update_delay = Seconds(strtoul(dbrow[col++], nullptr, 0));
-  capture_delay =
-      (dbrow[col] && atof(dbrow[col]) > 0.0) ? std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
-                                             : Microseconds(0);
-  col++;
-  alarm_capture_delay =
-      (dbrow[col] && atof(dbrow[col]) > 0.0) ? std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
-                                             : Microseconds(0);
-  col++;
+  analysis_fps_limit = dbrow.has("AnalysisFPSLimit") ? dbrow.get<zmDecimal>("AnalysisFPSLimit").toValue() : 0.0;
+  analysis_update_delay = Seconds( dbrow.get<unsigned long>("AnalysisUpdateDelay") );
+
+  capture_delay = Microseconds(0);
+  if( dbrow.has("MaxFPS") ) {
+    float tmp = dbrow.get<float>("MaxFPS");
+    if( tmp > 0.0 ) {
+      capture_delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / tmp));
+    }
+  }
+  alarm_capture_delay = Microseconds(0);
+  if( dbrow.has("AlarmMaxFPS") ) {
+    float tmp = dbrow.get<float>("AlarmMaxFPS");
+    if( tmp > 0.0 ) {
+      alarm_capture_delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / tmp));
+    }
+  }
 
   /* "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings */
-  device = dbrow[col] ? dbrow[col] : ""; col++;
-  channel = atoi(dbrow[col]); col++;
-  format = atoi(dbrow[col]); col++;
+  device = dbrow.has("Device") ? dbrow.get<std::string>("Device") : "";
+  channel = dbrow.get<int>("Channel");
+  format = dbrow.get<int>("Format");
+
   v4l_multi_buffer = config.v4l_multi_buffer;
-  if ( dbrow[col] ) {
-    if (*dbrow[col] == '0' ) {
+  if ( dbrow.has("V4LMultiBuffer") ) {
+    int tmp = dbrow.get<int>("V4LMultiBuffer");
+    if ( tmp == 0 ) {
       v4l_multi_buffer = false;
-    } else if ( *dbrow[col] == '1' ) {
+    } else if ( tmp == 1 ) {
       v4l_multi_buffer = true;
     }
   }
-  col++;
 
-  v4l_captures_per_frame = 0;
-  if ( dbrow[col] ) {
-    v4l_captures_per_frame = atoi(dbrow[col]);
-  } else {
-    v4l_captures_per_frame = config.captures_per_frame;
+  v4l_captures_per_frame = config.captures_per_frame;
+  if ( dbrow.has("V4LCapturesPerFrame") ) {
+    v4l_captures_per_frame = dbrow.get<int>("V4LCapturesPerFrame");
   }
-  col++;
 
   /* "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, " */
-  protocol = dbrow[col] ? dbrow[col] : ""; col++;
-  method = dbrow[col] ? dbrow[col] : ""; col++;
-  options = dbrow[col] ? dbrow[col] : ""; col++;
-  user = dbrow[col] ? dbrow[col] : ""; col++;
-  pass = dbrow[col] ? dbrow[col] : ""; col++;
-  host = dbrow[col] ? dbrow[col] : ""; col++;
-  port = dbrow[col] ? dbrow[col] : ""; col++;
-  path = dbrow[col] ? dbrow[col] : ""; col++;
-  second_path = dbrow[col] ? dbrow[col] : ""; col++;
-  camera_width = atoi(dbrow[col]); col++;
-  camera_height = atoi(dbrow[col]); col++;
-  colours = atoi(dbrow[col]); col++;
-  palette = atoi(dbrow[col]); col++;
-  orientation = (Orientation)atoi(dbrow[col]); col++;
+  protocol = dbrow.has("Protocol") ? dbrow.get<std::string>("Protocol") : "";
+  method = dbrow.has("Method") ? dbrow.get<std::string>("Method") : "";
+  options = dbrow.has("Options") ? dbrow.get<std::string>("Options") : "";
+  user = dbrow.has("User") ? dbrow.get<std::string>("User") : "";
+  pass = dbrow.has("Pass") ? dbrow.get<std::string>("Pass") : "";
+  host = dbrow.has("Host") ? dbrow.get<std::string>("Host") : "";
+  port = dbrow.has("Port") ? dbrow.get<std::string>("Port") : "";
+  path = dbrow.has("Path") ? dbrow.get<std::string>("Path") : "";
+  second_path = dbrow.has("SecondPath") ? dbrow.get<std::string>("SecondPath") : "";
+
+  camera_width = dbrow.get<int>("Width");
+  camera_height = dbrow.get<int>("Height");
+  colours = dbrow.get<int>("Colours");
+  palette = dbrow.get<int>("Palette");
+  orientation = (Orientation)dbrow.get<int>("Orientation");
   width = (orientation==ROTATE_90||orientation==ROTATE_270) ? camera_height : camera_width;
   height = (orientation==ROTATE_90||orientation==ROTATE_270) ? camera_width : camera_height;
-  deinterlacing = atoi(dbrow[col]); col++;
+  deinterlacing = dbrow.get<int>("Deinterlacing");
   deinterlacing_value = deinterlacing & 0xff;
 
 /*"`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, " */
-  decoder_hwaccel_name = dbrow[col] ? dbrow[col] : ""; col++;
-  decoder_hwaccel_device = dbrow[col] ? dbrow[col] : ""; col++;
-  rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
+  decoder_hwaccel_name = dbrow.has("DecoderHWAccelName") ? dbrow.get<std::string>("DecoderHWAccelName") : "";
+  decoder_hwaccel_device = dbrow.has("DecoderHWAccelDevice") ? dbrow.get<std::string>("DecoderHWAccelDevice") : "";
+  rtsp_describe = dbrow.has("RTSPDescribe") ? dbrow.get<int>("RTSPDescribe") != 0 : false;
 
 
 /* "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, " */
-  savejpegs = atoi(dbrow[col]); col++;
-  videowriter = (VideoWriter)atoi(dbrow[col]); col++;
-  encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
+  savejpegs = dbrow.get<int>("SaveJPEGs");
+  videowriter = (VideoWriter)dbrow.get<int>("VideoWriter");
+  encoderparams = dbrow.has("EncoderParameters") ? dbrow.get<std::string>("EncoderParameters") : "";
 
   Debug(3, "Decoding: %d savejpegs %d videowriter %d", decoding, savejpegs, videowriter);
 
 /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
-  output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
-  encoder = dbrow[col] ? dbrow[col] : ""; col++;
-  output_container = dbrow[col] ? dbrow[col] : ""; col++;
-  record_audio = (*dbrow[col] != '0'); col++;
+  output_codec = dbrow.has("OutputCodec") ? dbrow.get<int>("OutputCodec") : 0;
+  encoder = dbrow.has("Encoder") ? dbrow.get<std::string>("Encoder") : "";
+  output_container = dbrow.has("OutputContainer") ? dbrow.get<std::string>("OutputContainer") : "";
+  record_audio = dbrow.get<int>("OutputCodec") != 0;
 
  /* "Brightness, Contrast, Hue, Colour, " */
-  brightness = atoi(dbrow[col]); col++;
-  contrast = atoi(dbrow[col]); col++;
-  hue = atoi(dbrow[col]); col++;
-  colour = atoi(dbrow[col]); col++;
+  brightness = dbrow.get<int>("Brightness");
+  contrast = dbrow.get<int>("Contrast");
+  hue = dbrow.get<int>("Hue");
+  colour = dbrow.get<int>("Colour");
 
   /* "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize," */
-  event_prefix = dbrow[col] ? dbrow[col] : ""; col++;
-  label_format = dbrow[col] ? ReplaceAll(dbrow[col], "\\n", "\n") : ""; col++;
-  label_coord = Vector2(atoi(dbrow[col]), atoi(dbrow[col + 1])); col += 2;
-  label_size = atoi(dbrow[col]); col++;
+  event_prefix = dbrow.has("EventPrefix") ? dbrow.get<std::string>("EventPrefix") : "";
+  //label_format = dbrow[col] ? ReplaceAll(dbrow[col], "\\n", "\n") : ""; col++;
+  label_format = dbrow.has("LabelFormat") ? dbrow.get<std::string>("LabelFormat") : "";
+  label_format = std::regex_replace( label_format, std::regex("\\n"), "\n" );
+
+  label_coord = Vector2(dbrow.get<int>("LabelX"), dbrow.get<int>("LabelY"));
+  label_size = dbrow.get<int>("LabelSize");
 
   /* "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, " */
-  image_buffer_count = atoi(dbrow[col]); col++;
-  max_image_buffer_count = atoi(dbrow[col]); col++;
-  warmup_count = atoi(dbrow[col]); col++;
-  pre_event_count = atoi(dbrow[col]); col++;
+  image_buffer_count = dbrow.get<int>("ImageBufferCount");
+  max_image_buffer_count = dbrow.get<int>("MaxImageBufferCount");
+  warmup_count = dbrow.get<int>("WarmupCount");
+  pre_event_count = dbrow.get<int>("PreEventCount");
   packetqueue.setPreEventVideoPackets(pre_event_count);
   packetqueue.setMaxVideoPackets(max_image_buffer_count);
   packetqueue.setKeepKeyframes(videowriter == PASSTHROUGH || recording != RECORDING_NONE);
-  post_event_count = atoi(dbrow[col]); col++;
-  stream_replay_buffer = atoi(dbrow[col]); col++;
-  alarm_frame_count = atoi(dbrow[col]); col++;
+  post_event_count = dbrow.get<int>("PostEventCount");
+  stream_replay_buffer = dbrow.get<int>("StreamReplayBuffer");
+  alarm_frame_count = dbrow.get<int>("AlarmFrameCount");
   if (alarm_frame_count < 1) alarm_frame_count = 1;
   else if (alarm_frame_count > MAX_PRE_ALARM_FRAMES) alarm_frame_count = MAX_PRE_ALARM_FRAMES;
 
  /* "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, " */
-  section_length = Seconds(atoi(dbrow[col])); col++;
-  min_section_length = Seconds(atoi(dbrow[col])); col++;
-  frame_skip = atoi(dbrow[col]); col++;
-  motion_frame_skip = atoi(dbrow[col]); col++;
+  section_length = Seconds(dbrow.get<int>("SectionLength"));
+  min_section_length = Seconds(dbrow.get<int>("MinSectionLength"));
+  frame_skip = dbrow.get<int>("FrameSkip");
+  motion_frame_skip = dbrow.get<int>("MotionFrameSkip");
 
  /* "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif," */
-  fps_report_interval = atoi(dbrow[col]); col++;
-  ref_blend_perc = atoi(dbrow[col]); col++;
-  alarm_ref_blend_perc = atoi(dbrow[col]); col++;
-  track_motion = atoi(dbrow[col]); col++;
-  embed_exif = (*dbrow[col] != '0'); col++;
+  fps_report_interval = dbrow.get<int>("FPSReportInterval");
+  ref_blend_perc = dbrow.get<int>("RefBlendPerc");
+  alarm_ref_blend_perc = dbrow.get<int>("AlarmRefBlendPerc");
+  track_motion = dbrow.get<int>("TrackMotion");
+  embed_exif = (dbrow.get<int>("Exif") != 0);
 
- /* "`RTSPServer`,`RTSPStreamName`, */
-  rtsp_server = (*dbrow[col] != '0'); col++;
-  rtsp_streamname = dbrow[col]; col++;
-// get alarm text from table.
-  onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+ /* "`RTSPServer`,`RTSPStreamName`,`ONVIF_Alarm_Text`, */
+  rtsp_server = (dbrow.get<int>("RTSPServer") != 0);
+  rtsp_streamname = dbrow.get<std::string>("RTSPStreamName");
+  // get alarm text from table.
+  onvif_alarm_txt = dbrow.has("ONVIF_Alarm_Text") ? dbrow.get<std::string>("ONVIF_Alarm_Text") : "";
 
 
    /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
-  onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
-  onvif_username = std::string(dbrow[col] ? dbrow[col] : ""); col++;
-  onvif_password = std::string(dbrow[col] ? dbrow[col] : ""); col++;
-  onvif_options = std::string(dbrow[col] ? dbrow[col] : ""); col++;
-  onvif_event_listener = (*dbrow[col] != '0'); col++;
-  use_Amcrest_API = (*dbrow[col] != '0'); col++;
+  onvif_url = dbrow.has("ONVIF_URL") ? dbrow.get<std::string>("ONVIF_URL") : "";
+  onvif_username = dbrow.has("ONVIF_Username") ? dbrow.get<std::string>("ONVIF_Username") : "";
+  onvif_password = dbrow.has("ONVIF_Password") ? dbrow.get<std::string>("ONVIF_Password") : "";
+  onvif_options = dbrow.has("ONVIF_Options") ? dbrow.get<std::string>("ONVIF_Options") : "";
+  onvif_event_listener = (dbrow.get<int>("ONVIF_Event_Listener") != 0);
+  use_Amcrest_API = (dbrow.get<int>("use_Amcrest_API") != 0);
 
  /*"SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors"; */
-  signal_check_points = atoi(dbrow[col]); col++;
-  signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
+  signal_check_points = dbrow.get<int>("SignalCheckPoints");
+
+  std::string check_colour_str = dbrow.get<std::string>("SignalCheckColour");
+  if( check_colour_str.length() > 0 ) {
+    const char* check_colour = check_colour_str.c_str();
+    signal_check_colour = strtol(check_colour[0] == '#' ? check_colour+1 : check_colour, 0, 16);
+  }
 
   colour_val = rgb_convert(signal_check_colour, ZM_SUBPIX_ORDER_BGR); /* HTML colour code is actually BGR in memory, we want RGB */
   colour_val = rgb_convert(colour_val, palette);
@@ -521,9 +515,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   blue_val = BLUE_VAL_BGRA(signal_check_colour);
   grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
 
-  importance = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
+  importance = dbrow.has("Importance") ? dbrow.get<int>("Importance") : 0;
   if (importance < 0) importance = 0; // Should only be >= 0
-  zone_count = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
+  zone_count = dbrow.has("ZoneCount") ? dbrow.get<int>("ZoneCount") : 0;
 
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
@@ -769,16 +763,18 @@ void Monitor::LoadCamera() {
 }
 
 std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
-  std::string sql = load_monitor_sql + stringtf(" WHERE Id=%d", p_id);
 
-  zmDbRow dbrow;
-  if (!dbrow.fetch(sql)) {
-    Error("Can't use query result: %s", mysql_error(&dbconn));
+  zmDbQuery query = zmDbQuery( SELECT_MONITOR_WITH_ID )
+    .bind( "Id", p_id )
+    .fetchOne();
+
+  if( query.affectedRows() != 1 ) {
+    Error("Can't use query result");
     return nullptr;
   }
 
   std::shared_ptr<Monitor> monitor = std::make_shared<Monitor>();
-  monitor->Load(dbrow.mysql_row(), load_zones, purpose);
+  monitor->Load(query, load_zones, purpose);
 
   return monitor;
 }
@@ -1469,7 +1465,17 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     zone_image = new Image(*snap->image);
   } else {
     Debug(3, "Trying to load from event");
+
     // Grab the most revent event image
+    /*zmDbQuery query = zmDbQuery( SELECT_MONITOR_WITH_ID )
+      .bind( "Id", p_id )
+      .fetchOne();
+
+    if( query.affectedRows() != 1 ) {
+      Error("Can't use query result");
+      return nullptr;
+    }*/
+
     std::string sql = stringtf("SELECT MAX(`Id`) FROM `Events` WHERE `MonitorId`=%d AND `Frames` > 0", id);
     zmDbRow eventid_row;
     if (eventid_row.fetch(sql)) {

@@ -33,7 +33,12 @@ public:
     virtual uint64_t lastInsertID(const zmDbQueryID& queryId);
 
 private:
-    void prepareStatements();
+    void prepareSelectStatements();
+    void prepareSelectMonitorStatements();
+    void prepareSelectAllStatements();
+    void prepareUpdateStatements();
+    void prepareInsertStatements();
+
     void prepareAutoIncrementTables();
 };
 

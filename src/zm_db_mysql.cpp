@@ -255,26 +255,6 @@ JOIN `Frames` f ON `Events`.`Id` = f.`Id` WHERE `Events`.`Id` = :id");
     mapStatements[SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LARGER_THAN]->prepare(
         "SELECT `Id` FROM `Events` WHERE `MonitorId` = :monitor_id AND `Id` > :event_id  ORDER BY `Id` ASC LIMIT 1");
 
-    mapStatements[SELECT_ALL_MONITORS_DATA_OFFICIAL]->prepare(
-        "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, \
-`Recording`+0, `RecordingSource`+0, `Decoding`+0, \
-`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`, \
-`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`, \
-`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, \
-`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, \
-`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, \
-`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, \
-`OutputCodec`, `Encoder`, `OutputContainer`, \
-`RecordAudio`, \
-`Brightness`, `Contrast`, `Hue`, `Colour`, \
-`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`, \
-`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, \
-`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, \
-`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, \
-`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`, \
-`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, \
-`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount FROM `Monitors`");
-
     mapStatements[SELECT_ALL_USERS_AND_DATA_ENABLED]->prepare(
         "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds` FROM `Users` \
         WHERE `Enabled` = 1");
@@ -307,13 +287,13 @@ WHERE Id = :id AND Name='New Event'");
     mapStatements[UPDATE_EVENT_WITH_ID_SET_NOTES]->prepare("UPDATE `Events` SET `Notes` = ':notes' WHERE `Id` = :id");
 
     mapStatements[UPDATE_EVENT_WITH_ID_SET_SCORE]->prepare("UPDATE Events \
-SET Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = total_score, AvgScore = avg_score, MaxScore = max_score WHERE Id = :id");
+SET Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score WHERE Id = :id");
 
     mapStatements[UPDATE_EVENT_WITH_ID_SET_STORAGEID]->prepare("UPDATE Events SET StorageId = :storage_id WHERE Id=:id");
 
     mapStatements[UPDATE_EVENT_WITH_ID_SET_SAVEJPEGS]->prepare("UPDATE Events SET SaveJpegs=:save_jpegs WHERE Id=:id");
 
-    mapStatements[UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS]->prepare("UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = :capture_fps, CaptureBandwidth=capture_bandwitdh, AnalysisFPS = analysis_fps WHERE MonitorId=:id");
+    mapStatements[UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS]->prepare("UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = :capture_fps, CaptureBandwidth=:capture_bandwitdh, AnalysisFPS = :analysis_fps WHERE MonitorId=:id");
 }
 
 void zmDbMySQLAdapter::prepareInsertStatements()

@@ -31,7 +31,7 @@ protected:
 
 public:
 	Group();
-	explicit Group(const MYSQL_ROW &dbrow );
+	explicit Group( zmDbQuery &dbrow );
 	explicit Group( unsigned int p_id );
 	~Group();
 

@@ -2363,7 +2363,7 @@ void Monitor::ReloadLinkedMonitors() {
 }  // end void Monitor::ReloadLinkedMonitors()
 
 std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(zmDbQuery &query, Purpose purpose) {
-  Debug(1, "Loading Monitors with %s", sql.c_str());
+  Debug(1, "Loading Monitors");
 
   query.run(true);
 
@@ -3364,24 +3364,21 @@ void Monitor::get_ref_image() {
 std::vector<Group *> Monitor::Groups() {
   // At the moment, only load groups once.
   if (!groups.size()) {
-    std::string sql = stringtf(
-        "SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Groups.Id` IN "
-        "(SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=%d)", id);
-    MYSQL_RES *result = zmDbFetch(sql);
-    if (!result) {
-      Error("Can't load groups: %s", mysql_error(&dbconn));
+    zmDbQuery query = zmDbQuery( SELECT_GROUPS_PARENT_OF_MONITOR_ID )
+      .bind( "id", id );
+
+    query.run( true );
+
+    int n_groups = query.affectedRows();
+    if ( n_groups == 0 ) {
+      Error("Can't load groups");
       return groups;
     }
-    int n_groups = mysql_num_rows(result);
     Debug(1, "Got %d groups", n_groups);
     groups.reserve(n_groups);
-    while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
-      groups.push_back(new Group(dbrow));
+    while ( query.next() ) {
+      groups.push_back(new Group( query ));
     }
-    if (mysql_errno(&dbconn)) {
-      Error("Can't fetch row: %s", mysql_error(&dbconn));
-    }
-    mysql_free_result(result);
   }
   return groups;
 } // end Monitor::Groups()

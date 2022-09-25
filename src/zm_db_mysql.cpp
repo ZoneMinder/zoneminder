@@ -147,9 +147,9 @@ void zmDbMySQLAdapter::prepareSelectStatements()
     if (!db.is_connected())
         return;
 
-    mapStatements[SELECT_SERVER_ID_WITH_NAME]->prepare("SELECT `Id` FROM `Servers` WHERE `Name`=':name'");
+    mapStatements[SELECT_SERVER_ID_WITH_NAME]->prepare("SELECT `Id` FROM `Servers` WHERE `Name`=:name");
 
-    mapStatements[SELECT_SERVER_NAME_WITH_ID]->prepare("SELECT `Name` FROM `Servers` WHERE `Id`=':id'");
+    mapStatements[SELECT_SERVER_NAME_WITH_ID]->prepare("SELECT `Name` FROM `Servers` WHERE `Id`=:id");
 
     mapStatements[SELECT_GROUP_WITH_ID]->prepare("SELECT `Id`, `ParentId`, `Name` FROM `Group` WHERE `Id`=:id");
 
@@ -284,7 +284,7 @@ WHERE Id = :id AND Name='New Event'");
         "UPDATE Events SET EndDateTime = from_unixtime(:enddatetime), Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, \
         TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score, DefaultVideo=:default_video WHERE Id = :id");
 
-    mapStatements[UPDATE_EVENT_WITH_ID_SET_NOTES]->prepare("UPDATE `Events` SET `Notes` = ':notes' WHERE `Id` = :id");
+    mapStatements[UPDATE_EVENT_WITH_ID_SET_NOTES]->prepare("UPDATE `Events` SET `Notes` = :notes WHERE `Id` = :id");
 
     mapStatements[UPDATE_EVENT_WITH_ID_SET_SCORE]->prepare("UPDATE Events \
 SET Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score WHERE Id = :id");

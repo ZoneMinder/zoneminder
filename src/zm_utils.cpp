@@ -24,6 +24,7 @@
 #include <array>
 #include <cstdarg>
 #include <cstring>
+#include <cmath>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <sstream>
 #include <sys/stat.h>
@@ -141,7 +142,7 @@ std::string stringtf(const char* format, ...) {
 void frexp10(double arg, int& exp, double& mantissa )
 {
   if( arg == 0 )
-    exp = 0
+    exp = 0;
   else
     exp = 1 + (int)std::floor(std::log10(std::fabs(arg) ) );
   

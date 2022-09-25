@@ -267,7 +267,9 @@ MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs, \
 OverloadFrames,ExtendAlarmFrames \
 FROM Zones WHERE MonitorId = :id ORDER BY Type");
 
-    mapStatements[SELECT_ALL_MONITORS_DATA]->prepare("SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors`");
+    mapStatements[SELECT_ALL_MONITORS_DATA]->prepare("SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors` ORDER BY Id ASC");
+
+    mapStatements[SELECT_ALL_MONITORS_DATA_VERBOSE]->prepare("SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors` WHERE `Capturing` != 'None' ORDER BY Id ASC");
 }
 
 void zmDbMySQLAdapter::prepareUpdateStatements()

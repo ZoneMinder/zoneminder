@@ -44,13 +44,13 @@ protected:
   std::unordered_map<int, std::string> autoIncrementTable;
 
 public:
-  zmDb(){};
+  zmDb();
   virtual ~zmDb();
 
   bool connected() {
     return db.is_connected();
   }
-  virtual uint64_t lastInsertID(const zmDbQueryID&);
+  virtual uint64_t lastInsertID(const zmDbQueryID&) = 0;
 
   friend class zmDbQuery;
 };
@@ -199,7 +199,7 @@ public:
 // extern bool zmDbConnected;
 
 bool zmDbIsConnected();
-bool zmDbConnect(const std::string &backend);
+bool zmDbConnect();
 void zmDbClose();
 
 #endif // ZM_DB_H

@@ -29,7 +29,7 @@
 class zmDbMySQLAdapter : public zmDb {
 public:
     zmDbMySQLAdapter();
-    virtual ~zmDbMySQLAdapter();
+    ~zmDbMySQLAdapter();
     virtual uint64_t lastInsertID(const zmDbQueryID& queryId);
 
 private:

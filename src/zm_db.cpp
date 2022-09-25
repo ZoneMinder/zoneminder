@@ -63,6 +63,11 @@ bool zmDbIsConnected() {
   return zmDbConnected && database->connected();
 }
 
+// --- Base DB --- //
+zmDb::zmDb() {}
+
+zmDb::~zmDb() {}
+
 // --- Query handling --- //
 zmDbQuery::zmDbQuery(const zmDbQueryID& queryId, bool exitError /* = false */)
 {
@@ -173,6 +178,11 @@ int zmDbQuery::affectedRows()
     return -1;
 
   return stmt->get_affected_rows();
+}
+
+void zmDbQuery::deferOnClose(std::function<void ()>) 
+{
+
 }
 
 // --- Query Queue handling --- //

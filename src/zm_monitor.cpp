@@ -2089,11 +2089,13 @@ bool Monitor::Analyse() {
               if ( section_length
                   && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
                  ) {
-                Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
-                    name.c_str(), analysis_image_count, event->Id(),
-                    static_cast<int64>(timestamp->tv_sec), static_cast<int64>(video_store_data->recording.tv_sec),
-                    static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
-                    section_length);
+                if (event_close_mode != CLOSE_TIME) {
+                  Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
+                      name.c_str(), analysis_image_count, event->Id(),
+                      static_cast<int64>(timestamp->tv_sec), static_cast<int64>(video_store_data->recording.tv_sec),
+                      static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
+                      section_length);
+                }
                 closeEvent();
                 event = new Event(this, *timestamp, cause, noteSetMap);
                 shared_data->last_event_id = event->Id();

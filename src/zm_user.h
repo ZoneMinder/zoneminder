@@ -44,7 +44,7 @@ class User {
 
  public:
   User();
-  explicit User(const MYSQL_ROW &dbrow);
+  explicit User(zmDbQuery &dbrow);
   ~User();
   User(const User &u) { Copy(u); }
   void Copy(const User &u);

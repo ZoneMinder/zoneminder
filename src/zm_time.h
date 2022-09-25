@@ -129,9 +129,9 @@ std::string TimePointToString(TimePoint tp);
 namespace soci {
   template <> struct type_conversion<Microseconds>
   {
-      typedef int64 base_type;
+      typedef int64_t base_type;
 
-      static void from_base(int64 i, indicator ind, Microseconds & mi)
+      static void from_base(int64_t i, indicator ind, Microseconds & mi)
       {
           if (ind == i_null)
           {
@@ -141,18 +141,18 @@ namespace soci {
           mi = Microseconds(i);
       }
 
-      static void to_base(const Microseconds & mi, int64 & i, indicator & ind)
+      static void to_base(const Microseconds & mi, int64_t & i, indicator & ind)
       {
-          i = static_cast<int64>(mi.count());
+          i = static_cast<int64_t>(mi.count());
           ind = i_ok;
       }
   };
 
   template <> struct type_conversion<SystemTimePoint>
   {
-      typedef int64 base_type;
+      typedef int64_t base_type;
 
-      static void from_base(int64 i, indicator ind, SystemTimePoint & mi)
+      static void from_base(int64_t i, indicator ind, SystemTimePoint & mi)
       {
           if (ind == i_null)
           {
@@ -162,9 +162,9 @@ namespace soci {
           mi = static_cast<SystemTimePoint>(std::chrono::system_clock::from_time_t(i));
       }
 
-      static void to_base(const SystemTimePoint & mi, int64 & i, indicator & ind)
+      static void to_base(const SystemTimePoint & mi, int64_t & i, indicator & ind)
       {
-          i = static_cast<int64>(std::chrono::system_clock::to_time_t(mi));
+          i = static_cast<int64_t>(std::chrono::system_clock::to_time_t(mi));
           ind = i_ok;
       }
   };

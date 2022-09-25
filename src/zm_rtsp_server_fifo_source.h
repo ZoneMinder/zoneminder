@@ -17,6 +17,7 @@
 #include <list>
 #include <string>
 #include <thread>
+#include <condition_variable>
 #include <utility>
 
 #if HAVE_RTSP_SERVER

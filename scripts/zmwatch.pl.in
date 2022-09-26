@@ -97,7 +97,7 @@ while (!$zm_terminate) {
     my $restart = 0;
     zmMemInvalidate($monitor);
     if (!zmMemVerify($monitor)) {
-      Info("Restarting capture daemon for $monitor->{Name}, shared data not valid");
+      Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid");
       $monitor->control('restart');
       next;
     }
@@ -134,7 +134,7 @@ while (!$zm_terminate) {
           }
         }
         $log->logPrint(ZoneMinder::Logger::WARNING+$monitor->ImportanceNumber(),
-          "Restarting capture daemon for $$monitor{Name}, no image since startup. ".
+          "Restarting capture daemon for $monitor->{Id} $$monitor{Name}, no image since startup. ".
           "Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}"
         );
         $monitor->control('restart');

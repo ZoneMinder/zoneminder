@@ -98,9 +98,13 @@ class ZM_Object {
         if ( $value == null ) {
           $fields[] = '`'.$field.'` IS NULL';
         } else if ( is_array($value) ) {
-          $func = function(){return '?';};
-          $fields[] = '`'.$field.'` IN ('.implode(',', array_map($func, $value)). ')';
-          $values += $value;
+          if ( count($value) ) {
+            $func = function(){return '?';};
+            $fields[] = '`'.$field.'` IN ('.implode(',', array_map($func, $value)). ')';
+            $values += $value;
+          } else {
+            return array();
+          }
 
         } else {
           $fields[] = '`'.$field.'`=?';

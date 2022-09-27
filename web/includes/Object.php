@@ -95,7 +95,7 @@ class ZM_Object {
       $fields = array();
       $sql .= 'WHERE ';
       foreach ( $parameters as $field => $value ) {
-        if ( $value == null ) {
+        if ( $value === null ) {
           $fields[] = '`'.$field.'` IS NULL';
         } else if ( is_array($value) ) {
           if ( count($value) ) {

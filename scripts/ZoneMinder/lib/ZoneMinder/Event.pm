@@ -936,6 +936,9 @@ FROM `Frames` WHERE `EventId`=?';
   if (!$frame) {
     return 'Unable to retrieve frame data.';
   }
+  if (!$frame->{EndDateTime}) {
+    return 'Unable to retreive EndDateTime from Frames Table.';
+  }
   return $self->save({
       Name => sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag),
       EndDateTime => $frame->{EndDateTime},

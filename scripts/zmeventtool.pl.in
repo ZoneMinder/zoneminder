@@ -36,6 +36,7 @@ be run from a filter but could be run manually.
 
 =head1 OPTIONS
 
+ close               - Update event record after a crash
  deletejpegs         - Deletes all jpegs from the event directory
  deleteanalysisjpegs - Deletes the analysis jpegs from the event directory
 
@@ -46,6 +47,7 @@ be run from a filter but could be run manually.
 
 =cut
 use strict;
+use warnings;
 use bytes;
 
 @EXTRA_PERL_LIB@
@@ -100,13 +102,22 @@ foreach my $event_id (@ARGV) {
     # Assume path to event, strip it
     $event_id =~ s/.*\/(\d+)/$1/; 
   }
-  if ($command eq 'deleteanalysisjpegs') {
-    my $Event = ZoneMinder::Event->find_one(Id=>$event_id);
-    if ($Event) {
-      $Event->delete_analysis_jpegs();
+  my $event = ZoneMinder::Event->find_one(Id=>$event_id);
+  if (!$event) {
+    Warning("Event not found for $event_id");
+    next;
+  }
+
+  if ($command eq 'close') {
+    if (!$event->EndDateTime()) {
+      Debug("Closing $event_id");
+      $_ = $event->Close();
+      Warning($_) if $_;
     } else {
-      Warning("Event not found for $event_id");
+      Warning("Event $event_id already closed!");
     }
+  } elsif ($command eq 'deleteanalysisjpegs') {
+    $event->delete_analysis_jpegs();
   }
 }
 

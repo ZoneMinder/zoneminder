@@ -696,6 +696,7 @@ sub substituteTags {
   $text =~ s/%EP%/$url?view=event&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
   $text =~ s/%EPS%/$url?view=event&mode=stream&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
   $text =~ s/%EPI%/$url?view=event&mode=still&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
+  $text =~ s/%EPATH%/$Event->Path()/g;
   $text =~ s/%EI%/$Event->{Id}/g;
   $text =~ s/%EN%/$Event->{Name}/g;
   $text =~ s/%EC%/$Event->{Cause}/g;
@@ -1036,8 +1037,12 @@ sub executeCommand {
   my $filter = shift;
   my $Event = shift;
 
-  my $command = $filter->{AutoExecuteCmd}.' '.$Event->Path();
-  $command = substituteTags($command, $filter, $Event);
+  my $command = $filter->{AutoExecuteCmd};
+  if ($command =~ /%\w+.%/) {
+    $command = substituteTags($command, $filter, $Event);
+  } else {
+    ' '.$Event->Path();
+  }
 
   Info("Executing '$command'");
   my $output = qx($command);

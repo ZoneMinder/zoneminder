@@ -932,7 +932,7 @@ SELECT
   sum(`Score`) AS `TotScore`,
   max(`Score`) AS `MaxScore`
 FROM `Frames` WHERE `EventId`=?';
-  my $frame = dbFetchOne($FrameDataSql);
+  my $frame = ZoneMinder::Database::zmDbFetchOne($FrameDataSql, $self->{Id});
   if (!$frame) {
     return 'Unable to retrieve frame data.';
   }

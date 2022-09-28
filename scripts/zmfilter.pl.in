@@ -1041,21 +1041,23 @@ sub executeCommand {
   if ($command =~ /%\w+.%/) {
     $command = substituteTags($command, $filter, $Event);
   } else {
-    ' '.$Event->Path();
+    $command .= ' '.$Event->Path();
   }
 
   Info("Executing '$command'");
   my $output = qx($command);
   my $status = $? >> 8;
-  if ( $status || logDebugging() ) {
+  if ($status || logDebugging()) {
     chomp($output);
-    Debug("Output: $output");
+    Debug("Status: $status Output: $output");
   }
   if ($status) {
     Error("Command '$command' exited with status: $status");
     return 0;
   } else {
-    ZoneMinder::Database::zmSQLExecute('UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?', $Event->{Id});
+    $Event->load(); # the command may have altered the database
+    $_ = $Event->save({Executed=>1});
+    Error($_) if $_;
   }
   return 1;
 }

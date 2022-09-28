@@ -279,9 +279,8 @@ public static function getStatuses() {
       return $output ? trim($output) : $output;
     } else if ($this->ServerId()) {
       $result = $this->Server()->SendToApi('/monitors/'.$this->{'Id'}.'.json');
-      Debug(print_r($result, true));
       $json = json_decode($result, true);
-      return $json['Janus_Pin'];
+      return ((isset($json['monitor']) and isset($json['monitor']['Monitor']) and isset($json['monitor']['Monitor']['Janus_Pin'])) ? $json['monitor']['Monitor']['Janus_Pin'] : '');
     } else {
       Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
     }

@@ -176,7 +176,7 @@ Event::~Event() {
 
   std::string sql = stringtf(
       "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64 " AND Name='New Event'",
-      monitor->EventPrefix(), id, std::chrono::system_clock::to_time_t(end_time),
+      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,

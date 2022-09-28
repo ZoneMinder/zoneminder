@@ -6,7 +6,6 @@
   global $selfIntersecting;
   global $streamMode;
   global $connkey;
-  global $streamSrc;
 ?>
 
 var presets = new Object();
@@ -105,8 +104,6 @@ var connKey = '<?php echo $connkey ?>';
 
 var monitorId = <?php echo $monitor->Id() ?>;
 var monitorUrl = '<?php echo ( $monitor->UrlToIndex() ) ?>';
-
-var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;

@@ -97,6 +97,10 @@ class MonitorsController extends AppController {
           )
         );
     $monitor = $this->Monitor->find('first', $options);
+    if ($monitor['Monitor']['JanusEnabled']) {
+      require_once __DIR__ .'/../../../includes/Monitor.php';
+      $monitor['Monitor']['Janus_Pin'] = (new ZM\Monitor($monitor['Monitor']))->Janus_Pin();
+    }
     $this->set(array(
       'monitor' => $monitor,
       '_serialize' => array('monitor')

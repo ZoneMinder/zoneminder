@@ -918,6 +918,37 @@ sub Monitor {
   return $$self{Monitor};
 }
 
+sub Close {
+  my $self = shift;
+  my $tag = @_ ? shift : '(r)';
+  my $text = @_ ? shift : 'Recovered.';
+
+  my $FrameDataSql = '
+SELECT
+  max(`TimeStamp`) AS `EndDateTime`,
+  unix_timestamp(max(`TimeStamp`)) AS `EndTimeStamp`,
+  max(`FrameId`) AS `Frames`,
+  count(if(`Score`>0,1,NULL)) AS `AlarmFrames`,
+  sum(`Score`) AS `TotScore`,
+  max(`Score`) AS `MaxScore`
+FROM `Frames` WHERE `EventId`=?';
+  my $frame = dbFetchOne($FrameDataSql);
+  if (!$frame) {
+    return 'Unable to retrieve frame data.';
+  }
+  return $self->save({
+      Name => sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag),
+      EndDateTime => $frame->{EndDateTime},
+      Length => $frame->{EndTimeStamp} - $self->Time(),
+      Frames => $frame->{Frames},
+      AlarmFrames => $frame->{AlarmFrames},
+      TotScore => $frame->{TotScore},
+      AvgScore => ($frame->{AlarmFrames} ? int($frame->{TotScore} / $frame->{AlarmFrames}) : 0),
+      MaxScore => $frame->{MaxScore},
+      Notes => $self->Notes() . ' ' . $text,
+    });
+} # end sub Close
+
 1;
 __END__
 

@@ -809,6 +809,7 @@ public:
   bool Decode();
   bool Poll();
   void DumpImage( Image *dump_image ) const;
+  std::string Substitute(const std::string &format, SystemTimePoint ts_time) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   Event *openEvent(
       const std::shared_ptr<ZMPacket> &snap,

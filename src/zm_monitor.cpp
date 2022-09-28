@@ -52,6 +52,7 @@
 #endif // HAVE_LIBVNC
 
 #include <algorithm>
+#include <cstring>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <chrono>
@@ -2767,23 +2768,25 @@ bool Monitor::Decode() {
   return true;
 }  // end bool Monitor::Decode()
 
-void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
-  if (!label_format[0])
-    return;
+
+std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_time) const {
+  if (format.empty()) return "";
+
+  std::string text;
+  text.reserve(1024);
 
   // Expand the strftime macros first
   char label_time_text[256];
   tm ts_tm = {};
   time_t ts_time_t = std::chrono::system_clock::to_time_t(ts_time);
-  strftime(label_time_text, sizeof(label_time_text), label_format.c_str(), localtime_r(&ts_time_t, &ts_tm));
+  strftime(label_time_text, sizeof(label_time_text), format.c_str(), localtime_r(&ts_time_t, &ts_tm));
 
-  char label_text[1024];
   const char *s_ptr = label_time_text;
-  char *d_ptr = label_text;
+  char *d_ptr = text.data();
 
-  while (*s_ptr && ((unsigned int)(d_ptr - label_text) < (unsigned int) sizeof(label_text))) {
-    if ( *s_ptr == config.timestamp_code_char[0] ) {
-      const auto max_len = sizeof(label_text) - (d_ptr - label_text);
+  while (*s_ptr && ((unsigned int)(d_ptr - text.data()) < text.capacity())) {
+    if (*s_ptr == config.timestamp_code_char[0]) {
+      const auto max_len = text.capacity() - (d_ptr - text.data());
       bool found_macro = false;
       int rc = 0;
       switch ( *(s_ptr+1) ) {
@@ -2803,10 +2806,11 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
           found_macro = true;
           break;
       }
-      if (rc < 0 || static_cast<size_t>(rc) > max_len)
+      if (rc < 0 || static_cast<size_t>(rc) > max_len) {
         break;
+      }
       d_ptr += rc;
-      if ( found_macro ) {
+      if (found_macro) {
         s_ptr += 2;
         continue;
       }
@@ -2814,9 +2818,16 @@ void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
     *d_ptr++ = *s_ptr++;
   } // end while
   *d_ptr = '\0';
-  Debug(2, "annotating %s", label_text);
-  ts_image->Annotate(label_text, label_coord, label_size);
-  Debug(2, "done annotating %s", label_text);
+  return text;
+}
+
+void Monitor::TimestampImage(Image *ts_image, SystemTimePoint ts_time) const {
+  if (!label_format[0])
+    return;
+  const std::string label_text = Substitute(label_format, ts_time);
+
+  ts_image->Annotate(label_text.c_str(), label_coord, label_size);
+  Debug(2, "done annotating %s", label_text.c_str());
 } // end void Monitor::TimestampImage
 
 Event * Monitor::openEvent(

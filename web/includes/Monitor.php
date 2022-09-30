@@ -299,8 +299,12 @@ public static function getStatuses() {
 
   public function Server() {
     if (!property_exists($this, 'Server')) {
-      if ($this->ServerId())
+      if ($this->ServerId()) {
         $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
+        if (!$this->{'Server'}) {
+          $this->{'Server'} = new Server();
+        }
+      }
       if (!property_exists($this, 'Server')) {
         $this->{'Server'} = new Server();
       }

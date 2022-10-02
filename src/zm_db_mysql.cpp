@@ -76,11 +76,12 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
         }
     }
 
-    soci::connection_parameters params("mysql", paramsStr);
+    soci::connection_parameters params(soci::mysql, paramsStr);
 
     try
     {
-        db.open(params);
+        db.open( params );
+
         if (!db.is_connected())
         {
             Error("Can't connect to server: %s", paramsStr.c_str());
@@ -89,8 +90,13 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
 
         soci::mysql_session_backend *concreteDb = (soci::mysql_session_backend *)db.get_backend();
 
-        if (mysql_options(concreteDb->conn_, MYSQL_OPT_RECONNECT, NULL))
-            Error("Can't set database auto reconnect option: %s", mysql_error(concreteDb->conn_));
+        if( concreteDb->conn_ == NULL ) {
+            Error("Cannot connect to database");
+            
+        } else {
+            /*if (mysql_options(concreteDb->conn_, MYSQL_OPT_RECONNECT, NULL))
+                Error("Can't set database auto reconnect option: %s", mysql_error(concreteDb->conn_));*/
+        }
 
         for (int i = 0; i < LAST_QUERY; i++)
         {

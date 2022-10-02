@@ -134,26 +134,27 @@ public:
       return U();
     }
 
-    std::vector<U> outvector;
-    soci::rowset<U> results = result->get<soci::rowset<U>>(name);
+    std::vector<U> outvector = new std::vector<U>( 50 );
 
-    for (auto it = results.cbegin(); it != results.cend(); ++it)
-    {
-      outvector.push_back( it->second );
-    }
+    // soci::rowset<U> results = (*result_iter)->get<soci::rowset<U>>(name);
+
+    // for (auto it = results.cbegin(); it != results.cend(); ++it)
+    // {
+    //   outvector.push_back( it->second );
+    // }
 
     return outvector;
   }
 
   // Return if field is present in result
   bool has(std::size_t & pos) {
-    if (stmt == nullptr || result == nullptr) {
+    if (stmt == nullptr || result == nullptr ) {
       return false;
     }
     return result->get_indicator(pos) == soci::indicator::i_ok;
   }
   bool has(std::string const & name) {
-    if (stmt == nullptr || result == nullptr) {
+    if (stmt == nullptr || result == nullptr ) {
       return false;
     }
     return result->get_indicator(name) == soci::indicator::i_ok;

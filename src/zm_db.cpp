@@ -94,28 +94,30 @@ zmDbQuery &zmDbQuery::run(bool data_exchange)
   {
     result = new soci::row();
     stmt->exchange_for_rowset(soci::into(*result));
+  } 
+  else 
+  {
+    stmt->define_and_bind();
   }
 
-  stmt->define_and_bind();
-
-  bool result = false;
+  bool resultFlag = false;
   unsigned int errcode = 0;
   try {
-    result = stmt->execute(data_exchange);
+    resultFlag = stmt->execute(data_exchange);
   }
   catch (soci::mysql_soci_error const & e)
   {
     Error("Database error [code %d]: %s", e.err_num_, e.what());
     errcode = e.err_num_;
-    result = false;
+    resultFlag = false;
   }
   catch (soci::soci_error const & e)
   {
     Error("Database error [code -1]: %s", e.what());
     errcode = 0;
-    result = false;
+    resultFlag = false;
   }
-  if( !result && exitOnError ) {
+  if( !resultFlag && exitOnError ) {
     exit(errcode);
   }
 

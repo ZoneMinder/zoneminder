@@ -202,8 +202,12 @@ foreach ( getSkinIncludes('skin.php') as $includeFile ) {
   require_once $includeFile;
 }
 
-if ( isset($_REQUEST['action']) )
-  $action = detaintPath($_REQUEST['action']);
+if (isset($_POST['action'])) {
+  # Actions can only be performed on POST because we don't check csrf on GETs.
+  $action = detaintPath($_POST['action']);
+} else if (isset($_REQUEST['action'])) {
+  ZM\Error('actions can no longer be performed without POST.');
+}
 
 # The only variable we really need to set is action. The others are informal.
 isset($view) || $view = NULL;

@@ -6,17 +6,12 @@ function newGroup() {
         $j('#groupModal').modal('show');
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
-        // Manage the Save button
-        $j('#grpModalSaveBtn').click(function(evt) {
-          evt.preventDefault();
-          $j('#groupForm').submit();
-        });
       })
       .fail(logAjaxFail);
 }
 
 function setGroup( element ) {
-  var form = element.form;
+  const form = element.form;
   form.action.value = 'setgroup';
   form.submit();
 }
@@ -32,47 +27,38 @@ function editGroup( element ) {
           $j('#groupModal').modal('show');
           $j('.chosen').chosen("destroy");
           $j('.chosen').chosen();
-          // Manage the Save button
-          $j('#grpModalSaveBtn').click(function(evt) {
-            evt.preventDefault();
-            $j('#groupForm').submit();
-          });
         })
         .fail(logAjaxFail);
   }
 }
 
-function deleteGroup( element ) {
-  var form = element.form;
-  form.view.value = currentView;
-  form.action.value = 'delete';
+function deleteGroup(element) {
+  const form = element.form;
+  form.elements['action'].value = 'delete';
   form.submit();
 }
 
-function configureButtons( element ) {
-  if ( canEdit.Groups ) {
-    var form = element.form;
-    if ( element.checked ) {
+function configureButtons(element) {
+  if (canEdit.Groups) {
+    const form = element.form;
+    if (element.checked) {
       form.deleteBtn.disabled = (element.value == 0);
     }
   }
 }
 
 function configModalBtns() {
-  var form = $j('#groupForm')[0];
-  if ( !form ) {
-    console.log("No groupForm found");
+  const form = document.getElementById('groupForm');
+  if (!form) {
+    console.error("No groupForm found");
     return;
   }
-  if ( !canEdit.Groups ) {
+  if (!canEdit.Groups) {
     console.log("Cannot edit groups");
-    form.elements['action'].disabled = disabled;
+    form.elements['action'].disabled = true;
     return;
   }
-  var disabled = false;
-
-  if ( form.elements['newGroup[Name]'].value == '' ) {
-    disabled = true;
+  if (form.elements['newGroup[Name]'].value == '') {
+    form.elements['action'].disabled = true;
   }
-  form.elements['action'].disabled = disabled;
 }

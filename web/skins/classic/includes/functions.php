@@ -119,7 +119,7 @@ echo output_link_if_exists(array(
   'css/base/skin.css',
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
+  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
 ));
 if ( $css != 'base' )
   echo output_link_if_exists(array(
@@ -128,7 +128,7 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 ?>
-  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
+  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
@@ -889,7 +889,7 @@ function xhtmlFooter() {
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
-  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="<?php echo 'skins/'.$skin.'/js/bootstrap.min.js' ?>"></script>
 <?php echo output_script_if_exists(array(

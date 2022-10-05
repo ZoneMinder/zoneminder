@@ -106,7 +106,7 @@ void zmDbQuery::run(bool data_exchange)
   bool resultFlag = false;
   unsigned int errcode = 0;
   try {
-    resultFlag = stmt->execute(data_exchange);
+    resultFlag = stmt->execute(!data_exchange);
   }
   catch (soci::mysql_soci_error const & e)
   {

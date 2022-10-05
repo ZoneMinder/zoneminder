@@ -341,8 +341,6 @@ void Config::Load() {
     std::string cfg_value = q.get<std::string>("Value");
     std::string cfg_type  = q.get<std::string>("Type");
 
-    Info( "Config: %s %s %s", cfg_name.c_str(), cfg_value.c_str(), cfg_type.c_str() );
-
     cfg_items.push_back( new ConfigItem( cfg_name.c_str(), cfg_value.c_str(), cfg_type.c_str() ) );
 
     n_items++;

@@ -1856,7 +1856,7 @@ define('HTTP_STATUS_FORBIDDEN', 403);
 
 function ajaxError($message, $code=HTTP_STATUS_OK) {
   $backTrace = debug_backtrace();
-  ZM\Error($message.' from '.print_r($backTrace,true));
+  ZM\Debug($message.' from '.print_r($backTrace, true));
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {

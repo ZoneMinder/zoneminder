@@ -57,9 +57,9 @@ Storage::Storage(MYSQL_ROW &dbrow) {
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
 Storage::Storage(unsigned int p_id) : id(p_id) {
   if (id) {
-    zmDbQuery query = zmDbQuery( SELECT_STORAGE_WITH_ID )
-      .bind( "id", id )
-      .fetchOne();
+    zmDbQuery query = zmDbQuery( SELECT_STORAGE_WITH_ID );
+    query.bind( "id", id );
+    query.fetchOne();
 
     Debug(2, "Loading Storage for %u", id);
     if ( query.affectedRows() != 1 ) {

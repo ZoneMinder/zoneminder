@@ -117,23 +117,23 @@ Zone::~Zone() {
 }
 
 void Zone::RecordStats(const Event *event) {
-  zmDbQuery query = zmDbQuery( INSERT_STATS_SINGLE )
-    .bind<unsigned int>( "MonitorId", monitor->Id())
-    .bind<unsigned int>( "ZoneId", id)
-    .bind<uint64_t>( "EventId", event->Id())
-    .bind<int>( "FrameId", event->Frames())
-    .bind<int>( "PixelDiff", stats.pixel_diff_)
-    .bind<unsigned int>( "AlarmPixels", stats.alarm_pixels_)
-    .bind<int>( "FilterPixels", stats.alarm_filter_pixels_)
-    .bind<int>( "BlobPixels", stats.alarm_blob_pixels_)
-    .bind<int>( "Blobs", stats.alarm_blobs_)
-    .bind<int>( "MinBlobSize", stats.min_blob_size_)
-    .bind<int>( "MaxBlobSize", stats.max_blob_size_)
-    .bind<int32>( "MinX", stats.alarm_box_.Lo().x_)
-    .bind<int32>( "MinY", stats.alarm_box_.Lo().y_)
-    .bind<int32>( "MaxX", stats.alarm_box_.Hi().x_)
-    .bind<int32>( "MaxY", stats.alarm_box_.Hi().y_)
-    .bind<unsigned int>( "Score  ", stats.score_);
+  zmDbQuery query = zmDbQuery( INSERT_STATS_SINGLE );
+  query.bind<unsigned int>( "MonitorId", monitor->Id());
+  query.bind<unsigned int>( "ZoneId", id);
+  query.bind<uint64_t>( "EventId", event->Id());
+  query.bind<int>( "FrameId", event->Frames());
+  query.bind<int>( "PixelDiff", stats.pixel_diff_);
+  query.bind<unsigned int>( "AlarmPixels", stats.alarm_pixels_);
+  query.bind<int>( "FilterPixels", stats.alarm_filter_pixels_);
+  query.bind<int>( "BlobPixels", stats.alarm_blob_pixels_);
+  query.bind<int>( "Blobs", stats.alarm_blobs_);
+  query.bind<int>( "MinBlobSize", stats.min_blob_size_);
+  query.bind<int>( "MaxBlobSize", stats.max_blob_size_);
+  query.bind<int32>( "MinX", stats.alarm_box_.Lo().x_);
+  query.bind<int32>( "MinY", stats.alarm_box_.Lo().y_);
+  query.bind<int32>( "MaxX", stats.alarm_box_.Hi().x_);
+  query.bind<int32>( "MaxY", stats.alarm_box_.Hi().y_);
+  query.bind<unsigned int>( "Score  ", stats.score_);;
 
   query.insert();
 }  // end void Zone::RecordStats( const Event *event )
@@ -827,8 +827,8 @@ bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &
 std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   std::vector<Zone> zones;
 
-  zmDbQuery query = zmDbQuery( SELECT_ALL_ZONES_WITH_MONITORID_EQUAL_TO )
-    .bind<unsigned int>( "id", monitor->Id() );
+  zmDbQuery query = zmDbQuery( SELECT_ALL_ZONES_WITH_MONITORID_EQUAL_TO );
+  query.bind<unsigned int>( "id", monitor->Id() );;
 
   query.run( true );
 

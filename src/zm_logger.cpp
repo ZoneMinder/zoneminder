@@ -523,18 +523,18 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 
       zmDecimal decimalTime( now_sec, now_frac.count() );
 
-      zmDbQuery insertLogQuery = zmDbQuery( INSERT_LOGS )
-        .bind( "time_key", decimalTime )
-        .bind( "component", mId )
-        .bind( "server_id", staticConfig.SERVER_ID )
-        .bind( "pid", tid )
-        .bind( "level", level )
-        .bind( "code", classString )
-        .bind( "message", syslogString )
-        .bind( "file", file )
-        .bind( "line", line );
+      zmDbQuery logQuery = zmDbQuery( INSERT_LOGS );
+      logQuery.bind( "time_key", decimalTime );
+      logQuery.bind( "component", mId );
+      logQuery.bind( "server_id", staticConfig.SERVER_ID );
+      logQuery.bind( "pid", tid );
+      logQuery.bind( "level", level );
+      logQuery.bind( "code", classString );
+      logQuery.bind( "message", syslogString );
+      logQuery.bind( "file", file );
+      logQuery.bind( "line", line );;
 
-      zmDbQueue::pushToQueue( std::move( insertLogQuery ) );
+      zmDbQueue::pushToQueue( std::move( logQuery ) );
     } else {
       puts("Db is closed");
     }

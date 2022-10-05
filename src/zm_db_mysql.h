@@ -24,6 +24,7 @@
 #include "zm_signal.h"
 #include <cstdlib>
 
+#include "soci.h"
 #include "mysql/soci-mysql.h"
 
 class zmDbMySQLAdapter : public zmDb {

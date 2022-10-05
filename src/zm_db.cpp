@@ -76,6 +76,8 @@ zmDbQuery::zmDbQuery(const zmDbQueryID& queryId, bool exitError /* = false */)
   exitOnError = exitError;
   stmt = database->mapStatements[id];
   result = nullptr;
+  result_iter = nullptr;
+  result_iter_end = nullptr;
 }
 
 zmDbQuery::~zmDbQuery()
@@ -85,14 +87,15 @@ zmDbQuery::~zmDbQuery()
   stmt = nullptr;
 }
 
-zmDbQuery &zmDbQuery::run(bool data_exchange)
+void zmDbQuery::run(bool data_exchange)
 {
   if (stmt == nullptr || result != nullptr)
-    return *this;
+    return;
 
   if (data_exchange)
   {
     result = new soci::row();
+    stmt->define_and_bind();
     stmt->exchange_for_rowset(soci::into(*result));
   } 
   else 
@@ -121,14 +124,20 @@ zmDbQuery &zmDbQuery::run(bool data_exchange)
     exit(errcode);
   }
 
-  return *this;
+  return;
 }
 bool zmDbQuery::next()
 {
   if (stmt == nullptr || result == nullptr)
     return false;
 
-  return stmt->fetch();
+  if( result_iter == nullptr ) {
+    result_iter = new soci::rowset_iterator<soci::row>( *stmt, *result );
+    result_iter_end = new soci::rowset_iterator<soci::row>();
+    return true;
+  }
+
+  return ++(*result_iter) != *result_iter_end;
 }
 void zmDbQuery::reset()
 {
@@ -141,17 +150,28 @@ void zmDbQuery::reset()
   {
     delete result;
   }
+  if (result_iter != nullptr)
+  {
+    delete result_iter;
+  }
+  if (result_iter_end != nullptr)
+  {
+    delete result_iter_end;
+  }
   result = nullptr;
+  result_iter =  nullptr;
+  result_iter_end = nullptr;
 }
 
-zmDbQuery &zmDbQuery::fetchOne()
+void zmDbQuery::fetchOne()
 {
   if (stmt == nullptr || result != nullptr)
-    return *this;
+    return;
 
-  run(true).next();
+  run(true);
+  next();
 
-  return *this;
+  return;
 }
 
 uint64_t zmDbQuery::insert()

@@ -30,6 +30,7 @@
 
 #include <unordered_map>
 #include <functional>
+#include <stdexcept>
 
 #include "soci.h"
 
@@ -61,48 +62,55 @@ protected:
   zmDb *db;
   zmDbQueryID id;
   soci::statement *stmt;
-  soci::row* result;
   bool exitOnError;
+  soci::row* result;
+  soci::rowset_iterator<soci::row>* result_iter;
+  soci::rowset_iterator<soci::row>* result_iter_end;
 
 public:
   zmDbQuery(const zmDbQueryID& id = LAST_QUERY, bool exitOnError = false);
 
   zmDbQuery(const zmDbQuery& other) : db(other.db), 
-    id(other.id), stmt(other.stmt), exitOnError(other.exitOnError) {};
+    id(other.id), stmt(other.stmt), exitOnError(other.exitOnError),
+    result(other.result), result_iter(other.result_iter), result_iter_end(other.result_iter_end) 
+    {
+      if( result != nullptr )
+        throw new std::runtime_error( "Invalid copy operation during result iteration" );
+    };
 
   virtual ~zmDbQuery();
 
   // Bind single value
   template <typename T>
-  zmDbQuery& bind(const std::string &name, const T &value)
+  void bind(const std::string &name, const T &value)
   {
     if (stmt == nullptr)
-      return *this;
+      return;
 
     stmt->exchange(soci::use<T>(value, name));
-    return *this;
+    return;
   }
 
   template <typename T>
-  zmDbQuery& bind(const T &value)
+  void bind(const T &value)
   {
     if (stmt == nullptr)
-      return *this;
+      return;
 
     stmt->exchange(soci::use<T>(value));
-    return *this;
+    return;
   }
 
   // Bind vector value
   template <typename T>
-  zmDbQuery& bindVec(const std::vector<T> &values)
+  void bindVec(const std::vector<T> &values)
   {
     if (stmt == nullptr)
-      return *this;
+      return;
 
     for( auto& it : values )
       stmt->exchange(soci::use<T>(it));
-    return *this;
+    return;
   }
 
   // Get values from results
@@ -112,8 +120,11 @@ public:
     if (stmt == nullptr || result == nullptr) {
       return T();
     }
+    if( result_iter == nullptr || *result_iter == *result_iter_end ) {
+      return T();
+    }
 
-    return result->get<T>(name);
+    return (*result_iter)->get<T>(name);
   }
 
   template <typename T>
@@ -122,8 +133,11 @@ public:
     if (stmt == nullptr || result == nullptr) {
       return T();
     }
+    if( result_iter == nullptr || *result_iter == *result_iter_end ) {
+      return T();
+    }
 
-    return result->get<T>(position);
+    return (*result_iter)->get<T>(position);
   }
 
   // Get list of values via vector
@@ -151,22 +165,28 @@ public:
     if (stmt == nullptr || result == nullptr ) {
       return false;
     }
-    return result->get_indicator(pos) == soci::indicator::i_ok;
+    if( result_iter == nullptr || *result_iter == *result_iter_end ) {
+      return false;
+    }
+    return (*result_iter)->get_indicator(pos) == soci::indicator::i_ok;
   }
   bool has(std::string const & name) {
     if (stmt == nullptr || result == nullptr ) {
       return false;
     }
-    return result->get_indicator(name) == soci::indicator::i_ok;
+    if( result_iter == nullptr || *result_iter == *result_iter_end ) {
+      return false;
+    }
+    return (*result_iter)->get_indicator(name) == soci::indicator::i_ok;
   }
 
   zmDbQueryID getID() { return id; };
 
-  virtual zmDbQuery &run(bool data_exchange);
+  virtual void run(bool data_exchange);
   virtual bool next();
   virtual void reset();
 
-  virtual zmDbQuery &fetchOne();
+  virtual void fetchOne();
   virtual uint64_t insert();
   virtual uint64_t update();
 

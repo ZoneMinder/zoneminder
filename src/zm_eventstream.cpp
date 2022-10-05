@@ -43,11 +43,11 @@ constexpr Milliseconds EventStream::STREAM_PAUSE_WAIT;
 
 bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_time) {
   // second parameter to query will cause the program to exit with errorcode
-  uint64_t init_event_id = zmDbQuery( SELECT_ALL_EVENTS_ID_WITH_MONITORID_EQUAL, true )
-    .bind( "id", monitor_id )
-    .bind( "timestamp", std::chrono::system_clock::to_time_t(event_time) )
-    .fetchOne()
-    .get<uint64_t>("Id");
+  zmDbQuery q = zmDbQuery( SELECT_ALL_EVENTS_ID_WITH_MONITORID_EQUAL, true );
+  q.bind( "id", monitor_id );
+  q.bind( "timestamp", std::chrono::system_clock::to_time_t(event_time) );
+  q.fetchOne();
+  uint64_t init_event_id = q.get<uint64_t>("Id");
 
   loadEventData(init_event_id);
 
@@ -100,10 +100,10 @@ bool EventStream::loadInitialEventData(
 
 bool EventStream::loadEventData(uint64_t event_id) {
   // second parameter to query will cause the program to exit with errorcode
-  EventData* data = zmDbQuery( SELECT_EVENT_WITH_ID, true )
-    .bind( "id", event_id )
-    .fetchOne()
-    .get<EventData*>(0);
+  zmDbQuery q = zmDbQuery( SELECT_EVENT_WITH_ID, true );
+  q.bind( "id", event_id );
+  q.fetchOne();
+  EventData* data = q.get<EventData*>(0);
 
   delete event_data;
   event_data = data;
@@ -173,9 +173,9 @@ bool EventStream::loadEventData(uint64_t event_id) {
   }
   updateFrameRate(fps);
 
-  zmDbQuery framesQuery = zmDbQuery( SELECT_ALL_FRAMES_OF_EVENT_WITH_ID, true )
-    .bind( "id", event_id )
-    .run(true);
+  zmDbQuery framesQuery = zmDbQuery( SELECT_ALL_FRAMES_OF_EVENT_WITH_ID, true );
+  framesQuery.bind( "id", event_id );
+  framesQuery.run(true);
 
   event_data->n_frames = framesQuery.affectedRows();
   event_data->frames = new FrameData[event_data->frame_count];
@@ -536,9 +536,9 @@ bool EventStream::checkEventLoaded() {
   zmDbQuery eventQuery;
 
   if ( curr_frame_id <= 0 ) {
-    eventQuery = zmDbQuery( SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LESSER_THAN, true )
-      .bind( "monitor_id", event_data->monitor_id )
-      .bind( "event_id", event_data->event_id );
+    eventQuery = zmDbQuery( SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LESSER_THAN, true );
+    eventQuery.bind( "monitor_id", event_data->monitor_id );
+    eventQuery.bind( "event_id", event_data->event_id );
 
   } else if (curr_frame_id > event_data->last_frame_id) {
     if (event_data->end_time.time_since_epoch() == Seconds(0)) {
@@ -549,9 +549,9 @@ bool EventStream::checkEventLoaded() {
       return false;
     }
 
-    eventQuery = zmDbQuery( SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LARGER_THAN, true )
-      .bind( "monitor_id", event_data->monitor_id )
-      .bind( "event_id", event_data->event_id );
+    eventQuery = zmDbQuery( SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LARGER_THAN, true );
+    eventQuery.bind( "monitor_id", event_data->monitor_id );
+    eventQuery.bind( "event_id", event_data->event_id );
 
   } else {
     // No event change required

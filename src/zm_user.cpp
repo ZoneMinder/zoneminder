@@ -90,9 +90,9 @@ bool User::canAccess(int monitor_id) {
 User *zmLoadUser(const char *username, const char *password) {
   // the username was escaped here, however now with prepared statement it
   // is not necessary anymore
-  zmDbQuery query = zmDbQuery( SELECT_USER_AND_DATA_WITH_USERNAME_ENABLED )
-    .bind<std::string>( "username", username )
-    .fetchOne();
+  zmDbQuery query = zmDbQuery( SELECT_USER_AND_DATA_WITH_USERNAME_ENABLED );
+  query.bind<std::string>( "username", username );
+  query.fetchOne();
 
   if ( query.affectedRows() == 1 ) {
     User *user = new User(query);
@@ -135,9 +135,9 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
     return nullptr;
   }
 
-  zmDbQuery query = zmDbQuery( SELECT_USER_AND_DATA_PLUS_TOKEN_WITH_USERNAME_ENABLED )
-    .bind<std::string>( "username", username )
-    .fetchOne();
+  zmDbQuery query = zmDbQuery( SELECT_USER_AND_DATA_PLUS_TOKEN_WITH_USERNAME_ENABLED );
+  query.bind<std::string>( "username", username );
+  query.fetchOne();
 
   if ( query.affectedRows() != 1 ) {
     Error("Unable to authenticate user '%s'", username.c_str());
@@ -169,7 +169,7 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   }
 
   Debug(1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth, remote_addr);
-  zmDbQuery query = zmDbQuery( SELECT_ALL_USERS_AND_DATA_ENABLED );
+  zmDbQuery query = zmDbQuery( SELECT_ALL_USERS_AND_DATA_ENABLED );;
 
   query.run( true );
 

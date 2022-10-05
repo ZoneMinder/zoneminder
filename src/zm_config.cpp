@@ -72,19 +72,19 @@ void zmLoadDBConfig() {
 
       Debug(1, "Fetching ZM_SERVER_ID For Name = %s", staticConfig.SERVER_NAME.c_str());
 
-      staticConfig.SERVER_ID = zmDbQuery( SELECT_SERVER_ID_WITH_NAME )
-        .bind<std::string>( "name", staticConfig.SERVER_NAME )
-        .fetchOne()
-        .get<int>("Id");
+      zmDbQuery q = zmDbQuery( SELECT_SERVER_ID_WITH_NAME );
+      q.bind<std::string>( "name", staticConfig.SERVER_NAME );
+      q.fetchOne();
+      staticConfig.SERVER_ID = q.get<int>("Id");
 
     } // end if has SERVER_NAME
   } else if (staticConfig.SERVER_NAME.empty()) {
     Debug(1, "Fetching ZM_SERVER_NAME For Id = %d", staticConfig.SERVER_ID);
 
-    staticConfig.SERVER_NAME = zmDbQuery( SELECT_SERVER_NAME_WITH_ID )
-      .bind<int>( "id", staticConfig.SERVER_ID )
-      .fetchOne()
-      .get<std::string>("Name");
+    zmDbQuery q = zmDbQuery( SELECT_SERVER_NAME_WITH_ID );
+    q.bind<int>( "id", staticConfig.SERVER_ID );
+    q.fetchOne();
+    staticConfig.SERVER_NAME = q.get<std::string>("Name");
 
     if (staticConfig.SERVER_ID) {
       Debug(3, "Multi-server configuration detected. Server is %d.", staticConfig.SERVER_ID);
@@ -330,7 +330,8 @@ Config::~Config() {
 }
 
 void Config::Load() {
-  zmDbQuery q = zmDbQuery( SELECT_ALL_CONFIGS ).run(true);
+  zmDbQuery q = zmDbQuery( SELECT_ALL_CONFIGS );
+  q.run(true);
 
   n_items = 0;
 
@@ -339,6 +340,8 @@ void Config::Load() {
     std::string cfg_name  = q.get<std::string>("Name");
     std::string cfg_value = q.get<std::string>("Value");
     std::string cfg_type  = q.get<std::string>("Type");
+
+    Info( "Config: %s %s %s", cfg_name.c_str(), cfg_value.c_str(), cfg_type.c_str() );
 
     cfg_items.push_back( new ConfigItem( cfg_name.c_str(), cfg_value.c_str(), cfg_type.c_str() ) );
 

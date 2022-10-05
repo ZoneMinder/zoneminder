@@ -44,9 +44,9 @@ Group::Group(unsigned int p_id) {
 
   if (p_id) {
     Debug(2, "Loading Group for %u", p_id);
-    zmDbQuery groupQuery = zmDbQuery( SELECT_GROUP_WITH_ID )
-      .bind("id", p_id)
-      .fetchOne();
+    zmDbQuery groupQuery = zmDbQuery( SELECT_GROUP_WITH_ID );
+    groupQuery.bind("id", p_id);
+    groupQuery.fetchOne();
 
     if (groupQuery.affectedRows() != 1) {
       Error("Unable to load group for id %u", p_id);

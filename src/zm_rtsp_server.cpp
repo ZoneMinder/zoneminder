@@ -142,17 +142,17 @@ int main(int argc, char *argv[]) {
     query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP );
 
   } else if ( monitor_id<=0 && staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP_AND_SERVER )
-      .bind( "server_id", staticConfig.SERVER_ID );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP_AND_SERVER );
+    query.bind( "server_id", staticConfig.SERVER_ID );
 
   } else if ( monitor_id>0 && !staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP_AND_ID )
-      .bind( "id", monitor_id );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP_AND_ID );
+    query.bind( "id", monitor_id );
 
   } else {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP_AND_SERVER_AND_ID )
-      .bind( "server_id", staticConfig.SERVER_ID )
-      .bind( "id", monitor_id );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP_AND_SERVER_AND_ID );
+    query.bind( "server_id", staticConfig.SERVER_ID );
+    query.bind( "id", monitor_id );
   }
 
   Info("Starting RTSP Server version %s", ZM_VERSION);

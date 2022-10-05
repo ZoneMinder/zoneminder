@@ -764,9 +764,9 @@ void Monitor::LoadCamera() {
 
 std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
 
-  zmDbQuery query = zmDbQuery( SELECT_MONITOR_WITH_ID )
-    .bind( "id", p_id )
-    .fetchOne();
+  zmDbQuery query = zmDbQuery( SELECT_MONITOR_WITH_ID );
+  query.bind( "id", p_id );
+  query.fetchOne();
 
   if( query.affectedRows() != 1 ) {
     Error("Can't use query result");
@@ -1467,9 +1467,9 @@ void Monitor::DumpZoneImage(const char *zone_string) {
     Debug(3, "Trying to load from event");
 
     // Grab the most revent event image
-    zmDbQuery query = zmDbQuery( SELECT_MAX_EVENTS_ID_WITH_MONITORID_AND_FRAMES_NOT_ZERO )
-      .bind( "id", id )
-      .fetchOne();
+    zmDbQuery query = zmDbQuery( SELECT_MAX_EVENTS_ID_WITH_MONITORID_AND_FRAMES_NOT_ZERO );
+    query.bind( "id", id );
+    query.fetchOne();
 
     if( query.affectedRows() != 1 ) {
       Error("Unable to load an event for monitor %d", id);
@@ -1683,11 +1683,11 @@ void Monitor::UpdateFPS() {
       last_motion_frame_count = motion_frame_count;
       last_camera_bytes = new_camera_bytes;
 
-      zmDbQuery query = zmDbQuery( UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS )
-        .bind( "capture_fps", new_capture_fps )
-        .bind( "capture_bandwitdh", new_capture_bandwidth )
-        .bind( "analysis_fps", new_analysis_fps )
-        .bind( "id", id );
+      zmDbQuery query = zmDbQuery( UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS );
+      query.bind( "capture_fps", new_capture_fps );
+      query.bind( "capture_bandwitdh", new_capture_bandwidth );
+      query.bind( "analysis_fps", new_analysis_fps );
+      query.bind( "id", id );
 
       zmDbQueue::pushToQueue(std::move(query));
     } // now != last_fps_time
@@ -2290,9 +2290,9 @@ void Monitor::Reload() {
     }
   }
 
-  zmDbQuery query = zmDbQuery( SELECT_MONITOR_WITH_ID )
-    .bind( "id", id )
-    .fetchOne();
+  zmDbQuery query = zmDbQuery( SELECT_MONITOR_WITH_ID );
+  query.bind( "id", id );
+  query.fetchOne();
 
   if( query.affectedRows() != 1 ) {
     Error("Can't run query");
@@ -2393,24 +2393,24 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadLocalMonitors
   zmDbQuery query;
 
   if( !device[0] && !staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE )
-      .bind<std::string>( "type", "Local" );
+    query = zmDbQuery( SELECT_MONITOR_TYPE );
+    query.bind<std::string>( "type", "Local" );
 
   } else if ( !device[0] && staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER )
-      .bind<std::string>( "type", "Local" )
-      .bind( "server_id", staticConfig.SERVER_ID );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER );
+    query.bind<std::string>( "type", "Local" );
+    query.bind( "server_id", staticConfig.SERVER_ID );
 
   } else if ( device[0] && !staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_DEVICE )
-      .bind<std::string>( "type", "Local" )
-      .bind( "device", std::string(device) );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_DEVICE );
+    query.bind<std::string>( "type", "Local" );
+    query.bind( "device", std::string(device) );
 
   } else {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_DEVICE_AND_SERVER )
-      .bind<std::string>( "type", "Local" )
-      .bind( "server_id", staticConfig.SERVER_ID )
-      .bind( "device", std::string(device) );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_DEVICE_AND_SERVER );
+    query.bind<std::string>( "type", "Local" );
+    query.bind( "server_id", staticConfig.SERVER_ID );
+    query.bind( "device", std::string(device) );
   }
 
   return LoadMonitors(query, purpose);
@@ -2422,30 +2422,30 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadRemoteMonitors
   zmDbQuery query;
 
   if( !protocol && !staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE )
-      .bind<std::string>( "type", "Remote" );
+    query = zmDbQuery( SELECT_MONITOR_TYPE );
+    query.bind<std::string>( "type", "Remote" );
 
   } else if ( !protocol && staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER )
-      .bind<std::string>( "type", "Remote" )
-      .bind( "server_id", staticConfig.SERVER_ID );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER );
+    query.bind<std::string>( "type", "Remote" );
+    query.bind( "server_id", staticConfig.SERVER_ID );
 
   } else if ( protocol && !staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PROTOCOL )
-      .bind<std::string>( "type", "Remote" )
-      .bind( "protocol", std::string(protocol) )
-      .bind( "host", std::string(host) )
-      .bind( "port", std::string(port) )
-      .bind( "path", std::string(path) );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PROTOCOL );
+    query.bind<std::string>( "type", "Remote" );
+    query.bind( "protocol", std::string(protocol) );
+    query.bind( "host", std::string(host) );
+    query.bind( "port", std::string(port) );
+    query.bind( "path", std::string(path) );
 
   } else {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER_AND_PROTOCOL )
-      .bind<std::string>( "type", "Remote" )
-      .bind( "server_id", staticConfig.SERVER_ID )
-      .bind( "protocol", std::string(protocol) )
-      .bind( "host", std::string(host) )
-      .bind( "port", std::string(port) )
-      .bind( "path", std::string(path) );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER_AND_PROTOCOL );
+    query.bind<std::string>( "type", "Remote" );
+    query.bind( "server_id", staticConfig.SERVER_ID );
+    query.bind( "protocol", std::string(protocol) );
+    query.bind( "host", std::string(host) );
+    query.bind( "port", std::string(port) );
+    query.bind( "path", std::string(path) );
   }
 
   return LoadMonitors(query, purpose);
@@ -2455,24 +2455,24 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFileMonitors(const char *file
   zmDbQuery query;
 
   if( !file[0] && !staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE )
-      .bind<std::string>( "type", "File" );
+    query = zmDbQuery( SELECT_MONITOR_TYPE );
+    query.bind<std::string>( "type", "File" );
 
   } else if ( !file[0] && staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER )
-      .bind<std::string>( "type", "File" )
-      .bind( "server_id", staticConfig.SERVER_ID );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER );
+    query.bind<std::string>( "type", "File" );
+    query.bind( "server_id", staticConfig.SERVER_ID );
 
   } else if ( file[0] && !staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PATH )
-      .bind<std::string>( "type", "File" )
-      .bind( "path", std::string(file) );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PATH );
+    query.bind<std::string>( "type", "File" );
+    query.bind( "path", std::string(file) );
 
   } else {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PATH_AND_SERVER )
-      .bind<std::string>( "type", "File" )
-      .bind( "server_id", staticConfig.SERVER_ID )
-      .bind( "path", std::string(file) );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PATH_AND_SERVER );
+    query.bind<std::string>( "type", "File" );
+    query.bind( "server_id", staticConfig.SERVER_ID );
+    query.bind( "path", std::string(file) );
   }
 
   return LoadMonitors(query, purpose);
@@ -2482,24 +2482,24 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
   zmDbQuery query;
 
   if( !file[0] && !staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE )
-      .bind<std::string>( "type", "Ffmpeg" );
+    query = zmDbQuery( SELECT_MONITOR_TYPE );
+    query.bind<std::string>( "type", "Ffmpeg" );
 
   } else if ( !file[0] && staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER )
-      .bind<std::string>( "type", "Ffmpeg" )
-      .bind( "server_id", staticConfig.SERVER_ID );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_SERVER );
+    query.bind<std::string>( "type", "Ffmpeg" );
+    query.bind( "server_id", staticConfig.SERVER_ID );
 
   } else if ( file[0] && !staticConfig.SERVER_ID ) {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PATH )
-      .bind<std::string>( "type", "Ffmpeg" )
-      .bind( "path", std::string(file) );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PATH );
+    query.bind<std::string>( "type", "Ffmpeg" );
+    query.bind( "path", std::string(file) );
 
   } else {
-    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PATH_AND_SERVER )
-      .bind<std::string>( "type", "Ffmpeg" )
-      .bind( "server_id", staticConfig.SERVER_ID )
-      .bind( "path", std::string(file) );
+    query = zmDbQuery( SELECT_MONITOR_TYPE_AND_PATH_AND_SERVER );
+    query.bind<std::string>( "type", "Ffmpeg" );
+    query.bind( "server_id", staticConfig.SERVER_ID );
+    query.bind( "path", std::string(file) );
   }
 
   return LoadMonitors(query, purpose);
@@ -3364,8 +3364,8 @@ void Monitor::get_ref_image() {
 std::vector<Group *> Monitor::Groups() {
   // At the moment, only load groups once.
   if (!groups.size()) {
-    zmDbQuery query = zmDbQuery( SELECT_GROUPS_PARENT_OF_MONITOR_ID )
-      .bind( "id", id );
+    zmDbQuery query = zmDbQuery( SELECT_GROUPS_PARENT_OF_MONITOR_ID );
+    query.bind( "id", id );
 
     query.run( true );
 

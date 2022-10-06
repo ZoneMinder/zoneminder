@@ -64,6 +64,7 @@ class zmDbRow {
 extern MYSQL dbconn;
 extern std::mutex db_mutex;
 extern zmDbQueue  dbQueue;
+extern unsigned long db_thread_id;
 
 extern bool zmDbConnected;
 

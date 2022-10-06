@@ -12,7 +12,20 @@ if ( !canView('System') )
 // task must be set
 if ( !isset($_REQUEST['task']) ) {
   $message = 'This request requires a task to be set';
-} else if ( $_REQUEST['task'] != 'query' && $_REQUEST['task'] != 'create' ) {
+} else if ($_REQUEST['task'] == 'query') {
+  if (!canView('System')) {
+    $message = 'Insufficient permissions to view log entries for user '.$user['Username'];
+  } else {
+    $data = queryRequest();
+  }
+} else if ($_REQUEST['task'] == 'create' ) {
+  global $user;
+  if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
+    $message = 'Insufficient permissions to create log entries for user '.$user['Username'];
+  } else {
+    createRequest();
+  }
+} else {
   // Only the query and create tasks are supported at the moment
   $message = 'Unrecognised task '.$_REQUEST['task'];
 } else {

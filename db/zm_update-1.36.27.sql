@@ -1,3 +1,4 @@
+DROP TABLE Groups_Permissions;
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*)
@@ -12,6 +13,7 @@ SET @s = (SELECT IF(
       FOREIGN KEY (`GroupId`) REFERENCES `Groups` (`Id`) ON DELETE CASCADE,
       `UserId` int(10) unsigned NOT NULL,
       FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE CASCADE,
+      `Permission` enum('Inherit', 'None','View','Edit') NOT NULL default 'Inherit',
       PRIMARY KEY (`Id`)
     )"
   ));

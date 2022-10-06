@@ -76,6 +76,20 @@ if ($action == 'Save') {
         }
       }
     } # end if changes
+    foreach (ZM\Group::find() as $g) {
+      if (isset($_POST['group_permission'])) {
+        $permission = $g->Group_Permission($dbUser->Id());
+        if (!$permission) {
+          $permission = new ZM\Group_Permission();
+          $permission->GroupId($g->Id());
+          $permission->UserId($dbUser->Id());
+        }
+        if ($permission->Permission() != $_POST['group_permission'][$g->Id()]) {
+          $permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]));
+        }
+      }
+      $g->Permissions(null); # reload
+    }
   } else if (ZM_USER_SELF_EDIT and ($uid == $user['Id'])) {
     if (!empty($_REQUEST['user']['Password'])) {
       $_REQUEST['user']['Password'] = password_hash($_REQUEST['user']['Password'], PASSWORD_BCRYPT);

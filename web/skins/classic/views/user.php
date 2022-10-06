@@ -26,6 +26,7 @@ if (!canEdit('System') && !$selfEdit) {
 }
 
 require_once('includes/User.php');
+require_once('includes/Group.php');
 require_once('includes/Group_Permission.php');
 
 if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
@@ -41,6 +42,7 @@ if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
 $yesno = array( 0=>translate('No'), 1=>translate('Yes') );
 $nv = array( 'None'=>translate('None'), 'View'=>translate('View') );
 $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
+$inve = array( 'Inherit'=>translate('Inherit'),'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
 $bandwidths = array_merge( array( ''=>'' ), $bandwidth_options );
 $langs = array_merge( array( ''=>'' ), getLanguages() );
 
@@ -200,10 +202,6 @@ if (canEdit('Groups')) {
       $max_depth = $Group->depth();
   }
 
-  $permissions = array();
-  foreach (ZM\Group_Permission::find(array('UserId'=>$User->Id())) as $P) {
-    $permissions[$p->GroupId()] = $P;
-  }
 ?>
 <table id="contentTable" class="major Groups">
   <thead class="thead-highlight">
@@ -218,14 +216,16 @@ if (canEdit('Groups')) {
   function group_line($Group) {
     global $children;
     global $max_depth;
-    global $nve;
-    global $permissions;
+    global $inve;
+    global $User;
     $html = '<tr>';
     $html .= str_repeat('<td class="name">&nbsp;</td>', $Group->depth());
     $html .= '<td class="name" colspan="'.($max_depth-($Group->depth()-1)).'">';
     $html .= '<a href="#" data-on-click-this="editGroup" data-group-id="'.$Group->Id().'">'.validHtmlStr($Group->Id().' '.$Group->Name()).'</a>';
     $html .= '</td><td class="monitors">'. validHtmlStr(monitorIdsToNames($Group->MonitorIds(), 30)).'</td>';
-    $html .= '<td class="permission">'.html_radio('group['.$Group->Id().']', $nve, isset($permissions[$Group->Id()]) ? $permissions[$Group->Id()] : 'None').'</td>';
+    $html .= '<td class="permission">'.html_radio('group_permission['.$Group->Id().']', $inve, $Group->permission($User->Id())).'</td>';
+    ZM\Debug(print_r($Group->Group_Permission($User->Id()), true));
+    ZM\Debug(print_r($Group->permission($User->Id()), true));
     $html .= '</tr>';
     if (isset($children[$Group->Id()])) {
       foreach ($children[$Group->Id()] as $G) {

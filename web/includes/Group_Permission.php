@@ -4,9 +4,10 @@ namespace ZM;
 class Group_Permission extends ZM_Object {
   protected static $table = 'Groups_Permissions';
   protected $defaults = array(
-      'Id'        =>  null,
-      'GroupId'   =>  null,
-      'UserId' =>  null,
+      'Id'          =>  null,
+      'GroupId'     =>  null,
+      'UserId'      =>  null,
+      'Permission'  =>  'Inherit',
       );
 
   public static function find( $parameters = array(), $options = array() ) {

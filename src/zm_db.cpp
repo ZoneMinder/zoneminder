@@ -25,6 +25,7 @@
 MYSQL dbconn;
 std::mutex db_mutex;
 zmDbQueue  dbQueue;
+unsigned long db_thread_id;
 
 bool zmDbConnected = false;
 
@@ -103,6 +104,7 @@ bool zmDbConnect() {
     Error("Can't set isolation level: %s", mysql_error(&dbconn));
   }
   mysql_set_character_set(&dbconn, "utf8");
+  db_thread_id = mysql_thread_id(&dbconn);
   zmDbConnected = true;
   return zmDbConnected;
 }
@@ -110,6 +112,7 @@ bool zmDbConnect() {
 void zmDbClose() {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (zmDbConnected) {
+    Debug(1, "Closing database. Connection id was %lu", db_thread_id);
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()
@@ -185,7 +188,7 @@ int zmDbDo(const std::string &query) {
   Logger::Level oldLevel = logger->databaseLevel();
   logger->databaseLevel(Logger::NOLOG);
 
-  Debug(1, "Success running sql query %s", query.c_str());
+  Debug(1, "Success running sql query %s, thread_id: %lu", query.c_str(), db_thread_id);
   logger->databaseLevel(oldLevel);
   return 1;
 }

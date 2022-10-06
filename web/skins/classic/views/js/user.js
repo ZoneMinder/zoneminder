@@ -1,12 +1,12 @@
 function validateForm( form, newUser ) {
   var errors = new Array();
-  if ( !form.elements['newUser[Username]'].value ) {
+  if ( !form.elements['user[Username]'].value ) {
     errors[errors.length] = "You must supply a username";
   }
-  if ( form.elements['newUser[Password]'].value ) {
+  if ( form.elements['user[Password]'].value ) {
     if ( !form.conf_password.value ) {
       errors[errors.length] = "You must confirm the password";
-    } else if ( form.elements['newUser[Password]'].value != form.conf_password.value ) {
+    } else if ( form.elements['user[Password]'].value != form.conf_password.value ) {
       errors[errors.length] = "The new and confirm passwords are different";
     }
   } else if ( newUser ) {

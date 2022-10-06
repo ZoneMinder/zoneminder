@@ -18,9 +18,8 @@ if (!isset($_REQUEST['task'])) {
   }
 } else if ($_REQUEST['task'] == 'create' ) {
   global $user;
-  if (!$user) {
-    // We allow any logged in user to create logs. This opens us up to DOS by malicious user
-    $message = 'Insufficient permissions to view log entries for user '.$user['Username'];
+  if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
+    $message = 'Insufficient permissions to create log entries for user '.$user['Username'];
   } else {
     createRequest();
   }

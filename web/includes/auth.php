@@ -281,6 +281,21 @@ function canView($area, $mid=false) {
   return ( $user && ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
 }
 
+function editableMonitor($mid) {
+  global $user;
+  global $group_permissions;
+  if (!$group_permissions)
+    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+
+  # If denied view in any group, then can't view it.
+  foreach ($group_permissions as $permission) {
+    if (!$permission->canViewMonitor($mid)) {
+      return false;
+    }
+  }
+
+  return ( $user && empty($user['MonitorIds']) || in_array($mid, explode(',', $user['MonitorIds'])) );
+}
 function canEdit($area, $mid=false) {
   global $user;
 

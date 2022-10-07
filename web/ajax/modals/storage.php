@@ -7,15 +7,15 @@
 
   $null = '';
   $checked = 'checked="checked"';
-  $sid = $_REQUEST['id'];
+  $sid = validInt($_REQUEST['id']);
   
-  if ( !canEdit('System') ) return;
+  if (!canEdit('System')) return;
 
   require_once('includes/Server.php');
   require_once('includes/Storage.php');
 
-  if ( $_REQUEST['id'] ) {
-    if ( !($newStorage = ZM\Storage::find_one(array('Id'=>$sid)) ) ) {
+  if ($_REQUEST['id']) {
+    if (!($newStorage = ZM\Storage::find_one(array('Id'=>$sid)))) {
       // Perhaps do something different here, rather than return nothing
       return;
     }
@@ -46,15 +46,14 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body">
       <form id="storageModalForm" name="contentForm" method="post" action="?view=storage&action=save" class="validateFormOnSubmit">
         <?php
         // We have to manually insert the csrf key into the form when using a modal generated via ajax call
         echo getCSRFinputHTML();
         ?>
-        <input type="hidden" name="view" value="storage"/>
         <input type="hidden" name="object" value="storage"/>
         <input type="hidden" name="id" value="<?php echo validHtmlStr($sid) ?>"/>
+        <div class="modal-body">
 <div class="table-responsive">
         <table class="major table table-sm">
           <tbody>
@@ -102,10 +101,10 @@
             </tr>
           </tbody>
         </table>
-</div>
+        </div>
       </div>
       <div class="modal-footer">
-        <button name="action" id="storageSubmitBtn" type="submit" class="btn btn-primary" value="Save"><?php echo translate('Save') ?></button>
+        <button name="action" id="storageSubmitBtn" type="submit" class="btn btn-primary" value="save"><?php echo translate('Save') ?></button>
         <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
       </div>
     </form>

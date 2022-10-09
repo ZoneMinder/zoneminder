@@ -39,9 +39,6 @@ bool zmDbConnect()
 
   database = new zmDbMySQLAdapter();
 
-  // if ( mysql_query(&dbconn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
-  //   Error("Can't set isolation level: %s", mysql_error(&dbconn));
-  // }
   zmDbConnected = true;
   return zmDbConnected;
 }
@@ -77,11 +74,18 @@ zmDbQuery::zmDbQuery(const zmDbQueryID& queryId, bool exitError /* = false */)
   result = nullptr;
   result_iter = nullptr;
   result_iter_end = nullptr;
+  executed = false;
 }
 
 zmDbQuery::~zmDbQuery()
 {
   reset();
+
+  if( executed ) {
+    for( auto f : deferred ) {
+      f();
+    }
+  }
 
   stmt = nullptr;
 }
@@ -90,6 +94,9 @@ void zmDbQuery::run(bool data_exchange)
 {
   if (stmt == nullptr || result != nullptr)
     return;
+
+  std::unique_lock<std::mutex>(db->db_mutex);
+  executed = true;
 
   if (data_exchange)
   {
@@ -204,7 +211,7 @@ int zmDbQuery::affectedRows()
   return stmt->get_affected_rows();
 }
 
-void zmDbQuery::deferOnClose(std::function<void ()>) 
+void zmDbQuery::deferOnClose(std::function<void ()> deferFunction ) 
 {
-
+  deferred.push_back( deferFunction );
 }

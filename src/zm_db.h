@@ -66,16 +66,20 @@ protected:
   soci::row* result;
   soci::rowset_iterator<soci::row>* result_iter;
   soci::rowset_iterator<soci::row>* result_iter_end;
+  std::vector< std::function<void ()> > deferred;
+  bool executed;
 
 public:
   zmDbQuery(const zmDbQueryID& id = LAST_QUERY, bool exitOnError = false);
 
   zmDbQuery(const zmDbQuery& other) : db(other.db), 
     id(other.id), stmt(other.stmt), exitOnError(other.exitOnError),
-    result(other.result), result_iter(other.result_iter), result_iter_end(other.result_iter_end) 
+    result(other.result), result_iter(other.result_iter), result_iter_end(other.result_iter_end),
+    deferred( other.deferred.begin(), other.deferred.end() ),
+    executed(other.executed)
     {
       if( result != nullptr )
-        throw new std::runtime_error( "Invalid copy operation during result iteration" );
+        throw new std::runtime_error( "Invalid copy operation during result examination" );
     };
 
   virtual ~zmDbQuery();

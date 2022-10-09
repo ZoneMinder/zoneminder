@@ -313,11 +313,11 @@ Monitor::Monitor()
 void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   purpose = p;
 
-  id = dbrow.get<unsigned int>("Id");
+  id = dbrow.get<unsigned long>("Id");
   name = dbrow.get<std::string>("Name");
-  id = dbrow.has("ServerId") ? dbrow.get<unsigned int>("ServerId") : 0;
+  id = dbrow.has("ServerId") ? dbrow.get<unsigned long>("ServerId") : 0;
 
-  storage_id = dbrow.get<unsigned int>("StorageId");
+  storage_id = dbrow.get<unsigned long>("StorageId");
   delete storage;
   storage = new Storage(storage_id);
 
@@ -354,10 +354,10 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   decoding = (DecodingOption)dbrow.get<int>("Decoding");
 
   // See below after save_jpegs for a recalculation of decoding_enabled
-  janus_enabled = dbrow.has("JanusEnabled") ? (dbrow.get<unsigned int>("JanusEnabled")==1) : false;
-  janus_audio_enabled = dbrow.has("JanusAudioEnabled") ? (dbrow.get<unsigned int>("JanusAudioEnabled")==1) : false;
+  janus_enabled = dbrow.has("JanusEnabled") ? (dbrow.get<unsigned long>("JanusEnabled")==1) : false;
+  janus_audio_enabled = dbrow.has("JanusAudioEnabled") ? (dbrow.get<unsigned long>("JanusAudioEnabled")==1) : false;
   janus_profile_override = dbrow.has("Janus_Profile_Override") ? dbrow.get<std::string>("Janus_Profile_Override") : "";
-  janus_use_rtsp_restream = dbrow.has("Janus_Use_RTSP_Restream") ? (dbrow.get<unsigned int>("Janus_Use_RTSP_Restream")==1) : false;
+  janus_use_rtsp_restream = dbrow.has("Janus_Use_RTSP_Restream") ? (dbrow.get<unsigned long>("Janus_Use_RTSP_Restream")==1) : false;
 
   linked_monitors_string = dbrow.has("LinkedMonitors") ? dbrow.get<std::string>("LinkedMonitors") : "";
   event_start_command = dbrow.has("EventStartCommand") ? dbrow.get<std::string>("EventStartCommand") : "";
@@ -1688,8 +1688,7 @@ void Monitor::UpdateFPS() {
       query.bind( "capture_bandwitdh", new_capture_bandwidth );
       query.bind( "analysis_fps", new_analysis_fps );
       query.bind( "id", id );
-
-      zmDbQueue::pushToQueue(std::move(query));
+      query.update();
     } // now != last_fps_time
   } // end if report fps
 }  // void Monitor::UpdateFPS()

@@ -532,9 +532,9 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
       logQuery.bind( "code", classString );
       logQuery.bind( "message", syslogString );
       logQuery.bind( "file", file );
-      logQuery.bind( "line", line );;
+      logQuery.bind( "line", line );
+      logQuery.insert();
 
-      zmDbQueue::pushToQueue( std::move( logQuery ) );
     } else {
       puts("Db is closed");
     }

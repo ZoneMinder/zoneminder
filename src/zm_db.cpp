@@ -24,7 +24,6 @@
 #include <cstdlib>
 
 zmDb *database = nullptr;
-zmDbQueue dbQueue;
 
 bool zmDbConnected = false;
 
@@ -107,16 +106,19 @@ void zmDbQuery::run(bool data_exchange)
   unsigned int errcode = 0;
   try {
     resultFlag = stmt->execute(!data_exchange);
+    Info("Query: [%s]", db->db.get_last_query().c_str());
   }
   catch (soci::mysql_soci_error const & e)
   {
     Error("Database error [code %d]: %s", e.err_num_, e.what());
+    Error("Query: [%s]", db->db.get_last_query().c_str());
     errcode = e.err_num_;
     resultFlag = false;
   }
   catch (soci::soci_error const & e)
   {
     Error("Database error [code -1]: %s", e.what());
+    Error("Query: [%s]", db->db.get_last_query().c_str());
     errcode = 0;
     resultFlag = false;
   }
@@ -196,7 +198,7 @@ uint64_t zmDbQuery::update()
 
 int zmDbQuery::affectedRows()
 {
-  if (stmt == nullptr || result != nullptr)
+  if (stmt == nullptr || result == nullptr)
     return -1;
 
   return stmt->get_affected_rows();
@@ -205,73 +207,4 @@ int zmDbQuery::affectedRows()
 void zmDbQuery::deferOnClose(std::function<void ()>) 
 {
 
-}
-
-// --- Query Queue handling --- //
-
-std::mutex dbQueueMutex;
-zmDbQueue zmQueue;
-
-zmDbQueue::zmDbQueue() : mTerminate(false)
-{
-  mThread = std::thread(&zmDbQueue::process, this);
-}
-
-zmDbQueue::~zmDbQueue()
-{
-  stop();
-}
-
-void zmDbQueue::stop()
-{
-  {
-    std::unique_lock<std::mutex> lock(dbQueueMutex);
-
-    mTerminate = true;
-  }
-  mCondition.notify_all();
-
-  if (mThread.joinable()) mThread.join();
-}
-
-void zmDbQueue::process()
-{
-  std::unique_lock<std::mutex> lock(dbQueueMutex);
-
-  while (!mTerminate and !zm_terminate) {
-    if (mQueue.empty()) {
-      mCondition.wait(lock);
-    }
-    while (!mQueue.empty()) {
-      if (mQueue.size() > 30) {
-        Logger *log = Logger::fetch();
-        Logger::Level db_level = log->databaseLevel();
-        log->databaseLevel(Logger::NOLOG);
-        Warning("db queue size has grown larger %zu than 20 entries", mQueue.size());
-        log->databaseLevel(db_level);
-      }
-      zmDbQuery query = mQueue.front();
-      mQueue.pop();
-      // My idea for leaving the locking around each sql statement is to allow
-      // other db writers to get a chance
-      lock.unlock();
-      query.run(false);
-      lock.lock();
-    }
-  }
-} // end void zmDbQueue::process()
-
-void zmDbQueue::push(zmDbQuery &&sql)
-{
-  {
-    std::unique_lock<std::mutex> lock(dbQueueMutex);
-    if (mTerminate) return;
-    mQueue.push(std::move(sql));
-  }
-  mCondition.notify_all();
-}
-
-void zmDbQueue::pushToQueue(zmDbQuery &&query)
-{
-  zmQueue.push( std::move(query) );
 }

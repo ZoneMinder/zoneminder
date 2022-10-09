@@ -298,8 +298,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     zmDbQuery q = zmDbQuery( UPDATE_EVENT_WITH_ID_SET_NOTES );
     q.bind( "notes", notes );
     q.bind( "id", id );
-
-    zmDbQueue::pushToQueue(std::move(q));
+    q.update();
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
@@ -380,11 +379,11 @@ void Event::WriteDbFrames() {
     }
   });
 
-  zmDbQueue::pushToQueue(std::move(framesQuery));
-  zmDbQueue::pushToQueue(std::move(zoneStatsQuery));
+  framesQuery.insert();
+  zoneStatsQuery.insert();
 
   //if (stats_insert_sql.size() > 208) {
-    //zmDbQueue::pushToQueue(std::move(stats_insert_sql));
+    //zmDbQueue::pushToQueue(stats_insert_sql);
   //}
 }  // end void Event::WriteDbFrames()
 
@@ -523,8 +522,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       updateEventQuery.bind("avg_score", static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0));
       updateEventQuery.bind("max_score", max_score);
       updateEventQuery.bind("id", id);
-
-      zmDbQueue::pushToQueue(std::move(updateEventQuery));
+      updateEventQuery.update();
 
     } else {
       Debug(1, "Not Adding %zu frames to DB because write_to_db:%d or frames > analysis fps %f or BULK",

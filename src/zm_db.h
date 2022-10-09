@@ -195,30 +195,6 @@ public:
   void deferOnClose( std::function<void()> );
 };
 
-class zmDbQueue
-{
-private:
-  std::queue<zmDbQuery> mQueue;
-  std::thread mThread;
-  std::condition_variable mCondition;
-  bool mTerminate;
-
-public:
-  zmDbQueue();
-  ~zmDbQueue();
-  void push(zmDbQuery &&query);
-  void process();
-  void stop();
-
-  static void pushToQueue( zmDbQuery &&query );
-};
-
-// extern MYSQL dbconn;
-// extern std::mutex db_mutex;
-// extern zmDbQueue  dbQueue;
-
-// extern bool zmDbConnected;
-
 bool zmDbIsConnected();
 bool zmDbConnect();
 void zmDbClose();

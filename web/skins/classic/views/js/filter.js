@@ -121,7 +121,7 @@ function click_automove(element) {
   if ( this.checked ) {
     $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
   } else {
-    this.form.elements['filter[AutoMoveTo]'].hide();
+    $j(this.form.elements['filter[AutoMoveTo]']).hide();
   }
 }
 
@@ -130,7 +130,7 @@ function click_autocopy(element) {
   if ( this.checked ) {
     $j(this.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
   } else {
-    this.form.elements['filter[AutoCopyTo]'].hide();
+    $j(this.form.elements['filter[AutoCopyTo]']).hide();
   }
 }
 

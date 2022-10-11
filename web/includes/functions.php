@@ -2366,4 +2366,60 @@ function extract_auth_values_from_url($url) {
   return array( $username, $password );
 }
 
+function output_file($path) {
+  if (connection_status() != 0)
+    return false;
+  $parts = pathinfo($path);
+  $file = $parts['basename'];
+
+  $contentType = getMimeType($path);
+
+  header("Cache-Control: public");
+  header("Content-Transfer-Encoding: binary");
+  header("Content-Type: $contentType");
+
+  $contentDisposition = 'attachment'; if (strstr($_SERVER['HTTP_USER_AGENT'], "MSIE")) {
+  $fileName = preg_replace('/\./', '%2e', $file, substr_count($file, '.') - 1);
+  header("Content-Disposition: $contentDisposition;filename=\"$file\"");
+  } else {
+    header("Content-Disposition: $contentDisposition;filename=\"$file\"");
+  }
+
+  header('Accept-Ranges: bytes');
+  $range = 0;
+  $size = filesize($path);
+
+  if (isset($_SERVER['HTTP_RANGE'])) {
+    list($a, $range) = explode('=', $_SERVER['HTTP_RANGE']);
+    str_replace($range, '-', $range);
+    $size2 = $size - 1;
+    $new_length = $size - $range;
+    header('HTTP/1.1 206 Partial Content');
+    header("Content-Length: $new_length");
+    header("Content-Range: bytes $range$size2/$size");
+  } else {
+    $size2 = $size - 1;
+    header("Content-Range: bytes 0-$size2/$size");
+    header("Content-Length: " . $size);
+  }
+
+  if ($size == 0) {
+    Error('Zero byte file! Aborting download');
+  }
+  @ini_set('magic_quotes_runtime', 0);
+  $fp = fopen($path, 'rb');
+
+  fseek($fp, $range);
+
+  while (!feof($fp) and (connection_status() == 0)) {
+    set_time_limit(0);
+    print(@fread($fp, 1024*$chunkSize));
+    flush();
+    ob_flush();
+    // sleep(1);
+  }
+  fclose($fp);
+
+  return ((connection_status() == 0) and !connection_aborted());
+} # end function output_file
 ?>

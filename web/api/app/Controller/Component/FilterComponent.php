@@ -74,7 +74,7 @@ class FilterComponent extends Component {
 				if (preg_match('/^(?P<field>[a-z0-9]+)(?P<operator>.+)?$/i', $lhs, $matches) !== 1) {
 					throw new Exception('Invalid argument before `:`: ' . $lhs);
 				}
-				$operator = trim($matches['operator']);
+				$operator = isset($matches['operator']) ? trim($matches['operator']) : '';
 
 				// Only allow operators on our allow list. No operator
 				// specified defaults to `=` by cakePHP.

@@ -951,6 +951,9 @@ function getStat() {
       case 'n/a':
         tdString = 'n/a';
         break;
+      case 'Path':
+        tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
+        break;
       case 'Archived':
       case 'Emailed':
         tdString = eventData[key] ? yesStr : noStr;

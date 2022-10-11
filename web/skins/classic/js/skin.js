@@ -467,10 +467,10 @@ function submitThisForm() {
  * @param {DOMString} name The name of the checkboxes to toggle.
  */
 function updateFormCheckboxesByName( headerCheckbox ) {
-  var name = headerCheckbox.getAttribute("data-checkbox-name");
-  var form = headerCheckbox.form;
-  var checked = headerCheckbox.checked;
-  for (var i = 0; i < form.elements.length; i++) {
+  const name = headerCheckbox.getAttribute("data-checkbox-name");
+  const form = headerCheckbox.form;
+  const checked = headerCheckbox.checked;
+  for (let i = 0, len=form.elements.length; i < len; i++) {
     if (form.elements[i].name.indexOf(name) == 0) {
       form.elements[i].checked = checked;
     }

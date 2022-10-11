@@ -520,19 +520,14 @@ if ( ZM_OPT_EMAIL ) {
           <button type="button" data-on-click-this="submitToMontageReview"><?php echo translate('ViewMatches') ?></button>
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
           <button type="button" data-on-click-this="submitAction" value="execute" id="executeButton"><?php echo translate('Execute') ?></button>
-<?php 
-if ( canEdit('Events') ) {
+<?php
+$canEdit = (canEdit('System') or ($filter->UserId() == $user['Id']));
+$canSave = !$filter->Id() or $canEdit;
+$canDelete = $filter->Id() and $canEdit;
 ?>
-          <button type="button" data-on-click-this="submitAction" value="Save" id="Save"><?php echo translate('Save') ?></button>
-          <button type="button" data-on-click-this="submitAction" value="SaveAs" id="SaveAs"><?php echo translate('SaveAs') ?></button>
-<?php 
-  if ( $filter->Id() ) {
- ?>
-          <button type="button" value="delete" data-on-click-this="deleteFilter"><?php echo translate('Delete') ?></button>
-<?php 
-  }
-}
-?>
+          <button type="button" data-on-click-this="submitAction" value="Save" id="Save"<?php echo $canSave ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <button type="button" data-on-click-this="submitAction" value="SaveAs" id="SaveAs"<?php echo $canSave ? '' : ' disabled="disabled"' ?>><?php echo translate('SaveAs') ?></button>
+          <button type="button" value="delete" data-on-click-this="deleteFilter" id="Delete"<?php echo $canDelete ? '' : ' disabled="disabled"' ?>><?php echo translate('Delete') ?></button>
           <button type="button" value="Debug" data-on-click-this="debugFilter"><?php echo translate('Debug') ?></button>
           <button type="button" value="Reset" data-on-click-this="resetFilter"><?php echo translate('Reset') ?></button>
         </div>

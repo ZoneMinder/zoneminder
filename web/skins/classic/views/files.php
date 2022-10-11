@@ -23,7 +23,7 @@ if (!canView('Events')) {
   return;
 }
 
-$path = isset($_REQUEST['path']) ? $_REQUEST['path'] : ZM_PATH_DATA;
+$path = (!empty($_REQUEST['path'])) ? $_REQUEST['path'] : ZM_DIR_EVENTS;
 $path_parts = pathinfo($path);
 
 if (@is_file($path)) {
@@ -52,7 +52,7 @@ xhtmlHeaders(__FILE__, translate('Files'));
   <div id="page">
     <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
-      <form name="filesForm" method="post" action="?view=files">
+      <form id="filesForm" name="filesForm" method="post" action="?view=files&path=<?php echo urlencode($path); ?>">
 <?php
 $exploded = explode('/', $path);
 ZM\Debug(print_r($exploded, true));
@@ -102,7 +102,7 @@ if ($parent != '') {
   echo '
 <tr>
   <td class="colSelect"></td>
-  <td><span class="material-icons">folder</span><a href="?view=files&amp;path='.urlencode($parent).'">..</a></td>
+  <td><span class="material-icons md-18">folder</span><a href="?view=files&amp;path='.urlencode($parent).'">..</a></td>
 </tr>';
 }
 foreach ($folders as $folder) {
@@ -110,13 +110,13 @@ foreach ($folders as $folder) {
   echo '
 <tr>
   <td class="colSelect"><input type="checkbox" name="files[]" value="'.validHtmlStr($folder).'"/></td>
-  <td><span class="material-icons">folder</span><a href="?view=files&amp;path='.$url.'">'.validHtmlStr($folder).'</a></td>
+  <td><span class="material-icons md-18">folder</span><a href="?view=files&amp;path='.$url.'">'.validHtmlStr($folder).'</a></td>
 </tr>';
 }
 foreach ($files as $file) {
   $url = urlencode($path.'/'.$file);
   echo '<tr><td class="colSelect"><input type="checkbox" name="files[]" value="'.validHtmlStr($file).'"/></td>
-     <td><span class="material-icons">'.guess_material_icon($file).'</span><a href="?view=files&amp;path='.$url.'">'.validHtmlStr($file).'</a></td>
+     <td><span class="material-icons md-18">'.guess_material_icon($file).'</span><a href="?view=files&amp;path='.$url.'">'.validHtmlStr($file).'</a></td>
      </tr>';
 }
 

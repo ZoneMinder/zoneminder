@@ -124,7 +124,9 @@ int Monitor::JanusManager::check_janus() {
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
   postData +=  "\"request\" : \"info\", \"id\" : ";
   postData += std::to_string(parent->id);
-  postData += "}}";
+  postData += ", \"secret\" : \"";
+  postData += config.janus_secret;
+  postData += "\"}}";
 
   std::string response;
   std::string endpoint = janus_endpoint+"/"+janus_session+"/"+janus_handle;
@@ -157,6 +159,13 @@ int Monitor::JanusManager::check_janus() {
     Warning("Mountpoint Missing");
     return 0;
   }
+
+
+  //check for changed PIN
+  if (response.find(parent->janus_pin) == std::string::npos){
+    Warning("PIN changed, remounting.");
+    return remove_from_janus();
+  }
   return 1;
 }
 
@@ -181,7 +190,7 @@ int Monitor::JanusManager::add_to_janus() {
   postData += rtsp_path;
   //secret prevents querying the mount for info, which leaks the camera's secrets.
   postData += "\", \"secret\" : \"";
-  postData += parent->janus_pin;
+  postData += config.janus_secret;
   //pin prevents viewing the video.
   postData += "\", \"pin\" : \"";
   postData += parent->janus_pin;
@@ -245,7 +254,7 @@ int Monitor::JanusManager::remove_from_janus() {
   postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"";
   postData += config.janus_secret;
   postData += "\", \"secret\" : \"";
-  postData += parent->janus_pin;
+  postData += config.janus_secret;
   postData += "\", \"id\" : ";
   postData += std::to_string(parent->id);
   postData += "}}";

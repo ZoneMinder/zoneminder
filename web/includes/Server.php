@@ -145,5 +145,22 @@ class Server extends ZM_Object {
     }
     return '/zm/api';
   }
+  public function SendToApi($path) {
+    $url = $this->UrlToApi().$path;
+    $auth_relay = get_auth_relay();
+    if ($auth_relay) $url .= '?'.$auth_relay;
+    Debug('sending command to '.$url);
+
+    $context = stream_context_create();
+    try {
+      $result = file_get_contents($url, false, $context);
+      if ($result === FALSE) { /* Handle error */
+        Error("Error using $url");
+      }
+    } catch (Exception $e) {
+      Error("Except $e thrown sending to $url");
+    }
+    return $result;
+  }
 } # end class Server
 ?>

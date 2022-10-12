@@ -418,7 +418,7 @@ function makeLink($url, $label, $condition=1, $options='') {
 
 //Make it slightly easier to create a link to help text modal
 function makeHelpLink($ohndx) {
-  $string = '&nbsp;(<a id="' .$ohndx. '" class="optionhelp" href="#">?</a>)';
+  $string = '&nbsp;(<a id="' .$ohndx. '" class="optionhelp">?</a>)';
 
   return $string;
 }
@@ -1135,7 +1135,7 @@ function sortHeader($field, $querySep='&amp;') {
   global $view;
   return implode($querySep, array(
     '?view='.$view,
-    'page=1'.(isset($_REQUEST['filter'])?$_REQUEST['filter']['query']:''),
+    'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? $_REQUEST['filter']['query'] : ''),
     'sort_field='.$field,
     'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !$_REQUEST['sort_asc'] : 0),
     'limit='.(isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : ''),
@@ -1856,7 +1856,7 @@ define('HTTP_STATUS_FORBIDDEN', 403);
 
 function ajaxError($message, $code=HTTP_STATUS_OK) {
   $backTrace = debug_backtrace();
-  ZM\Error($message.' from '.print_r($backTrace,true));
+  ZM\Debug($message.' from '.print_r($backTrace, true));
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
@@ -2366,7 +2366,7 @@ function extract_auth_values_from_url($url) {
   return array( $username, $password );
 }
 
-function output_file($path) {
+function output_file($path, $chunkSize=1024) {
   if (connection_status() != 0)
     return false;
   $parts = pathinfo($path);
@@ -2378,12 +2378,11 @@ function output_file($path) {
   header("Content-Transfer-Encoding: binary");
   header("Content-Type: $contentType");
 
-  $contentDisposition = 'attachment'; if (strstr($_SERVER['HTTP_USER_AGENT'], "MSIE")) {
-  $fileName = preg_replace('/\./', '%2e', $file, substr_count($file, '.') - 1);
-  header("Content-Disposition: $contentDisposition;filename=\"$file\"");
-  } else {
-    header("Content-Disposition: $contentDisposition;filename=\"$file\"");
+  $contentDisposition = 'inline';
+  if (strstr($_SERVER['HTTP_USER_AGENT'], 'MSIE')) {
+    $file = preg_replace('/\./', '%2e', $file, substr_count($file, '.') - 1);
   }
+  header("Content-Disposition: $contentDisposition;filename=\"$file\"");
 
   header('Accept-Ranges: bytes');
   $range = 0;
@@ -2400,7 +2399,7 @@ function output_file($path) {
   } else {
     $size2 = $size - 1;
     header("Content-Range: bytes 0-$size2/$size");
-    header("Content-Length: " . $size);
+    header('Content-Length: ' . $size);
   }
 
   if ($size == 0) {

@@ -31,11 +31,6 @@ function getStorageModal(sid) {
       .done(function(data) {
         insertModalHtml('storageModal', data.html);
         $j('#storageModal').modal('show');
-        // Manage the Save button
-        $j('#storageSubmitBtn').click(function(evt) {
-          evt.preventDefault();
-          $j('#storageModalForm').submit();
-        });
       })
       .fail(logAjaxFail);
 }

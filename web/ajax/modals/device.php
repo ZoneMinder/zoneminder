@@ -22,8 +22,9 @@ if ( !empty($_REQUEST['did']) ) {
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
+      <form id="deviceModalForm" name="contentForm" method="post" action="?view=device">
+ 
       <div class="modal-body">
-      <form id="deviceModalForm" name="contentForm" method="get" action="?view=device&action=device">
         <?php
         // We have to manually insert the csrf key into the form when using a modal generated via ajax call
         echo getCSRFinputHTML();

@@ -37,15 +37,18 @@
   font-size: 8px;
 }
 
-span.alarmCue {
+#alarmCues span.alarmCue {
   background-color:red;
   z-index: 9;
   opacity: 0.33;
+  border-left: none;
 }
 
 span.noneCue {
-    background: none;
+    background-color: none;
     z-index: 9;
+    opacity: 0.33;
+  border-left: none;
 }
 
 #header {
@@ -168,28 +171,29 @@ height: 100%;
 }
 
 #progressBar {
-    position: relative;
-    /*
-    top: -1.25em;
-    */
-    height: 1.25em;
-    /*
-    margin: 0 auto -1.25em auto;
-    */
+  position: relative;
+  /*
+  top: -1.25em;
+   */
+  height: 1.25em;
+  /*
+  margin: 0 auto -1.25em auto;
+   */
   margin: 0;
-    z-index: 5;
+  z-index: 5;
 }
 
 #progressBar .progressBox {
-    transition: width .1s;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    background: rgba(170, 170, 170, .7);
-    /*
-    border-radius: 0 0 .3em .3em;
-    */
-    z-index: 5;
+  transition: width .1s;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  background: rgba(170, 170, 170, .7);
+  /*
+  border-radius: 0 0 .3em .3em;
+   */
+  z-index: 10;
+  opacity: 0.66;
 }
 
 #eventStills {

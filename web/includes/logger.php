@@ -237,7 +237,7 @@ class Logger {
         $this->effectiveLevel = $this->level;
       if ( !$this->hasTerm ) {
         if ( $lastLevel < self::DEBUG && $this->level >= self::DEBUG ) {
-          $this->savedErrorReporting = error_reporting(E_ALL);
+          $this->savedErrorReporting = error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
           $this->savedDisplayErrors = ini_set('display_errors', true);
         } elseif ( $lastLevel >= self::DEBUG && $this->level < self::DEBUG ) {
           error_reporting($this->savedErrorReporting);

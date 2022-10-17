@@ -9,6 +9,7 @@ if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
 ?>
 		<form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">
 			<input type="hidden" name="action" value="login"/>
+      <input type="hidden" name="postLoginQuery" value="<?php echo isset($_SESSION['postLoginQuery']) ? validHtmlStr($_SESSION['postLoginQuery']) : ''; ?>" />
 
 			<div id="loginError" class="hidden alarm" role="alert">
 				<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>

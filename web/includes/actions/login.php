@@ -33,6 +33,7 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     unset($_SESSION['loginFailed']);
     $view = 'postlogin';
   }
+  unset($_SESSION['postLoginQuery']);
   session_write_close();
 } # end if doing a login action
 ?>

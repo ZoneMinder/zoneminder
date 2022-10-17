@@ -66,7 +66,6 @@ function zm_session_regenerate_id() {
 
   // Set deleted timestamp. Session data must not be deleted immediately for reasons.
   $_SESSION['last_time'] = time();
-  // Finish session
   session_write_close();
 
   session_start();
@@ -127,17 +126,14 @@ class ZMSessionHandler implements SessionHandlerInterface {
 */
   }
   public function open($path, $name): bool {
-    ZM\Debug("Session::open ".($this->db?true:false));
     return $this->db ? true : false;
   }
   public function close() : bool {
-    ZM\Debug("Session::close ");
     // The example code closed the db connection.. I don't think we care to.
     return true;
   }
   #[\ReturnTypeWillChange]
   public function read($id){
-    ZM\Debug("Session::read ");
     $sth = $this->db->prepare('SELECT data FROM Sessions WHERE id = :id');
     if (!$sth->bindParam(':id', $id, PDO::PARAM_STR, 32)) {
       ZM\Error("Failed to bind param");
@@ -150,14 +146,11 @@ class ZMSessionHandler implements SessionHandlerInterface {
       if (( $row = $sth->fetch(PDO::FETCH_ASSOC) ) ) {
         return $row['data'];
       } 
-      ZM\Debug("Exeuted but no row for $id");
     }
-    ZM\Error("No session for id $id?");
     // Return an empty string
     return '';
   }
   public function write($id, $data) : bool {
-    ZM\Debug("Session::write $id $data");
     // Create time stamp
     $access = time();
 
@@ -167,17 +160,9 @@ class ZMSessionHandler implements SessionHandlerInterface {
     $sth->bindParam(':access', $access, PDO::PARAM_INT);
     $sth->bindParam(':data', $data);
 
-    if ($sth->execute()) {
-      ZM\Debug("sucess");
-      return true;
-    } else {
-      ZM\Debug("failss");
-      return false;
-    }
-    #return $sth->execute() ? true : false;
+    return $sth->execute() ? true : false;
   }
   public function destroy($id) : bool {
-    ZM\Debug("Session::destroy $id");
     $sth = $this->db->prepare('DELETE FROM Sessions WHERE Id = :id');
     $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
     return $sth->execute() ? true : false;

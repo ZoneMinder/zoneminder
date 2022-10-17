@@ -75,6 +75,7 @@ function zm_session_regenerate_id() {
   ZM\Debug("Regenerating session. New id was " . session_id());
   unset($_SESSION['last_time']);
   $_SESSION['generated_at'] = time();
+  $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
 } // function zm_session_regenerate_id()
 
 function is_session_started() {

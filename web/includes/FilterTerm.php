@@ -24,6 +24,7 @@ class FilterTerm {
   public $cnj;
   public $obr;
   public $cbr;
+  public $tablename;
 
 
   public function __construct($filter = null, $term = NULL, $index=0) {

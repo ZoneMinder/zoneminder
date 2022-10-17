@@ -5,6 +5,10 @@ require_once('config.php');
 
 class Logger {
   private static $instance;
+  private int $savedErrorReporting;
+  private int $savedLogErrors;
+  private string $savedDisplayErrors;
+
 
   const DEBUG = 1;
   const INFO = 0;

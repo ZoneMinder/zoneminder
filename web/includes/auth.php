@@ -373,8 +373,7 @@ if (ZM_OPT_USE_AUTH) {
         } // end if success==false
       } // end if using reCaptcha
 
-      if (is_session_started()) session_write_close();
-      zm_session_clear();
+      zm_session_clear(); # Closes session
       zm_session_regenerate_id(); # starts session
 
       $username = $_REQUEST['username'];
@@ -397,7 +396,6 @@ if (ZM_OPT_USE_AUTH) {
         // Need to save this in session, can't use the value in User because it is hashed
         $_SESSION['password'] = $_REQUEST['password'];
       }
-      $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR'];
     } else if ((ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER'])) {
       if (ZM_CASE_INSENSITIVE_USERNAMES) {
         $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';

@@ -2,10 +2,6 @@
 namespace ZM;
 
 class Group_Monitor extends ZM_Object {
-  public ?int $Id;
-  public ?int $GroupId;
-  public ?int $MonitorId;
-
   protected static $table = 'Groups_Monitors';
   protected $defaults = array(
       'Id'        =>  null,

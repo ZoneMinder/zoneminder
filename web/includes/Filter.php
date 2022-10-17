@@ -6,33 +6,6 @@ require_once('FilterTerm.php');
 class Filter extends ZM_Object {
   protected static $table = 'Filters';
 
-  public $Id;
-  public $Name;
-  public $AutoExecute;
-  public $AutoExecuteCmd;
-  public $AutoEmail;
-  public $EmailTo;
-  public $EmailSubject;
-  public $EmailBody;
-  public $AutoDelete;
-  public $AutoArchive;
-  public $AutoUnarchive;
-  public $AutoVideo;
-  public $AutoUpload;
-  public $AutoMessage;
-  public $AutoMove;
-  public $AutoMoveTo;
-  public $AutoCopy;
-  public $AutoCopyTo;
-  public $UpdateDiskSpace;
-  public $UserId;
-  public $Background;
-  public $Concurrent;
-  public $Query_json;
-  public $Query;
-  public $Terms;
-  public $LockRows;
-
   protected $defaults = array(
     'Id'              =>  null,
     'Name'            =>  '',

@@ -1633,7 +1633,7 @@ function trimString($string, $length) {
   return preg_replace('/^(.{'.$length.',}?)\b.*$/', '\\1&hellip;', $string);
 }
 
-function monitorIdsToNames($ids=array()) {
+function monitorIdsToNames($ids) {
   global $mITN_monitors;
   if ( !$mITN_monitors ) {
     $sql = 'SELECT Id, Name FROM Monitors';

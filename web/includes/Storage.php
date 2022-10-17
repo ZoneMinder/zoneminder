@@ -5,19 +5,6 @@ require_once('Event.php');
 require_once('Object.php');
 
 class Storage extends ZM_Object {
-  public $Id;
-  public $Path;
-  public $Name;
-  public $Type;
-  public $Url;
-  public $DiskSpace;
-  public $Scheme;
-  public $ServerId;
-  public $DoDelete;
-  public $Enabled;
-  public $disk_total_space;
-  public $disk_used_space;
-
   protected static $table = 'Storage';
   protected $defaults = array(
     'Id'        => null,

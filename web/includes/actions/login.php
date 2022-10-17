@@ -18,22 +18,21 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ('login' == $action) {
+
+if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 'remote' || isset($_REQUEST['password']) ) ) {
+
+  // if true, a popup will display after login
+  // lets validate reCaptcha if it exists
+
   // if captcha existed, it was passed
 
-  if (!isset($user)) {
-    ZM\Debug("Setting session loginFailed: " .$_SESSION['loginFailed']);
-    zm_session_start();
+  zm_session_start();
+  if (!isset($user) ) {
     $_SESSION['loginFailed'] = true;
-    session_write_close();
   } else {
-    if (isset($_SESSION['loginFailed'])) {
-      ZM\Debug("Clearing session loginFailed: " .$_SESSION['loginFailed']);
-      zm_session_start();
-      unset($_SESSION['loginFailed']);
-      session_write_close();
-    }
+    unset($_SESSION['loginFailed']);
     $view = 'postlogin';
   }
+  session_write_close();
 } # end if doing a login action
 ?>

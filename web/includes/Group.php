@@ -2,14 +2,6 @@
 namespace ZM;
 
 class Group extends ZM_Object {
-  public ?int $Id;
-  public ?string $Name;
-  public ?int $ParentId;
-  public ?array $MonitorIds = null;
-  public ?array $Children = null;
-  public ?array $Monitors = null;
-  public $depth;
-
   protected static $table = 'Groups';
   protected $defaults = array(
       'Id'              =>  null,
@@ -188,17 +180,16 @@ class Group extends ZM_Object {
 		return $Parents;
 	}
 	public function Children() {
-		if (!$this->Children) {
-			$this->Children = Group::find(array('ParentId'=>$this->Id()));
+		if (!property_exists($this, 'Children')) {
+			$this->{'Children'} = Group::find(array('ParentId'=>$this->Id()));
 		}
 		return $this->{'Children'};
 	}
-
 	public function Monitors() {
-    if (!$this->Monitors) {
-			$this->Monitors = Monitor::find(array('Id'=>$this->MonitorIds()));
+    if (!property_exists($this, 'Monitors') ) {
+			$this->{'Monitors'} = Monitor::find(array('Id'=>$this->MonitorIds()));
 		}
-		return $this->Monitors;
+		return $this->{'Monitors'};
 	}
 
 	public function canView($u=null) {

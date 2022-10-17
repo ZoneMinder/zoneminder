@@ -137,14 +137,14 @@ class ZMSessionHandler implements SessionHandlerInterface {
   public function read($id){
     $sth = $this->db->prepare('SELECT data FROM Sessions WHERE id = :id');
     if (!$sth->bindParam(':id', $id, PDO::PARAM_STR, 32)) {
-      ZM\Error("Failed to bind param");
+      ZM\Error('Failed to bind param');
       if (!$sth->bindParam(':id', $id, PDO::PARAM_STR)) {
-        ZM\Error("Failed to bind param");
+        ZM\Error('Failed to bind param');
       }
     }
 
-    if ( $sth->execute() ) {
-      if (( $row = $sth->fetch(PDO::FETCH_ASSOC) ) ) {
+    if ($sth->execute()) {
+      if (($row = $sth->fetch(PDO::FETCH_ASSOC))) {
         return $row['data'];
       } 
     }

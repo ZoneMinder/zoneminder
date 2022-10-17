@@ -7,9 +7,8 @@ xhtmlHeaders(__FILE__, translate('Login'));
 <?php
 if ( defined('ZM_OPT_USE_AUTH') and ZM_OPT_USE_AUTH ) {
 ?>
-		<form class="center-block" name="loginForm" id="loginForm" method="post" action="?">
+		<form class="center-block" name="loginForm" id="loginForm" method="post" action="?view=login">
 			<input type="hidden" name="action" value="login"/>
-			<input type="hidden" name="view" value="login"/>
 
 			<div id="loginError" class="hidden alarm" role="alert">
 				<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
@@ -37,6 +36,7 @@ if (
 } ?>
 				<button class="btn btn-lg btn-primary btn-block" type="submit"><?php echo translate('Login') ?></button>
 			</div>
+		</form>
 <?php 
 } else {
 ?>
@@ -51,6 +51,5 @@ User Authentication is not turned on. You cannot log in.
 <?php
 } # end if ZM_OPT_AUTH
 ?>
-		</form>
 	</div>
 <?php xhtmlFooter() ?>

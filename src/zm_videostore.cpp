@@ -532,9 +532,9 @@ bool VideoStore::open() {
 
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);
   if (!movflags_entry) {
-    Debug(1, "setting movflags to frag_keyframe+empty_moov");
+    Debug(1, "setting movflags to frag_keyframe+empty_moov+faststart");
     // Shiboleth reports that this may break seeking in mp4 before it downloads
-    av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov", 0);
+    av_dict_set(&opts, "movflags", "frag_keyframe+empty_moov+faststart", 0);
   } else {
     Debug(1, "using movflags %s", movflags_entry->value);
   }

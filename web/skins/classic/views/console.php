@@ -262,7 +262,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 <?php
   $source_class = 'infoText';
   $source_class_reason = '';
-  if ( (!$monitor['Status'] || $monitor['Status'] == 'NotRunning') && $monitor['Type']!='WebSite' ) {
+  if ( (!$monitor['Status'] || ($monitor['Status'] == 'NotRunning')) && ($monitor['Type'] != 'WebSite')) {
     $source_class = 'errorText';
     $source_class_reason = translate('Not Running');
   } else {
@@ -368,7 +368,8 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     $fps_string .= '/' . $monitor['AnalysisFPS'];
   }
   if ($fps_string) $fps_string .= ' fps';
-  $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
+  if (!empty($monitor['CaptureBandwidth']))
+    $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
   $total_capturing_bandwidth += $monitor['CaptureBandwidth'];
   echo $fps_string;
 ?>

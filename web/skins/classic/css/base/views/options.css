@@ -34,6 +34,7 @@ input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SECRETKEY]"],
 input[name="newConfig[ZM_OPT_GEOLOCATION_TILE_PROVIDER]"],
 input[name="newConfig[ZM_OPT_GEOLOCATION_ACCESS_TOKEN]"],
 input[name="newConfig[ZM_AUTH_HASH_SECRET]"],
+input[name="newConfig[ZM_FONT_FILE_LOCATION]"],
 input[name="newConfig[ZM_JANUS_SECRET]"],
 input[name="newConfig[ZM_JANUS_PATH]"],
 input[name="newConfig[ZM_UPDATE_CHECK_PROXY]"],
@@ -71,4 +72,7 @@ input[name="newStorage[Url]"] {
   margin-bottom: 20px;
   margin-right: 5px;
   border-bottom: 1px solid #e7e7e7;
+}
+#options .col-md {
+  text-align: left;
 }

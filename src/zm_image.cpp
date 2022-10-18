@@ -581,9 +581,9 @@ void Image::Initialise() {
 
   FontLoadError res = font.LoadFontFile(config.font_file_location);
   if ( res == FontLoadError::kFileNotFound ) {
-    Panic("Invalid font location: %s", config.font_file_location);
+    Error("Invalid font location: %s", config.font_file_location);
   } else if ( res == FontLoadError::kInvalidFile ) {
-    Panic("Invalid font file.");
+    Error("Invalid font file.");
   }
   initialised = true;
 }

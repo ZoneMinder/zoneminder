@@ -30,7 +30,7 @@ if ( !canEdit('Monitors', $mid) ) {
   return;
 }
 
-if ( $action == 'function' ) {
+if ($action == 'save') {
   $monitor = new ZM\Monitor($mid);
   if ( !$monitor->Id() ) {
     ZM\Error("Monitor not found with Id=$mid");
@@ -53,6 +53,8 @@ if ( $action == 'function' ) {
   } else {
     ZM\Debug('No change to function, not doing anything.');
   }
+} else {
+  ZM\Error("Unsupported action $action on view=function.");
 } // end if action 
 $redirect = '?view=console';
 ?>

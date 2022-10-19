@@ -16,6 +16,8 @@ set(ZM_BIN_SRC_FILES
   zm.cpp
   zm_db.cpp
   zm_decoder_thread.cpp
+  zm_group_permission.cpp
+  zm_monitor_permission.cpp
   zm_logger.cpp
   zm_event.cpp
   zm_eventstream.cpp

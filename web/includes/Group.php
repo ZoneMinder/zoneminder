@@ -239,7 +239,10 @@ class Group extends ZM_Object {
     if (isset($permissions[$user_id])) {
       return $permissions[$user_id];
     }
-    return null;
+    $permission = new Group_Permission();
+    $permission->UserId($user_id);
+    $permission->GroupId($this->Id());
+    return $permission;;
   }
 
   public function permission($user_id) {

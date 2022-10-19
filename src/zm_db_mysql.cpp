@@ -22,12 +22,12 @@
 #include "zm_db_mysql.h"
 
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-"`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`, `Analysing`, `AnalysisSource`, `AnalysisImage`,"
+"`Recording`, `RecordingSource`, `Decoding`, "
 "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`,"
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
-"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
+"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`, `Deinterlacing`, "
 "`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
 "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
 "`OutputCodec`, `Encoder`, `OutputContainer`, "
@@ -39,7 +39,7 @@ std::string load_monitor_sql =
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
-"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount FROM `Monitors`"
+"`SignalCheckPoints`, `SignalCheckColour`, `Importance`, ZoneCount FROM `Monitors`"
 " WHERE ";
 
 zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
@@ -179,10 +179,10 @@ void zmDbMySQLAdapter::prepareSelectStatements()
     mapStatements[SELECT_STORAGE_WITH_ID]->prepare("SELECT `Id`, `Name`, `Path`, `Type`, `Scheme` FROM `Storage` WHERE `Id`=:id");
 
     mapStatements[SELECT_USER_AND_DATA_WITH_USERNAME_ENABLED]->prepare(
-        "SELECT `Id`, `Username`, `Password`, `Enabled`,`Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds` FROM `Users` WHERE `Username` = :username AND `Enabled` = 1");
+        "SELECT `Id`, `Username`, `Password`, `Enabled`,`Stream`, `Events`, `Control`, `Monitors`, `System`, `MonitorIds` FROM `Users` WHERE `Username` = :username AND `Enabled` = 1");
 
     mapStatements[SELECT_USER_AND_DATA_PLUS_TOKEN_WITH_USERNAME_ENABLED]->prepare(
-        "SELECT `Id`, `Username`, `Password`, `Enabled`,`Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds`, `TokenMinExpiry` FROM `Users` WHERE `Username` = :username AND `Enabled` = 1");
+        "SELECT `Id`, `Username`, `Password`, `Enabled`,`Stream`, `Events`, `Control`, `Monitors`, `System`, `MonitorIds`, `TokenMinExpiry` FROM `Users` WHERE `Username` = :username AND `Enabled` = 1");
 }
 
 void zmDbMySQLAdapter::prepareSelectMonitorStatements()
@@ -250,7 +250,7 @@ void zmDbMySQLAdapter::prepareSelectAllStatements()
         "SELECT `Id` FROM `Events` WHERE `MonitorId` = :id AND unix_timestamp(`EndDateTime`) > :timestamp         ORDER BY `Id` ASC LIMIT 1");
 
     mapStatements[SELECT_EVENT_WITH_ID]->prepare(
-        "SELECT `Events`.`Id`, `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, unix_timestamp( `EndDateTime` ) AS EndTimestamp, `DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0, max(f.`Delta`)-min(f.`Delta`) AS FramesDuration FROM `Events` JOIN `Frames` f ON `Events`.`Id` = f.`Id` WHERE `Events`.`Id` = :id");
+        "SELECT `Events`.`Id`, `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, unix_timestamp( `EndDateTime` ) AS EndTimestamp, `DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`, max(f.`Delta`)-min(f.`Delta`) AS FramesDuration FROM `Events` JOIN `Frames` f ON `Events`.`Id` = f.`Id` WHERE `Events`.`Id` = :id");
 
     mapStatements[SELECT_ALL_FRAMES_OF_EVENT_WITH_ID]->prepare("SELECT `FrameId`, unix_timestamp(`TimeStamp`), `Delta` FROM `Frames`     WHERE `EventId` = :id  ORDER BY `FrameId` ASC");
 
@@ -261,14 +261,14 @@ void zmDbMySQLAdapter::prepareSelectAllStatements()
         "SELECT `Id` FROM `Events` WHERE `MonitorId` = :monitor_id AND `Id` > :event_id  ORDER BY `Id` ASC LIMIT 1");
 
     mapStatements[SELECT_ALL_USERS_AND_DATA_ENABLED]->prepare(
-        "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0, `MonitorIds` FROM `Users`         WHERE `Enabled` = 1");
+        "SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`, `Events`, `Control`, `Monitors`, `System`, `MonitorIds` FROM `Users`         WHERE `Enabled` = 1");
 
     mapStatements[SELECT_ALL_ZONES_WITH_MONITORID_EQUAL_TO]->prepare(
-        "SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0, MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels, FilterX,FilterY,MinFilterPixels,MaxFilterPixels, MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs, OverloadFrames,ExtendAlarmFrames FROM Zones WHERE MonitorId = :id ORDER BY Type");
+        "SELECT Id,Name,Type,Units,Coords,AlarmRGB,CheckMethod, MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels, FilterX,FilterY,MinFilterPixels,MaxFilterPixels, MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs, OverloadFrames,ExtendAlarmFrames FROM Zones WHERE MonitorId = :id ORDER BY Type");
 
-    mapStatements[SELECT_ALL_MONITORS_DATA]->prepare("SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors` ORDER BY Id ASC");
+    mapStatements[SELECT_ALL_MONITORS_DATA]->prepare("SELECT `Id`, `Capturing`, `Analysing`, `Recording` FROM `Monitors` ORDER BY Id ASC");
 
-    mapStatements[SELECT_ALL_MONITORS_DATA_VERBOSE]->prepare("SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors` WHERE `Capturing` != 'None' ORDER BY Id ASC");
+    mapStatements[SELECT_ALL_MONITORS_DATA_VERBOSE]->prepare("SELECT `Id`, `Capturing`, `Analysing`, `Recording` FROM `Monitors` WHERE `Capturing` != 'None' ORDER BY Id ASC");
 }
 
 void zmDbMySQLAdapter::prepareUpdateStatements()

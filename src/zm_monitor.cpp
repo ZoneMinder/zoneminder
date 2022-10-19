@@ -313,11 +313,11 @@ Monitor::Monitor()
 void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   purpose = p;
 
-  id = dbrow.get<unsigned long>("Id");
+  id = dbrow.get<long long>("Id");
   name = dbrow.get<std::string>("Name");
-  id = dbrow.has("ServerId") ? dbrow.get<unsigned long>("ServerId") : 0;
+  id = dbrow.has("ServerId") ? dbrow.get<long long>("ServerId") : 0;
 
-  storage_id = dbrow.get<unsigned long>("StorageId");
+  storage_id = dbrow.get<int>("StorageId");
   delete storage;
   storage = new Storage(storage_id);
 
@@ -344,20 +344,20 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   }
   Debug(1, "Have camera type %s", CameraType_Strings[type].c_str());
 
-  capturing = (CapturingOption)dbrow.get<int>("Capturing");
-  analysing = (AnalysingOption)dbrow.get<int>("Analysing");
-  analysis_source = (AnalysisSourceOption)dbrow.get<int>("AnalysisSource");
-  analysis_image = (AnalysisImageOption)dbrow.get<int>("AnalysisImage");
-  recording = (RecordingOption)dbrow.get<int>("Recording");
-  recording_source = (RecordingSourceOption)dbrow.get<int>("RecordingSource");
+  capturing = dbrow.get<CapturingOption>("Capturing");
+  analysing = dbrow.get<AnalysingOption>("Analysing");
+  analysis_source = dbrow.get<AnalysisSourceOption>("AnalysisSource");
+  analysis_image = dbrow.get<AnalysisImageOption>("AnalysisImage");
+  recording = dbrow.get<RecordingOption>("Recording");
+  recording_source = dbrow.get<RecordingSourceOption>("RecordingSource");
 
-  decoding = (DecodingOption)dbrow.get<int>("Decoding");
+  decoding = dbrow.get<DecodingOption>("Decoding");
 
   // See below after save_jpegs for a recalculation of decoding_enabled
-  janus_enabled = dbrow.has("JanusEnabled") ? (dbrow.get<unsigned long>("JanusEnabled")==1) : false;
-  janus_audio_enabled = dbrow.has("JanusAudioEnabled") ? (dbrow.get<unsigned long>("JanusAudioEnabled")==1) : false;
+  janus_enabled = dbrow.has("JanusEnabled") ? (dbrow.get<int>("JanusEnabled")==1) : false;
+  janus_audio_enabled = dbrow.has("JanusAudioEnabled") ? (dbrow.get<int>("JanusAudioEnabled")==1) : false;
   janus_profile_override = dbrow.has("Janus_Profile_Override") ? dbrow.get<std::string>("Janus_Profile_Override") : "";
-  janus_use_rtsp_restream = dbrow.has("Janus_Use_RTSP_Restream") ? (dbrow.get<unsigned long>("Janus_Use_RTSP_Restream")==1) : false;
+  janus_use_rtsp_restream = dbrow.has("Janus_Use_RTSP_Restream") ? (dbrow.get<int>("Janus_Use_RTSP_Restream")==1) : false;
 
   linked_monitors_string = dbrow.has("LinkedMonitors") ? dbrow.get<std::string>("LinkedMonitors") : "";
   event_start_command = dbrow.has("EventStartCommand") ? dbrow.get<std::string>("EventStartCommand") : "";
@@ -365,18 +365,18 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   /* "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS," */
   analysis_fps_limit = dbrow.has("AnalysisFPSLimit") ? dbrow.get<zmDecimal>("AnalysisFPSLimit").toValue() : 0.0;
-  analysis_update_delay = Seconds( dbrow.get<unsigned long>("AnalysisUpdateDelay") );
+  analysis_update_delay = Seconds( dbrow.get<int>("AnalysisUpdateDelay") );
 
   capture_delay = Microseconds(0);
   if( dbrow.has("MaxFPS") ) {
-    float tmp = dbrow.get<float>("MaxFPS");
+    double tmp = dbrow.get<double>("MaxFPS");
     if( tmp > 0.0 ) {
       capture_delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / tmp));
     }
   }
   alarm_capture_delay = Microseconds(0);
   if( dbrow.has("AlarmMaxFPS") ) {
-    float tmp = dbrow.get<float>("AlarmMaxFPS");
+    double tmp = dbrow.get<double>("AlarmMaxFPS");
     if( tmp > 0.0 ) {
       alarm_capture_delay = std::chrono::duration_cast<Microseconds>(FPSeconds(1 / tmp));
     }
@@ -385,7 +385,7 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   /* "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings */
   device = dbrow.has("Device") ? dbrow.get<std::string>("Device") : "";
   channel = dbrow.get<int>("Channel");
-  format = dbrow.get<int>("Format");
+  format = dbrow.get<long long>("Format");
 
   v4l_multi_buffer = config.v4l_multi_buffer;
   if ( dbrow.has("V4LMultiBuffer") ) {
@@ -416,11 +416,11 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   camera_width = dbrow.get<int>("Width");
   camera_height = dbrow.get<int>("Height");
   colours = dbrow.get<int>("Colours");
-  palette = dbrow.get<int>("Palette");
-  orientation = (Orientation)dbrow.get<int>("Orientation");
+  palette = dbrow.get<long long>("Palette");
+  orientation = dbrow.get<Orientation>("Orientation");
   width = (orientation==ROTATE_90||orientation==ROTATE_270) ? camera_height : camera_width;
   height = (orientation==ROTATE_90||orientation==ROTATE_270) ? camera_width : camera_height;
-  deinterlacing = dbrow.get<int>("Deinterlacing");
+  deinterlacing = dbrow.get<long long>("Deinterlacing");
   deinterlacing_value = deinterlacing & 0xff;
 
 /*"`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, " */
@@ -431,16 +431,16 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
 
 /* "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, " */
   savejpegs = dbrow.get<int>("SaveJPEGs");
-  videowriter = (VideoWriter)dbrow.get<int>("VideoWriter");
+  videowriter = dbrow.get<VideoWriter>("VideoWriter");
   encoderparams = dbrow.has("EncoderParameters") ? dbrow.get<std::string>("EncoderParameters") : "";
 
   Debug(3, "Decoding: %d savejpegs %d videowriter %d", decoding, savejpegs, videowriter);
 
 /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
-  output_codec = dbrow.has("OutputCodec") ? dbrow.get<int>("OutputCodec") : 0;
+  output_codec = dbrow.has("OutputCodec") ? dbrow.get<long long>("OutputCodec") : 0;
   encoder = dbrow.has("Encoder") ? dbrow.get<std::string>("Encoder") : "";
   output_container = dbrow.has("OutputContainer") ? dbrow.get<std::string>("OutputContainer") : "";
-  record_audio = dbrow.get<int>("OutputCodec") != 0;
+  record_audio = dbrow.get<long long>("OutputCodec") != 0;
 
  /* "Brightness, Contrast, Hue, Colour, " */
   brightness = dbrow.get<int>("Brightness");
@@ -466,14 +466,14 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   packetqueue.setMaxVideoPackets(max_image_buffer_count);
   packetqueue.setKeepKeyframes(videowriter == PASSTHROUGH || recording != RECORDING_NONE);
   post_event_count = dbrow.get<int>("PostEventCount");
-  stream_replay_buffer = dbrow.get<int>("StreamReplayBuffer");
+  stream_replay_buffer = dbrow.get<long long>("StreamReplayBuffer");
   alarm_frame_count = dbrow.get<int>("AlarmFrameCount");
   if (alarm_frame_count < 1) alarm_frame_count = 1;
   else if (alarm_frame_count > MAX_PRE_ALARM_FRAMES) alarm_frame_count = MAX_PRE_ALARM_FRAMES;
 
  /* "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, " */
-  section_length = Seconds(dbrow.get<int>("SectionLength"));
-  min_section_length = Seconds(dbrow.get<int>("MinSectionLength"));
+  section_length = Seconds(dbrow.get<long long>("SectionLength"));
+  min_section_length = Seconds(dbrow.get<long long>("MinSectionLength"));
   frame_skip = dbrow.get<int>("FrameSkip");
   motion_frame_skip = dbrow.get<int>("MotionFrameSkip");
 
@@ -500,7 +500,7 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   use_Amcrest_API = (dbrow.get<int>("use_Amcrest_API") != 0);
 
  /*"SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors"; */
-  signal_check_points = dbrow.get<int>("SignalCheckPoints");
+  signal_check_points = dbrow.get<long long>("SignalCheckPoints");
 
   std::string check_colour_str = dbrow.get<std::string>("SignalCheckColour");
   if( check_colour_str.length() > 0 ) {
@@ -515,7 +515,7 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   blue_val = BLUE_VAL_BGRA(signal_check_colour);
   grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
 
-  importance = dbrow.has("Importance") ? dbrow.get<int>("Importance") : 0;
+  importance = dbrow.has("Importance") ? dbrow.get<ImportanceType>("Importance") : 0;
   if (importance < 0) importance = 0; // Should only be >= 0
   zone_count = dbrow.has("ZoneCount") ? dbrow.get<int>("ZoneCount") : 0;
 

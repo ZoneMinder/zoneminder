@@ -135,6 +135,12 @@ public:
   } Orientation;
 
   typedef enum {
+    NORMAL=1,
+    LESS,
+    NOT
+  } ImportanceType;
+
+  typedef enum {
     DEINTERLACE_DISABLED = 0x00000000,
     DEINTERLACE_FOUR_FIELD_SOFT = 0x00001E04,
     DEINTERLACE_FOUR_FIELD_MEDIUM = 0x00001404,
@@ -846,21 +852,383 @@ namespace soci {
 
   template <> struct type_conversion<Monitor::Orientation>
   {
-      typedef int base_type;
-
-      static void from_base(int i, indicator ind, Monitor::Orientation & mi)
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Monitor::Orientation & p)
       {
           if (ind == i_null)
-          {
               throw soci_error("Null value not allowed for this type");
-          }
-          mi = (Monitor::Orientation)i;
-      }
 
-      static void to_base(const Monitor::Orientation & mi, int & i, indicator & ind)
+          if( v.compare("ROTATE_0") )
+            p = Monitor::Orientation::ROTATE_0;
+          else if( v.compare("ROTATE_90") )
+            p = Monitor::Orientation::ROTATE_90;
+          else if( v.compare("ROTATE_180") )
+            p = Monitor::Orientation::ROTATE_180;
+          else if( v.compare("ROTATE_270") )
+            p = Monitor::Orientation::ROTATE_270;
+          else if( v.compare("FLIP_HORI") )
+            p = Monitor::Orientation::FLIP_HORI;
+          else if( v.compare("FLIP_VERT") )
+            p = Monitor::Orientation::FLIP_VERT;
+          else
+            throw soci_error("Value not allowed for this type");
+      }
+      static void to_base(Monitor::Orientation & p, std::string & v, indicator & ind)
       {
-          i = (int)mi;
-          ind = i_ok;
+          switch( p ) {
+            case Monitor::Orientation::ROTATE_0:
+              v = "ROTATE_0";
+              ind = i_ok;
+              return;
+            case Monitor::Orientation::ROTATE_90:
+              v = "ROTATE_90";
+              ind = i_ok;
+              return;
+            case Monitor::Orientation::ROTATE_180:
+              v = "ROTATE_180";
+              ind = i_ok;
+              return;
+            case Monitor::Orientation::ROTATE_270:
+              v = "ROTATE_270";
+              ind = i_ok;
+              return;
+            case Monitor::Orientation::FLIP_HORI:
+              v = "FLIP_HORI";
+              ind = i_ok;
+              return;
+            case Monitor::Orientation::FLIP_VERT:
+              v = "FLIP_VERT";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Monitor::CapturingOption>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Monitor::CapturingOption & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("None") )
+            p = Monitor::CapturingOption::CAPTURING_NONE;
+          else if( v.compare("Always") )
+            p = Monitor::CapturingOption::CAPTURING_ALWAYS;
+          else if( v.compare("Ondemand") )
+            p = Monitor::CapturingOption::CAPTURING_ONDEMAND;
+          else
+            throw soci_error("Value not allowed for this type");
+      }
+      static void to_base(Monitor::CapturingOption & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Monitor::CapturingOption::CAPTURING_NONE:
+              v = "None";
+              ind = i_ok;
+              return;
+            case Monitor::CapturingOption::CAPTURING_ALWAYS:
+              v = "Always";
+              ind = i_ok;
+              return;
+            case Monitor::CapturingOption::CAPTURING_ONDEMAND:
+              v = "Ondemand";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Monitor::AnalysingOption>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Monitor::AnalysingOption & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("None") )
+            p = Monitor::AnalysingOption::ANALYSING_NONE;
+          else if( v.compare("Always") )
+            p = Monitor::AnalysingOption::ANALYSING_ALWAYS;
+          else
+            throw soci_error("Value not allowed for this type");
+      }
+      static void to_base(Monitor::AnalysingOption & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Monitor::AnalysingOption::ANALYSING_NONE:
+              v = "None";
+              ind = i_ok;
+              return;
+            case Monitor::AnalysingOption::ANALYSING_ALWAYS:
+              v = "Always";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Monitor::AnalysisSourceOption>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Monitor::AnalysisSourceOption & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("Primary") )
+            p = Monitor::AnalysisSourceOption::ANALYSIS_PRIMARY;
+          else if( v.compare("Secondary") )
+            p = Monitor::AnalysisSourceOption::ANALYSIS_SECONDARY;
+          else
+            throw soci_error("Null value not allowed for this type");
+      }
+      static void to_base(Monitor::AnalysisSourceOption & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Monitor::AnalysisSourceOption::ANALYSIS_PRIMARY:
+              v = "Primary";
+              ind = i_ok;
+              return;
+            case Monitor::AnalysisSourceOption::ANALYSIS_SECONDARY:
+              v = "Secondary";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Monitor::AnalysisImageOption>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Monitor::AnalysisImageOption & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("FullColour") )
+            p = Monitor::AnalysisImageOption::ANALYSISIMAGE_FULLCOLOUR;
+          else if( v.compare("YChannel") )
+            p = Monitor::AnalysisImageOption::ANALYSISIMAGE_YCHANNEL;
+          else
+            throw soci_error("Null value not allowed for this type");
+      }
+      static void to_base(Monitor::AnalysisImageOption & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Monitor::AnalysisImageOption::ANALYSISIMAGE_FULLCOLOUR:
+              v = "FullColour";
+              ind = i_ok;
+              return;
+            case Monitor::AnalysisImageOption::ANALYSISIMAGE_YCHANNEL:
+              v = "YChannel";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Monitor::RecordingOption>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Monitor::RecordingOption & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("None") )
+            p = Monitor::RecordingOption::RECORDING_NONE;
+          else if( v.compare("Always") )
+            p = Monitor::RecordingOption::RECORDING_ALWAYS;
+          else if( v.compare("OnMotion") )
+            p = Monitor::RecordingOption::RECORDING_ONMOTION;
+          else
+            throw soci_error("Null value not allowed for this type");
+      }
+      static void to_base(Monitor::RecordingOption & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Monitor::RecordingOption::RECORDING_NONE:
+              v = "None";
+              ind = i_ok;
+              return;
+            case Monitor::RecordingOption::RECORDING_ALWAYS:
+              v = "Always";
+              ind = i_ok;
+              return;
+            case Monitor::RecordingOption::RECORDING_ONMOTION:
+              v = "OnMotion";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Monitor::RecordingSourceOption>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Monitor::RecordingSourceOption & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("Primary") )
+            p = Monitor::RecordingSourceOption::RECORDING_PRIMARY;
+          else if( v.compare("Secondary") )
+            p = Monitor::RecordingSourceOption::RECORDING_SECONDARY;
+          else if( v.compare("Both") )
+            p = Monitor::RecordingSourceOption::RECORDING_BOTH;
+          else
+            throw soci_error("Null value not allowed for this type");
+      }
+      static void to_base(Monitor::RecordingSourceOption & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Monitor::RecordingSourceOption::RECORDING_PRIMARY:
+              v = "Primary";
+              ind = i_ok;
+              return;
+            case Monitor::RecordingSourceOption::RECORDING_SECONDARY:
+              v = "Secondary";
+              ind = i_ok;
+              return;
+            case Monitor::RecordingSourceOption::RECORDING_BOTH:
+              v = "Both";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Monitor::DecodingOption>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Monitor::DecodingOption & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("None") )
+            p = Monitor::DecodingOption::DECODING_NONE;
+          else if( v.compare("Ondemand") )
+            p = Monitor::DecodingOption::DECODING_ONDEMAND;
+          else if( v.compare("KeyFrames") )
+            p = Monitor::DecodingOption::DECODING_KEYFRAMES;
+          else if( v.compare("KeyFrames+Ondemand") )
+            p = Monitor::DecodingOption::DECODING_KEYFRAMESONDEMAND;
+          else if( v.compare("Always") )
+            p = Monitor::DecodingOption::DECODING_ALWAYS;
+          else
+            throw soci_error("Null value not allowed for this type");
+      }
+      static void to_base(Monitor::DecodingOption & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Monitor::DecodingOption::DECODING_NONE:
+              v = "None";
+              ind = i_ok;
+              return;
+            case Monitor::DecodingOption::DECODING_ONDEMAND:
+              v = "Ondemand";
+              ind = i_ok;
+              return;
+            case Monitor::DecodingOption::DECODING_KEYFRAMES:
+              v = "KeyFrames";
+              ind = i_ok;
+              return;
+            case Monitor::DecodingOption::DECODING_KEYFRAMESONDEMAND:
+              v = "KeyFrames+Ondemand";
+              ind = i_ok;
+              return;
+            case Monitor::DecodingOption::DECODING_ALWAYS:
+              v = "Always";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Monitor::VideoWriter>
+  {
+      typedef int base_type;
+      static void from_base(const int & v, indicator & ind, Monitor::VideoWriter & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          switch( v ) {
+            case 0: case 1: case 2:
+              p = (Monitor::VideoWriter)v;
+              ind = i_ok;
+              return;
+          }
+
+          throw soci_error("Null value not allowed for this type");
+      }
+      static void to_base(Monitor::VideoWriter & p, int & v, indicator & ind)
+      {
+          switch( p ) {
+            case Monitor::VideoWriter::DISABLED:
+              v = 0;
+              ind = i_ok;
+              return;
+            case Monitor::VideoWriter::ENCODE:
+              v = 1;
+              ind = i_ok;
+              return;
+            case Monitor::VideoWriter::PASSTHROUGH:
+              v = 2;
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Monitor::ImportanceType>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Monitor::ImportanceType & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("Normal") )
+            p = Monitor::ImportanceType::NORMAL;
+          else if( v.compare("Less") )
+            p = Monitor::ImportanceType::LESS;
+          else if( v.compare("Not") )
+            p = Monitor::ImportanceType::NOT;
+          else
+            throw soci_error("Null value not allowed for this type");
+      }
+      static void to_base(Monitor::ImportanceType & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Monitor::ImportanceType::NORMAL:
+              v = "Normal";
+              ind = i_ok;
+              return;
+            case Monitor::ImportanceType::LESS:
+              v = "Less";
+              ind = i_ok;
+              return;
+            case Monitor::ImportanceType::NOT:
+              v = "Not";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
       }
   };
 }

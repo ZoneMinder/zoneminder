@@ -113,19 +113,14 @@ void zmDbQuery::run(bool data_exchange)
   unsigned int errcode = 0;
   try {
     resultFlag = stmt->execute(!data_exchange);
-    Info("Query: [%s]", db->db.get_last_query().c_str());
   }
   catch (soci::mysql_soci_error const & e)
   {
-    Error("Database error [code %d]: %s", e.err_num_, e.what());
-    Error("Query: [%s]", db->db.get_last_query().c_str());
     errcode = e.err_num_;
     resultFlag = false;
   }
   catch (soci::soci_error const & e)
   {
-    Error("Database error [code -1]: %s", e.what());
-    Error("Query: [%s]", db->db.get_last_query().c_str());
     errcode = 0;
     resultFlag = false;
   }

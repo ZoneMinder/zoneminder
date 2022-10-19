@@ -749,23 +749,56 @@ public static function getStatuses() {
 
   function canEdit() {
     global $user;
-    return ( $user && ($user['Monitors'] == 'Edit') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
-  }
+    if ($u===null or $u['Id'] == $user['Id'])
+      return editableMonitor($this->{'Id'});
 
-  function canView() {
-    global $user;
-    if (!$user) {
-      # auth turned on and not logged in
+    $monitor_permission = ZM\Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    if ($monitor_permission and
+      ($monitor_permission->Permission() == 'None' or $monitor_permission->Permission() == 'View')) {
+      ZM\Debug("Can't edit monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
     }
-    if (!empty($user['MonitorIds']) ) {
-      # For the purposes of viewing, having specified monitors trumps the Monitor->canView setting.
-      if (in_array($this->{'Id'}, explode(',', $user['MonitorIds']))) {
-        return true;
+
+    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+
+    # If denied view in any group, then can't view it.
+    foreach ($group_permissions as $permission) {
+      if (!$permission->canEditMonitor($this->{'Id'})) {
+        ZM\Debug("Can't edit monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+        return false;
       }
     }
-    return ($user['Monitors'] != 'None');
+    return ($u['Monitors'] == 'Edit');
   }
+
+  function canView($u=null) {
+    global $user;
+    if ($u===null or $u['Id'] == $user['Id'])
+      return visibleMonitor($this->{'Id'});
+
+    $monitor_permission = ZM\Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    if ($monitor_permission and ($monitor_permission->Permission() == 'None')) {
+      ZM\Debug("Can't view monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
+      return false;
+    }
+
+    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+
+    # If denied view in any group, then can't view it.
+    $group_permission_value = 'Inherit';
+    foreach ($group_permissions as $permission) {
+      $value = $pmerssion->MonitorPermission($mid);
+      if ($value == 'None';
+        ZM\Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+        return false;
+      }
+      if ($value == 'Edit' or $value == 'View') {
+        $group_permission_value = $value;
+      }
+    }
+  if ($group_permission_value != 'Inherit') return true;
+    return ($u['Monitors'] != 'None');
+  } # end function canView
 
   function AlarmCommand($cmd) {
     if ((!defined('ZM_SERVER_ID')) or (property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}))) {

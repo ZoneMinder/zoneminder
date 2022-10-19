@@ -384,8 +384,23 @@ CREATE TABLE `Groups_Permissions` (
     PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
-CREATE INDEX `Groups_Permissions_GroupId_idx` ON `Groups_Permissionss` (`GroupId`);
+CREATE UNIQUE INDEX `Groups_Permissions_GroupId_UserId_idx` ON `Groups_Permissions` (`GroupId`,`UserId`);
 CREATE INDEX `Groups_Permissions_UserId_idx` ON `Groups_Permissions` (`UserId`);
+
+DROP TABLE IF EXISTS `Monitors_Permissions`;
+CREATE TABLE `Monitors_Permissions` (
+    `Id` INT(10) unsigned NOT NULL auto_increment,
+    `MonitorId` int(10) unsigned NOT NULL,
+    FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE,
+    `UserId` int(10) unsigned NOT NULL,
+    FOREIGN KEY (`UserId`) REFERENCES `Users` (`Id`) ON DELETE CASCADE,
+    `Permission` enum('Inherit','None','View','Edit') NOT NULL default 'Inherit',
+    PRIMARY KEY (`Id`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+CREATE UNIQUE INDEX `Monitors_Permissions_MonitorId_UserId_idx` ON `Monitors_Permissions` (`MonitorId`,`UserId`);
+CREATE INDEX `Monitors_Permissions_UserId_idx` ON `Monitors_Permissions` (`UserId`);
+
 --
 -- Table structure for table `Logs`
 --

@@ -103,7 +103,7 @@ class ZM_Object {
             $fields[] = '`'.$field.'` IN ('.implode(',', array_map($func, $value)). ')';
             $values += $value;
           } else {
-            $fields[] = '`'.$field'` IN (select top 0 0)'; # evaluates to false
+            $fields[] = 'FALSE /*`'.$field.'` IN () */'; # evaluates to false
           }
         } else {
           $fields[] = '`'.$field.'`=?';

@@ -788,7 +788,7 @@ public static function getStatuses() {
     $group_permission_value = 'Inherit';
     foreach ($group_permissions as $permission) {
       $value = $pmerssion->MonitorPermission($mid);
-      if ($value == 'None';
+      if ($value == 'None') {
         ZM\Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
         return false;
       }

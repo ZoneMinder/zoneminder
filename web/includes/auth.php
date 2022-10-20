@@ -326,12 +326,7 @@ if (ZM_OPT_USE_AUTH) {
 
     if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
       $user = getAuthUser($_REQUEST['auth']);
-    } else if (
-      ! (
-        empty($_REQUEST['username']) or
-        empty($_REQUEST['password']) or
-      (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA)
-    ) ) {
+    } else if (!(empty($_REQUEST['username']) or empty($_REQUEST['password']))) {
       $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
       if (!$ret[0]) {
         ZM\Error($ret[1]);
@@ -339,6 +334,68 @@ if (ZM_OPT_USE_AUTH) {
         return;
       }
       $user = $ret[0];
+
+      if (
+        defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA
+        && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY
+        && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY') && ZM_OPT_GOOG_RECAPTCHA_SITEKEY
+      ) {
+        if ( !isset($_REQUEST['g-recaptcha-response']) ) {
+          ZM\Error('reCaptcha authentication failed. No g-recpatcha-response in REQUEST: ');
+          unset($user); // unset should be ok here because we aren't in a function
+          return;
+        }
+        $url = 'https://www.google.com/recaptcha/api/siteverify';
+        $fields = array (
+          'secret'    => ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,
+          'response'  => $_REQUEST['g-recaptcha-response'],
+          'remoteip'  => $_SERVER['REMOTE_ADDR']
+        );
+        $res = do_post_request($url, http_build_query($fields));
+        $responseData = json_decode($res, true);
+        // credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
+        // if recaptcha resulted in error, we might have to deny login
+        if ( isset($responseData['success']) && ($responseData['success'] == false) ) {
+          // PP - before we deny auth, let's make sure the error was not 'invalid secret'
+          // because that means the user did not configure the secret key correctly
+          // in this case, we prefer to let him login in and display a message to correct
+          // the key. Unfortunately, there is no way to check for invalid site key in code
+          // as it produces the same error as when you don't answer a recaptcha
+          if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
+            if ( !in_array('invalid-input-secret', $responseData['error-codes']) ) {
+              ZM\Error('reCaptcha authentication failed. response was: ' . print_r($responseData['error-codes'],true));
+              unset($user); // unset should be ok here because we aren't in a function
+              return;
+            } else {
+              ZM\Error('Invalid recaptcha secret detected');
+            }
+          }
+        } // end if success==false
+      } // end if using reCaptcha
+
+      zm_session_clear(); # Closes session
+      zm_session_regenerate_id(); # starts session
+
+      $username = $_REQUEST['username'];
+      $password = $_REQUEST['password'];
+
+      ZM\Info("Login successful for user \"$username\"");
+      $password_type = password_type($user['Password']);
+
+      if ( $password_type == 'mysql' or $password_type == 'mysql+bcrypt' ) {
+        ZM\Info('Migrating password, if possible for future logins');
+        migrateHash($username, $password);
+      }
+
+      if (ZM_AUTH_TYPE == 'builtin') {
+        $_SESSION['passwordHash'] = $user['Password'];
+      }
+
+      $_SESSION['username'] = $user['Username'];
+      if (ZM_AUTH_RELAY == 'plain') {
+        // Need to save this in session, can't use the value in User because it is hashed
+        $_SESSION['password'] = $_REQUEST['password'];
+      }
     } else if ((ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER'])) {
       if (ZM_CASE_INSENSITIVE_USERNAMES) {
         $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';

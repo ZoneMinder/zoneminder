@@ -239,7 +239,10 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 } else {
   $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
   if ( canStreamNative() ) {
-    outputImageStream('evtStream', $streamSrc, '100%', 'auto', validHtmlStr($Event->Name()));
+    outputImageStream('evtStream', $streamSrc,
+      ($scale ? reScale($Event->Width(), $scale).'px' : '100%'),
+      ($scale ? reScale($Event->Height(), $scale).'px' : 'auto'),
+      validHtmlStr($Event->Name()));
   } else {
     outputHelperStream('evtStream', $streamSrc, '100%', '100%');
   }

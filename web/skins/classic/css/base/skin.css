@@ -410,7 +410,8 @@ ul.tabList li.active a {
     white-space: nowrap;
 }
 
-div.clear {
+div.clear,
+br.clear {
     clear: both;
 }
 

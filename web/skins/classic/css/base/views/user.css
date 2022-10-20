@@ -3,9 +3,16 @@
   float: left;
 }
 
-.Groups .name {
+#GroupsPermissions,
+#MonitorsPermissions {
+  clear:both;
+}
+
+.Groups .name,
+.Monitors .name {
   min-width: 200px;
 }
-.Groups .permission {
+.Groups .permission,
+.Monitors .permission {
   min-width: 400px;
 }

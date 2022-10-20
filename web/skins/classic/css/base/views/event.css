@@ -12,18 +12,20 @@
 
 #alarmCues,
 .alarmCue {
+  /*
   position: absolute;
+  */
   background: none;
 
   /*
     background-color: #222222;
     */
-    height: 16px;
-    text-align: left;
-    margin: 0 auto 0 auto;
-    z-index: 10;
-    border: none;
-    border-right: 1px solid black;
+  height: 16px;
+  text-align: left;
+  margin: 0;
+  z-index: 10;
+  border: none;
+  border-right: 1px solid black;
 }
 
 #alarmCues span {
@@ -45,9 +47,9 @@
 }
 
 span.noneCue {
-    background-color: none;
-    z-index: 9;
-    opacity: 0.33;
+  background: none;
+  z-index: 9;
+  opacity: 0.33;
   border-left: none;
 }
 

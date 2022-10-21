@@ -470,7 +470,7 @@ function htmlOptions($options, $values) {
       $text = $option;
     }
     $selected = false;
-    if ($values) {
+    if ($values !== null) {
       $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
       if ( !$has_selected ) 
         $has_selected = $selected;

@@ -1189,7 +1189,6 @@ function initPage() {
     }
     $j('#deleteConfirm').modal('show');
   });
-
 } // end initPage
 
 document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);

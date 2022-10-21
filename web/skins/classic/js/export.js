@@ -11,12 +11,11 @@ function startDownload( exportFile ) {
 function exportResponse(data, responseText) {
   console.log('exportResponse data: ' + JSON.stringify(data));
 
-  var generated = (data.result=='Ok') ? 1 : 0;
-  //var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
-  var exportFile = data.exportFile;
+  const generated = (data.result=='Ok') ? 1 : 0;
 
   $j('#exportProgress').removeClass( 'text-warning' );
-  if ( generated ) {
+  if (generated) {
+    const exportFile = data.exportFile;
     $j('#downloadLink').text('Download');
     $j('#downloadLink').attr("href", thisUrl + exportFile);
     $j('#exportProgress').addClass( 'text-success' );

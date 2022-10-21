@@ -957,16 +957,6 @@ function xhtmlFooter() {
   'js/Server.js',
 ), true );
 ?>
-<?php
-  if ($view == 'event' || $view == 'video') {
-?>
-  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
-  <script src="./js/videojs.zoomrotate.js"></script>
-<?php
-  }
-?>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
 ?>
@@ -991,10 +981,6 @@ function xhtmlFooter() {
 ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
   <script src="<?php echo cache_bust('js/logger.js')?>"></script>
-<?php
-  if ( $basename == 'monitor' ) {
-    echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
-  } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

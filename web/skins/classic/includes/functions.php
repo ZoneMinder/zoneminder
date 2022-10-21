@@ -971,6 +971,7 @@ function xhtmlFooter() {
   }
 ?>
   </script>
+  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
   if ( $viewJsFile ) {
 ?>
@@ -980,7 +981,6 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

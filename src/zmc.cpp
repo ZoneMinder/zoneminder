@@ -251,8 +251,7 @@ int main(int argc, char *argv[]) {
       monitor->SetStartupTime(now);
       monitor->SetHeartbeatTime(now);
 
-      insertRunning.reset();
-      insertRunning.bind<unsigned int>( "id", monitor->Id() );
+      insertRunning.bind<long long>( "id", monitor->Id() );
       insertRunning.insert();
 
       if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
@@ -281,8 +280,7 @@ int main(int argc, char *argv[]) {
       }
       if (zm_terminate) break;
 
-      insertConnected.reset();
-      insertConnected.bind<unsigned int>( "id", monitor->Id() );
+      insertConnected.bind<long long>( "id", monitor->Id() );
       insertConnected.insert();
     }  // end foreach monitor
 
@@ -373,8 +371,7 @@ int main(int argc, char *argv[]) {
   }  // end while ! zm_terminate outer connection loop
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
-    insertNotrunning.reset();
-    insertNotrunning.bind<unsigned int>( "id", monitor->Id() );
+    insertNotrunning.bind<long long>( "id", monitor->Id() );
     insertNotrunning.insert();
   }
   monitors.clear();

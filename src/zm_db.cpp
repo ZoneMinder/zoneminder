@@ -22,6 +22,8 @@
 #include "zm_logger.h"
 #include "zm_signal.h"
 #include <cstdlib>
+#include <chrono>
+#include <thread>
 
 zmDb *database = nullptr;
 
@@ -45,7 +47,6 @@ bool zmDbConnect()
 
 void zmDbClose()
 {
-  // std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected)
     return;
 
@@ -64,6 +65,28 @@ zmDb::zmDb() {}
 
 zmDb::~zmDb() {}
 
+bool zmDb::connected() {
+  std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+  if( std::chrono::duration_cast<std::chrono::seconds>(now - lastConnectionCheck).count() > 10 ) {
+    lastConnectionCheck = now;
+    if( !db.is_connected() ) {
+      db.reconnect();
+      return db.is_connected();
+    }
+  }
+  return true;
+}
+
+void zmDb::lock() {
+  while( !db_mutex.try_lock() ) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+}
+
+void zmDb::unlock() {
+  db_mutex.unlock();
+}
+
 // --- Query handling --- //
 zmDbQuery::zmDbQuery(const zmDbQueryID& queryId, bool exitError /* = false */)
 {
@@ -79,14 +102,13 @@ zmDbQuery::zmDbQuery(const zmDbQueryID& queryId, bool exitError /* = false */)
 
 zmDbQuery::~zmDbQuery()
 {
-  reset();
-
   if( executed ) {
     for( auto f : deferred ) {
       f();
     }
   }
 
+  reset();
   stmt = nullptr;
 }
 
@@ -95,8 +117,8 @@ void zmDbQuery::run(bool data_exchange)
   if (stmt == nullptr || result != nullptr)
     return;
 
-  std::unique_lock<std::mutex>(db->db_mutex);
   executed = true;
+  db->lock();
 
   if (data_exchange)
   {
@@ -165,6 +187,11 @@ void zmDbQuery::reset()
   result = nullptr;
   result_iter =  nullptr;
   result_iter_end = nullptr;
+
+  if( executed ) {
+    executed = false;
+    db->unlock();
+  }
 }
 
 void zmDbQuery::fetchOne()
@@ -185,7 +212,9 @@ uint64_t zmDbQuery::insert()
 
   run(false);
 
-  return db->lastInsertID(id);
+  uint64_t result = db->lastInsertID(id);
+  reset();
+  return result;
 }
 
 uint64_t zmDbQuery::update()
@@ -195,7 +224,9 @@ uint64_t zmDbQuery::update()
 
   run(false);
 
-  return stmt->get_affected_rows();
+  uint64_t result = stmt->get_affected_rows();
+  reset();
+  return result;
 }
 
 int zmDbQuery::affectedRows()

@@ -521,10 +521,10 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     if (zmDbIsConnected()) {
       std::string syslogString = {syslogStart, syslogEnd};
 
-      zmDecimal decimalTime( now_sec, now_frac.count() );
+      zmDecimal* decimalTime = new zmDecimal( now_sec, now_frac.count() );
 
       zmDbQuery logQuery = zmDbQuery( INSERT_LOGS );
-      logQuery.bind( "time_key", decimalTime );
+      logQuery.bind( "time_key", *decimalTime );
       logQuery.bind( "component", mId );
       logQuery.bind( "server_id", staticConfig.SERVER_ID );
       logQuery.bind( "pid", tid );
@@ -533,7 +533,9 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
       logQuery.bind( "message", syslogString );
       logQuery.bind( "file", file );
       logQuery.bind( "line", line );
+
       logQuery.insert();
+      delete decimalTime;
 
     } else {
       puts("Db is closed");

@@ -787,10 +787,10 @@ int main(int argc, char *argv[]) {
 
     for (int i=0; query.next(); i++) {
 
-      int monitor_id = query.get<int>("Id");
+      int monitor_id = query.get<long long>("Id");
       if (mon_id and (monitor_id != mon_id)) continue;
       if (!user || user->canAccess(monitor_id)) {
-        int monitor_capturing = query.get<int>("Capturing");
+        Monitor::CapturingOption monitor_capturing = query.get<Monitor::CapturingOption>("Capturing");
         if (monitor_capturing > Monitor::CAPTURING_NONE) {
           std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
           if (monitor && monitor->connect()) {

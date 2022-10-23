@@ -39,8 +39,9 @@
 class zmDb
 {
 protected:
-  std::mutex db_mutex;
+  std::recursive_mutex db_mutex;
   soci::session db;
+  std::chrono::steady_clock::time_point lastConnectionCheck;
   std::unordered_map<int, soci::statement*> mapStatements;
   std::unordered_map<int, std::string> autoIncrementTable;
 
@@ -48,10 +49,11 @@ public:
   zmDb();
   virtual ~zmDb();
 
-  bool connected() {
-    return db.is_connected();
-  }
   virtual uint64_t lastInsertID(const zmDbQueryID&) = 0;
+
+  virtual bool connected();
+  virtual void lock();
+  virtual void unlock();
 
   friend class zmDbQuery;
 };

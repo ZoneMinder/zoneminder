@@ -150,15 +150,15 @@ template<> struct type_conversion<EventStream::EventData*>
       );
       event_data->video_file = v.get<std::string>("DefaultVideo");
       std::string scheme_str = v.get<std::string>("Scheme");
-      if ( scheme_str == "Deep" ) {
+      if ( scheme_str.compare("Deep") == 0 ) {
         event_data->scheme = Storage::DEEP;
-      } else if ( scheme_str == "Medium" ) {
+      } else if ( scheme_str.compare("Medium") == 0 ) {
         event_data->scheme = Storage::MEDIUM;
       } else {
         event_data->scheme = Storage::SHALLOW;
       }
       event_data->SaveJPEGs = v.get("SaveJPEGs", 0);
-      event_data->Orientation = (Monitor::Orientation)(v.get("Orientation", 0));
+      event_data->Orientation = v.get<Monitor::Orientation>("Orientation");
     }
     static void to_base(const EventStream::EventData* event_data, values & v, indicator & ind)
     {

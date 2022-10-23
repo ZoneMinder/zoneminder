@@ -117,6 +117,8 @@ public:
       integerPart(0), fractionalPart(0), partsValuesValid( false ),
       fullValue(fullValue), fullValueValid( true ) {};
 
+  ~zmDecimal() {}
+
   double toValue() {
     if( fullValueValid )
       return fullValue;

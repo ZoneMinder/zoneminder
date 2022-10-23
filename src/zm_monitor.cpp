@@ -315,7 +315,7 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   id = dbrow.get<long long>("Id");
   name = dbrow.get<std::string>("Name");
-  id = dbrow.has("ServerId") ? dbrow.get<long long>("ServerId") : 0;
+  server_id = dbrow.has("ServerId") ? dbrow.get<long long>("ServerId") : 0;
 
   storage_id = dbrow.get<int>("StorageId");
   delete storage;

@@ -858,17 +858,17 @@ namespace soci {
           if (ind == i_null)
               throw soci_error("Null value not allowed for this type");
 
-          if( v.compare("ROTATE_0") )
+          if( v.compare("ROTATE_0") == 0 )
             p = Monitor::Orientation::ROTATE_0;
-          else if( v.compare("ROTATE_90") )
+          else if( v.compare("ROTATE_90") == 0 )
             p = Monitor::Orientation::ROTATE_90;
-          else if( v.compare("ROTATE_180") )
+          else if( v.compare("ROTATE_180") == 0 )
             p = Monitor::Orientation::ROTATE_180;
-          else if( v.compare("ROTATE_270") )
+          else if( v.compare("ROTATE_270") == 0 )
             p = Monitor::Orientation::ROTATE_270;
-          else if( v.compare("FLIP_HORI") )
+          else if( v.compare("FLIP_HORI") == 0 )
             p = Monitor::Orientation::FLIP_HORI;
-          else if( v.compare("FLIP_VERT") )
+          else if( v.compare("FLIP_VERT") == 0 )
             p = Monitor::Orientation::FLIP_VERT;
           else
             throw soci_error("Value not allowed for this type");
@@ -913,11 +913,11 @@ namespace soci {
           if (ind == i_null)
               throw soci_error("Null value not allowed for this type");
 
-          if( v.compare("None") )
+          if( v.compare("None") == 0 )
             p = Monitor::CapturingOption::CAPTURING_NONE;
-          else if( v.compare("Always") )
+          else if( v.compare("Always") == 0 )
             p = Monitor::CapturingOption::CAPTURING_ALWAYS;
-          else if( v.compare("Ondemand") )
+          else if( v.compare("Ondemand") == 0 )
             p = Monitor::CapturingOption::CAPTURING_ONDEMAND;
           else
             throw soci_error("Value not allowed for this type");
@@ -950,9 +950,9 @@ namespace soci {
           if (ind == i_null)
               throw soci_error("Null value not allowed for this type");
 
-          if( v.compare("None") )
+          if( v.compare("None") == 0 )
             p = Monitor::AnalysingOption::ANALYSING_NONE;
-          else if( v.compare("Always") )
+          else if( v.compare("Always") == 0 )
             p = Monitor::AnalysingOption::ANALYSING_ALWAYS;
           else
             throw soci_error("Value not allowed for this type");
@@ -981,9 +981,9 @@ namespace soci {
           if (ind == i_null)
               throw soci_error("Null value not allowed for this type");
 
-          if( v.compare("Primary") )
+          if( v.compare("Primary") == 0 )
             p = Monitor::AnalysisSourceOption::ANALYSIS_PRIMARY;
-          else if( v.compare("Secondary") )
+          else if( v.compare("Secondary") == 0 )
             p = Monitor::AnalysisSourceOption::ANALYSIS_SECONDARY;
           else
             throw soci_error("Null value not allowed for this type");
@@ -1012,9 +1012,9 @@ namespace soci {
           if (ind == i_null)
               throw soci_error("Null value not allowed for this type");
 
-          if( v.compare("FullColour") )
+          if( v.compare("FullColour") == 0 )
             p = Monitor::AnalysisImageOption::ANALYSISIMAGE_FULLCOLOUR;
-          else if( v.compare("YChannel") )
+          else if( v.compare("YChannel") == 0 )
             p = Monitor::AnalysisImageOption::ANALYSISIMAGE_YCHANNEL;
           else
             throw soci_error("Null value not allowed for this type");
@@ -1043,11 +1043,11 @@ namespace soci {
           if (ind == i_null)
               throw soci_error("Null value not allowed for this type");
 
-          if( v.compare("None") )
+          if( v.compare("None") == 0 )
             p = Monitor::RecordingOption::RECORDING_NONE;
-          else if( v.compare("Always") )
+          else if( v.compare("Always") == 0 )
             p = Monitor::RecordingOption::RECORDING_ALWAYS;
-          else if( v.compare("OnMotion") )
+          else if( v.compare("OnMotion") == 0 )
             p = Monitor::RecordingOption::RECORDING_ONMOTION;
           else
             throw soci_error("Null value not allowed for this type");
@@ -1080,11 +1080,11 @@ namespace soci {
           if (ind == i_null)
               throw soci_error("Null value not allowed for this type");
 
-          if( v.compare("Primary") )
+          if( v.compare("Primary") == 0 )
             p = Monitor::RecordingSourceOption::RECORDING_PRIMARY;
-          else if( v.compare("Secondary") )
+          else if( v.compare("Secondary") == 0 )
             p = Monitor::RecordingSourceOption::RECORDING_SECONDARY;
-          else if( v.compare("Both") )
+          else if( v.compare("Both") == 0 )
             p = Monitor::RecordingSourceOption::RECORDING_BOTH;
           else
             throw soci_error("Null value not allowed for this type");
@@ -1117,15 +1117,15 @@ namespace soci {
           if (ind == i_null)
               throw soci_error("Null value not allowed for this type");
 
-          if( v.compare("None") )
+          if( v.compare("None") == 0 )
             p = Monitor::DecodingOption::DECODING_NONE;
-          else if( v.compare("Ondemand") )
+          else if( v.compare("Ondemand") == 0 )
             p = Monitor::DecodingOption::DECODING_ONDEMAND;
-          else if( v.compare("KeyFrames") )
+          else if( v.compare("KeyFrames") == 0 )
             p = Monitor::DecodingOption::DECODING_KEYFRAMES;
-          else if( v.compare("KeyFrames+Ondemand") )
+          else if( v.compare("KeyFrames+Ondemand") == 0 )
             p = Monitor::DecodingOption::DECODING_KEYFRAMESONDEMAND;
-          else if( v.compare("Always") )
+          else if( v.compare("Always") == 0 )
             p = Monitor::DecodingOption::DECODING_ALWAYS;
           else
             throw soci_error("Null value not allowed for this type");
@@ -1179,15 +1179,9 @@ namespace soci {
       {
           switch( p ) {
             case Monitor::VideoWriter::DISABLED:
-              v = 0;
-              ind = i_ok;
-              return;
             case Monitor::VideoWriter::ENCODE:
-              v = 1;
-              ind = i_ok;
-              return;
             case Monitor::VideoWriter::PASSTHROUGH:
-              v = 2;
+              v = (int)p;
               ind = i_ok;
               return;
           }
@@ -1203,11 +1197,11 @@ namespace soci {
           if (ind == i_null)
               throw soci_error("Null value not allowed for this type");
 
-          if( v.compare("Normal") )
+          if( v.compare("Normal") == 0 )
             p = Monitor::ImportanceType::NORMAL;
-          else if( v.compare("Less") )
+          else if( v.compare("Less") == 0 )
             p = Monitor::ImportanceType::LESS;
-          else if( v.compare("Not") )
+          else if( v.compare("Not") == 0 )
             p = Monitor::ImportanceType::NOT;
           else
             throw soci_error("Null value not allowed for this type");

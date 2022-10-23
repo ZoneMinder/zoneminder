@@ -94,7 +94,7 @@ int RtspThread::requestPorts() {
     int position = 0;
     if ( nMonitors ) {
       for ( int i = 0; query.next(); i++ ) {
-        int id = query.get<int>("Id");
+        int id = query.get<long long>("Id");
         if ( mId == id ) {
           position = i;
           break;

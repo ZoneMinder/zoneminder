@@ -841,23 +841,23 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
 
   zones.reserve(n_zones);
   for (int i = 0; query.next(); i++) {
-    int Id = query.get<int>("Id");
+    int Id = query.get<unsigned int>("Id");
     std::string Name = query.get<std::string>("Name");
-    ZoneType Type = static_cast<ZoneType>(query.get<int>("Type"));
-    std::string Units = query.get<std::string>("Units");
+    ZoneType Type = query.get<ZoneType>("Type");
+    Zone::Units Units = query.get<Zone::Units>("Units");
     std::string Coords = query.get<std::string>("Coords");
-    int AlarmRGB = query.has("AlarmRGB") ? query.get<int>("AlarmRGB") : 0;
-    Zone::CheckMethod CheckMethod = static_cast<Zone::CheckMethod>(query.get<int>("CheckMethod"));
+    int AlarmRGB = query.has("AlarmRGB") ? query.get<unsigned int>("AlarmRGB") : 0;
+    Zone::CheckMethod CheckMethod = query.get<Zone::CheckMethod>("CheckMethod");
     int MinPixelThreshold = query.has("MinPixelThreshold") ? query.get<int>("MinPixelThreshold") : 0;
     int MaxPixelThreshold = query.has("MaxPixelThreshold") ? query.get<int>("MaxPixelThreshold") : 0;
-    int MinAlarmPixels = query.has("MinAlarmPixels") ? query.get<int>("MinAlarmPixels") : 0;
-    int MaxAlarmPixels = query.has("MaxAlarmPixels") ? query.get<int>("MaxAlarmPixels") : 0;
+    int MinAlarmPixels = query.has("MinAlarmPixels") ? query.get<unsigned int>("MinAlarmPixels") : 0;
+    int MaxAlarmPixels = query.has("MaxAlarmPixels") ? query.get<unsigned int>("MaxAlarmPixels") : 0;
     int FilterX = query.has("FilterX") ? query.get<int>("FilterX") : 0;
     int FilterY = query.has("FilterY") ? query.get<int>("FilterY") : 0;
-    int MinFilterPixels = query.has("MinFilterPixels") ? query.get<int>("MinFilterPixels") : 0;
-    int MaxFilterPixels = query.has("MaxFilterPixels") ? query.get<int>("MaxFilterPixels") : 0;
-    int MinBlobPixels = query.has("MinBlobPixels") ? query.get<int>("MinBlobPixels") : 0;
-    int MaxBlobPixels = query.has("MaxBlobPixels") ? query.get<int>("MaxBlobPixels") : 0;
+    int MinFilterPixels = query.has("MinFilterPixels") ? query.get<unsigned int>("MinFilterPixels") : 0;
+    int MaxFilterPixels = query.has("MaxFilterPixels") ? query.get<unsigned int>("MaxFilterPixels") : 0;
+    int MinBlobPixels = query.has("MinBlobPixels") ? query.get<unsigned int>("MinBlobPixels") : 0;
+    int MaxBlobPixels = query.has("MaxBlobPixels") ? query.get<unsigned int>("MaxBlobPixels") : 0;
     int MinBlobs = query.has("MinBlobs") ? query.get<int>("MinBlobs") : 0;
     int MaxBlobs = query.has("MaxBlobs") ? query.get<int>("MaxBlobs") : 0;
     int OverloadFrames = query.has("OverloadFrames") ? query.get<int>("OverloadFrames") : 0;
@@ -902,7 +902,7 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
       }
     }
 
-    if ( false && !strcmp( Units.c_str(), "Percent" ) ) {
+    if ( false && Units != Zone::Units::PERCENT ) {
       MinAlarmPixels = (MinAlarmPixels*polygon.Area())/100;
       MaxAlarmPixels = (MaxAlarmPixels*polygon.Area())/100;
       MinFilterPixels = (MinFilterPixels*polygon.Area())/100;

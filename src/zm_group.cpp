@@ -52,8 +52,8 @@ Group::Group(unsigned int p_id) {
       Error("Unable to load group for id %u", p_id);
 
     } else {
-      id = groupQuery.get<unsigned int>("Id");
-      parent_id = groupQuery.has("ParentId") ? groupQuery.get<unsigned int>("ParentId") : 0;
+      id = groupQuery.get<long long>("Id");
+      parent_id = groupQuery.has("ParentId") ? groupQuery.get<long long>("ParentId") : 0;
       strncpy(name, groupQuery.get<std::string>("Name").c_str(), sizeof(name) - 1);
       Debug(1, "Loaded Group area %d '%s'", id, this->Name());
     }

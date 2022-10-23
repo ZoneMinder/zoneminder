@@ -96,7 +96,7 @@ namespace soci {
       typedef values base_type;
       static void from_base(values const v, indicator ind, ZoneStats & p)
       {
-          p.zone_id_ = v.get<int>("zone_id");
+          p.zone_id_ = v.get<long long>("zone_id");
           p.pixel_diff_ = v.get<int>("pixel_diff");
           p.alarm_pixels_ = v.get<unsigned int>("alarm_pixels");
           p.alarm_filter_pixels_ = v.get<int>("filter_pixels");
@@ -105,7 +105,7 @@ namespace soci {
           p.min_blob_size_ = v.get<int>("min_blobsize");
           p.max_blob_size_ = v.get<int>("max_blobsize");
           p.alarm_box_ = Box( Vector2(v.get<int32>("minx"), v.get<int32>("miny")), Vector2(v.get<int32>("maxx"), v.get<int32>("maxy")) );
-          p.score_ = v.get<unsigned int>("score");
+          p.score_ = v.get<int>("score");
       }
       static void to_base(const ZoneStats & p, values & v, indicator & ind)
       {

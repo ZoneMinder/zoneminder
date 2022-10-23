@@ -100,7 +100,7 @@ Event::Event(
   {
     zmDbQuery q = zmDbQuery( SELECT_ALL_ACTIVE_STATES_ID );
     q.fetchOne();
-    state_id = q.get<int>( "Id" );
+    state_id = q.get<long long>( "Id" );
   }
 
   // Copy it in case opening the mp4 doesn't work we can set it to another value

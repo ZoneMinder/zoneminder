@@ -33,15 +33,15 @@ User::User() {
 }
 
 User::User(zmDbQuery &dbrow) {
-  id = dbrow.get<int>("Id");
+  id = dbrow.get<long long>("Id");
   strncpy(username, dbrow.get<std::string>("Username").c_str(), sizeof(username)-1);
   strncpy(password, dbrow.get<std::string>("Password").c_str(), sizeof(password)-1);
   enabled = (dbrow.get<int>("Enabled") == 1);
-  stream = (Permission)dbrow.get<int>("Stream");
-  events = (Permission)dbrow.get<int>("Events");
-  control = (Permission)dbrow.get<int>("Control");
-  monitors = (Permission)dbrow.get<int>("Monitors");
-  system = (Permission)dbrow.get<int>("System");
+  stream = dbrow.get<Permission>("Stream");
+  events = dbrow.get<Permission>("Events");
+  control = dbrow.get<Permission>("Control");
+  monitors = dbrow.get<Permission>("Monitors");
+  system = dbrow.get<Permission>("System");
 
   if( !dbrow.has("MonitorIds") )
     return;

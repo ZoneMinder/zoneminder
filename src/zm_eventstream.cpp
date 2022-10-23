@@ -191,7 +191,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
 
   while (framesQuery.next()) {
 
-    int id = framesQuery.get<int>("FrameId");
+    int id = framesQuery.get<long long>("FrameId");
 
     zmDecimal dec = framesQuery.get<zmDecimal>("Delta");
 

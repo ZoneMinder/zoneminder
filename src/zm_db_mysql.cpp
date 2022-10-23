@@ -96,9 +96,16 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
             
         } else {
             bool reconnect = true;
-            if (mysql_options(concreteDb->conn_, MYSQL_OPT_RECONNECT, &reconnect)) {
-                Error("Can't set database auto reconnect option: %s", mysql_error(concreteDb->conn_));
-            }
+            unsigned int OPT_NONBLOCK = 1;
+            unsigned int CONNECT_TIMEOUT = 2;
+            unsigned int READ_TIMEOUT = 2;
+            unsigned int WRITE_TIMEOUT = 2;
+  
+            mysql_options(concreteDb->conn_, MYSQL_OPT_RECONNECT, &reconnect);
+            mysql_options(concreteDb->conn_, MYSQL_OPT_NONBLOCK, &OPT_NONBLOCK);
+            mysql_options(concreteDb->conn_, MYSQL_OPT_CONNECT_TIMEOUT, &CONNECT_TIMEOUT);
+            mysql_options(concreteDb->conn_, MYSQL_OPT_READ_TIMEOUT, &READ_TIMEOUT);
+            mysql_options(concreteDb->conn_, MYSQL_OPT_WRITE_TIMEOUT, &WRITE_TIMEOUT);
 
             if ( mysql_query(concreteDb->conn_, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
                 Error("Can't set isolation level: %s", mysql_error(concreteDb->conn_));

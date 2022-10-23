@@ -343,12 +343,14 @@ protected:
     std::string stream_key;
     std::string rtsp_username;
     std::string rtsp_password;
+    TimePoint   rtsp_auth_time;
     std::string rtsp_path;
     std::string profile_override;
 
   public:
     explicit JanusManager(Monitor *parent_);
     ~JanusManager();
+    void load_from_monitor();
     int add_to_janus();
     int check_janus();
     int remove_from_janus();
@@ -377,6 +379,7 @@ protected:
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
   bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
   std::string     janus_pin;  // For security, we generate a pin required to view the stream.
+  int             janus_rtsp_user;          // User Id of a user to use for auth to RTSP_Server
 
   std::string protocol;
   std::string method;
@@ -806,6 +809,7 @@ public:
   bool Decode();
   bool Poll();
   void DumpImage( Image *dump_image ) const;
+  std::string Substitute(const std::string &format, SystemTimePoint ts_time) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   Event *openEvent(
       const std::shared_ptr<ZMPacket> &snap,

@@ -105,7 +105,7 @@ if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
     $eventsSql .= $filter->sql();
   }
   $eventsSql .= " ORDER BY $sortColumn $sortOrder";
-  if ( isset($_REQUEST['filter']['Query']['limit']) )
+  if ( isset($_REQUEST['filter']['Query']['limit']) and validInt($_REQUEST['filter']['Query']['limit']))
     $eventsSql .= ' LIMIT '.validInt($_REQUEST['filter']['Query']['limit']);
 } # end if filter
 

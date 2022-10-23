@@ -158,7 +158,7 @@ function expr_to_ui(expr, container) {
   select.append('<option value="">Add MonitorLink</option>');
   for (monitor_id in monitors) {
     const monitor = monitors[monitor_id];
-    //if (!array_search(monitor.Id, used_monitorlinks))     
+    //if (!array_search(monitor.Id, used_monitorlinks))
     select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
     for ( zone_id in zones ) {
       const zone = zones[zone_id];

@@ -71,18 +71,6 @@ function initPage() {
     window.location.reload(true);
   });
 
-  // Manage the EDIT button
-  $j('#saveBtn').prop('disabled', !(canEdit.Events || (snapshot.CreatedBy == user.Id) ));
-  bindButton('#saveBtn', 'click', null, function onSaveClick(evt) {
-    /*
-    if ( ! canEdit.Events ) {
-      enoperm();
-      return;
-    }
-    */
-    evt.target.form.submit();
-  });
-
   // Manage the EXPORT button
   $j('#downloadBtn').prop('disabled', !canView.Snapshots);
   bindButton('#downloadBtn', 'click', null, function onDownloadClick(evt) {

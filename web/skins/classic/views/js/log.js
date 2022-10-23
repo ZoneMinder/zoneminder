@@ -50,7 +50,7 @@ function ajaxRequest(params) {
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     try {
-      row.Message = decodeURIComponent(row.Message);
+      row.Message = decodeURIComponent(row.Message).replace(/</g, "&lt;").replace(/>/g, "&gt;");
     } catch (e) {
       // ignore errors
     }

@@ -149,29 +149,12 @@ function setAlarmCues(data) {
 function renderAlarmCues(containerEl) {
   let html = '';
 
-  /*
-  grid_size = 25;
-  const canvas = document.getElementById('alarmCues');
-
-  canvas_width = canvas.width = containerEl.width();
-  pixPerSegment = canvas_width / eventData.Length
-  console.log(pixPerSegment);
-  console.log(canvas);
-  const ctx = canvas.getContext('2d');
-  for (let i=0; i <= pixPerSegment; i++) {
-    ctx.beginPath();
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "#000000";
-    ctx.moveTo(grid_size*i, 0);
-    ctx.lineTo(grid_size*i, canvas.height);
-    ctx.stroke();
-  }
-  */
   cues_div = document.getElementById('alarmCues');
   const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
-  let span_count = 10;
-  let span_seconds = parseInt(event_length / span_count);
-  let span_width = parseInt(containerEl.width() / span_count);
+  const span_count = 10;
+  const span_seconds = parseInt(event_length / span_count);
+  const span_width = parseInt(containerEl.width() / span_count);
+  console.log('span_width', span_width, 'container width', containerEl.width(), 'span count', span_count);
   const date = new Date(eventData.StartDateTime);
   for (let i=0; i < span_count; i += 1) {
     html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
@@ -212,7 +195,7 @@ function renderAlarmCues(containerEl) {
         pixSkew = pixSkew - Math.round(pixSkew);
       }
 
-      alarmHtml += '<span class="alarmCue noneCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      alarmHtml += '<span class="noneCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
       left = parseInt((frame.Delta / event_length) * containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
@@ -903,7 +886,7 @@ function progressBarNav() {
     if (x<0) x=0;
     if (x > bar.width()) x = bar.width();
 
-    let seekTime = (x / bar.width()) * parseFloat(eventData.Length);
+    const seekTime = (x / bar.width()) * parseFloat(eventData.Length);
 
     const indicator = document.getElementById('indicator');
 
@@ -988,14 +971,14 @@ function getStat() {
         break;
       case 'MonitorId':
         if (canView["Monitors"]) {
-          tdString = '<a href=">view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
+          tdString = '<a href="?view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
         } else {
           tdString = eventData[key];
         }
         break;
       case 'MonitorName':
         if (canView["Monitors"]) {
-          tdString = '<a href=">view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
+          tdString = '<a href="?view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
         } else {
           tdString = eventData[key];
         }
@@ -1005,6 +988,9 @@ function getStat() {
         break;
       case 'n/a':
         tdString = 'n/a';
+        break;
+      case 'Path':
+        tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
         break;
       case 'Archived':
       case 'Emailed':
@@ -1285,12 +1271,13 @@ function initPage() {
       }
     } // end if videojs or mjpeg stream
   } // end if h265
+  if (scale == '0') changeScale();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
-  if (scale == '0') changeScale();
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
     el.onchange = window['changeRate'];
   });
+
 
   // enable or disable buttons based on current selection and user rights
   renameBtn.prop('disabled', !canEdit.Events);

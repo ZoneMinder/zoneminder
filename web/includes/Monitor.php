@@ -148,6 +148,7 @@ public static function getStatuses() {
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
     'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
+    'Janus_RTSP_User'           => null,
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
     'EventStartCommand' => '',
@@ -269,12 +270,22 @@ public static function getStatuses() {
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
   public function Janus_Pin() {
-    $cmd = getZmuCommand(' --janus-pin -m '.$this->{'Id'});
-    $output = shell_exec($cmd);
-    Debug("Running $cmd output: $output");
-    
-    return $output ? trim($output) : $output;
+    if (!$this->{'JanusEnabled'}) return '';
+
+    if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
+      $cmd = getZmuCommand(' --janus-pin -m '.$this->{'Id'});
+      $output = shell_exec($cmd);
+      Debug("Running $cmd output: $output");
+      return $output ? trim($output) : $output;
+    } else if ($this->ServerId()) {
+      $result = $this->Server()->SendToApi('/monitors/'.$this->{'Id'}.'.json');
+      $json = json_decode($result, true);
+      return ((isset($json['monitor']) and isset($json['monitor']['Monitor']) and isset($json['monitor']['Monitor']['Janus_Pin'])) ? $json['monitor']['Monitor']['Janus_Pin'] : '');
+    } else {
+      Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
+    }
   }
+
   public function Control() {
     if (!property_exists($this, 'Control')) {
       if ($this->ControlId())
@@ -288,8 +299,12 @@ public static function getStatuses() {
 
   public function Server() {
     if (!property_exists($this, 'Server')) {
-      if ($this->ServerId())
+      if ($this->ServerId()) {
         $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
+        if (!$this->{'Server'}) {
+          $this->{'Server'} = new Server();
+        }
+      }
       if (!property_exists($this, 'Server')) {
         $this->{'Server'} = new Server();
       }
@@ -521,31 +536,7 @@ public static function getStatuses() {
         }
       }
     } else if ($this->ServerId()) {
-      $Server = $this->Server();
-
-      $url = $Server->UrlToApi().'/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmc.json';
-      if (ZM_OPT_USE_AUTH) {
-        if (ZM_AUTH_RELAY == 'hashed') {
-          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-        } else if (ZM_AUTH_RELAY == 'plain') {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else {
-          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
-          return;
-        }
-      }
-      Debug('sending command to '.$url);
-
-      $context = stream_context_create();
-      try {
-        $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
-          Error("Error restarting zmc using $url");
-        }
-      } catch (Exception $e) {
-        Error("Except $e thrown trying to restart zmc");
-      }
+      $result = $this->Server()->SendToApi('/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmc.json');
     } else {
       Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
     }
@@ -726,32 +717,8 @@ public static function getStatuses() {
       }
       socket_close($socket);
     } else if ($this->ServerId()) {
-      $Server = $this->Server();
-
-      $url = $Server->UrlToApi().'/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json';
-      if (ZM_OPT_USE_AUTH) {
-        if (ZM_AUTH_RELAY == 'hashed') {
-          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-        } else if (ZM_AUTH_RELAY == 'plain') {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else if (ZM_AUTH_RELAY == 'none') {
-          $url .= '?user='.$_SESSION['username'];
-        }
-      }
-      Debug('sending command to '.$url);
-
-      $context = stream_context_create();
-      try {
-        $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
-          Error("Error sending command using $url");
-          return false;
-        }
-      } catch (Exception $e) {
-        Error("Exception $e thrown trying to send command to $url");
-        return false;
-      }
+      $result = $this->Server()->SendToApi('/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json');
+      return $result;
     } else {
       Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
       return false;
@@ -819,33 +786,19 @@ public static function getStatuses() {
     }
     
     if ($this->ServerId()) {
-      $Server = $this->Server();
+      $result = $this->Server()->SendToApi('/monitors/alarm/id:'.$this->{'Id'}.'/command:'.$cmd.'.json');
 
-      $url = $Server->UrlToApi().'/monitors/alarm/id:'.$this->{'Id'}.'/command:'.$cmd.'.json';
-      $auth_relay = get_auth_relay();
-      if ($auth_relay) $url .= '?'.$auth_relay;
-
-      Debug('sending command to '.$url);
-
-      $context = stream_context_create();
-      try {
-        $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
-          Error('Error sending command using '.$url);
-          return false;
-        }
-        Debug('Result '.$result);
-        $json = json_decode($result, true);
-        return $json['status'];
-
-      } catch (Exception $e) {
-        Error("Exception $e thrown trying to send command to $url");
+      if ($result === FALSE) { /* Handle error */
+        Error('Error sending command using '.$url);
         return false;
       }
+      $json = json_decode($result, true);
+      return $json['status'];
     } // end if we are on the recording server
     Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
     return false;
   }
+
   function TriggerOn() {
     $output = $this->AlarmCommand('on');
     if ($output and preg_match('/Alarmed event id: (\d+)$/', $output, $matches)) {

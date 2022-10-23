@@ -380,12 +380,12 @@ if ( $errorText ) {
       $oldWidth = imagesx($i);
       $oldHeight = imagesy($i);
       if ( $width == 0 && $height == 0 ) { // scale has to be set to get here with both zero
-        $width = $oldWidth  * $scale / 100.0;
-        $height= $oldHeight * $scale / 100.0;
+        $width = intval($oldWidth  * $scale / 100.0);
+        $height= intval($oldHeight * $scale / 100.0);
       } elseif ( $width == 0 && $height != 0 ) {
-        $width = ($height * $oldWidth) / $oldHeight;
+        $width = intval(($height * $oldWidth) / $oldHeight);
       } elseif ( $width != 0 && $height == 0 ) {
-        $height = ($width * $oldHeight) / $oldWidth;
+        $height = intval(($width * $oldHeight) / $oldWidth);
 ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $oldWidth");
       }
       if ( $width == $oldWidth && $height == $oldHeight ) {

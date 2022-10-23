@@ -467,10 +467,10 @@ function submitThisForm() {
  * @param {DOMString} name The name of the checkboxes to toggle.
  */
 function updateFormCheckboxesByName( headerCheckbox ) {
-  var name = headerCheckbox.getAttribute("data-checkbox-name");
-  var form = headerCheckbox.form;
-  var checked = headerCheckbox.checked;
-  for (var i = 0; i < form.elements.length; i++) {
+  const name = headerCheckbox.getAttribute("data-checkbox-name");
+  const form = headerCheckbox.form;
+  const checked = headerCheckbox.checked;
+  for (let i = 0, len=form.elements.length; i < len; i++) {
     if (form.elements[i].name.indexOf(name) == 0) {
       form.elements[i].checked = checked;
     }
@@ -877,45 +877,6 @@ function human_filesize(size, precision = 2) {
   return (Math.round(size*(10^precision))/(10^precision))+units[i];
 }
 
-function startDownload( exportFile ) {
-  console.log("Starting download from " + exportFile);
-  window.location.replace( exportFile );
-}
-
-function exportResponse(data, responseText) {
-  console.log('exportResponse data: ' + JSON.stringify(data));
-
-  var generated = (data.result=='Ok') ? 1 : 0;
-  //var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
-  var exportFile = data.exportFile;
-
-  $j('#exportProgress').removeClass( 'text-warning' );
-  if ( generated ) {
-    $j('#downloadLink').text('Download');
-    $j('#downloadLink').attr("href", thisUrl + exportFile);
-    $j('#exportProgress').addClass( 'text-success' );
-    $j('#exportProgress').text(exportSucceededString);
-    setTimeout(startDownload, 1500, exportFile);
-  } else {
-    $j('#exportProgress').addClass( 'text-danger' );
-    $j('#exportProgress').text(exportFailedString);
-  }
-}
-
-function exportEvent() {
-  $j.ajax({
-    url: thisUrl + '?view=request&request=event&action=download',
-    dataType: 'json',
-    data: $j('#downloadForm').serialize(),
-    success: exportResponse,
-    timeout: 0,
-    error: function(jqXHR, status, errorThrown) {
-      logAjaxFail(jqXHR, status, errorThrown);
-      $j('#exportProgress').html('Failed: ' + errorThrown);
-    }
-  });
-  $j('#exportProgress').removeClass('invisible');
-}
 
 // Loads the shutdown modal
 function getShutdownModal() {

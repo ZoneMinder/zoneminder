@@ -119,7 +119,7 @@ echo output_link_if_exists(array(
   'css/base/skin.css',
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
+  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
 ), true);
 if ( $css != 'base' )
   echo output_link_if_exists(array(
@@ -128,7 +128,7 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 ?>
-  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
+  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
@@ -203,8 +203,8 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   $status = runtimeStatus($running);
 
 ?>
-<div class="container-fluid p-0" id="navbar-container">
-  <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row" id="navbar-one">
+<div class="container-fluid" id="navbar-container">
+  <nav class="navbar navbar-expand-md justify-content-center flex-row" id="navbar-one">
 
     <div class="navbar-brand justify-content-start align-self-start">
       <?php echo getNavBrandHTML() ?>
@@ -248,7 +248,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     </div>
   </nav><!-- End First Navbar -->
 
-  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0" id="navbar-two">
+  <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two">
     <div class="container-fluid" id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
 
@@ -285,7 +285,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <?php
   $banner_html = getConsoleBannerHTML();
   if ($banner_html) {
-    echo '<nav class="navbar navbar-expand-md bg-dark justify-content-center p-0" id="navbar-three">'.$banner_html.'</nav>';
+    echo '<nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">'.$banner_html.'</nav>';
   }
 ?>
 </div>
@@ -300,8 +300,8 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
   $status = runtimeStatus($running);
 
   ?>
-  <div class="fixed-top container-fluid p-0">
-    <nav class="navbar navbar-dark bg-dark px-1 flex-nowrap">
+  <div class="fixed-top container-fluid">
+    <nav class="navbar px-1 flex-nowrap">
 
       <div class="navbar-brand align-self-start px-0">
         <?php echo getNavBrandHTML() ?>
@@ -378,7 +378,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 
     </nav><!-- End First Navbar -->
 
-    <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
+    <nav class="navbar navbar-expand-md justify-content-center">
       <?php echo getConsoleBannerHTML() ?>
     </nav><!-- End Second Navbar -->
   </div>
@@ -650,10 +650,10 @@ function getLogHTML() {
   $result = '';
   
   if ( canView('System') ) {
-    if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
+    if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) {
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      $result .= '<li id="getLogHTML" class="nav-item dropdown mx-2">'.makeLink('?view=log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
+      $result .= '<li id="getLogHTML" class="nav-item dropdown"><a class="nav-link '.$class.'" href="?view=log">'.translate('Log').'</a></li>'.PHP_EOL;
     }
   }
   
@@ -940,7 +940,7 @@ function xhtmlFooter() {
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
-  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
@@ -957,12 +957,6 @@ function xhtmlFooter() {
   'js/Server.js',
 ), true );
 ?>
-<?php
-  if ($view == 'event' || $view == 'video') {
-?>
-<?php
-  }
-?>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
 ?>
@@ -977,6 +971,7 @@ function xhtmlFooter() {
   }
 ?>
   </script>
+  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
   if ( $viewJsFile ) {
 ?>
@@ -986,11 +981,6 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
-<?php
-  if ( $basename == 'monitor' ) {
-    echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
-  } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

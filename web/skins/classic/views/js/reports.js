@@ -162,7 +162,7 @@ function initPage() {
     window.location.reload(true);
   });
 
-  document.getElementById("newBtn").addEventListener('click', function (evt) {
+  document.getElementById("newBtn").addEventListener('click', function onNewClick(evt) {
     evt.preventDefault();
     window.location = '?view=report';
   });

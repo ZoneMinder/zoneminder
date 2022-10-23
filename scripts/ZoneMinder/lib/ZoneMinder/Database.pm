@@ -48,6 +48,8 @@ our %EXPORT_TAGS = (
       zmDbGetMonitor
       zmDbGetMonitorAndControl
       zmDbDo
+      zmSQLExecute
+      zmDbFetchOne
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -107,7 +109,7 @@ sub zmDbConnect {
         .$socket . $sslOptions . ($options?join(';', '', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
         , $ZoneMinder::Config::Config{ZM_DB_USER}
         , $ZoneMinder::Config::Config{ZM_DB_PASS}
-        , { mysql_enable_utf8 => 1, }
+        , { mysql_enable_utf8mb4 => 1, }
         );
     };
     if ( !$dbh or $@ ) {
@@ -257,6 +259,7 @@ sub zmDbDo {
 sub zmDbFetchOne {
   my $sql = shift;
 
+  Debug("$sql @_");
   my $sth = $dbh->prepare_cached($sql);
   if (!$sth) {
     Error("Can't prepare '$sql': ".$dbh->errstr());
@@ -294,6 +297,7 @@ zmDbGetMonitors
 zmDbGetMonitor
 zmDbGetMonitorAndControl
 zmDbDo
+zmSQLExecute
 zmDbFetchOne
 
 =head1 AUTHOR

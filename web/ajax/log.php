@@ -18,9 +18,8 @@ if (!isset($_REQUEST['task'])) {
   }
 } else if ($_REQUEST['task'] == 'create' ) {
   global $user;
-  if (!$user) {
-    // We allow any logged in user to create logs. This opens us up to DOS by malicious user
-    $message = 'Insufficient permissions to view log entries for user '.$user['Username'];
+  if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
+    $message = 'Insufficient permissions to create log entries for user '.$user['Username'];
   } else {
     createRequest();
   }
@@ -161,6 +160,7 @@ function queryRequest() {
     // First strip out any html tags
     // Second strip out all characters that are not ASCII 32-126 (yes, 126)
     $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['Message']));
+    $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));
     $rows[] = $row;
   }
   $data['rows'] = $rows;

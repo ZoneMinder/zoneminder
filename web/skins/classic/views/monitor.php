@@ -20,6 +20,7 @@
 
 require_once('includes/Server.php');
 require_once('includes/Storage.php');
+require_once('includes/User.php');
 require_once('includes/Zone.php');
 
 if (!canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid'])) {
@@ -1248,6 +1249,19 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 ?>
               </td>
             </tr>
+            <tr id="Janus_RTSP_User" <?php echo (!ZM_OPT_USE_AUTH or !$monitor->Janus_Use_RTSP_Restream()) ? 'style="display:none;"' : ''?>>
+              <td><?php echo translate('User for RTSP Server Auth') ?></td>
+              <td><?php
+                $users = array(''=>translate('None'));
+                foreach (ZM\User::find() as $u) {
+                  if ($u->MonitorIds() and (!$monitor->Id() or in_array($monitor->Id(), explode(',', $u->MonitorIds()))))
+                    continue;
+                  $users[$u->Id()] = $u->Username();
+                }
+                echo htmlSelect("newMonitor[Janus_RTSP_User]", $users, $monitor->Janus_RTSP_User());
+?>
+              </td>
+            </tr>
             <tr>
               <td><?php echo translate('DefaultRate') ?></td>
               <td><?php echo htmlSelect('newMonitor[DefaultRate]', $rates, $monitor->DefaultRate()); ?></td>
@@ -1544,4 +1558,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     </div>
   </div>
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
-<?php xhtmlFooter() ?>
+<?php
+echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
+xhtmlFooter()
+?>

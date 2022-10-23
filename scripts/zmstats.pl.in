@@ -51,10 +51,13 @@ while (!$zm_terminate) {
     }
   }
 
-  $dbh->do('DELETE FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)') or Error($dbh->errstr());
-  $dbh->do('DELETE FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)') or Error($dbh->errstr());
-  $dbh->do('DELETE FROM Events_Week WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 week)') or Error($dbh->errstr());
-  $dbh->do('DELETE FROM Events_Month WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 month)') or Error($dbh->errstr());
+  # Clear out statuses for Monitors that have been set to None but for some reason didn't update the db
+  zmDbDo('DELETE FROM Monitor_Status WHERE MonitorId IN (SELECT Id FROM Monitors WHERE Capturing=\'None\')');
+
+  zmDbDo('DELETE FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
+  zmDbDo('DELETE FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)');
+  zmDbDo('DELETE FROM Events_Week WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 week)');
+  zmDbDo('DELETE FROM Events_Month WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 month)');
 
   # Prune the Logs table if required
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {

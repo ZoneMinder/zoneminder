@@ -166,8 +166,8 @@ xhtmlHeaders(__FILE__, translate('Console'));
 getBodyTopHTML();
 ?>
   <?php echo $navbar ?>
-  <form name="monitorForm" method="get" action="?">
-    <input type="hidden" name="view" value="<?php echo $view ?>"/>
+  <div id="content">
+  <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
 
     <div class="filterBar" id="fbpanel"<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down' ) ? ' style="display:none;"' : '' ?>>
@@ -262,7 +262,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 <?php
   $source_class = 'infoText';
   $source_class_reason = '';
-  if ( (!$monitor['Status'] || $monitor['Status'] == 'NotRunning') && $monitor['Type']!='WebSite' ) {
+  if ( (!$monitor['Status'] || ($monitor['Status'] == 'NotRunning')) && ($monitor['Type'] != 'WebSite')) {
     $source_class = 'errorText';
     $source_class_reason = translate('Not Running');
   } else {
@@ -368,7 +368,8 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     $fps_string .= '/' . $monitor['AnalysisFPS'];
   }
   if ($fps_string) $fps_string .= ' fps';
-  $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
+  if (!empty($monitor['CaptureBandwidth']))
+    $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
   $total_capturing_bandwidth += $monitor['CaptureBandwidth'];
   echo $fps_string;
 ?>
@@ -451,6 +452,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 	    </div>
     </div>
   </form>
+</div><!--content-->
 <?php
   xhtmlFooter();
 ?>

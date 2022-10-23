@@ -380,7 +380,7 @@ function drawSliderOnGraph(val) {
       underSlider = ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
       // And add in the slider'
       ctx.lineWidth = sliderLineWidth;
-      ctx.strokeStyle = 'black';
+      ctx.strokeStyle = 'yellow';
       // looks like strokes are on the outside (or could be) so shrink it by the line width so we replace all the pixels
       ctx.strokeRect(sliderX+sliderLineWidth, sliderLineWidth, sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
       underSliderX = sliderX;
@@ -391,7 +391,7 @@ function drawSliderOnGraph(val) {
       o.style.color = "red";
     } else {
       o.innerHTML = secs2dbstr(val);
-      o.style.color = "blue";
+      o.style.color = 'white';
     }
     o.style.position = "absolute";
     o.style.bottom = labbottom;
@@ -770,6 +770,12 @@ function click_lastEight() {
   var now = Math.floor( date.getTime() / 1000 );
   now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
   clicknav(now - 3600*8 + 1, now, 0);
+}
+function click_last24() {
+  var date = new Date();
+  var now = Math.floor( date.getTime() / 1000 );
+  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  clicknav(now - 3600*24 + 1, now, 0);
 }
 function click_zoomin() {
   rangeTimeSecs = parseInt(rangeTimeSecs / 2);

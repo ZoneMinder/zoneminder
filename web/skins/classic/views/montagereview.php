@@ -288,6 +288,7 @@ getBodyTopHTML();
           <button type="button" id="panleft"   data-on-click="click_panleft"    >&lt; <?php echo translate('Pan') ?></button>
           <button type="button" id="zoomin"    data-on-click="click_zoomin"     ><?php echo translate('In +') ?></button>
           <button type="button" id="zoomout"   data-on-click="click_zoomout"    ><?php echo translate('Out -') ?></button>
+          <button type="button" id="lasteight" data-on-click="click_last24"     ><?php echo translate('24 Hour') ?></button>
           <button type="button" id="lasteight" data-on-click="click_lastEight"  ><?php echo translate('8 Hour') ?></button>
           <button type="button" id="lasthour"  data-on-click="click_lastHour"   ><?php echo translate('1 Hour') ?></button>
           <button type="button" id="allof"     data-on-click="click_all_events" ><?php echo translate('All Events') ?></button>
@@ -298,13 +299,8 @@ getBodyTopHTML();
   if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
-<?php
-  }
-?>
-        </div>
-<?php if ( !$liveMode ) { ?>
-        <div id="eventfilterdiv" class="input-group">
-          <label><?php echo translate('Archive Status') ?> 
+          <span id="eventfilterdiv">
+            <label><?php echo translate('Archive Status') ?> 
   <?php echo htmlSelect(
     'archive_status',
     array(
@@ -314,9 +310,10 @@ getBodyTopHTML();
     ),
     ( isset($_SESSION['archive_status']) ? $_SESSION['archive_status'] : '')
   ); ?>
-          </label>
-        </div>
+            </label>
+          </span>
 <?php } // end if !live ?>
+        </div>
         <div id="timelinediv">
           <canvas id="timeline"></canvas>
           <span id="scrubleft"></span>
@@ -339,4 +336,5 @@ getBodyTopHTML();
   </div>
   <p id="fps">evaluating fps</p>
 </div>
+<script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <?php xhtmlFooter() ?>

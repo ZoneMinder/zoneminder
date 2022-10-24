@@ -381,6 +381,11 @@ if ($player == 'video.js') {
   <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/missile.js"></script>
   <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/h265webjs-v20220916.js"></script>
 <?php
+  } else if ($version == 20221022) {
+?>
+  <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/missile.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/h265webjs-v20221022.js"></script>
+<?php
   }
 }
   echo output_link_if_exists(array('css/base/zones.css'));

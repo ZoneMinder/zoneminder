@@ -51,7 +51,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       <span class="ServerFilter">
         <label><?php echo translate('Server') ?></label>
 <?php
-$ServersById = array(''=>translate('All')) + hash_from_array_by_key('Id', $Servers);
+$ServersById = array(''=>translate('All')) + array_to_hash_by_key('Id', $Servers);
 echo htmlSelect('filterServerId', $ServersById, '', );
 ?>
       </span>

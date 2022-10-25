@@ -1,13 +1,13 @@
-var table = $j('#eventStatsTable');
-var backBtn = $j('#backBtn');
-var renameBtn = $j('#renameBtn');
-var archiveBtn = $j('#archiveBtn');
-var unarchiveBtn = $j('#unarchiveBtn');
-var editBtn = $j('#editBtn');
-var exportBtn = $j('#exportBtn');
-var downloadBtn = $j('#downloadBtn');
-var statsBtn = $j('#statsBtn');
-var deleteBtn = $j('#deleteBtn');
+const table = $j('#eventStatsTable');
+const backBtn = $j('#backBtn');
+const renameBtn = $j('#renameBtn');
+const archiveBtn = $j('#archiveBtn');
+const unarchiveBtn = $j('#unarchiveBtn');
+const editBtn = $j('#editBtn');
+const exportBtn = $j('#exportBtn');
+const downloadBtn = $j('#downloadBtn');
+const statsBtn = $j('#statsBtn');
+const deleteBtn = $j('#deleteBtn');
 var prevEventId = 0;
 var nextEventId = 0;
 var prevEventStartTime = 0;
@@ -27,11 +27,10 @@ var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
+const indicator = document.getElementById('indicator');
 
-var player = null;
-
-const SHOW_LOADING = "loading...";
-const SHOW_DONE = "done.";
+const SHOW_LOADING = 'loading...';
+const SHOW_DONE = 'done.';
 
 function durationFormatSubVal(val) {
   const valStr = val.toString();
@@ -51,11 +50,6 @@ function durationText(duration) {
     + ":" + durationFormatSubVal(Math.floor(durationSecInt % 60));
 }
 
-const getMsTime = () => {
-  return new Date().getTime();
-};
-
-
 function streamReq(data) {
   if (auth_hash) data.auth = auth_hash;
   data.connkey = connKey;
@@ -69,8 +63,12 @@ function streamReq(data) {
 
 // Function called when video.js hits the end of the video
 function vjsReplay() {
+  console.log(replayMode.value);
   switch (replayMode.value) {
     case 'none':
+      if (player) {
+        streamPause();
+      }
       break;
     case 'single':
       if (player) {
@@ -247,17 +245,15 @@ function changeCodec() {
 }
 
 function changeScale() {
-  var scale = $j('#scale').val();
-  var newWidth;
-  var newHeight;
-  var autoScale;
+  const scale = $j('#scale').val();
+  let newWidth;
+  let newHeight;
+  let autoScale;
+
   const eventViewer = $j((vid||player) ? '#videoobj' : '#evtStream');
-
-  var alarmCue = $j('#alarmCues');
-  var bottomEl = $j('#replayStatus');
-
   if (scale == '0') {
-    var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
+    const bottomEl = $j('#replayStatus');
+    const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
@@ -273,10 +269,18 @@ function changeScale() {
     } else {
       console.log("No resize support in player");
     }
-  } else {
   }
-    eventViewer.width(newWidth);
-    eventViewer.height(newHeight);
+  const videoobj = $j('#videoobj');
+  if (videoobj.length) {
+    videoobj.width(newWidth);
+    videoobj.height(newHeight);
+  }
+
+  const eventStream = $j('#evtStream');
+  if (eventStream.length) {
+    eventStream.width(newWidth);
+    eventStream.height(newHeight);
+  }
 
   if (!vid) { // zms needs extra sizing
     if (!player) {
@@ -285,6 +289,7 @@ function changeScale() {
     drawProgressBar();
   }
   if (cueFrames) {
+    const alarmCue = $j('#alarmCues');
     //just re-render alarmCues.  skip ajax call
     alarmCue.html(renderAlarmCues(eventViewer));
   }
@@ -303,7 +308,7 @@ function changeReplayMode() {
 }
 
 function changeRate() {
-  var rate = parseInt($j('select[name="rate"]').val());
+  const rate = parseInt($j('select[name="rate"]').val());
 
   if (!rate) {
     pauseClicked();
@@ -320,12 +325,20 @@ function changeRate() {
           vid.currentTime(vid.currentTime() - (revSpeed/2)); //Half of reverse speed because our interval is 500ms.
         }
       }, 500); //500ms is a compromise between smooth reverse and realistic performance
+    } else if (player) {
+      console.log("Rate" + rate/100);
+      player.setPlaybackRate(rate/100);
+      console.log(player.getPlaybackRate());
     } else {
       streamReq({command: CMD_VARPLAY, rate: rate});
     } // end if vid
   } else { // Forward rate
-    if ( vid ) {
+    if (vid) {
       vid.playbackRate(rate/100);
+    } else if (player) {
+      console.log("Rate" + rate);
+      player.setPlaybackRate(rate);
+      console.log(player.getPlaybackRate());
     } else {
       streamReq({command: CMD_VARPLAY, rate: rate});
     }
@@ -359,7 +372,7 @@ function getCmdResponse(respObj, respText) {
     streamStatus.progress = parseFloat(eventData.Length);
   } //Limit progress to reality
 
-  var eventId = streamStatus.event;
+  const eventId = streamStatus.event;
   if (lastEventId) {
     if (eventId != lastEventId) {
       //Doesn't run on first load, prevents a double hit on event and nearEvents ajax
@@ -368,7 +381,7 @@ function getCmdResponse(respObj, respText) {
       lastEventId = eventId;
     }
   } else {
-    lastEventId = eventId; //Only fires on first load.
+    lastEventId = eventId; // Only fires on first load.
   }
 
   if (streamStatus.paused == true) {
@@ -477,6 +490,8 @@ function streamFastFwd(action) {
     }
     $j('select[name="rate"]').val(vid.playbackRate()*100);
     setCookie('zmEventRate', vid.playbackRate()*100, 3600);
+  } else if (player) {
+console.log("Add support for h265web");
   } else {
     streamReq({command: CMD_FASTFWD});
   }
@@ -485,6 +500,8 @@ function streamFastFwd(action) {
 function streamSlowFwd(action) {
   if (vid) {
     vid.currentTime(vid.currentTime() + spf);
+  } else if (player) {
+console.log("Add support for h265web");
   } else {
     streamReq({command: CMD_SLOWFWD});
   }
@@ -493,6 +510,8 @@ function streamSlowFwd(action) {
 function streamSlowRev(action) {
   if (vid) {
     vid.currentTime(vid.currentTime() - spf);
+  } else if (player) {
+console.log("Add support for h265web");
   } else {
     streamReq({command: CMD_SLOWREV});
   }
@@ -533,6 +552,8 @@ function streamFastRev(action) {
         vid.currentTime(vid.currentTime() - (revSpeed/2)); //Half of reverse speed because our interval is 500ms.
       }
     }, 500); //500ms is a compromise between smooth reverse and realistic performance
+  } else if (player) {
+console.log("Add support for h265web");
   } else {
     streamReq({command: CMD_FASTREV});
   }
@@ -542,7 +563,7 @@ function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
     if (prevEventId != 0) {
-      if (vid==null) streamReq({command: CMD_QUIT});
+      if (vid==null && player==null) streamReq({command: CMD_QUIT});
       location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
       return;
     }
@@ -569,16 +590,16 @@ function streamNext(action) {
   $j(".vjsMessage").remove();//This shouldn't happen
   if (nextEventId == 0) { //handles deleting last event.
     pauseClicked();
-    var hideContainer = $j('#eventVideo');
-    var hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
+    const hideContainer = $j('#eventVideo');
+    const hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
     hideContainer.prepend('<p class="vjsMessage" style="height: ' + hideStream + 'px; line-height: ' + hideStream + 'px;">No more events</p>');
-    if (vid == null) zmsBroke = true;
+    if (vid == null && player==null) zmsBroke = true;
     return;
   }
   // We used to try to dynamically update all the bits in the page, which is really complex
   // How about we just reload the page?
   //
-  if (vid==null) streamReq({command: CMD_QUIT});
+  if (vid==null && player==null) streamReq({command: CMD_QUIT});
   location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
   return;
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
@@ -671,23 +692,33 @@ function streamZoomOut() {
 }
 
 function streamScale(scale) {
-  streamReq({command: CMD_SCALE, scale: scale});
+  if (playerType == 'mjpeg') {
+    streamReq({command: CMD_SCALE, scale: scale});
+  }
 }
 
 function streamPan(x, y) {
   if (vid) {
     vjsPanZoom('pan', x, y);
+  } else if (player) {
+
   } else {
     streamReq({command: CMD_PAN, x: x, y: y});
   }
 }
 
 function streamSeek(offset) {
-  streamReq({command: CMD_SEEK, offset: offset});
+  if (playerType == 'mjpeg') {
+    streamReq({command: CMD_SEEK, offset: offset});
+  } else if (playerType == 'h265web.js') {
+    player.seek(offset);
+  }
 }
 
 function streamQuery() {
-  streamReq({command: CMD_QUERY});
+  if (playerType == 'mjpeg') {
+    streamReq({command: CMD_QUERY});
+  }
 }
 
 function getEventResponse(respObj, respText) {
@@ -833,7 +864,7 @@ function videoEvent() {
 
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
-  var barWidth = $j('#evtStream').width();
+  const barWidth = $j('#evtStream').width();
   if (barWidth) {
     $j('#progressBar').css('width', barWidth);
   } else {
@@ -862,15 +893,12 @@ function progressBarNav() {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
-    console.log("clicked at ", x, seekTime);
     streamSeek(seekTime);
   });
   $j('#progressBar').mouseover(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
-    console.log(x);
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
-    const indicator = document.getElementById('indicator');
     indicator.style.display = 'block';
     indicator.style.left = x + 'px';
     indicator.setAttribute('title', seekTime);
@@ -945,8 +973,8 @@ function manageDelConfirmModalBtns() {
 }
 
 function getEvtStatsCookie() {
-  var cookie = 'zmEventStats';
-  var stats = getCookie(cookie);
+  const cookie = 'zmEventStats';
+  const stats = getCookie(cookie);
 
   if (!stats) {
     stats = 'on';
@@ -958,8 +986,8 @@ function getEvtStatsCookie() {
 function getStat() {
   table.empty().append('<tbody>');
   $j.each(eventDataStrings, function(key) {
-    var th = $j('<th>').addClass('text-right').text(eventDataStrings[key]);
-    var tdString;
+    const th = $j('<th>').addClass('text-right').text(eventDataStrings[key]);
+    let tdString;
 
     //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
     switch (key) {
@@ -1005,8 +1033,8 @@ function getStat() {
         tdString = eventData[key];
     }
 
-    var td = $j('<td>').html(tdString);
-    var row = $j('<tr>').append(th, td);
+    const td = $j('<td>').html(tdString);
+    const row = $j('<tr>').append(th, td);
 
     $j('#eventStatsTable tbody').append(row);
   });
@@ -1014,14 +1042,14 @@ function getStat() {
 
 function onStatsResize(vidWidth) {
   if (!vidWidth) return;
-  var minWidth = 300; // An arbitrary value in pixels used to hide the stats table
-  var scale = $j('#scale').val();
+  const minWidth = 300; // An arbitrary value in pixels used to hide the stats table
+  const scale = $j('#scale').val();
 
   if (parseInt(scale)) {
     vidWidth = vidWidth * (scale/100);
   }
 
-  var width = $j(window).width() - vidWidth;
+  const width = $j(window).width() - vidWidth;
   //console.log("Width: " + width + " = window.width " + $j(window).width() + "- vidWidth" + vidWidth);
 
   // Hide the stats table if we have run out of room to show it properly
@@ -1050,176 +1078,170 @@ function initPage() {
   } else {
     onStatsResize(eventData.Width);
   }
+  if (scale == '0') changeScale();
 
-  if (eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0) {
-    console.log("Using " + playerType);
-    if (playerType == 'h265web.js') {
-      // clear cache count
-      function clear() {
-        window.STATICE_MEM_playerCount = -1;
-        window.STATICE_MEM_playerIndexPtr = 0;
-      }
-      clear();
-      const PLAYER_CORE_TYPE_DEFAULT = 0;
-      const PLAYER_CORE_TYPE_CNATIVE = 1;
-      var token = "base64:QXV0aG9yOmNoYW5neWFubG9uZ3xudW1iZXJ3b2xmLEdpdGh1YjpodHRwczovL2dpdGh1Yi5jb20vbnVtYmVyd29sZixFbWFpbDpwb3JzY2hlZ3QyM0Bmb3htYWlsLmNvbSxRUTo1MzEzNjU4NzIsSG9tZVBhZ2U6aHR0cDovL3h2aWRlby52aWRlbyxEaXNjb3JkOm51bWJlcndvbGYjODY5NCx3ZWNoYXI6bnVtYmVyd29sZjExLEJlaWppbmcsV29ya0luOkJhaWR1";
+  progressBarNav();
 
-      var config = {
-        player: 'videoobj',
-        width: eventData.Width,
-        height: eventData.Height,
-        //accurateSeek: true,
-        token: token,
-        extInfo: {
-          //autoPlay : true,
-          moovStartFlag: true,
-          readyShow: true,
-          //autoCrop: false,
-         //core: PLAYER_CORE_TYPE_DEFAULT,
-          core : PLAYER_CORE_TYPE_CNATIVE,
-          coreProbePart: 1.0,
-          probeSize: 8192,
-          ignoreAudio: 0
-        }
-      };
-      player = window.new265webjs(videoUrl, config);
-      const progressCont = document.querySelector('#progress-container');
-      //const progressContW = progressCont.offsetWidth;
-      const cachePts = progressCont.querySelector('#cachePts');
-      const progressPts = progressCont.querySelector('#progressPts');
-      const progressVoice = document.querySelector('#progressVoice');
-      const showLabel = document.querySelector('#showLabel');
-      const ptsLabel = document.querySelector('#ptsLabel');
-      const coverToast = document.querySelector('#coverLayer');
-      const coverBtn = document.querySelector('#coverLayerBtn');
-
-      let muteState = false;
-      const muteBtn = document.querySelector('#muteBtn');
-      muteBtn.onclick = () => {
-        console.log(player.getVolume());
-        if (muteState === true) {
-          player.setVoice(1.0);
-          progressVoice.value = 100;
-        } else {
-          player.setVoice(0.0);
-          progressVoice.value = 0;
-        }
-        muteState = !muteState;
-      };
-      const fullScreenBtn = document.querySelector('#fullscreenBtn');
-      fullScreenBtn.onclick = () => {
-        player.fullScreen();
-        // setTimeout(() => {
-        //     player.closeFullScreen();
-        // }, 2000);
-      };
-      let mediaInfo = null;
-
-      player.onRender = (width, height, imageBufferY, imageBufferB, imageBufferR) => {
-        console.log("on render");
-      };
-
-      player.onOpenFullScreen = () => {
-        console.log("onOpenFullScreen");
-      };
-
-      player.onCloseFullScreen = () => {
-        console.log("onCloseFullScreen");
-      };
-
-      player.onPlayTime = (videoPTS) => {
-        updateProgressBar(videoPTS);
-      };
-
-      player.onPlayFinish = () => {
-        console.log("Done Play Finish");
-        vjsReplay();
-      };
-      
-      player.onSeekFinish = () => {
-        console.log("Done Seek Finish");
-        //showLabel.textContent = SHOW_DONE;
-        //vjsReplay();
-      };
-
-      player.onLoadCache = () => {
-        showLabel.textContent = "Caching...";
-      };
-
-      player.onLoadCacheFinshed = () => {
-        showLabel.textContent = 'Caching '+SHOW_DONE;
-      };
-
-      player.onReadyShowDone = () => {
-        console.log("onReadyShowDone");
-        showLabel.textContent = "Cover Img OK";
-      };
-      player.onLoadFinish = () => {
-        mediaInfo = player.mediaInfo();
-        console.log("mediaInfo===========>", mediaInfo);
-        /*
-        meta:
-            durationMs: 144400
-            fps: 25
-            sampleRate: 44100
-            size: {
-                width: 864,
-                height: 480
-            },
-            audioNone : false
-        videoType: "vod"
-        */
-        if (mediaInfo.meta.isHEVC === false) {
-          console.log("is not HEVC/H.265 media!");
-          //coverToast.removeAttribute('hidden');
-          //coverBtn.style.width = '100%';
-          //coverBtn.style.fontSize = '50px';
-          //coverBtn.innerHTML = 'is not HEVC/H.265 media!';
-          //return;
-        }
-        //console.log("is HEVC/H.265 media.");
-
-        if (mediaInfo.meta.audioNone) {
-          progressVoice.value = 0;
-          progressVoice.style.display = 'none';
-        } else {
-          let volume = getCookie('volume');
-          if (volume !== null) {
-            player.setVoice(volume/100);
-            progressVoice.value = volume;
-          }
-        }
-        if (mediaInfo.videoType == "vod") {
-          cachePts.max = mediaInfo.meta.durationMs / 1000;
-          progressCont.max = mediaInfo.meta.durationMs / 1000;
-          ptsLabel.textContent = durationText(0) + '/' + durationText(progressCont.max);
-          console.log("vod");
-        } else {
-          cachePts.hidden = true;
-          progressCont.hidden = true;
-          ptsLabel.textContent = 'LIVE';
-
-          console.log("Not vod");
-          if (mediaInfo.meta.audioNone === true) {
-            player.play();
-          } else {
-            coverToast.removeAttribute('hidden');
-            coverBtn.onclick = () => {
-              // playBar.textContent = '||';
-              playAction();
-              coverToast.setAttribute('hidden', 'hidden');
-            };
-          }
-        }
-
-        showLabel.textContent = SHOW_DONE;
-      };
-      console.log("do");
-      player.do();
-    } else {
-      console.error("Unknown playerType: " + playerType);
+  console.log("Using " + playerType);
+  if (playerType == 'h265web.js') {
+    if (!(eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0))
+      console.log("Warning, using h265web.js on a non-h265 file");
+    // clear cache count
+    function clear() {
+      window.STATICE_MEM_playerCount = -1;
+      window.STATICE_MEM_playerIndexPtr = 0;
     }
-  } else {
+    clear();
+    const PLAYER_CORE_TYPE_DEFAULT = 0;
+    const PLAYER_CORE_TYPE_CNATIVE = 1;
+    var token = "base64:QXV0aG9yOmNoYW5neWFubG9uZ3xudW1iZXJ3b2xmLEdpdGh1YjpodHRwczovL2dpdGh1Yi5jb20vbnVtYmVyd29sZixFbWFpbDpwb3JzY2hlZ3QyM0Bmb3htYWlsLmNvbSxRUTo1MzEzNjU4NzIsSG9tZVBhZ2U6aHR0cDovL3h2aWRlby52aWRlbyxEaXNjb3JkOm51bWJlcndvbGYjODY5NCx3ZWNoYXI6bnVtYmVyd29sZjExLEJlaWppbmcsV29ya0luOkJhaWR1";
+
+    const evtStream = $j('#evtStream');
+    console.log(evtStream.width(), evtStream.height());
+    const config = {
+      player: 'videoobj',
+      width: evtStream.width(),
+      height: evtStream.height(),
+      //width: $j('#eventData.Width,
+      //height: eventData.Height,
+      //accurateSeek: true,
+      token: token,
+      extInfo: {
+        //autoPlay : true,
+        moovStartFlag: true,
+        readyShow: true,
+        //autoCrop: false,
+        //core: PLAYER_CORE_TYPE_DEFAULT,
+        core : PLAYER_CORE_TYPE_CNATIVE,
+        coreProbePart: 1.0,
+        probeSize: 8192,
+        ignoreAudio: 0
+      }
+    };
+    player = window.new265webjs(videoUrl, config);
+    const progressVoice = document.querySelector('#volume');
+    progressVoice.addEventListener('click', (e) => {
+      let x = e.pageX - progressVoice.getBoundingClientRect().left; // or e.offsetX (less support, though)
+      let y = e.pageY - progressVoice.getBoundingClientRect().top;  // or e.offsetY
+      let clickedValue = x * progressVoice.max / progressVoice.offsetWidth;
+      progressVoice.value = clickedValue;
+      let volume = clickedValue / 100;
+      // alert(volume);
+      // console.log(
+      //     progressVoice.offsetLeft, // 209
+      //     x, y, // 324 584
+      //     progressVoice.max, progressVoice.offsetWidth);
+      player.setVoice(volume);
+    });
+    const showLabel = document.querySelector('#showLabel');
+    const coverToast = document.querySelector('#coverLayer');
+    const coverBtn = document.querySelector('#coverLayerBtn');
+
+    let muteState = false;
+    const muteBtn = document.querySelector('#muteBtn');
+    muteBtn.onclick = () => {
+      if (muteState === true) {
+        player.setVoice(1.0);
+        progressVoice.value = 100;
+      } else {
+        player.setVoice(0.0);
+        progressVoice.value = 0;
+      }
+      muteState = !muteState;
+    };
+    const fullScreenBtn = document.querySelector('#fullscreenBtn');
+    fullScreenBtn.onclick = () => {
+      player.fullScreen();
+      // setTimeout(() => {
+      //     player.closeFullScreen();
+      // }, 2000);
+    };
+    let mediaInfo = null;
+
+    player.onRender = (width, height, imageBufferY, imageBufferB, imageBufferR) => {
+      console.log("on render");
+    };
+
+    player.onOpenFullScreen = () => {
+      console.log("onOpenFullScreen");
+    };
+
+    player.onCloseFullScreen = () => {
+      console.log("onCloseFullScreen");
+    };
+
+    player.onPlayTime = (videoPTS) => {
+      updateProgressBar(videoPTS);
+      $j('#progressValue').html(videoPTS);
+    };
+
+    player.onPlayFinish = () => {
+      console.log("Done Play Finish");
+      vjsReplay();
+    };
+
+    player.onSeekFinish = () => {
+      console.log("Done Seek Finish");
+      //showLabel.textContent = SHOW_DONE;
+      //vjsReplay();
+    };
+
+    player.onLoadCache = () => {
+      showLabel.textContent = "Caching...";
+    };
+
+    player.onLoadCacheFinshed = () => {
+      showLabel.textContent = 'Caching '+SHOW_DONE;
+    };
+
+    player.onReadyShowDone = () => {
+      console.log("onReadyShowDone");
+      showLabel.textContent = "Cover Img OK";
+      player.play();
+    };
+    player.onLoadFinish = () => {
+      mediaInfo = player.mediaInfo();
+      console.log("mediaInfo===========>", mediaInfo);
+      if (mediaInfo.meta.isHEVC === false) {
+        console.log("is not HEVC/H.265 media!");
+        //coverToast.removeAttribute('hidden');
+        //coverBtn.style.width = '100%';
+        //coverBtn.style.fontSize = '50px';
+        //coverBtn.innerHTML = 'is not HEVC/H.265 media!';
+        //return;
+      }
+      //console.log("is HEVC/H.265 media.");
+
+      if (mediaInfo.meta.audioNone) {
+        progressVoice.value = 0;
+        progressVoice.style.display = 'none';
+      } else {
+        let volume = getCookie('volume');
+        if (volume !== null) {
+          player.setVoice(volume/100);
+          progressVoice.value = volume;
+        }
+      }
+      if (mediaInfo.videoType == "vod") {
+        console.log("vod");
+      } else {
+        console.log("Not vod");
+        if (mediaInfo.meta.audioNone === true) {
+          player.play();
+        } else {
+          coverToast.removeAttribute('hidden');
+          coverBtn.onclick = () => {
+            // playBar.textContent = '||';
+            playAction();
+            coverToast.setAttribute('hidden', 'hidden');
+          };
+        }
+      }
+
+      showLabel.textContent = SHOW_DONE;
+    };
+    player.do();
+  } else if (playerType == 'video.js') {
     //FIXME prevent blocking...not sure what is happening or best way to unblock
     if ($j('#videoobj').length) {
       vid = videojs('videoobj');
@@ -1254,24 +1276,27 @@ function initPage() {
         vid.playbackRate(rate/100);
       }
     } else {
-      progressBarNav();
-      streamCmdTimer = setTimeout(streamQuery, 500);
-      if (canStreamNative) {
-        if (!$j('#imageFeed')) {
-          console.log('No element with id tag imageFeed found.');
-        } else {
-          var streamImg = $j('#imageFeed img');
-          if (!streamImg) {
-            streamImg = $j('#imageFeed object');
-          }
-          $j(streamImg).click(function(event) {
-            handleClick(event);
-          });
+      console.log("Wanted video.js but no player object found");
+    }
+  } else if (playerType == 'mjpeg') {
+    progressBarNav();
+    streamCmdTimer = setTimeout(streamQuery, 500);
+    if (canStreamNative) {
+      if (!$j('#imageFeed')) {
+        console.log('No element with id tag imageFeed found.');
+      } else {
+        const streamImg = $j('#imageFeed img');
+        if (!streamImg) {
+          streamImg = $j('#imageFeed object');
         }
+        $j(streamImg).click(function(event) {
+          handleClick(event);
+        });
       }
-    } // end if videojs or mjpeg stream
-  } // end if h265
-  if (scale == '0') changeScale();
+    }
+  } else {
+    console.error("Unknown playerType: " + playerType);
+  } // end if playerType
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {

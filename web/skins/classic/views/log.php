@@ -42,6 +42,34 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
     </div>
 
+    <div id="filters">
+      <table class="table-condensed">
+        <tr class="row">
+          <td class="col">
+            <label><?php echo translate('Component') ?></label>
+            <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
+          </td>
+          <td class="col">
+            <label><?php echo translate('Server') ?></label>
+<?php
+$servers = ZM\Server::find(null, array('order'=>'lower(Name)'));
+$ServersById = hash_from_array_by_key('Id', $servers);
+echo htmlSelect('filter[ServerId]', $ServersById);
+?>
+          </td>
+          <td class="col">
+            <label><?php echo translate('Level') ?></label>
+            <select class="form-control chosen" id="filter[Level]" data-on-change="filterLog"><option value="">---</option></select>
+          </td>
+          <td class="col">
+            <label><?php echo translate('File') ?></label>
+            <select class="form-control chosen" id="filter[File]" data-on-change="filterLog"><option value="">------</option></select>
+          </td>
+        </tr>
+      </table>
+      <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
+    </div>
+
     <table
       id="logTable"
       data-locale="<?php echo i18n() ?>"

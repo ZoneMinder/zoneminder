@@ -857,6 +857,7 @@ void MonitorStream::runStream() {
       Debug(1, "command_processor is not joinable");
     }
   }
+  Debug(1, "command_processor has joined");
 } // end MonitorStream::runStream
 
 void MonitorStream::SingleImage(int scale) {

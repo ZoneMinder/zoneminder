@@ -330,3 +330,6 @@ svg.zones {
   border-left: 1px solid blue;
   margin-top: -1.25em;
 }
+.volume {
+  display: inline-block;
+}

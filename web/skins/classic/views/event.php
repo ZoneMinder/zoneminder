@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Events') ) {
+if (!canView('Events')) {
   $view = 'error';
   return;
 }
@@ -83,11 +83,17 @@ if (isset($_REQUEST['codec'])) {
 }
 session_write_close();
 
+$need_h265webjs = $Event->DefaultVideo() and (strpos($Event->DefaultVideo(), 'h265') or strpos($Event->DefaultVideo(), 'hevc'));
+$has_h265webjs = file_exists(ZM_PATH_WEB.'/js/h265web.js');
+
 $codecs = array(
   'auto'  => translate('Auto'),
-  'MP4'   => translate('MP4'),
-  'MJPEG' => translate('MJPEG'),
+  'MP4'   => translate('video.js MP4'),
+  'MJPEG' => translate('MJPEG (zms)'),
 );
+if ($need_h265webhs and $has_h265webjs) {
+  $codecs['h265web.js'] = 'h265web.js H265';
+}
 
 $replayModes = array(
   'none'    => translate('None'),
@@ -112,12 +118,17 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
 }
 
 $player = 'mjpeg';
-if ( $Event->DefaultVideo() and ( $codec == 'MP4' or $codec == 'auto' ) ) {
-  if (strpos($Event->DefaultVideo(), 'h265') or strpos($Event->DefaultVideo(), 'hevc')) {
-    #$player = 'libde265.js';
-    $player = 'h265web.js';
-  } else {
+if ($Event->DefaultVideo()) {
+  if ($codec == 'MP4') {
     $player = 'video.js';
+  } else if ($codec == 'auto' or $codec == 'h265web.js') {
+    if ($need_h265webjs and $has_h265webjs) {
+      $player = 'h265web.js';
+    } else {
+      $player = 'video.js';
+    }
+  } else {
+    ZM\Debug("Codec: $codec");
   }
 }
 // videojs zoomrotate only when direct recording
@@ -244,14 +255,10 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
 } else {
   $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
-  if ( canStreamNative() ) {
-    outputImageStream('evtStream', $streamSrc,
-      ($scale ? reScale($Event->Width(), $scale).'px' : '100%'),
-      ($scale ? reScale($Event->Height(), $scale).'px' : 'auto'),
-      validHtmlStr($Event->Name()));
-  } else {
-    outputHelperStream('evtStream', $streamSrc, '100%', '100%');
-  }
+  outputImageStream('evtStream', $streamSrc,
+    ($scale ? reScale($Event->Width(), $scale).'px' : '100%'),
+    ($scale ? reScale($Event->Height(), $scale).'px' : 'auto'),
+    validHtmlStr($Event->Name()));
 } // end if stream method
 ?>
         <div id="progressBar" style="width: 100%;">
@@ -264,29 +271,8 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 ?>
       <div id="evtStream">
         <div id="videoobj" class="glplayer"></div>
-        <div id="controller" class="controller">
-          <div id="progress-container" class="progress-common progress-container">
-            <div id="cachePts" class="progress-common cachePts"></div>
-            <div id="progressPts" class="progress-common progressPts"></div>
-          </div>
 
-          <div id="operate-container" class="operate-container">
-            <span id="ptsLabel" class="ptsLabel">00:00:00/00:00:00</span>
-            <div class="voice-div">
-              <span>
-                <a id="muteBtn" class="muteBtn">
-                  <svg class="icon" style="width: 1em;height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="488">
-                    <path d="M153.6 665.6V358.4h204.8V256H153.6c-56.32 0-102.4 46.08-102.4 102.4v307.2c0 56.32 46.08 102.4 102.4 102.4h204.8v-102.4H153.6zM358.4 256v102.4l204.8-128v563.2L358.4 665.6v102.4l307.2 204.8V51.2zM768 261.12v107.52c61.44 20.48 102.4 76.8 102.4 143.36s-40.96 122.88-102.4 143.36v107.52c117.76-25.6 204.8-128 204.8-250.88s-87.04-225.28-204.8-250.88z" p-id="489">
-                    </path>
-                  </svg>
-                </a>
-              </span>
-              <progress id="progressVoice" class="progressVoice" value="50" max="100"></progress>
-            </div>
-            <span id="showLabel" class="showLabel"></span>
-          </div>
-        </div>
-      </div> <!-- end player container -->
+      </div><!-- evtStream-->
       <div id="progressBar" style="width: 100%;">
       <div id="alarmCues" style="width: 100%;"></div>
         <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
@@ -305,7 +291,8 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   Sorry, your browser does not support inline SVG
 </svg>
         </div><!--videoFeed-->
-        <p id="dvrControls">
+        <div id="dvrControls">
+          <span id="showLabel" class="showLabel"></span>
           <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">
           <i class="material-icons md-18">skip_previous</i>
           </button>
@@ -336,7 +323,20 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
           <i class="material-icons md-18">skip_next</i>
           </button>
-        </p>
+<?php if ($player == 'h265web.js') { ?>
+            <div class="volume">
+              <span>
+                <a id="muteBtn" class="muteBtn">
+                  <svg class="icon" style="width: 1em;height: 1em;vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="488">
+                    <path d="M153.6 665.6V358.4h204.8V256H153.6c-56.32 0-102.4 46.08-102.4 102.4v307.2c0 56.32 46.08 102.4 102.4 102.4h204.8v-102.4H153.6zM358.4 256v102.4l204.8-128v563.2L358.4 665.6v102.4l307.2 204.8V51.2zM768 261.12v107.52c61.44 20.48 102.4 76.8 102.4 143.36s-40.96 122.88-102.4 143.36v107.52c117.76-25.6 204.8-128 204.8-250.88s-87.04-225.28-204.8-250.88z" p-id="489">
+                    </path>
+                  </svg>
+                </a>
+              </span>
+              <progress id="volume" value="50" max="100"></progress>
+            </div>
+<?php } ?>
+        </div>
         <div id="replayStatus">
           <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
           <span id="rate"><?php echo translate('Rate') ?>: 
@@ -355,10 +355,6 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
     </div><!--content-->
     
   </div><!--page-->
-  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
-  <script src="./js/videojs.zoomrotate.js"></script>
 <?php
 if ($player == 'video.js') {
 ?>
@@ -367,24 +363,22 @@ if ($player == 'video.js') {
   <script src="skins/<?php echo $skin ?>/js/video.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
 <?php 
-} else if ($player == 'libde265.js') {
-  echo '<script src="js/libde265.js"></script>';
 } else if ($player == 'h265web.js') {
-  $version = 20220916;
+  $version = 20221022;
   if ($version == 20211026) {
 ?>
-  <script src="skins/<?php echo $skin ?>/js/h265web.js/missile.js"></script>
-  <script src="skins/<?php echo $skin ?>/js/h265web.js/h265webjs-v20211026.js"></script>
+  <script src="js/h265web.js/missile.js"></script>
+  <script src="js/h265web.js/h265webjs-v20211026.js"></script>
 <?php
   } else if ($version == 20220916) {
 ?>
-  <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/missile.js"></script>
-  <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/h265webjs-v20220916.js"></script>
+  <script src="js/h265web.js/dist/missile.js"></script>
+  <script src="js/h265web.js/dist/h265webjs-v20220916.js"></script>
 <?php
   } else if ($version == 20221022) {
 ?>
-  <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/missile.js"></script>
-  <script src="skins/<?php echo $skin ?>/js/h265web.js.git/dist/h265webjs-v20221022.js"></script>
+  <script src="js/h265web.js/dist/missile.js"></script>
+  <script src="js/h265web.js/dist/h265webjs-v20221022.js"></script>
 <?php
   }
 }

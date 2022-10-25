@@ -27,6 +27,9 @@ var params =
 
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
+  if ($j('#filterServerId').val()) {
+    params.data.ServerId = $j('#filterServerId').val();
+  }
   if ($j('#filterLevel').val()) {
     params.data.level = $j('#filterLevel').val();
   }
@@ -136,6 +139,8 @@ function initPage() {
 
   $j('#filterStartDateTime, #filterEndDateTime')
       .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+      .on('change', filterLog);
+  $j('#filterServerId')
       .on('change', filterLog);
 }
 

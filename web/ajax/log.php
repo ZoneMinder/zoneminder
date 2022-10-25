@@ -137,6 +137,11 @@ function queryRequest() {
     $where = '(' .implode(' OR ', $likes). ')';
   }
 
+  if (!empty($_REQUEST['ServerId'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'ServerId = ?';
+    $query['values'][] = $_REQUEST['ServerId'];
+  }
   if (!empty($_REQUEST['level'])) {
     if ($where) $where .= ' AND ';
     $where .= 'Code = ?';

@@ -222,7 +222,6 @@ function collectData() {
   global $statusData;
 
   $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
-#print_r( $entitySpec );
   if ( !canView($entitySpec['permission']) )
     ajaxError('Unrecognised action or insufficient permissions');
 

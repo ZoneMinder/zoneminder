@@ -2421,4 +2421,10 @@ function output_file($path, $chunkSize=1024) {
 
   return ((connection_status() == 0) and !connection_aborted());
 } # end function output_file
+
+function array_to_hash_by_key($key, $array) {
+  $results = array();
+  foreach ($array as $a) { $results[$a->$key()] = $a; }
+  return $results;
+}
 ?>

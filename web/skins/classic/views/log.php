@@ -40,35 +40,44 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-    </div>
 
-    <div id="filters">
-      <table class="table-condensed">
-        <tr class="row">
-          <td class="col">
-            <label><?php echo translate('Component') ?></label>
-            <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
-          </td>
-          <td class="col">
-            <label><?php echo translate('Server') ?></label>
+<!--
+      <span class="ComponentFilter">
+        <label><?php echo translate('Component') ?></label>
+        <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
+      </span>
+-->
+<?php if (count($Servers)>1) { ?>
+      <span class="ServerFilter">
+        <label><?php echo translate('Server') ?></label>
 <?php
-$servers = ZM\Server::find(null, array('order'=>'lower(Name)'));
-$ServersById = hash_from_array_by_key('Id', $servers);
-echo htmlSelect('filter[ServerId]', $ServersById);
+$ServersById = array(''=>translate('All')) + hash_from_array_by_key('Id', $Servers);
+echo htmlSelect('filterServerId', $ServersById, '', );
 ?>
-          </td>
-          <td class="col">
-            <label><?php echo translate('Level') ?></label>
-            <select class="form-control chosen" id="filter[Level]" data-on-change="filterLog"><option value="">---</option></select>
-          </td>
-          <td class="col">
-            <label><?php echo translate('File') ?></label>
-            <select class="form-control chosen" id="filter[File]" data-on-change="filterLog"><option value="">------</option></select>
-          </td>
-        </tr>
-      </table>
-      <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
-    </div>
+      </span>
+<?php } ?>
+      <span class="LevelFilter">
+        <label><?php echo translate('Level') ?></label>
+<?php
+$levels = array(''=>translate('All'));
+foreach (array_values(ZM\Logger::$codes) as $level) {
+  $levels[$level] = $level;
+}
+echo htmlSelect('filterLevel', $levels,
+    (isset($_SESSION['ZM_LOG_FILTER_LEVEL']) ? $_SESSION['ZM_LOG_FILTER_LEVEL'] : ''),
+    array('data-on-change'=>'filterLog', 'id'=>'filterLevel'));
+    #array('class'=>'form-control chosen', 'data-on-change'=>'filterLog'));
+?>
+      </span>
+      <span class="StartDateTimeFilter">
+        <label><?php echo translate('Start Date/Time') ?></label>
+        <input type="text" name="filterStartDateTime" id="filterStartDateTime" value=""/>
+      </span>
+      <span class="EndDateTimeFilter">
+        <label><?php echo translate('End Date/Time') ?></label>
+        <input type="text" name="filterEndDateTime" id="filterEndDateTime" value=""/>
+      </span>
+    </div><!--toolbar-->
 
     <table
       id="logTable"
@@ -95,7 +104,7 @@ echo htmlSelect('filter[ServerId]', $ServersById);
       data-auto-refresh="true"
       data-auto-refresh-silent="true"
       data-show-refresh="true"
-      data-auto-refresh-interval="5"
+      data-auto-refresh-interval="30"
     >
       <thead class="thead-highlight">
         <tr>

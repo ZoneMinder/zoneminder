@@ -119,7 +119,7 @@ if ($action == 'save') {
     ZM\Debug('Auto selecting server: Got ' . $newMonitor['ServerId']);
     if ((!$newMonitor['ServerId']) and defined('ZM_SERVER_ID')) {
       $newMonitor['ServerId'] = ZM_SERVER_ID;
-      ZM\Debug('Auto selecting server to ' . ZM_SERVER_ID);
+      ZM\Debug('Auto selecting server to '.ZM_SERVER_ID);
     }
   }
 
@@ -275,11 +275,17 @@ if ($action == 'save') {
               ));
         $Storage = $monitor->Storage();
 
-				error_reporting(0);
-        mkdir($Storage->Path().'/'.$mid, 0755);
-        $saferName = basename($newMonitor['Name']);
-        symlink($mid, $Storage->Path().'/'.$saferName);
-
+        if (!@mkdir($Storage->Path().'/'.$mid, 0755)) {
+          ZM\Error('Unable to mkdir '.$Storage->Path().'/'.$mid);
+        } else {
+          $saferName = basename($newMonitor['Name']);
+          $link_path = $Storage->Path().'/'.$saferName;
+          if (!@symlink($mid, $link_path)) {
+            if (!(file_exists($link_path) and is_link($link_path))) {
+              ZM\Warning('Unable to symlink ' . $Storage->Path().'/'.$mid . ' to ' . $link_path);
+            }
+          }
+        }
       } else {
         ZM\Error('Error saving new Monitor.');
         return;

@@ -112,13 +112,13 @@ if ($action == 'save') {
       if ($monitor->save($changes)) {
         // Groups will be added below
         if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
-          // creating symlinks when symlink already exists reports errors, but is perfectly ok
-          error_reporting(0);
 
-          $OldStorage = $monitor->Storage();
-          $saferOldName = basename($monitor->Name());
-          if (file_exists($OldStorage->Path().'/'.$saferOldName))
-            unlink($OldStorage->Path().'/'.$saferOldName);
+          if (isset($changes['Name'])) {
+            $OldStorage = $monitor->Storage();
+            $saferOldName = basename($monitor->Name());
+            if (file_exists($OldStorage->Path().'/'.$saferOldName))
+              unlink($OldStorage->Path().'/'.$saferOldName);
+          }
 
           $NewStorage = new ZM\Storage($newMonitor['StorageId']);
           if (!file_exists($NewStorage->Path().'/'.$mid)) {
@@ -126,10 +126,11 @@ if ($action == 'save') {
               ZM\Error('Unable to mkdir '.$NewStorage->Path().'/'.$mid);
             }
           }
+
           $saferNewName = basename($_REQUEST['newMonitor']['Name']);
           $link_path = $NewStorage->Path().'/'.$saferNewName;
           // Use a relative path for the target so the link continues to work from backups or directory changes.
-          if (!symlink($mid, $link_path)) {
+          if (!@symlink($mid, $link_path)) {
             if (!(file_exists($link_path) and is_link($link_path))) {
               ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
             }

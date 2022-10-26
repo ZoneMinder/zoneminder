@@ -155,14 +155,14 @@ if ($action == 'save') {
             } # end foreach zone
           } else {
             $newA = $newW * $newH;
-            $oldA = $oldmonitor->Width() * $oldMonitor->Height();
+            $oldA = $oldMonitor->Width() * $oldMonitor->Height();
 
             foreach ( $zones as $zone ) {
               $newZone = $zone;
               $points = coordsToPoints($zone['Coords']);
               for ( $i = 0; $i < count($points); $i++ ) {
-                $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldW-1));
-                $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldH-1));
+                $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldMonitor->Width()-1));
+                $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldMonitor->Height()-1));
                 if ( $points[$i]['x'] > ($newW-1) ) {
                   ZM\Warning("Correcting x of zone {$newZone['Name']} as it extends outside the new dimensions");
                   $points[$i]['x'] = ($newW-1);

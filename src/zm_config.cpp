@@ -150,7 +150,9 @@ void process_configfile(char const *configFile) {
     white_len += strspn(val_ptr, "\'\"");
     val_ptr += white_len;
 
-    if ( strcasecmp(name_ptr, "ZM_DB_HOST") == 0 )
+    if ( strcasecmp(name_ptr, "ZM_DB_TYPE") == 0 )
+      staticConfig.DB_TYPE = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_DB_HOST") == 0 )
       staticConfig.DB_HOST = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_DB_NAME") == 0 )
       staticConfig.DB_NAME = std::string(val_ptr);

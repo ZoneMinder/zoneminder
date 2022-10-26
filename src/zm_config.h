@@ -46,6 +46,7 @@ void zmLoadDBConfig();
 extern void process_configfile(char const *configFile);
 
 struct StaticConfig {
+  std::string DB_TYPE;
   std::string DB_HOST;
   std::string DB_NAME;
   std::string DB_USER;

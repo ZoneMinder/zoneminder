@@ -22,7 +22,12 @@
 
 #include "zm_logger.h"
 #include "zm_signal.h"
+
+#ifdef HAVE_LIBSOCI_MYSQL
 #include <cstdlib>
+
+#include <mysql/mysql.h>
+#include <mysql/mysqld_error.h>
 
 #include "soci.h"
 #include "mysql/soci-mysql.h"
@@ -42,5 +47,7 @@ private:
 
     void prepareAutoIncrementTables();
 };
+
+#endif
 
 #endif

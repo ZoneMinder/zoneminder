@@ -22,8 +22,6 @@
 
 #include <condition_variable>
 #include <mutex>
-#include <mysql/mysql.h>
-#include <mysql/mysqld_error.h>
 #include <queue>
 #include <string>
 #include <thread>

@@ -342,16 +342,20 @@ if(NOT ZM_NO_CURL)
 endif()
 
 # Soci
-find_package(Soci COMPONENTS mysql) #postgresql)
+find_package(Soci COMPONENTS mysql postgresql)
 if(SOCI_FOUND)
-  if(NOT SOCI_mysql_FOUND)
-    message(FATAL_ERROR
-      "ZoneMinder requires libsoci_mysql package but it was not found on your system")
-  endif()
   set(HAVE_LIBSOCI 1)
   list(APPEND ZM_BIN_LIBS "${SOCI_LIBRARY}")
-  list(APPEND ZM_BIN_LIBS "${SOCI_mysql_PLUGIN}")
-  #list(APPEND ZM_BIN_LIBS "${SOCI_postgresql_PLUGIN}")
+
+  if(SOCI_mysql_FOUND)
+    set(HAVE_LIBSOCI_MYSQL 1)
+    list(APPEND ZM_BIN_LIBS "${SOCI_mysql_PLUGIN}")
+  endif()
+  if(SOCI_postgresql_FOUND)
+    set(HAVE_LIBSOCI_POSTGRESQL 1)
+    list(APPEND ZM_BIN_LIBS "${SOCI_postgresql_PLUGIN}")
+  endif()
+
   include_directories("${SOCI_INCLUDE_DIRS}")
   set(CMAKE_REQUIRED_INCLUDES "${SOCI_INCLUDE_DIRS}")
 else()

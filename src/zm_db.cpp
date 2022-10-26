@@ -39,7 +39,23 @@ bool zmDbConnect()
     return true;
   }
 
-  database = new zmDbMySQLAdapter();
+  std::string dbType = TrimSpaces( StringToLower(staticConfig.DB_TYPE) );
+
+#ifdef HAVE_LIBSOCI_MYSQL
+  if( dbType.compare("mysql") == 0 )
+    database = new zmDbMySQLAdapter();
+#endif
+
+#ifdef HAVE_LIBSOCI_POSTGRESQL
+  if( dbType.compare("postgresql") == 0 )
+    database = new zmDbMySQLAdapter();
+#endif
+  
+  if( database == nullptr ) {
+    Logger::fetch()->databaseLevel( Logger::NOLOG ); // to disable the recursive log write to db
+    Error("Type '%s' not a supported database backend: supported('mysql','postgresql')", dbType.c_str());
+    exit(-1);
+  }
 
   zmDbConnected = true;
   return zmDbConnected;
@@ -136,15 +152,14 @@ void zmDbQuery::run(bool data_exchange)
   try {
     resultFlag = stmt->execute(!data_exchange);
   }
-  catch (soci::mysql_soci_error const & e)
-  {
-    errcode = e.err_num_;
-    resultFlag = false;
-  }
   catch (soci::soci_error const & e)
   {
     errcode = 0;
     resultFlag = false;
+    Logger::Level prevLevel = Logger::fetch()->databaseLevel( Logger::NOOPT ); // to disable the recursive log write to db
+    Logger::fetch()->databaseLevel( Logger::NOLOG );
+    Error( "Database exception: %s", e.what() );
+    Logger::fetch()->databaseLevel( prevLevel );
   }
   if( !resultFlag && exitOnError ) {
     exit(errcode);

@@ -17,8 +17,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "zm_db.h"
-
 #include "zm_signal.h"
+
+#ifdef HAVE_LIBSOCI_MYSQL
 #include "zm_db_mysql.h"
 
 std::string load_monitor_sql =
@@ -346,3 +347,5 @@ void zmDbMySQLAdapter::prepareAutoIncrementTables()
     autoIncrementTable[INSERT_MONITOR_STATUS_CONNECTED] = "Monitor_Status";
     autoIncrementTable[INSERT_MONITOR_STATUS_NOTRUNNING] = "Monitor_Status";
 }
+
+#endif

@@ -1,16 +1,14 @@
 /*
- * This file contains UI functions relating to export / download modals 
+ * This file contains UI functions relating to export / download modals
  *
  */
 
-function startDownload( exportFile ) {
+function startDownload(exportFile) {
   console.log("Starting download from " + exportFile);
-  window.location.replace( exportFile );
+  window.location.replace(exportFile);
 }
 
 function exportResponse(data, responseText) {
-  console.log('exportResponse data: ' + JSON.stringify(data));
-
   const generated = (data.result=='Ok') ? 1 : 0;
 
   $j('#exportProgress').removeClass( 'text-warning' );

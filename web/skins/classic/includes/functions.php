@@ -111,8 +111,6 @@ echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
   'css/font-awesome.min.css',
   'css/bootstrap.min.css',
-  'css/bootstrap-table.min.css',
-  'css/bootstrap-table-page-jump-to.min.css',
 ));
 
 echo output_link_if_exists(array(
@@ -120,6 +118,8 @@ echo output_link_if_exists(array(
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
+  'js/bootstrap-table-1.21.1/bootstrap-table.min.css',
+  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
 ), true);
 if ( $css != 'base' )
   echo output_link_if_exists(array(
@@ -945,27 +945,17 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
-  'js/bootstrap-table.min.js',
-  'js/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-export.min.js',
-  'js/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-cookie.min.js',
-  'js/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.21.1/bootstrap-table.min.js',
+  'js/bootstrap-table-1.21.1/extensions/locale/bootstrap-table-locale-all.min.js',
+  'js/bootstrap-table-1.21.1/extensions/export/bootstrap-table-export.min.js',
+  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-1.21.1/extensions/cookie/bootstrap-table-cookie.min.js',
+  'js/bootstrap-table-1.21.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-1.21.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
   'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',
 ), true );
-?>
-<?php
-  if ($view == 'event' || $view == 'video') {
-?>
-  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
-  <script src="./js/videojs.zoomrotate.js"></script>
-<?php
-  }
 ?>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
@@ -981,6 +971,7 @@ function xhtmlFooter() {
   }
 ?>
   </script>
+  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
   if ( $viewJsFile ) {
 ?>
@@ -990,11 +981,6 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
-<?php
-  if ( $basename == 'monitor' ) {
-    echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
-  } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

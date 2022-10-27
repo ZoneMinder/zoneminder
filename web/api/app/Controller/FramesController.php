@@ -14,9 +14,20 @@ class FramesController extends AppController {
  */
 	public $components = array('RequestHandler');
 
+
+  public function beforeFilter() {
+    parent::beforeFilter();
+    global $user;
+    # We already tested for auth in appController, so we just need to test for specific permission
+    $canView = (!$user) || ($user['Events'] != 'None');
+    if (!$canView) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+  }
+
 /**
  * index method
- *
  * @return void
  */
 	public function index() {

@@ -1,11 +1,11 @@
 <?php
 App::uses('AppController', 'Controller');
 /**
- * Event_Data Controller
+ * EventData Controller
  *
- * @property Event_Data $Event_Data
+ * @property EventData $EventData
  */
-class Event_DataController extends AppController {
+class EventDataController extends AppController {
 
 /**
  * Components
@@ -14,13 +14,24 @@ class Event_DataController extends AppController {
  */
 	public $components = array('RequestHandler');
 
+  public function beforeFilter() {
+    parent::beforeFilter();
+    global $user;
+    # We already tested for auth in appController, so we just need to test for specific permission
+    $canView = (!$user) || ($user['Events'] != 'None');
+    if (!$canView) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+  }
+
 /**
  * index method
  *
  * @return void
  */
 	public function index() {
-		$this->Event_Data->recursive = -1;
+		$this->EventData->recursive = -1;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
       $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
@@ -31,7 +42,7 @@ class Event_DataController extends AppController {
     $find_array = array(
       'conditions' => &$conditions,
     );
-    $event_data = $this->Event_Data->find('all', $find_array);
+    $event_data = $this->EventData->find('all', $find_array);
     $this->set(array(
       'event_data' => $event_data,
       '_serialize' => array('event_data')
@@ -46,12 +57,12 @@ class Event_DataController extends AppController {
  * @return void
  */
 	public function view($id = null) {
-		$this->Event_Data->recursive = -1;
-		if (!$this->Event_Data->exists($id)) {
+		$this->EventData->recursive = -1;
+		if (!$this->EventData->exists($id)) {
 			throw new NotFoundException(__('Invalid event data'));
 		}
-		$options = array('conditions' => array('Event_Data.' . $this->Event_Data->primaryKey => $id));
-		$event_data = $this->Event_Data->find('first', $options);
+		$options = array('conditions' => array('Event_Data.' . $this->EventData->primaryKey => $id));
+		$event_data = $this->EventData->find('first', $options);
 		$this->set(array(
 			'event_data' => $event_data,
 			'_serialize' => array('event_data')
@@ -65,12 +76,11 @@ class Event_DataController extends AppController {
  */
 	public function add() {
 		if ($this->request->is('post')) {
-			$this->Event_Data->create();
-			if ($this->Event_Data->save($this->request->data)) {
-				return $this->flash(__('The event_data has been saved.'), array('action' => 'index'));
+			$this->EventData->create();
+			if ($this->EventData->save($this->request->data)) {
 			}
 		}
-		$events = $this->Event_Data->Event->find('list');
+		$events = $this->EventData->Event->find('list');
 		$this->set(compact('events'));
 	}
 
@@ -82,18 +92,17 @@ class Event_DataController extends AppController {
  * @return void
  */
 	public function edit($id = null) {
-		if (!$this->Event_Data->exists($id)) {
+		if (!$this->EventData->exists($id)) {
 			throw new NotFoundException(__('Invalid event_data'));
 		}
 		if ($this->request->is(array('post', 'put'))) {
-			if ($this->Event_Data->save($this->request->data)) {
-				return $this->flash(__('The event_data has been saved.'), array('action' => 'index'));
+			if ($this->EventData->save($this->request->data)) {
 			}
 		} else {
-			$options = array('conditions' => array('Event_Data.' . $this->Event_Data->primaryKey => $id));
-			$this->request->data = $this->Event_Data->find('first', $options);
+			$options = array('conditions' => array('Event_Data.' . $this->EventData->primaryKey => $id));
+			$this->request->data = $this->EventData->find('first', $options);
 		}
-		$events = $this->Event_Data->Event->find('list');
+		$events = $this->EventData->Event->find('list');
 		$this->set(compact('events'));
 	}
 
@@ -105,12 +114,12 @@ class Event_DataController extends AppController {
  * @return void
  */
 	public function delete($id = null) {
-		$this->Event_Data->id = $id;
-		if (!$this->Event_Data->exists()) {
+		$this->EventData->id = $id;
+		if (!$this->EventData->exists()) {
 			throw new NotFoundException(__('Invalid event_data'));
 		}
 		$this->request->allowMethod('post', 'delete');
-		if ($this->Event_Data->delete()) {
+		if ($this->EventData->delete()) {
 			return $this->flash(__('The event_data has been deleted.'), array('action' => 'index'));
 		} else {
 			return $this->flash(__('The event_data could not be deleted. Please, try again.'), array('action' => 'index'));

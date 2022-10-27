@@ -18,12 +18,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Events') ) {
+if (!canView('Events')) {
   $view = 'error';
   return;
 }
 
 require_once('includes/Event.php');
+require_once('includes/Event_Data.php');
 require_once('includes/Filter.php');
 require_once('includes/Zone.php');
 
@@ -203,13 +204,12 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 <?php if ( $Event->Id() ) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="content" class="d-flex flex-row justify-content-center">
-      <div class="">
+      <div class="eventStats">
         <!-- VIDEO STATISTICS TABLE -->
         <table id="eventStatsTable" class="table-sm table-borderless">
           <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
         </table>
       </div>
-      <div class="">
       <div id="eventVideo">
       <!-- VIDEO CONTENT -->
         <div id="videoFeed">
@@ -304,10 +304,21 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>
       </div><!--eventVideo-->
+      <div id="EventData" class="EventData">
+      <?php
+        $data = ZM\Event_Data::find(['EventId'=>$Event->Id()]);
+        if (count($data)) {
+          echo '<table class="table table-striped table-hover table-condensed"><thead><tr><th>'.translate('Timestamp').'</th><th>'.translate('Data').'</th></tr></thead><tbody>'.PHP_EOL;
+          foreach ($data as $d) {
+            echo '<tr><td class="Timestamp">'.$d->Timestamp().'</td><td class="Data">'.strip_tags($d->Data()).'</td></tr>'.PHP_EOL;
+          }
+          echo '</tbody></table>';
+        }
+      ?>
+      </div>
 <?php
 } // end if Event exists
 ?>
-  </div>
     </div><!--content-->
     
   </div><!--page-->

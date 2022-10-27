@@ -6,7 +6,6 @@ $message = '';
 // INITIALIZE AND CHECK SANITY
 //
 
-
 // task must be set
 if (!isset($_REQUEST['task'])) {
   $message = 'This request requires a task to be set';
@@ -126,7 +125,7 @@ function queryRequest() {
       array_push($query['values'], $text);
     }
     $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
+    $where = '(' .implode(' OR ', $likes). ')';
 
   } else if ($search != '') {
     $search = '%' .$search. '%';
@@ -135,8 +134,40 @@ function queryRequest() {
       array_push($query['values'], $search);
     }
     $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
-  }  
+    $where = '(' .implode(' OR ', $likes). ')';
+  }
+
+  if (!empty($_REQUEST['ServerId'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'ServerId = ?';
+    $query['values'][] = $_REQUEST['ServerId'];
+  }
+  if (!empty($_REQUEST['level'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'Code = ?';
+    $query['values'][] = $_REQUEST['level'];
+  }
+  if (!empty($_REQUEST['StartDateTime'])) {
+    $start_time = strtotime($_REQUEST['StartDateTime']);
+    if ($start_time) {
+      if ($where) $where .= ' AND ';
+      $where .= 'TimeKey >= ?';
+      $query['values'][] = $start_time;
+    } else {
+      ZM\Warning("Unable to parse StartDateTime ".$_REQUEST['StartDateTime']. " into a timestamp");
+    }
+  }
+  if (!empty($_REQUEST['EndDateTime'])) {
+    $end_time = strtotime($_REQUEST['EndDateTime']);
+    if ($end_time) {
+      if ($where) $where .= ' AND ';
+      $where .= 'TimeKey <= ?';
+      $query['values'][] = $end_time;
+    } else {
+      ZM\Warning("Unable to parse EndDateTime ".$_REQUEST['EndDateTime']. " into a timestamp");
+    }
+  }
+  if ($where) $where = ' WHERE '.$where;
 
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);

@@ -1,11 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 /**
- * Event_Data Model
+ * EventData Model
  *
  * @property Event $Event
  */
-class Event_Data extends AppModel {
+class EventData extends AppModel {
 
 /**
  * Use table
@@ -43,7 +43,6 @@ class Event_Data extends AppModel {
 				//'required' => false,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
 		),
 		'FrameId' => array(
 			'numeric' => array(
@@ -61,7 +60,6 @@ class Event_Data extends AppModel {
 				//'required' => false,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
 		),
 		'MonitorId' => array(
 			'numeric' => array(

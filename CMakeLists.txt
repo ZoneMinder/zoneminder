@@ -192,9 +192,22 @@ set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH
 set(ZM_CAKEPHP_CACHE "Apc" CACHE STRING
   "Set the CakePHP cache engine, default: Apc")
 
-# Reassign some variables if a target distro has been specified
-if(ZM_TARGET_DISTRO MATCHES "^fc")
-  set(ZM_CAKEPHP_CACHE "Memcached")
+# Supported crypto backends. Using OpenSSL by default to be compatible with jwt-cpp.
+set(ZM_CRYPTO_BACKEND_OPTIONS gnutls openssl)
+set(ZM_CRYPTO_BACKEND openssl CACHE STRING "Determines which crypto backend should be used.")
+set_property(CACHE ZM_CRYPTO_BACKEND PROPERTY STRINGS ${ZM_CRYPTO_BACKEND_OPTIONS})
+
+if(NOT ZM_CRYPTO_BACKEND IN_LIST ZM_CRYPTO_BACKEND_OPTIONS)
+  message(FATAL_ERROR "Invalid value for ZM_CRYPTO_BACKEND. Possible options: ${ZM_CRYPTO_BACKEND_OPTIONS}")
+endif()
+
+# Supported JWT backends. Using jwt-cpp as default.
+set(ZM_JWT_BACKEND_OPTIONS libjwt jwt_cpp)
+set(ZM_JWT_BACKEND jwt_cpp CACHE STRING "Determines which JWT backend should be used.")
+set_property(CACHE ZM_JWT_BACKEND PROPERTY STRINGS ${ZM_JWT_BACKEND_OPTIONS})
+
+if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
+  message(FATAL_ERROR "Invalid value for ZM_JWT_BACKEND. Possible options: ${ZM_JWT_BACKEND_OPTIONS}")
 endif()
 
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))

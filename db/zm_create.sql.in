@@ -276,6 +276,18 @@ CREATE TABLE `Events_Archived` (
   KEY `Events_Archived_MonitorId_idx` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+DROP TABLE IF EXISTS `Event_Data`;
+CREATE TABLE `Event_Data` (
+  `Id`      BIGINT unsigned NOT NULL auto_increment,
+  `EventId` BIGINT unsigned, /* No foreign key for performance */
+  `MonitorId` int(10) unsigned, /* No foreign key for performance, can be NULL */
+  `FrameId`   int(10) unsigned, /* No foriegn key for performance, can by NULL */
+  `Timestamp` TIMESTAMP(3),
+  `Data`      TEXT,
+  PRIMARY KEY (`Id`),
+  KEY `Event_Data_EventId_FrameId_idx` (`EventId`, `FrameId`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 --
 -- Table structure for table `Filters`
 --

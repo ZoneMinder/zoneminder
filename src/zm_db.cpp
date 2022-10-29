@@ -18,6 +18,7 @@
 //
 #include "zm_db.h"
 #include "zm_db_mysql.h"
+#include "zm_db_postgresql.h"
 
 #include "zm_logger.h"
 #include "zm_signal.h"
@@ -48,7 +49,7 @@ bool zmDbConnect()
 
 #ifdef HAVE_LIBSOCI_POSTGRESQL
   if( dbType.compare("postgresql") == 0 )
-    database = new zmDbMySQLAdapter();
+    database = new zmDbPostgresqlAdapter();
 #endif
   
   if( database == nullptr ) {

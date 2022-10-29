@@ -22,7 +22,7 @@
 #ifdef HAVE_LIBSOCI_MYSQL
 #include "zm_db_mysql.h"
 
-std::string load_monitor_sql =
+std::string load_monitor_mysql =
 "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`, `Analysing`, `AnalysisSource`, `AnalysisImage`,"
 "`Recording`, `RecordingSource`, `Decoding`, "
 "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`,"
@@ -207,11 +207,11 @@ void zmDbMySQLAdapter::prepareSelectMonitorStatements()
     std::string cond_path = "`Path` = :path";
     std::string cond_rtsp = "`Function` != 'None' AND `RTSPerver` != false";
 
-    std::string base_query = load_monitor_sql + cond_type + op_and;
+    std::string base_query = load_monitor_mysql + cond_type + op_and;
 
-    mapStatements[SELECT_MONITOR_WITH_ID]->prepare(load_monitor_sql + cond_id);
+    mapStatements[SELECT_MONITOR_WITH_ID]->prepare(load_monitor_mysql + cond_id);
 
-    mapStatements[SELECT_MONITOR_TYPE]->prepare(load_monitor_sql + cond_type);
+    mapStatements[SELECT_MONITOR_TYPE]->prepare(load_monitor_mysql + cond_type);
 
     mapStatements[SELECT_MONITOR_TYPE_AND_DEVICE]->prepare(base_query + cond_device);
 
@@ -227,13 +227,13 @@ void zmDbMySQLAdapter::prepareSelectMonitorStatements()
 
     mapStatements[SELECT_MONITOR_TYPE_AND_PATH_AND_SERVER]->prepare(base_query + cond_path + op_and + cond_server_id);
 
-    mapStatements[SELECT_MONITOR_TYPE_RTSP]->prepare(load_monitor_sql + cond_rtsp);
+    mapStatements[SELECT_MONITOR_TYPE_RTSP]->prepare(load_monitor_mysql + cond_rtsp);
 
-    mapStatements[SELECT_MONITOR_TYPE_RTSP_AND_SERVER]->prepare(load_monitor_sql + cond_rtsp + op_and + cond_server_id);
+    mapStatements[SELECT_MONITOR_TYPE_RTSP_AND_SERVER]->prepare(load_monitor_mysql + cond_rtsp + op_and + cond_server_id);
 
-    mapStatements[SELECT_MONITOR_TYPE_RTSP_AND_ID]->prepare(load_monitor_sql + cond_rtsp + op_and + cond_id);
+    mapStatements[SELECT_MONITOR_TYPE_RTSP_AND_ID]->prepare(load_monitor_mysql + cond_rtsp + op_and + cond_id);
 
-    mapStatements[SELECT_MONITOR_TYPE_RTSP_AND_SERVER_AND_ID]->prepare(load_monitor_sql + cond_rtsp + op_and + cond_server_id + op_and + cond_id);
+    mapStatements[SELECT_MONITOR_TYPE_RTSP_AND_SERVER_AND_ID]->prepare(load_monitor_mysql + cond_rtsp + op_and + cond_server_id + op_and + cond_id);
 
 }
 

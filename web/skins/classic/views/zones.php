@@ -49,8 +49,7 @@ xhtmlHeaders(__FILE__, translate('Zones'));
       </div>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="get" action="?">
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+      <form name="contentForm" id="contentForm" method="post" action="?view=<?php echo $view ?>">
         <input type="hidden" name="action" value="delete"/>
 <?php
   foreach ( $mids as $mid ) {

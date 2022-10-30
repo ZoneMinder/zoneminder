@@ -33,7 +33,7 @@ bool zmDbConnected = false;
 bool zmDbConnect()
 {
   // For some reason having these lines causes memory corruption and crashing on newer debian/ubuntu
-  // But they really need to be here in order to prevent a double open of mysql
+  // But they really need to be here in order to prevent a double open of db
   if (zmDbConnected)
   {
     // Warning("Calling zmDbConnect when already connected");
@@ -42,19 +42,31 @@ bool zmDbConnect()
 
   std::string dbType = TrimSpaces( StringToLower(staticConfig.DB_TYPE) );
 
+  try {
 #ifdef HAVE_LIBSOCI_MYSQL
-  if( dbType.compare("mysql") == 0 )
-    database = new zmDbMySQLAdapter();
+  if( dbType.compare("mysql") == 0 ) database = new zmDbMySQLAdapter();
 #endif
 
 #ifdef HAVE_LIBSOCI_POSTGRESQL
-  if( dbType.compare("postgresql") == 0 )
-    database = new zmDbPostgresqlAdapter();
+  if( dbType.compare("postgresql") == 0 ) database = new zmDbPostgreSQLAdapter();
 #endif
+  }
+  catch (const std::exception &err)
+  {
+      Error("Cannot initialize database: %s", err.what());
+      exit(-1);
+  }
   
   if( database == nullptr ) {
     Logger::fetch()->databaseLevel( Logger::NOLOG ); // to disable the recursive log write to db
-    Error("Type '%s' not a supported database backend: supported('mysql','postgresql')", dbType.c_str());
+    Error("Type '%s' not an available database backend ("
+#ifdef HAVE_LIBSOCI_MYSQL
+      "'mysql',"
+#endif
+#ifdef HAVE_LIBSOCI_POSTGRESQL
+      "'postgresql',"
+#endif
+      ")", dbType.c_str());
     exit(-1);
   }
 
@@ -78,30 +90,48 @@ bool zmDbIsConnected() {
 }
 
 // --- Base DB --- //
-zmDb::zmDb() {}
+zmDb::zmDb() : dbLevel(0) {}
 
 zmDb::~zmDb() {}
 
 bool zmDb::connected() {
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-  if( std::chrono::duration_cast<std::chrono::seconds>(now - lastConnectionCheck).count() > 10 ) {
+  if( std::chrono::duration_cast<std::chrono::seconds>(now - lastConnectionCheck).count() <= 10 ) {
+    return true;
+  }
+  try {
     lastConnectionCheck = now;
     if( !db.is_connected() ) {
       db.reconnect();
       return db.is_connected();
     }
   }
+  catch (const std::exception &err)
+  {
+    disableDatabaseLog();
+    Error("Can't disconnect server: %s", staticConfig.DB_HOST.c_str());
+    restoreDatabaseLog();
+    return false;
+  }
   return true;
 }
 
 void zmDb::lock() {
   while( !db_mutex.try_lock() ) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::microseconds(100));
   }
 }
 
 void zmDb::unlock() {
   db_mutex.unlock();
+}
+
+void zmDb::disableDatabaseLog() {
+  this->dbLevel = Logger::fetch()->databaseLevel( Logger::NOOPT ); // to disable the recursive log write to db
+  Logger::fetch()->databaseLevel( Logger::NOLOG );
+}
+void zmDb::restoreDatabaseLog() {
+  Logger::fetch()->databaseLevel( this->dbLevel );
 }
 
 // --- Query handling --- //
@@ -157,10 +187,9 @@ void zmDbQuery::run(bool data_exchange)
   {
     errcode = 0;
     resultFlag = false;
-    Logger::Level prevLevel = Logger::fetch()->databaseLevel( Logger::NOOPT ); // to disable the recursive log write to db
-    Logger::fetch()->databaseLevel( Logger::NOLOG );
+    db->disableDatabaseLog();
     Error( "Database exception: %s", e.what() );
-    Logger::fetch()->databaseLevel( prevLevel );
+    db->restoreDatabaseLog();
   }
   if( !resultFlag && exitOnError ) {
     exit(errcode);
@@ -170,7 +199,7 @@ void zmDbQuery::run(bool data_exchange)
 }
 bool zmDbQuery::next()
 {
-  if (stmt == nullptr || result == nullptr)
+  if (stmt == nullptr || result == nullptr || affectedRows() == 0)
     return false;
 
   if( result_iter == nullptr ) {

@@ -80,59 +80,52 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
 
     soci::connection_parameters params(soci::mysql, paramsStr);
 
-    try
-    {
-        db.open( params );
+    db.open( params );
 
-        if (!db.is_connected())
-        {
-            Error("Can't connect to server: %s", paramsStr.c_str());
-            return;
-        }
-
-        soci::mysql_session_backend *concreteDb = (soci::mysql_session_backend *)db.get_backend();
-
-        if( concreteDb->conn_ == NULL ) {
-            Error("Cannot connect to database");
-            
-        } else {
-            bool reconnect = true;
-            unsigned int OPT_NONBLOCK = 1;
-            unsigned int CONNECT_TIMEOUT = 2;
-            unsigned int READ_TIMEOUT = 2;
-            unsigned int WRITE_TIMEOUT = 2;
-  
-            mysql_options(concreteDb->conn_, MYSQL_OPT_RECONNECT, &reconnect);
-            mysql_options(concreteDb->conn_, MYSQL_OPT_NONBLOCK, &OPT_NONBLOCK);
-            mysql_options(concreteDb->conn_, MYSQL_OPT_CONNECT_TIMEOUT, &CONNECT_TIMEOUT);
-            mysql_options(concreteDb->conn_, MYSQL_OPT_READ_TIMEOUT, &READ_TIMEOUT);
-            mysql_options(concreteDb->conn_, MYSQL_OPT_WRITE_TIMEOUT, &WRITE_TIMEOUT);
-
-            if ( mysql_query(concreteDb->conn_, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
-                Error("Can't set isolation level: %s", mysql_error(concreteDb->conn_));
-            }
-        }
-
-        for (int i = 0; i < LAST_QUERY; i++)
-        {
-            mapStatements[i] = new soci::statement(db);
-            mapStatements[i]->alloc();
-        }
-
-        prepareSelectStatements();
-        prepareSelectAllStatements();
-        prepareSelectMonitorStatements();
-        prepareUpdateStatements();
-        prepareInsertStatements();
-
-        for (int i = 0; i < LAST_QUERY; i++)
-        {
-            mapStatements[i]->define_and_bind();
-        }
-    }
-    catch (const std::exception &err)
+    if (!db.is_connected())
     {
         Error("Can't connect to server: %s", paramsStr.c_str());
+        return;
+    }
+
+    soci::mysql_session_backend *concreteDb = (soci::mysql_session_backend *)db.get_backend();
+
+    if( concreteDb->conn_ == NULL ) {
+        Error("Cannot connect to database");
+        
+    } else {
+        bool reconnect = true;
+        unsigned int OPT_NONBLOCK = 1;
+        unsigned int CONNECT_TIMEOUT = 2;
+        unsigned int READ_TIMEOUT = 2;
+        unsigned int WRITE_TIMEOUT = 2;
+
+        mysql_options(concreteDb->conn_, MYSQL_OPT_RECONNECT, &reconnect);
+        mysql_options(concreteDb->conn_, MYSQL_OPT_NONBLOCK, &OPT_NONBLOCK);
+        mysql_options(concreteDb->conn_, MYSQL_OPT_CONNECT_TIMEOUT, &CONNECT_TIMEOUT);
+        mysql_options(concreteDb->conn_, MYSQL_OPT_READ_TIMEOUT, &READ_TIMEOUT);
+        mysql_options(concreteDb->conn_, MYSQL_OPT_WRITE_TIMEOUT, &WRITE_TIMEOUT);
+
+        if ( mysql_query(concreteDb->conn_, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
+            Error("Can't set isolation level: %s", mysql_error(concreteDb->conn_));
+        }
+    }
+
+    for (int i = 0; i < LAST_QUERY; i++)
+    {
+        mapStatements[i] = new soci::statement(db);
+        mapStatements[i]->alloc();
+    }
+
+    prepareSelectStatements();
+    prepareSelectAllStatements();
+    prepareSelectMonitorStatements();
+    prepareUpdateStatements();
+    prepareInsertStatements();
+
+    for (int i = 0; i < LAST_QUERY; i++)
+    {
+        mapStatements[i]->define_and_bind();
     }
 }
 
@@ -172,14 +165,14 @@ void zmDbMySQLAdapter::prepareSelectStatements()
 
     mapStatements[SELECT_SERVER_NAME_WITH_ID]->prepare("SELECT `Name` FROM `Servers` WHERE `Id`=:id");
 
-    mapStatements[SELECT_GROUP_WITH_ID]->prepare("SELECT `Id`, `ParentId`, `Name` FROM `Group` WHERE `Id`=:id");
+    mapStatements[SELECT_GROUP_WITH_ID]->prepare("SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Id`=:id");
 
     mapStatements[SELECT_MAX_EVENTS_ID_WITH_MONITORID_AND_FRAMES_NOT_ZERO]->prepare(
         "SELECT MAX(`Id`) FROM `Events` WHERE `MonitorId`=:id AND `Frames` > 0");
 
     // rewritten to remove nested query not suppoerted by soci mysql backend
     mapStatements[SELECT_GROUPS_PARENT_OF_MONITOR_ID]->prepare(
-        "SELECT DISTINCT `Groups`.`Id`, `Groups`.`ParentId`, `Groups`.`Name` FROM `Groups`, `Groups_Monitors`         WHERE `Groups_Monitors`.`MonitorId`=:id AND `Groups`.`Id`=`Groups_Monitors`.`Id`;");
+        "SELECT DISTINCT `Groups`.`Id`, `Groups`.`ParentId`, `Groups`.`Name` FROM `Groups`, `Groups_Monitors` WHERE `Groups_Monitors`.`MonitorId`=:id AND `Groups`.`Id`=`Groups_Monitors`.`Id`;");
 
     mapStatements[SELECT_MONITOR_ID_REMOTE_RTSP_AND_RTPUNI]->prepare(
         "SELECT `Id` FROM `Monitors` WHERE `Function` != 'None' AND `Type` = 'Remote' AND `Protocol` = 'rtsp' AND `Method` = 'rtpUni' ORDER BY `Id` ASC");
@@ -205,7 +198,7 @@ void zmDbMySQLAdapter::prepareSelectMonitorStatements()
     std::string cond_server_id = "`ServerId` = :server_id";
     std::string cond_protocol = "`Protocol` = :protocol AND `Host` = :host AND `Port` = :port AND `Path` = :path";
     std::string cond_path = "`Path` = :path";
-    std::string cond_rtsp = "`Function` != 'None' AND `RTSPerver` != false";
+    std::string cond_rtsp = "`Function` != 'None' AND `RTSPserver` != false";
 
     std::string base_query = load_monitor_mysql + cond_type + op_and;
 

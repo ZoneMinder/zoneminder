@@ -36,12 +36,18 @@
 
 class zmDb
 {
+private:
+  int dbLevel;
+
 protected:
   std::recursive_mutex db_mutex;
   soci::session db;
   std::chrono::steady_clock::time_point lastConnectionCheck;
   std::unordered_map<int, soci::statement*> mapStatements;
   std::unordered_map<int, std::string> autoIncrementTable;
+
+  void disableDatabaseLog();
+  void restoreDatabaseLog();
 
 public:
   zmDb();

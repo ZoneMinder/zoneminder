@@ -30,10 +30,10 @@
 #include "soci.h"
 #include "postgresql/soci-postgresql.h"
 
-class zmDbPostgresqlAdapter : public zmDb {
+class zmDbPostgreSQLAdapter : public zmDb {
 public:
-    zmDbPostgresqlAdapter();
-    ~zmDbPostgresqlAdapter();
+    zmDbPostgreSQLAdapter();
+    ~zmDbPostgreSQLAdapter();
     virtual uint64_t lastInsertID(const zmDbQueryID& queryId);
 
 private:

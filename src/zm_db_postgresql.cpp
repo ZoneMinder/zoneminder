@@ -40,19 +40,19 @@ std::string load_monitor_postgresql =
 "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
 "RTSPServer, RTSPStreamName, ONVIF_Alarm_Text,"
 "ONVIF_URL, ONVIF_Username, ONVIF_Password, ONVIF_Options, ONVIF_Event_Listener, use_Amcrest_API, "
-"SignalCheckPoints, SignalCheckColour, Importance, ZoneCount FROM Monitors"
+"SignalCheckPoints, SignalCheckColour, Importance, ZoneCount FROM zm.\"monitors\""
 " WHERE ";
 
-zmDbPostgresqlAdapter::zmDbPostgresqlAdapter() : zmDb()
+zmDbPostgreSQLAdapter::zmDbPostgreSQLAdapter() : zmDb()
 {
     if (db.is_connected())
         return;
 
     std::string paramsStr("");
-    paramsStr += "db=" + staticConfig.DB_NAME;
-    paramsStr += " charset=utf8";
+    paramsStr += "dbname=" + staticConfig.DB_NAME;
     paramsStr += " user=" + staticConfig.DB_USER;
-    paramsStr += " pass='" + staticConfig.DB_PASS + "'";
+    paramsStr += " password='" + staticConfig.DB_PASS + "'";
+    paramsStr += " connect_timeout=2";
 
     std::string::size_type colonIndex = staticConfig.DB_HOST.find(":");
 
@@ -73,53 +73,46 @@ zmDbPostgresqlAdapter::zmDbPostgresqlAdapter() : zmDb()
         else
         {
             // HOST + PORT
-            paramsStr += " host='" + dbHost + "'";
+            paramsStr += " hostaddr='" + dbHost + "'";
             paramsStr += " port=" + dbPortOrSocket;
         }
     }
 
     soci::connection_parameters params(soci::postgresql, paramsStr);
 
-    try
-    {
-        db.open( params );
+    db.open( params );
 
-        if (!db.is_connected())
-        {
-            Error("Can't connect to server: %s", paramsStr.c_str());
-            return;
-        }
-
-        soci::postgresql_session_backend *concreteDb = (soci::postgresql_session_backend *)db.get_backend();
-
-        if( concreteDb->conn_ == NULL ) {
-            Error("Cannot connect to database");
-        }
-
-        for (int i = 0; i < LAST_QUERY; i++)
-        {
-            mapStatements[i] = new soci::statement(db);
-            mapStatements[i]->alloc();
-        }
-
-        prepareSelectStatements();
-        prepareSelectAllStatements();
-        prepareSelectMonitorStatements();
-        prepareUpdateStatements();
-        prepareInsertStatements();
-
-        for (int i = 0; i < LAST_QUERY; i++)
-        {
-            mapStatements[i]->define_and_bind();
-        }
-    }
-    catch (const std::exception &err)
+    if (!db.is_connected())
     {
         Error("Can't connect to server: %s", paramsStr.c_str());
+        return;
+    }
+
+    soci::postgresql_session_backend *concreteDb = (soci::postgresql_session_backend *)db.get_backend();
+
+    if( concreteDb->conn_ == NULL ) {
+        Error("Cannot connect to database");
+    }
+
+    for (int i = 0; i < LAST_QUERY; i++)
+    {
+        mapStatements[i] = new soci::statement(db);
+        mapStatements[i]->alloc();
+    }
+
+    prepareSelectStatements();
+    prepareSelectAllStatements();
+    prepareSelectMonitorStatements();
+    prepareUpdateStatements();
+    prepareInsertStatements();
+
+    for (int i = 0; i < LAST_QUERY; i++)
+    {
+        mapStatements[i]->define_and_bind();
     }
 }
 
-zmDbPostgresqlAdapter::~zmDbPostgresqlAdapter()
+zmDbPostgreSQLAdapter::~zmDbPostgreSQLAdapter()
 {
     if (!db.is_connected())
         return;
@@ -134,7 +127,7 @@ zmDbPostgresqlAdapter::~zmDbPostgresqlAdapter()
     }
 }
 
-uint64_t zmDbPostgresqlAdapter::lastInsertID(const zmDbQueryID &queryId)
+uint64_t zmDbPostgreSQLAdapter::lastInsertID(const zmDbQueryID &queryId)
 {
     if (!db.is_connected())
         return 0;
@@ -146,37 +139,37 @@ uint64_t zmDbPostgresqlAdapter::lastInsertID(const zmDbQueryID &queryId)
     return 0;
 }
 
-void zmDbPostgresqlAdapter::prepareSelectStatements()
+void zmDbPostgreSQLAdapter::prepareSelectStatements()
 {
     if (!db.is_connected())
         return;
 
-    mapStatements[SELECT_SERVER_ID_WITH_NAME]->prepare("SELECT Id FROM Servers WHERE Name=:name");
+    mapStatements[SELECT_SERVER_ID_WITH_NAME]->prepare("SELECT Id FROM zm.\"servers\" WHERE Name=:name");
 
-    mapStatements[SELECT_SERVER_NAME_WITH_ID]->prepare("SELECT Name FROM Servers WHERE Id=:id");
+    mapStatements[SELECT_SERVER_NAME_WITH_ID]->prepare("SELECT Name FROM zm.\"servers\" WHERE Id=:id");
 
-    mapStatements[SELECT_GROUP_WITH_ID]->prepare("SELECT Id, ParentId, Name FROM Group WHERE Id=:id");
+    mapStatements[SELECT_GROUP_WITH_ID]->prepare("SELECT Id, ParentId, Name FROM zm.\"groups\" WHERE Id=:id");
 
     mapStatements[SELECT_MAX_EVENTS_ID_WITH_MONITORID_AND_FRAMES_NOT_ZERO]->prepare(
-        "SELECT MAX(Id) FROM Events WHERE MonitorId=:id AND Frames > 0");
+        "SELECT MAX(Id) FROM zm.\"events\" WHERE MonitorId=:id AND Frames > 0");
 
     // rewritten to remove nested query not suppoerted by soci mysql backend
     mapStatements[SELECT_GROUPS_PARENT_OF_MONITOR_ID]->prepare(
-        "SELECT DISTINCT Groups.Id, Groups.ParentId, Groups.Name FROM Groups, Groups_Monitors         WHERE Groups_Monitors.MonitorId=:id AND Groups.Id=Groups_Monitors.Id;");
+        "SELECT DISTINCT zm.\"groups\".Id, zm.\"groups\".ParentId, zm.\"groups\".Name FROM zm.\"groups\", zm.\"groups_monitors\" WHERE zm.\"groups_monitors\".MonitorId=:id AND zm.\"groups\".Id=zm.\"groups_monitors\".Id;");
 
     mapStatements[SELECT_MONITOR_ID_REMOTE_RTSP_AND_RTPUNI]->prepare(
-        "SELECT Id FROM Monitors WHERE Function != 'None' AND Type = 'Remote' AND Protocol = 'rtsp' AND Method = 'rtpUni' ORDER BY Id ASC");
+        "SELECT Id FROM zm.\"monitors\" WHERE Function != 'None' AND Type = 'Remote' AND Protocol = 'rtsp' AND Method = 'rtpUni' ORDER BY Id ASC");
 
-    mapStatements[SELECT_STORAGE_WITH_ID]->prepare("SELECT Id, Name, Path, Type, Scheme FROM Storage WHERE Id=:id");
+    mapStatements[SELECT_STORAGE_WITH_ID]->prepare("SELECT Id, Name, Path, Type, Scheme FROM zm.\"storage\" WHERE Id=:id");
 
     mapStatements[SELECT_USER_AND_DATA_WITH_USERNAME_ENABLED]->prepare(
-        "SELECT Id, Username, Password, Enabled,Stream, Events, Control, Monitors, System, MonitorIds FROM Users WHERE Username = :username AND Enabled = 1");
+        "SELECT Id, Username, Password, Enabled,Stream, Events, Control, Monitors, System, MonitorIds FROM zm.\"users\" WHERE Username = :username AND Enabled = 1");
 
     mapStatements[SELECT_USER_AND_DATA_PLUS_TOKEN_WITH_USERNAME_ENABLED]->prepare(
-        "SELECT Id, Username, Password, Enabled,Stream, Events, Control, Monitors, System, MonitorIds, TokenMinExpiry FROM Users WHERE Username = :username AND Enabled = 1");
+        "SELECT Id, Username, Password, Enabled,Stream, Events, Control, Monitors, System, MonitorIds, TokenMinExpiry FROM zm.\"users\" WHERE Username = :username AND Enabled = 1");
 }
 
-void zmDbPostgresqlAdapter::prepareSelectMonitorStatements()
+void zmDbPostgreSQLAdapter::prepareSelectMonitorStatements()
 {
     if (!db.is_connected())
         return;
@@ -188,7 +181,7 @@ void zmDbPostgresqlAdapter::prepareSelectMonitorStatements()
     std::string cond_server_id = "ServerId = :server_id";
     std::string cond_protocol = "Protocol = :protocol AND Host = :host AND Port = :port AND Path = :path";
     std::string cond_path = "Path = :path";
-    std::string cond_rtsp = "Function != 'None' AND RTSPerver != false";
+    std::string cond_rtsp = "Function != 'None' AND RTSPserver != 0";
 
     std::string base_query = load_monitor_postgresql + cond_type + op_and;
 
@@ -220,96 +213,97 @@ void zmDbPostgresqlAdapter::prepareSelectMonitorStatements()
 
 }
 
-void zmDbPostgresqlAdapter::prepareSelectAllStatements()
+void zmDbPostgreSQLAdapter::prepareSelectAllStatements()
 {
     if (!db.is_connected())
         return;
 
-    mapStatements[SELECT_ALL_ACTIVE_STATES_ID]->prepare("SELECT Id FROM States WHERE IsActive=1");
+    mapStatements[SELECT_ALL_ACTIVE_STATES_ID]->prepare("SELECT Id FROM zm.\"states\" WHERE IsActive=1");
 
-    mapStatements[SELECT_ALL_CONFIGS]->prepare("SELECT Name, Value, Type FROM Config ORDER BY Id");
+    mapStatements[SELECT_ALL_CONFIGS]->prepare("SELECT Name, Value, Type FROM zm.\"config\" ORDER BY Id");
 
-    mapStatements[SELECT_ALL_STORAGE_ID]->prepare("SELECT Id FROM Storage WHERE Id != :id");
+    mapStatements[SELECT_ALL_STORAGE_ID]->prepare("SELECT Id FROM zm.\"storage\" WHERE Id != :id");
 
-    mapStatements[SELECT_ALL_STORAGE_ID_AND_SERVER_ID]->prepare("SELECT Id FROM Storage WHERE Id != :id AND ServerId = :server_id");
+    mapStatements[SELECT_ALL_STORAGE_ID_AND_SERVER_ID]->prepare("SELECT Id FROM zm.\"storage\" WHERE Id != :id AND ServerId = :server_id");
 
-    mapStatements[SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL]->prepare("SELECT Id FROM Storage WHERE ServerId IS NULL");
+    mapStatements[SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL]->prepare("SELECT Id FROM zm.\"storage\" WHERE ServerId IS NULL");
 
-    mapStatements[SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL_OR_DIFFERENT]->prepare("SELECT Id FROM Storage WHERE ServerId IS NULL OR ServerId != :server_id");
+    mapStatements[SELECT_ALL_STORAGE_ID_WITH_SERVERID_NULL_OR_DIFFERENT]->prepare("SELECT Id FROM zm.\"storage\" WHERE ServerId IS NULL OR ServerId != :server_id");
 
     mapStatements[SELECT_ALL_EVENTS_ID_WITH_MONITORID_EQUAL]->prepare(
-        "SELECT Id FROM Events WHERE MonitorId = :id AND unix_timestamp(EndDateTime) > :timestamp         ORDER BY Id ASC LIMIT 1");
+        "SELECT Id FROM zm.\"events\" WHERE MonitorId = :id AND extract(epoch from EndDateTime at time zone 'utc') > :timestamp         ORDER BY Id ASC LIMIT 1");
 
     mapStatements[SELECT_EVENT_WITH_ID]->prepare(
-        "SELECT Events.Id, MonitorId, StorageId, Frames, unix_timestamp( StartDateTime ) AS StartTimestamp, unix_timestamp( EndDateTime ) AS EndTimestamp, DefaultVideo, Scheme, SaveJPEGs, Orientation, max(f.Delta)-min(f.Delta) AS FramesDuration FROM Events JOIN Frames f ON Events.Id = f.Id WHERE Events.Id = :id");
+        "SELECT Events.Id, MonitorId, StorageId, Frames, extract(epoch from  StartDateTime at time zone 'utc') AS StartTimestamp, extract(epoch from EndDateTime at time zone 'utc') AS EndTimestamp, DefaultVideo, Scheme, SaveJPEGs, Orientation, max(f.Delta)-min(f.Delta) AS FramesDuration FROM zm.\"events\" JOIN zm.\"frames\" f ON Events.Id = f.Id WHERE Events.Id = :id GROUP BY Events.Id");
 
-    mapStatements[SELECT_ALL_FRAMES_OF_EVENT_WITH_ID]->prepare("SELECT FrameId, unix_timestamp(TimeStamp), Delta FROM Frames     WHERE EventId = :id  ORDER BY FrameId ASC");
+    mapStatements[SELECT_ALL_FRAMES_OF_EVENT_WITH_ID]->prepare("SELECT FrameId, extract(epoch from TimeStamp at time zone 'utc'), Delta FROM zm.\"frames\" WHERE EventId = :id  ORDER BY FrameId ASC");
 
     mapStatements[SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LESSER_THAN]->prepare(
-        "SELECT Id FROM Events WHERE MonitorId = :monitor_id AND Id < :event_id  ORDER BY Id DESC LIMIT 1");
+        "SELECT Id FROM zm.\"events\" WHERE MonitorId = :monitor_id AND Id < :event_id  ORDER BY Id DESC LIMIT 1");
 
     mapStatements[SELECT_ALL_EVENTS_ID_WITH_MONITORID_AND_ID_LARGER_THAN]->prepare(
-        "SELECT Id FROM Events WHERE MonitorId = :monitor_id AND Id > :event_id  ORDER BY Id ASC LIMIT 1");
+        "SELECT Id FROM zm.\"events\" WHERE MonitorId = :monitor_id AND Id > :event_id  ORDER BY Id ASC LIMIT 1");
 
     mapStatements[SELECT_ALL_USERS_AND_DATA_ENABLED]->prepare(
-        "SELECT Id, Username, Password, Enabled, Stream, Events, Control, Monitors, System, MonitorIds FROM Users         WHERE Enabled = 1");
+        "SELECT Id, Username, Password, Enabled, Stream, Events, Control, Monitors, System, MonitorIds FROM zm.\"users\" WHERE Enabled = 1");
 
     mapStatements[SELECT_ALL_ZONES_WITH_MONITORID_EQUAL_TO]->prepare(
-        "SELECT Id,Name,Type,Units,Coords,AlarmRGB,CheckMethod, MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels, FilterX,FilterY,MinFilterPixels,MaxFilterPixels, MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs, OverloadFrames,ExtendAlarmFrames FROM Zones WHERE MonitorId = :id ORDER BY Type");
+        "SELECT Id,Name,Type,Units,Coords,AlarmRGB,CheckMethod, MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels, FilterX,FilterY,MinFilterPixels,MaxFilterPixels, MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs, OverloadFrames,ExtendAlarmFrames FROM zm.\"zones\" WHERE MonitorId = :id ORDER BY Type");
 
-    mapStatements[SELECT_ALL_MONITORS_DATA]->prepare("SELECT Id, Capturing, Analysing, Recording FROM Monitors ORDER BY Id ASC");
+    mapStatements[SELECT_ALL_MONITORS_DATA]->prepare("SELECT Id, Capturing, Analysing, Recording FROM zm.\"monitors\" ORDER BY Id ASC");
 
-    mapStatements[SELECT_ALL_MONITORS_DATA_VERBOSE]->prepare("SELECT Id, Capturing, Analysing, Recording FROM Monitors WHERE Capturing != 'None' ORDER BY Id ASC");
+    mapStatements[SELECT_ALL_MONITORS_DATA_VERBOSE]->prepare("SELECT Id, Capturing, Analysing, Recording FROM zm.\"monitors\" WHERE Capturing != 'None' ORDER BY Id ASC");
 }
 
-void zmDbPostgresqlAdapter::prepareUpdateStatements()
+void zmDbPostgreSQLAdapter::prepareUpdateStatements()
 {
     if (!db.is_connected())
         return;
 
     mapStatements[UPDATE_NEW_EVENT_WITH_ID]->prepare(
-        "UPDATE Events SET Name=:name, EndDateTime = from_unixtime(:enddatetime), Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score, DefaultVideo=:default_video WHERE Id = :id AND Name='New Event'");
+        "UPDATE zm.\"events\" SET Name=:name, EndDateTime = :enddatetime, Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score, DefaultVideo=:default_video WHERE Id = :id AND Name='New Event'");
 
     mapStatements[UPDATE_NEW_EVENT_WITH_ID_NO_NAME]->prepare(
-        "UPDATE Events SET EndDateTime = from_unixtime(:enddatetime), Length = :length, Frames = :frames, AlarmFrames = :alarm_frames,         TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score, DefaultVideo=:default_video WHERE Id = :id");
+        "UPDATE zm.\"events\" SET EndDateTime = :enddatetime, Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score, DefaultVideo=:default_video WHERE Id = :id");
 
-    mapStatements[UPDATE_EVENT_WITH_ID_SET_NOTES]->prepare("UPDATE Events SET Notes = :notes WHERE Id = :id");
+    mapStatements[UPDATE_EVENT_WITH_ID_SET_NOTES]->prepare("UPDATE zm.\"events\" SET Notes = :notes WHERE Id = :id");
 
-    mapStatements[UPDATE_EVENT_WITH_ID_SET_SCORE]->prepare("UPDATE Events SET Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score WHERE Id = :id");
+    mapStatements[UPDATE_EVENT_WITH_ID_SET_SCORE]->prepare("UPDATE zm.\"events\" SET Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score WHERE Id = :id");
 
-    mapStatements[UPDATE_EVENT_WITH_ID_SET_STORAGEID]->prepare("UPDATE Events SET StorageId = :storage_id WHERE Id=:id");
+    mapStatements[UPDATE_EVENT_WITH_ID_SET_STORAGEID]->prepare("UPDATE zm.\"events\" SET StorageId = :storage_id WHERE Id=:id");
 
-    mapStatements[UPDATE_EVENT_WITH_ID_SET_SAVEJPEGS]->prepare("UPDATE Events SET SaveJpegs=:save_jpegs WHERE Id=:id");
+    mapStatements[UPDATE_EVENT_WITH_ID_SET_SAVEJPEGS]->prepare("UPDATE zm.\"events\" SET SaveJpegs=:save_jpegs WHERE Id=:id");
 
-    mapStatements[UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS]->prepare("UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = :capture_fps, CaptureBandwidth=:capture_bandwitdh, AnalysisFPS = :analysis_fps WHERE MonitorId=:id");
+    // note: LOW PRIORITY does not exist in postgres
+    mapStatements[UPDATE_MONITORSTATUS_WITH_MONITORID_SET_CAPTUREFPS]->prepare("UPDATE zm.\"monitor_status\" SET CaptureFPS = :capture_fps, CaptureBandwidth=:capture_bandwitdh, AnalysisFPS = :analysis_fps WHERE MonitorId=:id");
 }
 
-void zmDbPostgresqlAdapter::prepareInsertStatements()
+void zmDbPostgreSQLAdapter::prepareInsertStatements()
 {
     if (!db.is_connected())
         return;
 
-    mapStatements[INSERT_EVENTS]->prepare("INSERT INTO Events ( MonitorId, StorageId, Name, StartDateTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) VALUES (:monitor_id, :storage_id, 'New Event', from_unixtime(:start_datetime), :width, :height, :cause, :notes, :state_id, :orientation, :videoed, :default_video, :save_jpegs, :scheme)");
+    mapStatements[INSERT_EVENTS]->prepare("INSERT INTO zm.\"events\" ( MonitorId, StorageId, Name, StartDateTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) VALUES (:monitor_id, :storage_id, 'New Event', :start_datetime, :width, :height, :cause, :notes, :state_id, :orientation, :videoed, :default_video, :save_jpegs, :scheme)");
 
-    mapStatements[INSERT_FRAMES]->prepare("INSERT INTO Frames (EventId, FrameId, Type, TimeStamp, Delta, Score) VALUES (:event_id, :frame_id, :type, from_unixtime( :timestamp ), :delta, :score)");
+    mapStatements[INSERT_FRAMES]->prepare("INSERT INTO zm.\"frames\" (EventId, FrameId, Type, TimeStamp, Delta, Score) VALUES (:event_id, :frame_id, :type, :timestamp, :delta, :score)");
 
-    mapStatements[INSERT_STATS_SINGLE]->prepare("INSERT INTO Stats SET MonitorId=:monitorid, ZoneId=:zone_id, EventId=:event_id , FrameId=:frame_id, PixelDiff=:pixel_diff, AlarmPixels=:alarm_pixels, FilterPixels=:filter_pixels, BlobPixels=:blob_pixels, Blobs=:blobs, MinBlobSize=:min_blobsize, MaxBlobSize=:max_blobsize, MinX=:minx, MinY=:miny, MaxX=:maxx, MaxY=:maxy, Score=:score");
+    mapStatements[INSERT_STATS_SINGLE]->prepare("INSERT INTO zm.\"stats\" (EventId, FrameId, MonitorId, ZoneId, PixelDiff, AlarmPixels, FilterPixels, Blobs, BlobPixels, MinBlobSize, MaxBlobSize, MinX, MinY, MaxX, MaxY,Score) VALUES (:event_id, :frame_id, :monitorid, :zone_id, :pixel_diff, :alarm_pixels, :filter_pixels, :blobs, :blob_pixels, :min_blobsize, :max_blobsize, :minx, :miny, :maxx, :maxy, :score)");
 
-    mapStatements[INSERT_STATS_MULTIPLE]->prepare("INSERT INTO Stats (EventId, FrameId, MonitorId, ZoneId, PixelDiff, AlarmPixels, FilterPixels, BlobPixels, Blobs,MinBlobSize, MaxBlobSize, MinX, MinY, MaxX, MaxY,Score) VALUES (:event_id, :frame_id, :monitor_id, :zone_id, :pixel_diff, :alarm_pixels, :filter_pixels, :blob_pixels, :blobs, :min_blobsize, :max_blobsize,  :minx, :miny, :maxx, :maxy, :score)");
+    mapStatements[INSERT_STATS_MULTIPLE]->prepare("INSERT INTO zm.\"stats\" (EventId, FrameId, MonitorId, ZoneId, PixelDiff, AlarmPixels, FilterPixels, Blobs, BlobPixels, MinBlobSize, MaxBlobSize, MinX, MinY, MaxX, MaxY,Score) VALUES (:event_id, :frame_id, :monitor_id, :zone_id, :pixel_diff, :alarm_pixels, :filter_pixels, :blobs, :blob_pixels, :min_blobsize, :max_blobsize,  :minx, :miny, :maxx, :maxy, :score)");
 
-    mapStatements[INSERT_LOGS]->prepare("INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line )  VALUES ( :time_key, :component, :server_id, :pid, :level, :code, :message, :file, :line )");
+    mapStatements[INSERT_LOGS]->prepare("INSERT INTO zm.\"logs\" ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line )  VALUES ( :time_key, :component, :server_id, :pid, :level, :code, :message, :file, :line )");
 
     mapStatements[INSERT_MONITOR_STATUS_RUNNING]->prepare(
-        "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS) VALUES (:id, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0");
+        "INSERT INTO zm.\"monitor_status\" (MonitorId,Status,CaptureFPS,AnalysisFPS) VALUES (:id, 'Running',0,0) ON CONFLICT (MonitorId) DO UPDATE SET Status='Running',CaptureFPS=0,AnalysisFPS=0");
 
     mapStatements[INSERT_MONITOR_STATUS_CONNECTED]->prepare(
-        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (:id, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'");
+        "INSERT INTO zm.\"monitor_status\" (MonitorId,Status) VALUES (:id, 'Connected') ON CONFLICT (MonitorId) DO UPDATE SET Status='Connected'");
 
     mapStatements[INSERT_MONITOR_STATUS_NOTRUNNING]->prepare(
-        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (:id, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'");
+        "INSERT INTO zm.\"monitor_status\" (MonitorId,Status) VALUES (:id, 'NotRunning') ON CONFLICT (MonitorId) DO UPDATE SET Status='NotRunning'");
 }
 
-void zmDbPostgresqlAdapter::prepareAutoIncrementTables()
+void zmDbPostgreSQLAdapter::prepareAutoIncrementTables()
 {
     // auto increment table
     /*

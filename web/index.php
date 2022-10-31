@@ -196,7 +196,7 @@ foreach ( getSkinIncludes('skin.php') as $includeFile ) {
 if (isset($_POST['action'])) {
   # Actions can only be performed on POST because we don't check csrf on GETs.
   $action = detaintPath($_POST['action']);
-} else if (isset($_REQUEST['action'])) {
+} else if (isset($_REQUEST['action']) and $_REQUEST['action']) {
   ZM\Error('actions can no longer be performed without POST.');
 }
 

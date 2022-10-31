@@ -42,8 +42,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
         ,libavdevice58|libavdevice57
-        ,libswscale5|libswscale4
-        ,libswresample3|libswresample2
+        ,libswscale6|libswscale5|libswscale4
+        ,libswresample4|libswresample3|libswresample2
         ,ffmpeg
         ,libcurl4, libcurl4-gnutls-dev
         ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl

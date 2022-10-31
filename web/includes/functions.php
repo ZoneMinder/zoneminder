@@ -254,8 +254,8 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
       return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
-      #(($width and $width !='auto') ?'width:'.$width.';' : '').
-      (($height and $height != 'auto')?' height:'.$height.';':'').
+      (($width and ($width !='auto')) ?'width:'.$width.';' : '').
+      (($height and ($height != 'auto'))?' height:'.$height.';':'').
       '" />';
   }
 }
@@ -470,7 +470,7 @@ function htmlOptions($options, $values) {
       $text = $option;
     }
     $selected = false;
-    if ($values) {
+    if ($values !== null) {
       $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
       if ( !$has_selected ) 
         $has_selected = $selected;
@@ -2421,4 +2421,10 @@ function output_file($path, $chunkSize=1024) {
 
   return ((connection_status() == 0) and !connection_aborted());
 } # end function output_file
+
+function array_to_hash_by_key($key, $array) {
+  $results = array();
+  foreach ($array as $a) { $results[$a->$key()] = $a; }
+  return $results;
+}
 ?>

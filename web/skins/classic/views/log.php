@@ -40,7 +40,44 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-    </div>
+
+<!--
+      <span class="ComponentFilter">
+        <label><?php echo translate('Component') ?></label>
+        <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
+      </span>
+-->
+<?php if (count($Servers)>1) { ?>
+      <span class="ServerFilter">
+        <label><?php echo translate('Server') ?></label>
+<?php
+$ServersById = array(''=>translate('All')) + array_to_hash_by_key('Id', $Servers);
+echo htmlSelect('filterServerId', $ServersById, '', array('id'=>'filterServerId'));
+?>
+      </span>
+<?php } ?>
+      <span class="LevelFilter">
+        <label><?php echo translate('Level') ?></label>
+<?php
+$levels = array(''=>translate('All'));
+foreach (array_values(ZM\Logger::$codes) as $level) {
+  $levels[$level] = $level;
+}
+echo htmlSelect('filterLevel', $levels,
+    (isset($_SESSION['ZM_LOG_FILTER_LEVEL']) ? $_SESSION['ZM_LOG_FILTER_LEVEL'] : ''),
+    array('data-on-change'=>'filterLog', 'id'=>'filterLevel'));
+    #array('class'=>'form-control chosen', 'data-on-change'=>'filterLog'));
+?>
+      </span>
+      <span class="StartDateTimeFilter">
+        <label><?php echo translate('Start Date/Time') ?></label>
+        <input type="text" name="filterStartDateTime" id="filterStartDateTime" value=""/>
+      </span>
+      <span class="EndDateTimeFilter">
+        <label><?php echo translate('End Date/Time') ?></label>
+        <input type="text" name="filterEndDateTime" id="filterEndDateTime" value=""/>
+      </span>
+    </div><!--toolbar-->
 
     <table
       id="logTable"
@@ -67,7 +104,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       data-auto-refresh="true"
       data-auto-refresh-silent="true"
       data-show-refresh="true"
-      data-auto-refresh-interval="5"
+      data-auto-refresh-interval="30"
     >
       <thead class="thead-highlight">
         <tr>

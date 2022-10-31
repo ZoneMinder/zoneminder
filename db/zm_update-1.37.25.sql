@@ -3,8 +3,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitor_Status'
      AND column_name = 'UpdatedOn'
     ) > 0,
-"SELECT 'Column UpdatedOn already exists in Monitor_Status'",
-"ALTER TABLE `Monitor_Status` ADD `UpdatedOn`     datetime NOT NULL default NOW() AFTER CaptureBandwidth"
+"ALTER TABLE `Monitor_Status` MODIFY `UpdatedOn` TIMESTAMP NOT NULL default CURRENT_TIMESTAMP",
+"ALTER TABLE `Monitor_Status` ADD `UpdatedOn`    TIMESTAMP NOT NULL default CURRENT_TIMESTAMP AFTER CaptureBandwidth"
 ));
 
 PREPARE stmt FROM @s;

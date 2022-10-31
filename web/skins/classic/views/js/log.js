@@ -1,4 +1,4 @@
-var table = $j('#logTable');
+const table = $j('#logTable');
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -27,6 +27,19 @@ var params =
 
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
+  if ($j('#filterServerId').val()) {
+    params.data.ServerId = $j('#filterServerId').val();
+  }
+  if ($j('#filterLevel').val()) {
+    params.data.level = $j('#filterLevel').val();
+  }
+  if ($j('#filterStartDateTime').val()) {
+    params.data.StartDateTime = $j('#filterStartDateTime').val();
+  }
+  if ($j('#filterEndDateTime').val()) {
+    params.data.EndDateTime = $j('#filterEndDateTime').val();
+  }
+
   $j.ajax({
     url: thisUrl + '?view=request&request=log&task=query',
     data: params.data,
@@ -50,12 +63,16 @@ function ajaxRequest(params) {
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     try {
-      row.Message = decodeURIComponent(row.Message);
+      row.Message = decodeURIComponent(row.Message).replace(/</g, "&lt;").replace(/>/g, "&gt;");
     } catch (e) {
       // ignore errors
     }
   });
   return rows;
+}
+
+function filterLog() {
+  table.bootstrapTable('refresh');
 }
 
 function updateHeaderStats(data) {
@@ -119,6 +136,12 @@ function initPage() {
     evt.preventDefault();
     window.location.reload(true);
   });
+
+  $j('#filterStartDateTime, #filterEndDateTime')
+      .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+      .on('change', filterLog);
+  $j('#filterServerId')
+      .on('change', filterLog);
 }
 
 $j(document).ready(function() {

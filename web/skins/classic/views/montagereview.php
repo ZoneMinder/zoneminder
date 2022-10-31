@@ -336,4 +336,5 @@ getBodyTopHTML();
   </div>
   <p id="fps">evaluating fps</p>
 </div>
+<script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <?php xhtmlFooter() ?>

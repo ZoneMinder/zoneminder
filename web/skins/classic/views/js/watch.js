@@ -239,7 +239,7 @@ function getStreamCmdResponse(respObj, respText) {
   } else {
     console.log("Not ok");
     checkStreamForErrors('getStreamCmdResponse', respObj);//log them
-    setTimeout(fetchImage, 1000, $j('#imageFeed img'));
+    setTimeout(fetchImage, 1000, $j('#imageFeed img')[0]);
   }
 
   var streamCmdTimeout = statusRefreshTimeout;
@@ -530,12 +530,12 @@ function controlCmd(event) {
   controlReq(data);
 
   if (streamMode == 'single') {
-    setTimeout(fetchImage, 1000, $j('#imageFeed img'));
+    setTimeout(fetchImage, 1000, $j('#imageFeed img')[0]);
   }
 }
 
 function controlCmdImage(x, y) {
-  var data = {};
+  const data = {};
   data.scale = scale;
   data.control = imageControlMode;
   data.x = x;
@@ -543,15 +543,15 @@ function controlCmdImage(x, y) {
   controlReq(data);
 
   if (streamMode == 'single') {
-    setTimeout(fetchImage, 1000, $j('#imageFeed img'));
+    setTimeout(fetchImage, 1000, $j('#imageFeed img')[0]);
   }
 }
 
 function fetchImage(streamImage) {
-  const oldsrc = streamImage.attr('src');
+  const oldsrc = streamImage.src;
   const newsrc = oldsrc.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-  streamImage.attr('src', '');
-  streamImage.attr('src', newsrc);
+  streamImage.src = '';
+  streamImage.src = newsrc;
 }
 
 function handleClick(event) {

@@ -203,7 +203,7 @@ $html .= '</span>
 
   for ( $i = 0; $i < count($monitors); $i++ ) {
     if ( !visibleMonitor($monitors[$i]['Id']) ) {
-      ZM\Logger::Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
+      ZM\Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
       continue;
     }
 

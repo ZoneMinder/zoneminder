@@ -57,7 +57,7 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
 ZM\Debug(print_r($_REQUEST, true));
 
 global $Servers;
-$Servers = ZM\Server::find();
+$Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')

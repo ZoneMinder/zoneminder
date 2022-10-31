@@ -602,6 +602,9 @@ input[type=submit]:disabled,
 }
 
 
+#navbar-container {
+  padding: 0 0 10px 0;
+}
 .navbar{
 	margin-bottom: 0 !important;
 	border-radius: 0;
@@ -753,6 +756,7 @@ a.flip {
   padding: 4px 0 0 0;
 }
 #logoutButton {
+  color: white;
   padding: 4px 10px 7px 10px;
 }
 #stateModalBtn {

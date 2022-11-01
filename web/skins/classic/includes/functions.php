@@ -214,7 +214,9 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     <div class="nav justify-content-end flex-grow-1">
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
-        <span class="navbar-toggler-icon"></span>
+        <span class="navbar-toggler-icon">
+					<i class="material-icons md-20">menu</i>
+				</span>
       </button>
    </div>
 
@@ -351,7 +353,9 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
     <?php if ( (!ZM_OPT_USE_AUTH) or $user ) { ?>
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-haspopup="true" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
-        <span class="navbar-toggler-icon"></span>
+        <span class="navbar-toggler-icon">
+					<i class="material-icons md-20">menu</i>
+				</span>
       </button>
     <?php } ?>
 

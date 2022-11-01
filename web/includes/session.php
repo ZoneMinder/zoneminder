@@ -126,10 +126,10 @@ class ZMSessionHandler implements SessionHandlerInterface {
     );
 */
   }
-  public function open($path, $name): bool {
+  public function open($path, $name) {
     return $this->db ? true : false;
   }
-  public function close() : bool {
+  public function close() {
     // The example code closed the db connection.. I don't think we care to.
     return true;
   }
@@ -151,7 +151,7 @@ class ZMSessionHandler implements SessionHandlerInterface {
     // Return an empty string
     return '';
   }
-  public function write($id, $data) : bool {
+  public function write($id, $data) {
     // Create time stamp
     $access = time();
 
@@ -163,7 +163,7 @@ class ZMSessionHandler implements SessionHandlerInterface {
 
     return $sth->execute() ? true : false;
   }
-  public function destroy($id) : bool {
+  public function destroy($id) {
     $sth = $this->db->prepare('DELETE FROM Sessions WHERE Id = :id');
     $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
     return $sth->execute() ? true : false;
@@ -178,7 +178,7 @@ class ZMSessionHandler implements SessionHandlerInterface {
     $sth->bindParam(':old', $old, PDO::PARAM_INT);
     return $sth->execute() ? true : false;
   }
-  public function validateId($key) : bool {return true;}
+  public function validateId($key) {return true;}
 } # end class Session
 
 $session = new ZMSessionHandler;

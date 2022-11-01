@@ -585,21 +585,19 @@ sub age {
 }
 
 sub DiskSpace {
-  if ( @_ > 1 ) {
-    Debug("Cleared DiskSpace, was $_[0]{DiskSpace}") if $_[0]{DiskSpace};
-    $_[0]{DiskSpace} = $_[1];
-  }
-  if ( ! defined $_[0]{DiskSpace} ) {
-    if ( -e $_[0]->Path() ) {
+  my $self = shift;
+  $$self{DiskSpace} = shift if @_;
+  if ( ! defined $$self{DiskSpace} ) {
+    if ( -e $self->Path() ) {
       my $size = 0;
-      File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
-      $_[0]{DiskSpace} = $size;
-      Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
+      File::Find::find( { wanted=>sub { $size += -f $_ ? -s $_ : 0 }, untaint=>1 }, $self->Path() );
+      $$self{DiskSpace} = $size;
+      Debug("DiskSpace for event $$self{Id} at $$self{Path} Updated to $size bytes");
     } else {
-      Warning("DiskSpace: Event does not exist at $_[0]{Path}:" . $_[0]->to_string() );
+      Warning("DiskSpace: Event does not exist at $$self{Path}:" . $$self->to_string());
     }
   } # end if ! defined DiskSpace
-  return $_[0]{DiskSpace};
+  return $$self{DiskSpace};
 }
 
 # Icon: I removed the locking from this. So we now have an assumption that the Event object is up to date.

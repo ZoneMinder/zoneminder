@@ -657,7 +657,10 @@ function MonitorStream(monitorData) {
 
     this.ajaxQueue = jQuery.ajaxQueue({
       url: this.url,
-      data: alarmCmdParms, dataType: "json"})
+      xhrFields: { withCredentials: true },
+      data: alarmCmdParms,
+      dataType: "json"
+    })
         .done(this.getStreamCmdResponse.bind(this))
         .fail(this.onFailure.bind(this));
   };
@@ -671,7 +674,12 @@ function MonitorStream(monitorData) {
     }
 
     this.streamCmdReq = function(streamCmdParms) {
-      this.ajaxQueue = jQuery.ajaxQueue({url: this.url, data: streamCmdParms, dataType: "json"})
+      this.ajaxQueue = jQuery.ajaxQueue({
+        url: this.url,
+        xhrFields: { withCredentials: true },
+        data: streamCmdParms,
+        dataType: "json"
+      })
           .done(this.getStreamCmdResponse.bind(this))
           .fail(this.onFailure.bind(this));
     };

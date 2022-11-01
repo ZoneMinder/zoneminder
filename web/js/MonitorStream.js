@@ -657,7 +657,7 @@ function MonitorStream(monitorData) {
 
     this.ajaxQueue = jQuery.ajaxQueue({
       url: this.url,
-      xhrFields: { withCredentials: true },
+      xhrFields: {withCredentials: true},
       data: alarmCmdParms,
       dataType: "json"
     })
@@ -676,7 +676,7 @@ function MonitorStream(monitorData) {
     this.streamCmdReq = function(streamCmdParms) {
       this.ajaxQueue = jQuery.ajaxQueue({
         url: this.url,
-        xhrFields: { withCredentials: true },
+        xhrFields: {withCredentials: true},
         data: streamCmdParms,
         dataType: "json"
       })

@@ -153,7 +153,7 @@ if (canEdit('System')) {
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('Monitors') ?></th>
-                <td><?php echo htmlSelect('user[Monitors]', $nve, $User->Monitors()) ?></td>
+                <td><?php echo htmlSelect('user[Monitors]', $nve, $User->Monitors(), ['id'=>'user[Monitors]', 'data-on-change'=>'updateEffectivePermissions']) ?></td>
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('Groups') ?></th>
@@ -173,20 +173,20 @@ if (canEdit('System')) {
       <br class="clear"/>
 <?php
 if (canEdit('Groups')) {
-  $Groups = array();
-  foreach ( ZM\Group::find() as $Group ) {
-    $Groups[$Group->Id()] = $Group;
+  $groups = array();
+  foreach ( ZM\Group::find() as $group ) {
+    $groups[$group->Id()] = $group;
   }
 
   $max_depth = 0;
   # This  array is indexed by parent_id
   $children = array();
-  foreach ( $Groups as $id=>$Group ) {
-    if ( ! isset( $children[$Group->ParentId()] ) )
-      $children[$Group->ParentId()] = array();
-    $children[$Group->ParentId()][] = $Group;
-    if ( $max_depth < $Group->depth() )
-      $max_depth = $Group->depth();
+  foreach ( $groups as $id=>$group ) {
+    if ( ! isset( $children[$group->ParentId()] ) )
+      $children[$group->ParentId()] = array();
+    $children[$group->ParentId()][] = $group;
+    if ( $max_depth < $group->depth() )
+      $max_depth = $group->depth();
   }
 
 ?>
@@ -202,28 +202,31 @@ if (canEdit('Groups')) {
           </thead>
           <tbody>
 <?php
-  function group_line($Group) {
+  function group_line($group) {
     global $children;
     global $max_depth;
     global $inve;
     global $User;
     $html = '<tr>';
-    $html .= str_repeat('<td class="name">&nbsp;</td>', $Group->depth());
-    $html .= '<td class="name" colspan="'.($max_depth-($Group->depth()-1)).'">';
-    $html .= '<a href="#" data-on-click-this="editGroup" data-group-id="'.$Group->Id().'">'.validHtmlStr($Group->Id().' '.$Group->Name()).'</a>';
-    $html .= '</td><td class="monitors">'. validHtmlStr(monitorIdsToNames($Group->MonitorIds(), 30)).'</td>';
-    $html .= '<td class="permission">'.html_radio('group_permission['.$Group->Id().']', $inve, $Group->permission($User->Id())).'</td>';
+    $html .= str_repeat('<td class="name">&nbsp;</td>', $group->depth());
+    $html .= '<td class="name" colspan="'.($max_depth-($group->depth()-1)).'">';
+    $html .= validHtmlStr($group->Id().' '.$group->Name());
+    $html .= '</td><td class="monitors">'. validHtmlStr(monitorIdsToNames($group->MonitorIds(), 30)).'</td>';
+    $html .= '<td class="permission">'.html_radio('group_permission['.$group->Id().']', $inve,
+      $group->permission($User->Id()),
+      ['default'=>'Inherit'],
+      ['data-on-change'=>'updateEffectivePermissions']).'</td>';
     $html .= '</tr>';
-    if (isset($children[$Group->Id()])) {
-      foreach ($children[$Group->Id()] as $G) {
-        $html .= group_line($G);
+    if (isset($children[$group->Id()])) {
+      foreach ($children[$group->Id()] as $g) {
+        $html .= group_line($g);
       }
     }
     return $html;
   }
   if (isset($children[null])) {
-    foreach ($children[null] as $Group) {
-      echo group_line($Group);
+    foreach ($children[null] as $group) {
+      echo group_line($group);
     }
   }
 ?>
@@ -253,8 +256,11 @@ if (canEdit('Groups')) {
 <tr class="monitor">
   <td class="Id">'.$monitor->Id().'</td>
   <td class="Name">'.validHtmlStr($monitor->Name()).'</td>
-  <td class="permission">'.html_radio('monitor_permission['.$monitor->Id().']', $inve, $User->Monitor_Permission($monitor->Id())->Permission()).'</td>
-  <td class="effective_permission">'.translate($monitor->effectivePermission($User)).'</td>
+  <td class="permission">'.html_radio('monitor_permission['.$monitor->Id().']', $inve,
+    $User->Monitor_Permission($monitor->Id())->Permission(),
+    ['default'=>'Inherit'],
+    ['data-on-change'=>'updateEffectivePermissions']).'</td>
+  <td class="effective_permission" id="effective_permission'.$monitor->Id().'">'.translate($monitor->effectivePermission($User)).'</td>
 </tr>';
   }
 ?>

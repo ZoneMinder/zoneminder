@@ -231,9 +231,6 @@ function calculateAuthHash($remoteAddr='') {
 function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password'])) {
-    $time = time();
-    # We use 1800 so that we regenerate the hash at half the TTL
-    $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
 
     if (!isset($_SESSION)) {
       # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
@@ -241,9 +238,12 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       $auth = calculateAuthHash();
       return $auth;
     } else {
+      $time = time();
+      # We use 1800 so that we regenerate the hash at half the TTL
+      $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
       # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
       if ($force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime )) {
-        $auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
+        $auth = calculateAuthHash($useRemoteAddr ? $_SESSION['remoteAddr'] : '');
         # Don't both regenerating Auth Hash if an hour hasn't gone by yet
         $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
         $_SESSION['AuthHashGeneratedAt'] = $time;

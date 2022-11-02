@@ -54,10 +54,10 @@ class User extends ZM_Object {
   }
 
   public function Group_Permissions() {
-    if (!$this->{GroupPermissions}) {
-      $this->Group_Permissions = array_to_hash_by_key('GroupId', $this->Group_Permissions());
+    if (!$this->Group_Permissions) {
+      $this->Group_Permissions = array_to_hash_by_key('GroupId', Group_Permission::find(['UserId'=>$this->Id()]));
     }
-    return array_values($this->GroupPermissions);
+    return array_values($this->Group_Permissions);
   }
 
   public function Group_Permission($group_id) {

@@ -747,7 +747,7 @@ public static function getStatuses() {
     return $this->connKey;
   }
 
-  function canEdit() {
+  function canEdit($u=null) {
     global $user;
     if ($u===null or $u['Id'] == $user['Id'])
       return editableMonitor($this->{'Id'});
@@ -1017,5 +1017,24 @@ public static function getStatuses() {
     $html .= PHP_EOL.'</div>'.PHP_EOL;
     return $html;
   } // end getStreamHTML
+ 
+  public function effectivePermission($u=null) {
+    if ($u=== null) {
+      global $user;
+      $u = new User($user);
+    }
+    $monitor_permission = $u->Monitor_Permission($this->Id());
+    if ($monitor_permission->Permission() != 'Inherit') return $monitor_permission->Permission();
+    $gp_permissions = array();
+    foreach ($u->Group_Permissions() as $gp) {
+      if (!array_search($this->Id(), $gp->Group()->MonitorIds())) continue;
+      if ($gp->Permission() == 'None') return $gp->Permission();
+      $gp_permissions[$gp->Permission()] = 1;
+    }
+    if (isset($gp_permissions['View'])) return 'View';
+    if (isset($gp_permissions['Edit'])) return 'Edit';
+
+    return $u->Monitors();
+  }
 } // end class Monitor
 ?>

@@ -81,42 +81,42 @@ echo getNavBarHTML();
   if (canEdit('System')) {
   ?>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Username') ?></th>
+                <th scope="row"><?php echo translate('Username') ?></th>
                 <td><input type="text" name="user[Username]" pattern="[A-Za-z0-9 .@]+" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
               </tr>
   <?php
   }
   ?>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('NewPassword') ?></th>
+                <th scope="row"><?php echo translate('NewPassword') ?></th>
                 <td><input type="password" name="user[Password]" autocomplete="new-password"/></td>
               </tr>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('ConfirmPassword') ?></th>
+                <th scope="row"><?php echo translate('ConfirmPassword') ?></th>
                 <td><input type="password" name="conf_password" autocomplete="new-password"/></td>
               </tr>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Language') ?></th>
+                <th scope="row"><?php echo translate('Language') ?></th>
                 <td><?php echo htmlSelect('user[Language]', $langs, $User->Language()) ?></td>
               </tr>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Home View') ?></th>
+                <th scope="row"><?php echo translate('Home View') ?></th>
                 <td><input type="text" name="user[HomeView]" value="<?php echo validHtmlStr($User->HomeView()); ?>"/></td>
               </tr>
   <?php
   if (canEdit('System')) {
   ?>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Enabled') ?></th>
+                <th scope="row"><?php echo translate('Enabled') ?></th>
                 <td><?php echo htmlSelect('user[Enabled]', $yesno, $User->Enabled()) ?></td>
               </tr>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('MaxBandwidth') ?></th>
+                <th scope="row"><?php echo translate('MaxBandwidth') ?></th>
                 <td><?php echo htmlSelect('user[MaxBandwidth]', $bandwidths, $User->MaxBandwidth()) ?></td>
               </tr>
   <?php if (ZM_OPT_USE_API) { ?>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('APIEnabled')?></th>
+                <th scope="row"><?php echo translate('APIEnabled')?></th>
                 <td><?php echo htmlSelect('user[APIEnabled]', $yesno, $User->APIEnabled()) ?></td>
               </tr>
 
@@ -134,37 +134,37 @@ if (canEdit('System')) {
           <table id="contentTable" class="table">
             <tbody>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Stream') ?></th>
+                <th scope="row"><?php echo translate('Stream') ?></th>
                 <td><?php echo htmlSelect('user[Stream]', $nv, $User->Stream()) ?></td>
               </tr>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Events') ?></th>
+                <th scope="row"><?php echo translate('Events') ?></th>
                 <td><?php echo htmlSelect('user[Events]', $nve, $User->Events()) ?></td>
               </tr>
   <?php if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS) { ?>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Snapshots') ?></th>
+                <th scope="row"><?php echo translate('Snapshots') ?></th>
                 <td><?php echo htmlSelect('user[Snapshots]', $nve, $User->Snapshots()) ?></td>
               </tr>
   <?php } ?>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Control') ?></th>
+                <th scope="row"><?php echo translate('Control') ?></th>
                 <td><?php echo htmlSelect('user[Control]', $nve, $User->Control()) ?></td>
               </tr>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Monitors') ?></th>
+                <th scope="row"><?php echo translate('Monitors') ?></th>
                 <td><?php echo htmlSelect('user[Monitors]', $nve, $User->Monitors()) ?></td>
               </tr>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Groups') ?></th>
+                <th scope="row"><?php echo translate('Groups') ?></th>
                 <td><?php echo htmlSelect('user[Groups]', $nve, $User->Groups()) ?></td>
               </tr>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('System') ?></th>
+                <th scope="row"><?php echo translate('System') ?></th>
                 <td><?php echo htmlSelect('user[System]', $nve, $User->System()) ?></td>
               </tr>
               <tr>
-                <th class="text-right" scope="row"><?php echo translate('Devices') ?></th>
+                <th scope="row"><?php echo translate('Devices') ?></th>
                 <td><?php echo htmlSelect('user[Devices]', $nve, $User->Devices()) ?></td>
               </tr>
             </tbody>
@@ -241,16 +241,21 @@ if (canEdit('Groups')) {
         <tr>
           <th class="Id"><?php echo translate('Id') ?></th>
           <th class="Name"><?php echo translate('Name') ?></th>
-          <th class="effective_permission"><?php echo translate('Effective Permission') ?></th>
           <th class="permission"><?php echo translate('Permission') ?></th>
+          <th class="effective_permission"><?php echo translate('Effective Permission') ?></th>
         </tr>
       </thead>
       <tbody>
 <?php
   foreach ($monitors as $m) {
     $monitor = new ZM\Monitor($m);
-    echo '<tr class="monitor"><td class="Id">'.$monitor->Id().'</td><td class="Name">'.validHtmlStr($monitor->Name()).'</td><td class="effective_permission"></td><td class="permission">'.
-      html_radio('monitor_permission['.$monitor->Id().']', $inve, $User->Monitor_Permission($monitor->Id())->Permission()).'</td></tr>';
+    echo '
+<tr class="monitor">
+  <td class="Id">'.$monitor->Id().'</td>
+  <td class="Name">'.validHtmlStr($monitor->Name()).'</td>
+  <td class="permission">'.html_radio('monitor_permission['.$monitor->Id().']', $inve, $User->Monitor_Permission($monitor->Id())->Permission()).'</td>
+  <td class="effective_permission">'.translate($monitor->effectivePermission($User)).'</td>
+</tr>';
   }
 ?>
       </tbody>

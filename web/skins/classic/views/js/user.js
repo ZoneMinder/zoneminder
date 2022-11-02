@@ -57,8 +57,8 @@ function updateEffectivePermissions() {
     const monitor = monitors[monitor_i];
     const perm = getEffectivePermission(monitor);
     $j('#effective_permission'+monitor.id).html(perm);
-  }  // end foreach monitor
-}  // end funtion updateEffectivePermissions()
+  } // end foreach monitor
+} // end funtion updateEffectivePermissions()
 
 function getEffectivePermission(monitor) {
   {

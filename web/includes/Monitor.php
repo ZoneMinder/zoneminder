@@ -1019,21 +1019,26 @@ public static function getStatuses() {
   } // end getStreamHTML
  
   public function effectivePermission($u=null) {
-    if ($u=== null) {
+    if ($u === null) {
       global $user;
       $u = new User($user);
     }
     $monitor_permission = $u->Monitor_Permission($this->Id());
-    if ($monitor_permission->Permission() != 'Inherit') return $monitor_permission->Permission();
+    if ($monitor_permission->Permission() != 'Inherit') {
+      return $monitor_permission->Permission();
+    }
     $gp_permissions = array();
     foreach ($u->Group_Permissions() as $gp) {
-      if (!array_search($this->Id(), $gp->Group()->MonitorIds())) continue;
-      if ($gp->Permission() == 'None') return $gp->Permission();
+      if (false === array_search($this->Id(), $gp->Group()->MonitorIds())) {
+        continue;
+      }
+      if ($gp->Permission() == 'None') {
+        return $gp->Permission();
+      }
       $gp_permissions[$gp->Permission()] = 1;
     }
     if (isset($gp_permissions['View'])) return 'View';
     if (isset($gp_permissions['Edit'])) return 'Edit';
-
     return $u->Monitors();
   }
 } // end class Monitor

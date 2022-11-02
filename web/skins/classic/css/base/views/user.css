@@ -16,3 +16,8 @@
 .Monitors .permission {
   min-width: 400px;
 }
+
+.table th {
+  text-align: right;
+  vertical-align: middle;
+}

@@ -73,7 +73,7 @@ class User extends ZM_Object {
   }
 
   public function Monitor_Permissions($new=-1) {
-    if ($new != -1) $this->Monitor_Permissions= $new;
+    if ($new != -1) $this->Monitor_Permissions = $new;
     if (!$this->Monitor_Permissions) {
       $this->Monitor_Permissions = array_to_hash_by_key('MonitorId', Monitor_Permission::find(['UserId'=>$this->Id()]));
       Debug(print_r($this->Monitor_Permissions, true));

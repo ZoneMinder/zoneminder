@@ -25,7 +25,7 @@ SET @s = (SELECT IF(
       FROM INFORMATION_SCHEMA.STATISTICS
       WHERE table_name = 'Groups_Permissions'
       AND table_schema = DATABASE()
-      AND index_name = 'Groups_Permissions_GroupId_idx'
+      AND index_name = 'Groups_Permissions_GroupId_UserId_idx'
     ) > 0,
     "SELECT 'Groups_Permissions_GroupId_UserId_idx already exists on Groups_Permissions table'",
     "CREATE UNIQUE INDEX `Groups_Permissions_GroupId_UserId_idx` ON `Groups_Permissions` (`GroupId`,`UserId`)"

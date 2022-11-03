@@ -379,7 +379,7 @@ if ($player == 'video.js') {
   <script src="./js/videojs.zoomrotate.js"></script>
 <?php 
 } else if ($player == 'h265web.js') {
-  $version = 20221022;
+  $version = 20221102;
   if ($version == 20211026) {
 ?>
   <script src="js/h265web.js/missile.js"></script>
@@ -394,6 +394,11 @@ if ($player == 'video.js') {
 ?>
   <script src="js/h265web.js/dist/missile.js"></script>
   <script src="js/h265web.js/dist/h265webjs-v20221022.js"></script>
+<?php
+  } else if ($version == 20221102) {
+?>
+  <script src="js/h265web.js/dist/missile.js"></script>
+  <script src="js/h265web.js/dist/h265webjs-v20221102.js"></script>
 <?php
   }
 }

@@ -1,4 +1,3 @@
-DROP TABLE Groups_Permissions;
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*)

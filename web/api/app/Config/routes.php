@@ -26,6 +26,7 @@
 	Router::mapResources('configs');
 	Router::mapResources('controls');
 	Router::mapResources('events');
+	Router::mapResources('event_data');
 	Router::mapResources('frames');
   Router::mapResources('groups');	
 	Router::mapResources('host');

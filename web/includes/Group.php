@@ -3,6 +3,7 @@ namespace ZM;
 
 class Group extends ZM_Object {
   protected static $table = 'Groups';
+  protected static $permissions = array();
   protected $defaults = array(
       'Id'              =>  null,
       'Name'            => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Group'),
@@ -215,7 +216,38 @@ class Group extends ZM_Object {
       if ($child->canView($u)) return true;
     }
 
-    return false;
+		return false;
+	}
+
+  public function Permissions($new=null) {
+    if ($new) {
+      $this->{'Permissions'} = $new;
+    }
+    if (!property_exists($this, 'Permissions') or $this->{'Permissions'}==null) {
+      $this->{'Permissions'} = array();
+      if ($this->Id()) {
+        foreach (Group_Permission::find(array('GroupId'=>$this->Id())) as $p) {
+          $this->{'Permissions'}[$p->UserId()] = $p;
+        }
+      }
+    }
+    return $this->{'Permissions'};
+  }
+
+  public function Group_Permission($user_id) {
+    $permissions = $this->Permissions();
+    if (isset($permissions[$user_id])) {
+      return $permissions[$user_id];
+    }
+    $permission = new Group_Permission();
+    $permission->UserId($user_id);
+    $permission->GroupId($this->Id());
+    return $permission;;
+  }
+
+  public function permission($user_id) {
+    $permission = $this->Group_Permission($user_id);
+    return $permission ? $permission->Permission() : 'Inherit';
   }
 } # end class Group
 ?>

@@ -30,6 +30,8 @@ RemoteCamera::RemoteCamera(
   const std::string &p_host,
   const std::string &p_port,
   const std::string &p_path,
+  const std::string &p_user,
+  const std::string &p_pass,
   int p_width,
   int p_height,
   int p_colours,
@@ -40,12 +42,14 @@ RemoteCamera::RemoteCamera(
   bool p_capture,
   bool p_record_audio
  ) :
-    Camera( monitor, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
-    protocol( p_protocol ),
-    host( p_host ),
-    port( p_port ),
-    path( p_path ),
-    hp( nullptr ),
+    Camera(monitor, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio),
+    protocol(p_protocol),
+    host(p_host),
+    port(p_port),
+    path(p_path),
+    username(p_user),
+    password(p_pass),
+    hp(nullptr),
     mNeedAuth(false),
     mAuthenticator(nullptr)
 {
@@ -83,6 +87,10 @@ void RemoteCamera::Initialise() {
     authIndex = auth.rfind(':');
     username = auth.substr(0,authIndex);
     password = auth.substr(authIndex+1, auth.length());
+  } else if (!username.empty()) {
+    auth = username;
+    if(!password.empty()) auth += ":"+password;
+    auth64 = Base64Encode(auth);
   }
 
   mNeedAuth = false;

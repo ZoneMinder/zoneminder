@@ -50,7 +50,6 @@ if ($action == 'save') {
 
   # For convenience
   $newMonitor = $_REQUEST['newMonitor'];
-  ZM\Debug("newMonitor: ". print_r($newMonitor, true));
 
   if (!$newMonitor['ManufacturerId'] and ($newMonitor['Manufacturer'] != '')) {
     # Need to add a new Manufacturer entry
@@ -119,13 +118,12 @@ if ($action == 'save') {
     ZM\Debug('Auto selecting server: Got ' . $newMonitor['ServerId']);
     if ((!$newMonitor['ServerId']) and defined('ZM_SERVER_ID')) {
       $newMonitor['ServerId'] = ZM_SERVER_ID;
-      ZM\Debug('Auto selecting server to ' . ZM_SERVER_ID);
+      ZM\Debug('Auto selecting server to '.ZM_SERVER_ID);
     }
   }
 
-  ZM\Debug("newMonitor: ". print_r($newMonitor, true));
   $changes = $monitor->changes($newMonitor);
-  ZM\Debug("Changes: ". print_r($changes, true));
+  ZM\Debug('Changes: '. print_r($changes, true));
   $restart = false;
 
   if (count($changes)) {
@@ -140,36 +138,19 @@ if ($action == 'save') {
         }
       }
 
-      # These are used in updating zones
-      $oldW = $monitor->Width();
-      $oldH = $monitor->Height();
+      $oldMonitor = clone $monitor;
 
       if ($monitor->save($changes)) {
-        // Groups will be added below
-        if ( isset($changes['Name']) or isset($changes['StorageId']) ) {
-          // creating symlinks when symlink already exists reports errors, but is perfectly ok
-          error_reporting(0);
-
-          $OldStorage = $monitor->Storage();
-          $saferOldName = basename($monitor->Name());
-          if (file_exists($OldStorage->Path().'/'.$saferOldName))
-            unlink($OldStorage->Path().'/'.$saferOldName);
-
-          $NewStorage = new ZM\Storage($newMonitor['StorageId']);
-          if (!file_exists($NewStorage->Path().'/'.$mid)) {
-            if (!mkdir($NewStorage->Path().'/'.$mid, 0755)) {
-              ZM\Error('Unable to mkdir '.$NewStorage->Path().'/'.$mid);
-            }
+        # Leave old symlinks on old storage areas, as old events will still be there. Only delete the link if the name has changed
+        if (isset($changes['Name'])) {
+          $link_path = $oldMonitor->Storage()->Path().'/'.basename($oldMonitor->Name());
+          if (file_exists($link_path)) {
+            ZM\Debug("Deleting old link  ".$link_path);
+            unlink($link_path);
+          } else {
+            ZM\Debug("Old link didn't exist at ".$link_path);
           }
-          $saferNewName = basename($newMonitor['Name']);
-          $link_path = $NewStorage->Path().'/'.$saferNewName;
-          // Use a relative path for the target so the link continues to work from backups or directory changes.
-          if (!symlink($mid, $link_path)) {
-            if (!(file_exists($link_path) and is_link($link_path))) {
-              ZM\Warning('Unable to symlink ' . $NewStorage->Path().'/'.$mid . ' to ' . $NewStorage->Path().'/'.$saferNewName);
-            }
-          }
-        } // end if Name or Storage Area Change
+        }
 
         if (isset($changes['Width']) || isset($changes['Height'])) {
           $newW = $newMonitor['Width'];
@@ -177,7 +158,7 @@ if ($action == 'save') {
 
           $zones = dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($mid));
 
-          if ( ($newW == $oldH) and ($newH == $oldW) ) {
+          if ( ($newW == $oldMonitor->Height()) and ($newH == $oldMonitor->Width()) ) {
             foreach ( $zones as $zone ) {
               $newZone = $zone;
               # Rotation, no change to area etc just swap the coords
@@ -208,14 +189,14 @@ if ($action == 'save') {
             } # end foreach zone
           } else {
             $newA = $newW * $newH;
-            $oldA = $oldW * $oldH;
+            $oldA = $oldMonitor->Width() * $oldMonitor->Height();
 
             foreach ( $zones as $zone ) {
               $newZone = $zone;
               $points = coordsToPoints($zone['Coords']);
               for ( $i = 0; $i < count($points); $i++ ) {
-                $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldW-1));
-                $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldH-1));
+                $points[$i]['x'] = intval(($points[$i]['x']*($newW-1))/($oldMonitor->Width()-1));
+                $points[$i]['y'] = intval(($points[$i]['y']*($newH-1))/($oldMonitor->Height()-1));
                 if ( $points[$i]['x'] > ($newW-1) ) {
                   ZM\Warning("Correcting x of zone {$newZone['Name']} as it extends outside the new dimensions");
                   $points[$i]['x'] = ($newW-1);
@@ -272,16 +253,25 @@ if ($action == 'save') {
               intval(($zoneArea*75)/100),
               intval(($zoneArea*2)/100)
               ));
-        $Storage = $monitor->Storage();
-
-				error_reporting(0);
-        mkdir($Storage->Path().'/'.$mid, 0755);
-        $saferName = basename($newMonitor['Name']);
-        symlink($mid, $Storage->Path().'/'.$saferName);
-
       } else {
         ZM\Error('Error saving new Monitor.');
         return;
+      }
+    }
+
+    $Storage = $monitor->Storage();
+    $mid_dir = $Storage->Path().'/'.$mid;
+    if (!file_exists($mid_dir)) {
+      if (!@mkdir($mid_dir, 0755)) {
+        ZM\Error('Unable to mkdir '.$Storage->Path().'/'.$mid);
+      }
+    }
+
+    $saferName = basename($newMonitor['Name']);
+    $link_path = $Storage->Path().'/'.$saferName;
+    if (!@symlink($mid, $link_path)) {
+      if (!(file_exists($link_path) and is_link($link_path))) {
+        ZM\Warning('Unable to symlink ' . $Storage->Path().'/'.$mid . ' to ' . $link_path);
       }
     }
 

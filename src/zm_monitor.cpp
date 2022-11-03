@@ -623,6 +623,8 @@ void Monitor::LoadCamera() {
                                                    host,
                                                    port,
                                                    path,
+                                                   user,
+                                                   pass,
                                                    camera_width,
                                                    camera_height,
                                                    colours,

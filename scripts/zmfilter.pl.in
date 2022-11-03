@@ -375,7 +375,7 @@ sub checkFilter {
       if (
 					( (!defined $old_diskspace) and defined $new_diskspace)
 					or
-					( (defined $old_diskspace) and (defined $new_diskspace) and ( $old_diskspace != $Event->DiskSpace(undef) ) )
+					( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
 					) {
         $Event->save();
       }

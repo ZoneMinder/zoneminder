@@ -628,12 +628,8 @@ class Event extends ZM_Object {
       # auth turned on and not logged in
       return false;
     }
-    if (!empty($u['MonitorIds']) ) {
-      if (in_array($this->{'MonitorId'}, explode(',', $u['MonitorIds']))) {
-        return true;
-      }
-      return false;
-    }
+    if (!$this->Monitor()->canView($u)) return false;
+
     if ($u['Events'] != 'None') {
       return true;
     }
@@ -651,11 +647,7 @@ class Event extends ZM_Object {
       # auth turned on and not logged in
       return false;
     }
-    if (!empty($u['MonitorIds']) ) {
-      if (!in_array($this->{'MonitorId'}, explode(',', $u['MonitorIds']))) {
-        return false;
-      }
-    }
+    if (!$this->Monitor()->canView($u)) return false;
     if ($u['Events'] != 'Edit') {
       return false;
     }

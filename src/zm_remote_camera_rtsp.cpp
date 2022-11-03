@@ -45,6 +45,7 @@ RemoteCameraRtsp::RemoteCameraRtsp(
   RemoteCamera(
       monitor, "rtsp",
       p_host, p_port, p_path,
+      p_user, p_pass,
       p_width, p_height, p_colours,
       p_brightness, p_contrast, p_hue, p_colour,
       p_capture, p_record_audio),

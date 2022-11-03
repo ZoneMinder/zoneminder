@@ -19,6 +19,8 @@
 //
 //
 require_once('session.php');
+require_once('Group_Permission.php');
+require_once('Monitor_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
 
@@ -231,9 +233,6 @@ function calculateAuthHash($remoteAddr='') {
 function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password'])) {
-    $time = time();
-    # We use 1800 so that we regenerate the hash at half the TTL
-    $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
 
     if (!isset($_SESSION)) {
       # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
@@ -241,9 +240,12 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       $auth = calculateAuthHash();
       return $auth;
     } else {
+      $time = time();
+      # We use 1800 so that we regenerate the hash at half the TTL
+      $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
       # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
       if ($force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime )) {
-        $auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
+        $auth = calculateAuthHash($useRemoteAddr ? $_SESSION['remoteAddr'] : '');
         # Don't both regenerating Auth Hash if an hour hasn't gone by yet
         $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
         $_SESSION['AuthHashGeneratedAt'] = $time;
@@ -257,16 +259,77 @@ function generateAuthHash($useRemoteAddr, $force=false) {
   return '';
 }
 
+$group_permissions = null;
+$monitor_permissions = null; # hash indexed by MonitorId
 function visibleMonitor($mid) {
   global $user;
 
-  return ( $user && empty($user['MonitorIds']) || in_array($mid, explode(',', $user['MonitorIds'])) );
+  global $monitor_permissions;
+
+  # First check for direct monitor permission
+  if ($monitor_permissions === null) {
+    $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user['Id'])));
+  }
+  if (isset($monitor_permissions[$mid]) and ($monitor_permissions[$mid]->Permission() == 'None')) {
+    ZM\Debug("Can't view monitor $mid because of monitor ".$monitor_permissions[$mid]->Permission());
+    return false;
+  }
+
+  global $group_permissions;
+  if ($group_permissions === null)
+    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+
+  # If denied view in any group, then can't view it.
+  $group_permission_value = 'Inherit';
+  foreach ($group_permissions as $permission) {
+    $value = $permission->MonitorPermission($mid);
+    if ($value == 'None') {
+      ZM\Debug("Can't view monitor $mid because of group ".$permision->Group()->Name().' '.$permision->Permission());
+      return false;
+    } else if ($value == 'View' or $value == 'Edit') {
+      $group_permission_value = $value;
+    }
+  }
+  if ($group_permission_value != 'Inherit') return true;
+
+  #if (!$user or ($user['Monitors'] == 'None')) return false;
+  ZM\Debug("Returning " . ($user['Monitors'] == 'None' ? 'false' : 'true') . " for monitor $mid");
+  return ($user['Monitors'] != 'None');
 }
 
 function canView($area, $mid=false) {
   global $user;
 
   return ( $user && ($user[$area] == 'View' || $user[$area] == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
+}
+
+function editableMonitor($mid) {
+  global $user;
+  if (!$user) return false;
+
+  global $monitor_permissions;
+
+  # First check for direct monitor permission
+  if ($monitor_permissions === null) {
+    $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user['Id'])));
+  }
+  if (isset($monitor_permissions[$mid]) and 
+    ($monitor_permissions[$mid]->Permission() == 'None' or $monitor_permissions[$mid]->Permission() == 'View') )
+    return false;
+
+
+  global $group_permissions;
+  if ($group_permissions === null)
+    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+
+  # If denied view in any group, then can't view it.
+  foreach ($group_permissions as $permission) {
+    if (!$permission->canEditMonitor($mid)) {
+      return false;
+    }
+  }
+
+  return ($user['Monitors'] == 'Edit');
 }
 
 function canEdit($area, $mid=false) {

@@ -24,6 +24,7 @@ if (!canView('Events')) {
 }
 
 require_once('includes/Event.php');
+require_once('includes/Event_Data.php');
 require_once('includes/Filter.php');
 require_once('includes/Zone.php');
 
@@ -218,7 +219,7 @@ else if (!file_exists($Event->Path()))
 <?php if ($Event->Id()) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="content" class="d-flex flex-row justify-content-center">
-      <div id="eventStats">
+      <div id="eventStats" class="eventStats">
         <!-- VIDEO STATISTICS TABLE -->
         <table id="eventStatsTable" class="table-sm table-borderless">
           <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
@@ -255,6 +256,9 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
 } else {
   $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
+  if (!canStreamNative()) {
+    echo '<div class="warning">We have detected an inability to stream natively.  Unfortunately we no longer support really ancient browsers.  Trying anyways.</div>';
+  }
   outputImageStream('evtStream', $streamSrc,
     ($scale ? reScale($Event->Width(), $scale).'px' : '100%'),
     ($scale ? reScale($Event->Height(), $scale).'px' : 'auto'),
@@ -348,10 +352,21 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
         </div>
       </div><!--eventVideo-->
+      <div id="EventData" class="EventData">
+      <?php
+        $data = ZM\Event_Data::find(['EventId'=>$Event->Id()]);
+        if (count($data)) {
+          echo '<table class="table table-striped table-hover table-condensed"><thead><tr><th>'.translate('Timestamp').'</th><th>'.translate('Data').'</th></tr></thead><tbody>'.PHP_EOL;
+          foreach ($data as $d) {
+            echo '<tr><td class="Timestamp">'.$d->Timestamp().'</td><td class="Data">'.strip_tags($d->Data()).'</td></tr>'.PHP_EOL;
+          }
+          echo '</tbody></table>';
+        }
+      ?>
+      </div>
 <?php
 } // end if Event exists
 ?>
-  </div>
     </div><!--content-->
     
   </div><!--page-->

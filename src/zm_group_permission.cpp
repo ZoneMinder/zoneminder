@@ -64,7 +64,7 @@ Group_Permission::Permission Group_Permission::getPermission(int monitor_id) {
 
 std::vector<Group_Permission> Group_Permission::find(int p_user_id) {
   std::vector<Group_Permission> results;
-  std::string sql = stringtf("SELECT `Id`,`UserId`,`GroupId`,`Permission` FROM Groups_Permissions WHERE `UserId`='%d'", p_user_id);
+  std::string sql = stringtf("SELECT `Id`,`UserId`,`GroupId`,`Permission`+0 FROM Groups_Permissions WHERE `UserId`='%d'", p_user_id);
 
   MYSQL_RES *result = zmDbFetch(sql.c_str());
 

@@ -27,7 +27,7 @@
 
 class Group_Permission {
  public:
-  typedef enum { PERM_INHERIT=0, PERM_NONE = 1, PERM_VIEW, PERM_EDIT } Permission;
+  typedef enum { PERM_UNKNOWN=0, PERM_INHERIT, PERM_NONE, PERM_VIEW, PERM_EDIT } Permission;
 
  protected:
   int id;

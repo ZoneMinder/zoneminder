@@ -47,7 +47,7 @@ void Monitor_Permission::Copy(const Monitor_Permission &mp) {
 
 std::vector<Monitor_Permission> Monitor_Permission::find(int p_user_id) {
   std::vector<Monitor_Permission> results;
-  std::string sql = stringtf("SELECT `Id`,`UserId`,`MonitorId`,`Permission` FROM Monitors_Permissions WHERE `UserId`='%d'", p_user_id);
+  std::string sql = stringtf("SELECT `Id`,`UserId`,`MonitorId`,`Permission`+0 FROM Monitors_Permissions WHERE `UserId`='%d'", p_user_id);
 
   MYSQL_RES *result = zmDbFetch(sql.c_str());
 

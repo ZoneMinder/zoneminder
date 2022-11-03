@@ -265,7 +265,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $filtered_rows = $unfiltered_rows;
   } # end if search_filter->terms() > 1
 
-  if ($limit) {
+  if ($limit and $limit < count($filtered_rows)) {
     ZM\Debug("Filtering rows due to limit " . count($filtered_rows)." offset: $offset limit: $limit");
     $filtered_rows = array_slice($filtered_rows, $offset, $limit);
   }

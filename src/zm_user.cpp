@@ -137,7 +137,7 @@ bool User::canAccess(int monitor_id) {
     }  // end foreach Group_Permission
   }
 
-  return (monitors == PERM_NONE);
+  return (monitors != PERM_NONE);
 }
 
 // Function to load a user from username and password

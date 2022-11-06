@@ -48,7 +48,7 @@ bool zmDbConnect()
 #endif
 
 #ifdef HAVE_LIBSOCI_POSTGRESQL
-  if( dbType.compare("postgresql") == 0 ) database = new zmDbPostgreSQLAdapter();
+  if( dbType.compare("pgsql") == 0 ) database = new zmDbPostgreSQLAdapter();
 #endif
   }
   catch (const std::exception &err)
@@ -64,7 +64,7 @@ bool zmDbConnect()
       "'mysql',"
 #endif
 #ifdef HAVE_LIBSOCI_POSTGRESQL
-      "'postgresql',"
+      "'pgsql',"
 #endif
       ")", dbType.c_str());
     exit(-1);
@@ -190,6 +190,17 @@ void zmDbQuery::run(bool data_exchange)
     db->disableDatabaseLog();
     Error( "Database exception: %s", e.what() );
     db->restoreDatabaseLog();
+
+    switch( e.get_error_category() ){
+      case soci::soci_error::error_category::invalid_statement:
+      case soci::soci_error::error_category::no_privilege:
+      case soci::soci_error::error_category::system_error:
+        exitOnError = true;
+        break;
+
+      default:
+        break;
+    }
   }
   if( !resultFlag && exitOnError ) {
     exit(errcode);

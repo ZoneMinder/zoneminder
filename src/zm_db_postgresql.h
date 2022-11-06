@@ -35,6 +35,7 @@ public:
     zmDbPostgreSQLAdapter();
     ~zmDbPostgreSQLAdapter();
     virtual uint64_t lastInsertID(const zmDbQueryID& queryId);
+    virtual std::string realColumnName(const std::string& column);
 
 private:
     void prepareSelectStatements();

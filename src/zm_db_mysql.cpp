@@ -156,6 +156,10 @@ uint64_t zmDbMySQLAdapter::lastInsertID(const zmDbQueryID &queryId)
     return 0;
 }
 
+std::string zmDbMySQLAdapter::realColumnName(const std::string& column) {
+    return column;
+}
+
 void zmDbMySQLAdapter::prepareSelectStatements()
 {
     if (!db.is_connected())

@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <functional>
 #include <stdexcept>
+#include <iostream>
 
 #include "soci.h"
 
@@ -54,6 +55,7 @@ public:
   virtual ~zmDb();
 
   virtual uint64_t lastInsertID(const zmDbQueryID&) = 0;
+  virtual std::string realColumnName(const std::string&) = 0;
 
   virtual bool connected();
   virtual void lock();
@@ -97,7 +99,7 @@ public:
     if (stmt == nullptr)
       return;
 
-    stmt->exchange(soci::use<T>(value, name));
+    stmt->exchange(soci::use<T>(value, db->realColumnName(name)));
     return;
   }
 
@@ -134,7 +136,22 @@ public:
       return T();
     }
 
-    return (*result_iter)->get<T>(name);
+    try {
+      return (*result_iter)->get<T>(db->realColumnName(name));
+    }
+    catch (soci::soci_error const & e)
+    {
+      std::cerr << "Database exception: " << e.what() << std::endl;
+      switch( e.get_error_category() ){
+        case soci::soci_error::error_category::invalid_statement:
+        case soci::soci_error::error_category::no_privilege:
+        case soci::soci_error::error_category::system_error:
+          exit(-1);
+        default:
+          return T();
+      }
+    }
+    return T();
   }
 
   template <typename T>
@@ -147,27 +164,22 @@ public:
       return T();
     }
 
-    return (*result_iter)->get<T>(position);
-  }
-
-  // Get list of values via vector
-  template <typename U>
-  std::vector<U> getVec(const std::string &name)
-  {
-    if (stmt == nullptr || result == nullptr) {
-      return U();
+    try {
+      return (*result_iter)->get<T>(position);
     }
-
-    std::vector<U> outvector = new std::vector<U>( 50 );
-
-    // soci::rowset<U> results = (*result_iter)->get<soci::rowset<U>>(name);
-
-    // for (auto it = results.cbegin(); it != results.cend(); ++it)
-    // {
-    //   outvector.push_back( it->second );
-    // }
-
-    return outvector;
+    catch (soci::soci_error const & e)
+    {
+      std::cerr << "Database exception: " << e.what() << std::endl;
+      switch( e.get_error_category() ){
+        case soci::soci_error::error_category::invalid_statement:
+        case soci::soci_error::error_category::no_privilege:
+        case soci::soci_error::error_category::system_error:
+          exit(-1);
+        default:
+          return T();
+      }
+    }
+    return T();
   }
 
   // Return if field is present in result
@@ -187,7 +199,7 @@ public:
     if( result_iter == nullptr || *result_iter == *result_iter_end ) {
       return false;
     }
-    return (*result_iter)->get_indicator(name) == soci::indicator::i_ok;
+    return (*result_iter)->get_indicator(db->realColumnName(name)) == soci::indicator::i_ok;
   }
 
   zmDbQueryID getID() { return id; };

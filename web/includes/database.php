@@ -46,7 +46,7 @@ function dbConnect() {
   } else {
     $dsn .= ':host=localhost;';
   }
-  $dsn .= 'dbname='.ZM_DB_NAME;
+  $dsn .= 'dbname='.ZM_DB_NAME.';charset=utf8';
 
   try {
     $dbOptions = null;

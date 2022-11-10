@@ -272,14 +272,14 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
  ?>
         </ul>
       </nav>
-      <div class="container-fluid col-sm-offset-2 h-100 pr-0"
+      <div class="container-fluid col-sm-offset-2 h-100 pr-0">
+<div class="Monitor"
 <?php
 if ($streamMode == 'jpeg') {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
 >
-<div class="Monitor">
 <?php 
 if ($monitor->Type() != 'WebSite') {
   $options['state'] = true;

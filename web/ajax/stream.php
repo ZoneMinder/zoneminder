@@ -1,5 +1,5 @@
 <?php
-error_reporting(0);
+ini_set('display_errors', '');
 
 $start_time = time();
 $connkey = sprintf('%06d', $_REQUEST['connkey']);

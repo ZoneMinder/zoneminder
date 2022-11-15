@@ -1922,25 +1922,25 @@ bool Monitor::Analyse() {
 
             if (!event) {
               Debug(2, "Creating continuous event");
-              event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap);
-
-              // lets construct alarm cause. It will contain cause + names of zones alarmed
-              std::string alarm_cause;
-              for (const Zone &zone : zones) {
-                if (zone.Alarmed()) {
-                  if (!alarm_cause.empty()) alarm_cause += ",";
-                  alarm_cause += std::string(zone.Label());
+              if (event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap)) {
+                // lets construct alarm cause. It will contain cause + names of zones alarmed
+                std::string alarm_cause;
+                for (const Zone &zone : zones) {
+                  if (zone.Alarmed()) {
+                    if (!alarm_cause.empty()) alarm_cause += ",";
+                    alarm_cause += std::string(zone.Label());
+                  }
                 }
-              }
-              alarm_cause = cause+" Continuous "+alarm_cause;
-              strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
-              video_store_data->recording = event->StartTime();
-              Info("%s: %03d - Opened new event %" PRIu64 ", section start",
-                  name.c_str(), analysis_image_count, event->Id());
-              /* To prevent cancelling out an existing alert\prealarm\alarm state */
-              if (state == IDLE) {
-                shared_data->state = state = TAPE;
-              }
+                alarm_cause = cause+" Continuous "+alarm_cause;
+                strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
+                video_store_data->recording = event->StartTime();
+                Info("%s: %03d - Opened new event %" PRIu64 ", section start",
+                    name.c_str(), analysis_image_count, event->Id());
+                /* To prevent cancelling out an existing alert\prealarm\alarm state */
+                if (state == IDLE) {
+                  shared_data->state = state = TAPE;
+                }
+              } // end if event success
             } // end if ! event
           } // end if RECORDING
 
@@ -1981,10 +1981,11 @@ bool Monitor::Analyse() {
                     name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
                 if (!event) {
-                  event = openEvent(snap, cause, noteSetMap);
-                  snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
-                  video_store_data->recording = event->StartTime();
-                  Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
+                  if (event = openEvent(snap, cause, noteSetMap)) {
+                    snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
+                    video_store_data->recording = event->StartTime();
+                    Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
+                  }
                 }  // end if no event, so start it
                 shared_data->state = state = ALARM;
                 if ( alarm_frame_count ) {

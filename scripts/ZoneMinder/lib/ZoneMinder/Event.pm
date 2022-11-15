@@ -576,7 +576,7 @@ sub DiskSpace {
       $$self{DiskSpace} = $size;
       Debug("DiskSpace for event $$self{Id} at $$self{Path} Updated to $size bytes");
     } else {
-      Warning("DiskSpace: Event does not exist at $$self{Path}:" . $$self->to_string());
+      Warning("DiskSpace: Event does not exist at $$self{Path}:" . $self->to_string());
     }
   } # end if ! defined DiskSpace
   return $$self{DiskSpace};

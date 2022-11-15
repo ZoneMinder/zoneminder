@@ -2201,7 +2201,7 @@ bool Monitor::Analyse() {
                 event->updateNotes(noteSetMap);
               }
             } else if (shared_data->recording != RECORDING_NONE) {
-              if (event = openEvent(snap, cause, noteSetMap)) {
+              if ((event = openEvent(snap, cause, noteSetMap)) != nullptr) {
                 Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());
                 if (alarm_frame_count) {
                   Debug(1, "alarm frame count so SavePreAlarmFrames");
@@ -2248,7 +2248,7 @@ bool Monitor::Analyse() {
             }  // end if event
 
             if (!event and (shared_data->recording == RECORDING_ALWAYS)) {
-              if (event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap)) {
+              if ((event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
                 Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
                     name.c_str(), analysis_image_count, event->Id());
                 /* To prevent cancelling out an existing alert\prealarm\alarm state */

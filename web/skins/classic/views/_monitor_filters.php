@@ -178,7 +178,6 @@ $html .= '</span>
 ' .
   ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll($sql, null, $values);
-  ZM\Debug(print_r($monitors, true));
   $displayMonitors = array();
   $monitors_dropdown = array();
 
@@ -201,7 +200,7 @@ $html .= '</span>
 
   for ( $i = 0; $i < count($monitors); $i++ ) {
     if ( !visibleMonitor($monitors[$i]['Id']) ) {
-      ZM\Logger::Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
+      ZM\Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
       continue;
     }
 

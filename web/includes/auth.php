@@ -58,9 +58,13 @@ function migrateHash($username, $password) {
 
 // core function used to load a User record by username and password
 function validateUser($username='', $password='') {
-  $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+  if (ZM_CASE_INSENSITIVE_USERNAMES) {
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
+  } else {
+      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+  }
   // local user, shouldn't affect the global user
-  $user = dbFetchOne($sql, NULL, array($username));
+  $user = dbFetchOne($sql, NULL, array($username)); // Not global
   if (!$user) {
     return array(false, "Could not retrieve user $username details");
   }
@@ -130,7 +134,11 @@ function validateToken($token, $allowed_token_type='access') {
   }
   
   $username = $jwt_payload['user'];
-  $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+  if (ZM_CASE_INSENSITIVE_USERNAMES) {
+    $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
+  } else {
+    $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+  }
   $saved_user_details = dbFetchOne($sql, NULL, array($username));
 
   if ($saved_user_details) {
@@ -184,21 +192,25 @@ function getAuthUser($auth) {
     } // end foreach user
 
     if (isset($_SESSION['username'])) {
-			# In a multi-server case, we might be logged in as another user and so the auth hash didn't work
-			$sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
+      # In a multi-server case, we might be logged in as another user and so the auth hash didn't work
+      if (ZM_CASE_INSENSITIVE_USERNAMES) {
+        $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND LOWER(Username) != LOWER(?)';
+      } else {
+        $sql = 'SELECT * FROM Users WHERE Enabled = 1 AND Username != ?';
+      }
 
-			foreach (dbFetchAll($sql, NULL, $values) as $user) {
-				$now = time();
-				for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
-					$time = localtime($now);
-					$authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
-					$authHash = md5($authKey);
+      foreach (dbFetchAll($sql, NULL, $values) as $user) {
+        $now = time();
+        for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
+          $time = localtime($now);
+          $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
+          $authHash = md5($authKey);
 
-					if ($auth == $authHash) {
-						return $user;
-					} // end if $auth == $authHash
-				} // end foreach hour
-			} // end foreach user
+          if ($auth == $authHash) {
+            return $user;
+          } // end if $auth == $authHash
+        } // end foreach hour
+      } // end foreach user
     } // end if 
   } // end if using auth hash
 
@@ -265,7 +277,11 @@ function userFromSession() {
         ZM\Debug('No auth hash in session, there should have been');
     } else {
       # Need to refresh permissions and validate that the user still exists
-      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+      if (ZM_CASE_INSENSITIVE_USERNAMES) {
+        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
+      } else {
+        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+      }
       $user = dbFetchOne($sql, NULL, array($_SESSION['username']));
     }
   }
@@ -300,12 +316,7 @@ if (ZM_OPT_USE_AUTH) {
 
     if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
       $user = getAuthUser($_REQUEST['auth']);
-    } else if (
-      ! (
-        empty($_REQUEST['username']) or
-        empty($_REQUEST['password']) or
-      (defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA)
-    ) ) {
+    } else if (!(empty($_REQUEST['username']) or empty($_REQUEST['password']))) {
       $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
       if (!$ret[0]) {
         ZM\Error($ret[1]);
@@ -313,8 +324,74 @@ if (ZM_OPT_USE_AUTH) {
         return;
       }
       $user = $ret[0];
+
+      if (
+        defined('ZM_OPT_USE_GOOG_RECAPTCHA') && ZM_OPT_USE_GOOG_RECAPTCHA
+        && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY') && ZM_OPT_GOOG_RECAPTCHA_SECRETKEY
+        && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY') && ZM_OPT_GOOG_RECAPTCHA_SITEKEY
+      ) {
+        if ( !isset($_REQUEST['g-recaptcha-response']) ) {
+          ZM\Error('reCaptcha authentication failed. No g-recpatcha-response in REQUEST: ');
+          unset($user); // unset should be ok here because we aren't in a function
+          return;
+        }
+        $url = 'https://www.google.com/recaptcha/api/siteverify';
+        $fields = array (
+          'secret'    => ZM_OPT_GOOG_RECAPTCHA_SECRETKEY,
+          'response'  => $_REQUEST['g-recaptcha-response'],
+          'remoteip'  => $_SERVER['REMOTE_ADDR']
+        );
+        $res = do_post_request($url, http_build_query($fields));
+        $responseData = json_decode($res, true);
+        // credit: https://github.com/google/recaptcha/blob/master/src/ReCaptcha/Response.php
+        // if recaptcha resulted in error, we might have to deny login
+        if ( isset($responseData['success']) && ($responseData['success'] == false) ) {
+          // PP - before we deny auth, let's make sure the error was not 'invalid secret'
+          // because that means the user did not configure the secret key correctly
+          // in this case, we prefer to let him login in and display a message to correct
+          // the key. Unfortunately, there is no way to check for invalid site key in code
+          // as it produces the same error as when you don't answer a recaptcha
+          if ( isset($responseData['error-codes']) && is_array($responseData['error-codes']) ) {
+            if ( !in_array('invalid-input-secret', $responseData['error-codes']) ) {
+              ZM\Error('reCaptcha authentication failed. response was: ' . print_r($responseData['error-codes'],true));
+              unset($user); // unset should be ok here because we aren't in a function
+              return;
+            } else {
+              ZM\Error('Invalid recaptcha secret detected');
+            }
+          }
+        } // end if success==false
+      } // end if using reCaptcha
+
+      zm_session_clear(); # Closes session
+      zm_session_regenerate_id(); # starts session
+
+      $username = $_REQUEST['username'];
+      $password = $_REQUEST['password'];
+
+      ZM\Info("Login successful for user \"$username\"");
+      $password_type = password_type($user['Password']);
+
+      if ( $password_type == 'mysql' or $password_type == 'mysql+bcrypt' ) {
+        ZM\Info('Migrating password, if possible for future logins');
+        migrateHash($username, $password);
+      }
+
+      if (ZM_AUTH_TYPE == 'builtin') {
+        $_SESSION['passwordHash'] = $user['Password'];
+      }
+
+      $_SESSION['username'] = $user['Username'];
+      if (ZM_AUTH_RELAY == 'plain') {
+        // Need to save this in session, can't use the value in User because it is hashed
+        $_SESSION['password'] = $_REQUEST['password'];
+      }
     } else if ((ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER'])) {
-      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+      if (ZM_CASE_INSENSITIVE_USERNAMES) {
+        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';
+      } else {
+        $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
+      }
       // local user, shouldn't affect the global user
       $user = dbFetchOne($sql, NULL, array($_SERVER['REMOTE_USER']));
     } else {

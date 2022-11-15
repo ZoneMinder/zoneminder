@@ -125,6 +125,9 @@ extern "C" {
 // AVCODEC
 #if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
+#elif HAVE_FFMPEG_AVCODEC_H
+#include <ffmpeg/avcodec.h>
+#endif /* HAVE_LIBAVCODEC_AVCODEC_H */
 
 /*
  * LIBAVCODEC_VERSION_CHECK checks for the right version of libav and FFmpeg
@@ -135,10 +138,6 @@ extern "C" {
 #define LIBAVCODEC_VERSION_CHECK(a, b, c, d, e) \
     ( (LIBAVCODEC_VERSION_MICRO <  100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBAVCODEC_VERSION_MICRO >= 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
-
-#elif HAVE_FFMPEG_AVCODEC_H
-#include <ffmpeg/avcodec.h>
-#endif /* HAVE_LIBAVCODEC_AVCODEC_H */
 
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)
 #if LIBAVCODEC_VERSION_CHECK(54, 25, 0, 51, 100)

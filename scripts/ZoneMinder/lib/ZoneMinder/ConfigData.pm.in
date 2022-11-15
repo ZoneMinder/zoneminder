@@ -308,6 +308,18 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_CASE_INSENSITIVE_USERNAMES',
+    default     => 'no',
+    description => 'Case insensitive username authentication',
+    help        => q`
+      This option makes usernames case insensitive when
+      authenticating.
+      `,
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_AUTH_RELAY',
     default     => 'hashed',
     description => 'Method used to relay authentication information',
@@ -1292,6 +1304,20 @@ our @options = (
        depending on your distro and FFMPEG version, this may also result in
        more logs than you'd typically like to see. If all your streams are working
        well, you may choose to turn this off.
+      `,
+    type        => $types{boolean},
+    category    => 'logging',
+  },
+  {
+    name        => 'ZM_LOG_INJECT',
+    default     => 'no',
+    description => 'Allow log injection via API by unprivileged users.',
+    help        => q`
+       When enabled (default is off), this option will allow users without System:Edit
+       permissions to inject javascript console or other messages into the ZoneMinder log.
+       Before 1.36.27 Users were able to abuse this functionality to create a denial of service by
+       filling up the logs. This feature is useful in debugging and detecting errors
+       experienced by end users, but requires trust of users and monitoring of resources.
       `,
     type        => $types{boolean},
     category    => 'logging',

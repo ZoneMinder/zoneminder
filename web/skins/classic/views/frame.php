@@ -63,7 +63,7 @@ $scale = $scale ? $scale : 0;
 $imageData = $Event->getImageSrc($frame, $scale, 0);
 if (!$imageData) {
   ZM\Error("No data found for Event $eid frame $fid");
-  $imageData = array();
+  $imageData = array('hasAnalImage'=>0, 'thumbPath' => '', 'eventPath'=>'');
 }
 
 $show = 'capt';
@@ -96,9 +96,7 @@ xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->Frame
         <button type="button" id="statsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats') ?>" ><i class="fa fa-info"></i></button>
         <button type="button" id="statsViewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Stats').' '.translate('View') ?>" ><i class="fa fa-table"></i></button>
       </div>
-      
-      <h2><?php echo translate('Frame') ?> <?php echo $Event->Id().'-'.$Frame->FrameId().' ('.$Frame->Score().')' ?></h2>
-      
+      <h2><?php echo translate('Frame').' <span title="'.translate('Event Id').'">'.$Event->Id().'</span>-<span title="'.translate('Frame Id').'">'.$Frame->FrameId().'</span> (<span title="'.translate('Score').'">'.$Frame->Score().'</span>)' ?></h2>
       <form>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>

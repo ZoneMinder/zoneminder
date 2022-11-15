@@ -17,7 +17,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 $j.ajaxSetup({timeout: AJAX_TIMEOUT});
-var reportLogs = true;
+const reportLogs = (typeof(ZM_LOG_INJECT) !== 'undefined') && ((ZM_LOG_INJECT !== '0') || canEdit["System"]);
 
 if ( !window.console ) {
   window.console =

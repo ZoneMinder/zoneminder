@@ -95,13 +95,16 @@ class ZM_Object {
       $fields = array();
       $sql .= 'WHERE ';
       foreach ( $parameters as $field => $value ) {
-        if ( $value == null ) {
+        if ( $value === null ) {
           $fields[] = '`'.$field.'` IS NULL';
         } else if ( is_array($value) ) {
-          $func = function(){return '?';};
-          $fields[] = '`'.$field.'` IN ('.implode(',', array_map($func, $value)). ')';
-          $values += $value;
-
+          if ( count($value) ) {
+            $func = function(){return '?';};
+            $fields[] = '`'.$field.'` IN ('.implode(',', array_map($func, $value)). ')';
+            $values += $value;
+          } else {
+            $fields[] = 'FALSE /*`'.$field.'` IN () */'; # evaluates to false
+          }
         } else {
           $fields[] = '`'.$field.'`=?';
           $values[] = $value;

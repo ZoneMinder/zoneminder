@@ -66,3 +66,6 @@ input[name="newStorage[Url]"] {
   margin-right: 5px;
   border-bottom: 1px solid #e7e7e7;
 }
+#options .col-md {
+  text-align: left;
+}

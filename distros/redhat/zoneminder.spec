@@ -36,7 +36,7 @@
 %global _hardened_build 1
 
 Name: zoneminder
-Version: 1.36.25
+Version: 1.36.32
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -123,9 +123,8 @@ Requires: php-gd
 Requires: php-intl
 Requires: php-process
 %{?with_php_json:Requires: php-json}
-%{?fedora:Requires: php-pecl-memcached}
-%{?rhel:Requires: php-pecl-apcu}
 Requires: cambozola
+Requires: php-pecl-apcu
 Requires: net-tools
 Requires: psmisc
 Requires: polkit

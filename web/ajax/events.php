@@ -174,13 +174,13 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartDateTime', 'EndDateTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'Notes', 'DiskSpace');
 
   // The names of columns shown in the event view that are NOT dB columns in the database
-  $col_alt = array('Monitor', 'Storage');
+  $col_alt = array('Monitor', 'MonitorName', 'Storage');
 
   if ( $sort != '' ) {
     if (!in_array($sort, array_merge($columns, $col_alt))) {
       ZM\Error('Invalid sort field: ' . $sort);
       $sort = '';
-    } else if ( $sort == 'Monitor' ) {
+    } else if ( $sort == 'Monitor' or $sort == 'MonitorName' ) {
       $sort = 'M.Name';
     } else {
       $sort = 'E.'.$sort;

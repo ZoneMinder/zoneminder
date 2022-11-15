@@ -1922,7 +1922,7 @@ bool Monitor::Analyse() {
 
             if (!event) {
               Debug(2, "Creating continuous event");
-              if (event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap)) {
+              if ((event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
                 // lets construct alarm cause. It will contain cause + names of zones alarmed
                 std::string alarm_cause;
                 for (const Zone &zone : zones) {
@@ -1981,7 +1981,7 @@ bool Monitor::Analyse() {
                     name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
                 if (!event) {
-                  if (event = openEvent(snap, cause, noteSetMap)) {
+                  if ((event = openEvent(snap, cause, noteSetMap)) != nullptr) {
                     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "%s", event->getEventFile());
                     video_store_data->recording = event->StartTime();
                     Info("%s: %03d - Opening new event %" PRIu64 ", alarm start", name.c_str(), analysis_image_count, event->Id());

@@ -235,6 +235,14 @@ if ( isset($_REQUEST['displayinterval']) )
 
 $minTimeSecs = $maxTimeSecs = 0;
 if ( isset($minTime) && isset($maxTime) ) {
+  if ($minTime >= $maxTime) {
+    $error_message .= 'Invalid minTime and maxTime specified.<br/>';
+    if ($minTime > $maxTime) {
+      $temp = $minTime;
+      $maxTime = $minTime;
+      $minTime = $temp;
+    }
+  }
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
   $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";

@@ -161,11 +161,6 @@ if (
 # Add Cross domain access headers
 CORSHeaders();
 
-// Check for valid content dirs
-if ( !is_writable(ZM_DIR_EVENTS) ) {
-  ZM\Warning("Cannot write to event folder ".ZM_DIR_EVENTS.". Check that it exists and is owned by the web account user.");
-}
-
 # Globals
 # Running is global but only do the daemonCheck if it is actually needed
 $running = null;

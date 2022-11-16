@@ -295,7 +295,7 @@ class MonitorsController extends AppController {
     
     $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
     $status = exec($shellcmd, $output, $rc);
-    ZM\Debug("Command: $shellcmd output: $output rc: $rc");
+    ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {
       $this->set(array(
         'status'=>'false',

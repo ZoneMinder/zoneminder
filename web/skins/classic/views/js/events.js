@@ -279,14 +279,14 @@ function initPage() {
 
     evt.preventDefault();
     $j.ajax({
-        method: 'post',
-        timeout: 0,
-        url: thisUrl + '?request=events&task=archive',
-        data: {'eids[]': selections},
-        success: function(data) {
-          $j('#eventTable').bootstrapTable('refresh');
-        },
-        fail:logAjaxFail
+      method: 'POST',
+      timeout: 0,
+      url: thisUrl + '?request=events&task=archive',
+      data: {'eids[]': selections},
+      success: function(data) {
+        $j('#eventTable').bootstrapTable('refresh');
+      },
+      fail: logAjaxFail
     });
   });
 
@@ -301,14 +301,14 @@ function initPage() {
 
     evt.preventDefault();
     $j.ajax({
-        method: 'post',
-        timeout: 0,
-        url: thisUrl + '?request=events&task=unarchive',
-        data: {'eids[]': selections},
-        success: function(data) {
-          $j('#eventTable').bootstrapTable('refresh');
-        },
-        fail:logAjaxFail
+      method: 'POST',
+      timeout: 0,
+      url: thisUrl + '?request=events&task=unarchive',
+      data: {'eids[]': selections},
+      success: function(data) {
+        $j('#eventTable').bootstrapTable('refresh');
+      },
+      error: logAjaxFail
     });
   });
 
@@ -321,20 +321,20 @@ function initPage() {
 
     evt.preventDefault();
     $j.ajax({
-        method: 'post',
-        timeout: 0,
-        url: thisUrl + '?request=modal&modal=eventdetail',
-        data: {'eids[]': getIdSelections()},
-        success: function(data) {
-          insertModalHtml('eventDetailModal', data.html);
-          $j('#eventDetailModal').modal('show');
-          // Manage the Save button
-          $j('#eventDetailSaveBtn').click(function(evt) {
-            evt.preventDefault();
-            $j('#eventDetailForm').submit();
-          });
-        },
-        fail:logAjaxFail
+      method: 'POST',
+      timeout: 0,
+      url: thisUrl + '?request=modal&modal=eventdetail',
+      data: {'eids[]': getIdSelections()},
+      success: function(data) {
+        insertModalHtml('eventDetailModal', data.html);
+        $j('#eventDetailModal').modal('show');
+        // Manage the Save button
+        $j('#eventDetailSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#eventDetailForm').submit();
+        });
+      },
+      error: logAjaxFail
     });
   });
 
@@ -349,20 +349,19 @@ function initPage() {
 
   // Manage the DOWNLOAD VIDEO button
   document.getElementById('downloadBtn').addEventListener('click', function onDownloadClick(evt) {
-
     evt.preventDefault();
     $j.ajax({
-        method: 'post',
-        timeout: 0,
-        url: thisUrl + '?request=modal&modal=download',
-        data: {'eids[]': getIdSelections()},
-        success: function(data) {
-          insertModalHtml('downloadModal', data.html);
-          $j('#downloadModal').modal('show');
-          // Manage the GENERATE DOWNLOAD button
-          $j('#exportButton').click(exportEvent);
-        },
-        fail: logAjaxFail,
+      method: 'POST',
+      timeout: 0,
+      url: thisUrl + '?request=modal&modal=download',
+      data: {'eids[]': getIdSelections()},
+      success: function(data) {
+        insertModalHtml('downloadModal', data.html);
+        $j('#downloadModal').modal('show');
+        // Manage the GENERATE DOWNLOAD button
+        $j('#exportButton').click(exportEvent);
+      },
+      error: logAjaxFail,
     });
   });
 

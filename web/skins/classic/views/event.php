@@ -379,28 +379,11 @@ if ($player == 'video.js') {
   <script src="./js/videojs.zoomrotate.js"></script>
 <?php 
 } else if ($player == 'h265web.js') {
-  $version = 20221102;
-  if ($version == 20211026) {
-?>
-  <script src="js/h265web.js/missile.js"></script>
-  <script src="js/h265web.js/h265webjs-v20211026.js"></script>
-<?php
-  } else if ($version == 20220916) {
+  $version = 20221106;
 ?>
   <script src="js/h265web.js/dist/missile.js"></script>
-  <script src="js/h265web.js/dist/h265webjs-v20220916.js"></script>
+  <script src="js/h265web.js/dist/h265webjs-v<?php echo $version ?>.js"></script>
 <?php
-  } else if ($version == 20221022) {
-?>
-  <script src="js/h265web.js/dist/missile.js"></script>
-  <script src="js/h265web.js/dist/h265webjs-v20221022.js"></script>
-<?php
-  } else if ($version == 20221102) {
-?>
-  <script src="js/h265web.js/dist/missile.js"></script>
-  <script src="js/h265web.js/dist/h265webjs-v20221102.js"></script>
-<?php
-  }
 }
   echo output_link_if_exists(array('css/base/zones.css'));
   xhtmlFooter();

@@ -555,7 +555,8 @@ void MonitorStream::runStream() {
       } else {
         if (!sendTextFrame("Unable to stream")) {
           Debug(1, "Failed Send unable to stream");
-          return;
+          zm_terminate = true;
+          continue;
         }
       }
       std::this_thread::sleep_for(MAX_SLEEP);

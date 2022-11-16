@@ -184,7 +184,7 @@ while ( $event_row = dbFetchNext($results) ) {
           </tr>
 				</tfoot>
       </table>
-<div class="container-fluid">
+<div class="container-fluid export_options">
   <div class="row">
     <div class="col-md-3">
       <div class="form-group">

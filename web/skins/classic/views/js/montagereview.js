@@ -336,7 +336,7 @@ function timerFire() {
   } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
     console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
-    setSpeed(0);
+    if (speedIndex) setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else {
     //console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval);
@@ -691,6 +691,7 @@ function setSpeed(speed_index) {
   }
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
+  console.log(speedIndex);
   playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
   showSpeed(speed_index);
   timerFire();

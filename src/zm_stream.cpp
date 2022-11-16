@@ -74,7 +74,7 @@ bool StreamBase::checkInitialised() {
     return false;
   }
   if (!monitor->ShmValid()) {
-    Error("Monitor shm is not connected");
+    Debug(1, "Monitor shm is not connected");
     return false;
   }
   if ((monitor->GetType() == Monitor::FFMPEG) and (monitor->Decoding() == Monitor::DECODING_NONE) ) {

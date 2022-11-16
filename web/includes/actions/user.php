@@ -82,10 +82,10 @@ if ($action == 'Save') {
         $permission = $g->Group_Permission($dbUser->Id());
         if ($permission->Permission() != $_POST['group_permission'][$g->Id()]) {
           $permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]));
+          $g->Permissions(null); # reload
         }
       }
     }
-    $g->Permissions(null); # reload
 
     foreach (ZM\Monitor::find() as $m) {
       if (isset($_POST['monitor_permission'])) {

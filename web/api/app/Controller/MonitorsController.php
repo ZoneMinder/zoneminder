@@ -303,8 +303,8 @@ class MonitorsController extends AppController {
       // In 1.36.16 the values got shifted up so that we could index into an array of strings.
       // So do a hack to restore the previous behavour
       $this->set(array(
-        'status' => $status-1,
-        'output' => $output[0]-1,
+        'status' => intval($status)-1,
+        'output' => intval($output[0])-1,
         '_serialize' => array('status','output'),
       ));
     } else {

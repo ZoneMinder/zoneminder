@@ -896,6 +896,14 @@ sub changes {
   return @results;
 }
 
+sub clone {
+  my $new = {};
+  bless $new, ref $_[0];
+  my @keys = keys %{$_[0]};
+  @$new{@keys} = @{$_[0]}{@keys};
+  return $new;
+} # end sub clone
+
 sub AUTOLOAD {
   my $type = ref($_[0]);
   Carp::cluck("No type in autoload") if ! $type;

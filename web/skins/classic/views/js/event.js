@@ -1082,16 +1082,9 @@ function initPage() {
 
   progressBarNav();
 
-  console.log("Using " + playerType);
   if (playerType == 'h265web.js') {
     if (!(eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0))
       console.log("Warning, using h265web.js on a non-h265 file");
-    // clear cache count
-    function clear() {
-      window.STATICE_MEM_playerCount = -1;
-      window.STATICE_MEM_playerIndexPtr = 0;
-    }
-    clear();
     const PLAYER_CORE_TYPE_DEFAULT = 0;
     const PLAYER_CORE_TYPE_CNATIVE = 1;
     const token = "base64:QXV0aG9yOmNoYW5neWFubG9uZ3xudW1iZXJ3b2xmLEdpdGh1YjpodHRwczovL2dpdGh1Yi5jb20vbnVtYmVyd29sZixFbWFpbDpwb3JzY2hlZ3QyM0Bmb3htYWlsLmNvbSxRUTo1MzEzNjU4NzIsSG9tZVBhZ2U6aHR0cDovL3h2aWRlby52aWRlbyxEaXNjb3JkOm51bWJlcndvbGYjODY5NCx3ZWNoYXI6bnVtYmVyd29sZjExLEJlaWppbmcsV29ya0luOkJhaWR1";
@@ -1104,7 +1097,7 @@ function initPage() {
       //accurateSeek: true,
       token: token,
       extInfo: {
-        //autoPlay : true,
+        autoPlay : true,
         moovStartFlag: true,
         readyShow: true,
         //autoCrop: false,

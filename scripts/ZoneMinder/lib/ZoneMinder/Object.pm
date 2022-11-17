@@ -899,8 +899,7 @@ sub changes {
 sub clone {
   my $new = {};
   bless $new, ref $_[0];
-  my @keys = keys %{$_[0]};
-  @$new{@keys} = @{$_[0]}{@keys};
+  @$new{keys %{$_[0]}} = values %{$_[0]};
   return $new;
 } # end sub clone
 

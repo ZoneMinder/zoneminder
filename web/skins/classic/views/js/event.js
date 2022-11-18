@@ -1100,11 +1100,9 @@ function initPage() {
         autoPlay : true,
         moovStartFlag: true,
         readyShow: true,
-        //autoCrop: false,
-        core: PLAYER_CORE_TYPE_DEFAULT,
-        //core : PLAYER_CORE_TYPE_CNATIVE,
-        coreProbePart: 1.0,
-        probeSize: 8192,
+        //core: PLAYER_CORE_TYPE_DEFAULT,
+        core : PLAYER_CORE_TYPE_CNATIVE,
+        coreProbePart: 0.1,
         ignoreAudio: 0
       }
     };

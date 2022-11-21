@@ -914,14 +914,14 @@ function getStat() {
         break;
       case 'MonitorId':
         if (canView["Monitors"]) {
-          tdString = '<a href="?view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
+          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
         } else {
           tdString = eventData[key];
         }
         break;
       case 'MonitorName':
         if (canView["Monitors"]) {
-          tdString = '<a href="?view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
+          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
         } else {
           tdString = eventData[key];
         }

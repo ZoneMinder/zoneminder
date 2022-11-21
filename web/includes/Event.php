@@ -82,6 +82,21 @@ class Event extends ZM_Object {
     return $this->{'SecondaryStorage'};
   }
 
+  public function Length(){
+    if(! isset($this->{'Length'})){
+      //TODO: Do something when no Length found
+    }
+    return $this->{'Length'};
+    
+  }
+
+  public function Frames(){
+    if(! isset($this->{'Frames'})){
+      //TOOD: Do something when no Frames found
+    }
+    return $this->{'Frames'};
+  }
+  
   public function Monitor() {
     if ( isset($this->{'MonitorId'}) ) {
       $Monitor = Monitor::find_one(array('Id'=>$this->{'MonitorId'}));

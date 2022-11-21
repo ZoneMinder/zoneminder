@@ -235,7 +235,18 @@ if ( empty($_REQUEST['path']) ) {
 
           $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
           ZM\Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
-        } else {
+        } 
+        else if($previousBulkFrame){
+          //If no next Frame we have to pull data from the Event itself
+          $Frame = new ZM\Frame($previousBulkFrame);
+          $Frame->FrameId($_REQUEST['fid']);
+
+          $percentage = ($Frame->FrameId()/$Event->Frames());
+
+          $Frame->Delta(floor($Event->Length() * $percentage));
+        }
+        else {
+          header('HTTP/1.0 404 Not Found');
           ZM\Error('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
           return;
         }

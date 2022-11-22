@@ -1876,15 +1876,9 @@ bool Monitor::Analyse() {
           } else {
             event->addNote(SIGNAL_CAUSE, "Reacquired");
           }
-          if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->in_frame && (
-                ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
-                ||
-                ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                ) ) {
+          if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
             Debug(1, "assigning refimage from y-channel");
-            Image y_image(snap->in_frame->width,
-                snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-            ref_image.Assign(y_image);
+            ref_image.Assign(*(snap->y_image));
           } else if (snap->image) {
             Debug(1, "assigning refimage from snap->image");
             ref_image.Assign(*(snap->image));
@@ -1978,14 +1972,9 @@ bool Monitor::Analyse() {
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
-                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->in_frame && (
-                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
-                      ||
-                      ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                      ) ) {
+                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
                   Debug(1, "assigning refimage from y-channel");
-                  Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                  ref_image.Assign(y_image);
+                  ref_image.Assign(*(snap->y_image));
                 } else {
                   Debug(1, "assigning refimage from snap->image");
                   ref_image.Assign(*(snap->image));
@@ -1996,13 +1985,8 @@ bool Monitor::Analyse() {
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
                   Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                   // Get new score.
-                  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->in_frame && (
-                        ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P)
-                        ||
-                        ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                        ) ) {
-                    Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                    snap->score = DetectMotion(y_image, zoneSet);
+                  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
+                    snap->score = DetectMotion(*(snap->y_image), zoneSet);
                   } else {
                     snap->score = DetectMotion(*(snap->image), zoneSet);
                   }
@@ -2042,16 +2026,9 @@ bool Monitor::Analyse() {
                   alarm_image.Assign(*(snap->image));
                 }
 
-                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->in_frame &&
-                    ( 
-                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUV420P) 
-                     ||
-                     ((AVPixelFormat)snap->in_frame->format == AV_PIX_FMT_YUVJ420P)
-                    )
-                   ) {
+                if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
                   Debug(1, "Blending from y-channel");
-                  Image y_image(snap->in_frame->width, snap->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, snap->in_frame->data[0], 0);
-                  ref_image.Blend(y_image, ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
+                  ref_image.Blend(*(snap->y_image), ( state==ALARM ? alarm_ref_blend_perc : ref_blend_perc ));
                 } else if (snap->image) {
                   Debug(1, "Blending full colour image because analysis_image = %d, in_frame=%p and format %d != %d, %d",
                       analysis_image, snap->in_frame.get(),
@@ -2683,6 +2660,30 @@ bool Monitor::Decode() {
   } else {
     Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
   }  // end if need_decoding
+
+  if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (
+        ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
+        ||
+        ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
+        ) ) {
+    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+    if (orientation != ROTATE_0) {
+      switch (orientation) {
+        case ROTATE_0 :
+          // No action required
+          break;
+        case ROTATE_90 :
+        case ROTATE_180 :
+        case ROTATE_270 :
+          packet->y_image->Rotate((orientation-1)*90);
+          break;
+        case FLIP_HORI :
+        case FLIP_VERT :
+          packet->y_image->Flip(orientation==FLIP_HORI);
+          break;
+      }
+    } // end if have rotation
+  }
 
   if (packet->image) {
     Image* capture_image = packet->image;

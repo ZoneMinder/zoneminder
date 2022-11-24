@@ -80,6 +80,7 @@ sub open {
   # Detect REALM
   $REALM = $self->detect_realm($PROTOCOL, $ADDRESS, $REALM, $USERNAME, $PASSWORD, '/');
   if (defined($REALM)) {
+    $self->{state} = 'open';
     return !undef;
   }
   return undef;
@@ -412,7 +413,7 @@ sub reset {
 sub reboot {
   my $self = shift;
   Debug('Camera Reboot');
-  if (!$$self{open}) {
+  if ($$self{state} != 'open') {
     Warning("Not open. opening. Should call ->open() before calling reboot()"); 
     return if !$self->open();
   }

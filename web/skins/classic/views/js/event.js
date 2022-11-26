@@ -1189,6 +1189,7 @@ function initPage() {
     }
     $j('#deleteConfirm').modal('show');
   });
+  addEventListener('fullscreenchange', fullscreenChangeEvent);
 } // end initPage
 
 document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
@@ -1213,17 +1214,22 @@ function toggleZones(e) {
   }
 }
 
-function watchFullscreen() {
+function fullscreenChangeEvent() {
   const btn = document.getElementById('fullscreenBtn');
-  if (btn.firstElementChild.innerHTML == 'fullscreen') {
-    const content = document.getElementById('content');
-    openFullscreen(content);
+  if (document.fullscreenElement) {
     btn.firstElementChild.innerHTML = 'fullscreen_exit';
     btn.setAttribute('title', translate["Exit Fullscreen"]);
   } else {
-    closeFullscreen();
     btn.firstElementChild.innerHTML = 'fullscreen';
     btn.setAttribute('title', translate["Fullscreen"]);
+  }
+}
+
+function fullscreenClicked() {
+  if (document.fullscreenElement) {
+    closeFullscreen();
+  } else {
+    openFullscreen(content);
   }
 }
 

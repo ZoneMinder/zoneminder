@@ -289,6 +289,9 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
           <i class="material-icons md-18">zoom_out</i>
           </button>
+          <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
+            <i class="material-icons md-18">fullscreen</i>
+            </button>
           <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
           <i class="material-icons md-18">skip_next</i>
           </button>

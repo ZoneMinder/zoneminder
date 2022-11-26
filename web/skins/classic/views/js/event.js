@@ -1213,5 +1213,19 @@ function toggleZones(e) {
   }
 }
 
+function watchFullscreen() {
+  const btn = document.getElementById('fullscreenBtn');
+  if (btn.firstElementChild.innerHTML == 'fullscreen') {
+    const content = document.getElementById('content');
+    openFullscreen(content);
+    btn.firstElementChild.innerHTML = 'fullscreen_exit';
+    btn.setAttribute('title', translate["Exit Fullscreen"]);
+  } else {
+    closeFullscreen();
+    btn.firstElementChild.innerHTML = 'fullscreen';
+    btn.setAttribute('title', translate["Fullscreen"]);
+  }
+}
+
 // Kick everything off
 $j(document).ready(initPage);

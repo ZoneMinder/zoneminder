@@ -96,3 +96,9 @@ var hideZonesString = "<?php echo validJsStr(translate('Hide Zones'))?>";
 var WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 var WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
 var popup = '<?php echo $popup ?>';
+
+var translate = {
+  "seconds": "<?php echo translate('seconds') ?>",
+  "Fullscreen": "<?php echo translate('Fullscreen') ?>",
+  "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
+};

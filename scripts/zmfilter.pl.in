@@ -361,7 +361,7 @@ sub checkFilter {
     if ($filter->{AutoMove}) {
       my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoMoveTo});
       if ($NewStorage) {
-        Info("Moving event $Event->{Id} to datastore $filter->{AutoMoveTo}");
+        Info("Moving event $Event->{Id} from ".$Event->Storage()->Path().' to '.$NewStorage->Path());
         $_ = $Event->MoveTo($NewStorage);
         Error($_) if $_;
       } else {

@@ -30,12 +30,12 @@ xhtmlHeaders( __FILE__, translate('Console'));
 if ( isset($_REQUEST['minTime']) ) {
   $minTime = validHtmlStr($_REQUEST['minTime']);
 } else {
-  $minTime = date('c', time() - (2*3600));
+  $minTime = date('Y-m-d H:i:s', time() - (2*3600));
 }
 if ( isset($_REQUEST['maxTime']) ) {
   $maxTime = validHtmlStr($_REQUEST['maxTime']);
 } else {
-  $maxTime = date('c', time() - 3600);
+  $maxTime = date('Y-m-d H:i:s', time() - 3600);
 }
 
 $filter = new ZM\Filter();
@@ -108,9 +108,7 @@ while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
 ?>
 <body>
   <?php echo $navbar ?>
-  <form name="monitorForm" method="get" action="?">
-    <input type="hidden" name="view" value="<?php echo $view ?>"/>
-    <input type="hidden" name="action" value=""/>
+  <form name="monitorForm" method="post" action="?view=<?php echo $view ?>">
     <div class="filterBar">
       <?php echo $filterbar ?>
       <div id="DateTimeDiv">

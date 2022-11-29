@@ -604,7 +604,7 @@ input[type=submit]:disabled,
 
 
 #navbar-container {
-  padding: 0 0 10px 0;
+  padding: 0;
 }
 .navbar{
 	margin-bottom: 0 !important;

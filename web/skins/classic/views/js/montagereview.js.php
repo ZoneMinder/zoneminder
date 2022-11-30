@@ -158,14 +158,6 @@ if ( !$have_storage_zero ) {
   echo 'Storage[0] = ' . $Storage->to_json(). ";\n";
 }
 
-echo "\nvar Servers = [];\n";
-// Fall back to get Server paths, etc when no using multi-server mode
-$Server = new ZM\Server();
-echo 'Servers[0] = new Server(' . $Server->to_json(). ");\n";
-foreach ( ZM\Server::find() as $Server ) {
-  echo 'Servers[' . $Server->Id() . '] = new Server(' . $Server->to_json(). ");\n";
-}
-
 echo '
 var monitorName = [];
 var monitorLoading = [];

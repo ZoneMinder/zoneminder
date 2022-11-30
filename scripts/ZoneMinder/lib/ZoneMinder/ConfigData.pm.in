@@ -611,7 +611,7 @@ our @options = (
     description =>  'Enable snapshot functionality.',
     help        =>  'Snapshots are a collection of events.  They can be created using the snapshot button in montage view.  All visible monitors will have a short event created, archived and added to the Snapshot.',
     type      =>  $types{boolean},
-    category  =>  'hidden',
+    category  =>  'system',
   },
   {
     name        => 'ZM_USE_DEEP_STORAGE',

@@ -32,7 +32,22 @@ var Server = function() {
 
       return location.protocol + '//' + this.Hostname + (port ? ':' + port : '') + (this.PathPrefix && this.PathPrefix != 'null' ? this.PathPrefix : '');
     }
-  }]);
+  },
+    {
+      key: 'UrlToZMS',
+      value: function UrlToZMS() {
+      const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+      return this.Protocol + '://' + this.Hostname + (port ? ':' + port : '') + (this.PathToZMS && this.PathToZMS != 'null' ? this.PathToZMS : '');
+      }
+  },
+    {
+      key: 'UrlToApi',
+      value: function UrlToApi() {
+      const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+      return this.Protocol + '://' + this.Hostname + (port ? ':' + port : '') + (this.PathToApi && this.PathToApi != 'null' ? this.PathToApi : '');
+      }
+    }
+  ]);
 
   return Server;
 }();

@@ -1131,6 +1131,16 @@ function initPage() {
     this.form.submit();
   });
 }
+
+function takeSnapshot() {
+  monitor_ids = [];
+  for (const key in monitorIndex) {
+    monitor_ids[monitor_ids.length] = 'monitor_ids[]='+key;
+  }
+  console.log(monitor_ids);
+  window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+}
+
 window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);

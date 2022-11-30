@@ -175,19 +175,29 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
     Initialise();
   pixels = width * height;
   linesize = p_width * p_colours;
-  size = linesize * height + padding;
-  if (p_buffer) {
-    allocation = size;
-    buffertype = ZM_BUFTYPE_DONTFREE;
-    buffer = p_buffer;
-  } else {
-    AllocImgBuffer(size);
-  }
+
   if (!subpixelorder and (colours>1)) {
     // Default to RGBA when no subpixelorder is specified.
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
   }
+
   imagePixFormat = AVPixFormat();
+
+  if (p_buffer) {
+    size = linesize * height + padding;
+    allocation = size;
+    buffertype = ZM_BUFTYPE_DONTFREE;
+    buffer = p_buffer;
+  } else {
+    size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
+    linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
+
+    Debug(1, "line size: %d =? %d width %d Size %d ?= %d", linesize,
+        av_image_get_linesize(imagePixFormat, width, 0),
+        width, linesize * height + padding, size);
+
+    AllocImgBuffer(size);
+  }
 
   update_function_pointers();
 }
@@ -266,15 +276,15 @@ int Image::PopulateFrame(AVFrame *frame) {
   frame->buf[0] = ref;
 
   // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
-  int size = av_image_fill_arrays(
+  int rc_size = av_image_fill_arrays(
       frame->data, frame->linesize,
       buffer, imagePixFormat, width, height,
       32 //alignment
       );
-  if ( size < 0 ) {
+  if (rc_size < 0) {
     Error("Problem setting up data pointers into image %s",
-        av_make_error_string(size).c_str());
-    return size;
+        av_make_error_string(rc_size).c_str());
+    return rc_size;
   }
 
   frame->width = width;
@@ -314,12 +324,13 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
   PopulateFrame(temp_frame);
   zm_dump_video_frame(frame, "source frame before convert");
   temp_frame->pts = frame->pts;
-  AVPixelFormat format = (AVPixelFormat)AVPixFormat();
 
-      int ret = sws_scale(convert_context,
-        frame->data, frame->linesize, 0, frame->height,
-        temp_frame->data, temp_frame->linesize);
+  Debug(1, "Assign src linesize: %d, dest linesize: %d", frame->linesize[0], temp_frame->linesize[0]);
+  int ret = sws_scale(convert_context,
+      frame->data, frame->linesize, 0, frame->height,
+      temp_frame->data, temp_frame->linesize);
   if (ret < 0) {
+    AVPixelFormat format = (AVPixelFormat)AVPixFormat();
     Error("Unable to convert raw format %u %s %ux%u to target format %u %s %ux%u: %s",
         frame->format, av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame->format)), frame->width, frame->height,
         format, av_get_pix_fmt_name(format), width, height,
@@ -805,8 +816,21 @@ void Image::Assign(const Image &image) {
     update_function_pointers();
   }
 
-  if ( image.buffer != buffer )
-    (*fptr_imgbufcpy)(buffer, image.buffer, size);
+  if ( image.buffer != buffer ) {
+    if (image.linesize > linesize) {
+      Debug(1, "Must copy line by line due to different line size %d != %d", image.linesize, linesize);
+      uint8_t *src_ptr = image.buffer;
+      uint8_t *dst_ptr = buffer;
+      for (unsigned int i=0; i< image.height; i++) {
+        (*fptr_imgbufcpy)(dst_ptr, src_ptr, image.linesize);
+        src_ptr += image.linesize;
+        dst_ptr += linesize;
+      }
+    } else {
+      Debug(1, "Doing full copy line size %d != %d", image.linesize, linesize);
+      (*fptr_imgbufcpy)(buffer, image.buffer, size);
+    }
+  }
 }
 
 Image *Image::HighlightEdges(

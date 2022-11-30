@@ -65,8 +65,8 @@ Camera::Camera(
   pixels = width * height;
   imagesize = static_cast<unsigned long long>(height) * linesize;
 
-  Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d",
-      monitor->Id(), width, linesize, height, colours, subpixelorder, capture);
+  Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d, size: %llu",
+      monitor->Id(), width, linesize, height, colours, subpixelorder, capture, imagesize);
 }
 
 Camera::~Camera() {

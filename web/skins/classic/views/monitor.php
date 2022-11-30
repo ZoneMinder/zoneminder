@@ -1560,5 +1560,6 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
 <?php
 echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
+echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
 xhtmlFooter()
 ?>

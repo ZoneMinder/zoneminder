@@ -311,7 +311,7 @@ getBodyTopHTML();
             &nbsp;<?php echo translate('Snapshot') ?>
           </button>
 <?php
-    } 
+    }
   } else if (count($displayMonitors) != 0) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>

@@ -28,14 +28,14 @@ class Snapshot extends ZM_Object {
 
   public function delete() {
     if ( property_exists($this, 'Id') ) {
-      dbQuery('DELETE FROM `Snapshot_Events` WHERE `SnapshotId`=?', array($this->{'Id'}));
+      dbQuery('DELETE FROM `Snapshots_Events` WHERE `SnapshotId`=?', array($this->{'Id'}));
       dbQuery('DELETE FROM `Snapshots` WHERE `Id`=?', array($this->{'Id'}));
     }
   }
 
   public function EventIds( ) {
     if ( ! property_exists($this, 'EventIds') ) {
-      $this->{'EventIds'} = dbFetchAll('SELECT `EventId` FROM `Snapshot_Events` WHERE `SnapshotId`=?', 'EventId', array($this->{'Id'}));
+      $this->{'EventIds'} = dbFetchAll('SELECT `EventId` FROM `Snapshots_Events` WHERE `SnapshotId`=?', 'EventId', array($this->{'Id'}));
     }
     return $this->{'EventIds'};
   }
@@ -49,7 +49,7 @@ class Snapshot extends ZM_Object {
 } # end class Snapshot
 
 class Snapshot_Event extends ZM_Object {
-  protected static $table = 'Snapshot_Events';
+  protected static $table = 'Snapshots_Events';
   protected $defaults = array(
     'Id' => null,
     'EventId' => 0,

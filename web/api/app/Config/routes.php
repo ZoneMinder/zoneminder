@@ -36,6 +36,7 @@
 	Router::mapResources('cameramodels');
 	Router::mapResources('monitors');
 	Router::mapResources('servers');
+	Router::mapResources('snapshots');
 	Router::mapResources('states');
 	Router::mapResources('users');
 	Router::mapResources('zonepresets');

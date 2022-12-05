@@ -48,11 +48,9 @@ class Filter extends ZM_Object {
     if (!isset($this->_sql)) {
       $this->_sql = '';
       foreach ( $this->FilterTerms() as $term ) {
-        #if ( ! ($term->is_pre_sql() or $term->is_post_sql()) ) {
+        if ($term->valid()) {
           $this->_sql .= $term->sql();
-        #} else {
-          #$this->_sql .= '1';
-        #}
+        }
       } # end foreach term
     }
     return $this->_sql;
@@ -864,7 +862,7 @@ class Filter extends ZM_Object {
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
           #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></span>'.PHP_EOL;
+          $html .= '<span><input type="text" class="datetimepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></span>'.PHP_EOL;

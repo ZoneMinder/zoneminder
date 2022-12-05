@@ -2,9 +2,12 @@
 namespace ZM;
 require_once('Object.php');
 require_once('FilterTerm.php');
+require_once('Monitor.php');
 
 class Filter extends ZM_Object {
   protected static $table = 'Filters';
+  protected static $attrTypes = null;
+  protected static $opTypes = null;
 
   protected $defaults = array(
     'Id'              =>  null,
@@ -699,6 +702,220 @@ class Filter extends ZM_Object {
     } # end foreach row
     return $events;
   } # end Events()
+
+  public static function attrTypes() {
+    if (!self::$attrTypes) {
+      self::$attrTypes = array(
+        'AlarmFrames' => translate('AttrAlarmFrames'),
+        'AlarmedZoneId' =>  translate('AttrAlarmedZone'),
+        'Archived'    => translate('AttrArchiveStatus'),
+        'AvgScore'    => translate('AttrAvgScore'),
+        'Cause'       => translate('AttrCause'),
+        'DiskBlocks'  => translate('AttrDiskBlocks'),
+        'DiskPercent' => translate('AttrDiskPercent'),
+        #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
+        'DiskSpace'   => translate('AttrEventDiskSpace'),
+        'EndDateTime'    => translate('AttrEndDateTime'),
+        'EndDate'        => translate('AttrEndDate'),
+        'EndTime'        => translate('AttrEndTime'),
+        'EndWeekday'     => translate('AttrEndWeekday'),
+        'ExistsInFileSystem'  => translate('ExistsInFileSystem'),
+        'FilterServerId'     => translate('AttrFilterServer'),
+        'Frames'      => translate('AttrFrames'),
+        'Id'          => translate('AttrId'),
+        'Length'      => translate('AttrDuration'),
+        'MaxScore'    => translate('AttrMaxScore'),
+        'Monitor'   => translate('Monitor'),
+        'MonitorId'   => translate('AttrMonitorId'),
+        'MonitorName' => translate('AttrMonitorName'),
+        'MonitorServerId'    => translate('AttrMonitorServer'),
+        'Name'        => translate('AttrName'),
+        'Notes'       => translate('AttrNotes'),
+        'SecondaryStorageId'   => translate('AttrSecondaryStorageArea'),
+        'ServerId'           => translate('AttrMonitorServer'),
+        'StartDateTime'    => translate('AttrStartDateTime'),
+        'StartDate'        => translate('AttrStartDate'),
+        'StartTime'        => translate('AttrStartTime'),
+        'StartWeekday'     => translate('AttrStartWeekday'),
+        'StateId'            => translate('AttrStateId'),
+        'StorageId'           => translate('AttrStorageArea'),
+        'StorageServerId'    => translate('AttrStorageServer'),
+        'SystemLoad'  => translate('AttrSystemLoad'),
+        'TotScore'    => translate('AttrTotalScore'),
+      );
+    }
+    return self::$attrTypes;
+  }
+
+  public static function opTypes() {
+    if (!self::$opTypes) {
+      self::$opTypes = array(
+        '='   => translate('OpEq'),
+        '!='  => translate('OpNe'),
+        '>='  => translate('OpGtEq'),
+        '>'   => translate('OpGt'),
+        '<'   => translate('OpLt'),
+        '<='  => translate('OpLtEq'),
+        '=~'  => translate('OpMatches'),
+        '!~'  => translate('OpNotMatches'),
+        '=[]' => translate('OpIn'),
+        '![]' => translate('OpNotIn'),
+        'IS'  => translate('OpIs'),
+        'IS NOT'  => translate('OpIsNot'),
+        'LIKE' => translate('OpLike'),
+        'NOT LIKE' => translate('OpNotLike'),
+      );
+    }
+    return self::$opTypes;
+  }
+
+  public function widget() {
+    $html = '<table id="fieldsTable" class="filterTable"><tbody>';
+    $terms = $this->terms();
+    for ($i=0; $i < count($terms); $i++) {
+      $html .= '<tr>'.PHP_EOL;
+      $html .= ($i == 0) ?  '<td>&nbsp;</td>' : '<td>'.htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).'</td>'.PHP_EOL;
+      $html .= '<td>'. ( count($terms) > 2 ? htmlSelect("filter[Query][terms][$i][obr]", $obracketTypes, $term['obr']) : '&nbsp;').'</td>'.PHP_EOL;
+      $html .= '<td>'.htmlSelect("filter[Query][terms][$i][attr]", $this->attrTypes(), $term['attr'], array('data-on-change-this'=>'checkValue')).'</td>'.PHP_EOL;
+      if ( isset($term['attr']) ) {
+        if ( $term['attr'] == 'Archived' ) {
+          $html .= '<td>'.translate('OpEq').'<input type="hidden" name="filter[Query][terms]['.$i.'][op]" value="="/></td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'StateId' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $states, $term['val']).'</td>'.PHP_EOL;
+        } else if ( strpos($term['attr'], 'Weekday') !== false ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val']).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'Monitor' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, $term['val']).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'MonitorName' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val']).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']).'</td>'.PHP_EOL;
+        } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']).'</td>'.PHP_EOL;
+        } elseif ( $term['attr'] == 'AlarmedZoneId' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val']).'</td>'.PHP_EOL;
+        } else {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.validHtmlStr($term['val']).'"/></td>'.PHP_EOL;
+        }
+      } else { # no attr ?
+        $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+        $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'' ).'"/></td>'.PHP_EOL;
+      }
+      $html .= '<td>'.( count($terms) > 2 ? htmlSelect("filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr']) : '&nbsp;').'</td>'.PHP_EOL;
+      $html .= '<td>
+                <button type="button" data-on-click-this="addTerm">+</button>
+                <button type="button" data-on-click-this="delTerm" '.(count($terms) == 1 ? 'disabled' : '' ).'>-</button>
+              </td>
+            </tr>
+';
+    } # end foreach term
+    return $html;
+  }  # end function widget()
+
+  public function simple_widget() {
+    $html = '<div id="fieldsTable" class="filterTable">';
+    $terms = $this->terms();
+    $attrTypes = $this->attrTypes();
+    $opTypes = $this->opTypes();
+
+    for ($i=0; $i < count($terms); $i++) {
+      $term = $terms[$i];
+      if ( ! isset( $term['op'] ) )
+        $term['op'] = '=';
+      if ( ! isset( $term['attr'] ) )
+        $term['attr'] = 'Id';
+      if ( ! isset( $term['val'] ) )
+        $term['val'] = '';
+      if ( ! isset( $term['cnj'] ) )
+        $term['cnj'] = 'and';
+      if ( ! isset( $term['cbr'] ) )
+        $term['cbr'] = '';
+      if ( ! isset( $term['obr'] ) )
+        $term['obr'] = '';
+
+      #$html .= ($i == 0) ?  '' : htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).PHP_EOL;
+      $html .= ($i == 0) ?  '' : html_input("filter[Query][terms][$i][cnj]", 'hidden', $term['cnj']).PHP_EOL;
+      $html .= '<span class="term"><label>'.html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']).$attrTypes[$term['attr']].'</label>';
+      if ( isset($term['attr']) ) {
+        if ( $term['attr'] == 'Archived' ) {
+          $html .= html_input("filter[Query][terms]['.$i.'][op]", 'hidden', '=').PHP_EOL;
+          $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).PHP_EOL;
+        } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
+          $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
+          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']).'</span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'StateId' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $states, $term['val']).'</span>'.PHP_EOL;
+        } else if ( strpos($term['attr'], 'Weekday') !== false ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val']).'</span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'Monitor' ) {
+          $monitors = ['' => translate('All')];
+          foreach (Monitor::find() as $m) {
+            if ($m->canView()) {
+              $monitors[$m->Id()] = $m->Id().' '.validHtmlStr($m->Name());
+            }
+          }
+          $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
+          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, $term['val']).'</span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'MonitorName' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val']).'</span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']).'</span>'.PHP_EOL;
+        } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']).'</span>'.PHP_EOL;
+        } elseif ( $term['attr'] == 'AlarmedZoneId' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val']).'</span>'.PHP_EOL;
+        } else {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.validHtmlStr($term['val']).'"/></span>'.PHP_EOL;
+        }
+      } else { # no attr ?
+        $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+        $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'' ).'"/></span>'.PHP_EOL;
+      }
+
+      $html .= '</span>';
+    } # end foreach term
+    $html .= '</div>';
+    return $html;
+  }  # end function widget()
 
 } # end class Filter
 ?>

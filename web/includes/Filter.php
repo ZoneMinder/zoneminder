@@ -523,7 +523,7 @@ class Filter extends ZM_Object {
           }
           break;
         default :
-          ZM\Error('Unknown operator in filter '.$term['op']);
+          Error('Unknown operator in filter '.$term['op']);
         }
 
         while ( true ) {
@@ -627,11 +627,11 @@ class Filter extends ZM_Object {
         $node = array('data'=>$element, 'count'=>2+$left['count']+$right['count'], 'right'=>$right, 'left'=>$left);
         $exprStack[] = $node;
       } else {
-        ZM\Fatal('Unexpected element type \''.$element['type'].'\', value \''.$element['value'].'\'');
+        Fatal('Unexpected element type \''.$element['type'].'\', value \''.$element['value'].'\'');
       }
     }
     if ( count($exprStack) != 1 ) {
-      ZM\Fatal('Expression stack has '.count($exprStack).' elements');
+      Fatal('Expression stack has '.count($exprStack).' elements');
     }
     return array_pop($exprStack);
   } # end function tree
@@ -670,7 +670,7 @@ class Filter extends ZM_Object {
   function Events() {
     $events = array();
     if (!$this->test_pre_sql_conditions()) {
-      ZM\Debug('Pre conditions failed, not doing sql');
+      Debug('Pre conditions failed, not doing sql');
       return $events;
     }
 
@@ -769,8 +769,81 @@ class Filter extends ZM_Object {
 
   public function widget() {
     $html = '<table id="fieldsTable" class="filterTable"><tbody>';
+    $opTypes = $this->opTypes();
+
     $terms = $this->terms();
+    $obracketTypes = array();
+    $cbracketTypes = array();
+    if ( count($terms) ) {
+      for ( $i = 0; $i <= count($terms)-2; $i++ ) {
+        $obracketTypes[$i] = str_repeat('(', $i);
+        $cbracketTypes[$i] = str_repeat(')', $i);
+      }
+    }
+
+    $is_isnot_opTypes = array(
+      'IS'  => translate('OpIs'),
+      'IS NOT'  => translate('OpIsNot'),
+    );
+
+    $archiveTypes = array(
+      '0' => translate('ArchUnarchived'),
+      '1' => translate('ArchArchived')
+    );
+
+    $booleanValues = array(
+      'false' => translate('False'),
+      'true' => translate('True')
+    );
+
+    $conjunctionTypes = getFilterQueryConjunctionTypes();
+    $storageareas = null;
+    $weekdays = array();
+    for ( $i = 0; $i < 7; $i++ ) {
+      $weekdays[$i] = date('D', mktime(12, 0, 0, 1, $i+1, 2001));
+    }
+    $states = array();
+    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `States` ORDER BY lower(`Name`) ASC') as $state_row ) {
+      $states[$state_row['Id']] = validHtmlStr($state_row['Name']);
+    }
+    $servers = array();
+    $servers['ZM_SERVER_ID'] = 'Current Server';
+    $servers['NULL'] = 'No Server';
+    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Servers` ORDER BY lower(`Name`) ASC') as $server ) {
+      $servers[$server['Id']] = validHtmlStr($server['Name']);
+    }
+    $monitors = array();
+    $monitor_names = array();
+    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`) ASC') as $monitor ) {
+      if ( visibleMonitor($monitor['Id']) ) {
+        $monitors[$monitor['Id']] = new Monitor($monitor);
+        $monitor_names[] = validHtmlStr($monitor['Name']);
+      }
+    }
+    $zones = array();
+    foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name`) ASC') as $zone ) {
+      if ( visibleMonitor($zone['MonitorId']) ) {
+        if ( isset($monitors[$zone['MonitorId']]) ) {
+          $zone['Name'] = validHtmlStr($monitors[$zone['MonitorId']]->Name().': '.$zone['Name']);
+          $zones[$zone['Id']] = new Zone($zone);
+        }
+      }
+    }
+
     for ($i=0; $i < count($terms); $i++) {
+      $term = $terms[$i];
+      if ( ! isset( $term['op'] ) )
+        $term['op'] = '=';
+      if ( ! isset( $term['attr'] ) )
+        $term['attr'] = 'Id';
+      if ( ! isset( $term['val'] ) )
+        $term['val'] = '';
+      if ( ! isset( $term['cnj'] ) )
+        $term['cnj'] = 'and';
+      if ( ! isset( $term['cbr'] ) )
+        $term['cbr'] = '';
+      if ( ! isset( $term['obr'] ) )
+        $term['obr'] = '';
       $html .= '<tr>'.PHP_EOL;
       $html .= ($i == 0) ?  '<td>&nbsp;</td>' : '<td>'.htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).'</td>'.PHP_EOL;
       $html .= '<td>'. ( count($terms) > 2 ? htmlSelect("filter[Query][terms][$i][obr]", $obracketTypes, $term['obr']) : '&nbsp;').'</td>'.PHP_EOL;
@@ -807,6 +880,10 @@ class Filter extends ZM_Object {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']).'</td>'.PHP_EOL;
         } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
+          if (!$storageareas) {
+            $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+          }
+
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']).'</td>'.PHP_EOL;
         } elseif ( $term['attr'] == 'AlarmedZoneId' ) {

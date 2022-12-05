@@ -45,3 +45,7 @@ input[type="number"].form-control {
 .search .form-control {
   font-size: 100%;
 }
+
+.filterTable {
+  display:inline;
+}

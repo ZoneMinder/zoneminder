@@ -219,6 +219,9 @@ class FilterTerm {
     case 'MonitorName':
       $sql .= 'M.Name';
       break;
+    case 'Monitor':
+      $sql .= 'E.MonitorId';
+      break;
     case 'ServerId':
     case 'MonitorServerId':
       $sql .= 'M.ServerId';

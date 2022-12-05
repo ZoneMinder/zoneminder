@@ -115,7 +115,9 @@ class FilterTerm {
       case 'DateTime':
       case 'StartDateTime':
       case 'EndDateTime':
-        if ( $value_upper != 'NULL' )
+        if ( $value_upper == 'CURDATE()' or $value_upper == 'NOW()' ) {
+
+        } else if ( $value_upper != 'NULL' )
           $value = '\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
         break;
       case 'Date':
@@ -130,8 +132,9 @@ class FilterTerm {
       case 'Time':
       case 'StartTime':
       case 'EndTime':
-        if ( $value_upper != 'NULL' )
+        if ( $value_upper != 'NULL' ) {
           $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+        }
         break;
       default :
         if ( $value == 'Odd' ) {
@@ -494,6 +497,22 @@ class FilterTerm {
       'Description'
     );
     return in_array($attr, $attrs);
+  }
+
+  public function valid() {
+    switch ($this->attr) {
+    case 'EndDateTime' :
+    case 'StartDateTime' :
+      if (!$this->val)
+        return false;
+      break;
+    case 'Monitor' :
+    case 'MonitorId' :
+      if ($this->val === '')
+        return false;
+      break;
+    }
+    return true;
   }
 } # end class FilterTerm
 

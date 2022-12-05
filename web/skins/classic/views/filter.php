@@ -54,6 +54,7 @@ foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
 }
 if ( !$filter )  {
   $filter = new ZM\Filter();
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=> '=', 'val'=>''));
 }
 
 ZM\Debug('filter: ' . print_r($filter,true));
@@ -65,15 +66,15 @@ if ( isset($_REQUEST['filter']) ) {
 ZM\Debug('filter: ' . print_r($filter,true));
 
 $conjunctionTypes = ZM\getFilterQueryConjunctionTypes();
-$obracketTypes = array();
-$cbracketTypes = array();
 
-if ( count($filter->terms()) > 0 ) {
+if (count($filter->terms()) > 0) {
   $terms = $filter->terms();
 } else {
   $terms[] = array();
 }
 
+$obracketTypes = array();
+$cbracketTypes = array();
 if ( count($terms) ) {
   for ( $i = 0; $i <= count($terms)-2; $i++ ) {
     $obracketTypes[$i] = str_repeat('(', $i);
@@ -81,60 +82,9 @@ if ( count($terms) ) {
   }
 }
 
-$attrTypes = array(
-    'AlarmFrames' => translate('AttrAlarmFrames'),
-		'AlarmedZoneId'	=>	translate('AttrAlarmedZone'),
-    'Archived'    => translate('AttrArchiveStatus'),
-    'AvgScore'    => translate('AttrAvgScore'),
-    'Cause'       => translate('AttrCause'),
-    'DiskBlocks'  => translate('AttrDiskBlocks'),
-    'DiskPercent' => translate('AttrDiskPercent'),
-    #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
-    'DiskSpace'   => translate('AttrEventDiskSpace'),
-    'EndDateTime'    => translate('AttrEndDateTime'),
-    'EndDate'        => translate('AttrEndDate'),
-    'EndTime'        => translate('AttrEndTime'),
-    'EndWeekday'     => translate('AttrEndWeekday'),
-    'ExistsInFileSystem'  => translate('ExistsInFileSystem'),
-    'FilterServerId'     => translate('AttrFilterServer'),
-    'Frames'      => translate('AttrFrames'),
-    'Id'          => translate('AttrId'),
-    'Length'      => translate('AttrDuration'),
-    'MaxScore'    => translate('AttrMaxScore'),
-    'MonitorId'   => translate('AttrMonitorId'),
-    'MonitorName' => translate('AttrMonitorName'),
-    'MonitorServerId'    => translate('AttrMonitorServer'),
-    'Name'        => translate('AttrName'),
-    'Notes'       => translate('AttrNotes'),
-    'SecondaryStorageId'   => translate('AttrSecondaryStorageArea'),
-    'ServerId'           => translate('AttrMonitorServer'),
-    'StartDateTime'    => translate('AttrStartDateTime'),
-    'StartDate'        => translate('AttrStartDate'),
-    'StartTime'        => translate('AttrStartTime'),
-    'StartWeekday'     => translate('AttrStartWeekday'),
-    'StateId'            => translate('AttrStateId'),
-    'StorageId'           => translate('AttrStorageArea'),
-    'StorageServerId'    => translate('AttrStorageServer'),
-    'SystemLoad'  => translate('AttrSystemLoad'),
-    'TotScore'    => translate('AttrTotalScore'),
-    );
+$attrTypes = ZM\Filter::attrTypes();
 
-$opTypes = array(
-    '='   => translate('OpEq'),
-    '!='  => translate('OpNe'),
-    '>='  => translate('OpGtEq'),
-    '>'   => translate('OpGt'),
-    '<'   => translate('OpLt'),
-    '<='  => translate('OpLtEq'),
-    '=~'  => translate('OpMatches'),
-    '!~'  => translate('OpNotMatches'),
-    '=[]' => translate('OpIn'),
-    '![]' => translate('OpNotIn'),
-    'IS'  => translate('OpIs'),
-    'IS NOT'  => translate('OpIsNot'),
-    'LIKE' => translate('OpLike'),
-    'NOT LIKE' => translate('OpNotLike'),
-    );
+$opTypes = ZM\Filter::opTypes();
 $is_isnot_opTypes = array(
   'IS'  => translate('OpIs'),
   'IS NOT'  => translate('OpIsNot'),
@@ -234,130 +184,8 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         </p>
 <?php } ?>
         <p>
-        <table id="fieldsTable" class="filterTable">
-          <tbody>
-<?php
-for ( $i=0; $i < count($terms); $i++ ) {
-  $term = $terms[$i];
-  if ( ! isset( $term['op'] ) )
-    $term['op'] = '=';
-  if ( ! isset( $term['attr'] ) )
-    $term['attr'] = 'Id';
-  if ( ! isset( $term['val'] ) )
-    $term['val'] = '';
-  if ( ! isset( $term['cnj'] ) )
-    $term['cnj'] = 'and';
-  if ( ! isset( $term['cbr'] ) )
-    $term['cbr'] = '';
-  if ( ! isset( $term['obr'] ) )
-    $term['obr'] = '';
-?>
-            <tr>
-<?php
-  if ( $i == 0 ) {
-?>
-              <td>&nbsp;</td>
-<?php
-  } else {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']); ?></td>
-<?php
-  }
-?>
-              <td><?php if ( count($terms) > 2 ) { echo htmlSelect("filter[Query][terms][$i][obr]", $obracketTypes, $term['obr']); } else { ?>&nbsp;<?php } ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][attr]", $attrTypes, $term['attr'], array('data-on-change-this'=>'checkValue')); ?></td>
-<?php
-  if ( isset($term['attr']) ) {
-    if ( $term['attr'] == 'Archived' ) {
-?>
-              <td><?php echo translate('OpEq') ?><input type="hidden" name="filter[Query][terms][<?php echo $i ?>][op]" value="="/></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']); ?></td>
-<?php
-    } elseif ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td>
-                <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-              </td>
-<?php
-    } elseif ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td>
-                <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/>
-              </td>
-<?php
-    } elseif ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td>
-                <input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" id="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ?>"/>
-              </td>
-<?php
-    } elseif ( $term['attr'] == 'ExistsInFileSystem' ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op']); ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']); ?></td>
-<?php
-    } elseif ( $term['attr'] == 'StateId' ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $states, $term['val']); ?></td>
-<?php
-    } elseif ( strpos($term['attr'], 'Weekday') !== false ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val']); ?></td>
-<?php
-    } elseif ( $term['attr'] == 'Monitor' ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $monitors, $term['val']); ?></td>
-<?php
-    } elseif ( $term['attr'] == 'MonitorName' ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val']); ?></td>
-<?php
-    } elseif ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']); ?></td>
-<?php
-    } elseif ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']); ?></td>
-<?php
-    } elseif ( $term['attr'] == 'AlarmedZoneId' ) {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val']); ?></td>
-<?php
-    } else {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo validHtmlStr($term['val']) ?>"/></td>
-<?php
-    }
-  } else {
-?>
-              <td><?php echo htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']); ?></td>
-              <td><input type="text" name="filter[Query][terms][<?php echo $i ?>][val]" value="<?php echo isset($term['val'])?validHtmlStr($term['val']):'' ?>"/></td>
-<?php
-  }
-?>
-              <td><?php if ( count($terms) > 2 ) { echo htmlSelect("filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr']); } else { ?>&nbsp;<?php } ?></td>
-              <td>
-                <button type="button" data-on-click-this="addTerm">+</button>
-                <button type="button" data-on-click-this="delTerm" <?php echo count($terms) == 1 ? 'disabled' : '' ?>>-</button>
-              </td>
-            </tr>
-<?php
-} # end foreach term
-?>
-          </tbody>
-        </table>
+<?php echo $filter->widget(); ?>
+
         <hr/>
         <table id="sortTable" class="filterTable">
           <tbody>

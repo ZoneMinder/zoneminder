@@ -295,20 +295,12 @@ sub checkFilter {
     if ( $filter->{AutoArchive} ) {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
-      my $sql = 'UPDATE `Events` SET `Archived` = 1 WHERE `Id` = ?';
-      my $sth = $dbh->prepare_cached($sql)
-        or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute($Event->{Id})
-        or Error("Unable to execute '$sql': ".$dbh->errstr());
+      $Event->save({Archived=>1});
     }
     if ( $filter->{AutoUnarchive} ) {
       Info("Unarchiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
-      my $sql = 'UPDATE `Events` SET `Archived` = 0 WHERE `Id` = ?';
-      my $sth = $dbh->prepare_cached($sql)
-        or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute($Event->{Id})
-        or Error("Unable to execute '$sql': ".$dbh->errstr());
+      $Event->save({Archived=>0});
     }
     if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
       if ( !$Event->{Videoed} ) {
@@ -338,6 +330,7 @@ sub checkFilter {
     if ( $filter->{AutoDelete} ) {
       if ( $delete_ok ) {
         $Event->delete();
+        next; # If someone has configured the filter to do something in addition to delete, errors will be logged.
       } else {
         Error("Unable to delete event $Event->{Id} as previous operations failed");
       }

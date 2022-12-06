@@ -58,11 +58,24 @@ By default MariaDB uses `unix socket authentication`_, so no root user password 
 
 **Step 4:** Install zoneminder
 
-Run the following commands.
+By default Debian will install the version published in Debian (stable). However you also have the option to install a newer version using backports.
+For example, at the time of this writting, bullseye (stable) ships with v.1.34.x and bullseye-backports with v.1.36.x.
+
+To install the version in bullseye stable, just run the following command.
 
 ::
 
     sudo apt install zoneminder
+
+
+If instead you prefer to install the newer version using backports, run the following commands.
+The first line will add bullseye-backports repository.
+The backports repository is deactivated by default, so with the second line we explicityly state we want the backported version of zoneminder.
+
+::
+    sudo echo 'deb http://deb.debian.org/debian bullseye-backports main contrib' >> /etc/apt/sources.list
+    sudo apt update && sudo apt -t bullseye-backports install zoneminder
+
 
 **Step 5:** Configure database
 

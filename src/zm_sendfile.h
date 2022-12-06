@@ -36,7 +36,7 @@ ssize_t zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
     return -errno;
   }
 
-  err = fwrite(out_fd, buffer, size);
+  err = write(out_fd, buffer, size);
   if (err < 0) {
     Error("Unable to write %zu bytes: %s", size, strerror(errno));
     return -errno;

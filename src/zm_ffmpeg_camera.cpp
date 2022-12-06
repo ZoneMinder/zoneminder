@@ -385,6 +385,42 @@ int FfmpegCamera::OpenFfmpeg() {
     } else {
       Debug(1, "Success finding decoder (h264_mmal)");
     }
+ 
+    if ((mVideoCodec = avcodec_find_decoder_by_name("h264_nvmpi")) == nullptr) {
+      Debug(1, "Failed to find decoder (h264_nvmpi)");
+    } else {
+      Debug(1, "Success finding decoder (h264_nvmpi)");
+    }
+  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_HEVC) {
+    if ((mVideoCodec = avcodec_find_decoder_by_name("hevc_nvmpi")) == nullptr) {
+      Debug(1, "Failed to find decoder (hevc_nvmpi)");
+    } else {
+      Debug(1, "Success finding decoder (hevc_nvmpi)");
+    }
+  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_VP8) {
+    if ((mVideoCodec = avcodec_find_decoder_by_name("vp8_nvmpi")) == nullptr) {
+      Debug(1, "Failed to find decoder (vp8_nvmpi)");
+    } else {
+      Debug(1, "Success finding decoder (vp8_nvmpi)");
+    }
+  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_VP9) {
+    if ((mVideoCodec = avcodec_find_decoder_by_name("hevc_nvmpi")) == nullptr) {
+      Debug(1, "Failed to find decoder (hevc_nvmpi)");
+    } else {
+      Debug(1, "Success finding decoder (hevc_nvmpi)");
+    }
+  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
+    if ((mVideoCodec = avcodec_find_decoder_by_name("mpeg2_nvmpi")) == nullptr) {
+      Debug(1, "Failed to find decoder (mpeg2_nvmpi)");
+    } else {
+      Debug(1, "Success finding decoder (mpeg2_nvmpi)");
+    }
+  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_MPEG4) {
+    if ((mVideoCodec = avcodec_find_decoder_by_name("mpeg4_nvmpi")) == nullptr) {
+      Debug(1, "Failed to find decoder (mpeg4_nvmpi)");
+    } else {
+      Debug(1, "Success finding decoder (mpeg4_nvmpi)");
+    }
   }
 
   if (!mVideoCodec) {

@@ -26,40 +26,45 @@ class FilterTerm {
   public $cbr;
 
 
-  public function __construct($filter = null, $term = NULL, $index=0) {
+  public function __construct($filter = null, $term = null, $index=0) {
     $this->filter = $filter;
     $validConjunctionTypes = getFilterQueryConjunctionTypes();
 
     $this->index = $index;
-    $this->attr = $term['attr'];
-    $this->op = $term['op'];
-    $this->val = $term['val'];
-    if ( isset($term['cnj']) ) {
-      if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
-        $this->cnj = $term['cnj'];
-      } else {
-        Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
+    if ($term) {
+      $this->attr = $term['attr'];
+      $this->op = $term['op'];
+      $this->val = $term['val'];
+      if ( isset($term['cnj']) ) {
+        if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
+          $this->cnj = $term['cnj'];
+        } else {
+          Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
+        }
       }
-    }
-    if ( isset($term['tablename']) ) {
-      $this->tablename = $term['tablename'];
-    } else {
-      $this->tablename = 'E';
-    }
+      if ( isset($term['tablename']) ) {
+        $this->tablename = $term['tablename'];
+      } else {
+        $this->tablename = 'E';
+      }
 
-    if ( isset($term['obr']) ) {
-      if ( (string)(int)$term['obr'] == $term['obr'] ) {
-        $this->obr = $term['obr'];
-      } else {
-        Warning('Invalid obr ' . $term['obr'] . ' in ' . print_r($term, true));
+      if ( isset($term['obr']) ) {
+        if ( (string)(int)$term['obr'] == $term['obr'] ) {
+          $this->obr = $term['obr'];
+        } else {
+          Warning('Invalid obr ' . $term['obr'] . ' in ' . print_r($term, true));
+        }
       }
-    }
-    if ( isset($term['cbr']) ) {
-      if ( (string)(int)$term['cbr'] == $term['cbr'] ) {
-        $this->cbr = $term['cbr'];
-      } else {
-        Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
+      if ( isset($term['cbr']) ) {
+        if ( (string)(int)$term['cbr'] == $term['cbr'] ) {
+          $this->cbr = $term['cbr'];
+        } else {
+          Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
+        }
       }
+    } else {
+      Warning("No term in FilterTerm constructor");
+      Warning(print_r(debug_backtrace(), true));
     }
   } # end function __construct
 

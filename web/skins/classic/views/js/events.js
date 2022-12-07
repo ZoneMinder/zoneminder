@@ -39,6 +39,26 @@ function ajaxRequest(params) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }
+  $j('#fieldsTable input').each(function(index) {
+    console.log(this);
+    const el = $j(this);
+console.log(el.attr('name') + ':' + el.val());
+    params.data[el.attr('name')] = el.val();
+  });
+  $j('#fieldsTable select').each(function(index) {
+    console.log(this);
+    const el = $j(this);
+    params.data[el.attr('name')] = el.children('option:selected').val();
+  });
+  if ($j('#filterMonitorId').val()) {
+    params.data.MonitorId = $j('#filterMonitorId').val();
+  }
+  if ($j('#filterStartDateTime').val()) {
+    params.data.StartDateTime = $j('#filterStartDateTime').val();
+  }
+  if ($j('#filterEndDateTime').val()) {
+    params.data.EndDateTime = $j('#filterEndDateTime').val();
+  }
   $j.ajax({
     url: thisUrl + '?view=request&request=events&task=query'+filterQuery,
     data: params.data,
@@ -396,10 +416,29 @@ function initPage() {
     table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
   });
 
+  $j('#fieldsTable input, #fieldsTable select').each(function(index) {
+    el = $j(this);
+    el.on('change', filterEvents);
+    if (el.hasClass('datetimepicker')) {
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+    }
+  });
+
+  $j('#filterStartDateTime, #filterEndDateTime')
+    .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+    .on('change', filterEvents);
+  $j('#filterMonitorId')
+    .on('change', filterEvents);
+
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }
+
+function filterEvents() {
+  table.bootstrapTable('refresh');
+}
+
 
 $j(document).ready(function() {
   initPage();

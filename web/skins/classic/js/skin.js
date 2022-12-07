@@ -991,7 +991,6 @@ function toggle_password_visibility(element) {
  */
 
 function post(path, params, method='post') {
-
   // The rest of this code assumes you are not using a library.
   // It can be made less verbose if you use one.
   const form = document.createElement('form');
@@ -1001,7 +1000,7 @@ function post(path, params, method='post') {
     const csrfField = document.createElement('input');
     csrfField.type = 'hidden';
     csrfField.name = csrfMagicName;
-    csrfField.value = csrfMagicToken; 
+    csrfField.value = csrfMagicToken;
     form.appendChild(csrfField);
   }
 

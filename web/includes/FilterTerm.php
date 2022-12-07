@@ -26,40 +26,45 @@ class FilterTerm {
   public $cbr;
 
 
-  public function __construct($filter = null, $term = NULL, $index=0) {
+  public function __construct($filter = null, $term = null, $index=0) {
     $this->filter = $filter;
     $validConjunctionTypes = getFilterQueryConjunctionTypes();
 
     $this->index = $index;
-    $this->attr = $term['attr'];
-    $this->op = $term['op'];
-    $this->val = $term['val'];
-    if ( isset($term['cnj']) ) {
-      if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
-        $this->cnj = $term['cnj'];
-      } else {
-        Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
+    if ($term) {
+      $this->attr = $term['attr'];
+      $this->op = $term['op'];
+      $this->val = $term['val'];
+      if ( isset($term['cnj']) ) {
+        if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
+          $this->cnj = $term['cnj'];
+        } else {
+          Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
+        }
       }
-    }
-    if ( isset($term['tablename']) ) {
-      $this->tablename = $term['tablename'];
-    } else {
-      $this->tablename = 'E';
-    }
+      if ( isset($term['tablename']) ) {
+        $this->tablename = $term['tablename'];
+      } else {
+        $this->tablename = 'E';
+      }
 
-    if ( isset($term['obr']) ) {
-      if ( (string)(int)$term['obr'] == $term['obr'] ) {
-        $this->obr = $term['obr'];
-      } else {
-        Warning('Invalid obr ' . $term['obr'] . ' in ' . print_r($term, true));
+      if ( isset($term['obr']) ) {
+        if ( (string)(int)$term['obr'] == $term['obr'] ) {
+          $this->obr = $term['obr'];
+        } else {
+          Warning('Invalid obr ' . $term['obr'] . ' in ' . print_r($term, true));
+        }
       }
-    }
-    if ( isset($term['cbr']) ) {
-      if ( (string)(int)$term['cbr'] == $term['cbr'] ) {
-        $this->cbr = $term['cbr'];
-      } else {
-        Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
+      if ( isset($term['cbr']) ) {
+        if ( (string)(int)$term['cbr'] == $term['cbr'] ) {
+          $this->cbr = $term['cbr'];
+        } else {
+          Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
+        }
       }
+    } else {
+      Warning("No term in FilterTerm constructor");
+      Warning(print_r(debug_backtrace(), true));
     }
   } # end function __construct
 
@@ -115,7 +120,9 @@ class FilterTerm {
       case 'DateTime':
       case 'StartDateTime':
       case 'EndDateTime':
-        if ( $value_upper != 'NULL' )
+        if ( $value_upper == 'CURDATE()' or $value_upper == 'NOW()' ) {
+
+        } else if ( $value_upper != 'NULL' )
           $value = '\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
         break;
       case 'Date':
@@ -130,8 +137,9 @@ class FilterTerm {
       case 'Time':
       case 'StartTime':
       case 'EndTime':
-        if ( $value_upper != 'NULL' )
+        if ( $value_upper != 'NULL' ) {
           $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+        }
         break;
       default :
         if ( $value == 'Odd' ) {
@@ -218,6 +226,9 @@ class FilterTerm {
       break;
     case 'MonitorName':
       $sql .= 'M.Name';
+      break;
+    case 'Monitor':
+      $sql .= 'E.MonitorId';
       break;
     case 'ServerId':
     case 'MonitorServerId':
@@ -453,6 +464,7 @@ class FilterTerm {
       'DiskPercent',
       'DiskBlocks',
       'MonitorName',
+      'Monitor',
       'ServerId',
       'MonitorServerId',
       'StorageServerId',
@@ -491,6 +503,22 @@ class FilterTerm {
       'Description'
     );
     return in_array($attr, $attrs);
+  }
+
+  public function valid() {
+    switch ($this->attr) {
+    case 'EndDateTime' :
+    case 'StartDateTime' :
+      if (!$this->val)
+        return false;
+      break;
+    case 'Monitor' :
+    case 'MonitorId' :
+      if ($this->val === '')
+        return false;
+      break;
+    }
+    return true;
   }
 } # end class FilterTerm
 

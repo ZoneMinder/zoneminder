@@ -84,25 +84,20 @@ bool User::canAccess(int monitor_id) {
     auto permission = it->second.getPermission();
     switch (permission) {
       case Monitor_Permission::PERM_NONE :
-        {
-          Debug(1, "Returning None from monitor_permission");
-          return false;
-        }
+        Debug(1, "Returning None from monitor_permission");
+        return false;
       case Monitor_Permission::PERM_VIEW :
-        {
-          Debug(1, "Returning true because VIEW from monitor_permission");
-          return true;
-        }
+        Debug(1, "Returning true because VIEW from monitor_permission");
+        return true;
       case Monitor_Permission::PERM_EDIT :
-        {
-          Debug(1, "Returning true because EDIT from monitor_permission");
-          return true;
-        }
+        Debug(1, "Returning true because EDIT from monitor_permission");
+        return true;
+      case Monitor_Permission::PERM_INHERIT :
+        Debug(1, "INHERIT from monitor_permission");
+        break;
       default:
-        {
-          Debug(1, "INHERIT from monitor_permission");
-          break;
-        }
+        Warning("UNKNOWN permission %d from monitor_permission", permission);
+        break;
     }
   }
 
@@ -112,25 +107,20 @@ bool User::canAccess(int monitor_id) {
     auto permission = gp.getPermission(monitor_id);
     switch (permission) {
       case Group_Permission::PERM_NONE :
-        {
-          Debug(1, "Returning None from group_permission");
-          return false;
-        }
+        Debug(1, "Returning None from group_permission");
+        return false;
       case Group_Permission::PERM_VIEW :
-        {
-          Debug(1, "Returning true because VIEW from group_permission");
-          return true;
-        }
+        Debug(1, "Returning true because VIEW from group_permission");
+        return true;
       case Group_Permission::PERM_EDIT :
-        {
-          Debug(1, "Returning true because EDIT from group_permission");
-          return true;
-        }
+        Debug(1, "Returning true because EDIT from group_permission");
+        return true;
+      case Group_Permission::PERM_INHERIT :
+        Debug(1, "INHERIT from group_permission %d", gp.GroupId());
+        break;
       default :
-        {
-          Debug(1, "INHERIT from group_permission %d", gp.GroupId());
-          break;
-        }
+        Warning("UNKNOWN permission %d from group_permission %d", permission, gp.GroupId());
+        break;
     }
   }  // end foreach Group_Permission
 

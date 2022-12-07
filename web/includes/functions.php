@@ -2218,6 +2218,16 @@ function array_recursive_diff($aArray1, $aArray2) {
   return $aReturn;
 }
 
+function html_input($name, $type='text', $value='', $options=array()) {
+  $html = '<input ';
+  $attributes = [];
+  foreach (array_keys(array_merge($options,['name'=>$name, 'value'=>$value, 'type'=>$type])) as $k) {
+    $attributes[] = $k.'="'.$options[$k].'"';
+  }
+  $html .= join(' ', $attributes);
+  $html .= '/>';
+}
+
 function html_radio($name, $values, $selected=null, $options=array(), $attrs=array()) {
 
   $html = '';

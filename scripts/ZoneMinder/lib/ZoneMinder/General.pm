@@ -64,7 +64,7 @@ sub executeShellCommand {
   if ( $status || logDebugging() ) {
     $output = '' if !defined($output);
     chomp($output);
-    Debug("Command: $command Output: $output");
+    Debug("Command: $command Status: $status Output: $output");
   }
   return $status;
 }

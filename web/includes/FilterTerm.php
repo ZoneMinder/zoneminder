@@ -459,6 +459,7 @@ class FilterTerm {
       'DiskPercent',
       'DiskBlocks',
       'MonitorName',
+      'Monitor',
       'ServerId',
       'MonitorServerId',
       'StorageServerId',

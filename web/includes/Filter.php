@@ -49,6 +49,7 @@ class Filter extends ZM_Object {
       $this->_sql = '';
       foreach ( $this->FilterTerms() as $term ) {
         if ($term->valid()) {
+          if (!$this->_sql and $term->cnj) unset($term->cnj);
           $this->_sql .= $term->sql();
         }
       } # end foreach term
@@ -171,6 +172,11 @@ class Filter extends ZM_Object {
         # Handle existence of both Query_json and Query in the row
         $this->{'Query'} = jsonDecode($this->{'Query_json'});
       }
+    }
+
+
+    if ($this->{'Query'} and isset($this->{'Query'}['terms']) and count($this->{'Query'}['terms'])) {
+      unset($this->{'Query'}['terms'][0]['cnj']);
     }
     return $this->{'Query'};
   }
@@ -656,6 +662,10 @@ class Filter extends ZM_Object {
       Error('Unsupported filter attribute ' . $term['attr']);
       //return $this;
     }
+    #if (!(new FilterTerm($this, $term))->valid()) {
+      #Warning("Invalid term for ".$term['attr']. ' not adding to filter');
+      #return $this;
+    #}
 
     $terms = $this->terms();
 

@@ -38,7 +38,7 @@ $filter = isset($_REQUEST['filter_id']) ? new ZM\Filter($_REQUEST['filter_id']) 
 if ( isset($_REQUEST['filter'])) {
   $filter->set($_REQUEST['filter']);
 } else if (!$filter->Id()) {
-  $filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '>=', 'val'=>'-1 hour'));
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '>=', 'val'=>''));
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'EndDateTime', 'op'=> '<=', 'val'=>''));
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'Monitor', 'op'=> '=', 'val'=>''));
 }

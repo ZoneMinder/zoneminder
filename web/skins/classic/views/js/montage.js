@@ -216,7 +216,7 @@ function takeSnapshot() {
   monitor_ids = monitorData.map((monitor)=>{
     return monitor.id;
   });
-  post('?view=snapshot', {action: 'create', 'monitor_ids[]': monitor_ids});
+  post('?view=snapshot', {'action': 'create', 'monitor_ids[]': monitor_ids});
 }
 
 function handleClick(evt) {

@@ -1137,7 +1137,7 @@ function takeSnapshot() {
   for (const key in monitorIndex) {
     monitor_ids[monitor_ids.length] = key;
   }
-  post('?view=snapshot', {action: 'create', 'monitor_ids[]': monitor_ids});
+  post('?view=snapshot', {'action': 'create', 'monitor_ids[]': monitor_ids});
 
   /*
    * Alternate implementation using the API

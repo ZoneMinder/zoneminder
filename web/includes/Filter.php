@@ -360,6 +360,11 @@ class Filter extends ZM_Object {
 
     for ( $i = 0; $i < count($terms); $i++ ) {
       $term = $terms[$i];
+      if (!(new FilterTerm($this, $term))->valid()) {
+        continue;
+      } else {
+        Debug("Term " .$term['attr'] . ' is valid');
+      }
       if ( !empty($term['cnj']) ) {
         while ( true ) {
           if ( !count($postfixStack) ) {
@@ -385,6 +390,9 @@ class Filter extends ZM_Object {
       if ( !empty($term['attr']) ) {
         $dtAttr = false;
         switch ( $term['attr']) {
+        case 'Monitor':
+          $sqlValue = 'M.Id';
+          break;
         case 'MonitorName':
           $sqlValue = 'M.'.preg_replace( '/^Monitor/', '', $term['attr']);
           break;
@@ -576,18 +584,24 @@ class Filter extends ZM_Object {
           case 'DateTime':
           case 'EndDateTime':
           case 'StartDateTime':
-            if ( $value_upper != 'NULL' )
-              $value = "'".date(STRF_FMT_DATETIME_DB, strtotime($value))."'";
+            if ($value) {
+              if ( $value_upper != 'NULL' )
+                $value = "'".date(STRF_FMT_DATETIME_DB, strtotime($value))."'";
+            }
             break;
           case 'Date':
           case 'EndDate':
           case 'StartDate':
-            $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            if ($value) {
+              $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            }
             break;
           case 'Time':
           case 'EndTime':
           case 'StartTime':
-            $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            if ($value) {
+              $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            }
             break;
           default :
             if ( $value_upper != 'NULL' )
@@ -631,7 +645,7 @@ class Filter extends ZM_Object {
       }
     }
     if ( count($exprStack) != 1 ) {
-      Fatal('Expression stack has '.count($exprStack).' elements');
+      Error('Expression stack has '.count($exprStack).' elements');
     }
     return array_pop($exprStack);
   } # end function tree

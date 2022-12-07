@@ -58,10 +58,10 @@ class Snapshot extends AppModel {
  */
   public $hasAndBelongsToMany = array(
     'Event' => array(
-      'className' => 'Snapshot',
+      'className' => 'Event',
       'joinTable' =>  'Snapshots_Events',
-      'foreignKey' => 'EventId',
-      'associationForeignKey' => 'SnapshotId',
+      'foreignKey' => 'SnapshotId',
+      'associationForeignKey' => 'EventId',
       'unique'=>true,
       'dependent' => false,
       'conditions' => '',

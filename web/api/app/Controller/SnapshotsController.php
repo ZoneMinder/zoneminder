@@ -31,7 +31,7 @@ class SnapshotsController extends AppController {
  * @return void
  */
 	public function index() {
-		$this->Snapshot->recursive = 0;
+		$this->Snapshot->recursive = 1;
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
@@ -70,7 +70,7 @@ class SnapshotsController extends AppController {
  * @return void
  */
 	public function view($id = null) {
-		$this->Snapshot->recursive = -1;
+		$this->Snapshot->recursive = 1;
 		if (!$this->Snapshot->exists($id)) {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
@@ -195,7 +195,7 @@ class SnapshotsController extends AppController {
 		}
   } // end function delete
   
-  // returns monitor associations
+  // returns event associations
   public function associations() {
     $this->Snapshot->recursive = -1;
     $snapshots = $this->Snapshot->find('all', array(

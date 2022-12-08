@@ -32,7 +32,8 @@ Group_Permission::Group_Permission(const MYSQL_ROW &dbrow) {
   id = atoi(dbrow[index++]);
   user_id = atoi(dbrow[index++]);
   group_id = atoi(dbrow[index++]);
-  permission = static_cast<Permission>(atoi(dbrow[index++]));
+  permission = static_cast<Permission>(atoi(dbrow[index]));
+  Debug(1, "Loaded permission %d from %s", permission, dbrow[index]);
   monitor_ids_loaded = false;
 }
 

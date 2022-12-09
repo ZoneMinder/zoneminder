@@ -37,6 +37,10 @@ public:
     virtual uint64_t lastInsertID(const zmDbQueryID& queryId);
     virtual std::string realColumnName(const std::string& column);
 
+protected:
+    unsigned int getUnsignedIntColumn(soci::rowset_iterator<soci::row>* result_iter, const int position);
+    unsigned int getUnsignedIntColumn(soci::rowset_iterator<soci::row>* result_iter, const std::string& name);
+
 private:
     void prepareSelectStatements();
     void prepareSelectMonitorStatements();

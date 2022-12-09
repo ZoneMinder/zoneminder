@@ -143,6 +143,38 @@ std::string zmDbPostgreSQLAdapter::realColumnName(const std::string& column) {
     return StringToLower( column );
 }
 
+unsigned int zmDbPostgreSQLAdapter::getUnsignedIntColumn(soci::rowset_iterator<soci::row>* result_iter, const int position) {
+    try {
+        return (unsigned int)((*result_iter)->get<long long>(position));
+    }
+    catch (std::bad_cast const & e)
+    {
+        try {
+            return (unsigned int)((*result_iter)->get<int>(position));
+        }
+        catch (std::bad_cast const & e)
+        {
+            throw new soci::soci_error(e.what());
+        }
+    }
+}
+
+unsigned int zmDbPostgreSQLAdapter::getUnsignedIntColumn(soci::rowset_iterator<soci::row>* result_iter, const std::string& name) {
+    try {
+        return (unsigned int)((*result_iter)->get<long long>(realColumnName(name)));
+    }
+    catch (std::bad_cast const & e)
+    {
+        try {
+            return (unsigned int)((*result_iter)->get<int>(realColumnName(name)));
+        }
+        catch (std::bad_cast const & e)
+        {
+            throw new soci::soci_error(e.what());
+        }
+    }
+}
+
 void zmDbPostgreSQLAdapter::prepareSelectStatements()
 {
     if (!db.is_connected())

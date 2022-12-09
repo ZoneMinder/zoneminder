@@ -50,6 +50,99 @@ protected:
   void disableDatabaseLog();
   void restoreDatabaseLog();
 
+  template <typename T>
+  T getFromResult(soci::rowset_iterator<soci::row>* result_iter, const int position) {
+    try {
+      return (*result_iter)->get<T>(position);
+    }
+    catch (soci::soci_error const & e)
+    {
+      std::cerr << "Database exception: " << e.what() << std::endl;
+      switch( e.get_error_category() ){
+        case soci::soci_error::error_category::invalid_statement:
+        case soci::soci_error::error_category::no_privilege:
+        case soci::soci_error::error_category::system_error:
+          exit(-1);
+        default:
+          return T();
+      }
+    }
+    return T();
+  }
+
+  template <typename T>
+  T getFromResult(soci::rowset_iterator<soci::row>* result_iter, const std::string& name) {
+    try {
+      return (*result_iter)->get<T>(realColumnName(name));
+    }
+    catch (soci::soci_error const & e)
+    {
+      std::cerr << "Database exception: " << e.what() << std::endl;
+      switch( e.get_error_category() ){
+        case soci::soci_error::error_category::invalid_statement:
+        case soci::soci_error::error_category::no_privilege:
+        case soci::soci_error::error_category::system_error:
+          exit(-1);
+        default:
+          return T();
+      }
+    }
+    return T();
+  }
+
+  // unsigned int is a special case in that representation actually differs between mysql and postgresql
+  template <>
+  unsigned int getFromResult<unsigned int>(soci::rowset_iterator<soci::row>* result_iter, const int position) {
+    try {
+      return getUnsignedIntColumn(result_iter, position);
+    }
+    catch (soci::soci_error const & e)
+    {
+      std::cerr << "Database exception: " << e.what() << std::endl;
+      switch( e.get_error_category() ){
+        case soci::soci_error::error_category::invalid_statement:
+        case soci::soci_error::error_category::no_privilege:
+        case soci::soci_error::error_category::system_error:
+          exit(-1);
+        default:
+          return 0;
+      }
+    }
+    return 0;
+  }
+
+  // unsigned int is a special case in that representation actually differs between mysql and postgresql
+  template <>
+  unsigned int getFromResult<unsigned int>(soci::rowset_iterator<soci::row>* result_iter, const std::string& name) {
+    try {
+      return getUnsignedIntColumn(result_iter, name);
+    }
+    catch (soci::soci_error const & e)
+    {
+      std::cerr << "Database exception: " << e.what() << std::endl;
+      switch( e.get_error_category() ){
+        case soci::soci_error::error_category::invalid_statement:
+        case soci::soci_error::error_category::no_privilege:
+        case soci::soci_error::error_category::system_error:
+          exit(-1);
+        default:
+          return 0;
+      }
+    }
+    return 0;
+  }
+
+  // unsigned int is a special case in that representation actually differs between mysql and postgresql
+  virtual unsigned int getUnsignedIntColumn(soci::rowset_iterator<soci::row>* result_iter, const int position){
+    return (*result_iter)->get<unsigned int>(position);
+  };
+
+  // unsigned int is a special case in that representation actually differs between mysql and postgresql
+  virtual unsigned int getUnsignedIntColumn(soci::rowset_iterator<soci::row>* result_iter, const std::string& name){
+    return (*result_iter)->get<unsigned int>(realColumnName(name));
+  };
+
+
 public:
   zmDb();
   virtual ~zmDb();
@@ -136,22 +229,7 @@ public:
       return T();
     }
 
-    try {
-      return (*result_iter)->get<T>(db->realColumnName(name));
-    }
-    catch (soci::soci_error const & e)
-    {
-      std::cerr << "Database exception: " << e.what() << std::endl;
-      switch( e.get_error_category() ){
-        case soci::soci_error::error_category::invalid_statement:
-        case soci::soci_error::error_category::no_privilege:
-        case soci::soci_error::error_category::system_error:
-          exit(-1);
-        default:
-          return T();
-      }
-    }
-    return T();
+    return db->getFromResult<T>( result_iter, name );
   }
 
   template <typename T>
@@ -164,22 +242,7 @@ public:
       return T();
     }
 
-    try {
-      return (*result_iter)->get<T>(position);
-    }
-    catch (soci::soci_error const & e)
-    {
-      std::cerr << "Database exception: " << e.what() << std::endl;
-      switch( e.get_error_category() ){
-        case soci::soci_error::error_category::invalid_statement:
-        case soci::soci_error::error_category::no_privilege:
-        case soci::soci_error::error_category::system_error:
-          exit(-1);
-        default:
-          return T();
-      }
-    }
-    return T();
+    return db->getFromResult<T>( result_iter, position );
   }
 
   // Return if field is present in result

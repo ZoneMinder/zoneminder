@@ -75,7 +75,6 @@ std::vector<Group_Permission> Group_Permission::find(int p_user_id) {
   while( query.next() ) {
     results.push_back(Group_Permission(query));
   }
-
   return results;
 }
 

@@ -69,7 +69,6 @@ bool zmDbConnect()
       ")", dbType.c_str());
     exit(-1);
   }
-
   zmDbConnected = true;
   return zmDbConnected;
 }

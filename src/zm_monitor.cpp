@@ -535,6 +535,13 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   Error("MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
 #endif
 
+#if MOSQUITTOPP_FOUND
+  mqtt_enabled = (*dbrow[col] != '0'); col++;
+  std::string mqtt_subscriptions_string = std::string(dbrow[col] ? dbrow[col] : "");
+  mqtt_subscriptions = Split(mqtt_subscriptions_string, ','); col++;
+  Error("MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
+#endif
+
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
 
@@ -1717,7 +1724,6 @@ void Monitor::UpdateFPS() {
       query.bind( "analysis_fps", new_analysis_fps );
       query.bind( "id", id );
       query.update();
-
     } // now != last_fps_time
   } // end if report fps
 }  // void Monitor::UpdateFPS()

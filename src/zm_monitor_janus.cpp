@@ -82,7 +82,6 @@ void Monitor::JanusManager::load_from_monitor() {
 
           zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
           rtsp_path += "?auth=" + ByteArrayToHexString(md5_digest);
-
         } else {
           Warning("No user selected for RTSP_Server authentication!");
         }

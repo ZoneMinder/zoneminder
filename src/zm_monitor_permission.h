@@ -53,7 +53,6 @@ class Monitor_Permission {
   static std::vector<Monitor_Permission> find(int p_user_id);
 };
 
-
 namespace soci {
   template<> struct type_conversion<Monitor_Permission::Permission>
   {

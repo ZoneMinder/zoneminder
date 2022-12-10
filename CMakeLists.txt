@@ -220,11 +220,6 @@ if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
   message(FATAL_ERROR "Invalid value for ZM_JWT_BACKEND. Possible options: ${ZM_JWT_BACKEND_OPTIONS}")
 endif()
 
-# Reassign some variables if a target distro has been specified
-if(ZM_TARGET_DISTRO MATCHES "^fc")
-  set(ZM_CAKEPHP_CACHE "Memcached")
-endif()
-
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/var/run/zoneminder")
   set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
@@ -518,7 +513,6 @@ if(NOT ZM_NO_MQTT)
   else()
     set(optlibsnotfound "${optlibsnotfound} Mosquittopp")
   endif (MOSQUITTOPP_FOUND)
-endif()
 
 find_package(FFMPEG 55.34.100 REQUIRED
   COMPONENTS

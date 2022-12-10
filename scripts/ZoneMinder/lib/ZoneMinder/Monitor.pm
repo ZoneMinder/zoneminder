@@ -377,6 +377,7 @@ sub Control {
       require ZoneMinder::Control;
       my $Control = ZoneMinder::Control->find_one(Id=>$$self{ControlId});
       if ($Control) {
+        $Control = $Control->clone(); # Because this object is not per monitor specific
         my $Protocol = $$Control{Protocol};
 
         if (!$Protocol) {

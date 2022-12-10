@@ -387,7 +387,7 @@ void Logger::openFile() {
   if (mLogFile.size()) {
     if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
       mFileLevel = NOLOG;
-      Error("fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno));
+      Error("fopen() for %s %zu, error = %s", mLogFile.c_str(), mLogFile.size(), strerror(errno));
     }
   } else {
     puts("Called Logger::openFile() without a filename");
@@ -481,7 +481,11 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     int i;
     logPtr += snprintf(logPtr, sizeof(logString)-(logPtr-logString), "%d:", len);
     for ( i = 0; i < len; i++ ) {
-      logPtr += snprintf(logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i]);
+      const size_t max_len = sizeof(logString) - (logPtr - logString);
+      int rc = snprintf(logPtr, max_len, " %02x", data[i]);
+      if (rc < 0 || static_cast<size_t>(rc) > max_len)
+        break;
+      logPtr += rc;
     }
   } else {
     logPtr += vsnprintf(logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr);

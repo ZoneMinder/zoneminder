@@ -445,7 +445,10 @@ MAIN: while( $loop ) {
       }
 
       if ( ! $$Storage{Scheme} ) {
-        Error("Storage Scheme not set on $$Storage{Name}");
+        Error("Storage Scheme not set on $$Storage{Name}, defaulting to shallow");
+        $$Storage{Scheme} = 'Shallow';
+      }
+      if ($$Storage{Scheme} eq 'Shallow') {
         if ( ! chdir($monitor_dir) ) {
           Error("Can't chdir directory '$$Storage{Path}/$monitor_dir': $!");
           next;

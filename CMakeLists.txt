@@ -500,6 +500,26 @@ if(NOT ZM_NO_PRCE)
   endif()
 endif()
 
+if(NOT ZM_NO_MQTT)
+  find_package(MOSQUITTO)
+  if(MOSQUITTO_FOUND)
+    include_directories(${MOSQUITTO_INCLUDE_DIRS})
+    list(APPEND ZM_BIN_LIBS "${MOSQUITTO_LIBRARIES}")
+    set(optlibsfound "${optlibsfound} Mosquitto")
+  else()
+    set(optlibsnotfound "${optlibsnotfound} Mosquitto")
+  endif (MOSQUITTO_FOUND)
+
+  find_package(MOSQUITTOPP)
+  if(MOSQUITTOPP_FOUND)
+    include_directories(${MOSQUITTOPP_INCLUDE_DIRS})
+    list(APPEND ZM_BIN_LIBS "${MOSQUITTOPP_LIBRARIES}")
+    set(optlibsfound "${optlibsfound} Mosquittopp")
+  else()
+    set(optlibsnotfound "${optlibsnotfound} Mosquittopp")
+  endif (MOSQUITTOPP_FOUND)
+endif()
+
 find_package(FFMPEG 55.34.100 REQUIRED
   COMPONENTS
     avcodec

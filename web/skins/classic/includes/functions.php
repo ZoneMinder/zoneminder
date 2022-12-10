@@ -111,16 +111,16 @@ echo output_cache_busted_stylesheet_links(array(
   'css/reset.css',
   'css/font-awesome.min.css',
   'css/bootstrap.min.css',
-  'css/bootstrap-table.min.css',
-  'css/bootstrap-table-page-jump-to.min.css',
 ));
 
 echo output_link_if_exists(array(
   'css/base/skin.css',
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
-));
+  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
+  'js/bootstrap-table-1.21.1/bootstrap-table.min.css',
+  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+), true);
 if ( $css != 'base' )
   echo output_link_if_exists(array(
     'css/'.$css.'/skin.css',
@@ -128,7 +128,7 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 ?>
-  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
+  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
@@ -136,8 +136,6 @@ if ( $css != 'base' )
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
-  } else if ( $basename == 'monitor' ) {
-      echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
   }
 ?>
   <style>
@@ -203,8 +201,8 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   $status = runtimeStatus($running);
 
 ?>
-<div class="container-fluid p-0" id="navbar-container">
-  <nav class="navbar navbar-expand-md navbar-dark bg-dark justify-content-center flex-row" id="navbar-one">
+<div class="container-fluid" id="navbar-container">
+  <nav class="navbar navbar-expand-md justify-content-center flex-row" id="navbar-one">
 
     <div class="navbar-brand justify-content-start align-self-start">
       <?php echo getNavBrandHTML() ?>
@@ -214,7 +212,9 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     <div class="nav justify-content-end flex-grow-1">
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
-        <span class="navbar-toggler-icon"></span>
+        <span class="navbar-toggler-icon">
+					<i class="material-icons md-20">menu</i>
+				</span>
       </button>
    </div>
 
@@ -234,6 +234,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getMontageHTML($view);
           echo getMontageReviewHTML($view);
           echo getSnapshotsHTML($view);
+          echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getHeaderFlipHTML();
         echo '</ul>';
@@ -247,7 +248,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     </div>
   </nav><!-- End First Navbar -->
 
-  <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0" id="navbar-two">
+  <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two">
     <div class="container-fluid" id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
 <?php
 
@@ -284,7 +285,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <?php
   $banner_html = getConsoleBannerHTML();
   if ($banner_html) {
-    echo '<nav class="navbar navbar-expand-md bg-dark justify-content-center p-0" id="navbar-three">'.$banner_html.'</nav>';
+    echo '<nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">'.$banner_html.'</nav>';
   }
 ?>
 </div>
@@ -299,8 +300,8 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
   $status = runtimeStatus($running);
 
   ?>
-  <div class="fixed-top container-fluid p-0">
-    <nav class="navbar navbar-dark bg-dark px-1 flex-nowrap">
+  <div class="fixed-top container-fluid">
+    <nav class="navbar px-1 flex-nowrap">
 
       <div class="navbar-brand align-self-start px-0">
         <?php echo getNavBrandHTML() ?>
@@ -350,7 +351,9 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
     <?php if ( (!ZM_OPT_USE_AUTH) or $user ) { ?>
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-haspopup="true" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
-        <span class="navbar-toggler-icon"></span>
+        <span class="navbar-toggler-icon">
+					<i class="material-icons md-20">menu</i>
+				</span>
       </button>
     <?php } ?>
 
@@ -368,6 +371,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getMontageHTML($view);
             echo getMontageReviewHTML($view);
             echo getSnapshotsHTML($view);
+            echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);
           echo '</ul>';
       }
@@ -376,7 +380,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 
     </nav><!-- End First Navbar -->
 
-    <nav class="navbar navbar-expand-md bg-dark justify-content-center p-0">
+    <nav class="navbar navbar-expand-md justify-content-center">
       <?php echo getConsoleBannerHTML() ?>
     </nav><!-- End Second Navbar -->
   </div>
@@ -419,8 +423,7 @@ function getStorageHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
 
-  $func = function($S) {
-    $class = '';
+  $func = function($S, $class='') {
     if ( $S->disk_usage_percent() > 98 ) {
       $class = 'text-danger';
     } else if ( $S->disk_usage_percent() > 90 ) {
@@ -428,7 +431,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<a class="dropdown-item '.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
+    return '<a class="'.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -448,15 +451,23 @@ function getStorageHTML() {
     $class = 'text-warning'; 
   }
   
-  $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-  $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
-  $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
-  
-  foreach ( $storage_areas as $area ) {  
-    $result .= $func($area).PHP_EOL;
-  } 
-  $result .= '</div>'.PHP_EOL;
-  $result .= '</li>'.PHP_EOL;
+  if (count($storage_areas) <= 2) {
+    $result .= '<li id="getStorageHTML" class="nav-item mx-2">'.PHP_EOL;
+    foreach ( $storage_areas as $area ) {  
+      $result .= $func($area).PHP_EOL;
+    } 
+    $result .= '</li>'.PHP_EOL;
+  } else {
+    $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
+    
+    foreach ( $storage_areas as $area ) {  
+      $result .= $func($area, 'dropdown-item ').PHP_EOL;
+    } 
+    $result .= '</div>'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  }
   
   return $result;
 }
@@ -641,10 +652,10 @@ function getLogHTML() {
   $result = '';
   
   if ( canView('System') ) {
-    if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
+    if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) {
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      $result .= '<li id="getLogHTML" class="nav-item dropdown mx-2">'.makeLink('?view=log', '<span class="nav-link '.$class.'">'.translate('Log').'</span>').'</li>'.PHP_EOL;
+      $result .= '<li id="getLogHTML" class="nav-item dropdown"><a class="nav-link '.$class.'" href="?view=log">'.translate('Log').'</a></li>'.PHP_EOL;
     }
   }
   
@@ -759,6 +770,17 @@ function getSnapshotsHTML($view) {
   if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
     $class = $view == 'snapshots' ? ' selected' : '';
     $result .= '<li id="getSnapshotsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
+  }
+  
+  return $result;
+}
+
+function getReportsHTML($view) {
+  $result = '';
+  
+  if (canView('Events')) {
+    $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
+    $result .= '<li id="getReportsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -920,32 +942,22 @@ function xhtmlFooter() {
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
-  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
-  'js/bootstrap-table.min.js',
-  'js/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-export.min.js',
-  'js/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-cookie.min.js',
-  'js/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.21.1/bootstrap-table.min.js',
+  'js/bootstrap-table-1.21.1/extensions/locale/bootstrap-table-locale-all.min.js',
+  'js/bootstrap-table-1.21.1/extensions/export/bootstrap-table-export.min.js',
+  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-1.21.1/extensions/cookie/bootstrap-table-cookie.min.js',
+  'js/bootstrap-table-1.21.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-1.21.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
   'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',
 ), true );
-?>
-<?php
-  if ( $view == 'event' ) {
-?>
-  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
-  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
-  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
-  <script src="./js/videojs.zoomrotate.js"></script>
-<?php
-  }
 ?>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
 <?php
@@ -961,6 +973,7 @@ function xhtmlFooter() {
   }
 ?>
   </script>
+  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
 <?php
   if ( $viewJsFile ) {
 ?>
@@ -970,11 +983,6 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script src="<?php echo cache_bust('js/logger.js')?>"></script>
-<?php
-  if ( $basename == 'monitor' ) {
-    echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
-  } ?>
   <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
   </body>
 </html>

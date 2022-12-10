@@ -49,6 +49,7 @@ class ZMPacket {
     av_frame_ptr out_frame;       // output image, Only filled if needed.
     SystemTimePoint timestamp;
     Image     *image;
+    Image     *y_image;
     Image     *analysis_image;
     int       score;
     AVMediaType codec_type;

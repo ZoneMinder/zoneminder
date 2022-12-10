@@ -18,6 +18,8 @@ set(ZM_BIN_SRC_FILES
   zm_db_mysql.cpp
   zm_db_postgresql.cpp
   zm_decoder_thread.cpp
+  zm_group_permission.cpp
+  zm_monitor_permission.cpp
   zm_logger.cpp
   zm_event.cpp
   zm_eventstream.cpp
@@ -41,6 +43,7 @@ set(ZM_BIN_SRC_FILES
   zm_monitorlink_expression.cpp
   #zm_monitorlink_token.cpp
   zm_monitorstream.cpp
+  zm_mqtt.cpp
   zm_ffmpeg.cpp
   zm_ffmpeg_camera.cpp
   zm_ffmpeg_input.cpp
@@ -65,6 +68,7 @@ set(ZM_BIN_SRC_FILES
   zm_rtsp_server_fifo_audio_source.cpp
   zm_rtsp_server_fifo_video_source.cpp
   zm_sdp.cpp
+  zm_server.cpp
   zm_signal.cpp
   zm_stream.cpp
   zm_swscale.cpp

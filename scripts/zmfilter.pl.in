@@ -295,20 +295,12 @@ sub checkFilter {
     if ( $filter->{AutoArchive} ) {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
-      my $sql = 'UPDATE `Events` SET `Archived` = 1 WHERE `Id` = ?';
-      my $sth = $dbh->prepare_cached($sql)
-        or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute($Event->{Id})
-        or Error("Unable to execute '$sql': ".$dbh->errstr());
+      $Event->save({Archived=>1});
     }
     if ( $filter->{AutoUnarchive} ) {
       Info("Unarchiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
-      my $sql = 'UPDATE `Events` SET `Archived` = 0 WHERE `Id` = ?';
-      my $sth = $dbh->prepare_cached($sql)
-        or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute($Event->{Id})
-        or Error("Unable to execute '$sql': ".$dbh->errstr());
+      $Event->save({Archived=>0});
     }
     if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
       if ( !$Event->{Videoed} ) {
@@ -338,6 +330,7 @@ sub checkFilter {
     if ( $filter->{AutoDelete} ) {
       if ( $delete_ok ) {
         $Event->delete();
+        next; # If someone has configured the filter to do something in addition to delete, errors will be logged.
       } else {
         Error("Unable to delete event $Event->{Id} as previous operations failed");
       }
@@ -345,7 +338,7 @@ sub checkFilter {
 
     if ( $filter->{AutoMove} ) {
       my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
-      Info("Moving event $Event->{Id} to datastore $filter->{AutoMoveTo}");
+      Info("Moving event $Event->{Id} from ".$Event->Storage()->Path().' to '.$NewStorage->Path());
       $_ = $Event->MoveTo($NewStorage);
       Error($_) if $_;
     }
@@ -375,7 +368,7 @@ sub checkFilter {
       if (
 					( (!defined $old_diskspace) and defined $new_diskspace)
 					or
-					( (defined $old_diskspace) and (defined $new_diskspace) and ( $old_diskspace != $Event->DiskSpace(undef) ) )
+					( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
 					) {
         $Event->save();
       }
@@ -696,6 +689,7 @@ sub substituteTags {
   $text =~ s/%EP%/$url?view=event&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
   $text =~ s/%EPS%/$url?view=event&mode=stream&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
   $text =~ s/%EPI%/$url?view=event&mode=still&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
+  $text =~ s/%EPATH%/$Event->Path()/g;
   $text =~ s/%EI%/$Event->{Id}/g;
   $text =~ s/%EN%/$Event->{Name}/g;
   $text =~ s/%EC%/$Event->{Cause}/g;
@@ -1036,21 +1030,27 @@ sub executeCommand {
   my $filter = shift;
   my $Event = shift;
 
-  my $command = $filter->{AutoExecuteCmd}.' '.$Event->Path();
-  $command = substituteTags($command, $filter, $Event);
+  my $command = $filter->{AutoExecuteCmd};
+  if ($command =~ /%\w+.%/) {
+    $command = substituteTags($command, $filter, $Event);
+  } else {
+    $command .= ' '.$Event->Path();
+  }
 
   Info("Executing '$command'");
   my $output = qx($command);
   my $status = $? >> 8;
-  if ( $status || logDebugging() ) {
+  if ($status || logDebugging()) {
     chomp($output);
-    Debug("Output: $output");
+    Debug("Status: $status Output: $output");
   }
   if ($status) {
     Error("Command '$command' exited with status: $status");
     return 0;
   } else {
-    ZoneMinder::Database::zmSQLExecute('UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?', $Event->{Id});
+    $Event->load(); # the command may have altered the database
+    $_ = $Event->save({Executed=>1});
+    Error($_) if $_;
   }
   return 1;
 }

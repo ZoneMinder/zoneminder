@@ -336,7 +336,7 @@ function timerFire() {
   } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
     console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
-    setSpeed(0);
+    if (speedIndex) setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else {
     //console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval);
@@ -380,7 +380,7 @@ function drawSliderOnGraph(val) {
       underSlider = ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
       // And add in the slider'
       ctx.lineWidth = sliderLineWidth;
-      ctx.strokeStyle = 'black';
+      ctx.strokeStyle = 'yellow';
       // looks like strokes are on the outside (or could be) so shrink it by the line width so we replace all the pixels
       ctx.strokeRect(sliderX+sliderLineWidth, sliderLineWidth, sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
       underSliderX = sliderX;
@@ -391,7 +391,7 @@ function drawSliderOnGraph(val) {
       o.style.color = "red";
     } else {
       o.innerHTML = secs2dbstr(val);
-      o.style.color = "blue";
+      o.style.color = 'white';
     }
     o.style.position = "absolute";
     o.style.bottom = labbottom;
@@ -691,6 +691,7 @@ function setSpeed(speed_index) {
   }
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
+  console.log(speedIndex);
   playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
   showSpeed(speed_index);
   timerFire();
@@ -770,6 +771,12 @@ function click_lastEight() {
   var now = Math.floor( date.getTime() / 1000 );
   now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
   clicknav(now - 3600*8 + 1, now, 0);
+}
+function click_last24() {
+  var date = new Date();
+  var now = Math.floor( date.getTime() / 1000 );
+  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  clicknav(now - 3600*24 + 1, now, 0);
 }
 function click_zoomin() {
   rangeTimeSecs = parseInt(rangeTimeSecs / 2);
@@ -1124,6 +1131,30 @@ function initPage() {
     this.form.submit();
   });
 }
+
+function takeSnapshot() {
+  monitor_ids = [];
+  for (const key in monitorIndex) {
+    monitor_ids[monitor_ids.length] = key;
+  }
+  post('?view=snapshot', {'action': 'create', 'monitor_ids[]': monitor_ids});
+
+  /*
+   * Alternate implementation using the API
+  server = new Server(Servers[serverId]);
+  $j.ajax({
+    method: 'POST',
+    url: server.UrlToApi()+'/snapshots.json' + (auth_relay ? '?' + auth_relay : ''),
+    data: { 'monitor_ids[]': monitorIndex.keys()},
+    success: function(response) {
+      console.log(response);
+    }
+  });
+  //console.log(monitor_ids);
+  //window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+*/
+}
+
 window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);

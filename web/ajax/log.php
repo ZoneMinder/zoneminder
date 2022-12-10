@@ -6,7 +6,6 @@ $message = '';
 // INITIALIZE AND CHECK SANITY
 //
 
-
 // task must be set
 if (!isset($_REQUEST['task'])) {
   $message = 'This request requires a task to be set';
@@ -18,9 +17,8 @@ if (!isset($_REQUEST['task'])) {
   }
 } else if ($_REQUEST['task'] == 'create' ) {
   global $user;
-  if (!$user) {
-    // We allow any logged in user to create logs. This opens us up to DOS by malicious user
-    $message = 'Insufficient permissions to view log entries for user '.$user['Username'];
+  if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
+    $message = 'Insufficient permissions to create log entries for user '.$user['Username'];
   } else {
     createRequest();
   }
@@ -127,7 +125,7 @@ function queryRequest() {
       array_push($query['values'], $text);
     }
     $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
+    $where = '(' .implode(' OR ', $likes). ')';
 
   } else if ($search != '') {
     $search = '%' .$search. '%';
@@ -136,8 +134,40 @@ function queryRequest() {
       array_push($query['values'], $search);
     }
     $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
-  }  
+    $where = '(' .implode(' OR ', $likes). ')';
+  }
+
+  if (!empty($_REQUEST['ServerId'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'ServerId = ?';
+    $query['values'][] = $_REQUEST['ServerId'];
+  }
+  if (!empty($_REQUEST['level'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'Code = ?';
+    $query['values'][] = $_REQUEST['level'];
+  }
+  if (!empty($_REQUEST['StartDateTime'])) {
+    $start_time = strtotime($_REQUEST['StartDateTime']);
+    if ($start_time) {
+      if ($where) $where .= ' AND ';
+      $where .= 'TimeKey >= ?';
+      $query['values'][] = $start_time;
+    } else {
+      ZM\Warning("Unable to parse StartDateTime ".$_REQUEST['StartDateTime']. " into a timestamp");
+    }
+  }
+  if (!empty($_REQUEST['EndDateTime'])) {
+    $end_time = strtotime($_REQUEST['EndDateTime']);
+    if ($end_time) {
+      if ($where) $where .= ' AND ';
+      $where .= 'TimeKey <= ?';
+      $query['values'][] = $end_time;
+    } else {
+      ZM\Warning("Unable to parse EndDateTime ".$_REQUEST['EndDateTime']. " into a timestamp");
+    }
+  }
+  if ($where) $where = ' WHERE '.$where;
 
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
@@ -161,6 +191,7 @@ function queryRequest() {
     // First strip out any html tags
     // Second strip out all characters that are not ASCII 32-126 (yes, 126)
     $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['Message']));
+    $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));
     $rows[] = $row;
   }
   $data['rows'] = $rows;

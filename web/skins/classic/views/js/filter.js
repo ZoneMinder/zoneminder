@@ -71,9 +71,9 @@ function validateForm(form) {
 }
 
 function updateButtons(element) {
-  var form = element.form;
+  const form = element.form;
 
-  var canExecute = false;
+  let canExecute = false;
   if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
     canExecute = true;
   } else if ( form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked ) {
@@ -98,13 +98,13 @@ function updateButtons(element) {
     canExecute = true;
   }
   document.getElementById('executeButton').disabled = !canExecute;
-  if ( form.elements['filter[Name]'].value ) {
-    document.getElementById('Save').disabled = false;
-    document.getElementById('SaveAs').disabled = false;
-  } else {
-    document.getElementById('Save').disabled = true;
-    document.getElementById('SaveAs').disabled = true;
-  }
+  // Anyone can create a filter, only canEdit:System or the owner of the filter can edit/delete it.
+  const canWeEdit = (canEdit['System'] || (user.Id == filter.UserId) || !filter.Id);
+  const canSave = (form.elements['filter[Name]'].value && canWeEdit);
+
+  document.getElementById('Save').disabled = !canSave;
+  document.getElementById('SaveAs').disabled = !canSave;
+  document.getElementById('Delete').disabled = !(filter.Id && canWeEdit);
 }
 
 function click_AutoEmail(element) {
@@ -121,7 +121,7 @@ function click_automove(element) {
   if ( this.checked ) {
     $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
   } else {
-    this.form.elements['filter[AutoMoveTo]'].hide();
+    $j(this.form.elements['filter[AutoMoveTo]']).hide();
   }
 }
 
@@ -130,7 +130,7 @@ function click_autocopy(element) {
   if ( this.checked ) {
     $j(this.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
   } else {
-    this.form.elements['filter[AutoCopyTo]'].hide();
+    $j(this.form.elements['filter[AutoCopyTo]']).hide();
   }
 }
 

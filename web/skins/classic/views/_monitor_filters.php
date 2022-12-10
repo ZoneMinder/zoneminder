@@ -93,7 +93,7 @@ foreach ( array('ServerId','StorageId','Status','Capturing','Analysing','Recordi
   }
 } # end foreach filter
 
-if ( !empty($user['MonitorIds']) ) {
+if (0 and !empty($user['MonitorIds']) ) {
   $ids = explode(',', $user['MonitorIds']);
   $conditions[] = 'M.Id IN ('.implode(',',array_map(function(){return '?';}, $ids)).')';
   $values = array_merge($values, $ids);
@@ -203,7 +203,7 @@ $html .= '</span>
 
   for ( $i = 0; $i < count($monitors); $i++ ) {
     if ( !visibleMonitor($monitors[$i]['Id']) ) {
-      ZM\Logger::Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
+      #ZM\Debug('Monitor '.$monitors[$i]['Id'].' is not visible');
       continue;
     }
 

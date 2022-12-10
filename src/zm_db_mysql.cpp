@@ -169,6 +169,8 @@ void zmDbMySQLAdapter::prepareSelectStatements()
 
     mapStatements[SELECT_SERVER_NAME_WITH_ID]->prepare("SELECT `Name` FROM `Servers` WHERE `Id`=:id");
 
+    mapStatements[SELECT_SERVER_DATA_WITH_ID]->prepare("SELECT `Id`, `Name`, `Protocol`, `Hostname`, `PathToIndex`, `PathToZMS`, `PathToApi` FROM `Servers` WHERE `Id`=:id");
+
     mapStatements[SELECT_GROUP_WITH_ID]->prepare("SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Id`=:id");
 
     mapStatements[SELECT_MAX_EVENTS_ID_WITH_MONITORID_AND_FRAMES_NOT_ZERO]->prepare(
@@ -186,8 +188,20 @@ void zmDbMySQLAdapter::prepareSelectStatements()
     mapStatements[SELECT_USER_AND_DATA_WITH_USERNAME_ENABLED]->prepare(
         "SELECT `Id`, `Username`, `Password`, `Enabled`,`Stream`, `Events`, `Control`, `Monitors`, `System`, `MonitorIds` FROM `Users` WHERE `Username` = :username AND `Enabled` = 1");
 
+    mapStatements[SELECT_USER_AND_DATA_WITH_USERID_ENABLED]->prepare(
+        "SELECT `Id`, `Username`, `Password`, `Enabled`,`Stream`, `Events`, `Control`, `Monitors`, `System`, `MonitorIds` FROM `Users` WHERE `Enabled` = 1 AND `Id`=:id");
+
     mapStatements[SELECT_USER_AND_DATA_PLUS_TOKEN_WITH_USERNAME_ENABLED]->prepare(
         "SELECT `Id`, `Username`, `Password`, `Enabled`,`Stream`, `Events`, `Control`, `Monitors`, `System`, `MonitorIds`, `TokenMinExpiry` FROM `Users` WHERE `Username` = :username AND `Enabled` = 1");
+
+    mapStatements[SELECT_GROUP_PERMISSIONS_FOR_USERID]->prepare(
+        "SELECT `Id`,`UserId`,`GroupId`,`Permission` FROM Groups_Permissions WHERE `UserId`=:id");
+
+    mapStatements[SELECT_MONITOR_PERMISSIONS_FOR_USERID]->prepare(
+        "SELECT `Id`,`UserId`,`MonitorId`,`Permission` FROM Monitors_Permissions WHERE `UserId`=:id");
+
+    mapStatements[SELECT_MONITOR_FOR_GROUPID]->prepare(
+        "SELECT `MonitorId` FROM Groups_Monitors WHERE `GroupId`=:id");
 }
 
 void zmDbMySQLAdapter::prepareSelectMonitorStatements()

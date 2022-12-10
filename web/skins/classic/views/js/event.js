@@ -105,18 +105,32 @@ function setAlarmCues(data) {
   } else {
     cueFrames = data.frames;
     alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
-    $j(".alarmCue").html(alarmSpans);
+    $j('#alarmCues').html(alarmSpans);
   }
 }
 
 function renderAlarmCues(containerEl) {
-  if ( !( cueFrames && cueFrames.length ) ) {
+  let html = '';
+
+  cues_div = document.getElementById('alarmCues');
+  const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
+  const span_count = 10;
+  const span_seconds = parseInt(event_length / span_count);
+  const span_width = parseInt(containerEl.width() / span_count);
+  console.log('span_width', span_width, 'container width', containerEl.width(), 'span count', span_count);
+  const date = new Date(eventData.StartDateTime);
+  for (let i=0; i < span_count; i += 1) {
+    html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
+    date.setTime(date.getTime() + span_seconds*1000);
+  }
+
+  if (!(cueFrames && cueFrames.length)) {
     console.log('No cue frames for event');
-    return;
+    return html;
   }
   // This uses the Delta of the last frame to get the length of the event.  I can't help but wonder though
   // if we shouldn't just use the event length endtime-starttime
-  var cueRatio = containerEl.width() / (cueFrames[cueFrames.length - 1].Delta * 100);
+  var cueRatio = containerEl.width() / (event_length * 100);
   var minAlarm = Math.ceil(1/cueRatio);
   var spanTimeStart = 0;
   var spanTimeEnd = 0;
@@ -125,22 +139,28 @@ function renderAlarmCues(containerEl) {
   var pixSkew = 0;
   var skip = 0;
   var num_cueFrames = cueFrames.length;
-  for ( var i = 0; i < num_cueFrames; i++ ) {
+  let left = 0;
+
+  for (let i=0; i < num_cueFrames; i++) {
     skip = 0;
     frame = cueFrames[i];
-    if ( (frame.Type == 'Alarm') && (alarmed == 0) ) { //From nothing to alarm.  End nothing and start alarm.
+
+    if ((frame.Type == 'Alarm') && (alarmed == 0)) { //From nothing to alarm.  End nothing and start alarm.
       alarmed = 1;
       if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
       spanTimeEnd = frame.Delta * 100;
       spanTime = spanTimeEnd - spanTimeStart;
-      var pix = cueRatio * spanTime;
+      let pix = cueRatio * spanTime;
       pixSkew += pix - Math.round(pix);//average out the rounding errors.
       pix = Math.round(pix);
       if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      alarmHtml += '<span class="alarmCue noneCue" style="width: ' + pix + 'px;"></span>';
+
+      alarmHtml += '<span class="noneCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      left = parseInt((frame.Delta / event_length) * containerEl.width());
+      console.log(left, frame.Delta, event_length, containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
       futNone = 0;
@@ -170,7 +190,8 @@ function renderAlarmCues(containerEl) {
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      left = parseInt((frame.Delta / event_length) * containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type == 'Alarm') && (alarmed == 1) && (i + 1 >= cueFrames.length) ) { //event ends on an alarm
       spanTimeEnd = frame.Delta * 100;
@@ -178,10 +199,11 @@ function renderAlarmCues(containerEl) {
       alarmed = 0;
       pix = Math.round(cueRatio * spanTime);
       if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
-      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
     }
   }
-  return alarmHtml;
+  return html + alarmHtml;
 }
 
 function changeCodec() {
@@ -193,8 +215,9 @@ function changeScale() {
   var newWidth;
   var newHeight;
   var autoScale;
-  var eventViewer = $j(vid ? '#videoobj' : '#videoFeed');
-  var alarmCue = $j('div.alarmCue');
+  const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
+
+  var alarmCue = $j('#alarmCues');
   var bottomEl = $j('#replayStatus');
 
   if (scale == '0') {
@@ -766,16 +789,56 @@ function updateProgressBar() {
   if (!(eventData && streamStatus)) {
     return;
   } // end if ! eventData && streamStatus
-  var curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
-  $j("#progressBox").css('width', curWidth + '%');
+  const curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+
+  const progressDate = new Date(eventData.StartDateTime);
+  progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
+
+  const progressBox = $j("#progressBox");
+  progressBox.css('width', curWidth + '%');
+  progressBox.attr('title', progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
 
 // Handles seeking when clicking on the progress bar.
 function progressBarNav() {
   $j('#progressBar').click(function(e) {
-    var x = e.pageX - $j(this).offset().left;
-    var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    let x = e.pageX - $j(this).offset().left;
+    if (x<0) x=0;
+    const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    console.log("clicked at ", x, seekTime);
     streamSeek(seekTime);
+  });
+  $j('#progressBar').mouseover(function(e) {
+    let x = e.pageX - $j(this).offset().left;
+    if (x<0) x=0;
+    console.log(x);
+    const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    const indicator = document.getElementById('indicator');
+    indicator.style.display = 'block';
+    indicator.style.left = x + 'px';
+    indicator.setAttribute('title', seekTime);
+  });
+  $j('#progressBar').mouseout(function(e) {
+    const indicator = document.getElementById('indicator');
+    indicator.style.display = 'none';
+  });
+  $j('#progressBar').mousemove(function(e) {
+    const bar = $j(this);
+
+    let x = e.pageX - bar.offset().left;
+    if (x<0) x=0;
+    if (x > bar.width()) x = bar.width();
+
+    const seekTime = (x / bar.width()) * parseFloat(eventData.Length);
+
+    const indicator = document.getElementById('indicator');
+
+    const date = new Date(eventData.StartDateTime);
+    date.setTime(date.getTime() + (seekTime*1000));
+
+    indicator.innerHTML = date.toLocaleTimeString();
+    indicator.style.left = x+'px';
+    indicator.setAttribute('title', seekTime);
   });
 }
 
@@ -849,11 +912,28 @@ function getStat() {
       case 'AlarmFrames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
         break;
+      case 'MonitorId':
+        if (canView["Monitors"]) {
+          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
+        } else {
+          tdString = eventData[key];
+        }
+        break;
+      case 'MonitorName':
+        if (canView["Monitors"]) {
+          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
+        } else {
+          tdString = eventData[key];
+        }
+        break;
       case 'MaxScore':
         tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
         break;
       case 'n/a':
         tdString = 'n/a';
+        break;
+      case 'Path':
+        tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
         break;
       case 'Archived':
       case 'Emailed':
@@ -918,7 +998,7 @@ function initPage() {
   if ($j('#videoobj').length) {
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
-    $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
+    $j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
     vid.on('play', vjsPlay);
     vid.on('pause', pauseClicked);
@@ -962,12 +1042,13 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
+  if (scale == '0') changeScale();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
-  if (scale == '0') changeScale();
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
     el.onchange = window['changeRate'];
   });
+
 
   // enable or disable buttons based on current selection and user rights
   renameBtn.prop('disabled', !canEdit.Events);
@@ -1108,6 +1189,7 @@ function initPage() {
     }
     $j('#deleteConfirm').modal('show');
   });
+  addEventListener('fullscreenchange', fullscreenChangeEvent);
 } // end initPage
 
 document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
@@ -1129,6 +1211,25 @@ function toggleZones(e) {
     }
   } else {
     console.error("Zones svg not found");
+  }
+}
+
+function fullscreenChangeEvent() {
+  const btn = document.getElementById('fullscreenBtn');
+  if (document.fullscreenElement) {
+    btn.firstElementChild.innerHTML = 'fullscreen_exit';
+    btn.setAttribute('title', translate["Exit Fullscreen"]);
+  } else {
+    btn.firstElementChild.innerHTML = 'fullscreen';
+    btn.setAttribute('title', translate["Fullscreen"]);
+  }
+}
+
+function fullscreenClicked() {
+  if (document.fullscreenElement) {
+    closeFullscreen();
+  } else {
+    openFullscreen(content);
   }
 }
 

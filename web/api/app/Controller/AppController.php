@@ -153,5 +153,34 @@ class AppController extends Controller {
 
     } # end if ZM_OPT_AUTH
     // make sure populated user object has APIs enabled
+
+    if (isset($_SERVER['HTTP_ORIGIN'])) {
+      $Servers = ZM\Server::find();
+      if ( sizeof($Servers) < 1 ) {
+        # Only need CORSHeaders in the event that there are multiple servers in use.
+        # ICON: Might not be true. multi-port?
+        if ( ZM_MIN_STREAMING_PORT ) {
+          ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
+          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+          $this->response->header('Access-Control-Allow-Credentials: true');
+          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
+        }
+        return;
+      }
+      foreach ($Servers as $Server) {
+        if (
+          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
+          or
+          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
+        ) {
+          ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
+          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+          $this->response->header('Access-Control-Allow-Credentials: true');
+          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
+          break;
+        }
+      }
+    }
+
   } # end function beforeFilter()
 }

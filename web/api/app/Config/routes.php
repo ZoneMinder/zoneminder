@@ -26,6 +26,7 @@
 	Router::mapResources('configs');
 	Router::mapResources('controls');
 	Router::mapResources('events');
+	Router::mapResources('event_data');
 	Router::mapResources('frames');
   Router::mapResources('groups');	
 	Router::mapResources('host');
@@ -35,6 +36,7 @@
 	Router::mapResources('cameramodels');
 	Router::mapResources('monitors');
 	Router::mapResources('servers');
+	Router::mapResources('snapshots');
 	Router::mapResources('states');
 	Router::mapResources('users');
 	Router::mapResources('zonepresets');

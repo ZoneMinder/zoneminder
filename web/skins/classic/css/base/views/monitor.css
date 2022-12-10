@@ -17,11 +17,17 @@ input[name="newMonitor[LabelFormat]"],
 input[name="newMonitor[ControlDevice]"],
 input[name="newMonitor[ControlAddress]"],
 input[name="newMonitor[ONVIF_URL]"],
+input[name="newMonitor[ONVIF_Options]"],
+input[name="newMonitor[ONVIF_Alarm_Text]"],
+input[name="newMonitor[MQTT_Subscriptions]"] {
+  width: 100%;
+	min-width: 240px;
+}
+input[name="newMonitor[ONVIF_URL]"] {
+	min-width: 340px;
+}
 input[name="newMonitor[ONVIF_Username]"],
 input[name="newMonitor[ONVIF_Password]"],
-input[name="newMonitor[ONVIF_Options]"] {
-  width: 100%;
-}
 input[name="newMonitor[LabelFormat]"]{
 	min-width: 240px;
 }
@@ -52,7 +58,7 @@ input[name="newMonitor[Height]"] {
 select.chosen {
   width: 100%;
 }
-tr td:first-child {
+#page tr td:first-child {
   min-width: 300px;
   vertical-align: top;
   text-align: right;
@@ -61,4 +67,9 @@ tr td:first-child {
 tr td input[type="checkbox"],
 tr td input[type="radio"] {
   margin: 6px 0;
+}
+
+.tab-pane td:first-child {
+  padding-right: 1rem;
+  text-align: right;
 }

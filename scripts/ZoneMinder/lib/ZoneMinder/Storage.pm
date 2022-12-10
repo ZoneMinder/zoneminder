@@ -47,13 +47,11 @@ use ZoneMinder::Database qw(:all);
 
 use POSIX;
 
-use vars qw/ $table $primary_key %fields/;
+use vars qw/ $table $primary_key %fields $debug/;
+$debug = 0;
 $table = 'Storage';
 $primary_key = 'Id';
-#__PACKAGE__->table('Storage');
-#__PACKAGE__->primary_key('Id');
 %fields = map { $_ => $_ } qw( Id Name Path DoDelete ServerId Type Url DiskSpace Scheme );
-
 
 sub Path {
   if ( @_ > 1 ) {
@@ -127,8 +125,10 @@ sub delete_path {
     my $storage_path = $self->Path();
     ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
     ( $path ) = ( $path =~ /^(.*)$/ ); # De-taint
-    my $command = "/bin/rm -rf $storage_path/$path";
-    ZoneMinder::General::executeShellCommand($command);
+    my $command = "/bin/rm -rf $storage_path/$path 2>&1";
+    if (ZoneMinder::General::executeShellCommand($command)) {
+      Error("Error deleting event directory at $storage_path/$path");
+    }
   }
 }
 

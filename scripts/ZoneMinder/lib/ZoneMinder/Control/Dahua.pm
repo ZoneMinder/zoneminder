@@ -83,7 +83,13 @@ sub open
     }
 
     use LWP::UserAgent;
+    use IO::Socket::SSL;
     $self->{ua} = LWP::UserAgent->new(keep_alive => 1);
+    $self->{ua}->ssl_opts(
+      verify_hostname => 0,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
+      SSL_hostname => ''
+    );
     $self->{ua}->agent("ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION);
     $self->{state} = 'closed';
 #   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)

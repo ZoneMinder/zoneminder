@@ -53,6 +53,8 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
     p_host,
     p_port,
     p_path,
+    "", /* username */
+    "", /* Password */
     p_width,
     p_height,
     p_colours,

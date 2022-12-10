@@ -162,6 +162,7 @@ int main(int argc, char *argv[]) {
 
   std::shared_ptr<xop::EventLoop> eventLoop(new xop::EventLoop());
 	std::shared_ptr<xop::RtspServer> rtspServer = xop::RtspServer::Create(eventLoop.get());
+  rtspServer->SetVersion("ZoneMinder RTSP Server");
 
   if (config.opt_use_auth) {
     std::shared_ptr<ZM_RtspServer_Authenticator> authenticator(new ZM_RtspServer_Authenticator());

@@ -210,10 +210,13 @@ function reloadWebSite(ndx) {
 }
 
 function takeSnapshot() {
+  for (let i = 0, length = monitorData.length; i < length; i++) {
+    monitors[i].kill();
+  }
   monitor_ids = monitorData.map((monitor)=>{
-    return 'monitor_ids[]='+monitor.id;
+    return monitor.id;
   });
-  window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+  post('?view=snapshot', {'action': 'create', 'monitor_ids[]': monitor_ids});
 }
 
 function handleClick(evt) {

@@ -25,10 +25,8 @@
 #include "zm_utils.h"
 #include <cstring>
 
-User::User() {
-  id = 0;
+User::User() : id(0), enabled(false) {
   username[0] = password[0] = 0;
-  enabled = false;
   stream = events = control = monitors = system = PERM_NONE;
 }
 
@@ -42,21 +40,9 @@ User::User(zmDbQuery &dbrow) {
   control = dbrow.get<Permission>("Control");
   monitors = dbrow.get<Permission>("Monitors");
   system = dbrow.get<Permission>("System");
-
-  if( !dbrow.has("MonitorIds") )
-    return;
-  
-  std::string monitor_ids_str = dbrow.get<std::string>( "MonitorIds" );
-  if ( monitor_ids_str.length() > 0 ) {
-    StringVector ids = Split(monitor_ids_str, ",");
-    for ( StringVector::iterator i = ids.begin(); i < ids.end(); ++i ) {
-      monitor_ids.push_back(atoi((*i).c_str()));
-    }
-  }
 }
 
 User::~User() {
-  monitor_ids.clear();
 }
 
 void User::Copy(const User &u) {
@@ -69,20 +55,73 @@ void User::Copy(const User &u) {
   control = u.control;
   monitors = u.monitors;
   system = u.system;
-  monitor_ids = u.monitor_ids;
+  monitor_permissions_loaded = u.monitor_permissions_loaded;
+  monitor_permissions = u.monitor_permissions;
+  group_permissions_loaded = u.monitor_permissions_loaded;
+  group_permissions = u.group_permissions;
+}
+
+void User::loadMonitorPermissions() {
+  for (const Monitor_Permission &p : Monitor_Permission::find(id) ) {
+    monitor_permissions[p.MonitorId()] = p;
+  }
+  Debug(1, "# of Monitor_Permissions %zu", monitor_permissions.size());
+}
+
+void User::loadGroupPermissions() {
+  group_permissions = Group_Permission::find(id);
+  Debug(1, "# of Group_Permissions %zu", group_permissions.size());
 }
 
 bool User::canAccess(int monitor_id) {
-  if ( monitor_ids.empty() )
-    return true;
+  if (!monitor_permissions_loaded) loadMonitorPermissions();
+  auto it = monitor_permissions.find(monitor_id);
 
-  for ( std::vector<int>::iterator i = monitor_ids.begin();
-      i != monitor_ids.end(); ++i ) {
-    if ( *i == monitor_id ) {
-      return true;
+  if (it != monitor_permissions.end()) {
+    auto permission = it->second.getPermission();
+    switch (permission) {
+      case Monitor_Permission::PERM_NONE :
+        Debug(1, "Returning None from monitor_permission");
+        return false;
+      case Monitor_Permission::PERM_VIEW :
+        Debug(1, "Returning true because VIEW from monitor_permission");
+        return true;
+      case Monitor_Permission::PERM_EDIT :
+        Debug(1, "Returning true because EDIT from monitor_permission");
+        return true;
+      case Monitor_Permission::PERM_INHERIT :
+        Debug(1, "INHERIT from monitor_permission");
+        break;
+      default:
+        Warning("UNKNOWN permission %d from monitor_permission", permission);
+        break;
     }
   }
-  return false;
+
+  if (!group_permissions_loaded) loadGroupPermissions();
+
+  for (Group_Permission &gp : group_permissions) {
+    auto permission = gp.getPermission(monitor_id);
+    switch (permission) {
+      case Group_Permission::PERM_NONE :
+        Debug(1, "Returning None from group_permission");
+        return false;
+      case Group_Permission::PERM_VIEW :
+        Debug(1, "Returning true because VIEW from group_permission");
+        return true;
+      case Group_Permission::PERM_EDIT :
+        Debug(1, "Returning true because EDIT from group_permission");
+        return true;
+      case Group_Permission::PERM_INHERIT :
+        Debug(1, "INHERIT from group_permission %d", gp.GroupId());
+        break;
+      default :
+        Warning("UNKNOWN permission %d from group_permission %d", permission, gp.GroupId());
+        break;
+    }
+  }  // end foreach Group_Permission
+
+  return (monitors != PERM_NONE);
 }
 
 // Function to load a user from username and password

@@ -97,6 +97,10 @@ class MonitorsController extends AppController {
           )
         );
     $monitor = $this->Monitor->find('first', $options);
+    if ($monitor['Monitor']['JanusEnabled']) {
+      require_once __DIR__ .'/../../../includes/Monitor.php';
+      $monitor['Monitor']['Janus_Pin'] = (new ZM\Monitor($monitor['Monitor']))->Janus_Pin();
+    }
     $this->set(array(
       'monitor' => $monitor,
       '_serialize' => array('monitor')
@@ -291,12 +295,21 @@ class MonitorsController extends AppController {
     
     $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
     $status = exec($shellcmd, $output, $rc);
+    ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {
       $this->set(array(
         'status'=>'false',
         'code' => $rc,
         'error'=> implode(PHP_EOL, $output),
         '_serialize' => array('status','code','error'),
+      ));
+    } else if ($cmd == 'status') {
+      // In 1.36.16 the values got shifted up so that we could index into an array of strings.
+      // So do a hack to restore the previous behavour
+      $this->set(array(
+        'status' => intval($status)-1,
+        'output' => intval($output[0])-1,
+        '_serialize' => array('status','output'),
       ));
     } else {
       $this->set(array(
@@ -344,9 +357,9 @@ class MonitorsController extends AppController {
     }
 
     // Build the command, and execute it
-    $zm_path_bin = Configure::read('ZM_PATH_BIN');
-    $command = escapeshellcmd("$zm_path_bin/zmdc.pl status $daemon $args");
+    $command = escapeshellcmd(ZM_PATH_BIN."/zmdc.pl status $daemon $args");
     $status = exec($command);
+    ZM\Debug("Command: $command output: $status");
 
     // If 'not' is present, the daemon is not running, so return false
     // https://github.com/ZoneMinder/ZoneMinder/issues/799#issuecomment-108996075

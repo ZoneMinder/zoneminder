@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_logger.h"
 #include <array>
+#include <cctype>
 #include <cstdarg>
 #include <cstring>
 #include <cmath>
@@ -396,14 +397,15 @@ std::string UriEncode(const std::string &value) {
   retbuf.reserve(value.length() * 3); // at most all characters get replaced with the escape
 
   char tmp[5] = "";
-  while(*src) {
-    if ( *src == ' ' ) {
+  while (*src) {
+    std::string::value_type c = *src;
+    if (c == ' ') {
       retbuf.append("%%20");
-    } else if ( !( (*src >= 'a' && *src <= 'z') || (*src >= 'A' && *src <= 'Z') ) ) {
-      sprintf(tmp, "%%%02X", *src);
-      retbuf.append(tmp);
+    } else if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+      retbuf.push_back(c);
     } else {
-      retbuf.push_back(*src);
+      sprintf(tmp, "%%%02X", c);
+      retbuf.append(tmp);
     }
     src++;
   }

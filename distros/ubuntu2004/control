@@ -32,6 +32,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libvncserver-dev
               ,libjwt-gnutls-dev|libjwt-dev
               ,libgsoap-dev
+              ,libmosquittopp-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 
@@ -40,9 +41,9 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
-        ,libavdevice58|libavdevice57
-        ,libswscale5|libswscale4
-        ,libswresample3|libswresample2
+        ,libavdevice59|libavdevice58|libavdevice57
+        ,libswscale6|libswscale5|libswscale4
+        ,libswresample4|libswresample3|libswresample2
         ,ffmpeg
         ,libcurl4, libcurl4-gnutls-dev
         ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
@@ -54,6 +55,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdbd-mysql-perl
         ,libdevice-serialport-perl
         ,libimage-info-perl
+        ,libio-interface-perl
         ,libjson-maybexs-perl
         ,libsys-mmap-perl [!hurd-any]
         ,liburi-encode-perl
@@ -63,6 +65,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libclass-std-fast-perl
         ,libsoap-wsdl-perl
         ,libio-socket-multicast-perl
+        ,libio-socket-ssl-perl
         ,libdigest-sha-perl
         ,libsys-cpu-perl, libsys-meminfo-perl
         ,libdata-uuid-perl
@@ -78,6 +81,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libvncclient1|libvncclient0
         ,libjwt-gnutls0|libjwt0
         ,libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
+        ,libmosquittopp1
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

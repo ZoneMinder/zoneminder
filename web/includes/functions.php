@@ -76,6 +76,7 @@ function CORSHeaders() {
       if ( ZM_MIN_STREAMING_PORT ) {
         ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
       }
       return;
@@ -89,6 +90,7 @@ function CORSHeaders() {
         $valid = true;
         ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
         break;
       }
@@ -213,7 +215,25 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
             </object>';
     } # end switch
   } # end if use object tags
-  return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
+
+  switch( $mimeType ) {
+    case 'video/mp4' :
+      global $rates;
+      return '<video autoplay id="videoobj" class="video-js vjs-default-skin"'
+        .($width ? ' width="'.$width.'"' : '').($height ? ' height="'.$height.'"' : '').'
+            style="transform: matrix(1, 0, 0, 1, 0, 0);"
+            data-setup=\'{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ '. implode(',',
+              array_map(function($r){return $r/100;},
+                array_filter(
+                  array_keys($rates),
+                  function($r){return $r >= 0 ? true : false;}
+                ))).']}\' 
+          >
+          <source src="'. $src.'" type="video/mp4">
+          Your browser does not support the video tag.
+          </video>';
+    default:
+    return '<embed'. ( isset($mimeType)?(' type="'.$mimeType.'"'):'' ). '
       src="'.$src.'"
       name="'.$title.'"
       width="'.$width.'"
@@ -223,6 +243,7 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
       showcontrols="0"
       controller="0">
       </embed>';
+  }
 }
 
 function outputImageStream( $id, $src, $width, $height, $title='' ) {
@@ -235,8 +256,8 @@ function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
       return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
-      #(($width and $width !='auto') ?'width:'.$width.';' : '').
-      (($height and $height != 'auto')?' height:'.$height.';':'').
+      (($width and ($width !='auto')) ?'width:'.$width.';' : '').
+      (($height and ($height != 'auto'))?' height:'.$height.';':'').
       '" />';
   }
 }
@@ -399,7 +420,7 @@ function makeLink($url, $label, $condition=1, $options='') {
 
 //Make it slightly easier to create a link to help text modal
 function makeHelpLink($ohndx) {
-  $string = '&nbsp;(<a id="' .$ohndx. '" class="optionhelp" href="#">?</a>)';
+  $string = '&nbsp;(<a id="' .$ohndx. '" class="optionhelp">?</a>)';
 
   return $string;
 }
@@ -451,7 +472,7 @@ function htmlOptions($options, $values) {
       $text = $option;
     }
     $selected = false;
-    if ($values) {
+    if ($values !== null) {
       $selected = is_array($values) ? in_array($value, $values) : (!strcmp($value, $values));
       if ( !$has_selected ) 
         $has_selected = $selected;
@@ -853,23 +874,6 @@ function createListThumbnail($event, $overwrite=false) {
   return $thumbData;
 }
 
-function createVideo($event, $format, $rate, $scale, $overwrite=false) {
-  $command = ZM_PATH_BIN.'/zmvideo.pl -e '.$event['Id'].' -f '.$format.' -r '.sprintf('%.2F', ($rate/RATE_BASE));
-  if ( preg_match('/\d+x\d+/', $scale) )
-    $command .= ' -S '.$scale;
-  else
-    if ( version_compare(phpversion(), '4.3.10', '>=') )
-      $command .= ' -s '.sprintf('%.2F', ($scale/SCALE_BASE));
-    else
-      $command .= ' -s '.sprintf('%.2f', ($scale/SCALE_BASE));
-  if ( $overwrite )
-    $command .= ' -o';
-  $command = escapeshellcmd($command);
-  $result = exec($command, $output, $status);
-  ZM\Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
-  return $status ? '' : rtrim($result);
-}
-
 # This takes more than one scale amount, so it runs through each and alters dimension.
 # I can't imagine why you would want to do that.
 function reScale($dimension, $dummy) {
@@ -1133,7 +1137,7 @@ function sortHeader($field, $querySep='&amp;') {
   global $view;
   return implode($querySep, array(
     '?view='.$view,
-    'page=1'.(isset($_REQUEST['filter'])?$_REQUEST['filter']['query']:''),
+    'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? $_REQUEST['filter']['query'] : ''),
     'sort_field='.$field,
     'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !$_REQUEST['sort_asc'] : 0),
     'limit='.(isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : ''),
@@ -1854,7 +1858,7 @@ define('HTTP_STATUS_FORBIDDEN', 403);
 
 function ajaxError($message, $code=HTTP_STATUS_OK) {
   $backTrace = debug_backtrace();
-  ZM\Error($message.' from '.print_r($backTrace,true));
+  ZM\Debug($message.' from '.print_r($backTrace, true));
   if ( function_exists('ajaxCleanup') )
     ajaxCleanup();
   if ( $code == HTTP_STATUS_OK ) {
@@ -2214,6 +2218,16 @@ function array_recursive_diff($aArray1, $aArray2) {
   return $aReturn;
 }
 
+function html_input($name, $type='text', $value='', $options=array()) {
+  $html = '<input ';
+  $attributes = [];
+  foreach (array_keys(array_merge($options,['name'=>$name, 'value'=>$value, 'type'=>$type])) as $k) {
+    $attributes[] = $k.'="'.$options[$k].'"';
+  }
+  $html .= join(' ', $attributes);
+  $html .= '/>';
+}
+
 function html_radio($name, $values, $selected=null, $options=array(), $attrs=array()) {
 
   $html = '';
@@ -2345,17 +2359,17 @@ function get_subnets($interface) {
   return $subnets;
 }
 
-function extract_auth_values_from_url($url): array {
+function extract_auth_values_from_url($url) {
   $protocolPrefixPos = strpos($url, '://');
-  if( $protocolPrefixPos === false )
+  if ($protocolPrefixPos === false)
     return array();
 
   $authSeparatorPos = strpos($url, '@', $protocolPrefixPos+3);
-  if( $authSeparatorPos === false )
+  if ($authSeparatorPos === false)
     return array();
 
   $fieldsSeparatorPos = strpos($url, ':', $protocolPrefixPos+3);
-  if( $fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos )
+  if ($fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos)
     return array();
 
   $username = substr( $url, $protocolPrefixPos+3, $fieldsSeparatorPos-($protocolPrefixPos+3) );
@@ -2364,4 +2378,65 @@ function extract_auth_values_from_url($url): array {
   return array( $username, $password );
 }
 
+function output_file($path, $chunkSize=1024) {
+  if (connection_status() != 0)
+    return false;
+  $parts = pathinfo($path);
+  $file = $parts['basename'];
+
+  $contentType = getMimeType($path);
+
+  header("Cache-Control: public");
+  header("Content-Transfer-Encoding: binary");
+  header("Content-Type: $contentType");
+
+  $contentDisposition = 'inline';
+  if (strstr($_SERVER['HTTP_USER_AGENT'], 'MSIE')) {
+    $file = preg_replace('/\./', '%2e', $file, substr_count($file, '.') - 1);
+  }
+  header("Content-Disposition: $contentDisposition;filename=\"$file\"");
+
+  header('Accept-Ranges: bytes');
+  $range = 0;
+  $size = filesize($path);
+
+  if (isset($_SERVER['HTTP_RANGE'])) {
+    list($a, $range) = explode('=', $_SERVER['HTTP_RANGE']);
+    str_replace($range, '-', $range);
+    $size2 = $size - 1;
+    $new_length = $size - $range;
+    header('HTTP/1.1 206 Partial Content');
+    header("Content-Length: $new_length");
+    header("Content-Range: bytes $range$size2/$size");
+  } else {
+    $size2 = $size - 1;
+    header("Content-Range: bytes 0-$size2/$size");
+    header('Content-Length: ' . $size);
+  }
+
+  if ($size == 0) {
+    Error('Zero byte file! Aborting download');
+  }
+  @ini_set('magic_quotes_runtime', 0);
+  $fp = fopen($path, 'rb');
+
+  fseek($fp, $range);
+
+  while (!feof($fp) and (connection_status() == 0)) {
+    set_time_limit(0);
+    print(@fread($fp, 1024*$chunkSize));
+    flush();
+    ob_flush();
+    // sleep(1);
+  }
+  fclose($fp);
+
+  return ((connection_status() == 0) and !connection_aborted());
+} # end function output_file
+
+function array_to_hash_by_key($key, $array) {
+  $results = array();
+  foreach ($array as $a) { $results[$a->$key()] = $a; }
+  return $results;
+}
 ?>

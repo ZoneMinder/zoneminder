@@ -66,7 +66,13 @@ foreach ($displayMonitors as &$row) {
 } # end foreach Monitor
 
 if ($mid and ($monitor_index == -1)) {
-  ZM\Error("How did we not find monitor_index?");
+  $monitor = ZM\Monitor::find_one(array('Id'=>$mid));
+  if (!$monitor) {
+    ZM\Error("No monitor found for $mid");
+  } else {
+    $monitor_index = count($monitors);
+    $monitors[] = $monitor;
+  }
 }
 
 if (!$mid) {
@@ -266,14 +272,14 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
  ?>
         </ul>
       </nav>
-      <div class="container-fluid col-sm-offset-2 h-100 pr-0"
+      <div class="container-fluid col-sm-offset-2 h-100 pr-0">
+<div class="Monitor"
 <?php
 if ($streamMode == 'jpeg') {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
 }
 ?>
 >
-<div class="Monitor">
 <?php 
 if ($monitor->Type() != 'WebSite') {
   $options['state'] = true;
@@ -285,6 +291,7 @@ echo $monitor->getStreamHTML($options);
 if ($monitor->Type() != 'WebSite') {
 ?>
         <div class="buttons" id="dvrControls">
+          <button type="button" id="getImageBtn" title="<?php echo translate('Download Image') ?>"/>
 <?php
 if ($streamMode == 'jpeg') {
   if ($monitor->StreamReplayBuffer() != 0) {
@@ -365,7 +372,10 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="Delete"><?php echo translate('Delete') ?></th>
               <th data-sortable="false" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="false" data-field="Name"><?php echo translate('Name') ?></th>
+              <th data-sortable="false" data-field="Cause"><?php echo translate('Cause') ?></th>
+              <th data-sortable="false" data-field="Notes"><?php echo translate('Notes') ?></th>
               <th data-sortable="false" data-field="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
+              <th data-sortable="false" data-field="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="false" data-field="Length"><?php echo translate('Duration') ?></th>
               <th data-sortable="false" data-field="Frames"><?php echo translate('Frames') ?></th>
               <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>

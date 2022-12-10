@@ -180,6 +180,7 @@ our %mem_data = (
     alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
     video_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
     audio_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
+    janus_pin        => { type=>'int8[64]', seq=>$mem_seq++ },
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {
@@ -274,7 +275,7 @@ sub zmMemVerify {
     }
     $valid = zmMemRead($monitor, 'shared_data:valid', 1);
     if (!$valid) {
-      Error("Shared data not valid for monitor $$monitor{Id}");
+      Debug(1, "Shared data not valid for monitor $$monitor{Id}");
       return undef;
     }
   } else {

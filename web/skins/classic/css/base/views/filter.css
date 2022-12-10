@@ -47,6 +47,7 @@ select {
 
 #actionsTable input[type=text] {
     margin-left: 4px;
+    width: 100%;
 }
 #actionsTable, #optionsTable {
   float: left;
@@ -73,8 +74,11 @@ min-width: 500px;
 }
 #ActionsAndOptions {
   padding-top: 5px;
-  border-top: 1px solid #7f7fb2;
-  border-bottom: 1px solid #7f7fb2;
+  border-top: 1px solid #3498db;
+  border-bottom: 1px solid #3498db;
+}
+#ActionsAndOptions fieldset {
+  border: none;
 }
 #ActionsAndOptions:after {
   content: ".";

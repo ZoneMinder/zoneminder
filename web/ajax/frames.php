@@ -160,7 +160,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
   } # end if search_filter->terms() > 1
 
   $returned_rows = array();
-  foreach ( array_slice($filtered_rows, $offset, $limit) as $row ) {
+  foreach ( array_slice($filtered_rows, $offset, ($limit ? $limit : count($filtered_rows))) as $row ) {
     if ( ZM_WEB_LIST_THUMBS ) {
 
       # Build the path to the potential analysis image
@@ -188,7 +188,7 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       # finally, we assemble the the entire thumbnail img src structure, whew
       $row['Thumbnail'] = '<img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '">';
     }
-      $returned_rows[] = $row;
+    $returned_rows[] = $row;
   } # end foreach row matching search
 
   $data['rows'] = $returned_rows;

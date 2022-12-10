@@ -34,7 +34,7 @@ constexpr Milliseconds StreamBase::MAX_SLEEP;
 
 StreamBase::~StreamBase() {
   delete vid_stream;
-  delete temp_img_buffer;
+  delete[] temp_img_buffer;
   closeComms();
 }
 
@@ -74,7 +74,7 @@ bool StreamBase::checkInitialised() {
     return false;
   }
   if (!monitor->ShmValid()) {
-    Error("Monitor shm is not connected");
+    Debug(1, "Monitor shm is not connected");
     return false;
   }
   if ((monitor->GetType() == Monitor::FFMPEG) and (monitor->Decoding() == Monitor::DECODING_NONE) ) {
@@ -386,6 +386,9 @@ void StreamBase::openComms() {
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
+    struct timeval tv{1,0}; /* 1 Secs Timeout */
+    setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv, sizeof(struct timeval));
+
     last_comm_update = std::chrono::steady_clock::now();
     Debug(3, "comms open at %s", loc_sock_path);
   } // end if connKey > 0
@@ -403,3 +406,13 @@ void StreamBase::closeComms() {
     }
   }
 } // end void StreamBase::closeComms
+
+void StreamBase::reserveTempImgBuffer(size_t size)
+{
+  if (temp_img_buffer_size < size) {
+    Debug(1, "Resizing image buffer from %zu to %zu", temp_img_buffer_size, size);
+    delete[] temp_img_buffer;
+    temp_img_buffer = new uint8_t[size];
+    temp_img_buffer_size = size;
+  }
+}

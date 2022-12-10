@@ -1,0 +1,12 @@
+.colId,
+.colName,
+.colServer,
+.colEvents,
+.colFirstEvent,
+.colLastEvent,
+.colMinGap,
+.colMaxGap,
+.colFileMissing,
+.colZeroSize {
+  text-align: left;
+}

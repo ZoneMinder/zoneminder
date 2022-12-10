@@ -264,7 +264,7 @@ sub createIdFile {
 }
 
 sub GenerateVideo {
-  my ( $self, $rate, $fps, $scale, $size, $overwrite, $format ) = @_;
+  my ( $self, $rate, $fps, $scale, $size, $overwrite, $format, $transforms ) = @_;
 
   my $event_path = $self->Path();
   chdir($event_path);
@@ -277,14 +277,14 @@ sub GenerateVideo {
     $file_rate =~ s/_00//;
     $file_rate =~ s/(_\d+)0+$/$1/;
     $file_rate = 'r'.$file_rate;
-    push( @file_parts, $file_rate );
+    push @file_parts, $file_rate;
   } elsif ( $fps ) {
     my $file_fps = $fps;
     $file_fps =~ s/\./_/;
     $file_fps =~ s/_00//;
     $file_fps =~ s/(_\d+)0+$/$1/;
     $file_fps = 'R'.$file_fps;
-    push( @file_parts, $file_fps );
+    push @file_parts, $file_fps;
   }
 
   if ( $scale ) {
@@ -298,7 +298,11 @@ sub GenerateVideo {
     my $file_size = 'S'.$size;
     push @file_parts, $file_size;
   }
-  my $video_file = join('-', $video_name, $file_parts[0], $file_parts[1] ).'.'.$format;
+  my @transforms = split(',', $transforms);
+  foreach (@transforms) {
+    push @file_parts, $_;
+  }
+  my $video_file = join('-', $video_name, @file_parts).'.'.$format;
   if ( $overwrite || !-s $video_file ) {
     Info("Creating video file $video_file for event $self->{Id}");
 
@@ -329,7 +333,10 @@ sub GenerateVideo {
       .$Config{ZM_FFMPEG_INPUT_OPTIONS}
     .' -i ' . ( $$self{DefaultVideo} ? $$self{DefaultVideo} : '%0'.$Config{ZM_EVENT_IMAGE_DIGITS} .'d-capture.jpg' )
 #. " -f concat -i /tmp/event_files.txt"
-      ." -s $video_size "
+    #
+   .join(' ', map { ' -vf '.$_ } @transforms)
+       ." -s $video_size "
+
       .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
     ." '$video_file' > ffmpeg.log 2>&1"
       ;
@@ -578,21 +585,19 @@ sub age {
 }
 
 sub DiskSpace {
-  if ( @_ > 1 ) {
-    Debug("Cleared DiskSpace, was $_[0]{DiskSpace}") if $_[0]{DiskSpace};
-    $_[0]{DiskSpace} = $_[1];
-  }
-  if ( ! defined $_[0]{DiskSpace} ) {
-    if ( -e $_[0]->Path() ) {
+  my $self = shift;
+  $$self{DiskSpace} = shift if @_;
+  if ( ! defined $$self{DiskSpace} ) {
+    if ( -e $self->Path() ) {
       my $size = 0;
-      File::Find::find( { wanted=>sub { $size += -f $_ ? -s _ : 0 }, untaint=>1 }, $_[0]->Path() );
-      $_[0]{DiskSpace} = $size;
-      Debug("DiskSpace for event $_[0]{Id} at $_[0]{Path} Updated to $size bytes");
+      File::Find::find( { wanted=>sub { $size += -f $_ ? -s $_ : 0 }, untaint=>1 }, $self->Path() );
+      $$self{DiskSpace} = $size;
+      Debug("DiskSpace for event $$self{Id} at $$self{Path} Updated to $size bytes");
     } else {
-      Warning("DiskSpace: Event does not exist at $_[0]{Path}:" . $_[0]->to_string() );
+      Warning("DiskSpace: Event does not exist at $$self{Path}:" . $self->to_string());
     }
   } # end if ! defined DiskSpace
-  return $_[0]{DiskSpace};
+  return $$self{DiskSpace};
 }
 
 # Icon: I removed the locking from this. So we now have an assumption that the Event object is up to date.
@@ -910,6 +915,40 @@ sub Monitor {
   }
   return $$self{Monitor};
 }
+
+sub Close {
+  my $self = shift;
+  my $tag = @_ ? shift : '(r)';
+  my $text = @_ ? shift : 'Recovered.';
+
+  my $FrameDataSql = '
+SELECT
+  max(`TimeStamp`) AS `EndDateTime`,
+  unix_timestamp(max(`TimeStamp`)) AS `EndTimeStamp`,
+  max(`FrameId`) AS `Frames`,
+  count(if(`Score`>0,1,NULL)) AS `AlarmFrames`,
+  sum(`Score`) AS `TotScore`,
+  max(`Score`) AS `MaxScore`
+FROM `Frames` WHERE `EventId`=?';
+  my $frame = ZoneMinder::Database::zmDbFetchOne($FrameDataSql, $self->{Id});
+  if (!$frame) {
+    return 'Unable to retrieve frame data.';
+  }
+  if (!$frame->{EndDateTime}) {
+    return 'Unable to retrieve EndDateTime from Frames Table.';
+  }
+  return $self->save({
+      Name => sprintf('%s%d%s', $self->Monitor()->EventPrefix(), $self->{Id}, $tag),
+      EndDateTime => $frame->{EndDateTime},
+      Length => $frame->{EndTimeStamp} - $self->Time(),
+      Frames => $frame->{Frames},
+      AlarmFrames => $frame->{AlarmFrames},
+      TotScore => $frame->{TotScore},
+      AvgScore => ($frame->{AlarmFrames} ? int($frame->{TotScore} / $frame->{AlarmFrames}) : 0),
+      MaxScore => $frame->{MaxScore},
+      Notes => $self->Notes() . ' ' . $text,
+    });
+} # end sub Close
 
 1;
 __END__

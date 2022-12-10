@@ -385,13 +385,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
   } else {
-    if (temp_img_buffer_size < send_image->Size()) {
-      Debug(1, "Resizing image buffer from %zu to %u",
-          temp_img_buffer_size, send_image->Size());
-      delete[] temp_img_buffer;
-      temp_img_buffer = new uint8_t[send_image->Size()];
-      temp_img_buffer_size = send_image->Size();
-    }
+    reserveTempImgBuffer(send_image->Size());
 
     int img_buffer_size = 0;
     unsigned char *img_buffer = temp_img_buffer;
@@ -427,11 +421,8 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
         ||
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
        ) {
-      if (!zm_terminate) {
-        // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
-        // ICON: zm_terminate might not get set yet. Make it a debug
-        Debug(1, "Unable to send stream frame: %s", strerror(errno));
-      }
+      // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
+      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate);
       return false;
     }
     fputs("\r\n", stdout);
@@ -564,7 +555,8 @@ void MonitorStream::runStream() {
       } else {
         if (!sendTextFrame("Unable to stream")) {
           Debug(1, "Failed Send unable to stream");
-          return;
+          zm_terminate = true;
+          continue;
         }
       }
       std::this_thread::sleep_for(MAX_SLEEP);
@@ -866,6 +858,7 @@ void MonitorStream::runStream() {
       Debug(1, "command_processor is not joinable");
     }
   }
+  Debug(1, "command_processor has joined");
 } // end MonitorStream::runStream
 
 void MonitorStream::SingleImage(int scale) {

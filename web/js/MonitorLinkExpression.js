@@ -75,8 +75,6 @@ function expr_to_ui(expr, container) {
   let brackets = 0;
   const used_monitorlinks = [];
 
-  if (!tokens.length) return;
-
   // Every monitorlink should have possible parenthesis on either side of it
   if (tokens.length > 3) {
     if (tokens[0].type != '(') {
@@ -160,9 +158,8 @@ function expr_to_ui(expr, container) {
   select.append('<option value="">Add MonitorLink</option>');
   for (monitor_id in monitors) {
     const monitor = monitors[monitor_id];
-    if (!array_search(monitor.Id, used_monitorlinks)) {
-      select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
-    }
+    //if (!array_search(monitor.Id, used_monitorlinks))
+    select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
     for ( zone_id in zones ) {
       const zone = zones[zone_id];
       if ( monitor.Id == zone.MonitorId ) {
@@ -184,8 +181,10 @@ function array_search(needle, haystack) {
 }
 
 function add_to_expr() {
-  $j('[name="newMonitor[LinkedMonitors]"]').val($j('[name="newMonitor[LinkedMonitors]"]').val() + '|' + $j('#monitorLinks').val());
-  expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
+  const expr = $j('[name="newMonitor[LinkedMonitors]"]');
+  const oldval = expr.val();
+  expr.val(oldval == '' ? $j('#monitorLinks').val() : oldval + '|' + $j('#monitorLinks').val());
+  expr_to_ui(expr.val(), $j('#LinkedMonitorsUI'));
 }
 
 function update_expr(ev) {

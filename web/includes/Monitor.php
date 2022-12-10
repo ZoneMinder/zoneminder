@@ -148,6 +148,7 @@ public static function getStatuses() {
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
     'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
+    'Janus_RTSP_User'           => null,
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
     'EventStartCommand' => '',
@@ -183,8 +184,8 @@ public static function getStatuses() {
     'Deinterlacing' =>  0,
     'DecoderHWAccelName'  =>  null,
     'DecoderHWAccelDevice'  =>  null,
-    'SaveJPEGs' =>  3,
-    'VideoWriter' =>  '0',
+    'SaveJPEGs' =>  2,
+    'VideoWriter' =>  '2',
     'OutputCodec' =>  null,
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
@@ -200,7 +201,7 @@ public static function getStatuses() {
     'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
     'LabelX'      =>  0,
     'LabelY'      =>  0,
-    'LabelSize'   =>  1,
+    'LabelSize'   =>  2,
     'ImageBufferCount'  =>  3,
     'MaxImageBufferCount'  =>  0,
     'WarmupCount' =>  0,
@@ -245,6 +246,8 @@ public static function getStatuses() {
     'RTSPServer' => array('type'=>'boolean', 'default'=>0),
     'RTSPStreamName'  => '',
     'Importance'      =>  'Normal',
+    'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
+    'MQTT_Subscriptions'  =>  '',
   );
   private $status_fields = array(
     'Status'  =>  null,
@@ -266,6 +269,22 @@ public static function getStatuses() {
     'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
+  public function Janus_Pin() {
+    if (!$this->{'JanusEnabled'}) return '';
+
+    if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
+      $cmd = getZmuCommand(' --janus-pin -m '.$this->{'Id'});
+      $output = shell_exec($cmd);
+      Debug("Running $cmd output: $output");
+      return $output ? trim($output) : $output;
+    } else if ($this->ServerId()) {
+      $result = $this->Server()->SendToApi('/monitors/'.$this->{'Id'}.'.json');
+      $json = json_decode($result, true);
+      return ((isset($json['monitor']) and isset($json['monitor']['Monitor']) and isset($json['monitor']['Monitor']['Janus_Pin'])) ? $json['monitor']['Monitor']['Janus_Pin'] : '');
+    } else {
+      Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
+    }
+  }
 
   public function Control() {
     if (!property_exists($this, 'Control')) {
@@ -280,8 +299,12 @@ public static function getStatuses() {
 
   public function Server() {
     if (!property_exists($this, 'Server')) {
-      if ($this->ServerId())
+      if ($this->ServerId()) {
         $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
+        if (!$this->{'Server'}) {
+          $this->{'Server'} = new Server();
+        }
+      }
       if (!property_exists($this, 'Server')) {
         $this->{'Server'} = new Server();
       }
@@ -296,7 +319,7 @@ public static function getStatuses() {
     }
     // empty value or old auth values terminate
     if (!isset($this->{'Path'}) or ($this->{'Path'}==''))
-      return $this->{'Path'};
+      return '';
 
     // extract the authentication part from the path given
     $values = extract_auth_values_from_url($this->{'Path'});
@@ -322,38 +345,32 @@ public static function getStatuses() {
   }
 
   public function User($new=null) {
-    if( $new !== null ) {
+    if ($new !== null) {
       // no url check if the update has different value
       $this->{'User'} = $new;
     }
 
-    if( strlen($this->{'User'}) > 0 )
+    if (isset($this->{'User'}) and $this->{'User'} != '')
       return $this->{'User'};
 
     // Only try to update from path if the field is empty
-    $values = extract_auth_values_from_url($this->{'Path'});
-    if( count( $values ) == 2 ) {
-      $us = $values[0];
-      $this->{'User'} = $values[0];
-    }
+    $values = extract_auth_values_from_url($this->Path());
+    $this->{'User'} = count($values) == 2 ? $values[0] : '';
     return $this->{'User'};
   }
 
   public function Pass($new=null) {
-    if( $new !== null ) {
+    if ($new !== null) {
       // no url check if the update has different value
       $this->{'Pass'} = $new;
     }
 
-    if( strlen($this->{'Pass'}) > 0 )
+    if (isset($this->{'Pass'}) and $this->{'Pass'} != '')
       return $this->{'Pass'};
 
     // Only try to update from path if the field is empty
-    $values = extract_auth_values_from_url($this->{'Path'});
-    if( count( $values ) == 2 ) {
-      $ps = $values[1];
-      $this->{'Pass'} = $values[1];
-    }
+    $values = extract_auth_values_from_url($this->Path());
+    $this->{'Pass'} = count($values) == 2 ? $values[1] : '';
     return $this->{'Pass'};
   }
 
@@ -519,31 +536,7 @@ public static function getStatuses() {
         }
       }
     } else if ($this->ServerId()) {
-      $Server = $this->Server();
-
-      $url = $Server->UrlToApi().'/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmc.json';
-      if (ZM_OPT_USE_AUTH) {
-        if (ZM_AUTH_RELAY == 'hashed') {
-          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-        } else if (ZM_AUTH_RELAY == 'plain') {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else {
-          Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
-          return;
-        }
-      }
-      Debug('sending command to '.$url);
-
-      $context = stream_context_create();
-      try {
-        $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
-          Error("Error restarting zmc using $url");
-        }
-      } catch (Exception $e) {
-        Error("Except $e thrown trying to restart zmc");
-      }
+      $result = $this->Server()->SendToApi('/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmc.json');
     } else {
       Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
     }
@@ -724,32 +717,8 @@ public static function getStatuses() {
       }
       socket_close($socket);
     } else if ($this->ServerId()) {
-      $Server = $this->Server();
-
-      $url = $Server->UrlToApi().'/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json';
-      if (ZM_OPT_USE_AUTH) {
-        if (ZM_AUTH_RELAY == 'hashed') {
-          $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-        } else if (ZM_AUTH_RELAY == 'plain') {
-          $url .= '?user='.$_SESSION['username'];
-          $url .= '?pass='.$_SESSION['password'];
-        } else if (ZM_AUTH_RELAY == 'none') {
-          $url .= '?user='.$_SESSION['username'];
-        }
-      }
-      Debug('sending command to '.$url);
-
-      $context = stream_context_create();
-      try {
-        $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
-          Error("Error sending command using $url");
-          return false;
-        }
-      } catch (Exception $e) {
-        Error("Exception $e thrown trying to send command to $url");
-        return false;
-      }
+      $result = $this->Server()->SendToApi('/monitors/daemonControl/'.$this->{'Id'}.'/'.$command.'/zmcontrol.pl.json');
+      return $result;
     } else {
       Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
       return false;
@@ -778,25 +747,58 @@ public static function getStatuses() {
     return $this->connKey;
   }
 
-  function canEdit() {
+  function canEdit($u=null) {
     global $user;
-    return ( $user && ($user['Monitors'] == 'Edit') && ( !$this->{'Id'} || visibleMonitor($this->{'Id'}) ));
-  }
+    if ($u===null or $u['Id'] == $user['Id'])
+      return editableMonitor($this->{'Id'});
 
-  function canView() {
-    global $user;
-    if (!$user) {
-      # auth turned on and not logged in
+    $monitor_permission = ZM\Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    if ($monitor_permission and
+      ($monitor_permission->Permission() == 'None' or $monitor_permission->Permission() == 'View')) {
+      ZM\Debug("Can't edit monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
     }
-    if (!empty($user['MonitorIds']) ) {
-      # For the purposes of viewing, having specified monitors trumps the Monitor->canView setting.
-      if (in_array($this->{'Id'}, explode(',', $user['MonitorIds']))) {
-        return true;
+
+    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+
+    # If denied view in any group, then can't view it.
+    foreach ($group_permissions as $permission) {
+      if (!$permission->canEditMonitor($this->{'Id'})) {
+        ZM\Debug("Can't edit monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+        return false;
       }
     }
-    return ($user['Monitors'] != 'None');
+    return ($u['Monitors'] == 'Edit');
   }
+
+  function canView($u=null) {
+    global $user;
+    if ($u===null or $u['Id'] == $user['Id'])
+      return visibleMonitor($this->{'Id'});
+
+    $monitor_permission = ZM\Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    if ($monitor_permission and ($monitor_permission->Permission() == 'None')) {
+      ZM\Debug("Can't view monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
+      return false;
+    }
+
+    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+
+    # If denied view in any group, then can't view it.
+    $group_permission_value = 'Inherit';
+    foreach ($group_permissions as $permission) {
+      $value = $pmerssion->MonitorPermission($mid);
+      if ($value == 'None') {
+        ZM\Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+        return false;
+      }
+      if ($value == 'Edit' or $value == 'View') {
+        $group_permission_value = $value;
+      }
+    }
+  if ($group_permission_value != 'Inherit') return true;
+    return ($u['Monitors'] != 'None');
+  } # end function canView
 
   function AlarmCommand($cmd) {
     if ((!defined('ZM_SERVER_ID')) or (property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}))) {
@@ -817,33 +819,19 @@ public static function getStatuses() {
     }
     
     if ($this->ServerId()) {
-      $Server = $this->Server();
+      $result = $this->Server()->SendToApi('/monitors/alarm/id:'.$this->{'Id'}.'/command:'.$cmd.'.json');
 
-      $url = $Server->UrlToApi().'/monitors/alarm/id:'.$this->{'Id'}.'/command:'.$cmd.'.json';
-      $auth_relay = get_auth_relay();
-      if ($auth_relay) $url .= '?'.$auth_relay;
-
-      Debug('sending command to '.$url);
-
-      $context = stream_context_create();
-      try {
-        $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) { /* Handle error */
-          Error('Error sending command using '.$url);
-          return false;
-        }
-        Debug('Result '.$result);
-        $json = json_decode($result, true);
-        return $json['status'];
-
-      } catch (Exception $e) {
-        Error("Exception $e thrown trying to send command to $url");
+      if ($result === FALSE) { /* Handle error */
+        Error('Error sending command using '.$url);
         return false;
       }
+      $json = json_decode($result, true);
+      return $json['status'];
     } // end if we are on the recording server
     Error('Server not assigned to Monitor in a multi-server setup. Please assign a server to the Monitor.');
     return false;
   }
+
   function TriggerOn() {
     $output = $this->AlarmCommand('on');
     if ($output and preg_match('/Alarmed event id: (\d+)$/', $output, $matches)) {
@@ -1029,5 +1017,29 @@ public static function getStatuses() {
     $html .= PHP_EOL.'</div>'.PHP_EOL;
     return $html;
   } // end getStreamHTML
+ 
+  public function effectivePermission($u=null) {
+    if ($u === null) {
+      global $user;
+      $u = new User($user);
+    }
+    $monitor_permission = $u->Monitor_Permission($this->Id());
+    if ($monitor_permission->Permission() != 'Inherit') {
+      return $monitor_permission->Permission();
+    }
+    $gp_permissions = array();
+    foreach ($u->Group_Permissions() as $gp) {
+      if (false === array_search($this->Id(), $gp->Group()->MonitorIds())) {
+        continue;
+      }
+      if ($gp->Permission() == 'None') {
+        return $gp->Permission();
+      }
+      $gp_permissions[$gp->Permission()] = 1;
+    }
+    if (isset($gp_permissions['View'])) return 'View';
+    if (isset($gp_permissions['Edit'])) return 'Edit';
+    return $u->Monitors();
+  }
 } // end class Monitor
 ?>

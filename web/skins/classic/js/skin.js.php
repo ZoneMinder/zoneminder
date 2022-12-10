@@ -40,6 +40,15 @@ const cancelString = '<?php echo translate('Cancel') ?>';
 const thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
 const skinPath = '<?php echo ZM_SKIN_PATH ?>';
 const serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
+const Servers = [];
+<?php
+// Fall back to get Server paths, etc when no using multi-server mode
+$Server = new ZM\Server();
+echo 'Servers[0] = new Server(' . $Server->to_json(). ");\n";
+foreach ( ZM\Server::find() as $Server ) {
+  echo 'Servers[' . $Server->Id() . '] = new Server(' . $Server->to_json(). ");\n";
+}
+?>
 
 const canView = {};
 const canEdit = {};

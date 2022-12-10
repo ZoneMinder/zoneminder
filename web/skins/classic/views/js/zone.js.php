@@ -6,7 +6,6 @@
   global $selfIntersecting;
   global $streamMode;
   global $connkey;
-  global $streamSrc;
 ?>
 
 var presets = new Object();
@@ -69,7 +68,8 @@ monitorData[monitorData.length] = {
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'type': '<?php echo $monitor->Type() ?>',
-  'refresh': '<?php echo $monitor->Refresh() ?>'
+  'refresh': '<?php echo $monitor->Refresh() ?>',
+  'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
 };
 
 var selfIntersecting = <?php echo $selfIntersecting ? 'true' : 'false' ?>;
@@ -104,8 +104,6 @@ var connKey = '<?php echo $connkey ?>';
 
 var monitorId = <?php echo $monitor->Id() ?>;
 var monitorUrl = '<?php echo ( $monitor->UrlToIndex() ) ?>';
-
-var streamSrc = "<?php echo preg_replace( '/&amp;/', '&', $streamSrc ) ?>";
 
 var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;

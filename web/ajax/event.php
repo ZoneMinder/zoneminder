@@ -19,7 +19,10 @@ if ( canView('Events') or canView('Snapshots') ) {
       if ( !($event = dbFetchOne($sql, NULL, array( $_REQUEST['id']))) ) {
         ajaxError('Video Generation Failure, Unable to load event');
       } else {
-        if ( $videoFile = createVideo($event, $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], !empty($_REQUEST['overwrite'])) )
+        require_once('includes/Event.php');
+        $Event = new ZM\Event($event);
+
+        if ( $videoFile = $Event->createVideo($_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], $_REQUEST['transform'], !empty($_REQUEST['overwrite'])) )
           ajaxResponse(array('response'=>$videoFile));
         else
           ajaxError('Video Generation Failed');

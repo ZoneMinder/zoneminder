@@ -73,6 +73,7 @@ The first line will add bullseye-backports repository.
 The backports repository is deactivated by default, so with the second line we explicityly state we want the backported version of zoneminder.
 
 ::
+    
     sudo echo 'deb http://deb.debian.org/debian bullseye-backports main contrib' >> /etc/apt/sources.list
     sudo apt update && sudo apt -t bullseye-backports install zoneminder
 

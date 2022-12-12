@@ -411,7 +411,7 @@ function initPage() {
       el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
     if (el.hasClass('datepicker')) {
-      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
   });
 

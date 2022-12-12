@@ -1,6 +1,11 @@
 <?php
+if (!isset($_REQUEST['entity'])) {
+  Error("No entity pass to status request.");
+  http_response_code(404);
+  return;
+}
 
-if ( $_REQUEST['entity'] == 'navBar' ) {
+if ($_REQUEST['entity'] == 'navBar') {
   global $bandwidth_options, $user;
   $data = array();
   if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
@@ -29,7 +34,7 @@ $statusData = array(
     'elements' => array(
       'MonitorCount' => array( 'sql' => 'count(*)' ),
       'ActiveMonitorCount' => array( 'sql' => 'count(if(`Function` != \'None\',1,NULL))' ),
-      'State' => array( 'func' => 'daemonCheck()?'.translate('Running').':'.translate('Stopped') ),
+      'State' => array( 'func' => 'daemonCheck()?\''.translate('Running').'\':\''.translate('Stopped').'\'' ),
       'Load' => array( 'func' => 'getLoad()' ),
       'Disk' => array( 'func' => 'getDiskPercent()' ),
     ),

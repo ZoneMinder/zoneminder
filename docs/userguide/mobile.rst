@@ -5,8 +5,8 @@ Here are some options for using ZoneMinder on Mobile devices:
 
 Third party mobile clients
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-* zmNinja  (`source code <https://github.com/pliablepixels/zmNinja>`__,  needs APIs to be installed to work)
-	* Available in App Store, Play Store and for Desktops - `website <http://pliablepixels.github.io/>`__
+* zmNinja  (`source code <https://github.com/zoneminder/zmNinja>`__,  needs APIs to be installed to work)
+	* Available in App Store, Play Store and for Desktops - `website <https://zmninja.zoneminder.com/>`__
 
 Using the existing web console
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

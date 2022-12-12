@@ -3,8 +3,8 @@ Debian
 
 .. contents::
 
-Easy Way: Debian 11 (Bullseye)
-------------------------------
+Debian 11 (Bullseye)
+--------------------
 
 This procedure will guide you through the installation of ZoneMinder on Debian 11 (Bullseye).
 
@@ -73,6 +73,7 @@ The first line will add bullseye-backports repository.
 The backports repository is deactivated by default, so with the second line we explicityly state we want the backported version of zoneminder.
 
 ::
+
     sudo echo 'deb http://deb.debian.org/debian bullseye-backports main contrib' >> /etc/apt/sources.list
     sudo apt update && sudo apt -t bullseye-backports install zoneminder
 
@@ -103,8 +104,8 @@ To make sure zoneminder can read the configuration file, run the following comma
 
 If the zoneminder.service show to be active and without any errors, you should be able to access zoneminder at ``http://yourhostname/zm``
 
-Easy Way: Debian Buster
-------------------------
+Debian Buster
+-------------
 
 This procedure will guide you through the installation of ZoneMinder on Debian 10 (Buster).
 
@@ -255,8 +256,8 @@ Reload Apache to enable your changes and then start ZoneMinder.
 
 You are now ready to go with ZoneMinder. Open a browser and type either ``localhost/zm`` one the local machine or ``{IP-OF-ZM-SERVER}/zm`` if you connect from a remote computer.
 
-Easy Way: Debian Stretch
-------------------------
+Debian Stretch
+--------------
 
 This procedure will guide you through the installation of ZoneMinder on Debian 9 (Stretch). This section has been tested with ZoneMinder 1.36 on Debian 9.8.
 

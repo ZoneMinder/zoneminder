@@ -32,14 +32,8 @@ To use this repository instead of the official Ubuntu repository, enter the foll
 ::
         sudo apt install -y zoneminder
 
-**Step 4:** Set permissions
 
-::
-
-        sudo chown -R www-data:www-data /usr/share/zoneminder/
-
-
-**Step 5:** Configure Apache correctly:
+**Step 4:** Configure Apache correctly:
 
 ::
         

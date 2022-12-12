@@ -937,6 +937,10 @@ class Filter extends ZM_Object {
     $terms = $this->terms();
     $attrTypes = $this->attrTypes();
     $opTypes = $this->opTypes();
+    $archiveTypes = array(
+      '0' => translate('ArchUnarchived'),
+      '1' => translate('ArchArchived')
+    );
 
     for ($i=0; $i < count($terms); $i++) {
       $term = $terms[$i];

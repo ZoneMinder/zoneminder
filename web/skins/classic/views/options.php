@@ -43,6 +43,7 @@ $tabs['highband'] = translate('HighBW');
 $tabs['medband'] = translate('MediumBW');
 $tabs['lowband'] = translate('LowBW');
 $tabs['users'] = translate('Users');
+$tabs['groups'] = translate('Groups');
 $tabs['control'] = translate('Control');
 $tabs['privacy'] = translate('Privacy');
 $tabs['MQTT'] = translate('MQTT');
@@ -195,6 +196,14 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
 } else if ($tab == 'privacy') {
   if (canView('System')) {
     $redirect = '?view=privacy';
+  } else {
+    $redirect = '?view=error';
+  }
+  // Have to do this 
+  header('Location: '.$redirect);
+} else if ($tab == 'groups') {
+  if (canView('Groups')) {
+    $redirect = '?view=groups';
   } else {
     $redirect = '?view=error';
   }

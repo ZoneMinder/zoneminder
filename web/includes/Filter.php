@@ -51,6 +51,8 @@ class Filter extends ZM_Object {
         if ($term->valid()) {
           if (!$this->_sql and $term->cnj) unset($term->cnj);
           $this->_sql .= $term->sql();
+        } else {
+          Debug("Term is not valid " . $term->to_string());
         }
       } # end foreach term
     }
@@ -173,7 +175,6 @@ class Filter extends ZM_Object {
         $this->{'Query'} = jsonDecode($this->{'Query_json'});
       }
     }
-
 
     if ($this->{'Query'} and isset($this->{'Query'}['terms']) and count($this->{'Query'}['terms'])) {
       unset($this->{'Query'}['terms'][0]['cnj']);
@@ -959,18 +960,20 @@ class Filter extends ZM_Object {
 
       #$html .= ($i == 0) ?  '' : htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).PHP_EOL;
       $html .= ($i == 0) ?  '' : html_input("filter[Query][terms][$i][cnj]", 'hidden', $term['cnj']).PHP_EOL;
-      $html .= '<span class="term"><label>'.html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']).$attrTypes[$term['attr']].'</label>';
       if ( isset($term['attr']) ) {
+        $html .= '<span class="term"><label>'.$attrTypes[$term['attr']].'</label>';
+        $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
+        $html .= html_input("filter[Query][terms][$i][op]", 'hidden', '=').PHP_EOL;
         if ( $term['attr'] == 'Archived' ) {
-          $html .= html_input("filter[Query][terms]['.$i.'][op]", 'hidden', '=').PHP_EOL;
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).PHP_EOL;
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
           #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span><input type="text" class="datetimepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></span>'.PHP_EOL;
+          $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
+          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" class="datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></span>'.PHP_EOL;

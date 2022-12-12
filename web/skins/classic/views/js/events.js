@@ -40,7 +40,6 @@ function ajaxRequest(params) {
     delete params.data.filter;
   }
   $j('#fieldsTable input').each(function(index) {
-    console.log(this);
     const el = $j(this);
     params.data[el.attr('name')] = el.val();
   });
@@ -411,6 +410,9 @@ function initPage() {
     if (el.hasClass('datetimepicker')) {
       el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
+    if (el.hasClass('datepicker')) {
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+    }
   });
 
   table.bootstrapTable('resetSearch');
@@ -419,9 +421,18 @@ function initPage() {
 }
 
 function filterEvents() {
+  filterQuery = '';
+  $j('#fieldsTable input').each(function(index) {
+    const el = $j(this);
+    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
+  });
+  $j('#fieldsTable select').each(function(index) {
+    const el = $j(this);
+    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
+  });
+  console.log(filterQuery);
   table.bootstrapTable('refresh');
 }
-
 
 $j(document).ready(function() {
   initPage();

@@ -963,7 +963,7 @@ class Filter extends ZM_Object {
       if ( isset($term['attr']) ) {
         $html .= '<span class="term"><label>'.$attrTypes[$term['attr']].'</label>';
         $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
-        $html .= html_input("filter[Query][terms][$i][op]", 'hidden', '=').PHP_EOL;
+        $html .= html_input("filter[Query][terms][$i][op]", 'hidden', $term['op']).PHP_EOL;
         if ( $term['attr'] == 'Archived' ) {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).PHP_EOL;
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {

@@ -3,6 +3,8 @@ if (!isset($_REQUEST['entity'])) {
   Error("No entity pass to status request.");
   http_response_code(404);
   return;
+} else {
+
 }
 
 if ($_REQUEST['entity'] == 'navBar') {
@@ -33,7 +35,7 @@ $statusData = array(
     'limit' => 1,
     'elements' => array(
       'MonitorCount' => array( 'sql' => 'count(*)' ),
-      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Function` != \'None\',1,NULL))' ),
+      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Capturing` != \'None\',1,NULL))' ),
       'State' => array( 'func' => 'daemonCheck()?\''.translate('Running').'\':\''.translate('Stopped').'\'' ),
       'Load' => array( 'func' => 'getLoad()' ),
       'Disk' => array( 'func' => 'getDiskPercent()' ),
@@ -48,7 +50,9 @@ $statusData = array(
       'Id' => array( 'sql' => 'Monitors.Id' ),
       'Name' => array( 'sql' => 'Monitors.Name' ),
       'Type' => true,
-      'Function' => true,
+      'Capturing' => true,
+      'Analysing' => true,
+      'Capturing' => true,
       'Enabled' => true,
       'LinkedMonitors' => true,
       'Triggers' => true,
@@ -227,9 +231,11 @@ function collectData() {
   global $statusData;
 
   $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
-#print_r( $entitySpec );
-  if ( !canView($entitySpec['permission']) )
+  #print_r( $entitySpec );
+  if (!canView($entitySpec['permission'])) {
     ajaxError('Unrecognised action or insufficient permissions');
+    return;
+  }
 
   if ( !empty($entitySpec['func']) ) {
     $data = eval('return('.$entitySpec['func'].');');

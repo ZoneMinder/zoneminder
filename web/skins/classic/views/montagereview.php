@@ -73,12 +73,12 @@ if (isset($_REQUEST['current'])) {
 
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   if (isset($defaultCurrentTimeSecs)) {
-    $minTime = date('c', $defaultCurrentTimeSecs - 1800);
-    $maxTime = date('c', $defaultCurrentTimeSecs + 1800);
+    $minTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs - 1800);
+    $maxTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs + 1800);
   } else {
     $time = time();
-    $maxTime = date('c', $time);
-    $minTime = date('c', $time - 3600);
+    $maxTime = date('Y-m-d H:i:s', $time);
+    $minTime = date('Y-m-d H:i:s', $time - 3600);
   }
 } else {
   if (isset($_REQUEST['minTime']))
@@ -96,12 +96,12 @@ if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
   $maxTime = null;
 }
 
-$filter = array();
+$filter = null;
 if (isset($_REQUEST['filter'])) {
-  $filter = $_REQUEST['filter'];
+  $filter = ZM\Filter::parse($_REQUEST['filter']);
 
 	# Try to guess min/max time from filter
-	foreach ($filter['Query'] as $term) {
+	foreach ($filter->terms() as $term) {
 		if ( $term['attr'] == 'StartDateTime' ) {
 			if ( $term['op'] == '<=' or $term['op'] == '<' ) {
 				$maxTime = $term['val'];
@@ -111,34 +111,28 @@ if (isset($_REQUEST['filter'])) {
 		}
 	}
 } else {
-
   if ( isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0) ) {
-    $filter = array(
-      'Query' => array(
-        'terms' => array(
-          array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'),
-          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'),
-        )
-      ),
-    );
-    if ( count($selected_monitor_ids) ) {
-      $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
+    $filter = new ZM\Filter();
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'));
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
+    if (count($selected_monitor_ids)) {
+      $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
     } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
       # this should be redundant
       for ( $i = 0; $i < count($displayMonitors); $i++ ) {
         if ( $i == '0' ) {
-          $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1');
+          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1'));
         } else if ( $i == (count($displayMonitors)-1) ) {
-          $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1');
+          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1'));
         } else {
-          $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or');
+          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or'));
         }
       }
     }
   } # end if REQUEST[Filter]
 }
-if ( count($filter) ) {
-  parseFilter($filter);
+if ($filter and count($filter->terms()) ) {
+  #parseFilter($filter);
   # This is to enable the download button
   zm_session_start();
   $_SESSION['montageReviewFilter'] = $filter;
@@ -150,7 +144,7 @@ if ( count($filter) ) {
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
 $eventsSql = 'SELECT
-    E.Id,E.Name,E.StorageId,
+    E.Id, E.Name, E.StorageId,
     E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
     CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
     UNIX_TIMESTAMP(EndDateTime) AS EndTimeSecs,
@@ -226,7 +220,7 @@ if ( isset($minTime) && isset($maxTime) ) {
   $maxTimeSecs = strtotime($maxTime);
   $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
 }
-$eventsSql .= ' ORDER BY E.Id ASC';
+$eventsSql .= ' ORDER BY E.StartDateTime ASC';
 
 $monitors = array();
 foreach ($displayMonitors as $row) {
@@ -235,8 +229,6 @@ foreach ($displayMonitors as $row) {
   $Monitor = new ZM\Monitor($row);
   $monitors[] = $Monitor;
 }
-
-// These are zoom ranges per visible monitor
 
 xhtmlHeaders(__FILE__, translate('MontageReview') );
 getBodyTopHTML();
@@ -255,9 +247,15 @@ getBodyTopHTML();
     echo $html;
 ?>
         <?php echo $filter_bar ?>
+<?php
+if (count($filter->terms())) {
+  echo $filter->simple_widget();
+}
+?>
+
         <div id="DateTimeDiv">
-          <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime ) ?>"/> to 
-          <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime ) ?>"/>
+          <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> to 
+          <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>"/>
         </div>
         <div id="ScaleDiv">
           <label for="scaleslider"><?php echo translate('Scale')?></label>

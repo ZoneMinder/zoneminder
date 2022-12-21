@@ -318,7 +318,7 @@ int main(int argc, char *argv[]) {
           result = -1;
           break;
         }
-        monitors[i]->UpdateFPS();
+        if (!result) monitors[i]->UpdateFPS();
 
         SystemTimePoint now = std::chrono::system_clock::now();
         monitors[i]->SetHeartbeatTime(now);

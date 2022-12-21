@@ -177,7 +177,7 @@ function MonitorStream(monitorData) {
 
   this.start = function(delay) {
     if (this.janusEnabled) {
-      var server;
+      let server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
       } else if (window.location.protocol=='https:') {
@@ -240,6 +240,11 @@ function MonitorStream(monitorData) {
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
   };
   this.kill = function() {
+    if (janus) {
+      if (streaming[this.id]) {
+        streaming[this.id].detach();
+      }
+    }
     const stream = this.getElement();
     if (!stream) return;
     stream.onerror = null;

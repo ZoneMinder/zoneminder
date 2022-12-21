@@ -35,6 +35,14 @@ if (defined('ZM_SERVER_ID')) {
 if (!$Server) {
   $Server = array('Id' => '');
 }
+
+$monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
+$monitors_by_id = array();
+foreach ($monitors as $row) {
+  $monitors_by_id[$row['Id']] = $row['Name'];
+}
+$monitors_by_name = array_flip($monitors_by_id);
+
 $mid = null;
 $monitor = null;
 if (!empty($_REQUEST['mid'])) {
@@ -53,6 +61,9 @@ if (!empty($_REQUEST['mid'])) {
 if (!$monitor) {
   $monitor = new ZM\Monitor();
   $monitor->Name(translate('Monitor').'-'.getTableAutoInc('Monitors'));
+  while (isset($monitors_by_name[$monitor->Name()])) {
+    $monitor->Name($monitor->Name().'0');
+  }
   $monitor->WebColour(random_colour());
 } # end if $_REQUEST['mid']
 
@@ -63,6 +74,9 @@ if (isset($_REQUEST['dupId'])) {
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
   $clonedName = $monitor->Name();
   $monitor->Name('Clone of '.$monitor->Name());
+  while (isset($monitors_by_name[$monitor->Name()])) {
+    $monitor->Name('Clone of '.$monitor->Name());
+  }
   $monitor->Id($mid);
 }
 
@@ -344,7 +358,6 @@ $label_size = array(
     4 => translate('Extra Large'),
     );
 
-$monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
 
 xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name()));
 getBodyTopHTML();
@@ -445,8 +458,7 @@ switch ($name) {
   case 'general' :
     {
       if (!$monitor->Id() and count($monitors)) {
-        $monitor_ids = array();
-        foreach ($monitors as $m) { $monitor_ids[] = $m['Id']; }
+        $monitor_ids = array_keys($monitors_by_id);
         $available_monitor_ids = array_diff(range(min($monitor_ids),max($monitor_ids)), $monitor_ids);
 ?>
               <tr class="Id">
@@ -575,7 +587,7 @@ switch ($name) {
             <tr>
               <td><?php echo translate('Password') ?></td>
               <td>
-                <input type="password" id="newMonitor[ONVIF_Password]" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>"/>
+                <input type="password" id="newMonitor[ONVIF_Password]" name="newMonitor[ONVIF_Password]" value="<?php echo validHtmlStr($monitor->ONVIF_Password()) ?>" autocomplete="new-password"/>
                 <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[ONVIF_Password]">visibility</span>
               </td>
             </tr>
@@ -689,7 +701,7 @@ include('_monitor_source_nvsocket.php');
         <tr>
           <td><?php echo translate('Password') ?></td>
           <td>
-            <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+            <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
             <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </td>
         </tr>
@@ -700,7 +712,7 @@ include('_monitor_source_nvsocket.php');
           <tr>
             <td><?php echo 'Password' ?></td>
             <td>
-              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
             </td>
           </tr>
@@ -740,7 +752,7 @@ include('_monitor_source_nvsocket.php');
           <tr>
             <td><?php echo 'Password' ?></td>
             <td>
-              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
             </td>
           </tr>
@@ -774,7 +786,7 @@ include('_monitor_source_nvsocket.php');
           <tr>
             <td><?php echo 'Password' ?></td>
             <td>
-              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>"/>
+              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
             </td>
           </tr>

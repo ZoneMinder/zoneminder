@@ -1131,6 +1131,30 @@ function initPage() {
     this.form.submit();
   });
 }
+
+function takeSnapshot() {
+  monitor_ids = [];
+  for (const key in monitorIndex) {
+    monitor_ids[monitor_ids.length] = key;
+  }
+  post('?view=snapshot', {'action': 'create', 'monitor_ids[]': monitor_ids});
+
+  /*
+   * Alternate implementation using the API
+  server = new Server(Servers[serverId]);
+  $j.ajax({
+    method: 'POST',
+    url: server.UrlToApi()+'/snapshots.json' + (auth_relay ? '?' + auth_relay : ''),
+    data: { 'monitor_ids[]': monitorIndex.keys()},
+    success: function(response) {
+      console.log(response);
+    }
+  });
+  //console.log(monitor_ids);
+  //window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+*/
+}
+
 window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);

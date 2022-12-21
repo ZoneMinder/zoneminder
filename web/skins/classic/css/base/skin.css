@@ -599,13 +599,12 @@ input[type=submit]:disabled,
 .btn-primary:disabled {
     background-color: #aaaaaa;    
     border-color: #bbbbbb;
-
 }
-
 
 #navbar-container {
   padding: 0;
 }
+
 .navbar{
 	margin-bottom: 0 !important;
 	border-radius: 0;
@@ -630,11 +629,8 @@ color:#ffa801;
   border:none;
 }
 
-
-
 .container-fluid {
   position: relative;
-  padding-bottom: 10px;
 }
 
 .sidebar {

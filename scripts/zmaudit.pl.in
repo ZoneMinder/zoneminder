@@ -692,6 +692,10 @@ if ( $level > 1 ) {
     if ( $res = $selectEmptyEventsSth->execute() ) {
       while( my $event = $selectEmptyEventsSth->fetchrow_hashref() ) {
         aud_print("Found empty event with no frame records '$event->{Id}' at $$event{StartDateTime}");
+        if ($$event{Archived}) {
+          aud_print("Not deleting because it is archived.");
+          next;
+        }
         if ( confirm() ) {
           if ( $res = $deleteEventSth->execute($event->{Id}) ) {
             $cleaned = 1;

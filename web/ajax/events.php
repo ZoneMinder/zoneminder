@@ -33,6 +33,15 @@ $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : n
 if ($user['MonitorIds']) {
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
 }
+if (!empty($_REQUEST['StartDateTime'])) {
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '>=', 'val'=>$_REQUEST['StartDateTime']));
+}
+if (!empty($_REQUEST['EndDateTime'])) {
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'EndDateTime', 'op'=> '<=', 'val'=>$_REQUEST['EndDateTime']));
+}
+if (!empty($_REQUEST['MonitorId'])) {
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=> '=', 'val'=>$_REQUEST['MonitorId']));
+}
 
 // Search contains a user entered string to search on
 $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';

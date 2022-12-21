@@ -141,7 +141,7 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     $filter = addFilterTerm(
       $eventCounts[$j]['filter'],
       count($eventCounts[$j]['filter']['Query']['terms']),
-      array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'=', 'val'=>$monitor['Id'])
+      array('cnj'=>'and', 'attr'=>'Monitor', 'op'=>'=', 'val'=>$monitor['Id'])
     );
     parseFilter($filter);
     #$counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
@@ -425,7 +425,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
       count($eventCounts[$i]['filter']['Query']['terms']),
       array(
         'cnj'=>'and',
-        'attr'=>'MonitorId',
+        'attr'=>'Monitor',
         'op'=>'IN',
         'val'=>implode(',',array_map(function($m){return $m['Id'];}, $displayMonitors))
         )

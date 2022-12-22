@@ -31,7 +31,7 @@ if ( $sid and ! $Server->Id() ) return;
           // We have to manually insert the csrf key into the form when using a modal generated via ajax call
           echo getCSRFinputHTML();
           ?>
-          <input type="hidden" name="object" value="server"/>
+          <input type="hidden" name="action" value="save"/>
           <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>
           <table class="table-sm">
             <tbody>

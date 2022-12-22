@@ -46,12 +46,15 @@ void Group_Permission::Copy(const Group_Permission &gp) {
   group_id = gp.group_id;
   permission = gp.permission;
   monitor_ids = gp.monitor_ids;
+  monitor_ids_loaded = gp.monitor_ids_loaded;
 }
 
 Group_Permission::Permission Group_Permission::getPermission(int monitor_id) {
   if (!monitor_ids_loaded) {
     Debug(1, "Loading monitor Ids");
     loadMonitorIds();
+  } else {
+    Debug(1, "Not loading monitor Ids");
   }
   if (monitor_ids.empty()) {
     Debug(1, "No monitor ids... is group empty?");
@@ -102,4 +105,5 @@ void Group_Permission::loadMonitorIds() {
     monitor_ids.push_back(atoi(dbrow[0]));
   }
   mysql_free_result(result);
+  monitor_ids_loaded = true;
 }  // end loadMonitorsIds()

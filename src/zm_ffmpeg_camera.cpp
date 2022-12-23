@@ -188,6 +188,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   start_read_time = std::chrono::steady_clock::now();
   int ret;
   AVFormatContext *formatContextPtr;
+  int64_t lastPTS;
 
   if ( mSecondFormatContext and
       (
@@ -197,12 +198,14 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       ) ) {
     // if audio stream is behind video stream, then read from audio, otherwise video
     formatContextPtr = mSecondFormatContext;
+    lastPTS = mLastAudioPTS;
     Debug(4, "Using audio input because audio PTS %" PRId64 " < video PTS %" PRId64,
         av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q),
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
         );
   } else {
     formatContextPtr = mFormatContext;
+    lastPTS = mLastVideoPTS;
     Debug(4, "Using video input because %" PRId64 " >= %" PRId64,
         (mAudioStream?av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q):0),
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
@@ -222,6 +225,11 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       Error("Unable to read packet from stream %d: error %d \"%s\".",
           packet->stream_index, ret, av_make_error_string(ret).c_str());
     }
+    return -1;
+  }
+  if ((packet->pts < 0) and (lastPTS >=0)) {
+    // 32-bit wrap around?
+    Info("Suspected 32bit wraparound in input pts. %"PRId64, packet->pts);
     return -1;
   }
 

@@ -9,8 +9,8 @@ SET @s = (SELECT IF(
   WHERE table_name = 'Snapshot_Events'
   AND table_schema = DATABASE()
   ) > 0,
-"SELECT 'Snapshot_Events doesnt exist, good.'",
-"ALTER TABLE `Snapshot_Events` RENAME TO Snapshots_Events`"
+"ALTER TABLE `Snapshot_Events` RENAME TO `Snapshots_Events`",
+"SELECT 'Snapshot_Events doesnt exist, good.'"
 ));
 
 PREPARE stmt FROM @s;

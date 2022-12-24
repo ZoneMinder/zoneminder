@@ -983,12 +983,13 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
   }  // end while
 
   if (have_out_of_order) {
-    queue.insert(rit.base(), zm_pkt);
+    AVPacket *p = ((*rit)->packet).get();
     if (rit == queue.rend()) {
-      Warning("Unable to re-order packet");
+      Warning("Unable to re-order packet, packet dts is %" PRId64, p->dts);
     } else {
-      Debug(1, "Found out of order packet");
+      Debug(1, "Found out of order packet, inserting after %" PRId64, p->dts);
     }
+    queue.insert(rit.base(), zm_pkt);
   } else {
     queue.push_back(zm_pkt);
     Debug(1, "Pushing on queue %d, size is %zu", stream_index, queue.size());

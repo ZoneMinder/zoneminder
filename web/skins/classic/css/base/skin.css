@@ -508,6 +508,11 @@ body.sticky #page {
   clear: both;
   visibility: hidden;
 }
+@media (min-width: 768px) {
+  #header {
+max-width: 100%;
+  }
+}
 
 
 #header h2 {

@@ -94,6 +94,7 @@ zmDb::zmDb() : dbLevel(0) {}
 zmDb::~zmDb() {}
 
 bool zmDb::connected() {
+#if SOCI_VERSION >= 400001 // before version 4.0.1 session::is_connected was not supported
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
   if( std::chrono::duration_cast<std::chrono::seconds>(now - lastConnectionCheck).count() <= 10 ) {
     return true;
@@ -113,6 +114,9 @@ bool zmDb::connected() {
     return false;
   }
   return true;
+#else
+  return false;
+#endif
 }
 
 void zmDb::lock() {
@@ -158,6 +162,52 @@ zmDbQuery::~zmDbQuery()
   stmt = nullptr;
 }
 
+// unsigned int is a special case in that representation actually differs between mysql and postgresql
+template <>
+unsigned int zmDb::getFromResult<unsigned int>(soci::rowset_iterator<soci::row>* result_iter, const int position) {
+  try {
+    return getUnsignedIntColumn(result_iter, position);
+  }
+  catch (soci::soci_error const & e)
+  {
+    std::cerr << "Database exception: " << e.what() << std::endl;
+#if SOCI_VERSION >= 400003 // before version 4.0.3 error categories were not implemented
+    switch( e.get_error_category() ){
+      case soci::soci_error::error_category::invalid_statement:
+      case soci::soci_error::error_category::no_privilege:
+      case soci::soci_error::error_category::system_error:
+        exit(-1);
+      default:
+        return 0;
+    }
+#endif
+  }
+  return 0;
+}
+
+// unsigned int is a special case in that representation actually differs between mysql and postgresql
+template <>
+unsigned int zmDb::getFromResult<unsigned int>(soci::rowset_iterator<soci::row>* result_iter, const std::string& name) {
+  try {
+    return getUnsignedIntColumn(result_iter, name);
+  }
+  catch (soci::soci_error const & e)
+  {
+    std::cerr << "Database exception: " << e.what() << std::endl;
+#if SOCI_VERSION >= 400003 // before version 4.0.3 error categories were not implemented
+    switch( e.get_error_category() ){
+      case soci::soci_error::error_category::invalid_statement:
+      case soci::soci_error::error_category::no_privilege:
+      case soci::soci_error::error_category::system_error:
+        exit(-1);
+      default:
+        return 0;
+    }
+#endif
+  }
+  return 0;
+}
+
 void zmDbQuery::run(bool data_exchange)
 {
   if (stmt == nullptr || result != nullptr)
@@ -190,6 +240,7 @@ void zmDbQuery::run(bool data_exchange)
     Error( "Database exception: %s", e.what() );
     db->restoreDatabaseLog();
 
+#if SOCI_VERSION >= 400003 // before version 4.0.3 error categories were not implemented
     switch( e.get_error_category() ){
       case soci::soci_error::error_category::invalid_statement:
       case soci::soci_error::error_category::no_privilege:
@@ -200,6 +251,7 @@ void zmDbQuery::run(bool data_exchange)
       default:
         break;
     }
+#endif
   }
   if( !resultFlag && exitOnError ) {
     exit(errcode);
@@ -225,7 +277,11 @@ void zmDbQuery::reset()
   if (stmt == nullptr)
     return;
 
+#if SOCI_VERSION >= 400000
   stmt->bind_clean_up();
+#else
+  stmt->clean_up();
+#endif
 
   if (result != nullptr)
   {

@@ -34,7 +34,7 @@
 #include "zm_utils.h"
 #include "zm_zone.h"
 
-#include "soci.h"
+#include "soci/soci.h"
 
 #include <list>
 #include <memory>

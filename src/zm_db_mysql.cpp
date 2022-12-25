@@ -45,7 +45,7 @@ std::string load_monitor_mysql =
 
 zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
 {
-    if (db.is_connected())
+    if (connected())
         return;
 
     std::string paramsStr("");
@@ -82,7 +82,7 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
 
     db.open( params );
 
-    if (!db.is_connected())
+    if (!connected())
     {
         Error("Can't connect to server: %s", paramsStr.c_str());
         return;
@@ -95,17 +95,19 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
         
     } else {
         bool reconnect = true;
-        unsigned int OPT_NONBLOCK = 1;
         unsigned int CONNECT_TIMEOUT = 2;
         unsigned int READ_TIMEOUT = 2;
         unsigned int WRITE_TIMEOUT = 2;
 
         mysql_options(concreteDb->conn_, MYSQL_OPT_RECONNECT, &reconnect);
-        mysql_options(concreteDb->conn_, MYSQL_OPT_NONBLOCK, &OPT_NONBLOCK);
         mysql_options(concreteDb->conn_, MYSQL_OPT_CONNECT_TIMEOUT, &CONNECT_TIMEOUT);
         mysql_options(concreteDb->conn_, MYSQL_OPT_READ_TIMEOUT, &READ_TIMEOUT);
         mysql_options(concreteDb->conn_, MYSQL_OPT_WRITE_TIMEOUT, &WRITE_TIMEOUT);
 
+#if defined(MYSQL_OPT_NONBLOCK)
+        unsigned int OPT_NONBLOCK = 1;
+        mysql_options(concreteDb->conn_, MYSQL_OPT_NONBLOCK, &OPT_NONBLOCK);
+#endif
         if ( mysql_query(concreteDb->conn_, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
             Error("Can't set isolation level: %s", mysql_error(concreteDb->conn_));
         }
@@ -131,8 +133,10 @@ zmDbMySQLAdapter::zmDbMySQLAdapter() : zmDb()
 
 zmDbMySQLAdapter::~zmDbMySQLAdapter()
 {
-    if (!db.is_connected())
+    if (!connected()) 
+    {
         return;
+    }
 
     try
     {
@@ -144,14 +148,35 @@ zmDbMySQLAdapter::~zmDbMySQLAdapter()
     }
 }
 
+#if (SOCI_VERSION < 400001) // before version 4.0.1 session::is_connected was not supported
+bool zmDbMySQLAdapter::connected() {
+    soci::mysql_session_backend *concreteDb = (soci::mysql_session_backend *)db.get_backend();
+    if ( concreteDb == NULL )
+    {
+        return false;
+    }
+
+    // note: taken nearly verbatim from soci source
+    return mysql_ping(concreteDb->conn_) == 0;
+}
+#endif
+
 uint64_t zmDbMySQLAdapter::lastInsertID(const zmDbQueryID &queryId)
 {
-    if (!db.is_connected())
+    if (!connected())
+    {
         return 0;
+    }
 
+#if (SOCI_VERSION < 400000) // before version 4.0.0 IDs for sequences were not treated as 64bits
+    long id = 0;
+#else
     long long id = 0;
+#endif
     if (db.get_last_insert_id(autoIncrementTable[queryId], id))
-        return id;
+    {
+        return (long long)id;
+    }
 
     return 0;
 }
@@ -162,8 +187,10 @@ std::string zmDbMySQLAdapter::realColumnName(const std::string& column) {
 
 void zmDbMySQLAdapter::prepareSelectStatements()
 {
-    if (!db.is_connected())
+    if (!connected()) 
+    {
         return;
+    }
 
     mapStatements[SELECT_SERVER_ID_WITH_NAME]->prepare("SELECT `Id` FROM `Servers` WHERE `Name`=:name");
 
@@ -206,8 +233,10 @@ void zmDbMySQLAdapter::prepareSelectStatements()
 
 void zmDbMySQLAdapter::prepareSelectMonitorStatements()
 {
-    if (!db.is_connected())
+    if (!connected()) 
+    {
         return;
+    }
 
     std::string op_and = " AND ";
     std::string cond_id = "`Id` = :id";
@@ -250,8 +279,10 @@ void zmDbMySQLAdapter::prepareSelectMonitorStatements()
 
 void zmDbMySQLAdapter::prepareSelectAllStatements()
 {
-    if (!db.is_connected())
+    if (!connected()) 
+    {
         return;
+    }
 
     mapStatements[SELECT_ALL_ACTIVE_STATES_ID]->prepare("SELECT Id FROM States WHERE IsActive=1");
 
@@ -292,8 +323,10 @@ void zmDbMySQLAdapter::prepareSelectAllStatements()
 
 void zmDbMySQLAdapter::prepareUpdateStatements()
 {
-    if (!db.is_connected())
+    if (!connected()) 
+    {
         return;
+    }
 
     mapStatements[UPDATE_NEW_EVENT_WITH_ID]->prepare(
         "UPDATE Events SET Name=:name, EndDateTime = from_unixtime(:enddatetime), Length = :length, Frames = :frames, AlarmFrames = :alarm_frames, TotScore = :total_score, AvgScore = :avg_score, MaxScore = :max_score, DefaultVideo=:default_video WHERE Id = :id AND Name='New Event'");
@@ -314,8 +347,10 @@ void zmDbMySQLAdapter::prepareUpdateStatements()
 
 void zmDbMySQLAdapter::prepareInsertStatements()
 {
-    if (!db.is_connected())
+    if (!connected()) 
+    {
         return;
+    }
 
     mapStatements[INSERT_EVENTS]->prepare("INSERT INTO `Events` ( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` ) VALUES (:monitor_id, :storage_id, 'New Event', from_unixtime(:start_datetime), :width, :height, :cause, :notes, :state_id, :orientation, :videoed, :default_video, :save_jpegs, :scheme)");
 

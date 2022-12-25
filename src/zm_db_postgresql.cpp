@@ -45,7 +45,7 @@ std::string load_monitor_postgresql =
 
 zmDbPostgreSQLAdapter::zmDbPostgreSQLAdapter() : zmDb()
 {
-    if (db.is_connected())
+    if (connected())
         return;
 
     std::string paramsStr("");
@@ -82,7 +82,7 @@ zmDbPostgreSQLAdapter::zmDbPostgreSQLAdapter() : zmDb()
 
     db.open( params );
 
-    if (!db.is_connected())
+    if (!connected())
     {
         Error("Can't connect to server: %s", paramsStr.c_str());
         return;
@@ -90,7 +90,8 @@ zmDbPostgreSQLAdapter::zmDbPostgreSQLAdapter() : zmDb()
 
     soci::postgresql_session_backend *concreteDb = (soci::postgresql_session_backend *)db.get_backend();
 
-    if( concreteDb->conn_ == NULL ) {
+    if( concreteDb->conn_ == NULL ) 
+    {
         Error("Cannot connect to database");
     }
 
@@ -114,8 +115,10 @@ zmDbPostgreSQLAdapter::zmDbPostgreSQLAdapter() : zmDb()
 
 zmDbPostgreSQLAdapter::~zmDbPostgreSQLAdapter()
 {
-    if (!db.is_connected())
+    if (!connected())
+    {
         return;
+    }
 
     try
     {
@@ -127,12 +130,42 @@ zmDbPostgreSQLAdapter::~zmDbPostgreSQLAdapter()
     }
 }
 
+#if SOCI_VERSION < 400001 // before version 4.0.1 session::is_connected was not supported
+bool zmDbPostgreSQLAdapter::connected() {
+    soci::postgresql_session_backend *concreteDb = (soci::postgresql_session_backend *)db.get_backend();
+    if ( concreteDb == NULL )
+    {
+        return false;
+    }
+    
+    // note: taken nearly verbatim from soci source
+    // For the connection to work, its status must be OK, but this is not
+    // sufficient, so try to actually do something with it, even if it's
+    // something as trivial as sending an empty command to the server.
+    if ( PQstatus(concreteDb->conn_) != CONNECTION_OK ) 
+    {
+        return false;
+    }
+
+    PQclear( PQexec(concreteDb->conn_, "/* ping */") );
+
+    // And then check it again.
+    return PQstatus(concreteDb->conn_) == CONNECTION_OK;
+}
+#endif
+
 uint64_t zmDbPostgreSQLAdapter::lastInsertID(const zmDbQueryID &queryId)
 {
-    if (!db.is_connected())
+    if (!connected())
+    {
         return 0;
+    }
 
+#if (SOCI_VERSION < 400000) // before version 4.0.0 IDs for sequences were not treated as 64bits
+    long id = 0;
+#else
     long long id = 0;
+#endif
     if (db.get_last_insert_id(autoIncrementTable[queryId], id))
         return id;
 
@@ -177,7 +210,7 @@ unsigned int zmDbPostgreSQLAdapter::getUnsignedIntColumn(soci::rowset_iterator<s
 
 void zmDbPostgreSQLAdapter::prepareSelectStatements()
 {
-    if (!db.is_connected())
+    if (!connected())
         return;
 
     mapStatements[SELECT_SERVER_ID_WITH_NAME]->prepare("SELECT Id FROM \"servers\" WHERE Name=:name");
@@ -210,7 +243,7 @@ void zmDbPostgreSQLAdapter::prepareSelectStatements()
         "SELECT Id, Username, Password, Enabled,Stream, Events, Control, Monitors, System, MonitorIds, TokenMinExpiry FROM \"users\" WHERE Username = :username AND Enabled = 1");
 
     mapStatements[SELECT_GROUP_PERMISSIONS_FOR_USERID]->prepare(
-        "SELECT Id,UserId,GroupId,Permission+0 FROM \"groups_permissions\" WHERE UserId=:id");
+        "SELECT Id,UserId,GroupId,Permission FROM \"groups_permissions\" WHERE UserId=:id");
 
     mapStatements[SELECT_MONITOR_PERMISSIONS_FOR_USERID]->prepare(
         "SELECT Id,UserId,MonitorId,Permission FROM \"monitors_permissions\" WHERE UserId=:id");
@@ -221,7 +254,7 @@ void zmDbPostgreSQLAdapter::prepareSelectStatements()
 
 void zmDbPostgreSQLAdapter::prepareSelectMonitorStatements()
 {
-    if (!db.is_connected())
+    if (!connected())
         return;
 
     std::string op_and = " AND ";
@@ -265,7 +298,7 @@ void zmDbPostgreSQLAdapter::prepareSelectMonitorStatements()
 
 void zmDbPostgreSQLAdapter::prepareSelectAllStatements()
 {
-    if (!db.is_connected())
+    if (!connected())
         return;
 
     mapStatements[SELECT_ALL_ACTIVE_STATES_ID]->prepare("SELECT Id FROM \"states\" WHERE IsActive=1");
@@ -307,7 +340,7 @@ void zmDbPostgreSQLAdapter::prepareSelectAllStatements()
 
 void zmDbPostgreSQLAdapter::prepareUpdateStatements()
 {
-    if (!db.is_connected())
+    if (!connected())
         return;
 
     mapStatements[UPDATE_NEW_EVENT_WITH_ID]->prepare(
@@ -330,7 +363,7 @@ void zmDbPostgreSQLAdapter::prepareUpdateStatements()
 
 void zmDbPostgreSQLAdapter::prepareInsertStatements()
 {
-    if (!db.is_connected())
+    if (!connected())
         return;
 
     mapStatements[INSERT_EVENTS]->prepare("INSERT INTO \"events\" ( MonitorId, StorageId, Name, StartDateTime, Width, Height, Cause, Notes, StateId, Orientation, Videoed, DefaultVideo, SaveJPEGs, Scheme ) VALUES (:monitor_id, :storage_id, 'New Event', :start_datetime, :width, :height, :cause, :notes, :state_id, :orientation, :videoed, :default_video, :save_jpegs, :scheme)");

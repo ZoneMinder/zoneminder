@@ -26,9 +26,8 @@
 #ifdef HAVE_LIBSOCI_POSTGRESQL
 #include <cstdlib>
 
-
-#include "soci.h"
-#include "postgresql/soci-postgresql.h"
+#include "soci/soci.h"
+#include "soci/postgresql/soci-postgresql.h"
 
 class zmDbPostgreSQLAdapter : public zmDb {
 public:
@@ -36,6 +35,9 @@ public:
     ~zmDbPostgreSQLAdapter();
     virtual uint64_t lastInsertID(const zmDbQueryID& queryId);
     virtual std::string realColumnName(const std::string& column);
+#if SOCI_VERSION < 400001 // before version 4.0.1 session::is_connected was not supported
+    virtual bool connected() override;
+#endif
 
 protected:
     unsigned int getUnsignedIntColumn(soci::rowset_iterator<soci::row>* result_iter, const int position);

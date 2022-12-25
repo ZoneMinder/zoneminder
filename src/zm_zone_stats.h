@@ -24,7 +24,7 @@
 #include "zm_logger.h"
 #include "zm_vector2.h"
 
-#include "soci.h"
+#include "soci/soci.h"
 
 class ZoneStats {
  public:

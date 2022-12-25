@@ -31,7 +31,10 @@
 #include <stdexcept>
 #include <iostream>
 
-#include "soci.h"
+#pragma GCC diagnostic ignored "-Wuninitialized"
+#include "soci/soci.h"
+#include "soci/version.h"
+#pragma GCC diagnostic warning "-Wuninitialized"
 
 #include "zm_db_types.h"
 
@@ -58,6 +61,7 @@ protected:
     catch (soci::soci_error const & e)
     {
       std::cerr << "Database exception: " << e.what() << std::endl;
+#if SOCI_VERSION >= 400003 // before version 4.0.3 error categories were not implemented
       switch( e.get_error_category() ){
         case soci::soci_error::error_category::invalid_statement:
         case soci::soci_error::error_category::no_privilege:
@@ -66,6 +70,7 @@ protected:
         default:
           return T();
       }
+#endif
     }
     return T();
   }
@@ -78,6 +83,7 @@ protected:
     catch (soci::soci_error const & e)
     {
       std::cerr << "Database exception: " << e.what() << std::endl;
+#if SOCI_VERSION >= 400003 // before version 4.0.3 error categories were not implemented
       switch( e.get_error_category() ){
         case soci::soci_error::error_category::invalid_statement:
         case soci::soci_error::error_category::no_privilege:
@@ -86,50 +92,9 @@ protected:
         default:
           return T();
       }
+#endif
     }
     return T();
-  }
-
-  // unsigned int is a special case in that representation actually differs between mysql and postgresql
-  template <>
-  unsigned int getFromResult<unsigned int>(soci::rowset_iterator<soci::row>* result_iter, const int position) {
-    try {
-      return getUnsignedIntColumn(result_iter, position);
-    }
-    catch (soci::soci_error const & e)
-    {
-      std::cerr << "Database exception: " << e.what() << std::endl;
-      switch( e.get_error_category() ){
-        case soci::soci_error::error_category::invalid_statement:
-        case soci::soci_error::error_category::no_privilege:
-        case soci::soci_error::error_category::system_error:
-          exit(-1);
-        default:
-          return 0;
-      }
-    }
-    return 0;
-  }
-
-  // unsigned int is a special case in that representation actually differs between mysql and postgresql
-  template <>
-  unsigned int getFromResult<unsigned int>(soci::rowset_iterator<soci::row>* result_iter, const std::string& name) {
-    try {
-      return getUnsignedIntColumn(result_iter, name);
-    }
-    catch (soci::soci_error const & e)
-    {
-      std::cerr << "Database exception: " << e.what() << std::endl;
-      switch( e.get_error_category() ){
-        case soci::soci_error::error_category::invalid_statement:
-        case soci::soci_error::error_category::no_privilege:
-        case soci::soci_error::error_category::system_error:
-          exit(-1);
-        default:
-          return 0;
-      }
-    }
-    return 0;
   }
 
   // unsigned int is a special case in that representation actually differs between mysql and postgresql
@@ -182,6 +147,20 @@ public:
       if( result != nullptr )
         throw new std::runtime_error( "Invalid copy operation during result examination" );
     };
+
+  zmDbQuery& operator=(zmDbQuery other)
+  {
+    db = other.db;
+    id = other.id;
+    stmt = other.stmt;
+    exitOnError = other.exitOnError;
+    result = other.result;
+    result_iter = other.result_iter;
+    result_iter_end = other.result_iter_end;
+    deferred = std::vector< std::function<void ()> >(other.deferred.begin(), other.deferred.end());
+    executed = other.executed;
+    return *this;
+  }
 
   virtual ~zmDbQuery();
 

@@ -25,7 +25,7 @@
 #include "zm_zone.h"
 #include <vector>
 
-#include "soci.h"
+#include "soci/soci.h"
 
 enum FrameType {
   NORMAL = 0,

@@ -381,13 +381,28 @@ if(SOCI_FOUND)
   set(HAVE_LIBSOCI 1)
   list(APPEND ZM_BIN_LIBS "${SOCI_LIBRARY}")
 
+  if( SOCI_VERSION LESS 300200 )
+    message( FATAL_ERROR "Required minimum SOCI version: 300200 (3.2.0), found ${SOCI_VERSION}" )
+  endif()
+  message( STATUS, "SOCI VERSION: ${SOCI_VERSION}" )
+
+  if( SOCI_VERSION GREATER_EQUAL 400000 )
+    find_package(Boost REQUIRED)
+    include_directories("${Boost_INCLUDE_DIR}")
+    set(CMAKE_REQUIRED_INCLUDES "${Boost_INCLUDE_DIR}")
+  endif()
+
   if(SOCI_mysql_FOUND)
     set(HAVE_LIBSOCI_MYSQL 1)
     list(APPEND ZM_BIN_LIBS "${SOCI_mysql_PLUGIN}")
   endif()
   if(SOCI_postgresql_FOUND)
-    set(HAVE_LIBSOCI_POSTGRESQL 1)
-    list(APPEND ZM_BIN_LIBS "${SOCI_postgresql_PLUGIN}")
+    if( SOCI_VERSION LESS 400100 )
+      message( WARNING "Postgresql backend requires at least SOCI version 400100 (4.1.0), support will not be compiled in" )
+    else()
+      set(HAVE_LIBSOCI_POSTGRESQL 1)
+      list(APPEND ZM_BIN_LIBS "${SOCI_postgresql_PLUGIN}")
+    endif()
   endif()
 
   include_directories("${SOCI_INCLUDE_DIRS}")
@@ -513,6 +528,7 @@ if(NOT ZM_NO_MQTT)
   else()
     set(optlibsnotfound "${optlibsnotfound} Mosquittopp")
   endif (MOSQUITTOPP_FOUND)
+endif()
 
 find_package(FFMPEG 55.34.100 REQUIRED
   COMPONENTS

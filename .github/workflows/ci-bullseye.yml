@@ -50,6 +50,14 @@ jobs:
           libpolkit-gobject-1-dev
           catch2
           ${{ matrix.crypto_package }} ${{ matrix.jwt_package }}
+      - name: Install postgres
+        run: >
+          DEBIAN_FRONTEND=noninteractive apt-get -qq install -y --no-install-recommends
+          postgresql-13 postgresql-client-common postgresql-common postgresql-server-dev-all
+      - name: Install soci
+        run: >
+          apt-get -qq install libboost-dev libboost-all-dev
+          libsoci-core4.0 libsoci-dev libsoci-core4.0 libsoci-postgresql4.0 libsoci-mysql4.0
       - name: Prepare
         run: mkdir build
       - name: Configure

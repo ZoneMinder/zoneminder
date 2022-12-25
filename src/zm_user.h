@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-#include "soci.h"
+#include "soci/soci.h"
 
 class User {
  public:

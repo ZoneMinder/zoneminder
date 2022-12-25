@@ -26,7 +26,7 @@
 #include "zm_storage.h"
 #include "zm_stream.h"
 
-#include "soci.h"
+#include "soci/soci.h"
 
 extern "C" {
 #include <libavformat/avformat.h>

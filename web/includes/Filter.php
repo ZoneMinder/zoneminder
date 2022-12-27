@@ -271,24 +271,27 @@ class Filter extends ZM_Object {
       } else {
         # Remote case
 
-        $url = $Server->UrlToIndex();
+        $url = $Server->UrlToIndex() . '?view=filter';
         if ( ZM_OPT_USE_AUTH ) {
           if ( ZM_AUTH_RELAY == 'hashed' ) {
-            $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+            $url .= '&auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
           } else if ( ZM_AUTH_RELAY == 'plain' ) {
-            $url = '?user='.$_SESSION['username'];
-            $url = '?pass='.$_SESSION['password'];
+            $url .= '&user='.$_SESSION['username'];
+            $url .= '&pass='.$_SESSION['password'];
           } else if ( ZM_AUTH_RELAY == 'none' ) {
-            $url = '?user='.$_SESSION['username'];
+            $url .= '&user='.$_SESSION['username'];
           }
         }
-        $url .= '&view=filter&object=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId='.$Server->Id();
-        Debug("sending command to $url");
         $data = array();
         if ( defined('ZM_ENABLE_CSRF_MAGIC') ) {
-          require_once( 'includes/csrf/csrf-magic.php' );
+          require_once('includes/csrf/csrf-magic.php');
           $data['__csrf_magic'] = csrf_get_tokens();
         }
+        $data['action']='control';
+        $data['object'] = 'filter';
+        $data['command'] = $command;
+        $data['Id'] = $this->Id();
+        $data['ServerId'] = $Server->Id();
 
         // use key 'http' even if you send the request to https://...
         $options = array(

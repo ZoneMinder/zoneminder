@@ -718,7 +718,7 @@ function getCycleHTML($view) {
   
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? ' selected' : '';
-    $result .= '<li id="getCycleHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=watch&cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getCycleHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
   }
   
   return $result;

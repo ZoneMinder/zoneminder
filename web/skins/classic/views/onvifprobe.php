@@ -101,7 +101,18 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
         $stream_uri = $matches[8];
         // add user@pass to URI
         if ( preg_match('|^(\S+://)(.+)$|', $stream_uri, $tokens) ) {
-          $stream_uri = $tokens[1].$username.':'.$password.'@'.$tokens[2];
+          // The password could contain a slash(/) or other special
+          // characters; so, it must be URL encoded, when it gets
+          // stored in a monitor's configuration.  However, the rest
+          // of the stream_uri (Path) should *not* be stored URL encoded
+          // in the monitor's configuration.
+          // When Path is POSTed, the entire stream_uri value will be
+          // URL encoded, which is quite appropriate; on the receiving
+          // end, the entire value of the Path attribute will be URL
+          // decoded, which is also quite appropriate.  However, that
+          // also applies to the password sub-field of the Path
+          // attribute.  So, we must double encode the embedded password.
+          $stream_uri = $tokens[1].$username.':'.urlencode(urlencode($password)).'@'.$tokens[2];
         }
 	ZM\Warning(print_r($matches,1));
 

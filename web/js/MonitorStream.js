@@ -149,7 +149,6 @@ function MonitorStream(monitorData) {
       const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
       if (newSrc != oldSrc) {
         this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-        this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
         // We know that only the first zms will get the command because the
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
@@ -160,7 +159,6 @@ function MonitorStream(monitorData) {
         console.log("Changing src to " + newSrc);
         img.src = '';
         img.src = newSrc;
-        this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
       }
     }
   }; // setscale

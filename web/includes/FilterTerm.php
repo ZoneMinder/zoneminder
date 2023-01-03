@@ -32,7 +32,6 @@ class FilterTerm {
 
     $this->index = $index;
     if ($term) {
-      Debug(print_r($term, true));
       $this->attr = isset($term['attr']) ? $term['attr'] : '';
       $this->op = $term['op'];
       $this->val = $term['val'];

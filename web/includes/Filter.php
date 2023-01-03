@@ -253,7 +253,7 @@ class Filter extends ZM_Object {
   }
 
   public function control($command, $server_id=null) {
-    $Servers = $server_id ? Server::find(array('Id'=>$server_id)) : Server::find(array('Status'=>'Running'));
+    $Servers = $server_id ? [Server::find_one(array('Id'=>$server_id))] : Server::find(array('Status'=>'Running'));
     if ( !count($Servers) ) {
       if ( !$server_id ) {
         # This will be the non-multi-server case
@@ -837,8 +837,9 @@ class Filter extends ZM_Object {
     $servers = array();
     $servers['ZM_SERVER_ID'] = 'Current Server';
     $servers['NULL'] = 'No Server';
-    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Servers` ORDER BY lower(`Name`) ASC') as $server ) {
-      $servers[$server['Id']] = validHtmlStr($server['Name']);
+    global $Servers;
+    foreach ( $Servers as $server ) {
+      $servers[$server->Id()] = validHtmlStr($server->Name());
     }
     $monitors = array();
     $monitor_names = array();

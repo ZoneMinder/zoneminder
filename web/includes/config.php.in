@@ -220,25 +220,37 @@ function loadConfig( $defineConsts=true ) {
   return $config;
 } # end function loadConfig
 
+require_once('Server.php');
+#global $Servers;
+#global $thisServer;
+$Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
+$thisServer = null;
+
 // For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
-if ( ! defined('ZM_SERVER_ID') ) {
-	require_once('Server.php');
-  if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
-		# Use Server lookup so that it caches
-		$Server = ZM\Server::find_one(array('Name'=>ZM_SERVER_NAME));
-    if ( !$Server ) {
-      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
-    } else {
-      define('ZM_SERVER_ID', $Server->Id());
+if (!defined('ZM_SERVER_ID')) {
+  if (defined('ZM_SERVER_NAME') and ZM_SERVER_NAME) {
+    foreach ($Servers as $s) {
+      if ($s->Name() == ZM_SERVER_NAME) {
+        $thisServer = $s;
+        define('ZM_SERVER_ID', $Server->Id());
+      }
     }
-  } else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
-		$Server = ZM\Server::find_one(array('Name'=>ZM_SERVER_HOST));
-    if ( ! $Server ) {
+    if (!$thisServer) {
+      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
+    }
+  } else if (defined('ZM_SERVER_HOST') and ZM_SERVER_HOST) {
+    foreach ($Servers as $s) {
+      if ($s->Name() == ZM_SERVER_HOST) {
+        $thisServer = $s;
+        define('ZM_SERVER_ID', $s->Id());
+      }
+    }
+    if (!$thisServer) {
       ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
-    } else {
-      define('ZM_SERVER_ID', $Server->Id());
     }
   }
+} else {
+  $thisServer = ZM\Server::find_one(['Id'=>ZM_SERVER_ID]); // Should be cached
 }
 
 if ( defined('ZM_TIMEZONE') and ZM_TIMEZONE )

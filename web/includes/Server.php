@@ -3,8 +3,6 @@ namespace ZM;
 require_once('database.php');
 require_once('Object.php');
 
-ini_set('display_errors', false);
-
 class Server extends ZM_Object {
   protected static $table = 'Servers';
 

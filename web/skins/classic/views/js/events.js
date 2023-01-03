@@ -145,8 +145,12 @@ function deleteEvents(event_ids) {
   const chunk = event_ids.splice(0, 10);
   console.log("Deleting " + chunk.length + " selections.  " + event_ids.length);
 
-  $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+chunk.join('&eids[]='))
-      .done( function(data) {
+   $j.ajax({
+      method: 'get',
+      timeout: 0,
+      url: thisUrl + '?request=events&task=delete',
+      data: {'eids[]': chunk},
+      success: function(data) {
         if (!event_ids.length) {
           $j('#eventTable').bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
@@ -158,13 +162,13 @@ function deleteEvents(event_ids) {
           }
           deleteEvents(event_ids);
         }
-      })
-      .fail( function(jqxhr) {
-        console.log("Fail delete");
+      },
+      fail: function(jqxhr) {
         logAjaxFail(jqxhr);
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
-      });
+      }
+    });
 }
 
 function getEventDetailModal(eid) {

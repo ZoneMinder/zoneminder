@@ -24,7 +24,7 @@
 #include <string>
 #include <sys/time.h>
 
-#include "soci/soci.h"
+#include "zm_db.h"
 
 typedef std::chrono::microseconds Microseconds;
 typedef std::chrono::milliseconds Milliseconds;

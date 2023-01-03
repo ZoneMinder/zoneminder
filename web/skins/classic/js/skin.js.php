@@ -45,7 +45,8 @@ const Servers = [];
 // Fall back to get Server paths, etc when no using multi-server mode
 $Server = new ZM\Server();
 echo 'Servers[0] = new Server(' . $Server->to_json(). ");\n";
-foreach ( ZM\Server::find() as $Server ) {
+global $Servers;
+foreach ( $Servers as $Server ) {
   echo 'Servers[' . $Server->Id() . '] = new Server(' . $Server->to_json(). ");\n";
 }
 ?>

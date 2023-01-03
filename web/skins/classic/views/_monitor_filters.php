@@ -39,10 +39,10 @@ $StorageById = array();
 foreach ($storage_areas as $S) {
   $StorageById[$S->Id()] = $S;
 }
-$servers = ZM\Server::find(null, array('order'=>'lower(Name)'));
+
 $ServersById = array();
-foreach ( $servers as $S ) {
-  $ServersById[$S->Id()] = $S;
+foreach ($Servers as $s) {
+  $ServersById[$s->Id()] = $s;
 }
 
 $html =
@@ -54,13 +54,13 @@ $html =
   <input type="hidden" name="filtering" value=""/>
 ';
 $groupSql = '';
-if ( canView('Groups') ) {
+if (canView('Groups')) {
   $GroupsById = array();
-  foreach ( ZM\Group::find() as $G ) {
+  foreach (ZM\Group::find() as $G) {
     $GroupsById[$G->Id()] = $G;
   }
 
-  if ( count($GroupsById) ) {
+  if (count($GroupsById)) {
     $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
     # This will end up with the group_id of the deepest selection
     $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;

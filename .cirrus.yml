@@ -12,6 +12,7 @@ task:
   prepare_soci_script:
     - git clone https://github.com/parvit/soci
     - cd soci
+    - mkdir build/
     - mkdir gen/
     - cd gen/
     - cmake ../ -DCMAKE_INSTALL_PREFIX=$(realpath $PWD/../build)

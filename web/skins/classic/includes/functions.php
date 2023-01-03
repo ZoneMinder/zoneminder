@@ -207,14 +207,24 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     </div>
 
     <!-- the Navigation Bar Hamburger Button   -->
+<!--
     <div class="nav justify-content-end flex-grow-1">
+-->
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon">
 					<i class="material-icons md-20">menu</i>
 				</span>
       </button>
+      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
+        <span class="sr-only">Toggle guages</span>
+        <span class="navbar-toggler-icon">
+					<i class="material-icons md-20">monitoring</i>
+				</span>
+      </button>
+<!--
    </div>
+-->
 
     <div class="collapse navbar-collapse" id="main-header-nav">
 <?php
@@ -235,15 +245,17 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getHeaderFlipHTML();
-        echo '</ul>';
+          echo '</ul></div><div id="accountstatus">
+';
 
         echo '<ul class="nav navbar-nav justify-content-end align-self-start flex-grow-1">';
           echo getAccountCircleHTML($skin, $user);
           echo getStatusBtnHTML($status);
-        echo '</ul>';
+        echo '</ul>
+    </div>
+      ';
   }
 ?>
-    </div>
   </nav><!-- End First Navbar -->
 
   <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two"

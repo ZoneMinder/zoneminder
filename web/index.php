@@ -26,12 +26,6 @@ if ( $debug ) {
   phpinfo(INFO_VARIABLES);
 }
 
-// Use new style autoglobals where possible
-if ( version_compare(phpversion(), '4.1.0', '<') ) {
-  $_SESSION = &$HTTP_SESSION_VARS;
-  $_SERVER = &$HTTP_SERVER_VARS;
-}
-
 // Useful debugging lines for mobile devices
 if ( false ) {
   ob_start();

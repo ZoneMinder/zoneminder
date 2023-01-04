@@ -1,13 +1,9 @@
-console.log('zoomrotate: Start');
-
 (function(){
     var defaults, extend;
-    console.log('zoomrotate: Init defaults');
     defaults = {
       zoom: 1,
       rotate: 0
     };
-    console.log('zoomrotate: Init Extend');
     extend = function() {
       var args, target, i, object, property;
       args = Array.prototype.slice.call(arguments);
@@ -31,7 +27,6 @@ console.log('zoomrotate: Start');
     * register the zoomrotate plugin
     */
     videojs.plugin('zoomrotate', function(options){
-        console.log('zoomrotate: Register init');
         var settings, player, video, poster;
         settings = extend(defaults, options);
 
@@ -46,16 +41,13 @@ console.log('zoomrotate: Start');
         console.log('zoomrotate: '+options.zoom);
 
         /* Array of possible browser specific settings for transformation */
-        var properties = ['transform', 'WebkitTransform', 'MozTransform',
-                          'msTransform', 'OTransform'],
-            prop = properties[0];
-
-        /* Iterators */
-        var i,j;
+        const properties = ['transform', 'WebkitTransform', 'MozTransform',
+                          'msTransform', 'OTransform'];
+        prop = properties[0];
 
         /* Find out which CSS transform the browser supports */
-        for(i=0,j=properties.length;i<j;i++){
-          if(typeof player.style[properties[i]] !== 'undefined'){
+        for (let i=0,len = properties.length;i<len; i++) {
+          if (typeof player.style[properties[i]] !== 'undefined') {
             prop = properties[i];
             break;
           }
@@ -63,10 +55,7 @@ console.log('zoomrotate: Start');
 
         /* Let's do it */
         player.style.overflow = 'hidden';
-        video.style[prop]='scale('+options.zoom+') rotate('+options.rotate+'deg)';
-        poster.style[prop]='scale('+options.zoom+') rotate('+options.rotate+'deg)';
-        console.log('zoomrotate: Register end');
+        video.style[prop] = 'scale('+options.zoom+') rotate('+options.rotate+'deg)';
+        poster.style[prop] = 'scale('+options.zoom+') rotate('+options.rotate+'deg)';
     });
 })();
-
-console.log('zoomrotate: End');

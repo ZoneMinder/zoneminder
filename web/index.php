@@ -26,12 +26,6 @@ if ( $debug ) {
   phpinfo(INFO_VARIABLES);
 }
 
-// Use new style autoglobals where possible
-if ( version_compare(phpversion(), '4.1.0', '<') ) {
-  $_SESSION = &$HTTP_SESSION_VARS;
-  $_SERVER = &$HTTP_SERVER_VARS;
-}
-
 // Useful debugging lines for mobile devices
 if ( false ) {
   ob_start();
@@ -45,7 +39,6 @@ if ( false ) {
 require_once('includes/config.php');
 require_once('includes/session.php');
 require_once('includes/logger.php'); // already included in config
-require_once('includes/Server.php');
 
 // Useful debugging lines for mobile devices
 if ( 0 and ZM\Logger::fetch()->debugOn() ) {
@@ -56,8 +49,6 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
 }
 ZM\Debug(print_r($_REQUEST, true));
 
-global $Servers;
-$Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')

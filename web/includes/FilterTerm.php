@@ -32,7 +32,7 @@ class FilterTerm {
 
     $this->index = $index;
     if ($term) {
-      $this->attr = $term['attr'];
+      $this->attr = isset($term['attr']) ? $term['attr'] : '';
       $this->op = $term['op'];
       $this->val = $term['val'];
       if ( isset($term['cnj']) ) {
@@ -64,7 +64,7 @@ class FilterTerm {
       }
     } else {
       Warning("No term in FilterTerm constructor");
-      Warning(print_r(debug_backtrace(), true));
+      #Warning(print_r(debug_backtrace(), true));
     }
   } # end function __construct
 
@@ -72,7 +72,7 @@ class FilterTerm {
   public function sql_values() {
     $values = array();
     if ( !isset($this->val) ) {
-      Logger::Warning('No value in term'.$this->attr);
+      Warning('No value in term'.$this->attr);
       return $values;
     }
 
@@ -206,6 +206,9 @@ class FilterTerm {
 
   /* Some terms don't have related SQL */
   public function sql() {
+    if (!$this->attr) {
+      return '';
+    }
 
     $sql = '';
     if ( isset($this->cnj) ) {
@@ -507,6 +510,8 @@ class FilterTerm {
 
   public function valid() {
     switch ($this->attr) {
+    case 'EndDate' :
+    case 'StartDate' :
     case 'EndDateTime' :
     case 'StartDateTime' :
       if (!$this->val)
@@ -519,6 +524,9 @@ class FilterTerm {
       break;
     }
     return true;
+  }
+  public function to_string() {
+    return print_r($this, true);
   }
 } # end class FilterTerm
 

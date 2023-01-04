@@ -155,7 +155,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 ?>
 
 <!-- BEGIN HEADER -->
-    <div class="d-flex flex-row justify-content-between px-3 py-1">
+    <div class="d-flex flex-row flex-wrap justify-content-between px-3 py-1">
       <div id="toolbar" >
         <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>

@@ -158,7 +158,7 @@ noCacheHeaders();
 
 $eventsWindow = 'zm'.ucfirst(ZM_WEB_EVENTS_VIEW);
 $left_columns = 3;
-if ( count($servers) ) $left_columns += 1;
+if ( count($Servers) ) $left_columns += 1;
 if ( ZM_WEB_ID_ON_CONSOLE ) $left_columns += 1;
 if ( $show_storage_areas ) $left_columns += 1;
 
@@ -225,7 +225,7 @@ ob_start();
 <?php } ?>
             <th class="colName"><i class="material-icons md-18">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
             <th class="colFunction"><?php echo translate('Function') ?></th>
-<?php if ( count($servers) ) { ?>
+<?php if ( count($Servers) ) { ?>
             <th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
             <th class="colSource"><i class="material-icons md-18">settings</i>&nbsp;<?php echo translate('Source') ?></th>
@@ -375,7 +375,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 ?>
               </div></td>
 <?php
-  if (count($servers)) {
+  if (count($Servers)) {
     $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new ZM\Server($monitor['ServerId']);
     echo '<td class="colServer">'.validHtmlStr($Server->Name()).'</td>'.PHP_EOL;
   }
@@ -411,7 +411,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 <?php } ?>
             <td class="colName"></td>
             <td class="colFunction"><?php echo human_filesize($total_capturing_bandwidth ).'/s' ?></td>
-<?php if ( count($servers) ) { ?>
+<?php if ( count($Servers) ) { ?>
             <td class="colServer"></td>
 <?php } ?>
             <td class="colSource"></td>

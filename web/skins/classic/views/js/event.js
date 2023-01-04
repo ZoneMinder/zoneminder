@@ -843,8 +843,12 @@ function progressBarNav() {
 }
 
 function handleClick(event) {
+  if (vid && (event.target.id != 'videoobj')) {
+    return; // ignore clicks on control bar
+  }
   // target should be the img tag
   const target = $j(event.target);
+
   const width = target.width();
   const height = target.height();
 
@@ -995,7 +999,7 @@ function initPage() {
   }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
-  if ($j('#videoobj').length) {
+  if (document.getElementById('videoobj')) {
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     $j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load

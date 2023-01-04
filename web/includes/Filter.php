@@ -51,6 +51,8 @@ class Filter extends ZM_Object {
         if ($term->valid()) {
           if (!$this->_sql and $term->cnj) unset($term->cnj);
           $this->_sql .= $term->sql();
+        } else {
+          Debug("Term is not valid " . $term->to_string());
         }
       } # end foreach term
     }
@@ -174,7 +176,6 @@ class Filter extends ZM_Object {
       }
     }
 
-
     if ($this->{'Query'} and isset($this->{'Query'}['terms']) and count($this->{'Query'}['terms'])) {
       unset($this->{'Query'}['terms'][0]['cnj']);
     }
@@ -252,7 +253,7 @@ class Filter extends ZM_Object {
   }
 
   public function control($command, $server_id=null) {
-    $Servers = $server_id ? Server::find(array('Id'=>$server_id)) : Server::find(array('Status'=>'Running'));
+    $Servers = $server_id ? [Server::find_one(array('Id'=>$server_id))] : Server::find(array('Status'=>'Running'));
     if ( !count($Servers) ) {
       if ( !$server_id ) {
         # This will be the non-multi-server case
@@ -270,24 +271,27 @@ class Filter extends ZM_Object {
       } else {
         # Remote case
 
-        $url = $Server->UrlToIndex();
+        $url = $Server->UrlToIndex() . '?view=filter';
         if ( ZM_OPT_USE_AUTH ) {
           if ( ZM_AUTH_RELAY == 'hashed' ) {
-            $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+            $url .= '&auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
           } else if ( ZM_AUTH_RELAY == 'plain' ) {
-            $url = '?user='.$_SESSION['username'];
-            $url = '?pass='.$_SESSION['password'];
+            $url .= '&user='.$_SESSION['username'];
+            $url .= '&pass='.$_SESSION['password'];
           } else if ( ZM_AUTH_RELAY == 'none' ) {
-            $url = '?user='.$_SESSION['username'];
+            $url .= '&user='.$_SESSION['username'];
           }
         }
-        $url .= '&view=filter&object=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId='.$Server->Id();
-        Debug("sending command to $url");
         $data = array();
         if ( defined('ZM_ENABLE_CSRF_MAGIC') ) {
-          require_once( 'includes/csrf/csrf-magic.php' );
+          require_once('includes/csrf/csrf-magic.php');
           $data['__csrf_magic'] = csrf_get_tokens();
         }
+        $data['action']='control';
+        $data['object'] = 'filter';
+        $data['command'] = $command;
+        $data['Id'] = $this->Id();
+        $data['ServerId'] = $Server->Id();
 
         // use key 'http' even if you send the request to https://...
         $options = array(
@@ -833,8 +837,9 @@ class Filter extends ZM_Object {
     $servers = array();
     $servers['ZM_SERVER_ID'] = 'Current Server';
     $servers['NULL'] = 'No Server';
-    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Servers` ORDER BY lower(`Name`) ASC') as $server ) {
-      $servers[$server['Id']] = validHtmlStr($server['Name']);
+    global $Servers;
+    foreach ( $Servers as $server ) {
+      $servers[$server->Id()] = validHtmlStr($server->Name());
     }
     $monitors = array();
     $monitor_names = array();
@@ -937,6 +942,10 @@ class Filter extends ZM_Object {
     $terms = $this->terms();
     $attrTypes = $this->attrTypes();
     $opTypes = $this->opTypes();
+    $archiveTypes = array(
+      '0' => translate('ArchUnarchived'),
+      '1' => translate('ArchArchived')
+    );
 
     for ($i=0; $i < count($terms); $i++) {
       $term = $terms[$i];
@@ -955,18 +964,20 @@ class Filter extends ZM_Object {
 
       #$html .= ($i == 0) ?  '' : htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).PHP_EOL;
       $html .= ($i == 0) ?  '' : html_input("filter[Query][terms][$i][cnj]", 'hidden', $term['cnj']).PHP_EOL;
-      $html .= '<span class="term"><label>'.html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']).$attrTypes[$term['attr']].'</label>';
       if ( isset($term['attr']) ) {
+        $html .= '<span class="term"><label>'.$attrTypes[$term['attr']].'</label>';
+        $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
+        $html .= html_input("filter[Query][terms][$i][op]", 'hidden', $term['op']).PHP_EOL;
         if ( $term['attr'] == 'Archived' ) {
-          $html .= html_input("filter[Query][terms]['.$i.'][op]", 'hidden', '=').PHP_EOL;
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).PHP_EOL;
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
           #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span><input type="text" class="datetimepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></span>'.PHP_EOL;
+          $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
+          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" class="datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></span>'.PHP_EOL;

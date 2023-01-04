@@ -951,7 +951,7 @@ function xhtmlFooter() {
   'js/bootstrap-table-1.21.1/extensions/locale/bootstrap-table-locale-all.min.js',
   'js/bootstrap-table-1.21.1/extensions/export/bootstrap-table-export.min.js',
   'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-1.21.1/extensions/cookie/bootstrap-table-cookie.min.js',
+  'js/bootstrap-table-1.21.1/extensions/cookie/bootstrap-table-cookie.js',
   'js/bootstrap-table-1.21.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
   'js/bootstrap-table-1.21.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
   'js/chosen/chosen.jquery.js',

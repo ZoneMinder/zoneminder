@@ -291,7 +291,9 @@ echo $monitor->getStreamHTML($options);
 if ($monitor->Type() != 'WebSite') {
 ?>
         <div class="buttons" id="dvrControls">
+<!--
           <button type="button" id="getImageBtn" title="<?php echo translate('Download Image') ?>"/>
+-->
 <?php
 if ($streamMode == 'jpeg') {
   if ($monitor->StreamReplayBuffer() != 0) {

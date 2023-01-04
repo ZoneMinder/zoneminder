@@ -228,7 +228,8 @@ echo htmlSelect('filter[Query][skip_locked]',
               </td>
               <td>  
                 <label for="filter[Query][limit]"><?php echo translate('LimitResultsPre') ?></label>
-                <input type="number" id="filter[Query][limit]" name="filter[Query][limit]" value="<?php echo (null !== $filter->limit())?validInt($filter->limit()):'' ?>"/><?php echo translate('LimitResultsPost') ?>
+                <input type="number" id="filter[Query][limit]" name="filter[Query][limit]" value="<?php echo (null !== $filter->limit())?validInt($filter->limit()):'' ?>" min="0" step="1"/>
+                <?php echo translate('LimitResultsPost') ?>
               </td>
             </tr>
           </tbody>

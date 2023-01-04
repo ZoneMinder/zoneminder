@@ -40,7 +40,6 @@ function ajaxRequest(params) {
     delete params.data.filter;
   }
   $j('#fieldsTable input').each(function(index) {
-    console.log(this);
     const el = $j(this);
     params.data[el.attr('name')] = el.val();
   });
@@ -158,8 +157,12 @@ function deleteEvents(event_ids) {
   const chunk = event_ids.splice(0, 10);
   console.log('Deleting ' + chunk.length + ' selections. ' + event_ids.length);
 
-  $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+chunk.join('&eids[]='))
-      .done( function(data) {
+   $j.ajax({
+      method: 'get',
+      timeout: 0,
+      url: thisUrl + '?request=events&task=delete',
+      data: {'eids[]': chunk},
+      success: function(data) {
         if (!event_ids.length) {
           $j('#eventTable').bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
@@ -171,13 +174,13 @@ function deleteEvents(event_ids) {
           }
           deleteEvents(event_ids);
         }
-      })
-      .fail( function(jqxhr) {
-        console.log('Fail delete');
+      },
+      fail: function(jqxhr) {
         logAjaxFail(jqxhr);
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
-      });
+      }
+    });
 }
 
 function getEventDetailModal(eid) {
@@ -411,6 +414,9 @@ function initPage() {
     if (el.hasClass('datetimepicker')) {
       el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
+    if (el.hasClass('datepicker')) {
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
+    }
   });
 
   table.bootstrapTable('resetSearch');
@@ -419,9 +425,18 @@ function initPage() {
 }
 
 function filterEvents() {
+  filterQuery = '';
+  $j('#fieldsTable input').each(function(index) {
+    const el = $j(this);
+    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
+  });
+  $j('#fieldsTable select').each(function(index) {
+    const el = $j(this);
+    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
+  });
+  console.log(filterQuery);
   table.bootstrapTable('refresh');
 }
-
 
 $j(document).ready(function() {
   initPage();

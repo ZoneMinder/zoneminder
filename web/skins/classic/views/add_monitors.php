@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web function view file, $Date$, $Revision$
+// ZoneMinder web function view file
 // Copyright (C) 2017 ZoneMinder LLC
 //
 // This program is free software; you can redistribute it and/or
@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit('Monitors') ) {
+if (!canEdit('Monitors')) {
   $view = 'error';
   return;
 }
@@ -26,7 +26,7 @@ if ( !canEdit('Monitors') ) {
 $focusWindow = true;
 $navbar = getNavBarHTML();
 
-xhtmlHeaders(__FILE__, translate('AddMonitors'));
+xhtmlHeaders(__FILE__, translate('Add Monitors'));
 ?>
 <body>
   <div id="page">

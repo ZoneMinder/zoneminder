@@ -45,20 +45,31 @@ void Group_Permission::Copy(const Group_Permission &gp) {
   group_id = gp.group_id;
   permission = gp.permission;
   monitor_ids = gp.monitor_ids;
+  monitor_ids_loaded = gp.monitor_ids_loaded;
 }
 
 Group_Permission::Permission Group_Permission::getPermission(int monitor_id) {
   if (!monitor_ids_loaded) {
+    Debug(1, "Loading monitor Ids");
     loadMonitorIds();
+  } else {
+    Debug(1, "Not loading monitor Ids");
   }
-  if (monitor_ids.empty()) return PERM_INHERIT;
+  if (monitor_ids.empty()) {
+    Debug(1, "No monitor ids... is group empty?");
+    return PERM_INHERIT;
+  }
 
-  for (std::vector<int>::iterator i = monitor_ids.begin();
+  for (auto i = monitor_ids.begin();
       i != monitor_ids.end(); ++i ) {
     if ( *i == monitor_id ) {
+      Debug(1, "returning permission %d for monitor %d", permission, monitor_id);
       return permission;
+    } else {
+      Debug(1, "Not this monitor %d != %d", *i, monitor_id);
     }
   }
+  Debug(1, "Monitor %d not found, returning INHERIT", monitor_id);
   return PERM_INHERIT;
 }
 
@@ -83,7 +94,13 @@ void Group_Permission::loadMonitorIds() {
   query.bind<int>("id", group_id);
   query.run(true);
 
+  if( query.affectedRows() == 0 ) {
+    Error("Error loading MonitorIds from group id %d", group_id);
+    return;
+  }
+    
   while( query.next() ) {
     monitor_ids.push_back( query.get<int>("GroupId") );
   }
+  monitor_ids_loaded = true;
 }  // end loadMonitorsIds()

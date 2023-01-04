@@ -1193,7 +1193,7 @@ function initPage() {
     }
     $j('#deleteConfirm').modal('show');
   });
-  addEventListener('fullscreenchange', fullscreenChangeEvent);
+  document.addEventListener('fullscreenchange', fullscreenChangeEvent);
 } // end initPage
 
 document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);

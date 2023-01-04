@@ -278,18 +278,9 @@ function initPage() {
   });
 
   //manage the Janus settings div
-  if (document.getElementsByName("newMonitor[JanusEnabled]")[0].checked) {
-    document.getElementById("FunctionJanusAudioEnabled").hidden = false;
-    document.getElementById("FunctionJanusProfileOverride").hidden = false;
-    document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
-  } else {
-    document.getElementById("FunctionJanusAudioEnabled").hidden = true;
-    document.getElementById("FunctionJanusProfileOverride").hidden = true;
-    document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
-  }
 
-  document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
-    if (this.checked) {
+  if (document.getElementsByName("newMonitor[JanusEnabled]")) {
+    if (document.getElementsByName("newMonitor[JanusEnabled]")[0].checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
       document.getElementById("FunctionJanusProfileOverride").hidden = false;
       document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
@@ -298,14 +289,26 @@ function initPage() {
       document.getElementById("FunctionJanusProfileOverride").hidden = true;
       document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
     }
-  });
 
-  const Janus_Use_RTSP_Restream = document.getElementsByName('newMonitor[Janus_Use_RTSP_Restream]');
-  if (Janus_Use_RTSP_Restream.length) {
-    Janus_Use_RTSP_Restream[0].onclick = Janus_Use_RTSP_Restream_onclick;
-    console.log("Setup Janus_RTSP_Restream.onclick");
-  } else {
-    console.log("newMonitor[Janus_Use_RTSP_Restream] not found");
+    document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById("FunctionJanusAudioEnabled").hidden = false;
+        document.getElementById("FunctionJanusProfileOverride").hidden = false;
+        document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
+      } else {
+        document.getElementById("FunctionJanusAudioEnabled").hidden = true;
+        document.getElementById("FunctionJanusProfileOverride").hidden = true;
+        document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
+      }
+    });
+
+    const Janus_Use_RTSP_Restream = document.getElementsByName('newMonitor[Janus_Use_RTSP_Restream]');
+    if (Janus_Use_RTSP_Restream.length) {
+      Janus_Use_RTSP_Restream[0].onclick = Janus_Use_RTSP_Restream_onclick;
+      console.log("Setup Janus_RTSP_Restream.onclick");
+    } else {
+      console.log("newMonitor[Janus_Use_RTSP_Restream] not found");
+    }
   }
 
   // Amcrest API controller

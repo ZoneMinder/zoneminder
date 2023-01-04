@@ -263,3 +263,6 @@ height: 100%;
     height: 100%;
     background-color: #999999;
 }
+.video-js .vjs-text-track-display {
+  display: none;
+}

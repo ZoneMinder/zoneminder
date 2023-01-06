@@ -322,7 +322,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if( mUser.length() > 0 ) {
     // build the actual uri string with encoded parameters (from the user and pass fields)
-    mPath = StringToLower(protocol) + "://" + mUser + ":" + mPass + "@" + mMaskedPath.substr(7, std::string::npos);
+    mPath = StringToLower(protocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedPath.substr(7, std::string::npos);
     Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
   }
 

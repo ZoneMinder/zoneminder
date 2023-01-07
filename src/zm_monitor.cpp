@@ -94,7 +94,7 @@ std::string load_monitor_sql =
 "`Brightness`, `Contrast`, `Hue`, `Colour`, "
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
 "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
-"`SectionLength`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
+"`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
 "`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`,"
@@ -218,6 +218,7 @@ Monitor::Monitor()
   post_event_count(0),
   stream_replay_buffer(0),
   section_length(0),
+  section_length_warn(true),
   min_section_length(0),
   adaptive_skip(false),
   frame_skip(0),
@@ -495,6 +496,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
  /* "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, " */
   section_length = Seconds(atoi(dbrow[col])); col++;
+  section_length_warn = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   min_section_length = Seconds(atoi(dbrow[col])); col++;
   frame_skip = atoi(dbrow[col]); col++;
   motion_frame_skip = atoi(dbrow[col]); col++;
@@ -2166,12 +2168,13 @@ bool Monitor::Analyse() {
           } else if (state == ALARM) {
             if (event) {
               if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
-                Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
-                        name.c_str(), analysis_image_count, event->Id(),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
-                        static_cast<int64>(Seconds(section_length).count()));
+                if (section_length_warn)
+                  Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                      name.c_str(), analysis_image_count, event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
                 closeEvent();
                 event = openEvent(snap, cause, noteSetMap);
               } else if (noteSetMap.size() > 0) {

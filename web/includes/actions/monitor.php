@@ -101,7 +101,8 @@ if ($action == 'save') {
       'GroupIds'  =>  array(),
       'LinkedMonitors'  => array(),
       'MQTT_Enabled'  =>  0,
-      'RTSPServer' => 0
+      'RTSPServer' => 0,
+      'SectionLengthWarn' => 0
       );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.

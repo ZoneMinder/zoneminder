@@ -210,6 +210,7 @@ public static function getStatuses() {
     'StreamReplayBuffer'  => 0,
     'AlarmFrameCount'     =>  1,
     'SectionLength'       =>  600,
+    'SectionLengthWarn'   =>  true,
     'MinSectionLength'    =>  10,
     'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,

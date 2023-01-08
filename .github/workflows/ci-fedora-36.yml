@@ -38,7 +38,7 @@ jobs:
             yum -y install make cmake g++
             yum -y install libavutil-free libavutil-free-devel libavcodec-free libavcodec-free-devel libavformat-free libavformat-free-devel libswresample-free libswresample-free-devel
             yum -y install libswscale-free libswscale-free-devel libavdevice-free libavdevice-free-devel libvncserver libvncserver-devel libcurl libcurl-devel
-            yum -y install libvncserver libvncserver-devel openssl-devel openssl-libs libjwt libjwt-devel libjpeg-turbo libjpeg-turbo-deve
+            yum -y install libvncserver libvncserver-devel openssl-devel openssl-libs libjwt libjwt-devel libjpeg-turbo libjpeg-turbo-devel
             yum -y install polkit polkit-devel polkit-libs
             yum -y install perl-Date-Manip perl-DBD-MySQL perl-Sys-Mmap perl-libwww-perl perl-Sys-Syslog perl-Time-HiRes perl-ExtUtils-Depends perl-ExtUtils-MakeMaker
             yum -y install vlc-devel postgresql postgresql-server mariadb-devel

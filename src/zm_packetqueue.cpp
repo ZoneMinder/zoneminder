@@ -538,7 +538,7 @@ void PacketQueue::unlock(ZMLockedPacket *lp) {
 }
 
 bool PacketQueue::increment_it(packetqueue_iterator *it) {
-  Debug(2, "Incrementing %p, queue size %zu, end? %d", it, pktQueue.size(), ((*it) == pktQueue.end()));
+  Debug(2, "Incrementing %p, queue size %zu, end? %d, deleting %d", it, pktQueue.size(), ((*it) == pktQueue.end()), deleting);
   if (((*it) == pktQueue.end()) or deleting) {
     return false;
   }

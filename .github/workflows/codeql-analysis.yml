@@ -64,6 +64,8 @@ jobs:
         sudo apt-get install default-libmysqlclient-dev libpcre3-dev libpolkit-gobject-1-dev libv4l-dev libvlc-dev
         sudo apt-get install libdate-manip-perl libdbd-mysql-perl libphp-serialization-perl libsys-mmap-perl
         sudo apt-get install libwww-perl libdata-uuid-perl libssl-dev libcrypt-eksblowfish-perl libdata-entropy-perl
+        sudo apt-get -qq install libboost-dev libboost-all-dev libsoci-core4.0 libsoci-dev libsoci-core4.0 libsoci-postgresql4.0 libsoci-mysql4.0 libssl-dev libjwt-dev
+        DEBIAN_FRONTEND=noninteractive sudo apt-get -qq install -y --no-install-recommends postgresql-14 postgresql-client-common postgresql-common postgresql-server-dev-all
         
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)

@@ -43,6 +43,7 @@ jobs:
             yum -y install perl-Date-Manip perl-DBD-MySQL perl-Sys-Mmap perl-libwww-perl perl-Sys-Syslog perl-Time-HiRes perl-ExtUtils-Depends perl-ExtUtils-MakeMaker
             yum -y install vlc-devel postgresql postgresql-server mariadb-devel
             yum -y install postgresql postgresql-server mariadb-devel
+            yum -y install boost boost-devel soci soci-devel soci-mysql soci-mysql-devel soci-postgresql soci-postgresql-devel
       - name: Prepare
         run: mkdir build
       - name: Configure

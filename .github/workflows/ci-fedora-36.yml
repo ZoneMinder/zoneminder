@@ -46,8 +46,10 @@ jobs:
             yum -y install boost boost-devel soci soci-devel soci-mysql soci-mysql-devel soci-postgresql soci-postgresql-devel
       - name: Prepare
         run: mkdir build
+      # note: jwt_cpp + openssl-3.0.5 are incompatible with ENABLE_WERROR=1 as it marks function definitions as deprecated
+      # also openssl cannot be downgraded otherwise devel packages for mariadb, libpq and soci get removed as well
       - name: Configure
-        run: cd build && cmake --version && cmake .. -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=1  -DZM_CRYPTO_BACKEND=${{ matrix.crypto_backend }} -DZM_JWT_BACKEND=${{ matrix.jwt_backend }}
+        run: cd build && cmake --version && cmake .. -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=0  -DZM_CRYPTO_BACKEND=${{ matrix.crypto_backend }} -DZM_JWT_BACKEND=${{ matrix.jwt_backend }}
       - name: Build
         run: cd build && make -j3 | grep --line-buffered -Ev '^(cp lib\/|Installing.+\.pm)' && (exit ${PIPESTATUS[0]})
       - name: Run tests

@@ -568,6 +568,7 @@ CREATE TABLE `Monitors` (
   `StreamReplayBuffer` int(10) unsigned NOT NULL default '0',
   `AlarmFrameCount` smallint(5) unsigned NOT NULL default '1',
   `SectionLength` int(10) unsigned NOT NULL default '600',
+  `SectionLengthWarn` boolean NOT NULL default true,
   `MinSectionLength` int(10) unsigned NOT NULL default '10',
   `FrameSkip` smallint(5) unsigned NOT NULL default '0',
   `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',

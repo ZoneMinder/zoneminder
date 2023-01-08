@@ -50,26 +50,18 @@ void Group_Permission::Copy(const Group_Permission &gp) {
 
 Group_Permission::Permission Group_Permission::getPermission(int monitor_id) {
   if (!monitor_ids_loaded) {
-    Debug(1, "Loading monitor Ids");
     loadMonitorIds();
-  } else {
-    Debug(1, "Not loading monitor Ids");
   }
   if (monitor_ids.empty()) {
-    Debug(1, "No monitor ids... is group empty?");
     return PERM_INHERIT;
   }
 
   for (auto i = monitor_ids.begin();
       i != monitor_ids.end(); ++i ) {
     if ( *i == monitor_id ) {
-      Debug(1, "returning permission %d for monitor %d", permission, monitor_id);
       return permission;
-    } else {
-      Debug(1, "Not this monitor %d != %d", *i, monitor_id);
     }
   }
-  Debug(1, "Monitor %d not found, returning INHERIT", monitor_id);
   return PERM_INHERIT;
 }
 

@@ -46,52 +46,75 @@ function evaluateLoadTimes() {
   $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
-function findEventByTime(arr, x) {
-  let start=0;
-  let end=arr.length-1;
+function findEventByTime(arr, time) {
+  let start = 0;
+  let end = arr.length-1; // -1 because 0 based indexing
 
+  //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
   // Iterate while start not meets end
-  while (start <= end) {
-    // Find the mid index
-    const mid = Math.floor((start + end)/2);
+  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (arr[end].EndTimeSecs >= time)) {
+    //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
+    // Find the middle index
+    const middle = Math.floor((start + end)/2);
+    const zm_event = arr[middle];
 
     // If element is present at mid, return True
-    //console.log(mid, arr[mid], x);
-    if (arr[mid].StartTimeSecs <= x && arr[mid].EndTimeSecs >= x) {
-      return arr[mid];
+    //console.log(middle, zm_event, time);
+    if ((zm_event.StartTimeSecs <= time) && (zm_event.EndTimeSecs >= time)) {
+      //console.log("Found it at ", zm_event);
+      return zm_event;
     } else {
+      //console.log("Didn't find it looking for "+time+" Start: " + zm_event.StartTimeSecs + ' End: ' + zm_event.EndTimeSecs);
       // Else look in left or right half accordingly
-      if (arr[mid].StartTimeSecs < x) {
-        start = mid + 1;
+      if (zm_event.StartTimeSecs < time) {
+        start = middle + 1;
+      } else if (zm_event.EndTimeSecs > time) {
+        end = middle - 1;
       } else {
-        end = mid - 1;
+        break;
       }
     }
   }
-
   return false;
 }
 
-function findFrameByTime(arr, x) {
+function findFrameByTime(arr, time) {
+  const keys = Object.keys(arr);
   let start=0;
-  let end=arr.length-1;
+  let end=keys.length-1;
 
+  //console.log(keys);
+  //console.log(keys[start]);
   // Iterate while start not meets end
-  while (start <= end) {
+    //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
+  while ((start <= end)) {
+    //&& arr[keys[start]] && (arr[keys[start]].TimeStampSecs <= time) && (arr[keys[end]].NextTimeStampSecs >= time)) {
     // Find the mid index
-    const mid = Math.floor((start + end)/2);
+    const middle = Math.floor((start + end)/2);
+    const frame = arr[keys[middle]];
+    //console.log("Looking for ", time, "frame", frame, 'middle '+middle+ ' start '+ start + ' end ' +end);
 
     // If element is present at mid, return True
-    if (arr[mid].StartTimeSecs <= x && arr[mid].EndTimeSec >= x) {
-      return true;
+    if ((frame.TimeStampSecs == time) ||
+        (frame.TimeStampSecs < time) &&
+        (
+          (!frame.NextTimeStampSecs) || // only if event.EndTime is null
+          (frame.NextTimeStampSecs > time)
+        )
+      ) {
+      //console.log("Found it at ", frame);
+      return frame;
 
     // Else look in left or right half accordingly
-    } else if (arr[mid].StartTimeSecs < x) {
-      start = mid + 1;
+    } else if (frame.TimeStampSecs < time) {
+      start = middle + 1;
+    } else if (frame.TimeStampSecs > time) {
+      end = middle - 1;
     } else {
-      end = mid - 1;
+      console.log("Error");
+      break;
     }
-  }
+  } // end while
 
   return false;
 }
@@ -112,19 +135,19 @@ function getFrame(monId, time, last_Frame) {
     return;
   }
 
-  const events_for_monitor = events_by_monitor_id[monId].map((x)=>events[x]);
-  if (!events_for_monitor.length) {
-    //console.log("No events for monitor " + monId);
-    return;
+  if (!events_for_monitor[monId]) {
+    events_for_monitor[monId] = events_by_monitor_id[monId].map((x)=>events[x]);
+    if (!events_for_monitor[monId].length) {
+      //console.log("No events for monitor " + monId);
+      return;
+    }
   }
 
-  let Frame = null;
-  let Event = findEventByTime(events_for_monitor, time);
+  let Event = findEventByTime(events_for_monitor[monId], time);
   if (Event === false) {
     // This might be better with a binary search
-    for (let i = 0; i < events_for_monitor.length; i++) {
-      const event_id = events_for_monitor[i].Id;
-      // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
+    for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
+      const event_id = events_for_monitor[monId][i].Id;
       const e = events[event_id];
       if (!e) {
         console.error('No event found for ', event_id);
@@ -137,12 +160,33 @@ function getFrame(monId, time, last_Frame) {
     }
     if (Event) {
       console.log("Failed to find event for ", time, " but found it using linear search");
+      for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
+        const event_id = events_for_monitor[monId][i].Id;
+        const e = events[event_id];
+        if ((e.StartTimeSecs <= time) && (e.EndTimeSecs >= time)) {
+          console.log("Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+        } else {
+          console.log("Not Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+        }
+      }
     }
   }
   if (!Event) return;
+  let Frame = null;
 
   if (!Event.FramesById) {
-    console.log('No FramesById for event ', Event);
+    console.log('No FramesById for event ', Event.Id);
+    load_Frames(Event).then(function() {
+      if (!Event.FramesById) {
+        console.log("No FramesById after load_Frames!", Event);
+      }
+      let Frame = null;
+      Frame = findFrameByTime(Event.FramesById, time);
+      console.log('Frame', Frame, time);
+    }, function(Error) {
+      console.log(Error);
+    });
+
     return;
   }
 
@@ -150,23 +194,26 @@ function getFrame(monId, time, last_Frame) {
   // Frames are sorted in descreasing order (or not sorted).
   // This is likely not efficient.  Would be better to start at the last frame viewed, see if it is still relevant
   // Then move forward or backwards as appropriate
-
-  for (const frame_id in Event.FramesById) {
-    // Again need binary search
-    if (
-      Event.FramesById[frame_id].TimeStampSecs == time ||
-      (
-        Event.FramesById[frame_id].TimeStampSecs < time &&
+  Frame = findFrameByTime(Event.FramesById, time);
+  if (!Frame) {
+    console.log("Didn't find frame by binary search");
+    for (const frame_id in Event.FramesById) {
+      // Again need binary search
+      if (
+        Event.FramesById[frame_id].TimeStampSecs == time ||
         (
-          (!Event.FramesById[frame_id].NextTimeStampSecs) || // only if event.EndTime is null
-          (Event.FramesById[frame_id].NextTimeStampSecs > time)
+          Event.FramesById[frame_id].TimeStampSecs < time &&
+          (
+            (!Event.FramesById[frame_id].NextTimeStampSecs) || // only if event.EndTime is null
+            (Event.FramesById[frame_id].NextTimeStampSecs > time)
+          )
         )
-      )
-    ) {
-      Frame = Event.FramesById[frame_id];
-      break;
-    }
-  } // end foreach frame in the event.
+      ) {
+        Frame = Event.FramesById[frame_id];
+        break;
+      }
+    } // end foreach frame in the event.
+  }
 
   if (!Frame) {
     console.log("Didn't find frame for " + time);
@@ -691,7 +738,6 @@ function setSpeed(speed_index) {
   }
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
-  console.log(speedIndex);
   playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
   showSpeed(speed_index);
   timerFire();
@@ -1047,6 +1093,10 @@ function initPage() {
     });
   });
 
+  for (const event_id in events) {
+    load_Frames(events[event_id]);
+  }
+
   if ( !liveMode ) {
     canvas = document.getElementById('timeline');
 
@@ -1130,6 +1180,16 @@ function initPage() {
   $j('#archive_status').bind('change', function() {
     this.form.submit();
   });
+  $j('#fieldsTable input, #fieldsTable select').each(function(index) {
+    el = $j(this);
+    //el.on('change', changeDateTime());
+    if (el.hasClass('datetimepicker')) {
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+    }
+    if (el.hasClass('datepicker')) {
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+    }
+  });
 }
 
 function takeSnapshot() {
@@ -1158,3 +1218,47 @@ function takeSnapshot() {
 window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);
+
+function load_Frames(zm_event) {
+  return new Promise(function(resolve, reject) {
+    $j.getJSON(Servers[serverId].UrlToApi()+'/frames/index/EventId:'+zm_event.Id+'.json?'+auth_relay)
+      .done(function(data) {
+        if (data.frames.length) {
+          /*
+          const zm_event = events[data.frames[0].Frame.EventId];
+          if (!zm_event) {
+            console.error("No event object found for " + data.frames[0].Frame.EventId);
+            reject(Error("There was an error"));
+            return;
+          }
+          */
+          zm_event.FramesById = [];
+          let last_frame = null;
+
+          for (let i=0, len=data.frames.length; i<len; i++) {
+            const frame = data.frames[i].Frame;
+            // new Date uses browser TZ unless specified in string, so append the server offset
+            date = new Date(frame.TimeStamp+(server_utc_offset/3600));
+            frame.TimeStampSecs = new Date(date.getTime() + frame.Delta * 1000).getTime() / 1000;
+            //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
+            if (last_frame) {
+              frame.PrevFrameId = last_frame.Id;
+              last_frame.NextFrameId = frame.Id;
+              last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+            }
+            last_frame = frame;
+
+            zm_event.FramesById[frame.Id] = frame;
+          } // end fireach frame
+        }  // end if there are frames
+        drawGraph();
+        resolve();
+      })
+      .fail(function() {
+        logAjaxFail;
+        reject(Error("There was an error"));
+      }
+      );
+  }  // end Promise
+  );
+}  // end function load_Frames(Event)

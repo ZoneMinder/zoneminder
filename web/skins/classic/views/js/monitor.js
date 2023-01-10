@@ -83,7 +83,7 @@ function Janus_Use_RTSP_Restream_onclick(e) {
       Janus_RTSP_User.hide();
     }
   } else {
-    console.log("DIdn't find newMonitor[Janus_Use_RTSP_Restream]");
+    console.log("Didn't find newMonitor[Janus_Use_RTSP_Restream]");
   }
 }
 

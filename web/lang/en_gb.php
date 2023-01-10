@@ -862,6 +862,22 @@ Ondemand: A zmc process will run, but will wait for a viewer (live view, thumbna
 Always: A zmc process will run and immediately connect and stay connected.~~~~
 ',
   ),
+  'OPTIONS_RTSPSERVER' => array(
+    'Help' => '
+     ZM supplies its own RTSP server that can re-stream RTSP or attempt to convert the
+     monitor stream into RTSP. This is useful if you want to use the ZM Host machines
+     resources instead of having multiple clients pulling from a single camera.~~~~
+     NOTE:~~
+     Options > Network > MIN_RTSP_PORT is configurable.
+     ',
+    ),
+  'OPTIONS_RTSPSTREAMNAME' => array(
+     'Help' => '
+     If RTSPServer is enabled, this will be the endpoint it will be available at.
+     For example, if this is monitor ID 6, MIN_RTSP_PORT=20000 and RTSPServerName
+     is set to "my_camera", access the stream at rtsp://ZM_HOST:20006/my_camera
+     ',
+    ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
       When to perform motion detection on the captured video.  
@@ -900,6 +916,11 @@ None: No frames will be decoded, live view and thumbnails will not be available~
     'Help' => '
       If your camera will not work under Janus with any other options, enable this to use the ZoneMinder
       RTSP restream as the Janus source.'
+  ),
+  'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
+    'Help' => '
+    Override or set a timeout period in seconds for the RTSP session. Useful if you see a lot of 401
+    Unauthorized responses in janus logs. Set to 0 to use the timeout (if sent) from the source.'
   ),
   'ImageBufferCount' => array(
     'Help' => '

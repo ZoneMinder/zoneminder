@@ -346,6 +346,7 @@ protected:
     TimePoint   rtsp_auth_time;
     std::string rtsp_path;
     std::string profile_override;
+    std::uint32_t rtsp_session_timeout;
 
   public:
     explicit JanusManager(Monitor *parent_);
@@ -380,6 +381,7 @@ protected:
   bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
   std::string     janus_pin;  // For security, we generate a pin required to view the stream.
   int             janus_rtsp_user;          // User Id of a user to use for auth to RTSP_Server
+  int             janus_rtsp_session_timeout;  // RTSP session timeout (work around for cameras that dont send ;timeout=<timeout in seconds> but do have a timeout)
 
   std::string protocol;
   std::string method;

@@ -93,6 +93,7 @@ if ($action == 'save') {
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
       'Janus_Use_RTSP_Restream' => 0,
+//       'Janus_RTSP_Session_Timeout' => 0,
       'Exif' => 0,
       'RTSPDescribe' => 0,
       'V4LMultiBuffer'  => '',
@@ -101,7 +102,8 @@ if ($action == 'save') {
       'GroupIds'  =>  array(),
       'LinkedMonitors'  => array(),
       'MQTT_Enabled'  =>  0,
-      'RTSPServer' => 0
+      'RTSPServer' => 0,
+      'SectionLengthWarn' => 0
       );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.

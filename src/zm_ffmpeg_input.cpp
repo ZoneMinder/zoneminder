@@ -106,7 +106,7 @@ int FFmpeg_Input::Open(const char *filepath) {
     }
     zm_dump_codec(streams[i].context);
     if (!(streams[i].context->time_base.num && streams[i].context->time_base.den)) {
-      Warning("Setting to default time base");
+      Debug(1, "Setting to default time base");
       streams[i].context->time_base.num = 1;
       streams[i].context->time_base.den = 90000;
     }

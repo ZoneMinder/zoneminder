@@ -1001,6 +1001,12 @@ class Filter extends ZM_Object {
           #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, $term['val']).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'MonitorName' ) {
+          $monitor_names = ['' => translate('All')];
+          foreach (Monitor::find() as $m) {
+            if ($m->canView()) {
+              $monitor_names[$m->Name()] = validHtmlStr($m->Name());
+            }
+          }
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val']).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {

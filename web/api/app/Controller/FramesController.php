@@ -32,7 +32,23 @@ class FramesController extends AppController {
  */
 	public function index() {
 		$this->Frame->recursive = -1;
-		$frames = $this->Frame->find('all');
+
+    global $user;
+    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    if ( $allowedMonitors ) {
+      $mon_options = array('Event.MonitorId' => $allowedMonitors);
+    } else {
+      $mon_options = '';
+    }
+    $named_params = $this->request->params['named'];
+    if ( $named_params ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($named_params);
+    } else {
+      $conditions = array();
+    }
+
+    $frames = $this->Frame->find('all', ['conditions'=>$conditions]);
 		$this->set(array(
 			'frames' => $frames,
 			'_serialize' => array('frames')

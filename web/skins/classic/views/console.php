@@ -296,7 +296,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 <?php
   }
   $imgHTML = '';
-  if (ZM_WEB_LIST_THUMBS && ($monitor['Capturing'] != 'None') && ($monitor['Status'] == 'Connected') && $running && canView('Stream')) {
+  if (ZM_WEB_LIST_THUMBS && ($monitor['Capturing'] != 'None') && $running && canView('Stream')) {
     $options = array();
 
     $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();

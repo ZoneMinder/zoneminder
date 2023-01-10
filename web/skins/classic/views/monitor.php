@@ -1251,6 +1251,18 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 ?>
               </td>
             </tr>
+
+            <tr id="FunctionJanusRTSPSessionTimeout">
+              <td><?php echo translate('Janus RTSP Session Timeout Override') ?></td>
+              <td><input type="text" name="newMonitor[Janus_RTSP_Session_Timeout]" value="<?php echo $monitor->Janus_RTSP_Session_Timeout()?>"/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_RTSP_SESSION_TIMEOUT']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_RTSP_SESSION_TIMEOUT']['Help'].'</div>';
+  }
+?>
+              </td>
+            </tr>
+
             <tr id="FunctionJanusUseRTSPRestream">
               <td><?php echo translate('Janus Use RTSP Restream') ?></td>
               <td><input type="checkbox" name="newMonitor[Janus_Use_RTSP_Restream]" value="1"<?php echo $monitor->Janus_Use_RTSP_Restream() ? ' checked="checked"' : '' ?>/>
@@ -1440,6 +1452,8 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <td>
             <input type="number" name="newMonitor[SectionLength]" value="<?php echo validHtmlStr($monitor->SectionLength()) ?>" min="0"/>
             <?php echo translate('seconds')?>
+            <input type="checkbox" name="newMonitor[SectionLengthWarn}" value="1"<?php echo $monitor->SectionLengthWarn() ? ' checked="checked"' : '' ?>/>
+            <?php echo translate('Warn if exceeded') ?>
           </td>
         </tr>
         <tr>

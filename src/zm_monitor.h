@@ -346,6 +346,7 @@ protected:
     TimePoint   rtsp_auth_time;
     std::string rtsp_path;
     std::string profile_override;
+    std::uint32_t rtsp_session_timeout;
 
   public:
     explicit JanusManager(Monitor *parent_);
@@ -380,6 +381,7 @@ protected:
   bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
   std::string     janus_pin;  // For security, we generate a pin required to view the stream.
   int             janus_rtsp_user;          // User Id of a user to use for auth to RTSP_Server
+  int             janus_rtsp_session_timeout;  // RTSP session timeout (work around for cameras that dont send ;timeout=<timeout in seconds> but do have a timeout)
 
   std::string protocol;
   std::string method;
@@ -445,6 +447,7 @@ protected:
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   Seconds    section_length;      // How long events should last in continuous modes
+  bool        section_length_warn;  // Whether to log a warning when a motion event exceeds desired section_length
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes

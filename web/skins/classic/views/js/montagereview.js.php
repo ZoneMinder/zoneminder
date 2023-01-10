@@ -1,5 +1,4 @@
-
-var server_utc_offset = <?php
+const server_utc_offset = <?php
 $tz = ini_get('date.timezone');
 if (!$tz) {
   $tz = 'UTC';
@@ -50,28 +49,26 @@ var timeLabelsFractOfRow = 0.9;
 
 // Because we might not have time as the criteria, figure out the min/max time when we run the query
 
-
 // This builds the list of events that are eligible from this range
 
 $index = 0;
 $anyAlarms = false;
 $maxScore = 0;
 
-if ( !$liveMode ) {
+if (!$liveMode) {
   $result = dbQuery($eventsSql);
   if ( !$result ) {
-    ZM\Fatal('SQL-ERR');
+    ZM\Error('SQL-ERR');
     return;
   }
 
   $EventsById = array();
-
   while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
     $event_id = $event['Id'];
     $EventsById[$event_id] = $event;
   }
   $next_frames = array();
-
+if ( 0 ) {
   if ( $result = dbQuery($framesSql) ) {
     $next_frame = null;
     while ( $frame = $result->fetch(PDO::FETCH_ASSOC) ) {
@@ -91,11 +88,12 @@ if ( !$liveMode ) {
       $next_frames[$frame['EventId']] = &$event['FramesById'][$frame['Id']];
     }
   } // end if dbQuery
+}
 
   $events_by_monitor_id = array();
 
-  echo "var events = {\n";
-  foreach ( $EventsById as $event_id=>$event ) {
+  echo "const events = {\n";
+  foreach ($EventsById as $event_id=>$event) {
 
     $StartTimeSecs = $event['StartTimeSecs'];
     $EndTimeSecs = $event['EndTimeSecs'];
@@ -116,11 +114,11 @@ if ( !$liveMode ) {
     if ( !isset($events_by_monitor_id[$event['MonitorId']]) )
         $events_by_monitor_id[$event['MonitorId']] = array();
     array_push($events_by_monitor_id[$event['MonitorId']], $event_id);
-
   } # end foreach Event
   echo ' };
 
-  var events_by_monitor_id = '.json_encode($events_by_monitor_id, JSON_NUMERIC_CHECK)."\n";
+  const events_for_monitor = [];
+  const events_by_monitor_id = '.json_encode($events_by_monitor_id, JSON_NUMERIC_CHECK).PHP_EOL;
 
   // if there is no data set the min/max to the passed in values
   if ( $index == 0 ) {

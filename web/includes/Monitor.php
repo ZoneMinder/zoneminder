@@ -149,6 +149,7 @@ public static function getStatuses() {
     'Janus_Profile_Override'   => '',
     'Janus_Use_RTSP_Restream'   => array('type'=>'boolean','default'=>0),
     'Janus_RTSP_User'           => null,
+    'Janus_RTSP_Session_Timeout'  => array('type'=>'integer','default'=>0),
     'LinkedMonitors' => array('type'=>'set', 'default'=>null),
     'Triggers'  =>  array('type'=>'set','default'=>''),
     'EventStartCommand' => '',

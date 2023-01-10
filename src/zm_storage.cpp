@@ -38,40 +38,26 @@ Storage::Storage() : id(0) {
   scheme_str = "Medium";
 }
 
-Storage::Storage(MYSQL_ROW &dbrow) {
-  unsigned int index = 0;
-  id = atoi(dbrow[index++]);
-  strncpy(name, dbrow[index++], sizeof(name) - 1);
-  strncpy(path, dbrow[index++], sizeof(path) - 1);
-  type_str = std::string(dbrow[index++]);
-  scheme_str = std::string(dbrow[index++]);
-  if (scheme_str == "Deep") {
-    scheme = DEEP;
-  } else if (scheme_str == "Medium") {
-    scheme = MEDIUM;
-  } else {
-    scheme = SHALLOW;
-  }
-}
-
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
 Storage::Storage(unsigned int p_id) : id(p_id) {
   if (id) {
-    std::string sql = stringtf("SELECT `Id`, `Name`, `Path`, `Type`, `Scheme` FROM `Storage` WHERE `Id`=%u", id);
-    Debug(2, "Loading Storage for %u using %s", id, sql.c_str());
-    zmDbRow dbrow;
-    if (!dbrow.fetch(sql)) {
-      Error("Unable to load storage area for id %d: %s", id, mysql_error(&dbconn));
+    zmDbQuery query = zmDbQuery( SELECT_STORAGE_WITH_ID );
+    query.bind( "id", id );
+    query.fetchOne();
+
+    Debug(2, "Loading Storage for %u", id);
+    if ( query.affectedRows() != 1 ) {
+      Error("Unable to load storage area for id %d", id);
+
     } else {
-      unsigned int index = 0;
-      id = atoi(dbrow[index++]);
-      strncpy(name, dbrow[index++], sizeof(name) - 1);
-      strncpy(path, dbrow[index++], sizeof(path) - 1);
-      type_str = std::string(dbrow[index++]);
-      scheme_str = std::string(dbrow[index++]);
-      if (scheme_str == "Deep") {
+      id = query.get<long long>("Id");
+      strncpy(name, query.get<std::string>("Name").c_str(), sizeof(name) - 1);
+      strncpy(path, query.get<std::string>("Path").c_str(), sizeof(path) - 1);
+      type_str = query.get<std::string>("Type");
+      scheme_str = query.get<std::string>("Scheme");
+      if (scheme_str.compare("Deep") == 0) {
         scheme = DEEP;
-      } else if (scheme_str == "Medium") {
+      } else if (scheme_str.compare("Medium") == 0) {
         scheme = MEDIUM;
       } else {
         scheme = SHALLOW;

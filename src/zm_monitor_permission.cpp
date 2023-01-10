@@ -27,12 +27,11 @@
 Monitor_Permission::Monitor_Permission() : id(0), user_id(0), monitor_id(0), permission(PERM_INHERIT) {
 }
 
-Monitor_Permission::Monitor_Permission(const MYSQL_ROW &dbrow) {
-  int index = 0;
-  id = atoi(dbrow[index++]);
-  user_id = atoi(dbrow[index++]);
-  monitor_id = atoi(dbrow[index++]);
-  permission = static_cast<Permission>(atoi(dbrow[index++]));
+Monitor_Permission::Monitor_Permission(zmDbQuery &dbrow) {
+  id = dbrow.get<int>("Id");
+  user_id = dbrow.get<int>("UserId");
+  monitor_id = dbrow.get<int>("MonitorId");
+  permission = dbrow.get<Permission>("Permission");
 }
 
 Monitor_Permission::~Monitor_Permission() {
@@ -47,16 +46,17 @@ void Monitor_Permission::Copy(const Monitor_Permission &mp) {
 
 std::vector<Monitor_Permission> Monitor_Permission::find(int p_user_id) {
   std::vector<Monitor_Permission> results;
-  std::string sql = stringtf("SELECT `Id`,`UserId`,`MonitorId`,`Permission`+0 FROM Monitors_Permissions WHERE `UserId`='%d'", p_user_id);
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  zmDbQuery query( SELECT_MONITOR_PERMISSIONS_FOR_USERID );
+  query.bind<int>("id", p_user_id);
+  query.run(true);
 
-  if (result) {
-    results.reserve(mysql_num_rows(result));
-    while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
-      results.push_back(Monitor_Permission(dbrow));
-    }
-    mysql_free_result(result);
+  if( query.affectedRows() == 0 )
+    return results;
+
+  while( query.next() ) {
+    results.push_back(Monitor_Permission(query));
   }
+
   return results;
 }

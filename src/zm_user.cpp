@@ -1,5 +1,5 @@
 /*
- * ZoneMinder regular expression class implementation, $Date$, $Revision$
+ * ZoneMinder user class implementation, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
  *
  * This program is free software; you can redistribute it and/or
@@ -30,19 +30,16 @@ User::User() : id(0), enabled(false) {
   stream = events = control = monitors = system = PERM_NONE;
 }
 
-User::User(const MYSQL_ROW &dbrow) {
-  int index = 0;
-  id = atoi(dbrow[index++]);
-  strncpy(username, dbrow[index++], sizeof(username)-1);
-  strncpy(password, dbrow[index++], sizeof(password)-1);
-  enabled = static_cast<bool>(atoi(dbrow[index++]));
-  stream = (Permission)atoi(dbrow[index++]);
-  events = (Permission)atoi(dbrow[index++]);
-  control = (Permission)atoi(dbrow[index++]);
-  monitors = (Permission)atoi(dbrow[index++]);
-  system = (Permission)atoi(dbrow[index++]);
-  monitor_permissions_loaded = false;
-  group_permissions_loaded = false;
+User::User(zmDbQuery &dbrow) {
+  id = dbrow.get<long long>("Id");
+  strncpy(username, dbrow.get<std::string>("Username").c_str(), sizeof(username)-1);
+  strncpy(password, dbrow.get<std::string>("Password").c_str(), sizeof(password)-1);
+  enabled = (dbrow.get<int>("Enabled") == 1);
+  stream = dbrow.get<Permission>("Stream");
+  events = dbrow.get<Permission>("Events");
+  control = dbrow.get<Permission>("Control");
+  monitors = dbrow.get<Permission>("Monitors");
+  system = dbrow.get<Permission>("System");
 }
 
 User::~User() {
@@ -130,31 +127,24 @@ bool User::canAccess(int monitor_id) {
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
 User *zmLoadUser(const char *username, const char *password) {
-  std::string escaped_username = zmDbEscapeString(username);
+  // the username was escaped here, however now with prepared statement it
+  // is not necessary anymore
+  zmDbQuery query = zmDbQuery( SELECT_USER_AND_DATA_WITH_USERNAME_ENABLED );
+  query.bind<std::string>( "username", username );
+  query.fetchOne();
 
-  std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`,"
-                             " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
-                             " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1",
-                             escaped_username.c_str());
-
-  MYSQL_RES *result = zmDbFetch(sql);
-  if (!result)
-    return nullptr;
-
-  if ( mysql_num_rows(result) == 1 ) {
-    MYSQL_ROW dbrow = mysql_fetch_row(result);
-    User *user = new User(dbrow);
+  if ( query.affectedRows() == 1 ) {
+    User *user = new User(query);
 
     if ( 
         (! password )  // relay type must be none
         ||
-        verifyPassword(username, password, user->getPassword()) ) {
-      mysql_free_result(result);
+        verifyPassword(username, password, user->getPassword()) ) 
+    {
       Info("Authenticated user '%s'", user->getUsername());
       return user;
     } 
   }  // end if 1 result from db
-  mysql_free_result(result);
 
   Warning("Unable to authenticate user %s", username);
   return nullptr;
@@ -184,34 +174,25 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
     return nullptr;
   }
 
-  std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`, `Stream`+0, `Events`+0,"
-                             " `Control`+0, `Monitors`+0, `System`+0, `TokenMinExpiry`"
-                             " FROM `Users` WHERE `Username` = '%s' AND `Enabled` = 1", username.c_str());
+  zmDbQuery query = zmDbQuery( SELECT_USER_AND_DATA_PLUS_TOKEN_WITH_USERNAME_ENABLED );
+  query.bind<std::string>( "username", username );
+  query.fetchOne();
 
-  MYSQL_RES *result = zmDbFetch(sql);
-  if (!result)
-    return nullptr;
-
-  int n_users = mysql_num_rows(result);
-  if ( n_users != 1 ) {
-    mysql_free_result(result);
+  if ( query.affectedRows() != 1 ) {
     Error("Unable to authenticate user '%s'", username.c_str());
     return nullptr;
   }
 
-  MYSQL_ROW dbrow = mysql_fetch_row(result);
-  User *user = new User(dbrow);
-  unsigned int stored_iat = strtoul(dbrow[10], nullptr, 0);
+  User *user = new User(query);
+  unsigned int stored_iat = strtoul(query.get<std::string>( "TokenMinExpiry" ).c_str(), nullptr, 0);
 
   if ( stored_iat > iat ) { // admin revoked tokens
-    mysql_free_result(result);
     Error("Token was revoked for '%s'", username.c_str());
     return nullptr;
   }
 
   Debug(1, "Authenticated user '%s' via token with last revoke time: %u",
       username.c_str(), stored_iat);
-  mysql_free_result(result);
   return user;
 }  // User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr)
  
@@ -227,17 +208,12 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   }
 
   Debug(1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth, remote_addr);
-  std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
-                    " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
-                    " FROM `Users` WHERE `Enabled` = 1";
+  zmDbQuery query = zmDbQuery( SELECT_ALL_USERS_AND_DATA_ENABLED );;
 
-  MYSQL_RES *result = zmDbFetch(sql);
-  if (!result)
-    return nullptr;
+  query.run( true );
 
-  int n_users = mysql_num_rows(result);
+  int n_users = query.affectedRows();
   if (n_users < 1) {
-    mysql_free_result(result);
     Warning("Unable to authenticate user");
     return nullptr;
   }
@@ -254,9 +230,9 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
           static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()));
   }
 
-  while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
-    const char *username = dbrow[1];
-    const char *password = dbrow[2];
+  while ( query.next() ) {
+    std::string username = query.get<std::string>("Username");
+    std::string password = query.get<std::string>("Password");
 
     SystemTimePoint our_now = now;
     tm now_tm = {};
@@ -266,8 +242,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 
       std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
                                       config.auth_hash_secret,
-                                      username,
-                                      password,
+                                      username.c_str(),
+                                      password.c_str(),
                                       remote_addr,
                                       now_tm.tm_hour,
                                       now_tm.tm_mday,
@@ -281,16 +257,14 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 
       if (!strcmp(auth, auth_md5.c_str())) {
         // We have a match
-        User *user = new User(dbrow);
+        User *user = new User(query);
         Debug(1, "Authenticated user '%s'", user->getUsername());
-        mysql_free_result(result);
         return user;
       } else {
         Debug(1, "No match for %s", auth);
       }
     }  // end foreach hour
   }  // end foreach user
-  mysql_free_result(result);
 
   Debug(1, "No user found for auth_key %s", auth);
   return nullptr;

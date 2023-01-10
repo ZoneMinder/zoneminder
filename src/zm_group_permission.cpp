@@ -27,12 +27,12 @@
 Group_Permission::Group_Permission() : id(0), group_id(0), user_id(0), permission(PERM_INHERIT), monitor_ids_loaded(false) {
 }
 
-Group_Permission::Group_Permission(const MYSQL_ROW &dbrow) {
-  int index = 0;
-  id = atoi(dbrow[index++]);
-  user_id = atoi(dbrow[index++]);
-  group_id = atoi(dbrow[index++]);
-  permission = static_cast<Permission>(atoi(dbrow[index]));
+Group_Permission::Group_Permission(zmDbQuery &dbrow) {
+  id = dbrow.get<int>("Id");
+  user_id = dbrow.get<int>("UserId");
+  group_id = dbrow.get<int>("GroupId");
+  permission = dbrow.get<Permission>("Permission");
+  Debug(1, "Loaded permission %d from user %d group %d", permission, user_id, group_id);
   monitor_ids_loaded = false;
 }
 
@@ -67,33 +67,32 @@ Group_Permission::Permission Group_Permission::getPermission(int monitor_id) {
 
 std::vector<Group_Permission> Group_Permission::find(int p_user_id) {
   std::vector<Group_Permission> results;
-  std::string sql = stringtf("SELECT `Id`,`UserId`,`GroupId`,`Permission`+0 FROM Groups_Permissions WHERE `UserId`='%d'", p_user_id);
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
+  zmDbQuery query( SELECT_GROUP_PERMISSIONS_FOR_USERID );
+  query.bind<int>("id", p_user_id);
+  query.run(true);
 
-  if (result) {
-    results.reserve(mysql_num_rows(result));
-    while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
-      results.push_back(Group_Permission(dbrow));
-    }
-    mysql_free_result(result);
+  if( query.affectedRows() == 0 )
+    return results;
+
+  while( query.next() ) {
+    results.push_back(Group_Permission(query));
   }
   return results;
 }
 
 void Group_Permission::loadMonitorIds() {
-  std::string sql = stringtf("SELECT `MonitorId` FROM Groups_Monitors WHERE `GroupId`=%d", group_id);
+  zmDbQuery query( SELECT_MONITOR_FOR_GROUPID );
+  query.bind<int>("id", group_id);
+  query.run(true);
 
-  MYSQL_RES *result = zmDbFetch(sql.c_str());
-  if (!result) {
-    Error("Error loading MonitorIds from %s", sql.c_str());
+  if( query.affectedRows() == 0 ) {
+    Error("Error loading MonitorIds from group id %d", group_id);
     return;
   }
-
-  monitor_ids.reserve(mysql_num_rows(result));
-  while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
-    monitor_ids.push_back(atoi(dbrow[0]));
+    
+  while( query.next() ) {
+    monitor_ids.push_back( query.get<int>("GroupId") );
   }
-  mysql_free_result(result);
   monitor_ids_loaded = true;
 }  // end loadMonitorsIds()

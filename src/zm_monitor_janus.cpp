@@ -64,18 +64,15 @@ void Monitor::JanusManager::load_from_monitor() {
       tm now_tm = {};
       localtime_r(&now_t, &now_tm);
       if (parent->janus_rtsp_user) {
-        std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
-          " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
-          " `MonitorIds` FROM `Users` WHERE `Enabled`=1 AND `Id`=" + std::to_string(parent->janus_rtsp_user);
+        zmDbQuery authQuery( SELECT_USER_AND_DATA_WITH_USERID_ENABLED );
+        authQuery.bind<int>("id", parent->janus_rtsp_user);
+        authQuery.fetchOne();
 
-        MYSQL_RES *result = zmDbFetch(sql);
-        if (result) {
-          MYSQL_ROW dbrow = mysql_fetch_row(result);
-
+        if(authQuery.affectedRows()!=0) {
           std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
               config.auth_hash_secret,
-              dbrow[1],  // username
-              dbrow[2],  // password
+              authQuery.get<std::string>("Username").c_str(),  // username
+              authQuery.get<std::string>("Password").c_str(),  // password
               (config.auth_hash_ips ? "127.0.0.1" : ""),
               now_tm.tm_hour,
               now_tm.tm_mday,
@@ -84,7 +81,6 @@ void Monitor::JanusManager::load_from_monitor() {
           Debug(1, "Creating auth_key '%s'", auth_key.c_str());
 
           zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
-          mysql_free_result(result);
           rtsp_path += "?auth=" + ByteArrayToHexString(md5_digest);
         } else {
           Warning("No user selected for RTSP_Server authentication!");

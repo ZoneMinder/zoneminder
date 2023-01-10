@@ -23,6 +23,7 @@
 #include "zm_ffmpeg.h"
 #include <pthread.h>
 #include <array>
+#include <thread>
 
 class VideoStream {
 protected:

@@ -28,34 +28,33 @@ Server::Server() : id(0) {
   Warning("Instantiating default Server Object. Should not happen.");
 }
 
-Server::Server(MYSQL_ROW &dbrow) {
-  unsigned int index = 0;
-  id = atoi(dbrow[index++]);
-  name = dbrow[index++];
-  protocol = dbrow[index++];
-  hostname = dbrow[index++];
-  path_to_index = dbrow[index++];
-  path_to_zms = dbrow[index++];
-  path_to_api = dbrow[index++];
+Server::Server(zmDbQuery &dbrow) {
+  id = dbrow.get<int>("Id");
+  name = dbrow.get<std::string>("Name");
+  protocol = dbrow.get<std::string>("Protocol");
+  hostname = dbrow.get<std::string>("Hostname");
+  path_to_index = dbrow.get<std::string>("PathToIndex");
+  path_to_zms = dbrow.get<std::string>("PathToZMS");
+  path_to_api = dbrow.get<std::string>("PathToApi");
 }
 
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
 Server::Server(unsigned int p_id) : id(p_id) {
   if (id) {
-    std::string sql = stringtf("SELECT `Id`, `Name`, `Protocol`, `Hostname`, `PathToIndex`, `PathToZMS`, `PathToApi` FROM `Servers` WHERE `Id`=%u", id);
-    Debug(2, "Loading Server for %u using %s", id, sql.c_str());
-    zmDbRow dbrow;
-    if (!dbrow.fetch(sql)) {
-      Error("Unable to load server for id %d: %s", id, mysql_error(&dbconn));
+    zmDbQuery serverQuery( SELECT_SERVER_DATA_WITH_ID );
+    serverQuery.bind<int>("id", id);
+    serverQuery.fetchOne();
+
+    if( serverQuery.affectedRows() == 0 ) {
+      Error("Unable to load server for id %d", id);
     } else {
-      unsigned int index = 0;
-      id = atoi(dbrow[index++]);
-      name = dbrow[index++];
-      protocol = dbrow[index++];
-      hostname = dbrow[index++];
-      path_to_index = std::string(dbrow[index++]);
-      path_to_zms = std::string(dbrow[index++]);
-      path_to_api = std::string(dbrow[index++]);
+      id = serverQuery.get<int>("Id");
+      name = serverQuery.get<std::string>("Name");
+      protocol = serverQuery.get<std::string>("Protocol");
+      hostname = serverQuery.get<std::string>("Hostname");
+      path_to_index = serverQuery.get<std::string>("PathToIndex");
+      path_to_zms = serverQuery.get<std::string>("PathToZMS");
+      path_to_api = serverQuery.get<std::string>("PathToApi");
       Debug(1, "Loaded Server %d '%s' %s://%s", id, name.c_str(), protocol.c_str(), hostname.c_str());
     }
   }

@@ -39,7 +39,7 @@ class Group_Permission {
 
  public:
   Group_Permission();
-  explicit Group_Permission(const MYSQL_ROW &dbrow);
+  explicit Group_Permission(zmDbQuery &dbrow);
   ~Group_Permission();
   Group_Permission(const Group_Permission &gp) { Copy(gp); }
   void Copy(const Group_Permission &u);
@@ -55,6 +55,58 @@ class Group_Permission {
   void loadMonitorIds();
 
   static std::vector<Group_Permission> find(int p_user_id);
+};
+
+namespace soci {
+  template<> struct type_conversion<Group_Permission::Permission>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Group_Permission::Permission & p)
+      {
+          if (ind == i_null) {
+            p = Group_Permission::Permission::PERM_UNKNOWN;
+            return;
+          }
+
+          if( v.compare("Inherit") == 0 )
+            p = Group_Permission::Permission::PERM_INHERIT;
+          else if( v.compare("None") == 0 )
+            p = Group_Permission::Permission::PERM_NONE;
+          else if( v.compare("View") == 0 )
+            p = Group_Permission::Permission::PERM_VIEW;
+          else if( v.compare("Edit") == 0 )
+            p = Group_Permission::Permission::PERM_EDIT;
+          else
+            p = Group_Permission::Permission::PERM_UNKNOWN;
+      }
+      static void to_base(Group_Permission::Permission & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Group_Permission::Permission::PERM_INHERIT:
+              v = "Inherit";
+              ind = i_ok;
+              return;
+            case Group_Permission::Permission::PERM_NONE:
+              v = "None";
+              ind = i_ok;
+              return;
+            case Group_Permission::Permission::PERM_VIEW:
+              v = "View";
+              ind = i_ok;
+              return;
+            case Group_Permission::Permission::PERM_EDIT:
+              v = "Edit";
+              ind = i_ok;
+              return;
+
+            default:
+            case Group_Permission::Permission::PERM_UNKNOWN:
+              v = "Unknown";
+              ind = i_ok;
+              return;
+          }
+      }
+  };
 };
 
 #endif // ZM_GROUP_PERMISSION_H

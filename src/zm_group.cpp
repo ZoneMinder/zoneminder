@@ -31,11 +31,11 @@ Group::Group() {
 }
 
 // The order of columns is: Id, ParentId, Name
-Group::Group(const MYSQL_ROW &dbrow) {
-	unsigned int index = 0;
-	id = atoi(dbrow[index++]);
-	parent_id = dbrow[index] ? atoi(dbrow[index]): 0; index++;
-	strncpy(name, dbrow[index++], sizeof(name)-1);
+Group::Group(zmDbQuery &dbrow) {
+	id = dbrow.get<unsigned int>( "Id" );
+  parent_id = dbrow.has( "ParentId" ) ? dbrow.get<unsigned int>( "ParentId" ) : 0;
+
+	strncpy(name, dbrow.get<std::string>( "Name" ).c_str(), sizeof(name)-1);
 }
 
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
@@ -43,17 +43,18 @@ Group::Group(unsigned int p_id) {
   id = 0;
 
   if (p_id) {
-    std::string sql = stringtf("SELECT `Id`, `ParentId`, `Name` FROM `Group` WHERE `Id`=%u", p_id);
-    Debug(2, "Loading Group for %u using %s", p_id, sql.c_str());
-    zmDbRow dbrow;
-    if (!dbrow.fetch(sql)) {
-      Error("Unable to load group for id %u: %s", p_id, mysql_error(&dbconn));
+    Debug(2, "Loading Group for %u", p_id);
+    zmDbQuery groupQuery = zmDbQuery( SELECT_GROUP_WITH_ID );
+    groupQuery.bind("id", p_id);
+    groupQuery.fetchOne();
+
+    if (groupQuery.affectedRows() != 1) {
+      Error("Unable to load group for id %u", p_id);
+
     } else {
-      unsigned int index = 0;
-      id = atoi(dbrow[index++]);
-      parent_id = dbrow[index] ? atoi(dbrow[index]) : 0;
-      index++;
-      strncpy(name, dbrow[index++], sizeof(name) - 1);
+      id = groupQuery.get<long long>("Id");
+      parent_id = groupQuery.has("ParentId") ? groupQuery.get<long long>("ParentId") : 0;
+      strncpy(name, groupQuery.get<std::string>("Name").c_str(), sizeof(name) - 1);
       Debug(1, "Loaded Group area %d '%s'", id, this->Name());
     }
   }

@@ -234,6 +234,10 @@ int main(int argc, char *argv[]) {
   int result = 0;
   int prime_capture_log_count = 0;
 
+  zmDbQuery insertRunning = zmDbQuery( INSERT_MONITOR_STATUS_RUNNING );
+  zmDbQuery insertConnected = zmDbQuery( INSERT_MONITOR_STATUS_CONNECTED );
+  zmDbQuery insertNotrunning = zmDbQuery( INSERT_MONITOR_STATUS_NOTRUNNING );
+
   while (!zm_terminate) {
     result = 0;
 
@@ -247,11 +251,8 @@ int main(int argc, char *argv[]) {
       monitor->SetStartupTime(now);
       monitor->SetHeartbeatTime(now);
 
-      std::string sql = stringtf(
-          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"
-          " VALUES (%u, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
-          monitor->Id());
-      zmDbDo(sql);
+      insertRunning.bind<long long>( "id", monitor->Id() );
+      insertRunning.insert();
 
       if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         while (!zm_terminate and !monitor->hasViewers()) {
@@ -279,10 +280,8 @@ int main(int argc, char *argv[]) {
       }
       if (zm_terminate) break;
 
-      sql = stringtf(
-          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
-          monitor->Id());
-      zmDbDo(sql);
+      insertConnected.bind<long long>( "id", monitor->Id() );
+      insertConnected.insert();
     }  // end foreach monitor
 
     if (zm_terminate) break;
@@ -372,10 +371,8 @@ int main(int argc, char *argv[]) {
   }  // end while ! zm_terminate outer connection loop
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
-    std::string sql = stringtf(
-        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'",
-        monitor->Id());
-    zmDbDo(sql);
+    insertNotrunning.bind<long long>( "id", monitor->Id() );
+    insertNotrunning.insert();
   }
   monitors.clear();
   Debug(1, "Cleared monitors");
@@ -383,7 +380,6 @@ int main(int argc, char *argv[]) {
   Image::Deinitialise();
   curl_global_cleanup();
   Debug(1, "terminating");
-  dbQueue.stop();
   logTerm();
   zmDbClose();
 

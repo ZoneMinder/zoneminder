@@ -24,8 +24,12 @@
 #include "zm_logger.h"
 #include "zm_vector2.h"
 
+#include "soci/soci.h"
+
 class ZoneStats {
  public:
+  explicit ZoneStats() : ZoneStats(0) {};
+
   explicit ZoneStats(int zone_id) :
       zone_id_(zone_id),
       pixel_diff_(0),
@@ -85,5 +89,42 @@ class ZoneStats {
   Vector2 alarm_centre_;
   unsigned int score_;
 };
+
+namespace soci {
+  template<> struct type_conversion<ZoneStats>
+  {
+      typedef values base_type;
+      static void from_base(values const v, indicator ind, ZoneStats & p)
+      {
+          p.zone_id_ = v.get<long long>("zone_id");
+          p.pixel_diff_ = v.get<int>("pixel_diff");
+          p.alarm_pixels_ = v.get<unsigned int>("alarm_pixels");
+          p.alarm_filter_pixels_ = v.get<int>("filter_pixels");
+          p.alarm_blob_pixels_ = v.get<int>("blob_pixels");
+          p.alarm_blobs_ = v.get<int>("blobs");
+          p.min_blob_size_ = v.get<int>("min_blobsize");
+          p.max_blob_size_ = v.get<int>("max_blobsize");
+          p.alarm_box_ = Box( Vector2(v.get<int32>("minx"), v.get<int32>("miny")), Vector2(v.get<int32>("maxx"), v.get<int32>("maxy")) );
+          p.score_ = v.get<int>("score");
+      }
+      static void to_base(const ZoneStats & p, values & v, indicator & ind)
+      {
+          v.set("zone_id", p.zone_id_);
+          v.set("pixel_diff", p.pixel_diff_);
+          v.set("alarm_pixels", p.alarm_pixels_);
+          v.set("filter_pixels", p.alarm_filter_pixels_);
+          v.set("blob_pixels", p.alarm_blob_pixels_);
+          v.set("blobs", p.alarm_blobs_);
+          v.set("min_blobsize", p.min_blob_size_);
+          v.set("max_blobsize", p.max_blob_size_);
+          v.set("minx", p.alarm_box_.Lo().x_);
+          v.set("miny", p.alarm_box_.Lo().y_);
+          v.set("maxx", p.alarm_box_.Hi().x_);
+          v.set("maxy", p.alarm_box_.Hi().y_);
+          v.set("score", p.score_);
+          ind = i_ok;
+      }
+  };
+}
 
 #endif // ZM_ZONE_STATS_H

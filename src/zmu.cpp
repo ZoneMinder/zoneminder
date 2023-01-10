@@ -201,7 +201,6 @@ bool ValidateAccess(User *user, int mon_id, int function) {
 }
 
 void exit_zmu(int exit_code) {
-  dbQueue.stop();
   logTerm();
   zmDbClose();
 
@@ -779,26 +778,29 @@ int main(int argc, char *argv[]) {
   } // end if monitor id or not
 
   if (function & ZMU_LIST) {
-    std::string sql = "SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors`";
-    if (!verbose) {
-      sql += " WHERE `Capturing` != 'None'";
+    zmDbQuery query = zmDbQuery( SELECT_ALL_MONITORS_DATA );
+    if (verbose) {
+      query = zmDbQuery( SELECT_ALL_MONITORS_DATA_VERBOSE );
     }
-    sql += " ORDER BY Id ASC";
 
-    MYSQL_RES *result = zmDbFetch(sql);
-    if (!result) {
+    query.run( true );
+
+    int num_monitors = query.affectedRows();
+    if ( num_monitors == 0 ) {
       exit_zmu(-1);
     }
-    Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(mysql_num_rows(result)));
+    Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(num_monitors));
 
     printf("%4s %9s %9s %9s %5s %8s %13s %5s %5s %9s %9s\n",
         "Id", "Capturing", "Analysing", "Recording", "State", "TrgState",
         "LastImageTime", "RdIdx", "WrIdx", "LastEvent", "FrameRate");
-    for (int i=0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
-      int monitor_id = atoi(dbrow[0]);
+
+    for (int i=0; query.next(); i++) {
+
+      int monitor_id = query.get<long long>("Id");
       if (mon_id and (monitor_id != mon_id)) continue;
       if (!user || user->canAccess(monitor_id)) {
-        int monitor_capturing = atoi(dbrow[1]);
+        Monitor::CapturingOption monitor_capturing = query.get<Monitor::CapturingOption>("Capturing");
         if (monitor_capturing > Monitor::CAPTURING_NONE) {
           std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
           if (monitor && monitor->connect()) {
@@ -833,7 +835,7 @@ int main(int argc, char *argv[]) {
         } // end if function filter
       } // endif !user || canAccess(mon_id)
     } // end foreach row
-    mysql_free_result(result);
+
   } // end if function && ZMU_LIST
   delete user;
 

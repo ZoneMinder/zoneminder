@@ -117,26 +117,25 @@ Zone::~Zone() {
 }
 
 void Zone::RecordStats(const Event *event) {
-  std::string sql = stringtf(
-      "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, "
-      "PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, "
-      "Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, "
-      "MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
-      monitor->Id(), id, event->Id(), event->Frames(),
-      stats.pixel_diff_,
-      stats.alarm_pixels_,
-      stats.alarm_filter_pixels_,
-      stats.alarm_blob_pixels_,
-      stats.alarm_blobs_,
-      stats.min_blob_size_,
-      stats.max_blob_size_,
-      stats.alarm_box_.Lo().x_,
-      stats.alarm_box_.Lo().y_,
-      stats.alarm_box_.Hi().x_,
-      stats.alarm_box_.Hi().y_,
-      stats.score_
-      );
-  zmDbDo(sql);
+  zmDbQuery query = zmDbQuery( INSERT_STATS_SINGLE );
+  query.bind<unsigned int>( "MonitorId", monitor->Id());
+  query.bind<unsigned int>( "ZoneId", id);
+  query.bind<uint64_t>( "EventId", event->Id());
+  query.bind<int>( "FrameId", event->Frames());
+  query.bind<int>( "PixelDiff", stats.pixel_diff_);
+  query.bind<unsigned int>( "AlarmPixels", stats.alarm_pixels_);
+  query.bind<int>( "FilterPixels", stats.alarm_filter_pixels_);
+  query.bind<int>( "BlobPixels", stats.alarm_blob_pixels_);
+  query.bind<int>( "Blobs", stats.alarm_blobs_);
+  query.bind<int>( "MinBlobSize", stats.min_blob_size_);
+  query.bind<int>( "MaxBlobSize", stats.max_blob_size_);
+  query.bind<int32>( "MinX", stats.alarm_box_.Lo().x_);
+  query.bind<int32>( "MinY", stats.alarm_box_.Lo().y_);
+  query.bind<int32>( "MaxX", stats.alarm_box_.Hi().x_);
+  query.bind<int32>( "MaxY", stats.alarm_box_.Hi().y_);
+  query.bind<unsigned int>( "Score  ", stats.score_);;
+
+  query.insert();
 }  // end void Zone::RecordStats( const Event *event )
 
 bool Zone::CheckOverloadCount() {
@@ -828,54 +827,50 @@ bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &
 std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   std::vector<Zone> zones;
 
-  std::string sql = stringtf("SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
-                             "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
-                             "FilterX,FilterY,MinFilterPixels,MaxFilterPixels,"
-                             "MinBlobPixels,MaxBlobPixels,MinBlobs,MaxBlobs,"
-                             "OverloadFrames,ExtendAlarmFrames"
-                             " FROM Zones WHERE MonitorId = %d ORDER BY Type, Id", monitor->Id());
+  zmDbQuery query = zmDbQuery( SELECT_ALL_ZONES_WITH_MONITORID_EQUAL_TO );
+  query.bind<unsigned int>( "id", monitor->Id() );;
 
-  MYSQL_RES *result = zmDbFetch(sql);
-  if (!result) {
+  query.run( true );
+
+  uint32 n_zones = query.affectedRows();
+  Debug(1, "Got %d zones for monitor %s", n_zones, monitor->Name());
+
+  if( n_zones == 0 ) {
     return {};
   }
 
-  uint32 n_zones = mysql_num_rows(result);
-  Debug(1, "Got %d zones for monitor %s", n_zones, monitor->Name());
-
   zones.reserve(n_zones);
-  for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
-    int col = 0;
-
-    int Id = atoi(dbrow[col++]);
-    const char *Name = dbrow[col++];
-    ZoneType Type = static_cast<ZoneType>(atoi(dbrow[col++]));
-    const char *Units = dbrow[col++];
-    const char *Coords = dbrow[col++];
-    int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0; col++;
-    Zone::CheckMethod CheckMethod = static_cast<Zone::CheckMethod>(atoi(dbrow[col++]));
-    int MinPixelThreshold = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxPixelThreshold = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MinAlarmPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxAlarmPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int FilterX = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int FilterY = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MinFilterPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxFilterPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MinBlobPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxBlobPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MinBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int OverloadFrames = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int ExtendAlarmFrames = dbrow[col]?atoi(dbrow[col]):0; col++;
+  for (int i = 0; query.next(); i++) {
+    int Id = query.get<unsigned int>("Id");
+    std::string Name = query.get<std::string>("Name");
+    ZoneType Type = query.get<ZoneType>("Type");
+    Zone::Units Units = query.get<Zone::Units>("Units");
+    std::string Coords = query.get<std::string>("Coords");
+    int AlarmRGB = query.has("AlarmRGB") ? query.get<unsigned int>("AlarmRGB") : 0;
+    Zone::CheckMethod CheckMethod = query.get<Zone::CheckMethod>("CheckMethod");
+    int MinPixelThreshold = query.has("MinPixelThreshold") ? query.get<int>("MinPixelThreshold") : 0;
+    int MaxPixelThreshold = query.has("MaxPixelThreshold") ? query.get<int>("MaxPixelThreshold") : 0;
+    int MinAlarmPixels = query.has("MinAlarmPixels") ? query.get<unsigned int>("MinAlarmPixels") : 0;
+    int MaxAlarmPixels = query.has("MaxAlarmPixels") ? query.get<unsigned int>("MaxAlarmPixels") : 0;
+    int FilterX = query.has("FilterX") ? query.get<int>("FilterX") : 0;
+    int FilterY = query.has("FilterY") ? query.get<int>("FilterY") : 0;
+    int MinFilterPixels = query.has("MinFilterPixels") ? query.get<unsigned int>("MinFilterPixels") : 0;
+    int MaxFilterPixels = query.has("MaxFilterPixels") ? query.get<unsigned int>("MaxFilterPixels") : 0;
+    int MinBlobPixels = query.has("MinBlobPixels") ? query.get<unsigned int>("MinBlobPixels") : 0;
+    int MaxBlobPixels = query.has("MaxBlobPixels") ? query.get<unsigned int>("MaxBlobPixels") : 0;
+    int MinBlobs = query.has("MinBlobs") ? query.get<int>("MinBlobs") : 0;
+    int MaxBlobs = query.has("MaxBlobs") ? query.get<int>("MaxBlobs") : 0;
+    int OverloadFrames = query.has("OverloadFrames") ? query.get<int>("OverloadFrames") : 0;
+    int ExtendAlarmFrames = query.has("ExtendAlarmFrames") ? query.get<int>("ExtendAlarmFrames") : 0;
 
     /* HTML colour code is actually BGR in memory, we want RGB */
     AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
-    Debug(5, "Parsing polygon %s", Coords);
+    Debug(5, "Parsing polygon %s", Coords.c_str());
     Polygon polygon;
-    if ( !ParsePolygonString(Coords, polygon) ) {
-      Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring", Coords, Id, Name, monitor->Name());
+    if ( !ParsePolygonString(Coords.c_str(), polygon) ) {
+      Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring", 
+        Coords.c_str(), Id, Name.c_str(), monitor->Name());
       continue;
     }
 
@@ -888,7 +883,7 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
         polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
       Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d) != (%d,%d), fixing",
             Id,
-            Name,
+            Name.c_str(),
             monitor->Name(),
             polygon.Extent().Lo().x_,
             polygon.Extent().Lo().y_,
@@ -907,7 +902,7 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
       }
     }
 
-    if ( false && !strcmp( Units, "Percent" ) ) {
+    if ( false && Units != Zone::Units::PERCENT ) {
       MinAlarmPixels = (MinAlarmPixels*polygon.Area())/100;
       MaxAlarmPixels = (MaxAlarmPixels*polygon.Area())/100;
       MinFilterPixels = (MinFilterPixels*polygon.Area())/100;
@@ -916,13 +911,13 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
       MaxBlobPixels = (MaxBlobPixels*polygon.Area())/100;
     }
 
-    if (atoi(dbrow[2]) == Zone::INACTIVE) {
-      zones.emplace_back(monitor, Id, Name, polygon);
-    } else if (atoi(dbrow[2]) == Zone::PRIVACY) {
-      zones.emplace_back(monitor, Id, Name, Type, polygon);
+    if (Type == Zone::INACTIVE) {
+      zones.emplace_back(monitor, Id, Name.c_str(), polygon);
+    } else if (Type == Zone::PRIVACY) {
+      zones.emplace_back(monitor, Id, Name.c_str(), Type, polygon);
     } else {
       zones.emplace_back(
-          monitor, Id, Name, Type, polygon, AlarmRGB,
+          monitor, Id, Name.c_str(), Type, polygon, AlarmRGB,
           CheckMethod, MinPixelThreshold, MaxPixelThreshold,
           MinAlarmPixels, MaxAlarmPixels, Vector2(FilterX, FilterY),
           MinFilterPixels, MaxFilterPixels,
@@ -930,7 +925,6 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
           OverloadFrames, ExtendAlarmFrames);
     }
   } // end foreach row
-  mysql_free_result(result);
   return zones;
 } // end std::vector<Zone> Zone::Load(Monitor *monitor)
 

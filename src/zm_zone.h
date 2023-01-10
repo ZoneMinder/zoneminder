@@ -28,6 +28,8 @@
 #include "zm_zone_stats.h"
 #include "zm_vector2.h"
 
+#include "soci/soci.h"
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -59,6 +61,7 @@ class Zone {
   public:
     typedef enum { ACTIVE=1, INCLUSIVE, EXCLUSIVE, PRECLUSIVE, INACTIVE, PRIVACY } ZoneType;
     typedef enum { ALARMED_PIXELS=1, FILTERED_PIXELS, BLOBS } CheckMethod;
+    typedef enum { PIXELS=1, PERCENT } Units;
 
   protected:
     // Inputs
@@ -232,5 +235,136 @@ class Zone {
     inline const Image *getPgImage() const { return pg_image; }
     inline const Range *getRanges() const { return ranges; }
 };
+
+namespace soci {
+  // Database conversion specialization 
+  // needed to be here because of issues with forward
+  // declarations of various types, see zm_db_adapters.h
+
+  template<> struct type_conversion<Zone::ZoneType>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Zone::ZoneType & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("Active") == 0 )
+            p = Zone::ZoneType::ACTIVE;
+          else if( v.compare("Inclusive") == 0 )
+            p = Zone::ZoneType::INCLUSIVE;
+          else if( v.compare("Exclusive") == 0 )
+            p = Zone::ZoneType::EXCLUSIVE;
+          else if( v.compare("Preclusive") == 0 )
+            p = Zone::ZoneType::PRECLUSIVE;
+          else if( v.compare("Inactive") == 0 )
+            p = Zone::ZoneType::INACTIVE;
+          else if( v.compare("Privacy") == 0 )
+            p = Zone::ZoneType::PRIVACY;
+          else
+            throw soci_error("Value not allowed for this type");
+      }
+      static void to_base(Zone::ZoneType & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Zone::ZoneType::ACTIVE:
+              v = "Active";
+              ind = i_ok;
+              return;
+            case Zone::ZoneType::INCLUSIVE:
+              v = "Inclusive";
+              ind = i_ok;
+              return;
+            case Zone::ZoneType::EXCLUSIVE:
+              v = "Exclusive";
+              ind = i_ok;
+              return;
+            case Zone::ZoneType::PRECLUSIVE:
+              v = "Preclusive";
+              ind = i_ok;
+              return;
+            case Zone::ZoneType::INACTIVE:
+              v = "Inactive";
+              ind = i_ok;
+              return;
+            case Zone::ZoneType::PRIVACY:
+              v = "Privacy";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Zone::CheckMethod>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Zone::CheckMethod & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("AlarmedPixels") == 0 )
+            p = Zone::CheckMethod::ALARMED_PIXELS;
+          else if( v.compare("FilteredPixels") == 0 )
+            p = Zone::CheckMethod::FILTERED_PIXELS;
+          else if( v.compare("Blobs") == 0 )
+            p = Zone::CheckMethod::BLOBS;
+          else
+            throw soci_error("Value not allowed for this type");
+      }
+      static void to_base(Zone::CheckMethod & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Zone::CheckMethod::ALARMED_PIXELS:
+              v = "AlarmedPixels";
+              ind = i_ok;
+              return;
+            case Zone::CheckMethod::FILTERED_PIXELS:
+              v = "FilteredPixels";
+              ind = i_ok;
+              return;
+            case Zone::CheckMethod::BLOBS:
+              v = "Blobs";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+  template<> struct type_conversion<Zone::Units>
+  {
+      typedef std::string base_type;
+      static void from_base(const std::string & v, indicator & ind, Zone::Units & p)
+      {
+          if (ind == i_null)
+              throw soci_error("Null value not allowed for this type");
+
+          if( v.compare("Pixels") == 0 )
+            p = Zone::Units::PIXELS;
+          else if( v.compare("Percent") == 0 )
+            p = Zone::Units::PERCENT;
+          else
+            throw soci_error("Value not allowed for this type");
+      }
+      static void to_base(Zone::Units & p, std::string & v, indicator & ind)
+      {
+          switch( p ) {
+            case Zone::Units::PIXELS:
+              v = "Pixels";
+              ind = i_ok;
+              return;
+            case Zone::Units::PERCENT:
+              v = "Percent";
+              ind = i_ok;
+              return;
+          }
+          throw soci_error("Value not allowed for this type");
+      }
+  };
+
+
+}
 
 #endif // ZM_ZONE_H

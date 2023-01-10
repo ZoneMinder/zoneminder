@@ -35,7 +35,7 @@ protected:
 
 public:
 	Server();
-	explicit Server( MYSQL_ROW &dbrow );
+	explicit Server( zmDbQuery &dbrow );
 	explicit Server( unsigned int p_id );
 	~Server();
 

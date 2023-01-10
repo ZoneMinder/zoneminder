@@ -26,6 +26,8 @@
 #include "zm_storage.h"
 #include "zm_stream.h"
 
+#include "zm_db.h"
+
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavformat/avio.h>
@@ -39,7 +41,6 @@ class EventStream : public StreamBase {
     typedef enum { MODE_NONE, MODE_SINGLE, MODE_ALL, MODE_ALL_GAPLESS } StreamMode;
     static const std::string StreamMode_Strings[4];
 
-  protected:
     struct FrameData {
       unsigned int id;
       SystemTimePoint timestamp;
@@ -127,6 +128,68 @@ class EventStream : public StreamBase {
     bool send_buffer(uint8_t * buffer, int size);
     Storage *storage;
     FFmpeg_Input  *ffmpeg_input;
+};
+
+namespace soci {
+
+template<> struct type_conversion<EventStream::EventData*>
+{
+    typedef values base_type;
+    static void from_base(const values & v, indicator & ind, EventStream::EventData* event_data)
+    {
+      event_data->event_id = v.get<uint64_t>("Id");
+      event_data->monitor_id = v.get<unsigned int>("MonitorId");
+      event_data->storage_id = v.get<unsigned int>("StorageId", 0);
+      event_data->frame_count = v.get<int>("Frames", 0);
+      event_data->start_time = v.get<SystemTimePoint>("StartTimestamp");
+      event_data->end_time = v.get<SystemTimePoint>("EndTimestamp", std::chrono::system_clock::now());
+      event_data->duration = std::chrono::duration_cast<Microseconds>(event_data->end_time - event_data->start_time);
+      event_data->frames_duration = std::chrono::duration_cast<Microseconds>( 
+        FPSeconds(v.get("FramesDuration", 0.0))
+      );
+      event_data->video_file = v.get<std::string>("DefaultVideo");
+      std::string scheme_str = v.get<std::string>("Scheme");
+      if ( scheme_str.compare("Deep") == 0 ) {
+        event_data->scheme = Storage::DEEP;
+      } else if ( scheme_str.compare("Medium") == 0 ) {
+        event_data->scheme = Storage::MEDIUM;
+      } else {
+        event_data->scheme = Storage::SHALLOW;
+      }
+      event_data->SaveJPEGs = v.get("SaveJPEGs", 0);
+      event_data->Orientation = v.get<Monitor::Orientation>("Orientation");
+    }
+    static void to_base(const EventStream::EventData* event_data, values & v, indicator & ind)
+    {
+      v.set("Id", event_data->event_id);
+      v.set("MonitorId", event_data->monitor_id);
+      v.set("StorageId", event_data->storage_id);
+      v.set("Frames", event_data->frame_count);
+      v.set("StartTimestamp", event_data->start_time);
+      v.set("EndTimestamp", event_data->end_time);
+      v.set("DefaultVideo", event_data->video_file);
+      v.set("SaveJPEGs", event_data->SaveJPEGs);
+      v.set<int>("Orientation", static_cast<int>(event_data->Orientation));
+      
+      switch( event_data->scheme ) {
+        case Storage::DEEP:
+          v.set("Scheme", std::string("Deep"));
+          break;
+
+        case Storage::MEDIUM:
+          v.set("Scheme", std::string("Medium"));
+          break;
+
+        case Storage::SHALLOW:
+        default:
+          v.set("Scheme", std::string("Shallow"));
+          break;
+      }
+      ind = i_ok;
+    }
+};
+
+
 };
 
 #endif // ZM_EVENTSTREAM_H

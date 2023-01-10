@@ -41,7 +41,6 @@ protected:
 
 public:
 	Storage();
-	explicit Storage( MYSQL_ROW &dbrow );
 	explicit Storage( unsigned int p_id );
 	~Storage();
 

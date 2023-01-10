@@ -156,3 +156,4 @@ zmlinkcontent.sh
 zm_config_data.h
 zm_config_defines.h
 **/.DS_Store
+gen/**

@@ -333,7 +333,7 @@ Logger::Level Logger::databaseLevel(Logger::Level databaseLevel) {
     databaseLevel = limit(databaseLevel);
     if (mDatabaseLevel != databaseLevel) {
       if ((databaseLevel > NOLOG) && (mDatabaseLevel <= NOLOG)) { // <= NOLOG would be NOOPT
-        if (!zmDbConnected) {
+        if (!zmDbIsConnected()) {
           databaseLevel = NOLOG;
         }
       }
@@ -428,8 +428,8 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   va_list         argPtr;
 
   const char *base = strrchr(filepath, '/');
-  const char *file = base ? base+1 : filepath;
-  const char *classString = smCodes[level].c_str();
+  const std::string file = base ? std::string(base+1) : std::string(filepath);
+  const std::string classString = smCodes[level];
 
   SystemTimePoint now = std::chrono::system_clock::now();
   time_t now_sec = std::chrono::system_clock::to_time_t(now);
@@ -468,8 +468,8 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
       timeString,
       mId.c_str(),
       tid,
-      classString,
-      file,
+      classString.c_str(),
+      file.c_str(),
       line
       );
   char *syslogStart = logPtr;
@@ -522,17 +522,25 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   }  // end if level <= mFileLevel
 
   if (level <= mDatabaseLevel) {
-    if (zmDbConnected) {
-      std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
+    if (zmDbIsConnected()) {
+      std::string syslogString = {syslogStart, syslogEnd};
 
-      std::string sql_string = stringtf(
-          "INSERT INTO `Logs` "
-          "( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` )"
-          " VALUES "
-          "( %ld.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
-          now_sec, static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
-          escapedString.c_str(), file, line);
-      dbQueue.push(std::move(sql_string));
+      zmDecimal* decimalTime = new zmDecimal( now_sec, now_frac.count() );
+
+      zmDbQuery logQuery = zmDbQuery( INSERT_LOGS );
+      logQuery.bind( "time_key", *decimalTime );
+      logQuery.bind( "component", mId );
+      logQuery.bind( "server_id", staticConfig.SERVER_ID );
+      logQuery.bind( "pid", tid );
+      logQuery.bind( "level", level );
+      logQuery.bind( "code", classString );
+      logQuery.bind( "message", syslogString );
+      logQuery.bind( "file", file );
+      logQuery.bind( "line", line );
+
+      logQuery.insert();
+      delete decimalTime;
+
     } else {
       puts("Db is closed");
     }
@@ -540,7 +548,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 
   if (level <= mSyslogLevel) {
     *syslogEnd = '\0';
-    syslog(smSyslogPriorities[level], "%s [%s] [%s]", classString, mId.c_str(), syslogStart);
+    syslog(smSyslogPriorities[level], "%s [%s] [%s]", classString.c_str(), mId.c_str(), syslogStart);
   }
 
   log_mutex.unlock();

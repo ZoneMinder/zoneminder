@@ -87,15 +87,14 @@ bool RtspThread::recvResponse(std::string &response) {
 int RtspThread::requestPorts() {
   if ( !smMinDataPort ) {
     //FIXME Why not load specifically by Id?  This will get ineffeicient with a lot of monitors
-    std::string sql = "SELECT `Id` FROM `Monitors` WHERE `Function` != 'None' AND `Type` = 'Remote' AND `Protocol` = 'rtsp' AND `Method` = 'rtpUni' ORDER BY `Id` ASC";
+    zmDbQuery query = zmDbQuery( SELECT_MONITOR_ID_REMOTE_RTSP_AND_RTPUNI );
+    query.run( true );
 
-    MYSQL_RES *result = zmDbFetch(sql);
-
-    int nMonitors = mysql_num_rows(result);
+    int nMonitors = query.affectedRows();
     int position = 0;
     if ( nMonitors ) {
-      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-        int id = atoi(dbrow[0]);
+      for ( int i = 0; query.next(); i++ ) {
+        int id = query.get<long long>("Id");
         if ( mId == id ) {
           position = i;
           break;
@@ -106,7 +105,6 @@ int RtspThread::requestPorts() {
       nMonitors = 1;
       position = 0;
     }
-    mysql_free_result(result);
     int portRange = int(((config.max_rtp_port-config.min_rtp_port)+1)/nMonitors);
     smMinDataPort = config.min_rtp_port + (position * portRange);
     smMaxDataPort = smMinDataPort + portRange - 1;

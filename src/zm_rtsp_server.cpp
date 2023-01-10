@@ -136,11 +136,24 @@ int main(int argc, char *argv[]) {
 
   HwCapsDetect();
 
-  std::string where = "`Capturing` != 'None' AND `RTSPServer` != false";
-  if (staticConfig.SERVER_ID)
-    where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
-  if (monitor_id > 0)
-    where += stringtf(" AND `Id`=%d", monitor_id);
+  zmDbQuery query;
+
+  if( monitor_id<=0 && !staticConfig.SERVER_ID ) {
+    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP );
+
+  } else if ( monitor_id<=0 && staticConfig.SERVER_ID ) {
+    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP_AND_SERVER );
+    query.bind( "server_id", staticConfig.SERVER_ID );
+
+  } else if ( monitor_id>0 && !staticConfig.SERVER_ID ) {
+    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP_AND_ID );
+    query.bind( "id", monitor_id );
+
+  } else {
+    query = zmDbQuery( SELECT_MONITOR_TYPE_RTSP_AND_SERVER_AND_ID );
+    query.bind( "server_id", staticConfig.SERVER_ID );
+    query.bind( "id", monitor_id );
+  }
 
   Info("Starting RTSP Server version %s", ZM_VERSION);
   zmSetDefaultHupHandler();
@@ -169,7 +182,7 @@ int main(int argc, char *argv[]) {
   while (!zm_terminate) {
     std::unordered_map<unsigned int, std::shared_ptr<Monitor>> old_monitors = monitors;
 
-    std::vector<std::shared_ptr<Monitor>> new_monitors = Monitor::LoadMonitors(where, Monitor::QUERY);
+    std::vector<std::shared_ptr<Monitor>> new_monitors = Monitor::LoadMonitors(query, Monitor::QUERY);
     for (const auto &monitor : new_monitors) {
       auto old_monitor_it = old_monitors.find(monitor->Id());
       if (old_monitor_it != old_monitors.end()

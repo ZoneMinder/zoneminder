@@ -227,7 +227,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     }
     return -1;
   }
-  if ((packet->pts < 0) and (lastPTS >=0)) {
+  if ((packet->pts < 0) and (packet->pts != AV_NOPTS_VALUE) and (lastPTS >= 0)) {
     // 32-bit wrap around?
     Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
     return -1;

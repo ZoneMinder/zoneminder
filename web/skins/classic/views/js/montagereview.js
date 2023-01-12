@@ -1093,11 +1093,11 @@ function initPage() {
     });
   });
 
-  for (const event_id in events) {
-    load_Frames(events[event_id]);
-  }
 
   if ( !liveMode ) {
+    for (const event_id in events) {
+      load_Frames(events[event_id]);
+    }
     canvas = document.getElementById('timeline');
 
     canvas.addEventListener('mousemove', mmove, false);

@@ -86,7 +86,7 @@ function findFrameByTime(arr, time) {
   //console.log(keys);
   //console.log(keys[start]);
   // Iterate while start not meets end
-    //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
+  //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
   while ((start <= end)) {
     //&& arr[keys[start]] && (arr[keys[start]].TimeStampSecs <= time) && (arr[keys[end]].NextTimeStampSecs >= time)) {
     // Find the mid index
@@ -101,7 +101,7 @@ function findFrameByTime(arr, time) {
           (!frame.NextTimeStampSecs) || // only if event.EndTime is null
           (frame.NextTimeStampSecs > time)
         )
-      ) {
+    ) {
       //console.log("Found it at ", frame);
       return frame;
 
@@ -1184,10 +1184,10 @@ function initPage() {
     el = $j(this);
     //el.on('change', changeDateTime());
     if (el.hasClass('datetimepicker')) {
-      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
     if (el.hasClass('datepicker')) {
-      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
   });
 }
@@ -1204,7 +1204,7 @@ function takeSnapshot() {
   server = new Server(Servers[serverId]);
   $j.ajax({
     method: 'POST',
-    url: server.UrlToApi()+'/snapshots.json' + (auth_relay ? '?' + auth_relay : ''),
+    url: server.urlToApi()+'/snapshots.json' + (auth_relay ? '?' + auth_relay : ''),
     data: { 'monitor_ids[]': monitorIndex.keys()},
     success: function(response) {
       console.log(response);
@@ -1221,10 +1221,10 @@ window.addEventListener('DOMContentLoaded', initPage);
 
 function load_Frames(zm_event) {
   return new Promise(function(resolve, reject) {
-    $j.getJSON(Servers[serverId].UrlToApi()+'/frames/index/EventId:'+zm_event.Id+'.json?'+auth_relay)
-      .done(function(data) {
-        if (data.frames.length) {
-          /*
+    $j.getJSON(Servers[serverId].urlToApi()+'/frames/index/EventId:'+zm_event.Id+'.json?'+auth_relay)
+        .done(function(data) {
+          if (data.frames.length) {
+            /*
           const zm_event = events[data.frames[0].Frame.EventId];
           if (!zm_event) {
             console.error("No event object found for " + data.frames[0].Frame.EventId);
@@ -1232,33 +1232,33 @@ function load_Frames(zm_event) {
             return;
           }
           */
-          zm_event.FramesById = [];
-          let last_frame = null;
+            zm_event.FramesById = [];
+            let last_frame = null;
 
-          for (let i=0, len=data.frames.length; i<len; i++) {
-            const frame = data.frames[i].Frame;
-            // new Date uses browser TZ unless specified in string, so append the server offset
-            date = new Date(frame.TimeStamp+(server_utc_offset/3600));
-            frame.TimeStampSecs = new Date(date.getTime() + frame.Delta * 1000).getTime() / 1000;
-            //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
-            if (last_frame) {
-              frame.PrevFrameId = last_frame.Id;
-              last_frame.NextFrameId = frame.Id;
-              last_frame.NextTimeStampSecs = frame.TimeStampSecs;
-            }
-            last_frame = frame;
+            for (let i=0, len=data.frames.length; i<len; i++) {
+              const frame = data.frames[i].Frame;
+              // new Date uses browser TZ unless specified in string, so append the server offset
+              date = new Date(frame.TimeStamp+(server_utc_offset/3600));
+              frame.TimeStampSecs = new Date(date.getTime() + frame.Delta * 1000).getTime() / 1000;
+              //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
+              if (last_frame) {
+                frame.PrevFrameId = last_frame.Id;
+                last_frame.NextFrameId = frame.Id;
+                last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+              }
+              last_frame = frame;
 
-            zm_event.FramesById[frame.Id] = frame;
-          } // end fireach frame
-        }  // end if there are frames
-        drawGraph();
-        resolve();
-      })
-      .fail(function() {
-        logAjaxFail;
-        reject(Error("There was an error"));
-      }
-      );
-  }  // end Promise
+              zm_event.FramesById[frame.Id] = frame;
+            } // end fireach frame
+          } // end if there are frames
+          drawGraph();
+          resolve();
+        })
+        .fail(function() {
+          logAjaxFail;
+          reject(Error("There was an error"));
+        }
+        );
+  } // end Promise
   );
-}  // end function load_Frames(Event)
+} // end function load_Frames(Event)

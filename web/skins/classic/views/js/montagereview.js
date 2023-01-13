@@ -1221,7 +1221,7 @@ window.addEventListener('DOMContentLoaded', initPage);
 
 function load_Frames(zm_event) {
   return new Promise(function(resolve, reject) {
-    $j.ajax(Servers[serverId].UrlToApi()+'/frames/index/EventId:'+zm_event.Id+'.json?'+auth_relay,
+    $j.ajax(Servers[serverId].urlToApi()+'/frames/index/EventId:'+zm_event.Id+'.json?'+auth_relay,
       {
         timeout: 0,
         success: function(data) {

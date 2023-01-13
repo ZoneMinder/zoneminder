@@ -22,7 +22,6 @@ global $minTime;
 global $maxTime;
 global $monitors;
 global $eventsSql;
-global $framesSql;
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
@@ -64,31 +63,8 @@ if (!$liveMode) {
 
   $EventsById = array();
   while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
-    $event_id = $event['Id'];
-    $EventsById[$event_id] = $event;
+    $EventsById[$event['Id']] = $event;
   }
-  $next_frames = array();
-if ( 0 ) {
-  if ( $result = dbQuery($framesSql) ) {
-    $next_frame = null;
-    while ( $frame = $result->fetch(PDO::FETCH_ASSOC) ) {
-      $event_id = $frame['EventId'];
-      $event = &$EventsById[$event_id];
-
-      $frame['TimeStampSecs'] = $event['StartTimeSecs'] + $frame['Delta'];
-      if ( !isset($event['FramesById']) ) {
-        // Please note that this is the last frame as we sort DESC
-        $event['FramesById'] = array();
-        $frame['NextTimeStampSecs'] = $event['EndTimeSecs'];
-      } else {
-        $frame['NextTimeStampSecs'] = $next_frames[$frame['EventId']]['TimeStampSecs'];
-        $frame['NextFrameId'] = $next_frames[$frame['EventId']]['Id'];
-      }
-      $event['FramesById'] += array($frame['Id']=>$frame);
-      $next_frames[$frame['EventId']] = &$event['FramesById'][$frame['Id']];
-    }
-  } // end if dbQuery
-}
 
   $events_by_monitor_id = array();
 
@@ -111,8 +87,8 @@ if ( 0 ) {
         $maxScore = $event['MaxScore'];
       $anyAlarms = true;
     }
-    if ( !isset($events_by_monitor_id[$event['MonitorId']]) )
-        $events_by_monitor_id[$event['MonitorId']] = array();
+    if (!isset($events_by_monitor_id[$event['MonitorId']]))
+      $events_by_monitor_id[$event['MonitorId']] = array();
     array_push($events_by_monitor_id[$event['MonitorId']], $event_id);
   } # end foreach Event
   echo ' };

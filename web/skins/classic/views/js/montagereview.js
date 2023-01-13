@@ -864,7 +864,7 @@ function click_all_events() {
 function allnon() {
   clicknav(0, 0, 0);
 }
-/// >>>>>>>>>>>>>>>>> handles packing different size/aspect monitors on screen    <<<<<<<<<<<<<<<<<<<<<<<<
+/// handles packing different size/aspect monitors on screen
 
 function compSize(a, b) { // sort array by some size parameter  - height seems to work best.  A semi-greedy algorithm
   var a_value = monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a];
@@ -1221,8 +1221,10 @@ window.addEventListener('DOMContentLoaded', initPage);
 
 function load_Frames(zm_event) {
   return new Promise(function(resolve, reject) {
-    $j.getJSON(Servers[serverId].urlToApi()+'/frames/index/EventId:'+zm_event.Id+'.json?'+auth_relay)
-        .done(function(data) {
+    $j.ajax(Servers[serverId].UrlToApi()+'/frames/index/EventId:'+zm_event.Id+'.json?'+auth_relay,
+      {
+        timeout: 0,
+        success: function(data) {
           if (data.frames.length) {
             /*
           const zm_event = events[data.frames[0].Frame.EventId];
@@ -1250,15 +1252,16 @@ function load_Frames(zm_event) {
 
               zm_event.FramesById[frame.Id] = frame;
             } // end fireach frame
-          } // end if there are frames
+          }  // end if there are frames
           drawGraph();
           resolve();
-        })
-        .fail(function() {
+        },
+        error: function() {
           logAjaxFail;
           reject(Error("There was an error"));
         }
-        );
-  } // end Promise
+      }
+      ); // end ajax
+  }  // end Promise
   );
 } // end function load_Frames(Event)

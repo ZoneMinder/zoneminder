@@ -239,6 +239,7 @@ $seconds = translate('seconds');
 $minute = translate('minute');
 $minutes = translate('minutes');
 $cyclePeriodOptions = array(
+  5 => '5 '.$seconds,
   10 => '10 '.$seconds,
   30 => '30 '.$seconds,
   60 => '1 '.$minute,

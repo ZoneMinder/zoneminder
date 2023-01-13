@@ -44,8 +44,7 @@ var Server = function() {
     key: 'urlToApi',
     value: function urlToApi() {
       const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-      //return this.Protocol + '://' + this.Hostname + (port ? ':' + port : '') + (this.PathToApi && this.PathToApi != 'null' ? this.PathToApi : '');
-      return this.Protocol + '://' + 'zm.connortechnology.com' + (port ? ':' + port : '') + (this.PathToApi && this.PathToApi != 'null' ? this.PathToApi : '');
+      return this.Protocol + '://' + this.Hostname + (port ? ':' + port : '') + (this.PathToApi && this.PathToApi != 'null' ? this.PathToApi : '');
     }
   }
   ]);

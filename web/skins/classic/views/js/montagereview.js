@@ -172,7 +172,6 @@ function getFrame(monId, time, last_Frame) {
     }
   }
   if (!Event) return;
-  let Frame = null;
 
   if (!Event.FramesById) {
     console.log('No FramesById for event ', Event.Id);
@@ -180,13 +179,11 @@ function getFrame(monId, time, last_Frame) {
       if (!Event.FramesById) {
         console.log("No FramesById after load_Frames!", Event);
       }
-      let Frame = null;
-      Frame = findFrameByTime(Event.FramesById, time);
-      console.log('Frame', Frame, time);
+      let Frame = findFrameByTime(Event.FramesById, time);
+      return Frame;
     }, function(Error) {
       console.log(Error);
     });
-
     return;
   }
 
@@ -194,7 +191,7 @@ function getFrame(monId, time, last_Frame) {
   // Frames are sorted in descreasing order (or not sorted).
   // This is likely not efficient.  Would be better to start at the last frame viewed, see if it is still relevant
   // Then move forward or backwards as appropriate
-  Frame = findFrameByTime(Event.FramesById, time);
+  let Frame = findFrameByTime(Event.FramesById, time);
   if (!Frame) {
     console.log("Didn't find frame by binary search");
     for (const frame_id in Event.FramesById) {
@@ -1097,7 +1094,7 @@ function initPage() {
     canvas.addEventListener('mouseup', mup, false);
     canvas.addEventListener('mouseout', mout, false);
 
-    ctx = canvas.getContext('2d');
+    ctx = canvas.getContext('2d', { willReadFrequently: true });
     drawGraph();
   }
 
@@ -1211,11 +1208,8 @@ window.addEventListener("resize", redrawScreen, {passive: true});
 window.addEventListener('DOMContentLoaded', initPage);
 
 function load_Frames(zm_events) {
-  console.log(zm_events);
-
   return new Promise(function(resolve, reject) {
     let url = Servers[serverId].urlToApi()+'/frames/index';
-    console.log(Array.isArray(zm_events), zm_events.length, typeof(zm_events));
 
     let query = '';
     let ids = Object.keys(zm_events);
@@ -1223,11 +1217,9 @@ function load_Frames(zm_events) {
     while (ids.length) {
       const event_id = ids.shift();
       const zm_event = zm_events[event_id];
-      console.log(zm_event);
 
       query += '/EventId:'+zm_event.Id;
       if (!ids.length || (query.length > 1000)) {
-        console.log(url,query, url+query+'.json?'+auth_relay);
         $j.ajax(url+query+'.json?'+auth_relay,
           {
             timeout: 0,
@@ -1241,8 +1233,7 @@ function load_Frames(zm_events) {
                   const zm_event = events[frame.EventId];
                   if (!zm_event) {
                     console.error("No event object found for " + data.frames[0].Frame.EventId);
-                    reject(Error("There was an error"));
-                    return;
+                    continue;
                   }
                   // new Date uses browser TZ unless specified in string, so append the server offset
                   date = new Date(frame.TimeStamp+(server_utc_offset/3600));

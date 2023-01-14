@@ -603,6 +603,9 @@ input[type=submit]:disabled,
 
 #navbar-container {
   padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .navbar{
@@ -627,10 +630,6 @@ color:#ffa801;
   padding:4px;
   margin-right:8px;
   border:none;
-}
-
-.container-fluid {
-  position: relative;
 }
 
 .sidebar {

@@ -248,8 +248,10 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     </div>
   </nav><!-- End First Navbar -->
 
-  <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two">
-    <div class="container-fluid" id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
+  <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two"
+<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>
+>
+    <div class="container-fluid" id="panel" >
 <?php
 
   if ( (!ZM_OPT_USE_AUTH) or $user ) {

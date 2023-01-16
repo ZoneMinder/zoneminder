@@ -25,6 +25,14 @@ input.large {
   text-align: left;
 }
 
+#sidebar {
+  overflow-y: auto;
+}
+
+#options {
+  overflow-y: auto;
+  padding-top: 15px;
+}
 #options div.col-md {
   text-align: left;
 }

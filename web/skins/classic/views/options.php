@@ -56,10 +56,10 @@ xhtmlHeaders(__FILE__, translate('Options'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-  <div class="container-fluid">
-    <div class="row flex-nowrap">
+  <div class="container-fluid" id="content">
+    <div class="row flex-nowrap h-100">
       <nav id="sidebar">
-        <ul class="nav nav-pills flex-column h-100">
+        <ul class="nav nav-pills flex-column">
 <?php
 foreach ($tabs as $name=>$value) {
 ?>
@@ -69,9 +69,7 @@ foreach ($tabs as $name=>$value) {
 ?>
         </ul>
       </nav>
-      <div class="container-fluid col-sm-offset-2 h-100 pr-0">
-        <br/>
-        <div id="options">
+      <div class="container-fluid col-sm-offset-2 h-100 pr-0" id="options">
 <?php 
 if ($tab == 'skins') {
 ?>
@@ -484,7 +482,6 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
 }
 ?>
       </div><!-- end #options -->
-    </div>
   </div> <!-- end row -->
 </div>
 <?php xhtmlFooter() ?>

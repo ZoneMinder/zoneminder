@@ -171,9 +171,9 @@ if ($monitor->JanusEnabled()) {
 
 noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
-?>
-<body>
-  <?php echo getNavBarHTML() ?>
+getBodyTopHTML();
+echo getNavBarHTML() ?>
+<div id="page">
   <div id="header">
     <div class="controlHeader">
       <form method="get">

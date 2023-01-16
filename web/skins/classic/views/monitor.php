@@ -364,7 +364,7 @@ getBodyTopHTML();
 echo getNavBarHTML();
 ?>
 <div id="page" class="container-fluid">
-  <div class="row flex-nowrap">
+  <div id="content" class="row flex-nowrap">
     <nav>  <!-- BEGIN PILL LIST -->
       <ul class="nav nav-pills flex-column h-100" id="pills-tab" role="tablist" aria-orientation="vertical">
 <?php
@@ -441,7 +441,7 @@ if (canEdit('Monitors')) {
     </div>
 
     <!-- BEGIN ITEM LIST -->
-    <div class="d-flex flex-row container-fluid pr-0">
+    <div class="d-flex flex-row container-fluid pr-0" id="monitor">
       <form name="contentForm" id="contentForm" method="post" action="?view=monitor" autocomplete="off">
         <input type="hidden" name="tab" value="<?php echo $tab?>"/>
         <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>

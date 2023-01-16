@@ -30,14 +30,9 @@ function xhtmlHeaders($file, $title) {
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
   $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
-
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-
   $basename = basename($file, '.php');
-
-  $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
-  $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
 
   function output_link_if_exists($files, $cache_bust=true) {
     global $skin;
@@ -140,12 +135,15 @@ if ( $css != 'base' )
 ?>
   <style>
 <?php
-  if ( $baseViewCssPhpFile ) {
-    require_once($baseViewCssPhpFile);
-  }
-  if ( $viewCssPhpFile ) {
-    require_once($viewCssPhpFile);
-  }
+  $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
+  if ($baseCssPhpFile) require_once($baseCssPhpFile);
+  $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
+  if ($skinCssPhpFile) require_once($baseCssPhpFile);
+
+  $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
+  if ($baseViewCssPhpFile) require_once($baseViewCssPhpFile);
+  $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
+  if ($viewCssPhpFile) require_once($viewCssPhpFile);
 ?>
   </style>
 
@@ -157,7 +155,7 @@ if ( $css != 'base' )
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
 function getBodyTopHTML() {
   echo '
-<body>
+<body'.((defined('ZM_WEB_NAVBAR_STICKY') and ZM_WEB_NAVBAR_STICKY) ? ' class="sticky"' : '').'>
 <noscript>
 <div style="background-color:red;color:white;font-size:x-large;">
 '. validHtmlStr(ZM_WEB_TITLE) .' requires Javascript. Please enable Javascript in your browser for this site.

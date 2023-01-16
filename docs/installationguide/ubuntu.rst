@@ -30,6 +30,7 @@ To use this repository instead of the official Ubuntu repository, enter the foll
 **Step 3:** Install Zoneminder
 
 ::
+
         sudo apt install -y zoneminder
 
 

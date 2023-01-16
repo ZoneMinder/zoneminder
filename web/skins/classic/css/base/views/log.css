@@ -31,3 +31,6 @@ th[data-field="DateTime"] {
 .search .form-control {
     font-size: 100%;
 }
+#logsTable {
+  overflow-y: auto;
+}

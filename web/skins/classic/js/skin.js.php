@@ -39,7 +39,7 @@ const cancelString = '<?php echo translate('Cancel') ?>';
    try to avoid using PHP_SELF but here I try to replace everything after '.php'. */ ?>
 const thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
 const skinPath = '<?php echo ZM_SKIN_PATH ?>';
-const serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
+const serverId = <?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '0' ?>;
 const Servers = [];
 <?php
 // Fall back to get Server paths, etc when no using multi-server mode

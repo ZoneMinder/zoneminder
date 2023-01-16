@@ -50,11 +50,24 @@
 .material-icons.md-18 { font-size: 18px; }
 .material-icons.md-36 { font-size: 36px; }
 
+html,
 body {
-    font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
-    font-size: 13px;
-    font-weight: 300;
-    text-align: center;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  text-align: center;
+}
+
+body.sticky {
+  display: flex;
+  flex-flow: column nowrap;
+  flex-direction: column;
+  height: 100%;
 }
 
 h1 {
@@ -220,7 +233,24 @@ ul.tabList li.active {
 }
 
 ul.tabList li.active a {
-    font-weight: bold;
+  font-weight: bold;
+}
+
+#content {
+  width: 100%;
+  margin: 0 auto 8px auto;
+  line-height: 130%;
+  text-align: center;
+  clear: both;
+}
+body.sticky #content {
+/*
+  flex: 1 1 auto;
+  display: flex;
+  flex-flow: column;
+*/
+  overflow: hidden;
+height: 100%;
 }
 
 /*
@@ -454,6 +484,12 @@ th.table-th-sort-rev span.table-th-sort-span {
 #page {
     width: 100%;
 }
+body.sticky #page {
+  flex: 1 1 auto;
+  display: flex;
+  flex-flow: column;
+  overflow: hidden;
+}
 
 #header {
     width: 100%;
@@ -505,13 +541,6 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin-left: 4px;
 }
 
-#content {
-    width: 100%;
-    margin: 0 auto 8px auto;
-    line-height: 130%;
-    text-align: center;
-    clear: both;
-}
 
 #content p {
     margin-top: 4px;
@@ -627,10 +656,6 @@ color:#ffa801;
   padding:4px;
   margin-right:8px;
   border:none;
-}
-
-.container-fluid {
-  position: relative;
 }
 
 .sidebar {

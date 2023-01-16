@@ -56,10 +56,10 @@ xhtmlHeaders(__FILE__, translate('Options'));
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-  <div class="container-fluid">
-    <div class="row flex-nowrap">
+  <div class="container-fluid" id="content">
+    <div class="row flex-nowrap h-100">
       <nav id="sidebar">
-        <ul class="nav nav-pills flex-column h-100">
+        <ul class="nav nav-pills flex-column">
 <?php
 foreach ($tabs as $name=>$value) {
 ?>
@@ -70,8 +70,6 @@ foreach ($tabs as $name=>$value) {
         </ul>
       </nav>
       <div class="container-fluid col-sm-offset-2 h-100 pr-0">
-        <br/>
-        <div id="options">
 <?php 
 if ($tab == 'skins') {
 ?>
@@ -332,79 +330,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
           </form>
 <?php
 } else if ($tab == 'API') {
-  $apiEnabled = dbFetchOne('SELECT Value FROM Config WHERE Name=\'ZM_OPT_USE_API\'');
-  if ($apiEnabled['Value'] != '1') {
-    echo '<div class="errorText">APIs are disabled. To enable, please turn on OPT_USE_API in Options->System</div>';
-  } else {
-?>
-
-          <form name="userForm" method="post" action="?">
-            <button class="float-left" type="submit" name="updateSelected" id="updateSelected"><?php echo translate('Update')?></button>
-            <button class="btn-danger float-right" type="submit" name="revokeAllTokens" id="revokeAllTokens"><?php echo translate('RevokeAllTokens')?></button>
-            <br/>
-<?php
-    function revokeAllTokens() {
-      $minTokenTime = time();
-      dbQuery('UPDATE `Users` SET `TokenMinExpiry`=?', array($minTokenTime));
-      echo '<span class="timedSuccessBox">'.translate('AllTokensRevoked').'</span>';
-    }
-
-    function updateSelected() {
-      # Turn them all off, then selectively turn the checked ones back on
-      dbQuery('UPDATE `Users` SET `APIEnabled`=0');
-
-      if (isset($_REQUEST['tokenUids'])) {
-        foreach ($_REQUEST['tokenUids'] as $markUid) {
-          $minTime = time();
-          dbQuery('UPDATE `Users` SET `TokenMinExpiry`=? WHERE `Id`=?', array($minTime, $markUid));
-        }
-      }
-      if (isset($_REQUEST['apiUids'])) {
-        foreach ($_REQUEST['apiUids'] as $markUid) {
-          dbQuery('UPDATE `Users` SET `APIEnabled`=1 WHERE `Id`=?', array($markUid));
-        }
-      }
-      echo '<span class="timedSuccessBox">'.translate('Updated').'</span>';
-    }
-
-    if (array_key_exists('revokeAllTokens', $_POST)) {
-      revokeAllTokens();
-    }
-
-    if (array_key_exists('updateSelected', $_POST)) {
-      updateSelected();
-    }
-?>
-            <br/><br/>
-            <input type="hidden" name="view" value="<?php echo $view ?>"/>
-            <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
-            <input type="hidden" name="action" value="delete"/>
-            <table id="contentTable" class="table table-striped">
-              <thead class="thead-highlight">
-                <tr>
-                  <th class="colUsername"><?php echo translate('Username') ?></th>
-                  <th class="colMark"><?php echo translate('Revoke Token') ?></th>
-                  <th class="colMark"><?php echo translate('API Enabled') ?></th>
-                </tr>
-              </thead>
-              <tbody>
-<?php
-  $sql = 'SELECT * FROM Users ORDER BY Username';
-  foreach (dbFetchAll($sql) as $row) {
-?>
-                <tr>
-                  <td class="colUsername"><?php echo validHtmlStr($row['Username']) ?></td>
-                  <td class="colMark"><input type="checkbox" name="tokenUids[]" value="<?php echo $row['Id'] ?>" /></td>
-                  <td class="colMark"><input type="checkbox" name="apiUids[]" value="<?php echo $row['Id']?>"  <?php echo $row['APIEnabled']?'checked':''?> /></td>
-                </tr>
-<?php
-  }
-?>
-              </tbody>
-            </table>
-          </form>
-<?php 
-  } // API enabled
+  include('_options_api.php');
 }  // $tab == API
   else { 
   $config = array();
@@ -475,6 +401,10 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
+        <div id="contentButtons">
+          <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+        </div>
+        <div id="options">
 <?php
         if (!isset($configCats[$tab])) {
           echo 'There are no config entries for category '.$tab.'.<br/>';
@@ -548,15 +478,12 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
           } # end foreach config entry in the category
       } # end if category exists
 ?>
-        <div id="contentButtons">
-          <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
-        </div>
+        </div><!--options-->        
       </form>
 <?php
 }
 ?>
       </div><!-- end #options -->
-    </div>
   </div> <!-- end row -->
 </div>
 <?php xhtmlFooter() ?>

@@ -10,3 +10,8 @@
 .colZeroSize {
   text-align: left;
 }
+
+#results {
+  height: 100%;
+  overflow-y: auto;
+}

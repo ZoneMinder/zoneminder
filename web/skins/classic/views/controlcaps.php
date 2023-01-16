@@ -28,9 +28,9 @@ $controls = dbFetchAll('SELECT * FROM Controls ORDER BY Name');
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('ControlCaps'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page">
 
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
@@ -43,6 +43,7 @@ xhtmlHeaders(__FILE__, translate('ControlCaps'));
     </div>
 
     <div id="content" class="table-responsive-sm">
+      <div id="controls">
         <table
           id="controlTable"
           data-locale="<?php echo i18n() ?>"
@@ -95,6 +96,7 @@ foreach( $controls as $control ) {
 ?>
           </tbody>
         </table>
+      </div><!--controls-->
     </div>
   </div>
 <?php xhtmlFooter() ?>

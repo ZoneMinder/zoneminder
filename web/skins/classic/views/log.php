@@ -24,10 +24,9 @@ if ( !canView('System') ) {
 }
 
 xhtmlHeaders(__FILE__, translate('SystemLog'));
-?>
-<body>
-  <?php echo getNavBarHTML() ?>
-  <div id="page" class="px-3 table-responsive-sm">
+getBodyTopHTML();
+  echo getNavBarHTML() ?>
+  <div id="content" class="px-3 table-responsive-sm">
 
     <div id="logSummary" class="text-center">
       <?php echo translate('State') ?>:&nbsp;<span id="logState"></span>&nbsp;-&nbsp;
@@ -36,7 +35,7 @@ xhtmlHeaders(__FILE__, translate('SystemLog'));
       <?php echo translate('Displaying') ?>:&nbsp;<span id="displayLogs"></span>&nbsp;-&nbsp;
       <?php echo translate('Updated') ?>:&nbsp;<span id="lastUpdate"></span>
     </div>
-
+    <div id="logsTable">
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
@@ -124,5 +123,6 @@ echo htmlSelect('filterLevel', $levels,
       </tbody>
 
     </table>
-  </div><!--page-->
+  </div><!--logstable-->
+</div><!--content-->
 <?php xhtmlFooter() ?>

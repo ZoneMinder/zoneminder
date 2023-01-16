@@ -86,7 +86,7 @@ function findFrameByTime(arr, time) {
   //console.log(keys);
   //console.log(keys[start]);
   // Iterate while start not meets end
-    //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
+  //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
   while ((start <= end)) {
     //&& arr[keys[start]] && (arr[keys[start]].TimeStampSecs <= time) && (arr[keys[end]].NextTimeStampSecs >= time)) {
     // Find the mid index
@@ -101,7 +101,7 @@ function findFrameByTime(arr, time) {
           (!frame.NextTimeStampSecs) || // only if event.EndTime is null
           (frame.NextTimeStampSecs > time)
         )
-      ) {
+    ) {
       //console.log("Found it at ", frame);
       return frame;
 
@@ -172,21 +172,18 @@ function getFrame(monId, time, last_Frame) {
     }
   }
   if (!Event) return;
-  let Frame = null;
 
   if (!Event.FramesById) {
     console.log('No FramesById for event ', Event.Id);
-    load_Frames(Event).then(function() {
+    load_Frames([Event]).then(function() {
       if (!Event.FramesById) {
         console.log("No FramesById after load_Frames!", Event);
       }
-      let Frame = null;
-      Frame = findFrameByTime(Event.FramesById, time);
-      console.log('Frame', Frame, time);
+      let Frame = findFrameByTime(Event.FramesById, time);
+      return Frame;
     }, function(Error) {
       console.log(Error);
     });
-
     return;
   }
 
@@ -194,7 +191,7 @@ function getFrame(monId, time, last_Frame) {
   // Frames are sorted in descreasing order (or not sorted).
   // This is likely not efficient.  Would be better to start at the last frame viewed, see if it is still relevant
   // Then move forward or backwards as appropriate
-  Frame = findFrameByTime(Event.FramesById, time);
+  let Frame = findFrameByTime(Event.FramesById, time);
   if (!Frame) {
     console.log("Didn't find frame by binary search");
     for (const frame_id in Event.FramesById) {
@@ -223,30 +220,30 @@ function getFrame(monId, time, last_Frame) {
 
 // time is seconds since epoch
 function getImageSource(monId, time) {
-  if ( liveMode == 1 ) {
-    var new_url = monitorImageObject[monId].src.replace(
+  if (liveMode == 1) {
+    let new_url = monitorImageObject[monId].src.replace(
         /rand=\d+/i,
         'rand='+Math.floor(Math.random() * 1000000)
     );
-    if ( auth_hash ) {
+    if (auth_hash) {
       // update auth hash
       new_url = new_url.replace(/auth=[a-z0-9]+/i, 'auth='+auth_hash);
     }
     return new_url;
   }
-  var frame_id;
+  let frame_id;
 
-  var Frame = getFrame(monId, time);
-  if ( Frame ) {
+  const Frame = getFrame(monId, time);
+  if (Frame) {
+    const e = events[Frame.EventId];
     // Adjust for bulk frames
-    if ( Frame.NextFrameId ) {
-      var e = events[Frame.EventId];
-      var NextFrame = e.FramesById[Frame.NextFrameId];
-      if ( !NextFrame ) {
+    if (Frame.NextFrameId) {
+      const NextFrame = e.FramesById[Frame.NextFrameId];
+      if (!NextFrame) {
         console.log("No next frame for " + Frame.NextFrameId);
-      } else if ( NextFrame.Type == 'Bulk' ) {
+      } else if (NextFrame.Type == 'Bulk') {
         // There is time between this frame and a bulk frame
-        var duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
+        const duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
         frame_id = Frame.FrameId + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
         //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + NextFrame.FrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
       } else {
@@ -255,24 +252,18 @@ function getImageSource(monId, time) {
     } else {
       frame_id = Frame.FrameId;
     }
-    Event = events[Frame.EventId];
 
-    var storage = Storage[Event.StorageId];
-    if ( !storage ) {
-      // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
-      console.log("No storage area for id " + Event.StorageId);
-      storage = Storage[0];
-    }
+    // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
+    const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
-    var server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
+    const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
     return server.PathToIndex +
       '?view=image&eid=' + Frame.EventId + '&fid='+frame_id +
       "&width=" + monitorCanvasObj[monId].width +
       "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame
   return '';
-  //return "no data";
-}
+} // end function getImageSource
 
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
@@ -536,7 +527,7 @@ function drawGraph() {
       var x1=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth); // round low end down
       var x2=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
       if (x2-x1 < 2) x2=x1+2; // So it is visible make them all at least this number of seconds wide
-      ctx.fillStyle=monitorColour[Event.MonitorId];
+      //ctx.fillStyle=monitorColour[Event.MonitorId];
       ctx.globalAlpha = 0.4 + 0.6 * (1 - Frame.Score/maxScore); // Background is scaled but even lowest is twice as dark as the background
       ctx.fillRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
     } // end foreach frame
@@ -603,6 +594,7 @@ function redrawScreen() {
     scaleDiv.hide();
     fit.text('Scale');
     monitors.height(mh.toString() + 'px'); // leave a small gap at bottom
+
     if (maxfit2(monitors.outerWidth(), monitors.outerHeight()) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
       console.log("Failed to fit, dropping back to scaled mode");
       fitMode=1-fitMode;
@@ -610,17 +602,17 @@ function redrawScreen() {
   } else {
     // switch out of fit mode
     // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
-    for ( var i=0; i<numMonitors; i++ ) {
-      monitorCanvasObj[monitorPtr[i]].style.position="";
+    for (let i=0; i<numMonitors; i++) {
+      monitorCanvasObj[monitorPtr[i]].style.position = '';
     }
-    monitors.height('auto');
+    monitors.height('');
     scaleDiv.show();
     fit.text('fit');
     setScale(currentScale);
   }
   outputUpdate(currentTimeSecs);
   timerFire(); // force a fire in case it's not timing
-}
+} // end function redrawScreen
 
 function outputUpdate(time) {
   drawSliderOnGraph(time);
@@ -864,7 +856,7 @@ function click_all_events() {
 function allnon() {
   clicknav(0, 0, 0);
 }
-/// >>>>>>>>>>>>>>>>> handles packing different size/aspect monitors on screen    <<<<<<<<<<<<<<<<<<<<<<<<
+/// handles packing different size/aspect monitors on screen
 
 function compSize(a, b) { // sort array by some size parameter  - height seems to work best.  A semi-greedy algorithm
   var a_value = monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a];
@@ -1086,18 +1078,8 @@ function changeDateTime(e) {
 // >>>>>>>>> Initialization that runs on window load by being at the bottom
 
 function initPage() {
-  jQuery(document).ready(function() {
-    jQuery("#hdrbutton").click(function() {
-      jQuery("#flipMontageHeader").slideToggle("slow");
-      jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-    });
-  });
-
-  for (const event_id in events) {
-    load_Frames(events[event_id]);
-  }
-
-  if ( !liveMode ) {
+  if (!liveMode) {
+    load_Frames(events);
     canvas = document.getElementById('timeline');
 
     canvas.addEventListener('mousemove', mmove, false);
@@ -1106,7 +1088,7 @@ function initPage() {
     canvas.addEventListener('mouseup', mup, false);
     canvas.addEventListener('mouseout', mout, false);
 
-    ctx = canvas.getContext('2d');
+    ctx = canvas.getContext('2d', { willReadFrequently: true });
     drawGraph();
   }
 
@@ -1184,10 +1166,10 @@ function initPage() {
     el = $j(this);
     //el.on('change', changeDateTime());
     if (el.hasClass('datetimepicker')) {
-      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
     if (el.hasClass('datepicker')) {
-      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
   });
 }
@@ -1204,7 +1186,7 @@ function takeSnapshot() {
   server = new Server(Servers[serverId]);
   $j.ajax({
     method: 'POST',
-    url: server.UrlToApi()+'/snapshots.json' + (auth_relay ? '?' + auth_relay : ''),
+    url: server.urlToApi()+'/snapshots.json' + (auth_relay ? '?' + auth_relay : ''),
     data: { 'monitor_ids[]': monitorIndex.keys()},
     success: function(response) {
       console.log(response);
@@ -1219,46 +1201,61 @@ window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);
 
-function load_Frames(zm_event) {
+function load_Frames(zm_events) {
   return new Promise(function(resolve, reject) {
-    $j.getJSON(Servers[serverId].UrlToApi()+'/frames/index/EventId:'+zm_event.Id+'.json?'+auth_relay)
-      .done(function(data) {
-        if (data.frames.length) {
-          /*
-          const zm_event = events[data.frames[0].Frame.EventId];
-          if (!zm_event) {
-            console.error("No event object found for " + data.frames[0].Frame.EventId);
-            reject(Error("There was an error"));
-            return;
-          }
-          */
-          zm_event.FramesById = [];
-          let last_frame = null;
+    let url = Servers[serverId].urlToApi()+'/frames/index';
 
-          for (let i=0, len=data.frames.length; i<len; i++) {
-            const frame = data.frames[i].Frame;
-            // new Date uses browser TZ unless specified in string, so append the server offset
-            date = new Date(frame.TimeStamp+(server_utc_offset/3600));
-            frame.TimeStampSecs = new Date(date.getTime() + frame.Delta * 1000).getTime() / 1000;
-            //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
-            if (last_frame) {
-              frame.PrevFrameId = last_frame.Id;
-              last_frame.NextFrameId = frame.Id;
-              last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+    let query = '';
+    let ids = Object.keys(zm_events);
+
+    while (ids.length) {
+      const event_id = ids.shift();
+      const zm_event = zm_events[event_id];
+
+      query += '/EventId:'+zm_event.Id;
+      if (!ids.length || (query.length > 1000)) {
+        $j.ajax(url+query+'.json?'+auth_relay,
+          {
+            timeout: 0,
+            success: function(data) {
+              if (data.frames.length) {
+                zm_event.FramesById = [];
+                let last_frame = null;
+
+                for (let i=0, len=data.frames.length; i<len; i++) {
+                  const frame = data.frames[i].Frame;
+                  const zm_event = events[frame.EventId];
+                  if (!zm_event) {
+                    console.error("No event object found for " + data.frames[0].Frame.EventId);
+                    continue;
+                  }
+                  // new Date uses browser TZ unless specified in string, so append the server offset
+                  date = new Date(frame.TimeStamp+(server_utc_offset/3600));
+                  frame.TimeStampSecs = new Date(date.getTime() + frame.Delta * 1000).getTime() / 1000;
+                  //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
+                  if (last_frame) {
+                    frame.PrevFrameId = last_frame.Id;
+                    last_frame.NextFrameId = frame.Id;
+                    last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+                  }
+                  last_frame = frame;
+
+                  if (!zm_event.FramesById) zm_event.FramesById = [];
+                  zm_event.FramesById[frame.Id] = frame;
+                } // end fireach frame
+              }  // end if there are frames
+              drawGraph();
+              resolve();
+            },
+            error: function() {
+              logAjaxFail;
+              reject(Error("There was an error"));
             }
-            last_frame = frame;
-
-            zm_event.FramesById[frame.Id] = frame;
-          } // end fireach frame
-        }  // end if there are frames
-        drawGraph();
-        resolve();
-      })
-      .fail(function() {
-        logAjaxFail;
-        reject(Error("There was an error"));
-      }
-      );
+          }
+        ); // end ajax
+        query = '';
+      } // end if query string is too long
+    } // end while zm_events.legtnh
   }  // end Promise
   );
-}  // end function load_Frames(Event)
+} // end function load_Frames(Event)

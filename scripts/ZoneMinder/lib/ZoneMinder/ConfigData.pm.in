@@ -1586,6 +1586,14 @@ our @options = (
     category    => 'web',
   },
   {
+    name          => 'ZM_WEB_NAVBAR_STICKY',
+    default       => '1',
+    description   => 'Are navbars and button bars sticky?',
+    help          => 'Do navbars and button bars remain fixed in place or scroll with the page content? Please note that this will only affect large browsers.  Due to our responsive layout on narrow screens everything will become unsticky.',
+    type        => $types{boolean},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_TITLE',
     default     => 'ZoneMinder',
     description => 'The title displayed wherever the site references itself.',

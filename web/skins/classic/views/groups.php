@@ -42,8 +42,8 @@ foreach ( $Groups as $id=>$Group ) {
     $max_depth = $Group->depth();
 }
 xhtmlHeaders(__FILE__, translate('Groups'));
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
     <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">

@@ -275,8 +275,8 @@ if ( currentView != 'none' && currentView != 'login' ) {
     reminderClickFunction();
     // Manage the widget bar minimize chevron
     $j("#flip").click(function() {
-      $j("#panel").slideToggle("slow");
-      var flip = $j("#flip");
+      $j("#navbar-two").slideToggle("slow");
+      const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
         setCookie('zmHeaderFlip', 'down', 3600);

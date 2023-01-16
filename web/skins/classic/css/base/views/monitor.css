@@ -73,3 +73,8 @@ tr td input[type="radio"] {
   padding-right: 1rem;
   text-align: right;
 }
+
+#monitor {
+  overflow-y: auto;
+  height: 100%;
+}

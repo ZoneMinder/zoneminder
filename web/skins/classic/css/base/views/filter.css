@@ -88,3 +88,7 @@ min-width: 500px;
   clear: both;
   visibility: hidden;
 }
+#contentForm {
+  overflow-y: auto;
+  height: 100%;
+}

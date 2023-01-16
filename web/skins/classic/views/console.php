@@ -164,8 +164,8 @@ if ( $show_storage_areas ) $left_columns += 1;
 
 xhtmlHeaders(__FILE__, translate('Console'));
 getBodyTopHTML();
-?>
-  <?php echo $navbar ?>
+echo $navbar ?>
+<div id="page">
   <div id="content">
   <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
@@ -174,7 +174,7 @@ getBodyTopHTML();
       <?php echo $filterbar ?>
     </div>
 
-    <div class="container-fluid pt-2">    
+    <div class="container-fluid pt-2" id="contentButtons">
       <div class="statusBreakdown float-left">
 <?php
   $html = '';
@@ -213,10 +213,11 @@ getBodyTopHTML();
         </button>
         
         &nbsp;<a href="#"><i id="fbflip" class="material-icons md-18">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
+    </div><!-- contentButtons -->
 <?php
 ob_start();
 ?>
-	<div class="table-responsive-sm pt-2">
+	<div class="container-fluid table-responsive-sm pt-2" id="monitorList">
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>
@@ -449,10 +450,10 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
          </tr>
         </tfoot>
         </table>
-	    </div>
-    </div>
+    </div><!-- content table responsive div -->
   </form>
 </div><!--content-->
+</div><!--page-->
 <?php
   xhtmlFooter();
 ?>

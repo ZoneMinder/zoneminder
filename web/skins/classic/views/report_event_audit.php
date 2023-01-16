@@ -24,8 +24,6 @@ include('_monitor_filters.php');
 $filterbar = ob_get_contents();
 ob_end_clean();
 
-noCacheHeaders();
-xhtmlHeaders( __FILE__, translate('Console'));
 
 if ( isset($_REQUEST['minTime']) ) {
   $minTime = validHtmlStr($_REQUEST['minTime']);
@@ -105,20 +103,25 @@ while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
   $EventsByMonitor[$event['MonitorId']]['Events'][] = $Event;
 } # end foreach event
 
+noCacheHeaders();
+xhtmlHeaders( __FILE__, translate('Report Event Audit'));
+getBodyTopHTML();
+echo $navbar;
 ?>
-<body>
-  <?php echo $navbar ?>
-  <form name="monitorForm" method="post" action="?view=<?php echo $view ?>">
-    <div class="filterBar">
-      <?php echo $filterbar ?>
-      <div id="DateTimeDiv">
-        <label><?php echo translate('Event Start Time') ?></label>
-        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> <?php echo translate('to') ?> 
-        <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>"/>
-      </div>
-    </div><!--FilterBar-->
+<div id="page">
+  <div id="content">
+    <form name="monitorForm" method="post" action="?view=<?php echo $view ?>">
+      <div class="filterBar">
+        <?php echo $filterbar ?>
+        <div id="DateTimeDiv">
+          <label><?php echo translate('Event Start Time') ?></label>
+          <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> <?php echo translate('to') ?> 
+          <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>"/>
+        </div>
+      </div><!--FilterBar-->
+    </form>
 
-    <div class="container-fluid">
+    <div class="container-fluid" id="results">
       <table class="table table-striped table-hover table-condensed" id="consoleTable">
         <thead class="thead-highlight">
           <tr>
@@ -205,5 +208,6 @@ for ( $monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1 ) {
         </tbody>
       </table>
     </div>
-  </form>
+</div>
+</div>
 <?php xhtmlFooter() ?>

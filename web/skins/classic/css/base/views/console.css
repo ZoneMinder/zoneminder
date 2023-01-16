@@ -114,3 +114,13 @@
 .SourceFilter input {
   padding: 3px 5px 4px 5px;
 }
+form {
+  display: flex;
+  flex-flow: column nowrap;
+  height: 100%;
+  flex: 1 1 auto;
+}
+#monitorList {
+  flex: 1 1 auto;
+  overflow-y: scroll;
+}

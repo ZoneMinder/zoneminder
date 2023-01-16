@@ -13,7 +13,7 @@
 
 /* Function to send the contents of a file. Will use sendfile or fall back to reading/writing */
 
-ssize_t zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
+ssize_t zm_sendfile(int out_fd, int in_fd, off_t *offset, ssize_t size) {
 #ifdef HAVE_SENDFILE4_SUPPORT
   ssize_t err = sendfile(out_fd, in_fd, offset, size);
   if (err < 0) {

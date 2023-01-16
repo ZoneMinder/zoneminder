@@ -159,30 +159,15 @@ $eventsSql = 'SELECT
   WHERE 1 > 0 
 ';
 
-//    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartDateTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartDateTime, Interval Delta+0.5 Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
-//    from Events as E
-//    inner join Monitors as M on (E.MonitorId = M.Id)
-//    inner join Frames F on F.EventId=E.Id
-//    where not isnull(E.Frames) and not isnull(StartDateTime) ";
-
-// Note that the delta value seems more accurate than the time stamp for some reason.
-$framesSql = '
-    SELECT Id, FrameId, EventId, TimeStamp, UNIX_TIMESTAMP(TimeStamp) AS TimeStampSecs, Score, Delta, Type
-    FROM Frames 
-    WHERE EventId IN (SELECT E.Id FROM Events AS E WHERE 1>0
-';
-
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
 $monitor_ids_sql = '';
 if ( !empty($user['MonitorIds']) ) {
   $eventsSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
-  $framesSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
 }
 if ( count($selected_monitor_ids) ) {
   $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
-  $framesSql .= ' AND E.MonitorId '.$monitor_ids_sql;
 }
 if ( isset($_REQUEST['archive_status']) ) {
   $_SESSION['archive_status'] = $_REQUEST['archive_status'];
@@ -190,13 +175,10 @@ if ( isset($_REQUEST['archive_status']) ) {
 if ( isset($_SESSION['archive_status']) ) {
   if ( $_SESSION['archive_status'] == 'Archived' ) {
     $eventsSql .= ' AND E.Archived=1';
-    $framesSql .= ' AND E.Archived=1';
   } else if ( $_SESSION['archive_status'] == 'Unarchived' ) {
     $eventsSql .= ' AND E.Archived=0';
-    $framesSql .= ' AND E.Archived=0';
   }
 }
-
 
 $fitMode = 1;
 if ( isset($_REQUEST['fit']) && ($_REQUEST['fit'] == '0') )
@@ -222,7 +204,6 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-
 $liveMode = 1; // default to live
 if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
   $liveMode = 0;
@@ -230,8 +211,6 @@ if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
 $initialDisplayInterval = 1000;
 if ( isset($_REQUEST['displayinterval']) )
   $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
-
-#$eventsSql .= ' GROUP BY E.Id,E.Name,E.StartDateTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
 
 $minTimeSecs = $maxTimeSecs = 0;
 if ( isset($minTime) && isset($maxTime) ) {
@@ -246,16 +225,8 @@ if ( isset($minTime) && isset($maxTime) ) {
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
   $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
-  $framesSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
-  $framesSql .= ") AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
-} else {
-  $framesSql .= ')';
 }
-#$framesSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
-#$framesSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
 $eventsSql .= ' ORDER BY E.Id ASC';
-// DESC is intentional. We process them in reverse order so that we can point each frame to the next one in time.
-$framesSql .= ' ORDER BY Id DESC';
 
 $monitors = array();
 foreach ($displayMonitors as $row) {
@@ -272,11 +243,17 @@ getBodyTopHTML();
 ?>
 <div id="page">
   <?php echo getNavBarHTML() ?>
+  <div id="content">
   <form id="montagereview_form" action="?" method="get">
     <input type="hidden" name="view" value="montagereview"/>
-    <div id="header">&nbsp;&nbsp;
-      <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
-      <div id="flipMontageHeader">
+    <div id="header">
+<?php
+    $html = '';
+    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'down')) ? 'up' : 'down';
+    $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
+    $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
+    echo $html;
+?>
         <?php echo $filter_bar ?>
         <div id="DateTimeDiv">
           <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime ) ?>"/> to 
@@ -351,6 +328,7 @@ getBodyTopHTML();
 ?>
   </div>
   <p id="fps">evaluating fps</p>
-</div>
+  </div><!--content-->
+</div><!--page-->
 <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <?php xhtmlFooter() ?>

@@ -481,6 +481,12 @@ th.table-th-sort-rev span.table-th-sort-span {
 #page {
     width: 100%;
 }
+body.sticky #page {
+  flex: 1 1 auto;
+  display: flex;
+  flex-flow: column;
+  overflow: hidden;
+}
 
 #header {
     width: 100%;

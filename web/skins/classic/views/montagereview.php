@@ -243,11 +243,17 @@ getBodyTopHTML();
 ?>
 <div id="page">
   <?php echo getNavBarHTML() ?>
+  <div id="content">
   <form id="montagereview_form" action="?" method="get">
     <input type="hidden" name="view" value="montagereview"/>
-    <div id="header">&nbsp;&nbsp;
-      <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
-      <div id="flipMontageHeader">
+    <div id="header">
+<?php
+    $html = '';
+    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'down')) ? 'up' : 'down';
+    $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
+    $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
+    echo $html;
+?>
         <?php echo $filter_bar ?>
         <div id="DateTimeDiv">
           <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime ) ?>"/> to 
@@ -322,6 +328,7 @@ getBodyTopHTML();
 ?>
   </div>
   <p id="fps">evaluating fps</p>
-</div>
+  </div><!--content-->
+</div><!--page-->
 <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <?php xhtmlFooter() ?>

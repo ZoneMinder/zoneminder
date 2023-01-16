@@ -164,8 +164,8 @@ if ( $show_storage_areas ) $left_columns += 1;
 
 xhtmlHeaders(__FILE__, translate('Console'));
 getBodyTopHTML();
-?>
-  <?php echo $navbar ?>
+echo $navbar ?>
+<div id="page">
   <div id="content">
   <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
@@ -453,6 +453,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     </div><!-- content table responsive div -->
   </form>
 </div><!--content-->
+</div><!--page-->
 <?php
   xhtmlFooter();
 ?>

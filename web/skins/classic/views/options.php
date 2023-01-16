@@ -69,7 +69,7 @@ foreach ($tabs as $name=>$value) {
 ?>
         </ul>
       </nav>
-      <div class="container-fluid col-sm-offset-2 h-100 pr-0" id="options">
+      <div class="container-fluid col-sm-offset-2 h-100 pr-0">
 <?php 
 if ($tab == 'skins') {
 ?>
@@ -401,6 +401,10 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
+        <div id="contentButtons">
+          <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+        </div>
+        <div id="options">
 <?php
         if (!isset($configCats[$tab])) {
           echo 'There are no config entries for category '.$tab.'.<br/>';
@@ -474,9 +478,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
           } # end foreach config entry in the category
       } # end if category exists
 ?>
-        <div id="contentButtons">
-          <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
-        </div>
+        </div><!--options-->        
       </form>
 <?php
 }

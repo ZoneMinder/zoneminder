@@ -90,4 +90,5 @@ min-width: 500px;
 }
 #contentForm {
   overflow-y: auto;
+  height: 100%;
 }

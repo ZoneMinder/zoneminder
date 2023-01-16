@@ -594,6 +594,7 @@ function redrawScreen() {
     scaleDiv.hide();
     fit.text('Scale');
     monitors.height(mh.toString() + 'px'); // leave a small gap at bottom
+
     if (maxfit2(monitors.outerWidth(), monitors.outerHeight()) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
       console.log("Failed to fit, dropping back to scaled mode");
       fitMode=1-fitMode;
@@ -601,17 +602,17 @@ function redrawScreen() {
   } else {
     // switch out of fit mode
     // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
-    for ( var i=0; i<numMonitors; i++ ) {
-      monitorCanvasObj[monitorPtr[i]].style.position="";
+    for (let i=0; i<numMonitors; i++) {
+      monitorCanvasObj[monitorPtr[i]].style.position = '';
     }
-    monitors.height('auto');
+    monitors.height('');
     scaleDiv.show();
     fit.text('fit');
     setScale(currentScale);
   }
   outputUpdate(currentTimeSecs);
   timerFire(); // force a fire in case it's not timing
-}
+} // end function redrawScreen
 
 function outputUpdate(time) {
   drawSliderOnGraph(time);
@@ -1077,13 +1078,6 @@ function changeDateTime(e) {
 // >>>>>>>>> Initialization that runs on window load by being at the bottom
 
 function initPage() {
-  jQuery(document).ready(function() {
-    jQuery("#hdrbutton").click(function() {
-      jQuery("#flipMontageHeader").slideToggle("slow");
-      jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-    });
-  });
-
   if (!liveMode) {
     load_Frames(events);
     canvas = document.getElementById('timeline');

@@ -3031,10 +3031,14 @@ int Monitor::PrimeCapture() {
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 int Monitor::Close() {
+  // Wake everyone up
+  packetqueue.stop();
+
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
     decoder->Stop();
   }
+
   if (analysis_thread) {
     analysis_thread->Stop();
   }
@@ -3047,12 +3051,10 @@ int Monitor::Close() {
     video_fifo = nullptr;
   }
 
-  // Wake everyone up
-  packetqueue.stop();
-
   if (close_event_thread.joinable()) {
     close_event_thread.join();
   }
+
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {

@@ -26,6 +26,7 @@
 #include "zm_signal.h"
 #include "zm_storage.h"
 #include <arpa/inet.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 

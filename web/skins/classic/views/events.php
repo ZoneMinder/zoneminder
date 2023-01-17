@@ -52,7 +52,7 @@ getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page">
-    <div id="content" class="container-fluid p-3">
+    <div id="content" class="container-fluid">
 
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
@@ -77,8 +77,9 @@ echo getNavBarHTML();
       <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
     </div>
 
+    <div id="events" class="row">
     <!-- Table styling handled by bootstrap-tables -->
-    <div class="row justify-content-center table-responsive-sm">
+    <div class="justify-content-center table-responsive-sm">
       <table
         id="eventTable"
         data-locale="<?php echo i18n() ?>"
@@ -139,6 +140,7 @@ echo getNavBarHTML();
 
         </table>
       </div>       
+      </div>
     </div><!--content-->
   </div>
   <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>

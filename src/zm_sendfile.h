@@ -30,7 +30,7 @@ ssize_t zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
   return sbytes;
 #else
   uint8_t buffer[4096];
-  size_t chunk_size = (size > 4096 ? 4096 : size);
+  ssize_t chunk_size = (size > 4096 ? 4096 : size);
 
   ssize_t err = read(in_fd, buffer, chunk_size);
   if (err < 0) {
@@ -38,7 +38,7 @@ ssize_t zm_sendfile(int out_fd, int in_fd, off_t *offset, size_t size) {
     return -errno;
   }
   if (!err) {
-    Error("Got EOF despite wanting to read %zu bytes", 4096);
+    Error("Got EOF despite wanting to read %d bytes", 4096);
     return err;
   }
 

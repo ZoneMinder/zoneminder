@@ -244,7 +244,7 @@ function getImageSource(monId, time) {
       } else if (NextFrame.Type == 'Bulk') {
         // There is time between this frame and a bulk frame
         const duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
-        frame_id = Frame.FrameId + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
+        frame_id = parseInt(Frame.FrameId) + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
         //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + NextFrame.FrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
       } else {
         frame_id = Frame.FrameId;

@@ -709,6 +709,6 @@ void Event::Run() {
   }  // end while
 }  // end Run()
 
-int Event::MonitorId() {
+int Event::MonitorId() const {
   return monitor->Id();
 }

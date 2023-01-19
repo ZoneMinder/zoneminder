@@ -654,6 +654,15 @@ input[type=submit]:disabled,
 .navbar-brand a {
 color:#ffa801;
 }
+@media (max-width: 600px){
+  .navbar-nav {
+    flex-direction: row;
+  }
+  .navbar-nav .nav-link {
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+  }
+}
 
 .navbar-btn {
   background-color:#95afc0;

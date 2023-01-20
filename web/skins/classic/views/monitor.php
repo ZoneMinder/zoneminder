@@ -363,7 +363,7 @@ xhtmlHeaders(__FILE__, translate('Monitor').' - '.validHtmlStr($monitor->Name())
 getBodyTopHTML();
 echo getNavBarHTML();
 ?>
-<div id="page" class="container-fluid">
+<div id="page">
   <div id="content" class="row flex-nowrap">
     <nav>  <!-- BEGIN PILL LIST -->
       <ul class="nav nav-pills" id="pills-tab" role="tablist" aria-orientation="vertical">
@@ -410,7 +410,6 @@ foreach ($tabs as $name=>$value) {
   ?>
     </ul>
   </nav> <!-- END PILL LIST -->
-
   <div class="d-flex flex-column col-sm-offset-2 container-fluid">
     <!-- BEGIN MINI HEADER -->
     <div class="d-flex flex-row justify-content-between px-3 py-1">
@@ -438,10 +437,10 @@ if (canEdit('Monitors')) {
 <?php
 } // end if canEdit('Monitors')
 ?>
-    </div>
+    </div><!--mini header-->
 
     <!-- BEGIN ITEM LIST -->
-    <div class="container-fluid pr-0" id="monitor">
+    <div class="container-fluid" id="monitor">
       <form name="contentForm" id="contentForm" method="post" action="?view=monitor" autocomplete="off">
         <input type="hidden" name="tab" value="<?php echo $tab?>"/>
         <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
@@ -1545,8 +1544,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     ZM\Error("Unknown tab $tab");
 } // end switch tab
 ?>
-          </tbody>
-        </table>
+  </ul>
 </div>
 <?php 
 } # end foreach tab
@@ -1557,10 +1555,10 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <button type="button" id="cancelBtn"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
-    </div>
-    </div>
-    </div>
-  </div>
+    </div><!--monitor-->
+</div><!-- flex column container-->
+    </div><!--content-->
+  </div><!--page-->
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
 <?php
 echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);

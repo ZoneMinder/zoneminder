@@ -8,6 +8,7 @@ class Filter extends ZM_Object {
   protected static $table = 'Filters';
   protected static $attrTypes = null;
   protected static $opTypes = null;
+  protected static $archiveTypes = null;
 
   protected $defaults = array(
     'Id'              =>  null,
@@ -795,9 +796,21 @@ class Filter extends ZM_Object {
     return self::$opTypes;
   }
 
+  public static function archiveTypes() {
+    if (!self::$archiveTypes) {
+      self::$archiveTypes = array(
+        '' => translate('All'),
+        '0' => translate('ArchUnarchived'),
+        '1' => translate('ArchArchived')
+      );
+    }
+    return self::$archiveTypes;
+  }
+
   public function widget() {
     $html = '<table id="fieldsTable" class="filterTable"><tbody>';
     $opTypes = $this->opTypes();
+    $archiveTypes = $this->archiveTypes();
 
     $terms = $this->terms();
     $obracketTypes = array();
@@ -814,10 +827,6 @@ class Filter extends ZM_Object {
       'IS NOT'  => translate('OpIsNot'),
     );
 
-    $archiveTypes = array(
-      '0' => translate('ArchUnarchived'),
-      '1' => translate('ArchArchived')
-    );
 
     $booleanValues = array(
       'false' => translate('False'),
@@ -942,10 +951,7 @@ class Filter extends ZM_Object {
     $terms = $this->terms();
     $attrTypes = $this->attrTypes();
     $opTypes = $this->opTypes();
-    $archiveTypes = array(
-      '0' => translate('ArchUnarchived'),
-      '1' => translate('ArchArchived')
-    );
+    $archiveTypes = $this->archiveTypes();
 
     for ($i=0; $i < count($terms); $i++) {
       $term = $terms[$i];
@@ -1032,6 +1038,13 @@ class Filter extends ZM_Object {
     $html .= '</div>';
     return $html;
   }  # end function widget()
+
+  public function has_term($attr) {
+    foreach ($this->terms() as $term) {
+      if ($term['attr'] == $attr) return true;
+    }
+    return false;
+  }
 
 } # end class Filter
 ?>

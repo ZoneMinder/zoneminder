@@ -333,10 +333,11 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
-void Event::AddPacket(ZMLockedPacket *packetlock) {
+void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
   {
     std::unique_lock<std::mutex> lck(packet_queue_mutex);
-    packet_queue.push(packetlock);
+
+    packet_queue.push(std::move(packet));
   }
   packet_queue_condition.notify_one();
 }
@@ -715,11 +716,10 @@ void Event::Run() {
   if (storage != monitor->getStorage())
     delete storage;
 
-
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   while (true) {
-    ZMLockedPacket * packet_lock = nullptr;
+    std::shared_ptr<ZMPacket> packet = nullptr;
     {
       std::unique_lock<std::mutex> lck(packet_queue_mutex);
 
@@ -729,15 +729,13 @@ void Event::Run() {
       } 
 
       if (!packet_queue.empty()) {
-        // Packets on this queue are locked. They are locked by analysis thread
-        packet_lock = packet_queue.front();
+        packet = packet_queue.front();
         packet_queue.pop();
       }
     }  // end lock scope
-    if (packet_lock) {
-      Debug(1, "Adding packet %d", packet_lock->packet_->image_index);
-      this->AddPacket_(packet_lock->packet_);
-      delete packet_lock;
+    if (packet) {
+      Debug(1, "Adding packet %d", packet->image_index);
+      this->AddPacket_(packet);
     }
   }  // end while
 }  // end Run()

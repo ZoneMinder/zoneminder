@@ -217,12 +217,6 @@ function initPage() {
     el.onchange();
   });
 
-  $j('.chosen').chosen({width: "95%"});
-  $j('#pills-tab li a').on('click', function() {
-    //$j('.chosen').chosen({width: "95%"});
-    // Store the selected tab in a cookie or something so that on reload it goes back to the tab
-  });
-
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
 

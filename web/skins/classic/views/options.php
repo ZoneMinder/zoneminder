@@ -423,7 +423,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               ( $value['Value'] ? ' checked="checked"' : '').
               ( $optionCanEdit ? '' : ' disabled="disabled"').' />'.PHP_EOL;
             } else if (is_array($value['Hint'])) {
-              echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value']);
+              $attributes = ['class'=>'form-control-sm'.(count($value['Hint'])>10?' chosen':'')];
+              if (!$optionCanEdit) $attributes['disabled']='disabled';
+              echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value'], $attributes);
             } else if (preg_match('/\|/', $value['Hint'])) {
               $options = explode('|', $value['Hint']);
               if (count($options) > 3) {
@@ -435,8 +437,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                     $html_options[$option] = $option;
                   }
                 }
-                echo htmlSelect("newConfig[$name]", $html_options, $value['Value'], 
-                    $optionCanEdit?array('class'=>'form-control-sm') : array('class'=>'form-control-sm', 'disabled'=>'disabled'));
+                $attributes = ['class'=>'form-control-sm'.(count($html_options)>10?' chosen':'')];
+                if (!$optionCanEdit) $attributes['disabled']='disabled';
+                echo htmlSelect("newConfig[$name]", $html_options, $value['Value'], $attributes);
               } else {
                 foreach ($options as $option) {
                   if (preg_match('/^([^=]+)=(.+)$/', $option)) {

@@ -2263,7 +2263,7 @@ bool Monitor::Analyse() {
     }
 
     if (event) {
-      event->AddPacket(packet_lock);
+      event->AddPacket(snap);
     } else {
       // In the case where people have pre-alarm frames, the web ui will generate the frame images
       // from the mp4. So no one will notice anyways.
@@ -2283,9 +2283,9 @@ bool Monitor::Analyse() {
       // Free up the decoded frame as well, we won't be using it for anything at this time.
       snap->out_frame = nullptr;
 
-      delete packet_lock;
     }
   }  // end scope for event_lock
+  delete packet_lock;
 
   packetqueue.increment_it(analysis_it);
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -2892,7 +2892,10 @@ Event * Monitor::openEvent(
   // Write out starting packets, do not modify packetqueue it will garbage collect itself
   while (starting_packet_lock && (*start_it != *analysis_it) && !zm_terminate) {
     ZM_DUMP_PACKET(starting_packet_lock->packet_->packet, "Queuing packet for event");
-    event->AddPacket(starting_packet_lock);
+
+    event->AddPacket(starting_packet);
+    delete starting_packet_lock;
+    starting_packet_lock = nullptr;
 
     packetqueue.increment_it(start_it);
     if ((*start_it) != *analysis_it) {

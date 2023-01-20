@@ -508,9 +508,9 @@ body.sticky #page {
   clear: both;
   visibility: hidden;
 }
-@media (min-width: 768px) {
+@media screen and (max-width:767px) {
   #header {
-max-width: 100%;
+    max-width: 100%;
   }
 }
 

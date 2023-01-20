@@ -55,9 +55,6 @@ input[name="newMonitor[Width]"],
 input[name="newMonitor[Height]"] {
   width: 80px;
 }
-select.chosen {
-  width: 100%;
-}
 #page tr td:first-child {
   min-width: 300px;
   vertical-align: top;

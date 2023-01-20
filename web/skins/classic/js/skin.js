@@ -590,8 +590,8 @@ function endOfResize(e) {
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
-  var ratio = baseWidth / baseHeight;
-  var container = $j('#content');
+  const ratio = baseWidth / baseHeight;
+  const container = $j('#content');
   if (!container) {
     console.error("No container found");
     return;
@@ -600,16 +600,20 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   if (!bottomEl || !bottomEl.length) {
     bottomEl = $j(container[0].lastElementChild);
   }
-  var viewPort = $j(window);
+  const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
   console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
   var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
-
   var newWidth = ratio * newHeight;
   console.log("newWidth = " + newWidth);
-  if (newWidth > container.innerWidth()) {
+
+  if (newHeight < 0) {
+    // Doesn't fit on screen anyways?
+    newWidth = container.innerWidth();
+    newHeight = newWidth / ratio;
+  } else if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth();
     newHeight = newWidth / ratio;
   }

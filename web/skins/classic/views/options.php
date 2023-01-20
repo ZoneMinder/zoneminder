@@ -488,7 +488,7 @@ foreach ( array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as 
             $options = explode('|', $value['Hint']);
             if (count($options) > 3) {
 ?>
-              <select class="form-control-sm" name="newConfig[<?php echo $name ?>]"<?php echo $optionCanEdit?'':' disabled="disabled"' ?>>
+              <select class="form-control-sm<?php echo (count($options) > 5) ? ' chosen' : ''?>" name="newConfig[<?php echo $name ?>]"<?php echo $optionCanEdit?'':' disabled="disabled"' ?>>
 <?php
               foreach ( $options as $option ) {
                 if ( preg_match('/^([^=]+)=(.+)$/', $option, $matches) ) {

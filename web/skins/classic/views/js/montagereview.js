@@ -83,12 +83,15 @@ function findFrameByTime(arr, time) {
   let start=0;
   let end=keys.length-1;
 
-  //console.log(keys);
-  //console.log(keys[start]);
+  console.log(keys);
+  console.log(keys[start]);
   // Iterate while start not meets end
   //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
   while ((start <= end)) {
-    //&& arr[keys[start]] && (arr[keys[start]].TimeStampSecs <= time) && (arr[keys[end]].NextTimeStampSecs >= time)) {
+    if ((arr[keys[start]].TimeStampSecs > time) || (arr[keys[end]].NextTimeStampSecs < time)) {
+      console.log(time + " not found in array of frames.", arr[keys[start]], arr[keys[end]]);
+      return false;
+    }
     // Find the mid index
     const middle = Math.floor((start + end)/2);
     const frame = arr[keys[middle]];
@@ -115,7 +118,7 @@ function findFrameByTime(arr, time) {
       break;
     }
   } // end while
-
+  //console.log("Didn't find it");
   return false;
 }
 
@@ -175,7 +178,8 @@ function getFrame(monId, time, last_Frame) {
 
   if (!Event.FramesById) {
     console.log('No FramesById for event ', Event.Id);
-    load_Frames([Event]).then(function() {
+    event_id = Event.Id;
+    load_Frames({event_id: Event}).then(function() {
       if (!Event.FramesById) {
         console.log("No FramesById after load_Frames!", Event);
       }
@@ -1042,6 +1046,8 @@ function clickMonitor(event) {
 }
 
 function changeDateTime(e) {
+  console.log(e);
+if (0) {
   var minTime_element = $j('#minTime');
   var maxTime_element = $j('#maxTime');
 
@@ -1056,6 +1062,7 @@ function changeDateTime(e) {
 
   var minStr = "&minTime="+($j('#minTime')[0].value);
   var maxStr = "&maxTime="+($j('#maxTime')[0].value);
+}
 
   var liveStr="&live="+(liveMode?"1":"0");
   var fitStr ="&fit="+(fitMode?"1":"0");
@@ -1070,8 +1077,11 @@ function changeDateTime(e) {
   // Reloading can take a while, so stop interrupts to reduce load
   clearInterval(timerObj);
   timerObj = null;
+  const form = $j('#montagereview_form');
+  console.log(form.serialize());
 
-  var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
+  var uri = "?" + form.serialize() + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
+  //var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
 }
 
@@ -1117,6 +1127,7 @@ function initPage() {
   //setFit(fitMode);  // will redraw
   //setLive(liveMode);  // will redraw
   redrawScreen();
+  /*
   $j('#minTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
@@ -1140,6 +1151,7 @@ function initPage() {
       }
     }
   });
+  */
   $j('#scaleslider').bind('change', function() {
     setScale(this.value);
   });
@@ -1164,7 +1176,7 @@ function initPage() {
   });
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
     el = $j(this);
-    //el.on('change', changeDateTime());
+    el.on('change', changeDateTime);
     if (el.hasClass('datetimepicker')) {
       el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
@@ -1201,7 +1213,9 @@ window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);
 
+/* Expects and Object, not an array, of EventId=>Event mappings. */
 function load_Frames(zm_events) {
+  console.log("Loading frames", zm_events);
   return new Promise(function(resolve, reject) {
     let url = Servers[serverId].urlToApi()+'/frames/index';
 
@@ -1211,9 +1225,10 @@ function load_Frames(zm_events) {
     while (ids.length) {
       const event_id = ids.shift();
       const zm_event = zm_events[event_id];
+      if (zm_events.FramesById) continue;
 
       query += '/EventId:'+zm_event.Id;
-      if (!ids.length || (query.length > 1000)) {
+      if ((!ids.length) || (query.length > 1000)) {
         $j.ajax(url+query+'.json?'+auth_relay,
           {
             timeout: 0,
@@ -1229,9 +1244,6 @@ function load_Frames(zm_events) {
                     console.error("No event object found for " + data.frames[0].Frame.EventId);
                     continue;
                   }
-                  // new Date uses browser TZ unless specified in string, so append the server offset
-                  date = new Date(frame.TimeStamp+(server_utc_offset/3600));
-                  frame.TimeStampSecs = new Date(date.getTime() + frame.Delta * 1000).getTime() / 1000;
                   //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
                   if (last_frame) {
                     frame.PrevFrameId = last_frame.Id;

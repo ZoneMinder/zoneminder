@@ -27,6 +27,7 @@ input.large {
 
 #sidebar {
   overflow-y: auto;
+  min-width: 160px;
 }
 
 #options {

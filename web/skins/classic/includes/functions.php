@@ -207,14 +207,24 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
     </div>
 
     <!-- the Navigation Bar Hamburger Button   -->
+<!--
     <div class="nav justify-content-end flex-grow-1">
+-->
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon">
 					<i class="material-icons md-20">menu</i>
 				</span>
       </button>
+      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
+        <span class="sr-only">Toggle guages</span>
+        <span class="navbar-toggler-icon">
+					<i class="material-icons md-20">monitoring</i>
+				</span>
+      </button>
+<!--
    </div>
+-->
 
     <div class="collapse navbar-collapse" id="main-header-nav">
 <?php
@@ -235,15 +245,17 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getHeaderFlipHTML();
-        echo '</ul>';
+          echo '</ul></div><div id="accountstatus">
+';
 
         echo '<ul class="nav navbar-nav justify-content-end align-self-start flex-grow-1">';
           echo getAccountCircleHTML($skin, $user);
           echo getStatusBtnHTML($status);
-        echo '</ul>';
+        echo '</ul>
+    </div>
+      ';
   }
 ?>
-    </div>
   </nav><!-- End First Navbar -->
 
   <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two"
@@ -630,7 +642,7 @@ function getConsoleHTML() {
   $result = '';
   
   if ( canView('Monitors') ) {
-    $result .= '<li id="getConsoleHTML" class="nav-item dropdown"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -641,7 +653,7 @@ function getOptionsHTML() {
   $result = '';
   
   if ( canView('System') ) {
-    $result .= '<li id="getOptionsHTML" class="nav-item dropdown"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -655,7 +667,7 @@ function getLogHTML() {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) {
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      $result .= '<li id="getLogHTML" class="nav-item dropdown"><a class="nav-link '.$class.'" href="?view=log">'.translate('Log').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getLogHTML" class="nav-item"><a class="nav-link '.$class.'" href="?view=log">'.translate('Log').'</a></li>'.PHP_EOL;
     }
   }
   
@@ -670,7 +682,7 @@ function getLogIconHTML() {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
       $class = ( $logstate == 'alert' ) ? 'text-warning' : (( $logstate == 'alarm' ) ? 'text-danger' : '');
-      $result .= '<li id="getLogIconHTML" class="nav-item dropdown">'.
+      $result .= '<li id="getLogIconHTML" class="nav-item">'.
         makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
         '</li>'.PHP_EOL;
     }
@@ -684,7 +696,7 @@ function getDevicesHTML() {
   $result = '';
   
   if ( ZM_OPT_X10 && canView('Devices') ) {
-    $result .= '<li id="getDevicesHTML" class="nav-item dropdown"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
+    $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -696,7 +708,7 @@ function getGroupsHTML($view) {
   if ( !canView('Groups') ) return $result;
 
   $class = $view == 'groups' ? ' selected' : '';
-  $result .= '<li id="getGroupsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
+  $result .= '<li id="getGroupsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
   
   return $result;
 }
@@ -707,7 +719,7 @@ function getFilterHTML($view) {
   if ( !canView('Events') ) return $result;
   
   $class = $view == 'filter' ? ' selected' : '';
-  $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
+  $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
   
   return $result;
 }
@@ -718,7 +730,7 @@ function getCycleHTML($view) {
   
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? ' selected' : '';
-    $result .= '<li id="getCycleHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=watch&cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -730,7 +742,7 @@ function getMontageHTML($view) {
   
   if ( canView('Stream') ) {
     $class = $view == 'montage' ? ' selected' : '';
-    $result .= '<li id="getMontageHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -757,7 +769,7 @@ function getMontageReviewHTML($view) {
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
     $class = $view == 'montagereview' ? ' selected' : '';
-    $result .= '<li id="getMontageReviewHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -769,7 +781,7 @@ function getSnapshotsHTML($view) {
   
   if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
     $class = $view == 'snapshots' ? ' selected' : '';
-    $result .= '<li id="getSnapshotsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -780,7 +792,7 @@ function getReportsHTML($view) {
   
   if (canView('Events')) {
     $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
-    $result .= '<li id="getReportsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -792,7 +804,7 @@ function getRprtEvntAuditHTML($view) {
   
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? ' selected' : '';
-    $result .= '<li id="getRprtEvntAuditHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
   }
   
   return $result;

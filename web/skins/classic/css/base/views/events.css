@@ -49,3 +49,7 @@ input[type="number"].form-control {
 .filterTable {
   display:inline;
 }
+#events {
+  height: 100%;
+  overflow-y: auto;
+}

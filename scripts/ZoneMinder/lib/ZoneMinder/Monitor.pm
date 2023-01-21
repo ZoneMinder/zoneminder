@@ -43,7 +43,7 @@ use ZoneMinder::Logger qw(:all);
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
-$debug = 1;
+$debug = 0;
 $table = 'Monitors';
 $serial = $primary_key = 'Id';
 %fields = map { $_ => $_ } qw(
@@ -57,7 +57,6 @@ $serial = $primary_key = 'Id';
   Analysing
   Recording
   Decoding
-  Enabled
   LinkedMonitors
   Triggers
   EventStartCommand
@@ -154,12 +153,14 @@ $serial = $primary_key = 'Id';
     ServerId => 0,
     StorageId => 0,
     Type      => q`'Ffmpeg'`,
-    Capturing => 'Always',
-    Analysing => 'Always',
-    Recording => 'Always',
-    Decoding => 'Always',
-    Enabled   => 1,
+    Capturing => q`'Always'`,
+    Analysing => q`'Always'`,
+    Recording => q`'Always'`,
+    Decoding => q`'Always'`,
     LinkedMonitors => undef,
+    Triggers => '',
+    EventEndCommand => '',
+    EventStartCommand => '',
     Device  =>  '',
     Channel =>  0,
     Format  =>  0,
@@ -237,6 +238,7 @@ $serial = $primary_key = 'Id';
     DefaultCodec  => q`'auto'`,
     Latitude  =>  undef,
     Longitude =>  undef,
+    Importance => 0,
     );
 
   use constant CAPTURING_NONE     => 1;

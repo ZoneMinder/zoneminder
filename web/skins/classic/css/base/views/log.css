@@ -33,4 +33,5 @@ th[data-field="DateTime"] {
 }
 #logsTable {
   overflow-y: auto;
+  height: 100%;
 }

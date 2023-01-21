@@ -192,6 +192,6 @@ class Event {
     void SavePreAlarmFrames() {
       EmptyPreAlarmFrames();
     }
-    int MonitorId();
+    int MonitorId() const;
 };
 #endif // ZM_EVENT_H

@@ -175,6 +175,13 @@ getBodyTopHTML();
 echo getNavBarHTML() ?>
 <div id="page">
   <div id="header">
+<?php
+    $html = '';
+    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'down')) ? 'up' : 'down';
+    $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
+    $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
+    echo $html;
+?>
     <div class="controlHeader">
       <form method="get">
         <input type="hidden" name="view" value="watch"/>
@@ -229,6 +236,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         </span>
       </div><!--sizeControl-->
     </div><!--control header-->
+    </div><!--flip-->
   </div><!--header-->
   <div class="container-fluid h-100">
     <div class="row flex-nowrap h-100" id="content">

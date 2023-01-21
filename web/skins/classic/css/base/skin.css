@@ -508,6 +508,11 @@ body.sticky #page {
   clear: both;
   visibility: hidden;
 }
+@media (min-width: 768px) {
+  #header {
+max-width: 100%;
+  }
+}
 
 
 #header h2 {
@@ -648,6 +653,15 @@ input[type=submit]:disabled,
 }
 .navbar-brand a {
 color:#ffa801;
+}
+@media (max-width: 600px){
+  .navbar-nav {
+    flex-direction: row;
+  }
+  .navbar-nav .nav-link {
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+  }
 }
 
 .navbar-btn {

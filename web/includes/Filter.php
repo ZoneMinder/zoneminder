@@ -1039,9 +1039,9 @@ class Filter extends ZM_Object {
     return $html;
   }  # end function widget()
 
-  public function has_term($attr) {
+  public function has_term($attr, $op=null) {
     foreach ($this->terms() as $term) {
-      if ($term['attr'] == $attr) return true;
+      if (($term['attr'] == $attr) and ((!$op) or ($term['op']==$op)) ) return true;
     }
     return false;
   }

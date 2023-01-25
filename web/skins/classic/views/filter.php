@@ -144,7 +144,6 @@ echo $navbar = getNavBarHTML();
     <div id="content">
       <form name="selectForm" id="selectForm" method="get" action="?">
         <input type="hidden" name="view" value="filter"/>
-        <hr/>
         <div id="filterSelector"><label for="Id"><?php echo translate('UseFilter') ?></label>
           <?php
 if ( count($filterNames) > 1 ) {
@@ -164,7 +163,6 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <input type="hidden" name="action"/>
         <input type="hidden" name="object" value="filter"/>
 
-        <hr/>
 <?php if ( $filter->Id() ) { ?>
         <p class="Id"><label><?php echo translate('Id') ?></label><?php echo $filter->Id() ?></p>
 <?php } ?>
@@ -186,7 +184,6 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <p>
 <?php echo $filter->widget(); ?>
 
-        <hr/>
         <table id="sortTable" class="filterTable">
           <tbody>
             <tr>

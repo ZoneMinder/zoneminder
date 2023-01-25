@@ -55,20 +55,18 @@ $anyAlarms = false;
 $maxScore = 0;
 
 if (!$liveMode) {
-  $result = dbQuery($eventsSql);
-  if ( !$result ) {
-    ZM\Error('SQL-ERR');
-    return;
-  }
-
+  echo "const events = {\n";
   $EventsById = array();
-  while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
-    $EventsById[$event['Id']] = $event;
+
+  $result = dbQuery($eventsSql);
+  if ($result) {
+    while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
+      $EventsById[$event['Id']] = $event;
+    }
   }
 
   $events_by_monitor_id = array();
 
-  echo "const events = {\n";
   foreach ($EventsById as $event_id=>$event) {
 
     $StartTimeSecs = $event['StartTimeSecs'];

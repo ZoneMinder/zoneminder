@@ -131,7 +131,16 @@ if (isset($_REQUEST['filter'])) {
     }
   } # end if REQUEST[Filter]
 }
-if ($filter and count($filter->terms()) ) {
+if (!$filter->has_term('Archived')) {
+  $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => ''));
+}
+if (!$filter->has_term('StartDateTime', '>=')) {
+  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'));
+}
+if (!$filter->has_term('StartDateTime', '<=')) {
+  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
+}
+if (count($filter->terms()) ) {
   #parseFilter($filter);
   # This is to enable the download button
   zm_session_start();
@@ -253,10 +262,12 @@ if (count($filter->terms())) {
 }
 ?>
 
+<!--
         <div id="DateTimeDiv">
           <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> to 
           <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>"/>
         </div>
+-->
         <div id="ScaleDiv">
           <label for="scaleslider"><?php echo translate('Scale')?></label>
           <input id="scaleslider" type="range" min="0.1" max="1.0" value="<?php echo $defaultScale ?>" step="0.10"/>

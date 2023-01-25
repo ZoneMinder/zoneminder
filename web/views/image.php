@@ -302,7 +302,6 @@ Output was: '.implode(PHP_EOL,$output) );
       # Generating an image file will use up more disk space, so update the Event record.
       if ( $Event->EndDateTime() ) {
         $Event->DiskSpace(null);
-        $Event->save();
       }
     } else {
       header('HTTP/1.0 404 Not Found');

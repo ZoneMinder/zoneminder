@@ -157,7 +157,7 @@ function submitToEvents(element) {
 function submitToMontageReview(element) {
   var form = element.form;
   form.action = thisUrl + '?view=montagereview';
-  window.location.assign('?view=montagereview&'+$j(form).serialize());
+  window.location.assign('?view=montagereview&live=0&'+$j(form).serialize());
   history.replaceState(null, null, '?view=montagereview&live=0&' + $j(form).serialize());
 }
 

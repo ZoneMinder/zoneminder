@@ -61,6 +61,10 @@ include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
+$liveMode = 1; // default to live
+if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
+  $liveMode = 0;
+
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
 // Live overrides all the min/max stuff but it is still processed
 
@@ -131,14 +135,16 @@ if (isset($_REQUEST['filter'])) {
     }
   } # end if REQUEST[Filter]
 }
-if (!$filter->has_term('Archived')) {
-  $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => ''));
-}
-if (!$filter->has_term('StartDateTime', '>=')) {
-  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'obr' => '1'));
-}
-if (!$filter->has_term('StartDateTime', '<=')) {
-  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cbr' => '1'));
+if (!$liveMode) {
+  if (!$filter->has_term('Archived')) {
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and'));
+  }
+  if (!$filter->has_term('StartDateTime', '>=')) {
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and'));
+  }
+  if (!$filter->has_term('StartDateTime', '<=')) {
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and'));
+  }
 }
 if (count($filter->terms()) ) {
   #parseFilter($filter);
@@ -153,34 +159,22 @@ if (count($filter->terms()) ) {
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
 $eventsSql = 'SELECT
-    E.Id, E.Name, E.StorageId,
-    E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
+  E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
     CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
     UNIX_TIMESTAMP(EndDateTime) AS EndTimeSecs,
-    E.Length, E.Frames, E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
-  FROM Events AS E
+    M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
   WHERE 1 > 0 
 ';
 
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
 $monitor_ids_sql = '';
-if ( !empty($user['MonitorIds']) ) {
-  $eventsSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
-}
+#if ( !empty($user['MonitorIds']) ) {
+  #$eventsSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
+#}
 if ( count($selected_monitor_ids) ) {
   $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
-}
-if ( isset($_REQUEST['archive_status']) ) {
-  $_SESSION['archive_status'] = $_REQUEST['archive_status'];
-}
-if ( isset($_SESSION['archive_status']) ) {
-  if ( $_SESSION['archive_status'] == 'Archived' ) {
-    $eventsSql .= ' AND E.Archived=1';
-  } else if ( $_SESSION['archive_status'] == 'Unarchived' ) {
-    $eventsSql .= ' AND E.Archived=0';
-  }
 }
 
 $fitMode = 1;
@@ -207,10 +201,6 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-$liveMode = 1; // default to live
-if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
-  $liveMode = 0;
-
 $initialDisplayInterval = 1000;
 if ( isset($_REQUEST['displayinterval']) )
   $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
@@ -227,8 +217,10 @@ if ( isset($minTime) && isset($maxTime) ) {
   }
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
-  $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
+  #$eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
 }
+$eventsSql .= ' AND '.$filter->sql();
+
 $eventsSql .= ' ORDER BY E.StartDateTime ASC';
 
 $monitors = array();
@@ -301,19 +293,6 @@ if (count($filter->terms())) {
   } else if (count($displayMonitors) != 0) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
-          <span id="eventfilterdiv">
-            <label><?php echo translate('Archive Status') ?> 
-  <?php echo htmlSelect(
-    'archive_status',
-    array(
-      '' => translate('All'),
-      'Archived' => translate('Archived'),
-      'Unarchived' => translate('UnArchived'),
-    ),
-    ( isset($_SESSION['archive_status']) ? $_SESSION['archive_status'] : '')
-  ); ?>
-            </label>
-          </span>
 <?php } // end if !live ?>
         </div>
         <div id="timelinediv">

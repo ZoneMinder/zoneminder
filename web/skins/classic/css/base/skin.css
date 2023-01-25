@@ -856,3 +856,12 @@ a.flip {
   border-radius: 0;
   border: none;
 }
+.controlHeader {
+  display: flex;
+}
+@media screen and (max-width:767px) {
+  .controlHeader {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}

@@ -259,7 +259,7 @@ $framesSql .= ' ORDER BY Id DESC';
 
 $monitors = array();
 foreach( $displayMonitors as $row ) {
-  if ( $row['Function'] == 'None' || $row['Type'] == 'WebSite' )
+  if ($row['Type'] == 'WebSite')
     continue;
   $Monitor = new ZM\Monitor($row);
   $monitors[] = $Monitor;

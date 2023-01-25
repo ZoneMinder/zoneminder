@@ -137,13 +137,13 @@ if (isset($_REQUEST['filter'])) {
 }
 if (!$liveMode) {
   if (!$filter->has_term('Archived')) {
-    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => ''));
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and'));
   }
   if (!$filter->has_term('StartDateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'obr' => '1'));
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and'));
   }
   if (!$filter->has_term('StartDateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cbr' => '1'));
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and'));
   }
 }
 if (count($filter->terms()) ) {
@@ -159,12 +159,10 @@ if (count($filter->terms()) ) {
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
 $eventsSql = 'SELECT
-    E.Id, E.Name, E.StorageId,
-    E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
+  E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
     CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
     UNIX_TIMESTAMP(EndDateTime) AS EndTimeSecs,
-    E.Length, E.Frames, E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
-  FROM Events AS E
+    M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
   WHERE 1 > 0 
 ';
 
@@ -177,16 +175,6 @@ $monitor_ids_sql = '';
 if ( count($selected_monitor_ids) ) {
   $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
-}
-if ( isset($_REQUEST['archive_status']) ) {
-  $_SESSION['archive_status'] = $_REQUEST['archive_status'];
-}
-if ( isset($_SESSION['archive_status']) ) {
-  if ( $_SESSION['archive_status'] == 'Archived' ) {
-    $eventsSql .= ' AND E.Archived=1';
-  } else if ( $_SESSION['archive_status'] == 'Unarchived' ) {
-    $eventsSql .= ' AND E.Archived=0';
-  }
 }
 
 $fitMode = 1;
@@ -305,19 +293,6 @@ if (count($filter->terms())) {
   } else if (count($displayMonitors) != 0) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
-          <span id="eventfilterdiv">
-            <label><?php echo translate('Archive Status') ?> 
-  <?php echo htmlSelect(
-    'archive_status',
-    array(
-      '' => translate('All'),
-      'Archived' => translate('Archived'),
-      'Unarchived' => translate('UnArchived'),
-    ),
-    ( isset($_SESSION['archive_status']) ? $_SESSION['archive_status'] : '')
-  ); ?>
-            </label>
-          </span>
 <?php } // end if !live ?>
         </div>
         <div id="timelinediv">

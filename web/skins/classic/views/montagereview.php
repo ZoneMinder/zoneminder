@@ -61,6 +61,10 @@ include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
+$liveMode = 1; // default to live
+if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
+  $liveMode = 0;
+
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
 // Live overrides all the min/max stuff but it is still processed
 
@@ -131,14 +135,16 @@ if (isset($_REQUEST['filter'])) {
     }
   } # end if REQUEST[Filter]
 }
-if (!$filter->has_term('Archived')) {
-  $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => ''));
-}
-if (!$filter->has_term('StartDateTime', '>=')) {
-  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'obr' => '1'));
-}
-if (!$filter->has_term('StartDateTime', '<=')) {
-  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cbr' => '1'));
+if (!$liveMode) {
+  if (!$filter->has_term('Archived')) {
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => ''));
+  }
+  if (!$filter->has_term('StartDateTime', '>=')) {
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'obr' => '1'));
+  }
+  if (!$filter->has_term('StartDateTime', '<=')) {
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cbr' => '1'));
+  }
 }
 if (count($filter->terms()) ) {
   #parseFilter($filter);
@@ -165,9 +171,9 @@ $eventsSql = 'SELECT
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
 $monitor_ids_sql = '';
-if ( !empty($user['MonitorIds']) ) {
-  $eventsSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
-}
+#if ( !empty($user['MonitorIds']) ) {
+  #$eventsSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
+#}
 if ( count($selected_monitor_ids) ) {
   $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
@@ -207,10 +213,6 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-$liveMode = 1; // default to live
-if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
-  $liveMode = 0;
-
 $initialDisplayInterval = 1000;
 if ( isset($_REQUEST['displayinterval']) )
   $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
@@ -227,8 +229,10 @@ if ( isset($minTime) && isset($maxTime) ) {
   }
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
-  $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
+  #$eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
 }
+$eventsSql .= ' AND '.$filter->sql();
+
 $eventsSql .= ' ORDER BY E.StartDateTime ASC';
 
 $monitors = array();

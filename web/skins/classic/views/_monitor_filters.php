@@ -218,7 +218,7 @@ $html .= '</span>
         $regexp = '/'.preg_quote($regexp,'/').'/i';
       }
 
-      if ( !preg_match($regexp, $Monitor->Name()) ) {
+      if ( !@preg_match($regexp, $Monitor->Name()) ) {
         continue;
       }
     }
@@ -247,7 +247,6 @@ $html .= '</span>
     }
     $displayMonitors[] = $monitors[$i];
   } # end foreach monitor
-
   $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').'</label>';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(

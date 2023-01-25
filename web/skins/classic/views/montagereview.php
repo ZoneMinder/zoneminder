@@ -111,8 +111,8 @@ if (isset($_REQUEST['filter'])) {
 		}
 	}
 } else {
+  $filter = new ZM\Filter();
   if ( isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0) ) {
-    $filter = new ZM\Filter();
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'));
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
     if (count($selected_monitor_ids)) {
@@ -135,10 +135,10 @@ if (!$filter->has_term('Archived')) {
   $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => ''));
 }
 if (!$filter->has_term('StartDateTime', '>=')) {
-  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'));
+  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'obr' => '1'));
 }
 if (!$filter->has_term('StartDateTime', '<=')) {
-  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
+  $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cbr' => '1'));
 }
 if (count($filter->terms()) ) {
   #parseFilter($filter);

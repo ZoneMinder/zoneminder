@@ -120,7 +120,6 @@ function renderAlarmCues(containerEl) {
   const span_count = 10;
   const span_seconds = parseInt(event_length / span_count);
   const span_width = parseInt(containerEl.width() / span_count);
-  console.log('span_width', span_width, 'container width', containerEl.width(), 'span count', span_count);
   const date = new Date(eventData.StartDateTime);
   for (let i=0; i < span_count; i += 1) {
     html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
@@ -163,7 +162,7 @@ function renderAlarmCues(containerEl) {
 
       alarmHtml += '<span class="noneCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
       left = parseInt((frame.Delta / event_length) * containerEl.width());
-      console.log(left, frame.Delta, event_length, containerEl.width());
+      //console.log(left, frame.Delta, event_length, containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
       futNone = 0;

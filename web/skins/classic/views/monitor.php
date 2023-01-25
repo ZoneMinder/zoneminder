@@ -662,7 +662,7 @@ echo htmlSelect('newMonitor[Method]', $localMethods,
             <label for="newMonitor[V4LMultiBuffer]0">No</label>
             <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( $monitor->V4LMultiBuffer() == '' ? 'checked="checked"' : '' ) ?>/>
             <label for="newMonitor[V4LMultiBuffer]">Use Config Value
-          <li>
+          </li>
           <li>
             <label><?php echo translate('V4LCapturesPerFrame') ?></label>
             <input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo validHtmlStr($monitor->V4LCapturesPerFrame()); ?>" min="1"/>
@@ -779,7 +779,7 @@ include('_monitor_source_nvsocket.php');
             <label><?php echo 'Password' ?></label>
             <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
             <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
-          <li>
+          </li>
           <li>
             <label><?php echo translate('RemoteMethod'); echo makeHelpLink('OPTIONS_RTSPTrans') ?></label>
             <?php echo htmlSelect('newMonitor[Method]', $rtspFFMpegMethods, $monitor->Method()) ?>
@@ -834,7 +834,7 @@ include('_monitor_source_nvsocket.php');
         <li>
           <label><?php echo translate('TargetColorspace') ?></label>
           <?php echo htmlSelect('newMonitor[Colours]', $Colours, $monitor->Colours()) ?>
-        <li>
+        </li>
         <li>
           <label><?php echo translate('CaptureResolution') ?> (<?php echo translate('Pixels') ?>)</label>
           
@@ -881,11 +881,11 @@ include('_monitor_source_nvsocket.php');
         echo htmlselect('dimensions_select', $resolutions, $selected);
 ?>
           
-        <li>
+        </li>
         <li>
           <label><?php echo translate('PreserveAspect') ?></label>
           <input type="checkbox" name="preserveAspectRatio" value="1"/>
-        <li>
+        </li>
         <li>
           <label><?php echo translate('Orientation') ?></label>
           <?php echo htmlselect('newMonitor[Orientation]', $orientations, $monitor->Orientation());?>
@@ -901,10 +901,10 @@ include('_monitor_source_nvsocket.php');
 <?php
         } else if ( $monitor->Type() != 'WebSite' ) {
 ?>
-            <li>
+            <li class="Deinterlacing">
               <label><?php echo translate('Deinterlacing') ?></label>
               <?php echo htmlselect('newMonitor[Deinterlacing]', $deinterlaceopts, $monitor->Deinterlacing())?>
-            <li>
+            </li>
 <?php
         }
         if ( $monitor->Type() == 'Remote' ) {
@@ -912,32 +912,29 @@ include('_monitor_source_nvsocket.php');
             <li id="RTSPDescribe"<?php if ( $monitor->Protocol()!= 'rtsp' ) { echo ' style="display:none;"'; } ?>>
               <label><?php echo translate('RTSPDescribe'); echo makeHelpLink('OPTIONS_RTSPDESCRIBE') ?></label>
               <input type="checkbox" name="newMonitor[RTSPDescribe]" value="1"<?php if ( $monitor->RTSPDescribe() ) { ?> checked="checked"<?php } ?>/>
-            <li>
+            </li>
 <?php
       } # end if monitor->Type() == 'Remote'
 ?>
-            <li>
+            <li class="MaxFPS">
               <label><?php echo translate('MaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></label>
-              
-                <input type="number" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" min="0" step="any"/>
+              <input type="number" name="newMonitor[MaxFPS]" value="<?php echo validHtmlStr($monitor->MaxFPS()) ?>" min="0" step="any"/>
 <?php
       if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
 ?>
                 <span id="newMonitor[MaxFPS]" style="color:red;<?php echo $monitor->MaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
 <?php } ?>
               
-            <li>
+            </li>
             <li>
               <label><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></label>
-              
-                <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
+              <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
 <?php
       if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
 ?>
                 <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
 <?php } ?>
-              
-            <li>
+            </li>
 <?php
       break;
     }
@@ -959,16 +956,14 @@ include('_monitor_source_nvsocket.php');
         }
 ?>
                 </div>
-              
-            <li>
+            </li>
             <li id="AnalysisSource"<?php echo $monitor->SecondPath() ? '' : ' style="display:none;"' ?>>
               <label><?php echo translate('AnalysisSource') ?></label>
               
 <?php
         echo htmlSelect('newMonitor[AnalysisSource]', ZM\Monitor::getAnalysisSourceOptions(), $monitor->AnalysisSource());
 ?>
-              
-            <li>
+            </li>
             <li id="AnalysisImage">
               <label><?php echo translate('Analysis Image') ?></label>
               
@@ -976,41 +971,40 @@ include('_monitor_source_nvsocket.php');
         echo htmlSelect('newMonitor[AnalysisImage]', ZM\Monitor::getAnalysisImageOptions(), $monitor->AnalysisImage());
 ?>
               
-            <li>
+            </li>
             <li>
               <label><?php echo translate('AnalysisFPS') ?></label>
               <input type="number" name="newMonitor[AnalysisFPSLimit]" value="<?php echo validHtmlStr($monitor->AnalysisFPSLimit()) ?>" min="0" step="any"/>
-            <li>
+            </li>
 <?php
       if ( ZM_FAST_IMAGE_BLENDS ) {
 ?>
-              <li>
+              <li class="RefBlendPerc">
                 <label><?php echo translate('RefImageBlendPct') ?></label>
                 <?php echo htmlSelect('newMonitor[RefBlendPerc]', $fastblendopts, $monitor->RefBlendPerc()); ?>
-              <li>
-              <li>
+              </li>
+              <li class="AlarmRefBlendPerc">
                 <label><?php echo translate('AlarmRefImageBlendPct') ?></label>
                 <?php echo htmlSelect('newMonitor[AlarmRefBlendPerc]', $fastblendopts_alarm, $monitor->AlarmRefBlendPerc()); ?>
-              <li>
+              </li>
           <?php
       } else {
 ?>
-            <li>
+            <li class="RefBlendPerc">>
               <label><?php echo translate('RefImageBlendPct') ?></label>
               <input type="number" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($monitor->RefBlendPerc()) ?>" step="any" min="0"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('AlarmRefImageBlendPct') ?></label>
               <input type="number" name="newMonitor[AlarmRefBlendPerc]" value="<?php echo validHtmlStr($monitor->AlarmRefBlendPerc()) ?>" step="any" min="0"/>
-            <li>
+            </li>
 <?php
       }
 ?>
             <li class="LinkedMonitors">
               <label><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></label>
               <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
-                  <div id="LinkedMonitorsUI"></div>
-    
+              <div id="LinkedMonitorsUI"></div>
 <?php
       $zones = ZM\Zone::find();
       $zones_by_monitor_id = array();
@@ -1046,25 +1040,23 @@ include('_monitor_source_nvsocket.php');
         array('class'=>'chosen')
       );
 */
-
 ?>
-              
-            <li>
+            </li>
 <?php
     }
     break;
   case 'recording' :
     {
 ?>
-          <li>
+          <li class="Recording">
             <label><?php echo translate('Recording') ?></label>
             
-  <?php
+<?php
       echo htmlSelect('newMonitor[Recording]', ZM\Monitor::getRecordingOptions(),
         $monitor->Recording(),
         array('data-on-change-this'=>'Recording_onChange'));
-  ?>
-                <div id="Recording_help">
+?>
+            <div id="Recording_help">
   <?php
           foreach (ZM\Monitor::getRecordingOptions() as $fn => $translated) {
             if (isset($OLANG['RECORDING_'.strtoupper($fn)])) {
@@ -1072,20 +1064,16 @@ include('_monitor_source_nvsocket.php');
             }
           }
   ?>
-              </div>
-            
-          <li>
+            </div>
+          </li>
           <li id="RecordingSource"<?php echo $monitor->SecondPath() ? '' : ' style="display:none;"' ?>>
             <label><?php echo translate('RecordingSource') ?></label>
-            
 <?php
         echo htmlSelect('newMonitor[RecordingSource]', ZM\Monitor::getRecordingSourceOptions(), $monitor->RecordingSource());
 ?>
-            
-          <li>
+          </li>
           <li>
             <label><?php echo translate('StorageArea') ?></label>
-            
 <?php
       $storage_areas = array(0=>translate('Unspecified'));
       foreach ( ZM\Storage::find(array('Enabled'=>true), array('order'=>'lower(Name)')) as $Storage ) {
@@ -1093,9 +1081,8 @@ include('_monitor_source_nvsocket.php');
       }
       echo htmlSelect('newMonitor[StorageId]', $storage_areas, $monitor->StorageId());
 ?>
-            
-          <li>
-          <li>
+          </li>
+          <li class="SaveJPEGs">
             <label><?php echo translate('SaveJPEGs') ?></label>
             
 <?php
@@ -1124,11 +1111,9 @@ include('_monitor_source_nvsocket.php');
     $videowriteropts[2] = array('text'=>translate('Camera Passthrough - only for FFMPEG'),'disabled'=>1);
 	echo htmlSelect('newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter());
 ?>
-              
-            <li>
+            </li>
             <li class="OutputCodec">
               <label><?php echo translate('OutputCodec') ?></label>
-              
 <?php
 $videowriter_codecs = array(
   '0' => translate('Auto'),
@@ -1139,8 +1124,7 @@ $videowriter_codecs = array(
 );
 echo htmlSelect('newMonitor[OutputCodec]', $videowriter_codecs, $monitor->OutputCodec());
 ?>
-              
-            <li>
+            </li>
             <li class="Encoder">
               <label><?php echo translate('Encoder') ?></label>
               
@@ -1173,13 +1157,12 @@ $videowriter_containers = array(
 );
 echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor->OutputContainer());
 ?>
-              
-            <li>
+            </li>
             <li class="EncoderParameters">
               <label><?php echo translate('OptionalEncoderParam'); echo makeHelpLink('OPTIONS_ENCODER_PARAMETERS') ?></label>
               <textarea name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
               
-            <li>
+            </li>
             <li class="RecordAudio">
               <label><?php echo translate('RecordAudio') ?></label>
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
@@ -1188,16 +1171,15 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <?php echo translate('Audio recording only available with FFMPEG')?>
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
-              
+            </li>
             <li>
-          <li>
-            <label><?php echo translate('Event Start Command') ?></label>
-            <input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" />
-          <li>
-          <li>
-            <label><?php echo translate('Event End Command') ?></label>
-            <input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>" />
-          <li>
+              <label><?php echo translate('Event Start Command') ?></label>
+              <input type="text" name="newMonitor[EventStartCommand]" value="<?php echo validHtmlStr($monitor->EventStartCommand()) ?>" />
+            </li>
+            <li>
+              <label><?php echo translate('Event End Command') ?></label>
+              <input type="text" name="newMonitor[EventEndCommand]" value="<?php echo validHtmlStr($monitor->EventEndCommand()) ?>" />
+            <li>
 <?php
       break;
     }
@@ -1206,11 +1188,11 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             <li>
               <label><?php echo translate('RTSPServer'); echo makeHelpLink('OPTIONS_RTSPSERVER') ?></label>
               <input type="checkbox" name="newMonitor[RTSPServer]" value="1"<?php echo $monitor->RTSPServer() ? ' checked="checked"' : '' ?>/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></label>
               <input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/>
-            <li>
+            </li>
             <li id="FunctionJanusEnabled">
               <label><?php echo translate('Janus Live Stream') ?></label>
               <input type="checkbox" name="newMonitor[JanusEnabled]" value="1"<?php echo $monitor->JanusEnabled() ? ' checked="checked"' : '' ?>/>
@@ -1219,8 +1201,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_ENABLED']['Help'].'</div>';
   }
 ?>
-              
-            <li>
+            </li>
             <li id="FunctionJanusAudioEnabled">
               <label><?php echo translate('Janus Live Stream Audio') ?></label>
               <input type="checkbox" name="newMonitor[JanusAudioEnabled]" value="1"<?php echo $monitor->JanusAudioEnabled() ? ' checked="checked"' : '' ?>/>
@@ -1229,8 +1210,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_AUDIO_ENABLED']['Help'].'</div>';
   }
 ?>
-              
-            <li>
+            </li>
             <li id="FunctionJanusProfileOverride">
               <label><?php echo translate('Janus Profile-ID Override') ?></label>
               <input type="text" name="newMonitor[Janus_Profile_Override]" value="<?php echo $monitor->Janus_Profile_Override()?>"/>
@@ -1239,9 +1219,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']['Help'].'</div>';
   }
 ?>
-              
-            <li>
-
+            </li>
             <li id="FunctionJanusRTSPSessionTimeout">
               <label><?php echo translate('Janus RTSP Session Timeout Override') ?></label>
               <input type="text" name="newMonitor[Janus_RTSP_Session_Timeout]" value="<?php echo $monitor->Janus_RTSP_Session_Timeout()?>"/>
@@ -1250,9 +1228,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_RTSP_SESSION_TIMEOUT']['Help'].'</div>';
   }
 ?>
-              
-            <li>
-
+            </li>
             <li id="FunctionJanusUseRTSPRestream">
               <label><?php echo translate('Janus Use RTSP Restream') ?></label>
               <input type="checkbox" name="newMonitor[Janus_Use_RTSP_Restream]" value="1"<?php echo $monitor->Janus_Use_RTSP_Restream() ? ' checked="checked"' : '' ?>/>
@@ -1262,7 +1238,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
   }
 ?>
               
-            <li>
+            </li>
             <li id="Janus_RTSP_User" <?php echo (!ZM_OPT_USE_AUTH or !$monitor->Janus_Use_RTSP_Restream()) ? 'style="display:none;"' : ''?>>
               <label><?php echo translate('User for RTSP Server Auth') ?></label>
               <?php
@@ -1275,15 +1251,15 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
                 echo htmlSelect("newMonitor[Janus_RTSP_User]", $users, $monitor->Janus_RTSP_User());
 ?>
               
-            <li>
+            </li>
             <li>
               <label><?php echo translate('DefaultRate') ?></label>
               <?php echo htmlSelect('newMonitor[DefaultRate]', $rates, $monitor->DefaultRate()); ?>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('DefaultScale') ?></label>
               <?php echo htmlSelect('newMonitor[DefaultScale]', $scales, $monitor->DefaultScale()); ?>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('DefaultCodec') ?></label>
               <?php
@@ -1293,7 +1269,7 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
  echo htmlSelect('newMonitor[DefaultCodec]', $codecs, $monitor->DefaultCodec()); ?>
-            <li>
+            </li>
 <?php
     break;
   case 'timestamp' :
@@ -1302,19 +1278,19 @@ $codecs = array(
             <li>
               <label><?php echo translate('TimestampLabelFormat') ?></label>
               <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('TimestampLabelX') ?></label>
               <input type="number" name="newMonitor[LabelX]" value="<?php echo validHtmlStr($monitor->LabelX()) ?>" min="0"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('TimestampLabelY') ?></label>
               <input type="number" name="newMonitor[LabelY]" value="<?php echo validHtmlStr($monitor->LabelY()) ?>" min="0"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('TimestampLabelSize') ?></label>
               <?php echo htmlselect('newMonitor[LabelSize]', $label_size, $monitor->LabelSize()) ?>
-            <li>
+            </li>
 <?php
       break;
     }
@@ -1324,31 +1300,31 @@ $codecs = array(
             <li>
               <label><?php echo translate('ImageBufferSize'); echo makeHelpLink('ImageBufferCount'); ?></label>
               <input type="number" name="newMonitor[ImageBufferCount]" value="<?php echo validHtmlStr($monitor->ImageBufferCount()) ?>" min="1"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('MaxImageBufferCount'); echo makeHelpLink('MaxImageBufferCount'); ?></label>
               <input type="number" name="newMonitor[MaxImageBufferCount]" value="<?php echo validHtmlStr($monitor->MaxImageBufferCount()) ?>" min="0"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('WarmupFrames') ?></label>
               <input type="number" name="newMonitor[WarmupCount]" value="<?php echo validHtmlStr($monitor->WarmupCount()) ?>" min="0"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('PreEventImageBuffer') ?></label>
               <input type="number" name="newMonitor[PreEventCount]" value="<?php echo validHtmlStr($monitor->PreEventCount()) ?>" min="0"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('PostEventImageBuffer') ?></label>
               <input type="number" name="newMonitor[PostEventCount]" value="<?php echo validHtmlStr($monitor->PostEventCount()) ?>" min="0"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('StreamReplayBuffer') ?></label>
               <input type="number" name="newMonitor[StreamReplayBuffer]" value="<?php echo validHtmlStr($monitor->StreamReplayBuffer()) ?>" min="0"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('AlarmFrameCount') ?></label>
               <input type="number" name="newMonitor[AlarmFrameCount]" value="<?php echo validHtmlStr($monitor->AlarmFrameCount()) ?>" min="1"/>
-            <li>
+            </li>
             <li>
               <label><?php echo translate('Estimated Ram Use') ?></label>
               <span id="estimated_ram_use"></span>

@@ -521,6 +521,7 @@ class FilterTerm {
       if (!$this->val)
         return false;
       break;
+    case 'Archived' :
     case 'Monitor' :
     case 'MonitorId' :
       if ($this->val === '')

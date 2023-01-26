@@ -527,6 +527,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }  // end if hwaccel_name
 
   // set codec to automatically determine how many threads suits best for the decoding job
+#if 0
   mVideoCodecContext->thread_count = 0;
 
   if (mVideoCodec->capabilities | AV_CODEC_CAP_FRAME_THREADS) {
@@ -536,6 +537,7 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     mVideoCodecContext->thread_count = 1; //don't use multithreading
   }
+#endif
 
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
@@ -548,6 +550,7 @@ int FfmpegCamera::OpenFfmpeg() {
     av_dict_free(&opts);
     return -1;
   }
+  Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);
   zm_dump_codec(mVideoCodecContext);
 
   if (mAudioStreamId == -1 and !monitor->GetSecondPath().empty()) {

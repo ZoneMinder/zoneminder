@@ -61,6 +61,7 @@ input[name="newConfig[ZM_FROM_EMAIL]"],
 input[name="newConfig[ZM_URL]"],
 input[name="newConfig[ZM_SSMTP_PATH]"],
 input[name="newConfig[ZM_CSP_REPORT_URI]"],
+input[name="newConfig[ZM_TELEMETRY_UUID]"],
 input[name="newStorage[Name]"],
 input[name="newStorage[Path]"],
 input[name="newStorage[Url]"] {
@@ -93,4 +94,11 @@ form {
   position: relative;
   height: 100%;
   padding-top: 4rem;
+}
+
+@media screen and (max-width:767px) {
+  #options label,
+ label.col-form-label {
+    text-align: left;
+  }
 }

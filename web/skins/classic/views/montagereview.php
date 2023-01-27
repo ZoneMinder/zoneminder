@@ -202,11 +202,11 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
 }
 
 $initialDisplayInterval = 1000;
-if ( isset($_REQUEST['displayinterval']) )
+if (isset($_REQUEST['displayinterval']))
   $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
 
 $minTimeSecs = $maxTimeSecs = 0;
-if ( isset($minTime) && isset($maxTime) ) {
+if (isset($minTime) && isset($maxTime)) {
   if ($minTime >= $maxTime) {
     $error_message .= 'Invalid minTime and maxTime specified.<br/>';
     if ($minTime > $maxTime) {
@@ -217,18 +217,15 @@ if ( isset($minTime) && isset($maxTime) ) {
   }
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
-  #$eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
 }
 $eventsSql .= ' AND '.$filter->sql();
-
 $eventsSql .= ' ORDER BY E.StartDateTime ASC';
 
 $monitors = array();
 foreach ($displayMonitors as $row) {
-  if ($row['Capturing'] == 'None' || $row['Type'] == 'WebSite')
+  if ($row['Type'] == 'WebSite')
     continue;
-  $Monitor = new ZM\Monitor($row);
-  $monitors[] = $Monitor;
+  $monitors[] = new ZM\Monitor($row);
 }
 
 xhtmlHeaders(__FILE__, translate('MontageReview') );

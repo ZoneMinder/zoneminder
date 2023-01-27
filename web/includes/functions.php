@@ -1884,7 +1884,11 @@ function cache_bust($file) {
   global $css;
   $dirname = str_replace('/', '_', $parts['dirname']);
   $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
-  if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
+  if (
+    @symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile)
+    or
+    file_exists(ZM_DIR_CACHE.'/'.$cacheFile)
+  ) {
     return 'cache/'.$cacheFile;
   } else {
     ZM\Warning('Failed linking '.$file.' to '.$cacheFile);

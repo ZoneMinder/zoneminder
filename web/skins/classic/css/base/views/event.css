@@ -99,6 +99,10 @@ height: 100%;
 #eventVideo {
     display: inline-block;
     position: relative;
+    z-index: -1;
+}
+.eventStats {
+  margin-right: 5px;
 }
 
 #videoFeed {
@@ -332,4 +336,13 @@ svg.zones {
 }
 .video-js .vjs-text-track-display {
   display: none;
+}
+/*
+.EventData {
+  width: 200px;
+}
+*/
+#frames img {
+  float: left;
+  z-index: 1000;
 }

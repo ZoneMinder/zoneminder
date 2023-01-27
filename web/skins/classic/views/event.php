@@ -203,16 +203,43 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
     </div>
 <?php if ( $Event->Id() ) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
-    <div id="content" class="d-flex flex-row justify-content-center">
-      <div class="eventStats">
-        <!-- VIDEO STATISTICS TABLE -->
-        <table id="eventStatsTable" class="table-sm table-borderless">
-          <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
-        </table>
+    <div id="content">
+      <div class="d-flex flex-row">
+        <div class="eventStats">
+          <!-- VIDEO STATISTICS TABLE -->
+          <table id="eventStatsTable" class="table-sm table-borderless">
+            <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
+          </table>
+
+      <div id="frames">
+<?php 
+if (file_exists($Event->Path().'/alarm.jpg')) {
+  echo '
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=alarm">
+  <img src="?view=image&eid='. $Event->Id().'&amp;fid=alarm" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="First alarmed frame"/>
+</a>    
+';
+}
+if (file_exists($Event->Path().'/snapshot.jpg')) {
+  echo '
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=snapshot">
+  <img src="?view=image&eid='. $Event->Id().'&amp;fid=snapshot" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" title="Frame with the most motion"/>
+</a>
+';
+}
+if (file_exists($Event->Path().'/objdetect.jpg')) {
+  echo '
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect">
+  <img src="?view=image&eid='. $Event->Id().'&amp;fid=objdetect" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Detected Objects"/>
+</a>
+';
+}
+?>
       </div>
-      <div id="eventVideo">
-      <!-- VIDEO CONTENT -->
-        <div id="videoFeed">
+        </div>
+        <div id="eventVideo">
+        <!-- VIDEO CONTENT -->
+          <div id="videoFeed">
 <?php
 if ($video_tag) {
 ?>
@@ -318,7 +345,8 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           echo '</tbody></table>';
         }
       ?>
-      </div>
+      </div><!--EventData-->
+</div>
 <?php
 } // end if Event exists
 ?>

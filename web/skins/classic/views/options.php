@@ -47,6 +47,8 @@ $tabs['groups'] = translate('Groups');
 $tabs['control'] = translate('Control');
 $tabs['privacy'] = translate('Privacy');
 $tabs['MQTT'] = translate('MQTT');
+$tabs['telemetry'] = translate('Telemetry');
+$tabs['version'] = translate('Versions');
 
 $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : 'system';
 

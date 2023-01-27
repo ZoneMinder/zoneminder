@@ -23,12 +23,6 @@ if ( empty($_COOKIE['zmBandwidth']) )
 if ( empty($_COOKIE['zmBandwidth']) )
   $_COOKIE['zmBandwidth'] = 'low';
 
-//ini_set( "magic_quotes_gpc", "Off" );
-
-// Uncomment if there are language overrides
-//if ( $skinLangFile = loadLanguage( ZM_SKIN_PATH ) )
-    //require_once( $skinLangFile );
-
 foreach ( getSkinIncludes('includes/config.php') as $includeFile )
   require_once $includeFile;
 
@@ -38,7 +32,6 @@ foreach ( getSkinIncludes('includes/functions.php') as $includeFile )
 if ( empty($view) ) {
   $view = isset($user)?'console':'login';
 }
-
 
 if ( isset($user) ) {
   // Bandwidth Limiter
@@ -54,5 +47,4 @@ if ( isset($user) ) {
 // If there are additional actions
 foreach ( getSkinIncludes( 'includes/actions.php' ) as $includeFile )
   require_once $includeFile; 
-
 ?>

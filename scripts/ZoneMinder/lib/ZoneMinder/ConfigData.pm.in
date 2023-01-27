@@ -2662,7 +2662,7 @@ our @options = (
       we collect, please refer to our [privacy](?view=privacy) statement.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_UUID',
@@ -2674,7 +2674,7 @@ our @options = (
       existence.
       `,
     type        => $types{string},
-    category    => 'dynamic',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_LAST_UPLOAD',
@@ -2683,7 +2683,7 @@ our @options = (
     help        => '',
     type        => $types{integer},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_INTERVAL',
@@ -2691,7 +2691,7 @@ our @options = (
     description => 'Interval in seconds between telemetry updates.',
     help        => 'This value can be expressed as a mathematical expression for ease.',
     type        => $types{string},
-    category    => 'system',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_SERVER_ENDPOINT',
@@ -2712,7 +2712,7 @@ our @options = (
       of http://<proxy host>:<proxy port>/
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'version',
   },
   {
     name        => 'ZM_SHM_KEY',
@@ -3746,7 +3746,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_CURR_VERSION',
@@ -3758,7 +3758,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_DB_VERSION',
@@ -3767,7 +3767,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_LAST_CHECK',
@@ -3776,7 +3776,7 @@ our @options = (
     help        => '',
     type        => $types{integer},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_NEXT_REMINDER',
@@ -3785,7 +3785,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_DONATE_REMINDER_TIME',

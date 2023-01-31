@@ -52,4 +52,5 @@ input[type="number"].form-control {
 #events {
   height: 100%;
   overflow-y: auto;
+  justify-content: center;
 }

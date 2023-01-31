@@ -42,7 +42,7 @@
 #alarmCues span.alarmCue {
   background-color:red;
   z-index: 9;
-  opacity: 0.33;
+  opacity: 0.66;
   border-left: none;
 }
 
@@ -99,7 +99,6 @@ height: 100%;
 #eventVideo {
     display: inline-block;
     position: relative;
-    z-index: -1;
 }
 .eventStats {
   margin-right: 5px;
@@ -195,6 +194,7 @@ height: 100%;
   position: absolute;
   top: 0;
   background: rgba(170, 170, 170, .7);
+  background: yellow;
   /*
   border-radius: 0 0 .3em .3em;
    */

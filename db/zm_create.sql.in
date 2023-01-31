@@ -893,7 +893,7 @@ INSERT INTO `Users` (
     '' /* Max Bandwidth */,
     '' /* MonitorIds */,
     0 /* TokenMinExpiry */,
-    0 /* Api Endabled */,
+    1 /* Api Endabled */,
     '' /* Homeview */);
 
 --

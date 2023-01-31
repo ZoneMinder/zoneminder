@@ -1016,28 +1016,40 @@ bool Monitor::connect() {
         soap->send_timeout = 5;
         soap_register_plugin(soap, soap_wsse);
         proxyEvent = PullPointSubscriptionBindingProxy(soap);
-        std::string full_url = onvif_url + "/Events";
-        proxyEvent.soap_endpoint = full_url.c_str();
+        if (!onvif_url.empty()) {
+          std::string full_url = onvif_url + "/Events";
+          proxyEvent.soap_endpoint = full_url.c_str();
 
-        set_credentials(soap);
-        Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
-        if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
-          Error("Couldn't create subscription! %s, %s", soap_fault_string(soap), soap_fault_detail(soap));
-        } else {
-          //Empty the stored messages
           set_credentials(soap);
-          if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-              ( soap->error != SOAP_EOF)) { //SOAP_EOF could indicate no messages to pull.
-            Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+          Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
+          if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
+            const char *detail = soap_fault_detail(soap);
+            Error("Couldn't create subscription! %s, %s", soap_fault_string(soap), detail ? detail : "null");
+            _wsnt__Unsubscribe wsnt__Unsubscribe;
+            _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+            proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+            soap_destroy(soap);
+            soap_end(soap);
+            soap_free(soap);
+            soap = nullptr;
           } else {
-            Debug(1, "Good Initial ONVIF Pull");
-            Event_Poller_Healthy = TRUE;
+            //Empty the stored messages
+            set_credentials(soap);
+            if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+                ( soap->error != SOAP_EOF)) { //SOAP_EOF could indicate no messages to pull.
+              Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+            } else {
+              Debug(1, "Good Initial ONVIF Pull");
+              Event_Poller_Healthy = TRUE;
+            }
           }
+        } else {
+          Warning("You must specify the url to the onvif endpoint");
         }
 #else
-        Error("zmc not compiled with GSOAP. ONVIF support not built in!");
+          Error("zmc not compiled with GSOAP. ONVIF support not built in!");
 #endif
-      }
+      }  // end if Armcrest of GSOAP
     } else {
       Debug(1, "Not Starting ONVIF");
     }

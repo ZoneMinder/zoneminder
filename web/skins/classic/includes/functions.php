@@ -195,17 +195,13 @@ function getNavBarHTML() {
 // The legacy navigation bar that collapses into a pulldown menu on small screens.
 //
 function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) {
-
   $status = runtimeStatus($running);
-
 ?>
 <div class="container-fluid" id="navbar-container">
   <nav class="navbar navbar-expand-md justify-content-center flex-row" id="navbar-one">
-
     <div class="navbar-brand justify-content-start align-self-start">
       <?php echo getNavBrandHTML() ?>
     </div>
-
     <!-- the Navigation Bar Hamburger Button   -->
 <!--
     <div class="nav justify-content-end flex-grow-1">
@@ -225,7 +221,6 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <!--
    </div>
 -->
-
     <div class="collapse navbar-collapse" id="main-header-nav">
 <?php
 
@@ -308,29 +303,22 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 // A new, slimmer navigation bar, permanently collapsed into a dropdown
 //
 function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $skin) {
-
   $status = runtimeStatus($running);
-
   ?>
-  <div class="fixed-top container-fluid">
+  <div class="container-fluid" id="navbar-container">
     <nav class="navbar px-1 flex-nowrap">
-
       <div class="navbar-brand align-self-start px-0">
         <?php echo getNavBrandHTML() ?>
       </div>
-
       <nav class="navbar navbar-expand-md align-self-start px-0">
 <?php
-
   // *** Build the statistics shown on the navigation bar ***
   if ( (!ZM_OPT_USE_AUTH) or $user ) {
 ?>
         <div id="reload" class="collapse navbar-collapse px-0">
-
           <ul id="Version" class="pr-2 navbar-nav">
             <?php echo getZMVersionHTML() ?>
           </ul>
-
           <ul id="Bandwidth" class="px-2 navbar-nav">
             <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
           </ul>
@@ -392,7 +380,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 
     </nav><!-- End First Navbar -->
 
-    <nav class="navbar navbar-expand-md justify-content-center">
+    <nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">
       <?php echo getConsoleBannerHTML() ?>
     </nav><!-- End Second Navbar -->
   </div>

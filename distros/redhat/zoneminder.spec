@@ -23,19 +23,6 @@
 %global with_php_json 1
 %endif
 
-# el7 uses cmake3 package and macros
-%if 0%{?rhel} == 7
-%global cmake %{cmake3}
-%global cmake_build %{cmake3_build}
-%global cmake_install %{cmake3_install}
-%global cmake_pkg_name cmake3
-%else
-%global cmake_pkg_name cmake
-%endif
-
-# The default for everything but el7 these days
-%global _hardened_build 1
-
 Name: zoneminder
 Version: 1.37.30
 Release: 1%{?dist}
@@ -62,7 +49,7 @@ BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
-BuildRequires: %{cmake_pkg_name}
+BuildRequires: cmake
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
 BuildRequires: pcre-devel 

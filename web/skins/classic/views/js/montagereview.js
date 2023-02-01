@@ -183,8 +183,7 @@ function getFrame(monId, time, last_Frame) {
       if (!Event.FramesById) {
         console.log("No FramesById after load_Frames!", Event);
       }
-      let Frame = findFrameByTime(Event.FramesById, time);
-      return Frame;
+      return findFrameByTime(Event.FramesById, time);
     }, function(Error) {
       console.log(Error);
     });
@@ -1046,8 +1045,7 @@ function clickMonitor(event) {
 }
 
 function changeDateTime(e) {
-  console.log(e);
-if (0) {
+/*
   var minTime_element = $j('#minTime');
   var maxTime_element = $j('#maxTime');
 
@@ -1062,10 +1060,7 @@ if (0) {
 
   var minStr = "&minTime="+($j('#minTime')[0].value);
   var maxStr = "&maxTime="+($j('#maxTime')[0].value);
-}
-
-  var liveStr="&live="+(liveMode?"1":"0");
-  var fitStr ="&fit="+(fitMode?"1":"0");
+*/
 
   var zoomStr="";
   for ( var i=0; i < numMonitors; i++ ) {
@@ -1098,7 +1093,7 @@ function initPage() {
     canvas.addEventListener('mouseup', mup, false);
     canvas.addEventListener('mouseout', mout, false);
 
-    ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx = canvas.getContext('2d', {willReadFrequently: true});
     drawGraph();
   }
 
@@ -1217,10 +1212,10 @@ window.addEventListener('DOMContentLoaded', initPage);
 function load_Frames(zm_events) {
   console.log("Loading frames", zm_events);
   return new Promise(function(resolve, reject) {
-    let url = Servers[serverId].urlToApi()+'/frames/index';
+    const url = Servers[serverId].urlToApi()+'/frames/index';
 
     let query = '';
-    let ids = Object.keys(zm_events);
+    const ids = Object.keys(zm_events);
 
     while (ids.length) {
       const event_id = ids.shift();
@@ -1229,45 +1224,43 @@ function load_Frames(zm_events) {
 
       query += '/EventId:'+zm_event.Id;
       if ((!ids.length) || (query.length > 1000)) {
-        $j.ajax(url+query+'.json?'+auth_relay,
-          {
-            timeout: 0,
-            success: function(data) {
-              if (data.frames.length) {
-                zm_event.FramesById = [];
-                let last_frame = null;
+        $j.ajax(url+query+'.json?'+auth_relay, {
+          timeout: 0,
+          success: function(data) {
+            if (data.frames.length) {
+              zm_event.FramesById = [];
+              let last_frame = null;
 
-                for (let i=0, len=data.frames.length; i<len; i++) {
-                  const frame = data.frames[i].Frame;
-                  const zm_event = events[frame.EventId];
-                  if (!zm_event) {
-                    console.error("No event object found for " + data.frames[0].Frame.EventId);
-                    continue;
-                  }
-                  //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
-                  if (last_frame) {
-                    frame.PrevFrameId = last_frame.Id;
-                    last_frame.NextFrameId = frame.Id;
-                    last_frame.NextTimeStampSecs = frame.TimeStampSecs;
-                  }
-                  last_frame = frame;
+              for (let i=0, len=data.frames.length; i<len; i++) {
+                const frame = data.frames[i].Frame;
+                const zm_event = events[frame.EventId];
+                if (!zm_event) {
+                  console.error("No event object found for " + data.frames[0].Frame.EventId);
+                  continue;
+                }
+                //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
+                if (last_frame) {
+                  frame.PrevFrameId = last_frame.Id;
+                  last_frame.NextFrameId = frame.Id;
+                  last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+                }
+                last_frame = frame;
 
-                  if (!zm_event.FramesById) zm_event.FramesById = [];
-                  zm_event.FramesById[frame.Id] = frame;
-                } // end fireach frame
-              }  // end if there are frames
-              drawGraph();
-              resolve();
-            },
-            error: function() {
-              logAjaxFail;
-              reject(Error("There was an error"));
-            }
+                if (!zm_event.FramesById) zm_event.FramesById = [];
+                zm_event.FramesById[frame.Id] = frame;
+              } // end fireach frame
+            } // end if there are frames
+            drawGraph();
+            resolve();
+          },
+          error: function() {
+            logAjaxFail;
+            reject(Error("There was an error"));
           }
-        ); // end ajax
+        }); // end ajax
         query = '';
       } // end if query string is too long
     } // end while zm_events.legtnh
-  }  // end Promise
+  } // end Promise
   );
 } // end function load_Frames(Event)

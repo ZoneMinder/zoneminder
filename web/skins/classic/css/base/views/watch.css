@@ -11,6 +11,10 @@
   padding-right: 1px;
 }
 
+#sidebar .nav {
+  flex-wrap: nowrap;
+}
+
 #menuControls {
   display: flex;
   align-items: center;

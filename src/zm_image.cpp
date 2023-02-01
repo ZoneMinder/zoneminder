@@ -142,9 +142,10 @@ Image::Image() :
   blend = fptr_blend;
 }
 
-Image::Image(const char *filename) {
+Image::Image(const std::string &filename) {
   if ( !initialised )
     Initialise();
+  filename_ = filename;
   width = 0;
   linesize = 0;
   height = 0;
@@ -925,10 +926,10 @@ Image *Image::HighlightEdges(
   return high_image;
 }
 
-bool Image::ReadRaw(const char *filename) {
+bool Image::ReadRaw(const std::string &filename) {
   FILE *infile;
-  if ( (infile = fopen(filename, "rb")) == nullptr ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
+  if ( (infile = fopen(filename.c_str(), "rb")) == nullptr ) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
@@ -947,7 +948,7 @@ bool Image::ReadRaw(const char *filename) {
 
   if ( fread(buffer, size, 1, infile) < 1 ) {
     fclose(infile);
-    Error("Unable to read from '%s': %s", filename, strerror(errno));
+    Error("Unable to read from '%s': %s", filename.c_str(), strerror(errno));
     return false;
   }
 
@@ -956,15 +957,15 @@ bool Image::ReadRaw(const char *filename) {
   return true;
 }
 
-bool Image::WriteRaw(const char *filename) const {
+bool Image::WriteRaw(const std::string &filename) const {
   FILE *outfile;
-  if ( (outfile = fopen(filename, "wb")) == nullptr ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
+  if ( (outfile = fopen(filename.c_str(), "wb")) == nullptr ) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
   if ( fwrite( buffer, size, 1, outfile ) != 1 ) {
-    Error("Unable to write to '%s': %s", filename, strerror(errno));
+    Error("Unable to write to '%s': %s", filename.c_str(), strerror(errno));
     fclose(outfile);
     return false;
   }

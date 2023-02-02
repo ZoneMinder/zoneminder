@@ -934,19 +934,19 @@ bool Image::ReadRaw(const std::string &filename) {
   }
 
   struct stat statbuf;
-  if ( fstat( fileno(infile), &statbuf ) < 0 ) {
+  if (fstat(fileno(infile), &statbuf) < 0) {
     fclose(infile);
-    Error("Can't fstat %s: %s", filename, strerror(errno));
+    Error("Can't fstat %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
-  if ( (unsigned int)statbuf.st_size != size ) {
+  if ((unsigned int)statbuf.st_size != size) {
     fclose(infile);
     Error("Raw file size mismatch, expected %d bytes, found %jd", size, static_cast<intmax_t>(statbuf.st_size));
     return false;
   }
 
-  if ( fread(buffer, size, 1, infile) < 1 ) {
+  if (fread(buffer, size, 1, infile) < 1) {
     fclose(infile);
     Error("Unable to read from '%s': %s", filename.c_str(), strerror(errno));
     return false;
@@ -959,12 +959,12 @@ bool Image::ReadRaw(const std::string &filename) {
 
 bool Image::WriteRaw(const std::string &filename) const {
   FILE *outfile;
-  if ( (outfile = fopen(filename.c_str(), "wb")) == nullptr ) {
+  if ((outfile = fopen(filename.c_str(), "wb")) == nullptr) {
     Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
-  if ( fwrite( buffer, size, 1, outfile ) != 1 ) {
+  if (fwrite(buffer, size, 1, outfile) != 1) {
     Error("Unable to write to '%s': %s", filename.c_str(), strerror(errno));
     fclose(outfile);
     return false;

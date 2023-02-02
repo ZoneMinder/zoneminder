@@ -133,7 +133,9 @@ Event::Event(
       save_jpegs,
       storage->SchemeString().c_str()
       );
-  id = zmDbDoInsert(sql);
+  do {
+    id = zmDbDoInsert(sql);
+  } while (!id and !zm_terminate);
 
   thread_ = std::thread(&Event::Run, this);
 }

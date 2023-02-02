@@ -331,7 +331,7 @@ DROP TABLE IF EXISTS `Frames`;
 CREATE TABLE `Frames` (
   `Id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `EventId` BIGINT UNSIGNED NOT NULL default '0',
-  FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
+  /* FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,*/
   `FrameId` int(10) unsigned NOT NULL default '0',
   `Type` enum('Normal','Bulk','Alarm') NOT NULL default 'Normal',
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
@@ -696,11 +696,11 @@ DROP TABLE IF EXISTS `Stats`;
 CREATE TABLE `Stats` (
   `Id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `MonitorId` int(10) unsigned NOT NULL default '0',
-  FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE,
+  /* FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE, */
   `ZoneId` int(10) unsigned NOT NULL default '0',
-  FOREIGN KEY (`ZoneId`) REFERENCES `Zones` (`Id`) ON DELETE CASCADE,
+  /* FOREIGN KEY (`ZoneId`) REFERENCES `Zones` (`Id`) ON DELETE CASCADE, */
   `EventId` BIGINT UNSIGNED NOT NULL,
-  FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
+  /* FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE, */
   `FrameId` int(10) unsigned NOT NULL default '0',
   `PixelDiff` tinyint(3) unsigned NOT NULL default '0',
   `AlarmPixels` int(10) unsigned NOT NULL default '0',

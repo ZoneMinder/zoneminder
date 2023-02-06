@@ -775,8 +775,8 @@ public static function getStatuses() {
 
   function canView($u=null) {
     global $user;
-    if ($u===null or $u['Id'] == $user['Id'])
-      return visibleMonitor($this->{'Id'});
+    if (($u === null) or ($u['Id'] == $user['Id']))
+      return visibleMonitor($this->Id());
 
     $monitor_permission = ZM\Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
     if ($monitor_permission and ($monitor_permission->Permission() == 'None')) {

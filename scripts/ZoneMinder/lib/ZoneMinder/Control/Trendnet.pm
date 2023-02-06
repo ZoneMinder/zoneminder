@@ -40,7 +40,6 @@ sub open {
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
   if ( !($ADDRESS =~ /:/) ) {
-    Error('You generally need to also specify the port.  I will append :80');
     $ADDRESS .= ':80';
   }
 

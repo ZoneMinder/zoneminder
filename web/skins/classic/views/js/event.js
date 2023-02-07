@@ -310,7 +310,7 @@ function getCmdResponse(respObj, respText) {
   }
   if (streamStatus.progress > parseFloat(eventData.Length)) {
     console.log("Limiting progress to " + streamStatus.progress + ' >= ' + parseFloat(eventData.Length) );
-    streamStatus.progress = parseFloat(eventData.Length);
+    //streamStatus.progress = parseFloat(eventData.Length);
   } //Limit progress to reality
 
   var eventId = streamStatus.event;
@@ -1004,7 +1004,7 @@ function initPage() {
   if (document.getElementById('videoobj')) {
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
-    $j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
+    //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
     vid.on('play', vjsPlay);
     vid.on('pause', pauseClicked);

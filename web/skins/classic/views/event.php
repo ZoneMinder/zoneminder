@@ -258,6 +258,11 @@ if ($video_tag) {
           <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
           Your browser does not support the video tag.
           </video>
+        <div id="progressBar" style="width: 100%;">
+          <div id="alarmCues" style="width: 100%;"></div>
+          <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+          <div id="indicator" style="display: none;"></div>
+        </div><!--progressBar-->
 <?php
 } else {
 if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
@@ -275,7 +280,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 } // end if stream method
 ?>
         <div id="progressBar" style="width: 100%;">
-        <div id="alarmCues" style="width: 100%;"></div>
+          <div id="alarmCues" style="width: 100%;"></div>
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
           <div id="indicator" style="display: none;"></div>
         </div><!--progressBar-->

@@ -170,7 +170,7 @@ sub Sql {
           $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
           FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
           my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
-          $self->{Sql} .= 'M.'.$temp_attr_name;
+          $self->{Sql} .= 'M.'.($temp_attr_name ? $temp_attr_name : 'Id');
         } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
           $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
           FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';

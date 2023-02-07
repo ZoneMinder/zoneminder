@@ -76,6 +76,7 @@ my $filter_name = '';
 my $filter_id;
 my $version = 0;
 my $zm_terminate = 0;
+my $sleeping = 0;
 
 GetOptions(
   daemon        =>\$daemon,
@@ -112,6 +113,7 @@ sub HupHandler {
 sub TermHandler {
   Info('Received TERM, exiting');
   $zm_terminate = 1;
+  exit(0) if $sleeping;
 }
 sub Term {
   exit(0);
@@ -189,7 +191,9 @@ if ( $filter_name ) {
 
 if ( ! ( $filter_name or $filter_id ) ) {
   Debug('Sleeping due to start delay: ' . START_DELAY . ' seconds...');
+  $sleeping = 1;
   sleep(START_DELAY);
+  $sleeping = 0;
 }
 
 my @filters;
@@ -219,7 +223,9 @@ while( !$zm_terminate ) {
   last if (!$daemon and ($filter_name or $filter_id)) or $zm_terminate;
 
   Debug("Sleeping for $delay seconds");
+  $sleeping = 1;
   sleep($delay);
+  $sleeping = 0;
 }
 
 sub getFilters {

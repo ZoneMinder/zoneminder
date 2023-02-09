@@ -52,7 +52,7 @@ function ajaxRequest(params) {
 
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
-    var eid = row.Id;
+    const eid = row.Id;
 
     row.Delete = '<i class="fa fa-trash text-danger"></i>';
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + '">' + eid + '</a>';

@@ -109,7 +109,9 @@ echo htmlSelect('filterLevel', $levels,
         <tr>
           <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
           <th data-sortable="true" data-field="Component"><?php echo translate('Component') ?></th>
+<?php if (count($Servers)>1) { ?>
           <th data-sortable="false" data-field="Server"><?php echo translate('Server') ?></th>
+<?php } ?>
           <th data-sortable="true" data-field="Pid"><?php echo translate('Pid') ?></th>
           <th data-sortable="true" data-field="Code"><?php echo translate('Level') ?></th>
           <th data-sortable="true" data-field="Message"><?php echo translate('Message') ?></th>

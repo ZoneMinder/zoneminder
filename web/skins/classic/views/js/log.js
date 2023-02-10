@@ -45,7 +45,10 @@ function ajaxRequest(params) {
     data: params.data,
     timeout: 0,
     success: function(data) {
-      //console.log('Ajax parameters: ' + JSON.stringify(params));
+      if (!data.rows.length) {
+        // If page is > 1, bt infinitely loops
+        table.bootstrapTable('selectPage', 1);
+      }
       // rearrange the result into what bootstrap-table expects
       params.success({
         total: data.total,
@@ -65,6 +68,7 @@ function processRows(rows) {
     try {
       row.Message = decodeURIComponent(row.Message).replace(/</g, "&lt;").replace(/>/g, "&gt;");
     } catch (e) {
+      console.log("Error decoding " + row.Message);
       // ignore errors
     }
   });

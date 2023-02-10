@@ -666,7 +666,7 @@ sub substituteTags {
     my $res = $sth->execute($Event->{Id},'Alarm')
       or Fatal("Unable to execute '$sql': ".$dbh->errstr());
     my $rows = 0;
-    while( my $frame = $sth->fetchrow_hashref() ) {
+    while ( my $frame = $sth->fetchrow_hashref() ) {
       if ( !$first_alarm_frame ) {
         $first_alarm_frame = $frame;
       }
@@ -729,18 +729,19 @@ sub substituteTags {
         }
       }
 
-      if ( $text =~ s/%EIM%//g ) {
+      if ($text =~ /%EIM%/) {
+        my $path = generateImage($Event, $max_alarm_frame);
         # Don't attach the same image twice
         if ( !@$attachments_ref
           || ( $first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
         ) {
-          my $path = generateImage($Event, $max_alarm_frame);
           if ( -e $path ) {
             push @$attachments_ref, { type=>'image/jpeg', path=>$path };
           } else {
             Warning("No image for EIM at $path");
           }
         }
+        $text =~ s/%EIM%/<img src="cid:$path"\/>/g;
       }
 
       if ( $text =~ s/%EI1A%//g ) {
@@ -790,7 +791,7 @@ sub substituteTags {
   if ( $attachments_ref ) {
     if ( $text =~ s/%EV%//g ) {
       if ( $$Event{DefaultVideo} ) {
-        push @$attachments_ref, { type=>'video/mp4', path=>join('/',$Event->Path(), $Event->DefaultVideo()) };
+        push @$attachments_ref, { type=>'video/mp4', path=>join('/', $Event->Path(), $Event->DefaultVideo()) };
       } elsif ( $Config{ZM_OPT_FFMPEG} ) {
         my ( $format, $path ) = generateVideo($filter, $Event);
         if ( !$format ) {

@@ -170,20 +170,18 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
           <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" data-on-input-this="updateButtons"/>
         </p>
-<?php if ( ZM_OPT_USE_AUTH ) { ?>
-        <p><label><?php echo translate('FilterUser') ?></label>
-<?php 
-            global $user;
+<?php
+if (ZM_OPT_USE_AUTH) {
+  echo '<p><label>'.translate('FilterUser').'</label>'.PHP_EOL;
+  global $user;
   echo htmlSelect('filter[UserId]',
     ZM\User::Indexed_By_Id(),
     $filter->UserId() ? $filter->UserId() : $user['Id']
   );
+  echo '</p>'.PHP_EOL;
+}
+echo $filter->widget();
 ?>
-        </p>
-<?php } ?>
-        <p>
-<?php echo $filter->widget(); ?>
-
         <table id="sortTable" class="filterTable">
           <tbody>
             <tr>

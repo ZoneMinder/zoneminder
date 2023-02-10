@@ -545,7 +545,7 @@ endif()
 #endif()
 
 
-find_package(GSOAP 2.0.0)
+find_package(GSOAP 2.8.91)
 if (GSOAP_FOUND)
   set(optlibsfound "${optlibsfound} gsoap")
   add_definitions(-DWITH_GSOAP)

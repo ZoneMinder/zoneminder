@@ -138,8 +138,7 @@ function initPage() {
   });
 
   $j('#filterStartDateTime, #filterEndDateTime')
-      .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
-      .on('change', filterLog);
+      .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose:filterLog})
   $j('#filterServerId')
       .on('change', filterLog);
 }

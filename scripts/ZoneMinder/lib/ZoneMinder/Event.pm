@@ -395,6 +395,24 @@ sub delete {
 
     $ZoneMinder::Database::dbh->begin_work() if ! $in_transaction;
 
+    if ($$event{StorageId} and $event->DiskSpace()) {
+      my $storage = $event->Storage();
+      $storage->DiskSpace($storage->DiskSpace()-$$event{DiskSpace});
+      $storage->DiskSpace(0) if $storage->DiskSpace() < 0;
+      $storage->save();
+    }
+
+    ZoneMinder::Database::zmDbDo('DELETE FROM Events_Hour WHERE EventId=?', $$event{Id});
+    ZoneMinder::Database::zmDbDo('DELETE FROM Events_Day WHERE EventId=?', $$event{Id});
+    ZoneMinder::Database::zmDbDo('DELETE FROM Events_Week WHERE EventId=?', $$event{Id});
+    ZoneMinder::Database::zmDbDo('DELETE FROM Events_Month WHERE EventId=?', $$event{Id});
+    # Don't need to delete from Archived because we don't delete Archived events.
+    ZoneMinder::Database::zmDbDo('UPDATE Event_Summaries SET
+    TotalEvents = GREATEST(COALESCE(TotalEvents,1)-1,0),
+    TotalEventDiskSpace=GREATEST(COALESCE(TotalEventDiskSpace,0)-COALESCE(?,0),0)
+    WHERE Event_Summaries.MonitorId=?
+', @$event{'DiskSpace','MonitorId'});
+
     # Going to delete in order of least value to greatest value. Stats is least and references Frames
     ZoneMinder::Database::zmDbDo('DELETE FROM Stats WHERE EventId=?', $$event{Id});
     if ( $ZoneMinder::Database::dbh->errstr() ) {

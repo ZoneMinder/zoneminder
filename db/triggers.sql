@@ -205,6 +205,7 @@ DROP TRIGGER IF EXISTS event_delete_trigger//
 CREATE TRIGGER event_delete_trigger BEFORE DELETE ON Events
 FOR EACH ROW
 BEGIN
+/*
   IF ( OLD.DiskSpace ) THEN
     UPDATE Storage SET DiskSpace = GREATEST(COALESCE(DiskSpace,0) - COALESCE(OLD.DiskSpace,0),0) WHERE Storage.Id = OLD.StorageId;
   END IF;
@@ -226,6 +227,7 @@ BEGIN
     TotalEventDiskSpace=GREATEST(COALESCE(TotalEventDiskSpace,0)-COALESCE(OLD.DiskSpace,0),0)
     WHERE Event_Summaries.MonitorId=OLD.MonitorId;
   END IF;
+*/
 END;
 
 //

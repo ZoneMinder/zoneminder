@@ -48,6 +48,7 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
 use File::Path qw(make_path);
+use File::Basename;
 
 my $daemon = 0;
 my $filter_name = '';
@@ -656,8 +657,8 @@ sub substituteTags {
 
 # Do we need the image information too?
   my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD|EIMODG)%/;
-  my $first_alarm_frame;
-  my $max_alarm_frame;
+  my $first_alarm_frame = '';
+  my $max_alarm_frame = '';
   my $max_alarm_score = 0;
   if ( $need_images ) {
     my $sql = 'SELECT * FROM `Frames` WHERE `EventId`=? AND `Type`=? ORDER BY `FrameId`';
@@ -729,28 +730,36 @@ sub substituteTags {
         }
       }
 
-      if ($text =~ /%EIM%/) {
+      if ($text =~ /%EIM%/g) {
         my $path = generateImage($Event, $max_alarm_frame);
+        my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>fileparse($path) };
         # Don't attach the same image twice
         if ( !@$attachments_ref
           || ( $first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
         ) {
           if ( -e $path ) {
-            push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+            push @$attachments_ref, $attachment;
           } else {
             Warning("No image for EIM at $path");
           }
         }
-        $text =~ s/%EIM%/<img src="cid:$path"\/>/g;
+        $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
       }
 
-      if ( $text =~ s/%EI1A%//g ) {
+      if ($text =~ /%EI1A%/g) {
         my $path = generateImage($Event, $first_alarm_frame, 'analyse');
+        my $attachment = { type=>'image/jpeg', path=>$path, content_id=>fileparse($path) };
         if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+          push @$attachments_ref, $attachment;
         } else {
           Warning("No image for EI1A at $path");
         }
+        if ($text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g) {
+        } else {
+          Warning("Failed to replace");
+        }
+      } else {
+        Debug("Didn't match %EI1A%");
       }
 
       if ( $text =~ s/%EIMA%//g ) {
@@ -904,6 +913,7 @@ sub sendEmail {
         $mail->attach(
           Path => $attachment->{path},
           Type => $attachment->{type},
+          ($attachment->{content_id} ? ('Content-Id' => $attachment->{content_id}) : () ),
           Encoding => 'base64'
         );
       } # end foreach attachment

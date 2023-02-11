@@ -98,27 +98,31 @@ sub delete_path {
     my $url = $$self{Url};
     $url =~ s/^(s3|s3fs):\/\///ig;
     my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
-    Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
-    eval {
-      require Net::Amazon::S3;
-      my $s3 = Net::Amazon::S3->new( {
-          aws_access_key_id     => $aws_id,
-          aws_secret_access_key => $aws_secret,
-          ( $aws_host ? ( host => $aws_host ) : () ),
-          authorization_method => 'Net::Amazon::S3::Signature::V4',
-        });
-      my $bucket = $s3->bucket($aws_bucket);
-      if ( ! $bucket ) {
-        Error("S3 bucket $bucket not found.");
-        die;
-      }
-      if ( $bucket->delete_key($subpath.$path) ) {
-        $deleted = 1;
-      } else {
-        Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
-      }
-    };
-    Error($@) if $@;
+    if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
+      Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
+      eval {
+        require Net::Amazon::S3;
+        my $s3 = Net::Amazon::S3->new( {
+            aws_access_key_id     => $aws_id,
+            aws_secret_access_key => $aws_secret,
+            ( $aws_host ? ( host => $aws_host ) : () ),
+            authorization_method => 'Net::Amazon::S3::Signature::V4',
+          });
+        my $bucket = $s3->bucket($aws_bucket);
+        if ( ! $bucket ) {
+          Error("S3 bucket $bucket not found.");
+          die;
+        }
+        if ( $bucket->delete_key($subpath.$path) ) {
+          $deleted = 1;
+        } else {
+          Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
+        }
+      };
+      Error($@) if $@;
+    } else {
+      Warning('Failed to parse s3fs url. Falling back to fs deletes');
+    } # end if parsed url
   } # end if s3fs
 
   if ( !$deleted ) {

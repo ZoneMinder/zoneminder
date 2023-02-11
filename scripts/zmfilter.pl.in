@@ -49,6 +49,7 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
 use File::Path qw(make_path);
 use File::Basename;
+use URI::Encode qw(uri_encode);
 
 my $daemon = 0;
 my $filter_name = '';
@@ -640,6 +641,15 @@ sub uploadArchFile {
   return 1;
 } # end sub uploadArchFile
 
+sub is_in_attachments {
+  my $needle = shift;
+  my $attachments_ref = shift;
+  foreach my $attachment (@$attachments_ref) {
+    return 1 if $$attachment{path} eq $needle;
+  }
+  return 0;
+}
+
 sub substituteTags {
   my $text = shift;
   my $filter = shift;
@@ -720,77 +730,83 @@ sub substituteTags {
     $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
     $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
 
-    if ( $attachments_ref ) {
-      if ( $text =~ s/%EI1%//g ) {
+    if ($attachments_ref) {
+      if ($text =~ /%EI1%/g) {
         my $path = generateImage($Event, $first_alarm_frame);
-        if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EI1%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning("Path to first image does not exist at $path for image $first_alarm_frame");
+          $text =~ s/%EI1%/No image found for EI1/g;
         }
       }
 
       if ($text =~ /%EIM%/g) {
         my $path = generateImage($Event, $max_alarm_frame);
-        my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>fileparse($path) };
-        # Don't attach the same image twice
-        if ( !@$attachments_ref
-          || ( $first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
-        ) {
-          if ( -e $path ) {
-            push @$attachments_ref, $attachment;
-          } else {
-            Warning("No image for EIM at $path");
-          }
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
+        } else {
+          Warning("No image for EIM at $path");
+          $text =~ s/%EIM%/No image found for EIM/g;
         }
-        $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
       }
 
       if ($text =~ /%EI1A%/g) {
         my $path = generateImage($Event, $first_alarm_frame, 'analyse');
-        my $attachment = { type=>'image/jpeg', path=>$path, content_id=>fileparse($path) };
-        if ( -e $path ) {
-          push @$attachments_ref, $attachment;
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning("No image for EI1A at $path");
+          $text =~ s/%EI1A%/No image foudn for EI1A/g;
         }
-        if ($text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g) {
-        } else {
-          Warning("Failed to replace");
-        }
-      } else {
-        Debug("Didn't match %EI1A%");
       }
 
-      if ( $text =~ s/%EIMA%//g ) {
+      if ( $text =~ /%EIMA%/g ) {
         # Don't attach the same image twice
-        if ( !@$attachments_ref
-          || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId})
-        ) {
-          my $path = generateImage($Event, $max_alarm_frame, 'analyse');
-          if ( -e $path ) {
-            push @$attachments_ref, { type=>'image/jpeg', path=>$path };
-          } else {
-            Warning("No image for EIMA at $path");
-          }
+        my $path = generateImage($Event, $max_alarm_frame, 'analyse');
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
+        } else {
+          Warning("No image for EIMA at $path");
+          $text =~ s/%EIMA%/No image found for EIMA/g;
         }
       }
 
-      if ( $text =~ s/%EIMOD%//g ) {
+      if ($text =~ /%EIMOD%/g ) {
         my $path = $Event->Path().'/objdetect.jpg';
-        if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning('No image for MOD at '.$path);
+          $text =~ s/%EIMOD%/No image found for EIMOD/g;
         }
       }
 
       if ( $text =~ s/%EIMODG%//g ) {
         my $path = $Event->Path().'/objdetect.gif';
         if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/gif', path=>$path };
+          my $filename = fileparse($path);
+          my $attachment = { type=>'image/gif', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning('No image for MODG at '.$path);
+          $text =~ s/%EIMODG%/No image found for EIMODG/g;
         }
       }
 
@@ -874,7 +890,7 @@ sub sendEmail {
         $mail->attach(
             Path => $attachment->{path},
             Type => $attachment->{type},
-            ($attachment->{content_id} ? ('Content-Id' => $attachment->{content_id}) : () ),
+            ($attachment->{content_id} ? ('Id' => '<'.$attachment->{content_id}.'>') : () ),
             Disposition => 'attachment'
             );
       }
@@ -923,7 +939,7 @@ sub sendEmail {
         $mail->attach(
           Path => $attachment->{path},
           Type => $attachment->{type},
-          ($attachment->{content_id} ? ('Content-Id' => $attachment->{content_id}) : () ),
+          ($attachment->{content_id} ? ('Content-Id' => '<'.$attachment->{content_id}.'>') : () ),
           Encoding => 'base64'
         );
       } # end foreach attachment

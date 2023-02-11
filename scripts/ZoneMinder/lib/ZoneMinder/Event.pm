@@ -397,6 +397,19 @@ sub delete {
 
     $ZoneMinder::Database::dbh->begin_work() if ! $in_transaction;
 
+    if ($$event{StorageId} and $event->DiskSpace()) {
+      my $storage = $event->Storage();
+      $storage->DiskSpace($storage->DiskSpace()-$$event{DiskSpace});
+      $storage->DiskSpace(0) if $storage->DiskSpace() < 0;
+      $storage->save();
+    }
+
+    ZoneMinder::Database::zmDbDo('UPDATE Event_Summaries SET
+    TotalEvents = GREATEST(COALESCE(TotalEvents,1)-1,0),
+    TotalEventDiskSpace=GREATEST(COALESCE(TotalEventDiskSpace,0)-COALESCE(?,0),0)
+    WHERE Event_Summaries.MonitorId=?
+', @$event{'DiskSpace','MonitorId'});
+
     # Going to delete in order of least value to greatest value. Stats is least and references Frames
     ZoneMinder::Database::zmDbDo('DELETE FROM Stats WHERE EventId=?', $$event{Id});
     if ( $ZoneMinder::Database::dbh->errstr() ) {

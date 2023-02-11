@@ -850,17 +850,21 @@ sub sendEmail {
   eval {
     if ( $Config{ZM_NEW_MAIL_MODULES} ) {
 ### Create the multipart container
-      my $mail = MIME::Lite->new (
+      my $mail = MIME::Lite->new(
           From => $Config{ZM_FROM_EMAIL},
           To => $$filter{EmailTo},
           Subject => $subject,
           Type => 'multipart/mixed'
           );
 ### Add the text message part
-      $mail->attach (
-          Type => (($body=~/<html/)?'text/html':'text/plain'),
-          Data => $body
-          );
+      if ($body =~ /<html/) {
+        $mail->attach(Type => 'text/html', Data => $body);
+        # Create a text-only version
+        require HTML::FormatText;
+        $mail->attach(Type => 'text/plain', Data => HTML::FormatText->format_string($body));
+      } else {
+        $mail->attach(Type => 'text/plain', Data => $body);
+      }
 ### Add the attachments
       my $total_size = 0;
       foreach my $attachment ( @attachments ) {
@@ -870,6 +874,7 @@ sub sendEmail {
         $mail->attach(
             Path => $attachment->{path},
             Type => $attachment->{type},
+            ($attachment->{content_id} ? ('Content-Id' => $attachment->{content_id}) : () ),
             Disposition => 'attachment'
             );
       }
@@ -903,6 +908,11 @@ sub sendEmail {
         Type => (($body=~/<html/)?'text/html':'text/plain'),
         Data => $body
       );
+      if ($body =~ /<html/) {
+        # Create a text-only version
+        require HTML::FormatText;
+        $mail->attach(Type => 'text/plain', Data => HTML::FormatText->format_string($body));
+      }
 
       my $total_size = 0;
       foreach my $attachment ( @attachments ) {

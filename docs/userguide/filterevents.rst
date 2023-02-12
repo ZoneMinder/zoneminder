@@ -81,13 +81,13 @@ Here is what the filter window looks like
     *    %EPIMOD%   Path to image containing object detection, suitable for use in img tags
     *    %EPIMODG%  Path to image containing object detection animated gif version, suitable for use in img tags
     *    %EI1%      Attach first alarmed event image
-	  *    %EI1A%     Attach first alarmed event analysis image
+    *    %EI1A%     Attach first alarmed event analysis image
     *    %EIM%      Attach (first) event image with the highest score
-	  *    %EIMA%     Attach (first) event analysis image with the highest score
+    *    %EIMA%     Attach (first) event analysis image with the highest score
     *    %EIMOD%    Attach image containing object detection
     *    %EIMODG%   Attach image containing object detection animated gif version
     *    %EV%       Attach event mpeg video
-	  *    %EVM%      Attach event mpeg video in phone format
+    *    %EVM%      Attach event mpeg video in phone format
     *    %MN%       Name of the monitor
     *    %MET%      Total number of events for the monitor
     *    %MEH%      Number of events for the monitor in the last hour

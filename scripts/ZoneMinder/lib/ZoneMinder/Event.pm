@@ -655,17 +655,27 @@ sub CopyTo {
     if ( $$NewStorage{Url} ) {
       my $url = $$NewStorage{Url};
       $url =~ s/^(s3|s3fs):\/\///ig;
-      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@((https?:\/\/)?[^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
+      $url =~ /^\s*(?<ID>[^:]+):(?<SECRET>[^@]+)@(?<HOST>(https?:\/\/)?[^\/]*)\/(?<BUCKET>[^\/]+)(?<SUBPATH>\/.+)?\s*$/;
+      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ($+{ID},$+{SECRET}, $+{HOST}, $+{BUCKET}, $+{SUBPATH});
+      $subpath = '' if !$subpath;
       Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
-      if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
+      if ($aws_id and $aws_secret and $aws_host and $aws_bucket) {
         eval {
           require Net::Amazon::S3;
+          require Net::Amazon::S3::Vendor::Generic;
           require File::Slurp;
+          my $vendor = undef;
+          if ($aws_host) {
+            $vendor = Net::Amazon::S3::Vendor::Generic->new(
+              host=>$aws_host,
+              authorization_method => 'Net::Amazon::S3::Signature::V4',
+            );
+          }
           my $s3 = Net::Amazon::S3->new( {
               aws_access_key_id     => $aws_id,
               aws_secret_access_key => $aws_secret,
-              ( $aws_host ? ( host => $aws_host ) : () ),
-              authorization_method => 'Net::Amazon::S3::Signature::V4',
+              ( $vendor ? (vendor => $vendor) : (
+                )),
             });
           my $bucket = $s3->bucket($aws_bucket);
           if ( !$bucket ) {

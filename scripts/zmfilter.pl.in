@@ -766,7 +766,7 @@ sub substituteTags {
           $text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning("No image for EI1A at $path");
-          $text =~ s/%EI1A%/No image foudn for EI1A/g;
+          $text =~ s/%EI1A%/No image found for EI1A/g;
         }
       }
 

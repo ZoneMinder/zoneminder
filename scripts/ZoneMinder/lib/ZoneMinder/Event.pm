@@ -666,9 +666,11 @@ sub CopyTo {
           require File::Slurp;
           my $vendor = undef;
           if ($aws_host) {
+            $aws_host =~ s/^https?:\/\///ig;
             $vendor = Net::Amazon::S3::Vendor::Generic->new(
               host=>$aws_host,
               authorization_method => 'Net::Amazon::S3::Signature::V4',
+              use_virtual_host => 0,
             );
           }
           my $s3 = Net::Amazon::S3->new( {

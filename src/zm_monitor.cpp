@@ -2704,7 +2704,7 @@ Event * Monitor::openEvent(
   while (starting_packet_lock && (*start_it != *analysis_it) && !zm_terminate) {
     ZM_DUMP_PACKET(starting_packet_lock->packet_->packet, "Queuing packet for event");
 
-    event->AddPacket(starting_packet);
+    event->AddPacket(starting_packet_lock->packet_);
     delete starting_packet_lock;
     starting_packet_lock = nullptr;
 

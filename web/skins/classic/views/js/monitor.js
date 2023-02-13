@@ -378,59 +378,52 @@ function initPage() {
 } // end function initPage()
 
 function change_Path(event) {
-  var pathInput = document.getElementsByName("newMonitor[Path]")[0];
+  const pathInput = document.getElementsByName("newMonitor[Path]")[0];
 
-  var protoPrefixPos = pathInput.value.indexOf('://');
+  const protoPrefixPos = pathInput.value.indexOf('://');
   if ( protoPrefixPos == -1 ) {
     return;
   }
 
   // check the formatting of the url
-  var authSeparatorPos = pathInput.value.indexOf( '@', protoPrefixPos+3 );
+  const authSeparatorPos = pathInput.value.indexOf( '@', protoPrefixPos+3 );
   if ( authSeparatorPos == -1 ) {
     console.log('ignoring URL without "@"');
     return;
   }
 
-  var fieldsSeparatorPos = pathInput.value.indexOf( ':', protoPrefixPos+3 );
+  const fieldsSeparatorPos = pathInput.value.indexOf( ':', protoPrefixPos+3 );
   if ( authSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
     console.warn('ignoring URL incorrectly formatted, missing ":"');
     return;
   }
 
-  var usernameValue = pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos );
-  var passwordValue = pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos );
+  const usernameValue = pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos );
+  const passwordValue = pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos );
   if ( usernameValue.length == 0 || passwordValue.length == 0 ) {
     console.warn('ignoring URL incorrectly formatted, empty username or password');
     return;
   }
 
   // get the username / password inputs
-  var userInput = document.getElementsByName("newMonitor[User]");
-  var passInput = document.getElementsByName("newMonitor[Pass]");
+  const userInput = document.getElementsByName("newMonitor[User]");
+  const passInput = document.getElementsByName("newMonitor[Pass]");
 
   if (userInput.length != 1 || passInput.length != 1) {
+    // If we didn't find the inputs
     return;
   }
 
   // on editing update the fields only if they are empty or a prefix of the new value
-  if ( event.type != 'blur' ) {
-    if ( userInput[0].value.length == 0 || usernameValue.indexOf(userInput[0].value) == 0 ||
-        userInput[0].value.indexOf(usernameValue) == 0 ) {
-      userInput[0].value = usernameValue;
-    }
-
-    if ( passInput[0].value.length == 0 || passwordValue.indexOf(passInput[0].value) == 0 ||
-        passInput[0].value.indexOf(passwordValue) == 0 ) {
-      passInput[0].value = passwordValue;
-    }
-
+  if (event.type != 'blur') {
+    userInput[0].value = usernameValue;
+    passInput[0].value = passwordValue;
     return;
   }
 
   // on leaving the input sync the values and remove it from the url
   // only if they already match (to not overwrite already present values)
-  if ( userInput[0].value == usernameValue && passInput[0].value == passwordValue ) {
+  if ( userInput[0].value == usernameValue && passInput[0].value == decodeURI(passwordValue) ) {
     pathInput.value = pathInput.value.substring(0, protoPrefixPos+3) + pathInput.value.substring(authSeparatorPos+1, pathInput.value.length);
   }
 }

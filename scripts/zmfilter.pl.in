@@ -480,7 +480,7 @@ sub generateImage {
     chomp($output);
     my $status = $? >> 8;
     if ( $status || logDebugging() ) {
-      Debug("Output: $output");
+      Debug("Output from $command\n: $output");
     }
     if ( $status ) {
       Error("Failed $command status $status");

@@ -367,7 +367,7 @@ function get_auth_relay() {
       return 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
     } else if (ZM_AUTH_RELAY == 'plain') {
       // password probably needs to be escaped
-      return 'username='.$_SESSION['username'].'&password='.urlencode($_SESSION['password']);
+      return 'username='.$_SESSION['username'].'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
     } else if (ZM_AUTH_RELAY == 'none') {
       return 'username='.$_SESSION['username'];
     } else {

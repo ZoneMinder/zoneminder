@@ -436,7 +436,7 @@ public static function getStatuses() {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = $_SESSION['username'];
-        $args['pass'] = $_SESSION['password'];
+        $args['pass'] = isset($_SESSION['password']) ? $_SESSION['password'] : '';
       } elseif ( ZM_AUTH_RELAY == 'none' ) {
         $args['user'] = $_SESSION['username'];
       }

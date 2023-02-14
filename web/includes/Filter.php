@@ -952,6 +952,7 @@ class Filter extends ZM_Object {
     $attrTypes = $this->attrTypes();
     $opTypes = $this->opTypes();
     $archiveTypes = $this->archiveTypes();
+    $storageareas= null;
 
     for ($i=0; $i < count($terms); $i++) {
       $term = $terms[$i];
@@ -1019,6 +1020,9 @@ class Filter extends ZM_Object {
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']).'</span>'.PHP_EOL;
         } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
+          if (!$storageareas) {
+            $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+          }
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']).'</span>'.PHP_EOL;
         } elseif ( $term['attr'] == 'AlarmedZoneId' ) {

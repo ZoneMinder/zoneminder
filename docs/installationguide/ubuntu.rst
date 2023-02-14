@@ -38,17 +38,17 @@ To use this repository instead of the official Ubuntu repository, enter the foll
 
 ::
         
-        a2enmod rewrite
-        a2enconf zoneminder
-        systemctl restart apache2
+        sudo a2enmod rewrite
+        sudo a2enconf zoneminder
+        sudo systemctl restart apache2
 
 
 **Step 5:** Enable and start zoneminder
 
 ::
 
-        systemctl enable zoneminder
-        systemctl start zoneminder
+        sudo systemctl enable zoneminder
+        sudo systemctl start zoneminder
 
 **Step 6:** Open Zoneminder
 

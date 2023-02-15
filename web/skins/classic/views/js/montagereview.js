@@ -79,12 +79,16 @@ function findEventByTime(arr, time) {
 }
 
 function findFrameByTime(arr, time) {
+  if (!arr) {
+    console.log("No array in findFrameByTime");
+    return false;
+  }
   const keys = Object.keys(arr);
   let start=0;
   let end=keys.length-1;
 
-  console.log(keys);
-  console.log(keys[start]);
+  //console.log(keys);
+  //console.log(keys[start]);
   // Iterate while start not meets end
   //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
   while ((start <= end)) {
@@ -1227,7 +1231,7 @@ function load_Frames(zm_events) {
         $j.ajax(url+query+'.json?'+auth_relay, {
           timeout: 0,
           success: function(data) {
-            if (data.frame && data.frames.length) {
+            if (data.frames && data.frames.length) {
               zm_event.FramesById = [];
               let last_frame = null;
 

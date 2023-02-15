@@ -1242,11 +1242,18 @@ function load_Frames(zm_events) {
                   console.error("No event object found for " + data.frames[0].Frame.EventId);
                   continue;
                 }
+                if (last_frame && (frame.EventId != last_frame.EventId)) {
+                  last_frame = null;
+                }
                 //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
                 if (last_frame) {
                   frame.PrevFrameId = last_frame.Id;
                   last_frame.NextFrameId = frame.Id;
-                  last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+                  if (frame.TimeStampSecs >= last_frame.TimeStampSecs) {
+                    last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+                  } else {
+                    console.log("Out of order timestamps?", last_frame, frame);
+                  }
                 }
                 last_frame = frame;
 

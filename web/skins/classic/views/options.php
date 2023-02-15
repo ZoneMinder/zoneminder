@@ -316,7 +316,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
       echo intval(100*$Storage->disk_used_space()/$Storage->disk_total_space()).'% ';
     }
     echo human_filesize($Storage->disk_used_space()) . ' of ' . human_filesize($Storage->disk_total_space()) ?></td>
-                  <td class="ColEvents"><?php echo makeLink('?view=events'.$filter->querystring(), $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space()) ); ?></td>
+                  <td class="ColEvents"><?php echo makeLink('?view=events'.$filter->querystring(), $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space() ? $Storage->event_disk_space() : 0) ); ?></td>
                   <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"
 <?php
     echo ($Storage->EventCount() or !$canEdit) ? ' disabled="disabled"' : '';

@@ -511,7 +511,7 @@ class FilterTerm {
   public function valid() {
     switch ($this->attr) {
     case 'AlarmFrames' :
-      if (!(is_integer($IdOrRow) or ctype_digit($IdOrRow))) 
+      if (!(is_integer($this->val) or ctype_digit($this->val))) 
         return false;
       return true;
     case 'EndDate' :

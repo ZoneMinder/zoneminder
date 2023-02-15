@@ -1227,7 +1227,7 @@ function load_Frames(zm_events) {
         $j.ajax(url+query+'.json?'+auth_relay, {
           timeout: 0,
           success: function(data) {
-            if (data.frames.length) {
+            if (data.frames && data.frames.length) {
               zm_event.FramesById = [];
               let last_frame = null;
 
@@ -1249,6 +1249,8 @@ function load_Frames(zm_events) {
                 if (!zm_event.FramesById) zm_event.FramesById = [];
                 zm_event.FramesById[frame.Id] = frame;
               } // end fireach frame
+            } else {
+              console.log('No frames? ', data);
             } // end if there are frames
             drawGraph();
             resolve();

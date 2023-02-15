@@ -233,7 +233,6 @@ function calculateAuthHash($remoteAddr='') {
 function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password'])) {
-
     if (!isset($_SESSION)) {
       # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
       #$auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
@@ -253,8 +252,6 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       } # end if AuthHash is not cached
       return $_SESSION['AuthHash'.$_SESSION['remoteAddr']];
     }
-  } else {
-    ZM\Debug("Not able to generate auth hash due to user: ".print_r($user, true));
   } # end if using AUTH and AUTH_RELAY
   return '';
 }

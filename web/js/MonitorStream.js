@@ -187,7 +187,6 @@ function MonitorStream(monitorData) {
       stream.src = '';
       stream.src = src;
     }
-    this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), delay);
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
   }; // this.start

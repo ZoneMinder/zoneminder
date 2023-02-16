@@ -121,6 +121,7 @@ sub delete_path {
             ( $vendor ? (vendor => $vendor) : (
               )),
           });
+        $s3->ua(LWP::UserAgent->new(keep_alive => 0, requests_redirectable => [qw'GET HEAD DELETE PUT POST']));
         my $bucket = $s3->bucket($aws_bucket);
         if ( !$bucket ) {
           Error("S3 bucket $bucket not found.");

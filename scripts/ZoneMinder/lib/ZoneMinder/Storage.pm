@@ -95,7 +95,7 @@ sub delete_path {
   
   Debug("Delete $path");
   if ($$self{Type} and ( $$self{Type} eq 's3fs' )) {
-    my $url = $$NewStorage{Url};
+    my $url = $$self{Url};
     $url =~ s/^(s3|s3fs):\/\///ig;
     $url =~ /^\s*(?<ID>[^:]+):(?<SECRET>[^@]+)@(?<HOST>(https?:\/\/)?[^\/]*)\/(?<BUCKET>[^\/]+)(?<SUBPATH>\/.+)?\s*$/;
     my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ($+{ID},$+{SECRET}, $+{HOST}, $+{BUCKET}, $+{SUBPATH});

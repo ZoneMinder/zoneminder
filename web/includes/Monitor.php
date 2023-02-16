@@ -336,6 +336,8 @@ class Monitor extends ZM_Object {
 
       if ($mode == 'stop') {
         daemonControl('stop', 'zmc', $zmcArgs);
+      } else if ($mode == 'reload') {
+        daemonControl('reload', 'zmc', $zmcArgs);
       } else {
         if ($mode == 'restart') {
           daemonControl('stop', 'zmc', $zmcArgs);

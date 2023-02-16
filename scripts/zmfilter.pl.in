@@ -50,6 +50,8 @@ use autouse 'Data::Dumper'=>qw(Dumper);
 use File::Path qw(make_path);
 use File::Basename;
 use URI::Encode qw(uri_encode);
+require MIME::QuotedPrint;
+require MIME::Base64;
 
 my $daemon = 0;
 my $filter_name = '';
@@ -865,35 +867,61 @@ sub sendEmail {
 
   eval {
     if ( $Config{ZM_NEW_MAIL_MODULES} ) {
+      my $total_size = 0;
 ### Create the multipart container
       my $mail = MIME::Lite->new(
           From => $Config{ZM_FROM_EMAIL},
           To => $$filter{EmailTo},
           Subject => $subject,
           Type => 'multipart/mixed'
-          );
-### Add the text message part
+        );
+
+      my $related = MIME::Lite->new(
+        Type => 'multipart/related',
+      );
+
       if ($body =~ /<html/) {
-        $mail->attach(Type => 'text/html', Data => $body);
-        # Create a text-only version
+        my $alternative = MIME::Lite->new(
+          Type => 'multipart/alternative'
+        );
+        $mail->attach($alternative);
+
+        $alternative->attach($related);
+
+        # Create a text-only version, it has to go first
         require HTML::FormatText;
-        $mail->attach(Type => 'text/plain', Data => HTML::FormatText->format_string($body));
+        $alternative->attach(
+          #'Content-Type' => 'text/html;charset="utf-8"',
+          Type => 'TEXT',
+          'Content-Transfer-Encoding' => 'quoted-printable',
+          Data => MIME::QuotedPrint::encode_qp(HTML::FormatText->format_string($body))
+        );
+        my $html = MIME::Lite->new(
+          'Content-Type' => 'text/html;charset="utf-8"',
+          'Content-Transfer-Encoding' => 'quoted-printable',
+          #Type => 'text/html',
+          Data => MIME::QuotedPrint::encode_qp($body),
+        );
+        $related->attach($html);
       } else {
-        $mail->attach(Type => 'text/plain', Data => $body);
-      }
-### Add the attachments
-      my $total_size = 0;
+        my $html = MIME::Lite->new(
+          Type => 'text/html', Data => $body
+        );
+        $related->attach($html);
+      } # end if html or not
+
       foreach my $attachment ( @attachments ) {
         my $size = -s $attachment->{path};
         $total_size += $size;
         Info("Attaching '$attachment->{path}' which is $size bytes");
-        $mail->attach(
-            Path => $attachment->{path},
-            Type => $attachment->{type},
-            ($attachment->{content_id} ? ('Id' => '<'.$attachment->{content_id}.'>') : () ),
-            Disposition => 'attachment'
-            );
-      }
+        $related->attach(
+          Path => $attachment->{path},
+          Type => $attachment->{type},
+          ($attachment->{content_id} ? ('Id' => '<'.$attachment->{content_id}.'>') : () ),
+          Disposition => 'inline'
+          #Disposition => 'attachment'
+        );
+      } # end foreach attachment
       if ( $total_size > 10*1024*1024 ) {
         Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
@@ -917,32 +945,61 @@ sub sendEmail {
         $mail->send();
       }
     } else {
+      my $total_size = 0;
       my $mail = MIME::Entity->build(
         From => $Config{ZM_FROM_EMAIL},
         To => $$filter{EmailTo},
         Subject => $subject,
-        Type => (($body=~/<html/)?'text/html':'text/plain'),
-        Data => $body
+        Type => 'multipart/mixed'
       );
       if ($body =~ /<html/) {
+        my $alternative = MIME::Entity->build(Type => 'multipart/alternative');
+        $mail->add_part($alternative);
+        my $related = MIME::Entity->build(Type => 'multipart/related');
+        $alternative->add_part($related);
         # Create a text-only version
         require HTML::FormatText;
-        $mail->attach(Type => 'text/plain', Data => HTML::FormatText->format_string($body));
-      }
-
-      my $total_size = 0;
-      foreach my $attachment ( @attachments ) {
-        my $size = -s $attachment->{path};
-        $total_size += $size;
-        Debug("Attaching '$attachment->{path}' which is $size bytes");
-
-        $mail->attach(
-          Path => $attachment->{path},
-          Type => $attachment->{type},
-          ($attachment->{content_id} ? ('Content-Id' => '<'.$attachment->{content_id}.'>') : () ),
-          Encoding => 'base64'
+        $alternative->attach(
+          Type => 'text/plain',
+          charset=>"utf-8",
+          Data => HTML::FormatText->format_string($body)
         );
-      } # end foreach attachment
+        $related->attach(
+          Type => 'text/html',
+          charset=>"utf-8",
+          Data => $body
+        );
+        foreach my $attachment ( @attachments ) {
+          my $size = -s $attachment->{path};
+          $total_size += $size;
+          Debug("Attaching '$attachment->{path}' which is $size bytes");
+
+          $related->attach(
+            Path => $attachment->{path},
+            Type => $attachment->{type},
+            ($attachment->{content_id} ? ('Content-Id' => '<'.$attachment->{content_id}.'>') : () ),
+            Encoding => 'base64'
+          );
+        } # end foreach attachment
+      } else {
+        $mail->attach(
+          Type => 'text/plain; charset="utf-8"',
+          Data => $body
+        );
+
+        foreach my $attachment ( @attachments ) {
+          my $size = -s $attachment->{path};
+          $total_size += $size;
+          Debug("Attaching '$attachment->{path}' which is $size bytes");
+
+          $mail->attach(
+            Path => $attachment->{path},
+            Type => $attachment->{type},
+            ($attachment->{content_id} ? ('Content-Id' => '<'.$attachment->{content_id}.'>') : () ),
+            Encoding => 'base64'
+          );
+        } # end foreach attachment
+      }
       if ( $total_size > 10*1024*1024 ) {
         Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
@@ -962,7 +1019,7 @@ sub sendEmail {
     or Fatal("Unable to execute '$sql': ".$dbh->errstr());
 
   return 1;
-}
+} # end sub sendEmail
 
 sub sendMessage {
   my $filter = shift;

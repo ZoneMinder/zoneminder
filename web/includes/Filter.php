@@ -953,6 +953,17 @@ class Filter extends ZM_Object {
     $opTypes = $this->opTypes();
     $archiveTypes = $this->archiveTypes();
     $storageareas= null;
+    $states = array();
+    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `States` ORDER BY lower(`Name`) ASC') as $state_row ) {
+      $states[$state_row['Id']] = validHtmlStr($state_row['Name']);
+    }
+    $servers = array();
+    $servers['ZM_SERVER_ID'] = 'Current Server';
+    $servers['NULL'] = 'No Server';
+    global $Servers;
+    foreach ( $Servers as $server ) {
+      $servers[$server->Id()] = validHtmlStr($server->Name());
+    }
 
     for ($i=0; $i < count($terms); $i++) {
       $term = $terms[$i];

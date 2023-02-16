@@ -846,11 +846,11 @@ sub sendEmail {
   my $filter = shift;
   my $Event = shift;
 
-  if ( ! $Config{ZM_FROM_EMAIL} ) {
+  if (!$Config{ZM_FROM_EMAIL}) {
     Error('No from email address defined, not sending email');
     return 0;
   }
-  if ( ! $$filter{EmailTo} ) {
+  if (!$$filter{EmailTo}) {
     Error('No email address defined, not sending email');
     return 0;
   }
@@ -866,7 +866,7 @@ sub sendEmail {
   Debug("Sending notification email '$subject'");
 
   eval {
-    if ( $Config{ZM_NEW_MAIL_MODULES} ) {
+    if ($Config{ZM_NEW_MAIL_MODULES}) {
       my $total_size = 0;
 ### Create the multipart container
       my $mail = MIME::Lite->new(
@@ -881,12 +881,12 @@ sub sendEmail {
       );
 
       if ($body =~ /<html/) {
+        $mail->attach($related);
         my $alternative = MIME::Lite->new(
           Type => 'multipart/alternative'
         );
-        $mail->attach($alternative);
+        $related->attach($alternative);
 
-        $alternative->attach($related);
 
         # Create a text-only version, it has to go first
         require HTML::FormatText;
@@ -902,7 +902,7 @@ sub sendEmail {
           #Type => 'text/html',
           Data => MIME::QuotedPrint::encode_qp($body),
         );
-        $related->attach($html);
+        $alternative->attach($html);
       } else {
         my $html = MIME::Lite->new(
           Type => 'text/html', Data => $body
@@ -922,17 +922,17 @@ sub sendEmail {
           #Disposition => 'attachment'
         );
       } # end foreach attachment
-      if ( $total_size > 10*1024*1024 ) {
+      if ($total_size > 10*1024*1024) {
         Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
 ### Send the Message
-      if ( $Config{ZM_SSMTP_MAIL} ) {
+      if ($Config{ZM_SSMTP_MAIL}) {
         my $ssmtp_location = $Config{ZM_SSMTP_PATH};
-        if ( !$ssmtp_location ) {
+        if (!$ssmtp_location) {
           Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
           $ssmtp_location = qx('which ssmtp');
         }
-        if ( !$ssmtp_location ) {
+        if (!$ssmtp_location) {
           Warning('Unable to find ssmtp, trying MIME::Lite->send');
           MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
           $mail->send();
@@ -953,20 +953,20 @@ sub sendEmail {
         Type => 'multipart/mixed'
       );
       if ($body =~ /<html/) {
-        my $alternative = MIME::Entity->build(Type => 'multipart/alternative');
-        $mail->add_part($alternative);
         my $related = MIME::Entity->build(Type => 'multipart/related');
-        $alternative->add_part($related);
+        $mail->add_part($related);
+        my $alternative = MIME::Entity->build(Type => 'multipart/alternative');
+        $related->add_part($alternative);
         # Create a text-only version
         require HTML::FormatText;
         $alternative->attach(
           Type => 'text/plain',
-          charset=>"utf-8",
+          charset=>'utf-8',
           Data => HTML::FormatText->format_string($body)
         );
-        $related->attach(
+        $alternative->attach(
           Type => 'text/html',
-          charset=>"utf-8",
+          charset=>'utf-8',
           Data => $body
         );
         foreach my $attachment ( @attachments ) {

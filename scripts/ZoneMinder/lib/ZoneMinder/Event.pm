@@ -484,7 +484,7 @@ sub delete_files {
           last;
         }
       } else {
-        Debug("Dir $path is not empty @dir");
+        Debug(4, "Dir $path is not empty @dir");
         last;
       }
       pop @path_parts;

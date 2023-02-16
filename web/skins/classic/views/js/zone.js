@@ -441,6 +441,9 @@ function saveChanges(element) {
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
       alert('Capture process for this monitor will be restarted for the Privacy zone changes to take effect.');
     }
+    for (var i = 0, length = monitors.length; i < length; i++) {
+      monitors[i].stop();
+    }
     return true;
   }
   return false;
@@ -667,6 +670,9 @@ function initPage() {
   }
   if ( el = cancelBtn[0] ) {
     el.onclick = function() {
+      for (var i = 0, length = monitors.length; i < length; i++) {
+        monitors[i].stop();
+      }
       window.history.back();
     };
   }

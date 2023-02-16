@@ -768,7 +768,17 @@ sub MoveTo {
   }
 
   my $OldStorage = $self->Storage(undef);
-  my $error = $self->CopyTo($NewStorage);
+
+  # In strange situations where commits don't happen, the files can be moved but the db hasn't been updated.
+  # So here's a special case test to fix that.
+  my ( $SrcPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
+  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
+  my $error = '';
+  if (! -e $SrcPath and -e $NewPath) {
+    Warning("Event has already been moved, just updating the event.");
+  } else {
+    $error = $self->CopyTo($NewStorage);
+  }
   if (!$error) {
     # Succeeded in copying all files, so we may now update the Event.
     $$self{StorageId} = $$NewStorage{Id};

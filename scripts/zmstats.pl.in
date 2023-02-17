@@ -20,6 +20,8 @@ use constant START_DELAY => 30; # To give everything else time to start
 @EXTRA_PERL_LIB@
 use ZoneMinder;
 use DBI;
+use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+use ZoneMinder::Server qw(CpuLoad);
 
 $| = 1;
 
@@ -49,6 +51,17 @@ while (!$zm_terminate) {
       #What we do here is not that important, so just skip this interval
       sleep($Config{ZM_STATS_UPDATE_INTERVAL});
     }
+  }
+
+  my @cpuload = CpuLoad();
+  Debug("Updating Server record @cpuload");
+  if ( ! defined $dbh->do('UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?', undef,
+        'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
+    Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
+  }
+  if ( ! defined $dbh->do('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,?,?,?,?,?,?,?)', undef,
+        $Config{ZM_SERVER_ID}, 'NOW()', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
+    Error("Failed Inserting status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
   }
 
   # Clear out statuses for Monitors that have been set to None but for some reason didn't update the db

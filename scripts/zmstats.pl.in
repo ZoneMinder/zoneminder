@@ -63,6 +63,8 @@ while (!$zm_terminate) {
         $Config{ZM_SERVER_ID}, 'NOW()', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
     Error("Failed Inserting status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
   }
+  my $rows = zmDbDo('DELETE FROM `Server_Stats` WHERE `TimeStamp` < unix_timestamp(now() - interval 86400s) LIMIT 100');
+  Debug("Deleted $rows Server Stats table entries by time");
 
   # Clear out statuses for Monitors that have been set to None but for some reason didn't update the db
   zmDbDo('DELETE FROM Monitor_Status WHERE MonitorId IN (SELECT Id FROM Monitors WHERE Capturing=\'None\')');

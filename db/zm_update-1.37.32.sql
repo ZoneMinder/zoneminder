@@ -12,7 +12,7 @@ SET @s = (SELECT IF(
 "SELECT 'Server_Stats table exists'",
 "CREATE TABLE `Server_Stats` (
   `Id` int(10) unsigned NOT NULL auto_increment,
-  `ServerId`  int(10) unsigned NOT NULL,
+  `ServerId`  int(10) unsigned,
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `CpuLoad` DECIMAL(5,1) default NULL,
   `TotalMem` bigint unsigned default null,

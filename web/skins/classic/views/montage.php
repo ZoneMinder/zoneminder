@@ -96,7 +96,7 @@ if (isset($_REQUEST['zmMontageHeight'])) {
   $options['height'] = 0;
 }
 
-$scale = '100';   # actual
+$scale = '';   # auto
 if (isset($_REQUEST['scale'])) {
   $scale = $_REQUEST['scale'];
 } else if (isset($_COOKIE['zmMontageScale'])) {
@@ -245,9 +245,7 @@ if (canView('System')) {
 <?php
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
-  #$monitor_options['connkey'] = $monitor->connKey();
-
-  #ZM\Warning('Options: ' . print_r($monitor_options,true));
+  #ZM\Debug('Options: ' . print_r($monitor_options,true));
 
   if ($monitor->Type() == 'WebSite') {
     echo getWebSiteUrl(

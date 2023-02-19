@@ -86,10 +86,9 @@ function MonitorStream(monitorData) {
    * height should be auto, 100%, integer +px
    * */
   this.setScale = function(newscale, width, height) {
-    //console.log(newscale, width, height);
     const img = this.getElement();
     if (!img) {
-      console.log("No img in setScale");
+      console.log('No img in setScale');
       return;
     }
 
@@ -108,7 +107,7 @@ function MonitorStream(monitorData) {
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
         width = monitor_frame.css('width');
       } else {
-        var newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
+        const newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
         width = newSize.width+'px';
         height = newSize.height+'px';
         newscale = parseInt(newSize.autoScale);
@@ -137,7 +136,7 @@ function MonitorStream(monitorData) {
     if (height && height != '0px') img.style.height = height;
 
     this.setStreamScale(newscale);
-  }; // setscale
+  }; // setScale
 
   this.setStreamScale = function(newscale) {
     const img = this.getElement();
@@ -173,7 +172,7 @@ function MonitorStream(monitorData) {
         this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
       }
     }
-  }; // setscale
+  }; // setStreamScale
 
   this.start = function(delay) {
     if (this.janusEnabled) {

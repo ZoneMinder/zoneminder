@@ -438,37 +438,23 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       } else {
         Debug(3, "Not Writing alarm image because alarm frame already written");
       }
+      alarm_frames++;
+    } // end if is an alarm frame
 
-      if (packet->analysis_image and (save_jpegs & 2)) {
+    if (save_jpegs & 2) {
+      if (packet->analysis_image) {
         std::string event_file = stringtf(staticConfig.analyse_file_format.c_str(), path.c_str(), frames);
         Debug(1, "Writing analysis frame %d to %s", frames, event_file.c_str());
         if (!WriteFrameImage(packet->analysis_image, packet->timestamp, event_file.c_str(), true)) {
           Error("Failed to write analysis frame image to %s", event_file.c_str());
         }
-        if (packet->in_frame &&
-            (
-             ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUV420P)
-             ||
-             ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
-            )
-           ) {
-          event_file = stringtf("%s/%d-y.jpg", path.c_str(), frames);
-          Image y_image(
-              packet->in_frame->width,
-              packet->in_frame->height,
-              1, ZM_SUBPIX_ORDER_NONE,
-              packet->in_frame->data[0], 0);
-          if (!WriteFrameImage(&y_image, packet->timestamp, event_file.c_str(), true)) {
-            Error("Failed to write y frame image to %s", event_file.c_str());
-          }
-        }  // end if write y-channel image
-      }  // end if has analysis images turned on
-    }  // end if is an alarm frame
+      } else {
+        Debug(1, "Wanted to save analysis frame, but packet has no analysis_image");
+      }  // end if is an alarm frame
+    }  // end if has analysis images turned on
   } else {
     Debug(1, "No image");
   }  // end if has image
-
-  if (frame_type == ALARM) alarm_frames++;
 
   bool db_frame = ( frame_type == BULK )
     or ( frame_type == ALARM )

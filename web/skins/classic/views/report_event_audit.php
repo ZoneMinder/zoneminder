@@ -24,14 +24,21 @@ include('_monitor_filters.php');
 $filterbar = ob_get_contents();
 ob_end_clean();
 
-
 if ( isset($_REQUEST['minTime']) ) {
   $minTime = validHtmlStr($_REQUEST['minTime']);
+  #if (!check_datetime($minTime)) {
+    #ZM\Error('Invalid date given for minTime.');
+    #unset($minTime);
+  #}
 } else {
   $minTime = date('Y-m-d H:i:s', time() - (2*3600));
 }
 if ( isset($_REQUEST['maxTime']) ) {
   $maxTime = validHtmlStr($_REQUEST['maxTime']);
+  #if (!check_datetime($maxTime)) {
+    #ZM\Error('Invalid date given for maxTime.');
+    #unset($maxTime);
+  #}
 } else {
   $maxTime = date('Y-m-d H:i:s', time() - 3600);
 }

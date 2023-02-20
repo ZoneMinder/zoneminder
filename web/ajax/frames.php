@@ -164,16 +164,16 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
     if ( ZM_WEB_LIST_THUMBS ) {
 
       # Build the path to the potential analysis image
-      $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $row['FrameId']);
-      $analPath = $Event->Path().'/'.$analImage;
+      $analysisImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $row['FrameId']);
+      $analysisPath = $Event->Path().'/'.$analysisImage;
       $alarmFrame = $row['Type'] == 'Alarm';
-      $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
+      $hasAnalysisImage = $alarmFrame && file_exists($analysisPath) && filesize($analysisPath);
 
       # Our base img source component, which we will add on to
       $base_img_src = '?view=image&amp;fid=' .$row['Id'];
 
       # if an analysis images exists, use it as the thumbnail
-      if ( $hasAnalImage ) $base_img_src .= '&amp;show=analyse';
+      if ( $hasAnalysisImage ) $base_img_src .= '&amp;show=analyse';
 
       # Build the subcomponents needed for the image source
       $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();

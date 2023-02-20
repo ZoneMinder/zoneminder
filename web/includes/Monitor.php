@@ -638,7 +638,7 @@ class Monitor extends ZM_Object {
         return false;
       }
 
-      $cmd = getZmuCommand($cmd.' -m '.$this->{'Id'});
+      $cmd = getZmuCommand($cmd.' -m '.validCardinal($this->{'Id'}));
       $output = shell_exec($cmd);
       Debug("Running $cmd output: $output");
       return $output;

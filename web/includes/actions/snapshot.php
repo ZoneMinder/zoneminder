@@ -21,7 +21,6 @@
 require_once('includes/Snapshot.php');
 require_once('includes/Monitor.php');
 
-
 if ( $action == 'create' ) {
   if ( ! (isset($_REQUEST['monitor_ids']) and count($_REQUEST['monitor_ids']) > 0 ) ) {
     ZM\Error('No monitor ids given in snapshot creation request');
@@ -31,9 +30,16 @@ if ( $action == 'create' ) {
   $snapshot->save(array('CreatedBy'=>$user['Id']));
 
   foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
+    if (!validCardinal($monitor_id)) {
+      Error("Monitor Id value is invalid $monitor_id");
+      continue;
+    }
+    $monitor = ZM\Monitor::find_one(['Id'=>$monitor_id]);
+    if (!$monitor) {
+      Error("Monitor not found for id $monitor_id");
+      continue;
+    }
     $snapshot_event = new ZM\Snapshot_Event();
-
-    $monitor = new ZM\Monitor($monitor_id);
     $event_id = $monitor->TriggerOn();
     ZM\Debug("Have event $event_id for monitor $monitor_id");
     if ( $event_id ) {
@@ -44,7 +50,8 @@ if ( $action == 'create' ) {
     }
   }  # end foreach monitor
   foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
-    $monitor = new ZM\Monitor($monitor_id);
+    $monitor = ZM\Monitor::find_one(['Id'=>$monitor_id]);
+    if (!$monitor) continue;
     $monitor->TriggerOff();
   }
   $dbConn->beginTransaction();

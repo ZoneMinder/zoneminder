@@ -2398,4 +2398,8 @@ function i18n() {
 
   return implode('-', $string);
 }
+
+function check_datetime($x) {
+  return (date('Y-m-d H:i:s', strtotime($x)) == $x);
+}
 ?>

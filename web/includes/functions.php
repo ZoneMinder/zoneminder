@@ -2431,4 +2431,8 @@ function array_to_hash_by_key($key, $array) {
   foreach ($array as $a) { $results[$a->$key()] = $a; }
   return $results;
 }
+
+function check_datetime($x) {
+    return (date('Y-m-d H:i:s', strtotime($x)) == $x);
+}
 ?>

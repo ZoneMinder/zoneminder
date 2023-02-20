@@ -518,6 +518,7 @@ function MonitorStream(monitorData) {
       this.streamCmdParms.command = CMD_QUERY;
       this.streamCmdReq(this.streamCmdParms);
     }
+    this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCommand = function(command) {

@@ -859,6 +859,12 @@ a.flip {
 .controlHeader {
   display: flex;
 }
+/* to match chosen text input height */
+.controlHeader input[type="text"] {
+  height: 29px;
+  padding: 2px 5px 4px 5px;
+  margin-top:0;
+}
 @media screen and (max-width:767px) {
   .controlHeader {
     display: flex;

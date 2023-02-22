@@ -35,6 +35,13 @@ class StorageController extends AppController {
     
     $options = '';
     $storage_areas = $this->Storage->find('all',$options);
+
+    foreach ($storage_areas as &$s) {
+      $storage = new ZM\Storage($s['Storage']);
+      $s['Storage']['DiskTotalSpace'] = $storage->disk_total_space();
+      $s['Storage']['DiskUsedSpace'] = $storage->disk_used_space();
+    }
+
 		$this->set(array(
 					'storage' => $storage_areas,
 					'_serialize' => array('storage')

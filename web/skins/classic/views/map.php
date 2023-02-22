@@ -35,6 +35,7 @@ echo $navbar ?>
         </div>
     </div>
     <div id="map-template"></div>
+    <script src="js/Map.js"></script>
 <?php
 echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
 echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);

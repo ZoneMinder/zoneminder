@@ -44,7 +44,14 @@ var Server = function() {
     key: 'urlToApi',
     value: function urlToApi() {
       const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-      return this.Protocol + '://' + this.Hostname + (port ? ':' + port : '') + (this.PathToApi && this.PathToApi != 'null' ? this.PathToApi : '');
+      return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : '') + ((this.PathToApi && (this.PathToApi != 'null')) ? this.PathToApi : '');
+    }
+  },
+  {
+    key: 'getFromApi',
+    value: function getFromApi() {
+      const url = this.urlToApi() + (arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '');
+      return fetch(url + '?' + auth_relay + (arguments.length > 1 && arguments[1] !== undefined ? '&'+arguments[1] : ''));
     }
   }
   ]);

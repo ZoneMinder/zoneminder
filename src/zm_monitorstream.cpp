@@ -672,6 +672,7 @@ void MonitorStream::runStream() {
               SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
           Image *send_image = nullptr;
+          /*
           if ((frame_type == FRAME_ANALYSIS) && 
               (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
               Debug(1, "Sending analysis image");
@@ -680,7 +681,7 @@ void MonitorStream::runStream() {
               Debug(1, "Falling back");
               send_image = monitor->image_buffer[index];
             }
-          } else {
+          } else*/ {
             Debug(1, "Sending regular image index %d", index);
             send_image = monitor->image_buffer[index];
           }

@@ -824,20 +824,29 @@ bool Monitor::connect() {
        + sizeof(VideoStoreData) //Information to pass back to the capture process
        + (image_buffer_count*sizeof(struct timeval))
        + (image_buffer_count*image_size)
-       + image_size // alarm_image
+       + (image_buffer_count*image_size) // alarm_images
+       + (image_buffer_count*sizeof(AVPixelFormat)) //
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
-        "SharedData=%zu TriggerData=%zu zone_count %d * sizeof int %zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
+        "SharedData=%zu "
+        "TriggerData=%zu "
+        "zone_count %d * sizeof int %zu "
+        "VideoStoreData=%zu "
+        "timestamps=%zu "
+        "images=%dx%" PRIi64 " = %" PRId64 " "
+        "analysis images=%dx%" PRIi64 " = %" PRId64 " "
+        "image_format = %dx%" PRIi64 " = %" PRId64 " "
+        "total=%jd",
         sizeof(SharedData),
         sizeof(TriggerData),
         zone_count,
         sizeof(int),
         sizeof(VideoStoreData),
         (image_buffer_count * sizeof(struct timeval)),
-        image_buffer_count,
-        image_size,
-        (image_buffer_count * image_size),
+        image_buffer_count, image_size, (image_buffer_count * image_size),
+        image_buffer_count, image_size, (image_buffer_count * image_size),
+        image_buffer_count, sizeof(AVPixelFormat), (image_buffer_count * sizeof(AVPixelFormat)),
         static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED
   mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
@@ -1995,7 +2004,7 @@ bool Monitor::Analyse() {
                   Debug(1, "assigning refimage from snap->image");
                   ref_image.Assign(*(snap->image));
                 }
-                alarm_image.Assign(*(snap->image));
+                //alarm_image.Assign(*(snap->image));
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
@@ -2025,7 +2034,7 @@ bool Monitor::Analyse() {
                     Debug(1, "Setting zone score %d to %d", zone_index, zone.Score());
                     zone_scores[zone_index] = zone.Score(); zone_index ++;
                   }
-                  alarm_image.Assign(*(snap->analysis_image));
+                  //alarm_image.Assign(*(snap->analysis_image));
                   Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
                       score, last_motion_score, snap->score);
                   motion_frame_count += 1;
@@ -2039,7 +2048,7 @@ bool Monitor::Analyse() {
                   } // end if motion_score
                 } else {
                   Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
-                  alarm_image.Assign(*(snap->image));
+                  //alarm_image.Assign(*(snap->image));
                 }
 
                 if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {

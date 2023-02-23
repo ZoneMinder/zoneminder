@@ -535,7 +535,7 @@ public static function getStatuses() {
         if ($mode == 'restart') {
           daemonControl('stop', 'zmc', $zmcArgs);
         }
-        if ($this->{'Capturing'} != 'None') {
+        if ($this->Capturing() != 'None') {
           daemonControl('start', 'zmc', $zmcArgs);
         }
       }

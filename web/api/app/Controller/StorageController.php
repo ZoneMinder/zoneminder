@@ -35,6 +35,7 @@ class StorageController extends AppController {
     
     $options = '';
     $storage_areas = $this->Storage->find('all',$options);
+    require_once __DIR__ .'/../../../includes/Storage.php';
 
     foreach ($storage_areas as &$s) {
       $storage = new ZM\Storage($s['Storage']);

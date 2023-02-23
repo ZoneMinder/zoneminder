@@ -1,5 +1,4 @@
 <?php
-
 namespace ZM;
 $validConjunctionTypes = null;
 
@@ -13,7 +12,6 @@ function getFilterQueryConjunctionTypes() {
   return $validConjunctionTypes;
 }
 
-
 class FilterTerm {
   public $filter;
   public $index;
@@ -25,13 +23,14 @@ class FilterTerm {
   public $obr;
   public $cbr;
 
-
-  public function __construct($filter = null, $term = NULL, $index=0) {
+  public function __construct($filter = null, $term = null, $index=0) {
     $this->filter = $filter;
     $validConjunctionTypes = getFilterQueryConjunctionTypes();
 
     $this->index = $index;
     $this->attr = $term['attr'];
+    $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $term['attr'], -1, $count);
+    if ($count) Error("Invalid characters removed from filter attr ${term['attr']}, possible hacking attempt.");
     $this->op = $term['op'];
     $this->val = $term['val'];
     if ( isset($term['cnj']) ) {
@@ -67,7 +66,7 @@ class FilterTerm {
   public function sql_values() {
     $values = array();
     if ( !isset($this->val) ) {
-      Logger::Warning('No value in term'.$this->attr);
+      Warning('No value in term '.$this->attr);
       return $values;
     }
 
@@ -75,7 +74,6 @@ class FilterTerm {
     foreach ( $vals as $value ) {
       $value_upper = strtoupper($value);
       switch ( $this->attr ) {
-
       case 'AlarmedZoneId':
         $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.' AND Score > 0)';
         break;
@@ -85,7 +83,6 @@ class FilterTerm {
       case 'DiskPercent':
         $value = '';
         break;
-      case 'MonitorName':
       case 'MonitorName':
       case 'Name':
       case 'Cause':

@@ -183,7 +183,12 @@ int main(int argc, const char *argv[], char **envp) {
       Debug(1, "ZMS: JWT token found: %s", jwt_token_str.c_str());
     } else if ( !strcmp(name, "user") ) {
       username = UriDecode(value);
+    } else if ( !strcmp(name, "username") ) {
+      username = UriDecode(value);
     } else if ( !strcmp(name, "pass") ) {
+      password = UriDecode(value);
+      Debug(1, "Have %s for password", password.c_str());
+    } else if ( !strcmp(name, "password") ) {
       password = UriDecode(value);
       Debug(1, "Have %s for password", password.c_str());
     } else {

@@ -267,9 +267,9 @@ function visibleMonitor($mid) {
   if ($monitor_permissions === null) {
     $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user['Id'])));
   }
-  if (isset($monitor_permissions[$mid]) and ($monitor_permissions[$mid]->Permission() == 'None')) {
-    ZM\Debug("Can't view monitor $mid because of monitor ".$monitor_permissions[$mid]->Permission());
-    return false;
+  if (isset($monitor_permissions[$mid])) {
+    ZM\Debug('Returning '.($monitor_permissions[$mid]->Permission() == 'None' ? false : true)." for monitor $mid");
+    return ($monitor_permissions[$mid]->Permission() == 'None' ? false : true);
   }
 
   global $group_permissions;
@@ -290,7 +290,7 @@ function visibleMonitor($mid) {
   if ($group_permission_value != 'Inherit') return true;
 
   #if (!$user or ($user['Monitors'] == 'None')) return false;
-  #ZM\Debug("Returning " . ($user['Monitors'] == 'None' ? 'false' : 'true') . " for monitor $mid");
+  ZM\Debug("Returning " . ($user['Monitors'] == 'None' ? 'false' : 'true') . " for monitor $mid");
   return ($user['Monitors'] != 'None');
 }
 

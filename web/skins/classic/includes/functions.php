@@ -239,6 +239,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getSnapshotsHTML($view);
           echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
+          echo getMapHTML($view);
           echo getHeaderFlipHTML();
           echo '</ul></div><div id="accountstatus">
 ';
@@ -373,6 +374,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getSnapshotsHTML($view);
             echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);
+            echo getMapHTML($view);
           echo '</ul>';
       }
       ?>
@@ -795,6 +797,18 @@ function getRprtEvntAuditHTML($view) {
     $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
   }
   
+  return $result;
+}
+
+// Returns the html representing the Audit Events Report menu item
+function getMapHTML($view) {
+  $result = '';
+
+  if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
+    $class = $view == 'map' ? ' selected' : '';
+    $result .= '<li id="getMapHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=map">'.translate('Map').'</a></li>'.PHP_EOL;
+  }
+
   return $result;
 }
 

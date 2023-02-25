@@ -362,6 +362,7 @@ class Filter extends ZM_Object {
       '=~' => 2,
       '!~' => 2,
       '=[]' => 2,
+      'IN' => 2,
       '![]' => 2,
       'and' => 3,
       'or' => 4,

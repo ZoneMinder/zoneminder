@@ -215,6 +215,8 @@ CREATE TABLE `Events` (
   `DiskSpace`   bigint unsigned default NULL,
   `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   `Locked`    BOOLEAN NOT NULL DEFAULT False,
+  `Latitude`  DECIMAL(10,8),
+  `Longitude`  DECIMAL(11,8),
   PRIMARY KEY (`Id`),
   KEY `Events_MonitorId_idx` (`MonitorId`),
   KEY `Events_StorageId_idx` (`StorageId`),
@@ -683,6 +685,8 @@ CREATE TABLE `Servers` (
   `zmaudit`  BOOLEAN NOT NULL DEFAULT FALSE,
   `zmtrigger`  BOOLEAN NOT NULL DEFAULT FALSE,
   `zmeventnotification`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `Latitude`  DECIMAL(10,8),
+  `Longitude`  DECIMAL(11,8),
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

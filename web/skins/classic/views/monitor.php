@@ -1137,13 +1137,17 @@ $videowriter_encoders = array(
   'h264' => 'h264',
   'h264_nvenc' => 'h264_nvenc',
   'h264_omx' => 'h264_omx',
+  'h264_qsv' => 'h264_qsv',
   'h264_vaapi' => 'h264_vaapi',
   'libx265' => 'libx265',
   'hevc_nvenc' => 'hevc_nvenc',
+  'hevc_qsv' => 'hevc_qsv',
   'hevc_vaapi' => 'hevc_vaapi',
   'libvpx-vp9' => 'libvpx-vp9',
+  'vp9-qsv' => 'vp9-qsv',
   'libsvtav1' => 'libsvtav1',
-  'libaom-av1'  => 'libaom-av1'
+  'libaom-av1'  => 'libaom-av1',
+  'av1_qsv' => 'av1_qsv'
 );
 echo htmlSelect('newMonitor[Encoder]', $videowriter_encoders, $monitor->Encoder());
 ?>

@@ -414,6 +414,7 @@ protected:
   Orientation     orientation;        // Whether the image has to be rotated at all
   unsigned int    deinterlacing;
   unsigned int    deinterlacing_value;
+  std::string     decoder_name;
   std::string     decoder_hwaccel_name;
   std::string     decoder_hwaccel_device;
   bool            videoRecording;
@@ -639,6 +640,7 @@ public:
   DecodingOption Decoding() const {
     return decoding;
   }
+  const std::string &DecoderName() const { return decoder_name; }
   bool JanusEnabled() {
     return janus_enabled;
   }

@@ -75,7 +75,7 @@
 
 .consoleTable .colMark {
     width: 32px;
-    text-align: left;
+    text-align: center;
 }
 
 .consoleTable .colEvents {
@@ -110,7 +110,13 @@
 .MonitorFilter {
   display: inline-block;
 }
-.MonitorNameFilter input,
-.SourceFilter input {
-  padding: 3px 5px 4px 5px;
+form[name="monitorForm"] {
+  display: flex;
+  flex-flow: column nowrap;
+  height: 100%;
+  flex: 1 1 auto;
+}
+#monitorList {
+  flex: 1 1 auto;
+  overflow-y: scroll;
 }

@@ -109,7 +109,6 @@ $selfIntersecting = isSelfIntersecting($newZone['Points']);
 $focusWindow = true;
 # Have to do this here, because the .js.php references somethings figured out when generating the streamHTML
 $monitor->connKey();
-$StreamHTML = getStreamHTML($monitor, array('mode'=>'single'));
 
 # So I'm thinking now that 50% of screen real-estate with a minimum of 640px. 
 # scale should be floor(whatever that width is/actual width)
@@ -131,7 +130,7 @@ xhtmlHeaders(__FILE__, translate('Zone'));
     </div>
     <div id="content">
       <form name="zoneForm" id="zoneForm" method="post" action="?">
-        <input type="hidden" name="REFERER" value="<?php echo $_SERVER['HTTP_REFERER'] ?>"/> 
+        <input type="hidden" name="REFERER" value="<?php echo isset($_SERVER['HTTP_REFERER']) ? validHtmlStr($_SERVER['HTTP_REFERER']) : '' ?>"/> 
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="zone"/>
         <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
@@ -141,10 +140,11 @@ xhtmlHeaders(__FILE__, translate('Zone'));
         <input type="hidden" name="newZone[Area]" value="<?php echo $newZone['Area'] ?>"/>
         <input type="hidden" name="newZone[AlarmRGB]"/>
 
-        <div id="definitionPanel">
-				  <div id="imagePanel">
+				  <div id="imageAndPoints">
             <div id="imageFrame">
-              <?php echo $StreamHTML; ?>
+              <?php echo 
+$monitor->getStreamHTML(array('mode'=>'single', 'zones'=>false, 'state'=>true));
+?>
               <svg id="zoneSVG" class="zones" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>">
 <?php
 if ( $zone['Id'] ) {
@@ -164,26 +164,69 @@ if ( count($other_zones) ) {
                 <polygon id="zonePoly" points="<?php echo $zone['AreaCoords'] ?>" class="Editing <?php echo $zone['Type'] ?>"/>
                 Sorry, your browser does not support inline SVG
               </svg>
-            </div><?php # imageFrame?>
-            <div id="monitorState">
-              <?php echo translate('State') ?>:&nbsp;<span id="stateValue<?php echo $monitor->Id() ?>"></span>&nbsp;-&nbsp;<span id="fpsValue<?php echo $monitor->Id() ?>"></span>&nbsp;fps
-            </div>
+            </div><?php # imageFrame
+?>
+
             <div id="StreamControlButtons">
-              <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>">
+              <button type="button" id="analyseBtn" class="btn btn-primary" title="<?php echo translate('Showing Analysis') ?>">
+                <i class="material-icons md-18">assessment</i>
+              </button>
+              <button type="button" id="pauseBtn" class="btn btn-primary" title="<?php echo translate('Pause') ?>">
                 <i class="material-icons md-18">pause</i>
               </button>
-              <button type="button" id="playBtn" title="<?php echo translate('Play') ?>">
+              <button type="button" id="playBtn" class="btn btn-primary" title="<?php echo translate('Play') ?>">
                 <i class="material-icons md-18">play_arrow</i>
               </button>
             </div>
-          </div><!--imagePanel-->
+            <div id="zonePoints">
+              <table>
+                <tbody>
+                  <tr>
+  <?php
+  $pointCols = 2;
+  for ( $i = 0; $i < $pointCols; $i++ ) {
+  ?>
+                    <td>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th><?php echo translate('Point') ?></th>
+                            <th><?php echo translate('X') ?></th>
+                            <th><?php echo translate('Y') ?></th>
+                            <th><?php echo translate('Action') ?></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                      </table>
+                    </td>
+  <?php
+  # I think this for horizontal filler
+      if ( $i < ($pointCols-1) ) {
+  ?>
+                    <td>&nbsp;</td>
+  <?php
+      }
+  } # end foreach pointcol
+  ?>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="buttons">
+                <button type="button" id="saveBtn" value="Save" <?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
+                <?php echo translate('Save') ?>
+                </button>
+                <button type="button" id="cancelBtn" value="Cancel"><?php echo translate('Cancel') ?></button>
+              </div>
+            </div><!--end ZonePoints-->
+          </div><!--image & points-->
 
 					<div id="settingsPanel">
 						<table id="zoneSettings">
 							<tbody>
 								<tr>
 									<th scope="row"><?php echo translate('Name') ?></th>
-									<td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo $newZone['Name'] ?>"/></td>
+									<td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo validHtmlStr($newZone['Name']) ?>"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('Type') ?></th>
@@ -269,51 +312,16 @@ if ( count($other_zones) ) {
 							</tbody>
 						</table>
 					</div>
-
-					<div id="zonePoints">
-					  <table>
- 					 	  <tbody>
-					 		  <tr>
-<?php
-$pointCols = 2;
-for ( $i = 0; $i < $pointCols; $i++ ) {
-?>
-									<td>
-										<table>
-											<thead>
-												<tr>
-													<th><?php echo translate('Point') ?></th>
-													<th><?php echo translate('X') ?></th>
-													<th><?php echo translate('Y') ?></th>
-													<th><?php echo translate('Action') ?></th>
-												</tr>
-											</thead>
-											<tbody>
-											</tbody>
-										</table>
-									</td>
-<?php
-# I think this for horizontal filler
-    if ( $i < ($pointCols-1) ) {
-?>
-									<td>&nbsp;</td>
-<?php
-    }
-} # end foreach pointcol
-?>
-								</tr>
-							</tbody>
-						</table>
-					<div class="buttons">
-						<button type="button" id="saveBtn" value="Save" <?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>>
-						<?php echo translate('Save') ?>
-						</button>
-						<button type="button" id="cancelBtn" value="Cancel"><?php echo translate('Cancel') ?></button>
-					</div>
-					</div><!--end ZonePoints-->
-        </div><!--definitionsPanel-->
       </form>
     </div><!--content-->
   </div><!--page-->
+<?php
+if ($monitor->JanusEnabled()) {
+?>
+  <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+  <script src="/javascript/janus/janus.js"></script>
+<?php
+}
+?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

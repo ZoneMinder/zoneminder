@@ -5,7 +5,8 @@
 Description=ZoneMinder CCTV recording and surveillance system
 After=network.target mysql.service
 # Remarked out so that it will start ZM on machines that don't have mysql installed
-#Requires=mysql.service
+# Override it by placing an override.conf in /etc/systemd/system/zoneminder.service.d
+#BindsTo=mysql.service
 
 [Service]
 #User=www-data

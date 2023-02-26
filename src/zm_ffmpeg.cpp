@@ -58,7 +58,7 @@ void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
     Error("Unknown log level %d", level);
   }
 
-  if (log) {
+  if (log and (log->level() >= log_level) ) {
     char logString[8192];
     int length = vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
     if (length > 0) {
@@ -257,8 +257,8 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     Debug(1, "ids [0x%x]", st->id);
   if (lang)
     Debug(1, "language (%s)", lang->value);
-  Debug(1, "frames:%d, frame_size:%d stream timebase: %d/%d",
-      st->codec_info_nb_frames, codec->frame_size,
+  Debug(1, "frame_size:%d stream timebase: %d/%d",
+      codec->frame_size,
       st->time_base.num, st->time_base.den
       );
 
@@ -325,7 +325,7 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   //dump_sidedata(NULL, st, "    ");
 }
 
-int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt) {
+int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt) {
   const enum AVSampleFormat *p = codec->sample_fmts;
 
   while (*p != AV_SAMPLE_FMT_NONE) {

@@ -21,6 +21,8 @@
 
 #include "zm_box.h"
 #include "zm_monitor.h"
+#include "zm_signal.h"
+
 #include <cmath>
 #include <sys/file.h>
 #include <sys/socket.h>
@@ -31,10 +33,8 @@ constexpr Seconds StreamBase::MAX_STREAM_DELAY;
 constexpr Milliseconds StreamBase::MAX_SLEEP;
 
 StreamBase::~StreamBase() {
-  if (vid_stream) {
-    delete vid_stream;
-    vid_stream = nullptr;
-  }
+  delete vid_stream;
+  delete[] temp_img_buffer;
   closeComms();
 }
 
@@ -46,16 +46,16 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
     return false;
   }
 
-  if ( monitor->GetFunction() == Monitor::NONE ) {
-    Info("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+  if (monitor->Capturing() == Monitor::CAPTURING_NONE) {
+    Info("Monitor %d has capturing == NONE. Will not be able to connect to it.", monitor_id);
     return false;
   }
 
-  if ( monitor->isConnected() ) {
+  if (monitor->isConnected()) {
     monitor->disconnect();
   }
 
-  if ( !monitor->connect() ) {
+  if (!monitor->connect()) {
     Error("Unable to connect to monitor id %d for streaming", monitor_id);
     monitor->disconnect();
     return false;
@@ -69,15 +69,15 @@ bool StreamBase::checkInitialised() {
     Error("Cannot stream, not initialised");
     return false;
   }
-  if (monitor->GetFunction() == Monitor::NONE) {
-    Info("Monitor %d has function NONE. Will not be able to connect to it.", monitor_id);
+  if (monitor->Capturing() == Monitor::CAPTURING_NONE) {
+    Info("Monitor %d has capturing == NONE. Will not be able to connect to it.", monitor_id);
     return false;
   }
   if (!monitor->ShmValid()) {
-    Error("Monitor shm is not connected");
+    Debug(1, "Monitor shm is not connected");
     return false;
   }
-  if ((monitor->GetType() == Monitor::FFMPEG) and !monitor->DecodingEnabled() ) {
+  if ((monitor->GetType() == Monitor::FFMPEG) and (monitor->Decoding() == Monitor::DECODING_NONE) ) {
     Debug(1, "Monitor is not decoding.");
     return false;
   }
@@ -92,148 +92,132 @@ void StreamBase::updateFrameRate(double fps) {
     base_fps = 0.0;
     return;
   }
+
   base_fps = fps;
   effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
   frame_mod = 1;
   Debug(3, "FPS:%.2f, MaxFPS:%.2f, BaseFPS:%.2f, EffectiveFPS:%.2f, FrameMod:%d, replay_rate(%d)",
       fps, maxfps, base_fps, effective_fps, frame_mod, replay_rate);
-  // Min frame repeat?
-  // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.  
-  while ( effective_fps > maxfps ) {
-    effective_fps /= 2.0;
-    frame_mod *= 2;
-    Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d",
-        maxfps, effective_fps, frame_mod);
+  if (maxfps > 0.0) {
+    // Min frame repeat?
+    // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.  
+    while ( (int)effective_fps > (int)maxfps ) {
+      effective_fps /= 2.0;
+      frame_mod *= 2;
+      Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d",
+          maxfps, effective_fps, frame_mod);
+    }
   }
 } // void StreamBase::updateFrameRate(double fps)
 
-bool StreamBase::checkCommandQueue() {
-  if ( sd >= 0 ) {
-    CmdMsg msg;
-    memset(&msg, 0, sizeof(msg));
-    int nbytes = recvfrom(sd, &msg, sizeof(msg), MSG_DONTWAIT, 0, 0);
-    if ( nbytes < 0 ) {
-      if ( errno != EAGAIN ) {
-        Error("recvfrom(), errno = %d, error = %s", errno, strerror(errno));
-        return false;
+void StreamBase::checkCommandQueue() {
+  while (!zm_terminate) {
+    // Update modified time of the socket .lock file so that we can tell which ones are stale.
+    if (now - last_comm_update > Hours(1)) {
+      touch(sock_path_lock);
+      last_comm_update = now;
+    }
+
+    if (sd >= 0) {
+      CmdMsg msg;
+      memset(&msg, 0, sizeof(msg));
+      int nbytes = recvfrom(sd, &msg, sizeof(msg), 0, /*MSG_DONTWAIT*/ 0, 0);
+      if (nbytes < 0) {
+        if (errno != EAGAIN) {
+          Error("recvfrom(), errno = %d, error = %s", errno, strerror(errno));
+        }
+      } else {
+        Debug(2, "Message length is (%d)", nbytes);
+        processCommand(&msg);
+        got_command = true;
       }
+    } else if (connkey) {
+      Warning("No sd in checkCommandQueue, comms not open for connkey %06d?", connkey);
+    } else {
+      // Perfectly valid if only getting a snapshot
+      Debug(1, "No sd in checkCommandQueue, comms not open.");
     }
-    //else if ( (nbytes != sizeof(msg)) )
-    //{
-      //Error( "Partial message received, expected %d bytes, got %d", sizeof(msg), nbytes );
-    //}
-    else {
-      Debug(2, "Message length is (%d)", nbytes);
-      processCommand(&msg);
-      return true;
-    }
-  } else if ( connkey ) {
-    Warning("No sd in checkCommandQueue, comms not open?");
-  } else {
-    // Perfectly valid if only getting a snapshot
-    Debug(1, "No sd in checkCommandQueue, comms not open?");
-  }
-  return false;
-}  // end bool StreamBase::checkCommandQueue()
+  } // end while !zm_terminate
+}  // end void StreamBase::checkCommandQueue()
 
 Image *StreamBase::prepareImage(Image *image) {
-
-  // Do not bother to scale zoomed in images, just crop them and let the browser scale
-  // Works in FF2 but breaks FF3 which doesn't like image sizes changing in mid stream.
-  bool optimisedScaling = false;
-
+  /* zooming should happen before scaling to preserve quality
+   * scale is relative to base dimensions, and represents the rough ratio between desired view size and base dimensions
+   */
   bool image_copied = false;
 
-  int mag = (scale * zoom) / ZM_SCALE_BASE;
-  int act_mag = optimisedScaling?(mag > ZM_SCALE_BASE?ZM_SCALE_BASE:mag):mag;
+  if (zoom != 100) {
+    int base_image_width = image->Width(),
+        base_image_height = image->Height(),
+        disp_image_width = image->Width() * scale/ZM_SCALE_BASE,
+        disp_image_height = image->Height() * scale / ZM_SCALE_BASE;
+    /* x and y are scaled by web UI to base dimensions units. 
+     * When zooming, we blow up the image by the amount 150 for first zoom, right? 150%, then cut out a base sized chunk
+     * However if we have zoomed before, then we are zooming into the previous cutout
+     * The box stored in last_crop should be in base_image units, So we need to turn x,y into percentages, then apply to last_crop
+     */
+    if (!last_crop.Hi().x_ or last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
 
-  int last_mag = (last_scale * last_zoom) / ZM_SCALE_BASE;
-  int last_act_mag = last_mag > ZM_SCALE_BASE?ZM_SCALE_BASE:last_mag;
-  int base_image_width = image->Width(), base_image_height = image->Height();
-  int virt_image_width = (base_image_width * mag) / ZM_SCALE_BASE, virt_image_height = (base_image_height * mag) / ZM_SCALE_BASE;
-  int last_virt_image_width = (base_image_width * last_mag) / ZM_SCALE_BASE, last_virt_image_height = (base_image_height * last_mag) / ZM_SCALE_BASE;
-  int act_image_width = (base_image_width * act_mag ) / ZM_SCALE_BASE, act_image_height = (base_image_height * act_mag ) / ZM_SCALE_BASE;
-  int last_act_image_width = (base_image_width * last_act_mag ) / ZM_SCALE_BASE, last_act_image_height = (base_image_height * last_act_mag ) / ZM_SCALE_BASE;
-  int disp_image_width = (image->Width() * scale) / ZM_SCALE_BASE, disp_image_height = (image->Height() * scale) / ZM_SCALE_BASE;
-  int last_disp_image_width = (image->Width() * last_scale) / ZM_SCALE_BASE, last_disp_image_height = (image->Height() * last_scale) / ZM_SCALE_BASE;
-  int send_image_width = (disp_image_width * act_mag ) / mag, send_image_height = (disp_image_height * act_mag ) / mag;
-  int last_send_image_width = (last_disp_image_width * last_act_mag ) / last_mag, last_send_image_height = (last_disp_image_height * last_act_mag ) / last_mag;
+    double x_percent = static_cast<double>(x * ZM_SCALE_BASE) / base_image_width;
+    double y_percent = static_cast<double>(y * ZM_SCALE_BASE) / base_image_height;
+    Debug(2, "click percent %dx%d => %.2fx%.2f", x, y, x_percent, y_percent);
 
-  Debug(3,
-      "Scaling by %d, zooming by %d = magnifying by %d(%d)\n"
-      "Last scaling by %d, zooming by %d = magnifying by %d(%d)\n"
-      "Base image width = %d, height = %d\n"
-      "Virtual image width = %d, height = %d\n"
-      "Last virtual image width = %d, height = %d\n"
-      "Actual image width = %d, height = %d\n"
-      "Last actual image width = %d, height = %d\n"
-      "Display image width = %d, height = %d\n"
-      "Last display image width = %d, height = %d\n"
-      "Send image width = %d, height = %d\n"
-      "Last send image width = %d, height = %d\n",
-      scale, zoom, mag, act_mag,
-      last_scale, last_zoom, last_mag, last_act_mag,
-      base_image_width, base_image_height,
-      virt_image_width, virt_image_height,
-      last_virt_image_width, last_virt_image_height,
-      act_image_width, act_image_height,
-      last_act_image_width, last_act_image_height,
-      disp_image_width, disp_image_height,
-      last_disp_image_width, last_disp_image_height,
-      send_image_width, send_image_height,
-      last_send_image_width, last_send_image_height
-      );
+    // If we were previously zoomed in, then the coordinate percentages are into the crop, so calculate the click coordinates in base image
+    int crop_x = last_crop.Lo().x_ + (x_percent * last_crop.Width() / ZM_SCALE_BASE);
+    int crop_y = last_crop.Lo().y_ + (y_percent * last_crop.Height() / ZM_SCALE_BASE);
+    Debug(2, "crop click %dx%d => %dx%d out of %dx%d", x, y, crop_x, crop_y, last_crop.Width(), last_crop.Height());
 
-  if ( ( mag != ZM_SCALE_BASE ) && (act_mag != ZM_SCALE_BASE) ) {
-    Debug(3, "Magnifying by %d", mag);
-    static Image copy_image;
-    copy_image.Assign(*image);
-    image = &copy_image;
-    image_copied = true;
-    image->Scale(mag);
-  }
+    int zoom_image_width = base_image_width * zoom / ZM_SCALE_BASE,
+        zoom_image_height = base_image_height * zoom / ZM_SCALE_BASE,
+        click_x = crop_x * zoom / ZM_SCALE_BASE,
+        click_y = crop_y * zoom / ZM_SCALE_BASE;
+    Debug(2, "adjusted click %dx%d * %d zoom => %dx%d out of %dx%d", x, y, zoom, click_x, click_y, zoom_image_width, zoom_image_height);
 
-  Debug(3, "Real image width = %d, height = %d", image->Width(), image->Height());
+    // These can go out of image. Resulting size will be less than base image. That's ok.
+    // We don't want to center it, we want to keep the relative offset from center where the click is.
+    int left_dist = base_image_width * x_percent/ZM_SCALE_BASE;
+    int top_dist = base_image_height * y_percent/ZM_SCALE_BASE;
+    Debug(2, "Dest at %d,%d", left_dist, top_dist);
 
-  if ( disp_image_width < virt_image_width || disp_image_height < virt_image_height ) {
-    static Box last_crop;
+    int lo_x = click_x - left_dist;
+    int hi_x = lo_x + base_image_width;
+    Debug(2, "hi_x = lo_x %d + base_image_width %d - left_dist %d = %d", lo_x, base_image_width, left_dist, hi_x);
+    int lo_y = click_y - top_dist;
+    int hi_y = lo_y + base_image_height;
+    Debug(2, "hi_y = lo_y %d + base_image_h %d - top_dist %d = %d", lo_y, base_image_height, top_dist, hi_y);
 
-    if ( mag != last_mag || x != last_x || y != last_y ) {
-      Debug(3, "Got click at %d,%d x %d", x, y, mag);
+    int amount_to_shrink_y = 0;
+    if (lo_x < 0) {
+      amount_to_shrink_y = (-1 * lo_x) * base_image_height / base_image_width;
+      lo_x = 0;
+    } else if (hi_x >= zoom_image_width) {
+      amount_to_shrink_y = (hi_x - zoom_image_width) * base_image_height / base_image_width;
+      hi_x = zoom_image_width - 1;
+    }
+    Debug(1, "Shrinking y by %d from %d,%d to %d,%d", amount_to_shrink_y, lo_y, hi_y, lo_y+(amount_to_shrink_y/2), hi_y-(amount_to_shrink_y/2));
+    if (amount_to_shrink_y) {
+      lo_y += amount_to_shrink_y/2;
+      hi_y -= amount_to_shrink_y/2;
+    }
 
-      if ( !(last_disp_image_width < last_virt_image_width || last_disp_image_height < last_virt_image_height) )
-        last_crop = Box();
+    int amount_to_shrink_x = 0;
+    if (lo_y < 0) {
+      amount_to_shrink_x = (-1 * lo_y) * base_image_width / base_image_height;
+      Debug(1, "%d to %d = %d", lo_y, -1*lo_y, amount_to_shrink_x);
+      lo_y = 0;
+    } else if (hi_y >= zoom_image_height) {
+      amount_to_shrink_x = (hi_y - zoom_image_height) * base_image_width / base_image_height;
+      hi_y = zoom_image_height - 1;
+    }
+    Debug(1, "Shrinking x by %d from %d,%d to %d,%d", amount_to_shrink_x, lo_x, hi_x, lo_x+(amount_to_shrink_x/2), hi_x-(amount_to_shrink_x/2));
+    if (amount_to_shrink_x) {
+      lo_x += amount_to_shrink_x/2;
+      hi_x -= amount_to_shrink_x/2;
+    }
 
-      // Recalculate crop parameters, as %ges
-      int click_x = (last_crop.Lo().x_ * 100) / last_act_image_width; // Initial crop offset from last image
-      click_x += (x * 100) / last_virt_image_width;
-      int click_y = (last_crop.Lo().y_ * 100) / last_act_image_height; // Initial crop offset from last image
-      click_y += (y * 100) / last_virt_image_height;
-      Debug(3, "Got adjusted click at %d%%,%d%%", click_x, click_y);
-
-      // Convert the click locations to the current image pixels
-      click_x = ( click_x * act_image_width ) / 100;
-      click_y = ( click_y * act_image_height ) / 100;
-      Debug(3, "Got readjusted click at %d,%d", click_x, click_y);
-
-      int lo_x = click_x - (send_image_width/2);
-      if ( lo_x < 0 )
-        lo_x = 0;
-      int hi_x = lo_x + (send_image_width-1);
-      if ( hi_x >= act_image_width ) {
-        hi_x = act_image_width - 1;
-        lo_x = hi_x - (send_image_width - 1);
-      }
-
-      int lo_y = click_y - (send_image_height/2);
-      if ( lo_y < 0 ) lo_y = 0;
-      int hi_y = lo_y + (send_image_height-1);
-      if ( hi_y >= act_image_height ) {
-        hi_y = act_image_height - 1;
-        lo_y = hi_y - (send_image_height - 1);
-      }
-      last_crop = Box({lo_x, lo_y}, {hi_x, hi_y});
-    }  // end if ( mag != last_mag || x != last_x || y != last_y )
+    Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
+    // Scaled back to base_image dimensions
+    last_crop = Box({lo_x*ZM_SCALE_BASE/zoom, lo_y*ZM_SCALE_BASE/zoom}, {hi_x*ZM_SCALE_BASE/zoom, hi_y*ZM_SCALE_BASE/zoom});
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {
@@ -243,7 +227,16 @@ Image *StreamBase::prepareImage(Image *image) {
       image_copied = true;
     }
     image->Crop(last_crop);
-  }  // end if difference in image vs displayed dimensions
+    image->Scale(disp_image_width, disp_image_height);
+  } else if (scale != ZM_SCALE_BASE) {
+    Debug(3, "scaling by %d from %dx%d", scale, image->Width(), image->Height());
+    static Image copy_image;
+    copy_image.Assign(*image);
+    image = &copy_image;
+    image_copied = true;
+    image->Scale(scale);
+  }
+  Debug(3, "Sending %dx%d", image->Width(), image->Height());
 
   last_scale = scale;
   last_zoom = zoom;
@@ -281,7 +274,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
   if (type == STREAM_MPEG) {
     if (!vid_stream) {
       vid_stream = new VideoStream("pipe:", format, bitrate, effective_fps, image.Colours(), image.SubpixelOrder(), image.Width(), image.Height());
-      fprintf(stdout, "Content-type: %s\r\n\r\n", vid_stream->MimeType());
+      fprintf(stdout, "Content-Type: %s\r\n\r\n", vid_stream->MimeType());
       vid_stream->OpenStream();
     }
     /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
@@ -292,10 +285,17 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     image.EncodeJpeg(buffer, &n_bytes);
     Debug(4, "Encoded to %d bytes", n_bytes);
 
-    fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout);
-    fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes);
-    if (fwrite(buffer, n_bytes, 1, stdout) != 1) {
-      Error("Unable to send stream text frame: %s", strerror(errno));
+    if (0 > fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout)) {
+      Debug(1, "Error sending  --" BOUNDARY "\r\nContent-Type: image/jpeg\r\n");
+      return false;
+    }
+    if (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes)) {
+      Debug(1, "Error sending Content-Length: %d\r\n\r\n", n_bytes);
+      return false;
+    }
+    int rc = fwrite(buffer, n_bytes, 1, stdout);
+    if (rc != 1) {
+      Error("Unable to send stream text frame: %d %s", rc, strerror(errno));
       return false;
     }
     fputs("\r\n\r\n", stdout);
@@ -386,9 +386,12 @@ void StreamBase::openComms() {
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
-    last_comm_update = std::chrono::system_clock::now();
+    struct timeval tv{1,0}; /* 1 Secs Timeout */
+    setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv, sizeof(struct timeval));
+
+    last_comm_update = std::chrono::steady_clock::now();
+    Debug(3, "comms open at %s", loc_sock_path);
   } // end if connKey > 0
-  Debug(3, "comms open at %s", loc_sock_path);
 } // end void StreamBase::openComms()
 
 void StreamBase::closeComms() {
@@ -397,13 +400,19 @@ void StreamBase::closeComms() {
       close(sd);
       sd = -1;
     }
-    if ( loc_sock_path[0] ) {
-      unlink(loc_sock_path);
-    }
+    // Can't delete any files because another zms might have come along and opened them and is waiting on the lock.
     if ( lock_fd > 0 ) {
       close(lock_fd); //close it rather than unlock it incase it got deleted.
-      // You cannot unlink the lockfile.  You have to leave a mess around.  SUCKS
-      //unlink(sock_path_lock);
     }
   }
 } // end void StreamBase::closeComms
+
+void StreamBase::reserveTempImgBuffer(size_t size)
+{
+  if (temp_img_buffer_size < size) {
+    Debug(1, "Resizing image buffer from %zu to %zu", temp_img_buffer_size, size);
+    delete[] temp_img_buffer;
+    temp_img_buffer = new uint8_t[size];
+    temp_img_buffer_size = size;
+  }
+}

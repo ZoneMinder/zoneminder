@@ -2,3 +2,27 @@
   width: 50%;
   float: left;
 }
+
+#GroupsPermissions,
+#MonitorsPermissions {
+  clear:both;
+}
+
+.Groups .name,
+.Monitors .name {
+  min-width: 200px;
+}
+.Groups .permission,
+.Monitors .permission {
+  min-width: 400px;
+}
+
+.table th {
+  text-align: right;
+  vertical-align: middle;
+}
+
+#contentForm {
+  overflow: auto;
+  height: 100%;
+}

@@ -25,16 +25,15 @@ var streamCmdTimer = null;
 var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
-var auth_hash;
 var wasHidden = false;
 
 function streamReq(data) {
-  if ( auth_hash ) data.auth = auth_hash;
+  if (auth_hash) data.auth = auth_hash;
   data.connkey = connKey;
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(thisUrl, data)
+  $j.getJSON(monitorUrl, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -49,30 +48,44 @@ function vjsReplay() {
       break;
     case 'all':
       if ( nextEventId == 0 ) {
-        var overLaid = $j("#videoobj");
+        const overLaid = $j('#videoobj');
         overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;">No more events</p>');
       } else {
-        var endTime = (Date.parse(eventData.EndDateTime)).getTime();
-        var nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
-        if ( nextStartTime <= endTime ) {
+        if (!eventData.EndDateTime) {
+          // No EndTime but have a next event, just go to it.
           streamNext(true);
           return;
         }
-        var overLaid = $j("#videoobj");
-        vid.pause();
-        overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-        var gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
-        var messageP = $j('.vjsMessage');
-        var x = setInterval(function() {
-          var now = new Date().getTime();
-          var remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
-          messageP.html(remainder + ' to next event.');
-          if ( remainder < 0 ) {
-            clearInterval(x);
+        const date = Date.parse(eventData.EndDateTime);
+        if (!date) {
+          console.error('Got no date from ', eventData);
+          streamNext(true);
+          return;
+        } else if (typeof date.getTime === 'undefined') {
+          console.log("Failed to get valid date object from EndDateTime in ", eventData);
+        } else {
+          const endTime = date.getTime();
+          const nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+          if ( nextStartTime <= endTime ) {
             streamNext(true);
+            return;
           }
-        }, 1000);
-      }
+          vid.pause();
+          const overLaid = $j("#videoobj");
+          overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
+          const gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+          const messageP = $j('.vjsMessage');
+          const x = setInterval(function() {
+            const now = new Date().getTime();
+            const remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
+            messageP.html(remainder + ' to next event.');
+            if ( remainder < 0 ) {
+              clearInterval(x);
+              streamNext(true);
+            }
+          }, 1000);
+        } // end if valid date object
+      } // end if have nextEventId
       break;
     case 'gapless':
       streamNext(true);
@@ -88,19 +101,38 @@ function initialAlarmCues(eventId) {
 }
 
 function setAlarmCues(data) {
-  cueFrames = data.frames;
-  alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
-  $j(".alarmCue").html(alarmSpans);
+  if (!data) {
+    Error('No data in setAlarmCues for event ' + eventData.Id);
+  } else if (!data.frames) {
+    Error('No data.frames in setAlarmCues for event ' + eventData.Id);
+  } else {
+    cueFrames = data.frames;
+    alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
+    $j('#alarmCues').html(alarmSpans);
+  }
 }
 
 function renderAlarmCues(containerEl) {
-  if ( !( cueFrames && cueFrames.length ) ) {
+  let html = '';
+
+  cues_div = document.getElementById('alarmCues');
+  const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
+  const span_count = 10;
+  const span_seconds = parseInt(event_length / span_count);
+  const span_width = parseInt(containerEl.width() / span_count);
+  const date = new Date(eventData.StartDateTime);
+  for (let i=0; i < span_count; i += 1) {
+    html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
+    date.setTime(date.getTime() + span_seconds*1000);
+  }
+
+  if (!(cueFrames && cueFrames.length)) {
     console.log('No cue frames for event');
-    return;
+    return html;
   }
   // This uses the Delta of the last frame to get the length of the event.  I can't help but wonder though
   // if we shouldn't just use the event length endtime-starttime
-  var cueRatio = containerEl.width() / (cueFrames[cueFrames.length - 1].Delta * 100);
+  var cueRatio = containerEl.width() / (event_length * 100);
   var minAlarm = Math.ceil(1/cueRatio);
   var spanTimeStart = 0;
   var spanTimeEnd = 0;
@@ -109,22 +141,28 @@ function renderAlarmCues(containerEl) {
   var pixSkew = 0;
   var skip = 0;
   var num_cueFrames = cueFrames.length;
-  for ( var i = 0; i < num_cueFrames; i++ ) {
+  let left = 0;
+
+  for (let i=0; i < num_cueFrames; i++) {
     skip = 0;
     frame = cueFrames[i];
-    if ( (frame.Type == 'Alarm') && (alarmed == 0) ) { //From nothing to alarm.  End nothing and start alarm.
+
+    if ((frame.Type == 'Alarm') && (alarmed == 0)) { //From nothing to alarm.  End nothing and start alarm.
       alarmed = 1;
       if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
       spanTimeEnd = frame.Delta * 100;
       spanTime = spanTimeEnd - spanTimeStart;
-      var pix = cueRatio * spanTime;
+      let pix = cueRatio * spanTime;
       pixSkew += pix - Math.round(pix);//average out the rounding errors.
       pix = Math.round(pix);
       if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      alarmHtml += '<span class="alarmCue noneCue" style="width: ' + pix + 'px;"></span>';
+
+      alarmHtml += '<span class="noneCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      left = parseInt((frame.Delta / event_length) * containerEl.width());
+      //console.log(left, frame.Delta, event_length, containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
       futNone = 0;
@@ -154,7 +192,8 @@ function renderAlarmCues(containerEl) {
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      left = parseInt((frame.Delta / event_length) * containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type == 'Alarm') && (alarmed == 1) && (i + 1 >= cueFrames.length) ) { //event ends on an alarm
       spanTimeEnd = frame.Delta * 100;
@@ -162,10 +201,11 @@ function renderAlarmCues(containerEl) {
       alarmed = 0;
       pix = Math.round(cueRatio * spanTime);
       if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
-      alarmHtml += '<span class="alarmCue" style="width: ' + pix + 'px;"></span>';
+
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
     }
   }
-  return alarmHtml;
+  return html + alarmHtml;
 }
 
 function changeCodec() {
@@ -177,11 +217,12 @@ function changeScale() {
   var newWidth;
   var newHeight;
   var autoScale;
-  var eventViewer= $j(vid ? '#videoobj' : '#evtStream');
-  var alarmCue = $j('div.alarmCue');
+  const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
+
+  var alarmCue = $j('#alarmCues');
   var bottomEl = $j('#replayStatus');
 
-  if ( scale == '0' || scale == 'auto' ) {
+  if (scale == '0') {
     var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
@@ -193,11 +234,14 @@ function changeScale() {
   }
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
-  if ( !vid ) { // zms needs extra sizing
+  if (!vid) { // zms needs extra sizing
     streamScale(scale == '0' ? autoScale : scale);
     drawProgressBar();
   }
-  alarmCue.html(renderAlarmCues(eventViewer));//just re-render alarmCues.  skip ajax call
+  if (cueFrames) {
+    //just re-render alarmCues.  skip ajax call
+    alarmCue.html(renderAlarmCues(eventViewer));
+  }
   setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
 
   // After a resize, check if we still have room to display the event stats table
@@ -266,7 +310,7 @@ function getCmdResponse(respObj, respText) {
   }
   if (streamStatus.progress > parseFloat(eventData.Length)) {
     console.log("Limiting progress to " + streamStatus.progress + ' >= ' + parseFloat(eventData.Length) );
-    streamStatus.progress = parseFloat(eventData.Length);
+    //streamStatus.progress = parseFloat(eventData.Length);
   } //Limit progress to reality
 
   var eventId = streamStatus.event;
@@ -299,11 +343,7 @@ function getCmdResponse(respObj, respText) {
   updateProgressBar();
 
   if (streamStatus.auth) {
-    // Try to reload the image stream.
-    var streamImg = $j('#evtStream');
-    if (streamImg) {
-      streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-    }
+    auth_hash = streamStatus.auth;
   } // end if haev a new auth hash
 
   streamCmdTimer = setTimeout(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
@@ -446,8 +486,11 @@ function streamFastRev(action) {
 function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
-    location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
-    return;
+    if (prevEventId != 0) {
+      if (vid==null) streamReq({command: CMD_QUIT});
+      location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
+      return;
+    }
 
     /* Ideally I'd like to get back to this style
     if ( vid && PrevEventDefVideoPath.indexOf("view_video") > 0 ) {
@@ -480,6 +523,7 @@ function streamNext(action) {
   // We used to try to dynamically update all the bits in the page, which is really complex
   // How about we just reload the page?
   //
+  if (vid==null) streamReq({command: CMD_QUIT});
   location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
   return;
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
@@ -544,6 +588,22 @@ function streamZoomIn(x, y) {
     vjsPanZoom('zoom', x, y);
   } else {
     streamReq({command: CMD_ZOOMIN, x: x, y: y});
+  }
+}
+
+function clickZoomOut(event) {
+  if (event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
+    streamZoomStop();
+  } else {
+    streamZoomOut();
+  }
+}
+
+function streamZoomStop() {
+  if (vid) {
+    vjsPanZoom('zoomOut');
+  } else {
+    streamReq({command: CMD_ZOOMSTOP});
   }
 }
 
@@ -619,8 +679,8 @@ function getNearEventsResponse(respObj, respText) {
   if (checkStreamForErrors('getNearEventsResponse', respObj)) {
     return;
   }
-  prevEventId = respObj.nearevents.PrevEventId;
-  nextEventId = respObj.nearevents.NextEventId;
+  prevEventId = parseInt(respObj.nearevents.PrevEventId);
+  nextEventId = parseInt(respObj.nearevents.NextEventId);
   prevEventStartTime = Date.parse(respObj.nearevents.PrevEventStartTime);
   nextEventStartTime = Date.parse(respObj.nearevents.NextEventStartTime);
   PrevEventDefVideoPath = respObj.nearevents.PrevEventDefVideoPath;
@@ -657,6 +717,7 @@ function getFrameResponse(respObj, respText) {
 
 function frameQuery(eventId, frameId, loadImage) {
   var data = {};
+  if (auth_hash) data.auth = auth_hash;
   data.loopback = loadImage;
   data.id = {eventId, frameId};
 
@@ -707,10 +768,6 @@ function renameEvent() {
   actQuery('rename', {eventName: newName});
 }
 
-function exportEvent() {
-  window.location.assign('?view=export&eid='+eventData.Id);
-}
-
 function showEventFrames() {
   window.location.assign('?view=frames&eid='+eventData.Id);
 }
@@ -722,7 +779,11 @@ function videoEvent() {
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
   var barWidth = $j('#evtStream').width();
-  $j('#progressBar').css('width', barWidth);
+  if (barWidth) {
+    $j('#progressBar').css('width', barWidth);
+  } else {
+    console.log("No bar width: " + barWidth);
+  }
 }
 
 // Shows current stream progress.
@@ -730,35 +791,79 @@ function updateProgressBar() {
   if (!(eventData && streamStatus)) {
     return;
   } // end if ! eventData && streamStatus
-  var curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
-  $j("#progressBox").css('width', curWidth + '%');
+  const curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+
+  const progressDate = new Date(eventData.StartDateTime);
+  progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
+
+  const progressBox = $j("#progressBox");
+  progressBox.css('width', curWidth + '%');
+  progressBox.attr('title', progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
 
 // Handles seeking when clicking on the progress bar.
 function progressBarNav() {
   $j('#progressBar').click(function(e) {
-    var x = e.pageX - $j(this).offset().left;
-    var seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    let x = e.pageX - $j(this).offset().left;
+    if (x<0) x=0;
+    const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    console.log("clicked at ", x, seekTime);
     streamSeek(seekTime);
+  });
+  $j('#progressBar').mouseover(function(e) {
+    let x = e.pageX - $j(this).offset().left;
+    if (x<0) x=0;
+    console.log(x);
+    const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    const indicator = document.getElementById('indicator');
+    indicator.style.display = 'block';
+    indicator.style.left = x + 'px';
+    indicator.setAttribute('title', seekTime);
+  });
+  $j('#progressBar').mouseout(function(e) {
+    const indicator = document.getElementById('indicator');
+    indicator.style.display = 'none';
+  });
+  $j('#progressBar').mousemove(function(e) {
+    const bar = $j(this);
+
+    let x = e.pageX - bar.offset().left;
+    if (x<0) x=0;
+    if (x > bar.width()) x = bar.width();
+
+    const seekTime = (x / bar.width()) * parseFloat(eventData.Length);
+
+    const indicator = document.getElementById('indicator');
+
+    const date = new Date(eventData.StartDateTime);
+    date.setTime(date.getTime() + (seekTime*1000));
+
+    indicator.innerHTML = date.toLocaleTimeString();
+    indicator.style.left = x+'px';
+    indicator.setAttribute('title', seekTime);
   });
 }
 
 function handleClick(event) {
-  var target = event.target;
-  var rect = target.getBoundingClientRect();
-  if (vid) {
-    if (target.id != 'videoobj') return; // ignore clicks on control bar
-    var x = event.offsetX;
-    var y = event.offsetY;
-  } else {
-    var x = event.page.x - rect.left;
-    var y = event.page.y - rect.top;
+  if (vid && (event.target.id != 'videoobj')) {
+    return; // ignore clicks on control bar
   }
+  // target should be the img tag
+  const target = $j(event.target);
+
+  const width = target.width();
+  const height = target.height();
+
+  const scaleX = parseInt(eventData.Width / width);
+  const scaleY = parseInt(eventData.Height / height);
+  const pos = target.offset();
+  const x = parseInt((event.pageX - pos.left) * scaleX);
+  const y = parseInt((event.pageY - pos.top) * scaleY);
 
   if (event.shift || event.shiftKey) { // handle both jquery and mootools
     streamPan(x, y);
-  } else if (vid && event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
-    vjsPanZoom('zoomOut', x, y);
+  } else if (event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
+    streamZoomOut();
   } else {
     streamZoomIn(x, y);
   }
@@ -767,14 +872,16 @@ function handleClick(event) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( !canEdit.Events ) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
 
+    pauseClicked();
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
+    $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
         .done(function(data) {
+          $j('#deleteConfirm').modal('hide');
           streamNext(true);
         })
         .fail(logAjaxFail);
@@ -811,15 +918,37 @@ function getStat() {
       case 'AlarmFrames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
         break;
+      case 'MonitorId':
+        if (canView["Monitors"]) {
+          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
+        } else {
+          tdString = eventData[key];
+        }
+        break;
+      case 'MonitorName':
+        if (canView["Monitors"]) {
+          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
+        } else {
+          tdString = eventData[key];
+        }
+        break;
       case 'MaxScore':
         tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
         break;
       case 'n/a':
         tdString = 'n/a';
         break;
+      case 'Path':
+        tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
+        break;
       case 'Archived':
       case 'Emailed':
         tdString = eventData[key] ? yesStr : noStr;
+        break;
+      case 'Length':
+        const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
+        date.setSeconds(eventData[key]);
+        tdString = date.toISOString().substr(11, 8);
         break;
       default:
         tdString = eventData[key];
@@ -872,10 +1001,10 @@ function initPage() {
   }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
-  if ($j('#videoobj').length) {
+  if (document.getElementById('videoobj')) {
     vid = videojs('videoobj');
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
-    $j('.vjs-progress-control').append('<div class="alarmCue"></div>');//add a place for videojs only on first load
+    //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
     vid.on('play', vjsPlay);
     vid.on('pause', pauseClicked);
@@ -885,7 +1014,7 @@ function initPage() {
     vid.on('volumechange', function() {
       setCookie('volume', vid.volume(), 3600);
     });
-    var cookie = getCookie('volume');
+    const cookie = getCookie('volume');
     if (cookie) vid.volume(cookie);
 
     vid.on('timeupdate', function() {
@@ -893,7 +1022,6 @@ function initPage() {
     });
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
-      console.log("rate change " + rate);
       $j('select[name="rate"]').val(rate);
       setCookie('zmEventRate', rate, 3600);
     });
@@ -907,12 +1035,12 @@ function initPage() {
     progressBarNav();
     streamCmdTimer = setTimeout(streamQuery, 500);
     if (canStreamNative) {
-      if (!$j('#imageFeed')) {
-        console.log('No element with id tag imageFeed found.');
+      if (!$j('#videoFeed')) {
+        console.log('No element with id tag videoFeed found.');
       } else {
-        var streamImg = $j('#imageFeed img');
+        let streamImg = $j('#videoFeed img');
         if (!streamImg) {
-          streamImg = $j('#imageFeed object');
+          streamImg = $j('#videoFeed object');
         }
         $j(streamImg).click(function(event) {
           handleClick(event);
@@ -920,12 +1048,13 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
+  if (scale == '0') changeScale();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
-  if (scale == '0' || scale == 'auto') changeScale();
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
     el.onchange = window['changeRate'];
   });
+
 
   // enable or disable buttons based on current selection and user rights
   renameBtn.prop('disabled', !canEdit.Events);
@@ -1018,6 +1147,12 @@ function initPage() {
     window.location.assign('?view=export&eids[]='+eventData.Id);
   });
 
+  // Manage the generateVideo button
+  bindButton('#videoBtn', 'click', null, function onVideoClick(evt) {
+    evt.preventDefault();
+    videoEvent();
+  });
+
   // Manage the Event STATISTICS Button
   bindButton('#statsBtn', 'click', null, function onStatsClick(evt) {
     evt.preventDefault();
@@ -1060,7 +1195,49 @@ function initPage() {
     }
     $j('#deleteConfirm').modal('show');
   });
+  document.addEventListener('fullscreenchange', fullscreenChangeEvent);
 } // end initPage
+
+document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
+
+function toggleZones(e) {
+  const zones = $j('#zones'+eventData.MonitorId);
+  const button = document.getElementById('toggleZonesButton');
+  if (zones.length) {
+    if (zones.is(":visible")) {
+      zones.hide();
+      button.setAttribute('title', showZonesString);
+      button.innerHTML = '<span class="material-icons">layers</span>';
+      setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
+    } else {
+      zones.show();
+      button.setAttribute('title', hideZonesString);
+      button.innerHTML = '<span class="material-icons">layers_clear</span>';
+      setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
+    }
+  } else {
+    console.error("Zones svg not found");
+  }
+}
+
+function fullscreenChangeEvent() {
+  const btn = document.getElementById('fullscreenBtn');
+  if (document.fullscreenElement) {
+    btn.firstElementChild.innerHTML = 'fullscreen_exit';
+    btn.setAttribute('title', translate["Exit Fullscreen"]);
+  } else {
+    btn.firstElementChild.innerHTML = 'fullscreen';
+    btn.setAttribute('title', translate["Fullscreen"]);
+  }
+}
+
+function fullscreenClicked() {
+  if (document.fullscreenElement) {
+    closeFullscreen();
+  } else {
+    openFullscreen(content);
+  }
+}
 
 // Kick everything off
 $j(document).ready(initPage);

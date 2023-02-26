@@ -87,11 +87,12 @@ define('ZM_PCRE', '@ZM_PCRE@');                       // PCRE support enabled
 //
 // Alarm states
 //
-define('STATE_IDLE', 0);
-define('STATE_PREALARM', 1);
-define('STATE_ALARM', 2);
-define('STATE_ALERT', 3);
-define('STATE_TAPE', 4);
+define('STATE_UNKNOWN', 0);
+define('STATE_IDLE', 1);
+define('STATE_PREALARM', 2);
+define('STATE_ALARM', 3);
+define('STATE_ALERT', 4);
+define('STATE_TAPE', 5);
 
 //
 // DVR Control Commands
@@ -117,7 +118,12 @@ define('CMD_PREV', 12);
 define('CMD_NEXT', 13);
 define('CMD_SEEK', 14 );
 define('CMD_VARPLAY', 15);
+define('CMD_GET_IMAGE', 16);
 define('CMD_QUIT', 17);
+define('CMD_MAXFPS', 18);
+define('CMD_ANALYZE_ON', 19);
+define('CMD_ANALYZE_OFF', 20);
+define('CMD_ZOOMSTOP', 21);
 define('CMD_QUERY', 99);
 
 //
@@ -130,15 +136,50 @@ define('SCALE_BASE', 100);           // The additional scaling factor used to he
 //
 // Date and time formats, not to be modified by language files
 //
-define('STRF_FMT_DATETIME_DB', '%Y-%m-%d %H:%M:%S');      // Strftime format for database queries, don't change
-define('MYSQL_FMT_DATETIME_SHORT', '%y/%m/%d %H:%i:%S');  // MySQL date_format shorter format for dates with time
+define('STRF_FMT_DATETIME_DB', 'Y-m-d H:i:s');      // Strftime format for database queries, don't change
+define('MYSQL_FMT_DATETIME_SHORT', 'Y/m/d H:i:s');  // MySQL date_format shorter format for dates with time
+
+global $dateFormatter;
+global $dateTimeFormatter;
+global $timeFormatter;
+$dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+$dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+$timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
 
 require_once('database.php');
 require_once('logger.php');
 loadConfig();
+if (ZM_LOCALE_DEFAULT) {
+  try {
+    if (ZM_TIMEZONE) {
+      $dateFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::NONE, ZM_TIMEZONE);
+      $dateTimeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::LONG, ZM_TIMEZONE);
+      $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG, ZM_TIMEZONE);
+    } else {
+      $dateFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+      $dateTimeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+      $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
+    }
+  } catch(Exception $e) {
+    ZM\Error($e->getMessage());
+    $dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+    $dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+    $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
+  }
+}
+if (ZM_DATE_FORMAT_PATTERN) {
+  $dateFormatter->setPattern(ZM_DATE_FORMAT_PATTERN);
+}
+if (ZM_DATETIME_FORMAT_PATTERN) {
+  $dateTimeFormatter->setPattern(ZM_DATETIME_FORMAT_PATTERN);
+}
+if (ZM_TIME_FORMAT_PATTERN) {
+  $timeFormatter->setPattern(ZM_TIME_FORMAT_PATTERN);
+}
 ZM\Logger::fetch()->initialise();
 
 $GLOBALS['defaultUser'] = array(
+  'Id'        => 0,
   'Username'  => 'admin',
   'Password'  => '',
   'Language'  => '',
@@ -161,7 +202,7 @@ function loadConfig( $defineConsts=true ) {
 
   $config = array();
 
-  $result = $dbConn->query('SELECT Name,Value FROM Config');
+  $result = $dbConn->query('SELECT Name,Value,Private FROM Config');
   if ( !$result )
     echo mysql_error();
   while( $row = dbFetchNext($result) ) {
@@ -179,25 +220,37 @@ function loadConfig( $defineConsts=true ) {
   return $config;
 } # end function loadConfig
 
+require_once('Server.php');
+#global $Servers;
+#global $thisServer;
+$Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
+$thisServer = null;
+
 // For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
-if ( ! defined('ZM_SERVER_ID') ) {
-	require_once('Server.php');
-  if ( defined('ZM_SERVER_NAME') and ZM_SERVER_NAME ) {
-		# Use Server lookup so that it caches
-		$Server = ZM\Server::find_one(array('Name'=>ZM_SERVER_NAME));
-    if ( !$Server ) {
-      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
-    } else {
-      define('ZM_SERVER_ID', $Server->Id());
+if (!defined('ZM_SERVER_ID')) {
+  if (defined('ZM_SERVER_NAME') and ZM_SERVER_NAME) {
+    foreach ($Servers as $s) {
+      if ($s->Name() == ZM_SERVER_NAME) {
+        $thisServer = $s;
+        define('ZM_SERVER_ID', $Server->Id());
+      }
     }
-  } else if ( defined('ZM_SERVER_HOST') and ZM_SERVER_HOST ) {
-		$Server = ZM\Server::find_one(array('Name'=>ZM_SERVER_HOST));
-    if ( ! $Server ) {
+    if (!$thisServer) {
+      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
+    }
+  } else if (defined('ZM_SERVER_HOST') and ZM_SERVER_HOST) {
+    foreach ($Servers as $s) {
+      if ($s->Name() == ZM_SERVER_HOST) {
+        $thisServer = $s;
+        define('ZM_SERVER_ID', $s->Id());
+      }
+    }
+    if (!$thisServer) {
       ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
-    } else {
-      define('ZM_SERVER_ID', $Server->Id());
     }
   }
+} else {
+  $thisServer = ZM\Server::find_one(['Id'=>ZM_SERVER_ID]); // Should be cached
 }
 
 if ( defined('ZM_TIMEZONE') and ZM_TIMEZONE )

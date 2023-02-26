@@ -156,21 +156,19 @@ sub loadConfigFromDB {
     print("Error: unable to load options from database: $DBI::errstr\n");
     return(0);
   }
-  my $sql = "select * from Config";
+  my $sql = 'SELECT * FROM Config';
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute()
     or croak( "Can't execute: ".$sth->errstr() );
   my $option_count = 0;
-  while( my $config = $sth->fetchrow_hashref() ) {
+  while ( my $config = $sth->fetchrow_hashref() ) {
     my ( $name, $value ) = ( $config->{Name}, $config->{Value} );
-    #print( "Name = '$name'\n" );
-    my $option = $options_hash{$name};
+    my $option = $ZoneMinder::ConfigData::options_hash{$name};
     if ( !$option ) {
       warn( "No option '$name' found, removing.\n" );
       next;
     }
-    #next if ( $option->{category} eq 'hidden' );
     if ( defined($value) ) {
       if ( $option->{type} == $types{boolean} ) {
         $option->{value} = $value?'yes':'no';
@@ -178,11 +176,11 @@ sub loadConfigFromDB {
         $option->{value} = $value;
       }
     }
-    $option_count++;;
+    $option_count++;
   }
   $sth->finish();
   print( " $option_count entries\n" );
-  return( $option_count );
+  return $option_count;
 } # end sub loadConfigFromDB
 
 sub saveConfigToDB {
@@ -203,7 +201,7 @@ sub saveConfigToDB {
   my $res = $dbh->do( $sql )
     or croak( "Can't do '$sql': ".$dbh->errstr() );
 
-  $sql = "replace into Config set Id = ?, Name = ?, Value = ?, Type = ?, DefaultValue = ?, Hint = ?, Pattern = ?, Format = ?, Prompt = ?, Help = ?, Category = ?, Readonly = ?, Requires = ?";
+  $sql = 'REPLACE INTO Config SET Id=?, Name=?, Value=?, Type=?, DefaultValue=?, Hint=?, Pattern=?, Format=?, Prompt=?, Help=?, Category=?, Readonly=?, Private=?, `System`=?, Requires=?';
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   foreach my $option ( @options ) {
@@ -240,6 +238,8 @@ sub saveConfigToDB {
         $option->{help},
         $option->{category},
         $option->{readonly} ? 1 : 0,
+        $option->{private} ? 1 : 0,
+        $option->{system} ? 1 : 0,
         $option->{db_requires}
         ) or croak("Can't execute when updating config entry $$option{name}: ".$sth->errstr() );
   } # end foreach option

@@ -194,7 +194,6 @@ sub getCamParams {
   }
 }
 
-#autoStop
 #This makes use of the ZoneMinder Auto Stop Timeout on the Control Tab
 sub autoStop {
   my $self = shift;
@@ -202,13 +201,19 @@ sub autoStop {
 
   if ( $autostop ) {
     Debug('Auto Stop');
-    my $cmd = 'onvif/PTZ';
-    my $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><PanTilt>true</PanTilt><Zoom>false</Zoom></Stop></s:Body></s:Envelope>';
-    my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
     usleep($autostop);
+
+    my $cmd = 'onvif/PTZ';
+    my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+
+    my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">'.((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '').'<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><ContinuousMove xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><Velocity><PanTilt x="0" y="0" xmlns="http://www.onvif.org/ver10/schema"/></Velocity></ContinuousMove></s:Body></s:Envelope>';
+    $self->sendCmd($cmd, $msg, $content_type);
+
+    # Reported to not work, so superceded by the cmd above
+    $msg = '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">' . ((%identity) ? authentificationHeader($identity{username}, $identity{password}) : '') . '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>' . $profileToken . '</ProfileToken><PanTilt>true</PanTilt><Zoom>false</Zoom></Stop></s:Body></s:Envelope>';
     $self->sendCmd($cmd, $msg, $content_type);
   }
-}
+} # end sub autoStop
 
 # Reset the Camera
 sub reset {

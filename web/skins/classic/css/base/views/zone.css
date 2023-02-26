@@ -1,11 +1,10 @@
-.monitor, #settingsPanel, .buttons, #zonePoints  {
-  float: left;
+#settingsPanel, .buttons, #zonePoints  {
   margin: 2px;
 }
-#settingsPanel,
-#zonePoints {
+#settingsPanel {
 	max-width: 600px;
   width: 50%;
+  float: right;
 }
 
 #zoneSettings {
@@ -21,34 +20,16 @@
 }
 
 #zoneSettings th[scope=row] {
-    padding: 4px 3px 3px;
-    vertical-align: top;
-    white-space: nowrap;
+  padding: 4px 3px 3px;
+  vertical-align: top;
+  white-space: nowrap;
 }
 
-#definitionPanel {
-    margin: 2px;
-    text-align: center;
-}
-#definitionPanel:after {
-  content: ".";
-  display: block;
-  height: 0;
-    font-size: 0;
-  clear: both;
-  visibility: hidden;
-}
-
-#definitionPanel input[type=submit],
-#definitionPanel input[type=submit] {
-  margin: 0 4px;
-}
-
-#imagePanel {
+#imageAndPoints {
+  position: relative;
+  min-width: 647px; /* extra 6 px for padding */
   float: left;
-    position: relative;
-    width: 50%;
-    min-width: 647px; /* extra 6 px for padding */
+  width: 50%;
 }
 
 /* NB: The size of the imageFrame determines the area within which the markers
@@ -58,6 +39,9 @@
 #imageFrame {
     position: relative;
     padding: 3px 4px 4px 3px;
+}
+#imageFrame .monitor {
+  width: 100%;
 }
 #imageFrame svg {
   box-sizing: border-box;
@@ -76,7 +60,7 @@
   padding: 1px;
 }
 
-#imageFrame div {
+#imageFrame div.zonePoint {
     position: absolute;
     width: 7px;
     height: 7px;
@@ -85,20 +69,20 @@
     z-index: 5;
 }
 
-#imageFrame div {
+#imageFrame div.zonePoint {
     background-image: url(../skins/classic/graphics/point-g.png);
 }
 
-#imageFrame div.highlight {
+#imageFrame div.zonePoint.highlight {
     background-image: url(../skins/classic/graphics/point-o.png);
 }
 
-#imageFrame div.active {
+#imageFrame div.zonePoint.active {
     background-image: url(../skins/classic/graphics/point-r.png);
 }
 
 #zonePoints {
-	float: left;
+  width: 100%;
 }
 
 #zonePoints td {

@@ -24,12 +24,13 @@ if ( !canEdit('Monitors') ) return;
 <div id="modalFunction" class="modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-    <form id="function_form" action="?view=function&action=function" method="post">
+    <form id="function_form" action="?view=function" method="post">
       <?php
       // We have to manually insert the csrf key into the form when using a modal generated via ajax call
       echo getCSRFinputHTML();
       ?>
       <input type="hidden" name="mid"/>
+      <input type="hidden" name="action" value="save"/>
       <div class="modal-header">
         <h5 class="modal-title"><?php echo translate('Function') ?> - <span id="function_monitor_name"></span></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -66,6 +67,26 @@ if ( !canEdit('Monitors') ) return;
 <?php
   if ( isset($OLANG['FUNCTION_DECODING_ENABLED']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_DECODING_ENABLED']['Help'].'</div>';
+  }
+?>
+
+        </div>
+        <div class="form-group" id="FunctionJanusEnabled">
+          <label for="newJanusEnabled"><?php echo translate('Janus Enabled') ?></label>
+          <input type="checkbox" name="newJanusEnabled" id="newJanusEnabled" value="1"/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_ENABLED']['Help'].'</div>';
+  }
+?>
+
+        </div>
+        <div class="form-group" id="FunctionJanusAudioEnabled">
+          <label for="newJanusAudioEnabled"><?php echo translate('Janus Audio Enabled') ?></label>
+          <input type="checkbox" name="newJanusAudioEnabled" id="newJanusAudioEnabled" value="1"/>
+<?php
+  if ( isset($OLANG['FUNCTION_JANUS_AUDIO_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_AUDIO_ENABLED']['Help'].'</div>';
   }
 ?>
 

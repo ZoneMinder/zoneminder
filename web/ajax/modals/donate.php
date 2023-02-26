@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web donate view file, $Date$, $Revision$
+// ZoneMinder web donate view file
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -18,18 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit('System') ) return;
-
-$options = array( 
-  'go'      => translate('DonateYes'),
-  'hour'    => translate('DonateRemindHour'),
-  'day'     => translate('DonateRemindDay'),
-  'week'    => translate('DonateRemindWeek'),
-  'month'   => translate('DonateRemindMonth'),
-  'never'   => translate('DonateRemindNever'),
-  'already' => translate('DonateAlready'),
-);
-
+if (!canEdit('System')) return;
 ?>
 <!-- Donate Modal -->
 <div class="modal fade" id="donate" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
@@ -53,7 +42,18 @@ $options = array(
           <?php echo translate('DonateEnticement') ?>
         </p>
         <p>
-          <?php echo buildSelect('option', $options); ?>
+<?php
+$options = array(
+  'go'      => translate('DonateYes'),
+  'hour'    => translate('DonateRemindHour'),
+  'day'     => translate('DonateRemindDay'),
+  'week'    => translate('DonateRemindWeek'),
+  'month'   => translate('DonateRemindMonth'),
+  'never'   => translate('DonateRemindNever'),
+  'already' => translate('DonateAlready'),
+);
+echo buildSelect('option', $options);
+?>
         </p>
       </div>
       <div class="modal-footer">
@@ -64,4 +64,3 @@ $options = array(
     </div>
   </div>
 </div>
-

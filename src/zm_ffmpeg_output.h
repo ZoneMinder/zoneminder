@@ -35,6 +35,7 @@ class FFmpeg_Output {
     int video_stream_id;
     int audio_stream_id;
     AVFormatContext *input_format_context;
+    av_frame_ptr frame;
 };
 
 #endif

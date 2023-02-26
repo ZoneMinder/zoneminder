@@ -241,11 +241,11 @@ Retrieve monitor 1
 Change State of Monitor 1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This API changes monitor 1 to Modect and Enabled
+This API changes monitor 1 to enable motion detection and recording on motion detection (similar to old Modect function)
 
 ::
 
-  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]=1"
+  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Analysing]=Always&Monitor[Recording]=OnMotion"
   
 Get Daemon Status of Monitor 1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -262,7 +262,9 @@ This command will add a new http monitor.
 ::
 
   curl -XPOST http://server/zm/api/monitors.json -d "Monitor[Name]=Cliff-Burton\
-  &Monitor[Function]=Modect\
+  &Monitor[Capturing]=Always\
+  &Monitor[Analysing]=Always\
+  &Monitor[Recording]=Always\
   &Monitor[Protocol]=http\
   &Monitor[Method]=simple\
   &Monitor[Host]=usr:pass@192.168.11.20\

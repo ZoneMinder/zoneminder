@@ -42,6 +42,7 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # will save memory.
 our %EXPORT_TAGS = (
     constants => [ qw(
+      STATE_UNKNOWN
       STATE_IDLE
       STATE_PREALARM
       STATE_ALARM
@@ -98,11 +99,12 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 
-use constant STATE_IDLE     => 0;
-use constant STATE_PREALARM => 1;
-use constant STATE_ALARM    => 2;
-use constant STATE_ALERT    => 3;
-use constant STATE_TAPE     => 4;
+use constant STATE_UNKNOWN  => 0;
+use constant STATE_IDLE     => 1;
+use constant STATE_PREALARM => 2;
+use constant STATE_ALARM    => 3;
+use constant STATE_ALERT    => 4;
+use constant STATE_TAPE     => 5;
 
 use constant ACTION_GET     => 1;
 use constant ACTION_SET     => 2;
@@ -141,7 +143,7 @@ our $arch = 32 + 32*( qx(uname -m) =~ /64/ );
 our $native = $arch/8;
 our $mem_seq = 0;
 
-our $mem_data = {
+our %mem_data = (
   shared_data => { type=>'SharedData', seq=>$mem_seq++, contents=> {
     size             => { type=>'uint32', seq=>$mem_seq++ },
     last_write_index => { type=>'int32', seq=>$mem_seq++ },
@@ -158,21 +160,27 @@ our $mem_data = {
     alarm_x          => { type=>'int32', seq=>$mem_seq++ },
     alarm_y          => { type=>'int32', seq=>$mem_seq++ },
     valid            => { type=>'uint8', seq=>$mem_seq++ },
-    active           => { type=>'uint8', seq=>$mem_seq++ },
+    capturing        => { type=>'uint8', seq=>$mem_seq++ },
+    analysing        => { type=>'uint8', seq=>$mem_seq++ },
+    recording        => { type=>'uint8', seq=>$mem_seq++ },
     signal           => { type=>'uint8', seq=>$mem_seq++ },
     format           => { type=>'uint8', seq=>$mem_seq++ },
+    reserved1        => { type=>'uint8', seq=>$mem_seq++ },
+    reserved2        => { type=>'uint8', seq=>$mem_seq++ },
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
     last_frame_score => { type=>'uint32', seq=>$mem_seq++ },
     audio_frequency  => { type=>'uint32', seq=>$mem_seq++ },
     audio_channels   => { type=>'uint32', seq=>$mem_seq++ },
     startup_time     => { type=>'time_t64', seq=>$mem_seq++ },
-    zmc_heartbeat_time  => { type=>'time_t64', seq=>$mem_seq++ },
+    heartbeat_time   => { type=>'time_t64', seq=>$mem_seq++ },
     last_write_time  => { type=>'time_t64', seq=>$mem_seq++ },
     last_read_time   => { type=>'time_t64', seq=>$mem_seq++ },
+    last_viewed_time => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
     alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
     video_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
     audio_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
+    janus_pin        => { type=>'int8[64]', seq=>$mem_seq++ },
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {
@@ -186,14 +194,14 @@ our $mem_data = {
   }
   },
   end => { seq=>$mem_seq++, size=>0 }
-};
+);
 
 our $mem_size = 0;
 
 sub zmMemInit {
   my $offset = 0;
 
-  foreach my $section_data ( sort { $a->{seq} <=> $b->{seq} } values( %$mem_data ) ) {
+  foreach my $section_data ( sort { $a->{seq} <=> $b->{seq} } values( %mem_data ) ) {
     $section_data->{offset} = $offset;
     $section_data->{align} = 0;
 
@@ -249,64 +257,49 @@ sub zmMemInit {
   }
 
   $mem_size = $offset;
-}
+} # end sub zmMemInit
 
 &zmMemInit();
 
 sub zmMemVerify {
   my $monitor = shift;
 
-  if ( !zmMemAttach($monitor, $mem_size) ) {
-    return undef;
-  }
-
-  my $sd_size = zmMemRead($monitor, 'shared_data:size', 1);
-  if ( $sd_size != $mem_data->{shared_data}->{size} ) {
-    if ( $sd_size ) {
-      Error( 'Shared data size conflict in shared_data for monitor '
-          .$monitor->{Name}
-          .', expected '
-          .$mem_data->{shared_data}->{size}
-          .', got '
-          .$sd_size
-          );
-    } else {
-      Debug( 'Shared data size conflict in shared_data for monitor '
-          .$monitor->{Name}
-          .', expected '
-          .$mem_data->{shared_data}->{size}
-          .', got '.$sd_size
-          );
-    }
-    return undef;
-  }
-  my $td_size = zmMemRead($monitor, 'trigger_data:size', 1);
-  if ( $td_size != $mem_data->{trigger_data}->{size} ) {
-    if ( $td_size ) {
-      Error( 'Shared data size conflict in trigger_data for monitor '
-          .$monitor->{Name}
-          .', expected '
-          .$mem_data->{triggger_data}->{size}
-          .', got '
-          .$td_size
-          );
-    } else {
-      Debug( 'Shared data size conflict in trigger_data for monitor '
-          .$monitor->{Name}
-          .', expected '
-          .$mem_data->{triggger_data}->{size}
-          .', got '
-          .$td_size
-          );
-    }
+  if (!zmMemAttach($monitor, $mem_size)) {
     return undef;
   }
   my $valid = zmMemRead($monitor, 'shared_data:valid', 1);
-  if ( !$valid ) {
-    Error("Shared data not valid for monitor $$monitor{Id}");
+  if (!$valid) {
+    zmMemInvalidate($monitor);
+    if (!zmMemAttach($monitor, $mem_size)) {
+      return undef;
+    }
+    $valid = zmMemRead($monitor, 'shared_data:valid', 1);
+    if (!$valid) {
+      Debug(1, "Shared data not valid for monitor $$monitor{Id}");
+      return undef;
+    }
+  } else {
+    Debug(4, "Shared data appears valid for monitor $$monitor{Id}: $valid");
+  }
+
+  my $sd_size = zmMemRead($monitor, 'shared_data:size', 1);
+  if ($sd_size != $mem_data{shared_data}->{size}) {
+    Error('Shared data size conflict in shared_data for monitor '
+      .$monitor->{Name}.', expected '.$mem_data{shared_data}->{size}
+      .', got '.$sd_size);
     return undef;
   } else {
-    Debug(3, "Shared data appears valid for monitor $$monitor{Id}: $valid");
+    Debug(4, 'Shared data size match for monitor '.$monitor->{Name}
+      .', expected '.$mem_data{shared_data}->{size}.', got '.$sd_size);
+  }
+  my $td_size = zmMemRead($monitor, 'trigger_data:size', 1);
+  if ( $td_size != $mem_data{trigger_data}->{size} ) {
+    Error('Shared data size conflict in trigger_data for monitor '.$monitor->{Name}
+      .', expected '.$mem_data{trigger_data}->{size}.', got '.$td_size);
+    return undef;
+  } else {
+    Debug(4, 'Shared data size match in trigger_data for monitor '.$monitor->{Name}
+      .', expected '.$mem_data{trigger_data}->{size}.', got '.$td_size);
   }
 
   return !undef;
@@ -324,9 +317,9 @@ sub zmMemRead {
     my ( $section, $element ) = split(/[\/:.]/, $field);
     Fatal("Invalid shared data selector '$field'") if ( !$section || !$element );
 
-    my $offset = $mem_data->{$section}->{contents}->{$element}->{offset};
-    my $type = $mem_data->{$section}->{contents}->{$element}->{type};
-    my $size = $mem_data->{$section}->{contents}->{$element}->{size};
+    my $offset = $mem_data{$section}->{contents}->{$element}->{offset};
+    my $type = $mem_data{$section}->{contents}->{$element}->{type};
+    my $size = $mem_data{$section}->{contents}->{$element}->{size};
 
     if (!defined $offset || !defined $type || !defined $size) {
         Error('Invalid field:'.$field.' setting to undef and exiting zmMemRead offset:'.$offset.' type:'.$type.' size:'.$size);
@@ -386,6 +379,8 @@ sub zmMemInvalidate {
   my $mem_key = zmMemKey($monitor);
   if ( $mem_key ) {
     zmMemDetach($monitor);
+  } else {
+    Debug("called zmMemInvalidate when already detached for $$monitor{Id} $$monitor{Name}");
   }
 } # end sub zmMemInvalidate
 
@@ -408,9 +403,9 @@ sub zmMemWrite {
       Fatal("Invalid shared data selector '$field'");
     }
 
-    my $offset = $mem_data->{$section}->{contents}->{$element}->{offset};
-    my $type = $mem_data->{$section}->{contents}->{$element}->{type};
-    my $size = $mem_data->{$section}->{contents}->{$element}->{size};
+    my $offset = $mem_data{$section}->{contents}->{$element}->{offset};
+    my $type = $mem_data{$section}->{contents}->{$element}->{type};
+    my $size = $mem_data{$section}->{contents}->{$element}->{size};
 
     my $data;
     if ( $type eq 'long' ) {
@@ -823,7 +818,9 @@ by monitor capture and analysis processes.
 shared_data       The general mapped memory section
 size              The size, in bytes, of this section
 valid             Flag indicating whether this section has been initialised
-active            Flag indicating whether this monitor is active (enabled/disabled)
+capturing         Flag indicating whether this monitor is presently capturing
+analysing         Flag indicating whether this monitor is presently analysing
+recording         Flag indicating whether this monitor is presently recording
 signal            Flag indicating whether this monitor is receiving a valid signal
 state             The current monitor state, see the STATE constants below
 last_write_index  The last index, in the image buffer, that an image has been saved to

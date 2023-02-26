@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     strategy:
@@ -19,14 +22,14 @@ jobs:
           - crypto_backend: gnutls
             jwt_backend: libjwt
     runs-on: ubuntu-latest
-    container: centos:8
+    container: rockylinux:8
 
     steps:
       - name: Enable RPMFusion, EPEL and PowerTools
         run: yum -y install "dnf-command(config-manager)" https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && yum config-manager --set-enabled powertools
       - name: Install git
         run: yum -y install git
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Install dependencies

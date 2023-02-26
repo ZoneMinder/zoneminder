@@ -48,8 +48,8 @@ class Fifo {
     {}
     ~Fifo();
 
-    static bool writePacket(std::string filename, const ZMPacket &packet);
-    static bool write(std::string filename, uint8_t *data, size_t size);
+    static bool writePacket(const std::string &filename, const ZMPacket &packet);
+    static bool write(const std::string &filename, uint8_t *data, size_t size);
 
     bool open();
     bool close();

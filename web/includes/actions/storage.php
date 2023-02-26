@@ -24,12 +24,12 @@ if ( !canEdit('System') ) {
   return;
 }
 
-if ( $action == 'save' ) {
+if ($action == 'save') {
   $storage = new ZM\Storage($_REQUEST['id']);
 
   $changes = $storage->changes($_REQUEST['newStorage']);
 
-  if ( count($changes) ) {
+  if (count($changes)) {
     $storage->save($changes);
     $refreshParent = true;
   }

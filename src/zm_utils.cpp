@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_logger.h"
 #include <array>
+#include <cctype>
 #include <cstdarg>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
@@ -122,13 +123,14 @@ std::string stringtf(const char* format, ...) {
   va_start(args, format);
   va_list args2;
   va_copy(args2, args);
-
-  int size = vsnprintf(nullptr, 0, format, args) + 1; // Extra space for '\0'
+  int size = vsnprintf(nullptr, 0, format, args);
   va_end(args);
 
-  if (size <= 0) {
+  if (size < 0) {
+    va_end(args2);
     throw std::runtime_error("Error during formatting.");
   }
+  size += 1; // Extra space for '\0'
 
   std::unique_ptr<char[]> buf(new char[size]);
   vsnprintf(buf.get(), size, format, args2);
@@ -252,8 +254,17 @@ void HwCapsDetect() {
 #elif defined(__arm__)
   // ARM processor in 32bit mode
   // To see if it supports NEON, we need to get that information from the kernel
+  #ifdef __linux__
   unsigned long auxval = getauxval(AT_HWCAP);
   if (auxval & HWCAP_ARM_NEON) {
+  #elif defined(__FreeBSD__)
+  unsigned long auxval = 0;
+  elf_aux_info(AT_HWCAP, &auxval, sizeof(auxval));
+  if (auxval & HWCAP_NEON) {
+  #else
+  {
+  #error Unsupported OS.
+  #endif
     Debug(1,"Detected ARM (AArch32) processor with Neon");
     neonversion = 1;
   } else {
@@ -369,6 +380,27 @@ std::string UriDecode(const std::string &encoded) {
   return retbuf;
 }
 
+std::string UriEncode(const std::string &value) {
+  const char *src = value.c_str();
+  std::string retbuf;
+  retbuf.reserve(value.length() * 3); // at most all characters get replaced with the escape
+
+  char tmp[5] = "";
+  while (*src) {
+    std::string::value_type c = *src;
+    if (c == ' ') {
+      retbuf.append("%%20");
+    } else if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+      retbuf.push_back(c);
+    } else {
+      snprintf(tmp, 4, "%%%02X", c);
+      retbuf.append(tmp);
+    }
+    src++;
+  }
+  return retbuf;
+}
+
 QueryString::QueryString(std::istream &input) {
   while (!input.eof() && input.peek() > 0) {
     //Should eat "param1="
@@ -431,4 +463,60 @@ std::string QueryString::parseValue(std::istream &input) {
   }
 
   return UriDecode(url_encoded_value);
+}
+
+std::string mask_authentication(const std::string &url) {
+  std::string masked_url = url;
+  std::size_t at_at = masked_url.find("@");
+  if (at_at == std::string::npos) {
+    return masked_url;
+  }
+  std::size_t password_at = masked_url.rfind(":", at_at);
+
+  if (password_at == std::string::npos) {
+    // no : means no http:// either so something liek username@192.168.1.1
+    masked_url.replace(0, at_at, at_at, '*');
+  } else if (masked_url[password_at+1] == '/') {
+    // no password, something like http://username@192.168.1.1
+    masked_url.replace(password_at+3, at_at-(password_at+3), at_at-(password_at+3), '*');
+  } else {
+    // have username and password, something like http://username:password@192.168.1.1/
+    masked_url.replace(password_at+1, at_at - (password_at+1), at_at - (password_at+1), '*');
+    std::size_t username_at = masked_url.rfind("/", password_at);
+    if (username_at == std::string::npos) {
+      // Something like username:password@192.168.1.1
+      masked_url.replace(0, password_at, password_at, '*');
+    } else {
+      masked_url.replace(username_at+1, password_at-(username_at+1), password_at-(username_at+1), '*');
+      // something like http://username:password@192.168.1.1/
+    }
+  }
+  return masked_url;
+}
+
+std::string remove_authentication(const std::string &url) {
+  std::size_t at_at = url.find("@");
+  if (at_at == std::string::npos) {
+    return url;
+  }
+  std::string result;
+  std::size_t password_at = url.rfind(":", at_at);
+
+  if (password_at == std::string::npos) {
+    // no : means no http:// either so something like username@192.168.1.1
+    result = url.substr(at_at+1);
+  } else if (url[password_at+1] == '/') {
+    // no password, something like http://username@192.168.1.1
+    result = url.substr(0, password_at+3) + url.substr(at_at+1);
+  } else {
+    std::size_t username_at = url.rfind("/", password_at);
+    if (username_at == std::string::npos) {
+      // Something like username:password@192.168.1.1
+      result = url.substr(at_at+1);
+    } else {
+      // have username and password, something like http://username:password@192.168.1.1/
+      result = url.substr(0, username_at+1) + url.substr(at_at+1);
+    }
+  }
+  return result;
 }

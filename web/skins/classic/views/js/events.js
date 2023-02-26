@@ -35,20 +35,37 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  if ( params.data && params.data.filter ) {
+  if (params.data && params.data.filter) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }
-  $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
-      .done(function(data) {
-        var rows = processRows(data.rows);
-        // rearrange the result into what bootstrap-table expects
-        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
-      })
-      .fail(function(jqXHR) {
-        logAjaxFail(jqXHR);
-        $j('#eventTable').bootstrapTable('refresh');
-      });
+  $j('#fieldsTable input').each(function(index) {
+    const el = $j(this);
+    params.data[el.attr('name')] = el.val();
+  });
+  $j('#fieldsTable select').each(function(index) {
+    const el = $j(this);
+    params.data[el.attr('name')] = el.children('option:selected').val();
+  });
+  $j.ajax({
+    url: thisUrl + '?view=request&request=events&task=query'+filterQuery,
+    data: params.data,
+    timeout: 0,
+    success: function(data) {
+      if (data.result == 'Error') {
+        alert(data.message);
+        return;
+      }
+      var rows = processRows(data.rows);
+      // rearrange the result into what bootstrap-table expects
+      params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+    },
+    error: function(jqXHR) {
+      console.log("error", jqXHR);
+      //logAjaxFail(jqXHR);
+      //$j('#eventTable').bootstrapTable('refresh');
+    }
+  });
 }
 
 function processRows(rows) {
@@ -59,17 +76,22 @@ function processRows(rows) {
 
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>' +
-        '<br/><div class="small text-nowrap text-muted">' + archived + emailed + '</div>';
+        '<br/><div class="small text-muted">' + archived + emailed + '</div>';
     if ( canEdit.Monitors ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
     if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( row.Notes.indexOf('detected:') >= 0 ) {
-      row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-nowrap text-muted"><u>' + row.Notes + '</u></div></div></a>';
+      row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted"><u>' + row.Notes + '</u></div></div></a>';
     } else if ( row.Notes != 'Forced Web: ' ) {
-      row.Cause = row.Cause + '<br/><div class="small text-nowrap text-muted">' + row.Notes + '</div>';
+      row.Cause = row.Cause + '<br/><div class="small text-muted">' + row.Notes + '</div>';
     }
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+
+    const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
+    date.setSeconds(row.Length);
+    row.Length = date.toISOString().substr(11, 8);
+
     if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
   });
 
@@ -78,7 +100,7 @@ function processRows(rows) {
 
 // Returns the event id's of the selected rows
 function getIdSelections() {
-  var table = $j('#eventTable');
+  const table = $j('#eventTable');
 
   return $j.map(table.bootstrapTable('getSelections'), function(row) {
     return row.Id.replace(/(<([^>]+)>)/gi, ''); // strip the html from the element before sending
@@ -91,7 +113,7 @@ function getArchivedSelections() {
   var selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
     return row.Archived;
   });
-  return selection.includes("Yes");
+  return selection.includes('Yes');
 }
 
 // Load the Delete Confirmation Modal HTML via Ajax call
@@ -101,35 +123,63 @@ function getDelConfirmModal() {
         insertModalHtml('deleteConfirm', data.html);
         manageDelConfirmModalBtns();
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR) {
+        console.log('error getting delconfirm', jqXHR);
+        logAjaxFail(jqXHR);
+      });
 }
 
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
-  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEdit.Events ) {
+  document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
-
-    var selections = getIdSelections();
-
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
-        .done( function(data) {
-          $j('#eventTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
-        })
-        .fail( function(jqxhr) {
-          logAjaxFail(jqxhr);
-          $j('#eventTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
-        });
+
+    const selections = getIdSelections();
+    if (!selections.length) {
+      alert('Please select events to delete.');
+    } else {
+      deleteEvents(selections);
+    }
   });
 
   // Manage the CANCEL modal button
-  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
+  document.getElementById('delCancelBtn').addEventListener('click', function onDelCancelClick(evt) {
     $j('#deleteConfirm').modal('hide');
+  });
+}
+
+function deleteEvents(event_ids) {
+  const ticker = document.getElementById('deleteProgressTicker');
+  const chunk = event_ids.splice(0, 10);
+  console.log('Deleting ' + chunk.length + ' selections. ' + event_ids.length);
+
+  $j.ajax({
+    method: 'get',
+    timeout: 0,
+    url: thisUrl + '?request=events&task=delete',
+    data: {'eids[]': chunk},
+    success: function(data) {
+      if (!event_ids.length) {
+        $j('#eventTable').bootstrapTable('refresh');
+        $j('#deleteConfirm').modal('hide');
+      } else {
+        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+          ticker.innerHTML = '.';
+        } else {
+          ticker.innerHTML = ticker.innerHTML + '.';
+        }
+        deleteEvents(event_ids);
+      }
+    },
+    fail: function(jqxhr) {
+      logAjaxFail(jqxhr);
+      $j('#eventTable').bootstrapTable('refresh');
+      $j('#deleteConfirm').modal('hide');
+    }
   });
 }
 
@@ -144,7 +194,10 @@ function getEventDetailModal(eid) {
           $j('#eventDetailForm').submit();
         });
       })
-      .fail(logAjaxFail);
+      .fail(function(jqxhr) {
+        console.log("Fail get event details");
+        logAjaxFail(jqxhr);
+      });
 }
 
 function getObjdetectModal(eid) {
@@ -153,12 +206,15 @@ function getObjdetectModal(eid) {
         insertModalHtml('objdetectModal', data.html);
         $j('#objdetectModal').modal('show');
       })
-      .fail(logAjaxFail);
+      .fail(function(jqxhr) {
+        console.log("Fail get objdetect details");
+        logAjaxFail(jqxhr);
+      });
 }
 
 function initPage() {
   // Remove the thumbnail column from the DOM if thumbnails are off globally
-  if ( !WEB_LIST_THUMBS ) $j('th[data-field="Thumbnail"]').remove();
+  if (!WEB_LIST_THUMBS) $j('th[data-field="Thumbnail"]').remove();
 
   // Load the delete confirmation modal into the DOM
   getDelConfirmModal();
@@ -167,7 +223,7 @@ function initPage() {
   table.bootstrapTable({icons: icons});
 
   // Hide these columns on first run when no cookie is saved
-  if ( !getCookie("zmEventsTable.bs.table.columns") ) {
+  if (!getCookie('zmEventsTable.bs.table.columns')) {
     table.bootstrapTable('hideColumn', 'Archived');
     table.bootstrapTable('hideColumn', 'Emailed');
   }
@@ -197,31 +253,31 @@ function initPage() {
   table.on('all.bs.table', initThumbAnimation);
 
   // Manage the BACK button
-  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+  document.getElementById('backBtn').addEventListener('click', function onBackClick(evt) {
     evt.preventDefault();
     window.history.back();
   });
 
   // Manage the REFRESH Button
-  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+  document.getElementById('refreshBtn').addEventListener('click', function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
   });
 
   // Manage the TIMELINE Button
-  document.getElementById("tlineBtn").addEventListener("click", function onTlineClick(evt) {
+  document.getElementById('tlineBtn').addEventListener('click', function onTlineClick(evt) {
     evt.preventDefault();
     window.location.assign('?view=timeline'+filterQuery);
   });
 
   // Manage the FILTER Button
-  document.getElementById("filterBtn").addEventListener("click", function onFilterClick(evt) {
+  document.getElementById('filterBtn').addEventListener('click', function onFilterClick(evt) {
     evt.preventDefault();
     window.location.assign('?view=filter'+filterQuery);
   });
 
   // Manage the VIEW button
-  document.getElementById("viewBtn").addEventListener("click", function onViewClick(evt) {
+  document.getElementById('viewBtn').addEventListener('click', function onViewClick(evt) {
     var selections = getIdSelections();
 
     evt.preventDefault();
@@ -230,84 +286,100 @@ function initPage() {
   });
 
   // Manage the ARCHIVE button
-  document.getElementById("archiveBtn").addEventListener("click", function onArchiveClick(evt) {
-    var selections = getIdSelections();
+  document.getElementById('archiveBtn').addEventListener('click', function onArchiveClick(evt) {
+    const selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+selections.join('&eids[]='))
-        .done( function(data) {
-          $j('#eventTable').bootstrapTable('refresh');
-        })
-        .fail(logAjaxFail);
+    $j.ajax({
+      method: 'POST',
+      timeout: 0,
+      url: thisUrl + '?request=events&task=archive',
+      data: {'eids[]': selections},
+      success: function(data) {
+        $j('#eventTable').bootstrapTable('refresh');
+      },
+      fail: logAjaxFail
+    });
   });
 
   // Manage the UNARCHIVE button
-  document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
-    if ( ! canEdit.Events ) {
+  document.getElementById('unarchiveBtn').addEventListener('click', function onUnarchiveClick(evt) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
 
-    var selections = getIdSelections();
-    //console.log(selections);
+    const selections = getIdSelections();
 
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+selections.join('&eids[]='))
-        .done( function(data) {
-          $j('#eventTable').bootstrapTable('refresh');
-        })
-        .fail(logAjaxFail);
+    $j.ajax({
+      method: 'POST',
+      timeout: 0,
+      url: thisUrl + '?request=events&task=unarchive',
+      data: {'eids[]': selections},
+      success: function(data) {
+        $j('#eventTable').bootstrapTable('refresh');
+      },
+      error: logAjaxFail
+    });
   });
 
   // Manage the EDIT button
-  document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
-    if ( ! canEdit.Events ) {
+  document.getElementById('editBtn').addEventListener('click', function onEditClick(evt) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
 
-    var selections = getIdSelections();
-
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=modal&modal=eventdetail&eids[]='+selections.join('&eids[]='))
-        .done(function(data) {
-          insertModalHtml('eventDetailModal', data.html);
-          $j('#eventDetailModal').modal('show');
-          // Manage the Save button
-          $j('#eventDetailSaveBtn').click(function(evt) {
-            evt.preventDefault();
-            $j('#eventDetailForm').submit();
-          });
-        })
-        .fail(logAjaxFail);
+    $j.ajax({
+      method: 'POST',
+      timeout: 0,
+      url: thisUrl + '?request=modal&modal=eventdetail',
+      data: {'eids[]': getIdSelections()},
+      success: function(data) {
+        insertModalHtml('eventDetailModal', data.html);
+        $j('#eventDetailModal').modal('show');
+        // Manage the Save button
+        $j('#eventDetailSaveBtn').click(function(evt) {
+          evt.preventDefault();
+          $j('#eventDetailForm').submit();
+        });
+      },
+      error: logAjaxFail
+    });
   });
 
   // Manage the EXPORT button
-  document.getElementById("exportBtn").addEventListener("click", function onExportClick(evt) {
-    var selections = getIdSelections();
+  document.getElementById('exportBtn').addEventListener('click', function onExportClick(evt) {
+    const selections = getIdSelections();
 
+    // FIXME must be a post if too many eids
     evt.preventDefault();
     window.location.assign('?view=export&eids[]='+selections.join('&eids[]='));
   });
 
   // Manage the DOWNLOAD VIDEO button
-  document.getElementById("downloadBtn").addEventListener("click", function onDownloadClick(evt) {
-    var selections = getIdSelections();
-
+  document.getElementById('downloadBtn').addEventListener('click', function onDownloadClick(evt) {
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=modal&modal=download&eids[]='+selections.join('&eids[]='))
-        .done(function(data) {
-          insertModalHtml('downloadModal', data.html);
-          $j('#downloadModal').modal('show');
-          // Manage the GENERATE DOWNLOAD button
-          $j('#exportButton').click(exportEvent);
-        })
-        .fail(logAjaxFail);
+    $j.ajax({
+      method: 'POST',
+      timeout: 0,
+      url: thisUrl + '?request=modal&modal=download',
+      data: {'eids[]': getIdSelections()},
+      success: function(data) {
+        insertModalHtml('downloadModal', data.html);
+        $j('#downloadModal').modal('show');
+        // Manage the GENERATE DOWNLOAD button
+        $j('#exportButton').click(exportEvent);
+      },
+      error: logAjaxFail,
+    });
   });
 
   // Manage the DELETE button
-  document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
-    if ( ! canEdit.Events ) {
+  document.getElementById('deleteBtn').addEventListener('click', function onDeleteClick(evt) {
+    if (!canEdit.Events) {
       enoperm();
       return;
     }
@@ -319,28 +391,51 @@ function initPage() {
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
     // Manage the Object Detection links in the events list
-    $j(".objDetectLink").click(function(evt) {
+    $j('.objDetectLink').click(function(evt) {
       evt.preventDefault();
-      var eid = $j(this).data('eid');
-      getObjdetectModal(eid);
+      getObjdetectModal($j(this).data('eid'));
     });
 
     // Manage the eventdetail links in the events list
-    $j(".eDetailLink").click(function(evt) {
+    $j('.eDetailLink').click(function(evt) {
       evt.preventDefault();
-      var eid = $j(this).data('eid');
-      getEventDetailModal(eid);
+      getEventDetailModal($j(this).data('eid'));
     });
 
     var thumb_ndx = $j('#eventTable tr th').filter(function() {
       return $j(this).text().trim() == 'Thumbnail';
     }).index();
-    table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
+    table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
+  });
+
+  $j('#fieldsTable input, #fieldsTable select').each(function(index) {
+    el = $j(this);
+    el.on('change', filterEvents);
+    if (el.hasClass('datetimepicker')) {
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
+    }
+    if (el.hasClass('datepicker')) {
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
+    }
   });
 
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
+}
+
+function filterEvents() {
+  filterQuery = '';
+  $j('#fieldsTable input').each(function(index) {
+    const el = $j(this);
+    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
+  });
+  $j('#fieldsTable select').each(function(index) {
+    const el = $j(this);
+    filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
+  });
+  console.log(filterQuery);
+  table.bootstrapTable('refresh');
 }
 
 $j(document).ready(function() {

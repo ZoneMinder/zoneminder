@@ -2147,7 +2147,7 @@ Returns a L<ONVIF::Media::Elements::GetAudioOutputsResponse|ONVIF::Media::Elemen
 
 =head3 CreateProfile
 
-This operation creates a new empty media profile. The media profile shall be created in the device and shall be persistent (remain after reboot). A created profile shall be deletable and a device shall set the “fixed” attribute to false in the returned Profile.
+This operation creates a new empty media profile. The media profile shall be created in the device and shall be persistent (remain after reboot). A created profile shall be deletable and a device shall set the "fixed" attribute to false in the returned Profile.
 
 Returns a L<ONVIF::Media::Elements::CreateProfileResponse|ONVIF::Media::Elements::CreateProfileResponse> object.
 

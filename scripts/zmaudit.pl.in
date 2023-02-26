@@ -445,7 +445,10 @@ MAIN: while( $loop ) {
       }
 
       if ( ! $$Storage{Scheme} ) {
-        Error("Storage Scheme not set on $$Storage{Name}");
+        Error("Storage Scheme not set on $$Storage{Name}, defaulting to shallow");
+        $$Storage{Scheme} = 'Shallow';
+      }
+      if ($$Storage{Scheme} eq 'Shallow') {
         if ( ! chdir($monitor_dir) ) {
           Error("Can't chdir directory '$$Storage{Path}/$monitor_dir': $!");
           next;
@@ -689,6 +692,10 @@ if ( $level > 1 ) {
     if ( $res = $selectEmptyEventsSth->execute() ) {
       while( my $event = $selectEmptyEventsSth->fetchrow_hashref() ) {
         aud_print("Found empty event with no frame records '$event->{Id}' at $$event{StartDateTime}");
+        if ($$event{Archived}) {
+          aud_print("Not deleting because it is archived.");
+          next;
+        }
         if ( confirm() ) {
           if ( $res = $deleteEventSth->execute($event->{Id}) ) {
             $cleaned = 1;
@@ -830,7 +837,7 @@ FROM `Frames` WHERE `EventId`=?';
 
 # Now delete any old image files
   if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> ) {
-    aud_print('Deleting '.int(@old_files)." old images\n");
+    aud_print('Deleting '.int(@old_files).' old images');
     my $untainted_old_files = join( ';', @old_files );
     ( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
     unlink( split( /;/, $untainted_old_files ) );
@@ -858,7 +865,7 @@ FROM `Frames` WHERE `EventId`=?';
         $res = $deleteLogByRowsSth->execute( $logRows - $Config{ZM_LOG_DATABASE_LIMIT} )
           or Fatal("Can't execute: ".$deleteLogByRowsSth->errstr());
         if ( $deleteLogByRowsSth->rows() ) {
-          aud_print('Deleted '.$deleteLogByRowsSth->rows() ." log table entries by count\n");
+          aud_print('Deleted '.$deleteLogByRowsSth->rows().' log table entries by count');
         }
       }
     } else {
@@ -878,7 +885,7 @@ FROM `Frames` WHERE `EventId`=?';
         $res = $deleteLogByTimeSth->execute()
           or Fatal("Can't execute: ".$deleteLogByTimeSth->errstr());
         $deleted_rows = $deleteLogByTimeSth->rows();
-        aud_print("Deleted $deleted_rows log table entries by time\n");
+        aud_print("Deleted $deleted_rows log table entries by time");
       } while ( $deleted_rows );
     }
   } # end if ZM_LOG_DATABASE_LIMIT
@@ -892,9 +899,8 @@ FROM `Frames` WHERE `EventId`=?';
   `ArchivedEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `Archived`=1 AND `DiskSpace` IS NOT NULL)
   ';
 
-  my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
-  $eventcounts_sth->execute();
-  $eventcounts_sth->finish();
+  ZoneMinder::Database::zmDbDo($eventcounts_sql);
+  aud_print('Finished updating TotalEvents, ArchivedEvents');
 
   my $eventcounts_hour_sql = '
   UPDATE `Event_Summaries` INNER JOIN (
@@ -904,6 +910,8 @@ FROM `Frames` WHERE `EventId`=?';
   `Event_Summaries`.`HourEvents` = `E`.`HourEvents`,
   `Event_Summaries`.`HourEventDiskSpace` = `E`.`HourEventDiskSpace`
   ';
+  ZoneMinder::Database::zmDbDo($eventcounts_hour_sql);
+  aud_print("Finished updating HourEvents");
 
 
   my $eventcounts_day_sql = '
@@ -914,6 +922,8 @@ FROM `Frames` WHERE `EventId`=?';
   `Event_Summaries`.`DayEvents` = `E`.`DayEvents`,
   `Event_Summaries`.`DayEventDiskSpace` = `E`.`DayEventDiskSpace`
   ';
+  ZoneMinder::Database::zmDbDo($eventcounts_day_sql);
+  aud_print("Finished updating DayEvents");
 
   my $eventcounts_week_sql = '
   UPDATE `Event_Summaries` INNER JOIN (
@@ -923,6 +933,8 @@ FROM `Frames` WHERE `EventId`=?';
   `Event_Summaries`.`WeekEvents` = `E`.`WeekEvents`,
   `Event_Summaries`.`WeekEventDiskSpace` = `E`.`WeekEventDiskSpace`
   ';
+  ZoneMinder::Database::zmDbDo($eventcounts_week_sql);
+  aud_print("Finished updating WeekEvents");
 
   my $eventcounts_month_sql = '
   UPDATE `Event_Summaries` INNER JOIN (
@@ -932,17 +944,11 @@ FROM `Frames` WHERE `EventId`=?';
   `Event_Summaries`.`MonthEvents` = `E`.`MonthEvents`,
   `Event_Summaries`.`MonthEventDiskSpace` = `E`.`MonthEventDiskSpace`
   ';
-  my $eventcounts_hour_sth = $dbh->prepare_cached($eventcounts_hour_sql);
-  my $eventcounts_day_sth = $dbh->prepare_cached($eventcounts_day_sql);
-  my $eventcounts_week_sth = $dbh->prepare_cached($eventcounts_week_sql);
-  my $eventcounts_month_sth = $dbh->prepare_cached($eventcounts_month_sql);
-  $eventcounts_hour_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
-  $eventcounts_day_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
-  $eventcounts_week_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
-  $eventcounts_month_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
+  ZoneMinder::Database::zmDbDo($eventcounts_month_sql);
+  aud_print("Finished updating MonthEvents");
 
-  my $storage_diskspace_sth = $dbh->prepare_cached('UPDATE Storage SET DiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=Storage.Id)');
-  $storage_diskspace_sth->execute() or Error("Can't execute: ".$storage_diskspace_sth->errstr());
+  ZoneMinder::Database::zmDbDo('UPDATE Storage SET DiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=Storage.Id)');
+  aud_print("Finished updating Storage DiskSpace");
 
   sleep($Config{ZM_AUDIT_CHECK_INTERVAL}) if $continuous;
 };
@@ -953,6 +959,7 @@ sub aud_print {
   my $string = shift;
   if ( !$continuous ) {
     print($string);
+    print "\n";
   } else {
     Info($string);
   }
@@ -1072,8 +1079,10 @@ sub time_of_youngest_file {
   foreach my $file ( readdir( DIR ) ) {
     next if $file =~ /^\./;
     $_ = (stat($dir))[9];
-    $youngest = $_ if $_ and ( $_ < $youngest );
-    Debug("Found younger file $file at $youngest");
+    if ($_ and ($_ < $youngest)) {
+      $youngest = $_;
+      Debug("Found younger file $file at $youngest");
+    }
   }
   return $youngest;
 } # end sub time_of_youngest_file

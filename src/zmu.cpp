@@ -1,21 +1,21 @@
 //
 // ZoneMinder Control Utility, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 /*
 
@@ -36,7 +36,7 @@ zmc - The ZoneMinder Utility
 This binary is a handy command line interface to several useful functions. It's
 not really meant to be used by anyone except the web page (there's only limited
 'help' in it so far) but can be if necessary, especially for debugging video
-problems. 
+problems.
 
 =head1 OPTIONS
 
@@ -56,10 +56,10 @@ Options for use with monitors:
   -q, --query                             - Query the current settings for the monitor
   -s, --state                             - Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,
                                             3 = alert, 4 = tape
-  -B, --brightness [value]                - Output the current brightness, set to value if given 
-  -C, --contrast [value]                  - Output the current contrast, set to value if given 
-  -H, --hue [value]                       - Output the current hue, set to value if given 
-  -O, --colour [value]                    - Output the current colour, set to value if given 
+  -B, --brightness [value]                - Output the current brightness, set to value if given
+  -C, --contrast [value]                  - Output the current contrast, set to value if given
+  -H, --hue [value]                       - Output the current hue, set to value if given
+  -O, --colour [value]                    - Output the current colour, set to value if given
   -i, --image [image_index]               - Write captured image to disk as <monitor_name>.jpg, last image captured
                                             or specified ring buffer index if given.
   -S, --scale <scale_%%ge>                - With --image specify any scaling (in %%) to be applied to the image
@@ -81,7 +81,7 @@ Options for use with monitors:
   -U, --username <username>               - When running in authenticated mode the username and
   -P, --password <password>               - password combination of the given user
   -A, --auth <authentication>             - Pass authentication hash string instead of user details
-
+  -x, --xtrigger                          - Output the current monitor trigger state, 0 = not triggered, 1 = triggered 
 =cut
 
 */
@@ -112,6 +112,7 @@ void Usage(int status=-1) {
 			"  -q, --query          : Query the current settings for the monitor\n"
 			"  -s, --state          : Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,\n"
 			"                   3 = alert, 4 = tape\n"
+			"  -j, --janus-pin     : Output the pin, if set, used to secure Janus for this monitor \n"
 			"  -B, --brightness [value]     : Output the current brightness, set to value if given \n"
 			"  -C, --contrast [value]     : Output the current contrast, set to value if given \n"
 			"  -H, --hue [value]        : Output the current hue, set to value if given \n"
@@ -122,22 +123,24 @@ void Usage(int status=-1) {
 			"  -t, --timestamp [image_index]  : Output captured image timestamp, last image captured or specified\n"
 			"                   ring buffer index if given\n"
 			"  -R, --read_index         : Output ring buffer read index\n"
-			"  -W, --write_index        : Output ring buffer write index\n" 
-			"  -e, --event          : Output last event index\n" 
-			"  -f, --fps            : Output last Frames Per Second captured reading\n" 
-			"  -z, --zones          : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n" 
-			"  -a, --alarm          : Force alarm in monitor, this will trigger recording until cancelled with -c\n" 
-			"  -n, --noalarm          : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n" 
-			"  -c, --cancel           : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n" 
-			"  -L, --reload           : Signal monitor to reload settings\n" 
-			"  -E, --enable           : Enable detection, wake monitor up\n" 
-			"  -D, --disable          : Disable detection, put monitor to sleep\n" 
-			"  -u, --suspend          : Suspend detection, useful to prevent bogus alarms when panning etc\n" 
-			"  -r, --resume           : Resume detection after a suspend\n" 
-			"  -U, --username <username>    : When running in authenticated mode the username and\n" 
-			"  -P, --password <password>    : password combination of the given user\n" 
+			"  -W, --write_index        : Output ring buffer write index\n"
+			"  -e, --event          : Output last event index\n"
+			"  -f, --fps            : Output last Frames Per Second captured reading\n"
+			"  -z, --zones          : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n"
+			"  -a, --alarm          : Force alarm in monitor, this will trigger recording until cancelled with -c\n"
+			"  -n, --noalarm          : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n"
+			"  -c, --cancel           : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n"
+			"  -L, --reload           : Signal monitor to reload settings\n"
+			"  -E, --enable           : Enable capture, wake monitor up\n"
+			"  -D, --disable          : Disable capture, put monitor to sleep\n"
+			"  -u, --suspend          : Suspend motion detection, useful to prevent bogus alarms when panning etc\n"
+			"  -r, --resume           : Resume motion detection after a suspend\n"
+			"  -U, --username <username>    : When running in authenticated mode the username and\n"
+			"  -P, --password <password>    : password combination of the given user\n"
 			"  -A, --auth <authentication>  : Pass authentication hash string instead of user details\n"
-      "  -T, --token <token>  : Pass JWT token string instead of user details\n"
+                        "  -T, --token <token>  : Pass JWT token string instead of user details\n"
+                        "  -x, --xtrigger       : Output the current monitor trigger state, 0 = not triggered, 1 = triggered\n"
+
 	 "", stderr );
 
   exit(status);
@@ -167,11 +170,13 @@ typedef enum {
 	ZMU_SUSPEND    = 0x00400000,
 	ZMU_RESUME     = 0x00800000,
 	ZMU_LIST       = 0x10000000,
+        ZMU_TRIGGER    = 0x20000000,
+        ZMU_JANUS      = 0x40000000,
 } Function;
 
 bool ValidateAccess(User *user, int mon_id, int function) {
   bool allowed = true;
-  if ( function & (ZMU_STATE|ZMU_IMAGE|ZMU_TIME|ZMU_READ_IDX|ZMU_WRITE_IDX|ZMU_FPS) ) {
+  if ( function & (ZMU_STATE|ZMU_IMAGE|ZMU_TIME|ZMU_READ_IDX|ZMU_WRITE_IDX|ZMU_FPS|ZMU_TRIGGER|ZMU_JANUS) ) {
     if ( user->getStream() < User::PERM_VIEW )
       allowed = false;
   }
@@ -196,8 +201,8 @@ bool ValidateAccess(User *user, int mon_id, int function) {
 }
 
 void exit_zmu(int exit_code) {
-  logTerm();
   dbQueue.stop();
+  logTerm();
   zmDbClose();
 
   exit(exit_code);
@@ -221,6 +226,7 @@ int main(int argc, char *argv[]) {
     {"scale", 1, nullptr, 'S'},
     {"timestamp", 2, nullptr, 't'},
     {"state", 0, nullptr, 's'},
+    {"janus-pin", 0, nullptr, 'j'},
     {"brightness", 2, nullptr, 'B'},
     {"contrast", 2, nullptr, 'C'},
     {"hue", 2, nullptr, 'H'},
@@ -246,6 +252,7 @@ int main(int argc, char *argv[]) {
     {"version", 1, nullptr, 'V'},
     {"help", 0, nullptr, 'h'},
     {"list", 0, nullptr, 'l'},
+    {"xtrigger", 0, nullptr, 'x'},
     {nullptr, 0, nullptr, 0}
   };
 
@@ -257,9 +264,16 @@ int main(int argc, char *argv[]) {
   int image_idx = -1;
   int scale = -1;
   int brightness = -1;
+  bool have_brightness = false;
+
   int contrast = -1;
+  bool have_contrast = false;
+
   int hue = -1;
+  bool have_hue = false;
   int colour = -1;
+  bool have_colour = false;
+
   char *zoneString = nullptr;
   char *username = nullptr;
   char *password = nullptr;
@@ -271,14 +285,14 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
-    if ( c == -1 ) {
+    int c = getopt_long(argc, argv, "d:m:vsjEDLurweix::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
+    if (c == -1) {
       break;
     }
 
     switch (c) {
       case 'd':
-        if ( optarg )
+        if (optarg)
           device = optarg;
         break;
       case 'm':
@@ -290,9 +304,15 @@ int main(int argc, char *argv[]) {
       case 's':
         function |= ZMU_STATE;
         break;
+      case 'j':
+        function |= ZMU_JANUS;
+        break;
+      case 'x':
+        function |= ZMU_TRIGGER;
+        break;
       case 'i':
         function |= ZMU_IMAGE;
-        if ( optarg )
+        if (optarg)
           image_idx = atoi(optarg);
         break;
       case 'S':
@@ -300,7 +320,7 @@ int main(int argc, char *argv[]) {
         break;
       case 't':
         function |= ZMU_TIME;
-        if ( optarg )
+        if (optarg)
           image_idx = atoi(optarg);
         break;
       case 'R':
@@ -317,7 +337,7 @@ int main(int argc, char *argv[]) {
         break;
       case 'z':
         function |= ZMU_ZONES;
-        if ( optarg )
+        if (optarg)
           zoneString = optarg;
         break;
       case 'a':
@@ -349,23 +369,31 @@ int main(int argc, char *argv[]) {
         break;
       case 'B':
         function |= ZMU_BRIGHTNESS;
-        if ( optarg )
+        if (optarg) {
+          have_brightness = true;
           brightness = atoi(optarg);
+        }
         break;
       case 'C':
         function |= ZMU_CONTRAST;
-        if ( optarg )
+        if (optarg) {
+          have_contrast = true;
           contrast = atoi(optarg);
+        }
         break;
       case 'H':
         function |= ZMU_HUE;
-        if ( optarg )
+        if (optarg) {
+          have_hue = true;
           hue = atoi(optarg);
+        }
         break;
       case 'O':
         function |= ZMU_COLOUR;
-        if ( optarg )
+        if (optarg) {
+          have_colour = true;
           colour = atoi(optarg);
+        }
         break;
       case 'U':
         username = optarg;
@@ -442,7 +470,7 @@ int main(int argc, char *argv[]) {
 
       user = zmLoadUser(username);
     } else {
-       
+
       if ( !(username && password) && !auth ) {
         Error("Username and password or auth/token string must be supplied");
         exit_zmu(-1);
@@ -467,7 +495,7 @@ int main(int argc, char *argv[]) {
       exit_zmu(-1);
     }
 		if ( !ValidateAccess(user, mon_id, function) ) {
-			Error("Insufficient privileges for requested action");
+			Error("Insufficient privileges for user %s for requested function %x", username, function);
 			exit_zmu(-1);
 		}
   } // end if auth
@@ -482,6 +510,16 @@ int main(int argc, char *argv[]) {
     if ( verbose ) {
       printf("Monitor %u(%s)\n", monitor->Id(), monitor->Name());
     }
+
+    if (monitor->Capturing() == Monitor::CAPTURING_NONE) {
+      if (verbose) {
+        printf("Current capturing state: None\n");
+      } else {
+        printf("%d", Monitor::UNKNOWN);
+      }
+      exit_zmu(-1);
+    }
+
     if ( !monitor->connect() ) {
       Error("Can't connect to capture daemon: %d %s", monitor->Id(), monitor->Name());
       exit_zmu(-1);
@@ -489,12 +527,25 @@ int main(int argc, char *argv[]) {
 
     char separator = ' ';
     bool have_output = false;
+    if ( function & ZMU_JANUS ) {
+        printf("%s", monitor->get_stream_key());
+        have_output = true;
+    }
     if ( function & ZMU_STATE ) {
       Monitor::State state = monitor->GetState();
       if ( verbose ) {
         printf("Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"));
       } else {
         printf("%d", state);
+        have_output = true;
+      }
+    }
+    if ( function & ZMU_TRIGGER ) {
+      int trgstate = monitor->GetTriggerState();
+      if ( verbose ) {
+        printf("Current Triggered state: %s\n", trgstate==0?"Not Triggered":(trgstate==1?"Triggered":"NA"));
+      } else {
+        printf("%d", trgstate);
         have_output = true;
       }
     }
@@ -578,35 +629,31 @@ int main(int argc, char *argv[]) {
       monitor->DumpZoneImage(zoneString);
     }
     if ( function & ZMU_ALARM ) {
-      if ( monitor->GetFunction() == Monitor::Function::MONITOR ) {
-        printf("A Monitor in monitor mode cannot handle alarms.  Please use NoDect\n");
+      Monitor::State state = monitor->GetState();
+
+      if (verbose) {
+        printf("Forcing alarm on current state: %s, event %" PRIu64 "\n",
+            state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"),
+            monitor->GetLastEventId()
+            );
+      }
+
+      // Ensure that we are not recording.  So the forced alarm is distinct from what was recording before
+      monitor->ForceAlarmOff();
+      monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
+
+      Microseconds wait_time = Seconds(10);
+      while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and wait_time > Seconds(0)) {
+        // Wait for monitor to notice.
+        Microseconds sleep = Microseconds(1);
+        std::this_thread::sleep_for(sleep);
+        wait_time -= sleep;
+      }
+
+      if (monitor->GetState() != Monitor::ALARM and wait_time == Seconds(0)) {
+        Error("Monitor failed to respond to forced alarm.");
       } else {
-        Monitor::State state = monitor->GetState();
-
-        if ( verbose ) {
-          printf("Forcing alarm on current state: %s, event %" PRIu64 "\n",
-              state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"),
-              monitor->GetLastEventId()
-              );
-        }
-
-        // Ensure that we are not recording.  So the forced alarm is distinct from what was recording before
-        monitor->ForceAlarmOff();
-        monitor->ForceAlarmOn(config.forced_alarm_score, "Forced Web");
-
-        Microseconds wait_time = Seconds(10);
-        while ((monitor->GetState() != Monitor::ALARM) and !zm_terminate and wait_time > Seconds(0)) {
-          // Wait for monitor to notice.
-          Microseconds sleep = Microseconds(1);
-          std::this_thread::sleep_for(sleep);
-          wait_time -= sleep;
-        }
-
-        if (monitor->GetState() != Monitor::ALARM and wait_time == Seconds(0)) {
-          Error("Monitor failed to respond to forced alarm.");
-        } else {
-          printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
-        }
+        printf("Alarmed event id: %" PRIu64 "\n", monitor->GetLastEventId());
       }
     }  // end if ZMU_ALARM
 
@@ -627,22 +674,22 @@ int main(int argc, char *argv[]) {
     }
     if ( function & ZMU_ENABLE ) {
       if ( verbose )
-        printf("Enabling event generation\n");
+        printf("Enabling capturing\n");
       monitor->actionEnable();
     }
     if ( function & ZMU_DISABLE ) {
       if ( verbose )
-        printf("Disabling event generation\n");
+        printf("Disabling capturing\n");
       monitor->actionDisable();
     }
     if ( function & ZMU_SUSPEND ) {
       if ( verbose )
-        printf("Suspending event generation\n");
+        printf("Suspending motion detection\n");
       monitor->actionSuspend();
     }
     if ( function & ZMU_RESUME ) {
       if ( verbose )
-        printf("Resuming event generation\n");
+        printf("Resuming motion detection\n");
       monitor->actionResume();
     }
     if ( function & ZMU_QUERY ) {
@@ -650,60 +697,60 @@ int main(int argc, char *argv[]) {
       monitor->DumpSettings(monString, verbose);
       printf("%s\n", monString);
     }
-    if ( function & ZMU_BRIGHTNESS ) {
-      if ( verbose ) {
-        if ( brightness >= 0 )
+    if (function & ZMU_BRIGHTNESS) {
+      if (verbose) {
+        if (have_brightness)
           printf("New brightness: %d\n", monitor->actionBrightness(brightness));
         else
           printf("Current brightness: %d\n", monitor->actionBrightness());
       } else {
-        if ( have_output ) fputc(separator, stdout);
-        if ( brightness >= 0 )
+        if (have_output) fputc(separator, stdout);
+        if (have_brightness)
           printf("%d", monitor->actionBrightness(brightness));
         else
           printf("%d", monitor->actionBrightness());
         have_output = true;
       }
     }
-    if ( function & ZMU_CONTRAST ) {
-      if ( verbose ) {
-        if ( contrast >= 0 )
-          printf("New brightness: %d\n", monitor->actionContrast(contrast));
+    if (function & ZMU_CONTRAST) {
+      if (verbose) {
+        if (have_contrast)
+          printf("New contrast: %d\n", monitor->actionContrast(contrast));
         else
           printf("Current contrast: %d\n", monitor->actionContrast());
       } else {
-        if ( have_output ) fputc(separator, stdout);
-        if ( contrast >= 0 )
+        if (have_output) fputc(separator, stdout);
+        if (have_contrast)
           printf("%d", monitor->actionContrast(contrast));
         else
           printf("%d", monitor->actionContrast());
         have_output = true;
       }
     }
-    if ( function & ZMU_HUE ) {
-      if ( verbose ) {
-        if ( hue >= 0 )
+    if (function & ZMU_HUE) {
+      if (verbose) {
+        if (have_hue)
           printf("New hue: %d\n", monitor->actionHue(hue));
         else
           printf("Current hue: %d\n", monitor->actionHue());
       } else {
-        if ( have_output ) fputc(separator, stdout);
-        if ( hue >= 0 )
+        if (have_output) fputc(separator, stdout);
+        if (have_hue)
           printf("%d", monitor->actionHue(hue));
         else
           printf("%d", monitor->actionHue());
         have_output = true;
       }
     }
-    if ( function & ZMU_COLOUR ) {
-      if ( verbose ) {
-        if ( colour >= 0 )
+    if (function & ZMU_COLOUR) {
+      if (verbose) {
+        if (have_colour)
           printf("New colour: %d\n", monitor->actionColour(colour));
         else
           printf("Current colour: %d\n", monitor->actionColour());
       } else {
-        if ( have_output ) fputc(separator, stdout);
-        if ( colour >= 0 )
+        if (have_output) fputc(separator, stdout);
+        if (have_colour)
           printf("%d", monitor->actionColour(colour));
         else
           printf("%d", monitor->actionColour());
@@ -711,7 +758,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    if ( have_output ) {
+    if (have_output) {
       printf("\n");
     }
     if ( !function ) {
@@ -729,33 +776,39 @@ int main(int argc, char *argv[]) {
       exit_zmu(-1);
 #endif // ZM_HAS_V4L2
     }
+  } // end if monitor id or not
 
-    if ( function & ZMU_LIST ) {
-      std::string sql = "SELECT `Id`, `Function`+0 FROM `Monitors`";
-      if (!verbose) {
-        sql += "WHERE `Function` != 'None'";
-      }
-      sql += " ORDER BY Id ASC";
+  if (function & ZMU_LIST) {
+    std::string sql = "SELECT `Id`, `Capturing`+0, `Analysing`+0, `Recording`+0 FROM `Monitors`";
+    if (!verbose) {
+      sql += " WHERE `Capturing` != 'None'";
+    }
+    sql += " ORDER BY Id ASC";
 
-      MYSQL_RES *result = zmDbFetch(sql);
-      if (!result) {
-        exit_zmu(-1);
-      }
-      Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(mysql_num_rows(result)));
+    MYSQL_RES *result = zmDbFetch(sql);
+    if (!result) {
+      exit_zmu(-1);
+    }
+    Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(mysql_num_rows(result)));
 
-      printf("%4s%5s%6s%9s%14s%6s%6s%8s%8s\n", "Id", "Func", "State", "TrgState", "LastImgTim", "RdIdx", "WrIdx", "LastEvt", "FrmRate");
-      for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
-        int monitor_id = atoi(dbrow[0]);
-        int monitor_function = atoi(dbrow[1]);
-        if ( !user || user->canAccess(monitor_id) ) {
-          if ( monitor_function > 1 ) {
-            std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
-            if ( monitor && monitor->connect() ) {
-              SystemTimePoint timestamp = monitor->GetTimestamp();
+    printf("%4s %9s %9s %9s %5s %8s %13s %5s %5s %9s %9s\n",
+        "Id", "Capturing", "Analysing", "Recording", "State", "TrgState",
+        "LastImageTime", "RdIdx", "WrIdx", "LastEvent", "FrameRate");
+    for (int i=0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+      int monitor_id = atoi(dbrow[0]);
+      if (mon_id and (monitor_id != mon_id)) continue;
+      if (!user || user->canAccess(monitor_id)) {
+        int monitor_capturing = atoi(dbrow[1]);
+        if (monitor_capturing > Monitor::CAPTURING_NONE) {
+          std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, false, Monitor::QUERY);
+          if (monitor && monitor->connect()) {
+            SystemTimePoint timestamp = monitor->GetTimestamp();
 
-              printf( "%4d%5d%6d%9d%14.2f%6d%6d%8" PRIu64 "%8.2f\n",
+            printf("%4d %9d %9d %9d %5d %8d %13.2f %5d %5d %9" PRIu64 "%10.2f\n",
                 monitor->Id(),
-                monitor_function,
+                monitor->Capturing(),
+                monitor->Analysing(),
+                monitor->Recording(),
                 monitor->GetState(),
                 monitor->GetTriggerState(),
                 FPSeconds(timestamp.time_since_epoch()).count(),
@@ -763,11 +816,11 @@ int main(int argc, char *argv[]) {
                 monitor->GetLastWriteIndex(),
                 monitor->GetLastEventId(),
                 monitor->GetFPS()
-              );
-            }
-          } else {
-            printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
-              mon_id,
+                );
+          }
+        } else {
+          printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
+              monitor_id,
               function,
               0,
               0,
@@ -776,13 +829,12 @@ int main(int argc, char *argv[]) {
               0,
               0,
               0.0
-            );
-          } // end if function filter
-        } // endif !user || canAccess(mon_id)
-      } // end foreach row
-      mysql_free_result(result);
-    } // end if function && ZMU_LIST
-  } // end if monitor id or not
+              );
+        } // end if function filter
+      } // endif !user || canAccess(mon_id)
+    } // end foreach row
+    mysql_free_result(result);
+  } // end if function && ZMU_LIST
   delete user;
 
   exit_zmu(0);

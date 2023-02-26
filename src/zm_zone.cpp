@@ -99,7 +99,7 @@ void Zone::Setup(
       diag_path = stringtf("%s/diagpipe-%d-poly.jpg",
           staticConfig.PATH_SOCKS.c_str(), id);
 
-      Fifo::fifo_create_if_missing(diag_path.c_str());
+      Fifo::fifo_create_if_missing(diag_path);
     } else {
       diag_path = stringtf("%s/diag-%d-poly.jpg",
           monitor->getStorage()->Path(), id);
@@ -206,7 +206,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   // Get the difference image
   Image *diff_image = image = new Image(*delta_image);
   int diff_width = diff_image->Width();
-  uint8_t* diff_buff = (uint8_t*)diff_image->Buffer();
+  uint8_t* diff_buff = diff_image->Buffer();
   uint8_t* pdiff;
 
   unsigned int pixel_diff_count = 0;
@@ -219,7 +219,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
   int alarm_mid_x = -1;
   int alarm_mid_y = -1;
 
-  unsigned int lo_x = polygon.Extent().Lo().x_;
+  //unsigned int lo_x = polygon.Extent().Lo().x_;
   unsigned int lo_y = polygon.Extent().Lo().y_;
   unsigned int hi_x = polygon.Extent().Hi().x_;
   unsigned int hi_y = polygon.Extent().Hi().y_;
@@ -283,7 +283,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
 
-        pdiff = (uint8_t*)diff_image->Buffer(lo_x, y);
+        pdiff = diff_image->Buffer(lo_x, y);
 
         for (int x = lo_x; x <= hi_x; x++, pdiff++) {
           if (*pdiff == kWhite) {
@@ -366,7 +366,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
         int lo_x = ranges[y].lo_x;
         int hi_x = ranges[y].hi_x;
 
-        pdiff = (uint8_t*)diff_image->Buffer(lo_x, y);
+        pdiff = diff_image->Buffer(lo_x, y);
         for (int x = lo_x; x <= hi_x; x++, pdiff++) {
           if (*pdiff == kWhite) {
             Debug(9, "Got white pixel at %d,%d (%p)", x, y, pdiff);
@@ -699,6 +699,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
 
     if ((type < PRECLUSIVE) && (check_method >= BLOBS) && (monitor->GetOptSaveJPEGs() > 1)) {
 
+      unsigned int lo_x = polygon.Extent().Lo().x_;
       // First mask out anything we don't want
       for (unsigned int y = lo_y; y <= hi_y; y++) {
         pdiff = diff_buff + ((diff_width * y) + lo_x);
@@ -787,7 +788,7 @@ bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon) {
   return !vertices.empty();
 }  // end bool Zone::ParsePolygonString(const char *poly_string, Polygon &polygon)
 
-bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon) {
+bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon) {
   Debug(3, "Parsing zone string '%s'", zone_string);
 
   char *str_ptr = new char[strlen(zone_string)+1];
@@ -824,7 +825,7 @@ bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, P
   return result;
 }  // end bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon)
 
-std::vector<Zone> Zone::Load(Monitor *monitor) {
+std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   std::vector<Zone> zones;
 
   std::string sql = stringtf("SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
@@ -878,21 +879,32 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
       continue;
     }
 
-    if (polygon.Extent().Lo().x_ < 0 || polygon.Extent().Hi().x_ > static_cast<int32>(monitor->Width())
-        || polygon.Extent().Lo().y_ < 0 || polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
-      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d), fixing",
+    if (polygon.Extent().Lo().x_ < 0
+        ||
+        polygon.Extent().Hi().x_ > static_cast<int32>(monitor->Width())
+        ||
+        polygon.Extent().Lo().y_ < 0
+        ||
+        polygon.Extent().Hi().y_ > static_cast<int32>(monitor->Height())) {
+      Error("Zone %d/%s for monitor %s extends outside of image dimensions, (%d,%d), (%d,%d) != (%d,%d), fixing",
             Id,
             Name,
             monitor->Name(),
             polygon.Extent().Lo().x_,
             polygon.Extent().Lo().y_,
             polygon.Extent().Hi().x_,
-            polygon.Extent().Hi().y_);
+            polygon.Extent().Hi().y_,
+            monitor->Width(),
+            monitor->Height());
 
+      auto n_coords = polygon.GetVertices().size();
       polygon.Clip(Box(
           {0, 0},
           {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
       ));
+      if (polygon.GetVertices().size() != n_coords) {
+        Error("Cropping altered the number of vertices! From %zu to %zu", n_coords, polygon.GetVertices().size());
+      }
     }
 
     if ( false && !strcmp( Units, "Percent" ) ) {
@@ -925,7 +937,7 @@ std::vector<Zone> Zone::Load(Monitor *monitor) {
 bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
   output[0] = 0;
 
-  sprintf(output+strlen(output), "  Id : %d\n", id );
+  sprintf(output+strlen(output), "  Id : %u\n", id );
   sprintf(output+strlen(output), "  Label : %s\n", label.c_str() );
   sprintf(output+strlen(output), "  Type: %d - %s\n", type,
       type==ACTIVE?"Active":(
@@ -980,7 +992,7 @@ void Zone::std_alarmedpixels(
     unsigned int hi_x = ranges[y].hi_x;
 
     Debug(7, "Checking line %d from %d -> %d", y, lo_x, hi_x);
-    uint8_t *pdiff = (uint8_t*)pdiff_image->Buffer(lo_x, y);
+    uint8_t *pdiff = pdiff_image->Buffer(lo_x, y);
     const uint8_t *ppoly = ppoly_image->Buffer(lo_x, y);
 
     for ( unsigned int x = lo_x; x <= hi_x; x++, pdiff++, ppoly++ ) {
@@ -1036,4 +1048,3 @@ Zone::Zone(const Zone &z) :
   //z.stats.debug("Copy Source");
   stats.DumpToLog("Copy dest");
 }
-

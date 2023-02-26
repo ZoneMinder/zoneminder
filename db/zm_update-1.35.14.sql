@@ -28,8 +28,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'TotalEvents'
     ) > 0,
-"SELECT 'Column TotalEvents is already removed from Monitors'",
-"ALTER TABLE `Monitors` DROP `TotalEvents`"
+"ALTER TABLE `Monitors` DROP `TotalEvents`",
+"SELECT 'Column TotalEvents is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;
@@ -50,8 +50,8 @@ SET @s = (SELECT IF(
      AND table_name = 'Monitors'
      AND column_name = 'TotalEventDiskSpace'
     ) > 0,
-"SELECT 'Column TotalEventDiskSpace is already removed from Monitors'",
-"ALTER TABLE `Monitors` DROP `TotalEventDiskSpace`"
+"ALTER TABLE `Monitors` DROP `TotalEventDiskSpace`",
+"SELECT 'Column TotalEventDiskSpace is already removed from Monitors'"
 ));
 PREPARE stmt FROM @s;
 EXECUTE stmt;

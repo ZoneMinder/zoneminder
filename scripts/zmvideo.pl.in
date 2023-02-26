@@ -42,18 +42,19 @@ This script is used to create MPEG videos of events for the web pages
 or as email attachments.
 
 =head1 OPTIONS
- -c[=filename], --concat[=filename] - When creating videos for multiple events, create a concatenated video as well.
-                                    - If not specified, filename is taken from filter name.
- -e<event_id>, --event=<event_id>   - What event to create the video for
- --filter_name=<filter name>        - The name of a saved filter to generate a video for all events returned by it.
- --filter_id=<filter id>            - The id of a saved filter to generate a video for all events returned by it.
- -f<format>, --format=<format>      - What format to create the video in, default is mpg. For ffmpeg only.
- -r<rate>, --rate=<rate>            - Relative rate, 1 = realtime, 2 = double speed, 0.5 = half speed etc.
- -s<scale>, --scale=<scale>         - Scale, 1 = normal, 2 = double size, 0.5 = half size etc.
- -F<fps>, --fps=<fps>               - Absolute frame rate, in frames per second
- -S<size>, --size=<size>            - Absolute video size, WxH or other specification supported by ffmpeg
- -o, --overwrite                    - Whether to overwrite an existing file, off by default.
- -v, --version                      - Outputs the currently installed version of ZoneMinder
+ -c[=filename], --concat[=filename]       - When creating videos for multiple events, create a concatenated video as well.
+                                          - If not specified, filename is taken from filter name.
+ -e<event_id>, --event=<event_id>         - What event to create the video for
+ --filter_name=<filter name>              - The name of a saved filter to generate a video for all events returned by it.
+ --filter_id=<filter id>                  - The id of a saved filter to generate a video for all events returned by it.
+ -f<format>, --format=<format>            - What format to create the video in, default is mpg. For ffmpeg only.
+ -r<rate>, --rate=<rate>                  - Relative rate, 1 = realtime, 2 = double speed, 0.5 = half speed etc.
+ -s<scale>, --scale=<scale>               - Scale, 1 = normal, 2 = double size, 0.5 = half size etc.
+ -t<transforms>, --transform=<transforms> - Transform video.  Applies -vf option to ffmpeg.
+ -F<fps>, --fps=<fps>                     - Absolute frame rate, in frames per second
+ -S<size>, --size=<size>                  - Absolute video size, WxH or other specification supported by ffmpeg
+ -o, --overwrite                          - Whether to overwrite an existing file, off by default.
+ -v, --version                            - Outputs the currently installed version of ZoneMinder
 
 =cut
 use strict;
@@ -93,6 +94,7 @@ my $rate = '';
 my $scale = '';
 my $fps = '';
 my $size = '';
+my $transforms = '';
 my $overwrite = 0;
 my $version = 0;
 
@@ -106,6 +108,7 @@ GetOptions(
     'scale|s=f'     =>\$scale,
     'fps|F=f'       =>\$fps,
     'size|S=s'      =>\$size,
+    'transforms|t=s'=>\$transforms,
     'overwrite'     =>\$overwrite,
     'version'       =>\$version
     ) or pod2usage(-exitstatus => -1);
@@ -166,6 +169,7 @@ $rate = $detaint_rate;
 $scale = $detaint_scale;
 $fps = $detaint_fps;
 $size = $detaint_size;
+($transforms) = $transforms =~ /^([,\w=]+)$/;
 
 my $dbh = zmDbConnect();
 
@@ -191,8 +195,8 @@ if ( $event_id ) {
     Fatal("Filter $filter_name $filter_id not found.");	
   }	
   @event_ids = map { $_->{Id} } $Filter->Execute();	
-  if ( ! @event_ids ) {
-    Fatal( "No events found for $filter_name")
+  if (!@event_ids) {
+    Fatal("No events found for $filter_name")
   } else {
     Debug(@event_ids . " events found for $filter_name");
   }
@@ -218,7 +222,7 @@ foreach my $event_id ( @event_ids ) {
   my $event = $sth->fetchrow_hashref();
 
   my $Event = new ZoneMinder::Event( $$event{Id}, $event );
-  my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format );
+  my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format, $transforms );
   if ( $video_file ) {
     push @video_files, $video_file;
     print( STDOUT $video_file."\n" );

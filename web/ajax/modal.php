@@ -1,11 +1,10 @@
 <?php
-
-if ( empty($_REQUEST['modal']) ) {
+if (empty($_REQUEST['modal'])) {
   ajaxError('Modal Name Not Provided');
   return;
 }
 
-$modal = validJsStr($_REQUEST['modal']);
+$modal = detaintPath($_REQUEST['modal']);
 $data = array();
 
 ZM\Debug("Including modals/$modal.php");
@@ -14,7 +13,7 @@ ob_start();
 @$result = include('modals/'.$modal.'.php');
 $data['html'] = ob_get_contents();
 ob_end_clean();
-if ( !$result ) {
+if (!$result) {
   ajaxError("Unknown modal '".$modal."'");
   return;
 }

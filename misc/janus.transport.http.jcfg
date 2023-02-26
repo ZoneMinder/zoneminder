@@ -1,0 +1,25 @@
+general: {
+	json = "indented"				# Whether the JSON messages should be indented (default),
+	base_path = "/janus"			# Base path to bind to in the web server (plain HTTP only)
+	http = true						# Whether to enable the plain HTTP interface
+	port = 8088						# Web server HTTP port
+	https = false					# Whether to enable HTTPS (default=false)
+}
+
+# Janus can also expose an admin/monitor endpoint, to allow you to check
+# which sessions are up, which handles they're managing, their current
+# status and so on. This provides a useful aid when debugging potential
+# issues in Janus. The configuration is pretty much the same as the one
+# already presented above for the webserver stuff, as the API is very
+# similar: choose the base bath for the admin/monitor endpoint (/admin
+# by default), ports, etc. Besides, you can specify
+# a secret that must be provided in all requests as a crude form of
+# authorization mechanism, and partial or full source IPs if you want to
+# limit access basing on IP addresses. For security reasons, this
+# endpoint is disabled by default, enable it by setting admin_http=true.
+admin: {
+	admin_base_path = "/admin"			# Base path to bind to in the admin/monitor web server (plain HTTP only)
+	admin_http = false					# Whether to enable the plain HTTP interface
+	admin_port = 7088					# Admin/monitor web server HTTP port
+	admin_https = false					# Whether to enable HTTPS (default=false)
+}

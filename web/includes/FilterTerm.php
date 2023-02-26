@@ -1,5 +1,4 @@
 <?php
-
 namespace ZM;
 $validConjunctionTypes = null;
 
@@ -13,7 +12,6 @@ function getFilterQueryConjunctionTypes() {
   return $validConjunctionTypes;
 }
 
-
 class FilterTerm {
   public $filter;
   public $index;
@@ -25,41 +23,47 @@ class FilterTerm {
   public $obr;
   public $cbr;
 
-
-  public function __construct($filter = null, $term = NULL, $index=0) {
+  public function __construct($filter = null, $term = null, $index=0) {
     $this->filter = $filter;
     $validConjunctionTypes = getFilterQueryConjunctionTypes();
 
     $this->index = $index;
-    $this->attr = $term['attr'];
-    $this->op = $term['op'];
-    $this->val = $term['val'];
-    if ( isset($term['cnj']) ) {
-      if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
-        $this->cnj = $term['cnj'];
-      } else {
-        Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
+    if ($term) {
+      $this->attr = isset($term['attr']) ? $term['attr'] : '';
+      $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $this->attr, -1, $count);
+      if ($count) Error("Invalid characters removed from filter attr ${term['attr']}, possible hacking attempt.");
+      $this->op = $term['op'];
+      $this->val = $term['val'];
+      if ( isset($term['cnj']) ) {
+        if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
+          $this->cnj = $term['cnj'];
+        } else {
+          Warning('Invalid cnj ' . $term['cnj'].' in '.print_r($term, true));
+        }
       }
-    }
-    if ( isset($term['tablename']) ) {
-      $this->tablename = $term['tablename'];
-    } else {
-      $this->tablename = 'E';
-    }
+      if ( isset($term['tablename']) ) {
+        $this->tablename = $term['tablename'];
+      } else {
+        $this->tablename = 'E';
+      }
 
-    if ( isset($term['obr']) ) {
-      if ( (string)(int)$term['obr'] == $term['obr'] ) {
-        $this->obr = $term['obr'];
-      } else {
-        Warning('Invalid obr ' . $term['obr'] . ' in ' . print_r($term, true));
+      if ( isset($term['obr']) ) {
+        if ( (string)(int)$term['obr'] == $term['obr'] ) {
+          $this->obr = $term['obr'];
+        } else {
+          Warning('Invalid obr ' . $term['obr'] . ' in ' . print_r($term, true));
+        }
       }
-    }
-    if ( isset($term['cbr']) ) {
-      if ( (string)(int)$term['cbr'] == $term['cbr'] ) {
-        $this->cbr = $term['cbr'];
-      } else {
-        Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
+      if ( isset($term['cbr']) ) {
+        if ( (string)(int)$term['cbr'] == $term['cbr'] ) {
+          $this->cbr = $term['cbr'];
+        } else {
+          Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
+        }
       }
+    } else {
+      Warning("No term in FilterTerm constructor");
+      #Warning(print_r(debug_backtrace(), true));
     }
   } # end function __construct
 
@@ -67,7 +71,7 @@ class FilterTerm {
   public function sql_values() {
     $values = array();
     if ( !isset($this->val) ) {
-      Logger::Warning('No value in term'.$this->attr);
+      Warning('No value in term '.$this->attr);
       return $values;
     }
 
@@ -75,9 +79,8 @@ class FilterTerm {
     foreach ( $vals as $value ) {
       $value_upper = strtoupper($value);
       switch ( $this->attr ) {
-
       case 'AlarmedZoneId':
-        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.')';
+        $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.' AND Score > 0 LIMIT 1)';
         break;
       case 'ExistsInFileSystem':
         $value = '';
@@ -85,7 +88,6 @@ class FilterTerm {
       case 'DiskPercent':
         $value = '';
         break;
-      case 'MonitorName':
       case 'MonitorName':
       case 'Name':
       case 'Cause':
@@ -115,8 +117,10 @@ class FilterTerm {
       case 'DateTime':
       case 'StartDateTime':
       case 'EndDateTime':
-        if ( $value_upper != 'NULL' )
-          $value = '\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
+        if ( $value_upper == 'CURDATE()' or $value_upper == 'NOW()' ) {
+
+        } else if ( $value_upper != 'NULL' )
+          $value = '\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\'';
         break;
       case 'Date':
       case 'StartDate':
@@ -124,14 +128,15 @@ class FilterTerm {
         if ( $value_upper == 'CURDATE()' or $value_upper == 'NOW()' ) {
           $value = 'to_days('.$value.')';
         } else if ( $value_upper != 'NULL' ) {
-          $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+          $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
         }
         break;
       case 'Time':
       case 'StartTime':
       case 'EndTime':
-        if ( $value_upper != 'NULL' )
-          $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+        if ( $value_upper != 'NULL' ) {
+          $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+        }
         break;
       default :
         if ( $value == 'Odd' ) {
@@ -174,6 +179,7 @@ class FilterTerm {
     case 'IN' :
       return ' IN ';
     case '![]' :
+    case 'NOT IN' :
       return ' NOT IN ';
     case 'EXISTS' :
      return ' EXISTS ';
@@ -197,6 +203,9 @@ class FilterTerm {
 
   /* Some terms don't have related SQL */
   public function sql() {
+    if (!$this->attr) {
+      return '';
+    }
 
     $sql = '';
     if ( isset($this->cnj) ) {
@@ -217,6 +226,9 @@ class FilterTerm {
       break;
     case 'MonitorName':
       $sql .= 'M.Name';
+      break;
+    case 'Monitor':
+      $sql .= 'E.MonitorId';
       break;
     case 'ServerId':
     case 'MonitorServerId':
@@ -303,7 +315,7 @@ class FilterTerm {
     }
     $sql .= $this->sql_operator();
     $values = $this->sql_values();
-    if ( (count($values) > 1) or ($this->op == 'IN') or ($this->op == 'NOT IN') ) {
+    if ((count($values) > 1) or ($this->op == 'IN') or ($this->op == 'NOT IN') or ($this->op == '=[]') or ($this->op == '![]')) {
       $sql .= '('.join(',', $values).')';
     } else {
       $sql .= $values[0];
@@ -452,6 +464,7 @@ class FilterTerm {
       'DiskPercent',
       'DiskBlocks',
       'MonitorName',
+      'Monitor',
       'ServerId',
       'MonitorServerId',
       'StorageServerId',
@@ -484,9 +497,38 @@ class FilterTerm {
       'Cause',
       'Notes',
       'StateId',
-      'Archived'
+      'Archived',
+      # The following are for snapshots
+      'CreatedOn', 
+      'Description'
     );
     return in_array($attr, $attrs);
+  }
+
+  public function valid() {
+    switch ($this->attr) {
+    case 'AlarmFrames' :
+      if (!(is_integer($this->val) or ctype_digit($this->val))) 
+        return false;
+      return true;
+    case 'EndDate' :
+    case 'StartDate' :
+    case 'EndDateTime' :
+    case 'StartDateTime' :
+      if (!$this->val)
+        return false;
+      break;
+    case 'Archived' :
+    case 'Monitor' :
+    case 'MonitorId' :
+      if ($this->val === '')
+        return false;
+      break;
+    }
+    return true;
+  }
+  public function to_string() {
+    return print_r($this, true);
   }
 } # end class FilterTerm
 

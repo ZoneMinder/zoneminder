@@ -57,6 +57,8 @@ public:
     const std::string &p_host,
     const std::string &p_port,
     const std::string &p_path,
+    const std::string &p_user,
+    const std::string &p_pass,
     int p_width,
     int p_height,
     int p_colours,

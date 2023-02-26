@@ -52,44 +52,14 @@
 // Example
 // header( "Content-Type: text/html; charset=iso-8859-1" );
 
-// You may need to change your locale here if your default one is incorrect for the
-// language described in this file, or if you have multiple languages supported.
-// If you do need to change your locale, be aware that the format of this function
-// is subtlely different in versions of PHP before and after 4.3.0, see
-// http://uk2.php.net/manual/en/function.setlocale.php for details.
-// Also be aware that changing the whole locale may affect some floating point or decimal
-// arithmetic in the database, if this is the case change only the individual locale areas
-// that don't affect this rather than all at once. See the examples below.
-// Finally, depending on your setup, PHP may not enjoy have multiple locales in a shared
-// threaded environment, if you get funny errors it may be this.
-//
-// Examples
-// setlocale( 'LC_ALL', 'en_GB' ); All locale settings pre-4.3.0
-// setlocale( LC_ALL, 'en_GB' ); All locale settings 4.3.0 and after
-// setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
-// setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
-
-setlocale( LC_TIME, 'en_GB.utf8' );
-define("DATE_FMT_CONSOLE_LONG", "%a %d %b, %Hh%M");
-define( "STRF_FMT_DATETIME_SHORT", "%d/%m/%y %H:%M:%S" );
-define( "STRF_FMT_DATETIME_SHORTER", "%x %H:%M:%S" );
-
 // Simple String Replacements
 $SLANG = array(
     'SystemLog'             => 'System Log',
     'DateTime'              => 'Date/Time',
-    'Component'             => 'Component',
     'Pid'                   => 'PID',
-    'Level'                 => 'Level',
-    'Message'               => 'Message',
-    'Line'                  => 'Line',
-    'More'                  => 'More',
-    'Clear'                 => 'Clear',
     '24BitColour'           => '24 bit colour',
     '32BitColour'           => '32 bit colour',
     '8BitGrey'              => '8 bit greyscale',
-    'Action'                => 'Action',
-    'Actual'                => 'Actual',
     'AddNewControl'         => 'Add New Control',
     'AddNewMonitor'         => 'Add',
     'AddMonitorDisabled'    => 'Your user is not allowed to add a new monitor',
@@ -97,7 +67,6 @@ $SLANG = array(
     'AddNewStorage'         => 'Add New Storage',
     'AddNewUser'            => 'Add New User',
     'AddNewZone'            => 'Add New Zone',
-    'Alarm'                 => 'Alarm',
     'AlarmBrFrames'         => 'Alarm<br/>Frames',
     'AlarmFrame'            => 'Alarm Frame',
     'AlarmFrameCount'       => 'Alarm Frame Count',
@@ -106,20 +75,13 @@ $SLANG = array(
     'AlarmPx'               => 'Alarm Px',
     'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge',
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
-    'Alert'                 => 'Alert',
-    'All'                   => 'All',
     'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
     'AnalysisUpdateDelay'   => 'Analysis Update Delay',
-    'API'                   => 'API',
     'APIEnabled'            => 'API Enabled',
-    'Apply'                 => 'Apply',
     'ApplyingStateChange'   => 'Applying State Change',
     'ArchArchived'          => 'Archived Only',
-    'Archive'               => 'Archive',
-    'Archived'              => 'Archived',
     'ArchUnarchived'        => 'Unarchived Only',
-    'Area'                  => 'Area',
     'AreaUnits'             => 'Area (px/%)',
     'AttrAlarmFrames'       => 'Alarm Frames',
     'AttrAlarmedZone'       => 'Alarmed Zone',
@@ -154,12 +116,8 @@ $SLANG = array(
     'AttrTotalScore'        => 'Total Score',
     'AttrStartWeekday'      => 'Start Weekday',
     'AttrEndWeekday'        => 'End Weekday',
-    'Auto'                  => 'Auto',
     'AutoStopTimeout'       => 'Auto Stop Timeout',
-    'Available'             => 'Available',
     'AvgBrScore'            => 'Avg.<br/>Score',
-    'Available'             => 'Available',
-    'Background'            => 'Background',
     'BackgroundFilter'      => 'Run filter in background',
     'BadAlarmFrameCount'    => 'Alarm frame count must be an integer of one or more',
     'BadAlarmMaxFPS'        => 'Alarm Maximum FPS must be a positive integer or floating point value',
@@ -197,20 +155,14 @@ $SLANG = array(
     'BadWebColour'          => 'Web colour must be a valid web colour string',
     'BadWebSitePath'        => 'Please enter a complete website url, including the http:// or https:// prefix.',
     'BadWidth'              => 'Width must be set to a valid value',
-    'Bandwidth'             => 'Bandwidth',
     'BandwidthHead'         => 'Bandwidth',	// This is the end of the bandwidth status on the top of the console, different in many language due to phrasing
     'BlobPx'                => 'Blob Px',
-    'Blobs'                 => 'Blobs',
     'BlobSizes'             => 'Blob Sizes',
-    'Brightness'            => 'Brightness',
-    'Buffer'                => 'Buffer',
-    'Buffers'               => 'Buffers',
     'CanAutoFocus'          => 'Can Auto Focus',
     'CanAutoGain'           => 'Can Auto Gain',
     'CanAutoIris'           => 'Can Auto Iris',
     'CanAutoWhite'          => 'Can Auto White Bal.',
     'CanAutoZoom'           => 'Can Auto Zoom',
-    'Cancel'                => 'Cancel',
     'CancelForcedAlarm'     => 'Cancel Forced Alarm',
     'CanFocusAbs'           => 'Can Focus Absolute',
     'CanFocus'              => 'Can Focus',
@@ -232,7 +184,7 @@ $SLANG = array(
     'CanMoveRel'            => 'Can Move Relative',
     'CanPan'                => 'Can Pan' ,
     'CanReset'              => 'Can Reset',
-	'CanReboot'             => 'Can Reboot',
+    'CanReboot'             => 'Can Reboot',
     'CanSetPresets'         => 'Can Set Presets',
     'CanSleep'              => 'Can Sleep',
     'CanTilt'               => 'Can Tilt',
@@ -251,7 +203,6 @@ $SLANG = array(
     'CaptureResolution'     => 'Capture Resolution',
     'CapturePalette'        => 'Capture Palette',
     'CaptureWidth'          => 'Capture Width',
-    'Cause'                 => 'Cause',
     'CheckMethod'           => 'Alarm Check Method',
     'ChooseDetectedCamera'  => 'Choose Detected Camera',
     'ChooseDetectedProfile' => 'Choose Detected Profile',
@@ -260,11 +211,7 @@ $SLANG = array(
     'ChooseLogSelection'    => 'Choose a log selection',
     'ChoosePreset'          => 'Choose Preset',
     'CloneMonitor'          => 'Clone',
-    'Close'                 => 'Close',
-    'Colour'                => 'Colour',
-    'Command'               => 'Command',
     'ConcurrentFilter'      => 'Run filter concurrently',
-    'Config'                => 'Config',
     'ConfigOptions'         => 'ConfigOptions',
     'ConfigType'            => 'Config Type',
     'ConfiguredFor'         => 'Configured for',
@@ -276,47 +223,29 @@ $SLANG = array(
     'ConfirmPassword'       => 'Confirm Password',
     'ConjAnd'               => 'and',
     'ConjOr'                => 'or',
-    'Console'               => 'Console',
     'ContactAdmin'          => 'Please contact your adminstrator for details.',
-    'Continue'              => 'Continue',
-    'Contrast'              => 'Contrast',
     'ControlAddress'        => 'Control Address',
     'ControlCap'            => 'Control Capability',
     'ControlCaps'           => 'Control Capabilities',
-    'Control'               => 'Control',
     'ControlDevice'         => 'Control Device',
     'Controllable'          => 'Controllable',
     'ControlType'           => 'Control Type',
-    'Current'               => 'Current',
-    'Cycle'                 => 'Cycle',
     'CycleWatch'            => 'Cycle Watch',
-    'Day'                   => 'Day',
-    'Debug'                 => 'Debug',
     'DefaultRate'           => 'Default Rate',
     'DefaultScale'          => 'Default Scale',
-    'DefaultCodec'          => 'Default Method For Live View',
+    'DefaultCodec'          => 'Default Method For Event View',
     'DefaultView'           => 'Default View',
-    'Deinterlacing'         => 'Deinterlacing',
-    'RTSPDescribe'         => 'Use RTSP Response Media URL',
-    'Delay'                 => 'Delay',
+    'RTSPDescribe'          => 'Use RTSP Response Media URL',
     'DeleteAndNext'         => 'Delete &amp; Next',
     'DeleteAndPrev'         => 'Delete &amp; Prev',
-    'Delete'                => 'Delete',
     'DeleteSavedFilter'     => 'Delete saved filter',
-    'Description'           => 'Description',
     'DetectedCameras'       => 'Detected Cameras',
     'DetectedProfiles'      => 'Detected Profiles',
     'DeviceChannel'         => 'Device Channel',
     'DeviceFormat'          => 'Device Format',
     'DeviceNumber'          => 'Device Number',
     'DevicePath'            => 'Device Path',
-    'Device'                => 'Device',
-    'Devices'               => 'Devices',
-    'Dimensions'            => 'Dimensions',
     'DisableAlarms'         => 'Disable Alarms',
-    'Disk'                  => 'Disk',
-    'Display'               => 'Display',
-    'Displaying'            => 'Displaying',
     'DonateAlready'         => 'No, I\'ve already donated',
     'DonateEnticement'      => 'You\'ve been running ZoneMinder for a while now and hopefully are finding it a useful addition to your home or workplace security. Although ZoneMinder is, and will remain, free and open source, it costs money to develop and support. If you would like to help support future development and new features then please consider donating. Donating is, of course, optional but very much appreciated and you can donate as much or as little as you like.<br/><br/>If you would like to donate please select the option below or go to <a href="https://zoneminder.com/donate/" target="_blank">https://zoneminder.com/donate/</a> in your browser.<br/><br/>Thank you for using ZoneMinder and don\'t forget to visit the forums on <a href="https://forums.zoneminder.com">ZoneMinder.com</a> for support or suggestions about how to make your ZoneMinder experience even better.',
     'Donate'                => 'Please Donate',
@@ -327,34 +256,23 @@ $SLANG = array(
     'DonateRemindWeek'      => 'Not yet, remind again in 1 week',
     'DonateYes'             => 'Yes, I\'d like to donate now',
     'DoNativeMotionDetection'=> 'Do Native Motion Detection',
-    'Download'              => 'Download',
     'DuplicateMonitorName'  => 'Duplicate Monitor Name',
     'DuplicateRTSPStreamName' =>  'Duplicate RTSP Stream Name',
-    'Duration'              => 'Duration',
-    'Edit'                  => 'Edit',
     'EditControl'           => 'Edit Control',
     'EditLayout'            => 'Edit Layout',
-    'Email'                 => 'Email',
     'EnableAlarms'          => 'Enable Alarms',
-    'Enabled'               => 'Enabled',
     'EnterNewFilterName'    => 'Enter new filter name',
     'ErrorBrackets'         => 'Error, please check you have an equal number of opening and closing brackets',
-    'Error'                 => 'Error',
     'ErrorValidValue'       => 'Error, please check that all terms have a valid value',
     'Etc'                   => 'etc',
-    'Event'                 => 'Event',
     'EventFilter'           => 'Event Filter',
     'EventId'               => 'Event Id',
     'EventName'             => 'Event Name',
     'EventPrefix'           => 'Event Prefix',
-    'Events'                => 'Events',
-    'Exclude'               => 'Exclude',
-    'Execute'               => 'Execute',
     'ExportCompress'        => 'Use Compression',
     'ExportDetails'         => 'Export Event Details',
     'ExportMatches'         => 'Export Matches',
     'Exif'                  => 'Embed EXIF data into image',
-    'Export'                => 'Export',
     'DownloadVideo'         => 'Download Video',
     'GenerateDownload'      => 'Generate Download',
     'ExistsInFileSystem'    => 'Exists In File System',
@@ -370,11 +288,7 @@ $SLANG = array(
     'ExportOptions'         => 'Export Options',
     'ExportSucceeded'       => 'Export Succeeded',
     'ExportVideoFiles'      => 'Export Video Files (if present)',
-    'Far'                   => 'Far',
     'FastForward'           => 'Fast Forward',
-    'Feed'                  => 'Feed',
-    'Ffmpeg'                => 'Ffmpeg',
-    'File'                  => 'File',
     'FilterArchiveEvents'   => 'Archive all matches',
     'FilterUnarchiveEvents' => 'Unarchive all matches',
     'FilterUpdateDiskSpace' => 'Update used disk space',
@@ -390,45 +304,23 @@ $SLANG = array(
     'FilterLog'             => 'Filter log',
     'FilterMessageEvents'   => 'Message details of all matches',
     'FilterPx'              => 'Filter Px',
-    'Filter'                => 'Filter',
-    'Filters'               => 'Filters',
     'FilterUnset'           => 'You must specify a filter width and height',
     'FilterUploadEvents'    => 'Upload all matches',
     'FilterUser'            => 'User to run filter as',
     'FilterVideoEvents'     => 'Create video for all matches',
-    'First'                 => 'First',
     'FlippedHori'           => 'Flipped Horizontally',
     'FlippedVert'           => 'Flipped Vertically',
-    'FnNone'                => 'None',            // Added 2013.08.16.
-    'FnMonitor'             => 'Monitor',            // Added 2013.08.16.
-    'FnModect'              => 'Modect',            // Added 2013.08.16.
-    'FnRecord'              => 'Record',            // Added 2013.08.16.
-    'FnMocord'              => 'Mocord',            // Added 2013.08.16.
-    'FnNodect'              => 'Nodect',            // Added 2013.08.16.
-    'FnExtdect'             => 'Extdect',           // Added 2014.12.14.
-    'Focus'                 => 'Focus',
     'ForceAlarm'            => 'Force Alarm',
-    'Format'                => 'Format',
     'FPS'                   => 'fps',
     'FPSReportInterval'     => 'FPS Report Interval',
-    'Frame'                 => 'Frame',
     'FrameId'               => 'Frame Id',
     'FrameRate'             => 'Frame Rate',
-    'Frames'                => 'Frames',
     'FrameSkip'             => 'Frame Skip',
     'MotionFrameSkip'       => 'Motion Frame Skip',
-    'FTP'                   => 'FTP',
-    'Func'                  => 'Func',
-    'Function'              => 'Function',
-    'Gain'                  => 'Gain',
-    'General'               => 'General',
     'GenerateVideo'         => 'Generate Video',
     'GeneratingVideo'       => 'Generating Video',
     'GetCurrentLocation'    => 'Get Current Location',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
-    'Grey'                  => 'Grey',
-    'Group'                 => 'Group',
-    'Groups'                => 'Groups',
     'HasFocusSpeed'         => 'Has Focus Speed',
     'HasGainSpeed'          => 'Has Gain Speed',
     'HasHomePreset'         => 'Has Home Preset',
@@ -441,49 +333,17 @@ $SLANG = array(
     'HasWhiteSpeed'         => 'Has White Bal. Speed',
     'HasZoomSpeed'          => 'Has Zoom Speed',
     'HighBW'                => 'High&nbsp;B/W',
-    'High'                  => 'High',
-    'Home'                  => 'Home',
-    'Hostname'				=> 'Hostname',
-    'Hour'                  => 'Hour',
-    'Hue'                   => 'Hue',
-    'Id'                    => 'Id',
-    'Idle'                  => 'Idle',
-    'Ignore'                => 'Ignore',
     'ImageBufferSize'       => 'Image Buffer Size (frames)',
     'MaxImageBufferCount'   => 'Maximum Image Buffer Size (frames)',
-    'Image'                 => 'Image',
-    'Images'                => 'Images',
-    'Include'               => 'Include',
-    'In'                    => 'In',
     'InvalidateTokens'      => 'Invalidate all generated tokens',
-    'Inverted'              => 'Inverted',
-    'Iris'                  => 'Iris',
     'KeyString'             => 'Key String',
-    'Label'                 => 'Label',
-    'Language'              => 'Language',
-    'Last'                  => 'Last',
-    'Layout'                => 'Layout',
-    'Libvlc'                => 'Libvlc',
     'LimitResultsPost'      => 'results only', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'       => 'Limit to first', // This is used at the beginning of the phrase 'Limit to first N results only'
     'LinkedMonitors'        => 'Linked Monitors',
-    'List'                  => 'List',
     'ListMatches'           => 'List Matches',
-    'Load'                  => 'Load',
-    'Local'                 => 'Local',
-    'Log'                   => 'Log',
-    'Logs'                  => 'Logs',
-    'Logging'               => 'Logging',
     'LoggedInAs'            => 'Logged in as',
     'LoggingIn'             => 'Logging In',
-    'Login'                 => 'Login',
-    'Logout'                => 'Logout',
     'LowBW'                 => 'Low&nbsp;B/W',
-    'Low'                   => 'Low',
-    'Main'                  => 'Main',
-    'Man'                   => 'Man',
-    'Manual'                => 'Manual',
-    'Mark'                  => 'Mark',
     'MaxBandwidth'          => 'Max Bandwidth',
     'MaxBrScore'            => 'Max.<br/>Score',
     'MaxFocusRange'         => 'Max Focus Range',
@@ -496,7 +356,6 @@ $SLANG = array(
     'MaxIrisRange'          => 'Max Iris Range',
     'MaxIrisSpeed'          => 'Max Iris Speed',
     'MaxIrisStep'           => 'Max Iris Step',
-    'Max'                   => 'Max',
     'MaxPanRange'           => 'Max Pan Range',
     'MaxPanSpeed'           => 'Max Pan Speed',
     'MaxPanStep'            => 'Max Pan Step',
@@ -510,7 +369,6 @@ $SLANG = array(
     'MaxZoomSpeed'          => 'Max Zoom Speed',
     'MaxZoomStep'           => 'Max Zoom Step',
     'MediumBW'              => 'Medium&nbsp;B/W',
-    'Medium'                => 'Medium',
     'MetaConfig'            => 'Meta Config',
     'MinAlarmAreaLtMax'     => 'Minimum alarm area should be less than maximum',
     'MinAlarmAreaUnset'     => 'You must specify the minimum alarm pixel count',
@@ -546,20 +404,13 @@ $SLANG = array(
     'MinZoomRange'          => 'Min Zoom Range',
     'MinZoomSpeed'          => 'Min Zoom Speed',
     'MinZoomStep'           => 'Min Zoom Step',
-    'Misc'                  => 'Misc',
-    'Mode'                  => 'Mode',
     'ModectDuringPTZ'       => 'Do motion detection during PTZ motion',
     'MonitorIds'            => 'Monitor&nbsp;Ids',
-    'Monitor'               => 'Monitor',
     'MonitorPresetIntro'    => 'Select an appropriate preset from the list below.<br/><br/>Please note that this may overwrite any values you already have configured for the current monitor.<br/><br/>',
     'MonitorPreset'         => 'Monitor Preset',
     'MonitorProbeIntro'     => 'The list below shows detected analog and network cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
     'MonitorProbe'          => 'Monitor Probe',
-    'Monitors'              => 'Monitors',
-    'Montage'               => 'Montage',
     'MontageReview'         => 'Montage Review',
-    'Month'                 => 'Month',
-    'Move'                  => 'Move',
     'MtgDefault'            => 'Default',              // Added 2013.08.15.
     'Mtg2widgrd'            => '2-wide grid',              // Added 2013.08.15.
     'Mtg3widgrd'            => '3-wide grid',              // Added 2013.08.15.
@@ -570,35 +421,23 @@ $SLANG = array(
     'MustConfirmPassword'   => 'You must confirm the password',
     'MustSupplyPassword'    => 'You must supply a password',
     'MustSupplyUsername'    => 'You must supply a username',
-    'Name'                  => 'Name',
-    'Near'                  => 'Near',
-    'Network'               => 'Network',
     'NewGroup'              => 'New Group',
     'NewLabel'              => 'New Label',
-    'New'                   => 'New',
     'NewPassword'           => 'New Password',
     'NewState'              => 'New State',
     'NewUser'               => 'New User',
-    'Next'                  => 'Next',
     'NextMonitor'           => 'Next Monitor',
     'NoDetectedCameras'     => 'No Detected Cameras',
     'NoDetectedProfiles'    => 'No Detected Profiles',
     'NoFramesRecorded'      => 'There are no frames recorded for this event',
     'NoGroup'               => 'No Group',
     'NoneAvailable'         => 'None available',
-    'None'                  => 'None',
-    'No'                    => 'No',
-    'Normal'                => 'Normal',
-    'NoSavedFilters'        => 'NoSavedFilters',
+    'NoSavedFilters'        => 'No Saved Filters',
     'NoStatisticsRecorded'  => 'There are no statistics recorded for this event/frame',
-    'Notes'                 => 'Notes',
     'NumPresets'            => 'Num Presets',
-    'Off'                   => 'Off',
-    'On'                    => 'On',
     'OnvifProbe'            => 'ONVIF',
     'OnvifProbeIntro'       => 'The list below shows detected ONVIF cameras and whether they are already being used or available for selection.<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that not all cameras may be detected and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
     'OnvifCredentialsIntro' => 'Please supply user name and password for the selected camera.<br/>If no user has been created for the camera then the user given here will be created with the given password.<br/><br/>',
-    'Open'                  => 'Open',
     'OpEq'                  => 'equal to',
     'OpGtEq'                => 'greater than or equal to',
     'OpGt'                  => 'greater than',
@@ -619,42 +458,26 @@ $SLANG = array(
     'Options'               => 'Options',
     'Order'                 => 'Order',
     'OrEnterNewName'        => 'or enter new name',
-    'Orientation'           => 'Orientation',
-    'Out'                   => 'Out',
     'OverwriteExisting'     => 'Overwrite Existing',
-    'Paged'                 => 'Paged',
     'PanLeft'               => 'Pan Left',
-    'Pan'                   => 'Pan',
     'PanRight'              => 'Pan Right',
     'PanTilt'               => 'Pan/Tilt',
-    'Parameter'             => 'Parameter',
     'ParentGroup'           => 'Parent Group',
-    'Password'              => 'Password',
     'PasswordsDifferent'    => 'The new and confirm passwords are different',
     'PathToIndex'           => 'Path To Index',
     'PathToZMS'             => 'Path To ZMS',
     'PathToApi'             => 'Path To Api',
-    'Paths'                 => 'Paths',
-    'Pause'                 => 'Pause',
     'PauseCycle'            => 'Pause Cycle',
     'PhoneBW'               => 'Phone&nbsp;B/W',
-    'Phone'                 => 'Phone',
     'PixelDiff'             => 'Pixel Diff',
     'Pixels'                => 'pixels',
     'PlayAll'               => 'Play All',
-    'Play'                  => 'Play',
     'PlayCycle'             => 'Play Cycle',
-    'Plugins'               => 'Plugins',
     'PleaseWait'            => 'Please Wait',
-    'Point'                 => 'Point',
     'PostEventImageBuffer'  => 'Post Event Image Count',
     'PreEventImageBuffer'   => 'Pre Event Image Count',
     'PreserveAspect'        => 'Preserve Aspect Ratio',
-    'Preset'                => 'Preset',
-    'Presets'               => 'Presets',
-    'Prev'                  => 'Prev',
     'PreviousMonitor'       => 'Previous Monitor',
-    'Privacy'               => 'Privacy',
     'PrivacyAbout'          => 'About',
     'PrivacyAboutText'      => 'Since 2002, ZoneMinder has been the premier free and open-source Video Management System (VMS) solution for Linux platforms. ZoneMinder is supported by the community and is managed by those who choose to volunteer their spare time to the project. The best way to improve ZoneMinder is to get involved.',
     'PrivacyContact'        => 'Contact',
@@ -663,21 +486,40 @@ $SLANG = array(
     'PrivacyCookiesText'    => 'Whether you use a web browser or a mobile app to communicate with the ZoneMinder server, a ZMSESSID cookie is created on the client to uniquely identify a session with the ZoneMinder server. ZmCSS and zmSkin cookies are created to remember your style and skin choices.',
     'PrivacyTelemetry'      => 'Telemetry',
     'PrivacyTelemetryText'  => 'Because ZoneMinder is open-source, anyone can install it without registering. This makes it difficult to  answer questions such as: how many systems are out there, what is the largest system out there, what kind of systems are out there, or where are these systems located? Knowing the answers to these questions, helps users who ask us these questions, and it helps us set priorities based on the majority user base.',
-    'PrivacyTelemetryList'  => 'The ZoneMinder Telemetry daemon collects the following data about your system:<ul><li>A unique identifier (UUID) <li>City based location is gathered by querying <a href="https://ipinfo.io/geo">ipinfo.io</a>. City, region, country, latitude, and longitude parameters are saved. The latitude and longitude coordinates are accurate down to the city or town level only!<li>Current time<li>Total number of monitors<li>Total number of events<li>System architecture<li>Operating system kernel, distro, and distro version<li>Version of ZoneMinder<li>Total amount of memory<li>Number of cpu cores</ul>',
-    'PrivacyMonitorList'    => 'The following configuration parameters from each monitor are collected:<ul><li>Id<li>Name<li>Type<li>Function<li>Width<li>Height<li>Colours<li>MaxFPS<li>AlarmMaxFPS</ul>',
+    'PrivacyTelemetryList'  => 'The ZoneMinder Telemetry daemon collects the following data about your system:
+    <ul>
+      <li>A unique identifier (UUID)</li>
+      <li>City based location is gathered by querying <a href="https://ipinfo.io/geo">ipinfo.io</a>. City, region, country, latitude, and longitude parameters are saved. The latitude and longitude coordinates are accurate down to the city or town level only!</li>
+      <li>Current time</li>
+      <li>Total number of monitors</li>
+      <li>Total number of events</li>
+      <li>System architecture</li>
+      <li>Operating system kernel, distro, and distro version</li>
+      <li>Version of ZoneMinder</li>
+      <li>Total amount of memory</li>
+      <li>Number of cpu cores</li>
+    </ul>',
+    'PrivacyMonitorList'    => 'The following configuration parameters from each monitor are collected:
+   <ul>
+    <li>Id</li>
+    <li>Name</li>
+    <li>Manufacturer</li>
+    <li>Model</li>
+    <li>Type</li>
+    <li>Function</li>
+    <li>Width</li>
+    <li>Height</li>
+    <li>Colours</li>
+    <li>MaxFPS</li>
+    <li>AlarmMaxFPS</li>
+   </ul>',
     'PrivacyConclusionText' => 'We are <u>NOT</u> collecting any image specific data from your cameras. We don’t know what your cameras are watching. This data will not be sold or used for any purpose not stated herein. By clicking accept, you agree to send us this data to help make ZoneMinder a better product. By clicking decline, you can still freely use ZoneMinder and all its features.',
     'Probe'                 => 'Probe',
     'ProfileProbe'          => 'Stream Probe',
     'ProfileProbeIntro'     => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>',
-    'Progress'              => 'Progress',
-    'Protocol'              => 'Protocol',
-    'Rate'                  => 'Rate',
     'RecaptchaWarning'      => 'Your reCaptcha secret key is invalid. Please correct it, or reCaptcha will not work', // added Sep 24 2015 - PP
-	'RecordAudio'			=> 'Whether to store the audio stream when saving an event.',
-    'Real'                  => 'Real',
-    'Record'                => 'Record',
+    'RecordAudio'		       	=> 'Whether to store the audio stream when saving an event.',
     'RefImageBlendPct'      => 'Reference Image Blend %ge',
-    'Refresh'               => 'Refresh',
     'RemoteHostName'        => 'Host Name',
     'RemoteHostPath'        => 'Path',
     'RemoteHostSubPath'     => 'SubPath',
@@ -685,30 +527,22 @@ $SLANG = array(
     'RemoteImageColours'    => 'Image Colours',
     'RemoteMethod'          => 'Method',
     'RemoteProtocol'        => 'Protocol',
-    'Remote'                => 'Remote',
-    'Rename'                => 'Rename',
     'ReplayAll'             => 'All Events',
     'ReplayGapless'         => 'Gapless Events',
-    'Replay'                => 'Replay',
     'ReplaySingle'          => 'Single Event',
     'ReportEventAudit'      => 'Audit Events Report',
     'ResetEventCounts'      => 'Reset Event Counts',
-    'Reset'                 => 'Reset',
-    'Restarting'            => 'Restarting',
-    'Restart'               => 'Restart',
     'RestrictedCameraIds'   => 'Restricted Camera Ids',
     'RestrictedMonitors'    => 'Restricted Monitors',
     'ReturnDelay'           => 'Return Delay',
     'ReturnLocation'        => 'Return Location',
-    'RevokeAllTokens'       =>  'Revoke All Tokens',
-    'Rewind'                => 'Rewind',
+    'RevokeAllTokens'       => 'Revoke All Tokens',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
     'RTSPTransport'         => 'RTSP Transport Protocol',
     'RunAudit'              => 'Run Audit Process',
     'RunLocalUpdate'        => 'Please run zmupdate.pl to update',
     'RunMode'               => 'Run Mode',
-    'Running'               => 'Running',
     'RunState'              => 'Run State',
     'RunStats'              => 'Run Stats Process',
     'RunTrigger'            => 'Run Trigger Process',
@@ -716,45 +550,29 @@ $SLANG = array(
     'SaveAs'                => 'Save as',
     'SaveFilter'            => 'Save Filter',
     'SaveJPEGs'             => 'Save JPEGs',
-    'Save'                  => 'Save',
-    'Scale'                 => 'Scale',
-    'Score'                 => 'Score',
-    'Secs'                  => 'Secs',
     'Sectionlength'         => 'Section length',
     'SelectMonitors'        => 'Select Monitors',
-    'Select'                => 'Select',
     'SelectFormat'          => 'Select Format',
     'SelectLog'             => 'Select Log',
     'SelfIntersecting'      => 'Polygon edges must not intersect',
     'SetNewBandwidth'       => 'Set New Bandwidth',
     'SetPreset'             => 'Set Preset',
-    'Set'                   => 'Set',
-    'Settings'              => 'Settings',
     'ShowFilterWindow'      => 'Show Filter Window',
     'ShowTimeline'          => 'Show Timeline',
-    'Shutdown'              => 'Shutdown',
     'SignalCheckColour'     => 'Signal Check Colour',
     'SignalCheckPoints'     => 'Signal Check Points',
-    'Size'                  => 'Size',
     'SkinDescription'       => 'Change the skin for this session',
     'CSSDescription'        => 'Change the css for this session',
-    'Sleep'                 => 'Sleep',
     'SortAsc'               => 'Asc',
     'SortBy'                => 'Sort by',
     'SortDesc'              => 'Desc',
-    'Source'                => 'Source',
     'SourceColours'         => 'Source Colours',
     'SourcePath'            => 'Source Path',
     'SourceType'            => 'Source Type',
     'SpeedHigh'             => 'High Speed',
     'SpeedLow'              => 'Low Speed',
     'SpeedMedium'           => 'Medium Speed',
-    'Speed'                 => 'Speed',
     'SpeedTurbo'            => 'Turbo Speed',
-    'Start'                 => 'Start',
-    'State'                 => 'State',
-    'Stats'                 => 'Stats',
-    'Status'                => 'Status',
     'StatusUnknown'         => 'Unknown',
     'StatusConnected'       => 'Capturing',
     'StatusNotRunning'      => 'Not Running',
@@ -765,23 +583,12 @@ $SLANG = array(
     'StepMedium'            => 'Medium Step',
     'StepNone'              => 'No Step',
     'StepSmall'             => 'Small Step',
-    'Step'                  => 'Step',
-    'Stills'                => 'Stills',
-    'Stopped'               => 'Stopped',
-    'Stop'                  => 'Stop',
     'StorageArea'           => 'Storage Area',
     'StorageDoDelete'       => 'Do Deletes',
     'StorageScheme'         => 'Scheme',
     'StreamReplayBuffer'    => 'Stream Replay Image Buffer',
-    'Stream'                => 'Stream',
-    'Submit'                => 'Submit',
-    'System'                => 'System',
     'TargetColorspace'      => 'Target colorspace',
-    'Tele'                  => 'Tele',
-    'Thumbnail'             => 'Thumbnail',
-    'Tilt'                  => 'Tilt',
     'TimeDelta'             => 'Time Delta',
-    'Timeline'              => 'Timeline',
     'TimelineTip1'          => 'Pass your mouse over the graph to view a snapshot image and event details.',              // Added 2013.08.15.
     'TimelineTip2'          => 'Click on the coloured sections of the graph, or the image, to view the event.',              // Added 2013.08.15.
     'TimelineTip3'          => 'Click on the background to zoom in to a smaller time period based around your click.',              // Added 2013.08.15.
@@ -790,44 +597,25 @@ $SLANG = array(
     'TimestampLabelX'       => 'Timestamp Label X',
     'TimestampLabelY'       => 'Timestamp Label Y',
     'TimestampLabelSize'    => 'Font Size',
-    'Timestamp'             => 'Timestamp',
     'TimeStamp'             => 'Time Stamp',
-    'Time'                  => 'Time',
-    'Today'                 => 'Today',
-    'Tools'                 => 'Tools',
-    'Total'                 => 'Total',
     'TotalBrScore'          => 'Total<br/>Score',
     'TrackDelay'            => 'Track Delay',
     'TrackMotion'           => 'Track Motion',
-    'Triggers'              => 'Triggers',
     'TurboPanSpeed'         => 'Turbo Pan Speed',
     'TurboTiltSpeed'        => 'Turbo Tilt Speed',
-    'Type'                  => 'Type',
     'TZUnset'               => 'Unset - use value in php.ini',
-    'Unarchive'             => 'Unarchive',
-    'Undefined'             => 'Undefined',
-    'Units'                 => 'Units',
-    'Unknown'               => 'Unknown',
     'UpdateAvailable'       => 'An update to ZoneMinder is available.',
     'UpdateNotNecessary'    => 'No update is necessary.',
-    'Update'                => 'Update',
-    'Upload'                => 'Upload',
-    'Updated'               => 'Updated',
-    'UsedPlugins'	        => 'Used Plugins',
+    'UsedPlugins'	          => 'Used Plugins',
     'UseFilterExprsPost'    => '&nbsp;filter&nbsp;expressions', // This is used at the end of the phrase 'use N filter expressions'
     'UseFilterExprsPre'     => 'Use&nbsp;', // This is used at the beginning of the phrase 'use N filter expressions'
     'UseFilter'             => 'Use Filter',
-    'Username'              => 'Username',
-    'Users'                 => 'Users',
-    'User'                  => 'User',
-    'Value'                 => 'Value',
     'VersionIgnore'         => 'Ignore this version',
     'VersionRemindDay'      => 'Remind again in 1 day',
     'VersionRemindHour'     => 'Remind again in 1 hour',
     'VersionRemindNever'    => 'Don\'t remind about new versions',
     'VersionRemindWeek'     => 'Remind again in 1 week',
     'VersionRemindMonth'    => 'Remind again in 1 month',
-    'Version'               => 'Version',
     'ViewMatches'           => 'View Matches',
     'VideoFormat'           => 'Video Format',
     'VideoGenFailed'        => 'Video Generation Failed!',
@@ -837,31 +625,19 @@ $SLANG = array(
     'VideoGenSucceeded'     => 'Video Generation Succeeded!',
     'VideoSize'             => 'Video Size',
     'VideoWriter'           => 'Video Writer',
-    'Video'                 => 'Video',
     'ViewAll'               => 'View All',
     'ViewEvent'             => 'View Event',
     'ViewPaged'             => 'View Paged',
-    'View'                  => 'View',
-	'V4LCapturesPerFrame'	=> 'Captures Per Frame',
-	'V4LMultiBuffer'		=> 'Multi Buffering',
-    'Wake'                  => 'Wake',
+    'V4LCapturesPerFrame'  	=> 'Captures Per Frame',
+    'V4LMultiBuffer'		    => 'Multi Buffering',
     'WarmupFrames'          => 'Warmup Frames',
-    'Watch'                 => 'Watch',
     'WebColour'             => 'Web Colour',
-    'Web'                   => 'Web',
     'WebSiteUrl'            => 'Website URL',
-    'Week'                  => 'Week',
     'WhiteBalance'          => 'White Balance',
-    'White'                 => 'White',
-    'Wide'                  => 'Wide',
     'X10ActivationString'   => 'X10 Activation String',
     'X10InputAlarmString'   => 'X10 Input Alarm String',
     'X10OutputAlarmString'  => 'X10 Output Alarm String',
-    'X10'                   => 'X10',
-    'X'                     => 'X',
-    'Yes'                   => 'Yes',
     'YouNoPerms'            => 'You do not have permissions to access this resource.',
-    'Y'                     => 'Y',
     'ZoneAlarmColour'       => 'Alarm Colour (Red/Green/Blue)',
     'ZoneArea'              => 'Zone Area',
     'ZoneFilterSize'        => 'Filter Width/Height (pixels)',
@@ -873,11 +649,8 @@ $SLANG = array(
     'ZoneMinMaxPixelThres'  => 'Min/Max Pixel Threshold (0-255)',
     'ZoneOverloadFrames'    => 'Overload Frame Ignore Count',
     'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
-    'Zones'                 => 'Zones',
-    'Zone'                  => 'Zone',
     'ZoomIn'                => 'Zoom In',
     'ZoomOut'               => 'Zoom Out',
-    'Zoom'                  => 'Zoom',
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
@@ -935,17 +708,14 @@ $VLANG = array(
 //
 // In languages such as English this is fairly simple
 // Note this still has to be used with printf etc to get the right formatting
-function zmVlang( $langVarArray, $count )
-{
-    krsort( $langVarArray );
-    foreach ( $langVarArray as $key=>$value )
-    {
-        if ( abs($count) >= $key )
-        {
-            return( $value );
-        }
+function zmVlang($langVarArray, $count) {
+  krsort($langVarArray);
+  foreach ($langVarArray as $key=>$value) {
+    if (abs($count) >= $key) {
+      return $value;
     }
-    die( 'Error, unable to correlate variable language string' );
+  }
+  ZM\Error('Unable to correlate variable language string');
 }
 
 // This is an version that could be used in the Russian example above
@@ -1085,69 +855,72 @@ $OLANG = array(
       certainly not what you want! To unlink monitors you can ctrl-click.
       '
 	),
-  'FUNCTION_NONE' => array(
-    'Help' => '
-      In None mode no processes are started.  No capturing will occur.
-      '
+  'OPTIONS_CAPTURING' => array(
+    'Help' => 'When to do capturing:~~~~
+None: Do not run a process, do not do capturing.  Equivalent to the old Function == None~~~~
+Ondemand: A zmc process will run, but will wait for a viewer (live view, thumbnail or rstp server connection) before connecting to the camera.~~~~
+Always: A zmc process will run and immediately connect and stay connected.~~~~
+',
   ),
-  'FUNCTION_MONITOR' => array(
+  'OPTIONS_RTSPSERVER' => array(
     'Help' => '
-      In Monitor mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      No motion detection will be performed.  This monitor type cannot save video.
-      '
-  ),
-  'FUNCTION_MODECT' => array(
-    'Help' => '
-      In Modect mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      In addition the video will be analysed for motion.  
-      When motion is detected, events will be created and video will be stored.
-      Motion data will be stored in the database for each event.
-      Events may also be triggered externally (zmtrigger) or by linked monitors.
-      '
-  ),
-  'FUNCTION_RECORD' => array(
-    'Help' => '
-      In Record mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      Motion detection will not be performed.
-      Events will be created at fixed intervals and video will be stored.
-      '
-  ),
-  'FUNCTION_MOCORD' => array(
-    'Help' => '
-      In Mocord mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      In addition the video will be analysed for motion.  
-      Events will be created at fixed intervals or at start and stop of motion.
-      Video will always be stored to disk and events will have the motion data stored in the database.
-      Events may also be triggered externally (zmtrigger) or by linked monitors.
-      '
-  ),
-  'FUNCTION_NODECT' => array(
-    'Help' => '
-      In Nodect mode the capture process (zmc) will connect to the camera and stream data.
-      It will be decoded if necessary and live viewing will be possible.
-      In addition any linked cameras will be checked for their alarm status. 
-      When linked cameras or an external trigger (zmtrigger) are alarmed, events will be created
-      and video will be stored.  No other motion detection will occur.
-      '
-  ),
+     ZM supplies its own RTSP server that can re-stream RTSP or attempt to convert the
+     monitor stream into RTSP. This is useful if you want to use the ZM Host machines
+     resources instead of having multiple clients pulling from a single camera.~~~~
+     NOTE:~~
+     Options > Network > MIN_RTSP_PORT is configurable.
+     ',
+    ),
+  'OPTIONS_RTSPSTREAMNAME' => array(
+     'Help' => '
+     If RTSPServer is enabled, this will be the endpoint it will be available at.
+     For example, if this is monitor ID 6, MIN_RTSP_PORT=20000 and RTSPServerName
+     is set to "my_camera", access the stream at rtsp://ZM_HOST:20006/my_camera
+     ',
+    ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
-      When in Modect, Mocord, Nodect or RECORD mode the analysis process can be turned on/off.
+      When to perform motion detection on the captured video.  
       This setting sets the default state when the process starts up.
       It can then be turned on/off through external triggers zmtrigger zmu or the web ui.
       When not enabled no motion detection or linked monitor checking will be performed and 
       no events will be created.
       '
   ),
-  'FUNCTION_DECODING_ENABLED' => array(
+  'FUNCTION_DECODING' => array(
     'Help' => '
-      When in Record or Nodect mode and using H264Passthrough with no jpegs being saved, we can
-      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use
-      but will make live view unavailable for this monitor.'
+      When not performing motion detection and using H264Passthrough with no jpegs being saved, we can
+      optionally choose to not decode the H264/H265 packets.  This will drastically reduce cpu use.~~~~
+Always: every frame will be decoded, live view and thumbnails will be available.~~~~
+OnDemand: only do decoding when someone is watching.~~~~
+KeyFrames: Only keyframes will be decoded, so viewing frame rate will be very low, depending on the keyframe interval set in the camera.~~~~
+None: No frames will be decoded, live view and thumbnails will not be available~~~~
+'
+  ),
+  'FUNCTION_JANUS_ENABLED' => array(
+    'Help' => '
+      Attempt to use Janus streaming server for h264/h265 live view. Experimental, but allows
+      for significantly better performance.'
+  ),
+  'FUNCTION_JANUS_AUDIO_ENABLED' => array(
+    'Help' => '
+      Attempt to enable audio in the Janus stream. Has no effect for cameras without audio support,
+      but can prevent a stream playing if your camera sends an audio format unsupported by the browser.'
+  ),
+  'FUNCTION_JANUS_PROFILE_OVERRIDE' => array(
+    'Help' => '
+      Manually set a Profile-ID, which can force a browser to try to play a given stream. Try "42e01f"
+      for a universally supported value, or leave this blank to use the Profile-ID specified by the source.'
+  ),
+  'FUNCTION_JANUS_USE_RTSP_RESTREAM' => array(
+    'Help' => '
+      If your camera will not work under Janus with any other options, enable this to use the ZoneMinder
+      RTSP restream as the Janus source.'
+  ),
+  'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
+    'Help' => '
+    Override or set a timeout period in seconds for the RTSP session. Useful if you see a lot of 401
+    Unauthorized responses in janus logs. Set to 0 to use the timeout (if sent) from the source.'
   ),
   'ImageBufferCount' => array(
     'Help' => '

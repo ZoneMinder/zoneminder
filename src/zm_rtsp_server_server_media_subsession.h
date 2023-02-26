@@ -21,7 +21,7 @@ class ZoneMinderDeviceSource;
 
 class BaseServerMediaSubsession {
 	public:
-    BaseServerMediaSubsession(StreamReplicator* replicator):
+    explicit BaseServerMediaSubsession(StreamReplicator* replicator):
       m_replicator(replicator) {};
 
 		FramedSource* createSource(

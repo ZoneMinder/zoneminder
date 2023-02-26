@@ -10,23 +10,47 @@
     display: inline-block;
 }
 
+#alarmCues,
 .alarmCue {
+  /*
+  position: absolute;
+  */
+  background: none;
+
+  /*
     background-color: #222222;
-    height: 1.25em;
-    text-align: left;
-    margin: 0 auto 0 auto;
-    border-radius: 0 0 .3em .3em;
+    */
+  height: 16px;
+  text-align: left;
+  margin: 0;
+  z-index: 10;
+  border: none;
+  border-right: 1px solid black;
 }
 
-.alarmCue span {
-    background-color:red;
-    height: 100%;
-    display: inline-block;
-    border-radius: 0;
+#alarmCues span {
+  border-left: 1px solid black;
+  top: 0;
+  position: absolute;
+  height: 100%;
+  display: inline-block;
+  border-radius: 0;
+  z-index: 11;
+  font-size: 8px;
+}
+
+#alarmCues span.alarmCue {
+  background-color:red;
+  z-index: 9;
+  opacity: 0.66;
+  border-left: none;
 }
 
 span.noneCue {
-    background: none;
+  background: none;
+  z-index: 9;
+  opacity: 0.33;
+  border-left: none;
 }
 
 #header {
@@ -76,8 +100,11 @@ height: 100%;
     display: inline-block;
     position: relative;
 }
+.eventStats {
+  margin-right: 5px;
+}
 
-#imageFeed {
+#videoFeed {
     display: inline-block;
     position: relative;
     text-align: center;
@@ -149,17 +176,30 @@ height: 100%;
 }
 
 #progressBar {
-    position: relative;
-    top: -1.25em;
-    height: 1.25em;
-    margin: 0 auto -1.25em auto;
+  position: relative;
+  /*
+  top: -1.25em;
+   */
+  height: 1.25em;
+  /*
+  margin: 0 auto -1.25em auto;
+   */
+  margin: 0;
+  z-index: 5;
 }
 
 #progressBar .progressBox {
-    transition: width .1s;
-    height: 100%;
-    background: rgba(170, 170, 170, .7);
-    border-radius: 0 0 .3em .3em;
+  transition: width .1s;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  background: rgba(170, 170, 170, .7);
+  background: yellow;
+  /*
+  border-radius: 0 0 .3em .3em;
+   */
+  z-index: 10;
+  opacity: 0.66;
 }
 
 #eventStills {
@@ -176,6 +216,10 @@ height: 100%;
     margin: 0 auto;
     overflow: hidden;
     height: 300px;
+}
+
+#videoFeed img {
+  width: 100%;
 }
 
 #eventThumbs img {
@@ -262,4 +306,43 @@ height: 100%;
     width: 1em;
     height: 100%;
     background-color: #999999;
+}
+svg.zones {
+  position:absolute;
+  top: 0;
+  left: 0;
+  background: none;
+  width: 100%;
+  /*
+  height: 100%;
+  */
+}
+#videoobj {
+  width: 100%;
+  height: 100%;
+}
+#downloadBtn {
+  line-height: 1;
+  font-size: 18px;
+}
+#toggleZonesButton span.material-icons {
+  font-size: 18px;
+}
+#indicator {
+  height: 2.75em;
+  position: absolute;
+  border-left: 1px solid blue;
+  margin-top: -1.25em;
+}
+.video-js .vjs-text-track-display {
+  display: none;
+}
+/*
+.EventData {
+  width: 200px;
+}
+*/
+#frames img {
+  float: left;
+  z-index: 1000;
 }

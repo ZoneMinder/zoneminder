@@ -38,10 +38,11 @@ if ( $user['MonitorIds'] ) {
   $monitor_ids = explode(',', $user['MonitorIds']);
 }
 xhtmlHeaders(__FILE__, translate('Snapshot').' '.$snapshot->Id());
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo getNavBarHTML() ?>
+    <div id="content">
 <?php 
 if ( !$snapshot->Id() ) {
   echo '<div class="error">Snapshot was not found.</div>';
@@ -49,25 +50,24 @@ if ( !$snapshot->Id() ) {
 ?>
 <!-- BEGIN HEADER -->
   <form action="?view=snapshot&id=<?php echo $snapshot->Id() ?>" method="post">
-    <input type="hidden" name="action" value="save"/>
     <div class="d-flex flex-row justify-content-between px-3 py-1">
       <div id="toolbar">
-        <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
-        <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
 <?php if ( $snapshot->Id() ) { ?>
 <!--
         <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
 -->
-        <button id="saveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"><i class="fa fa-save"></i></button>
-        <button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>"><i class="fa fa-external-link"></i></button>
-        <button id="downloadBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Download') ?>" disabled><i class="fa fa-download"></i></button>
-        <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
+        <button type="submit" name="action" value="save" id="saveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"><i class="fa fa-save"></i></button>
+        <button type="button" id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>"><i class="fa fa-external-link"></i></button>
+        <button type="button" id="downloadBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Download') ?>" disabled><i class="fa fa-download"></i></button>
+        <button type="button" id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
 <?php } // end if snapshot->Id ?>
       </div>
       
       <h2><?php echo translate('Snapshot').' '.$snapshot->Id() ?></h2>
     </div>
-    <div class="d-flex flex-row justify-content-between py-1">
+    <div class="d-flex flex-row justify-content-between py-1" id="snapshot">
       <!--
       <div class="form-group"><label><?php echo translate('Created By') ?></label>
       -->
@@ -82,9 +82,10 @@ if ( !$snapshot->Id() ) {
         <textarea name="snapshot[Description]"><?php echo validHtmlStr($snapshot->Description()); ?></textarea>
       </div>
     </div>
+  </form>
 <?php if ( $snapshot->Id() ) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
-    <div id="content" class="justify-content-center">
+    <div id="video" class="row justify-content-center">
 <?php
     $events = $snapshot->Events();
     $width = 100 / ( count($events) < 2 ? 1 : ( ( count($events) < 4 ) ? count($events) : 4 ) )-1;
@@ -95,7 +96,6 @@ if ( !$snapshot->Id() ) {
 ?>
     </div><!--content-->
 <?php } // end if snapshot->Id() ?>
-  </form>
   <h2 id="downloadProgress" class="<?php
             if ( isset($_REQUEST['generated']) ) {
               if ( $_REQUEST['generated'] )
@@ -117,5 +117,6 @@ if ( !$snapshot->Id() ) {
     ?></span>
     <span id="downloadProgressTicker"></span>
   </h2>
+  </div>
 </div><!--page-->
 <?php xhtmlFooter() ?>

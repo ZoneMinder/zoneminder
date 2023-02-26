@@ -30,7 +30,6 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 use POSIX qw/strftime EPIPE EINTR/;
 use Socket;
 use Data::Dumper;
-use Module::Load::Conditional qw{can_load};
 
 use constant MAX_CONNECT_DELAY => 15;
 use constant MAX_COMMAND_WAIT => 1800;
@@ -102,39 +101,20 @@ if ($options{command}) {
   }
 } else {
   # The server isn't there
-  my $monitor = zmDbGetMonitorAndControl($id);
+  require ZoneMinder::Monitor;
+
+  my $monitor = ZoneMinder::Monitor->find_one(Id=>$id);
   Fatal("Unable to load control data for monitor $id") if !$monitor;
 
-  my $protocol = $monitor->{Protocol};
+  my $control = $monitor->Control();
+
+  my $protocol = $control->{Protocol};
   if (!$protocol) {
     Fatal('No protocol is set in monitor. Please edit the monitor, edit control type, select the control capability and fill in the Protocol field');
   }
 
-  if (-x $protocol) {
-    # Protocol is actually a script!
-    # Holdover from previous versions
-    my $command .= $protocol.' '.$arg_string;
-    Debug($command);
-
-    my $output = qx($command);
-    my $status = $? >> 8;
-    if ($status || logDebugging()) {
-      chomp($output);
-      Debug("Output: $output");
-    }
-    if ($status) {
-      Error("Command '$command' exited with status: $status");
-      exit($status);
-    }
-    exit(0);
-  }
-
   Info("Starting control server $id/$protocol");
   close(CLIENT);
-
-  if (!can_load(modules => {'ZoneMinder::Control::'.$protocol => undef})) {
-    Fatal("Can't load ZoneMinder::Control::$protocol\n$Module::Load::Conditional::ERROR");
-  }
 
   my $zm_terminate = 0;
   sub TermHandler {
@@ -150,7 +130,6 @@ if ($options{command}) {
 
   $0 = $0.' --id '.$id;
 
-  my $control = ('ZoneMinder::Control::'.$protocol)->new($id);
   my $control_key = $control->getKey();
   $control->loadMonitor();
 

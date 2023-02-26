@@ -44,7 +44,11 @@ if ( ! empty($_REQUEST['eid']) ) {
   $path = $Event->Path().'/'.$Event->DefaultVideo();
 } else if ( ! empty($_REQUEST['event_id']) ) {
   $Event = new ZM\Event($_REQUEST['event_id']);
-  $path = $Event->Path().'/'.$Event->DefaultVideo();
+  if (!empty($_REQUEST['file'])) {
+    $path = $Event->Path().'/'.preg_replace('/\//', '', $_REQUEST['file']);
+  } else {
+    $path = $Event->Path().'/'.$Event->DefaultVideo();
+  }
 } else {
   $errorText = 'No video path';
 }

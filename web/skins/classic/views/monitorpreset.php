@@ -18,18 +18,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit( 'Monitors' ) )
-{
-    $view = "error";
-    return;
+if (!canEdit('Monitors')) {
+  $view = 'error';
+  return;
 }
-$sql = "select Id,Name from MonitorPresets";
-$presets = array();
-$presets[0] = translate('ChoosePreset');
-foreach( dbFetchAll( $sql ) as $preset )
-{
-    $presets[$preset['Id']] = htmlentities( $preset['Name'] );
-}
+$mid = isset($_REQUEST['mid']) ? validInt($_REQUEST['mid']) : 0;
 
 $focusWindow = true;
 
@@ -38,20 +31,27 @@ xhtmlHeaders(__FILE__, translate('MonitorPreset') );
 <body>
   <?php echo getNavBarHTML() ?>
   <div id="page">
-      <h2><?php echo translate('MonitorPreset') ?></h2>
+    <h2><?php echo translate('MonitorPreset') ?></h2>
     <div id="content">
       <form name="contentForm" id="monitorPresetForm" method="post" action="?">
-        <input type="hidden" name="view" value="none"/>
-        <input type="hidden" name="mid" value="<?php echo validNum($_REQUEST['mid']) ?>"/>
+        <input type="hidden" name="view" value="monitor"/>
+        <input type="hidden" name="mid" value="<?php echo $mid ?>"/>
         <p>
           <?php echo translate('MonitorPresetIntro') ?>
         </p>
         <p>
-          <label for="preset"><?php echo translate('Preset') ?></label><?php echo buildSelect( "preset", $presets ); ?>
+          <label for="preset"><?php echo translate('Preset') ?></label>
+          <?php
+$presets = array();
+$presets[0] = translate('ChoosePreset');
+foreach (dbFetchAll('SELECT Id,Name FROM MonitorPresets ORDER BY Name') as $preset) {
+  $presets[$preset['Id']] = htmlentities( $preset['Name'] );
+}
+ echo buildSelect('preset', $presets); ?>
         </p>
         <div id="contentButtons">
-          <input type="submit" name="saveBtn" value="<?php echo translate('Save') ?>" data-on-click-this="submitPreset" disabled="disabled"/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="backWindow"/>
+          <button type="submit" name="saveBtn" value="preset" disabled="disabled"><?php echo translate('Save') ?></button>
+          <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
         </div>
       </form>
     </div>

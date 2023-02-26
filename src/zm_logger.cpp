@@ -43,11 +43,11 @@ Logger::IntMap Logger::smSyslogPriorities;
 
 void Logger::usrHandler(int sig) {
   Logger *logger = fetch();
-  if ( sig == SIGUSR1 )
+  if (sig == SIGUSR1)
     logger->level(logger->level()+1);
-  else if ( sig == SIGUSR2 )
+  else if (sig == SIGUSR2)
     logger->level(logger->level()-1);
-  Info("Logger - Level changed to %d", logger->level());
+  Info("Logger - Level changed to %d %s", logger->level(), smCodes[logger->level()].c_str());
 }
 
 Logger::Logger() :
@@ -82,7 +82,8 @@ Logger::Logger() :
     smSyslogPriorities[PANIC] = LOG_ERR;
 
     char code[4] = "";
-    for (int i = DEBUG1; i <= DEBUG9; i++) {
+    // Extra comparison against DEBUG1 to ensure GCC knows we are printing a single byte.
+    for (int i = DEBUG1; i>=DEBUG1 && i <= DEBUG9; i++) {
       snprintf(code, sizeof(code), "DB%d", i);
       smCodes[i] = code;
       smSyslogPriorities[i] = LOG_DEBUG;
@@ -296,23 +297,23 @@ const std::string &Logger::id(const std::string &id) {
 }
 
 Logger::Level Logger::level(Logger::Level level) {
-  if ( level > NOOPT ) {
+  if (level > NOOPT) {
     mLevel = limit(level);
 
     mEffectiveLevel = NOLOG;
-    if ( mTerminalLevel > mEffectiveLevel )
+    if (mTerminalLevel > mEffectiveLevel)
       mEffectiveLevel = mTerminalLevel;
-    if ( mDatabaseLevel > mEffectiveLevel )
+    if (mDatabaseLevel > mEffectiveLevel)
       mEffectiveLevel = mDatabaseLevel;
-    if ( mFileLevel > mEffectiveLevel )
+    if (mFileLevel > mEffectiveLevel)
       mEffectiveLevel = mFileLevel;
-    if ( mSyslogLevel > mEffectiveLevel )
+    if (mSyslogLevel > mEffectiveLevel)
       mEffectiveLevel = mSyslogLevel;
-    if ( mEffectiveLevel > mLevel)
+    if (mEffectiveLevel > mLevel)
       mEffectiveLevel = mLevel;
 
     // DEBUG levels should flush
-    if ( mLevel > INFO )
+    if (mLevel > INFO)
       mFlush = true;
   }
   return mLevel;
@@ -386,7 +387,7 @@ void Logger::openFile() {
   if (mLogFile.size()) {
     if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
       mFileLevel = NOLOG;
-      Error("fopen() for %s, error = %s", mLogFile.c_str(), strerror(errno));
+      Error("fopen() for %s %zu, error = %s", mLogFile.c_str(), mLogFile.size(), strerror(errno));
     }
   } else {
     puts("Called Logger::openFile() without a filename");
@@ -480,7 +481,11 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     int i;
     logPtr += snprintf(logPtr, sizeof(logString)-(logPtr-logString), "%d:", len);
     for ( i = 0; i < len; i++ ) {
-      logPtr += snprintf(logPtr, sizeof(logString)-(logPtr-logString), " %02x", data[i]);
+      const size_t max_len = sizeof(logString) - (logPtr - logString);
+      int rc = snprintf(logPtr, max_len, " %02x", data[i]);
+      if (rc < 0 || static_cast<size_t>(rc) > max_len)
+        break;
+      logPtr += rc;
     }
   } else {
     logPtr += vsnprintf(logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr);

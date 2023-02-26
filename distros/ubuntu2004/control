@@ -5,6 +5,7 @@ Maintainer: Isaac Connor <isaac@zoneminder.com>
 Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-apache2
               ,cmake
               ,libavcodec-dev
+              ,libavdevice-dev
               ,libavformat-dev
               ,libavutil-dev
               ,libswresample-dev
@@ -16,7 +17,6 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libjpeg-turbo8-dev | libjpeg62-turbo-dev | libjpeg8-dev | libjpeg9-dev
               ,libturbojpeg0-dev
               ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
-              ,libpcre3-dev
               ,libpolkit-gobject-1-dev
               ,libv4l-dev [!hurd-any]
               ,libvlc-dev
@@ -31,6 +31,8 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libdata-entropy-perl
               ,libvncserver-dev
               ,libjwt-gnutls-dev|libjwt-dev
+              ,libgsoap-dev, gsoap
+              ,libmosquittopp-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 
@@ -39,10 +41,12 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
-        ,libswscale5|libswscale4
-        ,libswresample3|libswresample2
+        ,libavdevice59|libavdevice58|libavdevice57
+        ,libswscale6|libswscale5|libswscale4
+        ,libswresample4|libswresample3|libswresample2
         ,ffmpeg
-        ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
+        ,libcurl4, libcurl4-gnutls-dev
+        ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
         ,libphp-serialization-perl
         ,libmodule-load-conditional-perl
@@ -51,6 +55,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdbd-mysql-perl
         ,libdevice-serialport-perl
         ,libimage-info-perl
+        ,libio-interface-perl
         ,libjson-maybexs-perl
         ,libsys-mmap-perl [!hurd-any]
         ,liburi-encode-perl
@@ -60,21 +65,23 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libclass-std-fast-perl
         ,libsoap-wsdl-perl
         ,libio-socket-multicast-perl
+        ,libio-socket-ssl-perl
         ,libdigest-sha-perl
         ,libsys-cpu-perl, libsys-meminfo-perl
         ,libdata-uuid-perl
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
         ,default-mysql-client | mariadb-client | virtual-mysql-client
-        ,php-mysql, php-gd, php-apcu, php-apc | php-apcu-bc, php-json
+        ,php-mysql, php-gd, php-apcu, php-json, php-intl
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
-        ,libpcre3
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
         ,libjwt-gnutls0|libjwt0
+        ,libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
+        ,libmosquittopp1
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

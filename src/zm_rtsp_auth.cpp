@@ -26,7 +26,7 @@
 
 namespace zm {
 
-Authenticator::Authenticator(std::string username, std::string password)
+Authenticator::Authenticator(const std::string &username, const std::string &password)
     : fAuthMethod(AUTH_UNDEFINED),
       fCnonce("0a4f113b"),
       fUsername(std::move(username)),
@@ -45,7 +45,7 @@ void Authenticator::reset() {
   fAuthMethod = AUTH_UNDEFINED;
 }
 
-void Authenticator::authHandleHeader(std::string headerData) {
+void Authenticator::authHandleHeader(const std::string &headerData) {
   const char* basic_match = "Basic ";
   const char* digest_match = "Digest ";
   size_t digest_match_len = strlen(digest_match);

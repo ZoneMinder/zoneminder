@@ -42,13 +42,13 @@ foreach ( $Groups as $id=>$Group ) {
     $max_depth = $Group->depth();
 }
 xhtmlHeaders(__FILE__, translate('Groups'));
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
     <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content">
-      <form name="groupsForm" method="get" action="?">
-        <input type="hidden" name="view" value="none"/>
+      <form name="groupsForm" method="post" action="?">
+        <input type="hidden" name="view" value="groups"/>
         <input type="hidden" name="action" value="setgroup"/>
         <table id="contentTable" class="major">
           <thead class="thead-highlight">

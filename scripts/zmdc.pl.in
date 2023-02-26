@@ -102,7 +102,8 @@ my @daemons = (
     'zmtrack.pl',
     'zmcontrol.pl',
     'zm_rtsp_server',
-    'zmtelemetry.pl'
+    'zmtelemetry.pl',
+    'zmalarm-server.py'
     );
 
 if ( $Config{ZM_OPT_USE_EVENTNOTIFICATION} ) {
@@ -429,10 +430,20 @@ sub start {
 # It's not running, or at least it's not been started by us
     $process = { daemon=>$daemon, args=>\@args, command=>$command, keepalive=>!undef };
   } elsif ( $process->{pid} && $pid_hash{$process->{pid}} ) {
-    dPrint(ZoneMinder::Logger::INFO, "'$process->{command}' already running at "
+    if ($process->{term_sent_at}) {
+      dPrint(ZoneMinder::Logger::INFO, "'$process->{command}' was told to term at "
+        .strftime('%y/%m/%d %H:%M:%S', localtime($process->{term_sent_at}))
+        .", pid = $process->{pid}\n"
+      );
+      $process->{keepalive} = !undef;
+      $process->{delay} = 0;
+      delete $terminating_processes{$command};
+    } else {
+      dPrint(ZoneMinder::Logger::INFO, "'$process->{command}' already running at "
         .strftime('%y/%m/%d %H:%M:%S', localtime($process->{started}))
         .", pid = $process->{pid}\n"
-        );
+      );
+    }
     return;
   }
 
@@ -523,7 +534,7 @@ sub send_stop {
         ."\n"
         );
     sigprocmask(SIG_UNBLOCK, $blockset) or die "dying at unblock...\n";
-    return();
+    return ();
   }
 
   my $pid = $process->{pid};
@@ -586,7 +597,7 @@ sub check_for_processes_to_kill {
 
 sub stop {
   my ( $daemon, @args ) = @_;
-  my $command = join(' ', $daemon, @args );
+  my $command = join(' ', $daemon, @args);
   my $process = $cmd_hash{$command};
   if ( !$process ) {
     dPrint(ZoneMinder::Logger::WARNING, "Can't find process with command of '$command'");
@@ -612,7 +623,7 @@ sub restart {
   # Start will be handled by the reaper...
   # unless it was already pending in which case send_stop will return () so we should start it
   if ( !send_stop(0, $process) ) {
-    dPrint(ZoneMinder::Logger::WARNING, "!send_stop so starting '$command'\n");
+    dPrint(ZoneMinder::Logger::DEBUG, "!send_stop so starting '$command'\n");
     start($daemon, @args);
   }
   return;

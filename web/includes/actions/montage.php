@@ -17,32 +17,34 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+require_once('includes/MontageLayout.php');
 
 if ( isset($_REQUEST['object']) ) {
   if ( $_REQUEST['object'] == 'MontageLayout' ) {
-    // System edit actions
-    if ( ! canEdit('System') ) {
-      ZM\Warning('Need System permissions to edit layouts');
-      return;
-    }
-    require_once('includes/MontageLayout.php');
-    if ( $action == 'Save' ) {
+    if ($action == 'Save') {
       $Layout = null;
+
+      # Name is only populated when creating a new layout
       if ( $_REQUEST['Name'] != '' ) {
         $Layout = new ZM\MontageLayout();
         $Layout->Name($_REQUEST['Name']);
       } else {
         $Layout = new ZM\MontageLayout($_REQUEST['zmMontageLayout']);
       }
-      $Layout->Positions($_REQUEST['Positions']);
-      $Layout->save();
-      zm_session_start();
-      $_SESSION['zmMontageLayout'] = $Layout->Id();
-      setcookie('zmMontageLayout', $Layout->Id(), 1);
-      session_write_close();
-      $redirect = '?view=montage';
+      if (canEdit('System') or !$Layout->Id() or ($user['Id'] == $Layout->UserId())) {
+        $Layout->UserId($user['Id']);
+        $Layout->Positions($_REQUEST['Positions']);
+        $Layout->save();
+        zm_session_start();
+        $_SESSION['zmMontageLayout'] = $Layout->Id();
+        session_write_close();
+        zm_setcookie('zmMontageLayout', $Layout->Id());
+        $redirect = '?view=montage';
+      } else {
+        ZM\Warning('Need System permissions to edit layouts');
+        return;
+      } 
     } // end if save
-
   } # end if isset($_REQUEST['object'] )
 } # end if isset($_REQUEST['object'] )
 ?>

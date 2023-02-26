@@ -51,7 +51,7 @@ public:
   void Terminate() override { Disconnect(); }
   int Connect() override;
   int Disconnect() override;
-  int SendRequest(std::string);
+  int SendRequest(const std::string &);
   int GetResponse();
   int PrimeCapture() override;
   int Capture(std::shared_ptr<ZMPacket> &p) override;

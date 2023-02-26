@@ -1,6 +1,12 @@
 
 ZoneMinder uses certain 3rd party media assets/libraries for UI display purposes. Their licenses are listed in this file
 
+### Font Awesome icons
+
+Origin: http://fontawesome.io
+
+License: Font: SIL OFL 1.1, CSS: MIT License (http://fontawesome.io/license)
+
 ### Material Design icons 
 
 Origin: https://github.com/google/material-design-icons

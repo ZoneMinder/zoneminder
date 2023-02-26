@@ -7,17 +7,19 @@
 // redirect the user to his original intended destination by appending it to the URL.
 //
 
-$redirectSuffix = $user['HomeView'] != '' ? $user['HomeView'] : '?view=console';
-if ( !empty($_SESSION['postLoginQuery']) ) {
-  parse_str($_SESSION['postLoginQuery'], $queryParams);
+if (!empty($_REQUEST['postLoginQuery'])) {
+  parse_str($_REQUEST['postLoginQuery'], $queryParams);
   $redirectSuffix = '?' . http_build_query($queryParams);
-  zm_session_start();
-  unset($_SESSION['postLoginQuery']);
-  session_write_close();
+} else if ($user['HomeView'] != '') {
+  $redirectSuffix = $user['HomeView'];
+} else {
+  $redirectSuffix = '?view=console';
 }
 
 // If we didn't redirect elsewhere, then don't show login page, go to console
-if ( $redirectSuffix == '?view=login' ) $redirectSuffix = '?view=console';
+if ( $redirectSuffix == '?view=login' or $redirectSuffix == '?view=logout') {
+  Warning('Setting redirect to login causes looping! Redirect to console');
+  $redirectSuffix = '?view=console';
+}
 ?>
-
-var redirectSuffix = '<?php echo $redirectSuffix ?>';
+const redirectSuffix = '<?php echo $redirectSuffix ?>';

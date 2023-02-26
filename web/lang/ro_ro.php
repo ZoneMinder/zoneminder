@@ -1179,14 +1179,6 @@ $OLANG = array(
         'Prompt' => "Adaug&#259;re string aleator pentru a preveni tamponarea fluxurilor",
         'Help' => "Unele browsere pot &#238;nregistra &#238;n memoria tampon fluxurile folosite de ZoneMinder. Pentru a preveni acest lucru se poate adaug&#259; un string aleator pentru a face fiecare invocare a fluxului aparent unic&#259;."
     ),
-    'OPT_CAMBOZOLA' => array(
-        'Prompt' => "Este instalat(op&#355;ional) client-ul cambozola(recomandat)",
-        'Help' => "Cambozola este un Java applet care este folosit de ZoneMinder pentru a fluxurile de imagini &#238;ntr-un navigator ca Internet Explorer. Este recomandat s&#259; instala&#355;i cambozola de la http://www.charliemouse.com/code/cambozola/ Chiar dac&#259; nu e instalat ve&#355;i putea vizualiza imagini statice la o rat&#259; mic&#259; de actulizare."
-    ),
-    'PATH_CAMBOZOLA' => array(
-        'Prompt' => "Calea web la cambozola (recomandat)",
-        'Help' => "Cambozola este un Java applet care este folosit de ZoneMinder pentru a fluxurile de imagini &#238;ntr-un navigator ca Internet Explorer. Este recomandat s&#259; instala&#355;i cambozola de la http://www.charliemouse.com/code/cambozola/ Chiar dac&#259; nu e instalat ve&#355;i putea vizualiza imagini statice la o rat&#259; mic&#259; de actulizare. Seta&#355;i aceast&#259; op&#355;iune 'camboloza.jar' dac&#259; cambozola este instalat &#238;n acela&#351;i director cu fi&#351;ierele web ZoneMinder. "
-    ),
     'OPT_MPEG' => array(
         'Prompt' => "Este instalat codor video mpeg (op&#355;ional)",
         'Help' => "ZoneMinder poate &#238;nregistra o serie de imagini &#238;n format MPEG. Aceast&#259; op&#355;iune v&#259; permite s&#259; specifica&#355;i dac&#259; ave&#355;i un codor mpeg instalat. Cele dou&#259; codoare suportate de ZoneMinder sunt mpeg_encode &#351;i ffmpeg, ultimul fiind cel mai rapid. Crearea de fi&#351;iere MPEG consum&#259; resursele procesorului &#351;i nu este necesar&#259; deoarece evenimentele pot fi vizualizare ca flux video."

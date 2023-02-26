@@ -135,21 +135,24 @@ class Image {
     int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
     int holdbuffer; /* Hold the buffer instead of replacing it with new one */
     std::string annotation_;
+    std::string filename_;
 
   public:
     Image();
-    explicit Image(const char *filename);
+    explicit Image(const std::string &filename);
     Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
     Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
     explicit Image(const Image &p_image);
     explicit Image(const AVFrame *frame);
 
     ~Image();
+
     static void Initialise();
     static void Deinitialise();
 
     inline void DumpImgBuffer() {
-      DumpBuffer(buffer, buffertype);
+      if (buffertype != ZM_BUFTYPE_DONTFREE)
+        DumpBuffer(buffer, buffertype);
       buffertype = ZM_BUFTYPE_DONTFREE;
       buffer = nullptr;
       allocation = 0;
@@ -161,27 +164,15 @@ class Image {
     inline unsigned int Colours() const { return colours; }
     inline unsigned int SubpixelOrder() const { return subpixelorder; }
     inline unsigned int Size() const { return size; }
+    std::string Filename() const { return filename_; }
 
-    inline AVPixelFormat AVPixFormat() {
-      if ( colours == ZM_COLOUR_RGB32 ) {
-        return AV_PIX_FMT_RGBA;
-      } else if ( colours == ZM_COLOUR_RGB24 ) {
-        if ( subpixelorder == ZM_SUBPIX_ORDER_BGR){
-          return AV_PIX_FMT_BGR24;
-        } else {
-          return AV_PIX_FMT_RGB24;
-        }
-      } else if ( colours == ZM_COLOUR_GRAY8 ) {
-        return AV_PIX_FMT_GRAY8;
-      } else {
-        Error("Unknown colours (%d)",colours);
-        return AV_PIX_FMT_RGBA;
-      }
-    }
+    AVPixelFormat AVPixFormat() const;
 
-    /* Internal buffer should not be modified from functions outside of this class */
+    inline uint8_t* Buffer() { return buffer; }
     inline const uint8_t* Buffer() const { return buffer; }
+    inline uint8_t* Buffer(unsigned int x, unsigned int y=0) { return &buffer[(y*linesize) + x*colours]; }
     inline const uint8_t* Buffer(unsigned int x, unsigned int y=0) const { return &buffer[(y*linesize) + x*colours]; }
+
     /* Request writeable buffer */
     uint8_t* WriteBuffer(const unsigned int p_width, const unsigned int p_height, const unsigned int p_colours, const unsigned int p_subpixelorder);
     // Is only acceptable on a pre-allocated buffer
@@ -230,8 +221,8 @@ class Image {
       return *this;
     }
 
-    bool ReadRaw(const char *filename);
-    bool WriteRaw(const char *filename) const;
+    bool ReadRaw(const std::string &filename);
+    bool WriteRaw(const std::string &filename) const;
 
   bool ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder);
 
@@ -288,6 +279,7 @@ class Image {
     void Rotate( int angle );
     void Flip( bool leftright );
     void Scale( unsigned int factor );
+    void Scale(unsigned int x, unsigned int y);
 
     void Deinterlace_Discard();
     void Deinterlace_Linear();

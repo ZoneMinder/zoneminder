@@ -23,6 +23,10 @@
 #define ZM_USER_H
 
 #include "zm_db.h"
+#include "zm_group_permission.h"
+#include "zm_monitor_permission.h"
+
+#include <map>
 #include <string>
 #include <vector>
 
@@ -40,7 +44,12 @@ class User {
   Permission control;
   Permission monitors;
   Permission system;
-  std::vector<int> monitor_ids;
+
+  bool group_permissions_loaded;
+  std::vector<Group_Permission> group_permissions;
+
+  bool monitor_permissions_loaded;
+  std::map<int, Monitor_Permission> monitor_permissions;
 
  public:
   User();
@@ -62,6 +71,9 @@ class User {
   Permission getMonitors() const { return monitors; }
   Permission getSystem() const { return system; }
   bool canAccess(int monitor_id);
+
+  void loadMonitorPermissions();
+  void loadGroupPermissions();
 };
 
 User *zmLoadUser(const char *username, const char *password=0);

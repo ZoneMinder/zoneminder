@@ -73,11 +73,11 @@ protected:
 
   static V4L2Data         v4l2_data;
 
-  static AVFrame      **capturePictures;
+  static av_frame_ptr    *capturePictures;
   _AVPIXELFORMAT         imagePixFormat;
   _AVPIXELFORMAT         capturePixFormat;
   struct SwsContext   *imgConversionContext;
-  AVFrame             *tmpPicture;    
+  av_frame_ptr        tmpPicture;
 
   static LocalCamera      *last_camera;
 
@@ -113,6 +113,7 @@ public:
   int Palette() const { return palette; }
   int Extras() const { return extras; }
 
+  int Control(int vid_id, int newvalue=-1 );
   int Brightness( int p_brightness=-1 ) override;
   int Hue( int p_hue=-1 ) override;
   int Colour( int p_colour=-1 ) override;

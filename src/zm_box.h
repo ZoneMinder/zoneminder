@@ -36,6 +36,8 @@ class Box {
 
   const Vector2 &Lo() const { return lo_; }
   const Vector2 &Hi() const { return hi_; }
+  unsigned int Width() const { return hi_.x_ - lo_.x_; }
+  unsigned int Height() const { return hi_.y_ - lo_.y_; }
 
   const Vector2 &Size() const { return size_; }
   int32 Area() const { return size_.x_ * size_.y_; }

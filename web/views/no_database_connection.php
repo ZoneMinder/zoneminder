@@ -50,7 +50,6 @@ echo $error_message;
 
     var countdown = 30; // seconds
     function timerCountdown() {
-      console.log('hello');
       document.getElementById('countdown').innerHTML=countdown;
       countdown --;
       if ( countdown <= 0 ) {

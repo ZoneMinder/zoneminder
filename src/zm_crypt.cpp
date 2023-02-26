@@ -5,6 +5,7 @@
 #include "BCrypt.hpp"
 #include <algorithm>
 #include <cstring>
+#include <random>
 
 #if HAVE_LIBJWT
 #include <jwt.h>
@@ -14,7 +15,7 @@
 
 // returns username if valid, "" if not
 #if HAVE_LIBJWT
-std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
+std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_str, const std::string &key) {
   std::string username = "";
   unsigned int token_issued_at = 0;
   int err = 0;
@@ -74,7 +75,7 @@ std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std
   return std::make_pair(username, token_issued_at);
 }
 #else // HAVE_LIBJWT
-std::pair <std::string, unsigned int> verifyToken(std::string jwt_token_str, std::string key) {
+std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_str, const std::string &key) {
   std::string username = "";
   unsigned int token_issued_at = 0;
   try {
@@ -166,4 +167,20 @@ bool verifyPassword(const char *username, const char *input_password, const char
   } 
   
   return password_correct;
+}
+
+std::string generateKey(const int length) {
+
+    const std::string lookup = "0123456789ABCDEF";
+
+    std::random_device rnd;
+    std::mt19937 rng(rnd());
+    std::uniform_int_distribution<> genDigit(0,15);
+    std::string keyBuffer (length, '0');
+    for ( int i = 0; i < length; i++ ) {
+        keyBuffer[i] = lookup[genDigit(rng)];
+    }
+    return keyBuffer;
+
+
 }

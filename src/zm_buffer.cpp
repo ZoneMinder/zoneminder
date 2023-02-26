@@ -54,6 +54,8 @@ unsigned int Buffer::expand(unsigned int count) {
     if ( mStorage ) {
       memcpy(newStorage, mHead, mSize);
       delete[] mStorage;
+    } else {
+      memset(newStorage, 0, mAllocation);
     }
     mStorage = newStorage;
     mHead = mStorage;
@@ -65,7 +67,7 @@ unsigned int Buffer::expand(unsigned int count) {
 int Buffer::read_into(int sd, unsigned int bytes) {
   // Make sure there is enough space
   this->expand(bytes);
-  Debug(3, "Reading %u btes", bytes);
+  Debug(3, "Reading %u bytes", bytes);
   int bytes_read = ::read(sd, mTail, bytes);
   if (bytes_read > 0) {
     mTail += bytes_read;

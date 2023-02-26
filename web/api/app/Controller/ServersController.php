@@ -89,8 +89,6 @@ class ServersController extends AppController {
 
       $this->Server->create();
       if ( $this->Server->save($this->request->data) ) {
-				# Might be nice to send it a start request
-        #$this->daemonControl($this->Server->id, 'start', $this->request->data);
         return $this->flash(__('The server has been saved.'), array('action' => 'index'));
       }
     }
@@ -126,8 +124,6 @@ class ServersController extends AppController {
       'message' => $message,
       '_serialize' => array('message')
     ));
-    // - restart this server after change
-    #$this->daemonControl($this->Server->id, 'restart', $this->request->data);
   }
 
 /**
@@ -150,8 +146,6 @@ class ServersController extends AppController {
       throw new NotFoundException(__('Invalid server'));
     }
     $this->request->allowMethod('post', 'delete');
-
-    #$this->daemonControl($this->Server->id, 'stop');
 
     if ( $this->Server->delete() ) {
       return $this->flash(__('The server has been deleted.'), array('action' => 'index'));

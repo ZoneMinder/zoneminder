@@ -19,31 +19,30 @@
 //
 
 // System edit actions
-if ( !canEdit('System') ) {
+if (!canEdit('System')) {
   ZM\Warning('Need System Permission to edit states');
   return;
 }
-if ( $action == 'state' ) {
-  if ( !empty($_REQUEST['runState']) ) {
-    //if ( $cookies ) session_write_close();
+if ($action == 'state') {
+  if (!empty($_REQUEST['runState'])) {
     packageControl($_REQUEST['runState']);
     $refreshParent = true;
   }
-} else if ( $action == 'save' ) {
-  if ( !empty($_REQUEST['runState']) || !empty($_REQUEST['newState']) ) {
-    $sql = 'SELECT `Id`,`Function`,`Enabled` FROM Monitors ORDER BY Id';
+} else if ($action == 'save') {
+  if (!empty($_REQUEST['runState']) || !empty($_REQUEST['newState'])) {
+    $sql = 'SELECT `Id`,`Capturing`,`Analysing`,`Recording` FROM `Monitors` ORDER BY `Id`';
     $definitions = array();
-    foreach ( dbFetchAll($sql) as $monitor ) {
-      $definitions[] = $monitor['Id'].':'.$monitor['Function'].':'.$monitor['Enabled'];
+    foreach (dbFetchAll($sql) as $monitor ) {
+      $definitions[] = $monitor['Id'].':'.$monitor['Capturing'].':'.$monitor['Analysing'].':'.$monitor['Recording'];
     }
     $definition = join(',', $definitions);
     if ( $_REQUEST['newState'] )
       $_REQUEST['runState'] = $_REQUEST['newState'];
     dbQuery('REPLACE INTO `States` SET `Name`=?, `Definition`=?', array($_REQUEST['runState'],$definition));
   }
-} else if ( $action == 'delete' ) {
-  if ( isset($_REQUEST['runState']) )
+} else if ($action == 'delete') {
+  if (isset($_REQUEST['runState']))
     dbQuery('DELETE FROM `States` WHERE `Name`=?', array($_REQUEST['runState']));
 }
-$view = 'console';
+$redirect = '?view=console';
 ?>

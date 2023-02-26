@@ -3,7 +3,6 @@ namespace ZM;
 require_once('database.php');
 require_once('Object.php');
 
-
 class Server extends ZM_Object {
   protected static $table = 'Servers';
 
@@ -30,22 +29,30 @@ class Server extends ZM_Object {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
-  public function Hostname( $new = null ) {
-    if ( $new != null )
+  public function Hostname($new = null) {
+    if ($new != null)
       $this->{'Hostname'} = $new;
 
-    if ( isset( $this->{'Hostname'}) and ( $this->{'Hostname'} != '' ) ) {
+    if (isset( $this->{'Hostname'}) and ($this->{'Hostname'} != '')) {
       return $this->{'Hostname'};
     } else if ( $this->Id() ) {
       return $this->{'Name'};
     }
-    # This theoretically will match ipv6 addresses as well
-    if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER['HTTP_HOST'], $matches ) ) {
-      return $matches[1];
-    }
 
-    $result = explode(':', $_SERVER['HTTP_HOST']);
-    return $result[0];
+    if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+      return $_SERVER['HTTP_X_FORWARDED_HOST'];
+    } else if (isset($_SERVER['HTTP_X_FORWARDED_SERVER'])) {
+      return $_SERVER['HTTP_X_FORWARDED_SERVER'];
+    } else if (isset($_SERVER['HTTP_HOST'])) {
+      # This theoretically will match ipv6 addresses as well
+      if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER['HTTP_HOST'], $matches ) ) {
+        return $matches[1];
+      }
+
+      $result = explode(':', $_SERVER['HTTP_HOST']);
+      return $result[0];
+    }
+    return '';
   }
 
   public function Protocol( $new = null ) {
@@ -136,6 +143,23 @@ class Server extends ZM_Object {
       return $this->{'PathToApi'};
     }
     return '/zm/api';
+  }
+  public function SendToApi($path) {
+    $url = $this->UrlToApi().$path;
+    $auth_relay = get_auth_relay();
+    if ($auth_relay) $url .= '?'.$auth_relay;
+    Debug('sending command to '.$url);
+
+    $context = stream_context_create();
+    try {
+      $result = @file_get_contents($url, false, $context);
+      if ($result === FALSE) { /* Handle error */
+        Error("Error using $url");
+      }
+    } catch (Exception $e) {
+      Error("Except $e thrown sending to $url");
+    }
+    return $result;
   }
 } # end class Server
 ?>

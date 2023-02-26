@@ -19,6 +19,7 @@ configure_file(zmvideo.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmvideo.pl" @ONLY)
 configure_file(zmwatch.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmwatch.pl" @ONLY)
 configure_file(zmstats.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmstats.pl" @ONLY)
 configure_file(zmcamtool.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmcamtool.pl" @ONLY)
+configure_file(zmeventtool.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmeventtool.pl" @ONLY)
 configure_file(zmsystemctl.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmsystemctl.pl" @ONLY)
 configure_file(zmtelemetry.pl.in "${CMAKE_CURRENT_BINARY_DIR}/zmtelemetry.pl" @ONLY)
 if(NOT ZM_NO_X10)
@@ -54,6 +55,7 @@ install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/zmvideo.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmwatch.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmcamtool.pl"
+  "${CMAKE_CURRENT_BINARY_DIR}/zmeventtool.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmtelemetry.pl"
   "${CMAKE_CURRENT_BINARY_DIR}/zmstats.pl"
   DESTINATION "${CMAKE_INSTALL_FULL_BINDIR}" PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

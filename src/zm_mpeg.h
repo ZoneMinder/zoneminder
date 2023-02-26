@@ -22,6 +22,7 @@
 
 #include "zm_ffmpeg.h"
 #include <pthread.h>
+#include <array>
 
 class VideoStream {
 protected:
@@ -40,13 +41,13 @@ protected:
   const char *format;
   const char *codec_name;
   enum _AVPIXELFORMAT pf;
-  AVOutputFormat *of;
+  const AVOutputFormat *of;
   AVFormatContext *ofc;
   AVStream *ost;
   AVCodecContext *codec_context;
-  AVCodec *codec;
-  AVFrame *opicture;
-  AVFrame *tmp_opicture;
+  const AVCodec *codec;
+  av_frame_ptr opicture;
+  av_frame_ptr tmp_opicture;
   uint8_t *video_outbuf;
   int video_outbuf_size;
   double last_pts;
@@ -59,7 +60,7 @@ protected:
   pthread_mutex_t *buffer_copy_lock;
   int buffer_copy_size;
   int buffer_copy_used;
-  AVPacket** packet_buffers;
+  std::array<av_packet_ptr, 2> packet_buffers;
   int packet_index;
   int SendPacket(AVPacket *packet);
   static void* StreamingThreadCallback(void *ctx);
@@ -68,7 +69,7 @@ protected:
   static void Initialise();
 
   void SetupFormat( );
-  void SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate );
+  int SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate );
   void SetParameters();
   void ActuallyOpenStream();
   double ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );

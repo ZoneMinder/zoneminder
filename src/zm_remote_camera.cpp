@@ -30,6 +30,8 @@ RemoteCamera::RemoteCamera(
   const std::string &p_host,
   const std::string &p_port,
   const std::string &p_path,
+  const std::string &p_user,
+  const std::string &p_pass,
   int p_width,
   int p_height,
   int p_colours,
@@ -40,58 +42,59 @@ RemoteCamera::RemoteCamera(
   bool p_capture,
   bool p_record_audio
  ) :
-    Camera( monitor, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
-    protocol( p_protocol ),
-    host( p_host ),
-    port( p_port ),
-    path( p_path ),
-    hp( 0 ),
+    Camera(monitor, REMOTE_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio),
+    protocol(p_protocol),
+    host(p_host),
+    port(p_port),
+    path(p_path),
+    username(p_user),
+    password(p_pass),
+    hp(nullptr),
     mNeedAuth(false),
     mAuthenticator(nullptr)
 {
-    if ( path[0] != '/' )
+    if (path[0] != '/')
         path = '/'+path;
 }
 
 RemoteCamera::~RemoteCamera() {
-  if ( hp != nullptr ) {
+  if (hp != nullptr) {
     freeaddrinfo(hp);
     hp = nullptr;
   }
-	if ( mAuthenticator ) {
-		delete mAuthenticator;
-		mAuthenticator = nullptr;
-	}
+	delete mAuthenticator;
 }
 
 void RemoteCamera::Initialise() {
-  if( protocol.empty() )
-    Fatal( "No protocol specified for remote camera" );
+  if (protocol.empty())
+    Fatal("No protocol specified for remote camera");
 
-	if( host.empty() )
-		Fatal( "No host specified for remote camera" );
+	if (host.empty())
+		Fatal("No host specified for remote camera");
 
-	if ( port.empty() )
+	if (port.empty())
 		Fatal("No port specified for remote camera");
 
-	//if( path.empty() )
-		//Fatal( "No path specified for remote camera" );
 
 	// Cache as much as we can to speed things up
-  std::string::size_type authIndex = host.rfind( '@' );
+  std::string::size_type authIndex = host.rfind('@');
 
-  if ( authIndex != std::string::npos ) {
-    auth = host.substr( 0, authIndex );
-    host.erase( 0, authIndex+1 );
+  if (authIndex != std::string::npos) {
+    auth = host.substr(0, authIndex);
+    host.erase(0, authIndex+1);
     auth64 = Base64Encode(auth);
 
-    authIndex = auth.rfind( ':' );
+    authIndex = auth.rfind(':');
     username = auth.substr(0,authIndex);
-    password = auth.substr( authIndex+1, auth.length() );
+    password = auth.substr(authIndex+1, auth.length());
+  } else if (!username.empty()) {
+    auth = username;
+    if(!password.empty()) auth += ":"+password;
+    auth64 = Base64Encode(auth);
   }
 
   mNeedAuth = false;
-	mAuthenticator = new zm::Authenticator(username,password);
+	mAuthenticator = new zm::Authenticator(username, password);
 
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(hints));
@@ -99,13 +102,13 @@ void RemoteCamera::Initialise() {
 	hints.ai_socktype = SOCK_STREAM;
 
   int ret = getaddrinfo(host.c_str(), port.c_str(), &hints, &hp);
-  if ( ret != 0 ) {
-    Error( "Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret) );
+  if (ret != 0) {
+    Error("Can't getaddrinfo(%s port %s): %s", host.c_str(), port.c_str(), gai_strerror(ret));
     return;
   }
   struct addrinfo *p = nullptr;
   int addr_count = 0;
-  for ( p = hp; p != nullptr; p = p->ai_next ) {
+  for (p = hp; p != nullptr; p = p->ai_next) {
     addr_count++;
   }
   Debug(1, "%d addresses returned", addr_count);

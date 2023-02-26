@@ -290,7 +290,8 @@ AVFormatContext *SessionDescriptor::generateFormatContext() const {
 #if (LIBAVFORMAT_VERSION_CHECK(58, 12, 0, 0, 100))
   formatContext->url = av_strdup(mUrl.c_str());
 #else
-  strncpy(formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename));
+  strncpy(formatContext->filename, mUrl.c_str(), sizeof(formatContext->filename) - 1);
+  formatContext->filename[sizeof(formatContext->filename) - 1] = '\0';
 #endif
 /*
   if ( mName.length() )

@@ -46,7 +46,7 @@ function dbConnect() {
   } else {
     $dsn .= ':host=localhost;';
   }
-  $dsn .= 'dbname='.ZM_DB_NAME;
+  $dsn .= 'dbname='.ZM_DB_NAME.';charset=utf8';
 
   try {
     $dbOptions = null;
@@ -112,7 +112,7 @@ function dbLog($sql, $update=false) {
 function dbError($sql) {
   global $dbConn;
   $error = $dbConn->errorInfo();
-  if ( !$error[0] )
+  if (!$error[0])
     return '';
 
   $message = "SQL-ERR '".implode("\n", $dbConn->errorInfo())."', statement was '".$sql."'";
@@ -130,17 +130,17 @@ function dbEscape( $string ) {
 
 function dbQuery($sql, $params=NULL, $debug = false) {
   global $dbConn;
-  if ( dbLog($sql, true) )
+  if (dbLog($sql, true))
     return;
   $result = NULL;
   try {
-    if ( isset($params) ) {
-      if ( ! $result = $dbConn->prepare($sql) ) {
+    if (isset($params)) {
+      if (!$result = $dbConn->prepare($sql)) {
         ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
         return NULL;
       }
 
-      if ( ! $result->execute($params) ) {
+      if (!$result->execute($params)) {
         ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
         return NULL;
       }
@@ -378,5 +378,25 @@ function getTableDescription( $table, $asString=1 ) {
       $columns[] = $desc;
   }
   return $columns;
+}
+
+function db_version() {
+  return dbFetchOne('SELECT VERSION()', 'VERSION()');
+}
+
+function db_supports_feature($feature) {
+  $version = db_version();
+  if ($feature == 'skip_locks') {
+    $just_the_version = strstr($version, '-MariaDB', true);
+    ZM\Debug("Just the version $just_the_version from $version");
+    if (false === $just_the_version) {
+      # Is MYSQL
+      return version_compare($version, '8.0.1', '>=');
+    } else {
+      return version_compare($just_the_version, '10.6', '>=');
+    }
+  } else {
+    ZM\Warning("Unknown feature requested $feature");
+  }
 }
 ?>

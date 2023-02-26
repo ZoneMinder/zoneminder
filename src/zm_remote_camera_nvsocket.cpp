@@ -53,6 +53,8 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
     p_host,
     p_port,
     p_path,
+    "", /* username */
+    "", /* Password */
     p_width,
     p_height,
     p_colours,
@@ -137,7 +139,7 @@ int RemoteCameraNVSocket::Disconnect() {
   return( 0 );
 }
 
-int RemoteCameraNVSocket::SendRequest( std::string request ) {
+int RemoteCameraNVSocket::SendRequest(const std::string &request) {
   //Debug( 4, "Sending request: %s", request.c_str() );
   if ( write( sd, request.data(), request.length() ) < 0 ) {
     Error( "Can't write: %s", strerror(errno) );

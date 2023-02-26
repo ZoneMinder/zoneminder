@@ -1,5 +1,13 @@
 <?php
-if ( $_REQUEST['entity'] == 'navBar' ) {
+if (!isset($_REQUEST['entity'])) {
+  Error("No entity pass to status request.");
+  http_response_code(404);
+  return;
+} else {
+
+}
+
+if ($_REQUEST['entity'] == 'navBar') {
   global $bandwidth_options, $user;
   $data = array();
   if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
@@ -13,7 +21,8 @@ if ( $_REQUEST['entity'] == 'navBar' ) {
   $data['getSysLoadHTML'] = getSysLoadHTML();
   $data['getDbConHTML'] = getDbConHTML();
   $data['getStorageHTML'] = getStorageHTML();
-  $data['getShmHTML'] = getShmHTML();
+  //$data['getShmHTML'] = getShmHTML();
+  $data['getRamHTML'] = getRamHTML();
 
   ajaxResponse($data);
   return;
@@ -26,8 +35,8 @@ $statusData = array(
     'limit' => 1,
     'elements' => array(
       'MonitorCount' => array( 'sql' => 'count(*)' ),
-      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Function` != \'None\',1,NULL))' ),
-      'State' => array( 'func' => 'daemonCheck()?'.translate('Running').':'.translate('Stopped') ),
+      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Capturing` != \'None\',1,NULL))' ),
+      'State' => array( 'func' => 'daemonCheck()?\''.translate('Running').'\':\''.translate('Stopped').'\'' ),
       'Load' => array( 'func' => 'getLoad()' ),
       'Disk' => array( 'func' => 'getDiskPercent()' ),
     ),
@@ -41,7 +50,9 @@ $statusData = array(
       'Id' => array( 'sql' => 'Monitors.Id' ),
       'Name' => array( 'sql' => 'Monitors.Name' ),
       'Type' => true,
-      'Function' => true,
+      'Capturing' => true,
+      'Analysing' => true,
+      'Capturing' => true,
       'Enabled' => true,
       'LinkedMonitors' => true,
       'Triggers' => true,
@@ -108,10 +119,16 @@ $statusData = array(
       'Cause' => true,
       'Notes' => true,
       'StartDateTime' => true,
+      'StartDateTimeFormatted' => array('postFunction'=>function($row){
+        global $dateTimeFormatter;
+        return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
+      }),
       # Left for backwards compatability. Remove in 1.37
-      'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
-      'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
+      'EndDateTimeFormatted' => array('postFunction'=>function($row){
+        global $dateTimeFormatter;
+        return $dateTimeFormatter->format(strtotime($row['EndDateTime']));
+      }),
       'Width' => true,
       'Height' => true,
       'Length' => true,
@@ -136,10 +153,16 @@ $statusData = array(
       'DiskSpace' => true,
       'Storage' => array('sql' => '(SELECT Storage.Name FROM Storage WHERE Storage.Id=Events.StorageId)'),
       'StartDateTime' => true,
+      'StartDateTimeFormatted' => array('postFunction'=>function($row){
+        global $dateTimeFormatter;
+        return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
+      }),
       # Left for backwards compatability. Remove in 1.37
-      'StartTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
-      'StartDateTimeShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ), 
       'EndDateTime' => true,
+      'EndDateTimeFormatted' => array('postFunction'=>function($row){
+        global $dateTimeFormatter;
+        return $dateTimeFormatter->format(strtotime($row['EndDateTime']));
+      }),
       'Width' => true,
       'Height' => true,
       'Length' => true,
@@ -208,15 +231,18 @@ function collectData() {
   global $statusData;
 
   $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
-#print_r( $entitySpec );
-  if ( !canView($entitySpec['permission']) )
+  #print_r( $entitySpec );
+  if (!canView($entitySpec['permission'])) {
     ajaxError('Unrecognised action or insufficient permissions');
+    return;
+  }
 
   if ( !empty($entitySpec['func']) ) {
     $data = eval('return('.$entitySpec['func'].');');
   } else {
     $data = array();
     $postFuncs = array();
+    $postFunctions = array();
 
     $fieldSql = array();
     $joinSql = array();
@@ -253,6 +279,8 @@ function collectData() {
         $data[$element] = eval('return( '.$elementData['func'].' );');
       else if ( isset($elementData['postFunc']) )
         $postFuncs[$element] = $elementData['postFunc'];
+      else if ( isset($elementData['postFunction']) )
+        $postFunctions[$element] = $elementData['postFunction'];
       else if ( isset($elementData['zmu']) )
         $data[$element] = exec(escapeshellcmd(getZmuCommand(' '.$elementData['zmu'])));
       else {
@@ -322,10 +350,12 @@ function collectData() {
         $limit_offset = validInt($_REQUEST['offset']) . ', ';
       if ( !empty($limit) )
         $sql .= ' limit '.$limit_offset.$limit;
-      if ( isset($limit) && $limit == 1 ) {
+      if ( isset($limit) && ($limit == 1) ) {
         if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
           foreach ( $postFuncs as $element=>$func )
             $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
+          foreach ( $postFunctions as $element=>$function )
+            $sqlData[$element] = $function($sqlData);
           $data = array_merge($data, $sqlData);
         }
       } else {
@@ -333,6 +363,8 @@ function collectData() {
         foreach ( dbFetchAll($sql, NULL, $values) as $sqlData ) {
           foreach ( $postFuncs as $element=>$func )
             $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
+          foreach ( $postFunctions as $element=>$function )
+            $sqlData[$element] = $function($sqlData);
           $data[] = $sqlData;
           if ( isset($limit) && ++$count >= $limit )
             break;
@@ -340,8 +372,12 @@ function collectData() {
       } # end if have limit == 1
     }
   }
-  #ZM\Debug(print_r($data, true));
+  ZM\Debug(print_r($data, true));
   return $data;
+}
+
+function formatDateTime($dt) {
+  return $dateTimeFormatter->format(strtotime($dt));
 }
 
 $data = collectData();
@@ -386,6 +422,7 @@ function getFrameImage() {
 
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
   if ( !($frame = dbFetchOne($sql, NULL, array($eventId, $frameId))) ) {
+    ZM\Error("Frame not found for event $eventId frame $frameId");
     $frame = array();
     $frame['EventId'] = $eventId;
     $frame['FrameId'] = $frameId;
@@ -426,6 +463,7 @@ function getNearEvents() {
   if ( $user['MonitorIds'] ) {
     $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
   }
+  $filter_sql = $filter->sql();
 
   # When listing, it may make sense to list them in descending order.
   # But when viewing Prev should timewise earlier and Next should be after.
@@ -433,7 +471,11 @@ function getNearEvents() {
     $sortOrder = 'ASC';
   }
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\' AND ('.$filter->sql().') AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
+  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  if ($filter->sql()) {
+    $sql .= ' AND ('.$filter->sql().')';
+  }
+  $sql .= ' AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
     $sql .= ', E.Id DESC';
@@ -447,7 +489,11 @@ function getNearEvents() {
 
   $prevEvent = dbFetchNext($result);
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']]."' AND (".$filter->sql().') AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
+  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  if ($filter->sql()) {
+    $sql .= ' AND ('.$filter->sql().')';
+  }
+  $sql .=' AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';

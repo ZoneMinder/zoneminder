@@ -13,6 +13,10 @@ class Zone extends ZM_Object {
 			'Name'                => '',
 			'Type' => 'Active',
 			'Units' => 'Pixels',
+      'NumCoords' => '0',
+      'Coords' => 0,
+      'Area' => '0',
+      'AlarmRGB' => '0',
 			'CheckMethod' => 'Blobs',
 			'MinPixelThreshold' => null,
 			'MaxPixelThreshold' => null,
@@ -46,5 +50,16 @@ class Zone extends ZM_Object {
     return new Monitor();
   }
 
+  public function Points() {
+    return coordsToPoints($this->Coords());
+  }
+
+  public function AreaCoords() {
+    return preg_replace('/\s+/', ',', $this->Coords());
+  }
+
+  public function svg_polygon() {
+    return '<polygon points="'.$this->AreaCoords().'" class="'.$this->Type().'" data-mid="'.$this->MonitorId().'" data-zid="'.$this->Id().'"><title>'.$this->Name().'</title></polygon>';
+  }
 } # end class Zone
 ?>

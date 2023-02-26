@@ -16,6 +16,7 @@ $delTextKey = isset($_REQUEST['key']) ? $_REQUEST['key'] : 'ConfirmDeleteEvents'
       <div class="modal-body">
         <p><?php echo translate($delTextKey) ?></p>
       </div>
+      <div id="deleteProgressTicker"></div>
       <div class="modal-footer">
         <button id="delCancelBtn" type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
         <button id ="delConfirmBtn" type="button" class="btn btn-danger"><?php echo translate('Delete') ?></button>

@@ -19,7 +19,7 @@
 //
 global $CLANG;
 ?>
-<div id="modalLogout" class="modal" tabindex="-1" role="dialog">
+<div id="modalLogout" class="modal fade" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -29,7 +29,7 @@ global $CLANG;
         </button>
       </div>
       <div class="modal-body">
-        <p><?php echo sprintf( $CLANG['CurrentLogin'], $user['Username'] ) ?></p>
+        <p><?php echo sprintf( $CLANG['CurrentLogin'], validHtmlStr($user['Username']) ) ?></p>
 <?php if ( canView('System') ) { ?>
         <p>Other logged in users:<br/>
 <table class="table table-striped">
@@ -43,7 +43,8 @@ global $CLANG;
   <tbody>
 <?php
 require_once('includes/User.php');
-$result = dbQuery('SELECT * FROM Sessions ORDER BY access DESC LIMIT 1000');
+$result = dbQuery('SELECT * FROM Sessions WHERE access > ? ORDER BY access DESC LIMIT 100',
+array(time() - ZM_COOKIE_LIFETIME));
 if (!$result) return;
 
 $current_session = $_SESSION;
@@ -75,11 +76,12 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
     $user_cache[$_SESSION['username']] = $user;
   }
 
+  global $dateTimeFormatter;
   echo '
   <tr>
-    <td>'.$user->Username().'</td>
-    <td>'.$_SESSION['remoteAddr'].'</td>
-    <td>'.strftime(STRF_FMT_DATETIME_SHORTER, $row['access']).'</td>
+    <td>'.validHtmlStr($user->Username()).'</td>
+    <td>'.validHtmlStr($_SESSION['remoteAddr']).'</td>
+    <td>'.$dateTimeFormatter->format($row['access']).'</td>
   </tr>
 ';
 } # end while

@@ -16,6 +16,9 @@ function generateVideoResponse( data, responseText ) {
 }
 
 function generateVideo() {
+  $j.ajaxSetup({
+    timeout: 0
+  });
   var form = $j('#videoForm').serialize();
   $j.getJSON(thisUrl + '?view=request&request=event&action=video', form)
       .done(generateVideoResponse)
@@ -43,6 +46,11 @@ function initPage() {
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
+
+  videoobj = $j('#videoobj');
+  if (videoobj.length) {
+    vid = videojs('videoobj');
+  }
 }
 
 $j(document).ready(initPage);

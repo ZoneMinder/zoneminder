@@ -2,13 +2,19 @@
 namespace ZM;
 require_once('Object.php');
 require_once('FilterTerm.php');
+require_once('Monitor.php');
 
 class Filter extends ZM_Object {
   protected static $table = 'Filters';
+  protected static $attrTypes = null;
+  protected static $opTypes = null;
+  protected static $archiveTypes = null;
 
   protected $defaults = array(
     'Id'              =>  null,
     'Name'            =>  '',
+    'UserId'          =>  0,
+    'ExecuteInterval' =>  60,
     'AutoExecute'     =>  0,
     'AutoExecuteCmd'  =>  '',
     'AutoEmail'       =>  0,
@@ -26,7 +32,6 @@ class Filter extends ZM_Object {
     'AutoCopy'        =>  0,
     'AutoCopyTo'      =>  0,
     'UpdateDiskSpace' =>  0,
-    'UserId'          =>  0,
     'Background'      =>  0,
     'Concurrent'      =>  0,
     'Query_json'      =>  '',
@@ -41,14 +46,15 @@ class Filter extends ZM_Object {
   protected $_Terms;
 
   public function sql() {
-    if ( ! isset($this->_sql) ) {
+    if (!isset($this->_sql)) {
       $this->_sql = '';
       foreach ( $this->FilterTerms() as $term ) {
-        #if ( ! ($term->is_pre_sql() or $term->is_post_sql()) ) {
+        if ($term->valid()) {
+          if (!$this->_sql and $term->cnj) unset($term->cnj);
           $this->_sql .= $term->sql();
-        #} else {
-          #$this->_sql .= '1';
-        #}
+        } else {
+          Debug("Term is not valid " . $term->to_string());
+        }
       } # end foreach term
     }
     return $this->_sql;
@@ -60,6 +66,10 @@ class Filter extends ZM_Object {
       foreach ( $this->FilterTerms() as $term ) {
         $this->_querystring .= $term->querystring($objectname, $separator);
       } # end foreach term
+      $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_asc]').'='.$this->sort_asc();
+      $this->_querystring .= $separator.urlencode($objectname.'[Query][sort_field]').'='.$this->sort_field();
+      $this->_querystring .= $separator.urlencode($objectname.'[Query][skip_locked]').'='.$this->skip_locked();
+      $this->_querystring .= $separator.urlencode($objectname.'[Query][limit]').'='.$this->limit();
       if ( $this->Id() ) {
         $this->_querystring .= $separator.$objectname.urlencode('[Id]').'='.$this->Id();
       }
@@ -124,7 +134,7 @@ class Filter extends ZM_Object {
     foreach ( $this->Terms as $term ) {
       if ( $term->attr == 'StorageId' ) {
         # TODO handle other operators like !=
-        $storage_ids[] = $term->value;
+        $storage_ids[] = $term->val;
       }
     }
     if ( count($storage_ids) ) {
@@ -166,6 +176,10 @@ class Filter extends ZM_Object {
         $this->{'Query'} = jsonDecode($this->{'Query_json'});
       }
     }
+
+    if ($this->{'Query'} and isset($this->{'Query'}['terms']) and count($this->{'Query'}['terms'])) {
+      unset($this->{'Query'}['terms'][0]['cnj']);
+    }
     return $this->{'Query'};
   }
 
@@ -191,12 +205,12 @@ class Filter extends ZM_Object {
 
   // The following three fields are actually stored in the Query
   public function sort_field( ) {
-    if ( func_num_args( ) ) {
+    if (func_num_args()) {
       $Query = $this->Query();
       $Query['sort_field'] = func_get_arg(0);
       $this->Query($Query);
     }
-    if ( isset( $this->Query()['sort_field'] ) ) {
+    if (isset($this->Query()['sort_field'])) {
       return $this->{'Query'}['sort_field'];
     }
     return ZM_WEB_EVENT_SORT_FIELD;
@@ -204,16 +218,27 @@ class Filter extends ZM_Object {
   }
 
   public function sort_asc( ) {
-    if ( func_num_args( ) ) {
+    if (func_num_args()) {
       $Query = $this->Query();
       $Query['sort_asc'] = func_get_arg(0);
       $this->Query($Query);
     }
-    if ( isset( $this->Query()['sort_asc'] ) ) {
+    if (isset($this->Query()['sort_asc'])) {
       return $this->{'Query'}['sort_asc'];
     }
     return ZM_WEB_EVENT_SORT_ORDER == 'asc' ? 1 : 0;
     #return $this->defaults{'sort_asc'};
+  }
+
+  public function skip_locked() {
+    if (func_num_args()) {
+      $Query = $this->Query();
+      $Query['skip_locked'] = func_get_arg(0);
+      $this->Query($Query);
+    }
+    if (isset($this->Query()['skip_locked']))
+      return $this->{'Query'}['skip_locked'];
+    return false;
   }
 
   public function limit( ) {
@@ -224,12 +249,12 @@ class Filter extends ZM_Object {
     }
     if ( isset( $this->Query()['limit'] ) )
       return $this->{'Query'}['limit'];
-    return 100;
+    return 0;
     #return $this->defaults{'limit'};
   }
 
   public function control($command, $server_id=null) {
-    $Servers = $server_id ? Server::find(array('Id'=>$server_id)) : Server::find(array('Status'=>'Running'));
+    $Servers = $server_id ? [Server::find_one(array('Id'=>$server_id))] : Server::find(array('Status'=>'Running'));
     if ( !count($Servers) ) {
       if ( !$server_id ) {
         # This will be the non-multi-server case
@@ -247,24 +272,27 @@ class Filter extends ZM_Object {
       } else {
         # Remote case
 
-        $url = $Server->UrlToIndex();
+        $url = $Server->UrlToIndex() . '?view=filter';
         if ( ZM_OPT_USE_AUTH ) {
           if ( ZM_AUTH_RELAY == 'hashed' ) {
-            $url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+            $url .= '&auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
           } else if ( ZM_AUTH_RELAY == 'plain' ) {
-            $url = '?user='.$_SESSION['username'];
-            $url = '?pass='.$_SESSION['password'];
+            $url .= '&user='.$_SESSION['username'];
+            $url .= '&pass='.$_SESSION['password'];
           } else if ( ZM_AUTH_RELAY == 'none' ) {
-            $url = '?user='.$_SESSION['username'];
+            $url .= '&user='.$_SESSION['username'];
           }
         }
-        $url .= '&view=filter&object=filter&action=control&command='.$command.'&Id='.$this->Id().'&ServerId='.$Server->Id();
-        Debug("sending command to $url");
         $data = array();
         if ( defined('ZM_ENABLE_CSRF_MAGIC') ) {
-          require_once( 'includes/csrf/csrf-magic.php' );
+          require_once('includes/csrf/csrf-magic.php');
           $data['__csrf_magic'] = csrf_get_tokens();
         }
+        $data['action']='control';
+        $data['object'] = 'filter';
+        $data['command'] = $command;
+        $data['Id'] = $this->Id();
+        $data['ServerId'] = $Server->Id();
 
         // use key 'http' even if you send the request to https://...
         $options = array(
@@ -295,33 +323,21 @@ class Filter extends ZM_Object {
   }
 
   public function test_pre_sql_conditions() {
-    if ( !count($this->pre_sql_conditions()) ) {
-      return true;
-    } # end if pre_sql_conditions
-
-    $failed = false;
-    foreach ( $this->pre_sql_conditions() as $term ) {
-      if ( !$term->test() ) {
-        $failed = true;
-        break;
+    if (count($this->pre_sql_conditions())) {
+      foreach ($this->pre_sql_conditions() as $term) {
+        if (!$term->test()) return false;
       }
-    }
-    return $failed;
+    } # end if pre_sql_conditions
+    return true;
   }
 
   public function test_post_sql_conditions($event) {
-    if ( !count($this->post_sql_conditions()) ) {
-      return true;
-    } # end if pre_sql_conditions
-
-    $failed = true;
-    foreach ( $this->post_sql_conditions() as $term ) {
-      if ( !$term->test($event) ) {
-        $failed = false;
-        break;
+    if (count($this->post_sql_conditions())) {
+      foreach ($this->post_sql_conditions() as $term) {
+        if (!$term->test($event)) return false;
       }
-    }
-    return $failed;
+    } # end if pre_sql_conditions
+    return true;
   }
 
   function tree() {
@@ -346,6 +362,7 @@ class Filter extends ZM_Object {
       '=~' => 2,
       '!~' => 2,
       '=[]' => 2,
+      'IN' => 2,
       '![]' => 2,
       'and' => 3,
       'or' => 4,
@@ -355,6 +372,11 @@ class Filter extends ZM_Object {
 
     for ( $i = 0; $i < count($terms); $i++ ) {
       $term = $terms[$i];
+      if (!(new FilterTerm($this, $term))->valid()) {
+        continue;
+      } else {
+        Debug("Term " .$term['attr'] . ' is valid');
+      }
       if ( !empty($term['cnj']) ) {
         while ( true ) {
           if ( !count($postfixStack) ) {
@@ -380,6 +402,9 @@ class Filter extends ZM_Object {
       if ( !empty($term['attr']) ) {
         $dtAttr = false;
         switch ( $term['attr']) {
+        case 'Monitor':
+          $sqlValue = 'M.Id';
+          break;
         case 'MonitorName':
           $sqlValue = 'M.'.preg_replace( '/^Monitor/', '', $term['attr']);
           break;
@@ -518,7 +543,7 @@ class Filter extends ZM_Object {
           }
           break;
         default :
-          ZM\Error('Unknown operator in filter '.$term['op']);
+          Error('Unknown operator in filter '.$term['op']);
         }
 
         while ( true ) {
@@ -571,18 +596,24 @@ class Filter extends ZM_Object {
           case 'DateTime':
           case 'EndDateTime':
           case 'StartDateTime':
-            if ( $value_upper != 'NULL' )
-              $value = "'".strftime(STRF_FMT_DATETIME_DB, strtotime($value))."'";
+            if ($value) {
+              if ( $value_upper != 'NULL' )
+                $value = "'".date(STRF_FMT_DATETIME_DB, strtotime($value))."'";
+            }
             break;
           case 'Date':
           case 'EndDate':
           case 'StartDate':
-            $value = 'to_days(\''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            if ($value) {
+              $value = 'to_days(\''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            }
             break;
           case 'Time':
           case 'EndTime':
           case 'StartTime':
-            $value = 'extract(hour_second from \''.strftime(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            if ($value) {
+              $value = 'extract(hour_second from \''.date(STRF_FMT_DATETIME_DB, strtotime($value)).'\')';
+            }
             break;
           default :
             if ( $value_upper != 'NULL' )
@@ -622,11 +653,11 @@ class Filter extends ZM_Object {
         $node = array('data'=>$element, 'count'=>2+$left['count']+$right['count'], 'right'=>$right, 'left'=>$left);
         $exprStack[] = $node;
       } else {
-        ZM\Fatal('Unexpected element type \''.$element['type'].'\', value \''.$element['value'].'\'');
+        Fatal('Unexpected element type \''.$element['type'].'\', value \''.$element['value'].'\'');
       }
     }
     if ( count($exprStack) != 1 ) {
-      ZM\Fatal('Expression stack has '.count($exprStack).' elements');
+      Error('Expression stack has '.count($exprStack).' elements');
     }
     return array_pop($exprStack);
   } # end function tree
@@ -637,6 +668,10 @@ class Filter extends ZM_Object {
       Error('Unsupported filter attribute ' . $term['attr']);
       //return $this;
     }
+    #if (!(new FilterTerm($this, $term))->valid()) {
+      #Warning("Invalid term for ".$term['attr']. ' not adding to filter');
+      #return $this;
+    #}
 
     $terms = $this->terms();
 
@@ -661,6 +696,370 @@ class Filter extends ZM_Object {
       $this->addTerm($term);
     }
     return $this;
+  }
+  function Events() {
+    $events = array();
+    if (!$this->test_pre_sql_conditions()) {
+      Debug('Pre conditions failed, not doing sql');
+      return $events;
+    }
+
+    $where = $this->sql() ? ' WHERE ('.$this->sql().')' : '';
+    $sort = $this->sort_field() ? $this->sort_field() .' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
+
+    $col_str = 'E.*, M.Name AS Monitor';
+    $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort:'');
+    if ($this->limit() and !count($this->pre_sql_conditions()) and !count($this->post_sql_conditions())) {
+      $sql .= ' LIMIT '.$this->limit();
+    }
+
+    Debug('Calling the following sql query: ' .$sql);
+    $query = dbQuery($sql);
+    if (!$query) return $events;
+
+    while ($row = dbFetchNext($query)) {
+      $event = new Event($row);
+      $event->remove_from_cache();
+      if (!$this->test_post_sql_conditions($event)) {
+        continue;
+      }
+      $events[] = $event;
+      if ($this->limit() and (count($events) > $this->limit())) {
+        break;
+      }
+    } # end foreach row
+    return $events;
+  } # end Events()
+
+  public static function attrTypes() {
+    if (!self::$attrTypes) {
+      self::$attrTypes = array(
+        'AlarmFrames' => translate('AttrAlarmFrames'),
+        'AlarmedZoneId' =>  translate('AttrAlarmedZone'),
+        'Archived'    => translate('AttrArchiveStatus'),
+        'AvgScore'    => translate('AttrAvgScore'),
+        'Cause'       => translate('AttrCause'),
+        'DiskBlocks'  => translate('AttrDiskBlocks'),
+        'DiskPercent' => translate('AttrDiskPercent'),
+        #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
+        'DiskSpace'   => translate('AttrEventDiskSpace'),
+        'EndDateTime'    => translate('AttrEndDateTime'),
+        'EndDate'        => translate('AttrEndDate'),
+        'EndTime'        => translate('AttrEndTime'),
+        'EndWeekday'     => translate('AttrEndWeekday'),
+        'ExistsInFileSystem'  => translate('ExistsInFileSystem'),
+        'FilterServerId'     => translate('AttrFilterServer'),
+        'Frames'      => translate('AttrFrames'),
+        'Id'          => translate('AttrId'),
+        'Length'      => translate('AttrDuration'),
+        'MaxScore'    => translate('AttrMaxScore'),
+        'Monitor'   => translate('Monitor'),
+        'MonitorId'   => translate('AttrMonitorId'),
+        'MonitorName' => translate('AttrMonitorName'),
+        'MonitorServerId'    => translate('AttrMonitorServer'),
+        'Name'        => translate('AttrName'),
+        'Notes'       => translate('AttrNotes'),
+        'SecondaryStorageId'   => translate('AttrSecondaryStorageArea'),
+        'ServerId'           => translate('AttrMonitorServer'),
+        'StartDateTime'    => translate('AttrStartDateTime'),
+        'StartDate'        => translate('AttrStartDate'),
+        'StartTime'        => translate('AttrStartTime'),
+        'StartWeekday'     => translate('AttrStartWeekday'),
+        'StateId'            => translate('AttrStateId'),
+        'StorageId'           => translate('AttrStorageArea'),
+        'StorageServerId'    => translate('AttrStorageServer'),
+        'SystemLoad'  => translate('AttrSystemLoad'),
+        'TotScore'    => translate('AttrTotalScore'),
+      );
+    }
+    return self::$attrTypes;
+  }
+
+  public static function opTypes() {
+    if (!self::$opTypes) {
+      self::$opTypes = array(
+        '='   => translate('OpEq'),
+        '!='  => translate('OpNe'),
+        '>='  => translate('OpGtEq'),
+        '>'   => translate('OpGt'),
+        '<'   => translate('OpLt'),
+        '<='  => translate('OpLtEq'),
+        '=~'  => translate('OpMatches'),
+        '!~'  => translate('OpNotMatches'),
+        '=[]' => translate('OpIn'),
+        '![]' => translate('OpNotIn'),
+        'IS'  => translate('OpIs'),
+        'IS NOT'  => translate('OpIsNot'),
+        'LIKE' => translate('OpLike'),
+        'NOT LIKE' => translate('OpNotLike'),
+      );
+    }
+    return self::$opTypes;
+  }
+
+  public static function archiveTypes() {
+    if (!self::$archiveTypes) {
+      self::$archiveTypes = array(
+        '' => translate('All'),
+        '0' => translate('ArchUnarchived'),
+        '1' => translate('ArchArchived')
+      );
+    }
+    return self::$archiveTypes;
+  }
+
+  public function widget() {
+    $html = '<table id="fieldsTable" class="filterTable"><tbody>';
+    $opTypes = $this->opTypes();
+    $archiveTypes = $this->archiveTypes();
+
+    $terms = $this->terms();
+    $obracketTypes = array();
+    $cbracketTypes = array();
+    if ( count($terms) ) {
+      for ( $i = 0; $i <= count($terms)-2; $i++ ) {
+        $obracketTypes[$i] = str_repeat('(', $i);
+        $cbracketTypes[$i] = str_repeat(')', $i);
+      }
+    }
+
+    $is_isnot_opTypes = array(
+      'IS'  => translate('OpIs'),
+      'IS NOT'  => translate('OpIsNot'),
+    );
+
+
+    $booleanValues = array(
+      'false' => translate('False'),
+      'true' => translate('True')
+    );
+
+    $conjunctionTypes = getFilterQueryConjunctionTypes();
+    $storageareas = null;
+    $weekdays = array();
+    for ( $i = 0; $i < 7; $i++ ) {
+      $weekdays[$i] = date('D', mktime(12, 0, 0, 1, $i+1, 2001));
+    }
+    $states = array();
+    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `States` ORDER BY lower(`Name`) ASC') as $state_row ) {
+      $states[$state_row['Id']] = validHtmlStr($state_row['Name']);
+    }
+    $servers = array();
+    $servers['ZM_SERVER_ID'] = 'Current Server';
+    $servers['NULL'] = 'No Server';
+    global $Servers;
+    foreach ( $Servers as $server ) {
+      $servers[$server->Id()] = validHtmlStr($server->Name());
+    }
+    $monitors = array();
+    $monitor_names = array();
+    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`) ASC') as $monitor ) {
+      if ( visibleMonitor($monitor['Id']) ) {
+        $monitors[$monitor['Id']] = new Monitor($monitor);
+        $monitor_names[] = validHtmlStr($monitor['Name']);
+      }
+    }
+    $zones = array();
+    foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name`) ASC') as $zone ) {
+      if ( visibleMonitor($zone['MonitorId']) ) {
+        if ( isset($monitors[$zone['MonitorId']]) ) {
+          $zone['Name'] = validHtmlStr($monitors[$zone['MonitorId']]->Name().': '.$zone['Name']);
+          $zones[$zone['Id']] = new Zone($zone);
+        }
+      }
+    }
+
+    for ($i=0; $i < count($terms); $i++) {
+      $term = $terms[$i];
+      if ( ! isset( $term['op'] ) )
+        $term['op'] = '=';
+      if ( ! isset( $term['attr'] ) )
+        $term['attr'] = 'Id';
+      if ( ! isset( $term['val'] ) )
+        $term['val'] = '';
+      if ( ! isset( $term['cnj'] ) )
+        $term['cnj'] = 'and';
+      if ( ! isset( $term['cbr'] ) )
+        $term['cbr'] = '';
+      if ( ! isset( $term['obr'] ) )
+        $term['obr'] = '';
+      $html .= '<tr>'.PHP_EOL;
+      $html .= ($i == 0) ?  '<td>&nbsp;</td>' : '<td>'.htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).'</td>'.PHP_EOL;
+      $html .= '<td>'. ( count($terms) > 2 ? htmlSelect("filter[Query][terms][$i][obr]", $obracketTypes, $term['obr']) : '&nbsp;').'</td>'.PHP_EOL;
+      $html .= '<td>'.htmlSelect("filter[Query][terms][$i][attr]", $this->attrTypes(), $term['attr'], array('data-on-change-this'=>'checkValue')).'</td>'.PHP_EOL;
+      if ( isset($term['attr']) ) {
+        if ( $term['attr'] == 'Archived' ) {
+          $html .= '<td>'.translate('OpEq').'<input type="hidden" name="filter[Query][terms]['.$i.'][op]" value="="/></td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'StateId' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $states, $term['val']).'</td>'.PHP_EOL;
+        } else if ( strpos($term['attr'], 'Weekday') !== false ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val']).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'Monitor' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, explode(',', $term['val'])).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'MonitorName' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val']).'</td>'.PHP_EOL;
+        } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']).'</td>'.PHP_EOL;
+        } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
+          if (!$storageareas) {
+            $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+          }
+
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']).'</td>'.PHP_EOL;
+        } elseif ( $term['attr'] == 'AlarmedZoneId' ) {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val']).'</td>'.PHP_EOL;
+        } else {
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.validHtmlStr($term['val']).'"/></td>'.PHP_EOL;
+        }
+      } else { # no attr ?
+        $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+        $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'' ).'"/></td>'.PHP_EOL;
+      }
+      $html .= '<td>'.( count($terms) > 2 ? htmlSelect("filter[Query][terms][$i][cbr]", $cbracketTypes, $term['cbr']) : '&nbsp;').'</td>'.PHP_EOL;
+      $html .= '<td>
+                <button type="button" data-on-click-this="addTerm">+</button>
+                <button type="button" data-on-click-this="delTerm" '.(count($terms) == 1 ? 'disabled' : '' ).'>-</button>
+              </td>
+            </tr>
+';
+    } # end foreach term
+    return $html;
+  }  # end function widget()
+
+  public function simple_widget() {
+    $html = '<div id="fieldsTable" class="filterTable">';
+    $terms = $this->terms();
+    $attrTypes = $this->attrTypes();
+    $opTypes = $this->opTypes();
+    $archiveTypes = $this->archiveTypes();
+    $storageareas= null;
+    $states = array();
+    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `States` ORDER BY lower(`Name`) ASC') as $state_row ) {
+      $states[$state_row['Id']] = validHtmlStr($state_row['Name']);
+    }
+    $servers = array();
+    $servers['ZM_SERVER_ID'] = 'Current Server';
+    $servers['NULL'] = 'No Server';
+    global $Servers;
+    foreach ( $Servers as $server ) {
+      $servers[$server->Id()] = validHtmlStr($server->Name());
+    }
+
+    for ($i=0; $i < count($terms); $i++) {
+      $term = $terms[$i];
+      if ( ! isset( $term['op'] ) )
+        $term['op'] = '=';
+      if ( ! isset( $term['attr'] ) )
+        $term['attr'] = 'Id';
+      if ( ! isset( $term['val'] ) )
+        $term['val'] = '';
+      if ( ! isset( $term['cnj'] ) )
+        $term['cnj'] = 'and';
+      if ( ! isset( $term['cbr'] ) )
+        $term['cbr'] = '';
+      if ( ! isset( $term['obr'] ) )
+        $term['obr'] = '';
+
+      #$html .= ($i == 0) ?  '' : htmlSelect("filter[Query][terms][$i][cnj]", $conjunctionTypes, $term['cnj']).PHP_EOL;
+      $html .= ($i == 0) ?  '' : html_input("filter[Query][terms][$i][cnj]", 'hidden', $term['cnj']).PHP_EOL;
+      if ( isset($term['attr']) ) {
+        $html .= '<span class="term"><label>'.$attrTypes[$term['attr']].'</label>';
+        $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
+        $html .= html_input("filter[Query][terms][$i][op]", 'hidden', $term['op']).PHP_EOL;
+        if ( $term['attr'] == 'Archived' ) {
+          $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).PHP_EOL;
+        } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
+          $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
+          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" class="datetimepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
+          $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
+          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" class="datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']).'</span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'StateId' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $states, $term['val']).'</span>'.PHP_EOL;
+        } else if ( strpos($term['attr'], 'Weekday') !== false ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val']).'</span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'Monitor' ) {
+          $monitors = ['' => translate('All')];
+          foreach (Monitor::find() as $m) {
+            if ($m->canView()) {
+              $monitors[$m->Id()] = $m->Id().' '.validHtmlStr($m->Name());
+            }
+          }
+          $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
+          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, $term['val']).'</span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'MonitorName' ) {
+          $monitor_names = ['' => translate('All')];
+          foreach (Monitor::find() as $m) {
+            if ($m->canView()) {
+              $monitor_names[$m->Name()] = validHtmlStr($m->Name());
+            }
+          }
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val']).'</span>'.PHP_EOL;
+        } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']).'</span>'.PHP_EOL;
+        } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
+          if (!$storageareas) {
+            $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+          }
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']).'</span>'.PHP_EOL;
+        } elseif ( $term['attr'] == 'AlarmedZoneId' ) {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val']).'</span>'.PHP_EOL;
+        } else {
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.validHtmlStr($term['val']).'"/></span>'.PHP_EOL;
+        }
+      } else { # no attr ?
+        $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+        $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'' ).'"/></span>'.PHP_EOL;
+      }
+
+      $html .= '</span>';
+    } # end foreach term
+    $html .= '</div>';
+    return $html;
+  }  # end function widget()
+
+  public function has_term($attr, $op=null) {
+    foreach ($this->terms() as $term) {
+      if (($term['attr'] == $attr) and ((!$op) or ($term['op']==$op)) ) return true;
+    }
+    return false;
   }
 
 } # end class Filter

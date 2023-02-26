@@ -87,11 +87,7 @@ else
 fi;
 
 if [ "$DISTROS" == "" ]; then
-  if [ "$RELEASE" != "" ]; then
-    DISTROS="bionic,focal,hirsute,impish"
-  else
-    DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
-  fi;
+  DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   echo "Defaulting to $DISTROS for distribution";
 else
   echo "Building for $DISTROS";
@@ -116,52 +112,6 @@ else
     echo "Defaulting to ZoneMinder upstream git"
     GITHUB_FORK="ZoneMinder"
   fi;
-  if [ "$SNAPSHOT" == "stable" ]; then
-    if [ "$BRANCH" == "" ]; then
-      #REV=$(git rev-list --tags --max-count=1)
-      BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
-      if [ -z "$BRANCH" ]; then
-        # This should only happen in CI environments where tag info isn't available
-        BRANCH=`cat version`
-        echo "Building branch $BRANCH"
-      fi
-      if [ "$BRANCH" == "" ]; then
-        echo "Unable to determine latest stable branch!"
-        exit 0;
-      fi
-      echo "Latest stable branch is $BRANCH";
-    fi;
-  else
-    if [ "$BRANCH" == "" ]; then
-      echo "Defaulting to master branch";
-      BRANCH="master";
-    fi;
-    if [ "$SNAPSHOT" == "NOW" ]; then
-      SNAPSHOT=`date +%Y%m%d%H%M%S`;
-    else
-      if [ "$SNAPSHOT" == "CURRENT" ]; then
-        SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
-      fi;
-    fi;
-  fi;
-fi
-
-IFS='.' read -r -a VERSION_PARTS <<< "$RELEASE"
-if [ "$PPA" == "" ]; then
-  if [ "$RELEASE" != "" ]; then
-    # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
-    if [ "${VERSION_PARTS[0]}.${VERSION_PARTS[1]}" == "1.30" ]; then
-      PPA="ppa:iconnor/zoneminder-stable"
-    else
-      PPA="ppa:iconnor/zoneminder-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}"
-    fi;
-  else
-    if [ "$BRANCH" == "" ]; then
-      PPA="ppa:iconnor/zoneminder-master";
-    else
-      PPA="ppa:iconnor/zoneminder-$BRANCH";
-    fi;
-  fi;
 fi;
 
 # Instead of cloning from github each time, if we have a fork lying around, update it and pull from there instead.
@@ -169,17 +119,10 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
   if [ -d "${GITHUB_FORK}_ZoneMinder.git" ]; then
     echo "Using local clone ${GITHUB_FORK}_ZoneMinder.git to pull from."
     cd "${GITHUB_FORK}_ZoneMinder.git"
-    echo "git fetch..."
-    git fetch
-    echo "git checkout $BRANCH"
-    git checkout $BRANCH
-    if [ $? -ne 0 ]; then
-      echo "Failed to switch to branch."
-      exit 1;
-    fi;
     echo "git pull..."
     git pull
     cd ../
+
     echo "git clone ${GITHUB_FORK}_ZoneMinder.git ${GITHUB_FORK}_zoneminder_release"
     git clone "${GITHUB_FORK}_ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
   else
@@ -192,14 +135,59 @@ else
 fi;
 
 cd "${GITHUB_FORK}_zoneminder_release"
-  git checkout $BRANCH
-cd ../
 
-VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
+if [ "$SNAPSHOT" == "stable" ]; then
+  if [ "$BRANCH" == "" ]; then
+    #REV=$(git rev-list --tags --max-count=1)
+    BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
+    if [ -z "$BRANCH" ]; then
+      # This should only happen in CI environments where tag info isn't available
+      BRANCH=`cat version`
+      echo "Building branch $BRANCH"
+    fi
+    if [ "$BRANCH" == "" ]; then
+      echo "Unable to determine latest stable branch!"
+      exit 0;
+    fi
+    echo "Latest stable branch is $BRANCH";
+  fi;
+else
+  if [ "$BRANCH" == "" ]; then
+    echo "Defaulting to master branch";
+    BRANCH="master";
+  fi;
+  if [ "$SNAPSHOT" == "NOW" ]; then
+    SNAPSHOT=`date +%Y%m%d%H%M%S`;
+  else
+    if [ "$SNAPSHOT" == "CURRENT" ]; then
+      # git the latest (short) commit hash of the version file
+      versionhash=$(git log -n1 --pretty=format:%h version)
 
+      # Number of commits since the version file was last changed
+      numcommits=$(git rev-list ${versionhash}..HEAD --count)
+      SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+    fi;
+  fi;
+fi;
+
+
+echo "git checkout $BRANCH"
+git checkout $BRANCH
+if [ $? -ne 0 ]; then
+  echo "Failed to switch to branch."
+  exit 1;
+fi;
+echo "git pull..."
+git pull
+# Grab the ZoneMinder version from the contents of the version file
+VERSION=$(cat version)
 if [ -z "$VERSION" ]; then
   exit 1;
 fi;
+IFS='.' read -r -a VERSION_PARTS <<< "$VERSION"
+
+cd ../
+
 if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
   VERSION="$VERSION~$SNAPSHOT";
 fi;
@@ -230,7 +218,12 @@ rm .gitignore
 cd ../
 
 
-if [ ! -e "$DIRECTORY.orig.tar.gz" ]; then
+if [ -e "$DIRECTORY.orig.tar.gz" ]; then
+  read -p "$DIRECTORY.orig.tar.gz exists, overwrite it? [Y/n]"
+  if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
+    tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+  fi;
+else
   tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
 fi;
 
@@ -342,6 +335,7 @@ EOF
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
       if [[ $REPLY == [yY] ]]; then
         if [ "$RELEASE" != "" ]; then
+          echo "scp \"zoneminder_${VERSION}-${DISTRO}\"* \"zoneminder-doc_${VERSION}-${DISTRO}\"* \"zoneminder-dbg_${VERSION}-${DISTRO}\"* \"zoneminder_${VERSION}.orig.tar.gz\" \"zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
           scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
@@ -354,11 +348,27 @@ EOF
     fi;
   else
     SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
+    if [ "$PPA" == "" ]; then
+      if [ "$RELEASE" != "" ]; then
+        # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
+        if [ "${VERSION_PARTS[0]}.${VERSION_PARTS[1]}" == "1.30" ]; then
+          PPA="ppa:iconnor/zoneminder-stable"
+        else
+          PPA="ppa:iconnor/zoneminder-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}"
+        fi;
+      else
+        if [ "$BRANCH" == "" ]; then
+          PPA="ppa:iconnor/zoneminder-master";
+        else
+          PPA="ppa:iconnor/zoneminder-$BRANCH";
+        fi;
+      fi;
+    fi;
 
     dput="Y";
     if [ "$INTERACTIVE" != "no" ]; then
       read -p "Ready to dput $SC to $PPA ? Y/n...";
-      if [[ "$REPLY" == [yY] ]]; then
+      if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
         dput $PPA $SC
       fi;
     else

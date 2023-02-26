@@ -23,7 +23,7 @@ void bind_libvnc_symbols() {
   
   libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
   if (!libvnc_lib) {
-    Error("Error loading libvncclient: %s", dlerror());
+    Error("Error loading libvncclient.so: %s", dlerror());
     return;
   }
 
@@ -135,11 +135,6 @@ VncCamera::VncCamera(
 }
 
 VncCamera::~VncCamera() {
-  if (capture and mRfb) {
-    if (mRfb->frameBuffer)
-      free(mRfb->frameBuffer);
-    (*rfbClientCleanup_f)(mRfb);
-  }
   if (libvnc_lib) {
     dlclose(libvnc_lib);
     libvnc_lib = nullptr;
@@ -219,7 +214,7 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   }
   zm_packet->keyframe = 1;
   zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
-  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->packet->stream_index = mVideoStreamId;
   zm_packet->stream = mVideoStream;
 
   uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
@@ -253,6 +248,12 @@ int VncCamera::PostCapture() {
 }
 
 int VncCamera::Close() {
+  if (capture and mRfb) {
+    if (mRfb->frameBuffer)
+      free(mRfb->frameBuffer);
+    (*rfbClientCleanup_f)(mRfb);
+    mRfb = nullptr;
+  }
   return 1;
 }
 #endif

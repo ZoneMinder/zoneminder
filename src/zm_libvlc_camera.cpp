@@ -21,7 +21,6 @@
 
 #include "zm_packet.h"
 #include "zm_signal.h"
-#include "zm_utils.h"
 #include <dlfcn.h>
 
 #if HAVE_LIBVLC
@@ -105,6 +104,8 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes) {
 LibvlcCamera::LibvlcCamera(
     const Monitor *monitor,
     const std::string &p_path,
+    const std::string &p_user,
+    const std::string &p_pass,
     const std::string &p_method,
     const std::string &p_options,
     int p_width,
@@ -132,6 +133,8 @@ LibvlcCamera::LibvlcCamera(
       p_record_audio
       ),
   mPath(p_path),
+  mUser(UriEncode(p_user)),
+  mPass(UriEncode(p_pass)),
   mMethod(p_method),
   mOptions(p_options)
 {  
@@ -213,7 +216,9 @@ void LibvlcCamera::Terminate() {
 int LibvlcCamera::PrimeCapture() {
   Debug(1, "Priming capture from %s, libvlc version %s", mPath.c_str(), (*libvlc_get_version_f)());
 
-  StringVector opVect = Split(Options(), ",");
+  opVect = Split(Options(), ",");
+
+  Debug(1, "Method: '%s'", Method().c_str());
 
   // Set transport method as specified by method field, rtpUni is default
   if ( Method() == "rtpMulti" )
@@ -242,6 +247,17 @@ int LibvlcCamera::PrimeCapture() {
   }
   (*libvlc_log_set_f)(mLibvlcInstance, LibvlcCamera::log_callback, nullptr);
 
+  // recreate the path with encoded authentication info
+  if( mUser.length() > 0 ) {
+    std::string mMaskedPath = remove_authentication(mPath);
+
+    std::string protocol = StringToUpper(mPath.substr(0, 4));
+    if ( protocol == "RTSP" ) {
+      // build the actual uri string with encoded parameters (from the user and pass fields)
+      mPath = StringToLower(protocol) + "://" + mUser + ":" + mPass + "@" + mMaskedPath.substr(7, std::string::npos);
+      Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
+    }
+  }
 
   mLibvlcMedia = (*libvlc_media_new_location_f)(mLibvlcInstance, mPath.c_str());
   if ( mLibvlcMedia == nullptr ) {
@@ -289,7 +305,7 @@ int LibvlcCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
   mLibvlcData.mutex.lock();
   zm_packet->image->Assign(width, height, colours, subpixelorder, mLibvlcData.buffer, width * height * mBpp);
-  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->packet->stream_index = mVideoStreamId;
   zm_packet->stream = mVideoStream;
   mLibvlcData.mutex.unlock();
 

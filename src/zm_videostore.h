@@ -6,7 +6,9 @@
 #include "zm_ffmpeg.h"
 #include "zm_swscale.h"
 
+#include <list>
 #include <memory>
+#include <map>
 
 extern "C"  {
 #include <libswresample/swresample.h>
@@ -52,15 +54,13 @@ class VideoStore {
     const AVCodec *audio_in_codec;
     AVCodecContext *audio_in_ctx;
     // The following are used when encoding the audio stream to AAC
-    AVCodec *audio_out_codec;
+    const AVCodec *audio_out_codec;
     AVCodecContext *audio_out_ctx;
     // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
-    AVPacket opkt;
-    // we are transcoding
-    AVFrame *video_in_frame;
-    AVFrame *in_frame;
-    AVFrame *out_frame;
-    AVFrame *hw_frame;
+    av_packet_ptr opkt;
+
+    av_frame_ptr in_frame;
+    av_frame_ptr out_frame;
 
     SWScale swscale;
     unsigned int packets_written;
@@ -85,9 +85,13 @@ class VideoStore {
 
     // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
     int64_t *next_dts;
+    std::map<int, int64_t> last_dts;
     int64_t audio_next_pts;
 
     int max_stream_index;
+
+    size_t reorder_queue_size;
+    std::map<int, std::list<std::shared_ptr<ZMPacket>>> reorder_queues;
 
     bool setup_resampler();
     int write_packet(AVPacket *pkt, AVStream *stream);
@@ -111,6 +115,13 @@ class VideoStore {
     int writePacket(const std::shared_ptr<ZMPacket> &pkt);
     int write_packets(PacketQueue &queue);
     void flush_codecs();
+    const char *get_codec() {
+      if (chosen_codec_data)
+        return chosen_codec_data->codec_codec;
+      if (video_out_stream)
+        return avcodec_get_name(video_out_stream->codecpar->codec_id);
+      return "";
+    }
 };
 
 #endif // ZM_VIDEOSTORE_H

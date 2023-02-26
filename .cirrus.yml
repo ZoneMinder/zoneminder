@@ -2,7 +2,7 @@ task:
   name: freebsd-build
   freebsd_instance:
     matrix:
-      - image_family: freebsd-12-2
+      - image_family: freebsd-12-3
       - image_family: freebsd-13-0
 
   prepare_script:

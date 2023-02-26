@@ -25,6 +25,7 @@
 MYSQL dbconn;
 std::mutex db_mutex;
 zmDbQueue  dbQueue;
+unsigned long db_thread_id;
 
 bool zmDbConnected = false;
 
@@ -103,13 +104,15 @@ bool zmDbConnect() {
     Error("Can't set isolation level: %s", mysql_error(&dbconn));
   }
   mysql_set_character_set(&dbconn, "utf8");
+  db_thread_id = mysql_thread_id(&dbconn);
   zmDbConnected = true;
   return zmDbConnected;
 }
 
 void zmDbClose() {
+  std::lock_guard<std::mutex> lck(db_mutex);
   if (zmDbConnected) {
-    std::lock_guard<std::mutex> lck(db_mutex);
+    Debug(1, "Closing database. Connection id was %lu", db_thread_id);
     mysql_close(&dbconn);
     // mysql_init() call implicitly mysql_library_init() but
     // mysql_close() does not call mysql_library_end()
@@ -162,8 +165,6 @@ MYSQL_RES *zmDbRow::fetch(const std::string &query) {
     mysql_free_result(result_set);
     result_set = nullptr;
     Error("Error getting row from query %s. Error is %s", query.c_str(), mysql_error(&dbconn));
-  } else {
-    Debug(5, "Success");
   }
   return result_set;
 }
@@ -187,7 +188,7 @@ int zmDbDo(const std::string &query) {
   Logger::Level oldLevel = logger->databaseLevel();
   logger->databaseLevel(Logger::NOLOG);
 
-  Debug(1, "Success running sql query %s", query.c_str());
+  Debug(1, "Success running sql query %s, thread_id: %lu", query.c_str(), db_thread_id);
   logger->databaseLevel(oldLevel);
   return 1;
 }
@@ -229,17 +230,23 @@ zmDbRow::~zmDbRow() {
 }
 
 zmDbQueue::zmDbQueue() :
-  mThread(&zmDbQueue::process, this),
   mTerminate(false)
-{ }
+{
+  mThread = std::thread(&zmDbQueue::process, this);
+}
 
 zmDbQueue::~zmDbQueue() {
   stop();
 }
 
 void zmDbQueue::stop() {
-  mTerminate = true;
+  {
+    std::unique_lock<std::mutex> lock(mMutex);
+
+    mTerminate = true;
+  }
   mCondition.notify_all();
+
   if (mThread.joinable()) mThread.join();
 }
 
@@ -251,6 +258,13 @@ void zmDbQueue::process() {
       mCondition.wait(lock);
     }
     while (!mQueue.empty()) {
+      if (mQueue.size() > 40) {
+        Logger *log = Logger::fetch();
+        Logger::Level db_level = log->databaseLevel();
+        log->databaseLevel(Logger::NOLOG);
+        Warning("db queue size has grown larger %zu than 40 entries", mQueue.size());
+        log->databaseLevel(db_level);
+      }
       std::string sql = mQueue.front();
       mQueue.pop();
       // My idea for leaving the locking around each sql statement is to allow
@@ -263,9 +277,11 @@ void zmDbQueue::process() {
 }  // end void zmDbQueue::process()
 
 void zmDbQueue::push(std::string &&sql) {
-  if (mTerminate) return;
-  std::unique_lock<std::mutex> lock(mMutex);
-  mQueue.push(std::move(sql));
+  {
+    std::unique_lock<std::mutex> lock(mMutex);
+    if (mTerminate) return;
+    mQueue.push(std::move(sql));
+  }
   mCondition.notify_all();
 }
 

@@ -21,9 +21,11 @@
 
 #include "zm_font.h"
 #include "zm_poly.h"
+#include "zm_swscale.h"
 #include "zm_utils.h"
 #include <algorithm>
 #include <fcntl.h>
+#include <mutex>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -80,9 +82,14 @@ imgbufcpy_fptr_t fptr_imgbufcpy;
 /* Font */
 static ZmFont font;
 
+std::mutex              jpeg_mutex;
+
 void Image::update_function_pointers() {
-  /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements */
-  if ( pixels % 16 || pixels % 12 ) {
+  /* Because many loops are unrolled and work on 16 colours/time or 4 pixels/time, we have to meet requirements
+   * previous tests were %16 or %12 but that is incorrect.  Should just be %4
+   */
+
+  if (pixels %4) {
     // have to use non-loop unrolled functions
     delta8_rgb = &std_delta8_rgb;
     delta8_bgr = &std_delta8_bgr;
@@ -92,6 +99,7 @@ void Image::update_function_pointers() {
     delta8_abgr = &std_delta8_abgr;
     delta8_gray8 = &std_delta8_gray8;
     blend = &std_blend;
+    Debug(1, "Using slow std functions because pixels %d mod 4=%d", pixels, pixels%4);
   } else {
     // Use either sse or neon, or loop unrolled version
     delta8_rgb = fptr_delta8_rgb;
@@ -114,28 +122,30 @@ Image::Image() :
     delta8_argb(&std_delta8_argb),
     delta8_abgr(&std_delta8_abgr),
     delta8_gray8(&std_delta8_gray8),
-    blend(&std_blend)
+    blend(&std_blend),
+    width(0),
+    linesize(0),
+    height(0),
+    pixels(0),
+    colours(0),
+    padding(0),
+    size(0),
+    subpixelorder(0),
+    allocation(0),
+    buffer(nullptr),
+    buffertype(ZM_BUFTYPE_DONTFREE),
+    holdbuffer(0)
 {
-  if ( !initialised )
+  if (!initialised)
     Initialise();
-  width = 0;
-  linesize = 0;
-  height = 0;
-  padding = 0;
-  pixels = 0;
-  colours = 0;
-  subpixelorder = 0;
-  size = 0;
-  allocation = 0;
-  buffer = 0;
-  buffertype = ZM_BUFTYPE_DONTFREE;
-  holdbuffer = 0;
+  // Update blend to fast function determined by Initialise, I'm sure this can be improve.
   blend = fptr_blend;
 }
 
-Image::Image(const char *filename) {
+Image::Image(const std::string &filename) {
   if ( !initialised )
     Initialise();
+  filename_ = filename;
   width = 0;
   linesize = 0;
   height = 0;
@@ -158,27 +168,37 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   colours(p_colours),
   padding(p_padding),
   subpixelorder(p_subpixelorder),
-  buffer(p_buffer) {
+  buffer(p_buffer),
+  holdbuffer(0)
+{
 
   if (!initialised)
     Initialise();
   pixels = width * height;
   linesize = p_width * p_colours;
-  size = linesize * height + padding;
-  buffer = nullptr;
-  holdbuffer = 0;
+
+  if (!subpixelorder and (colours>1)) {
+    // Default to RGBA when no subpixelorder is specified.
+    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
+  }
+
+  imagePixFormat = AVPixFormat();
+
   if (p_buffer) {
+    size = linesize * height + padding;
     allocation = size;
     buffertype = ZM_BUFTYPE_DONTFREE;
     buffer = p_buffer;
   } else {
+    size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
+    linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
+
+    Debug(1, "line size: %d =? %d width %d Size %d ?= %d", linesize,
+        av_image_get_linesize(imagePixFormat, width, 0),
+        width, linesize * height + padding, size);
+
     AllocImgBuffer(size);
   }
-  if (!subpixelorder and colours>1) {
-    // Default to RGBA when no subpixelorder is specified.
-    subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-  }
-  imagePixFormat = AVPixFormat();
 
   update_function_pointers();
 }
@@ -214,25 +234,26 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   update_function_pointers();
 }
 
-Image::Image(const AVFrame *frame) {
+Image::Image(const AVFrame *frame) :
+  colours(ZM_COLOUR_RGB32),
+  padding(0),
+  subpixelorder(ZM_SUBPIX_ORDER_RGBA),
+  imagePixFormat(AV_PIX_FMT_RGBA),
+  buffer(0),
+  holdbuffer(0)
+{
   width = frame->width;
   height = frame->height;
   pixels = width*height;
 
   zm_dump_video_frame(frame, "Image.Assign(frame)");
   // FIXME
-  colours = ZM_COLOUR_RGB32;
-  subpixelorder = ZM_SUBPIX_ORDER_RGBA;
-  imagePixFormat = AV_PIX_FMT_RGBA;
-    //(AVPixelFormat)frame->format;
+  //(AVPixelFormat)frame->format;
 
   size = av_image_get_buffer_size(AV_PIX_FMT_RGBA, width, height, 32);
   // av_image_get_linesize isn't aligned, so we have to do that.
   linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 32);
-  padding = 0;
 
-  buffer = nullptr;
-  holdbuffer = 0;
   AllocImgBuffer(size);
   this->Assign(frame);
 }
@@ -256,21 +277,20 @@ int Image::PopulateFrame(AVFrame *frame) {
   frame->buf[0] = ref;
 
   // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
-  int size = av_image_fill_arrays(
+  int rc_size = av_image_fill_arrays(
       frame->data, frame->linesize,
       buffer, imagePixFormat, width, height,
       32 //alignment
       );
-  if ( size < 0 ) {
+  if (rc_size < 0) {
     Error("Problem setting up data pointers into image %s",
-        av_make_error_string(size).c_str());
-    return size;
+        av_make_error_string(rc_size).c_str());
+    return rc_size;
   }
 
   frame->width = width;
   frame->height = height;
   frame->format = imagePixFormat;
-  Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d", width, height, linesize, colours, size);
   zm_dump_video_frame(frame, "Image.Populate(frame)");
   return 1;
 }  // int Image::PopulateFrame(AVFrame *frame)
@@ -280,7 +300,11 @@ bool Image::Assign(const AVFrame *frame) {
 
   // Desired format
   AVPixelFormat format = (AVPixelFormat)AVPixFormat();
-  AVFrame *dest_frame = zm_av_frame_alloc();
+  av_frame_ptr dest_frame{zm_av_frame_alloc()};
+  if (!dest_frame) {
+    Error("Unable to allocate destination frame");
+    return false;
+  }
   sws_convert_context = sws_getCachedContext(
       sws_convert_context,
       frame->width, frame->height, (AVPixelFormat)frame->format,
@@ -292,8 +316,7 @@ bool Image::Assign(const AVFrame *frame) {
     Error("Unable to create conversion context");
     return false;
   }
-  bool result = Assign(frame, sws_convert_context, dest_frame);
-  av_frame_free(&dest_frame);
+  bool result = Assign(frame, sws_convert_context, dest_frame.get());
   update_function_pointers();
   return result;
 }  // end Image::Assign(const AVFrame *frame)
@@ -302,14 +325,17 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
   PopulateFrame(temp_frame);
   zm_dump_video_frame(frame, "source frame before convert");
   temp_frame->pts = frame->pts;
-  AVPixelFormat format = (AVPixelFormat)AVPixFormat();
 
-  if (sws_scale(convert_context,
-        frame->data, frame->linesize, 0, frame->height,
-        temp_frame->data, temp_frame->linesize) < 0) {
-    Error("Unable to convert raw format %u %ux%u to target format %u %ux%u",
-        frame->format, frame->width, frame->height,
-        format, width, height);
+  Debug(1, "Assign src linesize: %d, dest linesize: %d", frame->linesize[0], temp_frame->linesize[0]);
+  int ret = sws_scale(convert_context,
+      frame->data, frame->linesize, 0, frame->height,
+      temp_frame->data, temp_frame->linesize);
+  if (ret < 0) {
+    AVPixelFormat format = (AVPixelFormat)AVPixFormat();
+    Error("Unable to convert raw format %u %s %ux%u to target format %u %s %ux%u: %s",
+        frame->format, av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame->format)), frame->width, frame->height,
+        format, av_get_pix_fmt_name(format), width, height,
+        av_make_error_string(ret).c_str());
     return false;
   }
   zm_dump_video_frame(temp_frame, "dest frame after convert");
@@ -567,9 +593,9 @@ void Image::Initialise() {
 
   FontLoadError res = font.LoadFontFile(config.font_file_location);
   if ( res == FontLoadError::kFileNotFound ) {
-    Panic("Invalid font location: %s", config.font_file_location);
+    Error("Invalid font location: %s", config.font_file_location);
   } else if ( res == FontLoadError::kInvalidFile ) {
-    Panic("Invalid font file.");
+    Error("Invalid font file.");
   }
   initialised = true;
 }
@@ -653,7 +679,7 @@ void Image::AssignDirect(
     return;
   }
 
-  size_t new_buffer_size = p_width * p_height * p_colours;
+  size_t new_buffer_size = static_cast<size_t>(p_width) * p_height * p_colours;
 
   if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",
@@ -775,7 +801,7 @@ void Image::Assign(const Image &image) {
         return;
       }
     } else {
-      if (new_size > allocation || !buffer) {
+      if ((new_size > allocation) || !buffer) {
         // DumpImgBuffer(); This is also done in AllocImgBuffer
         AllocImgBuffer(new_size);
       }
@@ -788,11 +814,24 @@ void Image::Assign(const Image &image) {
     subpixelorder = image.subpixelorder;
     size = new_size;
     linesize = image.linesize;
+    update_function_pointers();
   }
 
-  update_function_pointers();
-  if ( image.buffer != buffer )
-    (*fptr_imgbufcpy)(buffer, image.buffer, size);
+  if ( image.buffer != buffer ) {
+    if (image.linesize > linesize) {
+      Debug(1, "Must copy line by line due to different line size %d != %d", image.linesize, linesize);
+      uint8_t *src_ptr = image.buffer;
+      uint8_t *dst_ptr = buffer;
+      for (unsigned int i=0; i< image.height; i++) {
+        (*fptr_imgbufcpy)(dst_ptr, src_ptr, image.linesize);
+        src_ptr += image.linesize;
+        dst_ptr += linesize;
+      }
+    } else {
+      Debug(1, "Doing full copy line size %d != %d", image.linesize, linesize);
+      (*fptr_imgbufcpy)(buffer, image.buffer, size);
+    }
+  }
 }
 
 Image *Image::HighlightEdges(
@@ -887,29 +926,29 @@ Image *Image::HighlightEdges(
   return high_image;
 }
 
-bool Image::ReadRaw(const char *filename) {
+bool Image::ReadRaw(const std::string &filename) {
   FILE *infile;
-  if ( (infile = fopen(filename, "rb")) == nullptr ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
+  if ( (infile = fopen(filename.c_str(), "rb")) == nullptr ) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
   struct stat statbuf;
-  if ( fstat( fileno(infile), &statbuf ) < 0 ) {
+  if (fstat(fileno(infile), &statbuf) < 0) {
     fclose(infile);
-    Error("Can't fstat %s: %s", filename, strerror(errno));
+    Error("Can't fstat %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
-  if ( (unsigned int)statbuf.st_size != size ) {
+  if ((unsigned int)statbuf.st_size != size) {
     fclose(infile);
-    Error("Raw file size mismatch, expected %d bytes, found %ld", size, statbuf.st_size);
+    Error("Raw file size mismatch, expected %d bytes, found %jd", size, static_cast<intmax_t>(statbuf.st_size));
     return false;
   }
 
-  if ( fread(buffer, size, 1, infile) < 1 ) {
+  if (fread(buffer, size, 1, infile) < 1) {
     fclose(infile);
-    Error("Unable to read from '%s': %s", filename, strerror(errno));
+    Error("Unable to read from '%s': %s", filename.c_str(), strerror(errno));
     return false;
   }
 
@@ -918,15 +957,15 @@ bool Image::ReadRaw(const char *filename) {
   return true;
 }
 
-bool Image::WriteRaw(const char *filename) const {
+bool Image::WriteRaw(const std::string &filename) const {
   FILE *outfile;
-  if ( (outfile = fopen(filename, "wb")) == nullptr ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
+  if ((outfile = fopen(filename.c_str(), "wb")) == nullptr) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
-  if ( fwrite( buffer, size, 1, outfile ) != 1 ) {
-    Error("Unable to write to '%s': %s", filename, strerror(errno));
+  if (fwrite(buffer, size, 1, outfile) != 1) {
+    Error("Unable to write to '%s': %s", filename.c_str(), strerror(errno));
     fclose(outfile);
     return false;
   }
@@ -1082,11 +1121,16 @@ bool Image::WriteJpeg(const std::string &filename,
                       const int &quality_override,
                       SystemTimePoint timestamp,
                       bool on_blocking_abort) const {
+
   if (config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8)) {
     Image temp_image(*this);
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.WriteJpeg(filename, quality_override, timestamp, on_blocking_abort);
   }
+
+  // jpeg libs are not thread safe
+  std::unique_lock<std::mutex> lck(jpeg_mutex);
+
   int quality = quality_override ? quality_override : config.jpeg_file_quality;
 
   jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
@@ -1156,7 +1200,7 @@ bool Image::WriteJpeg(const std::string &filename,
       } else if (subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
         cinfo->in_color_space = JCS_EXT_XBGR;
       } else {
-        Warning("Unknwon subpixelorder %d", subpixelorder);
+        Warning("Unknown subpixelorder %d", subpixelorder);
         /* Assume RGBA */
         cinfo->in_color_space = JCS_EXT_RGBX;
       }
@@ -1364,6 +1408,8 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_overr
     temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
     return temp_image.EncodeJpeg(outbuffer, outbuffer_size, quality_override);
   }
+
+  std::unique_lock<std::mutex> lck(jpeg_mutex);
 
   int quality = quality_override ? quality_override : config.jpeg_stream_quality;
 
@@ -1678,15 +1724,15 @@ void Image::Overlay( const Image &image ) {
 }
 
 /* RGB32 compatible: complete */
-void Image::Overlay( const Image &image, unsigned int x, unsigned int y ) {
+void Image::Overlay( const Image &image, const unsigned int lo_x, const unsigned int lo_y ) {
   if ( !(width < image.width || height < image.height) ) {
     Panic("Attempt to overlay image too big for destination, %dx%d > %dx%d",
         image.width, image.height, width, height );
   }
 
-  if ( !(width < (x+image.width) || height < (y+image.height)) ) {
+  if ( !(width < (lo_x+image.width) || height < (lo_y+image.height)) ) {
     Panic("Attempt to overlay image outside of destination bounds, %dx%d @ %dx%d > %dx%d",
-        image.width, image.height, x, y, width, height );
+        image.width, image.height, lo_x, lo_y, width, height );
   }
 
   if ( !(colours == image.colours) ) {
@@ -1694,10 +1740,8 @@ void Image::Overlay( const Image &image, unsigned int x, unsigned int y ) {
         colours, image.colours);
   }
 
-  unsigned int lo_x = x;
-  unsigned int lo_y = y;
-  unsigned int hi_x = (x+image.width)-1;
-  unsigned int hi_y = (y+image.height-1);
+  unsigned int hi_x = (lo_x+image.width)-1;
+  unsigned int hi_y = (lo_y+image.height-1);
   if ( colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t *psrc = image.buffer;
     for ( unsigned int y = lo_y; y <= hi_y; y++ ) {
@@ -1730,7 +1774,6 @@ void Image::Overlay( const Image &image, unsigned int x, unsigned int y ) {
 }  // end void Image::Overlay( const Image &image, unsigned int x, unsigned int y )
 
 void Image::Blend( const Image &image, int transparency ) {
-  uint8_t* new_buffer;
 
   if ( !(
         width == image.width && height == image.height
@@ -1744,7 +1787,7 @@ void Image::Blend( const Image &image, int transparency ) {
   if ( transparency <= 0 )
     return;
 
-  new_buffer = AllocBuffer(size);
+  uint8_t* new_buffer = AllocBuffer(size);
 
 #ifdef ZM_IMAGE_PROFILING
   TimePoint start = std::chrono::steady_clock::now();
@@ -2462,6 +2505,10 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   colour = rgb_convert(colour, subpixelorder);
 
   size_t n_coords = polygon.GetVertices().size();
+  if (n_coords < 3) {
+    Error("Not enough vertices in polygon!");
+    return;
+  }
 
   std::vector<PolygonFill::Edge> global_edges;
   global_edges.reserve(n_coords);
@@ -2733,7 +2780,28 @@ void Image::Flip( bool leftright ) {
   AssignDirect(width, height, colours, subpixelorder, flip_buffer, size, ZM_BUFTYPE_ZM);
 }
 
-void Image::Scale(unsigned int factor) {
+void Image::Scale(const unsigned int new_width, const unsigned int new_height) {
+  if (width == new_width and height == new_height) return;
+
+  // Why larger than we need?
+  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
+  uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
+
+  AVPixelFormat format = AVPixFormat();
+  SWScale swscale;
+  swscale.init();
+  swscale.Convert( buffer, allocation,
+    scale_buffer,
+    scale_buffer_size,
+    format, format,
+    width,
+    height,
+    new_width,
+    new_height);
+  AssignDirect(new_width, new_height, colours, subpixelorder, scale_buffer, scale_buffer_size, ZM_BUFTYPE_ZM);
+}
+
+void Image::Scale(const unsigned int factor) {
   if ( !factor ) {
     Error("Bogus scale factor %d found", factor);
     return;
@@ -2746,7 +2814,7 @@ void Image::Scale(unsigned int factor) {
   unsigned int new_height = (height*factor)/ZM_SCALE_BASE;
 
   // Why larger than we need?
-  size_t scale_buffer_size = (new_width+1) * (new_height+1) * colours;
+  size_t scale_buffer_size = static_cast<size_t>(new_width+1) * (new_height+1) * colours;
 
   uint8_t* scale_buffer = AllocBuffer(scale_buffer_size);
 
@@ -2757,15 +2825,13 @@ void Image::Scale(unsigned int factor) {
     unsigned int h_count = ZM_SCALE_BASE/2;
     unsigned int last_h_index = 0;
     unsigned int last_w_index = 0;
-    unsigned int h_index;
     for ( unsigned int y = 0; y < height; y++ ) {
       unsigned char *ps = &buffer[y*wc];
       unsigned int w_count = ZM_SCALE_BASE/2;
-      unsigned int w_index;
       last_w_index = 0;
       for ( unsigned int x = 0; x < width; x++ ) {
         w_count += factor;
-        w_index = w_count/ZM_SCALE_BASE;
+        unsigned int w_index = w_count/ZM_SCALE_BASE;
         for (unsigned int f = last_w_index; f < w_index; f++ ) {
           for ( unsigned int c = 0; c < colours; c++ ) {
             *pd++ = *(ps+c);
@@ -2775,7 +2841,7 @@ void Image::Scale(unsigned int factor) {
         last_w_index = w_index;
       }
       h_count += factor;
-      h_index = h_count/ZM_SCALE_BASE;
+      unsigned int h_index = h_count/ZM_SCALE_BASE;
       for ( unsigned int f = last_h_index+1; f < h_index; f++ ) {
         memcpy(pd, pd-nwc, nwc);
         pd += nwc;
@@ -2787,17 +2853,14 @@ void Image::Scale(unsigned int factor) {
   } else {
     unsigned char *pd = scale_buffer;
     unsigned int wc = width*colours;
-    unsigned int xstart = factor/2;
-    unsigned int ystart = factor/2;
-    unsigned int h_count = ystart;
+    unsigned int h_count = factor/2;
     unsigned int last_h_index = 0;
     unsigned int last_w_index = 0;
-    unsigned int h_index;
     for ( unsigned int y = 0; y < height; y++ ) {
       h_count += factor;
-      h_index = h_count/ZM_SCALE_BASE;
+      unsigned int h_index = h_count/ZM_SCALE_BASE;
       if ( h_index > last_h_index ) {
-        unsigned int w_count = xstart;
+        unsigned int w_count = factor/2;
         unsigned int w_index;
         last_w_index = 0;
 
@@ -2826,6 +2889,7 @@ void Image::Scale(unsigned int factor) {
 
 void Image::Deinterlace_Discard() {
   /* Simple deinterlacing. Copy the even lines into the odd lines */
+  // ICON: These can be drastically improved.  But who cares?
 
   if ( colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t *psrc;
@@ -3108,9 +3172,9 @@ __attribute__((noinline,__target__("sse2")))
 #endif
 void sse2_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 #if ((defined(__i386__) || defined(__x86_64__) || defined(ZM_KEEP_SSE)) && !defined(ZM_STRIP_SSE))
-  static uint32_t divider = 0;
-  static uint32_t clearmask = 0;
   static double current_blendpercent = 0.0;
+  static uint32_t clearmask = 0;
+  static uint32_t divider = 0;
 
   if ( current_blendpercent != blendpercent ) {
     /* Attempt to match the blending percent to one of the possible values */
@@ -3311,10 +3375,10 @@ void neon32_armv7_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* r
 
 __attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
 #if (defined(__aarch64__) && !defined(ZM_STRIP_NEON))
-  static int8_t divider = 0;
   static double current_blendpercent = 0.0;
+  static int8_t divider = 0;
 
-  if(current_blendpercent != blendpercent) {
+  if (current_blendpercent != blendpercent) {
     /* Attempt to match the blending percent to one of the possible values */
     if(blendpercent < 2.34375) {
       // 1.5625% blending
@@ -3394,6 +3458,7 @@ __attribute__((noinline)) void neon64_armv8_fastblend(const uint8_t* col1, const
 }
 
 __attribute__((noinline)) void std_blend(const uint8_t* col1, const uint8_t* col2, uint8_t* result, unsigned long count, double blendpercent) {
+  Warning("Using slow std_blend");
   double divide = blendpercent / 100.0;
   double opacity = 1.0 - divide;
   const uint8_t* const max_ptr = result + count;
@@ -5242,6 +5307,23 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
     pnabove += 4;
     pcurrent += 4;
     pncurrent += 4;
+  }
+}
+
+AVPixelFormat Image::AVPixFormat() const {
+  if ( colours == ZM_COLOUR_RGB32 ) {
+    return AV_PIX_FMT_RGBA;
+  } else if ( colours == ZM_COLOUR_RGB24 ) {
+    if ( subpixelorder == ZM_SUBPIX_ORDER_BGR){
+      return AV_PIX_FMT_BGR24;
+    } else {
+      return AV_PIX_FMT_RGB24;
+    }
+  } else if ( colours == ZM_COLOUR_GRAY8 ) {
+    return AV_PIX_FMT_GRAY8;
+  } else {
+    Error("Unknown colours (%d)",colours);
+    return AV_PIX_FMT_RGBA;
   }
 }
 

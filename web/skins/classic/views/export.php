@@ -86,7 +86,7 @@ $limitQuery = '';
 if ( $user['MonitorIds'] ) {
   $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
   $eventsSql .= $user_monitor_ids;
-} else {
+} else if ( !isset($_REQUEST['filter']) ) {
   $eventsSql .= ' 1';
 }
 
@@ -98,14 +98,14 @@ if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
   $eventsValues += $_REQUEST['eids'];
 } else if ( isset($_REQUEST['filter']) ) {
   parseSort();
-  $filter = Filter::parse($_REQUEST['filter']);
+  $filter = ZM\Filter::parse($_REQUEST['filter']);
   $filterQuery = $filter->querystring();
 
   if ( $filter->sql() ) {
     $eventsSql .= $filter->sql();
   }
   $eventsSql .= " ORDER BY $sortColumn $sortOrder";
-  if ( isset($_REQUEST['filter']['Query']['limit']) )
+  if ( isset($_REQUEST['filter']['Query']['limit']) and validInt($_REQUEST['filter']['Query']['limit']))
     $eventsSql .= ' LIMIT '.validInt($_REQUEST['filter']['Query']['limit']);
 } # end if filter
 
@@ -144,6 +144,7 @@ while ( $event_row = dbFetchNext($results) ) {
   $event = new ZM\Event($event_row);
   $scale = max(reScale(SCALE_BASE, $event->Monitor()->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
   $event_link = '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1';
+  global $dateTimeFormatter;
 ?>
           <tr<?php echo $event->Archived() ? ' class="archived"' : '' ?>>
               <td class="colId">
@@ -153,9 +154,9 @@ while ( $event_row = dbFetchNext($results) ) {
               <td class="colName"><a href="<?php echo $event_link ?>"><?php echo validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
               <td class="colMonitorName"><?php echo makeLink('?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit('Monitors')) ?></td>
               <td class="colCause"><?php echo makeLink($event_link, validHtmlStr($event->Cause()), canView('Events'), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid="'.$event->Id().'"') ?></td>
-              <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartDateTime())) .
-( $event->EndDateTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndDateTime())) : '' ) ?></td>
-              <td class="colDuration"><?php echo gmdate('H:i:s', $event->Length()) ?></td>
+              <td class="colTime"><?php echo $dateTimeFormatter->format(strtotime($event->StartDateTime())) .
+( $event->EndDateTime() ? ' until ' . $dateTimeFormatter->format(strtotime($event->EndDateTime())) : '' ) ?></td>
+              <td class="colDuration"><?php echo gmdate('H:i:s', intval($event->Length())) ?></td>
               <td class="colFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->Frames()) ?></td>
               <td class="colAlarmFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->AlarmFrames()) ?></td>
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
@@ -183,7 +184,7 @@ while ( $event_row = dbFetchNext($results) ) {
           </tr>
 				</tfoot>
       </table>
-<div class="container-fluid">
+<div class="container-fluid export_options">
   <div class="row">
     <div class="col-md-3">
       <div class="form-group">

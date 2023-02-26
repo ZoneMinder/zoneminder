@@ -23,6 +23,8 @@
 #include "zm_config.h"
 #include "zm_define.h"
 
+#include <memory>
+
 extern "C" {
 #include <libswresample/swresample.h>
 
@@ -177,34 +179,34 @@ void zm_dump_codecpar(const AVCodecParameters *par);
   Debug(2, "%s: pts: %" PRId64 ", dts: %" PRId64 \
     ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64 ", duration: %" AV_PACKET_DURATION_FMT, \
     text,\
-    pkt.pts,\
-    pkt.dts,\
-    pkt.size,\
-    pkt.stream_index,\
-    pkt.flags,\
-    pkt.flags & AV_PKT_FLAG_KEY,\
-    pkt.pos,\
-    pkt.duration)
+    pkt->pts,\
+    pkt->dts,\
+    pkt->size,\
+    pkt->stream_index,\
+    pkt->flags,\
+    pkt->flags & AV_PKT_FLAG_KEY,\
+    pkt->pos,\
+    pkt->duration)
 
 # define ZM_DUMP_STREAM_PACKET(stream, pkt, text) \
   if (logDebugging()) { \
-    double pts_time = static_cast<double>(av_rescale_q(pkt.pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE; \
+    double pts_time = static_cast<double>(av_rescale_q(pkt->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE; \
     \
     Debug(2, "%s: pts: %" PRId64 " * %u/%u=%f, dts: %" PRId64 \
       ", size: %d, stream_index: %d, %s flags: %04x, keyframe(%d) pos: %" PRId64", duration: %" AV_PACKET_DURATION_FMT, \
       text, \
-      pkt.pts, \
+      pkt->pts, \
       stream->time_base.num, \
       stream->time_base.den, \
       pts_time, \
-      pkt.dts, \
-      pkt.size, \
-      pkt.stream_index, \
+      pkt->dts, \
+      pkt->size, \
+      pkt->stream_index, \
       av_get_media_type_string(CODEC_TYPE(stream)), \
-      pkt.flags, \
-      pkt.flags & AV_PKT_FLAG_KEY, \
-      pkt.pos, \
-    pkt.duration); \
+      pkt->flags, \
+      pkt->flags & AV_PKT_FLAG_KEY, \
+      pkt->pos, \
+    pkt->duration); \
   }
 
 #else
@@ -217,7 +219,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 
 #define zm_av_frame_alloc() av_frame_alloc()
 
-int check_sample_fmt(AVCodec *codec, enum AVSampleFormat sample_fmt);
+int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt);
 enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat );
 
 bool is_video_stream(const AVStream *);
@@ -237,5 +239,59 @@ int zm_resample_get_delay(SwrContext *resample_ctx, int time_base);
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);
 int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame);
+
+struct zm_free_av_packet
+{
+    void operator()(AVPacket *pkt) const
+    {
+        av_packet_free(&pkt);
+    }
+};
+
+using av_packet_ptr = std::unique_ptr<AVPacket, zm_free_av_packet>;
+
+struct av_packet_guard
+{
+    av_packet_guard() : packet{nullptr}
+    {
+    }
+    explicit av_packet_guard(const av_packet_ptr& p) : packet{p.get()}
+    {
+    }
+    explicit av_packet_guard(AVPacket *p) : packet{p}
+    {
+    }
+    ~av_packet_guard()
+    {
+	if (packet)
+	    av_packet_unref(packet);
+    }
+
+    void acquire(const av_packet_ptr& p)
+    {
+	packet = p.get();
+    }
+    void acquire(AVPacket *p)
+    {
+	packet = p;
+    }
+    void release()
+    {
+	packet = nullptr;
+    }
+
+private:
+    AVPacket *packet;
+};
+
+struct zm_free_av_frame
+{
+    void operator()(AVFrame *frame) const
+    {
+        av_frame_free(&frame);
+    }
+};
+
+using av_frame_ptr = std::unique_ptr<AVFrame, zm_free_av_frame>;
 
 #endif // ZM_FFMPEG_H

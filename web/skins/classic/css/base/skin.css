@@ -22,51 +22,52 @@
  */
 
 @font-face {
-  font-family: 'Material Icons';
+  font-family: "Material Icons";
   font-style: normal;
   font-weight: 400;
-  src: url(../fonts/MaterialIcons-Regular.eot); /* For IE6-8 */
-  src: local('Material Icons'),
-    local('MaterialIcons-Regular'),
-    url(../fonts/MaterialIcons-Regular.woff2) format('woff2'),
-    url(../fonts/MaterialIcons-Regular.woff) format('woff'),
-    url(../fonts/MaterialIcons-Regular.ttf) format('truetype');
+  font-display: block;
+  src: url("../fonts/material-icons.woff2") format("woff2"), url("../fonts/material-icons.woff") format("woff");
 }
-
 .material-icons {
-  vertical-align:middle;
-  font-family: 'Material Icons';
+  font-family: "Material Icons";
   font-weight: normal;
   font-style: normal;
-  font-size: 24px;  /* Preferred icon size */
-  display: inline-block;
+  font-size: 24px;
   line-height: 1;
-  text-transform: none;
   letter-spacing: normal;
-  word-wrap: normal;
+  text-transform: none;
+  display: inline-block;
   white-space: nowrap;
+  word-wrap: normal;
   direction: ltr;
-
-  /* Support for all WebKit browsers. */
   -webkit-font-smoothing: antialiased;
-  /* Support for Safari and Chrome. */
-  text-rendering: optimizeLegibility;
-
-  /* Support for Firefox. */
   -moz-osx-font-smoothing: grayscale;
-
-  /* Support for IE. */
-  font-feature-settings: 'liga';
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga";
+  vertical-align: middle;
 }
 
 .material-icons.md-18 { font-size: 18px; }
 .material-icons.md-36 { font-size: 36px; }
 
+html,
 body {
-    font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
-    font-size: 13px;
-    font-weight: 300;
-    text-align: center;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  text-align: center;
+}
+
+body.sticky {
+  display: flex;
+  flex-flow: column nowrap;
+  flex-direction: column;
+  height: 100%;
 }
 
 h1 {
@@ -122,6 +123,7 @@ table th:last-child{
 }
 
 
+a.optionhelp,
 a:link {
     color: #0fbcf9;
     text-decoration: none;
@@ -142,6 +144,11 @@ label {
     margin: 0 4px;
 }
 
+a.btn,
+button.btn {
+  line-height: 1;
+  font-size: 18px;
+}
 input,textarea,select,button,.btn-primary {
     border: 1px #ccc solid;
     padding: 5px;
@@ -182,8 +189,8 @@ hr {
     height: 1px;
     width: 100%;
     border: 0;
-    color: #7f7fb2;
-    background-color: #7f7fb2;
+    color: #3498db;
+    background-color: #3498db;
 }
 
 /*
@@ -226,7 +233,24 @@ ul.tabList li.active {
 }
 
 ul.tabList li.active a {
-    font-weight: bold;
+  font-weight: bold;
+}
+
+#content {
+  width: 100%;
+  margin: 0 auto 8px auto;
+  line-height: 130%;
+  text-align: center;
+  clear: both;
+}
+body.sticky #content {
+/*
+  flex: 1 1 auto;
+  display: flex;
+  flex-flow: column;
+*/
+  overflow: hidden;
+height: 100%;
 }
 
 /*
@@ -340,6 +364,14 @@ ul.tabList li.active a {
 .alarm, .errorText, .error {
     color: #ff3f34;
 }
+/* Refers to the error box at the top of the web UI */
+#error {
+  width: 100%;
+  padding: 5px;
+  font-weight: bold;
+  background-color: white;
+  color: #ff3f34;
+}
 
 .timedErrorBox {
   color:white;
@@ -408,7 +440,8 @@ ul.tabList li.active a {
     white-space: nowrap;
 }
 
-div.clear {
+div.clear,
+br.clear {
     clear: both;
 }
 
@@ -451,6 +484,12 @@ th.table-th-sort-rev span.table-th-sort-span {
 #page {
     width: 100%;
 }
+body.sticky #page {
+  flex: 1 1 auto;
+  display: flex;
+  flex-flow: column;
+  overflow: hidden;
+}
 
 #header {
     width: 100%;
@@ -468,6 +507,11 @@ th.table-th-sort-rev span.table-th-sort-span {
     font-size: 0;
   clear: both;
   visibility: hidden;
+}
+@media screen and (max-width:767px) {
+  #header {
+    max-width: 100%;
+  }
 }
 
 
@@ -502,13 +546,6 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin-left: 4px;
 }
 
-#content {
-    width: 100%;
-    margin: 0 auto 8px auto;
-    line-height: 130%;
-    text-align: center;
-    clear: both;
-}
 
 #content p {
     margin-top: 4px;
@@ -592,12 +629,15 @@ button:disabled,
 input[type=button]:disabled,
 input[type=submit]:disabled,
   a.disabled,
+  a.btn-primary.disabled,
 .btn-primary:disabled {
     background-color: #aaaaaa;    
     border-color: #bbbbbb;
-
 }
 
+#navbar-container {
+  padding: 0;
+}
 
 .navbar{
 	margin-bottom: 0 !important;
@@ -614,6 +654,15 @@ input[type=submit]:disabled,
 .navbar-brand a {
 color:#ffa801;
 }
+@media (max-width: 600px){
+  .navbar-nav {
+    flex-direction: row;
+  }
+  .navbar-nav .nav-link {
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+  }
+}
 
 .navbar-btn {
   background-color:#95afc0;
@@ -621,13 +670,6 @@ color:#ffa801;
   padding:4px;
   margin-right:8px;
   border:none;
-}
-
-
-
-.container-fluid {
-  position: relative;
-  padding-bottom: 10px;
 }
 
 .sidebar {
@@ -746,9 +788,86 @@ a.flip {
 #modalLogout .modal-body {
   overflow:auto;
 }
+#getAccountCircleHTML {
+  padding: 4px 0 0 0;
+}
+#logoutButton {
+  color: white;
+  padding: 4px 10px 7px 10px;
+}
+#stateModalBtn {
+  padding: 4px 10px 7px 10px;
+}
 #shutdownButton {
-  padding: 3px 10px 5px 10px;
+  padding: 4px 10px 4px 10px;
   color: white;
 }
 #shutdownButton i {
+}
+.imageFeed {
+  margin: 0 auto;
+  text-align: center;
+  /*
+  vertical-align: middle;
+  */
+  position: relative;
+}
+.imageFeed img,
+.imageFeed video,
+.imageFeed svg {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  display: block;
+  width: 100%;
+  /*
+  height: 100%;
+  */
+  border: 2px solid #ffffff;
+}
+.imageFeed svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: none;
+}
+.monitor {
+  position: relative;
+}
+.monitor:after {
+  clear: both;
+}
+
+.monitor.idle img {
+  border: 2px solid #ffffff;
+}
+
+.monitor.alarm img {
+  border: 2px solid #ff0000;
+}
+
+.monitor.alert img {
+  border: 2px solid #ffa500;
+}
+.monitor.alert {
+  color: #ffa500;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+}
+.controlHeader {
+  display: flex;
+}
+/* to match chosen text input height */
+.controlHeader input[type="text"] {
+  height: 29px;
+  padding: 2px 5px 4px 5px;
+  margin-top:0;
+}
+@media screen and (max-width:767px) {
+  .controlHeader {
+    display: flex;
+    flex-wrap: wrap;
+  }
 }

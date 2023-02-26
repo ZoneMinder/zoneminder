@@ -20,6 +20,8 @@ use constant START_DELAY => 30; # To give everything else time to start
 @EXTRA_PERL_LIB@
 use ZoneMinder;
 use DBI;
+use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
+use ZoneMinder::Server qw(CpuLoad);
 
 $| = 1;
 
@@ -51,10 +53,26 @@ while (!$zm_terminate) {
     }
   }
 
-  $dbh->do('DELETE FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)') or Error($dbh->errstr());
-  $dbh->do('DELETE FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)') or Error($dbh->errstr());
-  $dbh->do('DELETE FROM Events_Week WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 week)') or Error($dbh->errstr());
-  $dbh->do('DELETE FROM Events_Month WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 month)') or Error($dbh->errstr());
+  my @cpuload = CpuLoad();
+  Debug("Updating Server record @cpuload");
+  if ( ! defined $dbh->do('UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?', undef,
+        'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
+    Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
+  }
+  if ( ! defined $dbh->do('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?)', undef,
+        $Config{ZM_SERVER_ID}, $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
+    Error("Failed Inserting status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
+  }
+  my $rows = zmDbDo('DELETE FROM `Server_Stats` WHERE `TimeStamp` < now() - interval 1 DAY LIMIT 100');
+  Debug("Deleted $rows Server Stats table entries by time");
+
+  # Clear out statuses for Monitors that have been set to None but for some reason didn't update the db
+  zmDbDo('DELETE FROM Monitor_Status WHERE MonitorId IN (SELECT Id FROM Monitors WHERE Capturing=\'None\')');
+
+  zmDbDo('DELETE FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)');
+  zmDbDo('DELETE FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)');
+  zmDbDo('DELETE FROM Events_Week WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 week)');
+  zmDbDo('DELETE FROM Events_Month WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 month)');
 
   # Prune the Logs table if required
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {
@@ -89,7 +107,7 @@ while (!$zm_terminate) {
   my $rows;
   do {
     # Delete any sessions that are more than a week old. Limiting to 100 because mysql sucks
-    $rows = zmDbDo('DELETE FROM Sessions WHERE access < ? LIMIT 100', time - (60*60*24*7));
+    $rows = zmDbDo('DELETE FROM Sessions WHERE access < ? LIMIT 100', time - $Config{ZM_COOKIE_LIFETIME});
     Debug("Deleted $rows sessions") if $rows;
   } while ($rows and ($rows == 100) and !$zm_terminate);
 

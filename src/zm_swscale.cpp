@@ -22,18 +22,23 @@
 #include "zm_image.h"
 #include "zm_logger.h"
 
-SWScale::SWScale() : gotdefaults(false), swscale_ctx(nullptr), input_avframe(nullptr), output_avframe(nullptr) {
+SWScale::SWScale() :
+  gotdefaults(false),
+  swscale_ctx(nullptr),
+  default_width(0),
+  default_height(0)
+{
   Debug(4, "SWScale object created");
 }
 
 bool SWScale::init() {
-  input_avframe = av_frame_alloc();
+  input_avframe = av_frame_ptr{zm_av_frame_alloc()};
   if (!input_avframe) {
     Error("Failed allocating AVFrame for the input");
     return false;
   }
 
-  output_avframe = av_frame_alloc();
+  output_avframe = av_frame_ptr{zm_av_frame_alloc()};
   if (!output_avframe) {
     Error("Failed allocating AVFrame for the output");
     return false;
@@ -44,12 +49,6 @@ bool SWScale::init() {
 SWScale::~SWScale() {
 
   /* Free up everything */
-  if ( input_avframe )
-    av_frame_free(&input_avframe);
-
-  if ( output_avframe )
-    av_frame_free(&output_avframe);
-
   if ( swscale_ctx ) {
     sws_freeContext(swscale_ctx);
     swscale_ctx = nullptr;

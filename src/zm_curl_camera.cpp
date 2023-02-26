@@ -1,17 +1,17 @@
 //
 // ZoneMinder cURL Camera Class Implementation, $Date: 2009-01-16 12:18:50 +0000 (Fri, 16 Jan 2009) $, $Revision: 2713 $
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -73,19 +73,35 @@ void bind_libcurl_symbols() {
   *(void**) (&curl_easy_cleanup_f) = dlsym(curl_lib, "curl_easy_cleanup");
 }
 
-cURLCamera::cURLCamera( const Monitor* monitor, const std::string &p_path, const std::string &p_user, const std::string &p_pass, unsigned int p_width, unsigned int p_height, int p_colours, int p_brightness, int p_contrast, int p_hue, int p_colour, bool p_capture, bool p_record_audio ) :
-  Camera( monitor, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio ),
-  mPath( p_path ), mUser( p_user ), mPass ( p_pass ), bTerminate( false ), bReset( false ), mode ( MODE_UNSET )
+cURLCamera::cURLCamera(
+    const Monitor* monitor,
+    const std::string &p_path,
+    const std::string &p_user,
+    const std::string &p_pass,
+    unsigned int p_width,
+    unsigned int p_height,
+    int p_colours,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio) :
+  Camera(monitor, CURL_SRC, p_width, p_height, p_colours, ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours), p_brightness, p_contrast, p_hue, p_colour, p_capture, p_record_audio),
+  mPath(p_path),
+  mUser(p_user),
+  mPass(p_pass),
+  bTerminate(false),
+  bReset(false),
+  mode(MODE_UNSET)
 {
-
-  if ( capture ) {
+  if (capture) {
     Initialise();
   }
 }
 
 cURLCamera::~cURLCamera() {
-  if ( capture ) {
-
+  if (capture) {
     Terminate();
   }
 }
@@ -95,40 +111,40 @@ void cURLCamera::Initialise() {
   content_type_match_len = strlen(content_type_match);
 
   databuffer.expand(CURL_BUFFER_INITIAL_SIZE);
-  
+
   bind_libcurl_symbols();
   /* cURL initialization */
   CURLcode cRet = (*curl_global_init_f)(CURL_GLOBAL_ALL);
-  if(cRet != CURLE_OK) {
+  if (cRet != CURLE_OK) {
     Error("libcurl initialization failed: %s", (*curl_easy_strerror_f)(cRet));
     dlclose(curl_lib);
     return;
   }
 
-  Debug(2,"libcurl version: %s", (*curl_version_f)());
+  Debug(2, "libcurl version: %s", (*curl_version_f)());
 
   /* Create the shared data mutex */
   int nRet = pthread_mutex_init(&shareddata_mutex, nullptr);
-  if(nRet != 0) {
+  if (nRet != 0) {
     Error("Shared data mutex creation failed: %s",strerror(nRet));
     return;
   }
   /* Create the data available condition variable */
   nRet = pthread_cond_init(&data_available_cond, nullptr);
-  if(nRet != 0) {
+  if (nRet != 0) {
     Error("Data available condition variable creation failed: %s",strerror(nRet));
     return;
   }
   /* Create the request complete condition variable */
   nRet = pthread_cond_init(&request_complete_cond, nullptr);
-  if(nRet != 0) {
+  if (nRet != 0) {
     Error("Request complete condition variable creation failed: %s",strerror(nRet));
     return;
   }
 
   /* Create the thread */
   nRet = pthread_create(&thread, nullptr, thread_func_dispatcher, this);
-  if(nRet != 0) {
+  if (nRet != 0) {
     Error("Thread creation failed: %s",strerror(nRet));
     return;
   }
@@ -151,18 +167,19 @@ void cURLCamera::Terminate() {
   /* cURL cleanup */
   (*curl_global_cleanup_f)();
 
-  if(curl_lib)
+  if (curl_lib)
     dlclose(curl_lib);
 }
 
 int cURLCamera::PrimeCapture() {
+  getVideoStream();
   //Info( "Priming capture from %s", mPath.c_str() );
-  return 0;
+  return 1;
 }
 
 int cURLCamera::PreCapture() {
-    // Nothing to do here
-    return( 0 );
+  // Nothing to do here
+  return 1;
 }
 
 int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
@@ -178,10 +195,9 @@ int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   /* Grab the mutex to ensure exclusive access to the shared data */
   lock();
 
-  while ( !frameComplete ) {
-
+  while (!frameComplete) {
     /* If the work thread did a reset, reset our local variables */
-    if ( bReset ) {
+    if (bReset) {
       SubHeadersParsingComplete = false;
       frame_content_length = 0;
       frame_content_type.clear();
@@ -189,40 +205,40 @@ int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       bReset = false;
     }
 
-    if ( mode == MODE_UNSET ) {
+    if (mode == MODE_UNSET) {
       /* Don't have a mode yet. Sleep while waiting for data */
       nRet = pthread_cond_wait(&data_available_cond,&shareddata_mutex);
-      if ( nRet != 0 ) {
+      if (nRet != 0) {
         Error("Failed waiting for available data condition variable: %s",strerror(nRet));
         return -1;
       }
     }
 
-    if ( mode == MODE_STREAM ) {
+    if (mode == MODE_STREAM) {
 
       /* Subheader parsing */
-      while( !SubHeadersParsingComplete && !need_more_data ) {
+      while (!SubHeadersParsingComplete && !need_more_data) {
 
         size_t crlf_start, crlf_end, crlf_size;
         std::string subheader;
 
         /* Check if the buffer contains something */
-        if ( databuffer.empty() ) {
+        if (databuffer.empty()) {
           /* Empty buffer, wait for data */
           need_more_data = true;
           break;
         }
-     
+
         /* Find crlf start */
         crlf_start = memcspn(reinterpret_cast<const char *>(databuffer.head()),"\r\n",databuffer.size());
-        if ( crlf_start == databuffer.size() ) {
+        if (crlf_start == databuffer.size()) {
           /* Not found, wait for more data */
           need_more_data = true;
           break;
         }
 
         /* See if we have enough data for determining crlf length */
-        if ( databuffer.size() < crlf_start+5 ) {
+        if (databuffer.size() < crlf_start+5) {
           /* Need more data */
           need_more_data = true;
           break;
@@ -233,18 +249,22 @@ int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         crlf_size = (crlf_start + crlf_end) - crlf_start;
 
         /* Is this the end of a previous stream? (This is just before the boundary) */
-        if ( crlf_start == 0 ) {
+        if (crlf_start == 0) {
           databuffer.consume(crlf_size);
-          continue;        
+          continue;
         }
 
         /* Check for invalid CRLF size */
-        if ( crlf_size > 4 ) {
+        if (crlf_size > 4) {
           Error("Invalid CRLF length");
         }
 
         /* Check if the crlf is \n\n or \r\n\r\n (marks end of headers, this is the last header) */
-        if( (crlf_size == 2 && memcmp(((const char*)databuffer.head())+crlf_start,"\n\n",2) == 0) || (crlf_size == 4 && memcmp(((const char*)databuffer.head())+crlf_start,"\r\n\r\n",4) == 0) ) {
+        if (
+            (crlf_size == 2 && memcmp(((const char*)databuffer.head())+crlf_start,"\n\n",2) == 0)
+            ||
+            (crlf_size == 4 && memcmp(((const char*)databuffer.head())+crlf_start,"\r\n\r\n",4) == 0)
+            ) {
           /* This is the last header */
           SubHeadersParsingComplete = true;
         }
@@ -255,48 +275,56 @@ int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         /* Advance the buffer past this one */
         databuffer.consume(crlf_start+crlf_size);
 
-        Debug(7,"Got subheader: %s",subheader.c_str());
+        Debug(7, "Got subheader: %s",subheader.c_str());
 
         /* Find where the data in this header starts */
         size_t subheader_data_start = subheader.rfind(' ');
-        if ( subheader_data_start == std::string::npos ) {
+        if (subheader_data_start == std::string::npos) {
           subheader_data_start = subheader.find(':');
         }
 
         /* Extract the data into a string */
         std::string subheader_data = subheader.substr(subheader_data_start+1, std::string::npos);
 
-        Debug(8,"Got subheader data: %s",subheader_data.c_str());
+        Debug(8, "Got subheader data: %s", subheader_data.c_str());
 
         /* Check the header */
-        if(strncasecmp(subheader.c_str(),content_length_match,content_length_match_len) == 0) {  
+        if (strncasecmp(subheader.c_str(), content_length_match, content_length_match_len) == 0) {
           /* Found the content-length header */
           frame_content_length = atoi(subheader_data.c_str());
           Debug(6,"Got content-length subheader: %d",frame_content_length);
-        } else if(strncasecmp(subheader.c_str(),content_type_match,content_type_match_len) == 0) { 
+        } else if (strncasecmp(subheader.c_str(), content_type_match, content_type_match_len) == 0) {
           /* Found the content-type header */
           frame_content_type = subheader_data;
-          Debug(6,"Got content-type subheader: %s",frame_content_type.c_str());
+          Debug(6,"Got content-type subheader: %s", frame_content_type.c_str());
         }
 
       }
 
       /* Attempt to extract the frame */
-      if(!need_more_data) {
-        if(!SubHeadersParsingComplete) {
+      if (!need_more_data) {
+        if (!SubHeadersParsingComplete) {
           /* We haven't parsed all headers yet */
           need_more_data = true;
-        } else if ( ! frame_content_length ) {
+        } else if (!frame_content_length) {
           /* Invalid frame */
           Error("Invalid frame: invalid content length");
-        } else if ( frame_content_type != "image/jpeg" ) {
+        } else if (frame_content_type != "image/jpeg") {
           /* Unsupported frame type */
-          Error("Unsupported frame: %s",frame_content_type.c_str());
-        } else if(frame_content_length > databuffer.size()) {
+          Error("Unsupported frame: %s", frame_content_type.c_str());
+        } else if (frame_content_length > databuffer.size()) {
           /* Incomplete frame, wait for more data */
           need_more_data = true;
         } else {
           /* All good. decode the image */
+          if (!zm_packet->image) {
+            Debug(4, "Allocating image");
+            zm_packet->image = new Image(width, height, colours, subpixelorder);
+          }
+          zm_packet->keyframe = 1;
+          zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
+          zm_packet->packet->stream_index = mVideoStreamId;
+          zm_packet->stream = mVideoStream;
           zm_packet->image->DecodeJpeg(databuffer.extract(frame_content_length), frame_content_length, colours, subpixelorder);
           frameComplete = true;
         }
@@ -312,11 +340,19 @@ int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         need_more_data = false;
       }
 
-    } else if (mode == MODE_SINGLE) { 
+    } else if (mode == MODE_SINGLE) {
       /* Check if we have anything */
       if (!single_offsets.empty()) {
         if ((single_offsets.front() > 0) && (databuffer.size() >= single_offsets.front())) {
           /* Extract frame */
+          if (!zm_packet->image) {
+            Debug(4, "Allocating image");
+            zm_packet->image = new Image(width, height, colours, subpixelorder);
+          }
+          zm_packet->keyframe = 1;
+          zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
+          zm_packet->packet->stream_index = mVideoStreamId;
+          zm_packet->stream = mVideoStream;
           zm_packet->image->DecodeJpeg(databuffer.extract(single_offsets.front()), single_offsets.front(), colours, subpixelorder);
           single_offsets.pop_front();
           frameComplete = true;
@@ -345,15 +381,15 @@ int cURLCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   /* Release the mutex */
   unlock();
 
-  if(!frameComplete)
+  if (!frameComplete)
     return 0;
 
   return 1;
 }
 
 int cURLCamera::PostCapture() {
-    // Nothing to do here
-    return( 0 );
+  // Nothing to do here
+  return 1;
 }
 
 size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *userdata) {
@@ -364,7 +400,7 @@ size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *
 
   /* Signal data available */
   int nRet = pthread_cond_signal(&data_available_cond);
-  if ( nRet != 0 ) {
+  if (nRet != 0) {
     Error("Failed signaling data available condition variable: %s",strerror(nRet));
     unlock();
     return -16;
@@ -379,18 +415,18 @@ size_t cURLCamera::data_callback(void *buffer, size_t size, size_t nmemb, void *
 size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, void *userdata) {
   std::string header;
   header.assign((const char*)buffer, size*nmemb);
-  
-  Debug(4,"Got header: %s",header.c_str());
 
-  /* Check Content-Type header */  
-  if(strncasecmp(header.c_str(),content_type_match,content_type_match_len) == 0) {    
+  Debug(4, "Got header: %s", header.c_str());
+
+  /* Check Content-Type header */
+  if (strncasecmp(header.c_str(),content_type_match,content_type_match_len) == 0) {
     size_t pos = header.find(';');
-    if(pos != std::string::npos) {
+    if (pos != std::string::npos) {
       header.erase(pos, std::string::npos);
     }
 
     pos = header.rfind(' ');
-    if(pos == std::string::npos) {
+    if (pos == std::string::npos) {
       pos = header.find(':');
     }
 
@@ -401,17 +437,17 @@ size_t cURLCamera::header_callback( void *buffer, size_t size, size_t nmemb, voi
 
     const char* multipart_match = "multipart/x-mixed-replace";
     const char* image_jpeg_match = "image/jpeg";
-    if(strncasecmp(content_type.c_str(),multipart_match,strlen(multipart_match)) == 0) {  
-      Debug(7,"Content type matched as multipart/x-mixed-replace");
+    if (strncasecmp(content_type.c_str(),multipart_match,strlen(multipart_match)) == 0) {
+      Debug(7, "Content type matched as multipart/x-mixed-replace");
       mode = MODE_STREAM;
-    } else if(strncasecmp(content_type.c_str(),image_jpeg_match,strlen(image_jpeg_match)) == 0) {
-      Debug(7,"Content type matched as image/jpeg");
+    } else if (strncasecmp(content_type.c_str(),image_jpeg_match,strlen(image_jpeg_match)) == 0) {
+      Debug(7, "Content type matched as image/jpeg");
       mode = MODE_SINGLE;
     }
 
     unlock();
   }
-  
+
   /* Return bytes processed */
   return size*nmemb;
 }
@@ -421,7 +457,7 @@ void* cURLCamera::thread_func() {
   double dSize;
 
   c = (*curl_easy_init_f)();
-  if(c == nullptr) {
+  if (c == nullptr) {
     dlclose(curl_lib);
     Error("Failed getting easy handle from libcurl");
     tRet = -51;
@@ -431,99 +467,99 @@ void* cURLCamera::thread_func() {
   CURLcode cRet;
   /* Set URL */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_URL, mPath.c_str());
-  if(cRet != CURLE_OK) {
+  if (cRet != CURLE_OK) {
     Error("Failed setting libcurl URL: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -52;
     return (void*)tRet;
   }
-  
+
   /* Header callback */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_HEADERFUNCTION, &header_callback_dispatcher);
-  if(cRet != CURLE_OK) {
+  if (cRet != CURLE_OK) {
     Error("Failed setting libcurl header callback function: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -53;
     return (void*)tRet;
   }
-  
+
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_HEADERDATA, this);
-  if(cRet != CURLE_OK) {
+  if (cRet != CURLE_OK) {
     Error("Failed setting libcurl header callback object: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -54;
     return (void*)tRet;
   }
   /* Data callback */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_WRITEFUNCTION, &data_callback_dispatcher);
-  if(cRet != CURLE_OK) {
+  if (cRet != CURLE_OK) {
     Error("Failed setting libcurl data callback function: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -55;
     return (void*)tRet;
   }
 
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_WRITEDATA, this);
-  if(cRet != CURLE_OK) {
+  if (cRet != CURLE_OK) {
     Error("Failed setting libcurl data callback object: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -56;
     return (void*)tRet;
   }
   /* Progress callback */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_NOPROGRESS, 0);
-  if(cRet != CURLE_OK) {
+  if (cRet != CURLE_OK) {
     Error("Failed enabling libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -57;
     return (void*)tRet;
   }
-  
+
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_PROGRESSFUNCTION, &progress_callback_dispatcher);
-  if(cRet != CURLE_OK) {
+  if (cRet != CURLE_OK) {
     Error("Failed setting libcurl progress callback function: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -58;
     return (void*)tRet;
   }
-  
+
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_PROGRESSDATA, this);
-  if(cRet != CURLE_OK) {
+  if (cRet != CURLE_OK) {
     Error("Failed setting libcurl progress callback object: %s", (*curl_easy_strerror_f)(cRet));
     tRet = -59;
     return (void*)tRet;
   }
   /* Set username and password */
-  if(!mUser.empty()) {
+  if (!mUser.empty()) {
     cRet = (*curl_easy_setopt_f)(c, CURLOPT_USERNAME, mUser.c_str());
-    if(cRet != CURLE_OK)
+    if (cRet != CURLE_OK)
       Error("Failed setting username: %s", (*curl_easy_strerror_f)(cRet));
   }
-  if(!mPass.empty()) {
+  if (!mPass.empty()) {
     cRet = (*curl_easy_setopt_f)(c, CURLOPT_PASSWORD, mPass.c_str());
-    if(cRet != CURLE_OK)
+    if (cRet != CURLE_OK)
       Error("Failed setting password: %s", (*curl_easy_strerror_f)(cRet));
   }
 
   /* Authenication preference */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
-  if(cRet != CURLE_OK)
+  if (cRet != CURLE_OK)
     Warning("Failed setting libcurl acceptable http authenication methods: %s", (*curl_easy_strerror_f)(cRet));
 
 
   /* Work loop */
-  for(int attempt=1;attempt<=CURL_MAXRETRY;attempt++) {
+  for (int attempt=1;attempt<=CURL_MAXRETRY;attempt++) {
     tRet = 0;
-    while(!bTerminate) {
+    while (!bTerminate) {
       /* Do the work */
       cRet = (*curl_easy_perform_f)(c);
 
-      if(mode == MODE_SINGLE) {
-        if(cRet != CURLE_OK) {
+      if (mode == MODE_SINGLE) {
+        if (cRet != CURLE_OK) {
           break;
         }
         /* Attempt to get the size of the file */
         cRet = (*curl_easy_getinfo_f)(c, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &dSize);
-        if(cRet != CURLE_OK) {
+        if (cRet != CURLE_OK) {
           break;
         }
         /* We need to lock for the offsets array and the condition variable */
         lock();
         /* Push the size into our offsets array */
-        if(dSize > 0) {
+        if (dSize > 0) {
           single_offsets.push_back(dSize);
         } else {
           Error("Unable to get the size of the image");
@@ -532,7 +568,7 @@ void* cURLCamera::thread_func() {
         }
         /* Signal the request complete condition variable */
         tRet = pthread_cond_signal(&request_complete_cond);
-        if(tRet != 0) {
+        if (tRet != 0) {
           Error("Failed signaling request completed condition variable: %s",strerror(tRet));
           tRet = -61;
           return (void*)tRet;
@@ -546,13 +582,13 @@ void* cURLCamera::thread_func() {
     }
 
     /* Return value checking */
-    if(cRet == CURLE_ABORTED_BY_CALLBACK || bTerminate) {
+    if (cRet == CURLE_ABORTED_BY_CALLBACK || bTerminate) {
       /* Aborted */
       break;
     } else if (cRet != CURLE_OK) {
       /* Some error */
       Error("cURL Request failed: %s",(*curl_easy_strerror_f)(cRet));
-      if(attempt < CURL_MAXRETRY) {
+      if (attempt < CURL_MAXRETRY) {
         Error("Retrying.. Attempt %d of %d",attempt,CURL_MAXRETRY);
         /* Do a reset */
         lock();
@@ -565,11 +601,11 @@ void* cURLCamera::thread_func() {
       tRet = -50;
     }
   }
-      
+
   /* Cleanup */
   (*curl_easy_cleanup_f)(c);
   c = nullptr;
-  
+
   return (void*)tRet;
 }
 
@@ -597,9 +633,9 @@ int cURLCamera::unlock() {
 
 int cURLCamera::progress_callback(void *userdata, double dltotal, double dlnow, double ultotal, double ulnow) {
   /* Signal the curl thread to terminate */
-  if(bTerminate)
+  if (bTerminate)
     return -10;
-  
+
   return 0;
 }
 

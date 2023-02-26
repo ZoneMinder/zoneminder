@@ -987,7 +987,7 @@ Returns a L<ONVIF::PTZ::Elements::GotoHomePositionResponse|ONVIF::PTZ::Elements:
 
 =head3 SetHomePosition
 
-Operation to save current position as the home position. The SetHomePosition command returns with a failure if the “home” position is fixed and cannot be overwritten. If the SetHomePosition is successful, it is possible to recall the Home Position with the GotoHomePosition command.
+Operation to save current position as the home position. The SetHomePosition command returns with a failure if the "home" position is fixed and cannot be overwritten. If the SetHomePosition is successful, it is possible to recall the Home Position with the GotoHomePosition command.
 
 Returns a L<ONVIF::PTZ::Elements::SetHomePositionResponse|ONVIF::PTZ::Elements::SetHomePositionResponse> object.
 

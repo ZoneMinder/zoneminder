@@ -44,7 +44,7 @@ not checked yet.
 
 The current implementation of union resorts to inheriting from the base type,
 which means (quoted from the XML Schema specs): "If the <list> or <union>
-alternative is chosen, then the simple ur-type definition·."
+alternative is chosen, then the simple ur-type definition."
 
 
 

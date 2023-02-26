@@ -8,7 +8,9 @@
 
 
 .chartSize {
-    height: <?php echo $chart['height'] ?>px;
+/*
+    min-height: <?php echo $chart['height'] ?>px;
+*/
 }
 
 .graphSize {

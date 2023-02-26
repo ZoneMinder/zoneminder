@@ -28,9 +28,12 @@ our %EXPORT_TAGS = (
       makePath
       jsonEncode
       jsonDecode
+      jsonLoad
       systemStatus
       packageControl
       daemonControl
+      parseNameEqualsValueToHash
+      hash_diff
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -61,7 +64,7 @@ sub executeShellCommand {
   if ( $status || logDebugging() ) {
     $output = '' if !defined($output);
     chomp($output);
-    Debug("Command: $command Output: $output");
+    Debug("Command: $command Status: $status Output: $output");
   }
   return $status;
 }
@@ -429,13 +432,13 @@ our $testedJSON = 0;
 our $hasJSONAny = 0;
 
 sub _testJSON {
-  return if ( $testedJSON );
+  return if $testedJSON;
   my $result = eval {
     require JSON::MaybeXS;
     JSON::MaybeXS->import();
   };
   $testedJSON = 1;
-  $hasJSONAny = 1 if ( $result );
+  $hasJSONAny = 1 if $result;
 }
 
 sub _getJSONType {
@@ -448,40 +451,41 @@ sub _getJSONType {
   return 'string';
 }
 
-sub jsonEncode;
-
 sub jsonEncode {
   my $value = shift;
 
   _testJSON();
-  if ( $hasJSONAny ) {
-    my $string = eval { JSON::MaybeXS->encode_json( $value ) };
-    Fatal( "Unable to encode object to JSON: $@" ) unless( $string );
-    return( $string );
+  if ($hasJSONAny) {
+    my $string = eval {
+      JSON::MaybeXS->encode_json($value);
+    };
+    Error('Unable to encode object to JSON: '.$@) unless $string;
+    return $string;
   }
 
   my $type = _getJSONType($value);
-  if ( $type eq 'integer' || $type eq 'double' ) {
-    return( $value );
-  } elsif ( $type eq 'boolean' ) {
-    return( $value?'true':'false' );
+  if ($type eq 'integer' || $type eq 'double') {
+    return '"'.$value.'"';
+  } elsif ($type eq 'boolean') {
+    return $value ? 'true' : 'false';
   } elsif ( $type eq 'string' ) {
     $value =~ s|(["\\/])|\\$1|g;
     $value =~ s|\r?\n|\n|g;
-    return( '"'.$value.'"' );
+    return '"'.$value.'"';
   } elsif ( $type eq 'null' ) {
-    return( 'null' );
+    return 'null';
   } elsif ( $type eq 'array' ) {
-    return( '['.join( ',', map { jsonEncode( $_ ) } @$value ).']' );
+    return '['.join( ',', map { jsonEncode( $_ ) } @$value ).']';
   } elsif ( $type eq 'hash' ) {
     my $result = '{';
-    while ( my ( $subKey=>$subValue ) = each( %$value ) ) {
+    while ( my ( $subKey=>$subValue ) = each(%$value) ) {
       $result .= ',' if ( $result ne '{' );
-      $result .= '"'.$subKey.'":'.jsonEncode( $subValue );
+      $result .= '"'.$subKey.'":'.jsonEncode($subValue);
     }
-    return( $result.'}' );
+    return $result.'}';
   } else {
-    Fatal( "Unexpected type '$type'" );
+    Error("Unexpected type '$type'");
+    return '';
   }
 }
 
@@ -532,6 +536,59 @@ sub jsonDecode {
   my $result = eval $out;
   Fatal($@) if $@;
   return $result;
+}
+
+sub jsonLoad {
+  my $file = shift;
+  my $json = undef;
+  eval {
+    require File::Slurp;
+    my $contents = File::Slurp::read_file($file);
+    if (!$contents) {
+      Error("No contents for $file");
+      return $json;
+    }
+    require JSON;
+    $json = JSON::decode_json($contents);
+  };
+  Error($@) if $@;
+  return $json;
+}
+
+sub parseNameEqualsValueToHash {
+  my %settings;
+  foreach my $line ( split ( /\r?\n/, $_[0] ) ) {
+    next if ! $line;
+    next if ! ( $line =~ /=/ );
+    my ($name, $value ) = split('=', $line);
+    $value =~ s/^'//;
+    $value =~ s/'$//;
+    $settings{$name} = defined $value ? $value : '';
+  }
+  return %settings;
+}
+
+sub hash_diff {
+  # assumes keys of second hash are all in the first hash
+  my ( $settings, $defaults ) = @_;
+  my %updates;
+
+  foreach my $setting ( keys %{$settings} ) {
+    next if ! exists $$defaults{$setting};
+    if (
+      ($$settings{$setting} and ! $$defaults{$setting})
+        or
+      (!$$settings{$setting} and $$defaults{$setting})
+        or
+      (
+        ($$settings{$setting} and $$defaults{$setting} and (
+            $$settings{$setting} ne $$defaults{$setting}))
+      )
+    ) {
+      $updates{$setting} = $$defaults{$setting};
+    }
+  } # end foreach setting
+  return %updates;
 }
 
 sub packageControl {
@@ -598,6 +655,8 @@ of the ZoneMinder scripts
       packageControl
       daemonControl
       systemStatus
+       parseNameEqualsValueToHash
+      hash_diff
       ) ]
 
 

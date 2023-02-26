@@ -245,6 +245,7 @@ class Socket : public CommsBase {
   }
 
   virtual ssize_t recv(std::string &msg) const {
+    msg.reserve(ZM_NETWORK_BUFSIZ);
     std::vector<char> buffer(msg.capacity());
     ssize_t nBytes;
     if ((nBytes = ::recv(mSd, buffer.data(), buffer.size(), 0)) < 0) {
@@ -318,6 +319,7 @@ class Socket : public CommsBase {
 
 class InetSocket : virtual public Socket {
  public:
+  InetSocket() : mAddressFamily(AF_UNSPEC) {}
   int getDomain() const override { return mAddressFamily; }
   socklen_t getAddrSize() const override { return SockAddrInet::addrSize(); }
 

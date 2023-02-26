@@ -162,6 +162,12 @@ our %types = (
     pattern     => qr|^([a-zA-Z0-9_.-]+)\@([a-zA-Z0-9_.-]+)$|,
     format      => q( $1\@$2 )
   },
+  password => {
+    db_type     => 'password',
+    hint        => 'password',
+    pattern      => qr|^(.+)$|,
+    format      => q($1)
+  },
   timezone => {
     db_type     => 'string',
     hint        => 'America/Toronto',
@@ -224,6 +230,50 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_LOCALE_DEFAULT',
+    default     => '',
+    description => 'Default locale used when formatting date/time strings',
+    help        => q`ZoneMinder will default to the system set locale. This
+      option allows to override it. The locale is used to determine the format
+      string used when formatting dates and times.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_DATE_FORMAT_PATTERN',
+    default     => '',
+    description => 'Date format override',
+    help        => q`Pattern to use to override the format string used for dates.
+      Leave it empty to use the defaults for the set locale.
+      See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_TIME_FORMAT_PATTERN',
+    default     => '',
+    description => 'Time format override',
+    help        => q`Pattern to use to override the format string used for times without dates.
+      Leave it empty to use the defaults for the set locale.
+      See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_DATETIME_FORMAT_PATTERN',
+    default     => '',
+    description => 'Date/time format override',
+    help        => q`Pattern to use to override the format string used for dates
+      and times. Leave it empty to use the defaults for the set locale.
+      See [unicode-org](https://unicode-org.github.io/icu/userguide/format_parse/datetime/) for values.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_OPT_USE_AUTH',
     default     => 'no',
     description => 'Authenticate user logins to ZoneMinder',
@@ -261,6 +311,18 @@ our @options = (
       pattern     => qr|^([br])|i,
       format      => q( $1 =~ /^b/ ? 'builtin' : 'remote' )
     },
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_CASE_INSENSITIVE_USERNAMES',
+    default     => 'no',
+    description => 'Case insensitive username authentication',
+    help        => q`
+      This option makes usernames case insensitive when
+      authenticating.
+      `,
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    type        => $types{boolean},
     category    => 'system',
   },
   {
@@ -304,6 +366,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -368,6 +431,28 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_JANUS_SECRET',
+    default     => '',
+    description => 'Password for Janus streaming administration.',
+    help        => q`This value should be set to a secure password,
+      and match the admin_key value in janus.plugin.streaming.config.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_JANUS_PATH',
+    default     => '',
+    description => 'URL for Janus HTTP/S port',
+    help        => q`Janus requires HTTP/S communication to administer
+      and initiate h.264 streams. If left blank, this will default to
+      the ZM hostname, port 8088/janus. This setting is particularly
+      useful for putting janus behind a reverse proxy.
+      `,
+    type        => $types{string},
     category    => 'system',
   },
   {
@@ -462,6 +547,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
                    ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -477,6 +563,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
                    ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -524,7 +611,7 @@ our @options = (
     description =>  'Enable snapshot functionality.',
     help        =>  'Snapshots are a collection of events.  They can be created using the snapshot button in montage view.  All visible monitors will have a short event created, archived and added to the Snapshot.',
     type      =>  $types{boolean},
-    category  =>  'hidden',
+    category  =>  'system',
   },
   {
     name        => 'ZM_USE_DEEP_STORAGE',
@@ -703,55 +790,6 @@ our @options = (
       to the url to make each invocation of the stream appear unique.
       `,
     type        => $types{boolean},
-    category    => 'images',
-  },
-  {
-    name        => 'ZM_OPT_CAMBOZOLA',
-    default     => 'no',
-    description => 'Is the (optional) cambozola java streaming client installed',
-    help        => q`
-      Cambozola is a handy low fat cheese flavoured Java applet that
-      ZoneMinder uses to view image streams on browsers such as
-      Internet Explorer that don't natively support this format. If
-      you use this browser it is highly recommended to install this
-      from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
-      However, if it is not installed still images at a lower refresh rate can
-      still be viewed.
-      `,
-    type        => $types{boolean},
-    category    => 'images',
-  },
-  {
-    name        => 'ZM_PATH_CAMBOZOLA',
-    default     => 'cambozola.jar',
-    description => 'Web path to (optional) cambozola java streaming client',
-    help        => q`
-      Cambozola is a handy low fat cheese flavoured Java applet that
-      ZoneMinder uses to view image streams on browsers such as
-      Internet Explorer that don't natively support this format. If
-      you use this browser it is highly recommended to install this
-      from the [cambozola project site](http://www.charliemouse.com/code/cambozola/).
-      However if it is not installed still images at a lower refresh rate can
-      still be viewed. Leave this as 'cambozola.jar' if cambozola is
-      installed in the same directory as the ZoneMinder web client
-      files.
-      `,
-    requires    => [ { name=>'ZM_OPT_CAMBOZOLA', value=>'yes' } ],
-    type        => $types{rel_path},
-    category    => 'images',
-  },
-  {
-    name        => 'ZM_RELOAD_CAMBOZOLA',
-    default     => '0',
-    description => 'After how many seconds should Cambozola be reloaded in live view',
-    help        => q`
-      Cambozola allows for the viewing of streaming MJPEG however it
-      caches the entire stream into cache space on the computer,
-      setting this to a number > 0 will cause it to automatically
-      reload after that many seconds to avoid filling up a hard
-      drive.
-      `,
-    type        => $types{integer},
     category    => 'images',
   },
   {
@@ -958,13 +996,12 @@ our @options = (
   {
     name        =>  'ZM_MIN_RTSP_PORT',
     default     =>  '',
-    description =>  'Start of port range to contact for RTSP streaming video.',
+    description =>  'Port used for RTSP streaming video.',
     help        =>  q`
-      The beginng of a port range that will be used to offer
+      The port that will be used to offer
       RTSP streaming of live captured video.
-      Each monitor will use this value plus the Monitor Id to stream
-      content.  So a value of 2000 here will cause a stream for Monitor 1 to
-      hit port 2001.`,
+      Each camera to be streamed must be enabled
+      under its misc tab.`,
     type  =>  $types{integer},
     category  => 'network',
   },
@@ -1025,10 +1062,15 @@ our @options = (
     name        => 'ZM_PATH_FFMPEG',
     default     => '@PATH_FFMPEG@',
     description => 'Path to (optional) ffmpeg mpeg encoder',
-    help        => 'This path should point to where ffmpeg has been installed.',
+    help        => 'This path should point to where ffmpeg has been installed.~~
+~~
+      Please note this cannot be edited through the Web UI or API.~~
+      It can only be changed through .conf files in @ZM_CONFIG_SUBDIR@~~
+    ',
     requires    => [ { name=>'ZM_OPT_FFMPEG', value=>'yes' } ],
     type        => $types{abs_path},
     category    => 'images',
+    system      => 1,
   },
   {
     name        => 'ZM_FFMPEG_INPUT_OPTIONS',
@@ -1064,7 +1106,7 @@ our @options = (
   },
   {
     name        => 'ZM_FFMPEG_FORMATS',
-    default     => 'mpg mpeg wmv asf avi* mov swf 3gp**',
+    default     => 'mp4* mpg mpeg wmv asf avi mov swf 3gp**',
     description => 'Formats to allow for ffmpeg video generation',
     help        => q`
       Ffmpeg can generate video in many different formats. This
@@ -1241,6 +1283,20 @@ our @options = (
        depending on your distro and FFMPEG version, this may also result in
        more logs than you'd typically like to see. If all your streams are working
        well, you may choose to turn this off.
+      `,
+    type        => $types{boolean},
+    category    => 'logging',
+  },
+  {
+    name        => 'ZM_LOG_INJECT',
+    default     => 'no',
+    description => 'Allow log injection via API by unprivileged users.',
+    help        => q`
+       When enabled (default is off), this option will allow users without System:Edit
+       permissions to inject javascript console or other messages into the ZoneMinder log.
+       Before 1.36.27 Users were able to abuse this functionality to create a denial of service by
+       filling up the logs. This feature is useful in debugging and detecting errors
+       experienced by end users, but requires trust of users and monitoring of resources.
       `,
     type        => $types{boolean},
     category    => 'logging',
@@ -1527,6 +1583,14 @@ our @options = (
       pattern     => qr|^([nc])|i,
       format      => q( ($1 =~ /^n/) ? 'normal' : 'collapsed' )
     },
+    category    => 'web',
+  },
+  {
+    name          => 'ZM_WEB_NAVBAR_STICKY',
+    default       => '1',
+    description   => 'Are navbars and button bars sticky?',
+    help          => 'Do navbars and button bars remain fixed in place or scroll with the page content? Please note that this will only affect large browsers.  Due to our responsive layout on narrow screens everything will become unsticky.',
+    type        => $types{boolean},
     category    => 'web',
   },
   {
@@ -2598,7 +2662,7 @@ our @options = (
       we collect, please refer to our [privacy](?view=privacy) statement.
       `,
     type        => $types{boolean},
-    category    => 'system',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_UUID',
@@ -2610,7 +2674,7 @@ our @options = (
       existence.
       `,
     type        => $types{string},
-    category    => 'dynamic',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_LAST_UPLOAD',
@@ -2619,7 +2683,7 @@ our @options = (
     help        => '',
     type        => $types{integer},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_INTERVAL',
@@ -2627,7 +2691,7 @@ our @options = (
     description => 'Interval in seconds between telemetry updates.',
     help        => 'This value can be expressed as a mathematical expression for ease.',
     type        => $types{string},
-    category    => 'system',
+    category    => 'telemetry',
   },
   {
     name        => 'ZM_TELEMETRY_SERVER_ENDPOINT',
@@ -2648,7 +2712,7 @@ our @options = (
       of http://<proxy host>:<proxy port>/
       `,
     type        => $types{string},
-    category    => 'system',
+    category    => 'version',
   },
   {
     name        => 'ZM_SHM_KEY',
@@ -3682,7 +3746,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_CURR_VERSION',
@@ -3694,7 +3758,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_DB_VERSION',
@@ -3703,7 +3767,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_LAST_CHECK',
@@ -3712,7 +3776,7 @@ our @options = (
     help        => '',
     type        => $types{integer},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_NEXT_REMINDER',
@@ -3721,7 +3785,7 @@ our @options = (
     help        => '',
     type        => $types{string},
     readonly    => 1,
-    category    => 'dynamic',
+    category    => 'version',
   },
   {
     name        => 'ZM_DYN_DONATE_REMINDER_TIME',
@@ -3808,6 +3872,93 @@ our @options = (
     help        => 'This font is used for timestamp labels.',
     type        => $types{string},
     category    => 'config',
+  },
+  {
+    name        => 'ZM_MQTT_HOSTNAME',
+    default     => 'mqtt.zoneminder.com',
+    description => 'MQTT broker hostname',
+    help        => 'MQTT uses a central server to send/receive messages. This is the hostname or ip address of the server you wish to use.',
+    type        => $types{hostname},
+    category    => 'MQTT',
+  },
+  {
+    name        => 'ZM_MQTT_PORT',
+    default     => '1883',
+    description => 'MQTT broker port',
+    help        => 'MQTT uses a central server to send/receive messages. This is the port to connect to.',
+    type        => $types{integer},
+    category    => 'MQTT',
+  },
+  {
+    name        => 'ZM_MQTT_USERNAME',
+    default     => '',
+    description => 'MQTT broker username',
+    help        => 'MQTT uses a central server to send/receive messages. This is the username to authenticate with.',
+    type        => $types{string},
+    category    => 'MQTT',
+  },
+  {
+    name        => 'ZM_MQTT_PASSWORD',
+    default     => '',
+    description => 'MQTT broker password',
+    help        => 'MQTT uses a central server to send/receive messages. This is the password to authenticate with.',
+    type        => $types{password},
+    category    => 'MQTT',
+  },
+  {
+    name        => 'ZM_MQTT_TOPIC_PREFIX',
+    default     => 'ZoneMinder',
+    description => 'MQTT topic prefix',
+    help        => 'MQTT each message generated by ZoneMinder will start with this. For example /ZoneMinder/available.',
+    type        => $types{string},
+    category    => 'MQTT',
+  },
+# Add options for Alarm Server
+  {
+    name        => 'ZM_OPT_USE_ALARMSERVER',
+    default     => 'no',
+    description => 'Enable NETSurveillance WEB Camera ALARM SERVER',
+    help        => q`
+      Alarm Server that works with cameras that use Netsurveillance Web Server, 
+      and has the Alarm Server option it receives alarms sent by this cameras 
+      (once enabled), and pass to Zoneminder the events. 
+      It requires pyzm installed, visit https://pyzm.readthedocs.io/en/latest/
+      for installation instructions.
+      `,
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_LOGENTRY',
+    default     => 'no',
+    description => 'Makes ALARM SERVER create a log entry in ZoneMinder on Human Detected',
+    help        => '',
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_ALARM',
+    default     => 'no',
+    description => 'Send the Human Detected alarm from ALARM SERVER to ZoneMinder, It does not work along with OPT_ALS_TRIGGEREVENT',
+    help        => '',
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_TRIGGEREVENT',
+    default     => 'no',
+    description => 'Trigger an event on Human Detected alarm from ALARM SERVER to ZoneMinder. Requires the zmTrigger option Enabled',
+    help        => '',
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
+    name        => 'ZM_OPT_ALS_PORT',
+    default     => '15002',
+    description => 'Port Number to receive alarms from Alarm Server',
+    help        => '',
+    type        => $types{integer},
+    category    => 'system',
   },
 );
 

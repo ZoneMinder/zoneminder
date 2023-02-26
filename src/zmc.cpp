@@ -59,11 +59,13 @@ possible, this should run at more or less constant speed.
 #include "zm_define.h"
 #include "zm_fifo.h"
 #include "zm_monitor.h"
-#include "zm_rtsp_server_thread.h"
 #include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
+
 #include <getopt.h>
+#include <iostream>
+#include <unistd.h>
 
 void Usage() {
   fprintf(stderr, "zmc -d <device_path> or -r <proto> -H <host> -P <port> -p <path> or -f <file_path> or -m <monitor_id>\n");
@@ -188,6 +190,7 @@ int main(int argc, char *argv[]) {
   logInit(log_id_string);
 
   HwCapsDetect();
+  curl_global_init(CURL_GLOBAL_DEFAULT);
 
   std::vector<std::shared_ptr<Monitor>> monitors;
 #if ZM_HAS_V4L2
@@ -220,12 +223,13 @@ int main(int argc, char *argv[]) {
   zmSetDefaultTermHandler();
   zmSetDefaultDieHandler();
 
-  sigset_t block_set;
-  sigemptyset(&block_set);
-
-  sigaddset(&block_set, SIGHUP);
-  sigaddset(&block_set, SIGUSR1);
-  sigaddset(&block_set, SIGUSR2);
+  struct sigaction sa;
+  sa.sa_handler = SIG_IGN; //handle signal by ignoring
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  if (sigaction(SIGCHLD, &sa, 0) == -1) {
+    Error("Unable to set SIGCHLD to ignore. There may be zombies.");
+  }
 
   int result = 0;
   int prime_capture_log_count = 0;
@@ -249,28 +253,31 @@ int main(int argc, char *argv[]) {
           monitor->Id());
       zmDbDo(sql);
 
+      if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        while (!zm_terminate and !monitor->hasViewers()) {
+          Debug(1, "ONDEMAND and no Viewers.  Sleeping");
+          std::this_thread::sleep_for(Seconds(1));
+          monitor->SetHeartbeatTime(std::chrono::system_clock::now());
+        }
+      }
+
       Seconds sleep_time = Seconds(0);
-      while (monitor->PrimeCapture() <= 0) {
+      while ((monitor->PrimeCapture() <= 0) and !zm_terminate) {
         if (prime_capture_log_count % 60) {
-          logPrintf(Logger::ERROR + monitor->Importance(),
-                    "Failed to prime capture of initial monitor");
+          logPrintf(Logger::ERROR + monitor->Importance(), "Failed to prime capture of initial monitor");
         } else {
           Debug(1, "Failed to prime capture of initial monitor");
         }
 
         prime_capture_log_count++;
-        if (zm_terminate) {
-          break;
-        }
-        if (sleep_time < Seconds(60)) {
+        if (sleep_time < Seconds(ZM_WATCH_MAX_DELAY)) {
           sleep_time++;
         }
 
         std::this_thread::sleep_for(sleep_time);
+        monitor->SetHeartbeatTime(std::chrono::system_clock::now());
       }
-      if (zm_terminate){
-        break;
-      }
+      if (zm_terminate) break;
 
       sql = stringtf(
           "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
@@ -278,17 +285,20 @@ int main(int argc, char *argv[]) {
       zmDbDo(sql);
     }  // end foreach monitor
 
-    if (zm_terminate){
-      break;
-    }
+    if (zm_terminate) break;
 
     std::vector<SystemTimePoint> last_capture_times = std::vector<SystemTimePoint>(monitors.size());
     Microseconds sleep_time = Microseconds(0);
 
     while (!zm_terminate) {
-      //sigprocmask(SIG_BLOCK, &block_set, 0);
       for (size_t i = 0; i < monitors.size(); i++) {
         monitors[i]->CheckAction();
+
+        if ((monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND) and !monitors[i]->hasViewers()) {
+          std::this_thread::sleep_for(Microseconds(100000));
+          result = 0;
+          continue;
+        }
 
         if (monitors[i]->PreCapture() < 0) {
           Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
@@ -308,12 +318,15 @@ int main(int argc, char *argv[]) {
           result = -1;
           break;
         }
+        if (!result) monitors[i]->UpdateFPS();
+
+        SystemTimePoint now = std::chrono::system_clock::now();
+        monitors[i]->SetHeartbeatTime(now);
 
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()
                                                                          : monitors[i]->GetCaptureDelay();
         if (delay != Seconds(0)) {
-          SystemTimePoint now = std::chrono::system_clock::now();
           if (last_capture_times[i].time_since_epoch() != Seconds(0)) {
             Microseconds delta_time = std::chrono::duration_cast<Microseconds>(now - last_capture_times[i]);
 
@@ -364,11 +377,14 @@ int main(int argc, char *argv[]) {
         monitor->Id());
     zmDbDo(sql);
   }
+  monitors.clear();
+  Debug(1, "Cleared monitors");
 
   Image::Deinitialise();
+  curl_global_cleanup();
   Debug(1, "terminating");
-  logTerm();
   dbQueue.stop();
+  logTerm();
   zmDbClose();
 
   return zm_terminate ? 0 : result;

@@ -18,8 +18,19 @@ The options are divided into a set of tabs to make it easier to edit. You do not
 Monitor Tab
 -----------
 
+Id
+    You can reuse or specify an Id # to use here.  Normally you should leave this blank.
 Name 
-    The name for your monitor. This should be made up of alphanumeric characters (a-z,A-Z,0-9) and hyphen (-) and underscore(_) only. Whitespace is not allowed. 
+    The name for your monitor. This should be made up of alphanumeric characters (a-z,A-Z,0-9), the following special characters ()_-.: and whitespace. 
+
+Notes
+    This is a purely informational field. Put anything you want in here.
+
+Manufacturer
+    The manufacturer of the camera.  This is purely informational at this time. You can enter your own or select from the existing entries in the dropdown.
+
+Model
+    The model of the camera. This is purely informational at this imte. You can enter your own or select from the existing entries in the dropdown.
 
 Server
     Multi-Server implementation allows the ability to define multiple ZoneMinder servers sharing a single database. When servers are configured this setting allows you nominate the server for each monitor.
@@ -27,56 +38,19 @@ Server
 Source Type 
     This determines whether the camera is a local one attached to a physical video or USB port on your machine, a remote network camera or an image source that is represented by a file (for instance periodically downloaded from a alternate location). Choosing one or the other affects which set of options are shown in the Source tab. 
 
-Function 
-    This essentially defines what the monitor is doing. This can be one of the following; 
-
-        * None – The monitor is currently disabled. No streams can be viewed or events generated. Nothing is recorded.
-        * Monitor – The monitor is only available for live streaming. No image analysis is done so no alarms or events will be generated, and nothing will be recorded.
-        * Modect – or MOtion DEteCTtion. All captured images will be analysed and events generated with recorded video where motion is detected.
-        * Record – The monitor will be continuously recorded. Events of a fixed-length will be generated regardless of motion, analogous to a conventional time-lapse video recorder. No motion detection takes place in this mode.
-        * Mocord – The monitor will be continuously recorded, with any motion being highlighted within those events.
-        * Nodect – or No DEteCTtion. This is a special mode designed to be used with external triggers. In Nodect no motion detection takes place but events are recorded if external triggers require it. 
-
-    Generally speaking it is best to choose ‘Monitor’ as an initial setting here. 
-
-Enabled 
-    The enabled field indicates whether the monitor should be started in an active mode or in a more passive state. You will nearly always want to check this box, the only exceptions being when you want the camera to be enabled or disabled by external triggers or scripts. If not enabled then the monitor will not create any events in response to motion or any other triggers. 
-
-Linked Monitors 
-    This field allows you to select other monitors on your system that act as triggers for this monitor. So if you have a camera covering one aspect of your property you can force all cameras to record while that camera detects motion or other events. You can either directly enter a comma separated list of monitor ids or click on ‘Select’ to choose a selection. Be very careful not to create circular dependencies with this feature however you will have infinitely persisting alarms which is almost certainly not what you want! To unlink monitors you can ctrl-click. 
-
-Maximum FPS 
-
-    .. warning::
-      Unless you know what you are doing, please leave this field empty, especially if you are configuring a network camera. More often than not, putting a value here adversely affects recording.
-
-    On some occasions you may have one or more cameras capable of high capture rates but find that you generally do not require this performance at all times and would prefer to lighten the load on your server. This option permits you to limit the maximum capture rate to a specified value. This may allow you to have more cameras supported on your system by reducing the CPU load or to allocate video bandwidth unevenly between cameras sharing the same video device. This value is only a rough guide and the lower the value you set the less close the actual FPS may approach it especially on shared devices where it can be difficult to synchronise two or more different capture rates precisely. This option controls the maximum FPS in the circumstance where no alarm is occurring only. 
-    
-    This feature is limited and will only work under the following conditions: 
-    
-    #. Local cameras
-    #. Remote (IP) cameras in snapshot or jpeg mode **only**
-    
-    Using this field for video streams from IP cameras will cause undesirable results when the value is equal to or less than the frame rate from the camera. Note that placing a value higher than the camera's frame rate is allowed and can help prevent cpu spikes when communication from the camera is lost.
-    
-Alarm Maximum FPS 
-
-    .. warning::
-          Unless you know what you are doing, please leave this field empty, especially if you are configuring a network camera. More often than not, putting a value here adversely affects recording.
-      
-
-    If you have specified a Maximum FPS it may be that you don’t want this limitation to apply when your monitor is recording motion or other event. This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS setting leaving this blank implies no limit so if you have set a maximum fps in the previous option then when an alarm occurs this limit would be ignored and ZoneMinder would capture as fast as possible for the duration of the alarm, returning to the limited value after the alarm has concluded. Equally you could set this to the same, or higher (or even lower) value than Maximum FPS for more precise control over the capture rate in the event of an alarm. 
-    
-    **IMPORTANT:** This field is subject to the same limitations as the Maximum FPS field. Ignoring these limitations will produce undesriable results.
-
-Reference Image Blend %ge 
-    Each analysed image in ZoneMinder is a composite of previous images and is formed by applying the current image as a certain percentage of the previous reference image. Thus, if we entered the value of 10 here, each image’s part in the reference image will diminish by a factor of 0.9 each time round. So a typical reference image will be 10% the previous image, 9% the one before that and then 8.1%, 7.2%, 6.5% and so on of the rest of the way. An image will effectively vanish around 25 images later than when it was added. This blend value is what is specified here and if higher will make slower progressing events less detectable as the reference image would change more quickly. Similarly events will be deemed to be over much sooner as the reference image adapts to the new images more quickly. In signal processing terms the higher this value the steeper the event attack and decay of the signal. It depends on your particular requirements what the appropriate value would be for you but start with 10 here and adjust it (usually down) later if necessary. 
+Groups
+    Monitors can be added to groups, for the purpose of quickly selected a certain set of monitors when viewing. Monitors can be in multiple groups.
 
 Triggers 
     This small section lets you select which triggers will apply if the run mode has been set to ‘triggered’ above. The most common trigger is X10 and this will appear here if you indicated that your system supported it during installation. Only X10 is supported as a shipped trigger with ZoneMinder at present but it is possible that other triggers will become available as necessary. You can also just use ‘cron’ jobs or other mechanisms to actually control the camera and keep them completely outside of the ZoneMinder settings. The zmtrigger.pl script is also available to implement custom external triggering. 
 
 Source Tab
 ----------
+
+Capturing
+    None      - the monitor is disabled. No capturing process will be started. Recording will not happen.
+    OnDemand  - the capturing process will run but will sleep until someone attempts to view the stream at which time capturing will start.
+    Always    - this is the normal mode of operation.  A capture process will run and constantly capture video.
 
 FFmpeg
 ^^^^^^
@@ -86,15 +60,32 @@ Source Path
     Use this field to enter the full URL of the stream or file your camera supports. This is usually an RTSP url. There are several methods to learn this:
 
         * Check the documentation that came with your camera
-        * Look for your camera in the hardware compatibilty list in the `hardware compatibility wiki <https://wiki.zoneminder.com/Hardware_Compatibility_List>`__
+        * Look for your camera in the hardware compatibility list in the `hardware compatibility wiki <https://wiki.zoneminder.com/Hardware_Compatibility_List>`__
         * Try ZoneMinder's new ONVIF probe feature
         * Download and install the `ONVIF Device Manager <https://sourceforge.net/projects/onvifdm/>`__ onto a Windows machine 
         * Use Google to find third party sites, such as ispy, which document this information
-Source Colours 
-    Specify the amount of colours in the captured image. 32 bit is the preferred choice here. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
+
+Username
+    The username part to use when authenticating the RTSP stream.  This can be entered into the Path, but will be automatically moved to the Username/Password fields.
+
+Password
+    The password to use when authenticating the RTSP stream. This can be entered into the Path, but will be automatically moved to the Username/Password fields.
+
+Method
+    TCP - TCP is a reliable protocol, but has more overhead.  Some cameras do not support it.
+    UDP           - UDP is an unreliable protocol, but is more efficient.  SOME cameras will display smearing effects due to lost or out of order packets.  These can be fixed by either using TCP, or specifying reorder_queue_size= in Options.
+    UDP Multicast - Multicast is when the camera broadcasts the video once on the network and ZoneMinder subscribes to and receives the video. This is more efficient when there are multiple viewers.
+    HTTP Tunnel   - Tunnel RTSP over HTTP.
+
+Options
+    Here you can pass various settings to the ffmpeg libraries.  As mentioned above if using UDP you may want to specify reorder_queue_size here.  
+
+Target Colourspace
+    Specify the amount of colours in the captured image. 32 bit is the preferred choice here, due to being able to use SSE/NEON cpu instructions. Unlike with local cameras changing this has no controlling effect on the remote camera itself so ensure that your camera is actually capturing to this palette beforehand. 
+
 Capture Width/Height 
     Make sure you enter here the same values as they are in the remote camera's internal setting. 
-Keep aspect ratio
+Preserve aspect ratio
     As per local devices. 
 Orientation 
     As per local devices. 
@@ -173,42 +164,141 @@ Height (pixels)
 Web Site Refresh 
     If the website in question has static content, optionally enter a time period in seconds for ZoneMinder to refresh the content.
 
-Storage Tab
------------
+Maximum FPS 
+
+    .. warning::
+      Unless you know what you are doing, please leave this field empty, especially if you are configuring a network camera. More often than not, putting a value here adversely affects recording.
+
+    On some occasions you may have one or more cameras capable of high capture rates but find that you generally do not require this performance at all times and would prefer to lighten the load on your server. This option permits you to limit the maximum capture rate to a specified value. This may allow you to have more cameras supported on your system by reducing the CPU load or to allocate video bandwidth unevenly between cameras sharing the same video device. This value is only a rough guide and the lower the value you set the less close the actual FPS may approach it especially on shared devices where it can be difficult to synchronise two or more different capture rates precisely. This option controls the maximum FPS in the circumstance where no alarm is occurring only. 
+    
+    This feature is limited and will only work under the following conditions: 
+    
+    #. Local cameras
+    #. Remote (IP) cameras in snapshot or jpeg mode **only**
+    
+    Using this field for video streams from IP cameras will cause undesirable results when the value is equal to or less than the frame rate from the camera. Note that placing a value higher than the camera's frame rate is allowed and can help prevent cpu spikes when communication from the camera is lost.
+    
+Alarm Maximum FPS 
+
+    .. warning::
+          Unless you know what you are doing, please leave this field empty, especially if you are configuring a network camera. More often than not, putting a value here adversely affects recording.
+      
+
+    If you have specified a Maximum FPS it may be that you don’t want this limitation to apply when your monitor is recording motion or other event. This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS setting leaving this blank implies no limit so if you have set a maximum fps in the previous option then when an alarm occurs this limit would be ignored and ZoneMinder would capture as fast as possible for the duration of the alarm, returning to the limited value after the alarm has concluded. Equally you could set this to the same, or higher (or even lower) value than Maximum FPS for more precise control over the capture rate in the event of an alarm. 
+    
+    **IMPORTANT:** This field is subject to the same limitations as the Maximum FPS field. Ignoring these limitations will produce undesriable results.
+
+Analysis Tab
+____________
+
+The analysis tab contains settings relating to motion detection.
+
+Motion Detection: None    - Do not perform motion detection. Recording can still be triggered manually.
+                  Always  - Perform motion detection
+
+Analysis Image:   Full Colour - perform the detection using the full RGB image
+                  Y-Channel   - If the capture process results in an image in YUV format, the Y channel is a grey scale image. So we can do motion detection on that, using 1/4 of the cpu that when using the Full Colour image.
+
+Analysis FPS:     You don't have to do motion detection on every frame.  If the stream is 30fps, you might do just fine motion detecting at 5fps or even less. This saves a lot of CPU.
+
+Reference Image Blend %ge 
+    Each analysed image in ZoneMinder is a composite of previous images and is formed by applying the current image as a certain percentage of the previous reference image. Thus, if we entered the value of 10 here, each image’s part in the reference image will diminish by a factor of 0.9 each time round. So a typical reference image will be 10% the previous image, 9% the one before that and then 8.1%, 7.2%, 6.5% and so on of the rest of the way. An image will effectively vanish around 25 images later than when it was added. This blend value is what is specified here and if higher will make slower progressing events less detectable as the reference image would change more quickly. Similarly events will be deemed to be over much sooner as the reference image adapts to the new images more quickly. In signal processing terms the higher this value the steeper the event attack and decay of the signal. It depends on your particular requirements what the appropriate value would be for you but start with 10 here and adjust it (usually down) later if necessary. 
+
+Linked Monitors 
+    This field allows you to select other monitors or zones on your system that act as triggers for this monitor. So if you have a camera covering one aspect of your property you can force all cameras to record while that camera detects motion or other events. You can either directly enter a comma separated list of monitor ids or click on ‘Select’ to choose a selection. Be very careful not to create circular dependencies with this feature however you will have infinitely persisting alarms which is almost certainly not what you want! To unlink monitors you can ctrl-click. You can also enter logical operators here to create more complex logic.  | means OR and & means AND.  So A | B means record if either A or B is alarmed. A & B means trigger if both A and B are alarmed.
+
+Recording Tab
+-------------
 
 The storage section allows for each monitor to configure if and how video and audio are recorded.
 
+Recording: Always - always record regardless of motion detection.
+           On Motion/Trigger/etc - record only when motion is detected or the system is otherwise triggered.
+           None - Do not record.
+
+Storage Area: Where to store the recordings.  If writing to this area fails, others will be tried.
+
 Save JPEGs
-    Records video in individual JPEG frames. Storing JPEG frames requires more storage space than h264 but it allows to view an event anytime while it is being recorded.
+    Records video in individual JPEG frames. Storing JPEG frames requires more storage space than h264 but it allows one to view an event anytime while it is being recorded.
 
     * Disabled – video is not recorded as JPEG frames. If this setting is selected, then "Video Writer" should be enabled otherwise there is no video recording at all.
     * Frames only – video is recorded in individual JPEG frames.
-    * Analysis images only (if available) – video is recorded in invidual JPEG frames with an overlay of the motion detection analysis information. Note that this overlay remains permanently visible in the frames.
-    * Frames + Analysis images (if available) – video is recorded twice, once as normal individual JPEG frames and once in invidual JPEG frames with analysis information overlaid.
+    * Analysis images only (if available) – video is recorded in individual JPEG frames with an overlay of the motion detection analysis information. Note that this overlay remains permanently visible in the frames.
+    * Frames + Analysis images (if available) – video is recorded twice, once as normal individual JPEG frames and once in individual JPEG frames with analysis information overlaid.
 
 Video Writer
     Records video in real video format. It provides much better compression results than saving JPEGs, thus longer video history can be stored.
 	
     * Disabled – video is not recorded in video format. If this setting is selected, then "Save JPEGs" should be enabled otherwise there is no video recording at all.
-    * X264 Encode – the video or picture frames received from the camera are transcoded into h264 and stored as a video. This option is useful if the camera cannot natively stream h264.
-    * H264 Camera Passthrough – this option assumes that the camera is already sending an h264 stream. Video will be recorded as is, without any post-processing in zoneminder. Video characteristics such as bitrate, encoding mode, etc. should be set directly in the camera.
+    * Encode – the video or picture frames received from the camera are transcoded into the selected codec and stored as a video. This option is useful if the camera cannot natively stream h264.
+    * Camera Passthrough – this option assumes that the camera is already sending an h264 stream. Video will be recorded as is, without any post-processing in zoneminder. Video characteristics such as bitrate, encoding mode, etc. should be set directly in the camera.  The resulting video will not include the zoneminder timestamp overlay so it is important to have the camera include the date/time in the video.
+
+Output Codec
+    If encoding, you can choose between h264, h265/hevc, vp9 or av1
+
+Encoder
+    If encoding you can choose which encoder will be used. This is where you can select a hardware accelerated encoder.
+
+Output Container
+    * Auto - ZM will choose the best. At the moment it will choose mp4.
+    * mp4
+    * mkv
+    * webm
+
+Optional Encoding Parameters
+    Mostly useful when encoding as each encoder takes different parameters. You will have to consult the ffmpeg documentation for what parameters are available for each encoder.
 
 Recording Audio
     Check the box labeled "Whether to store the audio stream when saving an event." in order to save audio (if available) when events are recorded.
+
+Event Start Command
+    When a recording event starts, you can run a system command. The parameters to the command will be the event id and the monitor id.
+
+Event End Command
+    When a recording event ends, you can run a system command. The parameters to the command will be the event id and the monitor id.
+
+Viewing Tab
+-----------
+
+RTSP Server
+    Whether to make this monitor's video stream available to the ZM RTSP Server. You will need to also enable the RTSP Server in Options -> System.
+
+RTSPStreamName
+    The path part of the RTSP url used for this monitor.  Must be unique.  For example, if the rtsp server is at port 10000, then the url for this monitor might be rtsp://localhost:10000/RTSPStreamName
+
+Janus Live Stream
+    Whether to enable Janus restreaming of the video content. This uses webrtc to view the stream in h264 instead of a stream of jpegs.  It also enables audio in the live feed.
+
+
+Default Rate
+    When live viewing, you can watch at a slow fps than ZoneMinder is capturing at.  This can be changed during viewing, but this sets the default.
+
+Default Scale 
+    If your monitor has been defined with a particularly large or small image size then you can choose a default scale here with which to view the monitor so it is easier or more visible from the web interface. 
+    A value of Auto will attempt to fill the browser window as best it can.
+
+Default Method For Event View
+    When watching single events, if the video is an h264 mp4 you can use the browser's built in video player.  If the video is h265 and can't play the video natively, we can use ZMS to convert it to MJPEG and view that.
 
 Timestamp Tab
 -------------
 
 Timestamp Label Format 
     This relates to the timestamp that is applied to each frame. It is a ‘strftime’ style string with a few extra tokens. You can add %f to add the decimal hundredths of a second to the frame timestamp, so %H:%M:%S.%f will output time like 10:45:37.45. You can also use %N for the name of the monitor and %Qwhich will be filled by any of the ‘show text’ detailed in the zmtriggers.pl section. 
+
 Timestamp Label X/Y 
     The X and Y values determine where to put the timestamp. A value of 0 for the X value will put it on the left side of the image and a Y value of 0 will place it at the top of the image. To place the timestamp at the bottom of the image use a value eight less than the image height. 
+
+Font Size
+    There are 4 fonts sizes to choose from.  Small is good for resolutions like 640x480.  Default is good for 720p. Large is good for 1080p.  Extra Large is good for higher resolutions.
 
 Buffers Tab
 -----------
 
 Image Buffer Size 
-    This option determines how many frames are held in the ring buffer at any one time. The ring buffer is the storage space where the last ‘n’ images are kept, ready to be resurrected on an alarm or just kept waiting to be analysed. It can be any value you like with a couple of provisos, (see next options). However it is stored in shared memory and making it too large especially for large images with a high colour depth can use a lot of memory. A value of no more than 50 is usually ok. If you find that your system will not let you use the value you want it is probably because your system has an arbitrary limit on the size of shared memory that may be used even though you may have plenty of free memory available. This limit is usually fairly easy to change, see the Troubleshooting section for details. 
+    This option determines how many frames are held in the ring buffer in the /dev/shm ramdisk. This ring buffer is used to store the raw RGB images that zms turns into jpegs when live viewing.  In the past this needed to be large because it queued frames for analysis but that has been replaced by a dynamic packet queue. A value of 3 or 5 should do.
+Max Image Buffer Size 
+    This option determines the maximum number of video packets to keep in the packet queue.  Ideally this would be left blank but if there is any slowness in the database or disks the queue will fill up and consume all of RAM.  Please set this to a reasonable limit like 2 times the keyframe interval.  how many frames are held in the ring buffer in the /dev/shm ramdisk. The ring buffer is the storage space where the last ‘n’ images are kept, ready to be resurrected on an alarm or just kept waiting to be analysed. It can be any value you like with a couple of provisos, (see next options). However it is stored in shared memory and making it too large especially for large images with a high colour depth can use a lot of memory. A value of no more than 50 is usually ok. If you find that your system will not let you use the value you want it is probably because your system has an arbitrary limit on the size of shared memory that may be used even though you may have plenty of free memory available. This limit is usually fairly easy to change, see the Troubleshooting section for details. 
 Warm-up Frames 
     This specifies how many frames the analysis daemon should process but not examine when it starts. This allows it to generate an accurate reference image from a series of images before looking too carefully for any changes. I use a value of 25 here, too high and it will take a long time to start, too low and you will get false alarms when the analysis daemon starts up. 
 Pre/Post Event Image Buffer 
@@ -276,8 +366,6 @@ Frame Skip
     This setting also applies only to the ‘Record’ or ‘Mocord’ functions and specifies how many frames should be skipped in the recorded events. The default setting of zero results in every captured frame being saved. Using a value of one would mean that one frame is skipped between each saved, two means that two frames are skipped between each saved frame etc. An alternate way of thinking is that one in every ‘Frame Skip + 1’ frames is saved. The point of this is to ensure that saved events do not take up too much space unnecessarily whilst still allowing the camera to capture at a fairly high frame rate. The alternate approach is to limit the capture frame rate which will obviously affect the rate at which frames are saved. 
 FPS Report Interval 
     How often the current performance in terms of Frames Per Second is output to the system log. Not used in any functional way so set it to maybe 1000 for now. If you watch /var/log/messages (normally) you will see this value being emitted at the frequency you specify both for video capture and processing. 
-Default Scale 
-    If your monitor has been defined with a particularly large or small image size then you can choose a default scale here with which to view the monitor so it is easier or more visible from the web interface. 
 Web Colour 
     Some elements of ZoneMinder now use colours to identify monitors on certain views. You can select which colour is used for each monitor here. Any specification that is valid for HTML colours is valid here, e.g. ‘red’ or ‘#ff0000’. A small swatch next to the input box displays the colour you have chosen. 
 Embed EXIF data into image:

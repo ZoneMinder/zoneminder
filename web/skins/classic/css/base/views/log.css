@@ -28,3 +28,10 @@ th[data-field="Line"] {
 th[data-field="DateTime"] {
   min-width: 135px;
 }
+.search .form-control {
+    font-size: 100%;
+}
+#logsTable {
+  overflow-y: auto;
+  height: 100%;
+}

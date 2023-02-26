@@ -57,8 +57,8 @@ function validateForm(form) {
       form.elements['filter[AutoUnarchive]'].checked ||
       form.elements['filter[UpdateDiskSpace]'].checked ||
       form.elements['filter[AutoVideo]'].checked ||
-      form.elements['filter[AutoEmail]'].checked ||
-      form.elements['filter[AutoMessage]'].checked ||
+      (form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked) ||
+      (form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked) ||
       form.elements['filter[AutoExecute]'].checked ||
       form.elements['filter[AutoDelete]'].checked ||
       form.elements['filter[AutoCopy]'].checked ||
@@ -71,9 +71,9 @@ function validateForm(form) {
 }
 
 function updateButtons(element) {
-  var form = element.form;
+  const form = element.form;
 
-  var canExecute = false;
+  let canExecute = false;
   if ( form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked ) {
     canExecute = true;
   } else if ( form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked ) {
@@ -98,13 +98,13 @@ function updateButtons(element) {
     canExecute = true;
   }
   document.getElementById('executeButton').disabled = !canExecute;
-  if ( form.elements['filter[Name]'].value ) {
-    document.getElementById('Save').disabled = false;
-    document.getElementById('SaveAs').disabled = false;
-  } else {
-    document.getElementById('Save').disabled = true;
-    document.getElementById('SaveAs').disabled = true;
-  }
+  // Anyone can create a filter, only canEdit:System or the owner of the filter can edit/delete it.
+  const canWeEdit = (canEdit['System'] || (user.Id == filter.UserId) || !filter.Id);
+  const canSave = (form.elements['filter[Name]'].value && canWeEdit);
+
+  document.getElementById('Save').disabled = !canSave;
+  document.getElementById('SaveAs').disabled = !canSave;
+  document.getElementById('Delete').disabled = !(filter.Id && canWeEdit);
 }
 
 function click_AutoEmail(element) {
@@ -121,7 +121,7 @@ function click_automove(element) {
   if ( this.checked ) {
     $j(this.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
   } else {
-    this.form.elements['filter[AutoMoveTo]'].hide();
+    $j(this.form.elements['filter[AutoMoveTo]']).hide();
   }
 }
 
@@ -130,7 +130,7 @@ function click_autocopy(element) {
   if ( this.checked ) {
     $j(this.form.elements['filter[AutoCopyTo]']).css('display', 'inline');
   } else {
-    this.form.elements['filter[AutoCopyTo]'].hide();
+    $j(this.form.elements['filter[AutoCopyTo]']).hide();
   }
 }
 
@@ -151,13 +151,14 @@ function resetFilter( element ) {
 
 function submitToEvents(element) {
   var form = element.form;
+  form.elements['action'].value='';
   window.location.assign('?view=events&'+$j(form).serialize());
 }
 
 function submitToMontageReview(element) {
   var form = element.form;
   form.action = thisUrl + '?view=montagereview';
-  window.location.assign('?view=montagereview&'+$j(form).serialize());
+  window.location.assign('?view=montagereview&live=0&'+$j(form).serialize());
   history.replaceState(null, null, '?view=montagereview&live=0&' + $j(form).serialize());
 }
 
@@ -166,9 +167,15 @@ function submitToExport(element) {
   window.location.assign('?view=export&'+$j(form).serialize());
 }
 
-function deleteFilter( element ) {
+function submitAction(button) {
+  var form = button.form;
+  form.elements['action'].value = button.value;
+  form.submit();
+}
+
+function deleteFilter(element) {
   var form = element.form;
-  if ( confirm( deleteSavedFilterString+" '"+form.elements['filter[Name]'].value+"'?" ) ) {
+  if (confirm(deleteSavedFilterString+" '"+form.elements['filter[Name]'].value+"'?")) {
     form.elements['action'].value = 'delete';
     form.submit();
   }
@@ -269,6 +276,13 @@ function parseRows(rows) {
       }
       var storageVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
+    } else if ( attr == 'Monitor' ) {
+      const monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      sorted_monitor_ids.forEach(function(monitor_id) {
+        monitorSelect.append('<option value="' + monitor_id + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
+      });
+      const monitorVal = inputTds.eq(4).children().val();
+      inputTds.eq(4).html(monitorSelect).children().val(monitorVal).chosen({width: '101%'});
     } else if ( attr == 'MonitorName' ) { //Monitor names
       var monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       sorted_monitor_ids.forEach(function(monitor_id) {
@@ -372,11 +386,10 @@ function delTerm( element ) {
 }
 
 function debugFilter() {
-  getModal('filterdebug', 'fid='+filterid);
+  getModal('filterdebug', $j(form).serialize());
 }
 
 function manageModalBtns(id) {
-  console.log(id);
   // Manage the CANCEL modal button
   var cancelBtn = document.getElementById(id+"CancelBtn");
   if ( cancelBtn ) {

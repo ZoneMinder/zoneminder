@@ -1,4 +1,4 @@
-var table = $j('#logTable');
+const table = $j('#logTable');
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -27,24 +27,56 @@ var params =
 
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
-  $j.getJSON(thisUrl + '?view=request&request=log&task=query', params.data)
-      .done(function(data) {
-        //console.log('Ajax parameters: ' + JSON.stringify(params));
-        // rearrange the result into what bootstrap-table expects
-        params.success({
-          total: data.total,
-          totalNotFiltered: data.totalNotFiltered,
-          rows: processRows(data.rows)
-        });
-        updateHeaderStats(data);
-      })
-      .fail(logAjaxFail);
+  if ($j('#filterServerId').val()) {
+    params.data.ServerId = $j('#filterServerId').val();
+  }
+  if ($j('#filterLevel').val()) {
+    params.data.level = $j('#filterLevel').val();
+  }
+  if ($j('#filterStartDateTime').val()) {
+    params.data.StartDateTime = $j('#filterStartDateTime').val();
+  }
+  if ($j('#filterEndDateTime').val()) {
+    params.data.EndDateTime = $j('#filterEndDateTime').val();
+  }
+
+  $j.ajax({
+    url: thisUrl + '?view=request&request=log&task=query',
+    data: params.data,
+    timeout: 0,
+    success: function(data) {
+      if (!data.rows.length) {
+        // If page is > 1, bt infinitely loops
+        table.bootstrapTable('selectPage', 1);
+      }
+      // rearrange the result into what bootstrap-table expects
+      params.success({
+        total: data.total,
+        totalNotFiltered: data.totalNotFiltered,
+        rows: processRows(data.rows)
+      });
+      updateHeaderStats(data);
+    },
+    error: function(jqxhr) {
+      logAjaxFail(jqxhr);
+    }
+  });
 }
+
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
-    row.Message = decodeURIComponent(row.Message);
+    try {
+      row.Message = decodeURIComponent(row.Message).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    } catch (e) {
+      console.log("Error decoding " + row.Message);
+      // ignore errors
+    }
   });
   return rows;
+}
+
+function filterLog() {
+  table.bootstrapTable('refresh');
 }
 
 function updateHeaderStats(data) {
@@ -108,6 +140,11 @@ function initPage() {
     evt.preventDefault();
     window.location.reload(true);
   });
+
+  $j('#filterStartDateTime, #filterEndDateTime')
+      .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: filterLog});
+  $j('#filterServerId')
+      .on('change', filterLog);
 }
 
 $j(document).ready(function() {

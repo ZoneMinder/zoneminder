@@ -103,7 +103,7 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
 
 // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
 function dataOnClickThis() {
-  document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this]").forEach(function attachOnClick(el) {
+  document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this], span[data-on-click-this]").forEach(function attachOnClick(el) {
     var fnName = el.getAttribute("data-on-click-this");
     if ( !window[fnName] ) {
       console.error("Nothing found to bind to " + fnName + " on element " + el.name);
@@ -275,8 +275,8 @@ if ( currentView != 'none' && currentView != 'login' ) {
     reminderClickFunction();
     // Manage the widget bar minimize chevron
     $j("#flip").click(function() {
-      $j("#panel").slideToggle("slow");
-      var flip = $j("#flip");
+      $j("#navbar-two").slideToggle("slow");
+      const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
         setCookie('zmHeaderFlip', 'down', 3600);
@@ -334,7 +334,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
   function insertModalHtml(name, html) {
     var modal = $j('#' + name);
 
-    if ( modal.length ) {
+    if (modal.length) {
       modal.replaceWith(html);
     } else {
       $j("body").append(html);
@@ -360,13 +360,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
           if (error == 'Unauthorized') {
             window.location.reload(true);
           }
-          if ( ! jqxhr.responseText ) {
+          if (!jqxhr.responseText) {
             console.log("No responseText in jqxhr");
             console.log(jqxhr);
             return;
           }
           console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
-          if ( textStatus != "timeout" ) {
+          if (textStatus != "timeout") {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
             window.location.reload(true);
@@ -375,29 +375,30 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function setNavBar(data) {
-    if ( !data ) {
+    if (!data) {
       console.error("No data in setNavBar");
       return;
     }
-    if ( data.auth ) {
-      if ( data.auth != auth_hash ) {
+    if (data.auth) {
+      if (data.auth != auth_hash) {
         console.log("Update auth_hash to "+data.auth);
         // Update authentication token.
         auth_hash = data.auth;
       }
     }
-    if ( data.auth_relay ) {
+    if (data.auth_relay) {
       auth_relay = data.auth_relay;
     }
     // iterate through all the keys then update each element id with the same name
     for (var key of Object.keys(data)) {
       if ( key == "auth" ) continue;
+      if ( key == "auth_relay" ) continue;
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
       if ( key == 'getBandwidthHTML' ) bwClickFunction();
     }
   }
-}
+} // end if ( currentView != 'none' && currentView != 'login' )
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
 function checkStreamForErrors(funcName, streamObj) {
@@ -441,7 +442,7 @@ function secsToTime( seconds ) {
     }
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
-  return ( timeString );
+  return timeString;
 }
 
 function submitTab(evt) {
@@ -466,10 +467,10 @@ function submitThisForm() {
  * @param {DOMString} name The name of the checkboxes to toggle.
  */
 function updateFormCheckboxesByName( headerCheckbox ) {
-  var name = headerCheckbox.getAttribute("data-checkbox-name");
-  var form = headerCheckbox.form;
-  var checked = headerCheckbox.checked;
-  for (var i = 0; i < form.elements.length; i++) {
+  const name = headerCheckbox.getAttribute("data-checkbox-name");
+  const form = headerCheckbox.form;
+  const checked = headerCheckbox.checked;
+  for (let i = 0, len=form.elements.length; i < len; i++) {
     if (form.elements[i].name.indexOf(name) == 0) {
       form.elements[i].checked = checked;
     }
@@ -580,31 +581,58 @@ function endOfResize(e) {
   resizeTimer = setTimeout(changeScale, 250);
 }
 
+/* scaleToFit
+ *
+ * Tries to figure out the available space to fit an image into
+ * Uses the #content element
+ * figures out where bottomEl is in the viewport
+ * does calculations
+ * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
-  var ratio = baseWidth / baseHeight;
-  var container = $j('#content');
-  var viewPort = $j(window);
-  // jquery does not provide a bottom offet, and offset dows not include margins.  outerHeight true minus false gives total vertical margins.
+  const ratio = baseWidth / baseHeight;
+  const container = $j('#content');
+  if (!container) {
+    console.error("No container found");
+    return;
+  }
+
+  if (!bottomEl || !bottomEl.length) {
+    bottomEl = $j(container[0].lastElementChild);
+  }
+  const viewPort = $j(window);
+  // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+  console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
   var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
+  console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
   var newWidth = ratio * newHeight;
-  if (newWidth > container.innerWidth()) {
+  console.log("newWidth = " + newWidth);
+
+  if (newHeight < 0) {
+    // Doesn't fit on screen anyways?
+    newWidth = container.innerWidth();
+    newHeight = newWidth / ratio;
+  } else if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth();
     newHeight = newWidth / ratio;
   }
+  console.log("newWidth = " + newWidth);
   var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
   var scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
-  scales.shift();
-  var closest;
+  scales.shift(); // pop off Scale To Fit
+  var closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
     }
   });
-  autoScale = closest;
+  if (closest) {
+    console.log("Setting to closest: " + closest + " instead of " + autoScale);
+    autoScale = closest;
+  }
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
@@ -689,11 +717,13 @@ function getLogoutModal() {
       .fail(logAjaxFail);
 }
 function clickLogout() {
-  if ( ! $j('#modalLogout').length ) {
+  const modalLogout = $j('#modalLogout');
+
+  if (!modalLogout.length) {
     getLogoutModal();
     return;
   }
-  $j('#modalLogout').modal('show');
+  modalLogout.modal('show');
 }
 
 function getStateModal() {
@@ -851,38 +881,6 @@ function human_filesize(size, precision = 2) {
   return (Math.round(size*(10^precision))/(10^precision))+units[i];
 }
 
-function startDownload( exportFile ) {
-  console.log("Starting download from " + exportFile);
-  window.location.replace( exportFile );
-}
-
-function exportResponse(data, responseText) {
-  console.log('exportResponse data: ' + JSON.stringify(data));
-
-  var generated = (data.result=='Ok') ? 1 : 0;
-  //var exportFile = '?view=archive&type='+data.exportFormat+'&connkey='+data.connkey;
-  var exportFile = data.exportFile;
-
-  $j('#exportProgress').removeClass( 'text-warning' );
-  if ( generated ) {
-    $j('#downloadLink').text('Download');
-    $j('#downloadLink').attr("href", thisUrl + exportFile);
-    $j('#exportProgress').addClass( 'text-success' );
-    $j('#exportProgress').text(exportSucceededString);
-    setTimeout(startDownload, 1500, exportFile);
-  } else {
-    $j('#exportProgress').addClass( 'text-danger' );
-    $j('#exportProgress').text(exportFailedString);
-  }
-}
-
-function exportEvent() {
-  var form = $j('#downloadForm').serialize();
-  $j.getJSON(thisUrl + '?view=request&request=event&action=download', form)
-      .done(exportResponse)
-      .fail(logAjaxFail);
-  $j('#exportProgress').removeClass( 'invisible' );
-}
 
 // Loads the shutdown modal
 function getShutdownModal() {
@@ -946,4 +944,89 @@ function initThumbAnimation() {
       this.addEventListener('mouseout', thumbnail_onmouseout, false);
     });
   }
+}
+
+/* View in fullscreen */
+function openFullscreen(elem) {
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.webkitRequestFullscreen) {
+    /* Safari */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) {
+    /* IE11 */
+    elem.msRequestFullscreen();
+  }
+}
+
+/* Close fullscreen */
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) {
+    /* Safari */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) {
+    /* IE11 */
+    document.msExitFullscreen();
+  }
+}
+
+function toggle_password_visibility(element) {
+  const input = document.getElementById(element.getAttribute('data-password-input'));
+  if (!input) {
+    console.log("Input not found! " + element.getAttribute('data-password-input'));
+    return;
+  }
+  if (element.innerHTML=='visibility') {
+    input.type = 'text';
+    element.innerHTML = 'visibility_off';
+  } else {
+    input.type = 'password';
+    element.innerHTML='visibility';
+  }
+}
+
+/**
+ * sends a request to the specified url from a form. this will change the window location.
+ * @param {string} path the path to send the post request to
+ * @param {object} params the parameters to add to the url
+ * @param {string} [method=post] the method to use on the form
+ */
+
+function post(path, params, method='post') {
+  // The rest of this code assumes you are not using a library.
+  // It can be made less verbose if you use one.
+  const form = document.createElement('form');
+  form.method = method;
+  form.action = path;
+  if (ZM_ENABLE_CSRF_MAGIC === '1') {
+    const csrfField = document.createElement('input');
+    csrfField.type = 'hidden';
+    csrfField.name = csrfMagicName;
+    csrfField.value = csrfMagicToken;
+    form.appendChild(csrfField);
+  }
+
+  for (const key in params) {
+    if (params.hasOwnProperty(key)) {
+      if (Array.isArray(params[key])) {
+        for (let i=0, len=params[key].length; i<len; i++) {
+          const hiddenField = document.createElement('input');
+          hiddenField.type = 'hidden';
+          hiddenField.name = key;
+          hiddenField.value = params[key][i];
+          form.appendChild(hiddenField);
+        }
+      } else {
+        const hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.name = key;
+        hiddenField.value = params[key];
+        form.appendChild(hiddenField);
+      }
+    } // end if hasOwnProperty(key)
+  }
+  document.body.appendChild(form);
+  form.submit();
 }

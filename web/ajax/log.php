@@ -6,39 +6,31 @@ $message = '';
 // INITIALIZE AND CHECK SANITY
 //
 
-if ( !canView('System') )
-  $message = 'Insufficient permissions to view log entries for user '.$user['Username'];
-
 // task must be set
-if ( !isset($_REQUEST['task']) ) {
+if (!isset($_REQUEST['task'])) {
   $message = 'This request requires a task to be set';
-} else if ( $_REQUEST['task'] != 'query' && $_REQUEST['task'] != 'create' ) {
+} else if ($_REQUEST['task'] == 'query') {
+  if (!canView('System')) {
+    $message = 'Insufficient permissions to view log entries for user '.$user['Username'];
+  } else {
+    $data = queryRequest();
+  }
+} else if ($_REQUEST['task'] == 'create' ) {
+  global $user;
+  if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
+    $message = 'Insufficient permissions to create log entries for user '.$user['Username'];
+  } else {
+    createRequest();
+  }
+} else {
   // Only the query and create tasks are supported at the moment
   $message = 'Unrecognised task '.$_REQUEST['task'];
-} else {
-  $task = $_REQUEST['task'];
 }
 
-if ( $message ) {
+if ($message) {
   ajaxError($message);
   return;
 }
-
-//
-// MAIN LOOP
-//
-
-switch ( $task ) {
-  case 'create' :
-    createRequest();
-    break;
-  case 'query' :
-    $data = queryRequest();
-    break;
-  default :
-    ZM\Fatal('Unrecognised task '.$task);
-} // end switch task
-
 ajaxResponse($data);
 
 //
@@ -46,35 +38,29 @@ ajaxResponse($data);
 //
 
 function createRequest() {
-  if ( !empty($_POST['level']) && !empty($_POST['message']) ) {
+  if (!empty($_POST['level']) && !empty($_POST['message'])) {
     ZM\logInit(array('id'=>'web_js'));
 
-    $string = $_POST['message'];
-
     $file = !empty($_POST['file']) ? preg_replace('/\w+:\/\/[\w.:]+\//', '', $_POST['file']) : '';
-    if ( !empty($_POST['line']) ) {
-      $line = validInt($_POST['line']);
-    } else {
-      $line = NULL;
-    }
+    $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
 
     $levels = array_flip(ZM\Logger::$codes);
-    if ( !isset($levels[$_POST['level']]) ) {
-      ZM\Panic('Unexpected logger level '.$_POST['level']);
+    if (!isset($levels[$_POST['level']])) {
+      ZM\Error('Unexpected logger level '.$_POST['level']);
+      $_POST['level'] = 'ERR';
     }
     $level = $levels[$_POST['level']];
-    ZM\Logger::fetch()->logPrint($level, $string, $file, $line);
+    ZM\Logger::fetch()->logPrint($level, $_POST['message'], $file, $line);
   } else {
     ZM\Error('Invalid log create: '.print_r($_POST, true));
   }
 }
 
 function queryRequest() {
-
   // Offset specifies the starting row to return, used for pagination
   $offset = 0;
-  if ( isset($_REQUEST['offset']) ) {
-    if ( ( !is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']) ) ) {
+  if (isset($_REQUEST['offset'])) {
+    if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
       ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
     } else {
       $offset = $_REQUEST['offset'];
@@ -83,8 +69,8 @@ function queryRequest() {
 
   // Limit specifies the number of rows to return
   $limit = 100;
-  if ( isset($_REQUEST['limit']) ) {
-    if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
+  if (isset($_REQUEST['limit'])) {
+    if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
       ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
     } else {
       $limit = $_REQUEST['limit'];
@@ -100,11 +86,11 @@ function queryRequest() {
   $col_alt = array('DateTime', 'Server');
 
   $sort = 'TimeKey';
-  if ( isset($_REQUEST['sort']) ) {
+  if (isset($_REQUEST['sort'])) {
     $sort = $_REQUEST['sort'];
-    if ( $sort == 'DateTime' ) $sort = 'TimeKey';
+    if ($sort == 'DateTime') $sort = 'TimeKey';
   }
-  if ( !in_array($sort, array_merge($columns, $col_alt)) ) {
+  if (!in_array($sort, array_merge($columns, $col_alt))) {
     ZM\Error('Invalid sort field: ' . $sort);
     return;
   }
@@ -127,10 +113,9 @@ function queryRequest() {
   $advsearch = isset($_REQUEST['filter']) ? json_decode($_REQUEST['filter'], JSON_OBJECT_AS_ARRAY) : array();
   // Search contains a user entered string to search on
   $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
-  if ( count($advsearch) ) {
-
-    foreach ( $advsearch as $col=>$text ) {
-      if ( !in_array($col, array_merge($columns, $col_alt)) ) {
+  if (count($advsearch)) {
+    foreach ($advsearch as $col=>$text) {
+      if (!in_array($col, array_merge($columns, $col_alt))) {
         ZM\Error("'$col' is not a searchable column name");
         continue;
       }
@@ -140,18 +125,49 @@ function queryRequest() {
       array_push($query['values'], $text);
     }
     $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
+    $where = '(' .implode(' OR ', $likes). ')';
 
-  } else if ( $search != '' ) {
-
+  } else if ($search != '') {
     $search = '%' .$search. '%';
     foreach ( $columns as $col ) {
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $search);
     }
     $wherevalues = $query['values'];
-    $where = ' WHERE (' .implode(' OR ', $likes). ')';
-  }  
+    $where = '(' .implode(' OR ', $likes). ')';
+  }
+
+  if (!empty($_REQUEST['ServerId'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'ServerId = ?';
+    $query['values'][] = $_REQUEST['ServerId'];
+  }
+  if (!empty($_REQUEST['level'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'Code = ?';
+    $query['values'][] = $_REQUEST['level'];
+  }
+  if (!empty($_REQUEST['StartDateTime'])) {
+    $start_time = strtotime($_REQUEST['StartDateTime']);
+    if ($start_time) {
+      if ($where) $where .= ' AND ';
+      $where .= 'TimeKey >= ?';
+      $query['values'][] = $start_time;
+    } else {
+      ZM\Warning("Unable to parse StartDateTime ".$_REQUEST['StartDateTime']. " into a timestamp");
+    }
+  }
+  if (!empty($_REQUEST['EndDateTime'])) {
+    $end_time = strtotime($_REQUEST['EndDateTime']);
+    if ($end_time) {
+      if ($where) $where .= ' AND ';
+      $where .= 'TimeKey <= ?';
+      $query['values'][] = $end_time;
+    } else {
+      ZM\Warning("Unable to parse EndDateTime ".$_REQUEST['EndDateTime']. " into a timestamp");
+    }
+  }
+  if ($where) $where = ' WHERE '.$where;
 
   $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
   array_push($query['values'], $offset, $limit);
@@ -166,19 +182,20 @@ function queryRequest() {
   $rows = array();
   $results = dbFetchAll($query['sql'], NULL, $query['values']);
 
-  foreach ( $results as $row ) {
-    $row['DateTime'] = strftime('%Y-%m-%d %H:%M:%S', intval($row['TimeKey']));
+  global $dateTimeFormatter;
+  foreach ($results as $row) {
+    $row['DateTime'] = empty($row['TimeKey']) ? '' : $dateTimeFormatter->format(intval($row['TimeKey']));
     $Server = ZM\Server::find_one(array('Id'=>$row['ServerId']));
 
     $row['Server'] = $Server ? $Server->Name() : '';
-    // First strip out any html tags
-    // Second strip out all characters that are not ASCII 32-126 (yes, 126)
-    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['Message']));
+    // Strip out all characters that are not ASCII 32-126 (yes, 126)
+    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', $row['Message']);
+    $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));
     $rows[] = $row;
   }
   $data['rows'] = $rows;
   $data['logstate'] = logState();
-  $data['updated'] = preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG);
+  $data['updated'] = $dateTimeFormatter->format(time());
 
   return $data;
 }

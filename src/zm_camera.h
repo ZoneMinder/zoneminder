@@ -39,9 +39,9 @@ protected:
 
   const Monitor *monitor;
   SourceType    type;
-  unsigned int  width;
+  uint16_t  width;
+  uint16_t  height;
   unsigned int  linesize;
-  unsigned int  height;
   unsigned int  colours;
   unsigned int  subpixelorder;
   unsigned int  pixels;

@@ -22,6 +22,7 @@
 #include "zm_config.h"
 #include "zm_monitor.h"
 #include "zm_packet.h"
+#include "zm_signal.h"
 
 RemoteCameraRtsp::RemoteCameraRtsp(
     const Monitor *monitor,
@@ -29,6 +30,8 @@ RemoteCameraRtsp::RemoteCameraRtsp(
     const std::string &p_host,
     const std::string &p_port,
     const std::string &p_path,
+    const std::string &p_user,
+    const std::string &p_pass,
     int p_width,
     int p_height,
     bool p_rtsp_describe,
@@ -42,10 +45,13 @@ RemoteCameraRtsp::RemoteCameraRtsp(
   RemoteCamera(
       monitor, "rtsp",
       p_host, p_port, p_path,
+      p_user, p_pass,
       p_width, p_height, p_colours,
       p_brightness, p_contrast, p_hue, p_colour,
       p_capture, p_record_audio),
   rtsp_describe(p_rtsp_describe),
+  user(p_user),
+  pass(p_pass),
   frameCount(0)
 {
   if ( p_method == "rtpUni" )
@@ -102,8 +108,6 @@ void RemoteCameraRtsp::Initialise() {
   buffer.size(max_size);
 
   FFMPEGInit();
-
-  Connect();
 }
 
 void RemoteCameraRtsp::Terminate() {
@@ -111,7 +115,7 @@ void RemoteCameraRtsp::Terminate() {
 }
 
 int RemoteCameraRtsp::Connect() {
-  rtspThread = zm::make_unique<RtspThread>(monitor->Id(), method, protocol, host, port, path, auth, rtsp_describe);
+  rtspThread = zm::make_unique<RtspThread>(monitor->Id(), method, protocol, host, port, path, user, pass, rtsp_describe);
 
   return 0;
 }
@@ -125,9 +129,12 @@ int RemoteCameraRtsp::Disconnect() {
 }
 
 int RemoteCameraRtsp::PrimeCapture() {
+  if (rtspThread) Disconnect();
+  Connect();
+
   Debug(2, "Waiting for sources");
-  for (int i = 0; i < 100 && !rtspThread->hasSources(); i++) {
-    std::this_thread::sleep_for(Microseconds(100));
+  for (int i = 100; i && !zm_terminate && !rtspThread->hasSources(); i--) {
+    std::this_thread::sleep_for(Microseconds(10000));
   }
 
   if (!rtspThread->hasSources()) {
@@ -168,8 +175,10 @@ int RemoteCameraRtsp::PrimeCapture() {
     }
   } // end foreach stream
 
-  if ( mVideoStreamId == -1 )
-    Fatal("Unable to locate video stream");
+  if ( mVideoStreamId == -1 ) {
+    Error("Unable to locate video stream");
+    return -1;
+  }
   if ( mAudioStreamId == -1 )
     Debug(3, "Unable to locate audio stream");
 
@@ -178,18 +187,23 @@ int RemoteCameraRtsp::PrimeCapture() {
   avcodec_parameters_to_context(mVideoCodecContext, mFormatContext->streams[mVideoStreamId]->codecpar);
 
   // Find the decoder for the video stream
-  AVCodec *codec = avcodec_find_decoder(mVideoCodecContext->codec_id);
-  if ( codec == nullptr )
-    Panic("Unable to locate codec %d decoder", mVideoCodecContext->codec_id);
+  const AVCodec *codec = avcodec_find_decoder(mVideoCodecContext->codec_id);
+  if ( codec == nullptr ) {
+    Error("Unable to locate codec %d decoder", mVideoCodecContext->codec_id);
+    return -1;
+  }
 
   // Open codec
-  if ( avcodec_open2(mVideoCodecContext, codec, nullptr) < 0 )
-    Panic("Can't open codec");
+  if ( avcodec_open2(mVideoCodecContext, codec, nullptr) < 0 ) {
+    Error("Can't open codec");
+    return -1;
+  }
 
   int pSize = av_image_get_buffer_size(imagePixFormat, width, height, 1);
 
   if ( (unsigned int)pSize != imagesize ) {
-    Fatal("Image size mismatch. Required: %d Available: %llu", pSize, imagesize);
+    Error("Image size mismatch. Required: %d Available: %llu", pSize, imagesize);
+    return -1;
   }
 
   return 1;
@@ -207,19 +221,14 @@ int RemoteCameraRtsp::PreCapture() {
 
 int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   int frameComplete = false;
-  AVPacket *packet = &zm_packet->packet;
-  if ( !zm_packet->image ) {
-    Debug(1, "Allocating image %dx%d %d colours %d", width, height, colours, subpixelorder);
-    zm_packet->image = new Image(width, height, colours, subpixelorder);
-  }
+  AVPacket *packet = zm_packet->packet.get();
 
-  
   while (!frameComplete) {
     buffer.clear();
-    if (!rtspThread || rtspThread->IsStopped())
+    if (!rtspThread || rtspThread->IsStopped() || zm_terminate)
       return -1;
 
-    if ( rtspThread->getFrame(buffer) ) {
+    if (rtspThread->getFrame(buffer)) {
       Debug(3, "Read frame %d bytes", buffer.size());
       Hexdump(4, buffer.head(), 16);
 
@@ -254,36 +263,20 @@ int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
       //while ( (!frameComplete) && (buffer.size() > 0) ) {
       if ( buffer.size() > 0 ) {
-        packet->data = buffer.head();
+        packet->data = (uint8_t*)av_malloc(buffer.size());
+        memcpy(packet->data, buffer.head(), buffer.size());
+        //packet->data = buffer.head();
         packet->size = buffer.size();
         bytes += packet->size;
+        buffer -= packet->size;
 
         struct timeval now;
-        gettimeofday(&now, NULL);
+        gettimeofday(&now, nullptr);
         packet->pts = packet->dts = now.tv_sec*1000000+now.tv_usec;
-
-        int bytes_consumed = zm_packet->decode(mVideoCodecContext);
-        if ( bytes_consumed < 0 ) {
-          Error("Error while decoding frame %d", frameCount);
-          //Hexdump(Logger::ERROR, buffer.head(), buffer.size()>256?256:buffer.size());
-        }
-        buffer -= packet->size;
-        if ( bytes_consumed ) {
-          zm_dump_video_frame(zm_packet->in_frame, "remote_rtsp_decode");
-          if (!mVideoStream->codecpar->width) {
-            zm_dump_codec(mVideoCodecContext);
-            zm_dump_codecpar(mVideoStream->codecpar);
-            mVideoStream->codecpar->width = zm_packet->in_frame->width;
-            mVideoStream->codecpar->height = zm_packet->in_frame->height;
-            zm_dump_codecpar(mVideoStream->codecpar);
-          }
-          zm_packet->codec_type = mVideoCodecContext->codec_type;
-          zm_packet->stream = mVideoStream;
-          frameComplete = true;
-          Debug(2, "Frame: %d - %d/%d", frameCount, bytes_consumed, buffer.size());
-          packet->data = nullptr;
-          packet->size = 0;
-        }
+        zm_packet->codec_type = mVideoCodecContext->codec_type;
+        zm_packet->stream = mVideoStream;
+        frameComplete = true;
+        Debug(2, "Frame: %d - %d/%d", frameCount, packet->size, buffer.size());
       }
     } /* getFrame() */
   } // end while true

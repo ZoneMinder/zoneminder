@@ -15,9 +15,19 @@ input[name="newMonitor[Path]"],
 input[name="newMonitor[SecondPath]"],
 input[name="newMonitor[LabelFormat]"],
 input[name="newMonitor[ControlDevice]"],
-input[name="newMonitor[ControlAddress]"] {
+input[name="newMonitor[ControlAddress]"],
+input[name="newMonitor[ONVIF_URL]"],
+input[name="newMonitor[ONVIF_Options]"],
+input[name="newMonitor[ONVIF_Alarm_Text]"],
+input[name="newMonitor[MQTT_Subscriptions]"] {
   width: 100%;
+	min-width: 240px;
 }
+input[name="newMonitor[ONVIF_URL]"] {
+	min-width: 340px;
+}
+input[name="newMonitor[ONVIF_Username]"],
+input[name="newMonitor[ONVIF_Password]"],
 input[name="newMonitor[LabelFormat]"]{
 	min-width: 240px;
 }
@@ -45,12 +55,61 @@ input[name="newMonitor[Width]"],
 input[name="newMonitor[Height]"] {
   width: 80px;
 }
-select.chosen {
-  width: 100%;
-}
-tr td:first-child {
+#page tr td:first-child {
   min-width: 300px;
+  vertical-align: top;
+  text-align: right;
 }
-.OutputContainer {
-  display: none;
+
+tr td input[type="checkbox"],
+tr td input[type="radio"] {
+  margin: 6px 0;
+}
+
+.tab-pane td:first-child {
+  padding-right: 1rem;
+  text-align: right;
+}
+
+body.sticky #content {
+  overflow-y: auto;
+  height: 100%;
+}
+nav ul {
+  height: 100%;
+    flex-direction: column;
+}
+
+ul.form > li {
+  text-align: left;
+  padding-left: 300px;
+  margin: 10px 0;
+}
+ul.form > li > label {
+  width: 290px;
+  margin-left: -300px;
+  text-align: right;
+}
+.EncoderParameters label {
+  vertical-align: top;
+}
+
+@media screen and (max-width:767px) {
+  #content {
+    display: block;
+  }
+  #pills-tab {
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+  }
+  ul.form > li {
+    padding-left: 0;
+    margin: 5px 0;
+  }
+  ul.form > li > label {
+    width: 100%;
+    margin-left: 0;
+    text-align: left;
+  }
 }

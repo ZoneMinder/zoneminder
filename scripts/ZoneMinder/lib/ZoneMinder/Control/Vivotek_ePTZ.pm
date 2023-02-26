@@ -41,120 +41,132 @@ our @ISA = qw(ZoneMinder::Control);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+use ZoneMinder::General qw(:all);
 
 use Time::HiRes qw( usleep );
+use URI::Encode qw(uri_encode);
 
-sub open
-{
-    my $self = shift;
+our $REALM = '';
+our $PROTOCOL = 'http://';
+our $USERNAME = 'admin';
+our $PASSWORD = '';
+our $ADDRESS = '';
+our $BASE_URL = '';
 
-    $self->loadMonitor();
-    Debug( "Camera open" );
-    use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
-    $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
+sub open {
+  my $self = shift;
+  $self->loadMonitor();
 
-    $self->{state} = 'open';
+  if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/)) {
+    $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
+    $USERNAME = $+{USERNAME} if $+{USERNAME};
+    $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
+    $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
+  } else {
+    Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+    $ADDRESS = $self->{Monitor}->{ControlAddress};
+  }
+  if ( !($ADDRESS =~ /:/) ) {
+    $ADDRESS .= ':80';
+  }
+  $BASE_URL = $PROTOCOL.($USERNAME?$USERNAME.':'.$PASSWORD.'@':'').$ADDRESS;
+
+  use LWP::UserAgent;
+  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua}->agent( 'ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION );
+  $self->{state} = 'open';
 }
 
-sub close
-{
-    my $self = shift;
-    $self->{state} = 'closed';
+sub close {
+  my $self = shift;
+  $self->{state} = 'closed';
 }
 
-sub printMsg
-{
-    my $msg = shift;
-    my $msg_len = length($msg);
+sub sendCmd {
+  my ($self, $cmd, $speedcmd) = @_;
 
-    Debug( $msg."[".$msg_len."]" );
+  $self->printMsg( $speedcmd, 'Tx' );
+  $self->printMsg( $cmd, 'Tx' );
+
+  my $req = HTTP::Request->new( GET => $BASE_URL."/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&$speedcmd&$cmd");
+  my $res = $self->{ua}->request($req);
+
+  if (!$res->is_success) {
+    Error('Request failed: '.$res->status_line().' (URI: '.$req->as_string().')');
+  }
+  return $res->is_success;
 }
 
-sub sendCmd
-{
-    my ($self, $cmd, $speedcmd) = @_;
-
-    my $result = undef;
-
-    printMsg( $speedcmd, "Tx" );
-    printMsg( $cmd, "Tx" );
-
-    my $req = HTTP::Request->new( GET => "http://" . $self->{Monitor}->{ControlAddress} . "/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&$speedcmd&$cmd" );
-    my $res = $self->{ua}->request($req);
-
-    if ( $res->is_success )
-    {
-        $result = !undef;
-    }
-    else
-    {
-        Error( "Request failed: '" . $res->status_line() . "' (URI: '" . $req->as_string() . "')" );
-    }
-
-    return( $result );
+sub moveConUp {
+  my ($self, $params) = @_;
+  my $speed = 'speedtilt=' . ($params->{tiltspeed} - 6);
+  $self->sendCmd( 'move=up', $speed );
 }
 
-sub moveConUp
-{
-    my ($self, $params) = @_;
-    my $speed = 'speedtilt=' . ($params->{tiltspeed} - 6);
-    Debug( "Move Up" );
-    $self->sendCmd( 'move=up', $speed );
+sub moveConDown {
+  my ($self, $params) = @_;
+  my $speed = 'speedtilt=' . ($params->{tiltspeed} - 6);
+  $self->sendCmd( 'move=down', $speed );
 }
 
-sub moveConDown
-{
-    my ($self, $params) = @_;
-    my $speed = 'speedtilt=' . ($params->{tiltspeed} - 6);
-    Debug( "Move Down" );
-    $self->sendCmd( 'move=down', $speed );
+sub moveConLeft {
+  my ($self, $params) = @_;
+  my $speed = 'speedpan=-' . $params->{panspeed};
+  $self->sendCmd( 'move=left', $speed );
 }
 
-sub moveConLeft
-{
-    my ($self, $params) = @_;
-    my $speed = 'speedpan=-' . $params->{panspeed};
-    Debug( "Move Left" );
-    $self->sendCmd( 'move=left', $speed );
+sub moveConRight {
+  my ($self, $params) = @_;
+  my $speed = 'speedpan=' . ($params->{panspeed} - 6);
+  $self->sendCmd( 'move=right', $speed );
 }
 
-sub moveConRight
-{
-    my ($self, $params) = @_;
-    my $speed = 'speedpan=' . ($params->{panspeed} - 6);
-    Debug( "Move Right" );
-    $self->sendCmd( 'move=right', $speed );
+sub moveStop {
+  my $self = shift;
+  Debug( "Move Stop: not implemented" );
+  # not implemented
 }
 
-sub moveStop
-{
-    my $self = shift;
-    Debug( "Move Stop" );
-    # not implemented
+sub zoomConTele {
+  my ($self, $params) = @_;
+  my $speed = 'speedzoom=' . ($params->{speed} - 6);
+  $self->sendCmd( 'zoom=tele', $speed );
 }
 
-sub zoomConTele
-{
-    my ($self, $params) = @_;
-    my $speed = 'speedzoom=' . ($params->{speed} - 6);
-    Debug( "Zoom In" );
-    $self->sendCmd( 'zoom=tele', $speed );
+sub zoomConWide {
+  my ($self, $params) = @_;
+  my $speed = 'speedzoom=' . ($params->{speed} - 6);
+  $self->sendCmd( 'zoom=wide', $speed );
 }
 
-sub zoomConWide
-{
-    my ($self, $params) = @_;
-    my $speed = 'speedzoom=' . ($params->{speed} - 6);
-    Debug( "Zoom Out" );
-    $self->sendCmd( 'zoom=wide', $speed );
+sub reset {
+  my $self = shift;
+  $self->sendCmd( 'move=home' );
 }
 
-sub reset
-{
-    my $self = shift;
-    Debug( "Camera Reset" );
-    $self->sendCmd( 'move=home' );
+sub get_config {
+  my $self = shift;
+
+  my $url = $BASE_URL.'/cgi-bin/admin/lsctrl.cgi?cmd=queryStatus&retType=javascript';
+  my $req = new HTTP::Request(GET => $url);
+  my $response = $self->{ua}->request($req);
+  if ( $response->is_success() ) {
+    my $resp = $response->decoded_content;
+    return ZoneMinder::General::parseNameEqualsValueToHash($resp);
+  }
+  Warn("Failed to get config from $url: " . $response->status_line());
+  return;
+} # end sub get_config
+
+sub set_config {
+  my $self = shift;
+  my $diff = shift;
+
+  my $url = $BASE_URL.'/cgi-bin/'.$USERNAME.'/setparam.cgi?'.
+        join('&', map { $_.'='.uri_encode($$diff{$_}) } keys %$diff);
+  my $response = $self->{ua}->get($url);
+  Debug($response->content);
+  return $response->is_success();
 }
 
 1;

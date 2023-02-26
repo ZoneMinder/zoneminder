@@ -25,11 +25,28 @@ input.large {
   text-align: left;
 }
 
+#sidebar {
+  overflow-y: auto;
+  min-width: 160px;
+}
+
+#options {
+  overflow-y: auto;
+  padding-top: 15px;
+  height: 100%;
+}
+#options div.col-md {
+  text-align: left;
+}
+
 input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SITEKEY]"],
 input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SECRETKEY]"],
 input[name="newConfig[ZM_OPT_GEOLOCATION_TILE_PROVIDER]"],
 input[name="newConfig[ZM_OPT_GEOLOCATION_ACCESS_TOKEN]"],
 input[name="newConfig[ZM_AUTH_HASH_SECRET]"],
+input[name="newConfig[ZM_FONT_FILE_LOCATION]"],
+input[name="newConfig[ZM_JANUS_SECRET]"],
+input[name="newConfig[ZM_JANUS_PATH]"],
 input[name="newConfig[ZM_UPDATE_CHECK_PROXY]"],
 input[name="newConfig[ZM_WEB_TITLE]"],
 input[name="newConfig[ZM_WEB_TITLE_PREFIX]"],
@@ -44,6 +61,7 @@ input[name="newConfig[ZM_FROM_EMAIL]"],
 input[name="newConfig[ZM_URL]"],
 input[name="newConfig[ZM_SSMTP_PATH]"],
 input[name="newConfig[ZM_CSP_REPORT_URI]"],
+input[name="newConfig[ZM_TELEMETRY_UUID]"],
 input[name="newStorage[Name]"],
 input[name="newStorage[Path]"],
 input[name="newStorage[Url]"] {
@@ -52,9 +70,6 @@ input[name="newStorage[Url]"] {
 
 #options label {
   font-weight: bold;
-}
-#options {
-  font-size:90%;
 }
 
 #options .help-block {
@@ -65,4 +80,25 @@ input[name="newStorage[Url]"] {
   margin-bottom: 20px;
   margin-right: 5px;
   border-bottom: 1px solid #e7e7e7;
+}
+#options .col-md {
+  text-align: left;
+}
+
+#contentButtons {
+  position: absolute;
+  top: 0;
+  right: 2rem;
+}
+form {
+  position: relative;
+  height: 100%;
+  padding-top: 4rem;
+}
+
+@media screen and (max-width:767px) {
+  #options label,
+ label.col-form-label {
+    text-align: left;
+  }
 }

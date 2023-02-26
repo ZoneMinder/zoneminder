@@ -37,8 +37,9 @@ $rates = array(
 );
 
 $scales = array(
-    '0' => translate('Scale to Fit'),
-    '' => translate('Fixed Width/Height'),
+  # We use 0 instead of words because we are saving this in the monitor
+  # and use this array to populate the default scale option
+    '0' => translate('Auto'),
     '400' => '4x',
     '300' => '3x',
     '200' => '2x',
@@ -53,8 +54,6 @@ $scales = array(
 
 if ( isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage') ) {
   unset($scales['auto']); //Remove auto on montage, use everywhere else
-} else {
-  unset($scales['']); //Remove fixed on everything but montage
 }
 
 $bandwidth_options = array(

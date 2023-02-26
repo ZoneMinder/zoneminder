@@ -63,16 +63,18 @@ Camera::Camera(
 {
   linesize = width * colours;
   pixels = width * height;
-  imagesize = height * linesize;
+  imagesize = static_cast<unsigned long long>(height) * linesize;
 
-  Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d",
-      monitor->Id(), width, linesize, height, colours, subpixelorder, capture);
+  Debug(2, "New camera id: %d width: %d line size: %d height: %d colours: %d subpixelorder: %d capture: %d, size: %llu",
+      monitor->Id(), width, linesize, height, colours, subpixelorder, capture, imagesize);
 }
 
 Camera::~Camera() {
   if ( mFormatContext ) {
     // Should also free streams
-    avformat_free_context(mFormatContext);
+    Debug(1, "Freeing mFormatContext");
+    //avformat_free_context(mFormatContext);
+    avformat_close_input(&mFormatContext);
   }
   if ( mSecondFormatContext ) {
     // Should also free streams

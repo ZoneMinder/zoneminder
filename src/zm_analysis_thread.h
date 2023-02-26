@@ -15,7 +15,7 @@ class AnalysisThread {
   AnalysisThread(AnalysisThread &&rhs) = delete;
 
   void Start();
-  void Stop() { terminate_ = true; }
+  void Stop();
   bool Stopped() const { return terminate_; }
 
  private:

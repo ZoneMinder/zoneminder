@@ -109,11 +109,12 @@ function deleteRequest($id) {
 
 function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
 
+  global $dateTimeFormatter;
   $data = array(
     'total'   =>  0,
     'totalNotFiltered' => 0,
     'rows'    =>  array(),
-    'updated' =>  preg_match('/%/', DATE_FMT_CONSOLE_LONG) ? strftime(DATE_FMT_CONSOLE_LONG) : date(DATE_FMT_CONSOLE_LONG)
+    'updated' =>  $dateTimeFormatter->format(time())
   );
 
   // Put server pagination code here
@@ -200,14 +201,14 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
       $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
 
-      $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'"/>';
+      $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" loading="lazy" />';
     }
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Description'] = validHtmlStr($row['Description']);
     //$row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     //$row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     //$row['Cause'] = validHtmlStr($row['Cause']);
-    $row['CreatedOn'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['CreatedOn']));
+    $row['CreatedOn'] = $dateTimeFormatter->format(strtotime($row['CreatedOn']));
     //$row['StartDateTime'] = strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['StartDateTime']));
     //$row['EndDateTime'] = $row['EndDateTime'] ? strftime(STRF_FMT_DATETIME_SHORTER, strtotime($row['EndDateTime'])) : null;
     //$row['Length'] = gmdate('H:i:s', $row['Length'] );

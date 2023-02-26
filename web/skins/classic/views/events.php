@@ -37,6 +37,10 @@ if ( $user['MonitorIds'] ) {
 $filter = isset($_REQUEST['filter_id']) ? new ZM\Filter($_REQUEST['filter_id']) : new ZM\Filter();
 if ( isset($_REQUEST['filter'])) {
   $filter->set($_REQUEST['filter']);
+} else if (!$filter->Id()) {
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDate', 'op'=> '=', 'val'=>''));
+  #$filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '<=', 'val'=>''));
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Monitor', 'op'=> '=', 'val'=>''));
 }
 
 parseSort();
@@ -45,16 +49,25 @@ $filterQuery = $filter->querystring();
 
 xhtmlHeaders(__FILE__, translate('Events'));
 getBodyTopHTML();
-
+echo getNavBarHTML();
 ?>
-  <?php echo getNavBarHTML() ?>
-  <div id="page" class="container-fluid p-3">
+  <div id="page">
+    <div id="content" class="container-fluid">
+
     <!-- Toolbar button placement and styling handled by bootstrap-tables -->
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
       <button id="tlineBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ShowTimeline') ?>" ><i class="fa fa-history"></i></button>
       <button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>
+<?php
+  if (!$filter->Id()) {
+    echo $filter->simple_widget();
+  } else {
+    echo $filter->widget();
+  }
+?>
+
       <button id="viewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('View') ?>" disabled><i class="fa fa-binoculars"></i></button>
       <button id="archiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Archive') ?>" disabled><i class="fa fa-archive"></i></button>
       <button id="unarchiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Unarchive') ?>" disabled><i class="fa fa-file-archive-o"></i></button>
@@ -64,8 +77,9 @@ getBodyTopHTML();
       <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
     </div>
 
+    <div id="events" class="row">
     <!-- Table styling handled by bootstrap-tables -->
-    <div class="row justify-content-center table-responsive-sm">
+    <div class="justify-content-center table-responsive-sm">
       <table
         id="eventTable"
         data-locale="<?php echo i18n() ?>"
@@ -76,14 +90,17 @@ getBodyTopHTML();
         data-page-list="[10, 25, 50, 100, 200, All]"
         data-search="true"
         data-cookie="true"
-        data-cookie-id-table="zmEventsTable"
-        data-cookie-expire="2y"
+        data-cookie-id-table="zmEventsTable<?php echo $filterQuery?>"
+        data-cookie-expire="60s"
         data-click-to-select="true"
-        data-remember-order="true"
+        data-remember-order="false"
         data-show-columns="true"
         data-show-export="true"
         data-uncheckAll="true"
         data-toolbar="#toolbar"
+        data-sort-name="<?php echo $filter->sort_field() ?>"
+        data-sort-order="<?php echo $filter->sort_asc() ? 'asc' : 'desc' ?>"
+        data-server-sort="true"
         data-show-fullscreen="true"
         data-click-to-select="true"
         data-maintain-meta-data="true"
@@ -113,7 +130,7 @@ getBodyTopHTML();
               <th data-sortable="true" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
               <th data-sortable="false" data-field="Storage"><?php echo translate('Storage') ?></th>
               <th data-sortable="true" data-field="DiskSpace"><?php echo translate('DiskSpace') ?></th>
-              <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+              <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;"><?php echo translate('Thumbnail') ?></th>
             </tr>
           </thead>
 
@@ -123,5 +140,8 @@ getBodyTopHTML();
 
         </table>
       </div>       
+      </div>
+    </div><!--content-->
   </div>
+  <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
 <?php xhtmlFooter() ?>

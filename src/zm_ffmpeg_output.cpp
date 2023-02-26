@@ -84,13 +84,22 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
   Debug(1, "Getting frame from stream %d", stream_id );
 
   int frameComplete = false;
-  AVPacket packet;
-  av_init_packet( &packet );
-  AVFrame *frame = zm_av_frame_alloc();
+  av_packet_ptr packet{av_packet_alloc()};
   char errbuf[AV_ERROR_MAX_STRING_SIZE];
 
+  if (!packet) {
+    Error("Unable to allocate packet.", );
+    return nullptr;
+  }
+
+  frame = av_frame_ptr{zm_av_frame_alloc()};
+  if (!frame) {
+    Error("Unable to allocate frame.");
+    return nullptr;
+  }
+
   while ( !frameComplete ) {
-    int ret = av_read_frame( input_format_context, &packet );
+    int ret = av_read_frame( input_format_context, packet.get() );
     if ( ret < 0 ) {
       av_strerror(ret, errbuf, AV_ERROR_MAX_STRING_SIZE);
       if (
@@ -102,20 +111,21 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
         Info( "av_read_frame returned %s.", errbuf );
         return NULL;
       }
-      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet.stream_index, ret, errbuf );
+      Error( "Unable to read packet from stream %d: error %d \"%s\".", packet->stream_index, ret, errbuf );
       return NULL;
     }
 
-    if ( (stream_id < 0 ) || ( packet.stream_index == stream_id ) ) {
-      Debug(1,"Packet is for our stream (%d)", packet.stream_index );
+    av_packet_guard pkt_guard{packet};
 
-      AVCodecContext *context = streams[packet.stream_index].context;
+    if ( (stream_id < 0 ) || ( packet->stream_index == stream_id ) ) {
+      Debug(1,"Packet is for our stream (%d)", packet->stream_index );
 
-    ret = avcodec_send_packet( context, &packet );
+      AVCodecContext *context = streams[packet->stream_index].context;
+
+    ret = avcodec_send_packet( context, packet.get() );
     if ( ret < 0 ) {
       av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-      Error( "Unable to send packet at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
-      zm_av_packet_unref( &packet );
+      Error( "Unable to send packet at frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
       continue;
     } else {
       Debug(1, "Success getting a packet");
@@ -126,25 +136,22 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
       ret = avcodec_receive_frame( context, hwFrame );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to receive frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
-        zm_av_packet_unref( &packet );
+        Error( "Unable to receive frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
         continue;
       }
       ret = av_hwframe_transfer_data(frame, hwFrame, 0);
       if (ret < 0) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to transfer frame at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
-        zm_av_packet_unref( &packet );
+        Error( "Unable to transfer frame at frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
         continue;
       }
     } else {
 #endif
       Debug(1,"Getting a frame?");
-      ret = avcodec_receive_frame( context, frame );
+      ret = avcodec_receive_frame( context, frame.get() );
       if ( ret < 0 ) {
         av_strerror( ret, errbuf, AV_ERROR_MAX_STRING_SIZE );
-        Error( "Unable to send packet at frame %d: %s, continuing", streams[packet.stream_index].frame_count, errbuf );
-        zm_av_packet_unref( &packet );
+        Error( "Unable to send packet at frame %d: %s, continuing", streams[packet->stream_index].frame_count, errbuf );
         continue;
       }
 
@@ -155,9 +162,7 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
     frameComplete = 1;
   } // end if it's the right stream
 
-      zm_av_packet_unref( &packet );
-
   } // end while ! frameComplete
-  return frame;
+  return frame.get();
 
 } //  end AVFrame *FFmpeg_Output::get_frame

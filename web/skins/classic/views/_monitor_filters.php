@@ -21,14 +21,14 @@
 require_once('includes/Monitor.php');
 
 zm_session_start();
-foreach ( array('GroupId','Function','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var ) {
-  if ( isset($_REQUEST[$var]) ) {
-    if ( $_REQUEST[$var] != '' ) {
+foreach (array('GroupId','Capturing','Analysing','Recording','ServerId','StorageId','Status','MonitorId','MonitorName','Source') as $var) {
+  if (isset($_REQUEST[$var])) {
+    if ($_REQUEST[$var] != '') {
       $_SESSION[$var] = $_REQUEST[$var];
     } else {
       unset($_SESSION[$var]);
     }
-  } else if ( isset($_REQUEST['filtering']) ) {
+  } else if (isset($_REQUEST['filtering'])) {
     unset($_SESSION[$var]);
   }
 }
@@ -36,13 +36,13 @@ session_write_close();
 
 $storage_areas = ZM\Storage::find();
 $StorageById = array();
-foreach ( $storage_areas as $S ) {
+foreach ($storage_areas as $S) {
   $StorageById[$S->Id()] = $S;
 }
-$servers = ZM\Server::find(null, array('order'=>'lower(Name)'));
+
 $ServersById = array();
-foreach ( $servers as $S ) {
-  $ServersById[$S->Id()] = $S;
+foreach ($Servers as $s) {
+  $ServersById[$s->Id()] = $s;
 }
 
 $html =
@@ -54,13 +54,13 @@ $html =
   <input type="hidden" name="filtering" value=""/>
 ';
 $groupSql = '';
-if ( canView('Groups') ) {
+if (canView('Groups')) {
   $GroupsById = array();
-  foreach ( ZM\Group::find() as $G ) {
+  foreach (ZM\Group::find() as $G) {
     $GroupsById[$G->Id()] = $G;
   }
 
-  if ( count($GroupsById) ) {
+  if (count($GroupsById)) {
     $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
     # This will end up with the group_id of the deepest selection
     $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
@@ -81,7 +81,7 @@ $values = array();
 
 if ( $groupSql )
   $conditions[] = $groupSql;
-foreach ( array('ServerId','StorageId','Status','Function') as $filter ) {
+foreach ( array('ServerId','StorageId','Status','Capturing','Analysing','Recording') as $filter ) {
   if ( isset($_SESSION[$filter]) ) {
     if ( is_array($_SESSION[$filter]) ) {
       $conditions[] = '`'.$filter . '` IN ('.implode(',', array_map(function(){return '?';}, $_SESSION[$filter])). ')';
@@ -93,7 +93,7 @@ foreach ( array('ServerId','StorageId','Status','Function') as $filter ) {
   }
 } # end foreach filter
 
-if ( !empty($user['MonitorIds']) ) {
+if (0 and !empty($user['MonitorIds']) ) {
   $ids = explode(',', $user['MonitorIds']);
   $conditions[] = 'M.Id IN ('.implode(',',array_map(function(){return '?';}, $ids)).')';
   $values = array_merge($values, $ids);
@@ -101,23 +101,26 @@ if ( !empty($user['MonitorIds']) ) {
 
 $html .= '<span class="MonitorNameFilter"><label>'.translate('Name').'</label>';
 $html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="text or regular expression"/>';
-$html .= '</span>
-';
+$html .= '</span>'.PHP_EOL;
 
-$Functions = ZM\GetMonitorFunctionTypes();
+function addFilterSelect($name, $options) {
+  $html = '<span class="'.$name.'Filter"><label>'.translate($name).'</label>';
+  $html .= htmlSelect($name.'[]', $options,
+    (isset($_SESSION[$name])?$_SESSION[$name]:''),
+      array(
+        'data-on-change'=>'submitThisForm',
+        'class'=>'chosen',
+        'multiple'=>'multiple',
+        'data-placeholder'=>'All',
+      )
+   );
+  $html .= '</span>'.PHP_EOL;
+  return $html;
+}
 
-$html .= '<span class="FunctionFilter"><label>'.translate('Function').'</label>';
-$html .= htmlSelect('Function[]', $Functions,
-  (isset($_SESSION['Function'])?$_SESSION['Function']:''),
-    array(
-      'data-on-change'=>'submitThisForm',
-      'class'=>'chosen',
-      'multiple'=>'multiple',
-      'data-placeholder'=>'All',
-    )
- );
-$html .= '</span>
-';
+$html .= addFilterSelect('Capturing', array('None'=>translate('None'), 'OnDemand'=>translate('On Demand')));
+$html .= addFilterSelect('Analysing', array('None'=>translate('None'), 'Always'=>translate('Always')));
+$html .= addFilterSelect('Recording', array('None'=>translate('None'), 'OnMotion'=>translate('On Motion'),'Always'=>translate('Always')));
 
 if ( count($ServersById) > 1 ) {
   $html .= '<span class="ServerFilter"><label>'. translate('Server').'</label>';
@@ -178,7 +181,6 @@ $html .= '</span>
 ' .
   ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll($sql, null, $values);
-  ZM\Debug(print_r($monitors, true));
   $displayMonitors = array();
   $monitors_dropdown = array();
 
@@ -201,7 +203,7 @@ $html .= '</span>
 
   for ( $i = 0; $i < count($monitors); $i++ ) {
     if ( !visibleMonitor($monitors[$i]['Id']) ) {
-      ZM\Logger::Warning('Monitor '.$monitors[$i]['Id'].' is not visible');
+      #ZM\Debug('Monitor '.$monitors[$i]['Id'].' is not visible');
       continue;
     }
 
@@ -216,7 +218,7 @@ $html .= '</span>
         $regexp = '/'.preg_quote($regexp,'/').'/i';
       }
 
-      if ( !preg_match($regexp, $Monitor->Name()) ) {
+      if ( !@preg_match($regexp, $Monitor->Name()) ) {
         continue;
       }
     }
@@ -245,7 +247,6 @@ $html .= '</span>
     }
     $displayMonitors[] = $monitors[$i];
   } # end foreach monitor
-
   $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').'</label>';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(

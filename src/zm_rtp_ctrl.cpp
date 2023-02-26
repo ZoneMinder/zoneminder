@@ -277,7 +277,7 @@ void RtpCtrlThread::Run() {
   TimePoint last_receive = std::chrono::steady_clock::now();
   bool timeout = false; // used as a flag that we had a timeout, and then sent an RR to see if we wake back up. Real timeout will happen when this is true.
 
-  while (!mTerminate && select.wait() >= 0) {
+  while (!mTerminate && (select.wait() >= 0)) {
     TimePoint now = std::chrono::steady_clock::now();
     zm::Select::CommsList readable = select.getReadable();
     if ( readable.size() == 0 ) {

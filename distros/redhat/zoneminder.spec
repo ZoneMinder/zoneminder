@@ -9,7 +9,7 @@
 %global ceb_version 1.0-zm
 
 # RtspServer is configured as a git submodule
-%global rtspserver_commit     cd7fd49becad6010a1b8466bfebbd93999a39878
+%global rtspserver_commit     eab32851421ffe54fec0229c3efc44c642bc8d46
 
 %global sslcert %{_sysconfdir}/pki/tls/certs/localhost.crt
 %global sslkey %{_sysconfdir}/pki/tls/private/localhost.key
@@ -19,24 +19,12 @@
 
 # Newer php's keep json functions in a subpackage
 %if 0%{?fedora} || 0%{?rhel} >= 8
+%global with_gsoap 1
 %global with_php_json 1
 %endif
 
-# el7 uses cmake3 package and macros
-%if 0%{?rhel} == 7
-%global cmake %{cmake3}
-%global cmake_build %{cmake3_build}
-%global cmake_install %{cmake3_install}
-%global cmake_pkg_name cmake3
-%else
-%global cmake_pkg_name cmake
-%endif
-
-# The default for everything but el7 these days
-%global _hardened_build 1
-
 Name: zoneminder
-Version: 1.37.1
+Version: 1.37.34
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -61,7 +49,7 @@ BuildRequires: systemd-devel
 BuildRequires: mariadb-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
-BuildRequires: %{cmake_pkg_name}
+BuildRequires: cmake
 BuildRequires: gnutls-devel
 BuildRequires: bzip2-devel
 BuildRequires: pcre-devel 
@@ -93,6 +81,7 @@ BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
 BuildRequires: gzip
 BuildRequires: zlib-devel
+%{?with_gsoap:BuildRequires: gsoap-devel}
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
@@ -120,10 +109,10 @@ Summary: Common files for ZoneMinder, not tied to a specific web server
 Requires: php-mysqli
 Requires: php-common
 Requires: php-gd
+Requires: php-intl
+Requires: php-process
 %{?with_php_json:Requires: php-json}
-%{?fedora:Requires: php-pecl-memcached}
-%{?rhel:Requires: php-pecl-apcu}
-Requires: cambozola
+Requires: php-pecl-apcu
 Requires: net-tools
 Requires: psmisc
 Requires: polkit
@@ -139,8 +128,10 @@ Requires: perl(MIME::Lite)
 Requires: perl(Net::SMTP)
 Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
+Requires: perl(Module::Load::Conditional)
 Requires: ca-certificates
 Requires: zip
+%{?with_gsoap:Requires: gsoap}
 %{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd
@@ -212,7 +203,6 @@ rm -rf ./dep/RtspServer
 mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 
 # Change the following default values
-./utils/zmeditconfigdata.sh ZM_OPT_CAMBOZOLA yes
 ./utils/zmeditconfigdata.sh ZM_OPT_CONTROL yes
 ./utils/zmeditconfigdata.sh ZM_CHECK_FOR_UPDATES no
 
@@ -224,8 +214,7 @@ mv -f RtspServer-%{rtspserver_commit} ./dep/RtspServer
 %cmake \
         -DZM_WEB_USER="%{zmuid_final}" \
         -DZM_WEB_GROUP="%{zmgid_final}" \
-        -DZM_TARGET_DISTRO="%{zmtargetdistro}" \
-        .
+        -DZM_TARGET_DISTRO="%{zmtargetdistro}"
 
 %cmake_build
 
@@ -352,7 +341,8 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %config(noreplace) %{_sysconfdir}/logrotate.d/zoneminder
 
 %{_unitdir}/zoneminder.service
-%{_datadir}/polkit-1/actions/com.zoneminder.systemctl.policy
+%{_datadir}/polkit-1/actions/com.zoneminder.*
+%{_datadir}/polkit-1/rules.d/com.zoneminder.arp-scan.rules
 %{_bindir}/zmsystemctl.pl
 
 %{_bindir}/zmaudit.pl
@@ -374,6 +364,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %{_bindir}/zmonvif-trigger.pl
 %{_bindir}/zmstats.pl
 %{_bindir}/zmrecover.pl
+%{_bindir}/zmeventtool.pl
 %{_bindir}/zm_rtsp_server
 
 %{perl_vendorlib}/ZoneMinder*

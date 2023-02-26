@@ -42,3 +42,15 @@
 input[type="number"].form-control {
   padding: 5px;
 }
+.search .form-control {
+  font-size: 100%;
+}
+
+.filterTable {
+  display:inline;
+}
+#events {
+  height: 100%;
+  overflow-y: auto;
+  justify-content: center;
+}

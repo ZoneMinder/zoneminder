@@ -51,8 +51,9 @@ ZoneMinderFifoSource::~ZoneMinderFifoSource() {
 // thread mainloop
 void ZoneMinderFifoSource::ReadRun() {
   if (stop_) Warning("bad value for stop_ in ReadRun");
-	while (!stop_) {
+	while (!stop_ and !zm_terminate) {
 		if (getNextFrame() < 0) {
+      if (!stop_ and !zm_terminate) return;
       Debug(1, "Sleeping because couldn't getNextFrame");
       sleep(1);
     }
@@ -109,7 +110,7 @@ void ZoneMinderFifoSource::WriteRun() {
           fuNal.buffer()[2] = fuNal.buffer()[2]&~0x80; // FU header (no S bit)
           headerSize = 3;
         }
-        while (nalRemaining) {
+        while (nalRemaining && !stop_) {
           if ( nalRemaining < maxNalSize ) {
             // This is the last fragment:
             fuNal.buffer()[headerSize-1] |= 0x40; // set the E bit in the FU header
@@ -166,7 +167,7 @@ int ZoneMinderFifoSource::getNextFrame() {
   }
 
   Debug(3, "%s bytes read %d bytes, buffer size %u", m_fifo.c_str(), bytes_read, m_buffer.size());
-  while (m_buffer.size()) {
+  while (m_buffer.size() and !stop_) {
     unsigned int data_size = 0;
     int64_t pts;
     unsigned char *header_end = nullptr;
@@ -214,7 +215,7 @@ int ZoneMinderFifoSource::getNextFrame() {
       return 0;
     }
     if (header_start != m_buffer) {
-      Debug(4, "ZM Packet didn't start at beginning of buffer %ld. %c%c",
+      Debug(4, "ZM Packet didn't start at beginning of buffer %td. %c%c",
             header_start - m_buffer.head(), m_buffer[0], m_buffer[1]);
     }
 
@@ -224,7 +225,7 @@ int ZoneMinderFifoSource::getNextFrame() {
     int bytes_needed = data_size - (m_buffer.size() - header_size);
     if (bytes_needed > 0) {
       Debug(4, "Need another %d bytes. Trying to read them", bytes_needed);
-      while (bytes_needed) {
+      while (bytes_needed and !stop_) {
         bytes_read = m_buffer.read_into(m_fd, bytes_needed);
         if (bytes_read <= 0) {
           Debug(1, "Failed to read another %d bytes, got %d.", bytes_needed, bytes_read);
@@ -252,13 +253,14 @@ int ZoneMinderFifoSource::getNextFrame() {
     {
       std::unique_lock<std::mutex> lck(mutex_);
       Debug(3, "have lock");
-      while (framesList.size()) {
+      while (!stop_ && framesList.size()) {
         std::pair<unsigned char*, size_t> nal = framesList.front();
         framesList.pop_front();
         NAL_Frame *Nal = new NAL_Frame(nal.first, nal.second, pts);
         m_nalQueue.push(Nal);
       }
     }
+    Debug(3, "notifying");
     condition_.notify_all();
   } // end while m_buffer.size()
   return 1;

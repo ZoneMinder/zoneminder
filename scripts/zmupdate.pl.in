@@ -2,7 +2,7 @@
 #
 # ==========================================================================
 #
-# ZoneMinder Update Script, $Date$, $Revision$
+# ZoneMinder Update Script
 # Copyright (C) 2001-2008 Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -31,29 +31,30 @@ zmupdate.pl -c,--check | -f,--freshen | -v<version>,--version=<version> [-u <dbu
 
 =head1 DESCRIPTION
 
-This script just checks what the most recent release of ZoneMinder is
-at the the moment. It will eventually be responsible for applying and
-configuring upgrades etc, including on the fly upgrades.
+This script checks what the most recent release of ZoneMinder is
+at the the moment by downloading https://update.zoneminder.com/version.txt.
+It can also apply and configure upgrades etc, including on the fly upgrades.
 
 =head1 OPTIONS
 
--c, --check                      - Check for updated versions of ZoneMinder
--f, --freshen                    - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
---migrate-events                 - Update database structures as per USE_DEEP_STORAGE setting.
--v <version>, --version=<version> - Force upgrade to the current version from <version>
--u <dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
--p <dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
--s, --super                      - Use system maintenance account on debian based systems instead of unprivileged account
--d <dir>, --dir=<dir>              - Directory containing update files if not in default build location
--interactive                     - interact with the user
--nointeractive                   - do not interact with the user
+ -c, --check                       - Check for updated versions of ZoneMinder. 
+                                     If not interactive zmupdate.pl will stay running, checking every hour.
+                                     If interactive will try once, print out result and quit.
+ -f, --freshen                     - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
+ --migrate-events                  - Update database structures as per USE_DEEP_STORAGE setting.
+ -v <version>, --version=<version> - Force upgrade to the current version from <version>
+ -u <dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
+ -p <dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
+ -s, --super                       - Use system maintenance account on debian based systems instead of unprivileged account
+ -d <dir>, --dir=<dir>             - Directory containing update files if not in default build location
+ -interactive                      - interact with the user
+ -nointeractive                    - do not interact with the user
 
 =cut
 use strict;
+use warnings;
 use bytes;
 use version;
-use Crypt::Eksblowfish::Bcrypt;
-use Data::Entropy::Algorithms qw(rand_bits);
 
 # ==========================================================================
 #
@@ -95,7 +96,7 @@ my $use_log = (($> == 0) || ($> == $web_uid));
 logInit( toFile=>$use_log?DEBUG:NOLOG );
 logSetSignal();
 
-my $interactive = 1;
+my $interactive = -t STDERR; # interactive if we have IO
 my $check = 0;
 my $freshen = 0;
 my $rename = 0;
@@ -122,9 +123,8 @@ GetOptions(
     ) or pod2usage(-exitstatus => -1);
 
 my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
-if ( !$dbh ) {
-  die "Unable to connect to db\n";
-}
+die "Unable to connect to db\n" if !$dbh;
+
 $Config{ZM_DB_USER} = $dbUser;
 $Config{ZM_DB_PASS} = $dbPass;
 # we escape dbpass with single quotes so that $ in the password has no effect, but dbpass could have a ' in it.
@@ -144,8 +144,10 @@ if ( ($check + $freshen + $rename + $zoneFix + $migrateEvents + ($version?1:0)) 
   pod2usage(-exitstatus => -1);
 }
 
-if ( $check && $Config{ZM_CHECK_FOR_UPDATES} ) {
-  print('Update agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime() )."\n");
+if ($check) {
+  if (!$interactive) {
+    Info('Update agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime() )."\n");
+  }
 
   my $currVersion = $Config{ZM_DYN_CURR_VERSION};
   my $lastVersion = $Config{ZM_DYN_LAST_VERSION};
@@ -153,16 +155,14 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} ) {
 
   if ( !$currVersion ) {
     $currVersion = $Config{ZM_VERSION};
-
-    my $sql = "update Config set Value = ? where Name = 'ZM_DYN_CURR_VERSION'";
-    my $sth = $dbh->prepare_cached($sql) or die("Can't prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($currVersion) or die("Can't execute: ".$sth->errstr());
-    $sth->finish();
+    zmDbDo("UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_DYN_CURR_VERSION'", $currVersion);
   }
 
   while ( 1 ) {
     my $now = time();
-    if ( !$lastVersion || !$lastCheck || (($now-$lastCheck) > CHECK_INTERVAL) ) {
+    if ( !$interactive and $lastVersion and $lastCheck and (($now-$lastCheck) <= CHECK_INTERVAL) ) {
+      Debug("Not checking for updates since we already have less than " . CHECK_INTERVAL . " seconds ago.");
+    } else {
       Info('Checking for updates');
 
       use LWP::UserAgent;
@@ -175,21 +175,18 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} ) {
       my $res = $ua->request($req);
 
       if ( $res->is_success ) {
-        $lastVersion = $res->content;
-        chomp($lastVersion);
+        my $latestVersion = $res->content;
+        chomp($latestVersion);
         $lastCheck = $now;
 
-        Info('Got version: '.$lastVersion);
+        Info('Got version: '.$latestVersion);
 
-        my $lv_sql = 'UPDATE Config SET Value = ? WHERE Name = \'ZM_DYN_LAST_VERSION\'';
-        my $lv_sth = $dbh->prepare_cached($lv_sql) or die("Can't prepare '$lv_sql': ".$dbh->errstr());
-        my $lv_res = $lv_sth->execute($lastVersion) or die("Can't execute: ".$lv_sth->errstr());
-        $lv_sth->finish();
-
-        my $lc_sql = 'UPDATE Config SET Value = ? WHERE Name = \'ZM_DYN_LAST_CHECK\'';
-        my $lc_sth = $dbh->prepare_cached($lc_sql) or die("Can't prepare '$lc_sql': ".$dbh->errstr());
-        my $lc_res = $lc_sth->execute($lastCheck) or die("Can't execute: ".$lc_sth->errstr());
-        $lc_sth->finish();
+        zmDbDo('UPDATE Config SET Value = ? WHERE Name = \'ZM_DYN_LAST_VERSION\'', $latestVersion);
+        zmDbDo('UPDATE Config SET Value = ? WHERE Name = \'ZM_DYN_LAST_CHECK\'', $lastCheck);
+        if ($interactive) {
+          print("Last version $lastVersion, Latest version $latestVersion, our version " . ZM_VERSION."\n");
+          exit(0);
+        }
       } else {
         Error('Error check failed: \''.$res->status_line().'\'');
       }
@@ -446,11 +443,6 @@ if ( $version ) {
   }
 
   print( "\nUpgrading database to version ".ZM_VERSION."\n" );
-
-# Update config first of all
-  migratePaths();
-  ZoneMinder::Config::loadConfigFromDB();
-  ZoneMinder::Config::saveConfigToDB();
 
   my $cascade = undef;
   if ( $cascade || $version eq "1.19.0" ) {
@@ -1044,14 +1036,16 @@ sub patchDB {
 } # end sub patchDB
 
 sub migratePasswords {
-  print ("Migratings passwords, if any...\n");
+  use Crypt::Eksblowfish::Bcrypt;
+  use Data::Entropy::Algorithms qw(rand_bits);
+  print("Migratings passwords, if any...\n");
   my $sql = 'SELECT * FROM `Users`';
   my $sth = $dbh->prepare_cached($sql) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die("Can't execute: ".$sth->errstr());
-  while( my $user = $sth->fetchrow_hashref() ) {
+  while ( my $user = $sth->fetchrow_hashref() ) {
     my $scheme = substr($user->{Password}, 0, 1);
     if ($scheme eq '*') {
-      print ('-->'.$user->{Username}." password will be migrated\n");
+      print('-->'.$user->{Username}." password will be migrated\n");
       my $salt = Crypt::Eksblowfish::Bcrypt::en_base64(rand_bits(16*8));
       my $settings = '$2a$10$'.$salt;
       my $pass_hash = Crypt::Eksblowfish::Bcrypt::bcrypt($user->{Password},$settings);

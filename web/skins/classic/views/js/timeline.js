@@ -1,4 +1,3 @@
-var events = {};
 
 function showEvent(e) {
   var eid = e.getAttribute('data-event-id');
@@ -33,60 +32,60 @@ function showEventDetail(eventHtml) {
 function eventDataResponse(respObj, respText) {
   var zm_event = respObj.event;
 
-  if ( !zm_event ) {
+  if (!zm_event) {
     console.log('Null event');
     return;
   }
   events[zm_event.Id] = zm_event;
 
-  if ( respObj.loopback ) {
+  if (respObj.loopback) {
     requestFrameData(zm_event.Id, respObj.loopback);
   }
 }
 
-function frameDataResponse( respObj, respText ) {
+function frameDataResponse(respObj, respText) {
   var frame = respObj.frameimage;
-  if ( !frame.FrameId ) {
+  if (!frame.FrameId) {
     console.log('Null frame');
     return;
   }
 
   var zm_event = events[frame.EventId];
-  if ( !zm_event ) {
+  if (!zm_event) {
     console.error('No event '+frame.eventId+' found');
     return;
   }
 
-  if ( !zm_event['frames'] ) {
-    console.log('No frames data in event response');
-    console.log(zm_event);
-    console.log(respObj);
+  if (!zm_event['frames']) {
     zm_event['frames'] = {};
   }
 
   zm_event['frames'][frame.FrameId] = frame;
   zm_event['frames'][frame.FrameId]['html'] = createEventHtml( zm_event, frame );
 
-  showEventData(frame.EventId, frame.FrameId);
+  showEventData(zm_event, frame.FrameId);
 }
 
-function showEventData(eventId, frameId) {
-  if ( events[eventId] ) {
-    var zm_event = events[eventId];
-    if ( zm_event['frames'] ) {
-      if ( zm_event['frames'][frameId] ) {
-        showEventDetail( zm_event['frames'][frameId]['html'] );
-        var imagePath = 'index.php?view=image&eid='+eventId+'&fid='+frameId;
-        loadEventImage(imagePath, eventId, frameId);
+function showEventData(zm_event, frameId) {
+  if (zm_event) {
+    if (zm_event['frames']) {
+      if (zm_event['frames'][frameId]) {
+        $j('#instruction').hide();
+        eventData = $j('#eventData'+zm_event.MonitorId);
+        eventData.html(zm_event['frames'][frameId]['html']);
+        eventData.show();
+        var imagePath = 'index.php?view=image&eid='+zm_event.Id+'&fid='+frameId;
+        loadEventImage(imagePath, zm_event, frameId);
         return;
       } else {
         console.log('No frames for ' + frameId);
       }
     } else {
       console.log('No frames');
+      requestFrameData(zm_event.Id, frameId);
     }
   } else {
-    console.log('No event for ' + eventId);
+    console.log('No event');
   }
 }
 
@@ -102,10 +101,10 @@ function frameQuery(data) {
       .fail(logAjaxFail);
 }
 
-function requestFrameData( eventId, frameId ) {
+function requestFrameData(eventId, frameId) {
   var data = {};
 
-  if ( !events[eventId] ) {
+  if (!events[eventId]) {
     data.id = eventId;
     data.loopback = frameId;
     eventQuery(data);
@@ -118,32 +117,39 @@ function requestFrameData( eventId, frameId ) {
 function previewEvent(slot) {
   eventId = slot.getAttribute('data-event-id');
   frameId = slot.getAttribute('data-frame-id');
-  if ( events[eventId] && events[eventId]['frames'] && events[eventId]['frames'][frameId] ) {
-    showEventData(eventId, frameId);
+  if (events[eventId] && events[eventId]['frames'] && events[eventId]['frames'][frameId]) {
+    showEventData(events[eventId], frameId);
   } else {
     requestFrameData(eventId, frameId);
   }
 }
 
-function loadEventImage( imagePath, eid, fid ) {
-  var eventData = $j('#eventData');
-  var imageSrc = $j('#imageSrc');
+function loadEventImage(imagePath, zm_event, fid) {
+  if (!zm_event) {
+    console.log("No event object passed to loadEventImage");
+    return;
+  }
+
+  const imageSrc = $j('#imageSrc'+zm_event.MonitorId);
 
   imageSrc.show();
   imageSrc.attr('src', imagePath);
-  imageSrc.attr('data-event-id', eid);
+  imageSrc.attr('data-event-id', zm_event.Id);
   imageSrc.attr('data-frame-id', fid);
   imageSrc.off('click');
-  imageSrc.click(function() {
+  imageSrc.on('click', function() {
     showEvent(this);
   });
 
-  eventData.attr('data-event-id', eid);
-  eventData.attr('data-frame-id', fid);
-  eventData.off('click');
-  eventData.click(function() {
-    showEvent(this);
-  });
+  var eventData = $j('#eventData'+zm_event.MonitorId);
+  if ( eventData.length ) {
+    eventData.off('click');
+    eventData.on('click', function() {
+      showEvent(this);
+    });
+  } else {
+    console.log("No eventdata area found for monitor " + zm_event.MonitorId);
+  }
 }
 
 function tlZoomBounds(event) {
@@ -203,6 +209,11 @@ function initPage() {
     evt.preventDefault();
     window.location.assign('?view=events'+filterQuery);
   });
+
+  for (const mid in monitors) {
+    const monitor = monitors[mid];
+    showEventData(events[monitor.FirstEventId], 1);
+  }
 
   // Bind the data-on-click attributes associated with a div
   divDataOnClick();

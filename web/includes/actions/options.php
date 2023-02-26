@@ -24,6 +24,8 @@ if ( !canEdit('System') ) {
   return;
 }
 
+global $error_message;
+
 if ( $action == 'delete' ) {
   if ( isset($_REQUEST['object']) ) {
     if ( $_REQUEST['object'] == 'server' ) {
@@ -49,8 +51,8 @@ if ( $action == 'delete' ) {
 
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
 
-  $result = dbQuery('SELECT Name,Value,Type FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
-  if ( !$result ) {
+  $result = dbQuery('SELECT Name,Value,Type,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
+  if (!$result) {
     echo mysql_error();
     return;
   }
@@ -60,15 +62,24 @@ if ( $action == 'delete' ) {
     unset($newValue);
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       $newValue = 0;
-    } else if ( isset($_REQUEST['newConfig'][$config['Name']]) ) {
-      $newValue = preg_replace("/\r\n/", "\n", stripslashes($_REQUEST['newConfig'][$config['Name']]));
+    } else if (isset($_REQUEST['newConfig'][$config['Name']])) {
+      $newValue = preg_replace('/\r\n/', '\n', $_REQUEST['newConfig'][$config['Name']]);
     }
 
-    if ( isset($newValue) && ($newValue != $config['Value']) ) {
+    if (isset($newValue) && ($newValue != $config['Value'])) {
+      # Handle special cases first
+      if ($config['Name'] == 'ZM_LANG_DEFAULT') {
+        # Verify that the language file exists in the lang directory.
+        if (!file_exists(ZM_PATH_WEB.'/lang/'.$newValue.'.php')) {
+          $error_message .= 'Error setting ' . $config['Name'].'. New value ' .$newValue.' not saved because '.ZM_PATH_WEB.'/lang/'.$newValue.'.php doesn\'t exist.<br/>';
+          ZM\Error($error_message);
+          continue;
+        }
+      }
       dbQuery('UPDATE Config SET Value=? WHERE Name=?', array($newValue, $config['Name']));
       $changed = true;
-    }
-  }
+    } # end if value changed
+  } # end foreach config entry
   if ( $changed ) {
     switch ( $_REQUEST['tab'] ) {
     case 'system' :

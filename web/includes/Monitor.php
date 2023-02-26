@@ -183,6 +183,7 @@ public static function getStatuses() {
     'Palette' =>  '0',
     'Orientation' => 'ROTATE_0',
     'Deinterlacing' =>  0,
+    'Decoder'  =>  '',
     'DecoderHWAccelName'  =>  null,
     'DecoderHWAccelDevice'  =>  null,
     'SaveJPEGs' =>  2,

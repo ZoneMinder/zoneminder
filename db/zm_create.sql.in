@@ -543,6 +543,7 @@ CREATE TABLE `Monitors` (
   `Palette` int(10) unsigned NOT NULL default '0',
   `Orientation` enum('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT') NOT NULL default 'ROTATE_0',
   `Deinterlacing` int(10) unsigned NOT NULL default '0',
+  `Decoder`     varchar(32),
   `DecoderHWAccelName`  varchar(64),
   `DecoderHWAccelDevice`  varchar(255),
   `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' ,

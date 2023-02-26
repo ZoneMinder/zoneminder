@@ -24,7 +24,7 @@
 %endif
 
 Name: zoneminder
-Version: 1.37.34
+Version: 1.37.35
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons

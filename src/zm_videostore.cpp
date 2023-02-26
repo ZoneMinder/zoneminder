@@ -326,12 +326,11 @@ bool VideoStore::open() {
         }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
         if (codec_data[i].hwdevice_type != AV_HWDEVICE_TYPE_NONE) {
-          Debug(1, "Setting up hwdevice");
           ret = av_hwdevice_ctx_create(&hw_device_ctx,
               codec_data[i].hwdevice_type,
               nullptr, nullptr, 0);
           if (0>ret) {
-            Error("Failed to create hwdevice_ctx");
+            Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
             continue;
           }
 

@@ -817,6 +817,35 @@ include('_monitor_source_nvsocket.php');
             <label><?php echo translate('SourceSecondPath') ?></label>
             <input type="text" name="newMonitor[SecondPath]" value="<?php echo validHtmlStr($monitor->SecondPath()) ?>" data-on-input-this="SecondPath_onChange"/>
           <li>
+          <li class="Decoder">
+            <label><?php echo translate('Decoder') ?></label>
+<?php
+$decoders = array(
+  'auto' => translate('Auto'),
+  'libx264' => 'libx264',
+  'h264' => 'h264',
+  'h264_cuvid' => 'h264_cuvid',
+  'h264_omx' => 'h264_omx',
+  'h264_qsv' => 'h264_qsv',
+  'h264_vaapi' => 'h264_vaapi',
+  'h264_v4l2m2m' => 'h264_v4l2m2m',
+  'libx265' => 'libx265',
+  'hevc_cuvid' => 'hevc_cuvid',
+  'hevc_qsv' => 'hevc_qsv',
+  'libvpx-vp9' => 'libvpx-vp9',
+  'vp9_qsv' => 'vp9-qsv',
+  'vp9_cuvid' => 'vp9_cuvid',
+  'vp9_v4l2m2m' => 'vp9_v4l2m2m',
+  'libsvtav1' => 'libsvtav1',
+  'libaom-av1'  => 'libaom-av1',
+  'libdav1d'    => 'libdav1d',
+  'av1' => 'av1',
+  'av1_qsv' => 'av1_qsv',
+  'av1_cuvid' => 'av1_cuvid',
+);
+echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
+?>
+            </li>
           <li class="DecoderHWAccelName">
             <label>
               <?php echo translate('DecoderHWAccelName'); echo makeHelpLink('OPTIONS_DECODERHWACCELNAME') ?>

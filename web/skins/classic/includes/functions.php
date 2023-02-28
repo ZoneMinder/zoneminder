@@ -960,6 +960,7 @@ function xhtmlFooter() {
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
+  'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
   'js/bootstrap-table-1.21.1/bootstrap-table.min.js',
   'js/bootstrap-table-1.21.1/extensions/locale/bootstrap-table-locale-all.min.js',

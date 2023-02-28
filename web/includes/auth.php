@@ -260,6 +260,7 @@ $group_permissions = null;
 $monitor_permissions = null; # hash indexed by MonitorId
 function visibleMonitor($mid) {
   global $user;
+  if (!$user) return false;
 
   global $monitor_permissions;
 
@@ -474,6 +475,7 @@ if (ZM_OPT_USE_AUTH) {
     }
   } # end if token based auth
 } else {
+  global $defaultUser;
   $user = $defaultUser;
 } # end if ZM_OPT_USE_AUTH
 ?>

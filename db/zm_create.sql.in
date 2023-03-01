@@ -699,6 +699,8 @@ CREATE TABLE `Server_Stats` (
   `ServerId`  int(10) unsigned,
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `CpuLoad` DECIMAL(5,1) default NULL,
+  `CpuUserPercent` DECIMAL(5,1) default NULL,
+  `CpuSystemPercent` DECIMAL(5,1) default NULL,
   `TotalMem` bigint unsigned default null,
   `FreeMem` bigint unsigned default null,
   `TotalSwap` bigint  unsigned default null,

@@ -111,6 +111,7 @@ sub Hostname {
 sub CpuLoad {
   my $output = qx(uptime);
   my @sysloads = split ', ', (split ': ', $output)[-1];
+  # returned value is 1min, 5min, 15min load
 
   if (join(', ',@sysloads) =~ /(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*$/) {
     return @sysloads;

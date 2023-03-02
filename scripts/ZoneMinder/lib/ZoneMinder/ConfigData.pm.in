@@ -434,6 +434,19 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_AUTH_MAGIC',
+    default     => 'yes',
+    description => 'Allow login by magic link',
+    help        => q`
+      If enabled, allow password change by sending an email with a magic link to the users registered email address.
+      `,
+    requires    => [
+      { name=>'ZM_OPT_USE_AUTH', value=>'yes' }
+    ],
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_JANUS_SECRET',
     default     => '',
     description => 'Password for Janus streaming administration.',

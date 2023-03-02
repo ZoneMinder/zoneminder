@@ -18,23 +18,25 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+if ('login' == $action) {
+  if (isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 'remote' || isset($_REQUEST['password']))) {
+    // if true, a popup will display after login
+    // lets validate reCaptcha if it exists
 
-if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == 'remote' || isset($_REQUEST['password']) ) ) {
+    // if captcha existed, it was passed
 
-  // if true, a popup will display after login
-  // lets validate reCaptcha if it exists
-
-  // if captcha existed, it was passed
-
-  zm_session_start();
-  if (!isset($user) ) {
-    $_SESSION['loginFailed'] = true;
+    zm_session_start();
+    if (!isset($user) ) {
+      $_SESSION['loginFailed'] = true;
+    } else {
+      unset($_SESSION['loginFailed']);
+      $view = 'postlogin';
+    }
+    unset($_SESSION['postLoginQuery']);
+    session_write_close();
   } else {
-    unset($_SESSION['loginFailed']);
-    $view = 'postlogin';
+
   }
-  unset($_SESSION['postLoginQuery']);
-  session_write_close();
 } else if ('forgotpassword' == $action) {
   global $error_mesage;
   if ($user) {
@@ -58,38 +60,46 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     $error_message .= 'User does not have an email address assigned. We will not be able to send a magic link. Please have an admin reset your password.<br/>';
     return;
   }
+  userLogout(); # clear out user stored in session
+  global $user;
+  $user = dbFetchOne('SELECT * FROM Users WHERE Id=?', NULL, [ $u->Id() ]);
+  ZM\Debug("User". print_r($user, true));
+
   $link = new ZM\MagicLink();
   $link->UserId($u->Id());
-  $link->GenerateToken();
-  $link->save();
+  if (!$link->GenerateToken()) {
+    $error_message .= 'There was a system error generating the magic link. Please contact support.<br/>';
+    return;
+  }
+  if (!$link->save()) {
+    $error_message .= 'There was a system error generating the magic link. Please contact support.<br/>';
+    return;
+  }
+  $error_message .= 'Please check your email for a link to change your password.<br/>';
 
-  # Send an email
-  $subject = 'Account Recovery Forgotten Password';
-
-  $message = "
+  $email_content = get_include_contents($_SERVER['DOCUMENT_ROOT'].'/email_content/forgotten_password.php');
+  ZM\Debug("Email content $email_content");
+  $email_content = get_include_contents($_SERVER['DOCUMENT_ROOT'].'/email_content/template.php');
+  ZM\Debug("Email content $email_content");
+  if (!$email_content) {
+    $email_content .= '
 <html>
   <head>
     <title>Account Recovery Forgotten Password</title>
   </head>
 <body>
 <p>
-Use the following link to login to CloudMule at ".ZM_URL.'
+Use the following link to login at '.ZM_URL.'
 </p>
 <p>
-<a href="'.ZM_URL.'/index.php?view=login&amp;action=changepassword&username='.$u->Username().'&amp;token='.$link->Token().'">Click here to login and reset your password.<a/>
-
+<a href="'.$link->url().'">Click here to login and reset your password.<a/>
 </body>
 </html>
 ';
+  }
+  # Send an email
+  $subject = 'Account Recovery Forgotten Password';
 
-  // Always set content-type when sending HTML email
-  $headers = "MIME-Version: 1.0" . "\r\n";
-  $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-
-  // More headers
-  $headers .= 'From: '.ZM_FROM_EMAIL."\r\n";
-  #$headers .= 'Cc: myboss@example.com' . "\r\n";
-  mail($user->Email(), $subject, $message, $headers);
-
+  send_email($u->Email(), ZM_FROM_EMAIL, $subject, $email_content);
 } # end if doing a login action
 ?>

@@ -375,6 +375,52 @@ function get_auth_relay() {
   return '';
 } // end function get_auth_relay
 
+function saveUserToSession($user) {
+  if (ZM_AUTH_TYPE == 'builtin') {
+    $_SESSION['passwordHash'] = $user['Password'];
+  }
+
+  $_SESSION['username'] = $user['Username'];
+  if (ZM_AUTH_RELAY == 'plain') {
+    // Need to save this in session, can't use the value in User because it is hashed
+    $_SESSION['password'] = $_REQUEST['password'];
+  }
+}
+
+function authByMagic() {
+  global $user;
+  global $error_message;
+  # Must login by magic magic
+  if(empty($_REQUEST['magic'])) {
+    $error_message .= 'You must either be logged in, or authenticate by magic link to change your password.<br/>';
+    return;
+  }
+
+  if (!(isset($_REQUEST['magic']) and $_REQUEST['magic'])) {
+    $error_message .= 'changepassword requires a magic link token.<br/>';
+    return;
+  }
+  if (empty($_REQUEST['user_id'])) {
+    $error_message .= 'You must specify a user.<br/>';
+    return;
+  }
+  $u = ZM\User::find_one(['Id'=>$_REQUEST['user_id']]);
+  if (!$u) {
+    $error_message .= 'User not found.<br/>';
+    return;
+  }
+  require_once('includes/MagicLink.php');
+  $link = ZM\MagicLink::find_one(['UserId'=>$u->Id(), 'Token'=>$_REQUEST['magic']]);
+  if (!$link) {
+    $error_message .= 'Magic link invalid or expired.<br/>';
+    return;
+  }
+  $link->delete();
+  userLogout(); # clear out user stored in session
+  $user = dbFetchOne('SELECT * FROM Users WHERE Id=?', NULL, [ $u->Id() ]);
+  # user is global, so this effectively logs us in, but since we don't update session or anything else, it won't last.
+}
+
 if (ZM_OPT_USE_AUTH) {
   if (!empty($_REQUEST['token'])) {
     // we only need to get the username here
@@ -448,15 +494,7 @@ if (ZM_OPT_USE_AUTH) {
         migrateHash($username, $password);
       }
 
-      if (ZM_AUTH_TYPE == 'builtin') {
-        $_SESSION['passwordHash'] = $user['Password'];
-      }
-
-      $_SESSION['username'] = $user['Username'];
-      if (ZM_AUTH_RELAY == 'plain') {
-        // Need to save this in session, can't use the value in User because it is hashed
-        $_SESSION['password'] = $_REQUEST['password'];
-      }
+      saveUserToSession($user);
     } else if ((ZM_AUTH_TYPE == 'remote') and !empty($_SERVER['REMOTE_USER'])) {
       if (ZM_CASE_INSENSITIVE_USERNAMES) {
         $sql = 'SELECT * FROM Users WHERE Enabled=1 AND LOWER(Username)=LOWER(?)';

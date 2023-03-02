@@ -754,8 +754,8 @@ function handleClick(event) {
     var x = event.offsetX;
     var y = event.offsetY;
   } else {
-    var x = event.page.x - rect.left;
-    var y = event.page.y - rect.top;
+    var x = event.pageX - rect.left;
+    var y = event.pageY - rect.top;
   }
 
   if (event.shift || event.shiftKey) { // handle both jquery and mootools

@@ -422,7 +422,9 @@ function authByMagic() {
 }
 
 if (ZM_OPT_USE_AUTH) {
-  if (!empty($_REQUEST['token'])) {
+  if (!empty($_REQUEST['magic']) and ZM_AUTH_MAGIC) {
+    authByMagic();
+  } else if (!empty($_REQUEST['token'])) {
     // we only need to get the username here
     // don't know the token type. That will
     // be checked later 

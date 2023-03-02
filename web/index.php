@@ -196,7 +196,7 @@ if ( (!$view and !$request) or ($view == 'console') ) {
   check_timezone();
 }
 
-ZM\Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
+ZM\Debug("View: $view Request: $request Action: $action User: " . ( (isset($user) and $user) ? $user['Username'] : 'none' ));
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
@@ -213,7 +213,7 @@ if (
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'none') ) {
+if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'changepassword') and ($view != 'none') ) {
   if ($request) {
     # requests only return json
     header('HTTP/1.1 401 Unauthorized');

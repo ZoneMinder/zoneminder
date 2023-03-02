@@ -157,6 +157,10 @@ CORSHeaders();
 $running = null;
 $action = null;
 $error_message = null;
+if (isset($_SESSION['error_message'])) {
+  $error_message = $_SESSION['error_message'];
+  unset($_SESSION['error_message']);
+}
 $redirect = null;
 $view = isset($_REQUEST['view']) ? detaintPath($_REQUEST['view']) : null;
 $user = null;
@@ -222,6 +226,7 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=login';
   zm_session_start();
+  $_SESSION['error_message'] = $error_message;
   $_SESSION['postLoginQuery'] = $_SERVER['QUERY_STRING'];
   session_write_close();
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {

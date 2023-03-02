@@ -24,6 +24,8 @@
     </thead>
     <tbody>
 <?php
+  $canEdit = canEdit('System');
+  ZM\Debug("Can edit? $canEdit");
   $sql = 'SELECT * FROM Monitors ORDER BY Sequence ASC';
   $monitors = array();
   foreach (dbFetchAll($sql) as $monitor) {

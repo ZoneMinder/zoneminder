@@ -257,7 +257,7 @@ function refreshParentWindow() {
   }
 }
 
-if ( currentView != 'none' && currentView != 'login' ) {
+if (currentView != 'none') {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {

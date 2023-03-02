@@ -9,7 +9,7 @@ global $email_content;
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 		<title><?php echo ZM_WEB_TITLE; ?></title>
 		<style type="text/css">
-		<?php echo include($_SERVER['DOCUMENT_ROOT'].'/skins/'.$skin.'/css/'.$css.'/email.css')?>
+		<?php echo get_include_contents($_SERVER['DOCUMENT_ROOT'].'/skins/'.$skin.'/css/'.$css.'/email.css')?>
 		</style>
 		<base href="<?php echo ZM_URL; ?>"/>
 	</head>

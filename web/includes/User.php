@@ -45,7 +45,7 @@ class User extends ZM_Object {
   }
 
   public function Name( ) {
-    if (property_exists($this, 'Name')) {
+    if (property_exists($this, 'Name') and !empty($this->Name)) {
       return $this->Name;
     }
     return $this->{'Username'};

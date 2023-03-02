@@ -1,14 +1,6 @@
 <?php
 global $error_message;
 global $user;
-if (!$user) {
-  authByMagic();
-}
-if (!$user) {
-  global $redirect;
-  $redirect = '?view=login';
-  return;
-}
 xhtmlHeaders(__FILE__, translate('Change Password'));
 ?>
 <body>

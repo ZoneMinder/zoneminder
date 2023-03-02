@@ -41,9 +41,11 @@ if (
         <button class="btn btn-lg btn-primary btn-block" type="submit" name="action" value="login">
         <?php echo translate('Login') ?>
         </button>
+<?php if (defined('ZM_AUTH_MAGIC')) { ?>
         <button class="btn btn-lg btn-primary btn-block" type="submit" name="action" value="forgotpassword">
         <?php echo translate('Forgot Password') ?>
         </button>
+<?php } ?>
 			</div>
 		</form>
 <?php 

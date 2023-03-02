@@ -112,7 +112,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
           </form>
 <?php
 } else if ($tab == 'users') {
-  include('_options_api.php');
+  include('_options_users.php');
 } else if ($tab == 'control') {
   if (canView('Control')) {
     $redirect = '?view=controlcaps';

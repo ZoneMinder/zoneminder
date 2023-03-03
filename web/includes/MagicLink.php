@@ -34,7 +34,7 @@ class MagicLink extends ZM_Object {
       Error(print_r($user, true));
       return;
     }
-    $this->Token = md5(ZM_AUTH_HASH_SECRET.$user->Username().time());
+    $this->Token = hash('sha256', ZM_AUTH_HASH_SECRET.$user->Username().time());
     return $this->Token;
   }
 

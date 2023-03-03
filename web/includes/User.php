@@ -12,6 +12,9 @@ class User extends ZM_Object {
 	protected $defaults = array(
 			'Id'              => null,
       'Username'        => array('type'=>'text','filter_regexp'=>'/[^\w\.@ ]/', 'default'=>''),
+      'Name'            => '',
+      'Email'           => '',
+      'Phone'           => '',
       'Password'        => '',
       'Language'        => '',
       'Enabled'         => 1,
@@ -42,6 +45,9 @@ class User extends ZM_Object {
   }
 
   public function Name( ) {
+    if (property_exists($this, 'Name') and !empty($this->Name)) {
+      return $this->Name;
+    }
     return $this->{'Username'};
   }
 

@@ -699,6 +699,8 @@ CREATE TABLE `Server_Stats` (
   `ServerId`  int(10) unsigned,
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `CpuLoad` DECIMAL(5,1) default NULL,
+  `CpuUserPercent` DECIMAL(5,1) default NULL,
+  `CpuSystemPercent` DECIMAL(5,1) default NULL,
   `TotalMem` bigint unsigned default null,
   `FreeMem` bigint unsigned default null,
   `TotalSwap` bigint  unsigned default null,
@@ -760,8 +762,11 @@ CREATE TABLE `TriggersX10` (
 DROP TABLE IF EXISTS `Users`;
 CREATE TABLE `Users` (
   `Id` int(10) unsigned NOT NULL auto_increment,
-  `Username` varchar(32) character set latin1 collate latin1_bin NOT NULL default '',
+  `Username` varchar(64) character set latin1 collate latin1_bin NOT NULL default '',
   `Password` varchar(64) NOT NULL default '',
+  `Name`     varchar(64) NOT NULL default '',
+  `Email`    varchar(64) NOT NULL default '',
+  `Phone`    varchar(16) NOT NULL default '',/* Space for 2 numbers, country codes, etc */
   `Language` varchar(8),
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `Stream` enum('None','View') NOT NULL default 'None',
@@ -773,7 +778,6 @@ CREATE TABLE `Users` (
   `Snapshots` enum('None','View','Edit') NOT NULL default 'None',
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16),
-  `MonitorIds` text,
   `TokenMinExpiry`   BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `APIEnabled`  tinyint(3) UNSIGNED NOT NULL default 1,
   `HomeView`  varchar(64) NOT NULL DEFAULT '',

@@ -2433,6 +2433,68 @@ function array_to_hash_by_key($key, $array) {
 }
 
 function check_datetime($x) {
-    return (date('Y-m-d H:i:s', strtotime($x)) == $x);
+  return (date('Y-m-d H:i:s', strtotime($x)) == $x);
+}
+
+function get_include_contents($filename) {
+  if (is_file($filename)) {
+    ob_start();
+    if (false == (include $filename))
+      ZM\Error("Failed including $filename");
+    return ob_get_clean();
+  }
+  return false;
+}
+
+/**
+ * Send email
+ * @param string|array $email
+ * @param object $from
+ * @param string $subject
+ * @param string $message
+ * @param string $headers optional
+ */
+function send_email($email, $from, $subject, $message, $headers = null) {
+	// Unique boundary
+	$boundary = md5( uniqid('', true));
+
+	// If no $headers sent
+	if (empty($headers)) {
+    // Add From: header
+    if (is_array($from)) {
+      $headers = 'From: ' . $from->name . ' <' . $from->email . ">\r\n";
+    } else {
+      $headers = 'From: ' . $from."\r\n";
+    }
+
+		// Specify MIME version 1.0
+		$headers .= "MIME-Version: 1.0\r\n";
+
+		// Tell e-mail client this e-mail contains alternate versions
+		$headers .= "Content-Type: multipart/alternative; boundary=\"$boundary\"\r\n\r\n";
+	}
+
+	// Plain text version of message
+	$body = "--$boundary\r\n" .
+	   "Content-Type: text/plain; charset=UTF-8\r\n" .
+	   "Content-Transfer-Encoding: base64\r\n\r\n";
+	$body .= chunk_split( base64_encode( strip_tags($message) ) );
+
+	// HTML version of message
+	$body .= "--$boundary\r\n" .
+	   "Content-Type: text/html; charset=UTF-8\r\n" .
+	   "Content-Transfer-Encoding: base64\r\n\r\n";
+	$body .= chunk_split( base64_encode( $message ) );
+
+	$body .= "--$boundary--";
+
+	// Send Email
+	if (is_array($email)) {
+		foreach ($email as $e) {
+			mail($e, $subject, $body, $headers);
+		}
+	} else {
+		mail($email, $subject, $body, $headers);
+	}
 }
 ?>

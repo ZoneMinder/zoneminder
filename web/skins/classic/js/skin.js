@@ -257,7 +257,7 @@ function refreshParentWindow() {
   }
 }
 
-if ( currentView != 'none' && currentView != 'login' ) {
+if (currentView != 'none') {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
@@ -1030,3 +1030,11 @@ function post(path, params, method='post') {
   document.body.appendChild(form);
   form.submit();
 }
+
+const font = new FontFaceObserver('Material Icons', { weight: 400 });
+font.load().then(function () {
+  console.log('Font is available');
+  $j('.material-icons').css('display','inline-block');
+}, function () {
+  console.log('Font is not available');
+});

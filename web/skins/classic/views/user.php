@@ -96,6 +96,18 @@ echo getNavBarHTML();
                 <td><input type="password" name="conf_password" autocomplete="new-password"/></td>
               </tr>
               <tr>
+                <th scope="row"><?php echo translate('Full Name') ?></th>
+                <td><input type="text" name="user[Name]" /></td>
+              </tr>
+              <tr>
+                <th scope="row"><?php echo translate('Email Address') ?></th>
+                <td><input type="email" name="user[Email]" /></td>
+              </tr>
+              <tr>
+                <th scope="row"><?php echo translate('Phone') ?></th>
+                <td><input type="tel" name="user[Phone]" /></td>
+              </tr>
+              <tr>
                 <th scope="row"><?php echo translate('Language') ?></th>
                 <td><?php echo htmlSelect('user[Language]', $langs, $User->Language()) ?></td>
               </tr>

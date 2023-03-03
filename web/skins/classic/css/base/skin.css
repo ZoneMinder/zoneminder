@@ -45,6 +45,7 @@
   text-rendering: optimizeLegibility;
   font-feature-settings: "liga";
   vertical-align: middle;
+  display: none;
 }
 
 .material-icons.md-18 { font-size: 18px; }

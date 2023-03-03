@@ -57,7 +57,9 @@ if ('changepassword' == $action) {
     return;
   }
   $User = new ZM\User($user);
-  if ($User->save(['Password'=>$_REQUEST['password']]) and $User->Enabled()) {
+
+  $bcrypt_hash = password_hash($_REQUEST['password'], PASSWORD_BCRYPT);
+  if ($User->save(['Password'=>$bcrypt_hash]) and $User->Enabled()) {
     saveUserToSession($user);
   }
 } # end if doing a login action

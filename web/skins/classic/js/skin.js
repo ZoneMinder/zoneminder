@@ -1036,5 +1036,6 @@ font.load().then(function () {
   console.log('Font is available');
   $j('.material-icons').css('display','inline-block');
 }, function () {
+  $j('.material-icons').css('display','inline-block');
   console.log('Font is not available');
 });

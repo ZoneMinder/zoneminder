@@ -1566,6 +1566,13 @@ our @options = (
     category    => 'logging',
   },
   {
+    name        => 'ZM_WEB_HOMEVIEW',
+    default     => 'console',
+    description => 'Default destination after login.',
+    type        => $types{string},
+    category    => 'web',
+  },
+  {
     name        => 'ZM_WEB_NAVBAR_TYPE',
     default     => 'normal',
     description => 'Style of the web console navigation bar',

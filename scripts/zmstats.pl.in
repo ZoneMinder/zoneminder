@@ -64,12 +64,11 @@ while (!$zm_terminate) {
   # Get CPU utilization percentages
   my ($user_utilization, $system_utilization) = split(/ /, `top -b -n 1 | grep "Cpu(s)" | awk '{print \$2, \$4}'`);
 
-  if ( ! defined $dbh->do('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuSystemPercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?)', undef,
-        $Config{ZM_SERVER_ID},
-        $cpuload[0], $user_utilization, $system_utilization,
-        &totalmem, &freemem, &totalswap, &freeswap, ) ) {
-    Error("Failed Inserting status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
-  }
+  zmDbDo('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuSystemPercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?)',
+    $Config{ZM_SERVER_ID},
+    $cpuload[0], $user_utilization, $system_utilization,
+    &totalmem, &freemem, &totalswap, &freeswap);
+
   my $rows = zmDbDo('DELETE FROM `Server_Stats` WHERE `TimeStamp` < now() - interval 1 DAY LIMIT 100');
   Debug("Deleted $rows Server Stats table entries by time");
 

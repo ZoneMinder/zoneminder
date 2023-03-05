@@ -22,7 +22,7 @@ if (!canView('Snapshots')) {
   $view = 'error';
   return;
 } else if (!ZM_FEATURES_SNAPSHOTS) {
-  $view = 'console';
+  $view = getHomeView();
   return;
 }
 

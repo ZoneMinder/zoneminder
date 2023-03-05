@@ -28,6 +28,7 @@ global $user;
 const AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
+const homeView = '<?php echo getHomeView() ?>';
 
 const exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
 const exportFailedString = '<?php echo translate('ExportFailed') ?>';

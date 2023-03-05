@@ -2433,6 +2433,30 @@ function array_to_hash_by_key($key, $array) {
 }
 
 function check_datetime($x) {
-    return (date('Y-m-d H:i:s', strtotime($x)) == $x);
+  return (date('Y-m-d H:i:s', strtotime($x)) == $x);
+}
+
+function getHomeView() {
+  global $user;
+  global $skin;
+  if ($user and $user['HomeView']) {
+    $view = detaintPath($user['HomeView']);
+    $path = $_SERVER['DOCUMENT_ROOT'].'/skins/'.$skin.'/views/'.$view.'.php';
+    if (file_exists($path)) {
+      return $view;
+    } else {
+      ZM\Warning("Invalid view ${user['HomeView']} in HomeView for user ${user['Username']} does not exist at $path");
+    }
+  }
+  if (defined('ZM_WEB_HOMEVIEW') and ZM_WEB_HOMEVIEW) {
+    $view = detaintPath(ZM_WEB_HOMEVIEW);
+    $path = $_SERVER['DOCUMENT_ROOT'].'/skins/'.$skin.'/views/'.$view.'.php';
+    if (file_exists($path)) {
+      return $view;
+    } else {
+      ZM\Warning('Invalid view '.ZM_WEB_HOMEVIEW.' in ZM_WEB_HOMEVIEW does not exist at '.$path);
+    }
+  }
+  return 'console';
 }
 ?>

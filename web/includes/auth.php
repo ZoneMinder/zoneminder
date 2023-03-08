@@ -282,7 +282,7 @@ function visibleMonitor($mid) {
   foreach ($group_permissions as $permission) {
     $value = $permission->MonitorPermission($mid);
     if ($value == 'None') {
-      ZM\Debug("Can't view monitor $mid because of group ".$permision->Group()->Name().' '.$permision->Permission());
+      ZM\Debug("Can't view monitor $mid because of group ".$permission->Group()->Name().' '.$permission->Permission());
       return false;
     } else if ($value == 'View' or $value == 'Edit') {
       $group_permission_value = $value;

@@ -1034,7 +1034,7 @@ class Filter extends ZM_Object {
           }
           $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
           #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, $term['val']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, split(',',$term['val'])).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'MonitorName' ) {
           $monitor_names = ['' => translate('All')];
           foreach (Monitor::find() as $m) {

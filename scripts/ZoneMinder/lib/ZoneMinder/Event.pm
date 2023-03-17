@@ -107,6 +107,30 @@ $serial = $primary_key = 'Id';
   Executed  =>  '0',
 );
 
+sub save {
+  my ( $self, $params ) = @_;
+
+  if ( ( my $error = $self->SUPER::save( ) ) ) {
+    return $error;
+  } # end if
+
+  my $now = time();
+  my $time = $self->Time();
+  if ($now-$time < 60*60*24*30) {
+    zmDbDo('UPDATE Events_Month SET DiskSpace=NEW.DiskSpace WHERE EventId=?', $$self{Id});
+  }
+  if ($now-$time < 60*60*24*7) {
+    zmDbDo('UPDATE Events_Week SET DiskSpace=NEW.DiskSpace WHERE EventId=?', $$self{Id});
+  }
+ if ($now-$time < 60*60*24) {
+    zmDbDo('UPDATE Events_Day SET DiskSpace=NEW.DiskSpace WHERE EventId=?', $$self{Id});
+  }
+  if ($now-$time < 60*60) {
+    zmDbDo('UPDATE Events_Hour SET DiskSpace=NEW.DiskSpace WHERE EventId=?', $$self{Id});
+  }
+
+  return '';
+} # end sub save
 
 sub Time {
   if ( @_ > 1 ) {

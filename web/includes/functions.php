@@ -46,7 +46,7 @@ function CSPHeaders($view, $nonce) {
       // fall through
     default:
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      header("Content-Security-Policy: script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
+      header("Content-Security-Policy: object-src 'self'; script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
         (ZM_CSP_REPORT_URI ? '; report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;
@@ -470,7 +470,8 @@ function htmlOptions($options, $values) {
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {
-    ZM\Warning('Specified value '.print_r($values, true).' not in contents: '.print_r($options, true));
+    $backTrace = debug_backtrace();
+    ZM\Warning('Specified value '.print_r($values, true).' not in contents: '.print_r($options, true). ' from ' . print_r($backTrace, true));
   }
   return $options_html;
 } # end function htmlOptions
@@ -1872,7 +1873,9 @@ function generateConnKey() {
 
 function detaintPath($path) {
   // Remove any absolute paths, or relative ones that want to go up
-  $path = str_replace('../', '', $path);
+  do {
+    $path = str_replace('../', '', $path, $count);
+  } while($count);
   $path = ltrim($path, '/');
   return $path;
 }
@@ -2427,5 +2430,33 @@ function array_to_hash_by_key($key, $array) {
   $results = array();
   foreach ($array as $a) { $results[$a->$key()] = $a; }
   return $results;
+}
+
+function check_datetime($x) {
+  return (date('Y-m-d H:i:s', strtotime($x)) == $x);
+}
+
+function getHomeView() {
+  global $user;
+  global $skin;
+  if ($user and $user['HomeView']) {
+    $view = detaintPath($user['HomeView']);
+    $path = $_SERVER['DOCUMENT_ROOT'].'/skins/'.$skin.'/views/'.$view.'.php';
+    if (file_exists($path)) {
+      return $view;
+    } else {
+      ZM\Warning("Invalid view ${user['HomeView']} in HomeView for user ${user['Username']} does not exist at $path");
+    }
+  }
+  if (defined('ZM_WEB_HOMEVIEW') and ZM_WEB_HOMEVIEW) {
+    $view = detaintPath(ZM_WEB_HOMEVIEW);
+    $path = $_SERVER['DOCUMENT_ROOT'].'/skins/'.$skin.'/views/'.$view.'.php';
+    if (file_exists($path)) {
+      return $view;
+    } else {
+      ZM\Warning('Invalid view '.ZM_WEB_HOMEVIEW.' in ZM_WEB_HOMEVIEW does not exist at '.$path);
+    }
+  }
+  return 'console';
 }
 ?>

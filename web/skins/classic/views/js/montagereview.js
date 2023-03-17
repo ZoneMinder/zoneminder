@@ -79,12 +79,16 @@ function findEventByTime(arr, time) {
 }
 
 function findFrameByTime(arr, time) {
+  if (!arr) {
+    console.log("No array in findFrameByTime");
+    return false;
+  }
   const keys = Object.keys(arr);
   let start=0;
   let end=keys.length-1;
 
-  console.log(keys);
-  console.log(keys[start]);
+  //console.log(keys);
+  //console.log(keys[start]);
   // Iterate while start not meets end
   //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
   while ((start <= end)) {
@@ -1227,7 +1231,7 @@ function load_Frames(zm_events) {
         $j.ajax(url+query+'.json?'+auth_relay, {
           timeout: 0,
           success: function(data) {
-            if (data.frames.length) {
+            if (data.frames && data.frames.length) {
               zm_event.FramesById = [];
               let last_frame = null;
 
@@ -1238,17 +1242,26 @@ function load_Frames(zm_events) {
                   console.error("No event object found for " + data.frames[0].Frame.EventId);
                   continue;
                 }
+                if (last_frame && (frame.EventId != last_frame.EventId)) {
+                  last_frame = null;
+                }
                 //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
                 if (last_frame) {
                   frame.PrevFrameId = last_frame.Id;
                   last_frame.NextFrameId = frame.Id;
-                  last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+                  if (frame.TimeStampSecs >= last_frame.TimeStampSecs) {
+                    last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+                  } else {
+                    console.log("Out of order timestamps?", last_frame, frame);
+                  }
                 }
                 last_frame = frame;
 
                 if (!zm_event.FramesById) zm_event.FramesById = [];
                 zm_event.FramesById[frame.Id] = frame;
-              } // end fireach frame
+              } // end foreach frame
+            } else {
+              console.log("No frames in data", data);
             } // end if there are frames
             drawGraph();
             resolve();

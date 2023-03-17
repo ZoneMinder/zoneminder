@@ -218,7 +218,10 @@ echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc());
 <?php
 echo htmlSelect('filter[Query][skip_locked]',
   array('0'=>translate('No'), '1'=>translate('Yes')),
-  $filter->skip_locked());
+  $filter->skip_locked(),
+  ( db_supports_feature('skip_locks') ? []: ['disabled'=>'disabled', 'title'=>'Database does not support the skip locked feature.'])
+);
+
 ?>
               </td>
               <td>  

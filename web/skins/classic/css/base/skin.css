@@ -45,6 +45,7 @@
   text-rendering: optimizeLegibility;
   font-feature-settings: "liga";
   vertical-align: middle;
+  display: none;
 }
 
 .material-icons.md-18 { font-size: 18px; }
@@ -858,6 +859,12 @@ a.flip {
 }
 .controlHeader {
   display: flex;
+}
+/* to match chosen text input height */
+.controlHeader input[type="text"] {
+  height: 29px;
+  padding: 2px 5px 4px 5px;
+  margin-top:0;
 }
 @media screen and (max-width:767px) {
   .controlHeader {

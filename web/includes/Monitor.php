@@ -183,6 +183,7 @@ public static function getStatuses() {
     'Palette' =>  '0',
     'Orientation' => 'ROTATE_0',
     'Deinterlacing' =>  0,
+    'Decoder'  =>  '',
     'DecoderHWAccelName'  =>  null,
     'DecoderHWAccelDevice'  =>  null,
     'SaveJPEGs' =>  2,
@@ -435,8 +436,8 @@ public static function getStatuses() {
       if (ZM_AUTH_RELAY == 'hashed') {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-        $args['user'] = $_SESSION['username'];
-        $args['pass'] = $_SESSION['password'];
+        $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
+        $args['pass'] = isset($_SESSION['password']) ? $_SESSION['password'] : '';
       } elseif ( ZM_AUTH_RELAY == 'none' ) {
         $args['user'] = $_SESSION['username'];
       }
@@ -529,11 +530,13 @@ public static function getStatuses() {
 
       if ($mode == 'stop') {
         daemonControl('stop', 'zmc', $zmcArgs);
+      } else if ($mode == 'reload') {
+        daemonControl('reload', 'zmc', $zmcArgs);
       } else {
         if ($mode == 'restart') {
           daemonControl('stop', 'zmc', $zmcArgs);
         }
-        if ($this->{'Capturing'} != 'None') {
+        if ($this->Capturing() != 'None') {
           daemonControl('start', 'zmc', $zmcArgs);
         }
       }
@@ -754,19 +757,19 @@ public static function getStatuses() {
     if ($u===null or $u['Id'] == $user['Id'])
       return editableMonitor($this->{'Id'});
 
-    $monitor_permission = ZM\Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
     if ($monitor_permission and
       ($monitor_permission->Permission() == 'None' or $monitor_permission->Permission() == 'View')) {
-      ZM\Debug("Can't edit monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
+      Debug("Can't edit monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+    $group_permissions = Group_Permission::find(array('UserId'=>$user['Id']));
 
     # If denied view in any group, then can't view it.
     foreach ($group_permissions as $permission) {
       if (!$permission->canEditMonitor($this->{'Id'})) {
-        ZM\Debug("Can't edit monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+        Debug("Can't edit monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
         return false;
       }
     }
@@ -778,20 +781,20 @@ public static function getStatuses() {
     if (($u === null) or ($u['Id'] == $user['Id']))
       return visibleMonitor($this->Id());
 
-    $monitor_permission = ZM\Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
     if ($monitor_permission and ($monitor_permission->Permission() == 'None')) {
-      ZM\Debug("Can't view monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
+      Debug("Can't view monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user['Id']));
+    $group_permissions = Group_Permission::find(array('UserId'=>$user['Id']));
 
     # If denied view in any group, then can't view it.
     $group_permission_value = 'Inherit';
     foreach ($group_permissions as $permission) {
       $value = $pmerssion->MonitorPermission($mid);
       if ($value == 'None') {
-        ZM\Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+        Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
         return false;
       }
       if ($value == 'Edit' or $value == 'View') {
@@ -814,7 +817,7 @@ public static function getStatuses() {
         return false;
       }
 
-      $cmd = getZmuCommand($cmd.' -m '.$this->{'Id'});
+      $cmd = getZmuCommand($cmd.' -m '.validCardinal($this->{'Id'}));
       $output = shell_exec($cmd);
       Debug("Running $cmd output: $output");
       return $output;

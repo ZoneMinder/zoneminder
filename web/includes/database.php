@@ -379,4 +379,24 @@ function getTableDescription( $table, $asString=1 ) {
   }
   return $columns;
 }
+
+function db_version() {
+  return dbFetchOne('SELECT VERSION()', 'VERSION()');
+}
+
+function db_supports_feature($feature) {
+  $version = db_version();
+  if ($feature == 'skip_locks') {
+    $just_the_version = strstr($version, '-MariaDB', true);
+    ZM\Debug("Just the version $just_the_version from $version");
+    if (false === $just_the_version) {
+      # Is MYSQL
+      return version_compare($version, '8.0.1', '>=');
+    } else {
+      return version_compare($just_the_version, '10.6', '>=');
+    }
+  } else {
+    ZM\Warning("Unknown feature requested $feature");
+  }
+}
 ?>

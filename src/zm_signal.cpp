@@ -91,21 +91,40 @@ RETSIGTYPE zm_die_handler(int signal)
 	int trace_size = 0;
 	trace_size = backtrace(trace, TRACE_SIZE);
 
-	char cmd[1024] = "addr2line -e ";
+	char cmd[1024] = "addr2line -Cfip -e ";
 	char *cmd_ptr = cmd + strlen(cmd);
 	cmd_ptr += snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), "%s", self);
 
 	char **messages = backtrace_symbols(trace, trace_size);
+	char *ofs_ptr;
+	char *end_ptr;
+	bool found_offset = false;
+
 	// Print the full backtrace
 	for (int i = 0; i < trace_size; i++) {
 		Error("Backtrace %u: %s", i, messages[i]);
-		cmd_ptr +=
-		    snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), " %p",
-			     trace[i]);
+		if (strstr(messages[i], self) == nullptr)
+			continue;
+		ofs_ptr = strstr(messages[i], "(+0x");
+		if (ofs_ptr == nullptr)
+			continue;
+		ofs_ptr += 2;
+		end_ptr = strchr(ofs_ptr, ')');
+		if (end_ptr == nullptr)
+			continue;
+		found_offset = true;
+		int rc = snprintf(cmd_ptr, sizeof(cmd) - (cmd_ptr - cmd), " %.*s", static_cast<int>(end_ptr - ofs_ptr), ofs_ptr);
+		if (rc < 0 || static_cast<size_t>(rc) > sizeof(cmd) - (cmd_ptr - cmd))
+			break;
+		cmd_ptr += rc;
 	}
 	free(messages);
 
-	Info("Backtrace complete, please execute the following command for more information: %s", cmd);
+	if (found_offset) {
+		Error("Backtrace complete, please install debug symbols (typically zoneminder-dbg)");
+		Error("and execute the following command for more information:");
+		Error("%s", cmd);
+	}
   #endif				// ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
 #endif                          // (defined(__i386__) || defined(__x86_64__)
 	exit(signal);

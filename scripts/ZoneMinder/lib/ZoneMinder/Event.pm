@@ -526,7 +526,7 @@ sub delete_files {
           last;
         }
       } else {
-        Debug("Dir $path is not empty @dir");
+        Debug(4, "Dir $path is not empty @dir");
         last;
       }
       pop @path_parts;
@@ -697,18 +697,31 @@ sub CopyTo {
     if ( $$NewStorage{Url} ) {
       my $url = $$NewStorage{Url};
       $url =~ s/^(s3|s3fs):\/\///ig;
-      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@((https?:\/\/)?[^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
+      $url =~ /^\s*(?<ID>[^:]+):(?<SECRET>[^@]+)@(?<HOST>(https?:\/\/)?[^\/]*)\/(?<BUCKET>[^\/]+)(?<SUBPATH>\/.+)?\s*$/;
+      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ($+{ID},$+{SECRET}, $+{HOST}, $+{BUCKET}, $+{SUBPATH});
+      $subpath = '' if !$subpath;
       Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
-      if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
+      if ($aws_id and $aws_secret and $aws_host and $aws_bucket) {
         eval {
           require Net::Amazon::S3;
+          require Net::Amazon::S3::Vendor::Generic;
           require File::Slurp;
+          my $vendor = undef;
+          if ($aws_host) {
+            $aws_host =~ s/^https?:\/\///ig;
+            $vendor = Net::Amazon::S3::Vendor::Generic->new(
+              host=>$aws_host,
+              authorization_method => 'Net::Amazon::S3::Signature::V4',
+              use_virtual_host => 0,
+            );
+          }
           my $s3 = Net::Amazon::S3->new( {
               aws_access_key_id     => $aws_id,
               aws_secret_access_key => $aws_secret,
-              ( $aws_host ? ( host => $aws_host ) : () ),
-              authorization_method => 'Net::Amazon::S3::Signature::V4',
+              ( $vendor ? (vendor => $vendor) : (
+                )),
             });
+          $s3->ua(LWP::UserAgent->new(keep_alive => 0, requests_redirectable => [qw'GET HEAD DELETE PUT POST']));
           my $bucket = $s3->bucket($aws_bucket);
           if ( !$bucket ) {
             Error("S3 bucket $bucket not found.");
@@ -798,7 +811,17 @@ sub MoveTo {
   }
 
   my $OldStorage = $self->Storage(undef);
-  my $error = $self->CopyTo($NewStorage);
+
+  # In strange situations where commits don't happen, the files can be moved but the db hasn't been updated.
+  # So here's a special case test to fix that.
+  my ( $SrcPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
+  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
+  my $error = '';
+  if (! -e $SrcPath and -e $NewPath) {
+    Warning("Event has already been moved, just updating the event.");
+  } else {
+    $error = $self->CopyTo($NewStorage);
+  }
   if (!$error) {
     # Succeeded in copying all files, so we may now update the Event.
     $$self{StorageId} = $$NewStorage{Id};

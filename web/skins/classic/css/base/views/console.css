@@ -110,11 +110,7 @@
 .MonitorFilter {
   display: inline-block;
 }
-.MonitorNameFilter input,
-.SourceFilter input {
-  padding: 3px 5px 4px 5px;
-}
-form {
+form[name="monitorForm"] {
   display: flex;
   flex-flow: column nowrap;
   height: 100%;

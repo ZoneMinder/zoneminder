@@ -10,10 +10,8 @@
 if (!empty($_REQUEST['postLoginQuery'])) {
   parse_str($_REQUEST['postLoginQuery'], $queryParams);
   $redirectSuffix = '?' . http_build_query($queryParams);
-} else if ($user['HomeView'] != '') {
-  $redirectSuffix = $user['HomeView'];
 } else {
-  $redirectSuffix = '?view=console';
+  $redirectSuffix = '?view='.getHomeView();
 }
 
 // If we didn't redirect elsewhere, then don't show login page, go to console

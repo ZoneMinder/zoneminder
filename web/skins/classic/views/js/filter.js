@@ -151,6 +151,7 @@ function resetFilter( element ) {
 
 function submitToEvents(element) {
   var form = element.form;
+  form.elements['action'].value='';
   window.location.assign('?view=events&'+$j(form).serialize());
 }
 

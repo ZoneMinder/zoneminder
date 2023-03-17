@@ -21,3 +21,8 @@
   text-align: right;
   vertical-align: middle;
 }
+
+#contentForm {
+  overflow: auto;
+  height: 100%;
+}

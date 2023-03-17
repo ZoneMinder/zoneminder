@@ -411,14 +411,14 @@ class Event extends ZM_Object {
 
     if ( ( !$frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
       # No frame specified, so look for a snapshot to use
-      $captImage = 'snapshot.jpg';
+      $captureImage = 'snapshot.jpg';
       Debug('Frame not specified, using snapshot');
       $frame = array('FrameId'=>'snapshot', 'Type'=>'', 'Delta'=>0);
     } else {
-      $captImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId']);
-      if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
-        $captImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId']);
-        if ( !file_exists($eventPath.'/'.$captImage) ) {
+      $captureImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId']);
+      if ( ! file_exists( $eventPath.'/'.$captureImage ) ) {
+        $captureImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId']);
+        if ( !file_exists($eventPath.'/'.$captureImage) ) {
           # Generate the frame JPG
           if ( $Event->DefaultVideo() ) {
             $videoPath = $eventPath.'/'.$Event->DefaultVideo();
@@ -428,8 +428,8 @@ class Event extends ZM_Object {
               return '';
             } 
               
-            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
-            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captImage;
+            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captureImage;
+            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captureImage;
             Debug('Running '.$command);
             $output = array();
             $retval = 0;
@@ -442,21 +442,21 @@ class Event extends ZM_Object {
       } // end if analyze file exists
     } // end if frame or snapshot
 
-    $captPath = $eventPath.'/'.$captImage;
-    if ( !file_exists($captPath) ) {
-      Error('Capture file does not exist at '.$captPath);
+    $capturePath = $eventPath.'/'.$captureImage;
+    if ( !file_exists($capturePath) ) {
+      Error('Capture file does not exist at '.$capturePath);
     }
     
-    $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
-    $analPath = $eventPath.'/'.$analImage;
+    $analysisImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
+    $analysisPath = $eventPath.'/'.$analysisImage;
 
     $alarmFrame = $frame['Type'] == 'Alarm';
 
-    $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
-    $isAnalImage = $hasAnalImage && !$captureOnly;
+    $hasAnalysisImage = $alarmFrame && file_exists($analysisPath) && filesize($analysisPath);
+    $isAnalysisImage = $hasAnalysisImage && !$captureOnly;
 
     if ( !ZM_WEB_SCALE_THUMBS || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
-      $imagePath = $thumbPath = $isAnalImage ? $analPath : $captPath;
+      $imagePath = $thumbPath = $isAnalysisImage ? $analysisPath : $capturePath;
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;
     } else {
@@ -466,15 +466,15 @@ class Event extends ZM_Object {
         $fraction = sprintf('%.3f', $scale/SCALE_BASE);
       $scale = (int)round($scale);
 
-      $thumbCaptPath = preg_replace('/\.jpg$/', "-$scale.jpg", $captPath);
-      $thumbAnalPath = preg_replace('/\.jpg$/', "-$scale.jpg", $analPath);
+      $thumbCapturePath = preg_replace('/\.jpg$/', "-$scale.jpg", $capturePath);
+      $thumbAnalysisPath = preg_replace('/\.jpg$/', "-$scale.jpg", $analysisPath);
 
-      if ( $isAnalImage ) {
-        $imagePath = $analPath;
-        $thumbPath = $thumbAnalPath;
+      if ( $isAnalysisImage ) {
+        $imagePath = $analysisPath;
+        $thumbPath = $thumbAnalysisPath;
       } else {
-        $imagePath = $captPath;
-        $thumbPath = $thumbCaptPath;
+        $imagePath = $capturePath;
+        $thumbPath = $thumbCapturePath;
       }
 
       $thumbFile = $thumbPath;
@@ -501,8 +501,8 @@ class Event extends ZM_Object {
         'imageFile' => $imagePath,
         'thumbFile' => $thumbFile,
         'imageClass' => $alarmFrame?'alarm':'normal',
-        'isAnalImage' => $isAnalImage,
-        'hasAnalImage' => $hasAnalImage,
+        'isAnalysisImage' => $isAnalysisImage,
+        'hasAnalysisImage' => $hasAnalysisImage,
         'FrameId'		=>	$frame['FrameId'],
         );
 

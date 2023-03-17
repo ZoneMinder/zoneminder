@@ -49,6 +49,9 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
 use File::Path qw(make_path);
 use File::Basename;
+use URI::Encode qw(uri_encode);
+require MIME::QuotedPrint;
+require MIME::Base64;
 
 my $daemon = 0;
 my $filter_name = '';
@@ -479,7 +482,7 @@ sub generateImage {
     chomp($output);
     my $status = $? >> 8;
     if ( $status || logDebugging() ) {
-      Debug("Output: $output");
+      Debug("Output from $command\n: $output");
     }
     if ( $status ) {
       Error("Failed $command status $status");
@@ -640,6 +643,15 @@ sub uploadArchFile {
   return 1;
 } # end sub uploadArchFile
 
+sub is_in_attachments {
+  my $needle = shift;
+  my $attachments_ref = shift;
+  foreach my $attachment (@$attachments_ref) {
+    return 1 if $$attachment{path} eq $needle;
+  }
+  return 0;
+}
+
 sub substituteTags {
   my $text = shift;
   my $filter = shift;
@@ -720,77 +732,83 @@ sub substituteTags {
     $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
     $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
 
-    if ( $attachments_ref ) {
-      if ( $text =~ s/%EI1%//g ) {
+    if ($attachments_ref) {
+      if ($text =~ /%EI1%/g) {
         my $path = generateImage($Event, $first_alarm_frame);
-        if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EI1%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning("Path to first image does not exist at $path for image $first_alarm_frame");
+          $text =~ s/%EI1%/No image found for EI1/g;
         }
       }
 
       if ($text =~ /%EIM%/g) {
         my $path = generateImage($Event, $max_alarm_frame);
-        my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>fileparse($path) };
-        # Don't attach the same image twice
-        if ( !@$attachments_ref
-          || ( $first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
-        ) {
-          if ( -e $path ) {
-            push @$attachments_ref, $attachment;
-          } else {
-            Warning("No image for EIM at $path");
-          }
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
+        } else {
+          Warning("No image for EIM at $path");
+          $text =~ s/%EIM%/No image found for EIM/g;
         }
-        $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
       }
 
       if ($text =~ /%EI1A%/g) {
         my $path = generateImage($Event, $first_alarm_frame, 'analyse');
-        my $attachment = { type=>'image/jpeg', path=>$path, content_id=>fileparse($path) };
-        if ( -e $path ) {
-          push @$attachments_ref, $attachment;
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning("No image for EI1A at $path");
+          $text =~ s/%EI1A%/No image found for EI1A/g;
         }
-        if ($text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g) {
-        } else {
-          Warning("Failed to replace");
-        }
-      } else {
-        Debug("Didn't match %EI1A%");
       }
 
-      if ( $text =~ s/%EIMA%//g ) {
+      if ( $text =~ /%EIMA%/g ) {
         # Don't attach the same image twice
-        if ( !@$attachments_ref
-          || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId})
-        ) {
-          my $path = generateImage($Event, $max_alarm_frame, 'analyse');
-          if ( -e $path ) {
-            push @$attachments_ref, { type=>'image/jpeg', path=>$path };
-          } else {
-            Warning("No image for EIMA at $path");
-          }
+        my $path = generateImage($Event, $max_alarm_frame, 'analyse');
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
+        } else {
+          Warning("No image for EIMA at $path");
+          $text =~ s/%EIMA%/No image found for EIMA/g;
         }
       }
 
-      if ( $text =~ s/%EIMOD%//g ) {
+      if ($text =~ /%EIMOD%/g ) {
         my $path = $Event->Path().'/objdetect.jpg';
-        if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+        if (-e $path) {
+          my $filename = fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning('No image for MOD at '.$path);
+          $text =~ s/%EIMOD%/No image found for EIMOD/g;
         }
       }
 
       if ( $text =~ s/%EIMODG%//g ) {
         my $path = $Event->Path().'/objdetect.gif';
         if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/gif', path=>$path };
+          my $filename = fileparse($path);
+          my $attachment = { type=>'image/gif', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning('No image for MODG at '.$path);
+          $text =~ s/%EIMODG%/No image found for EIMODG/g;
         }
       }
 
@@ -828,11 +846,11 @@ sub sendEmail {
   my $filter = shift;
   my $Event = shift;
 
-  if ( ! $Config{ZM_FROM_EMAIL} ) {
+  if (!$Config{ZM_FROM_EMAIL}) {
     Error('No from email address defined, not sending email');
     return 0;
   }
-  if ( ! $$filter{EmailTo} ) {
+  if (!$$filter{EmailTo}) {
     Error('No email address defined, not sending email');
     return 0;
   }
@@ -848,42 +866,73 @@ sub sendEmail {
   Debug("Sending notification email '$subject'");
 
   eval {
-    if ( $Config{ZM_NEW_MAIL_MODULES} ) {
+    if ($Config{ZM_NEW_MAIL_MODULES}) {
+      my $total_size = 0;
 ### Create the multipart container
-      my $mail = MIME::Lite->new (
+      my $mail = MIME::Lite->new(
           From => $Config{ZM_FROM_EMAIL},
           To => $$filter{EmailTo},
           Subject => $subject,
           Type => 'multipart/mixed'
-          );
-### Add the text message part
-      $mail->attach (
-          Type => (($body=~/<html/)?'text/html':'text/plain'),
-          Data => $body
-          );
-### Add the attachments
-      my $total_size = 0;
+        );
+
+      my $related = MIME::Lite->new(
+        Type => 'multipart/related',
+      );
+
+      if ($body =~ /<html/) {
+        $mail->attach($related);
+        my $alternative = MIME::Lite->new(
+          Type => 'multipart/alternative'
+        );
+        $related->attach($alternative);
+
+
+        # Create a text-only version, it has to go first
+        require HTML::FormatText;
+        $alternative->attach(
+          #'Content-Type' => 'text/html;charset="utf-8"',
+          Type => 'TEXT',
+          'Content-Transfer-Encoding' => 'quoted-printable',
+          Data => MIME::QuotedPrint::encode_qp(HTML::FormatText->format_string($body))
+        );
+        my $html = MIME::Lite->new(
+          'Content-Type' => 'text/html;charset="utf-8"',
+          'Content-Transfer-Encoding' => 'quoted-printable',
+          #Type => 'text/html',
+          Data => MIME::QuotedPrint::encode_qp($body),
+        );
+        $alternative->attach($html);
+      } else {
+        my $html = MIME::Lite->new(
+          Type => 'text/html', Data => $body
+        );
+        $related->attach($html);
+      } # end if html or not
+
       foreach my $attachment ( @attachments ) {
         my $size = -s $attachment->{path};
         $total_size += $size;
         Info("Attaching '$attachment->{path}' which is $size bytes");
-        $mail->attach(
-            Path => $attachment->{path},
-            Type => $attachment->{type},
-            Disposition => 'attachment'
-            );
-      }
-      if ( $total_size > 10*1024*1024 ) {
+        $related->attach(
+          Path => $attachment->{path},
+          Type => $attachment->{type},
+          ($attachment->{content_id} ? ('Id' => '<'.$attachment->{content_id}.'>') : () ),
+          Disposition => 'inline'
+          #Disposition => 'attachment'
+        );
+      } # end foreach attachment
+      if ($total_size > 10*1024*1024) {
         Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
 ### Send the Message
-      if ( $Config{ZM_SSMTP_MAIL} ) {
+      if ($Config{ZM_SSMTP_MAIL}) {
         my $ssmtp_location = $Config{ZM_SSMTP_PATH};
-        if ( !$ssmtp_location ) {
+        if (!$ssmtp_location) {
           Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
           $ssmtp_location = qx('which ssmtp');
         }
-        if ( !$ssmtp_location ) {
+        if (!$ssmtp_location) {
           Warning('Unable to find ssmtp, trying MIME::Lite->send');
           MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
           $mail->send();
@@ -896,27 +945,61 @@ sub sendEmail {
         $mail->send();
       }
     } else {
+      my $total_size = 0;
       my $mail = MIME::Entity->build(
         From => $Config{ZM_FROM_EMAIL},
         To => $$filter{EmailTo},
         Subject => $subject,
-        Type => (($body=~/<html/)?'text/html':'text/plain'),
-        Data => $body
+        Type => 'multipart/mixed'
       );
-
-      my $total_size = 0;
-      foreach my $attachment ( @attachments ) {
-        my $size = -s $attachment->{path};
-        $total_size += $size;
-        Debug("Attaching '$attachment->{path}' which is $size bytes");
-
-        $mail->attach(
-          Path => $attachment->{path},
-          Type => $attachment->{type},
-          ($attachment->{content_id} ? ('Content-Id' => $attachment->{content_id}) : () ),
-          Encoding => 'base64'
+      if ($body =~ /<html/) {
+        my $related = MIME::Entity->build(Type => 'multipart/related');
+        $mail->add_part($related);
+        my $alternative = MIME::Entity->build(Type => 'multipart/alternative');
+        $related->add_part($alternative);
+        # Create a text-only version
+        require HTML::FormatText;
+        $alternative->attach(
+          Type => 'text/plain',
+          charset=>'utf-8',
+          Data => HTML::FormatText->format_string($body)
         );
-      } # end foreach attachment
+        $alternative->attach(
+          Type => 'text/html',
+          charset=>'utf-8',
+          Data => $body
+        );
+        foreach my $attachment ( @attachments ) {
+          my $size = -s $attachment->{path};
+          $total_size += $size;
+          Debug("Attaching '$attachment->{path}' which is $size bytes");
+
+          $related->attach(
+            Path => $attachment->{path},
+            Type => $attachment->{type},
+            ($attachment->{content_id} ? ('Content-Id' => '<'.$attachment->{content_id}.'>') : () ),
+            Encoding => 'base64'
+          );
+        } # end foreach attachment
+      } else {
+        $mail->attach(
+          Type => 'text/plain; charset="utf-8"',
+          Data => $body
+        );
+
+        foreach my $attachment ( @attachments ) {
+          my $size = -s $attachment->{path};
+          $total_size += $size;
+          Debug("Attaching '$attachment->{path}' which is $size bytes");
+
+          $mail->attach(
+            Path => $attachment->{path},
+            Type => $attachment->{type},
+            ($attachment->{content_id} ? ('Content-Id' => '<'.$attachment->{content_id}.'>') : () ),
+            Encoding => 'base64'
+          );
+        } # end foreach attachment
+      }
       if ( $total_size > 10*1024*1024 ) {
         Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
@@ -936,7 +1019,7 @@ sub sendEmail {
     or Fatal("Unable to execute '$sql': ".$dbh->errstr());
 
   return 1;
-}
+} # end sub sendEmail
 
 sub sendMessage {
   my $filter = shift;

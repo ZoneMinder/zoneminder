@@ -372,6 +372,9 @@ if ( $errorText ) {
   ZM\Error($errorText);
 } else {
   header('Content-type: '.$media_type);
+  header('Cache-Control: max-age=86400');
+  header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
+  header('Pragma: cache');
   if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
     if ( $Event ) {

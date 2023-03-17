@@ -233,7 +233,6 @@ function calculateAuthHash($remoteAddr='') {
 function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and isset($user['Username']) and isset($user['Password'])) {
-
     if (!isset($_SESSION)) {
       # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
       #$auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
@@ -253,8 +252,6 @@ function generateAuthHash($useRemoteAddr, $force=false) {
       } # end if AuthHash is not cached
       return $_SESSION['AuthHash'.$_SESSION['remoteAddr']];
     }
-  } else {
-    ZM\Debug("Not able to generate auth hash due to user: ".print_r($user, true));
   } # end if using AUTH and AUTH_RELAY
   return '';
 }
@@ -263,6 +260,7 @@ $group_permissions = null;
 $monitor_permissions = null; # hash indexed by MonitorId
 function visibleMonitor($mid) {
   global $user;
+  if (!$user) return false;
 
   global $monitor_permissions;
 
@@ -270,9 +268,9 @@ function visibleMonitor($mid) {
   if ($monitor_permissions === null) {
     $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user['Id'])));
   }
-  if (isset($monitor_permissions[$mid]) and ($monitor_permissions[$mid]->Permission() == 'None')) {
-    ZM\Debug("Can't view monitor $mid because of monitor ".$monitor_permissions[$mid]->Permission());
-    return false;
+  if (isset($monitor_permissions[$mid])) {
+    ZM\Debug('Returning '.($monitor_permissions[$mid]->Permission() == 'None' ? false : true)." for monitor $mid");
+    return ($monitor_permissions[$mid]->Permission() == 'None' ? false : true);
   }
 
   global $group_permissions;
@@ -284,7 +282,7 @@ function visibleMonitor($mid) {
   foreach ($group_permissions as $permission) {
     $value = $permission->MonitorPermission($mid);
     if ($value == 'None') {
-      ZM\Debug("Can't view monitor $mid because of group ".$permision->Group()->Name().' '.$permision->Permission());
+      ZM\Debug("Can't view monitor $mid because of group ".$permission->Group()->Name().' '.$permission->Permission());
       return false;
     } else if ($value == 'View' or $value == 'Edit') {
       $group_permission_value = $value;
@@ -293,7 +291,7 @@ function visibleMonitor($mid) {
   if ($group_permission_value != 'Inherit') return true;
 
   #if (!$user or ($user['Monitors'] == 'None')) return false;
-  #ZM\Debug("Returning " . ($user['Monitors'] == 'None' ? 'false' : 'true') . " for monitor $mid");
+  ZM\Debug("Returning " . ($user['Monitors'] == 'None' ? 'false' : 'true') . " for monitor $mid");
   return ($user['Monitors'] != 'None');
 }
 
@@ -367,7 +365,7 @@ function get_auth_relay() {
       return 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
     } else if (ZM_AUTH_RELAY == 'plain') {
       // password probably needs to be escaped
-      return 'username='.$_SESSION['username'].'&password='.urlencode($_SESSION['password']);
+      return 'username='.(isset($_SESSION['username'])?$_SESSION['username']:'').'&password='.urlencode(isset($_SESSION['password']) ? $_SESSION['password'] : '');
     } else if (ZM_AUTH_RELAY == 'none') {
       return 'username='.$_SESSION['username'];
     } else {
@@ -477,6 +475,7 @@ if (ZM_OPT_USE_AUTH) {
     }
   } # end if token based auth
 } else {
+  global $defaultUser;
   $user = $defaultUser;
 } # end if ZM_OPT_USE_AUTH
 ?>

@@ -215,6 +215,8 @@ CREATE TABLE `Events` (
   `DiskSpace`   bigint unsigned default NULL,
   `Scheme`   enum('Deep','Medium','Shallow') NOT NULL default 'Medium',
   `Locked`    BOOLEAN NOT NULL DEFAULT False,
+  `Latitude`  DECIMAL(10,8),
+  `Longitude`  DECIMAL(11,8),
   PRIMARY KEY (`Id`),
   KEY `Events_MonitorId_idx` (`MonitorId`),
   KEY `Events_StorageId_idx` (`StorageId`),
@@ -541,6 +543,7 @@ CREATE TABLE `Monitors` (
   `Palette` int(10) unsigned NOT NULL default '0',
   `Orientation` enum('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT') NOT NULL default 'ROTATE_0',
   `Deinterlacing` int(10) unsigned NOT NULL default '0',
+  `Decoder`     varchar(32),
   `DecoderHWAccelName`  varchar(64),
   `DecoderHWAccelDevice`  varchar(255),
   `SaveJPEGs` TINYINT NOT NULL DEFAULT '3' ,
@@ -683,10 +686,29 @@ CREATE TABLE `Servers` (
   `zmaudit`  BOOLEAN NOT NULL DEFAULT FALSE,
   `zmtrigger`  BOOLEAN NOT NULL DEFAULT FALSE,
   `zmeventnotification`  BOOLEAN NOT NULL DEFAULT FALSE,
+  `Latitude`  DECIMAL(10,8),
+  `Longitude`  DECIMAL(11,8),
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE INDEX `Servers_Name_idx` ON `Servers` (`Name`);
+
+DROP TABLE IF EXISTS `Server_Stats`;
+CREATE TABLE `Server_Stats` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `ServerId`  int(10) unsigned,
+  `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+  `CpuLoad` DECIMAL(5,1) default NULL,
+  `CpuUserPercent` DECIMAL(5,1) default NULL,
+  `CpuSystemPercent` DECIMAL(5,1) default NULL,
+  `TotalMem` bigint unsigned default null,
+  `FreeMem` bigint unsigned default null,
+  `TotalSwap` bigint  unsigned default null,
+  `FreeSwap` bigint unsigned default null, 
+  PRIMARY KEY (Id)
+);
+
+CREATE INDEX `Server_Stats_TimeStamp_idx` ON `Server_Stats` (`TimeStamp`);
 
 --
 -- Table structure for table `Stats`
@@ -740,8 +762,11 @@ CREATE TABLE `TriggersX10` (
 DROP TABLE IF EXISTS `Users`;
 CREATE TABLE `Users` (
   `Id` int(10) unsigned NOT NULL auto_increment,
-  `Username` varchar(32) character set latin1 collate latin1_bin NOT NULL default '',
+  `Username` varchar(64) character set latin1 collate latin1_bin NOT NULL default '',
   `Password` varchar(64) NOT NULL default '',
+  `Name`     varchar(64) NOT NULL default '',
+  `Email`    varchar(64) NOT NULL default '',
+  `Phone`    varchar(16) NOT NULL default '',/* Space for 2 numbers, country codes, etc */
   `Language` varchar(8),
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `Stream` enum('None','View') NOT NULL default 'None',
@@ -753,7 +778,6 @@ CREATE TABLE `Users` (
   `Snapshots` enum('None','View','Edit') NOT NULL default 'None',
   `System` enum('None','View','Edit') NOT NULL default 'None',
   `MaxBandwidth` varchar(16),
-  `MonitorIds` text,
   `TokenMinExpiry`   BIGINT UNSIGNED NOT NULL DEFAULT 0,
   `APIEnabled`  tinyint(3) UNSIGNED NOT NULL default 1,
   `HomeView`  varchar(64) NOT NULL DEFAULT '',

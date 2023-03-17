@@ -8,7 +8,9 @@ class Filter extends ZM_Object {
   protected static $table = 'Filters';
   protected static $attrTypes = null;
   protected static $opTypes = null;
+  protected static $is_isnot_opTypes = null;
   protected static $archiveTypes = null;
+  protected static $booleanValues = null;
 
   protected $defaults = array(
     'Id'              =>  null,
@@ -362,6 +364,7 @@ class Filter extends ZM_Object {
       '=~' => 2,
       '!~' => 2,
       '=[]' => 2,
+      'IN' => 2,
       '![]' => 2,
       'and' => 3,
       'or' => 4,
@@ -774,6 +777,26 @@ class Filter extends ZM_Object {
     return self::$attrTypes;
   }
 
+  public static function booleanValues() {
+    if (!self::$booleanValues) {
+      self::$booleanValues = array(
+        'false' => translate('False'),
+        'true' => translate('True')
+      );
+    }
+    return self::$booleanValues;
+  }
+
+  public static function is_isnot_opTypes() {
+    if (!self::$is_isnot_opTypes) {
+      self::$is_isnot_opTypes = array(
+        'IS'  => translate('OpIs'),
+        'IS NOT'  => translate('OpIsNot'),
+      );
+    }
+    return self::$is_isnot_opTypes;
+  }
+
   public static function opTypes() {
     if (!self::$opTypes) {
       self::$opTypes = array(
@@ -822,16 +845,8 @@ class Filter extends ZM_Object {
       }
     }
 
-    $is_isnot_opTypes = array(
-      'IS'  => translate('OpIs'),
-      'IS NOT'  => translate('OpIsNot'),
-    );
-
-
-    $booleanValues = array(
-      'false' => translate('False'),
-      'true' => translate('True')
-    );
+    $is_isnot_opTypes = $this->is_isnot_opTypes();
+    $booleanValues = $this->booleanValues();
 
     $conjunctionTypes = getFilterQueryConjunctionTypes();
     $storageareas = null;
@@ -952,6 +967,20 @@ class Filter extends ZM_Object {
     $attrTypes = $this->attrTypes();
     $opTypes = $this->opTypes();
     $archiveTypes = $this->archiveTypes();
+    $is_isnot_opTypes = $this->is_isnot_opTypes();
+    $booleanValues = $this->booleanValues();
+    $storageareas= null;
+    $states = array();
+    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `States` ORDER BY lower(`Name`) ASC') as $state_row ) {
+      $states[$state_row['Id']] = validHtmlStr($state_row['Name']);
+    }
+    $servers = array();
+    $servers['ZM_SERVER_ID'] = 'Current Server';
+    $servers['NULL'] = 'No Server';
+    global $Servers;
+    foreach ( $Servers as $server ) {
+      $servers[$server->Id()] = validHtmlStr($server->Name());
+    }
 
     for ($i=0; $i < count($terms); $i++) {
       $term = $terms[$i];
@@ -1005,7 +1034,7 @@ class Filter extends ZM_Object {
           }
           $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
           #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, $term['val']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, split(',',$term['val'])).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'MonitorName' ) {
           $monitor_names = ['' => translate('All')];
           foreach (Monitor::find() as $m) {
@@ -1019,6 +1048,9 @@ class Filter extends ZM_Object {
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']).'</span>'.PHP_EOL;
         } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
+          if (!$storageareas) {
+            $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+          }
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']).'</span>'.PHP_EOL;
         } elseif ( $term['attr'] == 'AlarmedZoneId' ) {

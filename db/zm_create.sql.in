@@ -785,6 +785,8 @@ CREATE TABLE `Users` (
   UNIQUE KEY `UC_Username` (`Username`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+source @PKGDATADIR@/db/User_Preferences.sql
+
 --
 -- Table structure for table `ZonePresets`
 --

@@ -136,8 +136,12 @@ if ( !isset($_REQUEST['filter']) ) {
 }
 parseSort();
 $filter = ZM\Filter::parse($_REQUEST['filter']);
+if (count($filter->terms())==1 and $filter->has_term('Id')) {
+  # Special case, coming from filter specifying this exact event.
+  $filter->terms([]);
+  $filter->addTerm(['attr' => 'MonitorId', 'op' => '=', 'val' => $Event->MonitorId(), 'cnj' => 'and']);
+}
 $filterQuery = $filter->querystring();
-
 $connkey = generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());

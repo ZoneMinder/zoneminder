@@ -387,7 +387,17 @@ if (ZM_OPT_USE_AUTH) {
 
     if (ZM_AUTH_HASH_LOGINS && empty($user) && !empty($_REQUEST['auth'])) {
       $user = getAuthUser($_REQUEST['auth']);
+    } else if (!(empty($_REQUEST['user']) or empty($_REQUEST['pass']))) {
+      # The shortened versions are used in auth_relay = PLAIN
+      $ret = validateUser($_REQUEST['user'], $_REQUEST['pass']);
+      if (!$ret[0]) {
+        ZM\Error($ret[1]);
+        unset($user); // unset should be ok here because we aren't in a function
+        return;
+      }
+      $user = $ret[0];
     } else if (!(empty($_REQUEST['username']) or empty($_REQUEST['password']))) {
+      # Longer versions are used on login page
       $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
       if (!$ret[0]) {
         ZM\Error($ret[1]);

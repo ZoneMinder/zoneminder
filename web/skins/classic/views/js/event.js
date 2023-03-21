@@ -33,7 +33,7 @@ function streamReq(data) {
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(monitorUrl, data)
+  $j.getJSON(monitorUrl+'?'+auth_relay, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }

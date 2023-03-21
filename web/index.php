@@ -118,6 +118,10 @@ if (!is_dir("skins/$skin/css/$css")) {
     if (!in_array($css, $css_skins)) {
       ZM\Error("Invalid skin css '$css' setting to " . $css_skins[0]);
       $css = $css_skins[0];
+      if (isset($_COOKIE['zmCSS'])) {
+        unset($_COOKIE['zmCSS']);
+        setcookie('zmCSS', '', time() - 3600);
+      }
     } else {
       $css = '';
     }

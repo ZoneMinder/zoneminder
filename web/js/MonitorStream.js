@@ -1,5 +1,5 @@
 var janus = null;
-var streaming = [];
+const streaming = [];
 
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
@@ -673,13 +673,11 @@ function MonitorStream(monitorData) {
     $j.ajaxSetup({timeout: AJAX_TIMEOUT});
     if (auth_hash) {
       this.streamCmdParms.auth = auth_hash;
-    } else if (auth_relay) {
-      this.streamCmdParms.auth_relay = auth_relay;
     }
 
     this.streamCmdReq = function(streamCmdParms) {
       this.ajaxQueue = jQuery.ajaxQueue({
-        url: this.url,
+        url: this.url + (auth_relay?'?'+auth_relay:''),
         xhrFields: {withCredentials: true},
         data: streamCmdParms,
         dataType: "json"
@@ -703,7 +701,7 @@ async function attachVideo(id, pin) {
     opaqueId: "streamingtest-"+Janus.randomString(12),
     success: function(pluginHandle) {
       streaming[id] = pluginHandle;
-      var body = {"request": "watch", "id": id, "pin": pin};
+      const body = {"request": "watch", "id": id, "pin": pin};
       streaming[id].send({"message": body});
     },
     error: function(error) {

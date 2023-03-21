@@ -7,7 +7,7 @@ const playBtn = $j('#playBtn');
 var monitor;
 
 function nextCycleView() {
-  window.location.replace('?view=cycle&mid='+nextMid+'&mode='+mode, cycleRefreshTimeout);
+  window.location.replace('?view=cycle&mid='+nextMid+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
 }
 
 function cyclePause() {
@@ -31,7 +31,7 @@ function cycleNext() {
     console.log('No monitorData for ' + monIdx);
   }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
+  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
 }
 
 function cyclePrev() {
@@ -43,7 +43,7 @@ function cyclePrev() {
     console.log('No monitorData for ' + monIdx);
   }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
+  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
 }
 
 function initCycle() {

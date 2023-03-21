@@ -112,7 +112,7 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($Event->DefaultVideo() and ($codec == 'MP4' or $codec == 'auto'));
+$video_tag = ((false !== strpos($Event->DefaultVideo(), 'h264')) and ($codec == 'MP4' or $codec == 'auto'));
 
 // videojs zoomrotate only when direct recording
 $Zoom = 1;
@@ -141,8 +141,8 @@ $filterQuery = $filter->querystring();
 $connkey = generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
 <?php 

@@ -665,7 +665,6 @@ class Filter extends ZM_Object {
   } # end function tree
 
   function addTerm($term=false, $position=null) {
-
     if ( !FilterTerm::is_valid_attr($term['attr']) ) {
       Error('Unsupported filter attribute ' . $term['attr']);
       //return $this;
@@ -699,6 +698,7 @@ class Filter extends ZM_Object {
     }
     return $this;
   }
+
   function Events() {
     $events = array();
     if (!$this->test_pre_sql_conditions()) {

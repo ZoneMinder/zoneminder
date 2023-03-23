@@ -653,8 +653,9 @@ sub CopyTo {
 
   if ( $$NewStorage{Type} eq 's3fs' ) {
     my $s3 = $NewStorage->s3();
-    if ($s3) {
-      my $event_path = $subpath.$self->RelativePath();
+    my $bucket = $NewStorage->bucket();
+    if ($s3 and $bucket) {
+      my $event_path = $NewStorage->aws_subpath().$self->RelativePath();
       my @files = glob("$OldPath/*");
       Debug("Files to move @files");
       eval {

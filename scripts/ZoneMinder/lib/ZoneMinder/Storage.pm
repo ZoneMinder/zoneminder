@@ -95,13 +95,14 @@ sub s3 {
     $url =~ s/^(s3|s3fs):\/\///ig;
     $url =~ /^\s*(?<ID>[^:]+):(?<SECRET>[^@]+)@(?<HOST>(https?:\/\/)?[^\/]*)\/(?<BUCKET>[^\/]+)(?<SUBPATH>\/.+)?\s*$/;
     my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ($+{ID},$+{SECRET}, $+{HOST}, $+{BUCKET}, $+{SUBPATH});
+    $$self{aws_bucket} = $aws_bucket;
+    $$self{aws_subpath} = $subpath;
     $subpath = '' if !$subpath;
     Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
     if ($aws_id and $aws_secret and $aws_host and $aws_bucket) {
       eval {
         require Net::Amazon::S3;
         require Net::Amazon::S3::Vendor::Generic;
-        require File::Slurp;
         my $vendor = undef;
         if ($aws_host) {
           $aws_host =~ s/^https?:\/\///ig;
@@ -118,11 +119,6 @@ sub s3 {
               )),
           });
         #$s3->ua(LWP::UserAgent->new(keep_alive => 0, requests_redirectable => [qw'GET HEAD DELETE PUT POST']));
-        my $bucket = $s3->bucket($aws_bucket);
-        if ( !$bucket ) {
-          Error("S3 bucket $bucket not found.");
-          die;
-        }
       };
       Error($@) if $@;
     } else {
@@ -130,6 +126,26 @@ sub s3 {
     } # end if parsed url
   }
   return $$self{s3};
+}
+
+sub bucket {
+  my $self = shift;
+  if (!$$self{bucket}) {
+    my $s3 = $self->s3();
+    if ($s3) {
+      my $bucket = $$self{bucket} = $s3->bucket($$self{aws_bucket});
+      if ( !$bucket ) {
+        Error("S3 bucket $bucket not found.");
+        die;
+      }
+    } # end if s3 
+  } # end if bucket
+  return $$self{bucket};
+}
+
+sub aws_subpath {
+  my $self = shift;
+  return defined($$self{aws_subpath}) ? $$self{aws_subpath} : '';
 }
 
 sub delete_path {
@@ -141,9 +157,10 @@ sub delete_path {
   Debug("Delete $path");
   if ($$self{Type} and ( $$self{Type} eq 's3fs' )) {
     my $s3 = $self->s3();
-    if ($s3) {
+    my $bucket = $self->bucket();
+    if ($s3 and $bucket) {
       eval {
-        if ( $bucket->delete_key($subpath.$path) ) {
+        if ( $bucket->delete_key($$self{aws_subpath}.$path) ) {
           $deleted = 1;
         } else {
           Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);

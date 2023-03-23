@@ -899,7 +899,6 @@ INSERT INTO `Users` (
   `Snapshots`,
   `System`,
   `MaxBandwidth`,
-  `MonitorIds`,
   `TokenMinExpiry`,
   `APIEnabled`,
   `HomeView`
@@ -917,7 +916,6 @@ INSERT INTO `Users` (
     'Edit' /* Snapshots */,
     'Edit' /* System */,
     '' /* Max Bandwidth */,
-    '' /* MonitorIds */,
     0 /* TokenMinExpiry */,
     1 /* Api Endabled */,
     '' /* Homeview */);

@@ -652,70 +652,35 @@ sub CopyTo {
   my $moved = 0;
 
   if ( $$NewStorage{Type} eq 's3fs' ) {
-    if ( $$NewStorage{Url} ) {
-      my $url = $$NewStorage{Url};
-      $url =~ s/^(s3|s3fs):\/\///ig;
-      $url =~ /^\s*(?<ID>[^:]+):(?<SECRET>[^@]+)@(?<HOST>(https?:\/\/)?[^\/]*)\/(?<BUCKET>[^\/]+)(?<SUBPATH>\/.+)?\s*$/;
-      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ($+{ID},$+{SECRET}, $+{HOST}, $+{BUCKET}, $+{SUBPATH});
-      $subpath = '' if !$subpath;
-      Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
-      if ($aws_id and $aws_secret and $aws_host and $aws_bucket) {
-        eval {
-          require Net::Amazon::S3;
-          require Net::Amazon::S3::Vendor::Generic;
-          require File::Slurp;
-          my $vendor = undef;
-          if ($aws_host) {
-            $aws_host =~ s/^https?:\/\///ig;
-            $vendor = Net::Amazon::S3::Vendor::Generic->new(
-              host=>$aws_host,
-              authorization_method => 'Net::Amazon::S3::Signature::V4',
-              use_virtual_host => 0,
-            );
+    my $s3 = $NewStorage->s3();
+    if ($s3) {
+      my $event_path = $subpath.$self->RelativePath();
+      my @files = glob("$OldPath/*");
+      Debug("Files to move @files");
+      eval {
+        foreach my $file (@files) {
+          next if $file =~ /^\./;
+          ($file) = ($file =~ /^(.*)$/); # De-taint
+          my $starttime = [gettimeofday];
+          Debug("Moving file $file to $NewPath");
+          my $size = -s $file;
+          if (!$size) {
+            Info('Not moving file with 0 size');
           }
-          my $s3 = Net::Amazon::S3->new( {
-              aws_access_key_id     => $aws_id,
-              aws_secret_access_key => $aws_secret,
-              ( $vendor ? (vendor => $vendor) : (
-                )),
-            });
-          $s3->ua(LWP::UserAgent->new(keep_alive => 0, requests_redirectable => [qw'GET HEAD DELETE PUT POST']));
-          my $bucket = $s3->bucket($aws_bucket);
-          if ( !$bucket ) {
-            Error("S3 bucket $bucket not found.");
-            die;
+          my $filename = $event_path.'/'.File::Basename::basename($file);
+          if (!$bucket->add_key_filename($filename, $file)) {
+            die "Unable to add key for $filename " . $s3->err . ': '. $s3->errstr;
           }
 
-          my $event_path = $subpath.$self->RelativePath();
+          my $duration = tv_interval($starttime);
+          Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
+        } # end foreach file.
 
-          my @files = glob("$OldPath/*");
-          Debug("Files to move @files");
-          foreach my $file (@files) {
-            next if $file =~ /^\./;
-            ($file) = ($file =~ /^(.*)$/); # De-taint
-            my $starttime = [gettimeofday];
-            Debug("Moving file $file to $NewPath");
-            my $size = -s $file;
-            if (!$size) {
-              Info('Not moving file with 0 size');
-            }
-            my $filename = $event_path.'/'.File::Basename::basename($file);
-            if (!$bucket->add_key_filename($filename, $file)) {
-              die "Unable to add key for $filename " . $s3->err . ': '. $s3->errstr;
-            }
-
-            my $duration = tv_interval($starttime);
-            Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
-          } # end foreach file.
-
-          $moved = 1;
-        };
-        Error($@) if $@;
-      } else {
-        Error('Unable to parse S3 Url into it\'s component parts.');
-      }
-    } # end if Url
-  } # end if s3
+        $moved = 1;
+      };
+      Error($@) if $@;
+    } # end if s3
+  } # end if s3f3
 
   my $error = '';
   if (!$moved) {

@@ -2439,7 +2439,7 @@ function check_datetime($x) {
 function getHomeView() {
   global $user;
   global $skin;
-  if ($user and $user['HomeView']) {
+  if ($user and isset($user['HomeView']) and $user['HomeView']) {
     $view = detaintPath($user['HomeView']);
     $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$view.'.php';
     if (file_exists($path)) {

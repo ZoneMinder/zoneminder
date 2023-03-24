@@ -442,13 +442,10 @@ MAIN: while( $loop ) {
           Debug("Have event $$Event{Id} at $$Event{Path}");
           $Event->StartDateTime(POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path()))));
         } # end foreach event
-      }
+      } # end scope for medium
 
-      if ( ! $$Storage{Scheme} ) {
-        Error("Storage Scheme not set on $$Storage{Name}, defaulting to shallow");
-        $$Storage{Scheme} = 'Shallow';
-      }
-      if ($$Storage{Scheme} eq 'Shallow') {
+      Debug("Checking for Medium Scheme Events under $$Storage{Path}/$monitor_dir");
+      {
         if ( ! chdir($monitor_dir) ) {
           Error("Can't chdir directory '$$Storage{Path}/$monitor_dir': $!");
           next;
@@ -463,13 +460,14 @@ MAIN: while( $loop ) {
         foreach my $event ( @temp_events ) {
           my $Event = $fs_events->{$event} = new ZoneMinder::Event();
           $$Event{Id} = $event;
-          #$$Event{Path} = $event_path;
           $$Event{Scheme} = 'Shallow';
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
+          $Event->Path();
+          $Event->age();
         } # end foreach event
         chdir( $Storage->Path() );
-      } # if USE_DEEP_STORAGE
+      }
       Debug('Got '.int(keys(%$fs_events)).' filesystem events for monitor '.$monitor_dir);
 
       delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);

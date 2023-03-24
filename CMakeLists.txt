@@ -143,6 +143,8 @@ set(ZM_DIR_SOUNDS "sounds" CACHE PATH
   "Location to look for optional sound files, default: sounds")
 set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
   "Web url to zms streaming server, default: /cgi-bin/nph-zms")
+set(ZM_PATH_API "/zm/api" CACHE PATH
+  "Web url to api, default: /zm/api")
 set(ZM_PATH_SHUTDOWN "/sbin/shutdown" CACHE PATH
   "Path to shutdown binary, default: /sbin/shutdown")
 

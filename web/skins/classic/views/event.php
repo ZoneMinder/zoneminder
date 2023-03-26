@@ -234,7 +234,7 @@ if (file_exists($Event->Path().'/snapshot.jpg')) {
 }
 if (file_exists($Event->Path().'/objdetect.jpg')) {
   echo '
-<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect&width='.ZM_WEB_LIST_THUMB_WIDTH.'">
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect">
   <img src="?view=image&eid='. $Event->Id().'&amp;fid=objdetect" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Detected Objects"/>
 </a>
 ';

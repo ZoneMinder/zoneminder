@@ -149,6 +149,7 @@ getBodyTopHTML();
 ?>
   <div id="page">
     <?php echo getNavBarHTML() ?>
+    <div id="content">
 <?php 
 if ( !$Event->Id() ) {
   echo '<div class="error">Event was not found.</div>';
@@ -207,7 +208,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
     </div>
 <?php if ( $Event->Id() ) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
-    <div id="content">
+    <div id="inner-content">
       <div class="d-flex flex-row">
         <div class="eventStats">
           <!-- VIDEO STATISTICS TABLE -->
@@ -233,7 +234,7 @@ if (file_exists($Event->Path().'/snapshot.jpg')) {
 }
 if (file_exists($Event->Path().'/objdetect.jpg')) {
   echo '
-<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect&width='.ZM_WEB_LIST_THUMB_WIDTH.'">
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect">
   <img src="?view=image&eid='. $Event->Id().'&amp;fid=objdetect" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Detected Objects"/>
 </a>
 ';
@@ -359,6 +360,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 <?php
 } // end if Event exists
 ?>
+    </div><!--inner-content-->
     </div><!--content-->
     
   </div><!--page-->

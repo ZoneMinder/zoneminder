@@ -1207,12 +1207,12 @@ function toggleZones(e) {
     if (zones.is(":visible")) {
       zones.hide();
       button.setAttribute('title', showZonesString);
-      button.innerHTML = '<span class="material-icons">layers</span>';
+      $j('#toggleZonesButton .material-icons').text('layers');
       setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
     } else {
       zones.show();
       button.setAttribute('title', hideZonesString);
-      button.innerHTML = '<span class="material-icons">layers_clear</span>';
+      $j('#toggleZonesButton .material-icons').text('layers_clear');
       setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
     }
   } else {

@@ -59,10 +59,16 @@ RHEL/CentOS 7 & 8 users must enable the EPEL repo:
     
 RHEL/CentOS 8 users must also enable the PowerTools repo:
 
+.. sidebar :: Note
+
+    PowerTools may not work on RHEL8. Refer https://rpmfusion.org/Configuration#Command_Line_Setup_using_rpm
+
 ::
 
     sudo dnf install dnf-plugins-core
+    sudo dnf install --nogpgcheck https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-$(rpm -E %rhel).noarch.rpm
     sudo dnf config-manager --set-enabled PowerTools
+    sudo subscription-manager repos --enable "codeready-builder-for-rhel-8-$(uname -m)-rpms"
 
 Once the additional repos are enabled, install ZoneMinder from the commandline. Choose the package that matches the desired web server.
 

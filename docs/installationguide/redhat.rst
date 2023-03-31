@@ -86,9 +86,9 @@ Install ZoneMinder for Nginx web server:
     sudo dnf install zoneminder-nginx
 
  
-Once ZoneMinder has been installed, you must read the README file to complete the installation. Fedora users can find the README under /usr/share/doc/zoneminder-common. RHEL users can find the README under /usr/share/doc/zoneminder-common-x.xx where x.xx is the version of zoneminder.
+Once ZoneMinder has been installed, you **must** read the README file to complete the installation. Fedora users can find the README under /usr/share/doc/zoneminder-common. RHEL users can find the README under /usr/share/doc/zoneminder-common-x.xx where x.xx is the version of zoneminder.
 
-ZoneMinder will *NOT* run without completing the steps shown in the README!
+**ZoneMinder will NOT run without completing the steps shown in the README!**
 
 How to Install Nightly Development Builds
 -----------------------------------------

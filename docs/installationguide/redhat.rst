@@ -6,7 +6,7 @@ Redhat
 These instructions apply to all Redhat distros and their clones, including but not limited to: Fedora, RHEL, Rocky Linux, Alma Linux, and others. While the installation instructions are the same for each distro, the reason why one might use one distro over the other is different. A short description follows, which is intended to help you chose what distro best fits your needs.
 
 Background: RHEL, Rocky Linux, and Clones
-------------------------------------
+-----------------------------------------
 
 These distributions are classified as enterprise operating systems and have a long operating lifetime of many years. By design, they will not have the latest and greatest versions of any package. Instead, stable packages are the emphasis.
 

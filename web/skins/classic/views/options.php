@@ -64,9 +64,7 @@ echo getNavBarHTML();
         <ul class="nav nav-pills flex-column">
 <?php
 foreach ($tabs as $name=>$value) {
-?>
-          <li class="nav-item form-control-sm my-1"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
-<?php
+  echo '<li class="nav-item form-control-sm mb-2 '.$name.'"><a class="nav-link'.($tab == $name ? ' active' : '').'" href="?view='.$view.'&amp;tab='.$name.'">'.$value.'</a></li>'.PHP_EOL;
 }
 ?>
         </ul>

@@ -291,7 +291,7 @@ function visibleMonitor($mid) {
   if ($group_permission_value != 'Inherit') return true;
 
   #if (!$user or ($user['Monitors'] == 'None')) return false;
-  ZM\Debug("Returning " . ($user['Monitors'] == 'None' ? 'false' : 'true') . " for monitor $mid");
+  //ZM\Debug("Returning " . ($user['Monitors'] == 'None' ? 'false' : 'true') . " for monitor $mid");
   return ($user['Monitors'] != 'None');
 }
 

@@ -348,7 +348,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
             $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
             $optionCanEdit = $canEdit && !$value['System'];
 ?>
-        <div class="form-group form-row">
+        <div class="form-group form-row <?php echo $name ?>">
           <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
           <div class="col-md">
 <?php   

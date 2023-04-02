@@ -26,3 +26,13 @@
   overflow: auto;
   height: 100%;
 }
+#header {
+  display: flex;
+  justify-content: space-between;
+}
+#header h2 {
+  margin: .5rem auto;
+}
+#contentButtons {
+  margin-left: auto;
+}

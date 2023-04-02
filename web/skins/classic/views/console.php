@@ -245,9 +245,7 @@ ob_start();
         'val'=>implode(',', array_map(function($m){return $m['Id'];}, $displayMonitors))
         )
     );
-    ZM\Debug(print_r($filter, true));
     parseFilter($filter);
-    ZM\Debug(print_r($filter, true));
     echo '<th class="colEvents"><a '
       .(canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '')
       .$eventCounts[$i]['title']

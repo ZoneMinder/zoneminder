@@ -12,6 +12,9 @@ class User extends ZM_Object {
 	protected $defaults = array(
 			'Id'              => null,
       'Username'        => array('type'=>'text','filter_regexp'=>'/[^\w\.@ ]/', 'default'=>''),
+      'Name'            => '',
+      'Email'           => '',
+      'Phone'           => '',
       'Password'        => '',
       'Language'        => '',
       'Enabled'         => 1,

@@ -253,11 +253,11 @@ if ($action == 'save') {
             0,
             $newMonitor['Height']-1),
           'Area'=>$zoneArea,
-          'MinAlarmPixels'=>intval(($zoneArea*1)/100),
+          'MinAlarmPixels'=>intval(($zoneArea*.50)/100),
           'MaxAlarmPixels'=>intval(($zoneArea*75)/100),
-          'MinFilterPixels'=>intval(($zoneArea*1)/100),
+          'MinFilterPixels'=>intval(($zoneArea*.50)/100),
           'MaxFilterPixels'=>intval(($zoneArea*75)/100),
-          'MinBlobPixels'=>intval(($zoneArea*1)/100)
+          'MinBlobPixels'=>intval(($zoneArea*.50)/100)
         ])) {
           $error_message .= $zone->get_last_error();
           ZM\Error('Error adding zone:' . $error_message);

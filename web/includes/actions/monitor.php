@@ -244,6 +244,7 @@ if ($action == 'save') {
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
         $zoneArea = $newMonitor['Width'] * $newMonitor['Height'];
+        $zone = new ZM\Zone();
         if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All', 'Coords'=>
           sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
             $newMonitor['Width']-1,

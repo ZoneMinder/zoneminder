@@ -785,6 +785,8 @@ CREATE TABLE `Users` (
   UNIQUE KEY `UC_Username` (`Username`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+source @PKGDATADIR@/db/User_Preferences.sql
+
 --
 -- Table structure for table `ZonePresets`
 --
@@ -897,7 +899,6 @@ INSERT INTO `Users` (
   `Snapshots`,
   `System`,
   `MaxBandwidth`,
-  `MonitorIds`,
   `TokenMinExpiry`,
   `APIEnabled`,
   `HomeView`
@@ -915,7 +916,6 @@ INSERT INTO `Users` (
     'Edit' /* Snapshots */,
     'Edit' /* System */,
     '' /* Max Bandwidth */,
-    '' /* MonitorIds */,
     0 /* TokenMinExpiry */,
     1 /* Api Endabled */,
     '' /* Homeview */);

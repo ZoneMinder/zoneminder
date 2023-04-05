@@ -233,9 +233,24 @@ ob_start();
 <?php if ( $show_storage_areas ) { ?>
             <th class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
-      foreach ( array_keys($eventCounts) as $j ) {
-        echo '<th class="colEvents">'. $eventCounts[$j]['title'] .'</th>';
-      }
+
+  foreach ( array_keys($eventCounts) as $i ) {
+    $filter = addFilterTerm(
+      $eventCounts[$i]['filter'],
+      count($eventCounts[$i]['filter']['Query']['terms']),
+      array(
+        'cnj'=>'and',
+        'attr'=>'Monitor',
+        'op'=>'IN',
+        'val'=>implode(',', array_map(function($m){return $m['Id'];}, $displayMonitors))
+        )
+    );
+    parseFilter($filter);
+    echo '<th class="colEvents"><a '
+      .(canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '')
+      .$eventCounts[$i]['title']
+      .'</a></th>'.PHP_EOL;
+  } // end foreach eventCounts
 ?>
             <th class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
 <?php if ( canEdit('Monitors') ) { ?>

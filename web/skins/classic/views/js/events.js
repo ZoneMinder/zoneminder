@@ -39,13 +39,9 @@ function ajaxRequest(params) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }
-  $j('#fieldsTable input').each(function(index) {
+  $j('#fieldsTable input, #fieldsTable select').each(function(index) {
     const el = $j(this);
     params.data[el.attr('name')] = el.val();
-  });
-  $j('#fieldsTable select').each(function(index) {
-    const el = $j(this);
-    params.data[el.attr('name')] = el.children('option:selected').val();
   });
   $j.ajax({
     url: thisUrl + '?view=request&request=events&task=query'+filterQuery,

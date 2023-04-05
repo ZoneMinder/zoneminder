@@ -46,8 +46,13 @@ echo getNavBarHTML();
   <div id="page">
     <h2 class="pt-2"><?php echo translate('Monitors') ?></h2>
     <div id="content">
-The following monitors will have these settings update when you click Save:<br/><br/>
-      <?php echo implode('<br/>', array_map(function($m){return $m->Id().' ' .$m->Name();}, $monitors)); ?>
+      <div class="Monitors">
+        <div class="Instructions">
+          The following monitors will have these settings updated when you click Save:<br/><br/>
+          <?php echo implode(', ', array_map(function($m){return '<a href="?view=monitor&mid='.$m->Id().'">'.$m->Id().' ' .$m->Name().'</a>';}, $monitors)); ?>
+        </div>
+        <div class="Settings">
+
       <form name="contentForm" id="contentForm" method="post" action="?" onsubmit="$j('#contentButtons').hide();return true;">
         <input type="hidden" name="view" value="monitors"/>
         <input type="hidden" name="action" value="save"/>
@@ -109,7 +114,9 @@ The following monitors will have these settings update when you click Save:<br/>
           <button type="submit" value="Save"><?php echo translate('Save') ?></button>
           <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
         </div>
+        </div><!--settings-->
       </form>
+</div><!--Monitors-->
     </div>
   </div>
 <?php xhtmlFooter() ?>

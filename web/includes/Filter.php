@@ -665,7 +665,6 @@ class Filter extends ZM_Object {
   } # end function tree
 
   function addTerm($term=false, $position=null) {
-
     if ( !FilterTerm::is_valid_attr($term['attr']) ) {
       Error('Unsupported filter attribute ' . $term['attr']);
       //return $this;
@@ -699,6 +698,7 @@ class Filter extends ZM_Object {
     }
     return $this;
   }
+
   function Events() {
     $events = array();
     if (!$this->test_pre_sql_conditions()) {
@@ -928,20 +928,24 @@ class Filter extends ZM_Object {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, explode(',', $term['val'])).'</td>'.PHP_EOL;
         } else if ( $term['attr'] == 'MonitorName' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val'],
+          ['class'=>'chosen', 'multiple'=>'multiple']).'</td>'.PHP_EOL;
         } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val'],
+          ['class'=>'chosen', 'multiple'=>'multiple']).'</td>'.PHP_EOL;
         } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
           if (!$storageareas) {
             $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
           }
 
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val'],
+          ['class'=>'chosen', 'multiple'=>'multiple']).'</td>'.PHP_EOL;
         } elseif ( $term['attr'] == 'AlarmedZoneId' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val'],
+          ['class'=>'chosen', 'multiple'=>'multiple']).'</td>'.PHP_EOL;
         } else {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
           $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.validHtmlStr($term['val']).'"/></td>'.PHP_EOL;
@@ -1034,7 +1038,8 @@ class Filter extends ZM_Object {
           }
           $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
           #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, explode(',', $term['val'])).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, explode(',', $term['val']),
+          ['class'=>'chosen', 'multiple'=>'multiple', 'size'=>'4']).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'MonitorName' ) {
           $monitor_names = ['' => translate('All')];
           foreach (Monitor::find() as $m) {
@@ -1043,19 +1048,23 @@ class Filter extends ZM_Object {
             }
           }
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val'],
+          ['class'=>'chosen', 'multiple'=>'multiple']).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val'],
+          ['class'=>'chosen', 'multiple'=>'multiple']).'</span>'.PHP_EOL;
         } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
           if (!$storageareas) {
             $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
           }
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val'],
+          ['class'=>'chosen', 'multiple'=>'multiple']).'</span>'.PHP_EOL;
         } elseif ( $term['attr'] == 'AlarmedZoneId' ) {
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val']).'</span>'.PHP_EOL;
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val'],
+          ['class'=>'chosen', 'multiple'=>'multiple']).'</span>'.PHP_EOL;
         } else {
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.validHtmlStr($term['val']).'"/></span>'.PHP_EOL;

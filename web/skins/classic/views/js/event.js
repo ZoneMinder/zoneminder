@@ -33,7 +33,7 @@ function streamReq(data) {
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(monitorUrl, data)
+  $j.getJSON(monitorUrl+'?'+auth_relay, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -792,6 +792,7 @@ function updateProgressBar() {
     return;
   } // end if ! eventData && streamStatus
   const curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+  if (curWidth > 100) curWidth = 100;
 
   const progressDate = new Date(eventData.StartDateTime);
   progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
@@ -1207,12 +1208,12 @@ function toggleZones(e) {
     if (zones.is(":visible")) {
       zones.hide();
       button.setAttribute('title', showZonesString);
-      button.innerHTML = '<span class="material-icons">layers</span>';
+      $j('#toggleZonesButton .material-icons').text('layers');
       setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
     } else {
       zones.show();
       button.setAttribute('title', hideZonesString);
-      button.innerHTML = '<span class="material-icons">layers_clear</span>';
+      $j('#toggleZonesButton .material-icons').text('layers_clear');
       setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
     }
   } else {

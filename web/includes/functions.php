@@ -2439,9 +2439,9 @@ function check_datetime($x) {
 function getHomeView() {
   global $user;
   global $skin;
-  if ($user and $user['HomeView']) {
+  if ($user and isset($user['HomeView']) and $user['HomeView']) {
     $view = detaintPath($user['HomeView']);
-    $path = $_SERVER['DOCUMENT_ROOT'].'/skins/'.$skin.'/views/'.$view.'.php';
+    $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$view.'.php';
     if (file_exists($path)) {
       return $view;
     } else {
@@ -2450,7 +2450,7 @@ function getHomeView() {
   }
   if (defined('ZM_WEB_HOMEVIEW') and ZM_WEB_HOMEVIEW) {
     $view = detaintPath(ZM_WEB_HOMEVIEW);
-    $path = $_SERVER['DOCUMENT_ROOT'].'/skins/'.$skin.'/views/'.$view.'.php';
+    $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$view.'.php';
     if (file_exists($path)) {
       return $view;
     } else {

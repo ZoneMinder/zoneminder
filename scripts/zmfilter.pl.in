@@ -792,7 +792,7 @@ sub substituteTags {
           my $filename = fileparse($path);
           my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
           push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-          $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
+          $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
           Warning('No image for MOD at '.$path);
           $text =~ s/%EIMOD%/No image found for EIMOD/g;

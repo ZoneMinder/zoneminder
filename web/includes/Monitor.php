@@ -953,7 +953,7 @@ public static function getStatuses() {
       $options['buffer'] = $this->StreamReplayBuffer();
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
     $html = '
-          <div id="monitor'. $this->Id() . '" class="monitor">
+          <div id="monitor'. $this->Id() . '" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
             <div
               id="imageFeed'. $this->Id() .'"
               class="monitorStream imageFeed"

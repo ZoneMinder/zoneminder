@@ -193,6 +193,7 @@ $GLOBALS['defaultUser'] = array(
   'Snapshots' => 'Edit',
   'System'    => 'Edit',
   'MaxBandwidth' => '',
+  'HomeView'  => '',
   'MonitorIds'   => false
 );
 

@@ -64,9 +64,7 @@ echo getNavBarHTML();
         <ul class="nav nav-pills flex-column">
 <?php
 foreach ($tabs as $name=>$value) {
-?>
-          <li class="nav-item form-control-sm my-1"><a class="nav-link<?php echo $tab == $name ? ' active' : '' ?>" href="?view=<?php echo $view ?>&amp;tab=<?php echo $name ?>"><?php echo $value ?></a></li>
-<?php
+  echo '<li class="nav-item form-control-sm mb-2 '.$name.'"><a class="nav-link'.($tab == $name ? ' active' : '').'" href="?view='.$view.'&amp;tab='.$name.'">'.$value.'</a></li>'.PHP_EOL;
 }
 ?>
         </ul>
@@ -348,7 +346,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
             $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
             $optionCanEdit = $canEdit && !$value['System'];
 ?>
-        <div class="form-group form-row">
+        <div class="form-group form-row <?php echo $name ?>">
           <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
           <div class="col-md">
 <?php   

@@ -4,7 +4,7 @@ require_once('database.php');
 require_once('Object.php');
 require_once('Group_Permission.php');
 require_once('Monitor_Permission.php');
-
+require_once('User_Preference.php');
 
 class User extends ZM_Object {
   protected static $table = 'Users';
@@ -12,6 +12,9 @@ class User extends ZM_Object {
 	protected $defaults = array(
 			'Id'              => null,
       'Username'        => array('type'=>'text','filter_regexp'=>'/[^\w\.@ ]/', 'default'=>''),
+      'Name'            => '',
+      'Email'           => '',
+      'Phone'           => '',
       'Password'        => '',
       'Language'        => '',
       'Enabled'         => 1,
@@ -32,6 +35,7 @@ class User extends ZM_Object {
 
   private $Group_Permissions; # array of GP objects indexed by id
   private $Monitor_Permissions;
+  private $Preferences;
 
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(get_class(), $parameters, $options);
@@ -89,6 +93,25 @@ class User extends ZM_Object {
       $mp->MonitorId($monitor_id);
     }
     return $this->Monitor_Permissions[$monitor_id];
+  }
+
+  public function Preferences($new=-1) {
+    if ($new != -1) $this->Preferences = $new;
+    if (!$this->Preferences) {
+      $this->Preferences = array_to_hash_by_key('Name', User_Preference::find(['UserId'=>$this->Id()]));
+    }
+    return array_values($this->Preferences);
+  }
+
+  public function Preference($name) {
+    if (!$this->Preferences) $this->Preferences();
+
+    if (!isset($this->Preferences[$name])) {
+      $mp = $this->Preferences[$name] = new User_Preference();
+      $mp->UserId($this->Id());
+      $mp->Name($name);
+    }
+    return $this->Preferences[$name];
   }
 } # end class User
 ?>

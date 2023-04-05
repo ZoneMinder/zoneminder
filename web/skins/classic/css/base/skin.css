@@ -251,7 +251,13 @@ body.sticky #content {
   flex-flow: column;
 */
   overflow: hidden;
-height: 100%;
+  height: 100%;
+}
+
+#inner-content {
+  overflow: auto;
+  height: 100%;
+  width: 100%;
 }
 
 /*
@@ -871,4 +877,8 @@ a.flip {
     display: flex;
     flex-wrap: wrap;
   }
+}
+#fieldsTable ul.chosen-choices {
+  max-height: 100px;
+  overflow-y:auto;
 }

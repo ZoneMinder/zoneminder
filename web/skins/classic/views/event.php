@@ -112,7 +112,7 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($Event->DefaultVideo() and ($codec == 'MP4' or $codec == 'auto'));
+$video_tag = ((false !== strpos($Event->DefaultVideo(), 'h264')) and ($codec == 'MP4' or $codec == 'auto'));
 
 // videojs zoomrotate only when direct recording
 $Zoom = 1;
@@ -136,15 +136,20 @@ if ( !isset($_REQUEST['filter']) ) {
 }
 parseSort();
 $filter = ZM\Filter::parse($_REQUEST['filter']);
+if (count($filter->terms())==1 and $filter->has_term('Id')) {
+  # Special case, coming from filter specifying this exact event.
+  $filter->terms([]);
+  $filter->addTerm(['attr' => 'MonitorId', 'op' => '=', 'val' => $Event->MonitorId(), 'cnj' => 'and']);
+}
 $filterQuery = $filter->querystring();
-
 $connkey = generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
+    <div id="content">
 <?php 
 if ( !$Event->Id() ) {
   echo '<div class="error">Event was not found.</div>';
@@ -203,7 +208,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
     </div>
 <?php if ( $Event->Id() ) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
-    <div id="content">
+    <div id="inner-content">
       <div class="d-flex flex-row">
         <div class="eventStats">
           <!-- VIDEO STATISTICS TABLE -->
@@ -216,21 +221,21 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 if (file_exists($Event->Path().'/alarm.jpg')) {
   echo '
 <a href="?view=image&eid='. $Event->Id().'&amp;fid=alarm">
-  <img src="?view=image&eid='. $Event->Id().'&amp;fid=alarm&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="First alarmed frame"/>
+  <img src="?view=image&eid='. $Event->Id().'&amp;fid=alarm&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="First alarmed frame" title="First alarmed frame"/>
 </a>    
 ';
 }
 if (file_exists($Event->Path().'/snapshot.jpg')) {
   echo '
 <a href="?view=image&eid='. $Event->Id().'&amp;fid=snapshot">
-  <img src="?view=image&eid='. $Event->Id().'&amp;fid=snapshot&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" title="Frame with the most motion"/>
+  <img src="?view=image&eid='. $Event->Id().'&amp;fid=snapshot&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Frame with the most motion" title="Frame with the most motion"/>
 </a>
 ';
 }
 if (file_exists($Event->Path().'/objdetect.jpg')) {
   echo '
-<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect&width='.ZM_WEB_LIST_THUMB_WIDTH.'">
-  <img src="?view=image&eid='. $Event->Id().'&amp;fid=objdetect" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Detected Objects"/>
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect">
+  <img src="?view=image&eid='. $Event->Id().'&amp;fid=objdetect" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Detected Objects" title="Detected Objects"/>
 </a>
 ';
 }
@@ -355,6 +360,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 <?php
 } // end if Event exists
 ?>
+    </div><!--inner-content-->
     </div><!--content-->
     
   </div><!--page-->

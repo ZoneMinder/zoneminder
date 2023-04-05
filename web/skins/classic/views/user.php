@@ -61,22 +61,25 @@ echo getBodyTopHTML();
 echo getNavBarHTML();
 ?>
   <div id="page">
-    <div class="w-100">
-      <div class="float-left pl-3 pt-1">
-        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
-        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-      </div>
-      <div class="w-100 pt-2">
-        <h2><?php echo translate('User').' - '.validHtmlStr($User->Username()); ?></h2>
-      </div>
-    </div>
-    <div id="content" class="row justify-content-center">
+    <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
         <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? $_REQUEST['prev'] : 'options&tab=users' ?>"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($_REQUEST['uid']) ?>"/>
-        <div class="BasicInformation">
-          <table id="contentTable" class="table">
-            <tbody>
+        <div id="header">
+          <div class="float-left pl-3 pt-1">
+            <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+            <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+          </div>
+          <h2><?php echo translate('User').' - '.validHtmlStr($User->Username()); ?></h2>
+          <div id="contentButtons">
+            <button type="submit" name="action" value="Save"><?php echo translate('Save') ?></button>
+            <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
+          </div>
+        </div><!--header-->
+        <div id="content-inner">
+          <div class="BasicInformation">
+            <table id="contentTable" class="table">
+              <tbody>
   <?php
   if (canEdit('System')) {
   ?>
@@ -283,10 +286,7 @@ if (canEdit('Groups')) {
 <?php
 } // end if canEdit(System)
 ?>
-      <div id="contentButtons">
-        <button type="submit" name="action" value="Save"><?php echo translate('Save') ?></button>
-        <button type="button" data-on-click="backWindow"><?php echo translate('Cancel') ?></button>
-      </div>
+      </div><!--inner content-->
     </form>
   </div>
 </div>

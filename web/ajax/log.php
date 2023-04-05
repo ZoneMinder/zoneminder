@@ -124,7 +124,6 @@ function queryRequest() {
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $text);
     }
-    $wherevalues = $query['values'];
     $where = '(' .implode(' OR ', $likes). ')';
 
   } else if ($search != '') {
@@ -133,7 +132,6 @@ function queryRequest() {
       array_push($likes, $col.' LIKE ?');
       array_push($query['values'], $search);
     }
-    $wherevalues = $query['values'];
     $where = '(' .implode(' OR ', $likes). ')';
   }
 
@@ -174,7 +172,7 @@ function queryRequest() {
 
   $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
   if ( $search != '' || count($advsearch) ) {
-    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $wherevalues);
+    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $query['values']);
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }

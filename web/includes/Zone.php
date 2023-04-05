@@ -16,7 +16,7 @@ class Zone extends ZM_Object {
       'NumCoords'           => '4',
       'Coords'              => '',
       'Area'                => '0',
-      'AlarmRGB'            => '0xff0000',
+      'AlarmRGB'            => 0xff0000,
 			'CheckMethod'         => 'Blobs',
 			'MinPixelThreshold'   => 25,
 			'MaxPixelThreshold'   => null,

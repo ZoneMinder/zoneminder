@@ -24,6 +24,9 @@ if (!canEdit('Monitors')) {
   return;
 }
 
+require_once('includes/Monitor.php');
+require_once('includes/Zone.php');
+
 global $error_message;
 
 if ($action == 'save') {
@@ -237,24 +240,29 @@ if ($action == 'save') {
       $changes['Sequence'] = $maxSeq+1;
       if ( $mid ) $changes['Id'] = $mid; # mid specified in request, doesn't exist in db, will re-use slot
 
+
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
         $zoneArea = $newMonitor['Width'] * $newMonitor['Height'];
-        dbQuery("INSERT INTO Zones SET MonitorId = ?, Name = 'All', Type = 'Active', Units = 'Percent', NumCoords = 4, Coords = ?, Area=?, AlarmRGB = 0xff0000, CheckMethod = 'Blobs', MinPixelThreshold = 25, MinAlarmPixels=?, MaxAlarmPixels=?, FilterX = 3, FilterY = 3, MinFilterPixels=?, MaxFilterPixels=?, MinBlobPixels=?, MinBlobs = 1", array( $mid,
-              sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
-                $newMonitor['Width']-1,
-                0,
-                $newMonitor['Width']-1,
-                $newMonitor['Height']-1,
-                0,
-                $newMonitor['Height']-1),
-              $zoneArea,
-              intval(($zoneArea*3)/100),
-              intval(($zoneArea*75)/100),
-              intval(($zoneArea*3)/100),
-              intval(($zoneArea*75)/100),
-              intval(($zoneArea*2)/100)
-              ));
+        $zone = new ZM\Zone();
+        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All', 'Coords'=>
+          sprintf( '%d,%d %d,%d %d,%d %d,%d', 0, 0,
+            $newMonitor['Width']-1,
+            0,
+            $newMonitor['Width']-1,
+            $newMonitor['Height']-1,
+            0,
+            $newMonitor['Height']-1),
+          'Area'=>$zoneArea,
+          'MinAlarmPixels'=>intval(($zoneArea*.05)/100),
+          'MaxAlarmPixels'=>intval(($zoneArea*75)/100),
+          'MinFilterPixels'=>intval(($zoneArea*.05)/100),
+          'MaxFilterPixels'=>intval(($zoneArea*75)/100),
+          'MinBlobPixels'=>intval(($zoneArea*.05)/100)
+        ])) {
+          $error_message .= $zone->get_last_error();
+          ZM\Error('Error adding zone:' . $error_message);
+        }
       } else {
         ZM\Error('Error saving new Monitor.');
         return;

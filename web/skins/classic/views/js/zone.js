@@ -234,7 +234,7 @@ function applyZoneUnits() {
 function limitRange(field, minValue, maxValue) {
   if ( field.value != '' ) {
     field.value = constrainValue(
-        parseInt(field.value),
+        parseFloat(field.value),
         parseInt(minValue),
         parseInt(maxValue)
     );

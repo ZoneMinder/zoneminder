@@ -792,6 +792,7 @@ function updateProgressBar() {
     return;
   } // end if ! eventData && streamStatus
   const curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+  if (curWidth > 100) curWidth = 100;
 
   const progressDate = new Date(eventData.StartDateTime);
   progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));

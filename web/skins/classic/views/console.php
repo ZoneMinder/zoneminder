@@ -18,9 +18,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( $running == null ) 
-  $running = daemonCheck();
-
 $eventCounts = array(
   'Total'=>  array(
     'title' => translate('Events'),
@@ -312,7 +309,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 <?php
   }
   $imgHTML = '';
-  if (ZM_WEB_LIST_THUMBS && ($monitor['Capturing'] != 'None') && $running && canView('Stream')) {
+  if (ZM_WEB_LIST_THUMBS && ($monitor['Capturing'] != 'None') && canView('Stream')) {
     $options = array();
 
     $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();

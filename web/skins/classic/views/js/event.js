@@ -26,6 +26,7 @@ var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
+var scaleValue = 0;
 
 function streamReq(data) {
   if (auth_hash) data.auth = auth_hash;
@@ -213,17 +214,17 @@ function changeCodec() {
 }
 
 function changeScale() {
-  var scale = $j('#scale').val();
-  var newWidth;
-  var newHeight;
-  var autoScale;
+  const scale = $j('#scale').val();
+  let newWidth;
+  let newHeight;
+  let autoScale;
   const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
 
-  var alarmCue = $j('#alarmCues');
-  var bottomEl = $j('#replayStatus');
+  const alarmCue = $j('#alarmCues');
+  const bottomEl = $j('#replayStatus');
 
   if (scale == '0') {
-    var newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
+    const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
     autoScale = newSize.autoScale;
@@ -234,8 +235,10 @@ function changeScale() {
   }
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
+  console.log(scale, (scale == '0'));
+  scaleValue = scale == '0' ? autoScale : scale;
   if (!vid) { // zms needs extra sizing
-    streamScale(scale == '0' ? autoScale : scale);
+    streamScale(scaleValue);
     drawProgressBar();
   }
   if (cueFrames) {
@@ -338,6 +341,10 @@ function getCmdResponse(respObj, respText) {
     setButtonState('zoomOutBtn', 'unavail');
   } else {
     setButtonState('zoomOutBtn', 'inactive');
+  }
+  if ((streamStatus.scale !== undefined) && (streamStatus.scale != scaleValue)) {
+    console.log("Stream not scaled, re-applying", scaleValue, streamStatus.scale);
+    streamScale(scaleValue);
   }
 
   updateProgressBar();
@@ -895,8 +902,8 @@ function manageDelConfirmModalBtns() {
 }
 
 function getEvtStatsCookie() {
-  var cookie = 'zmEventStats';
-  var stats = getCookie(cookie);
+  const cookie = 'zmEventStats';
+  let stats = getCookie(cookie);
 
   if (!stats) {
     stats = 'on';
@@ -938,6 +945,9 @@ function getStat() {
         break;
       case 'n/a':
         tdString = 'n/a';
+        break;
+      case 'Resolution':
+        tdString = eventData.Width + 'x' + eventData.Height;
         break;
       case 'Path':
         tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';

@@ -648,6 +648,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     double progress;
     int rate;
     int zoom;
+    int scale;
     bool paused;
   } status_data = {};
 
@@ -658,14 +659,17 @@ void EventStream::processCommand(const CmdMsg *msg) {
   status_data.progress = std::chrono::duration<double>(event_data->frames[curr_frame_id-1].offset).count();
   status_data.rate = replay_rate;
   status_data.zoom = zoom;
+  status_data.scale = scale;
   status_data.paused = paused;
-  Debug(2, "Event:%" PRIu64 ", Duration %f, Paused:%d, progress:%f Rate:%d, Zoom:%d",
+  Debug(2, "Event:%" PRIu64 ", Duration %f, Paused:%d, progress:%f Rate:%d, Zoom:%d Scale:%d",
         status_data.event_id,
         FPSeconds(status_data.duration).count(),
         status_data.paused,
         FPSeconds(status_data.progress).count(),
         status_data.rate,
-        status_data.zoom);
+        status_data.zoom,
+        status_data.scale
+        );
 
   DataMsg status_msg;
   status_msg.msg_type = MSG_DATA_EVENT;
@@ -1078,7 +1082,7 @@ void EventStream::runStream() {
           }
           now = std::chrono::steady_clock::now();
           TimePoint::duration elapsed = now - start;
-          delta -= std::chrono::duration_cast<Milliseconds>(elapsed); // sending frames takes time, so remove it from the sleep time
+          delta -= std::chrono::duration_cast<Microseconds>(elapsed); // sending frames takes time, so remove it from the sleep time
 
           Debug(2, "New delta: %fs from last frame offset %fs - next_frame_offset %fs - elapsed %fs",
               FPSeconds(delta).count(),

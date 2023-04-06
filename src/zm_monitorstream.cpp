@@ -236,6 +236,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     int rate;
     double delay;
     int zoom;
+    int scale;
     bool delayed;
     bool paused;
     bool enabled;
@@ -277,6 +278,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.rate = replay_rate;
   status_data.delay = FPSeconds(now - last_frame_sent).count();
   status_data.zoom = zoom;
+  status_data.scale = scale;
   Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
       status_data.fps,
       status_data.capture_fps,

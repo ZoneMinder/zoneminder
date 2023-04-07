@@ -1195,10 +1195,10 @@ function initPage() {
     evt.preventDefault();
     if (window.event.shiftKey) {
       $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
-        .done(function(data) {
-          streamNext(true);
-        })
-        .fail(logAjaxFail);
+          .done(function(data) {
+            streamNext(true);
+          })
+          .fail(logAjaxFail);
     } else {
       if (!$j('#deleteConfirm').length) {
         // Load the delete confirmation modal into the DOM

@@ -120,3 +120,14 @@ form[name="monitorForm"] {
   flex: 1 1 auto;
   overflow-y: scroll;
 }
+#contentButtons {
+  float: none;
+  display: flex;
+  justify-content: space-between;
+}
+.rightButtons {
+  margin-left: auto;
+}
+.statusBreakdown {
+  margin-right: auto;
+}

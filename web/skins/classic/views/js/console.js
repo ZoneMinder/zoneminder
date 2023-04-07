@@ -189,19 +189,26 @@ function initPage() {
   }
 
   // Makes table sortable
-  $j( function() {
-    $j( "#consoleTableBody" ).sortable({
-      handle: ".sort",
-      update: applySort,
-      axis: 'Y'} );
-    $j( "#consoleTableBody" ).disableSelection();
-  } );
 
   // Setup the thumbnail video animation
   initThumbAnimation();
 
   $j('.functionLnk').click(manageFunctionModal);
+
+  $j('#consoleTableBody').sortable({
+    disabled: true,
+    update: applySort,
+    axis: 'Y'} );
 } // end function initPage
+//
+function sortMonitors(button) {
+  if (button.classList.contains('btn-success')) {
+    $j( "#consoleTableBody" ).sortable('disable');
+  } else {
+    $j( "#consoleTableBody" ).sortable('enable');
+  }
+  button.classList.toggle('btn-success');
+}
 
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');

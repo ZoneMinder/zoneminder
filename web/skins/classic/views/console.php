@@ -172,7 +172,7 @@ echo $navbar ?>
     </div>
 
     <div class="container-fluid pt-2" id="contentButtons">
-      <div class="statusBreakdown float-left">
+      <div class="statusBreakdown">
 <?php
   $html = '';
   foreach ( array_keys($status_counts) as $status ) {
@@ -183,33 +183,42 @@ echo $navbar ?>
 ?>
       </div>
 
-      <button type="button" name="addBtn" data-on-click-this="addMonitor"
-      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
-      >
-        <i class="material-icons md-18">add_circle</i>
-        &nbsp;<?php echo translate('AddNewMonitor') ?>
-      </button>
-      <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
-      <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
-      style="display:none;">
-        <i class="material-icons md-18">content_copy</i>
-<!--content_copy used instead of file_copy as there is a bug in material-icons -->
-        &nbsp;<?php echo translate('CloneMonitor') ?>
-      </button>
-      <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
-        <i class="material-icons md-18">edit</i>
-        &nbsp;<?php echo translate('Edit') ?>
-      </button>
-      <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
-        <i class="material-icons md-18">delete</i>
-        &nbsp;<?php echo translate('Delete') ?>
-      </button>
-      <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled">
-        <i class="material-icons md-18">view_list</i>
-        &nbsp;<?php echo translate('Select') ?>
+      <div class="middleButtons">
+        <button type="button" name="addBtn" data-on-click-this="addMonitor"
+        <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
+        >
+          <i class="material-icons md-18">add_circle</i>
+          &nbsp;<?php echo translate('AddNewMonitor') ?>
         </button>
+        <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
+        <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+        style="display:none;">
+          <i class="material-icons md-18">content_copy</i>
+  <!--content_copy used instead of file_copy as there is a bug in material-icons -->
+          &nbsp;<?php echo translate('CloneMonitor') ?>
+        </button>
+        <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
+          <i class="material-icons md-18">edit</i>
+          &nbsp;<?php echo translate('Edit') ?>
+        </button>
+        <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
+          <i class="material-icons md-18">delete</i>
+          &nbsp;<?php echo translate('Delete') ?>
+        </button>
+        <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled">
+          <i class="material-icons md-18">view_list</i>
+          &nbsp;<?php echo translate('Select') ?>
+        </button>
+      </div>
+      <div class="rightButtons">
+        <button type="button" id="sortBtn" data-on-click-this="sortMonitors">
+        <i class="material-icons sort" title="Click and drag rows to change order">swap_vert</i>
+        <?php echo translate('Sort') ?>
+        </button>
+      </div>
         
         &nbsp;<a href="#"><i id="fbflip" class="material-icons md-18">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
+    
     </div><!-- contentButtons -->
 <?php
 ob_start();
@@ -218,6 +227,9 @@ ob_start();
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>
+<?php if ( canEdit('Monitors') ) { ?>
+            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
+<?php } ?>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
             <th class="colId"><?php echo translate('Id') ?></th>
 <?php } ?>
@@ -250,9 +262,6 @@ ob_start();
   } // end foreach eventCounts
 ?>
             <th class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
-<?php if ( canEdit('Monitors') ) { ?>
-            <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
-<?php } ?>
           </tr>
         </thead>
         <tbody id="consoleTableBody">
@@ -303,6 +312,13 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   $scale = max(reScale(SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
   $stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Capturing'] != 'None');
 
+  if ( canEdit('Monitors') ) {
+?>
+            <td class="colMark">
+              <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" data-on-click-this="setButtonStates"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+            </td>
+<?php
+  }
   if (ZM_WEB_ID_ON_CONSOLE) {
 ?>
             <td class="colId"><a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . $monitor['Id'] ?></a></td>
@@ -403,14 +419,6 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
       $monitor[$i.'Events'] . '<br/></a><div class="small text-nowrap text-muted">' . human_filesize($monitor[$i.'EventDiskSpace']).'</div></td>'.PHP_EOL;
   }
   echo '<td class="colZones">'. makeLink('?view=zones&amp;mid='.$monitor['Id'], $monitor['ZoneCount'], canView('Monitors')) .'</td>'.PHP_EOL;
-  if ( canEdit('Monitors') ) {
-?>
-            <td class="colMark">
-              <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" data-on-click-this="setButtonStates"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
-<i class="material-icons sort" title="Click and drag to change order">swap_vert</i>
-            </td>
-<?php
-  }
 ?>
           </tr>
 <?php

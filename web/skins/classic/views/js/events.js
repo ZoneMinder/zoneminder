@@ -381,7 +381,12 @@ function initPage() {
     }
 
     evt.preventDefault();
-    $j('#deleteConfirm').modal('show');
+    if (evt.shiftKey) {
+      const selections = getIdSelections();
+      deleteEvents(selections);
+    } else {
+      $j('#deleteConfirm').modal('show');
+    }
   });
 
   // Update table links each time after new data is loaded

@@ -14,6 +14,7 @@
 // Import constants
 //
 
+var ZM_DIR_SOUNDS = "<?php echo ZM_DIR_SOUNDS ?>";
 var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
 var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 

@@ -407,41 +407,6 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
     </div>
 <?php
 }
-if ( ZM_WEB_SOUND_ON_ALARM ) {
-    $soundSrc = ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND;
-?>
-      <div id="alarmSound" class="hidden">
-<?php
-    if ( ZM_WEB_USE_OBJECT_TAGS && isWindows() ) {
-?>
-        <object id="MediaPlayer" width="0" height="0"
-          classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-          codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902">
-          <param name="FileName" value="<?php echo $soundSrc ?>"/>
-          <param name="autoStart" value="0"/>
-          <param name="loop" value="1"/>
-          <param name="hidden" value="1"/>
-          <param name="showControls" value="0"/>
-          <embed src="<?php echo $soundSrc ?>"
-            autostart="true"
-            loop="true"
-            hidden="true">
-          </embed>
-        </object>
-<?php
-    } else {
-?>
-        <embed src="<?php echo $soundSrc ?>"
-          autostart="true"
-          loop="true"
-          hidden="true">
-        </embed>
-<?php
-    }
-?>
-      </div>
-<?php
-}
 ?>
     </div>
   </div>

@@ -334,13 +334,10 @@ function MonitorStream(monitorData) {
 
     if (newAlarm) {
       if (ZM_WEB_SOUND_ON_ALARM) {
-        // Enable the alarm sound
-        const isIE = window.document.documentMode ? true : false;
-        if (!isIE) {
-          $j('#alarmSound').removeClass('hidden');
-        } else {
-          $j('#MediaPlayer').trigger('play');
-        }
+        console.log('Attempting to play alarm sound');
+        var soundFile = ZM_DIR_SOUNDS+'/'+ZM_WEB_ALARM_SOUND;
+        var sound = new Audio(soundFile);
+        sound.play();
       }
       if (ZM_WEB_POPUP_ON_ALARM) {
         window.focus();
@@ -350,15 +347,6 @@ function MonitorStream(monitorData) {
       }
     }
     if (oldAlarm) { // done with an event do a refresh
-      if (ZM_WEB_SOUND_ON_ALARM) {
-        // Disable alarm sound
-        const isIE = window.document.documentMode ? true : false;
-        if (!isIE) {
-          $j('#alarmSound').addClass('hidden');
-        } else {
-          $j('#MediaPlayer').trigger('pause');
-        }
-      }
       if (this.onalarm) {
         this.onalarm();
       }

@@ -667,7 +667,15 @@ function getSettingsModal() {
 
 function processClicks(event, field, value, row, $element) {
   if (field == 'Delete') {
-    $j.getJSON(monitorUrl + '?request=modal&modal=delconfirm')
+    if (window.event.shiftKey) {
+      var eid = row.Id.replace(/(<([^>]+)>)/gi, '');
+      $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
+        .done(function(data) {
+          table.bootstrapTable('refresh');
+        })
+        .fail(logAjaxFail);
+    } else {
+      $j.getJSON(monitorUrl + '?request=modal&modal=delconfirm')
         .done(function(data) {
           insertModalHtml('deleteConfirm', data.html);
           manageDelConfirmModalBtns();
@@ -675,6 +683,7 @@ function processClicks(event, field, value, row, $element) {
           $j('#deleteConfirm').modal('show');
         })
         .fail(logAjaxFail);
+    }
   }
 }
 

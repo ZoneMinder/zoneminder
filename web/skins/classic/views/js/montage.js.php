@@ -4,6 +4,7 @@
 
 const COMPACT_MONTAGE = <?php echo ZM_WEB_COMPACT_MONTAGE ?>;
 const POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
+const ZM_DIR_SOUNDS = '<?php echo ZM_DIR_SOUNDS ?>';
 
 const statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 

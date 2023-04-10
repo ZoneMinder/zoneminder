@@ -333,11 +333,14 @@ function MonitorStream(monitorData) {
     const oldAlarm = ( !isAlarmed && wasAlarmed );
 
     if (newAlarm) {
-      if (ZM_WEB_SOUND_ON_ALARM) {
+      if (ZM_WEB_SOUND_ON_ALARM !== '0') {
         console.log('Attempting to play alarm sound');
-        var soundFile = ZM_DIR_SOUNDS+'/'+ZM_WEB_ALARM_SOUND;
-        var sound = new Audio(soundFile);
-        sound.play();
+        if (ZM_DIR_SOUNDS != '' && ZM_WEB_ALARM_SOUND != '') {
+          const sound = new Audio(ZM_DIR_SOUNDS+'/'+ZM_WEB_ALARM_SOUND);
+          sound.play();
+        } else {
+          console.log("You must specify ZM_DIR_SOUNDS and ZM_WEB_ALARM_SOUND as well");
+        }
       }
       if (ZM_WEB_POPUP_ON_ALARM) {
         window.focus();

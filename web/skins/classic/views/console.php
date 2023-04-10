@@ -188,32 +188,32 @@ echo $navbar ?>
         <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
         >
           <i class="material-icons md-18">add_circle</i>
-          &nbsp;<?php echo translate('AddNewMonitor') ?>
+          <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
         </button>
         <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
         <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
         style="display:none;">
           <i class="material-icons md-18">content_copy</i>
   <!--content_copy used instead of file_copy as there is a bug in material-icons -->
-          &nbsp;<?php echo translate('CloneMonitor') ?>
+          <span class="text">&nbsp;<?php echo translate('CloneMonitor') ?></span>
         </button>
         <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
           <i class="material-icons md-18">edit</i>
-          &nbsp;<?php echo translate('Edit') ?>
+          <span class="text">&nbsp;<?php echo translate('Edit') ?></span>
         </button>
         <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
           <i class="material-icons md-18">delete</i>
-          &nbsp;<?php echo translate('Delete') ?>
+          <span class="text">&nbsp;<?php echo translate('Delete') ?></span>
         </button>
         <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled">
           <i class="material-icons md-18">view_list</i>
-          &nbsp;<?php echo translate('Select') ?>
+          <span class="text">&nbsp;<?php echo translate('Select') ?></span>
         </button>
       </div>
       <div class="rightButtons">
         <button type="button" id="sortBtn" data-on-click-this="sortMonitors">
         <i class="material-icons sort" title="Click and drag rows to change order">swap_vert</i>
-        <?php echo translate('Sort') ?>
+        <span class="text"><?php echo translate('Sort') ?></span>
         </button>
       </div>
         

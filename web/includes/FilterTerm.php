@@ -24,6 +24,7 @@ class FilterTerm {
   public $cbr;
 
   public function __construct($filter = null, $term = null, $index=0) {
+    $this->cnj = '';
     $this->filter = $filter;
     $validConjunctionTypes = getFilterQueryConjunctionTypes();
 
@@ -33,7 +34,7 @@ class FilterTerm {
       $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $this->attr, -1, $count);
       if ($count) Error("Invalid characters removed from filter attr ${term['attr']}, possible hacking attempt.");
       $this->op = $term['op'];
-      $this->val = $term['val'];
+      $this->val = isset($term['val']) ? $term['val'] : '';
       if ( isset($term['cnj']) ) {
         if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
           $this->cnj = $term['cnj'];
@@ -331,31 +332,31 @@ class FilterTerm {
   public function querystring($objectname='filter', $querySep='&amp;') {
     # We don't validate the term parameters here
     $query = '';
-    if ( $this->cnj ) 
+    if (isset($this->cnj) and $this->cnj)
       $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cnj]').'='.$this->cnj;
-    if ( $this->obr )
+    if ($this->obr)
       $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][obr]').'='.$this->obr;
 
     $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][attr]').'='.urlencode($this->attr);
     $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][op]').'='.urlencode($this->op);
     $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][val]').'='.urlencode($this->val);
-    if ( $this->cbr )
+    if ($this->cbr)
       $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cbr]').'='.$this->cbr;
     return $query;
   } # end public function querystring
 
   public function hidden_fields() {
     $html ='';
-    if ( $this->cnj )
+    if ( isset($this->cnj) and $this->cnj )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cnj]" value="'.$this->cnj.'"/>'.PHP_EOL;
 
     if ( $this->obr )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][obr]" value="'.$this->obr.'"/>'.PHP_EOL;
 
-    # attr should have been already validation, so shouldn't need htmlspecialchars
+    # attr should have been already validated, so shouldn't need htmlspecialchars
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][attr]" value="'.htmlspecialchars($this->attr).'"/>'.PHP_EOL;
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][op]" value="'.htmlspecialchars($this->op).'"/>'.PHP_EOL;
-    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars($this->val).'"/>'.PHP_EOL;
+    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars($this->val?$this->val:'').'"/>'.PHP_EOL;
     if ( $this->cbr )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cbr]" value="'.$this->cbr.'"/>'.PHP_EOL;
 
@@ -521,7 +522,8 @@ class FilterTerm {
     case 'Archived' :
     case 'Monitor' :
     case 'MonitorId' :
-      if ($this->val === '')
+    case 'Notes' :
+      if (empty($this->val) or $this->val === '')
         return false;
       break;
     }

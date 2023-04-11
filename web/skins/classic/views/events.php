@@ -37,10 +37,15 @@ if ( $user['MonitorIds'] ) {
 $filter = isset($_REQUEST['filter_id']) ? new ZM\Filter($_REQUEST['filter_id']) : new ZM\Filter();
 if ( isset($_REQUEST['filter'])) {
   $filter->set($_REQUEST['filter']);
+  if (!($filter->has_term('StartDate') or $filter->has_term('StartDateTime'))) {
+    $filter->addTerm(array('attr' => 'StartDate', 'op' => '>=', 'val' => ''));
+  }
+
 } else if (!$filter->Id()) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDate', 'op'=> '=', 'val'=>''));
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '<=', 'val'=>''));
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'Monitor', 'op'=> '=', 'val'=>''));
+} else if 
 }
 
 parseSort();

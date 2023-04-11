@@ -416,7 +416,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 
   foreach (array_keys($eventCounts) as $i) {
     echo '<td class="colEvents"><a '. (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$monitor['eventCounts'][$i]['filter']['querystring'].'">'  : '') . 
-      $monitor[$i.'Events'] . '<br/></a><div class="small text-nowrap text-muted">' . human_filesize($monitor[$i.'EventDiskSpace']).'</div></td>'.PHP_EOL;
+      (int)$monitor[$i.'Events'] . '<br/></a><div class="small text-nowrap text-muted">' . human_filesize($monitor[$i.'EventDiskSpace']).'</div></td>'.PHP_EOL;
   }
   echo '<td class="colZones">'. makeLink('?view=zones&amp;mid='.$monitor['Id'], $monitor['ZoneCount'], canView('Monitors')) .'</td>'.PHP_EOL;
 ?>
@@ -456,7 +456,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
             <td class="colEvents">
               <a <?php echo
               (canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '') . 
-              $eventCounts[$i]['totalevents'].'</a><br/>
+              (int)$eventCounts[$i]['totalevents'].'</a><br/>
               <div class="small text-nowrap text-muted">'.human_filesize($eventCounts[$i]['totaldiskspace'])
             ?></div>
             </td>

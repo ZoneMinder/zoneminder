@@ -45,7 +45,6 @@ if ( isset($_REQUEST['filter'])) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDate', 'op'=> '=', 'val'=>''));
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '<=', 'val'=>''));
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'Monitor', 'op'=> '=', 'val'=>''));
-} else if 
 }
 
 parseSort();

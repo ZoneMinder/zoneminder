@@ -1399,7 +1399,7 @@ $codecs = array(
             </li>
             <li>
               <label><?php echo translate('ControlAddress') ?></label>
-              <input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->ControlAddress()) ? : 'user:port@ip' ?>"/>
+              <input type="text" name="newMonitor[ControlAddress]" value="<?php echo validHtmlStr($monitor->ControlAddress()) ?>" placeholder="user:pass@ip"/>
             </li>
             <li>
               <label><?php echo translate('ModectDuringPTZ') ?></label>

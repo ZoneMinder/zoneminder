@@ -662,9 +662,6 @@ function MonitorStream(monitorData) {
 
   if (this.type != 'WebSite') {
     $j.ajaxSetup({timeout: AJAX_TIMEOUT});
-    if (auth_hash) {
-      this.streamCmdParms.auth = auth_hash;
-    }
 
     this.streamCmdReq = function(streamCmdParms) {
       this.ajaxQueue = jQuery.ajaxQueue({

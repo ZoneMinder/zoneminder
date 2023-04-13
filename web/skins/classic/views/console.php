@@ -378,12 +378,12 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
             <td class="colFunction">
               <!--<a class="functionLnk <?php echo $function_class ?>" data-mid="<?php echo $monitor['Id'] ?>" id="functionLnk-<?php echo $monitor['Id'] ?>" href="#"><?php echo translate('Fn'.$monitor['Function']) ?></a>-->
               <?php
-              echo translate('Status'.$monitor['Status']);
+              echo translate('Status'.$monitor['Status']).'<br/>';
               if ($monitor['Analysing'] != 'None') {
-                echo ', '.translate('Analysing');
+                echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
               }
               if ($monitor['Recording'] != 'None') {
-                echo ', '.translate('Recording');
+                echo translate('Recording'). ': '.translate($monitor['Recording']).'<br/>';
               }
  ?><br/>
               <div class="small text-nowrap text-muted">

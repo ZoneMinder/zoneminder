@@ -427,6 +427,9 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
         </tbody>
         <tfoot>
           <tr>
+<?php if ( canEdit('Monitors') ) { ?>
+            <td class="colMark"></td>
+<?php } ?>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
             <td class="colId"><?php echo translate('Total').":".count($displayMonitors) ?></td>
 <?php } ?>
@@ -461,12 +464,9 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
             ?></div>
             </td>
 <?php
-      } // end foreach eventCounts
+  } // end foreach eventCounts
 ?>
             <td class="colZones"><?php echo $zoneCount ?></td>
-<?php if ( canEdit('Monitors') ) { ?>
-            <td class="colMark"></td>
-<?php } ?>
          </tr>
         </tfoot>
         </table>

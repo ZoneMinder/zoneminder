@@ -393,6 +393,9 @@ function streamCmdZoomIn(x, y) {
 function streamCmdZoomOut() {
   monitorStream.streamCommand(CMD_ZOOMOUT);
 }
+function streamCmdZoomStop() {
+  monitorStream.streamCommand(CMD_ZOOMSTOP);
+}
 
 function streamCmdScale(scale) {
   monitorStream.streamCommand({command: CMD_SCALE, scale: scale});
@@ -576,6 +579,14 @@ function handleClick(event) {
     }
   } else {
     controlCmdImage(x, y);
+  }
+}
+
+function zoomOutClick(event) {
+  if (event.ctrlKey) {
+    streamCmdZoomStop();
+  } else {
+    streamCmdZoomOut();
   }
 }
 

@@ -337,7 +337,7 @@ if ($streamMode == 'jpeg') {
 <?php
   }
 ?>
-            <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut">
+            <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="zoomOutClick">
             <i class="material-icons md-18">zoom_out</i>
             </button>
             <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">

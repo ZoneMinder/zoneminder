@@ -275,10 +275,10 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   $Monitor = new ZM\Monitor($monitor);
   $monitors[] = $Monitor;
   $Monitor->GroupIds(isset($group_ids_by_monitor_id[$Monitor->Id()]) ? $group_ids_by_monitor_id[$Monitor->Id()] : array());
-  if ( $monitor_i and ( $monitor_i % 100 == 0 ) ) {
+  if ( $monitor_i and ( $monitor_i % 200 == 0 ) ) {
     echo '</table>';
     echo $table_head;
-  } # monitor_i % 100
+  } # monitor_i % 200
 ?>
           <tr id="<?php echo 'monitor_id-'.$monitor['Id'] ?>" title="<?php echo $monitor['Id'] ?>">
 <?php

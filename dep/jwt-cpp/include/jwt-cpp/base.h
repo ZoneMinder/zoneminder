@@ -137,12 +137,12 @@ namespace jwt {
 				if (base.substr(size - fill.size(), fill.size()) == fill) {
 					fill_cnt++;
 					size -= fill.size();
-					if (fill_cnt > 2) throw std::runtime_error("Invalid input");
+					if (fill_cnt > 2) throw std::runtime_error("Invalid input: too much fill");
 				} else
 					break;
 			}
 
-			if ((size + fill_cnt) % 4 != 0) throw std::runtime_error("Invalid input");
+			if ((size + fill_cnt) % 4 != 0) throw std::runtime_error("Invalid input: incorrect total size");
 
 			size_t out_size = size / 4 * 3;
 			std::string res;
@@ -152,7 +152,7 @@ namespace jwt {
 				for (size_t i = 0; i < alphabet.size(); i++) {
 					if (alphabet[i] == base[offset]) return static_cast<uint32_t>(i);
 				}
-				throw std::runtime_error("Invalid input");
+				throw std::runtime_error("Invalid input: not within alphabet");
 			};
 
 			size_t fast_size = size - size % 4;

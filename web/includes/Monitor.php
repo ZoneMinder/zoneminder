@@ -130,6 +130,7 @@ public static function getStatuses() {
   protected $defaults = array(
     'Id' => null,
     'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Monitor'),
+    'Deleted' => false,
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,
@@ -569,8 +570,12 @@ public static function getStatuses() {
   }
 
   public function delete() {
+    $this->save(['Deleted'=>true]);
+  }
+  public function destroy() {
+    $this->zmcControl('stop');
     if (!$this->{'Id'}) {
-      Warning('Attempt to delete a monitor without id.');
+      Warning('Attempt to destroy a monitor without id.');
       return;
     }
     $this->zmcControl('stop');
@@ -601,7 +606,7 @@ public static function getStatuses() {
     dbQuery('DELETE FROM Monitor_Status WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Event_Summaries WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
-  } // end function delete
+  } // end function destroy
 
   public function Storage($new = null) {
     if ($new) {

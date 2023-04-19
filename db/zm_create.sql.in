@@ -490,6 +490,7 @@ DROP TABLE IF EXISTS `Monitors`;
 CREATE TABLE `Monitors` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `Name` varchar(64) NOT NULL default '',
+  `Deleted` BOOLEAN NOT NULL default false,
   `Notes` TEXT,
   `ServerId` int(10) unsigned,
   `StorageId`	smallint(5) unsigned default 0,

@@ -178,8 +178,9 @@ $html .= '</span>
   FROM Monitors AS M
  LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
  LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
+WHERE M.`Deleted`=false
 ' .
-  ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
+  ( count($conditions) ? ' AND ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll($sql, null, $values);
   $displayMonitors = array();
   $monitors_dropdown = array();

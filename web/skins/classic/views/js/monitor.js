@@ -278,13 +278,13 @@ function initPage() {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
       document.getElementById("FunctionJanusProfileOverride").hidden = false;
       document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
-			document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
+      document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
 
     } else {
       document.getElementById("FunctionJanusAudioEnabled").hidden = true;
       document.getElementById("FunctionJanusProfileOverride").hidden = true;
       document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
-			document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
+      document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
     }
 
     document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
@@ -292,12 +292,12 @@ function initPage() {
         document.getElementById("FunctionJanusAudioEnabled").hidden = false;
         document.getElementById("FunctionJanusProfileOverride").hidden = false;
         document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
-				document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
+	document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = false;
       } else {
         document.getElementById("FunctionJanusAudioEnabled").hidden = true;
         document.getElementById("FunctionJanusProfileOverride").hidden = true;
         document.getElementById("FunctionJanusUseRTSPRestream").hidden = true;
-				document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
+	document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
       }
     });
 

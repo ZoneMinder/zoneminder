@@ -882,3 +882,6 @@ a.flip {
   max-height: 100px;
   overflow-y:auto;
 }
+.search .form-control {
+  font-size: 100%;
+}

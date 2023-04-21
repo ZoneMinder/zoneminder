@@ -24,96 +24,128 @@ if (!canEdit('Monitors')) {
 }
 
 $focusWindow = true;
-$navbar = getNavBarHTML();
 
 xhtmlHeaders(__FILE__, translate('Add Monitors'));
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo $navbar ?>
+    <?php echo getNavBarHTML(); ?>
     <div id="content">
-
       <form name="contentForm" id="contentForm" method="post" action="?">
-        <div style="position:relative;">
-        <div id="results" style="position: absolute; top:0; right: 0; width: 50%; height: 100%;">
-          <fieldset><legend>Results</legend>
-            <div id="url_results">
-          
-            </div>
-          </fieldset>
-        </div>
-        <div style="width:50%;position: absolute; top:0; left: 0;height: 100%;">
-        <fieldset><legend>Enter by IP or URL</legend>
-          <p>
-          Simply enter the ip address or full url to the stream.
-          It will be probed for available streams, or checked to see if it has already been entered.
-          If streams are found, they will be listed in the results column. Click Add to add them.
-          </p>
-          <!--<input type="text" name="newMonitor[Name]" />-->
-          <input type="text" name="newMonitor[Url]" oninput="probe(this);"/>
-        </fieldset>
-        <fieldset><legend>Import CSV Spreadsheet</legend>
-            Spreadsheet should have the following format:<br/>
-            <table class="major">
-              <tr>
-                <th>Name</th>
-                <th>URL</th>
-                <th>Group</th>
-              </tr>
-              <tr title="Example Data">
-                <td>Example Name Driveway</td>
-                <td>http://192.168.1.0/?action=stream</td>
-                <td>MN1</td>
-              </tr>
-            </table>
-<p>
-            Defaults to apply to each monitor:<br/>
-</p>
-            <table><tr><th>Setting</th><th>Value</th></tr>
-              <tr><td><?php echo translate('Function') ?></td><td>
-<?php 
-              $options = array();
-              foreach ( getEnumValues('Monitors', 'Function') as $opt ) {
-                $options[$opt] = translate('Fn'.$opt);
-              }
-              echo htmlSelect( 'newMonitor[Function]', $options, 'Mocord' );
-?>
-              </td></tr>
-<?php
-              $servers = ZM\Server::find();
-              $ServersById = array();
-              foreach ( $servers as $S ) {
-                $ServersById[$S->Id()] = $S;
-              }
+        <div class="AddMonitors" id="inner-content">
 
-              if ( count($ServersById) > 0 ) { ?>
-              <tr class="Server"><td><?php echo translate('Server')?></td><td>
-              <?php echo htmlSelect( 'newMonitor[ServerId]', array(''=>'Auto')+$ServersById, '' ); ?>
-              </td></tr>
-<?php
-              }
-              $storage_areas = ZM\Storage::find();
-              $StorageById = array();
-              foreach ( $storage_areas as $S ) {
-                $StorageById[$S->Id()] = $S;
-              }
-              if ( count($StorageById) > 0 ) {
-?>
-<tr class="Storage"><td><?php echo translate('Storage')?></td><td>
-<?php echo htmlSelect( 'newMonitor[StorageId]', array(''=>'All')+$StorageById, 1 ); ?>
-</tr>
-<?php
-              }
-?>
-              </td></tr>
-            </table>
-<br/>
-            <input type="file" name="import_file" id="import_file"/>
-            <input type="button" value="Import" onclick="import_csv(this.form);"/>
-          </div>
-          </div>
-        </fieldset>
+          <div class="toolbar" id="toolbar">
+            <div class="filters">
+              <input type="text" id="ip" name="ip" placeholder="IP of camera"/>
+              <input type="text" id="probe_username" name="probe_username" placeholder="username to use when probing"
+                value="<?php echo isset($_COOKIE['addMonitorsprobe_username']) ? $_COOKIE['addMonitorsprobe_username'] : '' ?>"/>
+              <input type="text" id="probe_password" name="probe_password" placeholder="password to use when probing"
+                value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? $_COOKIE['addMonitorsprobe_password'] : '' ?>"/>
+  <?php 
+  $manufacturers = array_to_hash_by_key('Name', ZM\Manufacturer::find());
+  echo htmlSelect('probe_Manufacturer', [''=>'All']+$manufacturers, 
+    (isset($_COOKIE['addMonitorsprobe_Manufacturer']) ? $_COOKIE['addMonitorsprobe_Manufacturer'] : ''), [
+    #'multiple'=>'multiple',
+          'class'=>'chosen']);
+  ?>
+            </div>
+            <div id="contentButtons">
+              <button type="button" name="addBtn" data-on-click-this="addMonitor" title="<?php echo translate('Add New Monitor') ?>">
+                <i class="material-icons md-18">add_circle</i>
+                <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
+              </button>
+              <button type="button" id="importBtn" data-on-click-this="importMonitors" title="<?php echo translate('Import CSV') ?>">
+                <i class="material-icons md-18">upload</i>
+                <span class="text"><?php echo translate('Import CSV') ?></span>
+              </button>
+            </div>
+          </div><!--toolbar-->
+
+<!--
+              Defaults to apply to each monitor:<br/>
+              <table><tr><th>Setting</th><th>Value</th></tr>
+  <?php
+                $servers = ZM\Server::find();
+                $ServersById = array();
+                foreach ( $servers as $S ) {
+                  $ServersById[$S->Id()] = $S;
+                }
+
+                if ( count($ServersById) > 0 ) { ?>
+                <tr class="Server"><td><?php echo translate('Server')?></td><td>
+                <?php echo htmlSelect('newMonitor[ServerId]', [''=>translate('Auto')]+$ServersById, ''); ?>
+                </td></tr>
+  <?php
+                }
+                $storage_areas = ZM\Storage::find();
+                $StorageById = array();
+                foreach ( $storage_areas as $S ) {
+                  $StorageById[$S->Id()] = $S;
+                }
+                if ( count($StorageById) > 1 ) {
+  ?>
+  <tr class="Storage"><td><?php echo translate('Storage')?></td><td>
+  <?php echo htmlSelect('newMonitor[StorageId]', [''=>translate('Auto')]+$StorageById, ''); ?>
+  </tr>
+  <?php
+                }
+  ?>
+                </td></tr>
+              </table>
+-->
+<!-- Table styling handled by bootstrap-tables -->
+      <table
+        id="AddMonitorsTable"
+        data-locale="<?php echo i18n() ?>"
+        data-ajax="ajaxRequest"
+        data-pagination="false"
+        data-show-pagination-switch="false"
+        data-page-list="[10, 25, 50, 100, 200, All]"
+        data-search="true"
+        data-cookie="true"
+        data-cookie-id-table="AddMonitorsTable"
+        data-cookie-expire="86400s"
+        data-click-to-select="true"
+        data-remember-order="false"
+        data-show-columns="true"
+        data-show-export="true"
+        data-uncheckAll="true"
+        data-toolbar="#toolbar"
+        data-sort-name="Monitor.Name,Name"
+        data-sort-order="asc"
+        data-server-sort="false"
+        data-click-to-select="true"
+        data-maintain-meta-data="true"
+        data-buttons-class="btn btn-normal"
+        data-show-jump-to="true"
+        data-show-refresh="true"
+        data-show-multi-sort="true"
+        class="table-sm table-borderless"
+        style="display:none;"
+      >
+        <thead>
+            <!-- Row styling is handled by bootstrap-tables -->
+            <tr>
+              <th data-sortable="true" data-field="camera.Name"><?php echo translate('Name') ?></th>
+              <th data-sortable="true" data-field="camera.ip"><?php echo translate('IP Address') ?></th>
+              <th data-sortable="true" data-field="url"><?php echo translate('URL') ?></th>
+              <th data-sortable="true" data-field="camera.Manufacturer"><?php echo translate('Manufacturer') ?></th>
+              <th data-sortable="true" data-field="camera.Model"><?php echo translate('Model') ?></th>
+              <th data-sortable="true" data-field="camera.monitor.Width"><?php echo translate('Width') ?></th>
+              <th data-sortable="true" data-field="camera.monitor.Height"><?php echo translate('Height') ?></th>
+              <th data-sortable="true" data-field="camera.Codec"><?php echo translate('Codec') ?></th>
+              <th data-sortable="true" data-field="Monitor.Name"><?php echo translate('Monitor') ?></th>
+              <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;"><?php echo translate('Thumbnail') ?></th>
+              <th data-sortable="false" data-field="buttons"></th>
+            </tr>
+          </thead>
+
+          <tbody>
+          <!-- Row data populated via Ajax -->
+          </tbody>
+        </table>
+        </div><!--AddMonitors inner-content-->
       </form>
-    </div>
-  </div>
+    </div><!--content-->
+  </div><!--page-->
 <?php xhtmlFooter() ?>

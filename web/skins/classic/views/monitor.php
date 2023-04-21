@@ -825,6 +825,7 @@ $decoders = array(
   'libx264' => 'libx264',
   'h264' => 'h264',
   'h264_cuvid' => 'h264_cuvid',
+  'h264_nvmpi' => 'h264_nvmpi',
   'h264_mmal'   => 'h264_mmal',
   'h264_omx' => 'h264_omx',
   'h264_qsv' => 'h264_qsv',

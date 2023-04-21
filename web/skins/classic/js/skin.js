@@ -1033,9 +1033,7 @@ function post(path, params, method='post') {
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});
 font.load().then(function() {
-  console.log('Font is available');
   $j('.material-icons').css('display', 'inline-block');
 }, function() {
   $j('.material-icons').css('display', 'inline-block');
-  console.log('Font is not available');
 });

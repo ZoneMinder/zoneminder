@@ -22,3 +22,4 @@ INSERT IGNORE INTO Manufacturers VALUES (21, 'Trendnet');
 INSERT IGNORE INTO Manufacturers VALUES (22, 'VisionTek');
 INSERT IGNORE INTO Manufacturers VALUES (23, 'Vivotek');
 INSERT IGNORE INTO Manufacturers VALUES (24, 'Wansview');
+INSERT IGNORE INTO Manufacturers VALUES (25, 'Ubiquityt');

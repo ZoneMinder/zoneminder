@@ -52,6 +52,114 @@ if ( !function_exists('imagescale') ) {
   }
 }
 
+if (!empty($_REQUEST['proxy'])) {
+  $url = $_REQUEST['proxy'];
+  if (!$url) {
+    ZM\Warning('No url passed to image proxy');
+    return;
+  }
+  $url_parts = parse_url($url);
+  $username = $url_parts['user'];
+  $password = $url_parts['pass'];
+
+  $method = 'GET';
+  // preparing http options:
+  $opts = array(
+    'http'=>array(
+      'method'=>$method,
+      #'header'=>"Accept-language: en\r\n" .
+      'ignore_errors'   => true
+      #"Cookie: foo=bar\r\n"
+    ),
+    'ssl'=>array(
+      "verify_peer"=>false,
+      "verify_peer_name"=>false,
+    )
+  );
+  $context = stream_context_create($opts);
+
+  // set no time limit and disable compression:
+  set_time_limit(5);
+  @apache_setenv('no-gzip', 1);
+  @ini_set('zlib.output_compression', 0);
+
+  /* Sends an http request with additional headers shown above */
+  $fp = fopen($url, 'r', false, $context);
+  $r = '';
+  if ($fp) {
+    $meta_data = stream_get_meta_data($fp);
+    ZM\Debug(print_r($meta_data, true));
+    foreach ($meta_data['wrapper_data'] as $header) {
+      preg_match('/WWW-Authenticate: Digest (.*)/', $header, $matches);
+      $nc = 1;
+      if (!empty($matches)) {
+        ZM\Debug("Matched $header");
+        $auth_header = $matches[1];
+        $auth_header_array = explode(',', $auth_header);
+        $parsed = array();
+
+        foreach ($auth_header_array as $pair) {
+          $vals = explode('=', $pair);
+          $parsed[trim($vals[0])] = trim($vals[1], '" ');
+        }
+        ZM\Debug(print_r($parsed, true));
+
+        $cnonce = '0a4f113b';
+        $response_realm     = (isset($parsed['realm'])) ? $parsed['realm'] : '';
+        $response_nonce     = (isset($parsed['nonce'])) ? $parsed['nonce'] : '';
+        $response_opaque    = (isset($parsed['opaque'])) ? $parsed['opaque'] : '';
+
+        $authenticate1 = md5($username.':'.$response_realm.':'.$password);
+        $authenticate2 = md5($method.':'.$url);
+
+        $digestData = $authenticate1.":".$response_nonce;
+        if (!empty($parsed['qop'])) {
+          $digestData .= ':' . sprintf('%08x', $nc) . ':' . $cnonce . ':' . $parsed['qop'];
+        }
+        $authenticate_response = md5($digestData.':'.$authenticate2);
+
+        $request = sprintf('Authorization: Digest username="%s", realm="%s", nonce="%s", uri="%s", response="%s"',
+          $username, $response_realm, $response_nonce, $url, $authenticate_response);
+        if (!empty($parsed['opaque'])) $request .= ', opaque="'.$parsed['opaque'].'"';
+        if (!empty($parsed['qop'])) {
+          $request .= ', qop="'.$parsed['qop'].'"';
+          $request .= ', nc="'.sprintf('%08x', $nc).'"';
+          $nc++;
+          $request .= ', cnonce="'.$cnonce.'"';
+        }
+        $request .= ', algorithm="MD5"';
+        ZM\Debug($request);
+
+        $request_header = array($request);
+        $opts['http']['header'] = $request;
+        $context = stream_context_create($opts);
+        $fp = fopen($url, 'r', false, $context);
+        $meta_data = stream_get_meta_data($fp);
+        ZM\Debug(print_r($meta_data, true));
+      } # end if have auth
+    } # end foreach header
+    while (substr_count($r, 'Content-Length') != 2) {
+      $new = fread($fp, 512);
+      if (!$new) break;
+      $r .= $new;
+    }
+    #ZM\Debug($r);
+
+    $start = strpos($r, "\xff");
+    $end   = strpos($r, "--\n", $start)-1;
+    $frame = substr($r, $start, $end - $start);
+    ZM\Debug("Start $start end $end");
+
+    header('Content-type: image/jpeg');
+    echo $frame;
+
+    fclose($fp);
+  } else {
+    ZM\Debug("Failed to open $url");
+  }
+  return;
+}
+
 $errorText = false;
 $filename = '';
 $Frame = null;

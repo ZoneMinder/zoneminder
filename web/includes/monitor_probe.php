@@ -336,15 +336,18 @@ function probeHikvision($ip, $username='admin', $password='password') {
   return $cameras;
 }
 
-function probeUbiquiti($ip) {
+function probeUbiquiti($ip, $username, $password) {
+  if (!$username) $username='ubnt';
+  if (!$password) $password='ubnt';
   $cameras = [];
   $camera = [
     'ip'      => $ip,
     'Model' => 'Ubiquiti Camera',
     'Manufacturer'  => 'Ubiquiti',
+    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/snap.jpeg',
     'monitor' => [
       'Type' => 'Ffmpeg',
-      'Path' => 'rtsp://ubnt:ubnt@'.$ip.':554/s0',
+      'Path' => 'rtsp://'.$username.':'.$password.'@'.$ip.':554/s0',
       'Width'   => 1920,
       'Height'  => 1080,
     ]

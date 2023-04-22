@@ -187,12 +187,12 @@ public static function getStatuses() {
     'Decoder'  =>  '',
     'DecoderHWAccelName'  =>  null,
     'DecoderHWAccelDevice'  =>  null,
-    'SaveJPEGs' =>  2,
+    'SaveJPEGs' =>  0,
     'VideoWriter' =>  '2',
     'OutputCodec' =>  null,
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
-    'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\ncrf=23\n",
+    'EncoderParameters' => '',
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
     #'OutputSourceStream'  => 'Primary',
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
@@ -201,12 +201,12 @@ public static function getStatuses() {
     'Hue'         =>  -1,
     'Colour'      =>  -1,
     'EventPrefix' =>  'Event-',
-    'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
+    'LabelFormat' => '',
     'LabelX'      =>  0,
     'LabelY'      =>  0,
     'LabelSize'   =>  2,
     'ImageBufferCount'  =>  3,
-    'MaxImageBufferCount'  =>  0,
+    'MaxImageBufferCount'  =>  121,
     'WarmupCount' =>  0,
     'PreEventCount' =>  5,
     'PostEventCount'  =>  5,
@@ -217,7 +217,7 @@ public static function getStatuses() {
     'MinSectionLength'    =>  10,
     'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,
-    'AnalysisFPSLimit'  =>  null,
+    'AnalysisFPSLimit'  =>  2,
     'AnalysisUpdateDelay'  =>  0,
     'MaxFPS' => null,
     'AlarmMaxFPS' => null,
@@ -273,6 +273,22 @@ public static function getStatuses() {
     'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
+
+  public function save($data = null) {
+    if ($data) $this->set($data);
+    if ($this->Manufacturer() and $this->Manufacturer()->Name() and ! $this->Manufacturer->Id()) {
+      if ($this->Manufacturer()->save()) {
+        $this->ManufacturerId = $this->Manufacturer()->Id();
+      }
+    }
+    if ($this->Model() and $this->Model()->Name() and ! $this->Model->Id()) {
+      if ($this->Model()->save(['ManufacturerId'=>$this->ManufacturerId])) {
+        $this->ModelId = $this->Model()->Id();
+      }
+    }
+    return parent::save();
+  }
+
   public function Janus_Pin() {
     if (!$this->{'JanusEnabled'}) return '';
 
@@ -855,7 +871,21 @@ public static function getStatuses() {
   function DisableAlarms() {
     $output = $this->AlarmCommand('disable');
   }
-  function Model() {
+  function Model($new=-1) {
+    if ($new != -1) {
+      Debug("New model $new");
+      $model = Model::find_one(['Name'=>$new]);
+      if (!$model) {
+        $model = new Model();
+        $model->set(['Name'=>$new, 'ManufacturerId'=>$this->ManufacturerId()]);
+        $this->Model = $model;
+        if ($this->ModelId) $this->ModelId = null;
+        Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId);
+      } else {
+        $this->ModelId = $model->Id();
+        Debug("Foud model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId);
+      }
+    }
     if (!property_exists($this, 'Model')) {
       if (property_exists($this, 'ModelId') and $this->{'ModelId'}) {
         $this->{'Model'} = Model::find_one(array('Id'=>$this->ModelId()));
@@ -867,7 +897,20 @@ public static function getStatuses() {
     }
     return $this->{'Model'};
   }
-  function Manufacturer() {
+  function Manufacturer($new=-1) {
+    if ($new != -1) {
+      $manufacturer = Manufacturer::find_one(array('Name'=>$new));
+      if (!$manufacturer) {
+        $manufacturer = new Manufacturer();
+        $manufacturer->set(['Name'=>$new]);
+        $this->Manufacturer = $manufacturer;
+        if ($this->ManufacturerId)
+          $this->ManufacturerId = null;
+      } else {
+        $this->ManufacturerId = $manufacturer->Id();
+      }
+    }
+
     if (!property_exists($this, 'Manufacturer')) {
       if (property_exists($this, 'ManufacturerId') and $this->{'ManufacturerId'}) {
         $this->{'Manufacturer'} = Manufacturer::find_one(array('Id'=>$this->ManufacturerId()));
@@ -882,13 +925,14 @@ public static function getStatuses() {
   function getMonitorStateHTML() {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
+<span class="MonitorName">'.$this->Name().'</span>
   <div id="monitorState'.$this->Id().'" class="monitorState">
-    <span>'.translate('State').':<span id="stateValue'.$this->Id().'"></span></span>
-    <span id="viewingFPS'.$this->Id().'" title="'.translate('Viewing FPS').'"><span id="viewingFPSValue'.$this->Id().'"></span> fps</span>
-    <span id="captureFPS'.$this->Id().'" title="'.translate('Capturing FPS').'"><span id="captureFPSValue'.$this->Id().'"></span> fps</span>
+    <span>'.translate('State').':<span id="stateValue'.$this->Id().'">'.$this->Status().'</span></span>
+    <span class="viewingFPS" id="viewingFPS'.$this->Id().'" title="'.translate('Viewing FPS').'"><span id="viewingFPSValue'.$this->Id().'"></span> fps</span>
+    <span class="captureFPS" id="captureFPS'.$this->Id().'" title="'.translate('Capturing FPS').'"><span id="captureFPSValue'.$this->Id().'"></span> fps</span>
 ';
     if ($this->Analysing() != 'None') {
-      $html .= '<span id="analysisFPS'.$this->Id().'" title="'.translate('Analysis FPS').'"><span id="analysisFPSValue'.$this->Id().'"></span> fps</span>
+      $html .= '<span class="analysisFPS" id="analysisFPS'.$this->Id().'" title="'.translate('Analysis FPS').'"><span id="analysisFPSValue'.$this->Id().'"></span> fps</span>
       ';
     }
     $html .= '

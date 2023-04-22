@@ -32,6 +32,9 @@ function setButtonStates(element) {
   }
 }
 
+function scanNetwork(element) {
+  window.location.assign('?view=add_monitors');
+}
 function addMonitor(element) {
   window.location.assign('?view=monitor');
 }

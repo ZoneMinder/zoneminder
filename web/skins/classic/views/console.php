@@ -184,7 +184,11 @@ echo $navbar ?>
       </div>
 
       <div class="middleButtons">
-        <button type="button" name="addBtn" data-on-click-this="addMonitor"
+        <button type="button" id="scanBtn" title="<?php echo translate('Network Scan') ?>" data-on-click="scanNetwork">
+        <i class="material-icons md-18">wifi</i>
+        <span class="text"><?php echo translate('Scan Network') ?></span>
+        </button>
+        <button type="button" name="addBtn" data-on-click="addMonitor"
         <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
         >
           <i class="material-icons md-18">add_circle</i>

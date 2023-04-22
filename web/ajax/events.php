@@ -282,7 +282,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $returned_rows = array();
   foreach ($filtered_rows as $row) {
     $event = new ZM\Event($row);
-    if ($event->Monitor()->Deleted() continue;
+    if ($event->Monitor()->Deleted()) continue;
 
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
     $imgSrc = $event->getThumbnailSrc(array(), '&amp;');

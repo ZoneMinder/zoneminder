@@ -113,6 +113,13 @@ class Event extends ZM_Object {
     return $this->{'Time'};
   }
 
+  public function StartDateTimeSecs() {
+    return strtotime($this->{'StartDateTime'});
+  }
+  public function EndDateTimeSecs() {
+    return strtotime($this->{'EndDateTime'});
+  }
+
   public function Path() {
     $Storage = $this->Storage();
     if ( $Storage->Path() and $this->Relative_Path() ) {

@@ -130,7 +130,7 @@ public static function getStatuses() {
   protected $defaults = array(
     'Id' => null,
     'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Monitor'),
-    'Deleted' => false,
+    'Deleted' => 0,
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,

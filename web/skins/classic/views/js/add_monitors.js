@@ -31,7 +31,7 @@ function probe(params) {
       }
       // parses into ProbeResults
       //getProbeResponse(data);
-      
+
       if (data.Streams && data.Streams.length) {
         for ( i in data.Streams ) {
           const stream = data.Streams[i];
@@ -94,8 +94,6 @@ function processRows(rows) {
   return rows;
 }
 
-
-
 function onvif_probe() {
 }
 
@@ -155,8 +153,8 @@ function addMonitor(btn) {
     return;
   }
   const Stream = ProbeResults[url];
-  if (Stream.Monitor) { 
-  const Monitor = Stream.Monitor;
+  if (Stream.Monitor) {
+    const Monitor = Stream.Monitor;
     urlString = '?view=monitor&mid='+Monitor.Id;
   } else {
     const Monitor = Stream.camera.monitor;
@@ -202,7 +200,6 @@ function initPage() {
       dataOnClickThis();
     }
   });
-  table.bottostrapTableonPostBody
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();

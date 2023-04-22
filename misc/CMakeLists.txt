@@ -12,6 +12,7 @@ configure_file(com.zoneminder.arp-scan.rules.in "${CMAKE_CURRENT_BINARY_DIR}/com
 configure_file(zoneminder.service.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder.service" @ONLY)
 configure_file(zoneminder-tmpfiles.conf.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder-tmpfiles.conf" @ONLY)
 configure_file(zoneminder.desktop.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder.desktop" @ONLY)
+configure_file(MacVendors.json "${CMAKE_CURRENT_BINARY_DIR}/MacVendors.json" @ONLY)
 configure_file(zm-sudo.in "${CMAKE_CURRENT_BINARY_DIR}/zm-sudo" @ONLY)
 
 # Do not install the misc files by default
@@ -26,3 +27,4 @@ if(WITH_SYSTEMD)
 endif()
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/zoneminder.desktop" DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/MacVendors.json" DESTINATION "${PKGDATADIR}")

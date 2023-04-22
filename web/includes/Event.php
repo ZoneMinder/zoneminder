@@ -378,7 +378,11 @@ class Event extends ZM_Object {
       null);
 
     $args['eid'] = $this->{'Id'};
-    $args['fid'] = 'snapshot';
+    if (file_exists($this->Path().'/objdetect.jpg')) {
+      $args['fid'] = 'objdetect';
+    } else {
+      $args['fid'] = 'snapshot';
+    }
     $args['view'] = 'image';
     $args['width'] = $this->ThumbnailWidth();
     $args['height'] = $this->ThumbnailHeight();

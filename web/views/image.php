@@ -291,7 +291,14 @@ if ( empty($_REQUEST['path']) ) {
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           if ( $Event->DefaultVideo() ) {
-            $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path . ' 2>&1';
+            $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+
+            if (!file_exists($file_path)) {
+              if ($file = find_video($Event->Path())) {
+                $file_path = $Event->Path().'/'.$file;
+              }
+            }
+            $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$file_path.' -frames:v 1 '.$path . ' 2>&1';
             #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
             #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
             ZM\Debug("Running $command");
@@ -385,12 +392,19 @@ if ( empty($_REQUEST['path']) ) {
     ZM\Debug("$path does not exist");
     # Generate the frame JPG
     if ( ($show == 'capture') and $Event->DefaultVideo() ) {
-      if ( !file_exists($Event->Path().'/'.$Event->DefaultVideo()) ) {
+      $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+
+      if (!file_exists($file_path)) {
+        if ($file = find_video($Event->Path())) {
+          $file_path = $Event->Path().'/'.$file;
+        }
+      }
+      if (!file_exists($file_path)) {
         header('HTTP/1.0 404 Not Found');
         ZM\Error("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
         return;
       }
-      $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path . ' 2>&1';
+      $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$file_path.' -frames:v 1 '.$path . ' 2>&1';
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
       ZM\Debug("Running $command");
@@ -550,6 +564,16 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
       } else {
         ZM\Debug("$bytes sent");
       }
+    }
+  }
+}
+
+function find_video($path) {
+  # Look for other mp4s
+  $files = scandir($path);
+  foreach ($files as $file) {
+    if (preg_match('/.mp4$/i', $file)) {
+      return $file;
     }
   }
 }

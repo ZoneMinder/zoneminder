@@ -189,13 +189,13 @@ echo $navbar ?>
         <span class="text"><?php echo translate('Scan Network') ?></span>
         </button>
         <button type="button" name="addBtn" data-on-click="addMonitor"
-        <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
+        <?php echo canEdit('Monitors') ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
         >
           <i class="material-icons md-18">add_circle</i>
           <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
         </button>
         <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
-        <?php echo (canEdit('Monitors') && !$user['MonitorIds']) ? '' : ' disabled="disabled"' ?>
+        <?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>
         style="display:none;">
           <i class="material-icons md-18">content_copy</i>
   <!--content_copy used instead of file_copy as there is a bug in material-icons -->

@@ -432,34 +432,6 @@ Output was: '.implode(PHP_EOL,$output) );
       return;
     }
   } # end if ! file_exists($path)
-
-} else {
-  ZM\Warning('Loading images by path is deprecated');
-  $dir_events = realpath(ZM_DIR_EVENTS);
-  $path = realpath($dir_events . '/' . $_REQUEST['path']);
-  $pos = strpos($path, $dir_events);
-
-  if ( $pos == 0 && $pos !== false ) {
-    if ( ! empty($user['MonitorIds']) ) {
-      $imageOk = false;
-      $pathMonId = substr($path, 0, strspn($path, '1234567890'));
-      foreach ( preg_split('/["\'\s]*,["\'\s]*/', $user['MonitorIds']) as $monId ) {
-        if ( $pathMonId == $monId ) {
-          $imageOk = true;
-          break;
-        }
-      }
-      if ( !$imageOk )
-        $errorText = 'No image permissions';
-    }
-  } else {
-    $errorText = 'Invalid image path';
-  }
-  if ( !file_exists($path) ) {
-    header('HTTP/1.0 404 Not Found');
-    ZM\Error("Image not found at $path");
-    return;
-  }
 }
 
 # we now load the actual image to send

@@ -44,6 +44,7 @@ $widths = array(
 $heights = array( 
   'auto'  => 'auto',
   '240px' => '240px',
+  '270px' => '270px',
   '320px' => '320px',
   '480px' => '480px',
   '720px' => '720px',

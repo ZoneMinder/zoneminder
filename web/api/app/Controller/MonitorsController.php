@@ -106,7 +106,7 @@ class MonitorsController extends AppController {
     if ( $this->request->is('post') ) {
 
       global $user;
-      $canAdd = (!$user) || ($user['System'] == 'Edit' );
+      $canAdd = (!$user) || ($user->System() == 'Edit' );
       if ( !$canAdd ) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
@@ -189,7 +189,7 @@ class MonitorsController extends AppController {
       throw new NotFoundException(__('Invalid monitor'));
     }
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -277,9 +277,9 @@ class MonitorsController extends AppController {
           $password = $_SESSION['password'];
         }
 
-        $auth = ' -U ' .$user['Username'].' -P '.$password;
+        $auth = ' -U ' .$user->Username().' -P '.$password;
       } else if (ZM_AUTH_RELAY == 'none') {
-        $auth = ' -U ' .$user['Username'];
+        $auth = ' -U ' .$user->Username();
       }
     }
     

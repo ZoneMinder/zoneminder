@@ -37,7 +37,7 @@ class HostController extends AppController {
     } else {
       $permission = 'Edit';
     }
-    $allowed = (!$user) || ($user['System'] == $permission );
+    $allowed = (!$user) || ($user->System() == $permission );
     if ( !$allowed ) {
       throw new UnauthorizedException(__("Insufficient privileges"));
       return;

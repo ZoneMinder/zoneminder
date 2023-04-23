@@ -22,7 +22,7 @@ class ServerStatsController extends AppController {
      * So it has been decided for now to just let everyone read it.
      
     global $user;
-    $canView = (!$user) || ($user['System'] != 'None');
+    $canView = (!$user) || ($user->System() != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -80,7 +80,7 @@ class ServerStatsController extends AppController {
   public function add() {
     if ( $this->request->is('post') ) {
       global $user;
-      $canEdit = (!$user) || ($user['System'] == 'Edit');
+      $canEdit = (!$user) || ($user->System() == 'Edit');
       if (!$canEdit) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
@@ -104,7 +104,7 @@ class ServerStatsController extends AppController {
     $this->ServerStat->id = $id;
 
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -134,7 +134,7 @@ class ServerStatsController extends AppController {
  */
   public function delete($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;

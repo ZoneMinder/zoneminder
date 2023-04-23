@@ -19,7 +19,7 @@ class UsersController extends AppController {
 
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user['System'] != 'None');
+    $canView = (!$user) || ($user->System() != 'None');
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -36,7 +36,7 @@ class UsersController extends AppController {
 
     global $user;
     # We should actually be able to list our own user, but I'm not bothering at this time.
-    if ($user['System'] == 'None' ) {
+    if ($user->System() == 'None' ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -57,7 +57,7 @@ class UsersController extends AppController {
 
     global $user;
     # We can view ourselves
-    $canView = ($user['System'] != 'None') or ($user['Id'] == $id);
+    $canView = ($user->System() != 'None') or ($user->Id() == $id);
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -84,7 +84,7 @@ class UsersController extends AppController {
 	public function add() {
 		if ($this->request->is('post')) {
       global $user;
-      if ($user['System'] != 'Edit') {
+      if ($user->System() != 'Edit') {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
@@ -120,7 +120,7 @@ class UsersController extends AppController {
 		$this->User->id = $id;
 
     global $user;
-    $canEdit = ($user['System'] == 'Edit') or (($user['Id'] == $id) and ZM_USER_SELF_EDIT);
+    $canEdit = ($user->System() == 'Edit') or (($user->Id() == $id) and ZM_USER_SELF_EDIT);
     if (!$canEdit) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -164,7 +164,7 @@ class UsersController extends AppController {
 
     global $user;
     # Can't delete ourselves
-    if ( ($user['System'] != 'Edit') or ($user['Id'] == $id) ) {
+    if ( ($user->System() != 'Edit') or ($user->Id() == $id) ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }

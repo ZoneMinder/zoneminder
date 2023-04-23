@@ -24,7 +24,7 @@ class LogsController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user['System'] != 'None');
+    $canView = (!$user) || ($user->System() != 'None');
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -66,7 +66,7 @@ class LogsController extends AppController {
  */
 	public function add() {
     global $user;
-    $canAdd = (!$user) || (($user['System'] == 'Edit') || ZM_LOG_INJECT);
+    $canAdd = (!$user) || (($user->System() == 'Edit') || ZM_LOG_INJECT);
     if (!$canAdd) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -88,7 +88,7 @@ class LogsController extends AppController {
  */
 	public function edit($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if (!$canEdit) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -115,7 +115,7 @@ class LogsController extends AppController {
  * @return void
  */
 	public function delete($id = null) {
-    $canDelete = (!$user) || ($user['System'] == 'Edit');
+    $canDelete = (!$user) || ($user->System() == 'Edit');
     if (!$canDelete) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;

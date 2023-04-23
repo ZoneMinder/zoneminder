@@ -18,7 +18,7 @@ class StorageController extends AppController {
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
-    $canView = (!$user) || ($user['System'] != 'None');
+    $canView = (!$user) || ($user->System() != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -84,7 +84,7 @@ class StorageController extends AppController {
     if ( $this->request->is('post') ) {
 
       global $user;
-      $canEdit = (!$user) || ($user['System'] == 'Edit');
+      $canEdit = (!$user) || ($user->System() == 'Edit');
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
@@ -110,7 +110,7 @@ class StorageController extends AppController {
     $this->Storage->id = $id;
 
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -142,7 +142,7 @@ class StorageController extends AppController {
  */
   public function delete($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;

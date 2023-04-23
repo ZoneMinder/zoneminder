@@ -18,7 +18,7 @@ class UserPreferenceController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user['Users'] != 'None');
+    $canView = (!$user) || ($user->Users() != 'None');
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

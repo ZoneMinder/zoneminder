@@ -22,7 +22,7 @@ class EventsController extends AppController {
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
-    $canView = (!$user) || ($user['Events'] != 'None');
+    $canView = (!$user) || ($user->Events() != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -40,7 +40,7 @@ class EventsController extends AppController {
 
     global $user;
     require_once __DIR__ .'/../../../includes/Event.php';
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = $user ? preg_split('@,@', $user->MonitorIds(), NULL, PREG_SPLIT_NO_EMPTY) : null;
 
     if ( $allowedMonitors ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
@@ -135,7 +135,7 @@ class EventsController extends AppController {
     }
 
     global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = $user ? preg_split('@,@', $user->MonitorIds(), NULL, PREG_SPLIT_NO_EMPTY) : null;
 
     if ( $allowedMonitors ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
@@ -188,7 +188,7 @@ class EventsController extends AppController {
   public function add() {
 
     global $user;
-    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    $canEdit = (!$user) || ($user->Events() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -214,7 +214,7 @@ class EventsController extends AppController {
   public function edit($id = null) {
 
     global $user;
-    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    $canEdit = (!$user) || ($user->Events() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -247,7 +247,7 @@ class EventsController extends AppController {
    */
   public function delete($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user['Events'] == 'Edit');
+    $canEdit = (!$user) || ($user->Events() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;

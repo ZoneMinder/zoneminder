@@ -775,17 +775,17 @@ public static function getStatuses() {
 
   function canEdit($u=null) {
     global $user;
-    if ($u===null or $u['Id'] == $user['Id'])
+    if ($u===null or $u->Id() == $user->Id())
       return editableMonitor($this->{'Id'});
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u->Id(), 'MonitorId'=>$this->{'Id'}));
     if ($monitor_permission and
       ($monitor_permission->Permission() == 'None' or $monitor_permission->Permission() == 'View')) {
       Debug("Can't edit monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user['Id']));
+    $group_permissions = Group_Permission::find(array('UserId'=>$user->Id()));
 
     # If denied view in any group, then can't view it.
     foreach ($group_permissions as $permission) {
@@ -799,7 +799,7 @@ public static function getStatuses() {
 
   function canView($u=null) {
     global $user;
-    if (($u === null) or ($u['Id'] == $user['Id']))
+    if (($u === null) or ($u->Id() == $user->Id()))
       return visibleMonitor($this->Id());
 
     $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
@@ -808,7 +808,7 @@ public static function getStatuses() {
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user['Id']));
+    $group_permissions = Group_Permission::find(array('UserId'=>$user->Id()));
 
     # If denied view in any group, then can't view it.
     $group_permission_value = 'Inherit';
@@ -1075,7 +1075,7 @@ public static function getStatuses() {
   public function effectivePermission($u=null) {
     if ($u === null) {
       global $user;
-      $u = new User($user);
+      $u = $user;
     }
     $monitor_permission = $u->Monitor_Permission($this->Id());
     if ($monitor_permission->Permission() != 'Inherit') {

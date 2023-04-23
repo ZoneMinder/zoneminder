@@ -43,7 +43,7 @@
     }
     ?>
       <tr>
-        <td class="colUsername"><?php echo makeLink('?view=user&amp;uid='.$user_row['Id'], validHtmlStr($user_row['Username']).($user['Username']==$user_row['Username']?'*':''), $canEdit) ?></td>
+        <td class="colUsername"><?php echo makeLink('?view=user&amp;uid='.$user_row['Id'], validHtmlStr($user_row['Username']).($user->Username()==$user_row['Username']?'*':''), $canEdit) ?></td>
         <td class="colLanguage"><?php echo $user_row['Language']?validHtmlStr($user_row['Language']):'default' ?></td>
         <td class="colEnabled"><?php echo translate($user_row['Enabled']?'Yes':'No') ?></td>
         <td class="colStream"><?php echo validHtmlStr($user_row['Stream']) ?></td>

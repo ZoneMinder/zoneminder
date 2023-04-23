@@ -64,7 +64,7 @@ if ($action == 'Save') {
       }
 
       if ($uid) {
-        if ($user and ($dbUser->Username() == $user['Username'])) {
+        if ($user and ($dbUser->Username() == $user->Username())) {
           # We are the logged in user, need to update the $user object and generate a new auth_hash
           $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
           $user = dbFetchOne($sql, NULL, array($uid));
@@ -96,7 +96,7 @@ if ($action == 'Save') {
       }
     }
     $dbUser->Monitor_Permissions(null); # reload
-  } else if (ZM_USER_SELF_EDIT and ($uid == $user['Id'])) {
+  } else if (ZM_USER_SELF_EDIT and ($uid == $user->Id())) {
     if (!empty($_REQUEST['user']['Password'])) {
       $_REQUEST['user']['Password'] = password_hash($_REQUEST['user']['Password'], PASSWORD_BCRYPT);
     } else {

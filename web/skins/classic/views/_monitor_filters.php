@@ -93,8 +93,8 @@ foreach ( array('ServerId','StorageId','Status','Capturing','Analysing','Recordi
   }
 } # end foreach filter
 
-if (0 and !empty($user['MonitorIds']) ) {
-  $ids = explode(',', $user['MonitorIds']);
+if (count($user->unviewableMonitorIds()) ) {
+  $ids = $user->viewableMonitorIds();
   $conditions[] = 'M.Id IN ('.implode(',',array_map(function(){return '?';}, $ids)).')';
   $values = array_merge($values, $ids);
 }

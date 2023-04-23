@@ -463,5 +463,12 @@ class ZM_Object {
   public function get_last_error() {
     return $this->_last_error;
   }
+  public function expose($filters=[]) {
+    $default_filters = ['_last_error','defaults'];
+    $vars = get_object_vars($this);
+    foreach ($filters as $filter) { unset($vars[$filter]); }
+    foreach ($default_filters as $filter) { unset($vars[$filter]); }
+    return $vars;
+  }
 } # end class Object
 ?>

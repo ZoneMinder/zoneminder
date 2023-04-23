@@ -45,7 +45,7 @@ if ( $action == 'delete' ) {
     // deletes users
     foreach( $_REQUEST['markUids'] as $markUid )
       dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
-    if ( $markUid == $user['Id'] )
+    if ( $markUid == $user->Id() )
       userLogout();
   }
 

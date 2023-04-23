@@ -225,7 +225,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <?php
 
   // *** Build the navigation bar menu items ***
-  if ( $user and $user['Username'] ) {
+  if ( $user and $user->Username() ) {
         echo '<ul class="nav navbar-nav align-self-start justify-content-center">';
           echo getConsoleHTML();
           echo getOptionsHTML();
@@ -360,7 +360,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 
       <div style="background-color:#485460" class="dropdown-menu dropdown-menu-right px-3" id="main-header-nav">
       <?php
-      if ( $user and $user['Username'] ) {
+      if ( $user and $user->Username() ) {
           echo '<ul class="navbar-nav">';
             echo getConsoleHTML();
             echo getOptionsHTML();
@@ -541,11 +541,11 @@ function getConsoleBannerHTML() {
 function getBandwidthHTML($bandwidth_options, $user) {
 
   # Limit available options to what are available in user
-  if ( $user && !empty($user['MaxBandwidth']) ) {
-    if ( $user['MaxBandwidth'] == 'low' ) {
+  if ( $user && !empty($user->MaxBandwidth()) ) {
+    if ( $user->MaxBandwidth() == 'low' ) {
       unset($bandwidth_options['high']);
       unset($bandwidth_options['medium']);
-    } else if ( $user['MaxBandwidth'] == 'medium' ) {
+    } else if ( $user->MaxBandwidth() == 'medium' ) {
       unset($bandwidth_options['high']);
     }
   }
@@ -828,7 +828,7 @@ function getAccountCircleHTML($skin, $user=null) {
   
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<li id="getAccountCircleHTML" class="navbar-text navbar-nav mr-2">'.PHP_EOL;
-    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '. validHtmlStr($user['Username']),
+    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '. validHtmlStr($user->Username()),
       (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }

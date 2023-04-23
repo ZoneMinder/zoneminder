@@ -25,7 +25,7 @@ if ( isset($_REQUEST['mid']) ) {
 } else if ( isset($_REQUEST['mids']) ) {
   $mids = $_REQUEST['mids'];
 } else {
-  $mids = dbFetchAll('SELECT Id FROM Monitors'.($user['MonitorIds'] ? 'WHERE Id IN ('.$user['MonitorIds'].')' : ''), 'Id');
+  $mids = dbFetchAll('SELECT Id FROM Monitors'.($user->unviewableMonitorIds() ? 'WHERE Id IN ('.$user->viewableMonitorIds().')' : ''), 'Id');
 }
 
 if ( !($mids and count($mids)) ) {

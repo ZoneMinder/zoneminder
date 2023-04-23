@@ -42,7 +42,7 @@ if ($action == 'save') {
       if (!$x10Monitor) $x10Monitor = array();
     }
   } else {
-    if ($user['MonitorIds']) {
+    if ($user->unviewableMonitorIds()) {
       ZM\Warning('You are restricted to certain monitors so cannot add a new one.');
       return;
     }
@@ -308,7 +308,7 @@ if ($action == 'save') {
     if ( count($x10Changes) ) {
       if ( $x10Monitor && isset($_REQUEST['newX10Monitor']) ) {
         dbQuery('UPDATE TriggersX10 SET '.implode(', ', $x10Changes).' WHERE MonitorId=?', array($mid));
-      } elseif ( !$user['MonitorIds'] ) {
+      } else if ( !$user->unviewableMonitorIds() ) {
         if ( !$x10Monitor ) {
           dbQuery('INSERT INTO TriggersX10 SET MonitorId = ?, '.implode(', ', $x10Changes), array($mid));
         } else {

@@ -386,7 +386,7 @@ function deleteEvent($event) {
 
   global $user;
 
-  if ($user['Events'] == 'Edit') {
+  if ($user->Events() == 'Edit') {
     $event->delete();
   } # CAN EDIT
 }
@@ -885,8 +885,8 @@ function deScale($dimension, $dummy) {
 
 function monitorLimitSql() {
   global $user;
-  if ( !empty($user['MonitorIds']) )
-    $midSql = ' AND MonitorId IN ('.join(',', preg_split('/["\'\s]*,["\'\s]*/', $user['MonitorIds'])).')';
+  if ( count($user->unviewableMonitorIds()) )
+    $midSql = ' AND MonitorId IN ('.join(',', $user->viewableMonitorIds()).')';
   else
     $midSql = '';
   return $midSql;
@@ -2439,13 +2439,13 @@ function check_datetime($x) {
 function getHomeView() {
   global $user;
   global $skin;
-  if ($user and isset($user['HomeView']) and $user['HomeView']) {
-    $view = detaintPath($user['HomeView']);
+  if ($user and $user->HomeView()) {
+    $view = detaintPath($user->HomeView());
     $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$view.'.php';
     if (file_exists($path)) {
       return $view;
     } else {
-      ZM\Warning("Invalid view ${user['HomeView']} in HomeView for user ${user['Username']} does not exist at $path");
+      ZM\Warning('Invalid view '.$user->HomeView().' in HomeView for user '.$user->Username().' does not exist at '.$path);
     }
   }
   if (defined('ZM_WEB_HOMEVIEW') and ZM_WEB_HOMEVIEW) {

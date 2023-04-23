@@ -176,7 +176,7 @@ if (ZM_OPT_USE_AUTH) {
   global $user;
   echo htmlSelect('filter[UserId]',
     ZM\User::Indexed_By_Id(),
-    $filter->UserId() ? $filter->UserId() : $user['Id']
+    $filter->UserId() ? $filter->UserId() : $user->Id()
   );
   echo '</p>'.PHP_EOL;
 }
@@ -348,7 +348,7 @@ if ( ZM_OPT_EMAIL ) {
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
           <button type="button" data-on-click-this="submitAction" value="execute" id="executeButton"><?php echo translate('Execute') ?></button>
 <?php
-$canEdit = (canEdit('System') or ($filter->UserId() == $user['Id']));
+$canEdit = (canEdit('System') or ($filter->UserId() == $user->Id()));
 $canSave = !$filter->Id() or $canEdit;
 $canDelete = $filter->Id() and $canEdit;
 ?>

@@ -11,7 +11,7 @@ $data = array();
 // INITIALIZE AND CHECK SANITY
 //
 
-if ( !canView('Events') ) $message = 'Insufficient permissions for user '.$user['Username'];
+if ( !canView('Events') ) $message = 'Insufficient permissions for user '.$user->Username();
 
 // Mid specifies the monitor id we are searching on
 if ( empty($_REQUEST['mid']) ) {

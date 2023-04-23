@@ -135,8 +135,8 @@ $eventsSql = 'SELECT E.* FROM Events AS E INNER JOIN Monitors AS M ON (E.Monitor
 $eventIdsSql = 'SELECT E.Id FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartDateTime)';
 $eventsValues = array();
 
-if ( !empty($user['MonitorIds']) ) {
-  $monFilterSql = ' AND MonitorId IN ('.$user['MonitorIds'].')';
+if ( count($user->unviewableMonitorIds()) ) {
+  $monFilterSql = ' AND MonitorId IN ('.$user->viewableMonitorIds().')';
 
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;

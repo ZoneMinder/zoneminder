@@ -8,7 +8,7 @@ $data = array();
 //
 
 if (!canView('Events'))
-  $message = 'Insufficient permissions for user '.$user['Username'].'<br/>';
+  $message = 'Insufficient permissions for user '.$user->Username().'<br/>';
 
 if (empty($_REQUEST['task'])) {
   $message = 'Must specify a task<br/>';
@@ -30,8 +30,8 @@ if ($message) {
 
 require_once('includes/Filter.php');
 $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
-if ($user['MonitorIds']) {
-  $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+if ( $user->unviewableMonitorIds() ) {
+  $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
 }
 if (!empty($_REQUEST['StartDateTime'])) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '>=', 'val'=>$_REQUEST['StartDateTime']));
@@ -100,14 +100,14 @@ switch ($task) {
   case 'unarchive' :
 		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user['Username']);
+			ajaxError('Insufficient permissions for user '.$user->Username());
 			return;
 		}
     foreach ($eids as $eid) archiveRequest($task, $eid);
     break;
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user['Username']);
+			ajaxError('Insufficient permissions for user '.$user->Username());
 			return;
 		}
     foreach ($eids as $eid) {

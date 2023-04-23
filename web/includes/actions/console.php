@@ -24,7 +24,7 @@ if ( $action == 'delete' ) {
     return;
   }
 
-  if ( isset($_REQUEST['markMids']) && !$user['MonitorIds'] ) {
+  if ( isset($_REQUEST['markMids']) && !$user->MonitorIds() ) {
     require_once('includes/Monitor.php');
     foreach ($_REQUEST['markMids'] as $markMid) {
       if (canEdit('Monitors', $markMid)) {

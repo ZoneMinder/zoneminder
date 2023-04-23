@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$selfEdit = ZM_USER_SELF_EDIT && ($_REQUEST['uid'] == $user['Id']);
+$selfEdit = ZM_USER_SELF_EDIT && ($_REQUEST['uid'] == $user->Id());
 
 if (!canEdit('System') && !$selfEdit) {
   $view = 'error';

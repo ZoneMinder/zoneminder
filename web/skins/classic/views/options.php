@@ -224,8 +224,8 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   foreach (ZM\Storage::find(null, array('order'=>'lower(Name)')) as $Storage) { 
     $filter = new ZM\Filter();
     $filter->addTerm(array('attr'=>'StorageId','op'=>'=','val'=>$Storage->Id()));
-    if ($user['MonitorIds']) {
-      $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+    if (count($user->unviewableMonitorIds())) {
+      $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
     }
 
     $str_opt = 'class="storageCol" data-sid="'.$Storage->Id().'"';

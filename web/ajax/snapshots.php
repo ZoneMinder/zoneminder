@@ -9,7 +9,7 @@ $data = array();
 //
 
 if (!canView('Snapshots'))
-  $message = 'Insufficient permissions for user '.$user['Username'];
+  $message = 'Insufficient permissions for user '.$user->Username();
 
 $task = '';
 if (empty($_REQUEST['task'])) {
@@ -73,7 +73,7 @@ if (isset($_REQUEST['limit'])) {
 switch ($task) {
   case 'delete' :
 		if (!canEdit('Snapshots'))  {
-			ajaxError('Insufficient permissions for user '.$user['Username']);
+			ajaxError('Insufficient permissions for user '.$user->Username());
 			return;
 		}
 

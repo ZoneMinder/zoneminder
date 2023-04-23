@@ -27,7 +27,6 @@ class User extends ZM_Object {
       'Snapshots'       => 'None',
       'System'          => 'None',
       'MaxBandwidth'    => '',
-      'MonitorIds'      => '',
       'TokenMinExpiry'  => 0,
       'APIEnabled'      => 1,
       'HomeView'        => '',
@@ -112,6 +111,35 @@ class User extends ZM_Object {
       $mp->Name($name);
     }
     return $this->Preferences[$name];
+  }
+
+  public function viewableMonitorIds() {
+    if (!property_exists($this, 'viewableMonitorIds')) {
+      $this->viewableMonitorIds = [];
+      $this->unviewableMonitorIds = [];
+      foreach (Monitor::find() as $monitor) {
+        if ($monitor->canView($this)) {
+          $this->viewableMonitorIds[] = $monitor->Id();
+        } else {
+          $this->unviewableMonitorIds[] = $monitor->Id();
+        }
+      }
+    }
+    return $this->viewableMonitorIds;
+  }
+  public function unviewableMonitorIds() {
+    if (!property_exists($this, 'unviewableMonitorIds')) {
+      $this->viewableMonitorIds = [];
+      $this->unviewableMonitorIds = [];
+      foreach (Monitor::find() as $monitor) {
+        if ($monitor->canView($this)) {
+          $this->viewableMonitorIds[] = $monitor->Id();
+        } else {
+          $this->unviewableMonitorIds[] = $monitor->Id();
+        }
+      }
+    }
+    return $this->unviewableMonitorIds;
   }
 } # end class User
 ?>

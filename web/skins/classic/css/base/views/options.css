@@ -39,6 +39,9 @@ input.large {
   text-align: left;
 }
 
+input[type="text"] {
+  min-width: 50%;
+}
 input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SITEKEY]"],
 input[name="newConfig[ZM_OPT_GOOG_RECAPTCHA_SECRETKEY]"],
 input[name="newConfig[ZM_OPT_GEOLOCATION_TILE_PROVIDER]"],

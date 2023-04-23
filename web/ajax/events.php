@@ -30,7 +30,7 @@ if ($message) {
 
 require_once('includes/Filter.php');
 $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
-if ( $user->unviewableMonitorIds() ) {
+if (count( $user->unviewableMonitorIds())) {
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
 }
 if (!empty($_REQUEST['StartDateTime'])) {

@@ -656,10 +656,10 @@ class Event extends ZM_Object {
     }
     if (!$this->Monitor()->canView($u)) return false;
 
-    if ($u['Events'] != 'None') {
+    if ($u->Events() != 'None') {
       return true;
     }
-    if ($u['Snapshots'] != 'None') {
+    if ($u->Snapshots() != 'None') {
       # If the event is contained in a snapshot, then we can still view it.
       if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
         return true;
@@ -674,7 +674,7 @@ class Event extends ZM_Object {
       return false;
     }
     if (!$this->Monitor()->canView($u)) return false;
-    if ($u['Events'] != 'Edit') {
+    if ($u->Events() != 'Edit') {
       return false;
     }
     return true;

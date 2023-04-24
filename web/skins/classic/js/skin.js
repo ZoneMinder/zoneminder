@@ -916,15 +916,15 @@ function manageShutdownBtns(element) {
 }
 
 var thumbnail_timeout;
+var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
   thumbnail_timeout = setTimeout(function() {
-    var img = event.target;
-    var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-    var imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
-    img.src = '';
-    img.src = img.getAttribute(imgAttr);
+    const img = event.target;
+    const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+    const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
     img.classList.add(imgClass);
-  }, 350);
+    img.src = img.getAttribute(imgAttr);
+  }, 150);
 }
 
 function thumbnail_onmouseout(event) {

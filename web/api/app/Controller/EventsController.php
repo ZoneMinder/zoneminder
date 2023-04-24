@@ -40,7 +40,7 @@ class EventsController extends AppController {
 
     global $user;
     require_once __DIR__ .'/../../../includes/Event.php';
-    $allowedMonitors = $user ? preg_split('@,@', $user->MonitorIds(), NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
 
     if ( $allowedMonitors ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
@@ -135,7 +135,7 @@ class EventsController extends AppController {
     }
 
     global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user->MonitorIds(), NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
 
     if ( $allowedMonitors ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);

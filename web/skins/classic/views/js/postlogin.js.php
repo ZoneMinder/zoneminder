@@ -16,7 +16,7 @@ if (!empty($_REQUEST['postLoginQuery'])) {
 
 // If we didn't redirect elsewhere, then don't show login page, go to console
 if ( $redirectSuffix == '?view=login' or $redirectSuffix == '?view=logout') {
-  Warning('Setting redirect to login causes looping! Redirect to console');
+  ZM\Warning('Setting redirect to login causes looping! Redirect to console');
   $redirectSuffix = '?view=console';
 }
 ?>

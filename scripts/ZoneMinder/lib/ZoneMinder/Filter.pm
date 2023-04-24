@@ -56,6 +56,7 @@ AutoEmail
 EmailTo
 EmailSubject
 EmailBody
+EmailFormat
 AutoMessage
 AutoExecute
 AutoExecuteCmd

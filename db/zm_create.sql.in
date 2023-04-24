@@ -309,6 +309,7 @@ CREATE TABLE `Filters` (
 	`EmailTo`				TEXT,
 	`EmailSubject`	TEXT,
 	`EmailBody`			TEXT,
+	`EmailFormat`		enum('Individual','Summary') NOT NULL default 'Individual',
   `AutoMessage` tinyint(3) unsigned NOT NULL default '0',
   `AutoExecute` tinyint(3) unsigned NOT NULL default '0',
   `AutoExecuteCmd` tinytext,

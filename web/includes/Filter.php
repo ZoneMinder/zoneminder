@@ -23,6 +23,7 @@ class Filter extends ZM_Object {
 		'EmailTo'					=>	'',
 		'EmailSubject'		=>	'',
 		'EmailBody'				=>	'',
+		'EmailFormat'			=>	'Individual',
     'AutoDelete'      =>  0,
     'AutoArchive'     =>  0,
     'AutoUnarchive'   =>  0,

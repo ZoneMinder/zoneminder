@@ -335,6 +335,14 @@ if ( ZM_OPT_EMAIL ) {
                 <label><?php echo translate('FilterEmailBody') ?></label>
                 <textarea name="filter[EmailBody]" rows="<?php echo count(explode("\n", $filter->EmailBody())) ?>"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
               </p>
+              <p>
+                <label><?php echo translate('Email Format') ?></label>
+<?php echo html_radio(
+  'filter[EmailFormat]',
+  ['Individual'=>translate('Individual'), 'Summary'=>translate('Summary')],
+  $filter->EmailFormat()); ?>
+              </p>
+              
             </div>
 <?php
 }

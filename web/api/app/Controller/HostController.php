@@ -160,7 +160,7 @@ class HostController extends AppController {
     if ( $token ) {
       // If we have a token, we need to derive username from there
       $ret = validateToken($token, 'refresh', true);
-      $username = $ret[0]['Username'];
+      $username = $ret[0]->Username();
     }
 
     ZM\Info("Creating token for \"$username\"");

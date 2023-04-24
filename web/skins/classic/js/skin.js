@@ -650,11 +650,11 @@ function setButtonState(element_id, btnClass) {
   }
 }
 
-function setCookie(name, value, days) {
-  var expires = "";
-  if (days) {
-    var date = new Date();
-    date.setTime(date.getTime() + (days*24*60*60*1000));
+function setCookie(name, value, seconds) {
+  let expires = "";
+  if (seconds) {
+    const date = new Date();
+    date.setTime(date.getTime() + (seconds*1000));
     expires = "; expires=" + date.toUTCString();
   }
   document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";

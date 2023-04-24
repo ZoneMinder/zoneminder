@@ -763,11 +763,7 @@ li.search-choice {
     cursor: pointer;
 }
 
-.zoom {
-  transform-origin: 70% 50%;
-  transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
-}
-
+.zoom,
 .zoom-console {
   transform-origin: 0% 50%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */

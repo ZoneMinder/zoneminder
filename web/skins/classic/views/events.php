@@ -118,6 +118,7 @@ echo getNavBarHTML();
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
               <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
+              <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;"><?php echo translate('Thumbnail') ?></th>
               <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="true" data-field="Name"><?php echo translate('Name') ?></th>
               <th data-sortable="true" data-field="Archived"><?php echo translate('Archived') ?></th>
@@ -134,7 +135,6 @@ echo getNavBarHTML();
               <th data-sortable="true" data-field="MaxScore"><?php echo translate('MaxBrScore') ?></th>
               <th data-sortable="false" data-field="Storage"><?php echo translate('Storage') ?></th>
               <th data-sortable="true" data-field="DiskSpace"><?php echo translate('DiskSpace') ?></th>
-              <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;"><?php echo translate('Thumbnail') ?></th>
             </tr>
           </thead>
 

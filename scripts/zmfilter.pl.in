@@ -807,7 +807,7 @@ sub substituteTags {
           push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
           $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
         } else {
-          Warning('No image for MODG at '.$path);
+          Debug(1, 'No image for MODG at '.$path);
           $text =~ s/%EIMODG%/No image found for EIMODG/g;
         }
       }

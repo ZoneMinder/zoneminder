@@ -49,6 +49,7 @@ $serial = $primary_key = 'Id';
 %fields = map { $_ => $_ } qw(
   Id
   Name
+  Deleted
   Notes
   ServerId
   StorageId
@@ -150,6 +151,7 @@ $serial = $primary_key = 'Id';
   );
 
 %defaults = (
+  Deleted => 0,
     ServerId => 0,
     StorageId => 0,
     Type      => q`'Ffmpeg'`,

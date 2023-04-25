@@ -386,7 +386,7 @@ sub checkFilter {
     } # end if UpdateDiskSpace
   } # end foreach event
 
-  if ($Config{ZM_OPT_EMAIL} and $filter->{AutoEmail} and ($filter->{EmailFormat} eq 'Summary')) {
+  if ($Config{ZM_OPT_EMAIL} and $filter->{AutoEmail} and ($filter->{EmailFormat} eq 'Summary') and @Events) {
     sendSummaryEmail($filter, @Events);
   }
   ZoneMinder::Database::end_transaction($dbh, $in_transaction) if $$filter{LockRows}; 

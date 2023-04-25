@@ -789,8 +789,8 @@ sub substituteTags {
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
           } else {
-            Warning("No image for EIMA at $path");
-            $text =~ s/%EIMA%/No image found for EIMA/g;
+            Debug(1, "No image for EIMA at $path");
+            $text =~ s/%EIMA%//g;
           }
         }
 
@@ -802,8 +802,8 @@ sub substituteTags {
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
           } else {
-            Warning('No image for MOD at '.$path);
-            $text =~ s/%EIMOD%/No image found for EIMOD/g;
+            Debug(1, 'No image for MOD at '.$path);
+            $text =~ s/%EIMOD%//g;
           }
         }
 
@@ -816,7 +816,7 @@ sub substituteTags {
             $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
           } else {
             Debug(1, 'No image for MODG at '.$path);
-            $text =~ s/%EIMODG%/No image found for EIMODG/g;
+            $text =~ s/%EIMODG%//g;
           }
         }
 

@@ -458,8 +458,19 @@ void MonitorStream::runStream() {
   monitor->setLastViewed();
 
   if (type == STREAM_SINGLE) {
+    Debug(1, "Single");
+    if (!checkInitialised()) {
+      if (!loadMonitor(monitor_id)) {
+        sendTextFrame("Not connected");
+      } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        sendTextFrame("Waiting for capture");
+      } else {
+        sendTextFrame("Unable to stream");
+      }
+    } else {
     // Not yet migrated over to stream class
-    SingleImage(scale);
+      SingleImage(scale);
+    }
     return;
   }
 

@@ -169,7 +169,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               </thead>
               <tbody>
 <?php
-          $monitor_counts = dbFetchAssoc('SELECT Id,(SELECT COUNT(Id) FROM Monitors WHERE ServerId=Servers.Id) AS MonitorCount FROM Servers', 'Id', 'MonitorCount');
+          $monitor_counts = dbFetchAssoc('SELECT Id,(SELECT COUNT(Id) FROM Monitors WHERE Deleted!=1 AND ServerId=Servers.Id) AS MonitorCount FROM Servers', 'Id', 'MonitorCount');
           foreach (ZM\Server::find() as $Server) {
             $svr_opt = 'class="serverCol" data-sid="'.$Server->Id().'"';
             ?>

@@ -150,6 +150,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               <thead class="thead-highlight">
                 <tr>
                   <th class="colMark"><?php echo translate('Mark') ?></th>
+                  <th class="colId"><?php echo translate('Id') ?></th>
                   <th class="colName"><?php echo translate('Name') ?></th>
                   <th class="colUrl"><?php echo translate('Url') ?></th>
                   <th class="colPathToIndex"><?php echo translate('PathToIndex') ?></th>
@@ -174,6 +175,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
             ?>
                 <tr>
                   <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Server->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
+                  <td class="colId"><?php echo makeLink('#', $Server->Id(), $canEdit, $svr_opt ) ?></td>
                   <td class="colName"><?php echo makeLink('#', validHtmlStr($Server->Name()), $canEdit, $svr_opt ) ?></td>
                   <td class="colUrl"><?php echo makeLink('#', validHtmlStr($Server->Url()), $canEdit, $svr_opt ) ?></td>
                   <td class="colPathToIndex"><?php echo makeLink('#', validHtmlStr($Server->PathToIndex()), $canEdit, $svr_opt ) ?></td>

@@ -11,6 +11,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libswresample-dev
               ,libswscale-dev
               ,ffmpeg
+              ,arp-scan
               ,net-tools
               ,libbz2-dev
               ,libcurl4-gnutls-dev
@@ -76,6 +77,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
+        ,arp-scan
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0

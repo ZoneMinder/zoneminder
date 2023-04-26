@@ -797,7 +797,7 @@ sub substituteTags {
         if ($text =~ /%EIMOD%/g ) {
           my $path = $Event->Path().'/objdetect.jpg';
           if (-e $path) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
@@ -810,7 +810,7 @@ sub substituteTags {
         if ( $text =~ s/%EIMODG%//g ) {
           my $path = $Event->Path().'/objdetect.gif';
           if ( -e $path ) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment = { type=>'image/gif', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;

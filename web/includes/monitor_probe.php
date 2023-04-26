@@ -127,30 +127,37 @@ function probeV4L() {
 
 // Probe Network Cameras
 //
-function probeAxis($ip) {
+function probeAxis($ip, $username, $password) {
+  if (!$username) $username = 'root';
+  if (!$password) $password = 'password';
   $cameras = [];
-  $url = 'http://'.$ip.'/axis-cgi/admin/param.cgi?action=list&group=Brand';
   $camera = array(
     'ip'      => $ip,
-    'Model'   => 'Unknown Axis Camera',
+    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/axis-cgi/mjpg/video.cgi?resolution=320x240',
+    'Manufacturer' => 'Axis',
+    'Model'   => 'Unknown Model',
     'monitor' => array(
-      'Type'     => 'Remote',
-      'Protocol' => 'http',
-      'Host'     => $ip,
-      'Port'     => 80,
-      'Path'     => '/axis-cgi/mjpg/video.cgi?resolution=320x240',
-      'Colours'  => 3,
-      'Width'    => 320,
-      'Height'   => 240,
+      'Path'    => 'rtsp://'.$username.':'.$password.'@'.$ip.'/cam/realmonitor?channel=1&subtype=0',
+      'Manufacturer' => 'Axis',
     ),
   );
-  if ( $lines = @file($url) ) {
+
+  $url = 'http://'.$ip.'/axis-cgi/admin/param.cgi?action=list&group=Brand';
+  $content = get('GET', $url, $username, $password);
+
+  if ($content) {
+    ZM\Debug($content);
+    $lines = explode("\n", $content);
     foreach ( $lines as $line ) {
       $line = rtrim( $line );
       if ( preg_match('/^(.+)=(.+)$/', $line, $matches) ) {
         if ( $matches[1] == 'root.Brand.ProdShortName' ) {
-          $camera['Model'] = $matches[2];
+          $camera['Model'] = $camera['monitor']['Model'] = $matches[2];
           break;
+        } else if ( $matches[1] == 'root.Image.I0.Appearance.Resolution' ) {
+          $resolution = explode('x', $matches[2]);
+          $camera['monitor']['Width'] = $resolution[0];
+          $camera['monitor']['Height'] = $resolution[1];
         }
       }
     }

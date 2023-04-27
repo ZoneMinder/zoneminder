@@ -77,7 +77,7 @@ function MonitorStream(monitorData) {
   this.show = function() {
     const stream = this.getElement();
     if (!stream.src) {
-      stream.src = this.url_to_zms+"&mode=single&scale=100&connkey="+this.connKey+this.auth_relay;
+      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+this.auth_relay;
     }
   };
 
@@ -92,8 +92,6 @@ function MonitorStream(monitorData) {
       return;
     }
 
-    this.scale = newscale;
-
     // Scale the frame
     monitor_frame = $j('#monitor'+this.id);
     if (!monitor_frame) {
@@ -106,11 +104,13 @@ function MonitorStream(monitorData) {
         newscale = parseInt(100*monitor_frame.width() / this.width);
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
         width = monitor_frame.css('width');
+        height = Math.round(parseInt(this.height) * newscale / 100)+'px';
       } else {
         const newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
         width = newSize.width+'px';
         height = newSize.height+'px';
         newscale = parseInt(newSize.autoScale);
+        if (newscale < 25) newscale = 25; // Arbitrary.  4k shown on 1080p screen looks terrible
       }
     } else if (parseInt(width) || parseInt(height)) {
       if (width) {
@@ -129,6 +129,7 @@ function MonitorStream(monitorData) {
       // a numeric scale, must take actual monitor dimensions and calculate
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
+      console.log("Specified scale: ", newscale, width, height);
     }
     if (width && (width != '0px')) {
       monitor_frame.css('width', parseInt(width));
@@ -147,29 +148,34 @@ function MonitorStream(monitorData) {
     const stream_frame = $j('#monitor'+this.id);
     if (!newscale) {
       newscale = parseInt(100*parseInt(stream_frame.width())/this.width);
-      console.log("Calculated stream scale from ", stream_frame.width(), '/', this.width, '=', newscale);
     }
-    if (img.nodeName == 'IMG') {
-      if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
-      if (newscale <= 0) newscale = 100;
-      const oldSrc = img.src;
-      if (!oldSrc) {
-        console.log('No src on img?!', img);
-        return;
-      }
-      const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
-      if (newSrc != oldSrc) {
-        this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-        // We know that only the first zms will get the command because the
-        // second can't open the commandQueue until the first exits
-        // This is necessary because safari will never close the first image
-        if (-1 != img.src.search('connkey') && -1 != img.src.search('mode=single')) {
-          this.streamCommand(CMD_QUIT);
+    if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
+    if (newscale < 25) newscale = 25; // Arbitrary, lower values look bad
+    if (newscale <= 0) newscale = 100;
+    this.scale = newscale;
+    if (this.connKey) {
+      /* Can just tell it to scale, in fact will happen automatically on next query */
+    } else {
+      if (img.nodeName == 'IMG') {
+        const oldSrc = img.src;
+        if (!oldSrc) {
+          console.log('No src on img?!', img);
+          return;
         }
-        console.log("Changing src from " + img.src + " to " + newSrc);
-        img.src = '';
-        img.src = newSrc;
-        this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+        const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+        if (newSrc != oldSrc) {
+          this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+          // We know that only the first zms will get the command because the
+          // second can't open the commandQueue until the first exits
+          // This is necessary because safari will never close the first image
+          if (-1 != img.src.search('connkey') && -1 != img.src.search('mode=single')) {
+            this.streamCommand(CMD_QUIT);
+          }
+          console.log("Changing src from " + img.src + " to " + newSrc + 'refresh timeout:' + statusRefreshTimeout);
+          img.src = '';
+          img.src = newSrc;
+          this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+        }
       }
     }
   }; // setStreamScale
@@ -365,19 +371,20 @@ function MonitorStream(monitorData) {
   this.onFailure = function(jqxhr, textStatus, error) {
     // Assuming temporary problem, retry in a bit.
 
-    clearTimeout(this.streamCmdTimer);
-    this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), 10*statusRefreshTimeout);
-    logAjaxFail(jqxhr, textStatus, error);
-    if (error == 'Unauthorized') {
+    if (error == 'abort') {
+      console.log('have abort, will trust someone else to start us back up');
+    } else if (error == 'Unauthorized') {
       window.location.reload();
+    } else {
+      console.log("Queuing up a new query after a pause");
+      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), 10*statusRefreshTimeout);
+      logAjaxFail(jqxhr, textStatus, error);
     }
   };
 
   this.getStreamCmdResponse = function(respObj, respText) {
-    var stream = this.getElement();
-    if (!stream) {
-      return;
-    }
+    const stream = this.getElement();
+    if (!stream) return;
 
     //watchdogOk('stream');
     //this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
@@ -455,6 +462,10 @@ function MonitorStream(monitorData) {
             $j('#level'+this.id).addClass('hidden');
             if (this.onplay) this.onplay();
           } // end if paused or delayed
+          if ((this.status.scale !== undefined) && (this.status.scale !== undefined) && (this.status.scale != this.scale)) {
+            console.log("Stream not scaled, re-applying", this.scale, this.status.scale);
+            this.streamCommand({command: CMD_SCALE, scale: this.scale});
+          }
 
           $j('#zoomValue'+this.id).text(this.status.zoom);
           if (this.status.zoom == '1.0') {
@@ -625,8 +636,13 @@ function MonitorStream(monitorData) {
 
   this.streamCmdQuery = function(resent) {
     if (this.type != 'WebSite') {
-      this.streamCommand(CMD_QUERY);
+      // Websites don't have streaming
+      // Can't use streamCommand because it aborts
+
+      this.streamCmdParms.command = CMD_QUERY;
+      this.streamCmdReq(this.streamCmdParms);
     }
+    // Queue up another query 
     this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
   };
 
@@ -635,6 +651,9 @@ function MonitorStream(monitorData) {
       for (const key in command) this.streamCmdParms[key] = command[key];
     } else {
       this.streamCmdParms.command = command;
+    }
+    if (this.ajaxQueue) {
+      this.ajaxQueue.abort();
     }
     this.streamCmdReq(this.streamCmdParms);
   };

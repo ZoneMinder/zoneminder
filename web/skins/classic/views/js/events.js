@@ -88,7 +88,7 @@ function processRows(rows) {
     date.setSeconds(row.Length);
     row.Length = date.toISOString().substr(11, 8);
 
-    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
+    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<div class="thumbnail" style="height: '+row.imgHeight+'px;"><a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a></div>';
   });
 
   return rows;

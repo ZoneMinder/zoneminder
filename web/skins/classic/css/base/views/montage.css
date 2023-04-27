@@ -11,6 +11,9 @@
 #monitors {
   height: 100%;
   overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 #monitors:after {
   content: ".";
@@ -22,6 +25,7 @@
 }
 
 #monitors .monitor {
+  float: none;
   min-width: 180px;
   margin: 0;
   padding: 0;

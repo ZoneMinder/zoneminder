@@ -65,7 +65,7 @@ function selectLayout(new_layout_id) {
   }
 
   for (let i = 0, length = monitors.length; i < length; i++) {
-    monitors[i].setStreamScale();
+    monitors[i].setScale( $j('#scale').val(), $j('#width').val(), $j('#height').val());
   } // end foreach monitor
 } // end function selectLayout(element)
 

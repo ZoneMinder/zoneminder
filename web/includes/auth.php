@@ -317,7 +317,7 @@ function editableMonitor($mid) {
 
   global $group_permissions;
   if ($group_permissions === null)
-    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user_>Id()));
+    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user->Id()));
 
   # If denied view in any group, then can't view it.
   foreach ($group_permissions as $permission) {

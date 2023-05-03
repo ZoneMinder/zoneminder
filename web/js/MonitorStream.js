@@ -658,7 +658,7 @@ function MonitorStream(monitorData) {
   this.streamCommand = function(command) {
     const params = Object.assign({}, this.streamCmdParms);
     if (typeof(command) == 'object') {
-      for (var key in command) params[key] = command[key];
+      for (const key in command) params[key] = command[key];
     } else {
       params.command = command;
     }

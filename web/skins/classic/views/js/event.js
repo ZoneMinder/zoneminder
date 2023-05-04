@@ -1220,6 +1220,7 @@ function initPage() {
     }
   });
   document.addEventListener('fullscreenchange', fullscreenChangeEvent);
+  streamPlay();
 } // end initPage
 
 document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);

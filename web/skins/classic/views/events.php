@@ -95,7 +95,7 @@ echo getNavBarHTML();
         data-search="true"
         data-cookie="true"
         data-cookie-id-table="zmEventsTable<?php echo $filterQuery?>"
-        data-cookie-expire="60s"
+        data-cookie-expire="86400s"
         data-click-to-select="true"
         data-remember-order="false"
         data-show-columns="true"

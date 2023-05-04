@@ -282,7 +282,16 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
     }
   }
 
-  if ($tab == 'system') {
+  if ($tab == 'web') {
+    $configCats[$tab]['ZM_WEB_HOMEVIEW']['Hint'] = [
+      'console'=>translate('Console'),
+      'events'=>'Events',
+      'map'   =>  'Map',
+      'montage'=>'Montage',
+      'montagereview'=>'Montage Review',
+      'watch' => 'Watch',
+    ];
+  } else if ($tab == 'system') {
     $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join('|', getLanguages());
     $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
     $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));

@@ -116,7 +116,18 @@ echo getNavBarHTML();
               </tr>
               <tr class="HomeView">
                 <th scope="row"><?php echo translate('Home View') ?></th>
-                <td><input type="text" name="user[HomeView]" value="<?php echo validHtmlStr($User->HomeView()); ?>"/></td>
+                <td>
+<?php
+    $homeview_options = [
+      'console'=>translate('Console'),
+      'events'=>'Events',
+      'map'   =>  'Map',
+      'montage'=>'Montage',
+      'montagereview'=>'Montage Review',
+      'watch' => 'Watch',
+    ];
+echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView());
+?></td>
               </tr>
   <?php
   if (canEdit('System')) {

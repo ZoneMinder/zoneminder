@@ -370,6 +370,9 @@ function pauseClicked() {
 
 function streamPause() {
   $j('#modeValue').html('Paused');
+
+  $j('#pauseBtn').hide();
+  $j('#playBtn').show();
   setButtonState('pauseBtn', 'active');
   setButtonState('playBtn', 'inactive');
   setButtonState('fastFwdBtn', 'unavail');
@@ -406,6 +409,8 @@ function vjsPlay() { //catches if we change mode programatically
 }
 
 function streamPlay( ) {
+  $j('#pauseBtn').show();
+  $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'active');
   setButtonState('fastFwdBtn', 'inactive');

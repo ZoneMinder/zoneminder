@@ -19,7 +19,7 @@ Background: Fedora
 
 One can think of Fedora as RHEL Beta. This is, in fact, what it is. Fedora is primarily geared towards development and testing of newer, sometimes bleeding edge, packages. The ZoneMinder team uses this distro to determine the interoperability of ZoneMinder with the latest and greatest versions of packages like mysql, apache, systemd, and others. If a problem is detected, it will be addressed long before it makes it way into RHEL.
 
-Fedora has a short life-cycle of just 6 months. However, Fedora, and consequently ZoneMinder, is available on armv7 architecture. Rejoice, Raspberry Pi users!
+Fedora has a short life-cycle of just 6 months. Fedora 36 is the last release supporting armv7 architecture, and consequently Raspberry Pis earlier than the Raspberry Pi 2 v 1.2. F36 is end-of-life in May 2023.
 
 If you desire newer packages than what is available in RHEL or its clones, you should consider using Fedora.
 

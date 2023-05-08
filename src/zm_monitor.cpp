@@ -2224,7 +2224,7 @@ bool Monitor::Analyse() {
                   &&
                   (event->Duration() >= section_length)
                   ) {
-                if (event->Frames() < min_section_length) {
+                if (event->Frames() < Seconds(min_section_length).count()) {
                   /* This is a detection for the case where huge keyframe
                    * intervals cause a huge time gap between the first
                    * frame and second frame */

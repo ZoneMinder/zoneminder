@@ -2219,14 +2219,30 @@ bool Monitor::Analyse() {
               event->updateNotes(noteSetMap);
           } else if (state == TAPE || state == IDLE) {
             if (event) {
-              if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
-                Debug(1, "%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
-                        name.c_str(), event->Id(),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
-                        static_cast<int64>(Seconds(section_length).count()));
-                closeEvent();
+              if (
+                  section_length >= Seconds(min_section_length)
+                  &&
+                  (event->Duration() >= section_length)
+                  ) {
+                if (event->Frames() < min_section_length) {
+                  /* This is a detection for the case where huge keyframe
+                   * intervals cause a huge time gap between the first
+                   * frame and second frame */
+                  Warning("%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                      name.c_str(), event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
+                } else {
+                  Debug(1, "%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                      name.c_str(), event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
+                  closeEvent();
+                }
               }
             }
           } // end if state machine

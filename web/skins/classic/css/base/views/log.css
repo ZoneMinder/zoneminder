@@ -35,3 +35,8 @@ th[data-field="DateTime"] {
   overflow-y: auto;
   height: 100%;
 }
+
+.bootstrap-table .fixed-table-container .table td,
+.bootstrap-table .fixed-table-container .table th {
+  vertical-align: top!important;
+}

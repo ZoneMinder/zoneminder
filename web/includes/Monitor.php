@@ -802,7 +802,7 @@ public static function getStatuses() {
     if (($u === null) or ($u->Id() == $user->Id()))
       return visibleMonitor($this->Id());
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u->Id(), 'MonitorId'=>$this->{'Id'}));
     if ($monitor_permission and ($monitor_permission->Permission() == 'None')) {
       Debug("Can't view monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
@@ -823,7 +823,7 @@ public static function getStatuses() {
       }
     }
   if ($group_permission_value != 'Inherit') return true;
-    return ($u['Monitors'] != 'None');
+    return ($u->Monitors() != 'None');
   } # end function canView
 
   function AlarmCommand($cmd) {
@@ -1002,7 +1002,7 @@ public static function getStatuses() {
       $options['buffer'] = $this->StreamReplayBuffer();
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
     $html = '
-          <div id="monitor'. $this->Id() . '" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
+          <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
             <div
               id="imageFeed'. $this->Id() .'"
               class="monitorStream imageFeed"

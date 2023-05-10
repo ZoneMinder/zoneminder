@@ -462,6 +462,8 @@ void MonitorStream::runStream() {
     if (!checkInitialised()) {
       if (!loadMonitor(monitor_id)) {
         sendTextFrame("Not connected");
+      } else if (monitor->Deleted()) {
+        sendTextFrame("Monitor has been deleted");
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         sendTextFrame("Waiting for capture");
       } else {
@@ -567,6 +569,10 @@ void MonitorStream::runStream() {
           Debug(1, "Failed Send not connected");
           continue;
         }
+      } else if (monitor->Deleted()) {
+        sendTextFrame("Monitor has been deleted");
+        zm_terminate = true;
+        continue;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         if (!sendTextFrame("Waiting for capture")) return;
       } else {

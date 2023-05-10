@@ -545,7 +545,6 @@ switch ($name) {
               <li><label><?php echo translate('Triggers') ?></label>
 <?php
       $optTriggers = getSetValues('Monitors', 'Triggers');
-      ZM\Debug("Triggers: " . print_r($optTriggers, true));
       $breakCount = (int)(ceil(count($optTriggers)));
       $breakCount = min(3, $breakCount);
       $optCount = 0;
@@ -1284,7 +1283,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <?php
                 $users = array(''=>translate('None'));
                 foreach (ZM\User::find() as $u) {
-                  if ($u->MonitorIds() and (!$monitor->Id() or in_array($monitor->Id(), explode(',', $u->MonitorIds()))))
+                  if (!$monitor->Id() or in_array($monitor->Id(), $u->unviewableMonitorIds()))
                     continue;
                   $users[$u->Id()] = $u->Username();
                 }

@@ -364,6 +364,7 @@ protected:
   // These are read from the DB and thereafter remain unchanged
   unsigned int    id;
   std::string     name;
+  bool            deleted;
   unsigned int    server_id;          // Id of the Server object
   unsigned int    storage_id;         // Id of the Storage Object, which currently will just provide a path, but in future may do more.
   CameraType      type;
@@ -620,6 +621,7 @@ public:
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name.c_str(); }
+  inline bool Deleted() const { return deleted; }
   inline unsigned int ServerId() const { return server_id; }
   inline Storage *getStorage() {
     if (!storage) {

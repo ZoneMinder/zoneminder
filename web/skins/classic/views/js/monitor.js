@@ -73,7 +73,6 @@ function loadLocations( element ) {
 }
 
 function Janus_Use_RTSP_Restream_onclick(e) {
-  console.log("hello");
   Janus_Use_RTSP_Restream = $j('[name="newMonitor[Janus_Use_RTSP_Restream]"]');
   if (Janus_Use_RTSP_Restream.length) {
     const Janus_RTSP_User = $j('#Janus_RTSP_User');

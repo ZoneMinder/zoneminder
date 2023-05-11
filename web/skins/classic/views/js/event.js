@@ -28,6 +28,44 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 var scaleValue = 0;
 
+$j(document).on("keydown", "", function (e) {
+  e = e || window.event;
+  if ( $j(".modal").is(":visible") ) {
+    if (e.key === "Enter") {
+      if ( $j("#deleteConfirm").is(":visible") ) {
+        $j("#delConfirmBtn").click();
+      } else if ( $j("#eventDetailModal").is(":visible") ) {
+        $j("#eventDetailSaveBtn").click();
+      } else if ( $j("#eventRenamelModal").is(":visible") ) {
+        $j("#eventRenameBtn").click();
+      }
+    } else if (e.key === "Escape") {
+      $j(".modal").modal('hide');
+    } else {
+      console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+    }
+  } else { 
+    if (e.key === "ArrowLeft") {
+      prevEvent();
+    } else if (e.key === "ArrowRight") {
+      nextEvent();
+    } else if (e.key === "Delete") {
+      if ( $j("#deleteBtn").is(":disabled") == false ) { 
+        $j("#deleteBtn").click();
+      } 
+    } else if (e.keyCode === 32) {
+      // space bar for Play/Pause
+      if ( $j("#playBtn").is(":visible") ) { 
+        playClicked(); 
+      } else { 
+        pauseClicked(); 
+      }
+    } else {
+      console.log('Modal is not visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+    }
+  }
+});
+
 function streamReq(data) {
   if (auth_hash) data.auth = auth_hash;
   data.connkey = connKey;

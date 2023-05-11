@@ -59,7 +59,7 @@ var Server = function() {
       key: 'urlToJanus',
       value: function urlToJanus() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + '/janus';
+        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : '') + '/janus';
       }
     }
   ]);

@@ -18,6 +18,7 @@ foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
+  'server_id': <?php echo $monitor->ServerId() ?>,
   'connKey': '<?php echo $monitor->connKey() ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,

@@ -12,6 +12,7 @@ function MonitorStream(monitorData) {
   this.height = monitorData.height;
   this.janusEnabled = monitorData.janusEnabled;
   this.janusPin = monitorData.janus_pin;
+  this.server_id = monitorData.server_id;
   this.scale = 100;
   this.status = {capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
   this.lastAlarmState = STATE_IDLE;
@@ -101,7 +102,7 @@ function MonitorStream(monitorData) {
 
     if (((newscale == '0') || (newscale == 0) || (newscale=='auto')) && (width=='auto' || !width)) {
       if (!this.bottomElement) {
-        newscale = parseInt(100*monitor_frame.width() / this.width);
+        newscale = Math.floor(100*monitor_frame.width() / this.width);
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
         width = monitor_frame.css('width');
         height = Math.round(parseInt(this.height) * newscale / 100)+'px';
@@ -129,9 +130,8 @@ function MonitorStream(monitorData) {
       // a numeric scale, must take actual monitor dimensions and calculate
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
-      console.log("Specified scale: ", newscale, width, height);
     }
-    if (width && (width != '0px')) {
+    if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
       monitor_frame.css('width', parseInt(width));
     }
     if (height && height != '0px') img.style.height = height;
@@ -185,6 +185,8 @@ function MonitorStream(monitorData) {
       let server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
+      } else if (this.server_id && Servers[this.server_id]) {
+        server = Servers[this.server_id].urlToJanus();
       } else if (window.location.protocol=='https:') {
         // Assume reverse proxy setup for now
         server = "https://" + window.location.hostname + "/janus";

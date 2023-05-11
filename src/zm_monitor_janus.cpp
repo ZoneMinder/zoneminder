@@ -93,12 +93,13 @@ void Monitor::JanusManager::load_from_monitor() {
       }
     }
   } else {
-    rtsp_path = parent->path;
     if (!parent->user.empty()) {
       rtsp_username = escape_json_string(parent->user);
       rtsp_password = escape_json_string(parent->pass);
+      rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path.substr(7, std::string::npos);
+    } else {
+      rtsp_path = parent->path;
     }
-    rtsp_path = parent->path;
   }
   parent->janus_pin = generateKey(16);
   Debug(1, "Monitor %u assigned secret %s, rtsp url is %s", parent->id, parent->janus_pin.c_str(), rtsp_path.c_str());

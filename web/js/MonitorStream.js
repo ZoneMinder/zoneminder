@@ -644,7 +644,7 @@ function MonitorStream(monitorData) {
       this.streamCmdParms.command = CMD_QUERY;
       this.streamCmdReq(this.streamCmdParms);
     }
-    // Queue up another query 
+    // Queue up another query
     this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
   };
 

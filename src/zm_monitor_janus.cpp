@@ -96,7 +96,7 @@ void Monitor::JanusManager::load_from_monitor() {
     if (!parent->user.empty()) {
       rtsp_username = escape_json_string(parent->user);
       rtsp_password = escape_json_string(parent->pass);
-      rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path.substr(7, std::string::npos);
+      rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + parent->path.substr(7, std::string::npos);
     } else {
       rtsp_path = parent->path;
     }

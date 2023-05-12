@@ -44,7 +44,13 @@ class User extends ZM_Object {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
-  public function Name( ) {
+  public function Name($new=null) {
+    if ($new != null) {
+      $this->Name = $new;
+    }
+    if (property_exists($this, 'Name') and !empty($this->Name)) {
+      return $this->Name;
+    }
     return $this->{'Username'};
   }
 

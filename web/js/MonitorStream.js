@@ -256,6 +256,13 @@ function MonitorStream(monitorData) {
     if (!stream) return;
     stream.onerror = null;
     stream.onload = null;
+    this.stop();
+
+    if (this.ajaxQueue) {
+      console.log("Aborting in progress ajax for kill");
+      // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
+      this.ajaxQueue.abort();
+    }
     this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
   };

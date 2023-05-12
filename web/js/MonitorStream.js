@@ -649,15 +649,16 @@ function MonitorStream(monitorData) {
   };
 
   this.streamCommand = function(command) {
+    const params = Object.assign({}, this.streamCmdParms);
     if (typeof(command) == 'object') {
-      for (const key in command) this.streamCmdParms[key] = command[key];
+      for (var key in command) params[key] = command[key];
     } else {
-      this.streamCmdParms.command = command;
+      params.command = command;
     }
     if (this.ajaxQueue) {
       this.ajaxQueue.abort();
     }
-    this.streamCmdReq(this.streamCmdParms);
+    this.streamCmdReq(params);
   };
 
   this.alarmCommand = function(command) {

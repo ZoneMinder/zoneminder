@@ -32,6 +32,8 @@ class Event extends AppModel {
 	public $displayField = 'Name';
 
   public $virtualFields = array(
+    'StartTimeSecs' => 'UNIX_TIMESTAMP(StartDateTime)',
+    'EndTimeSecs' => 'UNIX_TIMESTAMP(EndDateTime)',
     'StartTime' => 'StartDateTime',
     'EndTime' => 'EndDateTime'
   );
@@ -137,10 +139,9 @@ class Event extends AppModel {
       if ( file_exists($this->Path().'/'.$event['DefaultVideo']) ) {
         return 1;
       } else {
-        ZM\Debug('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
+        ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
       }
     } else {
-      ZM\Debug('No DefaultVideo in Event' . $this->Event);
       return 0;
     }
   } // end function fileExists($event)

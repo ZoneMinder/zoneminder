@@ -1223,7 +1223,8 @@ function initPage() {
   streamPlay();
 } // end initPage
 
-document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
+var toggleZonesButton = document.getElementById('toggleZonesButton');
+if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 
 function toggleZones(e) {
   const zones = $j('#zones'+eventData.MonitorId);

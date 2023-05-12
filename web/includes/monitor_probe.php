@@ -26,8 +26,8 @@ function probeV4L() {
 
   $cameras = array();
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Device, Channel FROM Monitors WHERE Type = 'Local' ORDER BY Device, Channel" ) as $monitor )
-    $monitors[$monitor['Device'].':'.$monitor['Channel']] = $monitor;
+  foreach ( ZM::Monitor::find(['Type'=>'Local'], ['order'=>'Device, Channel']) as $monitor )
+    $monitors[$monitor->Device().':'.$monitor->Channel()] = $monitor;
   $devices = array();
   $devices_to_probe = array();
   $preferredStandards = array('PAL', 'NTSC');
@@ -113,7 +113,7 @@ function probeV4L() {
             $inputMonitor['SignalCheckColour'] = '#000023';
           }
           $inputDesc = base64_encode(json_encode($inputMonitor));
-          $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(' - '.translate('Available')):(' ('.$monitors[$input['id']]['Name'].')'));
+          $inputString = $deviceMatches[1].', chan '.$i.($input['free']?(' - '.translate('Available')):(' ('.$monitors[$input['id']]->Name().')'));
           $inputs[] = $input;
           $cameras[$inputDesc] = $inputString;
         }
@@ -294,7 +294,33 @@ function get($method, $url, $username, $password) {
     return $bodyStr;
 }
 
-function probeHikvision($ip, $username='admin', $password='password') {
+function probeAzureWaveTechnologyInc($ip, $username, $password) {
+  return probeAvigilonCorporation($ip, $username, $password);
+}
+function probeAvigilonCorporation($ip, $username, $password) {
+  if (!$username) $username='admin';
+  if (!$password) $password='admin';
+  $url = 'rtsp://'.$username.':'.$password.'@'.$ip.'/defaultPrimary?streamType=u';
+  $cameras = [];
+  $camera = [
+    'ip' => $ip,
+    'Manufacturer'=>'Avigilon Corporation',
+    'monitor' => [
+      'Type'=>'Ffmpeg',
+      'Path' => $url,
+      'Manufacturer'=>'Avigilon Corporation',
+    ]
+  ];
+  $cameras[] = $camera;
+  return $cameras;
+} # End probeAvigilon
+
+function probeHangzhouHikvisionDigitalTechnologyCoLtd($ip, $username, $password) {
+  return probeHikvision($ip, $username, $password);
+}
+function probeHikvision($ip, $username, $password) {
+  if (!$username) $username='admin';
+  if (!$password) $password='password';
   $cameras = [];
   $url = 'rtsp://'.$username.':'.$password.'@'.$ip.':554/Streaming/Channels/101?transportmode=unicast';
   $camera = array(
@@ -522,7 +548,7 @@ function get_arp_scan_results($network) {
   }
   ZM\Debug(print_r($results, true));
   return $results;
-}
+} # end function get_arp_scan_results
 
 function probeNetwork() {
   $username = empty($_REQUEST['probe_username']) ? null : $_REQUEST['probe_username'];
@@ -537,22 +563,22 @@ function probeNetwork() {
   $results = array();
 
   $monitors = array();
-  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Host` FROM `Monitors` WHERE `Type` = 'Remote' ORDER BY `Host`") as $monitor ) {
-    if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
+  foreach (  ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
+    if ( preg_match('/^(.+)@(.+)$/', $monitor->Host(), $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;
     } else {
       //echo "2: ".$monitor['Host']." = ".gethostbyname($monitor['Host'])."<br/>";
-      $monitors[gethostbyname($monitor['Host'])] = $monitor;
+      $monitors[gethostbyname($monitor->Host())] = $monitor;
     }
   }
-  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Path` FROM `Monitors` WHERE `Type` = 'Ffmpeg' ORDER BY `Path`") as $monitor ) {
-    $url_parts = parse_url($monitor['Path']);
+  foreach ( ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
+    $url_parts = parse_url($monitor->Path());
     if ($url_parts !== false) {
       #ZM\Debug("Ffmpeg monitor ${url_parts['host']} = ${monitor['Id']} ${monitor['Name']}");
       $monitors[gethostbyname($url_parts['host'])] = $monitor;
     } else {
-      ZM\Debug("Unable to parse ${monitor['Path']}");
+      ZM\Debug('Unable to parse '.$monitor->Path());
     }
   }
   //ZM\Debug(print_r($monitors, true));
@@ -560,18 +586,33 @@ function probeNetwork() {
   $macVendors = file_get_contents(ZM_PATH_DATA.'/MacVendors.json');
   if (!$macVendors) {
     ZM\Warning('No content from '.ZM_PATH_DATA.'/MacVendors.json');
-    return;
   }
   $macBases = json_decode($macVendors, true);
+  $oui_txt = file_get_contents('/usr/share/arp-scan/ieee-oui.txt');
+  if (!$oui_txt) {
+    ZM\Warning('No content from /usr/share/arp-scan/ieee-oui.txt');
+  } else {
+    foreach (explode(PHP_EOL, $oui_txt) as $line) {
+      if (false === strpos($line , '#')) {
+        $record = explode("\t", $line);
+        if (count($record) < 2) continue;
+        $mac = strtolower($record[0]);
+        $type = preg_replace('/\W/', '', $record[1]);
+        if (!isset($macBases[$mac]))
+          $macBases[$mac] = [ 'vendor'=>$record[1], 'type'=>$type];
+      }
+    }
+    ZM\Debug("bases: " . print_r($macBases, true));
+  }
 
-  foreach ( get_arp_results() as $mac=>$ip ) {
+  foreach (get_arp_results() as $mac=>$ip) {
     if ($filter_ip and ($ip != $filter_ip)) {
       ZM\Debug("Skipping $mac $ip because of ip_filter $filter_ip");
       continue;
     }
     
-    $macRoot = substr($mac, 0, 8);
-    if ( isset($macBases[$macRoot]) ) {
+    $macRoot = str_replace(':', '', substr($mac, 0, 8));
+    if (isset($macBases[$macRoot])) {
       ZM\Debug("Have match for $ip $mac $macRoot ".$macBases[$macRoot]['type']);
       $macBase = $macBases[$macRoot];
       if ($filter_manufacturer and ($filter_manufacturer != $macBase['type'])) {
@@ -581,9 +622,17 @@ function probeNetwork() {
 	      ZM\Debug("Not Continuing because offilter $filter_manufacturer != ".$macBase['type']);
       }
       if (function_exists('probe'.$macBase['type'])) {
+        if (!$username and isset($monitors[$ip])) {
+          $username = $monitors[$ip]->User();
+          $password = $monitors[$ip]->Pass();
+          ZM\Debug("Using auth from monitor $ip $username $password");
+        } else {
+          ZM\Debug("Not Using auth from monitor $ip $username $password");
+        }
         $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $username, $password));
       } else {
         ZM\Debug("No probe function for ${macBase['type']}");
+        $cameras = array_merge($cameras, [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]]);
       }
     } else {
       ZM\Debug("No match for $ip $macRoot");
@@ -594,13 +643,13 @@ function probeNetwork() {
   $interfaces = $interface ? $interface : get_networks();
   foreach ($interfaces as $interface) {
     foreach (get_subnets($interface) as $network) {
-      foreach ( get_arp_scan_results($network) as $mac=>$ip ) {
+      foreach (get_arp_scan_results($network) as $mac=>$ip) {
         if ($filter_ip and ($ip != $filter_ip)) {
           ZM\Debug("Skipping $mac $ip because of ip_filter $filter_ip");
           continue;
         }
-        $macRoot = substr($mac, 0, 8);
-        ZM\Debug("Got $macRoot from $mac");
+        $macRoot = str_replace(':', '', substr($mac, 0, 8));
+        #ZM\Debug("Got $macRoot from $mac");
         if (isset($macBases[$macRoot])) {
           ZM\Debug("Have match for $macRoot $ip ".$macBases[$macRoot]['type']);
           $macBase = $macBases[$macRoot];
@@ -608,14 +657,23 @@ function probeNetwork() {
             ZM\Debug("Continuing because offilter $filter_manufacturer == ".$macBase['type']);
             continue;
           }
-          if (function_exists('probe'.$macBase['type'])) {
+          if ($macBase['type'] != 'Unknown' and function_exists('probe'.$macBase['type'])) {
             ZM\Debug("Calling ".$macBase['type']);
+            if (!$username and isset($monitors[$ip])) {
+              $username = $monitors[$ip]->User();
+              $password = $monitors[$ip]->Pass();
+              ZM\Debug("Using auth from monitor $ip $username $password");
+            } else {
+              ZM\Debug("Not Using auth from monitor $ip $username $password");
+            }
             $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $username, $password));
           } else {
-            ZM\Debug("No probe function for ${macBase['type']}");
+            $cameras = array_merge($cameras, [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]]);
+            ZM\Debug("No probe function for ${macBase['type']} ${macBase['vendor']}");
           }
         } else {
           ZM\Debug("No match for $macRoot");
+          $cameras = array_merge($cameras, [['ip'=>$ip, 'Manufacturer'=>'Unknown']]);
         }
         if (connection_aborted()) exit();
       } # end foreach output line
@@ -624,22 +682,28 @@ function probeNetwork() {
 
   $url_filter = [];
   foreach ($cameras as $camera) {
-    if (isset($url_filter[$camera['monitor']['Path']])) continue;
-    $url_filter[$camera['monitor']['Path']] = 1;
+    if (isset($camera['monitor']))  {
+      if (isset($url_filter[$camera['monitor']['Path']])) continue;
+      $url_filter[$camera['monitor']['Path']] = 1;
+    }
+    if (!is_array($camera)) {
+      ZM\Error("What is ".print_r($camera, true));
+      continue;
+    }
 
     $ip = $camera['ip'];
     $sourceString = (isset($camera['Model']) ? ($camera['Model'].' @ '):'').$ip;
     $monitor = null;
     if (isset($monitors[$ip])) {
       $monitor = $monitors[$ip];
-      $sourceString .= ' ('.$monitor['Name'].')';
+      $sourceString .= ' ('.$monitor->Name().')';
     } else {
       $sourceString .= ' - '.translate('Available');
     }
 
     $results[] = [
       'description' => $sourceString,
-      'url'         => $camera['monitor']['Path'],
+      'url'         => (isset($camera['monitor']) ? $camera['monitor']['Path'] : ''),
       'IP'          => $camera['ip'],
       'camera'      => $camera,
       'Monitor'     => $monitor,

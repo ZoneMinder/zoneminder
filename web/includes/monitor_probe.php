@@ -219,10 +219,17 @@ function probeActi($ip) {
   return $cameras;
 }
 
-function probeAmcrest($ip, $username='admin', $password='password') {
+function probeAmcrestTechnologies($ip, $username='', $password='') {
+  return probeAmcrest($ip, $username, $password);
+}
+
+function probeAmcrest($ip, $username='', $password='') {
+  if (!$username) $username='admin';
+  if (!$password) $password='password';
   $cameras = [];
   $url = 'rtsp://'.$username.':'.$password.'@'.$ip.':554//cam/realmonitor?channel=1&subtype=0&unicast=true';
   $camera = array(
+    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/cgi-bin/snapshot.cgi',
     'ip'      => $ip,
     'Manufacturer' => 'Amcrest',
     #'Model' => 'Amcrest Camera',
@@ -623,13 +630,11 @@ function probeNetwork() {
       }
       if (function_exists('probe'.$macBase['type'])) {
         if (!$username and isset($monitors[$ip])) {
-          $username = $monitors[$ip]->User();
-          $password = $monitors[$ip]->Pass();
-          ZM\Debug("Using auth from monitor $ip $username $password");
+          $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $monitors[$ip]->User(), $monitors[$ip]->Pass()));
         } else {
           ZM\Debug("Not Using auth from monitor $ip $username $password");
+          $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $username, $password));
         }
-        $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $username, $password));
       } else {
         ZM\Debug("No probe function for ${macBase['type']}");
         $cameras = array_merge($cameras, [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]]);
@@ -660,13 +665,11 @@ function probeNetwork() {
           if ($macBase['type'] != 'Unknown' and function_exists('probe'.$macBase['type'])) {
             ZM\Debug("Calling ".$macBase['type']);
             if (!$username and isset($monitors[$ip])) {
-              $username = $monitors[$ip]->User();
-              $password = $monitors[$ip]->Pass();
-              ZM\Debug("Using auth from monitor $ip $username $password");
+              $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $monitors[$ip]->User(), $monitors[$ip]->Pass()));
             } else {
               ZM\Debug("Not Using auth from monitor $ip $username $password");
+              $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $username, $password));
             }
-            $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $username, $password));
           } else {
             $cameras = array_merge($cameras, [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]]);
             ZM\Debug("No probe function for ${macBase['type']} ${macBase['vendor']}");

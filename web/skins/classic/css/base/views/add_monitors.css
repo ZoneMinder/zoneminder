@@ -2,6 +2,9 @@
   display: flex;
   justify-content: center;
 }
+#contentForm {
+  height: 100%;
+}
 
 .Import {
   width: 50%;

@@ -701,6 +701,22 @@ function MonitorStream(monitorData) {
     this.streamCmdParms.command = this.analyse_frames ? CMD_ANALYZE_ON : CMD_ANALYZE_OFF;
     this.streamCmdReq(this.streamCmdParms);
   };
+
+  this.setMaxFPS = function(maxfps) {
+    if (1) {
+      this.streamCommand({command: CMD_MAXFPS, maxfps: currentSpeed});
+    } else {
+      var streamImage = this.getElement();
+      const oldsrc = streamImage.attr('src');
+      streamImage.attr('src', ''); // stop streaming
+      if (maxfps == '0') {
+        // Unlimited
+        streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps=0.00100'));
+      } else {
+        streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
+      }
+    }
+  } // end setMaxFPS
 } // end function MonitorStream
 
 async function attachVideo(id, pin) {

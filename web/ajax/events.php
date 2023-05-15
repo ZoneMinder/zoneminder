@@ -199,7 +199,10 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $likes = array();
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
 
-  $col_str = 'E.*, M.Name AS Monitor';
+  $col_str = 'E.*, UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
+    M.Name AS Monitor';
   $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
   if ($filter->limit() and !count($filter->post_sql_conditions())) {
     $sql .= ' LIMIT '.$filter->limit();
@@ -259,7 +262,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       $search = '%' .$search. '%';
       $terms = array();
       foreach ($columns as $col) {
-        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search);
+        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>strtolower($search), 'collate'=>'utf8mb4_general_ci');
       }
       $terms[0]['obr'] = 1;
       $terms[0]['cnj'] = 'and';
@@ -282,6 +285,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $returned_rows = array();
   foreach ($filtered_rows as $row) {
     $event = new ZM\Event($row);
+    $event->remove_from_cache();
+    if (!$event->canView()) continue;
     if ($event->Monitor()->Deleted()) continue;
 
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
@@ -306,7 +311,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $returned_rows[] = $row;
   } # end foreach row matching search
 
-  $data['rows'] = $returned_rows;
+  $data['rows'] = &$returned_rows;
 
   # totalNotFiltered must equal total, except when either search bar has been used
   $data['totalNotFiltered'] = count($unfiltered_rows);
@@ -315,7 +320,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
-
+ZM\Debug("Done");
   return $data;
 }
 ?>

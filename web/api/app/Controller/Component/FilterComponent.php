@@ -82,7 +82,7 @@ class FilterComponent extends Component {
 					throw new Exception('Invalid operator: ' . $operator);
 				}
 
-				$lhs = '`' . $matches['field'] . '` ' . $operator;
+				$lhs = $matches['field'] . ' ' . $operator;
 				// If the named param contains an array, we want to turn it into an IN condition
 				// Otherwise, we add it right into the $conditions array
 				if (is_array($value)) {

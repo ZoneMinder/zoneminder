@@ -383,9 +383,8 @@ function probeUbiquitiNetworksInc($ip, $username, $password) {
 }
 
 function port_open($ip, $port) {
-  $fp = fsockopen($ip, $port, $errno, $errstr, 1);
+  $fp = @fsockopen($ip, $port, $errno, $errstr, 1);
   if (!$fp) {
-    fclose($fp);
     return false;
   }
   fclose($fp);

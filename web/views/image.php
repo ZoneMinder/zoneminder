@@ -84,7 +84,7 @@ if (!empty($_REQUEST['proxy'])) {
   @ini_set('zlib.output_compression', 0);
 
   /* Sends an http request with additional headers shown above */
-  $fp = fopen($url, 'r', false, $context);
+  $fp = @fopen($url, 'r', false, $context);
   $r = '';
   if ($fp) {
     $meta_data = stream_get_meta_data($fp);
@@ -146,16 +146,35 @@ if (!empty($_REQUEST['proxy'])) {
     #ZM\Debug($r);
 
     $start = strpos($r, "\xff");
-    $end   = strpos($r, "--\n", $start)-1;
-    $frame = substr($r, $start, $end - $start);
-    ZM\Debug("Start $start end $end");
+    if (false !== $start) {
+      $end   = strpos($r, "--\n", $start)-1;
+      $frame = substr($r, $start, $end - $start);
+      ZM\Debug("Start $start end $end");
 
-    header('Content-type: image/jpeg');
-    echo $frame;
+      header('Content-type: image/jpeg');
+      echo $frame;
+    } else {
+      $img = imagecreate(320, 240);
+
+      $textbgcolor = imagecolorallocate($img, 0, 0, 0);
+      $textcolor = imagecolorallocate($img, 255, 255, 255);
+
+      imagestring($img, 5, 5, 5, 'Authentication Failed', $textcolor);
+      header('Content-type: image/jpeg');
+      imagejpeg($img);
+    }
 
     fclose($fp);
   } else {
     ZM\Debug("Failed to open $url");
+    $img = imagecreate(320, 200);
+
+    $textbgcolor = imagecolorallocate($img, 0, 0, 0);
+    $textcolor = imagecolorallocate($img, 255, 255, 255);
+
+    imagestring($img, 5, 5, 5, 'Failed to open', $textcolor);
+    header('Content-type: image/jpeg');
+    imagejpeg($img);
   }
   return;
 }

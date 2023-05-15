@@ -329,11 +329,13 @@ function probeHikvision($ip, $username, $password) {
   if (!$username) $username='admin';
   if (!$password) $password='password';
   $cameras = [];
+  $port_open = port_open($ip, 554);
   $url = 'rtsp://'.$username.':'.$password.'@'.$ip.':554/Streaming/Channels/101?transportmode=unicast';
   $camera = array(
     'ip'      => $ip,
     'mjpegstream' => 'https://'.$username.':'.$password.'@'.$ip.'/ISAPI/streaming/channels/1/picture',
     'Manufacturer'  => 'Hikvision',
+    'Model'         => ($port_open ? 'Camera' : 'Not Camera'),
     'monitor' =>  array(
       'Type'  =>  'Ffmpeg',
       'Path' => $url,
@@ -376,13 +378,28 @@ function probeHikvision($ip, $username, $password) {
   return $cameras;
 }
 
+function probeUbiquitiNetworksInc($ip, $username, $password) {
+  return probeUbiquiti($ip, $username, $password);
+}
+
+function port_open($ip, $port) {
+  $fp = fsockopen($ip, $port, $errno, $errstr, 1);
+  if (!$fp) {
+    fclose($fp);
+    return false;
+  }
+  fclose($fp);
+  return true;
+}
+
 function probeUbiquiti($ip, $username, $password) {
   if (!$username) $username='ubnt';
   if (!$password) $password='ubnt';
+  $port_open = port_open($ip, 554);
   $cameras = [];
   $camera = [
     'ip'      => $ip,
-    'Model' => 'Ubiquiti Camera',
+    'Model' => ($port_open ? 'Ubiquiti Camera' : 'Unknown'),
     'Manufacturer'  => 'Ubiquiti',
     'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/snap.jpeg',
     'monitor' => [
@@ -390,6 +407,7 @@ function probeUbiquiti($ip, $username, $password) {
       'Path' => 'rtsp://'.$username.':'.$password.'@'.$ip.':554/s0',
       'Width'   => 1920,
       'Height'  => 1080,
+      'Manufacturer'  => 'Ubiquiti',
     ]
   ];
   $cameras[] = $camera;

@@ -696,7 +696,7 @@ public static function getStatuses() {
     # Convert from a command line params to an option array
     foreach (explode(' ', $command) as $option) {
       if (preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches)) {
-        $options[$matches[1]] = $matches[2]?$matches[2]:1;
+        $options[$matches[1]] = isset($matches[2]) ? $matches[2] : 1;
       } else if ($option != '' and $option != 'quit' and $option != 'start' and $option != 'stop') {
         Warning("Ignored command for zmcontrol $option in $command");
       }

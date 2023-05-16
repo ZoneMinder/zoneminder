@@ -813,7 +813,7 @@ public static function getStatuses() {
     # If denied view in any group, then can't view it.
     $group_permission_value = 'Inherit';
     foreach ($group_permissions as $permission) {
-      $value = $permission->MonitorPermission($mid);
+      $value = $permission->MonitorPermission($this->Id());
       if ($value == 'None') {
         Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
         return false;

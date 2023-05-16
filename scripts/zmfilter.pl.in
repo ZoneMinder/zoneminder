@@ -937,9 +937,8 @@ sub sendTheEmail {
       my $related = MIME::Lite->new(
         Type => 'multipart/related',
       );
-
+      $mail->attach($related);
       if ($body =~ /<html/) {
-        $mail->attach($related);
         my $alternative = MIME::Lite->new(
           Type => 'multipart/alternative'
         );
@@ -963,7 +962,8 @@ sub sendTheEmail {
         $alternative->attach($html);
       } else {
         my $html = MIME::Lite->new(
-          Type => 'text/html', Data => $body
+          'Content-Transfer-Encoding' => 'quoted-printable',
+          Type => 'TEXT', Data => $body
         );
         $related->attach($html);
       } # end if html or not
@@ -1107,7 +1107,8 @@ sub sendMessage {
           Type => 'multipart/mixed'
           );
 ### Add the text message part
-      $mail->attach (
+      Debug("Body: $body");
+      $mail->attach(
           Type => 'TEXT',
           Data => $body
           );
@@ -1131,15 +1132,15 @@ sub sendMessage {
         }
         if ( !$ssmtp_location ) {
           Debug('Unable to find ssmtp, trying MIME::Lite->send');
-          MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
-          $mail->send();
+          #MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
+          $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
         } else {
 ### Send using SSMTP
           $mail->send('sendmail', $ssmtp_location, $Config{ZM_MESSAGE_ADDRESS});
         }
       } else {
-        MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
-        $mail->send();
+        #MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
+        $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
       }
     } else {
       my $mail = MIME::Entity->build(

@@ -1,7 +1,7 @@
 var form = $j('#controlForm');
 
 function controlReq(data) {
-  $j.getJSON(thisUrl + '?view=request&request=control', data)
+  $j.getJSON(thisUrl + '?view=request&request=control&'+auth_relay, data)
       .done(getControlResponse)
       .fail(logAjaxFail);
 }

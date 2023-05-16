@@ -26,7 +26,7 @@ function probeV4L() {
 
   $cameras = array();
   $monitors = array();
-  foreach ( ZM::Monitor::find(['Type'=>'Local'], ['order'=>'Device, Channel']) as $monitor )
+  foreach ( ZM\Monitor::find(['Type'=>'Local'], ['order'=>'Device, Channel']) as $monitor )
     $monitors[$monitor->Device().':'.$monitor->Channel()] = $monitor;
   $devices = array();
   $devices_to_probe = array();

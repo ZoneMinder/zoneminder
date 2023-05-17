@@ -757,6 +757,7 @@ class Filter extends ZM_Object {
         'DiskPercent' => translate('AttrDiskPercent'),
         #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
         'DiskSpace'   => translate('AttrEventDiskSpace'),
+        'DateTime'    => translate('Date Time'),
         'EndDateTime'    => translate('AttrEndDateTime'),
         'EndDate'        => translate('AttrEndDate'),
         'EndTime'        => translate('AttrEndTime'),
@@ -1033,12 +1034,20 @@ class Filter extends ZM_Object {
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           #$html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
           #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
-          $html .= '<span><input type="text" class="datetimepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]"';
+          $html .= '<span><input type="text" class="datetimepicker" name="filter[Query][terms]['.$i.'][val]"';
+          if (isset($term['id'])) {
+            $html .= ' id="'.$term['id'].'"';
+          } else {
+            $html .= ' id="filter[Query][terms]['.$i.'][val]"';
+          }
           if (isset($term['cookie'])) {
-            if (!$term['val'] and isset($_COOKIE[$term['cookie']])) $term['val'] = $_COOKIE[$term['cookie']];
+            if ((!$term['val']) and isset($_COOKIE[$term['cookie']])) $term['val'] = $_COOKIE[$term['cookie']];
             $html .= ' data-cookie="'.$term['cookie'].'"';
           }
-          $html .= ' value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'" placeholder="'.translate('Attr'.$term['attr']).'"/></span>'.PHP_EOL;
+          $html .= ' value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"';
+
+          if (!isset($term['placeholder'])) $term['placeholder'] = translate('Attr'.$term['attr']);
+          $html .= ' placeholder="'.$term['placeholder'].'"/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
           #$html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
           #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
@@ -1125,10 +1134,13 @@ class Filter extends ZM_Object {
           if (isset($term['cookie'])) {
             $attrs['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']])) $selected = explode(',', $_COOKIE[$term['cookie']]);
+            if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
+              $selected = explode(',', $_COOKIE[$term['cookie']]);
           }
           $options = [
             'Motion' => 'Motion',
+            'detected' => 'Any Object',
+            'aplr' => 'Any license plate',
             'person'=>'Person',
             'boat' => 'Boat',
             'bus'  => 'Bus',
@@ -1157,6 +1169,22 @@ class Filter extends ZM_Object {
       if (($term['attr'] == $attr) and ((!$op) or ($term['op']==$op)) ) return true;
     }
     return false;
+  }
+  // Given an array of attr, sort terms by attr
+  public function sort_terms($sort) {
+    $new_terms = [];
+    $old_terms = $this->terms();
+    foreach ($sort as $attr) {
+      for ($i=0; $i < count($old_terms); $i++) {
+        if ($old_terms[$i]['attr'] == $attr) {
+          $new_terms[] = $old_terms[$i];
+          array_splice($old_terms, $i, 1);
+          $i--;
+        }
+      }
+    }
+    if (count($old_terms)) $new_terms += $old_terms;
+    $this->terms($new_terms);
   }
 
 } # end class Filter

@@ -94,43 +94,107 @@ sub open {
   $profileToken = $self->{Monitor}->{ControlDevice};
   if ($profileToken eq '') { $profileToken = '000'; }
 
-  if (!$username) {
-    # Extract the username/password host/port from ControlAddress
-    if ($self->{Monitor}{ControlAddress} 
-        and
-      $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
-        and
-      $self->{Monitor}{ControlAddress} ne 'user:port@ip'
-    ) {
-      Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
-      parseControlAddress($self->{Monitor}->{ControlAddress});
-    } elsif ($self->{Monitor}{Path}) {
+  $port = 80;
+
+  # Extract the username/password host/port from ControlAddress
+  if ($self->{Monitor}{ControlAddress} 
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
+  ) {
+    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    parseControlAddress($self->{Monitor}->{ControlAddress});
+  } elsif ($self->{Monitor}{Path}) {
     Debug("Using Path for credentials: $self->{Monitor}{Path}");
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
-      $username = $+{USERNAME} if $+{USERNAME};
-      $password = $+{PASSWORD} if $+{PASSWORD};
+      if (!$username) {
+        $username = $+{USERNAME} if $+{USERNAME};
+        $password = $+{PASSWORD} if $+{PASSWORD};
+      }
       $address = $+{ADDRESS} if $+{ADDRESS};
     } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
       $address = $+{ADDRESS} if $+{ADDRESS};
-      $username = $self->{Monitor}->{User} if $self->{Monitor}->{User};
-      $password = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass};
+      if (!$username) {
+        $username = $self->{Monitor}->{User} if $self->{Monitor}->{User};
+        $password = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass};
+      }
     } else {
-      $username = $self->{Monitor}->{User} if $self->{Monitor}->{User} and !$user;
-      $password = $self->{Monitor}->{Pass} if $self->{Monitor}->{Pass} and !$pass;
+      if (!$username) {
+        $username = $self->{Monitor}->{User};
+        $password = $self->{Monitor}->{Pass};
+      }
     }
-    $uri = URI->new($self->{Monitor}->{Path});
+    my $uri = URI->new($self->{Monitor}->{Path});
     $uri->scheme('http');
     $uri->port(80);
     $uri->path('');
     $address = $uri->host();
-  } else {
-    Debug('Not using credentials');
   }
+
+  Debug("Using $username:$password for credentials");
 
   $self->{ua} = LWP::UserAgent->new;
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
 
+  my $res = $self->get('http://'.$address.':'.$port.'/onvif/device_service');
+  $self->detectRealm($res, 'http://'.$address.':'.$port.'/onvif/device_service');
   $self->{state} = 'open';
+}
+
+sub detectRealm {
+  my $self = shift;
+  my $response = shift;
+  my $url = shift;
+  my $method = shift;
+
+  if ($response->status_line() eq '401 Unauthorized' and defined $username) {
+    my $headers = $response->headers();
+    foreach my $k ( keys %$headers ) {
+      Debug("Initial Header $k => $$headers{$k}");
+    }
+    my $realm = $self->{Monitor}->{ControlDevice};
+
+    if ( $$headers{'www-authenticate'} ) {
+      foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
+        my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
+        Debug("Have tokens $auth $tokens");
+        my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
+        if ( $tokens{realm} ) {
+          if ( $realm ne $tokens{realm} ) {
+            $realm = $tokens{realm};
+            Debug("Changing REALM to $realm");
+            $self->{ua}->credentials("$address:$port", $realm, $username, $password);
+            $response = $self->{ua}->get($url);
+            if ( !$response->is_success() ) {
+              Debug('Authentication still failed after updating REALM' . $response->status_line);
+               $headers = $response->headers();
+              foreach my $k ( keys %$headers ) {
+                Debug("Initial Header $k => $$headers{$k}\n");
+              }  # end foreach
+            } else {
+              last;
+            }
+          } else {
+            Error('Authentication failed, not a REALM problem');
+          }
+        } else {
+          Debug('Failed to match realm in tokens');
+        } # end if
+      } # end foreach auth header
+    } else {
+      debug('No headers line');
+    } # end if headers
+  } # end if not authen
+}
+
+sub get {
+  my $self = shift;
+  my $url = shift;
+  Debug("Getting $url");
+  my $response = $self->{ua}->get($url);
+  Debug('Response: '. $response->status_line . ' ' . $response->content);
+  return $response;
 }
 
 sub parseControlAddress {
@@ -140,7 +204,9 @@ sub parseControlAddress {
     # If value of "Control address" does not consist of two parts, then only address is given
     $addressport = $usernamepassword;
   } else {
-    ($username , $password) = split /:/, $usernamepassword;
+    if (!$username) {
+      ($username , $password) = split /:/, $usernamepassword;
+    }
   }
   ($address, $port) = split /:/, $addressport;
 }

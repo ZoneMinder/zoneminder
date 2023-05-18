@@ -131,3 +131,29 @@ form[name="monitorForm"] {
 .statusBreakdown {
   margin-right: auto;
 }
+
+@media screen and (max-width:1280px) {
+}
+@media screen and (max-width:900px) {
+  .colFunction {
+    display: none;
+  }
+  #header {
+    flex-wrap: wrap;
+  }
+  .colServer,
+  .colZones,
+  .rightButtons,
+  button[name="selectBtn"],
+  .colId {
+    display: none;
+  }
+}
+@media screen and (max-width:564px) {
+  .colMark {
+    display: none!important;
+  }
+  button .text {
+    display: none;
+  }
+}

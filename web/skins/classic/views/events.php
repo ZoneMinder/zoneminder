@@ -133,7 +133,7 @@ data-check-on-init="true"
 data-mobile-responsive="true"
 data-min-width="562"
         class="table-sm table-borderless table"
-        style="display:none; color: white;"
+        style="display:none;"
       >
         <thead>
             <!-- Row styling is handled by bootstrap-tables -->

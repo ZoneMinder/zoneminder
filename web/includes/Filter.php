@@ -184,10 +184,11 @@ class Filter extends ZM_Object {
       }
     }
 
-    if ($this->{'Query'} and isset($this->{'Query'}['terms']) and count($this->{'Query'}['terms'])) {
-      # Unset cnj on first term, so that there's no leading AND
-      unset($this->{'Query'}['terms'][0]['cnj']);
-    }
+    # Disable this. We will do this on SQL generation
+    #if ($this->{'Query'} and isset($this->{'Query'}['terms']) and count($this->{'Query'}['terms'])) {
+      ## Unset cnj on first term, so that there's no leading AND
+      #unset($this->{'Query'}['terms'][0]['cnj']);
+    #}
     return $this->{'Query'};
   }
 
@@ -1177,6 +1178,9 @@ class Filter extends ZM_Object {
     foreach ($sort as $attr) {
       for ($i=0; $i < count($old_terms); $i++) {
         if ($old_terms[$i]['attr'] == $attr) {
+          if (!isset($old_terms[$i]['cnj'])) {
+            $old_terms[$i]['cnj'] = 'and';
+          }
           $new_terms[] = $old_terms[$i];
           array_splice($old_terms, $i, 1);
           $i--;

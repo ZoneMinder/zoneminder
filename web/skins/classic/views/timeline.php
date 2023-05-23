@@ -569,12 +569,12 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
   $labelCheck = isset($scale['labelCheck']) ? $scale['labelCheck'] : $scale['label'];
   echo '<div id="xScale">';
   for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
-    $x = round(100*(($i)/$chart['graph']['width']),1);
+    $x = round(100*(($i)/$chart['graph']['width']), 1);
     $timeOffset = (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density']));
     if ( $scale['align'] > 1 ) {
-      $label = (int)(date( $labelCheck, $timeOffset )/$scale['align']);
+      $label = (int)((int)date( $labelCheck, $timeOffset )/$scale['align']);
     } else {
-      $label = date( $labelCheck, $timeOffset );
+      $label = date($labelCheck, $timeOffset);
     }
     if ( !isset($lastLabel) || ($lastLabel != $label) ) {
       $labelCount++;

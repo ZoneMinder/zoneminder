@@ -387,7 +387,7 @@ class Filter extends ZM_Object {
         Debug("Term " .$term['attr'] . ' is not valid');
         continue;
       }
-      if ( !empty($term['cnj']) ) {
+      if ( $i>0 and !empty($term['cnj']) ) {
         while ( true ) {
           if ( !count($postfixStack) ) {
             $postfixStack[] = array('type'=>'cnj', 'value'=>$term['cnj'], 'sqlValue'=>$term['cnj']);
@@ -1188,6 +1188,17 @@ class Filter extends ZM_Object {
       }
     }
     if (count($old_terms)) $new_terms += $old_terms;
+    $this->terms($new_terms);
+  }
+
+  public function remove_invalid_terms() {
+    $new_terms = [];
+    $old_terms = $this->terms();
+    foreach ($old_terms as $term) {
+      $Term = new FilterTerm($this, $term);
+      if ($Term->valid())
+        $new_terms[] = $term;
+    }
     $this->terms($new_terms);
   }
 

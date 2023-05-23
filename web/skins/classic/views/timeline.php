@@ -194,14 +194,14 @@ if ( isset($range) and validInt($range) ) {
 if ( isset($minTime) && isset($maxTime) ) {
   $tempMinTime = $tempMaxTime = $tempExpandable = false;
   extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
-  $filterSql = parseTreeToSQL($tree);
+  $filterSql = $filter->sql();
 
   if ( $filterSql ) {
     $eventsSql .= ' AND '.$filterSql;
     $eventIdsSql .= ' AND '.$filterSql;
   }
 } else {
-  $filterSql = parseTreeToSQL($tree);
+  $filterSql = $filter->sql();
   $tempMinTime = $tempMaxTime = $tempExpandable = false;
   extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
 

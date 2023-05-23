@@ -143,12 +143,6 @@ if ( count($user->unviewableMonitorIds()) ) {
   $eventIdsSql .= $monFilterSql;
 }
 
-$tree = false;
-if ( isset($_REQUEST['filter']) ) {
-  $filter =  ZM\Filter::parse($_REQUEST['filter']);
-  $tree = $filter->tree();
-}
-
 if ( isset($_REQUEST['range']) )
   $range = validHtmlStr($_REQUEST['range']);
 if ( isset($_REQUEST['minTime']) )
@@ -191,35 +185,30 @@ if ( isset($range) and validInt($range) ) {
   $midTime = date(STRF_FMT_DATETIME_DB, $midTimeT);
 }
 
-if ( isset($minTime) && isset($maxTime) ) {
-  $tempMinTime = $tempMaxTime = $tempExpandable = false;
-  extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
-  $filterSql = $filter->sql();
+$tree = false;
+if ( isset($_REQUEST['filter']) ) {
+  $filter = ZM\Filter::parse($_REQUEST['filter']);
+  $filter->remove_invalid_terms();
+  $tree = $filter->tree();
+  ZM\Debug(print_r($tree, true));
+}
+$filterSql = $filter->sql();
+$tempMinTime = $tempMaxTime = $tempExpandable = false;
+extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
+if ( $filterSql ) {
+  $eventsSql .= ' AND '.$filterSql;
+  $eventIdsSql .= ' AND '.$filterSql;
+}
 
-  if ( $filterSql ) {
-    $eventsSql .= ' AND '.$filterSql;
-    $eventIdsSql .= ' AND '.$filterSql;
-  }
-} else {
-  $filterSql = $filter->sql();
-  $tempMinTime = $tempMaxTime = $tempExpandable = false;
-  extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
-
-  if ( $filterSql ) {
-    $rangeSql .= ' AND '.$filterSql;
-    $eventsSql .= ' AND '.$filterSql;
-    $eventIdsSql .= ' AND '.$filterSql;
-  }
-
-  if ( !isset($minTime) || !isset($maxTime) ) {
-    // Dynamically determine range
-    $row = dbFetchOne($rangeSql);
-    if ( $row ) {
-      if ( !isset($minTime) )
-        $minTime = $row['MinTime'];
-      if ( !isset($maxTime) )
-        $maxTime = $row['MaxTime'];
-    }
+if (!isset($minTime) || !isset($maxTime)) {
+  if ( $filterSql ) $rangeSql .= ' AND '.$filterSql;
+  // Dynamically determine range
+  $row = dbFetchOne($rangeSql);
+  if ( $row ) {
+    if ( !isset($minTime) )
+      $minTime = $row['MinTime'];
+    if ( !isset($maxTime) )
+      $maxTime = $row['MaxTime'];
   }
 
   if ( empty($minTime) )
@@ -277,7 +266,6 @@ if ( isset($minTime) && isset($maxTime) ) {
   $eventIdsSql .= " AND EndDateTime >= '$minTime' AND StartDateTime <= '$maxTime'";
 }
 
-if ( 0 ) {
 $framesByEventId = array();
 $eventsSql .= ' ORDER BY E.Id ASC';
 $framesSql = "SELECT EventId,FrameId,Delta,Score FROM Frames WHERE EventId IN($eventIdsSql) AND Score > 0 ORDER BY Score DESC";
@@ -287,7 +275,6 @@ while ( $row = $frames_result->fetch(PDO::FETCH_ASSOC) ) {
     $framesByEventId[$row['EventId']] = array();
   }
   $framesByEventId[$row['EventId']][] = $row;
-}
 }
 
 
@@ -377,31 +364,30 @@ while ($event = $events_result->fetch(PDO::FETCH_ASSOC)) {
       }
     } else {
       # Fills multiple Slots, so need multiple scores to generate the graph over multiple slots.
-      $framesSql = 'SELECT FrameId,Delta,Score FROM Frames WHERE EventId = ? AND Score > 0';
-      $result = dbQuery($framesSql, array($event['Id']));
-      while ( $frame = dbFetchNext($result) ) {
-      #foreach ( $framesByEventId[$event['Id']] as $frame ) {
-        $frameTimeT = $startTimeT + $frame['Delta'];
-        $frameIndex = (int)(($frameTimeT - $chart['data']['x']['lo']) / $chart['data']['x']['density']);
-        if ( $frameIndex < 0 )
-          continue;
-        if ( $frameIndex >= $chart['graph']['width'] )
-          continue;
+      if (isset($framesByEventId[$event['Id']])) {
+        foreach ( $framesByEventId[$event['Id']] as $frame ) {
+          $frameTimeT = $startTimeT + $frame['Delta'];
+          $frameIndex = (int)(($frameTimeT - $chart['data']['x']['lo']) / $chart['data']['x']['density']);
+          if ( $frameIndex < 0 )
+            continue;
+          if ( $frameIndex >= $chart['graph']['width'] )
+            continue;
 
-        if ( !isset($currFrameSlots[$frameIndex]) ) {
-          $currFrameSlots[$frameIndex] = array('count'=>1, 'value'=>$frame['Score'], 'event'=>$event, 'frame'=>$frame);
-        } else {
-          $currFrameSlots[$frameIndex]['count']++;
-          if ( $frame['Score'] > $currFrameSlots[$frameIndex]['value'] ) {
-            $currFrameSlots[$frameIndex]['value'] = $frame['Score'];
-            $currFrameSlots[$frameIndex]['event'] = $event;
-            $currFrameSlots[$frameIndex]['frame'] = $frame;
+          if ( !isset($currFrameSlots[$frameIndex]) ) {
+            $currFrameSlots[$frameIndex] = array('count'=>1, 'value'=>$frame['Score'], 'event'=>$event, 'frame'=>$frame);
+          } else {
+            $currFrameSlots[$frameIndex]['count']++;
+            if ( $frame['Score'] > $currFrameSlots[$frameIndex]['value'] ) {
+              $currFrameSlots[$frameIndex]['value'] = $frame['Score'];
+              $currFrameSlots[$frameIndex]['event'] = $event;
+              $currFrameSlots[$frameIndex]['frame'] = $frame;
+            }
           }
-        }
-        if ( $frame['Score'] > $chart['data']['y']['hi'] ) {
-          $chart['data']['y']['hi'] = $frame['Score'];
-        }
-      } // end foreach frame
+          if ( $frame['Score'] > $chart['data']['y']['hi'] ) {
+            $chart['data']['y']['hi'] = $frame['Score'];
+          }
+        } // end foreach frame
+      }
     }
   } // end if MaxScore > 0
 } // end foreach event

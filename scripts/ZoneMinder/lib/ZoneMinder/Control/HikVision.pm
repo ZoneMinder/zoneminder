@@ -143,7 +143,7 @@ Debug("Have " . $+{PASSWORD});
     if ( $$headers{'www-authenticate'} ) {
       foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
         my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
-  Debug("Have tokens $auth $tokens");
+        Debug("Have tokens $auth $tokens");
         my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
         if ( $tokens{realm} ) {
           if ( $realm ne $tokens{realm} ) {
@@ -157,8 +157,8 @@ Debug("Have " . $+{PASSWORD});
               foreach my $k ( keys %$headers ) {
                 Debug("Initial Header $k => $$headers{$k}\n");
               }  # end foreach
-      } else {
-	      last;
+            } else {
+              last;
             }
           } else {
             Error('Authentication failed, not a REALM problem');
@@ -195,13 +195,14 @@ sub PutCmd {
     Error("No cmd specified in PutCmd");
     return;
   }
+  Debug("Put: $cmd");
   my $req = HTTP::Request->new(PUT => $self->{BaseURL}.'/'.$cmd);
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $content);
   }
   my $res = $self->{UA}->request($req);
-  unless( $res->is_success ) {
+  if (!$res->is_success) {
     #
     # The camera timeouts connections at short intervals. When this
     # happens the user agent connects again and uses the same auth tokens.
@@ -210,47 +211,44 @@ sub PutCmd {
     # succeed the second time if the credentials are correct.
     #
     if ( $res->code == 401 ) {
-      $res = $self->{UA}->request($req);
-      unless( $res->is_success ) {
-        #
-        # It has failed authentication. The odds are
-        # that the user has set some parameter incorrectly
-        # so check the realm against the ControlDevice
-        # entry and send a message if different
-        #
-        my $auth = $res->headers->www_authenticate;
-        foreach (split(/\s*,\s*/,$auth)) {
-          if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
-            if ( $self->{Monitor}{ControlDevice} ne $1 ) {
-              Warning("Control Device appears to be incorrect.
-                Control Device should be set to \"$1\".
-                Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
-              $self->{Monitor}{ControlDevice} = $1;
-              $self->{UA}->credentials("$host:$port", $self->{Monitor}{ControlDevice}, $user, $pass);
-              return PutCmd($self,$cmd,$content);
-            }
+      #
+      # It has failed authentication. The odds are
+      # that the user has set some parameter incorrectly
+      # so check the realm against the ControlDevice
+      # entry and send a message if different
+      #
+      my $auth = $res->headers->www_authenticate;
+      foreach (split(/\s*,\s*/,$auth)) {
+        if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
+          if ( $self->{Monitor}{ControlDevice} ne $1 ) {
+            Warning("Control Device appears to be incorrect.
+              Control Device should be set to \"$1\".
+              Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
+            $self->{Monitor}{ControlDevice} = $1;
+            $self->{UA}->credentials("$host:$port", $self->{Monitor}{ControlDevice}, $user, $pass);
+            return PutCmd($self, $cmd, $content);
           }
         }
-        #
-        # Check for username/password
-        #
-        if ( $self->{Monitor}{ControlAddress} =~ /.+:(.+)@.+/ ) {
-          Info('Check username/password is correct');
-        } elsif ( $self->{Monitor}{ControlAddress} =~ /^[^:]+@.+/ ) {
-          Info('No password in Control Address. Should there be one?');
-        } elsif ( $self->{Monitor}{ControlAddress} =~ /^:.+@.+/ ) {
-          Info('Password but no username in Control Address.');
-        } else {
-          Info('Missing username and password in Control Address.');
-        }
-        Error($res->status_line);
       }
+      #
+      # Check for username/password
+      #
+      if ( $self->{Monitor}{ControlAddress} =~ /.+:.+@.+/ ) {
+        Info('Check username/password is correct');
+      } elsif ( $self->{Monitor}{ControlAddress} =~ /^[^:]+@.+/ ) {
+        Info('No password in Control Address. Should there be one?');
+      } elsif ( $self->{Monitor}{ControlAddress} =~ /^:.+@.+/ ) {
+        Info('Password but no username in Control Address.');
+      } else {
+        Info('Missing username and password in Control Address.');
+      }
+      Error($res->status_line);
     } else {
       Error($res->status_line);
     }
   } # end unless res->is_success
 } # end sub putCmd
-#
+
 # The move continuous functions all call moveVector
 # with the direction to move in. This includes zoom
 #
@@ -282,7 +280,7 @@ sub moveVector {
   # Create the XML
   my $xml = "<PTZData><pan>$x</pan><tilt>$y</tilt><zoom>$z</zoom>$momentxml</PTZData>";
   # Send it to the camera
-  $self->PutCmd($command,$xml);
+  $self->PutCmd($command, $xml);
 }
 sub zoomStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }
 sub moveStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }

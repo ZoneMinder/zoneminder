@@ -192,9 +192,10 @@ if ( isset($_REQUEST['filter']) ) {
   $tree = $filter->tree();
   ZM\Debug(print_r($tree, true));
 }
-$filterSql = $filter->sql();
 $tempMinTime = $tempMaxTime = $tempExpandable = false;
 extractDatetimeRange($tree, $tempMinTime, $tempMaxTime, $tempExpandable);
+
+$filterSql = $filter->sql();
 if ( $filterSql ) {
   $eventsSql .= ' AND '.$filterSql;
   $eventIdsSql .= ' AND '.$filterSql;
@@ -228,7 +229,6 @@ if (!isset($minTime) || !isset($maxTime)) {
 
 if ( $tree ) {
   appendDatetimeRange($tree, $minTime, $maxTime);
-
   $filterQuery = parseTreeToQuery($tree);
 } else {
   $filterQuery = false;

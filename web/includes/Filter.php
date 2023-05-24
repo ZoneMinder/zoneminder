@@ -53,7 +53,11 @@ class Filter extends ZM_Object {
       $this->_sql = '';
       foreach ( $this->FilterTerms() as $term ) {
         if ($term->valid()) {
-          if (!$this->_sql and $term->cnj) unset($term->cnj);
+          if (!$this->_sql) {
+            if ($term->cnj) unset($term->cnj);
+          } else {
+            if (!$term->cnj) $term->cnj = 'and';
+          }
           $this->_sql .= $term->sql();
         } else {
           Debug('Term is not valid '.$term->to_string());
@@ -693,11 +697,6 @@ class Filter extends ZM_Object {
       $position = count($terms);
     else if ( $position < 0 )
       $position = 0;
-
-    if ( $term && ($position == 0) ) {
-      # if only 1 term, don't need AND or OR
-      unset($term['cnj']);
-    }
 
     array_splice($terms, $position, 0, array($term ? $term : array()));
     $this->terms($terms);

@@ -365,6 +365,7 @@ body.sticky #content {
 }
 .alert, .warnText, .warning, .disabledText {
     color: #ffa801;
+    padding: 0;
 }
 
 

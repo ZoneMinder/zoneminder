@@ -270,13 +270,14 @@ $framesByEventId = array();
 $eventsSql .= ' ORDER BY E.Id ASC';
 $framesSql = "SELECT EventId,FrameId,Delta,Score FROM Frames WHERE EventId IN($eventIdsSql) AND Score > 0 ORDER BY Score DESC";
 $frames_result = dbQuery($framesSql);
-while ( $row = $frames_result->fetch(PDO::FETCH_ASSOC) ) {
-  if ( !isset($framesByEventId[$row['EventId']]) ) {
-    $framesByEventId[$row['EventId']] = array();
+if ($frames_result) {
+  while ( $row = $frames_result->fetch(PDO::FETCH_ASSOC) ) {
+    if ( !isset($framesByEventId[$row['EventId']]) ) {
+      $framesByEventId[$row['EventId']] = array();
+    }
+    $framesByEventId[$row['EventId']][] = $row;
   }
-  $framesByEventId[$row['EventId']][] = $row;
 }
-
 
 $chart['data'] = array(
   'x' => array(
@@ -296,7 +297,7 @@ $monEventSlots = array();
 $monFrameSlots = array();
 $events_result = dbQuery($eventsSql);
 if ( !$events_result ) {
-  ZM\Fatal('SQL-ERR');
+  ZM\Error('SQL-ERR');
   return;
 }
 

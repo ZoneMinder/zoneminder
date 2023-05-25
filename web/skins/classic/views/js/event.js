@@ -28,7 +28,7 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 var scaleValue = 0;
 
-$j(document).on("keydown", "", function (e) {
+$j(document).on("keydown", "", function(e) {
   e = e || window.event;
   if ( $j(".modal").is(":visible") ) {
     if (e.key === "Enter") {
@@ -44,21 +44,21 @@ $j(document).on("keydown", "", function (e) {
     } else {
       console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
     }
-  } else { 
+  } else {
     if (e.key === "ArrowLeft") {
       prevEvent();
     } else if (e.key === "ArrowRight") {
       nextEvent();
     } else if (e.key === "Delete") {
-      if ( $j("#deleteBtn").is(":disabled") == false ) { 
+      if ( $j("#deleteBtn").is(":disabled") == false ) {
         $j("#deleteBtn").click();
-      } 
+      }
     } else if (e.keyCode === 32) {
       // space bar for Play/Pause
-      if ( $j("#playBtn").is(":visible") ) { 
-        playClicked(); 
-      } else { 
-        pauseClicked(); 
+      if ( $j("#playBtn").is(":visible") ) {
+        playClicked();
+      } else {
+        pauseClicked();
       }
     } else {
       console.log('Modal is not visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);

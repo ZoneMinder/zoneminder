@@ -56,7 +56,7 @@ my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
 my $uri;
-my ($user,$pass,$host,$port) = ();
+my ($user, $pass, $host, $port, $realm) = ();
 
 sub credentials {
   my $self = shift;
@@ -124,10 +124,11 @@ Debug("Have " . $+{PASSWORD});
   $self->{BaseURL} = "http://$host:$port";
 
   # Save and test the credentials
+  $realm = $self->{Monitor}{ControlDevice};
+  $realm = '' if !defined $realm;
   if (defined($user)) {
-    $self->{Monitor}{ControlDevice} = '' if !defined $self->{Monitor}{ControlDevice};
-    Debug("Credentials: $host:$port, realm:$self->{Monitor}{ControlDevice}, $user, $pass");
-    $self->{UA}->credentials("$host:$port", $self->{Monitor}{ControlDevice}, $user, $pass);
+    Debug("Credentials: $host:$port, realm:$realm, $user, $pass");
+    $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
   } # end if defined user
 
   my $url = $self->{BaseURL} .'/ISAPI/Streaming/channels/101';
@@ -137,8 +138,6 @@ Debug("Have " . $+{PASSWORD});
     foreach my $k ( keys %$headers ) {
       Debug("Initial Header $k => $$headers{$k}");
     }
-
-    my $realm = $self->{Monitor}->{ControlDevice};
 
     if ( $$headers{'www-authenticate'} ) {
       foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
@@ -195,7 +194,7 @@ sub PutCmd {
     Error("No cmd specified in PutCmd");
     return;
   }
-  Debug("Put: $cmd");
+  Debug("Put: $cmd to ".$self->{BaseURL});
   my $req = HTTP::Request->new(PUT => $self->{BaseURL}.'/'.$cmd);
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
@@ -220,16 +219,16 @@ sub PutCmd {
       my $auth = $res->headers->www_authenticate;
       foreach (split(/\s*,\s*/,$auth)) {
         if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
-          if ( $self->{Monitor}{ControlDevice} ne $1 ) {
+          if ($realm ne $1) {
             Warning("Control Device appears to be incorrect.
               Control Device should be set to \"$1\".
               Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
-            $self->{Monitor}{ControlDevice} = $1;
-            $self->{UA}->credentials("$host:$port", $self->{Monitor}{ControlDevice}, $user, $pass);
+            $realm = $1;
+            $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
             return PutCmd($self, $cmd, $content);
           }
         }
-      }
+      } # end foreach auth token
       #
       # Check for username/password
       #

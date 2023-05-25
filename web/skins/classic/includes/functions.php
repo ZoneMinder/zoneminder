@@ -206,6 +206,9 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <!--
     <div class="nav justify-content-end flex-grow-1">
 -->
+<?php 
+  if ((!ZM_OPT_USE_AUTH) or $user) {
+?>
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon">
@@ -225,7 +228,6 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <?php
 
   // *** Build the navigation bar menu items ***
-  if ( $user and $user->Username() ) {
         echo '<ul class="nav navbar-nav align-self-start justify-content-center">';
           echo getConsoleHTML();
           echo getOptionsHTML();
@@ -250,7 +252,6 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
         echo '</ul>
     </div>
       ';
-  }
 ?>
   </nav><!-- End First Navbar -->
 
@@ -259,8 +260,6 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 >
     <div class="container-fluid" id="panel" >
 <?php
-
-  if ( (!ZM_OPT_USE_AUTH) or $user ) {
 
 // *** Build the statistics shown on the navigation bar ***
 ?>
@@ -285,12 +284,12 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
         </ul>
       </div>
 <?php
-  } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
     </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
   
 <?php
+  } // end if (!ZM_OPT_USE_AUTH) or $user )
   $banner_html = getConsoleBannerHTML();
   if ($banner_html) {
     echo '<nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">'.$banner_html.'</nav>';

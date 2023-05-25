@@ -884,3 +884,7 @@ a.flip {
 .search .form-control {
   font-size: 100%;
 }
+
+button .material-icons {
+  font-size: 18px;
+}

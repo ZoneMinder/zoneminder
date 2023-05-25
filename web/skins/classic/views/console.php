@@ -185,32 +185,32 @@ echo $navbar ?>
 
       <div class="middleButtons">
         <button type="button" id="scanBtn" title="<?php echo translate('Network Scan') ?>" data-on-click="scanNetwork">
-        <i class="material-icons md-18">wifi</i>
+        <i class="material-icons">wifi</i>
         <span class="text"><?php echo translate('Scan Network') ?></span>
         </button>
         <button type="button" name="addBtn" data-on-click="addMonitor"
         <?php echo canEdit('Monitors') ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
         >
-          <i class="material-icons md-18">add_circle</i>
+          <i class="material-icons">add_circle</i>
           <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
         </button>
         <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
         <?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>
         style="display:none;">
-          <i class="material-icons md-18">content_copy</i>
+          <i class="material-icons">content_copy</i>
   <!--content_copy used instead of file_copy as there is a bug in material-icons -->
           <span class="text">&nbsp;<?php echo translate('CloneMonitor') ?></span>
         </button>
         <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
-          <i class="material-icons md-18">edit</i>
+          <i class="material-icons">edit</i>
           <span class="text">&nbsp;<?php echo translate('Edit') ?></span>
         </button>
         <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
-          <i class="material-icons md-18">delete</i>
+          <i class="material-icons">delete</i>
           <span class="text">&nbsp;<?php echo translate('Delete') ?></span>
         </button>
         <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled">
-          <i class="material-icons md-18">view_list</i>
+          <i class="material-icons">view_list</i>
           <span class="text">&nbsp;<?php echo translate('Select') ?></span>
         </button>
       </div>
@@ -221,7 +221,7 @@ echo $navbar ?>
         </button>
       </div>
         
-        &nbsp;<a href="#"><i id="fbflip" class="material-icons md-18">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
+        &nbsp;<a href="#"><i id="fbflip" class="material-icons">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
     
     </div><!-- contentButtons -->
 <?php
@@ -237,12 +237,12 @@ ob_start();
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
             <th class="colId"><?php echo translate('Id') ?></th>
 <?php } ?>
-            <th class="colName"><i class="material-icons md-18">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
+            <th class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
             <th class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($Servers) ) { ?>
             <th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
-            <th class="colSource"><i class="material-icons md-18">settings</i>&nbsp;<?php echo translate('Source') ?></th>
+            <th class="colSource"><i class="material-icons">settings</i>&nbsp;<?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
             <th class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
@@ -354,7 +354,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   }
 ?>
             <td class="colName">
-            <i class="material-icons md-18 <?php echo $dot_class ?>" title="<?php echo $dot_class_reason ?>">lens</i>
+            <i class="material-icons <?php echo $dot_class ?>" title="<?php echo $dot_class_reason ?>">lens</i>
               <a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . validHtmlStr($monitor['Name']) ?></a><br/>
               <?php echo $imgHTML ?>
               <div class="small text-nowrap text-muted">

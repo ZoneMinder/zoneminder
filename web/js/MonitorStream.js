@@ -724,7 +724,7 @@ function MonitorStream(monitorData) {
         streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
       }
     }
-  } // end setMaxFPS
+  }; // end setMaxFPS
 } // end function MonitorStream
 
 async function attachVideo(id, pin) {

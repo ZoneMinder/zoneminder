@@ -1766,7 +1766,7 @@ bool Monitor::Poll() {
       int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
       if (result != SOAP_OK) {
         if (result != SOAP_EOF) { //Ignore the timeout error
-          Error("Failed to get ONVIF messages! %s", soap_fault_string(soap));
+          Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
           Event_Poller_Healthy = false;
         }
       } else {

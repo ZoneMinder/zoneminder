@@ -43,8 +43,9 @@ input[type="number"].form-control {
   padding: 5px;
 }
 
+#toolbar,
 .filterTable {
-  display:inline;
+  display:flex;
 }
 #events {
   height: 100%;

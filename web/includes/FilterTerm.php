@@ -330,7 +330,7 @@ class FilterTerm {
       if ($this->collate) $sql .= ' COLLATE '.$this->collate;
       if (($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] ')) {
         $sql .= $operator;
-        $sql .= '('.join(',', $values).')';
+        $sql .= count($values) ? '('.join(',', $values).')' : '(SELECT NULL WHERE 1!=1)';
       } else {
         $sql .= $operator;
         $sql .= $values[0];

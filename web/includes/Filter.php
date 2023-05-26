@@ -1028,12 +1028,13 @@ class Filter extends ZM_Object {
         $html .= '<span class="term '.$term['attr'].'"><label>'.$attrTypes[$term['attr']].'</label>';
         $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
         $html .= html_input("filter[Query][terms][$i][op]", 'hidden', $term['op']).PHP_EOL;
+        $html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
+        #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+
         if ( $term['attr'] == 'Archived' ) {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).PHP_EOL;
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
-          #$html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
-          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span><input type="text" class="datetimepicker" name="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['id'])) {
             $html .= ' id="'.$term['id'].'"';
@@ -1049,8 +1050,6 @@ class Filter extends ZM_Object {
           if (!isset($term['placeholder'])) $term['placeholder'] = translate('Attr'.$term['attr']);
           $html .= ' placeholder="'.$term['placeholder'].'"/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
-          #$html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
-          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span><input type="text" class="datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['cookie'])) {
             if (!$term['val'] and isset($_COOKIE[$term['cookie']])) $term['val'] = $_COOKIE[$term['cookie']];
@@ -1059,24 +1058,19 @@ class Filter extends ZM_Object {
           $html .= ' value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'" placeholder="'.translate('Attr'.$term['attr']).'"';
           $html .= '/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
           $html .= $term['attr'];
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']).'</span>'.PHP_EOL;
 
         } else if ( $term['attr'] == 'Group') {
-          #$html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $term['val'],
             ['class'=>'chosen',
             'multiple'=>'multiple', 
             'data-placeholder'=>translate('All Groups')]).'</td>'.PHP_EOL;
         } else if ( $term['attr'] == 'StateId' ) {
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $states, $term['val']).'</span>'.PHP_EOL;
         } else if ( strpos($term['attr'], 'Weekday') !== false ) {
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val']).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'Monitor' ) {
           $monitors = [];
@@ -1085,7 +1079,6 @@ class Filter extends ZM_Object {
               $monitors[$m->Id()] = $m->Id().' '.validHtmlStr($m->Name());
             }
           }
-          #$html .= '<span>'. $term['op'].'</span>'.PHP_EOL;
           $selected = explode(',', $term['val']);
           if (count($selected) == 1 and !$selected[0]) {
             $selected = null;
@@ -1097,7 +1090,6 @@ class Filter extends ZM_Object {
             if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
               $selected = explode(',', $_COOKIE[$term['cookie']]);
           }
-          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, $selected, $options).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'MonitorName' ) {
           $monitor_names = [];
@@ -1106,26 +1098,21 @@ class Filter extends ZM_Object {
               $monitor_names[$m->Name()] = validHtmlStr($m->Name());
             }
           }
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val'],
             ['class'=>'chosen', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Monitors')]).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val'],
           ['class'=>'chosen', 'multiple'=>'multiple']).'</span>'.PHP_EOL;
         } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
           if (!$storageareas) {
             $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
           }
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val'],
               ['class'=>'chosen', 'multiple'=>'multiple']).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'AlarmedZoneId' ) {
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val'],
               ['class'=>'chosen', 'multiple'=>'multiple']).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'Notes' ) {
-          #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
           $attrs = ['class'=>'chosen', 'multiple'=>'multiple', 'data-placeholder'=>translate('Event Type')];
           $selected = explode(',', $term['val']);
           if (count($selected) == 1 and !$selected[0]) {
@@ -1149,12 +1136,10 @@ class Filter extends ZM_Object {
             'vehicle' => 'Vehicle'];
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $options, $selected, $attrs).'</span>'.PHP_EOL;
         } else {
-          $html .= $term['attr'];
-          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
+          #$html .= $term['attr'];
           $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.validHtmlStr($term['val']).'"/></span>'.PHP_EOL;
         }
       } else { # no attr ?
-        $html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
         $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'' ).'"/></span>'.PHP_EOL;
       }
 
@@ -1186,7 +1171,9 @@ class Filter extends ZM_Object {
         }
       }
     }
-    if (count($old_terms)) $new_terms += $old_terms;
+    if (count($old_terms)) {
+      $new_terms = array_merge($new_terms, $old_terms);
+    }
     $this->terms($new_terms);
   }
 

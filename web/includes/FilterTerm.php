@@ -538,6 +538,8 @@ class FilterTerm {
     case 'Archived' :
     case 'Monitor' :
     case 'MonitorId' :
+    case 'ServerId' :
+    case 'FilterServerId' :
     case 'Group' :
     case 'Notes' :
       if (empty($this->val) or $this->val === '')

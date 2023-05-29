@@ -59,6 +59,7 @@ Here is what the filter window looks like
 	If you do this then the subsequent dialog will also allow you specify whether you want this filter automatically applied in order to delete events or upload events via ftp to another server and mail notifications of events to one or more email accounts. Emails and messages (essentially small emails intended for mobile phones or pagers) have a format defined in the Options screen, and may include a variety of tokens that can be substituted for various details of the event that caused them. This includes links to the event view or the filter as well as the option of attaching images or videos to the email itself. Be aware that tokens that represent links may require you to log in to access the actual page, and sometimes may function differently when viewed outside of the general ZoneMinder context. The tokens you can use are as follows.
 
     *    %EI%       Id of the event
+    *    %EID%      Id of the event
     *    %EN%       Name of the event
     *    %EC%       Cause of the event
     *    %ED%       Event description
@@ -88,6 +89,7 @@ Here is what the filter window looks like
     *    %EIMODG%   Attach image containing object detection animated gif version
     *    %EV%       Attach event mpeg video
     *    %EVM%      Attach event mpeg video in phone format
+    *    %MID%      Monitor Id
     *    %MN%       Name of the monitor
     *    %MET%      Total number of events for the monitor
     *    %MEH%      Number of events for the monitor in the last hour

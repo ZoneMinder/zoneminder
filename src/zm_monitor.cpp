@@ -1006,6 +1006,10 @@ bool Monitor::connect() {
 
     ReloadLinkedMonitors();
 
+    if (janus_enabled) {
+      Janus_Manager = new JanusManager(this);
+    }
+
     //ONVIF and Amcrest Setup
     //For now, only support one event type per camera, so share some state.
     Poll_Trigger_State = false;
@@ -1065,10 +1069,6 @@ bool Monitor::connect() {
       Debug(1, "Not Starting ONVIF");
     }
     //End ONVIF Setup
-
-    if (janus_enabled) {
-      Janus_Manager = new JanusManager(this);
-    }
 
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
@@ -1752,15 +1752,13 @@ void Monitor::UpdateFPS() {
 //Thread where ONVIF polling, and other similar status polling can happen.
 //Since these can be blocking, run here to avoid intefering with other processing
 bool Monitor::Poll() {
-
-  //We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
+  // We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
   if (Event_Poller_Healthy) {
-    if(use_Amcrest_API) {
+    if (use_Amcrest_API) {
       Amcrest_Manager->WaitForMessage();
     } else {
-
 #ifdef WITH_GSOAP
       set_credentials(soap);
       int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
@@ -1772,6 +1770,7 @@ bool Monitor::Poll() {
       } else {
         Debug(1, "Got Good Response! %i", result);
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
+          Debug(1, "Got msg ");
           if (msg->Topic->__any.text != NULL &&
           std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
           msg->Message.__any.elts != NULL &&
@@ -1780,30 +1779,30 @@ bool Monitor::Poll() {
           msg->Message.__any.elts->next->elts->atts != NULL &&
           msg->Message.__any.elts->next->elts->atts->next != NULL &&
           msg->Message.__any.elts->next->elts->atts->next->text != NULL) {
-          Debug(1,"Got Motion Alarm!");
+          Debug(1, "Got Motion Alarm!");
             if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
-            //Event Start
-              Debug(1,"Triggered on ONVIF");
+              //Event Start
+              Debug(1, "Triggered on ONVIF");
               if (!Poll_Trigger_State) {
-                Debug(1,"Triggered Event");
+                Debug(1, "Triggered Event");
                 Poll_Trigger_State = TRUE;
-                std::this_thread::sleep_for (std::chrono::seconds(1)); //thread sleep
+                std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
               }
             } else {
               Debug(1, "Triggered off ONVIF");
               Poll_Trigger_State = false;
               if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
                 Event_Poller_Closes_Event = TRUE;
-                Debug(1,"Setting ClosesEvent");
+                Debug(1, "Setting ClosesEvent");
               }
             }
           }
-        }
-      }
+        }  // end foreach msg
+      }  // end if SOAP OK/NOT OK
 #endif
-    }
-  }
-  if (janus_enabled) {
+    }  // end if Amcrest or not
+  }  // end if Healthy
+  if (janus_enabled and Janus_Manager) {
     if (Janus_Manager->check_janus() == 0) {
       Janus_Manager->add_to_janus();
     }

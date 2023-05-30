@@ -29,6 +29,9 @@ $tabs = array();
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
+if (defined('ZM_PATH_DNSMASQ_CONF') and file_exists(ZM_PATH_DNSMASQ_CONF)) {
+  $tabs['dnsmasq'] = translate('DHCP');
+}
 $tabs['API'] = translate('API');
 $tabs['servers'] = translate('Servers');
 $tabs['storage'] = translate('Storage');
@@ -49,9 +52,6 @@ $tabs['privacy'] = translate('Privacy');
 $tabs['MQTT'] = translate('MQTT');
 $tabs['telemetry'] = translate('Telemetry');
 $tabs['version'] = translate('Versions');
-if (file_exists('skins/classic/views/_options_dnsmasq.php')) {
-  $tabs['dnsmasq'] = translate('DHCP');
-}
 
 $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : 'system';
 
@@ -263,8 +263,8 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
             </div>
           </form>
 <?php
-} else if ($tab == 'dnsmasq' and file_exists('skins/classic/views/_options_dnsmasq')) {
-  include('_options_users.php');
+} else if ($tab == 'dnsmasq' and file_exists('skins/classic/views/_options_dnsmasq.php')) {
+  include('_options_dnsmasq.php');
 } else if ($tab == 'users') {
   include('_options_users.php');
 } else if ($tab == 'API') {

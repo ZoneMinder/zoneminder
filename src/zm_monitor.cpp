@@ -1771,15 +1771,17 @@ bool Monitor::Poll() {
         Debug(1, "Got Good Response! %i", result);
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
           Debug(1, "Got msg ");
-          if (msg->Topic->__any.text != NULL &&
-          std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
-          msg->Message.__any.elts != NULL &&
-          msg->Message.__any.elts->next != NULL &&
-          msg->Message.__any.elts->next->elts != NULL &&
-          msg->Message.__any.elts->next->elts->atts != NULL &&
-          msg->Message.__any.elts->next->elts->atts->next != NULL &&
-          msg->Message.__any.elts->next->elts->atts->next->text != NULL) {
-          Debug(1, "Got Motion Alarm!");
+          if ((msg->Topic != nullptr) &&
+              (msg->Topic->__any.text != nullptr) &&
+              std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
+              (msg->Message.__any.elts != nullptr) &&
+              (msg->Message.__any.elts->next != nullptr) &&
+              (msg->Message.__any.elts->next->elts != nullptr) &&
+              (msg->Message.__any.elts->next->elts->atts != nullptr) &&
+              (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
+              (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
+            ) {
+            Debug(1, "Got Motion Alarm!");
             if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
               //Event Start
               Debug(1, "Triggered on ONVIF");
@@ -1796,6 +1798,8 @@ bool Monitor::Poll() {
                 Debug(1, "Setting ClosesEvent");
               }
             }
+          } else {
+            Debug(1, "Got a message that we couldn't parse");
           }
         }  // end foreach msg
       }  // end if SOAP OK/NOT OK

@@ -587,7 +587,7 @@ function probeNetwork() {
   $results = array();
 
   $monitors = array();
-  foreach (  ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
+  foreach (ZM\Monitor::find(['Type'=>'Remote']) as $monitor) {
     if ( preg_match('/^(.+)@(.+)$/', $monitor->Host(), $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;
@@ -596,7 +596,7 @@ function probeNetwork() {
       $monitors[gethostbyname($monitor->Host())] = $monitor;
     }
   }
-  foreach ( ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
+  foreach (ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
     $url_parts = parse_url($monitor->Path());
     if ($url_parts !== false) {
       #ZM\Debug("Ffmpeg monitor ${url_parts['host']} = ${monitor['Id']} ${monitor['Name']}");

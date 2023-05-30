@@ -717,7 +717,8 @@ sub substituteTags {
     $text =~ s/%EP%/$url?view=event&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
     $text =~ s/%EPS%/$url?view=event&mode=stream&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
     $text =~ s/%EPI%/$url?view=event&mode=still&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
-    $text =~ s/%EPATH%/$Event->Path()/g;
+    my $path = $Event->Path();
+    $text =~ s/%EPATH%/$path/g;
     $text =~ s/%EI%/$Event->{Id}/g;
     $text =~ s/%EID%/$Event->{Id}/g;
     $text =~ s/%EN%/$Event->{Name}/g;

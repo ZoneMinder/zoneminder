@@ -700,7 +700,6 @@ sub substituteTags {
 
   my $url = $Config{ZM_URL};
   $text =~ s/%ZP%/$url/g;
-  $text =~ s/%MID%/$Monitor->{Id}/g if $Monitor;
   $text =~ s/%MN%/$Monitor->{Name}/g if $Monitor;
   if ($Summary) {
     $text =~ s/%MET%/$Summary->{TotalEvents}/g;
@@ -711,6 +710,7 @@ sub substituteTags {
     $text =~ s/%MEA%/$Summary->{ArchivedEvents}/g;
   }
   if ($Event) {
+    $text =~ s/%MID%/$Event->{MonitorId}/g;
     $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
     $text =~ s/%MPS%/$url?view=watch&mid=$Event->{MonitorId}&mode=stream/g;
     $text =~ s/%MPI%/$url?view=watch&mid=$Event->{MonitorId}&mode=still/g;

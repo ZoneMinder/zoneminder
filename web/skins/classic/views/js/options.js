@@ -57,6 +57,8 @@ function initPage() {
 
   NewStorageBtn.prop('disabled', !canEdit.System);
   NewServerBtn.prop('disabled', !canEdit.System);
+
+  $j('.bootstraptable').bootstrapTable({icons: icons}).show();
 }
 
 $j(document).ready(function() {

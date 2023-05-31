@@ -106,8 +106,15 @@ form {
   }
 }
 
+.config,
+.Config {
+text-align: left;
+}
+.Config .container {
+margin-left: 0;
+}
 .Config .config .row > label {
-width: 300px;
+width: 150px;
 text-align: right;
 }
 .Config .config .row {

@@ -36,17 +36,16 @@ if (canEdit('System')) {
 <?php
 $dnsmasq_config = [
   'interface'=>'',
-  'bind-interfaces'=>'',
+  'bind-interfaces'=>'no',
   'dhcp-range'=>'192.168.1.50,192.168.1.150,12h',
 #'dhcp-rapid-commit'=>'',
-'dhcp-authoritative'=>''
+'dhcp-authoritative'=>'no'
 ];
 if (defined('ZM_PATH_DNSMASQ_CONF') and file_exists(ZM_PATH_DNSMASQ_CONF)) {
-  $dnsmasq_config += process_dnsmasq_configfile(ZM_PATH_DNSMASQ_CONF);
+  $dnsmasq_config = array_merge($dnsmasq_config, process_dnsmasq_configfile(ZM_PATH_DNSMASQ_CONF));
 } else {
   ZM\Debug("Either not defined or does not exist ".ZM_PATH_DNSMASQ_CONF);
 }
-ZM\Debug(print_r($dnsmasq_config, true));
 
 foreach ($dnsmasq_config as $name=>$value) {
   if ($name == 'interface') {
@@ -97,8 +96,8 @@ function process_dnsmasq_configfile($configFile) {
       $str = fgets($cfg, 256);
       if ( preg_match('/^\s*(#.*)?$/', $str) ) {
         continue;
-      } else if ( preg_match('/^\s*([^=\s]+)\s*=?(\s*[\'"]*(.*?)[\'"]*\s*)?$/', $str, $matches) ) {
-        $configvals[$matches[1]] = isset($matches[2]) ? $matches[2] : 'yes';
+      } else if ( preg_match('/^\s*([^=\s]+)\s*(=\s*[\'"]*(.*?)[\'"]*\s*)?$/', $str, $matches) ) {
+        $configvals[$matches[1]] = isset($matches[3]) ? $matches[3] : 'yes';
 			} else {
 				ZM\Error("Malformed line in config $configFile\n$str");
 			}
@@ -162,9 +161,6 @@ foreach (ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
 }
 $leases = read_leasefile('/var/lib/misc/dnsmasq.leases');
 foreach ($leases as $lease) {
-if (!isset($monitors_by_ip[$lease['ip']])) {
-ZM\Debug("No monitor for".$lease['ip']);
-}
   echo '
 <tr>
   <td class="hostname">'.$lease['name'].'</td>
@@ -181,12 +177,12 @@ ZM\Debug("No monitor for".$lease['ip']);
 </form>
 <script nonce="<?php echo $cspNonce ?>">
 function interface_onchange(e) {
-        console.log(e);
-        const value = e.options[e.selectedIndex].value;
-        const parts = value.split(' ');
-        if (parts.length > 1) {
-        const ip = parts[1];
-        const ip_parts = ip.split('.');
-        }
+  console.log(e);
+  const value = e.options[e.selectedIndex].value;
+  const parts = value.split(' ');
+  if (parts.length > 1) {
+    const ip = parts[1];
+    const ip_parts = ip.split('.');
+  }
 }
 </script>

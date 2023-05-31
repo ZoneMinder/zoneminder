@@ -2459,4 +2459,9 @@ function getHomeView() {
   }
   return 'console';
 }
+
+function systemd_isactive($service) {
+  $output = shell_exec("systemctl is-active $service");
+  return (trim($output) == 'active');
+}
 ?>

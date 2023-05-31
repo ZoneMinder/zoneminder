@@ -258,9 +258,8 @@ if ( defined('ZM_TIMEZONE') and ZM_TIMEZONE )
   ini_set('date.timezone', ZM_TIMEZONE);
 
 function process_configfile($configFile) {
-  if ( is_readable($configFile) ) {
-    $configvals = array();
-
+  $configvals = array();
+  if (is_readable($configFile)) {
     $cfg = fopen($configFile, 'r') or error_log('Could not open config file: '.$configFile);
     while ( !feof($cfg) ) {
       $str = fgets($cfg, 256);
@@ -273,11 +272,10 @@ function process_configfile($configFile) {
 			}
     }
     fclose($cfg);
-    return $configvals;
   } else {
     error_log('WARNING: ZoneMinder configuration file found but is not readable. Check file permissions on '.$configFile);
-    return false;
   }
+  return $configvals;
 }
 
 ?>

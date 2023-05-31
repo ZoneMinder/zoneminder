@@ -1095,5 +1095,9 @@ public static function getStatuses() {
     if (isset($gp_permissions['Edit'])) return 'Edit';
     return $u->Monitors();
   }
+
+  public function link_to($text='') {
+    return '<a href="?view=monitor&mid='.$this->Id().'">'.($text ? $text : $this->Name()).'</a>';
+  }
 } // end class Monitor
 ?>

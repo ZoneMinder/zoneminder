@@ -161,7 +161,7 @@ if (ZM_LOCALE_DEFAULT) {
       $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
     }
   } catch(Exception $e) {
-    ZM\Error($e->getMessage());
+    error_log($e->getMessage());
     $dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
     $dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
     $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
@@ -237,7 +237,7 @@ if (!defined('ZM_SERVER_ID')) {
       }
     }
     if (!$thisServer) {
-      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
+      error_log('Invalid Multi-Server configration detected. ZM_SERVER_NAME set to ' . ZM_SERVER_NAME . ' in zm.conf, but no corresponding entry found in Servers table.');
     }
   } else if (defined('ZM_SERVER_HOST') and ZM_SERVER_HOST) {
     foreach ($Servers as $s) {
@@ -247,7 +247,7 @@ if (!defined('ZM_SERVER_ID')) {
       }
     }
     if (!$thisServer) {
-      ZM\Error('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
+      error_log('Invalid Multi-Server configration detected. ZM_SERVER_HOST set to ' . ZM_SERVER_HOST . ' in zm.conf, but no corresponding entry found in Servers table.');
     }
   }
 } else {
@@ -261,7 +261,7 @@ function process_configfile($configFile) {
   if ( is_readable($configFile) ) {
     $configvals = array();
 
-    $cfg = fopen($configFile, 'r') or ZM\Error('Could not open config file: '.$configFile);
+    $cfg = fopen($configFile, 'r') or error_log('Could not open config file: '.$configFile);
     while ( !feof($cfg) ) {
       $str = fgets($cfg, 256);
       if ( preg_match('/^\s*(#.*)?$/', $str) ) {
@@ -269,7 +269,7 @@ function process_configfile($configFile) {
       } else if ( preg_match('/^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/', $str, $matches) ) {
         $configvals[$matches[1]] = $matches[2];
 			} else {
-				ZM\Error("Malformed line in config $configFile\n$str");
+				error_log("Malformed line in config $configFile\n$str");
 			}
     }
     fclose($cfg);

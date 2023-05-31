@@ -4,7 +4,7 @@ if (!canView('System')) {
   return;
 }
 ?>
-<div class="Config">
+<div class="dnsmasq">
   <h2>DHCP Server Config</h2>
   <form name="contentForm" action="?view=options" method="post">
     <input type="hidden" name="object" value="dnsmasq"/>

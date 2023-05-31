@@ -106,18 +106,18 @@ form {
   }
 }
 
-.config,
-.Config {
+.dnsmasq,
+.dnsmasq .config {
 text-align: left;
 }
-.Config .container {
+.dnsmasq .container {
 margin-left: 0;
 }
-.Config .config .row > label {
+.dnsmasq .config .row > label {
 width: 150px;
 text-align: right;
 }
-.Config .config .row {
+.dnsmasq .config .row {
 min-height:36px;
 text-align: left;
 display: flex;

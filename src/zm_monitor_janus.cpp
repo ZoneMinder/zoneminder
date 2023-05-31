@@ -66,8 +66,8 @@ void Monitor::JanusManager::load_from_monitor() {
       localtime_r(&now_t, &now_tm);
       if (parent->janus_rtsp_user) {
         std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
-          " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
-          " `MonitorIds` FROM `Users` WHERE `Enabled`=1 AND `Id`=" + std::to_string(parent->janus_rtsp_user);
+          " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
+          " FROM `Users` WHERE `Enabled`=1 AND `Id`=" + std::to_string(parent->janus_rtsp_user);
 
         MYSQL_RES *result = zmDbFetch(sql);
         if (result) {

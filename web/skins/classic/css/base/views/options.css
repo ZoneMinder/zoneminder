@@ -106,7 +106,7 @@ form {
   }
 }
 
-.dnsmasq,
+div.dnsmasq,
 .dnsmasq .config {
 text-align: left;
 }

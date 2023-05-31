@@ -37,13 +37,12 @@ if (canEdit('System')) {
 $dnsmasq_config = [
   'interface'=>'',
   'bind-interfaces'=>'',
-  'dhcp-range'=>'192.168.9.50,192.168.9.150,12h',
+  'dhcp-range'=>'192.168.1.50,192.168.1.150,12h',
 #'dhcp-rapid-commit'=>'',
 'dhcp-authoritative'=>''
 ];
 if (defined('ZM_PATH_DNSMASQ_CONF') and file_exists(ZM_PATH_DNSMASQ_CONF))
   $dnsmasq_config += process_dnsmasq_configfile(ZM_PATH_DNSMASQ_CONF);
-ZM\Debug(print_r($dnsmasq_config, true));
 foreach ($dnsmasq_config as $name=>$value) {
   if ($name == 'interface') {
     $interfaces = get_networks();
@@ -54,6 +53,7 @@ foreach ($dnsmasq_config as $name=>$value) {
       '<span class="value">'.
     htmlSelect('config[interface]', $interfaces,
       (isset($dnsmasq_config['interface']) ? $dnsmasq_config['interface'] : $default_interface),
+      ['data-on-change-this'=>'interface_onchange'],
       ).'</span></div>'.PHP_EOL;
   } else if ($name == 'bind-interfaces') {
     echo '<div class="row"><label class="form-label" for="bind-interfaces">'.translate('Bind Interfaces').'</label>'.PHP_EOL.
@@ -100,14 +100,14 @@ function process_dnsmasq_configfile($configFile) {
     }
     fclose($cfg);
   } else {
-    Error('WARNING: dnsmasq configuration file found but is not readable. Check file permissions on '.$configFile);
+    ZM\Error('WARNING: dnsmasq configuration file found but is not readable. Check file permissions on '.$configFile);
   }
   return $configvals;
 }
 
 function read_leasefile($file) {
   $leases = [];
-  $contents = file_get_contents($file);
+  $contents = @file_get_contents($file);
   foreach (explode("\n", $contents) as $line) {
     $row = explode(' ', $line);
     if (count($row) != 5) continue;
@@ -174,4 +174,14 @@ ZM\Debug("No monitor for".$lease['ip']);
 </table>
 </div>
 </form>
+<script nonce="<?php echo $CSP_nonce ?>">
+function interface_onchange(e) {
+        console.log(e);
+        const value = e.options[e.selectedIndex].value;
+        const parts = value.split(' ');
+        if (parts.length > 1) {
+        const ip = parts[1];
+        const ip_parts = ip.split('.');
+        }
+}
 </script>

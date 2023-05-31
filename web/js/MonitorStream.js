@@ -191,7 +191,7 @@ function MonitorStream(monitorData) {
         // Assume reverse proxy setup for now
         server = "https://" + window.location.hostname + "/janus";
       } else {
-        server = "http://" + window.location.hostname + ":8088/janus";
+        server = "http://" + window.location.hostname + "/janus";
       }
 
       if (janus == null) {

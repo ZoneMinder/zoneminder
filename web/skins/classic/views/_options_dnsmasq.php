@@ -20,13 +20,17 @@ if (canEdit('System')) {
 ?>
 <div class="service"><h2><?php echo translate('Service') ?></h2>
 <?php 
-$active = systemd_isactive('dnsmasq');
-echo 'Dnsmasq service is '.($active ? 'active' : 'inactive').'.';
-if (canEdit('System')) {
-  if ($active) {
-  echo '<button type="submit" name="action" value="stop">'.translate('Stop').'</button>';
-  } else {
-  echo '<button type="submit" name="action" value="start">'.translate('Start').'</button>';
+if (!file_exists('/usr/sbin/dnsmasq')) {
+  echo 'Dnsmasq DHCP server is not installed.<br/>';
+} else {
+  $active = systemd_isactive('dnsmasq');
+  echo 'Dnsmasq service is '.($active ? 'active' : 'inactive').'.';
+  if (canEdit('System')) {
+    if ($active) {
+    echo '<button type="submit" name="action" value="stop">'.translate('Stop').'</button>';
+    } else {
+    echo '<button type="submit" name="action" value="start">'.translate('Start').'</button>';
+    }
   }
 }
 ?>

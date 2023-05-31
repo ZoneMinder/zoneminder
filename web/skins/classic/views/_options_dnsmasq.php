@@ -41,8 +41,13 @@ $dnsmasq_config = [
 #'dhcp-rapid-commit'=>'',
 'dhcp-authoritative'=>''
 ];
-if (defined('ZM_PATH_DNSMASQ_CONF') and file_exists(ZM_PATH_DNSMASQ_CONF))
+if (defined('ZM_PATH_DNSMASQ_CONF') and file_exists(ZM_PATH_DNSMASQ_CONF)) {
   $dnsmasq_config += process_dnsmasq_configfile(ZM_PATH_DNSMASQ_CONF);
+} else {
+  ZM\Debug("Either not defined or does not exist ".ZM_PATH_DNSMASQ_CONF);
+}
+ZM\Debug(print_r($dnsmasq_config, true));
+
 foreach ($dnsmasq_config as $name=>$value) {
   if ($name == 'interface') {
     $interfaces = get_networks();
@@ -92,7 +97,7 @@ function process_dnsmasq_configfile($configFile) {
       $str = fgets($cfg, 256);
       if ( preg_match('/^\s*(#.*)?$/', $str) ) {
         continue;
-      } else if ( preg_match('/^\s*([^=\s]+)\s*(=\s*[\'"]*(.*?)[\'"]*\s*)?$/', $str, $matches) ) {
+      } else if ( preg_match('/^\s*([^=\s]+)\s*=?(\s*[\'"]*(.*?)[\'"]*\s*)?$/', $str, $matches) ) {
         $configvals[$matches[1]] = isset($matches[2]) ? $matches[2] : 'yes';
 			} else {
 				ZM\Error("Malformed line in config $configFile\n$str");

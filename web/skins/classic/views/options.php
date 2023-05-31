@@ -29,7 +29,7 @@ $tabs = array();
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
-if (defined('ZM_PATH_DNSMASQ_CONF') and file_exists(ZM_PATH_DNSMASQ_CONF)) {
+if (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF) {
   $tabs['dnsmasq'] = translate('DHCP');
 }
 $tabs['API'] = translate('API');

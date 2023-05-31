@@ -174,7 +174,7 @@ ZM\Debug("No monitor for".$lease['ip']);
 </table>
 </div>
 </form>
-<script nonce="<?php echo $CSP_nonce ?>">
+<script nonce="<?php echo $cspNonce ?>">
 function interface_onchange(e) {
         console.log(e);
         const value = e.options[e.selectedIndex].value;

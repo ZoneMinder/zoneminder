@@ -57,7 +57,8 @@ $groupSql = '';
 if ( canView('Groups') ) {
   $GroupsById = array();
   foreach ( ZM\Group::find() as $G ) {
-    $GroupsById[$G->Id()] = $G;
+    if ($G->canView())
+      $GroupsById[$G->Id()] = $G;
   }
 
   if ( count($GroupsById) ) {

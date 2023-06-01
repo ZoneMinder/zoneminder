@@ -781,10 +781,6 @@ a.flip {
   text-align: right;
 }
 
-#objdetectModal .modal-content {
-    width: fit-content;
-}
-
 #modalLogout .modal-dialog {
   height: 100%;
 }

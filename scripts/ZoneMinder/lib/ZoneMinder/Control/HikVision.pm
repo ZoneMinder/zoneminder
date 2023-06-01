@@ -123,9 +123,9 @@ Debug("Have " . $+{PASSWORD});
   # Save the base url
   $self->{BaseURL} = "http://$host:$port";
 
-  # Save and test the credentials
-  $realm = $self->{Monitor}{ControlDevice};
-  $realm = '' if !defined $realm;
+  $ChannelID = $self->{Monitor}{ControlDevice};
+  $realm = '';
+
   if (defined($user)) {
     Debug("Credentials: $host:$port, realm:$realm, $user, $pass");
     $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
@@ -216,19 +216,29 @@ sub PutCmd {
       # so check the realm against the ControlDevice
       # entry and send a message if different
       #
-      my $auth = $res->headers->www_authenticate;
-      foreach (split(/\s*,\s*/,$auth)) {
-        if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
-          if ($realm ne $1) {
-            Warning("Control Device appears to be incorrect.
-              Control Device should be set to \"$1\".
-              Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
-            $realm = $1;
-            $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
-            return PutCmd($self, $cmd, $content);
-          }
-        }
-      } # end foreach auth token
+      my $headers = $res->headers();
+      foreach my $k ( keys %$headers ) {
+        Debug("Initial Header $k => $$headers{$k}");
+      }
+
+      if ( $$headers{'www-authenticate'} ) {
+        foreach my $auth ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
+          foreach (split(/\s*,\s*/, $auth)) {
+            if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
+              if ($realm ne $1) {
+                Warning("Control Device appears to be incorrect.
+                  Control Device should be set to \"$1\".
+                  Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
+                $realm = $1;
+                $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
+                return PutCmd($self, $cmd, $content);
+              }
+            }
+          } # end foreach auth token
+        } # end foreach auth token
+      } else {
+        Debug("No authenticate header");
+      }
       #
       # Check for username/password
       #
@@ -269,7 +279,7 @@ sub moveVector {
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/momentary";
   }
   else {
-    $momentxml = "";
+    $momentxml = '';
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/continuous";
   }
   # Calculate movement speeds
@@ -277,10 +287,15 @@ sub moveVector {
   my $y = $tiltdirection * $self->getParam( $params, 'tiltspeed', 0 );
   my $z = $zoomdirection * $self->getParam( $params, 'speed', 0 );
   # Create the XML
-  my $xml = "<PTZData><pan>$x</pan><tilt>$y</tilt><zoom>$z</zoom>$momentxml</PTZData>";
+  my $xml = '<PTZData>';
+  $xml .= "<pan>$x</pan>" if $x;
+  $xml .= "<tilt>$y</tilt>" if $y;
+  $xml .= "<zoom>$z</zoom>" if $z;
+  $xml .= $momentxml.'</PTZData>';
   # Send it to the camera
   $self->PutCmd($command, $xml);
 }
+
 sub zoomStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }
 sub moveStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }
 sub moveConUp        { $_[0]->moveVector(  0,  1, 0, splice(@_,1)); }

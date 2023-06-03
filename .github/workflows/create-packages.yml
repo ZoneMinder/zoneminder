@@ -16,10 +16,16 @@ jobs:
             dist: buster
           - os: debian
             dist: bullseye
+          - os: debian
+            dist: bookworm
           - os: ubuntu
             dist: bionic
           - os: ubuntu
             dist: focal
+          - os: ubuntu
+            dist: jammy
+          - os: ubuntu
+            dist: lunar
     runs-on: ubuntu-latest
 
     steps:

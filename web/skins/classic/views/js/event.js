@@ -26,41 +26,52 @@ var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
+var availableTags = [];
+var selectedTags = [];
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
-  if ( $j(".modal").is(":visible") ) {
-    if (e.key === "Enter") {
-      if ( $j("#deleteConfirm").is(":visible") ) {
-        $j("#delConfirmBtn").click();
-      } else if ( $j("#eventDetailModal").is(":visible") ) {
-        $j("#eventDetailSaveBtn").click();
-      } else if ( $j("#eventRenamelModal").is(":visible") ) {
-        $j("#eventRenameBtn").click();
-      }
-    } else if (e.key === "Escape") {
-      $j(".modal").modal('hide');
-    } else {
-      console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
-    }
-  } else {
-    if (e.key === "ArrowLeft" && !e.altKey) {
-      prevEvent();
-    } else if (e.key === "ArrowRight" && !e.altKey) {
-      nextEvent();
-    } else if (e.key === "Delete") {
-      if ( $j("#deleteBtn").is(":disabled") == false ) {
-        $j("#deleteBtn").click();
-      }
-    } else if (e.keyCode === 32) {
-      // space bar for Play/Pause
-      if ( $j("#playBtn").is(":visible") ) {
-        playClicked();
+  if (!$j(".tag-input").is(":focus")) {
+    if ( $j(".modal").is(":visible") ) {
+      if (e.key === "Enter") {
+        if ( $j("#deleteConfirm").is(":visible") ) {
+          $j("#delConfirmBtn").click();
+        } else if ( $j("#eventDetailModal").is(":visible") ) {
+          $j("#eventDetailSaveBtn").click();
+        } else if ( $j("#eventRenamelModal").is(":visible") ) {
+          $j("#eventRenameBtn").click();
+        }
+      } else if (e.key === "Escape") {
+        $j(".modal").modal('hide');
       } else {
-        pauseClicked();
+        console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
       }
     } else {
-      console.log('Modal is not visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+      if (e.key === "ArrowLeft" && !e.altKey) {
+        prevEvent();
+      } else if (e.key === "ArrowRight" && !e.altKey) {
+        nextEvent();
+      } else if (e.key === "Delete") {
+        if ( $j("#deleteBtn").is(":disabled") == false ) {
+          $j("#deleteBtn").click();
+        }
+      } else if (e.keyCode === 32) {
+        // space bar for Play/Pause
+        if ( $j("#playBtn").is(":visible") ) {
+          playClicked();
+        } else {
+          pauseClicked();
+        }
+      } else if (e.key === "ArrowDown") {
+        if (e.ctrlKey) {
+          addTag(availableTags[0]);
+        } else {
+          $j("#tagInput").focus();
+          showDropdown();
+        }
+      } else {
+        console.log('Modal is not visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+      }
     }
   }
 });
@@ -1046,6 +1057,9 @@ function onStatsResize(vidWidth) {
 }
 
 function initPage() {
+  getAvailableTags();
+  getSelectedTags();
+
   // Load the event stats
   getStat();
 
@@ -1259,6 +1273,85 @@ function initPage() {
     }
   });
   document.addEventListener('fullscreenchange', fullscreenChangeEvent);
+
+  if (isMobile()) { // Mobile
+    // Event listener for adding tags when Space or Comma key is pressed on mobile devices
+    // Mobile Firefox is consistent with Desktop Firefox and Desktop Chrome supporting event.key for space and comma.
+    // Mobile Chrome always returns Unidentified for event.key for space and comma.
+    $j('#tagInput').on('input', function(event) {
+      var key = this.value.substr(-1).charCodeAt(0);
+      if (key === 32 || key === 44) { // Space or Comma
+        const tagInput = $j(this);
+        const tagValue = tagInput.val().slice(0, -1).trim();
+        addOrCreateTag(tagValue);
+        event.preventDefault(); // Prevent the key from being entered in the input field
+      }
+    });
+    // Event listener for adding tags when Enter key is pressed on mobile devices
+    // All mobile and desktop browsers don't pick up on Enter as 'input'.
+    // Mobile Chrome 'input' doesn't pick up "Next" button as Enter.
+    $j('#tagInput').on('keydown', function(event) {
+      var key = event.key;
+      if (key === "Enter") { // Enter
+        const tagInput = $j(this);
+        const tagValue = tagInput.val().trim();
+        addOrCreateTag(tagValue);
+        event.preventDefault(); // Prevent the key from being entered in the input field
+      }
+    });
+  } else { // Desktop
+    // Event listener for adding tags when Enter key is pressed or highlighting available tag when up/down arrows are pressed
+    $j('#tagInput').on('keydown', function(event) {
+      event = event || window.event;
+      var $hlight = $j('div.tag-dropdown-item.hlight');
+      var $div = $j('div.tag-dropdown-item');
+      if (event.key === "ArrowDown") {
+        if (event.ctrlKey) {
+          addTag(availableTags[0]);
+        } else if ($div.is(":visible")) {
+          $hlight.removeClass('hlight').next().addClass('hlight');
+          if ($hlight.next().length == 0) {
+            $div.eq(0).addClass('hlight');
+          }
+        } else {
+          showDropdown();
+        }
+      } else if (event.key === "ArrowUp") {
+        $hlight.removeClass('hlight').prev().addClass('hlight');
+        if ($hlight.prev().length == 0) {
+          $div.eq(-1).addClass('hlight');
+        }
+      } else if (event.key === "Enter") {
+        var tagValue = $hlight.text();
+        if (!tagValue) {
+          const tagInput = $j(this);
+          tagValue = tagInput.val().trim();
+        }
+        addOrCreateTag(tagValue);
+      } else if (event.key === " " || event.key === ",") {
+        const tagInput = $j(this);
+        const tagValue = tagInput.val().trim();
+        addOrCreateTag(tagValue);
+        event.preventDefault(); // Prevent the key from being entered in the input field
+      } else if (event.key === "Escape") {
+        $j("#tagInput").blur();
+      }
+    });
+  }
+
+  // Event listener for typing in the tag input
+  $j('#tagInput').on('input', showDropdown);
+
+  // Event listener for clicking in the tag input
+  $j('#tagInput').on('focus', showDropdown);
+
+  // Event listener for removing tags
+  $j('.tags-container').on('click', '.tag-remove', function() {
+    const tagElement = $j(this).closest('.tag');
+    const tag = tagElement.data('tag');
+    removeTag(tag);
+  });
+
   streamPlay();
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
@@ -1286,6 +1379,129 @@ function initPage() {
     }
   } // end if ZM_OPT_USE_GEOLOCATION
 } // end initPage
+
+function addOrCreateTag(tagValue) {
+  const tagNames = availableTags.map((t) => t.Name.toLowerCase());
+  const index = tagNames.indexOf(tagValue.toLowerCase());
+  if (index > -1) {
+    addTag(availableTags[index]);
+    $j('.tag-dropdown-content').hide();
+  } else if (tagValue.trim().length > 0) {
+    createTag(tagValue);
+  }
+}
+
+function clickTag() {
+  const tagName = $j(this).text();
+  const selectedTag = availableTags.find((tag) => tag.Name === tagName);
+  addTag(selectedTag);
+}
+
+function showDropdown() {
+  const dropdownContent = $j('.tag-dropdown-content');
+  dropdownContent.empty();
+  const input = $j('#tagInput').val().trim();
+
+  var matchingTags = [];
+  if (availableTags) {
+    matchingTags = availableTags.filter(function(tag) {
+      var isMatch = tag.Name.toLowerCase().includes(input.toLowerCase());
+      return isMatch && !isDup(tag.Name);
+    });
+  }
+
+  matchingTags.forEach(function(tag) {
+    const dropdownItem = $j('<div>', {class: 'tag-dropdown-item', text: tag.Name});
+    dropdownItem.appendTo(dropdownContent); // Append the element to the dropdown content
+  });
+
+  if (matchingTags.length > 0) {
+    $j('.tag-dropdown-content').off('click');
+    $j('.tag-dropdown-content').on('click', '.tag-dropdown-item', clickTag);
+    $j('.tag-dropdown-content').show();
+  } else {
+    $j('.tag-dropdown-content').hide();
+  }
+}
+
+function isDup(tagName) {
+  return $j('.tag-text').filter(function() {
+    var elemText = $j(this).text();
+    return elemText === tagName;
+  }).length != 0;
+}
+
+function formatTag(tag) {
+  const tagName = tag.Name;
+  const tagElement = $j('<div>', {class: 'tag'});
+  tagElement.data('tag', tag);
+  tagElement.append($j('<span>', {class: 'tag-text', text: tagName}));
+  tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
+  $j('.tag-dropdown').before(tagElement);
+}
+
+function addTag(tag) {
+  if (tag.Name.trim() !== '' && !isDup(tag.Name)) {
+    $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
+        .done(function(data) {
+          formatTag(tag);
+          selectedTags.push(tag);
+
+          // Move the added tag to the front(top) of the availableTags array
+          const index = availableTags.map((t) => t.Id).indexOf(tag.Id);
+          availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
+        })
+        .fail(logAjaxFail);
+  } else {
+    $j('.tag-dropdown-content').hide();
+  }
+  $j('#tagInput').val('');
+  $j('#tagInput').blur();
+}
+
+function removeTag(tag) {
+  $j.getJSON(thisUrl + '?request=event&action=removetag&tid=' + tag.Id + '&id=' + eventData.Id)
+      .done(function(data) {
+        $j('.tag-text').filter(function() {
+          return $j(this).text() === tag.Name;
+        }).parent().remove();
+        if (data.response > 0) {
+          getAvailableTags();
+        }
+      })
+      .fail(logAjaxFail);
+}
+
+function createTag(tagName) {
+  $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
+      .done(function(data) {
+        if (data.response.length > 0) {
+          var tag = data.response[0];
+          if (availableTags) {
+            availableTags.splice(0, 0, tag);
+          }
+          addTag(tag);
+        }
+      })
+      .fail(logAjaxFail);
+}
+
+function getAvailableTags() {
+  $j.getJSON(thisUrl + '?request=tags&action=getavailabletags')
+      .done(function(data) {
+        availableTags = data.response;
+      })
+      .fail(logAjaxFail);
+}
+
+function getSelectedTags() {
+  $j.getJSON(thisUrl + '?request=event&action=getselectedtags&id=' + eventData.Id)
+      .done(function(data) {
+        selectedTags = data.response;
+        selectedTags.forEach((tag) => formatTag(tag));
+      })
+      .fail(logAjaxFail);
+}
 
 var toggleZonesButton = document.getElementById('toggleZonesButton');
 if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);

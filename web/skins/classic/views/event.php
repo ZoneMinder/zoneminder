@@ -207,6 +207,13 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
       </div>
     </div>
 <?php if ( $Event->Id() ) { ?>
+    <div class="tags-container">
+      <div class="tag-dropdown">
+        <!-- input type has to be "search" (not "text") so that the Enter button (not Next) works on mobile Chrome browser. -->
+        <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput">
+        <div class="tag-dropdown-content"></div>
+      </div>
+    </div>
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="inner-content">
       <div class="d-flex flex-row">

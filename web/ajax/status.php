@@ -472,7 +472,25 @@ function getNearEvents() {
     $sortOrder = 'ASC';
   }
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  $sql = '
+  SELECT 
+    E.Id 
+      AS Id, 
+    E.StartDateTime 
+      AS StartDateTime 
+  FROM Events 
+    AS E 
+  INNER JOIN Monitors 
+    AS M 
+    ON E.MonitorId = M.Id 
+  LEFT JOIN Events_Tags 
+    AS ET 
+    ON E.Id = ET.EventId 
+  LEFT JOIN Tags 
+    AS T 
+    ON T.Id = ET.TagId 
+  WHERE '.$sortColumn.' 
+  '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
@@ -490,11 +508,29 @@ function getNearEvents() {
 
   $prevEvent = dbFetchNext($result);
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  $sql = '
+  SELECT 
+    E.Id 
+      AS Id, 
+    E.StartDateTime 
+      AS StartDateTime 
+  FROM Events 
+    AS E 
+  INNER JOIN Monitors 
+    AS M 
+    ON E.MonitorId = M.Id 
+  LEFT JOIN Events_Tags 
+    AS ET 
+    ON E.Id = ET.EventId 
+  LEFT JOIN Tags 
+    AS T 
+    ON T.Id = ET.TagId 
+  WHERE '.$sortColumn.' 
+  '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
   if ($filter->sql()) {
     $sql .= ' AND ('.$filter->sql().')';
   }
-  $sql .=' AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
+  $sql .= ' AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';

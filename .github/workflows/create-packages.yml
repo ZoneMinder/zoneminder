@@ -26,7 +26,6 @@ jobs:
             dist: jammy
           - os: ubuntu
             dist: lunar
-
     runs-on: ubuntu-latest
 
     steps:

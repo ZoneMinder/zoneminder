@@ -135,6 +135,10 @@ foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name
     }
   }
 }
+$availableTags = array();
+foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
+  $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
+}
 
 xhtmlHeaders(__FILE__, translate('EventFilter'));
 echo getBodyTopHTML();
@@ -194,6 +198,7 @@ $sort_fields = array(
     'Id'            => translate('AttrId'),
     'Name'          => translate('AttrName'),
     'Cause'         => translate('AttrCause'),
+    'Tags'          => translate('Tags'),
     'DiskSpace'     => translate('AttrDiskSpace'),
     'Notes'         => translate('AttrNotes'),
     'MonitorName'   => translate('AttrMonitorName'),

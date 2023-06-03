@@ -64,8 +64,29 @@ if ( $sort != 'Id' ) {
   }
 }
 $where = 'WHERE MonitorId = '.$mid;
-$col_str = 'E.*';
-$sql = 'SELECT ' .$col_str. ' FROM `Events` AS E '.$where.' ORDER BY '.$sort.' '.$order. ' LIMIT ?';
+
+$col_str = '
+E.*, 
+T.Name 
+  AS Tags ';
+
+$sql = '
+SELECT 
+  ' .$col_str. ' 
+FROM `Events` 
+  AS E 
+LEFT JOIN Events_Tags 
+  AS ET 
+  ON E.Id = ET.EventId 
+LEFT JOIN Tags 
+  AS T 
+  ON T.Id = ET.TagId 
+'.$where.' 
+ORDER BY 
+'.$sort.' 
+'.$order.' 
+LIMIT ?';
+
 ZM\Debug('Calling the following sql query: ' .$sql);
 $rows = dbQuery($sql, array($limit));
 $returned_rows = array();

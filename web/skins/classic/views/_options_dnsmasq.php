@@ -42,8 +42,8 @@ $dnsmasq_config = [
   'interface'=>'',
   'bind-interfaces'=>'no',
   'dhcp-range'=>'192.168.1.50,192.168.1.150,12h',
-#'dhcp-rapid-commit'=>'',
-'dhcp-authoritative'=>'no'
+  #'dhcp-rapid-commit'=>'',
+  'dhcp-authoritative'=>'no'
 ];
 if (defined('ZM_PATH_DNSMASQ_CONF') and file_exists(ZM_PATH_DNSMASQ_CONF)) {
   $dnsmasq_config = array_merge($dnsmasq_config, process_dnsmasq_configfile(ZM_PATH_DNSMASQ_CONF));
@@ -59,20 +59,20 @@ foreach ($dnsmasq_config as $name=>$value) {
 
     echo '<div class="row"><label class="form-label" for="interface">'.translate('Interface').'</label>'.PHP_EOL.
       '<span class="value">'.
-    htmlSelect('config[interface]', $interfaces,
-      (isset($dnsmasq_config['interface']) ? $dnsmasq_config['interface'] : $default_interface),
-      ['data-on-change-this'=>'interface_onchange'],
+      htmlSelect('config[interface]', $interfaces,
+        (isset($dnsmasq_config['interface']) ? $dnsmasq_config['interface'] : $default_interface),
+        ['data-on-change-this'=>'interface_onchange'],
       ).'</span></div>'.PHP_EOL;
   } else if ($name == 'bind-interfaces') {
     echo '<div class="row"><label class="form-label" for="bind-interfaces">'.translate('Bind Interfaces').'</label>'.PHP_EOL.
       '<span class="value">'.
-    html_radio('config[bind-interfaces]', ['yes'=>translate('Yes'), 'no'=>translate('No')], $dnsmasq_config[$name], ['default'=>'yes']).
-    '</span></div>'.PHP_EOL;
+      html_radio('config[bind-interfaces]', ['yes'=>translate('Yes'), 'no'=>translate('No')], $dnsmasq_config[$name], ['default'=>'yes']).
+      '</span></div>'.PHP_EOL;
   } else if ($name == 'dhcp-authoritative') {
     echo '<div class="row"><label class="form-label" for="dhcp-authoritative">'.translate('DHCP Authoritative').'</label>'.PHP_EOL.
       '<span class="value">'.
-    html_radio('config[dhcp-authoritative]', ['yes'=>translate('Yes'), 'no'=>translate('No')], $dnsmasq_config[$name], ['default'=>'yes']).
-    '</span></div>'.PHP_EOL;
+      html_radio('config[dhcp-authoritative]', ['yes'=>translate('Yes'), 'no'=>translate('No')], $dnsmasq_config[$name], ['default'=>'yes']).
+      '</span></div>'.PHP_EOL;
   } else if ($name == 'dhcp-range') {
     $values = explode(',', $value);
 
@@ -181,12 +181,20 @@ foreach ($leases as $lease) {
 </form>
 <script nonce="<?php echo $cspNonce ?>">
 function interface_onchange(e) {
-  console.log(e);
-  const value = e.options[e.selectedIndex].value;
-  const parts = value.split(' ');
-  if (parts.length > 1) {
-    const ip = parts[1];
-    const ip_parts = ip.split('.');
+  const range_min = e.form.elements['config[dhcp-range][min]'];
+  const range_max = e.form.elements['config[dhcp-range][max]'];
+  // Not likely to happen due to defaults set above
+  // Complicated by the possible presence of multiple ips on the interface
+  if (!range_min.value) {
+    // Automatically populate from interface ip
+    const value = e.options[e.selectedIndex].value;
+    const parts = value.split(' ');
+    if (parts.length > 1) {
+      const ip = parts[1];
+      const ip_parts = ip.split('.');
+      range_min.value = ip_parts[0]+'.'+ip_parts[1]+'.'+ip_parts[2]+'.'+'100';
+      range_max.value = ip_parts[0]+'.'+ip_parts[1]+'.'+ip_parts[2]+'.'+'200';
+    }
   }
 }
 </script>

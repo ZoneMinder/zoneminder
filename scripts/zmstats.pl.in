@@ -54,12 +54,11 @@ while (!$zm_terminate) {
   }
 
   my @cpuload = CpuLoad();
-  Debug("Updating Server record @cpuload");
-  if ( ! defined $dbh->do('UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?', undef,
-        'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
+
+  if ( $Config{ZM_SERVER_ID} and  ! defined $dbh->do('UPDATE Servers SET Status=?,CpuLoad=?,TotalMem=?,FreeMem=?,TotalSwap=?,FreeSwap=? WHERE Id=?', undef,
+      'Running', $cpuload[0], &totalmem, &freemem, &totalswap, &freeswap, $Config{ZM_SERVER_ID} ) ) {
     Error("Failed Updating status of Server record for Id=$Config{ZM_SERVER_ID} :".$dbh->errstr());
   }
-
 
   # Get CPU utilization percentages
   my ($user_utilization, $system_utilization) = split(/ /, `top -b -n 1 | grep "Cpu(s)" | awk '{print \$2, \$4}'`);

@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
 
   HwCapsDetect();
 
-  std::string where = "`Deleted` == 0 AND `Capturing` != 'None' AND `RTSPServer` != false";
+  std::string where = "`Deleted` = 0 AND `Capturing` != 'None' AND `RTSPServer` != false";
   if (staticConfig.SERVER_ID)
     where += stringtf(" AND `ServerId`=%d", staticConfig.SERVER_ID);
   if (monitor_id > 0)

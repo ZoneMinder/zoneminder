@@ -542,8 +542,8 @@ function MonitorStream(monitorData) {
     alarmCmdParms.id = this.id;
 
     this.ajaxQueue = jQuery.ajaxQueue({
-      url: this.url,
-      xhrFields: { withCredentials: true },
+      url: this.url + (auth_relay?'?'+auth_relay:''),
+      xhrFields: {withCredentials: true},
       data: alarmCmdParms,
       dataType: "json"
     })

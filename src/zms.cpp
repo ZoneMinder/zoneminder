@@ -42,7 +42,7 @@ bool ValidateAccess(User *user, int mon_id) {
     }
   } else if (user->getEvents() < User::PERM_VIEW) {
     allowed = false;
-    Warning("Insufficient privileges for request user %d, user does not have permission view events.",
+    Warning("Insufficient privileges for request user %d %s, user does not have permission view events.",
         user->Id(), user->getUsername());
   }
   return allowed;

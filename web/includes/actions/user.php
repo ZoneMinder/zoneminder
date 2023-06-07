@@ -123,8 +123,7 @@ if ($action == 'Save') {
       }
 
       # We are the logged in user, need to update the $user object and generate a new auth_hash
-      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
-      $user = dbFetchOne($sql, NULL, array($uid));
+      $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
       
       zm_session_start();
       generateAuthHash(ZM_AUTH_HASH_IPS, true);

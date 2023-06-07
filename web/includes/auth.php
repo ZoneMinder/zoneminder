@@ -269,9 +269,13 @@ function visibleMonitor($mid) {
   if ($monitor_permissions === null) {
     $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user->Id())));
   }
+
   if (isset($monitor_permissions[$mid])) {
-    ZM\Debug('Returning '.($monitor_permissions[$mid]->Permission() == 'None' ? false : true)." for monitor $mid");
-    return ($monitor_permissions[$mid]->Permission() == 'None' ? false : true);
+    $permission = $monitor_permissions[$mid]->Permission();
+    if ($permission != 'Inherit') {
+      ZM\Debug('Returning '.($permission == 'None' ? false : true)." for monitor $mid");
+      return ($permission == 'None' ? false : true);
+    }
   }
 
   global $group_permissions;

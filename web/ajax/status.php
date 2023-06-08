@@ -220,10 +220,13 @@ $statusData = array(
 function collectData() {
   global $statusData;
 
-  $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
-#print_r( $entitySpec );
-  if ( !canView($entitySpec['permission']) )
-    ajaxError('Unrecognised action or insufficient permissions');
+  $entity = strtolower(validJsStr($_REQUEST['entity']));
+  $entitySpec = &$statusData[$entity];
+  #print_r( $entitySpec );
+  if (!canView($entitySpec['permission'])) {
+    ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$entitySpec['permission']);
+    return;
+  }
 
   if ( !empty($entitySpec['func']) ) {
     $data = eval('return('.$entitySpec['func'].');');

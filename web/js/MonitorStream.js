@@ -51,7 +51,7 @@ function MonitorStream(monitorData) {
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
-      console.log('Image stream has loaded! starting streamCmd for '+this.connKey);
+      console.log('Image stream has loaded! starting streamCmd for '+this.connKey+' in '+statusRefreshTimeout + 'ms');
       this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
@@ -472,8 +472,10 @@ function MonitorStream(monitorData) {
             if (this.onplay) this.onplay();
           } // end if paused or delayed
           if ((this.status.scale !== undefined) && (this.status.scale !== undefined) && (this.status.scale != this.scale)) {
-            console.log("Stream not scaled, re-applying", this.scale, this.status.scale);
-            this.streamCommand({command: CMD_SCALE, scale: this.scale});
+            if (this.status.scale != 0) {
+              console.log("Stream not scaled, re-applying", this.scale, this.status.scale);
+              this.streamCommand({command: CMD_SCALE, scale: this.scale});
+            }
           }
 
           $j('#zoomValue'+this.id).text(this.status.zoom);

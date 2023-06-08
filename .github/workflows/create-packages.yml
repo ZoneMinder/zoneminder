@@ -16,16 +16,12 @@ jobs:
             dist: buster
           - os: debian
             dist: bullseye
-          - os: debian
-            dist: bookworm
           - os: ubuntu
             dist: bionic
           - os: ubuntu
             dist: focal
           - os: ubuntu
             dist: jammy
-          - os: ubuntu
-            dist: lunar
     runs-on: ubuntu-latest
 
     steps:
@@ -38,7 +34,7 @@ jobs:
           SMPFLAGS: -j4
           OS: ${{ matrix.os_dist.os }}
           DIST: ${{ matrix.os_dist.dist }}
-          DOCKER_REPO: iconzm/packpack
+          DOCKER_REPO: packpack/packpack
         run: utils/packpack/startpackpack.sh
 
       - name: Publish

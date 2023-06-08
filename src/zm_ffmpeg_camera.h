@@ -69,6 +69,8 @@ class FfmpegCamera : public Camera {
     struct SwsContext   *mConvertContext;
 
     int                 error_count;
+    int stream_width;   /* What the camera is actually sending */
+    int stream_height;
 
   public:
     FfmpegCamera(

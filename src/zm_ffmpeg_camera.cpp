@@ -124,7 +124,13 @@ FfmpegCamera::FfmpegCamera(
   mOptions(p_options),
   hwaccel_name(p_hwaccel_name),
   hwaccel_device(p_hwaccel_device),
-  frameCount(0)
+  frameCount(0),
+  use_hwaccel(true),
+  mCanCapture(false),
+  mConvertContext(nullptr),
+  error_count(0),
+  stream_width(0),
+  stream_height(0)
 {
   mMaskedPath = remove_authentication(mPath);
   mMaskedSecondPath = remove_authentication(mSecondPath);
@@ -132,9 +138,6 @@ FfmpegCamera::FfmpegCamera(
     FFMPEGInit();
   }
 
-  mCanCapture = false;
-  error_count = 0;
-  use_hwaccel = true;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   hw_device_ctx = nullptr;
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
@@ -142,7 +145,6 @@ FfmpegCamera::FfmpegCamera(
 #endif
 #endif
 
-  mConvertContext = nullptr;
   /* Has to be located inside the constructor so other components such as zma
    * will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {

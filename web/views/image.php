@@ -147,13 +147,12 @@ if ( empty($_REQUEST['path']) ) {
             $Frame->FrameId(1);
           }
         }
-        $Monitor = $Event->Monitor();
         if ( $Event->SaveJPEGs() & 1 ) {
           # If we store Frames as jpgs, then we don't store an alarmed snapshot
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           header('HTTP/1.0 404 Not Found');
-          ZM\Error('No alarm jpg found for event '.$_REQUEST['eid']);
+          ZM\Error('No alarm jpg found for event '.$_REQUEST['eid'].' at '.$path);
           return;
         }
       } else {
@@ -177,7 +176,6 @@ if ( empty($_REQUEST['path']) ) {
             $Frame->FrameId('snapshot');
           }
         }
-        $Monitor = $Event->Monitor();
         if ( $Event->SaveJPEGs() & 1 ) {
           # If we store Frames as jpgs, then we don't store a snapshot
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
@@ -235,8 +233,7 @@ if ( empty($_REQUEST['path']) ) {
 
           $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
           ZM\Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
-        } 
-        else if($previousBulkFrame){
+        } else if ($previousBulkFrame) {
           //If no next Frame we have to pull data from the Event itself
           $Frame = new ZM\Frame($previousBulkFrame);
           $Frame->FrameId($_REQUEST['fid']);
@@ -244,8 +241,7 @@ if ( empty($_REQUEST['path']) ) {
           $percentage = ($Frame->FrameId()/$Event->Frames());
 
           $Frame->Delta(floor($Event->Length() * $percentage));
-        }
-        else {
+        } else {
           header('HTTP/1.0 404 Not Found');
           ZM\Error('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
           return;
@@ -253,7 +249,6 @@ if ( empty($_REQUEST['path']) ) {
       }  # end if !Frame
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
-      ZM\Debug("Path: $path");
     }  # if special frame (snapshot, alarm etc) or identified by id
 
   } else {

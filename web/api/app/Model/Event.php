@@ -116,30 +116,27 @@ class Event extends AppModel {
   );
 
   public function Relative_Path() {
-    $Event = new ZM\Event($this->id);
-    return $Event->Relative_Path();
+    $Event = ZM\Event::find_one(['Id'=>$this->id]);
+    return $Event ? $Event->Relative_Path() : '';
   } // end function Relative_Path()
 
   public function Path() {
-    $Event = new ZM\Event($this->id);
-    return $Event->Path();
+    $Event = ZM\Event::find_one(['Id'=>$this->id]);
+    return $Event ? $Event->Path() : '';
   }
 
   public function Link_Path() {
-    $Event = new ZM\Event($this->id);
-    return $Event->Link_Path();
+    $Event = ZM\Event::find_one(['Id'=>$this->id]);
+    return $Event ? $Event->Link_Path() : '';
   }
 
   public function fileExists($event) {
-    //$data = $this->findById($id);
-    //return $data['Event']['dataset_filename'];
-    $storage = $this->Storage->findById($event['StorageId']);
-
-    if ( $event['DefaultVideo'] ) {
-      if ( file_exists($this->Path().'/'.$event['DefaultVideo']) ) {
+    if ($event['DefaultVideo']) {
+      if (file_exists($this->Path().'/'.$event['DefaultVideo'])) {
         return 1;
       } else {
         ZM\Warning('File does not exist at ' . $this->Path().'/'.$event['DefaultVideo'] );
+        ZM\Warning(print_r($this, true));
       }
     } else {
       return 0;
@@ -151,8 +148,8 @@ class Event extends AppModel {
   }
 
   public function beforeDelete($cascade=true) {
-    $Event = new ZM\Event($this->id);
-    $Event->delete();
+    $Event = ZM\Event::find_one(['Id'=>$this->id]);
+    if ($Event) $Event->delete();
     // Event->delete() will do it all, so cake doesn't have to do anything.
     return false;
   } // end function afterDelete

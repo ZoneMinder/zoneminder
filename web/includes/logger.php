@@ -395,7 +395,7 @@ class Logger {
 
     if ( $level <= $this->fileLevel ) {
       if ( $this->useErrorLog ) {
-        if ( !error_log($message."\n", 3, $this->logFile) ) {
+        if ( !error_log($message."\n", 3, $this->logPath.'/'.$this->logFile) ) {
           if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
             $error = error_get_last();
             $this->fileLevel = self::NOLOG;

@@ -18,11 +18,14 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/pem.h>
+#include <openssl/rsa.h>
 #include <openssl/ssl.h>
 
 #include <algorithm>
 #include <chrono>
-#include <codecvt>
+#include <climits>
+#include <cmath>
+#include <cstring>
 #include <functional>
 #include <iterator>
 #include <locale>
@@ -33,6 +36,10 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#if __cplusplus > 201103L
+#include <codecvt>
+#endif
 
 #if __cplusplus >= 201402L
 #ifdef __has_include
@@ -53,7 +60,11 @@
 #endif
 
 #if defined(LIBRESSL_VERSION_NUMBER)
+#if LIBRESSL_VERSION_NUMBER >= 0x3050300fL
+#define JWT_OPENSSL_1_1_0
+#else
 #define JWT_OPENSSL_1_0_0
+#endif
 #endif
 
 #if defined(LIBWOLFSSL_VERSION_HEX)
@@ -353,15 +364,8 @@ namespace jwt {
 			}
 		}
 	} // namespace error
-
-	// FIXME: Remove
-	// Keep backward compat at least for a couple of revisions
-	using error::ecdsa_exception;
-	using error::rsa_exception;
-	using error::signature_generation_exception;
-	using error::signature_verification_exception;
-	using error::token_verification_exception;
 } // namespace jwt
+
 namespace std {
 	template<>
 	struct is_error_code_enum<jwt::error::rsa_error> : true_type {};
@@ -374,6 +378,7 @@ namespace std {
 	template<>
 	struct is_error_code_enum<jwt::error::token_verification_error> : true_type {};
 } // namespace std
+
 namespace jwt {
 	/**
 	 * \brief A collection for working with certificates
@@ -384,23 +389,118 @@ namespace jwt {
 	 */
 	namespace helper {
 		/**
+		 * \brief Handle class for EVP_PKEY structures
+		 *
+		 * Starting from OpenSSL 1.1.0, EVP_PKEY has internal reference counting. This handle class allows
+		 * jwt-cpp to leverage that and thus safe an allocation for the control block in std::shared_ptr.
+		 * The handle uses shared_ptr as a fallback on older versions. The behaviour should be identical between both.
+		 */
+		class evp_pkey_handle {
+		public:
+			constexpr evp_pkey_handle() noexcept = default;
+#ifdef JWT_OPENSSL_1_0_0
+			/**
+			 * \brief Construct a new handle. The handle takes ownership of the key.
+			 * \param key The key to store
+			 */
+			explicit evp_pkey_handle(EVP_PKEY* key) { m_key = std::shared_ptr<EVP_PKEY>(key, EVP_PKEY_free); }
+
+			EVP_PKEY* get() const noexcept { return m_key.get(); }
+			bool operator!() const noexcept { return m_key == nullptr; }
+			explicit operator bool() const noexcept { return m_key != nullptr; }
+
+		private:
+			std::shared_ptr<EVP_PKEY> m_key{nullptr};
+#else
+			/**
+			 * \brief Construct a new handle. The handle takes ownership of the key.
+			 * \param key The key to store
+			 */
+			explicit constexpr evp_pkey_handle(EVP_PKEY* key) noexcept : m_key{key} {}
+			evp_pkey_handle(const evp_pkey_handle& other) : m_key{other.m_key} {
+				if (m_key != nullptr && EVP_PKEY_up_ref(m_key) != 1) throw std::runtime_error("EVP_PKEY_up_ref failed");
+			}
+// C++11 requires the body of a constexpr constructor to be empty
+#if __cplusplus >= 201402L
+			constexpr
+#endif
+				evp_pkey_handle(evp_pkey_handle&& other) noexcept
+				: m_key{other.m_key} {
+				other.m_key = nullptr;
+			}
+			evp_pkey_handle& operator=(const evp_pkey_handle& other) {
+				if (&other == this) return *this;
+				decrement_ref_count(m_key);
+				m_key = other.m_key;
+				increment_ref_count(m_key);
+				return *this;
+			}
+			evp_pkey_handle& operator=(evp_pkey_handle&& other) noexcept {
+				if (&other == this) return *this;
+				decrement_ref_count(m_key);
+				m_key = other.m_key;
+				other.m_key = nullptr;
+				return *this;
+			}
+			evp_pkey_handle& operator=(EVP_PKEY* key) {
+				decrement_ref_count(m_key);
+				m_key = key;
+				increment_ref_count(m_key);
+				return *this;
+			}
+			~evp_pkey_handle() noexcept { decrement_ref_count(m_key); }
+
+			EVP_PKEY* get() const noexcept { return m_key; }
+			bool operator!() const noexcept { return m_key == nullptr; }
+			explicit operator bool() const noexcept { return m_key != nullptr; }
+
+		private:
+			EVP_PKEY* m_key{nullptr};
+
+			static void increment_ref_count(EVP_PKEY* key) {
+				if (key != nullptr && EVP_PKEY_up_ref(key) != 1) throw std::runtime_error("EVP_PKEY_up_ref failed");
+			}
+			static void decrement_ref_count(EVP_PKEY* key) noexcept {
+				if (key != nullptr) EVP_PKEY_free(key);
+			}
+#endif
+		};
+
+		inline std::unique_ptr<BIO, decltype(&BIO_free_all)> make_mem_buf_bio() {
+			return std::unique_ptr<BIO, decltype(&BIO_free_all)>(BIO_new(BIO_s_mem()), BIO_free_all);
+		}
+
+		inline std::unique_ptr<BIO, decltype(&BIO_free_all)> make_mem_buf_bio(const std::string& data) {
+			return std::unique_ptr<BIO, decltype(&BIO_free_all)>(
+#if OPENSSL_VERSION_NUMBER <= 0x10100003L
+				BIO_new_mem_buf(const_cast<char*>(data.data()), static_cast<int>(data.size())), BIO_free_all
+#else
+				BIO_new_mem_buf(data.data(), static_cast<int>(data.size())), BIO_free_all
+#endif
+			);
+		}
+
+		inline std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)> make_evp_md_ctx() {
+			return
+#ifdef JWT_OPENSSL_1_0_0
+				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)>(EVP_MD_CTX_create(), &EVP_MD_CTX_destroy);
+#else
+				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>(EVP_MD_CTX_new(), &EVP_MD_CTX_free);
+#endif
+		}
+
+		/**
 		 * \brief Extract the public key of a pem certificate
 		 *
 		 * \param certstr	String containing the certificate encoded as pem
 		 * \param pw		Password used to decrypt certificate (leave empty if not encrypted)
-		 * \param ec		error_code for error_detection (gets cleared if no error occures)
+		 * \param ec		error_code for error_detection (gets cleared if no error occurred)
 		 */
 		inline std::string extract_pubkey_from_cert(const std::string& certstr, const std::string& pw,
 													std::error_code& ec) {
 			ec.clear();
-#if OPENSSL_VERSION_NUMBER <= 0x10100003L
-			std::unique_ptr<BIO, decltype(&BIO_free_all)> certbio(
-				BIO_new_mem_buf(const_cast<char*>(certstr.data()), static_cast<int>(certstr.size())), BIO_free_all);
-#else
-			std::unique_ptr<BIO, decltype(&BIO_free_all)> certbio(
-				BIO_new_mem_buf(certstr.data(), static_cast<int>(certstr.size())), BIO_free_all);
-#endif
-			std::unique_ptr<BIO, decltype(&BIO_free_all)> keybio(BIO_new(BIO_s_mem()), BIO_free_all);
+			auto certbio = make_mem_buf_bio(certstr);
+			auto keybio = make_mem_buf_bio();
 			if (!certbio || !keybio) {
 				ec = error::rsa_error::create_mem_bio_failed;
 				return {};
@@ -445,29 +545,19 @@ namespace jwt {
 		}
 
 		/**
-		 * \brief Convert the certificate provided as base64 DER to PEM.
+		 * \brief Convert the certificate provided as DER to PEM.
 		 *
-		 * This is useful when using with JWKs as x5c claim is encoded as base64 DER. More info
-		 * (here)[https://tools.ietf.org/html/rfc7517#section-4.7]
-		 *
-		 * \tparam Decode is callabled, taking a string_type and returns a string_type.
-		 * It should ensure the padding of the input and then base64 decode and return
-		 * the results.
-		 *
-		 * \param cert_base64_der_str 	String containing the certificate encoded as base64 DER
-		 * \param decode 				The function to decode the cert
-		 * \param ec					error_code for error_detection (gets cleared if no error occures)
+		 * \param cert_der_str 	String containing the certificate encoded as base64 DER
+		 * \param ec			error_code for error_detection (gets cleared if no error occurs)
 		 */
-		template<typename Decode>
-		std::string convert_base64_der_to_pem(const std::string& cert_base64_der_str, Decode decode,
-											  std::error_code& ec) {
+		inline std::string convert_der_to_pem(const std::string& cert_der_str, std::error_code& ec) {
 			ec.clear();
-			const auto decodedStr = decode(cert_base64_der_str);
-			auto c_str = reinterpret_cast<const unsigned char*>(decodedStr.c_str());
+
+			auto c_str = reinterpret_cast<const unsigned char*>(cert_der_str.c_str());
 
 			std::unique_ptr<X509, decltype(&X509_free)> cert(
-				d2i_X509(NULL, &c_str, static_cast<int>(decodedStr.size())), X509_free);
-			std::unique_ptr<BIO, decltype(&BIO_free_all)> certbio(BIO_new(BIO_s_mem()), BIO_free_all);
+				d2i_X509(NULL, &c_str, static_cast<int>(cert_der_str.size())), X509_free);
+			auto certbio = make_mem_buf_bio();
 			if (!cert || !certbio) {
 				ec = error::rsa_error::create_mem_bio_failed;
 				return {};
@@ -500,6 +590,28 @@ namespace jwt {
 		 *
 		 * \param cert_base64_der_str 	String containing the certificate encoded as base64 DER
 		 * \param decode 				The function to decode the cert
+		 * \param ec					error_code for error_detection (gets cleared if no error occurs)
+		 */
+		template<typename Decode>
+		std::string convert_base64_der_to_pem(const std::string& cert_base64_der_str, Decode decode,
+											  std::error_code& ec) {
+			ec.clear();
+			const auto decoded_str = decode(cert_base64_der_str);
+			return convert_der_to_pem(decoded_str, ec);
+		}
+
+		/**
+		 * \brief Convert the certificate provided as base64 DER to PEM.
+		 *
+		 * This is useful when using with JWKs as x5c claim is encoded as base64 DER. More info
+		 * (here)[https://tools.ietf.org/html/rfc7517#section-4.7]
+		 *
+		 * \tparam Decode is callabled, taking a string_type and returns a string_type.
+		 * It should ensure the padding of the input and then base64 decode and return
+		 * the results.
+		 *
+		 * \param cert_base64_der_str 	String containing the certificate encoded as base64 DER
+		 * \param decode 				The function to decode the cert
 		 * \throw						rsa_exception if an error occurred
 		 */
 		template<typename Decode>
@@ -509,6 +621,21 @@ namespace jwt {
 			error::throw_if_error(ec);
 			return res;
 		}
+
+		/**
+		 * \brief Convert the certificate provided as DER to PEM.
+		 *
+		 * \param cert_der_str 	String containing the DER certificate
+		 * \param decode 		The function to decode the cert
+		 * \throw				rsa_exception if an error occurred
+		 */
+		inline std::string convert_der_to_pem(const std::string& cert_der_str) {
+			std::error_code ec;
+			auto res = convert_der_to_pem(cert_der_str, ec);
+			error::throw_if_error(ec);
+			return res;
+		}
+
 #ifndef JWT_DISABLE_BASE64
 		/**
 		 * \brief Convert the certificate provided as base64 DER to PEM.
@@ -517,7 +644,7 @@ namespace jwt {
 		 * (here)[https://tools.ietf.org/html/rfc7517#section-4.7]
 		 *
 		 * \param cert_base64_der_str 	String containing the certificate encoded as base64 DER
-		 * \param ec					error_code for error_detection (gets cleared if no error occures)
+		 * \param ec					error_code for error_detection (gets cleared if no error occurs)
 		 */
 		inline std::string convert_base64_der_to_pem(const std::string& cert_base64_der_str, std::error_code& ec) {
 			auto decode = [](const std::string& token) {
@@ -549,40 +676,36 @@ namespace jwt {
 		 *
 		 * \param key		String containing the certificate encoded as pem
 		 * \param password	Password used to decrypt certificate (leave empty if not encrypted)
-		 * \param ec		error_code for error_detection (gets cleared if no error occures)
+		 * \param ec		error_code for error_detection (gets cleared if no error occurs)
 		 */
-		inline std::shared_ptr<EVP_PKEY> load_public_key_from_string(const std::string& key,
-																	 const std::string& password, std::error_code& ec) {
+		inline evp_pkey_handle load_public_key_from_string(const std::string& key, const std::string& password,
+														   std::error_code& ec) {
 			ec.clear();
-			std::unique_ptr<BIO, decltype(&BIO_free_all)> pubkey_bio(BIO_new(BIO_s_mem()), BIO_free_all);
+			auto pubkey_bio = make_mem_buf_bio();
 			if (!pubkey_bio) {
 				ec = error::rsa_error::create_mem_bio_failed;
-				return nullptr;
+				return {};
 			}
 			if (key.substr(0, 27) == "-----BEGIN CERTIFICATE-----") {
 				auto epkey = helper::extract_pubkey_from_cert(key, password, ec);
-				if (ec) return nullptr;
+				if (ec) return {};
 				const int len = static_cast<int>(epkey.size());
 				if (BIO_write(pubkey_bio.get(), epkey.data(), len) != len) {
 					ec = error::rsa_error::load_key_bio_write;
-					return nullptr;
+					return {};
 				}
 			} else {
 				const int len = static_cast<int>(key.size());
 				if (BIO_write(pubkey_bio.get(), key.data(), len) != len) {
 					ec = error::rsa_error::load_key_bio_write;
-					return nullptr;
+					return {};
 				}
 			}
 
-			std::shared_ptr<EVP_PKEY> pkey(
-				PEM_read_bio_PUBKEY(pubkey_bio.get(), nullptr, nullptr,
-									(void*)password.data()), // NOLINT(google-readability-casting) requires `const_cast`
-				EVP_PKEY_free);
-			if (!pkey) {
-				ec = error::rsa_error::load_key_bio_read;
-				return nullptr;
-			}
+			evp_pkey_handle pkey(PEM_read_bio_PUBKEY(
+				pubkey_bio.get(), nullptr, nullptr,
+				(void*)password.data())); // NOLINT(google-readability-casting) requires `const_cast`
+			if (!pkey) ec = error::rsa_error::load_key_bio_read;
 			return pkey;
 		}
 
@@ -595,8 +718,7 @@ namespace jwt {
 		 * \param password	Password used to decrypt certificate or key (leave empty if not encrypted)
 		 * \throw			rsa_exception if an error occurred
 		 */
-		inline std::shared_ptr<EVP_PKEY> load_public_key_from_string(const std::string& key,
-																	 const std::string& password = "") {
+		inline evp_pkey_handle load_public_key_from_string(const std::string& key, const std::string& password = "") {
 			std::error_code ec;
 			auto res = load_public_key_from_string(key, password, ec);
 			error::throw_if_error(ec);
@@ -608,27 +730,23 @@ namespace jwt {
 		 *
 		 * \param key		String containing a private key as pem
 		 * \param password	Password used to decrypt key (leave empty if not encrypted)
-		 * \param ec		error_code for error_detection (gets cleared if no error occures)
+		 * \param ec		error_code for error_detection (gets cleared if no error occurs)
 		 */
-		inline std::shared_ptr<EVP_PKEY>
-		load_private_key_from_string(const std::string& key, const std::string& password, std::error_code& ec) {
-			std::unique_ptr<BIO, decltype(&BIO_free_all)> privkey_bio(BIO_new(BIO_s_mem()), BIO_free_all);
+		inline evp_pkey_handle load_private_key_from_string(const std::string& key, const std::string& password,
+															std::error_code& ec) {
+			auto privkey_bio = make_mem_buf_bio();
 			if (!privkey_bio) {
 				ec = error::rsa_error::create_mem_bio_failed;
-				return nullptr;
+				return {};
 			}
 			const int len = static_cast<int>(key.size());
 			if (BIO_write(privkey_bio.get(), key.data(), len) != len) {
 				ec = error::rsa_error::load_key_bio_write;
-				return nullptr;
+				return {};
 			}
-			std::shared_ptr<EVP_PKEY> pkey(
-				PEM_read_bio_PrivateKey(privkey_bio.get(), nullptr, nullptr, const_cast<char*>(password.c_str())),
-				EVP_PKEY_free);
-			if (!pkey) {
-				ec = error::rsa_error::load_key_bio_read;
-				return nullptr;
-			}
+			evp_pkey_handle pkey(
+				PEM_read_bio_PrivateKey(privkey_bio.get(), nullptr, nullptr, const_cast<char*>(password.c_str())));
+			if (!pkey) ec = error::rsa_error::load_key_bio_read;
 			return pkey;
 		}
 
@@ -639,8 +757,7 @@ namespace jwt {
 		 * \param password	Password used to decrypt key (leave empty if not encrypted)
 		 * \throw			rsa_exception if an error occurred
 		 */
-		inline std::shared_ptr<EVP_PKEY> load_private_key_from_string(const std::string& key,
-																	  const std::string& password = "") {
+		inline evp_pkey_handle load_private_key_from_string(const std::string& key, const std::string& password = "") {
 			std::error_code ec;
 			auto res = load_private_key_from_string(key, password, ec);
 			error::throw_if_error(ec);
@@ -654,40 +771,36 @@ namespace jwt {
 		 *
 		 * \param key		String containing the certificate encoded as pem
 		 * \param password	Password used to decrypt certificate (leave empty if not encrypted)
-		 * \param ec		error_code for error_detection (gets cleared if no error occures)
+		 * \param ec		error_code for error_detection (gets cleared if no error occurs)
 		 */
-		inline std::shared_ptr<EVP_PKEY>
-		load_public_ec_key_from_string(const std::string& key, const std::string& password, std::error_code& ec) {
+		inline evp_pkey_handle load_public_ec_key_from_string(const std::string& key, const std::string& password,
+															  std::error_code& ec) {
 			ec.clear();
-			std::unique_ptr<BIO, decltype(&BIO_free_all)> pubkey_bio(BIO_new(BIO_s_mem()), BIO_free_all);
+			auto pubkey_bio = make_mem_buf_bio();
 			if (!pubkey_bio) {
 				ec = error::ecdsa_error::create_mem_bio_failed;
-				return nullptr;
+				return {};
 			}
 			if (key.substr(0, 27) == "-----BEGIN CERTIFICATE-----") {
 				auto epkey = helper::extract_pubkey_from_cert(key, password, ec);
-				if (ec) return nullptr;
+				if (ec) return {};
 				const int len = static_cast<int>(epkey.size());
 				if (BIO_write(pubkey_bio.get(), epkey.data(), len) != len) {
 					ec = error::ecdsa_error::load_key_bio_write;
-					return nullptr;
+					return {};
 				}
 			} else {
 				const int len = static_cast<int>(key.size());
 				if (BIO_write(pubkey_bio.get(), key.data(), len) != len) {
 					ec = error::ecdsa_error::load_key_bio_write;
-					return nullptr;
+					return {};
 				}
 			}
 
-			std::shared_ptr<EVP_PKEY> pkey(
-				PEM_read_bio_PUBKEY(pubkey_bio.get(), nullptr, nullptr,
-									(void*)password.data()), // NOLINT(google-readability-casting) requires `const_cast`
-				EVP_PKEY_free);
-			if (!pkey) {
-				ec = error::ecdsa_error::load_key_bio_read;
-				return nullptr;
-			}
+			evp_pkey_handle pkey(PEM_read_bio_PUBKEY(
+				pubkey_bio.get(), nullptr, nullptr,
+				(void*)password.data())); // NOLINT(google-readability-casting) requires `const_cast`
+			if (!pkey) ec = error::ecdsa_error::load_key_bio_read;
 			return pkey;
 		}
 
@@ -700,8 +813,8 @@ namespace jwt {
 		 * \param password	Password used to decrypt certificate or key (leave empty if not encrypted)
 		 * \throw			ecdsa_exception if an error occurred
 		 */
-		inline std::shared_ptr<EVP_PKEY> load_public_ec_key_from_string(const std::string& key,
-																		const std::string& password = "") {
+		inline evp_pkey_handle load_public_ec_key_from_string(const std::string& key,
+															  const std::string& password = "") {
 			std::error_code ec;
 			auto res = load_public_ec_key_from_string(key, password, ec);
 			error::throw_if_error(ec);
@@ -713,27 +826,23 @@ namespace jwt {
 		 *
 		 * \param key		String containing a private key as pem
 		 * \param password	Password used to decrypt key (leave empty if not encrypted)
-		 * \param ec		error_code for error_detection (gets cleared if no error occures)
+		 * \param ec		error_code for error_detection (gets cleared if no error occurs)
 		 */
-		inline std::shared_ptr<EVP_PKEY>
-		load_private_ec_key_from_string(const std::string& key, const std::string& password, std::error_code& ec) {
-			std::unique_ptr<BIO, decltype(&BIO_free_all)> privkey_bio(BIO_new(BIO_s_mem()), BIO_free_all);
+		inline evp_pkey_handle load_private_ec_key_from_string(const std::string& key, const std::string& password,
+															   std::error_code& ec) {
+			auto privkey_bio = make_mem_buf_bio();
 			if (!privkey_bio) {
 				ec = error::ecdsa_error::create_mem_bio_failed;
-				return nullptr;
+				return {};
 			}
 			const int len = static_cast<int>(key.size());
 			if (BIO_write(privkey_bio.get(), key.data(), len) != len) {
 				ec = error::ecdsa_error::load_key_bio_write;
-				return nullptr;
+				return {};
 			}
-			std::shared_ptr<EVP_PKEY> pkey(
-				PEM_read_bio_PrivateKey(privkey_bio.get(), nullptr, nullptr, const_cast<char*>(password.c_str())),
-				EVP_PKEY_free);
-			if (!pkey) {
-				ec = error::ecdsa_error::load_key_bio_read;
-				return nullptr;
-			}
+			evp_pkey_handle pkey(
+				PEM_read_bio_PrivateKey(privkey_bio.get(), nullptr, nullptr, const_cast<char*>(password.c_str())));
+			if (!pkey) ec = error::ecdsa_error::load_key_bio_read;
 			return pkey;
 		}
 
@@ -744,8 +853,8 @@ namespace jwt {
 		 * \param password	Password used to decrypt key (leave empty if not encrypted)
 		 * \throw			ecdsa_exception if an error occurred
 		 */
-		inline std::shared_ptr<EVP_PKEY> load_private_ec_key_from_string(const std::string& key,
-																		 const std::string& password = "") {
+		inline evp_pkey_handle load_private_ec_key_from_string(const std::string& key,
+															   const std::string& password = "") {
 			std::error_code ec;
 			auto res = load_private_ec_key_from_string(key, password, ec);
 			error::throw_if_error(ec);
@@ -906,7 +1015,7 @@ namespace jwt {
 				} else if (!public_key.empty()) {
 					pkey = helper::load_public_key_from_string(public_key, public_key_password);
 				} else
-					throw rsa_exception(error::rsa_error::no_key_provided);
+					throw error::rsa_exception(error::rsa_error::no_key_provided);
 			}
 			/**
 			 * Sign jwt data
@@ -916,11 +1025,7 @@ namespace jwt {
 			 */
 			std::string sign(const std::string& data, std::error_code& ec) const {
 				ec.clear();
-#ifdef JWT_OPENSSL_1_0_0
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)> ctx(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
-#else
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_create(), EVP_MD_CTX_free);
-#endif
+				auto ctx = helper::make_evp_md_ctx();
 				if (!ctx) {
 					ec = error::signature_generation_error::create_context_failed;
 					return {};
@@ -953,11 +1058,7 @@ namespace jwt {
 			 */
 			void verify(const std::string& data, const std::string& signature, std::error_code& ec) const {
 				ec.clear();
-#ifdef JWT_OPENSSL_1_0_0
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)> ctx(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
-#else
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_create(), EVP_MD_CTX_free);
-#endif
+				auto ctx = helper::make_evp_md_ctx();
 				if (!ctx) {
 					ec = error::signature_verification_error::create_context_failed;
 					return;
@@ -985,7 +1086,7 @@ namespace jwt {
 
 		private:
 			/// OpenSSL structure containing converted keys
-			std::shared_ptr<EVP_PKEY> pkey;
+			helper::evp_pkey_handle pkey;
 			/// Hash generator
 			const EVP_MD* (*md)();
 			/// algorithm's name
@@ -1016,13 +1117,13 @@ namespace jwt {
 					pkey = helper::load_public_ec_key_from_string(public_key, public_key_password);
 					check_public_key(pkey.get());
 				} else {
-					throw ecdsa_exception(error::ecdsa_error::no_key_provided);
+					throw error::ecdsa_exception(error::ecdsa_error::no_key_provided);
 				}
-				if (!pkey) throw ecdsa_exception(error::ecdsa_error::invalid_key);
+				if (!pkey) throw error::ecdsa_exception(error::ecdsa_error::invalid_key);
 
 				size_t keysize = EVP_PKEY_bits(pkey.get());
 				if (keysize != signature_length * 4 && (signature_length != 132 || keysize != 521))
-					throw ecdsa_exception(error::ecdsa_error::invalid_key_size);
+					throw error::ecdsa_exception(error::ecdsa_error::invalid_key_size);
 			}
 
 			/**
@@ -1033,11 +1134,7 @@ namespace jwt {
 			 */
 			std::string sign(const std::string& data, std::error_code& ec) const {
 				ec.clear();
-#ifdef JWT_OPENSSL_1_0_0
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)> ctx(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
-#else
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_create(), EVP_MD_CTX_free);
-#endif
+				auto ctx = helper::make_evp_md_ctx();
 				if (!ctx) {
 					ec = error::signature_generation_error::create_context_failed;
 					return {};
@@ -1077,11 +1174,7 @@ namespace jwt {
 				std::string der_signature = p1363_to_der_signature(signature, ec);
 				if (ec) { return; }
 
-#ifdef JWT_OPENSSL_1_0_0
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)> ctx(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
-#else
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_create(), EVP_MD_CTX_free);
-#endif
+				auto ctx = helper::make_evp_md_ctx();
 				if (!ctx) {
 					ec = error::signature_verification_error::create_context_failed;
 					return;
@@ -1122,12 +1215,14 @@ namespace jwt {
 #ifdef JWT_OPENSSL_3_0
 				std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(
 					EVP_PKEY_CTX_new_from_pkey(nullptr, pkey, nullptr), EVP_PKEY_CTX_free);
-				if (!ctx) { throw ecdsa_exception(error::ecdsa_error::create_context_failed); }
-				if (EVP_PKEY_public_check(ctx.get()) != 1) { throw ecdsa_exception(error::ecdsa_error::invalid_key); }
+				if (!ctx) { throw error::ecdsa_exception(error::ecdsa_error::create_context_failed); }
+				if (EVP_PKEY_public_check(ctx.get()) != 1) {
+					throw error::ecdsa_exception(error::ecdsa_error::invalid_key);
+				}
 #else
 				std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)> eckey(EVP_PKEY_get1_EC_KEY(pkey), EC_KEY_free);
-				if (!eckey) { throw ecdsa_exception(error::ecdsa_error::invalid_key); }
-				if (EC_KEY_check_key(eckey.get()) == 0) throw ecdsa_exception(error::ecdsa_error::invalid_key);
+				if (!eckey) { throw error::ecdsa_exception(error::ecdsa_error::invalid_key); }
+				if (EC_KEY_check_key(eckey.get()) == 0) throw error::ecdsa_exception(error::ecdsa_error::invalid_key);
 #endif
 			}
 
@@ -1135,19 +1230,22 @@ namespace jwt {
 #ifdef JWT_OPENSSL_3_0
 				std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(
 					EVP_PKEY_CTX_new_from_pkey(nullptr, pkey, nullptr), EVP_PKEY_CTX_free);
-				if (!ctx) { throw ecdsa_exception(error::ecdsa_error::create_context_failed); }
-				if (EVP_PKEY_private_check(ctx.get()) != 1) { throw ecdsa_exception(error::ecdsa_error::invalid_key); }
+				if (!ctx) { throw error::ecdsa_exception(error::ecdsa_error::create_context_failed); }
+				if (EVP_PKEY_private_check(ctx.get()) != 1) {
+					throw error::ecdsa_exception(error::ecdsa_error::invalid_key);
+				}
 #else
 				std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)> eckey(EVP_PKEY_get1_EC_KEY(pkey), EC_KEY_free);
-				if (!eckey) { throw ecdsa_exception(error::ecdsa_error::invalid_key); }
-				if (EC_KEY_check_key(eckey.get()) == 0) throw ecdsa_exception(error::ecdsa_error::invalid_key);
+				if (!eckey) { throw error::ecdsa_exception(error::ecdsa_error::invalid_key); }
+				if (EC_KEY_check_key(eckey.get()) == 0) throw error::ecdsa_exception(error::ecdsa_error::invalid_key);
 #endif
 			}
 
 			std::string der_to_p1363_signature(const std::string& der_signature, std::error_code& ec) const {
 				const unsigned char* possl_signature = reinterpret_cast<const unsigned char*>(der_signature.data());
 				std::unique_ptr<ECDSA_SIG, decltype(&ECDSA_SIG_free)> sig(
-					d2i_ECDSA_SIG(nullptr, &possl_signature, der_signature.length()), ECDSA_SIG_free);
+					d2i_ECDSA_SIG(nullptr, &possl_signature, static_cast<long>(der_signature.length())),
+					ECDSA_SIG_free);
 				if (!sig) {
 					ec = error::signature_generation_error::signature_decoding_failed;
 					return {};
@@ -1209,7 +1307,7 @@ namespace jwt {
 			}
 
 			/// OpenSSL struct containing keys
-			std::shared_ptr<EVP_PKEY> pkey;
+			helper::evp_pkey_handle pkey;
 			/// Hash generator function
 			const EVP_MD* (*md)();
 			/// algorithm's name
@@ -1246,7 +1344,7 @@ namespace jwt {
 				} else if (!public_key.empty()) {
 					pkey = helper::load_public_key_from_string(public_key, public_key_password);
 				} else
-					throw ecdsa_exception(error::ecdsa_error::load_key_bio_read);
+					throw error::ecdsa_exception(error::ecdsa_error::load_key_bio_read);
 			}
 			/**
 			 * Sign jwt data
@@ -1256,12 +1354,7 @@ namespace jwt {
 			 */
 			std::string sign(const std::string& data, std::error_code& ec) const {
 				ec.clear();
-#ifdef JWT_OPENSSL_1_0_0
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)> ctx(EVP_MD_CTX_create(),
-																			   &EVP_MD_CTX_destroy);
-#else
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
-#endif
+				auto ctx = helper::make_evp_md_ctx();
 				if (!ctx) {
 					ec = error::signature_generation_error::create_context_failed;
 					return {};
@@ -1309,12 +1402,7 @@ namespace jwt {
 			 */
 			void verify(const std::string& data, const std::string& signature, std::error_code& ec) const {
 				ec.clear();
-#ifdef JWT_OPENSSL_1_0_0
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)> ctx(EVP_MD_CTX_create(),
-																			   &EVP_MD_CTX_destroy);
-#else
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
-#endif
+				auto ctx = helper::make_evp_md_ctx();
 				if (!ctx) {
 					ec = error::signature_verification_error::create_context_failed;
 					return;
@@ -1355,7 +1443,7 @@ namespace jwt {
 
 		private:
 			/// OpenSSL struct containing keys
-			std::shared_ptr<EVP_PKEY> pkey;
+			helper::evp_pkey_handle pkey;
 			/// algorithm's name
 			const std::string alg_name;
 		};
@@ -1381,7 +1469,7 @@ namespace jwt {
 				} else if (!public_key.empty()) {
 					pkey = helper::load_public_key_from_string(public_key, public_key_password);
 				} else
-					throw rsa_exception(error::rsa_error::no_key_provided);
+					throw error::rsa_exception(error::rsa_error::no_key_provided);
 			}
 
 			/**
@@ -1392,12 +1480,7 @@ namespace jwt {
 			 */
 			std::string sign(const std::string& data, std::error_code& ec) const {
 				ec.clear();
-#ifdef JWT_OPENSSL_1_0_0
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)> md_ctx(EVP_MD_CTX_create(),
-																				  &EVP_MD_CTX_destroy);
-#else
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> md_ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
-#endif
+				auto md_ctx = helper::make_evp_md_ctx();
 				if (!md_ctx) {
 					ec = error::signature_generation_error::create_context_failed;
 					return {};
@@ -1446,12 +1529,7 @@ namespace jwt {
 			void verify(const std::string& data, const std::string& signature, std::error_code& ec) const {
 				ec.clear();
 
-#ifdef JWT_OPENSSL_1_0_0
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_destroy)> md_ctx(EVP_MD_CTX_create(),
-																				  &EVP_MD_CTX_destroy);
-#else
-				std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> md_ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
-#endif
+				auto md_ctx = helper::make_evp_md_ctx();
 				if (!md_ctx) {
 					ec = error::signature_verification_error::create_context_failed;
 					return;
@@ -1491,7 +1569,7 @@ namespace jwt {
 
 		private:
 			/// OpenSSL structure containing keys
-			std::shared_ptr<EVP_PKEY> pkey;
+			helper::evp_pkey_handle pkey;
 			/// Hash generator function
 			const EVP_MD* (*md)();
 			/// algorithm's name
@@ -1764,9 +1842,6 @@ namespace jwt {
 #ifdef __cpp_lib_experimental_detect
 		template<template<typename...> class _Op, typename... _Args>
 		using is_detected = std::experimental::is_detected<_Op, _Args...>;
-
-		template<template<typename...> class _Op, typename... _Args>
-		using is_detected_t = std::experimental::detected_t<_Op, _Args...>;
 #else
 		struct nonesuch {
 			nonesuch() = delete;
@@ -1792,139 +1867,58 @@ namespace jwt {
 
 		template<template<class...> class Op, class... Args>
 		using is_detected = typename detector<nonesuch, void, Op, Args...>::value;
-
-		template<template<class...> class Op, class... Args>
-		using is_detected_t = typename detector<nonesuch, void, Op, Args...>::type;
 #endif
 
-		template<typename traits_type>
-		using get_type_function = decltype(traits_type::get_type);
+		template<typename T, typename Signature>
+		using is_signature = typename std::is_same<T, Signature>;
 
-		template<typename traits_type, typename value_type>
-		using is_get_type_signature =
-			typename std::is_same<get_type_function<traits_type>, json::type(const value_type&)>;
+		template<typename traits_type, template<typename...> class Op, typename Signature>
+		struct is_function_signature_detected {
+			using type = Op<traits_type>;
+			static constexpr auto value = is_detected<Op, traits_type>::value && std::is_function<type>::value &&
+										  is_signature<type, Signature>::value;
+		};
 
 		template<typename traits_type, typename value_type>
 		struct supports_get_type {
-			static constexpr auto value = is_detected<get_type_function, traits_type>::value &&
-										  std::is_function<get_type_function<traits_type>>::value &&
-										  is_get_type_signature<traits_type, value_type>::value;
+			template<typename T>
+			using get_type_t = decltype(T::get_type);
+
+			static constexpr auto value =
+				is_function_signature_detected<traits_type, get_type_t, json::type(const value_type&)>::value;
+
+			// Internal assertions for better feedback
+			static_assert(value, "traits implementation must provide `jwt::json::type get_type(const value_type&)`");
 		};
 
-		template<typename traits_type>
-		using as_object_function = decltype(traits_type::as_object);
+#define JWT_CPP_JSON_TYPE_TYPE(TYPE) json_##TYPE_type
+#define JWT_CPP_AS_TYPE_T(TYPE) as_##TYPE_t
+#define JWT_CPP_SUPPORTS_AS(TYPE)                                                                                      \
+	template<typename traits_type, typename value_type, typename JWT_CPP_JSON_TYPE_TYPE(TYPE)>                         \
+	struct supports_as_##TYPE {                                                                                        \
+		template<typename T>                                                                                           \
+		using JWT_CPP_AS_TYPE_T(TYPE) = decltype(T::as_##TYPE);                                                        \
+                                                                                                                       \
+		static constexpr auto value =                                                                                  \
+			is_function_signature_detected<traits_type, JWT_CPP_AS_TYPE_T(TYPE),                                       \
+										   JWT_CPP_JSON_TYPE_TYPE(TYPE)(const value_type&)>::value;                    \
+                                                                                                                       \
+		static_assert(value, "traits implementation must provide `" #TYPE "_type as_" #TYPE "(const value_type&)`");   \
+	}
 
-		template<typename traits_type, typename value_type, typename object_type>
-		using is_as_object_signature =
-			typename std::is_same<as_object_function<traits_type>, object_type(const value_type&)>;
+		JWT_CPP_SUPPORTS_AS(object);
+		JWT_CPP_SUPPORTS_AS(array);
+		JWT_CPP_SUPPORTS_AS(string);
+		JWT_CPP_SUPPORTS_AS(number);
+		JWT_CPP_SUPPORTS_AS(integer);
+		JWT_CPP_SUPPORTS_AS(boolean);
 
-		template<typename traits_type, typename value_type, typename object_type>
-		struct supports_as_object {
-			static constexpr auto value = std::is_constructible<value_type, object_type>::value &&
-										  is_detected<as_object_function, traits_type>::value &&
-										  std::is_function<as_object_function<traits_type>>::value &&
-										  is_as_object_signature<traits_type, value_type, object_type>::value;
-		};
-
-		template<typename traits_type>
-		using as_array_function = decltype(traits_type::as_array);
-
-		template<typename traits_type, typename value_type, typename array_type>
-		using is_as_array_signature =
-			typename std::is_same<as_array_function<traits_type>, array_type(const value_type&)>;
-
-		template<typename traits_type, typename value_type, typename array_type>
-		struct supports_as_array {
-			static constexpr auto value = std::is_constructible<value_type, array_type>::value &&
-										  is_detected<as_array_function, traits_type>::value &&
-										  std::is_function<as_array_function<traits_type>>::value &&
-										  is_as_array_signature<traits_type, value_type, array_type>::value;
-		};
-
-		template<typename traits_type>
-		using as_string_function = decltype(traits_type::as_string);
-
-		template<typename traits_type, typename value_type, typename string_type>
-		using is_as_string_signature =
-			typename std::is_same<as_string_function<traits_type>, string_type(const value_type&)>;
-
-		template<typename traits_type, typename value_type, typename string_type>
-		struct supports_as_string {
-			static constexpr auto value = std::is_constructible<value_type, string_type>::value &&
-										  is_detected<as_string_function, traits_type>::value &&
-										  std::is_function<as_string_function<traits_type>>::value &&
-										  is_as_string_signature<traits_type, value_type, string_type>::value;
-		};
-
-		template<typename traits_type>
-		using as_number_function = decltype(traits_type::as_number);
-
-		template<typename traits_type, typename value_type, typename number_type>
-		using is_as_number_signature =
-			typename std::is_same<as_number_function<traits_type>, number_type(const value_type&)>;
-
-		template<typename traits_type, typename value_type, typename number_type>
-		struct supports_as_number {
-			static constexpr auto value = std::is_floating_point<number_type>::value &&
-										  std::is_constructible<value_type, number_type>::value &&
-										  is_detected<as_number_function, traits_type>::value &&
-										  std::is_function<as_number_function<traits_type>>::value &&
-										  is_as_number_signature<traits_type, value_type, number_type>::value;
-		};
-
-		template<typename traits_type>
-		using as_integer_function = decltype(traits_type::as_int);
-
-		template<typename traits_type, typename value_type, typename integer_type>
-		using is_as_integer_signature =
-			typename std::is_same<as_integer_function<traits_type>, integer_type(const value_type&)>;
-
-		template<typename traits_type, typename value_type, typename integer_type>
-		struct supports_as_integer {
-			static constexpr auto value = std::is_signed<integer_type>::value &&
-										  !std::is_floating_point<integer_type>::value &&
-										  std::is_constructible<value_type, integer_type>::value &&
-										  is_detected<as_integer_function, traits_type>::value &&
-										  std::is_function<as_integer_function<traits_type>>::value &&
-										  is_as_integer_signature<traits_type, value_type, integer_type>::value;
-		};
-
-		template<typename traits_type>
-		using as_boolean_function = decltype(traits_type::as_bool);
-
-		template<typename traits_type, typename value_type, typename boolean_type>
-		using is_as_boolean_signature =
-			typename std::is_same<as_boolean_function<traits_type>, boolean_type(const value_type&)>;
-
-		template<typename traits_type, typename value_type, typename boolean_type>
-		struct supports_as_boolean {
-			static constexpr auto value = std::is_convertible<boolean_type, bool>::value &&
-										  std::is_constructible<value_type, boolean_type>::value &&
-										  is_detected<as_boolean_function, traits_type>::value &&
-										  std::is_function<as_boolean_function<traits_type>>::value &&
-										  is_as_boolean_signature<traits_type, value_type, boolean_type>::value;
-		};
+#undef JWT_CPP_JSON_TYPE_TYPE
+#undef JWT_CPP_AS_TYPE_T
+#undef JWT_CPP_SUPPORTS_AS
 
 		template<typename traits>
 		struct is_valid_traits {
-			// Internal assertions for better feedback
-			static_assert(supports_get_type<traits, typename traits::value_type>::value,
-						  "traits must provide `jwt::json::type get_type(const value_type&)`");
-			static_assert(supports_as_object<traits, typename traits::value_type, typename traits::object_type>::value,
-						  "traits must provide `object_type as_object(const value_type&)`");
-			static_assert(supports_as_array<traits, typename traits::value_type, typename traits::array_type>::value,
-						  "traits must provide `array_type as_array(const value_type&)`");
-			static_assert(supports_as_string<traits, typename traits::value_type, typename traits::string_type>::value,
-						  "traits must provide `string_type as_string(const value_type&)`");
-			static_assert(supports_as_number<traits, typename traits::value_type, typename traits::number_type>::value,
-						  "traits must provide `number_type as_number(const value_type&)`");
-			static_assert(
-				supports_as_integer<traits, typename traits::value_type, typename traits::integer_type>::value,
-				"traits must provide `integer_type as_int(const value_type&)`");
-			static_assert(
-				supports_as_boolean<traits, typename traits::value_type, typename traits::boolean_type>::value,
-				"traits must provide `boolean_type as_bool(const value_type&)`");
-
 			static constexpr auto value =
 				supports_get_type<traits, typename traits::value_type>::value &&
 				supports_as_object<traits, typename traits::value_type, typename traits::object_type>::value &&
@@ -1945,76 +1939,41 @@ namespace jwt {
 			// TODO(prince-chrismc): Stream operators
 		};
 
-		template<typename traits_type>
-		using has_mapped_type = typename traits_type::mapped_type;
+		// https://stackoverflow.com/a/53967057/8480874
+		template<typename T, typename = void>
+		struct is_iterable : std::false_type {};
 
-		template<typename traits_type>
-		using has_key_type = typename traits_type::key_type;
-
-		template<typename traits_type>
-		using has_value_type = typename traits_type::value_type;
-
-		template<typename object_type>
-		using has_iterator = typename object_type::iterator;
-
-		template<typename object_type>
-		using has_const_iterator = typename object_type::const_iterator;
-
-		template<typename object_type>
-		using is_begin_signature =
-			typename std::is_same<decltype(std::declval<object_type>().begin()), has_iterator<object_type>>;
-
-		template<typename object_type>
-		using is_begin_const_signature =
-			typename std::is_same<decltype(std::declval<const object_type>().begin()), has_const_iterator<object_type>>;
-
-		template<typename object_type>
-		struct supports_begin {
-			static constexpr auto value =
-				is_detected<has_iterator, object_type>::value && is_detected<has_const_iterator, object_type>::value &&
-				is_begin_signature<object_type>::value && is_begin_const_signature<object_type>::value;
+		template<typename T>
+		struct is_iterable<T, void_t<decltype(std::begin(std::declval<T>())), decltype(std::end(std::declval<T>())),
+#if __cplusplus > 201402L
+									 decltype(std::cbegin(std::declval<T>())), decltype(std::cend(std::declval<T>()))
+#else
+									 decltype(std::begin(std::declval<const T>())),
+									 decltype(std::end(std::declval<const T>()))
+#endif
+									 >> : std::true_type {
 		};
 
-		template<typename object_type>
-		using is_end_signature =
-			typename std::is_same<decltype(std::declval<object_type>().end()), has_iterator<object_type>>;
-
-		template<typename object_type>
-		using is_end_const_signature =
-			typename std::is_same<decltype(std::declval<const object_type>().end()), has_const_iterator<object_type>>;
-
-		template<typename object_type>
-		struct supports_end {
-			static constexpr auto value =
-				is_detected<has_iterator, object_type>::value && is_detected<has_const_iterator, object_type>::value &&
-				is_end_signature<object_type>::value && is_end_const_signature<object_type>::value;
-		};
+#if __cplusplus > 201703L
+		template<typename T>
+		inline constexpr bool is_iterable_v = is_iterable<T>::value;
+#endif
 
 		template<typename object_type, typename string_type>
-		using is_count_signature = typename std::is_integral<decltype(
-			std::declval<const object_type>().count(std::declval<const string_type>()))>;
+		using is_count_signature = typename std::is_integral<decltype(std::declval<const object_type>().count(
+			std::declval<const string_type>()))>;
+
+		template<typename object_type, typename string_type, typename = void>
+		struct is_subcription_operator_signature : std::false_type {};
 
 		template<typename object_type, typename string_type>
-		struct has_subcription_operator {
-			template<class>
-			struct sfinae_true : std::true_type {};
-
-			template<class T, class A0>
-			static auto test_operator_plus(int)
-				-> sfinae_true<decltype(std::declval<T>().operator[](std::declval<A0>()))>;
-			template<class, class A0>
-			static auto test_operator_plus(long) -> std::false_type;
-
-			static constexpr auto value = decltype(test_operator_plus<object_type, string_type>(0)){};
-		};
-
-		template<typename object_type, typename value_type, typename string_type>
-		struct is_subcription_operator_signature {
-			static constexpr auto has_subscription_operator = has_subcription_operator<object_type, string_type>::value;
-			static_assert(has_subscription_operator,
-						  "object_type must implementate the subscription operator '[]' for this library");
-
-			static constexpr auto value = has_subscription_operator;
+		struct is_subcription_operator_signature<
+			object_type, string_type,
+			void_t<decltype(std::declval<object_type>().operator[](std::declval<string_type>()))>> : std::true_type {
+			// TODO(prince-chrismc): I am not convienced this is meaningful anymore
+			static_assert(
+				value,
+				"object_type must implementate the subscription operator '[]' taking string_type as an argument");
 		};
 
 		template<typename object_type, typename value_type, typename string_type>
@@ -2024,25 +1983,37 @@ namespace jwt {
 
 		template<typename value_type, typename string_type, typename object_type>
 		struct is_valid_json_object {
+			template<typename T>
+			using mapped_type_t = typename T::mapped_type;
+			template<typename T>
+			using key_type_t = typename T::key_type;
+			template<typename T>
+			using iterator_t = typename T::iterator;
+			template<typename T>
+			using const_iterator_t = typename T::const_iterator;
+
 			static constexpr auto value =
-				is_detected<has_mapped_type, object_type>::value &&
+				std::is_constructible<value_type, object_type>::value &&
+				is_detected<mapped_type_t, object_type>::value &&
 				std::is_same<typename object_type::mapped_type, value_type>::value &&
-				is_detected<has_key_type, object_type>::value &&
+				is_detected<key_type_t, object_type>::value &&
 				(std::is_same<typename object_type::key_type, string_type>::value ||
 				 std::is_constructible<typename object_type::key_type, string_type>::value) &&
-				supports_begin<object_type>::value && supports_end<object_type>::value &&
-				is_count_signature<object_type, string_type>::value &&
-				is_subcription_operator_signature<object_type, value_type, string_type>::value &&
+				is_detected<iterator_t, object_type>::value && is_detected<const_iterator_t, object_type>::value &&
+				is_iterable<object_type>::value && is_count_signature<object_type, string_type>::value &&
+				is_subcription_operator_signature<object_type, string_type>::value &&
 				is_at_const_signature<object_type, value_type, string_type>::value;
-
-			static constexpr auto supports_claims_transform =
-				value && is_detected<has_value_type, object_type>::value &&
-				std::is_same<typename object_type::value_type, std::pair<const string_type, value_type>>::value;
 		};
 
 		template<typename value_type, typename array_type>
 		struct is_valid_json_array {
-			static constexpr auto value = std::is_same<typename array_type::value_type, value_type>::value;
+			template<typename T>
+			using value_type_t = typename T::value_type;
+
+			static constexpr auto value = std::is_constructible<value_type, array_type>::value &&
+										  is_iterable<array_type>::value &&
+										  is_detected<value_type_t, array_type>::value &&
+										  std::is_same<typename array_type::value_type, value_type>::value;
 		};
 
 		template<typename string_type, typename integer_type>
@@ -2057,41 +2028,45 @@ namespace jwt {
 								  string_type>;
 
 		template<typename string_type>
-		struct has_operate_plus_method { // https://stackoverflow.com/a/9154394/8480874
-			template<class>
-			struct sfinae_true : std::true_type {};
-
-			template<class T, class A0>
-			static auto test_operator_plus(int)
-				-> sfinae_true<decltype(std::declval<T>().operator+(std::declval<A0>()))>;
-			template<class, class A0>
-			static auto test_operator_plus(long) -> std::false_type;
-
-			static constexpr auto value = decltype(test_operator_plus<string_type, string_type>(0)){};
-		};
-
-		template<typename string_type>
 		using is_std_operate_plus_signature =
 			typename std::is_same<decltype(std::operator+(std::declval<string_type>(), std::declval<string_type>())),
 								  string_type>;
 
-		template<typename string_type, typename integer_type>
+		template<typename value_type, typename string_type, typename integer_type>
 		struct is_valid_json_string {
 			static constexpr auto substr = is_substr_start_end_index_signature<string_type, integer_type>::value &&
 										   is_substr_start_index_signature<string_type, integer_type>::value;
 			static_assert(substr, "string_type must have a substr method taking only a start index and an overload "
 								  "taking a start and end index, both must return a string_type");
 
-			static constexpr auto operator_plus =
-				has_operate_plus_method<string_type>::value || is_std_operate_plus_signature<string_type>::value;
+			static constexpr auto operator_plus = is_std_operate_plus_signature<string_type>::value;
 			static_assert(operator_plus,
 						  "string_type must have a '+' operator implemented which returns the concatenated string");
 
-			static constexpr auto value = substr && operator_plus;
+			static constexpr auto value =
+				std::is_constructible<value_type, string_type>::value && substr && operator_plus;
 		};
 
-		template<typename value_type, typename string_type, typename integer_type, typename object_type,
-				 typename array_type>
+		template<typename value_type, typename number_type>
+		struct is_valid_json_number {
+			static constexpr auto value =
+				std::is_floating_point<number_type>::value && std::is_constructible<value_type, number_type>::value;
+		};
+
+		template<typename value_type, typename integer_type>
+		struct is_valid_json_integer {
+			static constexpr auto value = std::is_signed<integer_type>::value &&
+										  !std::is_floating_point<integer_type>::value &&
+										  std::is_constructible<value_type, integer_type>::value;
+		};
+		template<typename value_type, typename boolean_type>
+		struct is_valid_json_boolean {
+			static constexpr auto value = std::is_convertible<boolean_type, bool>::value &&
+										  std::is_constructible<value_type, boolean_type>::value;
+		};
+
+		template<typename value_type, typename object_type, typename array_type, typename string_type,
+				 typename number_type, typename integer_type, typename boolean_type>
 		struct is_valid_json_types {
 			// Internal assertions for better feedback
 			static_assert(is_valid_json_value<value_type>::value,
@@ -2101,10 +2076,13 @@ namespace jwt {
 			static_assert(is_valid_json_array<value_type, array_type>::value,
 						  "array_type must be a container of value_type");
 
-			static constexpr auto value = is_valid_json_object<value_type, string_type, object_type>::value &&
-										  is_valid_json_value<value_type>::value &&
+			static constexpr auto value = is_valid_json_value<value_type>::value &&
+										  is_valid_json_object<value_type, string_type, object_type>::value &&
 										  is_valid_json_array<value_type, array_type>::value &&
-										  is_valid_json_string<string_type, integer_type>::value;
+										  is_valid_json_string<value_type, string_type, integer_type>::value &&
+										  is_valid_json_number<value_type, number_type>::value &&
+										  is_valid_json_integer<value_type, integer_type>::value &&
+										  is_valid_json_boolean<value_type, boolean_type>::value;
 		};
 	} // namespace details
 
@@ -2129,9 +2107,10 @@ namespace jwt {
 					  "string_type must be a std::string, convertible to a std::string, or construct a std::string.");
 
 		static_assert(
-			details::is_valid_json_types<typename json_traits::value_type, typename json_traits::string_type,
-										 typename json_traits::integer_type, typename json_traits::object_type,
-										 typename json_traits::array_type>::value,
+			details::is_valid_json_types<typename json_traits::value_type, typename json_traits::object_type,
+										 typename json_traits::array_type, typename json_traits::string_type,
+										 typename json_traits::number_type, typename json_traits::integer_type,
+										 typename json_traits::boolean_type>::value,
 			"must staisfy json container requirements");
 		static_assert(details::is_valid_traits<json_traits>::value, "traits must satisfy requirements");
 
@@ -2170,14 +2149,14 @@ namespace jwt {
 
 		/**
 		 * Serialize claim to output stream from wrapped JSON value
-		 * \return ouput stream
+		 * \return output stream
 		 */
 		std::ostream& operator<<(std::ostream& os) { return os << val; }
 
 		/**
 		 * Get type of contained JSON value
 		 * \return Type
-		 * \throw std::logic_error An internal error occured
+		 * \throw std::logic_error An internal error occurred
 		 */
 		json::type get_type() const { return json_traits::get_type(val); }
 
@@ -2189,11 +2168,18 @@ namespace jwt {
 		typename json_traits::string_type as_string() const { return json_traits::as_string(val); }
 
 		/**
-		 * Get the contained JSON value as a date
+		 * \brief Get the contained JSON value as a date
+		 *
+		 * If the value is a decimal, it is rounded up to the closest integer
+		 *
 		 * \return content as date
 		 * \throw std::bad_cast Content was not a date
 		 */
-		date as_date() const { return std::chrono::system_clock::from_time_t(as_int()); }
+		date as_date() const {
+			using std::chrono::system_clock;
+			if (get_type() == json::type::number) return system_clock::from_time_t(std::round(as_number()));
+			return system_clock::from_time_t(as_integer());
+		}
 
 		/**
 		 * Get the contained JSON value as an array
@@ -2220,14 +2206,14 @@ namespace jwt {
 		 * \return content as int
 		 * \throw std::bad_cast Content was not an int
 		 */
-		typename json_traits::integer_type as_int() const { return json_traits::as_int(val); }
+		typename json_traits::integer_type as_integer() const { return json_traits::as_integer(val); }
 
 		/**
 		 * Get the contained JSON value as a bool
 		 * \return content as bool
 		 * \throw std::bad_cast Content was not a bool
 		 */
-		typename json_traits::boolean_type as_bool() const { return json_traits::as_bool(val); }
+		typename json_traits::boolean_type as_boolean() const { return json_traits::as_boolean(val); }
 
 		/**
 		 * Get the contained JSON value as a number
@@ -2254,10 +2240,8 @@ namespace jwt {
 
 	namespace details {
 		template<typename json_traits>
-		class map_of_claims {
+		struct map_of_claims {
 			typename json_traits::object_type claims;
-
-		public:
 			using basic_claim_t = basic_claim<json_traits>;
 			using iterator = typename json_traits::object_type::iterator;
 			using const_iterator = typename json_traits::object_type::const_iterator;
@@ -2310,21 +2294,6 @@ namespace jwt {
 			basic_claim_t get_claim(const typename json_traits::string_type& name) const {
 				if (!has_claim(name)) throw error::claim_not_present_exception();
 				return basic_claim_t{claims.at(name)};
-			}
-
-			std::unordered_map<typename json_traits::string_type, basic_claim_t> get_claims() const {
-				static_assert(
-					details::is_valid_json_object<typename json_traits::value_type, typename json_traits::string_type,
-												  typename json_traits::object_type>::supports_claims_transform,
-					"currently there is a limitation on the internal implemantation of the `object_type` to have an "
-					"`std::pair` like `value_type`");
-
-				std::unordered_map<typename json_traits::string_type, basic_claim_t> res;
-				std::transform(claims.begin(), claims.end(), std::inserter(res, res.end()),
-							   [](const typename json_traits::object_type::value_type& val) {
-								   return std::make_pair(val.first, basic_claim_t{val.second});
-							   });
-				return res;
 			}
 		};
 	} // namespace details
@@ -2459,7 +2428,7 @@ namespace jwt {
 	public:
 		using basic_claim_t = basic_claim<json_traits>;
 		/**
-		 * Check if algortihm is present ("alg")
+		 * Check if algorithm is present ("alg")
 		 * \return true if present, false otherwise
 		 */
 		bool has_algorithm() const noexcept { return has_header_claim("alg"); }
@@ -2529,8 +2498,8 @@ namespace jwt {
 	template<typename json_traits>
 	class decoded_jwt : public header<json_traits>, public payload<json_traits> {
 	protected:
-		/// Unmodifed token, as passed to constructor
-		const typename json_traits::string_type token;
+		/// Unmodified token, as passed to constructor
+		typename json_traits::string_type token;
 		/// Header part decoded from base64
 		typename json_traits::string_type header;
 		/// Unmodified header part in base64
@@ -2626,19 +2595,15 @@ namespace jwt {
 		 */
 		const typename json_traits::string_type& get_signature_base64() const noexcept { return signature_base64; }
 		/**
-		 * Get all payload claims
+		 * Get all payload as JSON object
 		 * \return map of claims
 		 */
-		std::unordered_map<typename json_traits::string_type, basic_claim_t> get_payload_claims() const {
-			return this->payload_claims.get_claims();
-		}
+		typename json_traits::object_type get_payload_json() const { return this->payload_claims.claims; }
 		/**
-		 * Get all header claims
+		 * Get all header as JSON object
 		 * \return map of claims
 		 */
-		std::unordered_map<typename json_traits::string_type, basic_claim_t> get_header_claims() const {
-			return this->header_claims.get_claims();
-		}
+		typename json_traits::object_type get_header_json() const { return this->header_claims.claims; }
 		/**
 		 * Get a payload claim by name
 		 *
@@ -2907,7 +2872,7 @@ namespace jwt {
 			// The configured default leeway for this verification
 			size_t default_leeway{0};
 
-			// The claim key to apply this comparision on
+			// The claim key to apply this comparison on
 			typename json_traits::string_type claim_key{};
 
 			// Helper method to get a claim from the jwt in this context
@@ -2952,8 +2917,8 @@ namespace jwt {
 				if (ec) return;
 				const bool matches = [&]() {
 					switch (expected.get_type()) {
-					case json::type::boolean: return expected.as_bool() == jc.as_bool();
-					case json::type::integer: return expected.as_int() == jc.as_int();
+					case json::type::boolean: return expected.as_boolean() == jc.as_boolean();
+					case json::type::integer: return expected.as_integer() == jc.as_integer();
 					case json::type::number: return expected.as_number() == jc.as_number();
 					case json::type::string: return expected.as_string() == jc.as_string();
 					case json::type::array:
@@ -3053,11 +3018,37 @@ namespace jwt {
 			}
 
 			static std::string to_lower_unicode(const std::string& str, const std::locale& loc) {
-				std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> conv;
-				auto wide = conv.from_bytes(str);
+				std::mbstate_t state = std::mbstate_t();
+				const char* in_next = str.data();
+				const char* in_end = str.data() + str.size();
+				std::wstring wide;
+				wide.reserve(str.size());
+
+				while (in_next != in_end) {
+					wchar_t wc;
+					std::size_t result = std::mbrtowc(&wc, in_next, in_end - in_next, &state);
+					if (result == static_cast<std::size_t>(-1)) {
+						throw std::runtime_error("encoding error: " + std::string(std::strerror(errno)));
+					} else if (result == static_cast<std::size_t>(-2)) {
+						throw std::runtime_error("conversion error: next bytes constitute an incomplete, but so far "
+												 "valid, multibyte character.");
+					}
+					in_next += result;
+					wide.push_back(wc);
+				}
+
 				auto& f = std::use_facet<std::ctype<wchar_t>>(loc);
 				f.tolower(&wide[0], &wide[0] + wide.size());
-				return conv.to_bytes(wide);
+
+				std::string out;
+				out.reserve(wide.size());
+				for (wchar_t wc : wide) {
+					char mb[MB_LEN_MAX];
+					std::size_t n = std::wcrtomb(mb, wc, &state);
+					if (n != static_cast<std::size_t>(-1)) out.append(mb, n);
+				}
+
+				return out;
 			}
 		};
 	} // namespace verify_ops
@@ -3181,7 +3172,7 @@ namespace jwt {
 		 * Check is casesensitive.
 		 *
 		 * \param type Type Header Parameter to check for.
-		 * \param locale Localization functionality to use when comapring
+		 * \param locale Localization functionality to use when comparing
 		 * \return *this to allow chaining
 		 */
 		verifier& with_type(const typename json_traits::string_type& type, std::locale locale = std::locale{}) {
@@ -3442,7 +3433,7 @@ namespace jwt {
 		bool has_key_operations() const noexcept { return has_jwk_claim("key_ops"); }
 
 		/**
-		 * Check if algortihm is present ("alg")
+		 * Check if algorithm is present ("alg")
 		 * \return true if present, false otherwise
 		 */
 		bool has_algorithm() const noexcept { return has_jwk_claim("alg"); }
@@ -3501,6 +3492,12 @@ namespace jwt {
 		}
 
 		bool empty() const noexcept { return jwk_claims.empty(); }
+
+		/**
+		 * Get all jwk claims
+		 * \return Map of claims
+		 */
+		typename json_traits::object_type get_claims() const { return this->jwk_claims.claims; }
 	};
 
 	/**

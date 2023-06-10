@@ -1,7 +1,7 @@
 <img src="https://raw.githubusercontent.com/Thalhammer/jwt-cpp/master/.github/logo.svg" alt="logo" width="100%">
 
 [![License Badge](https://img.shields.io/github/license/Thalhammer/jwt-cpp)](https://github.com/Thalhammer/jwt-cpp/blob/master/LICENSE)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/5f7055e294744901991fd0a1620b231d)](https://app.codacy.com/app/Thalhammer/jwt-cpp?utm_source=github.com&utm_medium=referral&utm_content=Thalhammer/jwt-cpp&utm_campaign=Badge_Grade_Settings)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/5f7055e294744901991fd0a1620b231d)](https://app.codacy.com/gh/Thalhammer/jwt-cpp/dashboard)
 [![Linux Badge][Linux]][Cross-Platform]
 [![MacOS Badge][MacOS]][Cross-Platform]
 [![Windows Badge][Windows]][Cross-Platform]
@@ -40,22 +40,23 @@ In the name of flexibility and extensibility, jwt-cpp supports [OpenSSL](https:/
 
 | OpenSSL           | LibreSSL       | wolfSSL        |
 |-------------------|----------------|----------------|
-| ![1.0.2u][o1.0.2] | ![3.2.7][l3.2] | ![5.0.0][w5.0] |
-| ![1.1.0i][o1.1.0] | ![3.3.5][l3.3] | ![5.1.1][w5.1] |
-| ![1.1.1m][o1.1.1] | ![3.4.2][l3.4] |                |
-| ![3.0.1][o3.0]    |                |                |
+| ![1.0.2u][o1.0.2] | ![3.3.6][l3.3] | ![5.1.1][w5.1] |
+| ![1.1.0i][o1.1.0] | ![3.4.3][l3.4] | ![5.2.0][w5.2] |
+| ![1.1.1q][o1.1.1] | ![3.5.3][l3.5] | ![5.3.0][w5.3] |
+| ![3.0.5][o3.0]    |                |                |
 
 > ℹ️ Note: A complete list of versions tested in the past can be found [here](https://github.com/Thalhammer/jwt-cpp/tree/badges).
 
 [o1.0.2]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/openssl/1.0.2u/shields.json
 [o1.1.0]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/openssl/1.1.0i/shields.json
-[o1.1.1]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/openssl/1.1.1m/shields.json
-[o3.0]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/openssl/3.0.1/shields.json
-[l3.2]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/libressl/3.2.7/shields.json
-[l3.3]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/libressl/3.3.5/shields.json
-[l3.4]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/libressl/3.4.2/shields.json
-[w5.0]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/wolfssl/5.0.0/shields.json
+[o1.1.1]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/openssl/1.1.1q/shields.json
+[o3.0]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/openssl/3.0.5/shields.json
+[l3.3]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/libressl/3.3.6/shields.json
+[l3.4]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/libressl/3.4.3/shields.json
+[l3.5]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/libressl/3.5.3/shields.json
 [w5.1]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/wolfssl/5.1.1/shields.json
+[w5.2]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/wolfssl/5.2.0/shields.json
+[w5.3]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/wolfssl/5.3.0/shields.json
 
 ## Overview
 
@@ -67,7 +68,7 @@ jwt::basic_claim<my_favorite_json_library_traits> claim(json::object({{"json", t
 
 This allows for complete freedom when picking which libraries you want to use. For more information, [read this page](docs/traits.md)).
 
-For your convience there are serval traits implementation which provide some popular JSON libraries. They are:
+For your convenience there are serval traits implementation which provide some popular JSON libraries. They are:
 
 [![picojson][picojson]](https://github.com/kazuho/picojson)
 [![nlohmann][nlohmann]](https://github.com/nlohmann/json)
@@ -79,9 +80,9 @@ For your convience there are serval traits implementation which provide some pop
 [jsoncons]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/traits/danielaparker-jsoncons/shields.json
 [boostjson]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Thalhammer/jwt-cpp/badges/traits/boost-json/shields.json
 
-In order to maintain compatibility, [picojson](https://github.com/kazuho/picojson) is still used to provide a specialized `jwt::claim` along with all helpers. Defining `JWT_DISABLE_PICOJSON` will remove this optional dependency. It's possible to directly include the traits defaults for the other JSON libraries. See the [traits examples](https://github.com/prince-chrismc/jwt-cpp/tree/master/example/traits) for details.
+In order to maintain compatibility, [picojson](https://github.com/kazuho/picojson) is still used to provide a specialized `jwt::claim` along with all helpers. Defining `JWT_DISABLE_PICOJSON` will remove this optional dependency. It's possible to directly include the traits defaults for the other JSON libraries. See the [traits examples](https://github.com/Thalhammer/jwt-cpp/tree/master/example/traits) for details.
 
-As for the base64 requirements of JWTs, this libary provides `base.h` with all the required implentation; However base64 implementations are very common, with varying degrees of performance. When providing your own base64 implementation, you can define `JWT_DISABLE_BASE64` to remove the jwt-cpp implementation.
+As for the base64 requirements of JWTs, this library provides `base.h` with all the required implementation; However base64 implementations are very common, with varying degrees of performance. When providing your own base64 implementation, you can define `JWT_DISABLE_BASE64` to remove the jwt-cpp implementation.
 
 ### Getting Started
 
@@ -95,7 +96,7 @@ int main() {
     std::string token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXUyJ9.eyJpc3MiOiJhdXRoMCJ9.AbIJTDMFc7yUa5MhvcP03nJPyCPzZtQcGEp-zWfOkEE";
     auto decoded = jwt::decode(token);
 
-    for(auto& e : decoded.get_payload_claims())
+    for(auto& e : decoded.get_payload_json())
         std::cout << e.first << " = " << e.second << std::endl;
 }
 ```
@@ -149,3 +150,6 @@ In order to build the test cases you also need
 ## Troubleshooting
 
 See the [FAQs](docs/faqs.md) for tips.
+
+## Conference Coverage
+[![CppCon](https://img.youtube.com/vi/Oq4NW5idmiI/0.jpg)](https://www.youtube.com/watch?v=Oq4NW5idmiI)

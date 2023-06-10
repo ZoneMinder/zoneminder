@@ -1,4 +1,8 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.14)
+cmake_policy(VERSION 3.14)
+if(POLICY CMP0135) # DOWNLOAD_EXTRACT_TIMESTAMP
+  cmake_policy(SET CMP0135 OLD)
+endif()
 
 # HUNTER_ENABLED is always set if this package is included in a project using hunter (HunterGate sets it) In this case
 # we will use hunter as well to stay consistent. If not the use can supply it on configure to force using hunter.
@@ -55,11 +59,23 @@ elseif(${JWT_SSL_LIBRARY} MATCHES "LibreSSL")
 elseif(${JWT_SSL_LIBRARY} MATCHES "wolfSSL")
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(wolfssl REQUIRED IMPORTED_TARGET wolfssl)
-  list(TRANSFORM wolfssl_INCLUDE_DIRS APPEND "/wolfssl") # This is required to access OpenSSL compatability API
+  list(TRANSFORM wolfssl_INCLUDE_DIRS APPEND "/wolfssl") # This is required to access OpenSSL compatibility API
 endif()
 
 if(JWT_EXTERNAL_PICOJSON)
   find_package(picojson 1.3.0 REQUIRED)
+endif()
+
+find_package(nlohmann_json CONFIG)
+
+if(NOT nlohmann_json_FOUND)
+  message(STATUS "jwt-cpp: using FetchContent for nlohmann json")
+  include(FetchContent)
+  FetchContent_Declare(nlohmann_json
+      URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+      URL_MD5 127794b2c82c0c5693805feaa2a703e2
+  )
+  FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
 set(JWT_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -98,7 +114,7 @@ endif()
 
 if(${JWT_SSL_LIBRARY} MATCHES "wolfSSL")
   target_link_libraries(jwt-cpp INTERFACE PkgConfig::wolfssl)
-  # This is required to access OpenSSL compatability API
+  # This is required to access OpenSSL compatibility API
   target_include_directories(jwt-cpp INTERFACE ${wolfssl_INCLUDE_DIRS})
   target_compile_definitions(jwt-cpp INTERFACE OPENSSL_EXTRA OPENSSL_ALL)
 endif()
@@ -107,7 +123,7 @@ if(JWT_EXTERNAL_PICOJSON)
   target_link_libraries(jwt-cpp INTERFACE picojson::picojson>)
 endif()
 
-# Hunter needs relative paths so the files are palced correctly
+# Hunter needs relative paths so the files are placed correctly
 if(NOT JWT_CMAKE_FILES_INSTALL_DIR)
   set(JWT_CMAKE_FILES_INSTALL_DIR cmake)
 endif()

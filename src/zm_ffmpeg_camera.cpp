@@ -555,7 +555,7 @@ int FfmpegCamera::OpenFfmpeg() {
       ||
       ((unsigned int)mVideoCodecContext->height != height)
       ) {
-    Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
+    Debug(1, "Monitor dimensions are %dx%d but camera is sending %dx%d",
         width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
 

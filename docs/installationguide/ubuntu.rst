@@ -47,8 +47,7 @@ Update repo and upgrade.
 
 ::
 
-	apt-get update
-        apt-get upgrade
+	      apt-get update
         apt-get dist-upgrade
 
 
@@ -123,7 +122,6 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
         chmod 740 /etc/zm/zm.conf
         chown root:www-data /etc/zm/zm.conf
-        chown -R www-data:www-data /usr/share/zoneminder/
 
 **Step 7:** Configure Apache correctly:
 

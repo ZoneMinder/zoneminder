@@ -792,6 +792,14 @@ void MonitorStream::runStream() {
       Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
           monitor->shared_data->last_write_index,
           last_read_index);
+
+      if (now - last_frame_sent > Seconds(5)) {
+        if (last_read_index == monitor->GetImageBufferCount()) {
+          sendTextFrame("Waiting for initial capture");
+        } else {
+          sendTextFrame("Waiting for capture");
+        }
+      }
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
 
     FPSeconds sleep_time;

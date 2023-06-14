@@ -103,6 +103,7 @@ ul.form > li > label {
     justify-content: center;
     align-items: center;
     flex-direction: row;
+    flex-wrap: wrap;
   }
   ul.form > li {
     padding-left: 0;

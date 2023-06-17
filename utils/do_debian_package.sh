@@ -142,7 +142,7 @@ if [ "$SNAPSHOT" == "stable" ]; then
     BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
     if [ -z "$BRANCH" ]; then
       # This should only happen in CI environments where tag info isn't available
-      BRANCH=`cat version`
+      BRANCH=`cat version.txt`
       echo "Building branch $BRANCH"
     fi
     if [ "$BRANCH" == "" ]; then

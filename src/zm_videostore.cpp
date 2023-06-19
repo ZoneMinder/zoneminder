@@ -991,13 +991,13 @@ bool VideoStore::setup_resampler() {
       audio_in_ctx->sample_fmt,
       audio_in_ctx->sample_rate,
       0, nullptr);
+#endif
   if (!resample_ctx) {
     Error("Could not allocate resample context");
     av_frame_free(&in_frame);
     av_frame_free(&out_frame);
     return false;
   }
-#endif
   if ((ret = swr_init(resample_ctx)) < 0) {
     Error("Could not open resampler");
     av_frame_free(&in_frame);
@@ -1245,7 +1245,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
     //zm_packet->out_frame->key_frame = zm_packet->keyframe;
 #if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
-    frame->duration
+    frame->duration = 0;
 #elif LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     frame->pkt_duration = 0;
 #endif

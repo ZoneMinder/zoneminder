@@ -844,6 +844,15 @@ $OLANG = array(
       for new images. In this case, it is safe to use the field.
       '
 	),
+	'OPTIONS_ALARMMAXFPS' => array(
+    'Help' => '
+    This field has certain limitations when used for non-local devices.~~
+    Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping,
+    and missed events~
+    This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS 
+    setting, leaving this blank implies no limit.
+    '
+	),
 	'OPTIONS_LINKED_MONITORS' => array(
     'Help' => '
       This field allows you to select other monitors on your system that act as 

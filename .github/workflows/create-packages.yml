@@ -16,6 +16,8 @@ jobs:
             dist: buster
           - os: debian
             dist: bullseye
+          - os: debian
+            dist: bookworm
           - os: ubuntu
             dist: bionic
           - os: ubuntu

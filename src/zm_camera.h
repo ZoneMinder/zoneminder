@@ -108,7 +108,11 @@ public:
   }
   int getChannels() {
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+    return mAudioStream ? mAudioStream->codecpar->ch_layout.nb_channels : -1;
+#else
     return mAudioStream ? mAudioStream->codecpar->channels : -1;
+#endif
 #else
     return mAudioStream ? mAudioStream->codec->channels : -1;
 #endif

@@ -470,7 +470,11 @@ bool VideoStore::open() {
       audio_out_ctx->codec_tag = 0;
 #endif
 
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+      if (audio_out_ctx->ch_layout.nb_channels > 1) {
+#else
       if (audio_out_ctx->channels > 1) {
+#endif
         Warning("Audio isn't mono, changing it.");
         audio_out_ctx->channels = 1;
       } else {
@@ -938,6 +942,16 @@ bool VideoStore::setup_resampler() {
     return false;
   }
 #if defined(HAVE_LIBSWRESAMPLE)
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  resample_ctx = swr_alloc_set_opts2(nullptr,
+      &audio_out_ctx->ch_layout,
+      audio_out_ctx->sample_fmt,
+      audio_out_ctx->sample_rate,
+      &audio_in_ctx->ch_layout,
+      audio_in_ctx->sample_fmt,
+      audio_in_ctx->sample_rate,
+      0, nullptr);
+#else
   resample_ctx = swr_alloc_set_opts(nullptr,
       audio_out_ctx->channel_layout,
       audio_out_ctx->sample_fmt,
@@ -946,6 +960,7 @@ bool VideoStore::setup_resampler() {
       audio_in_ctx->sample_fmt,
       audio_in_ctx->sample_rate,
       0, nullptr);
+#endif
   if (!resample_ctx) {
     Error("Could not allocate resample context");
     av_frame_free(&in_frame);
@@ -1001,15 +1016,24 @@ bool VideoStore::setup_resampler() {
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  out_frame->ch_layout = audio_out_ctx->ch_layout,
+#else
   out_frame->channels = audio_out_ctx->channels;
 #endif
   out_frame->channel_layout = audio_out_ctx->channel_layout;
+#endif
   out_frame->sample_rate = audio_out_ctx->sample_rate;
 
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
   unsigned int audioSampleBuffer_size = av_samples_get_buffer_size(
-      nullptr, audio_out_ctx->channels,
+      nullptr,
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+      audio_out_ctx->ch_layout.nb_channels,
+#else
+      audio_out_ctx->channels,
+#endif
       audio_out_ctx->frame_size,
       audio_out_ctx->sample_fmt, 0);
   converted_in_samples = reinterpret_cast<uint8_t *>(av_malloc(audioSampleBuffer_size));
@@ -1023,7 +1047,12 @@ bool VideoStore::setup_resampler() {
 
   // Setup the data pointers in the AVFrame
   if (avcodec_fill_audio_frame(
-        out_frame, audio_out_ctx->channels,
+        out_frame,
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_out_ctx->ch_layout.nb_channels,
+#else
+        audio_out_ctx->channels,
+#endif
         audio_out_ctx->sample_fmt,
         (const uint8_t *)converted_in_samples,
         audioSampleBuffer_size, 0) < 0) {

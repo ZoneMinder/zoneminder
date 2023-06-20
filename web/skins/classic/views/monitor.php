@@ -589,7 +589,7 @@ switch ( $name ) {
               </td>
             </tr>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></td>
+              <td class="text-right pr-3"><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_ALARMMAXFPS') ?></td>
               <td>
                 <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
                 <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>

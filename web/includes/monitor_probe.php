@@ -143,7 +143,7 @@ function probeAxis($ip, $username, $password) {
   );
 
   $url = 'http://'.$ip.'/axis-cgi/admin/param.cgi?action=list&group=Brand';
-  $content = get('GET', $url, $username, $password);
+  $content = wget('GET', $url, $username, $password);
 
   if ($content) {
     ZM\Debug($content);
@@ -244,9 +244,12 @@ function probeAmcrest($ip, $username='', $password='') {
   return $cameras;
 }
 
-function get($method, $url, $username, $password) {
-  exec("wget -O - $url", $output, $result_code);
+function wget($method, $url, $username, $password) {
+  exec("wget --keep-session-cookies -O - $url", $output, $result_code);
   return implode("\n", $output);
+}
+
+function curl($method, $url, $username, $password) {
 
     $ch = curl_init();
     #curl_setopt($ch, CURLOPT_FORBID_REUSE, 1);
@@ -258,6 +261,7 @@ function get($method, $url, $username, $password) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_HEADER, 1);
+    curl_setopt( $curl_handle, CURLOPT_COOKIESESSION, true );
 
     $res = curl_exec($ch);
     ZM\Debug($res);
@@ -302,22 +306,97 @@ function get($method, $url, $username, $password) {
 }
 
 function probeAzureWaveTechnologyInc($ip, $username, $password) {
-  return probeAvigilonCorporation($ip, $username, $password);
 }
 function probeAvigilonCorporation($ip, $username, $password) {
-  if (!$username) $username='admin';
-  if (!$password) $password='admin';
-  $url = 'rtsp://'.$username.':'.$password.'@'.$ip.'/defaultPrimary?streamType=u';
+  return probeAvigilon($ip, $username, $password);
+}
+function probeAvigilon($ip, $username, $password) {
+  if (!$username) $username='administrator';
+  #if (!$password) $password='';
+  # Avigilon tends to want the : in auth even if no password.
+  $auth = $username ? $username.':'.$password.'@' : '';
+  $port_open = port_open($ip, 554);
   $cameras = [];
   $camera = [
     'ip' => $ip,
+    'mjpegstream' => 'http://'.$auth.$ip.'/media/cam0/still.jpg',
     'Manufacturer'=>'Avigilon Corporation',
     'monitor' => [
       'Type'=>'Ffmpeg',
-      'Path' => $url,
+      'Path' => 'rtsp://'.$auth.$ip.'/rtsp/defaultPrimary?streamType=u',
+      'User' => $username,
+      'Pass' => $password,
       'Manufacturer'=>'Avigilon Corporation',
     ]
   ];
+  # Urls: /cgi-x/get-compression?port=0
+  # get-ptz-capabilities?port=0
+  # /storage/status
+  # /cgi-x/positon?port=0
+  # /media/cam0/still.jpg
+  # /cgi-x/get-general
+  # /cgi-x/get-streamuri?port=0
+  #
+  # May have to login to onvif first, to get an auth cookie...
+  # http://administrator@192.168.4.60/onvif/device_service
+  //<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:ns1="http://www.onvif.org/ver10/device/wsdl"><s:Body><ns1:GetDeviceInformation></ns1:GetDeviceInformation></s:Body></s:Envelope>
+  $url = 'http://'.$auth.$ip.'/cgi-x/get-general';
+  $general_json = wget('GET', $url, $username, $password);
+  if ($general_json) {
+    $general = json_decode($general_json, true);
+    ZM\Debug(print_r($general, true));
+    if ($general) {
+      $camera['Model'] = $camera['monitor']['Model'] = (string)$general['partNumber'];
+      $camera['monitor']['ONVIF_URL'] = 'http://'.$username.':'.$password.'@'.$ip.'/onvif/device_service';
+    }
+  }
+  $url = 'http://'.$auth.$ip.'/cgi-x/get-streamuri?port=0';
+  $json = wget('GET', $url, $username, $password);
+  if ($json) {
+    $stream_uri = json_decode($json, true);
+    if ($stream_uri) {
+      $camera['monitor']['Path'] = $stream_uri['streamUri-unicast'];
+    }
+  }
+  $url = 'http://'.$auth.$ip.'/cgi-x/get-compression?port=0';
+  $compression_json = wget('GET', $url, $username, $password);
+  if ($compression_json) {
+    $compression = json_decode($compression_json, true);
+    if ($compression) {
+      ZM\Debug(print_r($compression, true));
+
+      $encodings = [];
+      foreach ($compression['optionsEncoding'] as $encoding) {
+        $encodings[$encoding[1]] = $encoding[0];
+      }
+      $h264options = [];
+      foreach ($compression['h264Options'] as $options) {
+        foreach ($options as $option) {
+          $h264options[$option[1]] = $option[0];
+        }
+      }
+      $h265options = [];
+      foreach ($compression['h265Options'] as $options) {
+        foreach ($options as $option) {
+          $h265options[$option[1]] = $option[0];
+        }
+      }
+      ZM\Debug(print_r($encodings, true));
+      $encoding = $encodings[$compression['defaultEncoding']];
+      $resolution = '';
+      if ($encoding == 'H.264') {
+        $resolution = $h264options[$compression['defaultResolution']];
+      } else if ($encoding == 'H.265') {
+        $resolution = $h265options[$compression['defaultResolution']];
+      }
+      if ($resolution) {
+        $resolution = explode('x', $resolution);
+        $camera['monitor']['Width']  = $resolution[0];
+        $camera['monitor']['Height']  = $resolution[1];
+      }
+    }
+  }
+
   $cameras[] = $camera;
   return $cameras;
 } # End probeAvigilon
@@ -345,7 +424,7 @@ function probeHikvision($ip, $username, $password) {
     ),
   );
   $url = 'http://'.$username.':'.$password.'@'.$ip.'/ISAPI/Streaming/channels/101';
-  $xml_str = get('GET', $url, $username, $password);
+  $xml_str = wget('GET', $url, $username, $password);
   if ($xml_str) {
     $xml = new SimpleXMLElement($xml_str);
     if ($xml->Video) {
@@ -363,7 +442,7 @@ function probeHikvision($ip, $username, $password) {
   }
 
   $url = 'http://'.$username.':'.$password.'@'.$ip.'/ISAPI/System/deviceInfo';
-  $xml_str = get('GET', $url, $username, $password);
+  $xml_str = wget('GET', $url, $username, $password);
   if ($xml_str) {
     ZM\Debug($xml_str);
     $xml = new SimpleXMLElement($xml_str);
@@ -437,7 +516,7 @@ function probeVivotek($ip, $username, $password) {
   $settings = [];
   $authority = $username.':'.$password.'@'.$ip;
   $url = 'http://'.$authority.'/cgi-bin/viewer/getparam.cgi';
-  $content = get('GET', $url, $username, $password);
+  $content = wget('GET', $url, $username, $password);
 
   #try {
     #$content = do_request('GET', $url);
@@ -647,7 +726,12 @@ function probeNetwork() {
       }
       if (function_exists('probe'.$macBase['type'])) {
         if (!$username and isset($monitors[$ip])) {
-          $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $monitors[$ip]->User(), $monitors[$ip]->Pass()));
+          $new_cameras = call_user_func('probe'.$macBase['type'], $ip, $monitors[$ip]->User(), $monitors[$ip]->Pass());
+          if (!$new_cameras) {
+            ZM\Warning('probe'.$macBase['type'].' returned nothing');
+          } else {
+            $cameras = array_merge($cameras, $new_cameras);
+          }
         } else {
           ZM\Debug("Not Using auth from monitor $ip $username $password");
           $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $username, $password));

@@ -213,6 +213,7 @@ WHERE M.`Deleted`=false
       ini_set('track_errors', 'on');
       $php_errormsg = '';
       $regexp = $_SESSION['MonitorName'];
+      if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
 
       @preg_match($regexp, '');
       if ( $php_errormsg ) {
@@ -257,7 +258,7 @@ WHERE M.`Deleted`=false
       'data-placeholder'=>'All',
     ) );
   # Repurpose this variable to be the list of MonitorIds as a result of all the filtering
-  $selected_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
+  $display_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
   $html .= '</span>
 ';
   echo $html;

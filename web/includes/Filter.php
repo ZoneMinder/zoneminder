@@ -1060,7 +1060,6 @@ class Filter extends ZM_Object {
         } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
           $html .= '<span><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
-          $html .= $term['attr'];
           $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']).'</span>'.PHP_EOL;
 
         } else if ( $term['attr'] == 'Group') {

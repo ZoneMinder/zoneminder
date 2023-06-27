@@ -820,7 +820,7 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 32768 ? audio_in_ctx->bit_rate : 32768;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
   av_channel_layout_copy(&audio_out_ctx->ch_layout, &audio_in_ctx->ch_layout);
 #else
   audio_out_ctx->channels = audio_in_ctx->channels;
@@ -991,13 +991,13 @@ bool VideoStore::setup_resampler() {
       audio_in_ctx->sample_fmt,
       audio_in_ctx->sample_rate,
       0, nullptr);
-#endif
   if (!resample_ctx) {
     Error("Could not allocate resample context");
     av_frame_free(&in_frame);
     av_frame_free(&out_frame);
     return false;
   }
+#endif
   if ((ret = swr_init(resample_ctx)) < 0) {
     Error("Could not open resampler");
     av_frame_free(&in_frame);

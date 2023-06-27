@@ -100,15 +100,15 @@ echo getNavBarHTML();
               </tr>
               <tr class="Name">
                 <th scope="row"><?php echo translate('Full Name') ?></th>
-                <td><input type="text" name="user[Name]" /></td>
+                <td><input type="text" name="user[Name]" value="<?php echo $User->Name() ?>"/></td>
               </tr>
               <tr class="Email">
                 <th scope="row"><?php echo translate('Email Address') ?></th>
-                <td><input type="email" name="user[Email]" /></td>
+                <td><input type="email" name="user[Email]" value="<?php echo $User->Email() ?>"/></td>
               </tr>
               <tr class="Phone">
                 <th scope="row"><?php echo translate('Phone') ?></th>
-                <td><input type="tel" name="user[Phone]" /></td>
+                <td><input type="tel" name="user[Phone]" value="<?php echo $User->Phone() ?>"/></td>
               </tr>
               <tr class="Language">
                 <th scope="row"><?php echo translate('Language') ?></th>

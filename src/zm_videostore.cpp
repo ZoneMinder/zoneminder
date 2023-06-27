@@ -820,7 +820,7 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 32768 ? audio_in_ctx->bit_rate : 32768;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 0)
   av_channel_layout_copy(&audio_out_ctx->ch_layout, &audio_in_ctx->ch_layout);
 #else
   audio_out_ctx->channels = audio_in_ctx->channels;
@@ -907,9 +907,9 @@ bool VideoStore::setup_resampler() {
 #if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 0)
         audio_in_ctx->ch_layout.nb_channels,
 #else
-	audio_in_ctx->channels,
+        audio_in_ctx->channels,
 #endif
-       	audio_in_ctx->sample_fmt,
+        audio_in_ctx->sample_fmt,
         audio_in_ctx->frame_size);
   Debug(1,
         "Audio out context bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
@@ -917,9 +917,9 @@ bool VideoStore::setup_resampler() {
 #if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 0)
         audio_out_ctx->ch_layout.nb_channels,
 #else
-	audio_out_ctx->channels,
+        audio_out_ctx->channels,
 #endif
-	audio_out_ctx->sample_fmt,
+        audio_out_ctx->sample_fmt,
         audio_out_ctx->frame_size);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
@@ -929,9 +929,9 @@ bool VideoStore::setup_resampler() {
 #if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 0)
         audio_out_stream->codecpar->ch_layout.nb_channels,
 #else
-	audio_out_stream->codecpar->channels,
+        audio_out_stream->codecpar->channels,
 #endif
-	audio_out_stream->codecpar->format,
+        audio_out_stream->codecpar->format,
         audio_out_stream->codecpar->frame_size);
 #else
   Debug(1,
@@ -960,12 +960,12 @@ bool VideoStore::setup_resampler() {
 
   if (!(fifo = av_audio_fifo_alloc(
           audio_out_ctx->sample_fmt,
-#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 0)
           audio_out_ctx->ch_layout.nb_channels
 #else
-	  audio_out_ctx->channels
+          audio_out_ctx->channels
 #endif
-	  , 1))) {
+          , 1))) {
     Error("Could not allocate FIFO");
     return false;
   }
@@ -1051,8 +1051,8 @@ bool VideoStore::setup_resampler() {
   out_frame->ch_layout = audio_out_ctx->ch_layout,
 #else
   out_frame->channels = audio_out_ctx->channels;
-#endif
   out_frame->channel_layout = audio_out_ctx->channel_layout;
+#endif
 #endif
   out_frame->sample_rate = audio_out_ctx->sample_rate;
 

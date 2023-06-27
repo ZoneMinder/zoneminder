@@ -872,18 +872,33 @@ bool VideoStore::setup_resampler() {
   Debug(1,
         "Audio in bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_in_ctx->bit_rate, audio_in_ctx->sample_rate,
-        audio_in_ctx->ch_layout.nb_channels, audio_in_ctx->sample_fmt,
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_in_ctx->ch_layout.nb_channels,
+#else
+        audio_in_ctx->channels,
+#endif
+        audio_in_ctx->sample_fmt,
         audio_in_ctx->frame_size);
   Debug(1,
         "Audio out context bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,
-        audio_out_ctx->ch_layout.nb_channels, audio_out_ctx->sample_fmt,
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_out_ctx->ch_layout.nb_channels,
+#else
+        audio_out_ctx->channels,
+#endif
+        audio_out_ctx->sample_fmt,
         audio_out_ctx->frame_size);
 
   Debug(1,
         "Audio out stream bit_rate (%" PRIi64 ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_out_stream->codecpar->bit_rate, audio_out_stream->codecpar->sample_rate,
-        audio_out_stream->codecpar->ch_layout.nb_channels, audio_out_stream->codecpar->format,
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_out_stream->codecpar->ch_layout.nb_channels,
+#else
+        audio_out_stream->codecpar->channels,
+#endif
+        audio_out_stream->codecpar->format,
         audio_out_stream->codecpar->frame_size);
 
   /** Create a new frame to store the audio samples. */
@@ -903,7 +918,12 @@ bool VideoStore::setup_resampler() {
 
   if (!(fifo = av_audio_fifo_alloc(
           audio_out_ctx->sample_fmt,
-          audio_out_ctx->ch_layout.nb_channels, 1))) {
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+          audio_out_ctx->ch_layout.nb_channels
+#else
+          audio_out_ctx->channels
+#endif
+          , 1))) {
     Error("Could not allocate FIFO");
     return false;
   }

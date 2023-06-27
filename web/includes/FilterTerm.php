@@ -542,7 +542,7 @@ class FilterTerm {
     case 'FilterServerId' :
     case 'Group' :
     case 'Notes' :
-      if (empty($this->val) or $this->val === '')
+      if ($this->val === '')
         return false;
       break;
     }

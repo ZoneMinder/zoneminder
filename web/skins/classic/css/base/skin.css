@@ -768,7 +768,7 @@ li.search-choice {
 .zoom-console {
   transform-origin: 0% 50%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
-  position: absolute;
+  position: sticky;
   z-index: 1001;
 }
 

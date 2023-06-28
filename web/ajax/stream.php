@@ -151,13 +151,14 @@ default :
 $data = unpack('ltype', $msg);
 switch ( $data['type'] ) {
 case MSG_DATA_WATCH :
-  $data = unpack('ltype/imonitor/istate/dfps/dcapturefps/danalysisfps/ilevel/irate/ddelay/izoom/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
+  $data = unpack('ltype/imonitor/istate/dfps/dcapturefps/danalysisfps/ilevel/irate/ddelay/izoom/iscale/Cdelayed/Cpaused/Cenabled/Cforced', $msg);
   $data['fps'] = round( $data['fps'], 2 );
   $data['capturefps'] = round( $data['capturefps'], 2 );
   $data['analysisfps'] = round( $data['analysisfps'], 2 );
   $data['rate'] /= RATE_BASE;
   $data['delay'] = round( $data['delay'], 2 );
   $data['zoom'] = round( $data['zoom']/SCALE_BASE, 1 );
+  #$data['scale'] = $data['scale'];
   if (ZM_OPT_USE_AUTH) {
     if (ZM_AUTH_RELAY == 'hashed') {
       $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
@@ -176,10 +177,10 @@ case MSG_DATA_WATCH :
 case MSG_DATA_EVENT :
   if ( PHP_INT_SIZE===4 || version_compare( phpversion(), '5.6.0', '<') ) {
     ZM\Debug('Using old unpack methods to handle 64bit event id');
-    $data = unpack('ltype/ieventlow/ieventhigh/dduration/dprogress/irate/izoom/Cpaused', $msg);
+    $data = unpack('ltype/ieventlow/ieventhigh/dduration/dprogress/irate/izoom/iscale/Cpaused', $msg);
     $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];
   } else {
-    $data = unpack('ltype/Qevent/dduration/dprogress/irate/izoom/Cpaused', $msg);
+    $data = unpack('ltype/Qevent/dduration/dprogress/irate/izoom/iscale/Cpaused', $msg);
   }
   $data['rate'] /= RATE_BASE;
   $data['zoom'] = round($data['zoom']/SCALE_BASE, 1);

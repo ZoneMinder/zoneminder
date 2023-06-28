@@ -197,6 +197,10 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       if (zoom < 100) zoom = 100;
       Debug(1, "Got ZOOM OUT command resulting zoom %d%%", zoom);
       break;
+    case CMD_ZOOMSTOP :
+      zoom = 100;
+      Debug(1, "Got ZOOM OUT FULL command resulting zoom %d%%", zoom);
+      break;
     case CMD_PAN :
       x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
       y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
@@ -236,6 +240,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     int rate;
     double delay;
     int zoom;
+    int scale;
     bool delayed;
     bool paused;
     bool enabled;
@@ -277,6 +282,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.rate = replay_rate;
   status_data.delay = FPSeconds(now - last_frame_sent).count();
   status_data.zoom = zoom;
+  status_data.scale = scale;
   Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
       status_data.fps,
       status_data.capture_fps,
@@ -452,8 +458,21 @@ void MonitorStream::runStream() {
   monitor->setLastViewed();
 
   if (type == STREAM_SINGLE) {
+    Debug(1, "Single");
+    if (!checkInitialised()) {
+      if (!loadMonitor(monitor_id)) {
+        sendTextFrame("Not connected");
+      } else if (monitor->Deleted()) {
+        sendTextFrame("Monitor has been deleted");
+      } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        sendTextFrame("Waiting for capture");
+      } else {
+        sendTextFrame("Unable to stream");
+      }
+    } else {
     // Not yet migrated over to stream class
-    SingleImage(scale);
+      SingleImage(scale);
+    }
     return;
   }
 
@@ -550,6 +569,10 @@ void MonitorStream::runStream() {
           Debug(1, "Failed Send not connected");
           continue;
         }
+      } else if (monitor->Deleted()) {
+        sendTextFrame("Monitor has been deleted");
+        zm_terminate = true;
+        continue;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         if (!sendTextFrame("Waiting for capture")) return;
       } else {
@@ -672,6 +695,7 @@ void MonitorStream::runStream() {
               SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
           Image *send_image = nullptr;
+          /*
           if ((frame_type == FRAME_ANALYSIS) && 
               (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
               Debug(1, "Sending analysis image");
@@ -680,7 +704,7 @@ void MonitorStream::runStream() {
               Debug(1, "Falling back");
               send_image = monitor->image_buffer[index];
             }
-          } else {
+          } else*/ {
             Debug(1, "Sending regular image index %d", index);
             send_image = monitor->image_buffer[index];
           }
@@ -768,6 +792,14 @@ void MonitorStream::runStream() {
       Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
           monitor->shared_data->last_write_index,
           last_read_index);
+
+      if (now - last_frame_sent > Seconds(5)) {
+        if (last_read_index == monitor->GetImageBufferCount()) {
+          sendTextFrame("Waiting for initial capture");
+        } else {
+          sendTextFrame("Waiting for capture");
+        }
+      }
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
 
     FPSeconds sleep_time;

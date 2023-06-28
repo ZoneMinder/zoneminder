@@ -50,10 +50,10 @@ createvars () {
     shorthash=$(git describe --long --always | awk -F - '{print $3}')
 
     # Grab the ZoneMinder version from the contents of the version file
-    versionfile=$(cat version)
+    versionfile=$(cat version.txt)
 
     # git the latest (short) commit hash of the version file
-    versionhash=$(git log -n1 --pretty=format:%h version)
+    versionhash=$(git log -n1 --pretty=format:%h version.txt)
 
     # Number of commits since the version file was last changed
     numcommits=$(git rev-list ${versionhash}..HEAD --count)
@@ -369,7 +369,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   setdebpkgname
   movecrud
 
-  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "jammy" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ]; then
+  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "jammy" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ] || [ "${DIST}" == "bookworm" ]; then
     ln -sfT distros/ubuntu2004 debian
   elif [ "${DIST}" == "beowulf" ]; then
     ln -sfT distros/beowulf debian

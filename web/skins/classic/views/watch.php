@@ -171,10 +171,17 @@ if ($monitor->JanusEnabled()) {
 
 noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
-?>
-<body>
-  <?php echo getNavBarHTML() ?>
+getBodyTopHTML();
+echo getNavBarHTML() ?>
+<div id="page">
   <div id="header">
+<?php
+    $html = '';
+    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'down')) ? 'up' : 'down';
+    $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
+    $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
+    echo $html;
+?>
     <div class="controlHeader">
       <form method="get">
         <input type="hidden" name="view" value="watch"/>
@@ -229,6 +236,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         </span>
       </div><!--sizeControl-->
     </div><!--control header-->
+    </div><!--flip-->
   </div><!--header-->
   <div class="container-fluid h-100">
     <div class="row flex-nowrap h-100" id="content">
@@ -239,6 +247,7 @@ $seconds = translate('seconds');
 $minute = translate('minute');
 $minutes = translate('minutes');
 $cyclePeriodOptions = array(
+  5 => '5 '.$seconds,
   10 => '10 '.$seconds,
   30 => '30 '.$seconds,
   60 => '1 '.$minute,
@@ -328,7 +337,7 @@ if ($streamMode == 'jpeg') {
 <?php
   }
 ?>
-            <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut">
+            <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="zoomOutClick">
             <i class="material-icons md-18">zoom_out</i>
             </button>
             <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
@@ -396,41 +405,6 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
         </table>
       </div>
     </div>
-<?php
-}
-if ( ZM_WEB_SOUND_ON_ALARM ) {
-    $soundSrc = ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND;
-?>
-      <div id="alarmSound" class="hidden">
-<?php
-    if ( ZM_WEB_USE_OBJECT_TAGS && isWindows() ) {
-?>
-        <object id="MediaPlayer" width="0" height="0"
-          classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-          codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902">
-          <param name="FileName" value="<?php echo $soundSrc ?>"/>
-          <param name="autoStart" value="0"/>
-          <param name="loop" value="1"/>
-          <param name="hidden" value="1"/>
-          <param name="showControls" value="0"/>
-          <embed src="<?php echo $soundSrc ?>"
-            autostart="true"
-            loop="true"
-            hidden="true">
-          </embed>
-        </object>
-<?php
-    } else {
-?>
-        <embed src="<?php echo $soundSrc ?>"
-          autostart="true"
-          loop="true"
-          hidden="true">
-        </embed>
-<?php
-    }
-?>
-      </div>
 <?php
 }
 ?>

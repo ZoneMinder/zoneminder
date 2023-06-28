@@ -93,8 +93,8 @@ foreach ( array('ServerId','StorageId','Status','Capturing','Analysing','Recordi
   }
 } # end foreach filter
 
-if (0 and !empty($user['MonitorIds']) ) {
-  $ids = explode(',', $user['MonitorIds']);
+if (count($user->unviewableMonitorIds()) ) {
+  $ids = $user->viewableMonitorIds();
   $conditions[] = 'M.Id IN ('.implode(',',array_map(function(){return '?';}, $ids)).')';
   $values = array_merge($values, $ids);
 }
@@ -178,8 +178,9 @@ $html .= '</span>
   FROM Monitors AS M
  LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
  LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
+WHERE M.`Deleted`=false
 ' .
-  ( count($conditions) ? ' WHERE ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
+  ( count($conditions) ? ' AND ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
   $monitors = dbFetchAll($sql, null, $values);
   $displayMonitors = array();
   $monitors_dropdown = array();
@@ -212,13 +213,14 @@ $html .= '</span>
       ini_set('track_errors', 'on');
       $php_errormsg = '';
       $regexp = $_SESSION['MonitorName'];
+      if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
 
       @preg_match($regexp, '');
       if ( $php_errormsg ) {
         $regexp = '/'.preg_quote($regexp,'/').'/i';
       }
 
-      if ( !preg_match($regexp, $Monitor->Name()) ) {
+      if ( !@preg_match($regexp, $Monitor->Name()) ) {
         continue;
       }
     }
@@ -247,7 +249,6 @@ $html .= '</span>
     }
     $displayMonitors[] = $monitors[$i];
   } # end foreach monitor
-
   $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').'</label>';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
@@ -257,7 +258,7 @@ $html .= '</span>
       'data-placeholder'=>'All',
     ) );
   # Repurpose this variable to be the list of MonitorIds as a result of all the filtering
-  $selected_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
+  $display_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
   $html .= '</span>
 ';
   echo $html;

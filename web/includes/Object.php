@@ -357,15 +357,16 @@ class ZM_Object {
         );
       }
     );
-    $fields = array_keys($fields);
 
     if ( $this->Id() ) {
+      $fields = array_keys($fields);
       $sql = 'UPDATE `'.$table.'` SET '.implode(', ', array_map(function($field) {return '`'.$field.'`=?';}, $fields)).' WHERE Id=?';
       $values = array_map(function($field){ return $this->{$field};}, $fields);
       $values[] = $this->{'Id'};
       if (dbQuery($sql, $values)) return true;
     } else {
       unset($fields['Id']);
+      $fields = array_keys($fields);
 
       $sql = 'INSERT INTO `'.$table.
         '` ('.implode(', ', array_map(function($field) {return '`'.$field.'`';}, $fields)).
@@ -462,6 +463,13 @@ class ZM_Object {
   }
   public function get_last_error() {
     return $this->_last_error;
+  }
+  public function expose($filters=[]) {
+    $default_filters = ['_last_error','defaults'];
+    $vars = get_object_vars($this);
+    foreach ($filters as $filter) { unset($vars[$filter]); }
+    foreach ($default_filters as $filter) { unset($vars[$filter]); }
+    return $vars;
   }
 } # end class Object
 ?>

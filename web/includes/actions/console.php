@@ -24,15 +24,12 @@ if ( $action == 'delete' ) {
     return;
   }
 
-  if ( isset($_REQUEST['markMids']) && !$user['MonitorIds'] ) {
+  if ( isset($_REQUEST['markMids']) && !$user->MonitorIds() ) {
     require_once('includes/Monitor.php');
-    foreach ( $_REQUEST['markMids'] as $markMid ) {
-      if ( canEdit('Monitors', $markMid) ) {
-        // This could be faster as a select all
-        if ( $monitor = dbFetchOne('SELECT * FROM Monitors WHERE Id = ?', NULL, array($markMid)) ) {
-          $Monitor = new ZM\Monitor($monitor);
-          $Monitor->delete();
-        } // end if monitor found in db
+    foreach ($_REQUEST['markMids'] as $markMid) {
+      if (canEdit('Monitors', $markMid)) {
+        $monitor = ZM\Monitor::find_one(['Id'=>$markMid]);
+        if ($monitor) $monitor->delete();
       } // end if canedit this monitor
     } // end foreach monitor in MarkMid
   } // markMids is set and we aren't limited to specific monitors

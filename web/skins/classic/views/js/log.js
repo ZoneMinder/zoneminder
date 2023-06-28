@@ -45,7 +45,10 @@ function ajaxRequest(params) {
     data: params.data,
     timeout: 0,
     success: function(data) {
-      //console.log('Ajax parameters: ' + JSON.stringify(params));
+      if (!data.rows.length) {
+        // If page is > 1, bt infinitely loops
+        table.bootstrapTable('selectPage', 1);
+      }
       // rearrange the result into what bootstrap-table expects
       params.success({
         total: data.total,
@@ -63,8 +66,11 @@ function ajaxRequest(params) {
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
     try {
-      row.Message = decodeURIComponent(row.Message).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      row.Message = decodeURIComponent(row.Message)
+          .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Replace link tags
+          .replace(/event (\d+)/g, "<a href=\"?view=event&eid=$1\">event $1</a>");
     } catch (e) {
+      console.log("Error decoding " + row.Message);
       // ignore errors
     }
   });
@@ -138,8 +144,7 @@ function initPage() {
   });
 
   $j('#filterStartDateTime, #filterEndDateTime')
-      .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false})
-      .on('change', filterLog);
+      .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: filterLog});
   $j('#filterServerId')
       .on('change', filterLog);
 }

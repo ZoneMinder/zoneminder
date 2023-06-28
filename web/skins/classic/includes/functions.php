@@ -30,14 +30,9 @@ function xhtmlHeaders($file, $title) {
   # This idea is that we always include the classic css files, 
   # and then any different skin only needs to contain things that are different.
   $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
-
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
 
-
   $basename = basename($file, '.php');
-
-  $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
-  $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
 
   function output_link_if_exists($files, $cache_bust=true) {
     global $skin;
@@ -140,12 +135,15 @@ if ( $css != 'base' )
 ?>
   <style>
 <?php
-  if ( $baseViewCssPhpFile ) {
-    require_once($baseViewCssPhpFile);
-  }
-  if ( $viewCssPhpFile ) {
-    require_once($viewCssPhpFile);
-  }
+  $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
+  if ($baseCssPhpFile) require_once($baseCssPhpFile);
+  $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
+  if ($skinCssPhpFile) require_once($baseCssPhpFile);
+
+  $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
+  if ($baseViewCssPhpFile) require_once($baseViewCssPhpFile);
+  $viewCssPhpFile = getSkinFile('/css/'.$css.'/views/'.$basename.'.css.php');
+  if ($viewCssPhpFile) require_once($viewCssPhpFile);
 ?>
   </style>
 
@@ -157,7 +155,7 @@ if ( $css != 'base' )
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
 function getBodyTopHTML() {
   echo '
-<body>
+<body'.((defined('ZM_WEB_NAVBAR_STICKY') and ZM_WEB_NAVBAR_STICKY) ? ' class="sticky"' : '').'>
 <noscript>
 <div style="background-color:red;color:white;font-size:x-large;">
 '. validHtmlStr(ZM_WEB_TITLE) .' requires Javascript. Please enable Javascript in your browser for this site.
@@ -197,32 +195,39 @@ function getNavBarHTML() {
 // The legacy navigation bar that collapses into a pulldown menu on small screens.
 //
 function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) {
-
   $status = runtimeStatus($running);
-
 ?>
 <div class="container-fluid" id="navbar-container">
   <nav class="navbar navbar-expand-md justify-content-center flex-row" id="navbar-one">
-
     <div class="navbar-brand justify-content-start align-self-start">
       <?php echo getNavBrandHTML() ?>
     </div>
-
     <!-- the Navigation Bar Hamburger Button   -->
+<!--
     <div class="nav justify-content-end flex-grow-1">
+-->
+<?php 
+  if ((!ZM_OPT_USE_AUTH) or $user) {
+?>
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon">
 					<i class="material-icons md-20">menu</i>
 				</span>
       </button>
+      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
+        <span class="sr-only">Toggle guages</span>
+        <span class="navbar-toggler-icon">
+					<i class="material-icons md-20">monitoring</i>
+				</span>
+      </button>
+<!--
    </div>
-
+-->
     <div class="collapse navbar-collapse" id="main-header-nav">
 <?php
 
   // *** Build the navigation bar menu items ***
-  if ( $user and $user['Username'] ) {
         echo '<ul class="nav navbar-nav align-self-start justify-content-center">';
           echo getConsoleHTML();
           echo getOptionsHTML();
@@ -236,23 +241,25 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getSnapshotsHTML($view);
           echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
+          echo getMapHTML($view);
           echo getHeaderFlipHTML();
-        echo '</ul>';
+          echo '</ul></div><div id="accountstatus">
+';
 
         echo '<ul class="nav navbar-nav justify-content-end align-self-start flex-grow-1">';
           echo getAccountCircleHTML($skin, $user);
           echo getStatusBtnHTML($status);
-        echo '</ul>';
-  }
-?>
+        echo '</ul>
     </div>
+      ';
+?>
   </nav><!-- End First Navbar -->
 
-  <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two">
-    <div class="container-fluid" id="panel"<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>>
+  <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two"
+<?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>
+>
+    <div class="container-fluid" id="panel" >
 <?php
-
-  if ( (!ZM_OPT_USE_AUTH) or $user ) {
 
 // *** Build the statistics shown on the navigation bar ***
 ?>
@@ -277,12 +284,12 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
         </ul>
       </div>
 <?php
-  } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
     </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
   
 <?php
+  } // end if (!ZM_OPT_USE_AUTH) or $user )
   $banner_html = getConsoleBannerHTML();
   if ($banner_html) {
     echo '<nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">'.$banner_html.'</nav>';
@@ -296,29 +303,22 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 // A new, slimmer navigation bar, permanently collapsed into a dropdown
 //
 function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $skin) {
-
   $status = runtimeStatus($running);
-
   ?>
-  <div class="fixed-top container-fluid">
+  <div class="container-fluid" id="navbar-container">
     <nav class="navbar px-1 flex-nowrap">
-
       <div class="navbar-brand align-self-start px-0">
         <?php echo getNavBrandHTML() ?>
       </div>
-
       <nav class="navbar navbar-expand-md align-self-start px-0">
 <?php
-
   // *** Build the statistics shown on the navigation bar ***
   if ( (!ZM_OPT_USE_AUTH) or $user ) {
 ?>
         <div id="reload" class="collapse navbar-collapse px-0">
-
           <ul id="Version" class="pr-2 navbar-nav">
             <?php echo getZMVersionHTML() ?>
           </ul>
-
           <ul id="Bandwidth" class="px-2 navbar-nav">
             <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
           </ul>
@@ -359,7 +359,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 
       <div style="background-color:#485460" class="dropdown-menu dropdown-menu-right px-3" id="main-header-nav">
       <?php
-      if ( $user and $user['Username'] ) {
+      if ( $user and $user->Username() ) {
           echo '<ul class="navbar-nav">';
             echo getConsoleHTML();
             echo getOptionsHTML();
@@ -373,6 +373,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getSnapshotsHTML($view);
             echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);
+            echo getMapHTML($view);
           echo '</ul>';
       }
       ?>
@@ -380,7 +381,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 
     </nav><!-- End First Navbar -->
 
-    <nav class="navbar navbar-expand-md justify-content-center">
+    <nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">
       <?php echo getConsoleBannerHTML() ?>
     </nav><!-- End Second Navbar -->
   </div>
@@ -539,30 +540,31 @@ function getConsoleBannerHTML() {
 function getBandwidthHTML($bandwidth_options, $user) {
 
   # Limit available options to what are available in user
-  if ( $user && !empty($user['MaxBandwidth']) ) {
-    if ( $user['MaxBandwidth'] == 'low' ) {
+  if ( $user && !empty($user->MaxBandwidth()) ) {
+    if ( $user->MaxBandwidth() == 'low' ) {
       unset($bandwidth_options['high']);
       unset($bandwidth_options['medium']);
-    } else if ( $user['MaxBandwidth'] == 'medium' ) {
+    } else if ( $user->MaxBandwidth() == 'medium' ) {
       unset($bandwidth_options['high']);
     }
   }
 
-  $result = '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-  $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
+  $result = '';
+  if (count($bandwidth_options) > 1) {
+    $result .= '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
 
-  $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
-  if ( count($bandwidth_options) > 1 ) {
+    $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
     if ( isset($bandwidth_options['high']) )
       $result .= '<a data-pdsa-dropdown-val="high" class="dropdown-item bwselect" href="#">' .translate('High'). '</a>'.PHP_EOL;
     if ( isset($bandwidth_options['medium']) )
       $result .= '<a data-pdsa-dropdown-val="medium" class="dropdown-item bwselect" href="#">' .translate('Medium'). '</a>'.PHP_EOL;
     # low is theoretically always available
     $result .= '<a data-pdsa-dropdown-val="low" class="dropdown-item bwselect" href="#">' .translate('Low'). '</a>'.PHP_EOL;    
-  }
-  $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
 
-  $result .= '</li>'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  }
     
   return $result;
 }
@@ -630,7 +632,7 @@ function getConsoleHTML() {
   $result = '';
   
   if ( canView('Monitors') ) {
-    $result .= '<li id="getConsoleHTML" class="nav-item dropdown"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -641,7 +643,7 @@ function getOptionsHTML() {
   $result = '';
   
   if ( canView('System') ) {
-    $result .= '<li id="getOptionsHTML" class="nav-item dropdown"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getOptionsHTML" class="nav-item"><a class="nav-link" href="?view=options">'.translate('Options').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -655,7 +657,7 @@ function getLogHTML() {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) {
       $logstate = logState();
       $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
-      $result .= '<li id="getLogHTML" class="nav-item dropdown"><a class="nav-link '.$class.'" href="?view=log">'.translate('Log').'</a></li>'.PHP_EOL;
+      $result .= '<li id="getLogHTML" class="nav-item"><a class="nav-link '.$class.'" href="?view=log">'.translate('Log').'</a></li>'.PHP_EOL;
     }
   }
   
@@ -670,7 +672,7 @@ function getLogIconHTML() {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
       $class = ( $logstate == 'alert' ) ? 'text-warning' : (( $logstate == 'alarm' ) ? 'text-danger' : '');
-      $result .= '<li id="getLogIconHTML" class="nav-item dropdown">'.
+      $result .= '<li id="getLogIconHTML" class="nav-item">'.
         makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
         '</li>'.PHP_EOL;
     }
@@ -684,7 +686,7 @@ function getDevicesHTML() {
   $result = '';
   
   if ( ZM_OPT_X10 && canView('Devices') ) {
-    $result .= '<li id="getDevicesHTML" class="nav-item dropdown"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
+    $result .= '<li id="getDevicesHTML" class="nav-item"><a class="nav-link" href="?view=devices">Devices</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -696,7 +698,7 @@ function getGroupsHTML($view) {
   if ( !canView('Groups') ) return $result;
 
   $class = $view == 'groups' ? ' selected' : '';
-  $result .= '<li id="getGroupsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
+  $result .= '<li id="getGroupsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=groups">'. translate('Groups') .'</a></li>'.PHP_EOL;
   
   return $result;
 }
@@ -707,7 +709,7 @@ function getFilterHTML($view) {
   if ( !canView('Events') ) return $result;
   
   $class = $view == 'filter' ? ' selected' : '';
-  $result .= '<li id="getFilterHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
+  $result .= '<li id="getFilterHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=filter">'.translate('Filters').'</a></li>'.PHP_EOL;
   
   return $result;
 }
@@ -718,7 +720,7 @@ function getCycleHTML($view) {
   
   if ( canView('Stream') ) {
     $class = $view == 'cycle' ? ' selected' : '';
-    $result .= '<li id="getCycleHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=watch&cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getCycleHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=watch&amp;cycle=true">' .translate('Cycle'). '</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -730,7 +732,7 @@ function getMontageHTML($view) {
   
   if ( canView('Stream') ) {
     $class = $view == 'montage' ? ' selected' : '';
-    $result .= '<li id="getMontageHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -757,7 +759,7 @@ function getMontageReviewHTML($view) {
     }
     $live = isset($montageReviewQuery) ? '&fit=1'.$montageReviewQuery.'&live=0' : '';
     $class = $view == 'montagereview' ? ' selected' : '';
-    $result .= '<li id="getMontageReviewHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getMontageReviewHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montagereview' .$live. '">'.translate('MontageReview').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -769,7 +771,7 @@ function getSnapshotsHTML($view) {
   
   if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canView('Snapshots')) {
     $class = $view == 'snapshots' ? ' selected' : '';
-    $result .= '<li id="getSnapshotsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
+    $result .= '<li id="getSnapshotsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=snapshots">' .translate('Snapshots'). '</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -780,7 +782,7 @@ function getReportsHTML($view) {
   
   if (canView('Events')) {
     $class = ($view == 'reports' or $view == 'report') ? ' selected' : '';
-    $result .= '<li id="getReportsHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getReportsHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=reports">'.translate('Reports').'</a></li>'.PHP_EOL;
   }
   
   return $result;
@@ -792,9 +794,21 @@ function getRprtEvntAuditHTML($view) {
   
   if ( canView('Events') ) {
     $class = $view == 'report_event_audit' ? ' selected' : '';
-    $result .= '<li id="getRprtEvntAuditHTML" class="nav-item dropdown"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
+    $result .= '<li id="getRprtEvntAuditHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=report_event_audit">'.translate('ReportEventAudit').'</a></li>'.PHP_EOL;
   }
   
+  return $result;
+}
+
+// Returns the html representing the Audit Events Report menu item
+function getMapHTML($view) {
+  $result = '';
+
+  if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
+    $class = $view == 'map' ? ' selected' : '';
+    $result .= '<li id="getMapHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=map">'.translate('Map').'</a></li>'.PHP_EOL;
+  }
+
   return $result;
 }
 
@@ -814,7 +828,7 @@ function getAccountCircleHTML($skin, $user=null) {
   
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<li id="getAccountCircleHTML" class="navbar-text navbar-nav mr-2">'.PHP_EOL;
-    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '. validHtmlStr($user['Username']),
+    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '. validHtmlStr($user->Username()),
       (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
@@ -946,6 +960,7 @@ function xhtmlFooter() {
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
 <?php echo output_script_if_exists(array(
+  'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
   'js/bootstrap-table-1.21.1/bootstrap-table.min.js',
   'js/bootstrap-table-1.21.1/extensions/locale/bootstrap-table-locale-all.min.js',

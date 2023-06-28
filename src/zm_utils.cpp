@@ -404,7 +404,7 @@ std::string UriEncode(const std::string &value) {
     } else if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
       retbuf.push_back(c);
     } else {
-      sprintf(tmp, "%%%02X", c);
+      snprintf(tmp, 4, "%%%02X", c);
       retbuf.append(tmp);
     }
     src++;

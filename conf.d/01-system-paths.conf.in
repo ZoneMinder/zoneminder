@@ -27,6 +27,9 @@ ZM_DIR_EXPORTS=@ZM_TMPDIR@
 # ZoneMinder url path to the zms streaming server
 ZM_PATH_ZMS=@ZM_PATH_ZMS@
 
+# ZoneMinder url path to the zms streaming server
+ZM_PATH_API=@ZM_PATH_API@
+
 # Full Path to ZoneMinder's mapped memory files 
 # The web account user must have full read/write permission to this folder.
 ZM_PATH_MAP=@ZM_PATH_MAP@

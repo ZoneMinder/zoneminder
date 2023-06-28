@@ -144,7 +144,6 @@ echo $navbar = getNavBarHTML();
     <div id="content">
       <form name="selectForm" id="selectForm" method="get" action="?">
         <input type="hidden" name="view" value="filter"/>
-        <hr/>
         <div id="filterSelector"><label for="Id"><?php echo translate('UseFilter') ?></label>
           <?php
 if ( count($filterNames) > 1 ) {
@@ -164,7 +163,6 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
         <input type="hidden" name="action"/>
         <input type="hidden" name="object" value="filter"/>
 
-        <hr/>
 <?php if ( $filter->Id() ) { ?>
         <p class="Id"><label><?php echo translate('Id') ?></label><?php echo $filter->Id() ?></p>
 <?php } ?>
@@ -172,21 +170,18 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
           <input type="text" id="filter[Name]" name="filter[Name]" value="<?php echo validHtmlStr($filter->Name()) ?>" data-on-input-this="updateButtons"/>
         </p>
-<?php if ( ZM_OPT_USE_AUTH ) { ?>
-        <p><label><?php echo translate('FilterUser') ?></label>
-<?php 
-            global $user;
+<?php
+if (ZM_OPT_USE_AUTH) {
+  echo '<p><label>'.translate('FilterUser').'</label>'.PHP_EOL;
+  global $user;
   echo htmlSelect('filter[UserId]',
     ZM\User::Indexed_By_Id(),
-    $filter->UserId() ? $filter->UserId() : $user['Id']
+    $filter->UserId() ? $filter->UserId() : $user->Id()
   );
+  echo '</p>'.PHP_EOL;
+}
+echo $filter->widget();
 ?>
-        </p>
-<?php } ?>
-        <p>
-<?php echo $filter->widget(); ?>
-
-        <hr/>
         <table id="sortTable" class="filterTable">
           <tbody>
             <tr>
@@ -223,7 +218,10 @@ echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc());
 <?php
 echo htmlSelect('filter[Query][skip_locked]',
   array('0'=>translate('No'), '1'=>translate('Yes')),
-  $filter->skip_locked());
+  $filter->skip_locked(),
+  ( db_supports_feature('skip_locks') ? []: ['disabled'=>'disabled', 'title'=>'Database does not support the skip locked feature.'])
+);
+
 ?>
               </td>
               <td>  
@@ -337,6 +335,14 @@ if ( ZM_OPT_EMAIL ) {
                 <label><?php echo translate('FilterEmailBody') ?></label>
                 <textarea name="filter[EmailBody]" rows="<?php echo count(explode("\n", $filter->EmailBody())) ?>"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
               </p>
+              <p>
+                <label><?php echo translate('Email Format') ?></label>
+<?php echo html_radio(
+  'filter[EmailFormat]',
+  ['Individual'=>translate('Individual'), 'Summary'=>translate('Summary')],
+  $filter->EmailFormat()); ?>
+              </p>
+              
             </div>
 <?php
 }
@@ -350,7 +356,7 @@ if ( ZM_OPT_EMAIL ) {
           <button type="button" data-on-click-this="submitToExport"><?php echo translate('ExportMatches') ?></button>
           <button type="button" data-on-click-this="submitAction" value="execute" id="executeButton"><?php echo translate('Execute') ?></button>
 <?php
-$canEdit = (canEdit('System') or ($filter->UserId() == $user['Id']));
+$canEdit = (canEdit('System') or ($filter->UserId() == $user->Id()));
 $canSave = !$filter->Id() or $canEdit;
 $canDelete = $filter->Id() and $canEdit;
 ?>

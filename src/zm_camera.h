@@ -39,9 +39,9 @@ protected:
 
   const Monitor *monitor;
   SourceType    type;
-  unsigned int  width;
+  uint16_t  width;
+  uint16_t  height;
   unsigned int  linesize;
-  unsigned int  height;
   unsigned int  colours;
   unsigned int  subpixelorder;
   unsigned int  pixels;
@@ -100,7 +100,12 @@ public:
   unsigned long long ImageSize() const { return imagesize; }
   unsigned int Bytes() const { return bytes; };
   int getFrequency() { return mAudioStream ? mAudioStream->codecpar->sample_rate : -1; }
-  int getChannels() { return mAudioStream ? mAudioStream->codecpar->channels : -1; }
+  int getChannels() {
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+    return mAudioStream ? mAudioStream->codecpar->ch_layout.nb_channels : -1; }
+#else
+    return mAudioStream ? mAudioStream->codecpar->channels : -1; }
+#endif
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return -1; }
   virtual int Hue( int/*p_hue*/=-1 ) { return -1; }

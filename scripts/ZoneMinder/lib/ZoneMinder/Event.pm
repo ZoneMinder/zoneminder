@@ -463,33 +463,34 @@ sub delete_files {
       }
     } # end if Scheme eq Deep
 
-    # Now check for empty directories and delete them.
-    my @path_parts = split('/', $event_path);
-    pop @path_parts;
-    # Guaranteed the first part is the monitor id
-    Debug("Initial path_parts: @path_parts");
-    while ( @path_parts > 1 ) {
-      my $path = join('/', $storage_path, @path_parts);
-      my $dh;
-      if ( !opendir($dh, $path) ) {
-        Warning("Fail to open $path");
-        last;
-      }
-      my @dir =  readdir($dh);
-      closedir($dh);
-      if ( scalar(grep { $_ ne '.' and $_ ne '..' } @dir) == 0 ) {
-        Debug("Removing empty dir at $path");
-        if ( !rmdir $path ) {
-          Warning("Fail to rmdir $path: $!");
+    if ($Storage->Type() ne 's3fs') {
+      # Now check for empty directories and delete them.
+      my @path_parts = split('/', $event_path);
+      pop @path_parts;
+      # Guaranteed the first part is the monitor id
+      Debug("Initial path_parts: @path_parts");
+      while ( @path_parts > 1 ) {
+        my $path = join('/', $storage_path, @path_parts);
+        my $dh;
+        if ( !opendir($dh, $path) ) {
+          Warning("Fail to open $path");
           last;
         }
-      } else {
-        Debug("Dir $path is not empty @dir");
-        last;
-      }
-      pop @path_parts;
-    } # end while path_parts
-
+        my @dir =  readdir($dh);
+        closedir($dh);
+        if ( scalar(grep { $_ ne '.' and $_ ne '..' } @dir) == 0 ) {
+          Debug("Removing empty dir at $path");
+          if ( !rmdir $path ) {
+            Warning("Fail to rmdir $path: $!");
+            last;
+          }
+        } else {
+          Debug(4, "Dir $path is not empty @dir");
+          last;
+        }
+        pop @path_parts;
+      } # end while path_parts
+    } # end if not s3fs
   } # end foreach Storage
 } # end sub delete_files
 
@@ -652,57 +653,36 @@ sub CopyTo {
   my $moved = 0;
 
   if ( $$NewStorage{Type} eq 's3fs' ) {
-    if ( $$NewStorage{Url} ) {
-      my $url = $$NewStorage{Url};
-      $url =~ s/^(s3|s3fs):\/\///ig;
-      my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ( $url =~ /^\s*([^:]+):([^@]+)@([^\/]*)\/([^\/]+)(\/.+)?\s*$/ );
-      Debug("S3 url parsed to id:$aws_id secret:$aws_secret host:$aws_host, bucket:$aws_bucket, subpath:$subpath\n from $url");
-      if ( $aws_id and $aws_secret and $aws_host and $aws_bucket ) {
-        eval {
-          require Net::Amazon::S3;
-          require File::Slurp;
-          my $s3 = Net::Amazon::S3->new( {
-              aws_access_key_id     => $aws_id,
-              aws_secret_access_key => $aws_secret,
-              ( $aws_host ? ( host => $aws_host ) : () ),
-              authorization_method => 'Net::Amazon::S3::Signature::V4',
-            });
-          my $bucket = $s3->bucket($aws_bucket);
-          if ( !$bucket ) {
-            Error("S3 bucket $bucket not found.");
-            die;
+    my $s3 = $NewStorage->s3();
+    my $bucket = $NewStorage->bucket();
+    if ($s3 and $bucket) {
+      my $event_path = $NewStorage->aws_subpath().$self->RelativePath();
+      my @files = glob("$OldPath/*");
+      Debug("Files to move @files");
+      eval {
+        foreach my $file (@files) {
+          next if $file =~ /^\./;
+          ($file) = ($file =~ /^(.*)$/); # De-taint
+          my $starttime = [gettimeofday];
+          Debug("Moving file $file to $NewPath");
+          my $size = -s $file;
+          if (!$size) {
+            Info('Not moving file with 0 size');
+          }
+          my $filename = $event_path.'/'.File::Basename::basename($file);
+          if (!$bucket->add_key_filename($filename, $file)) {
+            die "Unable to add key for $filename " . $s3->err . ': '. $s3->errstr;
           }
 
-          my $event_path = $subpath.$self->RelativePath();
+          my $duration = tv_interval($starttime);
+          Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
+        } # end foreach file.
 
-          my @files = glob("$OldPath/*");
-          Debug("Files to move @files");
-          foreach my $file (@files) {
-            next if $file =~ /^\./;
-            ($file) = ($file =~ /^(.*)$/); # De-taint
-            my $starttime = [gettimeofday];
-            Debug("Moving file $file to $NewPath");
-            my $size = -s $file;
-            if (!$size) {
-              Info('Not moving file with 0 size');
-            }
-            my $filename = $event_path.'/'.File::Basename::basename($file);
-            if (!$bucket->add_key_filename($filename, $file)) {
-              die "Unable to add key for $filename " . $s3->err . ': '. $s3->errstr;
-            }
-
-            my $duration = tv_interval($starttime);
-            Debug('PUT to S3 ' . Number::Bytes::Human::format_bytes($size) . " in $duration seconds = " . Number::Bytes::Human::format_bytes($duration?$size/$duration:$size) . '/sec');
-          } # end foreach file.
-
-          $moved = 1;
-        };
-        Error($@) if $@;
-      } else {
-        Error('Unable to parse S3 Url into it\'s component parts.');
-      }
-    } # end if Url
-  } # end if s3
+        $moved = 1;
+      };
+      Error($@) if $@;
+    } # end if s3
+  } # end if s3f3
 
   my $error = '';
   if (!$moved) {
@@ -756,7 +736,17 @@ sub MoveTo {
   }
 
   my $OldStorage = $self->Storage(undef);
-  my $error = $self->CopyTo($NewStorage);
+
+  # In strange situations where commits don't happen, the files can be moved but the db hasn't been updated.
+  # So here's a special case test to fix that.
+  my ( $SrcPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
+  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
+  my $error = '';
+  if (! -e $SrcPath and -e $NewPath) {
+    Warning("Event has already been moved, just updating the event.");
+  } else {
+    $error = $self->CopyTo($NewStorage);
+  }
   if (!$error) {
     # Succeeded in copying all files, so we may now update the Event.
     $$self{StorageId} = $$NewStorage{Id};

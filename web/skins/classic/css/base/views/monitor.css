@@ -55,9 +55,6 @@ input[name="newMonitor[Width]"],
 input[name="newMonitor[Height]"] {
   width: 80px;
 }
-select.chosen {
-  width: 100%;
-}
 #page tr td:first-child {
   min-width: 300px;
   vertical-align: top;
@@ -72,4 +69,49 @@ tr td input[type="radio"] {
 .tab-pane td:first-child {
   padding-right: 1rem;
   text-align: right;
+}
+
+body.sticky #content {
+  overflow-y: auto;
+  height: 100%;
+}
+nav ul.nav {
+  height: 100%;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+ul.form > li {
+  text-align: left;
+  padding-left: 300px;
+  margin: 10px 0;
+}
+ul.form > li > label {
+  width: 290px;
+  margin-left: -300px;
+  text-align: right;
+}
+.EncoderParameters label {
+  vertical-align: top;
+}
+
+@media screen and (max-width:767px) {
+  #content {
+    display: block;
+  }
+  #pills-tab {
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  ul.form > li {
+    padding-left: 0;
+    margin: 5px 0;
+  }
+  ul.form > li > label {
+    width: 100%;
+    margin-left: 0;
+    text-align: left;
+  }
 }

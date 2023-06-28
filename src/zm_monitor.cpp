@@ -79,6 +79,32 @@ struct Namespace namespaces[] =
 };
 #endif
 
+// This is the official SQL (and ordering of the fields) to load a Monitor.
+// It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
+std::string load_monitor_sql =
+"SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+"`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+"`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
+"`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
+"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
+"`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
+"`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
+"`OutputCodec`, `Encoder`, `OutputContainer`, "
+"`RecordAudio`, "
+"`Brightness`, `Contrast`, `Hue`, `Colour`, "
+"`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
+"`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
+"`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
+"`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
+"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`,"
+"`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
+#if MOSQUITTOPP_FOUND
+", `MQTT_Enabled`, `MQTT_Subscriptions`"
+#endif
+" FROM `Monitors`";
+
 std::string CameraType_Strings[] = {
   "Unknown",
   "Local",
@@ -148,6 +174,7 @@ Monitor::Monitor()
   janus_profile_override(""),
   janus_use_rtsp_restream(false),
   janus_rtsp_user(0),
+  janus_rtsp_session_timeout(0),
   //protocol
   //method
   //options
@@ -300,8 +327,8 @@ Monitor::Monitor()
 
 /*
    std::string load_monitor_sql =
-   "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, "
+   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -323,6 +350,7 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   id = dbrow.get<long long>("Id");
   name = dbrow.get<std::string>("Name");
+  deleted = dbrow.get<long long>("Deleted");
   server_id = dbrow.has("ServerId") ? dbrow.get<long long>("ServerId") : 0;
 
   storage_id = dbrow.get<int>("StorageId");
@@ -366,6 +394,7 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   janus_audio_enabled = dbrow.has("JanusAudioEnabled") ? (dbrow.get<int>("JanusAudioEnabled")==1) : false;
   janus_profile_override = dbrow.has("Janus_Profile_Override") ? dbrow.get<std::string>("Janus_Profile_Override") : "";
   janus_use_rtsp_restream = dbrow.has("Janus_Use_RTSP_Restream") ? (dbrow.get<int>("Janus_Use_RTSP_Restream")==1) : false;
+  janus_rtsp_session_timeout = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
   janus_rtsp_user =  dbrow.has("Janus_RTSP_User") ? dbrow.get<int>("Janus_RTSP_User") : 0;
 
@@ -433,7 +462,8 @@ void Monitor::Load(zmDbQuery& dbrow, bool load_zones=true, Purpose p = QUERY) {
   deinterlacing = dbrow.get<long long>("Deinterlacing");
   deinterlacing_value = deinterlacing & 0xff;
 
-/*"`DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, " */
+/*"`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, " */
+  decoder_name = dbrow[col] ? dbrow[col] : ""; col++;
   decoder_hwaccel_name = dbrow.has("DecoderHWAccelName") ? dbrow.get<std::string>("DecoderHWAccelName") : "";
   decoder_hwaccel_device = dbrow.has("DecoderHWAccelDevice") ? dbrow.get<std::string>("DecoderHWAccelDevice") : "";
   rtsp_describe = dbrow.has("RTSPDescribe") ? dbrow.get<int>("RTSPDescribe") != 0 : false;
@@ -822,20 +852,29 @@ bool Monitor::connect() {
        + sizeof(VideoStoreData) //Information to pass back to the capture process
        + (image_buffer_count*sizeof(struct timeval))
        + (image_buffer_count*image_size)
-       + image_size // alarm_image
+       + (image_buffer_count*image_size) // alarm_images
+       + (image_buffer_count*sizeof(AVPixelFormat)) //
        + 64; /* Padding used to permit aligning the images buffer to 64 byte boundary */
 
   Debug(1,
-        "SharedData=%zu TriggerData=%zu zone_count %d * sizeof int %zu VideoStoreData=%zu timestamps=%zu images=%dx%" PRIi64 " = %" PRId64 " total=%jd",
+        "SharedData=%zu "
+        "TriggerData=%zu "
+        "zone_count %d * sizeof int %zu "
+        "VideoStoreData=%zu "
+        "timestamps=%zu "
+        "images=%dx%" PRIi64 " = %" PRId64 " "
+        "analysis images=%dx%" PRIi64 " = %" PRId64 " "
+        "image_format = %dx%" PRIi64 " = %" PRId64 " "
+        "total=%jd",
         sizeof(SharedData),
         sizeof(TriggerData),
         zone_count,
         sizeof(int),
         sizeof(VideoStoreData),
         (image_buffer_count * sizeof(struct timeval)),
-        image_buffer_count,
-        image_size,
-        (image_buffer_count * image_size),
+        image_buffer_count, image_size, (image_buffer_count * image_size),
+        image_buffer_count, image_size, (image_buffer_count * image_size),
+        image_buffer_count, sizeof(AVPixelFormat), (image_buffer_count * sizeof(AVPixelFormat)),
         static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED
   mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
@@ -993,6 +1032,10 @@ bool Monitor::connect() {
 
     ReloadLinkedMonitors();
 
+    if (janus_enabled) {
+      Janus_Manager = new JanusManager(this);
+    }
+
     //ONVIF and Amcrest Setup
     //For now, only support one event type per camera, so share some state.
     Poll_Trigger_State = false;
@@ -1014,13 +1057,22 @@ bool Monitor::connect() {
         soap->send_timeout = 5;
         soap_register_plugin(soap, soap_wsse);
         proxyEvent = PullPointSubscriptionBindingProxy(soap);
+        if (!onvif_url.empty()) {
         std::string full_url = onvif_url + "/Events";
         proxyEvent.soap_endpoint = full_url.c_str();
 
         set_credentials(soap);
         Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
         if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
-          Error("Couldn't create subscription! %s, %s", soap_fault_string(soap), soap_fault_detail(soap));
+            const char *detail = soap_fault_detail(soap);
+            Error("Couldn't create subscription! %s, %s", soap_fault_string(soap), detail ? detail : "null");
+            _wsnt__Unsubscribe wsnt__Unsubscribe;
+            _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+            proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+            soap_destroy(soap);
+            soap_end(soap);
+            soap_free(soap);
+            soap = nullptr;
         } else {
           //Empty the stored messages
           set_credentials(soap);
@@ -1032,18 +1084,17 @@ bool Monitor::connect() {
             Event_Poller_Healthy = TRUE;
           }
         }
+        } else {
+          Warning("You must specify the url to the onvif endpoint");
+        }
 #else
         Error("zmc not compiled with GSOAP. ONVIF support not built in!");
 #endif
-      }
+      }  // end if Armcrest of GSOAP
     } else {
       Debug(1, "Not Starting ONVIF");
     }
     //End ONVIF Setup
-
-    if (janus_enabled) {
-      Janus_Manager = new JanusManager(this);
-    }
 
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
@@ -1732,58 +1783,61 @@ void Monitor::UpdateFPS() {
 //Thread where ONVIF polling, and other similar status polling can happen.
 //Since these can be blocking, run here to avoid intefering with other processing
 bool Monitor::Poll() {
-
-  //We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
+  // We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
   if (Event_Poller_Healthy) {
-    if(use_Amcrest_API) {
+    if (use_Amcrest_API) {
       Amcrest_Manager->WaitForMessage();
     } else {
-
 #ifdef WITH_GSOAP
       set_credentials(soap);
       int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
       if (result != SOAP_OK) {
         if (result != SOAP_EOF) { //Ignore the timeout error
-          Error("Failed to get ONVIF messages! %s", soap_fault_string(soap));
+          Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
           Event_Poller_Healthy = false;
         }
       } else {
         Debug(1, "Got Good Response! %i", result);
         for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
-          if (msg->Topic->__any.text != NULL &&
+          Debug(1, "Got msg ");
+          if ((msg->Topic != nullptr) &&
+              (msg->Topic->__any.text != nullptr) &&
           std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
-          msg->Message.__any.elts != NULL &&
-          msg->Message.__any.elts->next != NULL &&
-          msg->Message.__any.elts->next->elts != NULL &&
-          msg->Message.__any.elts->next->elts->atts != NULL &&
-          msg->Message.__any.elts->next->elts->atts->next != NULL &&
-          msg->Message.__any.elts->next->elts->atts->next->text != NULL) {
-          Debug(1,"Got Motion Alarm!");
+              (msg->Message.__any.elts != nullptr) &&
+              (msg->Message.__any.elts->next != nullptr) &&
+              (msg->Message.__any.elts->next->elts != nullptr) &&
+              (msg->Message.__any.elts->next->elts->atts != nullptr) &&
+              (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
+              (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
+            ) {
+            Debug(1, "Got Motion Alarm!");
             if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
             //Event Start
-              Debug(1,"Triggered on ONVIF");
+              Debug(1, "Triggered on ONVIF");
               if (!Poll_Trigger_State) {
-                Debug(1,"Triggered Event");
+                Debug(1, "Triggered Event");
                 Poll_Trigger_State = TRUE;
-                std::this_thread::sleep_for (std::chrono::seconds(1)); //thread sleep
+                std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
               }
             } else {
               Debug(1, "Triggered off ONVIF");
               Poll_Trigger_State = false;
               if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
                 Event_Poller_Closes_Event = TRUE;
-                Debug(1,"Setting ClosesEvent");
+                Debug(1, "Setting ClosesEvent");
               }
             }
+          } else {
+            Debug(1, "Got a message that we couldn't parse");
           }
-        }
-      }
+        }  // end foreach msg
+      }  // end if SOAP OK/NOT OK
 #endif
-    }
-  }
-  if (janus_enabled) {
+    }  // end if Amcrest or not
+  }  // end if Healthy
+  if (janus_enabled and Janus_Manager) {
     if (Janus_Manager->check_janus() == 0) {
       Janus_Manager->add_to_janus();
     }
@@ -1986,7 +2040,7 @@ bool Monitor::Analyse() {
                   Debug(1, "assigning refimage from snap->image");
                   ref_image.Assign(*(snap->image));
                 }
-                alarm_image.Assign(*(snap->image));
+                //alarm_image.Assign(*(snap->image));
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
@@ -2016,7 +2070,7 @@ bool Monitor::Analyse() {
                     Debug(1, "Setting zone score %d to %d", zone_index, zone.Score());
                     zone_scores[zone_index] = zone.Score(); zone_index ++;
                   }
-                  alarm_image.Assign(*(snap->analysis_image));
+                  //alarm_image.Assign(*(snap->analysis_image));
                   Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
                       score, last_motion_score, snap->score);
                   motion_frame_count += 1;
@@ -2030,7 +2084,7 @@ bool Monitor::Analyse() {
                   } // end if motion_score
                 } else {
                   Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
-                  alarm_image.Assign(*(snap->image));
+                  //alarm_image.Assign(*(snap->image));
                 }
 
                 if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
@@ -2200,7 +2254,22 @@ bool Monitor::Analyse() {
               event->updateNotes(noteSetMap);
           } else if (state == TAPE || state == IDLE) {
             if (event) {
-              if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
+              if (
+                  section_length >= Seconds(min_section_length)
+                  &&
+                  (event->Duration() >= section_length)
+                  ) {
+                if (event->Frames() < Seconds(min_section_length).count()) {
+                  /* This is a detection for the case where huge keyframe
+                   * intervals cause a huge time gap between the first
+                   * frame and second frame */
+                  Warning("%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                      name.c_str(), event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
+                } else {
                 Debug(1, "%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
                         name.c_str(), event->Id(),
                         static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
@@ -2209,6 +2278,7 @@ bool Monitor::Analyse() {
                         static_cast<int64>(Seconds(section_length).count()));
                 closeEvent();
               }
+            }
             }
           } // end if state machine
 
@@ -2232,7 +2302,7 @@ bool Monitor::Analyse() {
               }  // end if section_length
             }  // end if event
 
-            if (!event and (shared_data->recording == RECORDING_ALWAYS)) {
+            if ((!event) and (shared_data->recording == RECORDING_ALWAYS)) {
               if ((event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
                 Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
                     name.c_str(), analysis_image_count, event->Id());
@@ -2266,7 +2336,7 @@ bool Monitor::Analyse() {
     }
 
     if (event) {
-      event->AddPacket(packet_lock);
+      event->AddPacket(snap);
     } else {
       // In the case where people have pre-alarm frames, the web ui will generate the frame images
       // from the mp4. So no one will notice anyways.
@@ -2286,9 +2356,9 @@ bool Monitor::Analyse() {
       // Free up the decoded frame as well, we won't be using it for anything at this time.
       snap->out_frame = nullptr;
 
-      delete packet_lock;
     }
   }  // end scope for event_lock
+  delete packet_lock;
 
   packetqueue.increment_it(analysis_it);
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -2967,7 +3037,10 @@ Event * Monitor::openEvent(
   // Write out starting packets, do not modify packetqueue it will garbage collect itself
   while (starting_packet_lock && (*start_it != *analysis_it) && !zm_terminate) {
     ZM_DUMP_PACKET(starting_packet_lock->packet_->packet, "Queuing packet for event");
-    event->AddPacket(starting_packet_lock);
+
+    event->AddPacket(starting_packet_lock->packet_);
+    delete starting_packet_lock;
+    starting_packet_lock = nullptr;
 
     packetqueue.increment_it(start_it);
     if ((*start_it) != *analysis_it) {

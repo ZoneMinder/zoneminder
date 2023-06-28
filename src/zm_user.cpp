@@ -166,7 +166,7 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
   Debug(1, "Inside zmLoadTokenUser, formed key=%s", key.c_str());
 
   std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
-  std::string username = ans.first;
+  std::string username = zmDbEscapeString(ans.first);
   unsigned int iat = ans.second;
   Debug(1, "retrieved user '%s' from token", username.c_str());
 

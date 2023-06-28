@@ -28,6 +28,7 @@ global $user;
 const AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
 const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
+const homeView = '<?php echo getHomeView() ?>';
 
 const exportProgressString = '<?php echo addslashes(translate('Exporting')) ?>';
 const exportFailedString = '<?php echo translate('ExportFailed') ?>';
@@ -39,7 +40,7 @@ const cancelString = '<?php echo translate('Cancel') ?>';
    try to avoid using PHP_SELF but here I try to replace everything after '.php'. */ ?>
 const thisUrl = '<?php echo ZM_BASE_URL.preg_replace('/\.php.*$/i', '.php', $_SERVER['PHP_SELF']) ?>';
 const skinPath = '<?php echo ZM_SKIN_PATH ?>';
-const serverId = '<?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '' ?>';
+const serverId = <?php echo defined('ZM_SERVER_ID') ? ZM_SERVER_ID : '0' ?>;
 const Servers = [];
 <?php
 // Fall back to get Server paths, etc when no using multi-server mode
@@ -95,9 +96,8 @@ const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 var auth_relay = '<?php echo get_auth_relay() ?>';
 var user = <?php
-$user_without_password = $user;
-unset($user_without_password['Password']);
-echo json_encode($user_without_password);
+
+echo $user ? json_encode($user->expose(['Password'])) : '{}';
 ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 

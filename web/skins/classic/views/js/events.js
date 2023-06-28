@@ -39,13 +39,9 @@ function ajaxRequest(params) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }
-  $j('#fieldsTable input').each(function(index) {
+  $j('#fieldsTable input, #fieldsTable select').each(function(index) {
     const el = $j(this);
     params.data[el.attr('name')] = el.val();
-  });
-  $j('#fieldsTable select').each(function(index) {
-    const el = $j(this);
-    params.data[el.attr('name')] = el.children('option:selected').val();
   });
   $j.ajax({
     url: thisUrl + '?view=request&request=events&task=query'+filterQuery,
@@ -92,7 +88,7 @@ function processRows(rows) {
     date.setSeconds(row.Length);
     row.Length = date.toISOString().substr(11, 8);
 
-    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
+    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<div class="thumbnail" style="height: '+row.imgHeight+'px;"><a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a></div>';
   });
 
   return rows;
@@ -385,7 +381,12 @@ function initPage() {
     }
 
     evt.preventDefault();
-    $j('#deleteConfirm').modal('show');
+    if (evt.shiftKey) {
+      const selections = getIdSelections();
+      deleteEvents(selections);
+    } else {
+      $j('#deleteConfirm').modal('show');
+    }
   });
 
   // Update table links each time after new data is loaded

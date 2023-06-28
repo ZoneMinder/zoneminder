@@ -67,6 +67,8 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
       return AV_PIX_FMT_VDPAU;
     case AV_HWDEVICE_TYPE_CUDA:
       return AV_PIX_FMT_CUDA;
+    case AV_HWDEVICE_TYPE_QSV:
+      return AV_PIX_FMT_VAAPI;
 #ifdef AV_HWDEVICE_TYPE_MMAL
     case AV_HWDEVICE_TYPE_MMAL:
       return AV_PIX_FMT_MMAL;
@@ -122,7 +124,13 @@ FfmpegCamera::FfmpegCamera(
   mOptions(p_options),
   hwaccel_name(p_hwaccel_name),
   hwaccel_device(p_hwaccel_device),
-  frameCount(0)
+  frameCount(0),
+  use_hwaccel(true),
+  mCanCapture(false),
+  mConvertContext(nullptr),
+  error_count(0),
+  stream_width(0),
+  stream_height(0)
 {
   mMaskedPath = remove_authentication(mPath);
   mMaskedSecondPath = remove_authentication(mSecondPath);
@@ -130,9 +138,6 @@ FfmpegCamera::FfmpegCamera(
     FFMPEGInit();
   }
 
-  mCanCapture = false;
-  error_count = 0;
-  use_hwaccel = true;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   hw_device_ctx = nullptr;
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
@@ -140,7 +145,6 @@ FfmpegCamera::FfmpegCamera(
 #endif
 #endif
 
-  mConvertContext = nullptr;
   /* Has to be located inside the constructor so other components such as zma
    * will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {
@@ -227,7 +231,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     }
     return -1;
   }
-  if ((packet->pts < 0) and (lastPTS >=0)) {
+  if ((packet->pts < 0) and (packet->pts != AV_NOPTS_VALUE) and (lastPTS >= 0)) {
     // 32-bit wrap around?
     Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
     return -1;
@@ -387,47 +391,11 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoStreamId, mAudioStreamId);
 
   const AVCodec *mVideoCodec = nullptr;
-  if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_H264) {
-    if ((mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == nullptr) {
-      Debug(1, "Failed to find decoder (h264_mmal)");
+  if (!monitor->DecoderName().empty()) {
+    if ((mVideoCodec = avcodec_find_decoder_by_name(monitor->DecoderName().c_str())) == nullptr) {
+      Debug(1, "Failed to find decoder %s, falling back to auto", monitor->DecoderName().c_str());
     } else {
-      Debug(1, "Success finding decoder (h264_mmal)");
-    }
- 
-    if ((mVideoCodec = avcodec_find_decoder_by_name("h264_nvmpi")) == nullptr) {
-      Debug(1, "Failed to find decoder (h264_nvmpi)");
-    } else {
-      Debug(1, "Success finding decoder (h264_nvmpi)");
-    }
-  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_HEVC) {
-    if ((mVideoCodec = avcodec_find_decoder_by_name("hevc_nvmpi")) == nullptr) {
-      Debug(1, "Failed to find decoder (hevc_nvmpi)");
-    } else {
-      Debug(1, "Success finding decoder (hevc_nvmpi)");
-    }
-  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_VP8) {
-    if ((mVideoCodec = avcodec_find_decoder_by_name("vp8_nvmpi")) == nullptr) {
-      Debug(1, "Failed to find decoder (vp8_nvmpi)");
-    } else {
-      Debug(1, "Success finding decoder (vp8_nvmpi)");
-    }
-  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_VP9) {
-    if ((mVideoCodec = avcodec_find_decoder_by_name("hevc_nvmpi")) == nullptr) {
-      Debug(1, "Failed to find decoder (hevc_nvmpi)");
-    } else {
-      Debug(1, "Success finding decoder (hevc_nvmpi)");
-    }
-  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-    if ((mVideoCodec = avcodec_find_decoder_by_name("mpeg2_nvmpi")) == nullptr) {
-      Debug(1, "Failed to find decoder (mpeg2_nvmpi)");
-    } else {
-      Debug(1, "Success finding decoder (mpeg2_nvmpi)");
-    }
-  } else if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_MPEG4) {
-    if ((mVideoCodec = avcodec_find_decoder_by_name("mpeg4_nvmpi")) == nullptr) {
-      Debug(1, "Failed to find decoder (mpeg4_nvmpi)");
-    } else {
-      Debug(1, "Success finding decoder (mpeg4_nvmpi)");
+      Debug(1, "Success finding decoder %s", monitor->DecoderName().c_str());
     }
   }
 
@@ -527,6 +495,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }  // end if hwaccel_name
 
   // set codec to automatically determine how many threads suits best for the decoding job
+#if 0
   mVideoCodecContext->thread_count = 0;
 
   if (mVideoCodec->capabilities | AV_CODEC_CAP_FRAME_THREADS) {
@@ -536,6 +505,7 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     mVideoCodecContext->thread_count = 1; //don't use multithreading
   }
+#endif
 
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
@@ -548,6 +518,7 @@ int FfmpegCamera::OpenFfmpeg() {
     av_dict_free(&opts);
     return -1;
   }
+  Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);
   zm_dump_codec(mVideoCodecContext);
 
   if (mAudioStreamId == -1 and !monitor->GetSecondPath().empty()) {
@@ -584,7 +555,7 @@ int FfmpegCamera::OpenFfmpeg() {
       ||
       ((unsigned int)mVideoCodecContext->height != height)
       ) {
-    Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
+    Debug(1, "Monitor dimensions are %dx%d but camera is sending %dx%d",
         width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
 

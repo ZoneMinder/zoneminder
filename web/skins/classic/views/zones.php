@@ -25,7 +25,7 @@ if ( isset($_REQUEST['mid']) ) {
 } else if ( isset($_REQUEST['mids']) ) {
   $mids = $_REQUEST['mids'];
 } else {
-  $mids = dbFetchAll('SELECT Id FROM Monitors'.($user['MonitorIds'] ? 'WHERE Id IN ('.$user['MonitorIds'].')' : ''), 'Id');
+  $mids = dbFetchAll('SELECT Id FROM Monitors'.($user->unviewableMonitorIds() ? 'WHERE Id IN ('.$user->viewableMonitorIds().')' : ''), 'Id');
 }
 
 if ( !($mids and count($mids)) ) {
@@ -101,8 +101,10 @@ xhtmlHeaders(__FILE__, translate('Zones'));
             </tbody>
           </table>
           <div id="contentButtons">
-            <?php echo makeButton('?view=zone&mid='.$mid.'&zid=0', 'AddNewZone', canEdit('Monitors')); ?>
-            <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+            <button type="button" data-on-click-this="AddNewZone" data-url="?view=zone&amp;mid=<?php echo $monitor->Id() ?>&amp;zid=0" <?php echo canEdit('Monitors') ? '' : 'disabled="disabled"' ?>>
+              <i class="material-icons">add_circle</i><span class="text"><?php echo translate('Add New Zone') ?></span>
+            </button>
+            <button type="submit" name="deleteBtn" value="Delete" disabled="disabled"><i class="material-icons">delete</i><span class="text"><?php echo translate('Delete') ?></span></button>
           </div>
         </div><!--zones-->
         <br class="clear"/>

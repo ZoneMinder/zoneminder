@@ -40,6 +40,7 @@ void Monitor::JanusManager::load_from_monitor() {
   //constructor takes care of init and calls add_to
   Use_RTSP_Restream = parent->janus_use_rtsp_restream;
   profile_override = parent->janus_profile_override;
+  rtsp_session_timeout = parent->janus_rtsp_session_timeout;
   if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
     janus_endpoint = config.janus_path;
     //remove the trailing slash if present
@@ -200,9 +201,17 @@ int Monitor::JanusManager::add_to_janus() {
     postData += "\", \"rtsp_pwd\" : \"";
     postData += rtsp_password;
   }
+
   postData += "\", \"id\" : ";
   postData += std::to_string(parent->id);
   if (parent->janus_audio_enabled)  postData += ", \"audio\" : true";
+  // Add rtsp_session_timeout if not set to 0
+  if (rtsp_session_timeout != 0) {
+      // Add rtsp_session_timeout to postData, this works. Is there a better way?
+      std::string rtsp_timeout = std::to_string(rtsp_session_timeout);
+      postData += ", \"rtsp_session_timeout\" : ";
+      postData += rtsp_timeout;
+  }
   postData += ", \"video\" : true}}";
   Debug(1, "Sending %s to %s", postData.c_str(), endpoint.c_str());
 

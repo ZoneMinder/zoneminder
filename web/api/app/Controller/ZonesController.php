@@ -18,7 +18,7 @@ class ZonesController extends AppController {
     parent::beforeFilter();
 
     global $user;
-    $canView = (!$user) || ($user['Monitors'] != 'None');
+    $canView = (!$user) || ($user->Monitors() != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -45,7 +45,7 @@ class ZonesController extends AppController {
     $this->Zone->recursive = -1;
 
     global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'],NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = $user ? preg_split('@,@', $user->MonitorIds(),NULL, PREG_SPLIT_NO_EMPTY) : null;
     if ( $allowedMonitors ) {
       $mon_options = array('Zones.MonitorId' => $allowedMonitors);
     } else {
@@ -71,7 +71,7 @@ class ZonesController extends AppController {
     }
 
     global $user;
-    $canEdit = (!$user) || $user['Monitors'] == 'Edit';
+    $canEdit = (!$user) || $user->Monitors() == 'Edit';
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -118,7 +118,7 @@ class ZonesController extends AppController {
     $message = '';
     if ( $this->request->is(array('post', 'put')) ) {
       global $user;
-      $canEdit = (!$user) || $user['Monitors'] == 'Edit';
+      $canEdit = (!$user) || $user->Monitors() == 'Edit';
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
@@ -149,7 +149,7 @@ class ZonesController extends AppController {
     }
     $this->request->allowMethod('post', 'delete');
     global $user;
-    $canEdit = (!$user) || $user['Monitors'] == 'Edit';
+    $canEdit = (!$user) || $user->Monitors() == 'Edit';
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

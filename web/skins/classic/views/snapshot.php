@@ -22,7 +22,7 @@ if (!canView('Snapshots')) {
   $view = 'error';
   return;
 } else if (!ZM_FEATURES_SNAPSHOTS) {
-  $view = 'console';
+  $view = getHomeView();
   return;
 }
 
@@ -34,14 +34,15 @@ $id = isset($_REQUEST['id']) ? validInt($_REQUEST['id']) : null;
 $snapshot = new ZM\Snapshot($id);
 
 $monitors = array();
-if ( $user['MonitorIds'] ) {
-  $monitor_ids = explode(',', $user['MonitorIds']);
+if ( count($user->unviewableMonitorIds())) {
+  $monitor_ids = $user->viewableMonitorIds();
 }
 xhtmlHeaders(__FILE__, translate('Snapshot').' '.$snapshot->Id());
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo getNavBarHTML() ?>
+    <div id="content">
 <?php 
 if ( !$snapshot->Id() ) {
   echo '<div class="error">Snapshot was not found.</div>';
@@ -66,7 +67,7 @@ if ( !$snapshot->Id() ) {
       
       <h2><?php echo translate('Snapshot').' '.$snapshot->Id() ?></h2>
     </div>
-    <div class="d-flex flex-row justify-content-between py-1">
+    <div class="d-flex flex-row justify-content-between py-1" id="snapshot">
       <!--
       <div class="form-group"><label><?php echo translate('Created By') ?></label>
       -->
@@ -81,9 +82,10 @@ if ( !$snapshot->Id() ) {
         <textarea name="snapshot[Description]"><?php echo validHtmlStr($snapshot->Description()); ?></textarea>
       </div>
     </div>
+  </form>
 <?php if ( $snapshot->Id() ) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
-    <div id="content" class="justify-content-center">
+    <div id="video" class="row justify-content-center">
 <?php
     $events = $snapshot->Events();
     $width = 100 / ( count($events) < 2 ? 1 : ( ( count($events) < 4 ) ? count($events) : 4 ) )-1;
@@ -94,7 +96,6 @@ if ( !$snapshot->Id() ) {
 ?>
     </div><!--content-->
 <?php } // end if snapshot->Id() ?>
-  </form>
   <h2 id="downloadProgress" class="<?php
             if ( isset($_REQUEST['generated']) ) {
               if ( $_REQUEST['generated'] )
@@ -116,5 +117,6 @@ if ( !$snapshot->Id() ) {
     ?></span>
     <span id="downloadProgressTicker"></span>
   </h2>
+  </div>
 </div><!--page-->
 <?php xhtmlFooter() ?>

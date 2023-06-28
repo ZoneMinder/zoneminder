@@ -64,6 +64,7 @@ var eventDataStrings = {
     TotScore: '<?php echo translate('AttrTotalScore') ?>',
     AvgScore: '<?php echo translate('AttrAvgScore') ?>',
     MaxScore: '<?php echo translate('AttrMaxScore') ?>',
+    Resolution: '<?php echo translate('Resolution') ?>',
     DiskSpace: '<?php echo translate('DiskSpace') ?>',
     Storage: '<?php echo translate('Storage') ?>',
     Path: '<?php echo translate('Path') ?>',

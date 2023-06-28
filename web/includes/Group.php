@@ -58,7 +58,6 @@ class Group extends ZM_Object {
   }
 
   public static function get_group_dropdown( ) {
-
     $selected_group_id = 0;
     if ( isset($_REQUEST['groups']) ) {
       $selected_group_id = $group_id = $_SESSION['groups'] = $_REQUEST['groups'];
@@ -146,8 +145,9 @@ class Group extends ZM_Object {
     $sql = 'SELECT `Id`,`Name` FROM `Monitors`';
     if ( $options ) {
       $sql .= ' WHERE '. implode(' AND ', array(
-            ( isset($options['groupSql']) ? $options['groupSql']:'')
-            ) ).' ORDER BY `Sequence` ASC';
+        '`Deleted` != 1',
+        ( isset($options['groupSql']) ? $options['groupSql']:'')
+      ) ).' ORDER BY `Sequence` ASC';
     }
     $monitors_dropdown = array(''=>'All');
 
@@ -184,17 +184,19 @@ class Group extends ZM_Object {
     }
     return $Parents;
   }
+
   public function Children() {
     if (!property_exists($this, 'Children')) {
       $this->{'Children'} = Group::find(array('ParentId'=>$this->Id()));
     }
     return $this->{'Children'};
   }
+
   public function Monitors() {
     if (!property_exists($this, 'Monitors') ) {
       $monitor_ids = $this->MonitorIds();
       if (count($monitor_ids)) {
-        $this->{'Monitors'} = Monitor::find(array('Id'=>$monitor_ids));
+        $this->{'Monitors'} = Monitor::find(array('Id'=>$monitor_ids, 'Deleted'=>0));
       } else {
         $this->{'Monitors'} = array();
       }

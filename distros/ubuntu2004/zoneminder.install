@@ -12,3 +12,4 @@ usr/share/applications/*
 # libzoneminder-perl files:
 #usr/share/man/man3
 usr/share/perl5
+misc/MacVendors.json  usr/share/zoneminder

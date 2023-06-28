@@ -1,5 +1,4 @@
 <?php
-
 namespace ZM;
 $validConjunctionTypes = null;
 
@@ -13,7 +12,6 @@ function getFilterQueryConjunctionTypes() {
   return $validConjunctionTypes;
 }
 
-
 class FilterTerm {
   public $filter;
   public $index;
@@ -24,17 +22,23 @@ class FilterTerm {
   public $cnj;
   public $obr;
   public $cbr;
-
+  public $cookie;
+  public $placeholder;
+  public $collate;
 
   public function __construct($filter = null, $term = null, $index=0) {
+    $this->cnj = '';
     $this->filter = $filter;
     $validConjunctionTypes = getFilterQueryConjunctionTypes();
 
     $this->index = $index;
     if ($term) {
       $this->attr = isset($term['attr']) ? $term['attr'] : '';
-      $this->op = $term['op'];
-      $this->val = $term['val'];
+      $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $this->attr, -1, $count);
+      if ($count) Error("Invalid characters removed from filter attr ${term['attr']}, possible hacking attempt.");
+      $this->op = isset($term['op']) ? $term['op'] : '=';
+      $this->val = isset($term['val']) ? $term['val'] : '';
+      if (is_array($this->val)) $this->val = implode(',', $this->val);
       if ( isset($term['cnj']) ) {
         if ( array_key_exists($term['cnj'], $validConjunctionTypes) ) {
           $this->cnj = $term['cnj'];
@@ -62,6 +66,10 @@ class FilterTerm {
           Warning('Invalid cbr ' . $term['cbr'] . ' in ' . print_r($term, true));
         }
       }
+      $this->cookie = isset($term['cookie']) ? $term['cookie'] : '';
+      $this->placeholder = isset($term['placeholder']) ? $term['placeholder'] : null;
+      $this->collate = isset($term['collate']) ? $term['collate'] : '';
+
     } else {
       Warning("No term in FilterTerm constructor");
       #Warning(print_r(debug_backtrace(), true));
@@ -72,7 +80,7 @@ class FilterTerm {
   public function sql_values() {
     $values = array();
     if ( !isset($this->val) ) {
-      Warning('No value in term'.$this->attr);
+      Warning('No value in term '.$this->attr);
       return $values;
     }
 
@@ -80,7 +88,10 @@ class FilterTerm {
     foreach ( $vals as $value ) {
       $value_upper = strtoupper($value);
       switch ( $this->attr ) {
-
+      case 'Group': 
+        $group = new Group($value);
+        $value = $group->MonitorIds();
+        break;
       case 'AlarmedZoneId':
         $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND ZoneId='.$value.' AND Score > 0 LIMIT 1)';
         break;
@@ -91,11 +102,10 @@ class FilterTerm {
         $value = '';
         break;
       case 'MonitorName':
-      case 'MonitorName':
       case 'Name':
       case 'Cause':
       case 'Notes':
-        if ( strstr($this->op, 'LIKE') and ! strstr($this->val, '%' ) ) {
+        if ( ((!$this->op) or strstr($this->op, 'LIKE')) and ! strstr($this->val, '%' ) ) {
           $value = '%'.$value.'%';
         }
         $value = dbEscape($value);
@@ -150,13 +160,19 @@ class FilterTerm {
           $value = dbEscape($value);
         break;
       }
-      $values[] = $value;
+      if (is_array($value)) {
+        $values += $value;
+      } else {
+        $values[] = $value;
+      }
     } // end foreach value
     return $values;
   } # end function sql_values
 
   public function sql_operator() {
     switch ($this->attr) {
+    case 'Group':
+      return ' IN ';
     case 'AlarmedZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
@@ -204,6 +220,84 @@ class FilterTerm {
     } // end switch op
   } # end public function sql_operator
 
+  public function sql_attr() {
+    switch ( $this->attr ) {
+    case 'AlarmedZoneId':
+      return '/* AlarmedZoneId */ ';
+    case 'ExistsInFileSystem':
+    case 'DiskPercent':
+      return 'TRUE /*'.$this->attr.'*/';
+    case 'MonitorName':
+      return 'M.Name';
+    case 'Group':
+    case 'Monitor':
+      return 'E.MonitorId';
+    case 'ServerId':
+    case 'MonitorServerId':
+      return 'M.ServerId';
+    case 'StorageServerId':
+      return 'S.ServerId';
+    case 'FilterServerId':
+      return ZM_SERVER_ID;
+      # Unspecified start or end, so assume start, this is to support legacy filters
+    case 'DateTime':
+      return 'E.StartDateTime';
+    case 'Date':
+     return 'to_days(E.StartDateTime)';
+    case 'Time':
+     return 'extract(hour_second FROM E.StartDateTime)';
+    case 'Weekday':
+      return 'weekday(E.StartDateTime)';
+      # Starting Time
+    case 'StartDateTime':
+      return 'E.StartDateTime';
+    case 'FrameId':
+      return 'Id';
+    case 'Type':
+    case 'TimeStamp':
+    case 'Delta':
+    case 'Score':
+      return $this->attr;
+    case 'FramesEventId':
+      return 'F.EventId';
+    case 'StartDate':
+      return 'to_days(E.StartDateTime)';
+    case 'StartTime':
+      return 'extract(hour_second FROM E.StartDateTime)';
+    case 'StartWeekday':
+      return 'weekday(E.StartDateTime)';
+      # Ending Time
+    case 'EndDateTime':
+      return 'E.EndDateTime';
+    case 'EndDate':
+      return 'to_days(E.EndDateTime)';
+    case 'EndTime':
+      return 'extract(hour_second FROM E.EndDateTime)';
+    case 'EndWeekday':
+      return 'weekday(E.EndDateTime)';
+    case 'Notes':
+    case 'Emailed':
+    case 'Id':
+    case 'Name':
+    case 'DiskSpace':
+    case 'MonitorId':
+    case 'StorageId':
+    case 'SecondaryStorageId':
+    case 'Length':
+    case 'Frames':
+    case 'AlarmFrames':
+    case 'TotScore':
+    case 'AvgScore':
+    case 'MaxScore':
+    case 'Cause':
+    case 'StateId':
+    case 'Archived':
+      return $this->tablename.'.'.$this->attr;
+    default :
+      return $this->tablename.'.'.$this->attr;
+    }
+  }
+
   /* Some terms don't have related SQL */
   public function sql() {
     if (!$this->attr) {
@@ -219,109 +313,28 @@ class FilterTerm {
     }
     $sql .= ' ';
 
-    switch ( $this->attr ) {
-    case 'AlarmedZoneId':
-      $sql .= '/* AlarmedZoneId */ ';
-      break;
-    case 'ExistsInFileSystem':
-    case 'DiskPercent':
-      $sql .= 'TRUE /*'.$this->attr.'*/';
-      break;
-    case 'MonitorName':
-      $sql .= 'M.Name';
-      break;
-    case 'Monitor':
-      $sql .= 'E.MonitorId';
-      break;
-    case 'ServerId':
-    case 'MonitorServerId':
-      $sql .= 'M.ServerId';
-      break;
-    case 'StorageServerId':
-      $sql .= 'S.ServerId';
-      break;
-    case 'FilterServerId':
-      $sql .= ZM_SERVER_ID;
-      break;
-      # Unspecified start or end, so assume start, this is to support legacy filters
-    case 'DateTime':
-      $sql .= 'E.StartDateTime';
-      break;
-    case 'Date':
-      $sql .= 'to_days(E.StartDateTime)';
-      break;
-    case 'Time':
-      $sql .= 'extract(hour_second FROM E.StartDateTime)';
-      break;
-    case 'Weekday':
-      $sql .= 'weekday(E.StartDateTime)';
-      break;
-      # Starting Time
-    case 'StartDateTime':
-      $sql .= 'E.StartDateTime';
-      break;
-    case 'FrameId':
-      $sql .= 'Id';
-      break;
-    case 'Type':
-    case 'TimeStamp':
-    case 'Delta':
-    case 'Score':
-      $sql .= $this->attr;
-      break;
-    case 'FramesEventId':
-      $sql .= 'F.EventId';
-      break;
-    case 'StartDate':
-      $sql .= 'to_days(E.StartDateTime)';
-      break;
-    case 'StartTime':
-      $sql .= 'extract(hour_second FROM E.StartDateTime)';
-      break;
-    case 'StartWeekday':
-      $sql .= 'weekday(E.StartDateTime)';
-      break;
-      # Ending Time
-    case 'EndDateTime':
-      $sql .= 'E.EndDateTime';
-      break;
-    case 'EndDate':
-      $sql .= 'to_days(E.EndDateTime)';
-      break;
-    case 'EndTime':
-      $sql .= 'extract(hour_second FROM E.EndDateTime)';
-      break;
-    case 'EndWeekday':
-      $sql .= 'weekday(E.EndDateTime)';
-      break;
-    case 'Emailed':
-    case 'Id':
-    case 'Name':
-    case 'DiskSpace':
-    case 'MonitorId':
-    case 'StorageId':
-    case 'SecondaryStorageId':
-    case 'Length':
-    case 'Frames':
-    case 'AlarmFrames':
-    case 'TotScore':
-    case 'AvgScore':
-    case 'MaxScore':
-    case 'Cause':
-    case 'Notes':
-    case 'StateId':
-    case 'Archived':
-      $sql .= $this->tablename.'.'.$this->attr;
-      break;
-    default :
-      $sql .= $this->tablename.'.'.$this->attr;
-    }
-    $sql .= $this->sql_operator();
+    $operator = $this->sql_operator();
     $values = $this->sql_values();
-    if ((count($values) > 1) or ($this->op == 'IN') or ($this->op == 'NOT IN') or ($this->op == '=[]') or ($this->op == '![]')) {
-      $sql .= '('.join(',', $values).')';
+    if ((count($values) > 1) and !(($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] '))) {
+      $subterms = [];
+      foreach ($values as $value) {
+        $subterm = $this->sql_attr();
+        if ($this->collate) $subterm .= ' COLLATE '.$this->collate;
+        $subterm .= $operator;
+        $subterm .= $value;
+        $subterms[] = $subterm;
+      }
+      $sql .= '('.implode(' OR ', $subterms).')';
     } else {
-      $sql .= $values[0];
+      $sql .= $this->sql_attr();
+      if ($this->collate) $sql .= ' COLLATE '.$this->collate;
+      if (($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] ')) {
+        $sql .= $operator;
+        $sql .= count($values) ? '('.join(',', $values).')' : '(SELECT NULL WHERE 1!=1)';
+      } else {
+        $sql .= $operator;
+        $sql .= $values[0];
+      }
     }
 
     if ( isset($this->cbr) ) {
@@ -334,31 +347,31 @@ class FilterTerm {
   public function querystring($objectname='filter', $querySep='&amp;') {
     # We don't validate the term parameters here
     $query = '';
-    if ( $this->cnj ) 
+    if (isset($this->cnj) and $this->cnj)
       $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cnj]').'='.$this->cnj;
-    if ( $this->obr )
+    if ($this->obr)
       $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][obr]').'='.$this->obr;
 
     $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][attr]').'='.urlencode($this->attr);
     $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][op]').'='.urlencode($this->op);
     $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][val]').'='.urlencode($this->val);
-    if ( $this->cbr )
+    if ($this->cbr)
       $query .= $querySep.urlencode($objectname.'[Query][terms]['.$this->index.'][cbr]').'='.$this->cbr;
     return $query;
   } # end public function querystring
 
   public function hidden_fields() {
     $html ='';
-    if ( $this->cnj )
+    if ( isset($this->cnj) and $this->cnj )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cnj]" value="'.$this->cnj.'"/>'.PHP_EOL;
 
     if ( $this->obr )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][obr]" value="'.$this->obr.'"/>'.PHP_EOL;
 
-    # attr should have been already validation, so shouldn't need htmlspecialchars
+    # attr should have been already validated, so shouldn't need htmlspecialchars
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][attr]" value="'.htmlspecialchars($this->attr).'"/>'.PHP_EOL;
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][op]" value="'.htmlspecialchars($this->op).'"/>'.PHP_EOL;
-    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars($this->val).'"/>'.PHP_EOL;
+    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars($this->val?$this->val:'').'"/>'.PHP_EOL;
     if ( $this->cbr )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cbr]" value="'.$this->cbr.'"/>'.PHP_EOL;
 
@@ -460,6 +473,7 @@ class FilterTerm {
       'TimeStamp',
       'Type',
       'FrameId',
+      'Group',
       'EventId',
       'ExistsInFileSystem',
       'Emailed',
@@ -510,6 +524,10 @@ class FilterTerm {
 
   public function valid() {
     switch ($this->attr) {
+    case 'AlarmFrames' :
+      if (!(is_integer($this->val) or ctype_digit($this->val))) 
+        return false;
+      return true;
     case 'EndDate' :
     case 'StartDate' :
     case 'EndDateTime' :
@@ -517,8 +535,13 @@ class FilterTerm {
       if (!$this->val)
         return false;
       break;
+    case 'Archived' :
     case 'Monitor' :
     case 'MonitorId' :
+    case 'ServerId' :
+    case 'FilterServerId' :
+    case 'Group' :
+    case 'Notes' :
       if ($this->val === '')
         return false;
       break;
@@ -526,7 +549,7 @@ class FilterTerm {
     return true;
   }
   public function to_string() {
-    return print_r($this, true);
+    return 'Term: '.$this->attr .'op:' . $this->op . ' val:' . $this->val;
   }
 } # end class FilterTerm
 

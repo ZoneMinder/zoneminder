@@ -230,10 +230,11 @@ $statusData = array(
 function collectData() {
   global $statusData;
 
-  $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
+  $entity = strtolower(validJsStr($_REQUEST['entity']));
+  $entitySpec = &$statusData[$entity];
   #print_r( $entitySpec );
   if (!canView($entitySpec['permission'])) {
-    ajaxError('Unrecognised action or insufficient permissions');
+    ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$$entitySpec['permission']);
     return;
   }
 
@@ -460,8 +461,8 @@ function getNearEvents() {
 
   $filter = ZM\Filter::parse($_REQUEST['filter']);
   parseSort();
-  if ( $user['MonitorIds'] ) {
-    $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+  if ( count($user->unviewableMonitorIds()) ) {
+    $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
   }
   $filter_sql = $filter->sql();
 

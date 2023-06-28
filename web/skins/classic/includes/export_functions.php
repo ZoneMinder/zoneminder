@@ -925,7 +925,7 @@ function exportEvents(
     $event = new ZM\Event($eid);
     if (!$event->canView()) {
       global $user;
-      ZM\Warning('User '.($user?$user['Username']:'').' cannot view event '.$event->Id());
+      ZM\Warning('User '.($user?$user->Username():'').' cannot view event '.$event->Id());
       continue;
     }
     $event_dir = $export_dir.'/'.$event->Id();

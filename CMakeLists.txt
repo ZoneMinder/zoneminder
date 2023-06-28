@@ -4,7 +4,7 @@
 #
 cmake_minimum_required(VERSION 3.5.0)
 project(zoneminder)
-file(STRINGS "version" zoneminder_VERSION)
+file(STRINGS "version.txt" zoneminder_VERSION)
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 
@@ -143,6 +143,8 @@ set(ZM_DIR_SOUNDS "sounds" CACHE PATH
   "Location to look for optional sound files, default: sounds")
 set(ZM_PATH_ZMS "/cgi-bin/nph-zms" CACHE PATH
   "Web url to zms streaming server, default: /cgi-bin/nph-zms")
+set(ZM_PATH_API "/zm/api" CACHE PATH
+  "Web url to api, default: /zm/api")
 set(ZM_PATH_SHUTDOWN "/sbin/shutdown" CACHE PATH
   "Path to shutdown binary, default: /sbin/shutdown")
 
@@ -190,7 +192,7 @@ set(ZM_PERL_SEARCH_PATH "" CACHE PATH
 	where ZM_PERL_MM_PARMS has been modified such that ZoneMinder's Perl modules are 
 	installed outside Perl's default search path.")
 set(ZM_TARGET_DISTRO "" CACHE STRING
-  "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc27, fc26, el7, OS13, FreeBSD")
+  "Build ZoneMinder for a specific distribution.  Currently, valid names are: fc, el, OS13, FreeBSD")
 set(ZM_DETECT_SYSTEMD "ON" CACHE BOOL
   "Set to OFF to disable detection of systemd. default: ON")
 set(ZM_SYSTEMD "OFF" CACHE BOOL
@@ -602,10 +604,10 @@ endif()
 #endif()
 
 
-find_package(GSOAP 2.0.0)
+find_package(GSOAP 2.8.91)
 if (GSOAP_FOUND)
   set(optlibsfound "${optlibsfound} gsoap")
-  add_compile_definitions(WITH_GSOAP)
+  add_definitions(-DWITH_GSOAP)
 else()
   set(optlibsnotfound "${optlibsnotfound} gsoap")
 endif()

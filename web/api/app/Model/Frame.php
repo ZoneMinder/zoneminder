@@ -123,4 +123,5 @@ class Frame extends AppModel {
 	);
 
 	public $recursive = -1;
+  public $virtualFields = array('TimeStampSecs' => 'UNIX_TIMESTAMP(Frame.TimeStamp)');
 }

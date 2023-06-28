@@ -30,6 +30,7 @@ To use this repository instead of the official Ubuntu repository, enter the foll
 **Step 3:** Install Zoneminder
 
 ::
+
         sudo apt install -y zoneminder
 
 
@@ -37,17 +38,17 @@ To use this repository instead of the official Ubuntu repository, enter the foll
 
 ::
         
-        a2enmod rewrite
-        a2enconf zoneminder
-        systemctl restart apache2
+        sudo a2enmod rewrite
+        sudo a2enconf zoneminder
+        sudo systemctl restart apache2
 
 
 **Step 5:** Enable and start zoneminder
 
 ::
 
-        systemctl enable zoneminder
-        systemctl start zoneminder
+        sudo systemctl enable zoneminder
+        sudo systemctl start zoneminder
 
 **Step 6:** Open Zoneminder
 
@@ -97,8 +98,7 @@ Update repo and upgrade.
 
 ::
 
-	apt-get update
-        apt-get upgrade
+	      apt-get update
         apt-get dist-upgrade
 
 
@@ -173,7 +173,6 @@ Set /etc/zm/zm.conf to root:www-data 740 and www-data access to content
 
         chmod 740 /etc/zm/zm.conf
         chown root:www-data /etc/zm/zm.conf
-        chown -R www-data:www-data /usr/share/zoneminder/
 
 **Step 7:** Configure Apache correctly:
 

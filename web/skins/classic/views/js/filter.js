@@ -151,13 +151,14 @@ function resetFilter( element ) {
 
 function submitToEvents(element) {
   var form = element.form;
+  form.elements['action'].value='';
   window.location.assign('?view=events&'+$j(form).serialize());
 }
 
 function submitToMontageReview(element) {
   var form = element.form;
   form.action = thisUrl + '?view=montagereview';
-  window.location.assign('?view=montagereview&'+$j(form).serialize());
+  window.location.assign('?view=montagereview&live=0&'+$j(form).serialize());
   history.replaceState(null, null, '?view=montagereview&live=0&' + $j(form).serialize());
 }
 
@@ -275,6 +276,13 @@ function parseRows(rows) {
       }
       var storageVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
+    } else if ( attr == 'Monitor' ) {
+      const monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      sorted_monitor_ids.forEach(function(monitor_id) {
+        monitorSelect.append('<option value="' + monitor_id + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
+      });
+      const monitorVal = inputTds.eq(4).children().val();
+      inputTds.eq(4).html(monitorSelect).children().val(monitorVal).chosen({width: '101%'});
     } else if ( attr == 'MonitorName' ) { //Monitor names
       var monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       sorted_monitor_ids.forEach(function(monitor_id) {

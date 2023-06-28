@@ -52,6 +52,133 @@ if ( !function_exists('imagescale') ) {
   }
 }
 
+if (!empty($_REQUEST['proxy'])) {
+  $url = $_REQUEST['proxy'];
+  if (!$url) {
+    ZM\Warning('No url passed to image proxy');
+    return;
+  }
+  $url_parts = parse_url($url);
+  $username = $url_parts['user'];
+  $password = $url_parts['pass'];
+
+  $method = 'GET';
+  // preparing http options:
+  $opts = array(
+    'http'=>array(
+      'method'=>$method,
+      #'header'=>"Accept-language: en\r\n" .
+      'ignore_errors'   => true
+      #"Cookie: foo=bar\r\n"
+    ),
+    'ssl'=>array(
+      "verify_peer"=>false,
+      "verify_peer_name"=>false,
+    )
+  );
+  $context = stream_context_create($opts);
+
+  // set no time limit and disable compression:
+  set_time_limit(5);
+  @apache_setenv('no-gzip', 1);
+  @ini_set('zlib.output_compression', 0);
+
+  /* Sends an http request with additional headers shown above */
+  $fp = @fopen($url, 'r', false, $context);
+  $r = '';
+  if ($fp) {
+    $meta_data = stream_get_meta_data($fp);
+    ZM\Debug(print_r($meta_data, true));
+    foreach ($meta_data['wrapper_data'] as $header) {
+      preg_match('/WWW-Authenticate: Digest (.*)/', $header, $matches);
+      $nc = 1;
+      if (!empty($matches)) {
+        ZM\Debug("Matched $header");
+        $auth_header = $matches[1];
+        $auth_header_array = explode(',', $auth_header);
+        $parsed = array();
+
+        foreach ($auth_header_array as $pair) {
+          $vals = explode('=', $pair);
+          $parsed[trim($vals[0])] = trim($vals[1], '" ');
+        }
+        ZM\Debug(print_r($parsed, true));
+
+        $cnonce = '0a4f113b';
+        $response_realm     = (isset($parsed['realm'])) ? $parsed['realm'] : '';
+        $response_nonce     = (isset($parsed['nonce'])) ? $parsed['nonce'] : '';
+        $response_opaque    = (isset($parsed['opaque'])) ? $parsed['opaque'] : '';
+
+        $authenticate1 = md5($username.':'.$response_realm.':'.$password);
+        $authenticate2 = md5($method.':'.$url);
+
+        $digestData = $authenticate1.":".$response_nonce;
+        if (!empty($parsed['qop'])) {
+          $digestData .= ':' . sprintf('%08x', $nc) . ':' . $cnonce . ':' . $parsed['qop'];
+        }
+        $authenticate_response = md5($digestData.':'.$authenticate2);
+
+        $request = sprintf('Authorization: Digest username="%s", realm="%s", nonce="%s", uri="%s", response="%s"',
+          $username, $response_realm, $response_nonce, $url, $authenticate_response);
+        if (!empty($parsed['opaque'])) $request .= ', opaque="'.$parsed['opaque'].'"';
+        if (!empty($parsed['qop'])) {
+          $request .= ', qop="'.$parsed['qop'].'"';
+          $request .= ', nc="'.sprintf('%08x', $nc).'"';
+          $nc++;
+          $request .= ', cnonce="'.$cnonce.'"';
+        }
+        $request .= ', algorithm="MD5"';
+        ZM\Debug($request);
+
+        $request_header = array($request);
+        $opts['http']['header'] = $request;
+        $context = stream_context_create($opts);
+        $fp = fopen($url, 'r', false, $context);
+        $meta_data = stream_get_meta_data($fp);
+        ZM\Debug(print_r($meta_data, true));
+      } # end if have auth
+    } # end foreach header
+    while (substr_count($r, 'Content-Length') != 2) {
+      $new = fread($fp, 512);
+      if (!$new) break;
+      $r .= $new;
+    }
+    #ZM\Debug($r);
+
+    $start = strpos($r, "\xff");
+    if (false !== $start) {
+      $end   = strpos($r, "--\n", $start)-1;
+      $frame = substr($r, $start, $end - $start);
+      ZM\Debug("Start $start end $end");
+
+      header('Content-type: image/jpeg');
+      echo $frame;
+    } else {
+      $img = imagecreate(320, 240);
+
+      $textbgcolor = imagecolorallocate($img, 0, 0, 0);
+      $textcolor = imagecolorallocate($img, 255, 255, 255);
+
+      imagestring($img, 5, 5, 5, 'Authentication Failed', $textcolor);
+      header('Content-type: image/jpeg');
+      imagejpeg($img);
+    }
+
+    fclose($fp);
+  } else {
+    ZM\Debug("Failed to open $url");
+    $img = imagecreate(320, 200);
+
+    $textbgcolor = imagecolorallocate($img, 0, 0, 0);
+    $textcolor = imagecolorallocate($img, 255, 255, 255);
+
+    imagestring($img, 5, 5, 5, 'Failed to open', $textcolor);
+    header('Content-type: image/jpeg');
+    imagejpeg($img);
+  }
+  return;
+}
+
 $errorText = false;
 $filename = '';
 $Frame = null;
@@ -147,13 +274,12 @@ if ( empty($_REQUEST['path']) ) {
             $Frame->FrameId(1);
           }
         }
-        $Monitor = $Event->Monitor();
         if ( $Event->SaveJPEGs() & 1 ) {
           # If we store Frames as jpgs, then we don't store an alarmed snapshot
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           header('HTTP/1.0 404 Not Found');
-          ZM\Error('No alarm jpg found for event '.$_REQUEST['eid']);
+          ZM\Error('No alarm jpg found for event '.$_REQUEST['eid'].' at '.$path);
           return;
         }
       } else {
@@ -177,13 +303,19 @@ if ( empty($_REQUEST['path']) ) {
             $Frame->FrameId('snapshot');
           }
         }
-        $Monitor = $Event->Monitor();
         if ( $Event->SaveJPEGs() & 1 ) {
           # If we store Frames as jpgs, then we don't store a snapshot
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           if ( $Event->DefaultVideo() ) {
-            $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path . ' 2>&1';
+            $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+
+            if (!file_exists($file_path)) {
+              if ($file = find_video($Event->Path())) {
+                $file_path = $Event->Path().'/'.$file;
+              }
+            }
+            $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$file_path.' -frames:v 1 '.$path . ' 2>&1';
             #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
             #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
             ZM\Debug("Running $command");
@@ -203,7 +335,6 @@ if ( empty($_REQUEST['path']) ) {
             # Generating an image file will use up more disk space, so update the Event record.
             if ( $Event->EndDateTime() ) {
               $Event->DiskSpace(null);
-              $Event->save();
             }
           } else {
             header('HTTP/1.0 404 Not Found');
@@ -235,8 +366,7 @@ if ( empty($_REQUEST['path']) ) {
 
           $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
           ZM\Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
-        } 
-        else if($previousBulkFrame){
+        } else if ($previousBulkFrame) {
           //If no next Frame we have to pull data from the Event itself
           $Frame = new ZM\Frame($previousBulkFrame);
           $Frame->FrameId($_REQUEST['fid']);
@@ -244,8 +374,7 @@ if ( empty($_REQUEST['path']) ) {
           $percentage = ($Frame->FrameId()/$Event->Frames());
 
           $Frame->Delta(floor($Event->Length() * $percentage));
-        }
-        else {
+        } else {
           header('HTTP/1.0 404 Not Found');
           ZM\Error('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
           return;
@@ -253,7 +382,6 @@ if ( empty($_REQUEST['path']) ) {
       }  # end if !Frame
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
-      ZM\Debug("Path: $path");
     }  # if special frame (snapshot, alarm etc) or identified by id
 
   } else {
@@ -278,12 +406,19 @@ if ( empty($_REQUEST['path']) ) {
     ZM\Debug("$path does not exist");
     # Generate the frame JPG
     if ( ($show == 'capture') and $Event->DefaultVideo() ) {
-      if ( !file_exists($Event->Path().'/'.$Event->DefaultVideo()) ) {
+      $file_path = $Event->Path().'/'.$Event->DefaultVideo();
+
+      if (!file_exists($file_path)) {
+        if ($file = find_video($Event->Path())) {
+          $file_path = $Event->Path().'/'.$file;
+        }
+      }
+      if (!file_exists($file_path)) {
         header('HTTP/1.0 404 Not Found');
         ZM\Error("Can't create frame images from video because there is no video file for this event at (".$Event->Path().'/'.$Event->DefaultVideo() );
         return;
       }
-      $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -frames:v 1 '.$path . ' 2>&1';
+      $command = ZM_PATH_FFMPEG.' -ss '. $Frame->Delta() .' -i '.$file_path.' -frames:v 1 '.$path . ' 2>&1';
       #$command ='ffmpeg -ss '. $Frame->Delta() .' -i '.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
 #$command ='ffmpeg -v 0 -i '.$Storage->Path().'/'.$Event->Path().'/'.$Event->DefaultVideo().' -vf "select=gte(n\\,'.$Frame->FrameId().'),setpts=PTS-STARTPTS" '.$path;
       ZM\Debug("Running $command");
@@ -303,7 +438,6 @@ Output was: '.implode(PHP_EOL,$output) );
       # Generating an image file will use up more disk space, so update the Event record.
       if ( $Event->EndDateTime() ) {
         $Event->DiskSpace(null);
-        $Event->save();
       }
     } else {
       header('HTTP/1.0 404 Not Found');
@@ -312,34 +446,6 @@ Output was: '.implode(PHP_EOL,$output) );
       return;
     }
   } # end if ! file_exists($path)
-
-} else {
-  ZM\Warning('Loading images by path is deprecated');
-  $dir_events = realpath(ZM_DIR_EVENTS);
-  $path = realpath($dir_events . '/' . $_REQUEST['path']);
-  $pos = strpos($path, $dir_events);
-
-  if ( $pos == 0 && $pos !== false ) {
-    if ( ! empty($user['MonitorIds']) ) {
-      $imageOk = false;
-      $pathMonId = substr($path, 0, strspn($path, '1234567890'));
-      foreach ( preg_split('/["\'\s]*,["\'\s]*/', $user['MonitorIds']) as $monId ) {
-        if ( $pathMonId == $monId ) {
-          $imageOk = true;
-          break;
-        }
-      }
-      if ( !$imageOk )
-        $errorText = 'No image permissions';
-    }
-  } else {
-    $errorText = 'Invalid image path';
-  }
-  if ( !file_exists($path) ) {
-    header('HTTP/1.0 404 Not Found');
-    ZM\Error("Image not found at $path");
-    return;
-  }
 }
 
 # we now load the actual image to send
@@ -374,6 +480,9 @@ if ( $errorText ) {
   ZM\Error($errorText);
 } else {
   header('Content-type: '.$media_type);
+  header('Cache-Control: max-age=86400');
+  header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
+  header('Pragma: cache');
   if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
     # This is so that Save Image As give a useful filename
     if ( $Event ) {
@@ -441,6 +550,16 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
       } else {
         ZM\Debug("$bytes sent");
       }
+    }
+  }
+}
+
+function find_video($path) {
+  # Look for other mp4s
+  $files = scandir($path);
+  foreach ($files as $file) {
+    if (preg_match('/.mp4$/i', $file)) {
+      return $file;
     }
   }
 }

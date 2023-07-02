@@ -25,6 +25,10 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#if ZM_HAS_V4L2
+#include <libv4l2.h>
+#endif // ZM_HAS_V4L2
+
 
 #if ZM_HAS_V4L2
 
@@ -38,13 +42,15 @@
 static unsigned int BigEndian;
 static bool primed;
 
+#if ZM_HAS_V4L2
 static int vidioctl(int fd, int request, void *arg) {
   int result = -1;
   do {
-    result = ioctl(fd, request, arg);
+    result = v4l2_ioctl( fd, request, arg );
   } while( result == -1 && errno == EINTR );
   return result;
 }
+#endif // ZM_HAS_V4L2
 
 static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, int palette) {
   _AVPIXELFORMAT pixFormat = AV_PIX_FMT_NONE;
@@ -481,7 +487,7 @@ int LocalCamera::Close() {
 
 void LocalCamera::Initialise() {
   Debug(3, "Opening video device %s", device.c_str());
-  if ((vid_fd = open(device.c_str(), O_RDWR, 0)) < 0)
+  if ( (vid_fd = v4l2_open( device.c_str(), O_RDWR, 0 )) < 0 )
     Fatal("Failed to open video device %s: %s", device.c_str(), strerror(errno));
 
   struct stat st; 
@@ -672,7 +678,7 @@ void LocalCamera::Initialise() {
       Fatal("Unable to query video buffer: %s", strerror(errno));
 
     v4l2_data.buffers[i].length = vid_buf.length;
-    v4l2_data.buffers[i].start = mmap(nullptr, vid_buf.length, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, vid_buf.m.offset);
+    v4l2_data.buffers[i].start = v4l2_mmap(nullptr, vid_buf.length, PROT_READ|PROT_WRITE, MAP_SHARED, vid_fd, vid_buf.m.offset);
 
     if (v4l2_data.buffers[i].start == MAP_FAILED)
       Fatal("Can't map video buffer %u (%u bytes) to memory: %s(%d)",
@@ -737,12 +743,12 @@ void LocalCamera::Terminate() {
     for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
       capturePictures[i] = nullptr;
 
-      if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
+      if ( v4l2_munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
         Error("Failed to munmap buffer %d: %s", i, strerror(errno));
     }
   }
 
-  close(vid_fd);
+ v4l2_close(vid_fd);
   primed = false;
 } // end LocalCamera::Terminate
 
@@ -757,7 +763,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   int enum_fd;
 
   /* Open the device */
-  if ( (enum_fd = open(device.c_str(), O_RDWR, 0)) < 0 ) {
+  if ( (enum_fd = v4l2_open(device.c_str(), O_RDWR, 0)) < 0 ) {
     Error("Automatic format selection failed to open video device %s: %s",
         device.c_str(), strerror(errno));
     return selected_palette;
@@ -841,7 +847,7 @@ uint32_t LocalCamera::AutoSelectFormat(int p_colours) {
   }
 
   /* Close the device */
-  close(enum_fd);
+ v4l2_close(enum_fd);
 
   return selected_palette;
 } //uint32_t LocalCamera::AutoSelectFormat(int p_colours)
@@ -866,7 +872,7 @@ bool LocalCamera::GetCurrentSettings(
       queryDevice = stringtf("/dev/video%d", devIndex);
     }
 
-    if ((vid_fd = open(queryDevice.c_str(), O_RDWR)) <= 0) {
+    if ((vid_fd =v4l2_open(queryDevice.c_str(), O_RDWR)) <= 0) {
       if (!device.empty()) {
         Error("Failed to open video device %s: %s", queryDevice.c_str(), strerror(errno));
         if (verbose) {
@@ -1149,7 +1155,7 @@ bool LocalCamera::GetCurrentSettings(
         *(output_ptr-1) = '\n';
     }
 
-    close(vid_fd);
+   v4l2_close(vid_fd);
     if (!device.empty()) {
       break;
     }
@@ -1180,6 +1186,7 @@ int LocalCamera::Control(int vid_id, int newvalue) {
         Warning("Given control value (%d) may be out-of-range", newvalue);
       }
     }
+    v4l2_close( vid_fd );
   }
   return vid_control.value;
 }

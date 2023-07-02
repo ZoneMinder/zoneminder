@@ -113,7 +113,7 @@ if(GSOAP_FOUND)
     #COMMAND ${GSOAP_WSDL2H} -d -P -O2 -o ${CMAKE_BINARY_DIR}/generated/bindings.h http://www.onvif.org/onvif/ver10/events/wsdl/event.wsdl
     #COMMAND echo '\#import \"wsse.h\"' >> ${CMAKE_BINARY_DIR}/generated/bindings.h
     #COMMAND echo '\#import \"struct_timeval.h\"' >> ${CMAKE_BINARY_DIR}/generated/bindings.h
-    COMMAND ${GSOAP_SOAPCPP2} -n -2 -C -I ${GSOAP_PLUGIN_DIR}/.. -I ${GSOAP_PLUGIN_DIR}/../import/ -I ${GSOAP_PLUGIN_DIR}/../custom/ -d ${CMAKE_BINARY_DIR}/generated -j -x ${CMAKE_CURRENT_SOURCE_DIR}/bindings.h
+    COMMAND ${GSOAP_SOAPCPP2} -a -n -2 -C -I ${GSOAP_PLUGIN_DIR}/.. -I ${GSOAP_PLUGIN_DIR}/../import/ -I ${GSOAP_PLUGIN_DIR}/../custom/ -d ${CMAKE_BINARY_DIR}/generated -j -x ${CMAKE_CURRENT_SOURCE_DIR}/bindings.h
     COMMENT "CREATING STUBS AND GLUE CODE"
   )
 

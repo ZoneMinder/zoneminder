@@ -466,7 +466,7 @@ sub ImportanceNumber {
   } elsif ($$self{Importance} eq 'Normal') {
     return 0;
   }
-  Warning("Wierd value for Importance $$self{Importance}");
+  Warning("Weird value for Importance $$self{Importance}");
   return 0;
 }
 

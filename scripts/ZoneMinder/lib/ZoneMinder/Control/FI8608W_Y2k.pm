@@ -22,7 +22,7 @@
 # This module FI8608W_Y2k.pm contains the implementation of API camera control
 # For FOSCAM FI8608W PT Camera (This cam support only H264 streaming)
 # V1.0 Le 13 AOUT 2013
-# If you wan't to contact me i understand French and English, precise ZoneMinder in subject
+# If you want to contact me i understand French and English, precise ZoneMinder in subject
 # but i prefer via the ZoneMinder Forum
 # My name is Christophe DAPREMONT my email is christophe_y2k@yahoo.fr
 #
@@ -60,9 +60,9 @@ our @ISA = qw(ZoneMinder::Control);
 # -Zoom Wide switch OFF InfraRed LED and stay to manual IR MODE
 # -Button WAKE switch to AUTO ON/OFF IR LED
 # -Button RESET to setup image at initial value
-# -8 Preset PTZ are implemented and functionnal
+# -8 Preset PTZ are implemented and functional
 # -This Script use for login "admin" this hardcoded and your password must setup in "Control Device" section
-# -This script is compatible with the basic authentification method used by mostly new camera based with hi3510 chipset
+# -This script is compatible with the basic authentication method used by mostly new camera based with hi3510 chipset
 # -AutoStop function is active and you must set up value (in sec example 0.7) under AutoStop section
 #  or you can set up to 0 for disable it (in this case you need to click to the circle center for stop)
 # -"White In" to control Brightness, "auto" for restore the original value of Brightness
@@ -75,7 +75,7 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 use Time::HiRes qw( usleep );
 
-# Set $osd to "off" if you wan't disabled OSD i need to place this variable in another script because
+# Set $osd to "off" if you want disabled OSD i need to place this variable in another script because
 # this script is reload at every command ,if i want the button on/off (Focus MAN) for OSD works...
 my $osd = "on";
 
@@ -103,8 +103,8 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
     printMsg( $cmd, "Tx" );
-    # I solve the authentification problem with recent Foscam
-    # I use perl Basic Authentification method
+    # I solve the authentication problem with recent Foscam
+    # I use perl Basic Authentication method
     my $ua = LWP::UserAgent->new();
     my $req = HTTP::Request->new( GET =>"http://".$self->{Monitor}->{ControlAddress}."/web/cgi-bin/hi3510/".$cmd );
     $req->authorization_basic('admin', $self->{Monitor}->{ControlDevice} );

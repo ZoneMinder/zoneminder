@@ -3,7 +3,7 @@
 # in the camera and modifies the ZM db entries.The camera has 16 presets with 1-4
 # occupied with TopMost, Bottomost, LeftMost, RightMost so configure for 12.
 # the camera stores presets in available spot until full. the script first deletes 
-# a preset then sets one using the now avialable spot.
+# a preset then sets one using the now available spot.
 #
 # ==========================================================================
 #

@@ -1142,6 +1142,24 @@ function initPage() {
   if (scale == '0') changeScale();
 
   progressBarNav();
+
+  let codec = 'mjpeg';
+  if ( eventData.DefaultVideo ) {
+    if (eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0) {
+      codec = 'hev1';
+    } else if (eventData.DefaultVideo.indexOf('h264') >= 0 ) {
+      codec = 'avc1';
+    }
+  }
+
+  const vid = document.createElement('video');
+  if ( codec != 'mjpeg') {
+    if (vid.canPlayType('video/mp4; codecs="'+codec+'"')) {
+      console.log("can play " + codec);
+    } else {
+      console.log("Cannot play " + codec);
+    }
+  }
   //FIXME prevent blocking...not sure what is happening or best way to unblock
   if (playerType == 'h265web.js') {
     if (!(eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0))
@@ -1151,6 +1169,7 @@ function initPage() {
     const token = "base64:QXV0aG9yOmNoYW5neWFubG9uZ3xudW1iZXJ3b2xmLEdpdGh1YjpodHRwczovL2dpdGh1Yi5jb20vbnVtYmVyd29sZixFbWFpbDpwb3JzY2hlZ3QyM0Bmb3htYWlsLmNvbSxRUTo1MzEzNjU4NzIsSG9tZVBhZ2U6aHR0cDovL3h2aWRlby52aWRlbyxEaXNjb3JkOm51bWJlcndvbGYjODY5NCx3ZWNoYXI6bnVtYmVyd29sZjExLEJlaWppbmcsV29ya0luOkJhaWR1";
 
     const evtStream = $j('#evtStream');
+    console.log(evtStream.width(),  evtStream.height());
     const config = {
       player: 'videoobj',
       width: evtStream.width(),
@@ -1159,16 +1178,17 @@ function initPage() {
       token: token,
       extInfo: {
         probeSize : 8192,
-        autoPlay : true,
+        //autoPlay : true,
         moovStartFlag: true,
         readyShow: true,
         //core: PLAYER_CORE_TYPE_DEFAULT,
         core : PLAYER_CORE_TYPE_CNATIVE,
-        coreProbePart: 0.1,
-        ignoreAudio: 0
+        //cacheLength : 50,
+        //coreProbePart: 0.1,
+        ignoreAudio: 1
       }
     };
-    player = window.new265webjs(videoUrl, config);
+    player = window.new265webjs(videoUrl+'&ext=.mp4', config);
     const progressVoice = document.querySelector('#volume');
     progressVoice.addEventListener('click', (e) => {
       let x = e.pageX - progressVoice.getBoundingClientRect().left; // or e.offsetX (less support, though)

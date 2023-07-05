@@ -102,7 +102,6 @@ function streamReq(data) {
 
 // Function called when video.js hits the end of the video
 function vjsReplay() {
-  console.log(replayMode.value);
   switch (replayMode.value) {
     case 'none':
       if (player) {
@@ -291,8 +290,7 @@ function changeScale() {
   let newHeight;
   let autoScale;
 
-  const eventViewer = $j((vid||player) ? '#videoobj' : '#evtStream');
-
+  const eventViewer = $j('#evtStream');
   const alarmCue = $j('#alarmCues');
   const bottomEl = $j('#replayStatus');
 
@@ -1152,12 +1150,14 @@ function initPage() {
     }
   }
 
-  const vid = document.createElement('video');
-  if ( codec != 'mjpeg') {
-    if (vid.canPlayType('video/mp4; codecs="'+codec+'"')) {
-      console.log("can play " + codec);
-    } else {
-      console.log("Cannot play " + codec);
+  {
+    let vid = document.createElement('video');
+    if ( codec != 'mjpeg') {
+      if (vid.canPlayType('video/mp4; codecs="'+codec+'"')) {
+        console.log("can play " + codec);
+      } else {
+        console.log("Cannot play " + codec);
+      }
     }
   }
   //FIXME prevent blocking...not sure what is happening or best way to unblock
@@ -1169,7 +1169,6 @@ function initPage() {
     const token = "base64:QXV0aG9yOmNoYW5neWFubG9uZ3xudW1iZXJ3b2xmLEdpdGh1YjpodHRwczovL2dpdGh1Yi5jb20vbnVtYmVyd29sZixFbWFpbDpwb3JzY2hlZ3QyM0Bmb3htYWlsLmNvbSxRUTo1MzEzNjU4NzIsSG9tZVBhZ2U6aHR0cDovL3h2aWRlby52aWRlbyxEaXNjb3JkOm51bWJlcndvbGYjODY5NCx3ZWNoYXI6bnVtYmVyd29sZjExLEJlaWppbmcsV29ya0luOkJhaWR1";
 
     const evtStream = $j('#evtStream');
-    console.log(evtStream.width(),  evtStream.height());
     const config = {
       player: 'videoobj',
       width: evtStream.width(),
@@ -1183,7 +1182,7 @@ function initPage() {
         readyShow: true,
         //core: PLAYER_CORE_TYPE_DEFAULT,
         //core : PLAYER_CORE_TYPE_CNATIVE,
-        cacheLength : 50,
+        //cacheLength : 50,
         coreProbePart: 0.4, //0.1 didn't work
         ignoreAudio: 0
       }
@@ -1267,7 +1266,7 @@ function initPage() {
     player.onReadyShowDone = () => {
       console.log("onReadyShowDone");
       showLabel.textContent = "Cover Img OK";
-      player.play();
+      //player.play();
     };
     player.onLoadFinish = () => {
       mediaInfo = player.mediaInfo();

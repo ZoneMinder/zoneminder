@@ -1177,15 +1177,15 @@ function initPage() {
       //accurateSeek: true,
       token: token,
       extInfo: {
-        probeSize : 8192,
-        //autoPlay : true,
+        //probeSize : 8192,
+        autoPlay : true,
         moovStartFlag: true,
         readyShow: true,
         //core: PLAYER_CORE_TYPE_DEFAULT,
-        core : PLAYER_CORE_TYPE_CNATIVE,
-        //cacheLength : 50,
-        //coreProbePart: 0.1,
-        ignoreAudio: 1
+        //core : PLAYER_CORE_TYPE_CNATIVE,
+        cacheLength : 50,
+        coreProbePart: 0.4, //0.1 didn't work
+        ignoreAudio: 0
       }
     };
     player = window.new265webjs(videoUrl+'&ext=.mp4', config);

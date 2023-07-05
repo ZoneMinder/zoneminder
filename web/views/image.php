@@ -60,7 +60,7 @@ if (!empty($_REQUEST['proxy'])) {
   }
   $url_parts = parse_url($url);
   $username = $url_parts['user'];
-  $password = $url_parts['pass'];
+  $password = isset($url_parts['pass']) ? $url_parts['pass'] : '';
 
   $method = 'GET';
   // preparing http options:
@@ -90,7 +90,7 @@ if (!empty($_REQUEST['proxy'])) {
     $meta_data = stream_get_meta_data($fp);
     ZM\Debug(print_r($meta_data, true));
     foreach ($meta_data['wrapper_data'] as $header) {
-      preg_match('/WWW-Authenticate: Digest (.*)/', $header, $matches);
+      preg_match('/WWW-Authenticate: Digest (.*)/i', $header, $matches);
       $nc = 1;
       if (!empty($matches)) {
         ZM\Debug("Matched $header");

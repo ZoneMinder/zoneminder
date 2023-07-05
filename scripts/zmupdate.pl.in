@@ -1065,7 +1065,7 @@ sub migratePaths {
 
     my %customConfig; 
 
-# Check the traditional default values for the variables previsouly found under Options -> Paths
+# Check the traditional default values for the variables previously found under Options -> Paths
     if ( $Config{ZM_DIR_EVENTS} ne 'events' ) {
       $customConfig{ZM_DIR_EVENTS} = $Config{ZM_DIR_EVENTS};
     }

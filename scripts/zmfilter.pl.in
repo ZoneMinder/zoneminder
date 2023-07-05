@@ -151,10 +151,10 @@ if (!EVENT_PATH) {
   die;
 }
 
-# In future, should not be neccessary wrt StorageAreas
+# In future, should not be necessary wrt StorageAreas
 chdir(EVENT_PATH);
 
-# Should not be neccessary... but nice to get a local var.  What if it fails?
+# Should not be necessary... but nice to get a local var.  What if it fails?
 my $dbh = zmDbConnect();
 $dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 

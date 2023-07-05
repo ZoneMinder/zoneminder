@@ -166,7 +166,7 @@ sub selectQuery {
   return @data;
 }
 
-# Exectute a pre-built sql query
+# Execute a pre-built sql query
 sub runQuery {
   my $dbh = shift;
   my $sql = shift;

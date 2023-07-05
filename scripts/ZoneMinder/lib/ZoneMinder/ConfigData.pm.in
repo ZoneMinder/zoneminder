@@ -382,7 +382,7 @@ our @options = (
       requesting address can change for each request which will cause
       most requests to fail. This option allows you to control
       whether IP addresses are included in the authentication hash on
-      your system. If you experience intermitent problems with
+      your system. If you experience intermittent problems with
       authentication, switching this option off may help.
       `,
     requires    => [

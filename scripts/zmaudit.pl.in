@@ -317,7 +317,7 @@ MAIN: while( $loop ) {
 									if ( $Event->Path() ne $full_path ) {
 										if ( ! (-e $Event->Path()) ) {
 											if ( $Event->StorageId() != $Storage->Id() ) {
-												Info("Correcting Storge Id for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
+												Info("Correcting Storage Id for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
 												$Event->save({ StorageId=>$Storage->Id() });
 												$Event->Path(undef);
 											}

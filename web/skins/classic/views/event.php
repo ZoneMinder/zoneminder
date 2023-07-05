@@ -84,7 +84,7 @@ if (isset($_REQUEST['codec'])) {
 }
 session_write_close();
 
-$need_h265webjs = $Event->DefaultVideo() and (strpos($Event->DefaultVideo(), 'h265') or strpos($Event->DefaultVideo(), 'hevc'));
+$need_h265webjs = $Event->DefaultVideo() && (false !== strpos($Event->DefaultVideo(), 'h265') || false !== strpos($Event->DefaultVideo(), 'hevc'));
 $has_h265webjs = file_exists(ZM_PATH_WEB.'/js/h265web.js');
 
 $codecs = array(
@@ -93,7 +93,7 @@ $codecs = array(
   'MJPEG' => translate('MJPEG (zms)'),
 );
 if ($need_h265webjs and $has_h265webjs) {
-  $codecs['h265web.js'] = 'h265web.js H265';
+  $codecs['h265web.js'] = 'h265web.js';
 }
 
 $replayModes = array(
@@ -128,10 +128,9 @@ if ($Event->DefaultVideo()) {
     } else {
       $player = 'video.js';
     }
-  } else {
-    ZM\Debug("Codec: $codec");
   }
 }
+ZM\Debug("Codec: $codec");
 // videojs zoomrotate only when direct recording
 $Zoom = 1;
 $Rotation = 0;
@@ -264,6 +263,7 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 <?php
 if ($player == 'video.js') {
 ?>
+          <div id="evtStream">
           <video autoplay id="videoobj" class="video-js vjs-default-skin"
             style="transform: matrix(1, 0, 0, 1, 0, 0);"
            <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
@@ -279,6 +279,7 @@ if ($player == 'video.js') {
           <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
           Your browser does not support the video tag.
           </video>
+        </div>
         <div id="progressBar" style="width: 100%;">
           <div id="alarmCues" style="width: 100%;"></div>
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
@@ -313,7 +314,6 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 ?>
       <div id="evtStream">
         <div id="videoobj" class="glplayer"></div>
-
       </div><!-- evtStream-->
       <div id="progressBar" style="width: 100%;">
       <div id="alarmCues" style="width: 100%;"></div>

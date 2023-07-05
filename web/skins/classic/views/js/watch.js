@@ -52,7 +52,7 @@ function ajaxRequest(params) {
 
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
-    var eid = row.Id;
+    const eid = row.Id;
 
     row.Delete = '<i class="fa fa-trash text-danger"></i>';
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + '">' + eid + '</a>';
@@ -393,6 +393,9 @@ function streamCmdZoomIn(x, y) {
 function streamCmdZoomOut() {
   monitorStream.streamCommand(CMD_ZOOMOUT);
 }
+function streamCmdZoomStop() {
+  monitorStream.streamCommand(CMD_ZOOMSTOP);
+}
 
 function streamCmdScale(scale) {
   monitorStream.streamCommand({command: CMD_SCALE, scale: scale});
@@ -579,6 +582,14 @@ function handleClick(event) {
   }
 }
 
+function zoomOutClick(event) {
+  if (event.ctrlKey) {
+    streamCmdZoomStop();
+  } else {
+    streamCmdZoomOut();
+  }
+}
+
 var watchdogInactive = {
   'stream': false,
   'status': false
@@ -667,14 +678,23 @@ function getSettingsModal() {
 
 function processClicks(event, field, value, row, $element) {
   if (field == 'Delete') {
-    $j.getJSON(monitorUrl + '?request=modal&modal=delconfirm')
-        .done(function(data) {
-          insertModalHtml('deleteConfirm', data.html);
-          manageDelConfirmModalBtns();
-          $j('#deleteConfirm').data('eid', row.Id.replace(/(<([^>]+)>)/gi, ''));
-          $j('#deleteConfirm').modal('show');
-        })
-        .fail(logAjaxFail);
+    if (window.event.shiftKey) {
+      var eid = row.Id.replace(/(<([^>]+)>)/gi, '');
+      $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
+          .done(function(data) {
+            table.bootstrapTable('refresh');
+          })
+          .fail(logAjaxFail);
+    } else {
+      $j.getJSON(monitorUrl + '?request=modal&modal=delconfirm')
+          .done(function(data) {
+            insertModalHtml('deleteConfirm', data.html);
+            manageDelConfirmModalBtns();
+            $j('#deleteConfirm').data('eid', row.Id.replace(/(<([^>]+)>)/gi, ''));
+            $j('#deleteConfirm').modal('show');
+          })
+          .fail(logAjaxFail);
+    }
   }
 }
 

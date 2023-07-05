@@ -1,3 +1,9 @@
+//
+// Import constants
+//
+
+const ZM_DIR_SOUNDS = '<?php echo ZM_DIR_SOUNDS ?>';
+
 <?php
   global $presets;
   global $zone;

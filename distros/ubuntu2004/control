@@ -11,6 +11,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libswresample-dev
               ,libswscale-dev
               ,ffmpeg
+              ,arp-scan
               ,net-tools
               ,libbz2-dev
               ,libcurl4-gnutls-dev
@@ -31,7 +32,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libdata-entropy-perl
               ,libvncserver-dev
               ,libjwt-gnutls-dev|libjwt-dev
-              ,libgsoap-dev
+              ,libgsoap-dev, gsoap
               ,libmosquittopp-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
@@ -41,7 +42,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
-        ,libavdevice58|libavdevice57
+        ,libavdevice59|libavdevice58|libavdevice57
         ,libswscale6|libswscale5|libswscale4
         ,libswresample4|libswresample3|libswresample2
         ,ffmpeg
@@ -65,21 +66,23 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libclass-std-fast-perl
         ,libsoap-wsdl-perl
         ,libio-socket-multicast-perl
+        ,libio-socket-ssl-perl
         ,libdigest-sha-perl
         ,libsys-cpu-perl, libsys-meminfo-perl
         ,libdata-uuid-perl
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
         ,default-mysql-client | mariadb-client | virtual-mysql-client
-        ,php-mysql, php-gd, php-apcu, php-json, php-intl
+        ,php-mysql, php-gd, php-apcu, php-json, php-intl, php-xml
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
+        ,arp-scan
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
         ,libjwt-gnutls0|libjwt0
-        ,libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
+        ,libgsoap-2.8.124|libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
         ,libmosquittopp1
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm

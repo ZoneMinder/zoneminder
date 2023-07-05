@@ -43,6 +43,8 @@ class FileCamera : public Camera {
 
   void Initialise();
   void Terminate();
+
+  int PrimeCapture() override;
   int PreCapture() override;
   int Capture(std::shared_ptr<ZMPacket> &p) override;
   int PostCapture() override;

@@ -49,6 +49,45 @@ function durationText(duration) {
     + ":" + durationFormatSubVal(Math.floor((durationSecInt % 3600) / 60))
     + ":" + durationFormatSubVal(Math.floor(durationSecInt % 60));
 }
+var scaleValue = 0;
+
+$j(document).on("keydown", "", function(e) {
+  e = e || window.event;
+  if ( $j(".modal").is(":visible") ) {
+    if (e.key === "Enter") {
+      if ( $j("#deleteConfirm").is(":visible") ) {
+        $j("#delConfirmBtn").click();
+      } else if ( $j("#eventDetailModal").is(":visible") ) {
+        $j("#eventDetailSaveBtn").click();
+      } else if ( $j("#eventRenamelModal").is(":visible") ) {
+        $j("#eventRenameBtn").click();
+      }
+    } else if (e.key === "Escape") {
+      $j(".modal").modal('hide');
+    } else {
+      console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+    }
+  } else {
+    if (e.key === "ArrowLeft") {
+      prevEvent();
+    } else if (e.key === "ArrowRight") {
+      nextEvent();
+    } else if (e.key === "Delete") {
+      if ( $j("#deleteBtn").is(":disabled") == false ) {
+        $j("#deleteBtn").click();
+      }
+    } else if (e.keyCode === 32) {
+      // space bar for Play/Pause
+      if ( $j("#playBtn").is(":visible") ) {
+        playClicked();
+      } else {
+        pauseClicked();
+      }
+    } else {
+      console.log('Modal is not visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+    }
+  }
+});
 
 function streamReq(data) {
   if (auth_hash) data.auth = auth_hash;
@@ -56,7 +95,7 @@ function streamReq(data) {
   data.view = 'request';
   data.request = 'stream';
 
-  $j.getJSON(monitorUrl, data)
+  $j.getJSON(monitorUrl+'?'+auth_relay, data)
       .done(getCmdResponse)
       .fail(logAjaxFail);
 }
@@ -92,32 +131,35 @@ function vjsReplay() {
           console.error('Got no date from ', eventData);
           streamNext(true);
           return;
-        }
-        const endTime = date.getTime();
-        const nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
-        if ( nextStartTime <= endTime ) {
-          streamNext(true);
-          return;
-        }
-        if (player) {
-          player.pause();
-        } else if (vid) {
-          vid.pause();
-        }
-        const overLaid = $j("#videoobj");
-        overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
-        const gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
-        const messageP = $j('.vjsMessage');
-        const x = setInterval(function() {
-          const now = new Date().getTime();
-          const remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
-          messageP.html(remainder + ' to next event.');
-          if ( remainder < 0 ) {
-            clearInterval(x);
+        } else if (typeof date.getTime === 'undefined') {
+          console.log("Failed to get valid date object from EndDateTime in ", eventData);
+        } else {
+          const endTime = date.getTime();
+          const nextStartTime = nextEventStartTime.getTime(); //nextEventStartTime.getTime() is a mootools workaround, highjacks Date.parse
+          if ( nextStartTime <= endTime ) {
             streamNext(true);
+            return;
           }
-        }, 1000);
-      }
+          if (player) {
+            player.pause();
+          } else if (vid) {
+            vid.pause();
+          }
+          const overLaid = $j("#videoobj");
+          overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
+          const gapDuration = (new Date().getTime()) + (nextStartTime - endTime);
+          const messageP = $j('.vjsMessage');
+          const x = setInterval(function() {
+            const now = new Date().getTime();
+            const remainder = new Date(Math.round(gapDuration - now)).toISOString().substr(11, 8);
+            messageP.html(remainder + ' to next event.');
+            if ( remainder < 0 ) {
+              clearInterval(x);
+              streamNext(true);
+            }
+          }, 1000);
+        } // end if valid date object
+      } // end if have nextEventId
       break;
     case 'gapless':
       streamNext(true);
@@ -152,7 +194,6 @@ function renderAlarmCues(containerEl) {
   const span_count = 10;
   const span_seconds = parseInt(event_length / span_count);
   const span_width = parseInt(containerEl.width() / span_count);
-  console.log('span_width', span_width, 'container width', containerEl.width(), 'span count', span_count);
   const date = new Date(eventData.StartDateTime);
   for (let i=0; i < span_count; i += 1) {
     html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
@@ -251,8 +292,11 @@ function changeScale() {
   let autoScale;
 
   const eventViewer = $j((vid||player) ? '#videoobj' : '#evtStream');
+
+  const alarmCue = $j('#alarmCues');
+  const bottomEl = $j('#replayStatus');
+
   if (scale == '0') {
-    const bottomEl = $j('#replayStatus');
     const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
@@ -369,7 +413,7 @@ function getCmdResponse(respObj, respText) {
   }
   if (streamStatus.progress > parseFloat(eventData.Length)) {
     console.log("Limiting progress to " + streamStatus.progress + ' >= ' + parseFloat(eventData.Length) );
-    streamStatus.progress = parseFloat(eventData.Length);
+    //streamStatus.progress = parseFloat(eventData.Length);
   } //Limit progress to reality
 
   const eventId = streamStatus.event;
@@ -398,6 +442,10 @@ function getCmdResponse(respObj, respText) {
   } else {
     setButtonState('zoomOutBtn', 'inactive');
   }
+  if ((streamStatus.scale !== undefined) && (streamStatus.scale != scaleValue)) {
+    console.log("Stream not scaled, re-applying", scaleValue, streamStatus.scale);
+    streamScale(scaleValue);
+  }
 
   updateProgressBar(streamStatus.progress);
 
@@ -424,6 +472,9 @@ function pauseClicked() {
 
 function streamPause() {
   $j('#modeValue').html('Paused');
+
+  $j('#pauseBtn').hide();
+  $j('#playBtn').show();
   setButtonState('pauseBtn', 'active');
   setButtonState('playBtn', 'inactive');
   setButtonState('fastFwdBtn', 'unavail');
@@ -467,6 +518,8 @@ function vjsPlay() { //catches if we change mode programatically
 }
 
 function streamPlay( ) {
+  $j('#pauseBtn').show();
+  $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'active');
   setButtonState('fastFwdBtn', 'inactive');
@@ -877,7 +930,8 @@ function updateProgressBar(progress) {
   if (!eventData) {
     return;
   } // end if ! eventData
-  const curWidth = (progress / parseFloat(eventData.Length)) * 100;
+  let curWidth = (progress / parseFloat(eventData.Length)) * 100;
+  if (curWidth > 100) curWidth = 100;
 
   const progressDate = new Date(eventData.StartDateTime);
   progressDate.setTime(progressDate.getTime() + (progress*1000));
@@ -928,8 +982,12 @@ function progressBarNav() {
 }
 
 function handleClick(event) {
+  if (vid && (event.target.id != 'videoobj')) {
+    return; // ignore clicks on control bar
+  }
   // target should be the img tag
   const target = $j(event.target);
+
   const width = target.width();
   const height = target.height();
 
@@ -974,7 +1032,7 @@ function manageDelConfirmModalBtns() {
 
 function getEvtStatsCookie() {
   const cookie = 'zmEventStats';
-  const stats = getCookie(cookie);
+  let stats = getCookie(cookie);
 
   if (!stats) {
     stats = 'on';
@@ -999,14 +1057,14 @@ function getStat() {
         break;
       case 'MonitorId':
         if (canView["Monitors"]) {
-          tdString = '<a href="?view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
+          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
         } else {
           tdString = eventData[key];
         }
         break;
       case 'MonitorName':
         if (canView["Monitors"]) {
-          tdString = '<a href="?view=monitor&amp;id='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
+          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
         } else {
           tdString = eventData[key];
         }
@@ -1016,6 +1074,9 @@ function getStat() {
         break;
       case 'n/a':
         tdString = 'n/a';
+        break;
+      case 'Resolution':
+        tdString = eventData.Width + 'x' + eventData.Height;
         break;
       case 'Path':
         tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
@@ -1081,7 +1142,7 @@ function initPage() {
   if (scale == '0') changeScale();
 
   progressBarNav();
-
+  //FIXME prevent blocking...not sure what is happening or best way to unblock
   if (playerType == 'h265web.js') {
     if (!(eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0))
       console.log("Warning, using h265web.js on a non-h265 file");
@@ -1097,6 +1158,7 @@ function initPage() {
       //accurateSeek: true,
       token: token,
       extInfo: {
+        probeSize : 8192,
         autoPlay : true,
         moovStartFlag: true,
         readyShow: true,
@@ -1245,7 +1307,6 @@ function initPage() {
         setCookie('volume', vid.volume(), 3600);
       });
       let volume = getCookie('volume');
-      console.log(volume);
       if (volume) vid.volume(volume);
 
       vid.on('timeupdate', function() {
@@ -1267,7 +1328,6 @@ function initPage() {
       console.log("Wanted video.js but no player object found");
     }
   } else if (playerType == 'mjpeg') {
-    progressBarNav();
     streamCmdTimer = setTimeout(streamQuery, 500);
     if (canStreamNative) {
       if (!$j('#imageFeed')) {
@@ -1418,23 +1478,34 @@ function initPage() {
     }
 
     evt.preventDefault();
-    if (!$j('#deleteConfirm').length) {
-      // Load the delete confirmation modal into the DOM
-      $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+    if (window.event.shiftKey) {
+      $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
           .done(function(data) {
-            insertModalHtml('deleteConfirm', data.html);
-            manageDelConfirmModalBtns();
-            $j('#deleteConfirm').modal('show');
+            streamNext(true);
           })
           .fail(logAjaxFail);
-      return;
+    } else {
+      if (!$j('#deleteConfirm').length) {
+        // Load the delete confirmation modal into the DOM
+        $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+            .done(function(data) {
+              insertModalHtml('deleteConfirm', data.html);
+              manageDelConfirmModalBtns();
+              $j('#deleteConfirm').modal('show');
+            })
+            .fail(logAjaxFail);
+        return;
+      }
+      $j('#deleteConfirm').modal('show');
     }
-    $j('#deleteConfirm').modal('show');
   });
 
-  document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
+  document.addEventListener('fullscreenchange', fullscreenChangeEvent);
+  streamPlay();
 } // end initPage
 
+var toggleZonesButton = document.getElementById('toggleZonesButton');
+if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 
 function toggleZones(e) {
   const zones = $j('#zones'+eventData.MonitorId);
@@ -1443,16 +1514,35 @@ function toggleZones(e) {
     if (zones.is(":visible")) {
       zones.hide();
       button.setAttribute('title', showZonesString);
-      button.innerHTML = '<span class="material-icons">layers</span>';
+      $j('#toggleZonesButton .material-icons').text('layers');
       setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
     } else {
       zones.show();
       button.setAttribute('title', hideZonesString);
-      button.innerHTML = '<span class="material-icons">layers_clear</span>';
+      $j('#toggleZonesButton .material-icons').text('layers_clear');
       setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
     }
   } else {
     console.error("Zones svg not found");
+  }
+}
+
+function fullscreenChangeEvent() {
+  const btn = document.getElementById('fullscreenBtn');
+  if (document.fullscreenElement) {
+    btn.firstElementChild.innerHTML = 'fullscreen_exit';
+    btn.setAttribute('title', translate["Exit Fullscreen"]);
+  } else {
+    btn.firstElementChild.innerHTML = 'fullscreen';
+    btn.setAttribute('title', translate["Fullscreen"]);
+  }
+}
+
+function fullscreenClicked() {
+  if (document.fullscreenElement) {
+    closeFullscreen();
+  } else {
+    openFullscreen(content);
   }
 }
 

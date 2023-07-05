@@ -26,12 +26,6 @@ if ( $debug ) {
   phpinfo(INFO_VARIABLES);
 }
 
-// Use new style autoglobals where possible
-if ( version_compare(phpversion(), '4.1.0', '<') ) {
-  $_SESSION = &$HTTP_SESSION_VARS;
-  $_SERVER = &$HTTP_SERVER_VARS;
-}
-
 // Useful debugging lines for mobile devices
 if ( false ) {
   ob_start();
@@ -45,7 +39,6 @@ if ( false ) {
 require_once('includes/config.php');
 require_once('includes/session.php');
 require_once('includes/logger.php'); // already included in config
-require_once('includes/Server.php');
 
 // Useful debugging lines for mobile devices
 if ( 0 and ZM\Logger::fetch()->debugOn() ) {
@@ -56,8 +49,6 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
 }
 ZM\Debug(print_r($_REQUEST, true));
 
-global $Servers;
-$Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
@@ -119,6 +110,10 @@ if (!is_dir("skins/$skin/css/$css")) {
     if (!in_array($css, $css_skins)) {
       ZM\Error("Invalid skin css '$css' setting to " . $css_skins[0]);
       $css = $css_skins[0];
+      if (isset($_COOKIE['zmCSS'])) {
+        unset($_COOKIE['zmCSS']);
+        setcookie('zmCSS', '', time() - 3600);
+      }
     } else {
       $css = '';
     }
@@ -205,7 +200,7 @@ if ( (!$view and !$request) or ($view == 'console') ) {
   check_timezone();
 }
 
-ZM\Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
+ZM\Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user->Username() : 'none' ));
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
@@ -219,15 +214,6 @@ if (
   require_once('includes/csrf/csrf-magic.php');
   #ZM\Debug("Calling csrf_check with the following values: \$request = \"$request\", \$view = \"$view\", \$action = \"$action\"");
   csrf_check();
-}
-
-# Need to include actions because it does auth
-if ( $action and $view and !$request ) {
-  if ( file_exists('includes/actions/'.$view.'.php') ) {
-    require_once('includes/actions/'.$view.'.php');
-  } else {
-    ZM\Warning("No includes/actions/$view.php for action $action");
-  }
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
@@ -246,6 +232,15 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   $view = 'none';
   $redirect = ZM_BASE_URL.$_SERVER['PHP_SELF'].'?view=privacy';
   $request = null;
+}
+
+# Need to include actions because it does auth
+if ( $action and $view and !$request ) {
+  if ( file_exists('includes/actions/'.$view.'.php') ) {
+    require_once('includes/actions/'.$view.'.php');
+  } else {
+    ZM\Debug("No includes/actions/$view.php for action $action");
+  }
 }
 
 if ( isset($_REQUEST['redirect']) ) {

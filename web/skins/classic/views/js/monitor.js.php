@@ -28,15 +28,14 @@ $query = empty($_REQUEST['mid']) ?
   dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
 if ($query) {
   while ($row = dbFetchNext($query)) {
-    echo '
-monitorNames[\''.validJsStr($row['Name']).'\'] = true;
-rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;
-';
+    echo 'monitorNames[\''.validJsStr($row['Name']).'\'] = true;'.PHP_EOL;
+    if ($row['RTSPStreamName'])
+      echo 'rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;'.PHP_EOL;
   } // end foreach
 } # end if query
 ?>
 
-function validateForm( form ) {
+function validateForm(form) {
   var errors = new Array();
   var warnings = new Array();
   const elements = form.elements;
@@ -229,6 +228,5 @@ function updateMethods(element) {
   }
   return true;
 }
-var monitors = <?php global $monitors; echo isset($monitors) ? json_encode($monitors) : '{}' ?>;
-var sorted_monitor_ids = <?php echo isset($monitors) ? json_encode(array_keys($monitors)) : '[]' ?>;
-var zones = <?php global $zones; echo isset($zones) ? json_encode($zones) : '{}' ?>;
+const monitors = <?php global $monitors; echo isset($monitors) ? json_encode($monitors) : '{}' ?>;
+const zones = <?php global $zones; echo isset($zones) ? json_encode($zones) : '{}' ?>;

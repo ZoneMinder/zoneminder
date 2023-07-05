@@ -346,6 +346,7 @@ protected:
     TimePoint   rtsp_auth_time;
     std::string rtsp_path;
     std::string profile_override;
+    std::uint32_t rtsp_session_timeout;
 
   public:
     explicit JanusManager(Monitor *parent_);
@@ -363,6 +364,7 @@ protected:
   // These are read from the DB and thereafter remain unchanged
   unsigned int    id;
   std::string     name;
+  bool            deleted;
   unsigned int    server_id;          // Id of the Server object
   unsigned int    storage_id;         // Id of the Storage Object, which currently will just provide a path, but in future may do more.
   CameraType      type;
@@ -380,6 +382,7 @@ protected:
   bool            janus_use_rtsp_restream;  // Point Janus at the ZM RTSP output, rather than the camera directly.
   std::string     janus_pin;  // For security, we generate a pin required to view the stream.
   int             janus_rtsp_user;          // User Id of a user to use for auth to RTSP_Server
+  int             janus_rtsp_session_timeout;  // RTSP session timeout (work around for cameras that dont send ;timeout=<timeout in seconds> but do have a timeout)
 
   std::string protocol;
   std::string method;
@@ -412,6 +415,7 @@ protected:
   Orientation     orientation;        // Whether the image has to be rotated at all
   unsigned int    deinterlacing;
   unsigned int    deinterlacing_value;
+  std::string     decoder_name;
   std::string     decoder_hwaccel_name;
   std::string     decoder_hwaccel_device;
   bool            videoRecording;
@@ -445,6 +449,7 @@ protected:
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   Seconds    section_length;      // How long events should last in continuous modes
+  bool        section_length_warn;  // Whether to log a warning when a motion event exceeds desired section_length
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
@@ -616,6 +621,7 @@ public:
 
   inline unsigned int Id() const { return id; }
   inline const char *Name() const { return name.c_str(); }
+  inline bool Deleted() const { return deleted; }
   inline unsigned int ServerId() const { return server_id; }
   inline Storage *getStorage() {
     if (!storage) {
@@ -636,6 +642,7 @@ public:
   DecodingOption Decoding() const {
     return decoding;
   }
+  const std::string &DecoderName() const { return decoder_name; }
   bool JanusEnabled() {
     return janus_enabled;
   }

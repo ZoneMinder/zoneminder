@@ -3349,7 +3349,7 @@
               var column = _step2.value;
               column.visible = !hiddenColumnsCookie.filter(function (columnField) {
                 if (_this.isSelectionColumn(column)) {
-                  return true;
+                  return false;
                 }
 
                 return columnField === column.field;

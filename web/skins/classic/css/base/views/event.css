@@ -42,7 +42,7 @@
 #alarmCues span.alarmCue {
   background-color:red;
   z-index: 9;
-  opacity: 0.33;
+  opacity: 0.66;
   border-left: none;
 }
 
@@ -99,6 +99,9 @@ height: 100%;
 #eventVideo {
     display: inline-block;
     position: relative;
+}
+.eventStats {
+  margin-right: 5px;
 }
 
 #videoFeed {
@@ -191,6 +194,7 @@ height: 100%;
   position: absolute;
   top: 0;
   background: rgba(170, 170, 170, .7);
+  background: yellow;
   /*
   border-radius: 0 0 .3em .3em;
    */
@@ -330,6 +334,20 @@ svg.zones {
   border-left: 1px solid blue;
   margin-top: -1.25em;
 }
+
 .volume {
   display: inline-block;
+}
+
+.video-js .vjs-text-track-display {
+  display: none;
+}
+/*
+.EventData {
+  width: 200px;
+}
+*/
+#frames img {
+  float: left;
+  z-index: 1000;
 }

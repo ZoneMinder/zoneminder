@@ -106,7 +106,7 @@ class Event {
 
     void createNotes(std::string &notes);
 
-    std::queue<ZMLockedPacket *> packet_queue;
+    std::queue<std::shared_ptr<ZMPacket>> packet_queue;
     std::mutex packet_queue_mutex;
     std::condition_variable packet_queue_condition;
 
@@ -135,7 +135,7 @@ class Event {
     SystemTimePoint EndTime() const { return end_time; }
     TimePoint::duration Duration() const { return end_time - start_time; };
 
-    void AddPacket(ZMLockedPacket *);
+    void AddPacket(const std::shared_ptr<ZMPacket> &p);
     void AddPacket_(const std::shared_ptr<ZMPacket> &p);
     bool WritePacket(const std::shared_ptr<ZMPacket> &p);
     bool SendFrameImage(const Image *image, bool alarm_frame=false);
@@ -192,6 +192,6 @@ class Event {
     void SavePreAlarmFrames() {
       EmptyPreAlarmFrames();
     }
-    int MonitorId();
+    int MonitorId() const;
 };
 #endif // ZM_EVENT_H

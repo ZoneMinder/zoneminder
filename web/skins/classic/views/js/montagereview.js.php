@@ -1,5 +1,4 @@
-
-var server_utc_offset = <?php
+const server_utc_offset = <?php
 $tz = ini_get('date.timezone');
 if (!$tz) {
   $tz = 'UTC';
@@ -23,7 +22,6 @@ global $minTime;
 global $maxTime;
 global $monitors;
 global $eventsSql;
-global $framesSql;
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
@@ -50,52 +48,26 @@ var timeLabelsFractOfRow = 0.9;
 
 // Because we might not have time as the criteria, figure out the min/max time when we run the query
 
-
 // This builds the list of events that are eligible from this range
 
 $index = 0;
 $anyAlarms = false;
 $maxScore = 0;
 
-if ( !$liveMode ) {
-  $result = dbQuery($eventsSql);
-  if ( !$result ) {
-    ZM\Fatal('SQL-ERR');
-    return;
-  }
-
+if (!$liveMode) {
+  echo "const events = {\n";
   $EventsById = array();
 
-  while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
-    $event_id = $event['Id'];
-    $EventsById[$event_id] = $event;
-  }
-  $next_frames = array();
-
-  if ( $result = dbQuery($framesSql) ) {
-    $next_frame = null;
-    while ( $frame = $result->fetch(PDO::FETCH_ASSOC) ) {
-      $event_id = $frame['EventId'];
-      $event = &$EventsById[$event_id];
-
-      $frame['TimeStampSecs'] = $event['StartTimeSecs'] + $frame['Delta'];
-      if ( !isset($event['FramesById']) ) {
-        // Please note that this is the last frame as we sort DESC
-        $event['FramesById'] = array();
-        $frame['NextTimeStampSecs'] = $event['EndTimeSecs'];
-      } else {
-        $frame['NextTimeStampSecs'] = $next_frames[$frame['EventId']]['TimeStampSecs'];
-        $frame['NextFrameId'] = $next_frames[$frame['EventId']]['Id'];
-      }
-      $event['FramesById'] += array($frame['Id']=>$frame);
-      $next_frames[$frame['EventId']] = &$event['FramesById'][$frame['Id']];
+  $result = dbQuery($eventsSql);
+  if ($result) {
+    while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
+      $EventsById[$event['Id']] = $event;
     }
-  } // end if dbQuery
+  }
 
   $events_by_monitor_id = array();
 
-  echo "var events = {\n";
-  foreach ( $EventsById as $event_id=>$event ) {
+  foreach ($EventsById as $event_id=>$event) {
 
     $StartTimeSecs = $event['StartTimeSecs'];
     $EndTimeSecs = $event['EndTimeSecs'];
@@ -113,14 +85,14 @@ if ( !$liveMode ) {
         $maxScore = $event['MaxScore'];
       $anyAlarms = true;
     }
-    if ( !isset($events_by_monitor_id[$event['MonitorId']]) )
-        $events_by_monitor_id[$event['MonitorId']] = array();
+    if (!isset($events_by_monitor_id[$event['MonitorId']]))
+      $events_by_monitor_id[$event['MonitorId']] = array();
     array_push($events_by_monitor_id[$event['MonitorId']], $event_id);
-
   } # end foreach Event
   echo ' };
 
-  var events_by_monitor_id = '.json_encode($events_by_monitor_id, JSON_NUMERIC_CHECK)."\n";
+  const events_for_monitor = [];
+  const events_by_monitor_id = '.json_encode($events_by_monitor_id, JSON_NUMERIC_CHECK).PHP_EOL;
 
   // if there is no data set the min/max to the passed in values
   if ( $index == 0 ) {
@@ -156,14 +128,6 @@ foreach ( ZM\Storage::find() as $Storage ) {
 if ( !$have_storage_zero ) {
   $Storage = new ZM\Storage();
   echo 'Storage[0] = ' . $Storage->to_json(). ";\n";
-}
-
-echo "\nvar Servers = [];\n";
-// Fall back to get Server paths, etc when no using multi-server mode
-$Server = new ZM\Server();
-echo 'Servers[0] = new Server(' . $Server->to_json(). ");\n";
-foreach ( ZM\Server::find() as $Server ) {
-  echo 'Servers[' . $Server->Id() . '] = new Server(' . $Server->to_json(). ");\n";
 }
 
 echo '

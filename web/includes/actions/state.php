@@ -38,11 +38,11 @@ if ($action == 'state') {
     $definition = join(',', $definitions);
     if ( $_REQUEST['newState'] )
       $_REQUEST['runState'] = $_REQUEST['newState'];
-    dbQuery('REPLACE INTO `States` SET `Name`=?, `Definition`=?', array($_REQUEST['runState'],$definition));
+    dbQuery('REPLACE INTO `States` SET `Name`=?, `Definition`=?', array($_REQUEST['runState'], $definition));
   }
 } else if ($action == 'delete') {
   if (isset($_REQUEST['runState']))
     dbQuery('DELETE FROM `States` WHERE `Name`=?', array($_REQUEST['runState']));
 }
-$redirect = '?view=console';
+$redirect = '?view='.getHomeViewW();
 ?>

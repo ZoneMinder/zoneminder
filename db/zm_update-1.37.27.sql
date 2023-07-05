@@ -69,6 +69,20 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 
+/* User.MonitorIds can contain references to no longer existing Monitors.  So for now, drop the constraint, we will add it back at the end */
+SET @s = (SELECT IF(
+    (SELECT COUNT(*)
+      FROM INFORMATION_SCHEMA.table_constraints
+      WHERE table_name = 'Monitors_Permissions'
+      AND table_schema = DATABASE()
+      AND constraint_name = 'Monitors_Permissions_ibfk_1'
+    ) > 0,
+    "ALTER TABLE Monitors_Permissions DROP FOREIGN KEY Monitors_Permissions_ibfk_1",
+    "SELECT 'Monitors_Permissions_ibfk_1 already dropped on Monitors_Permissions table'"
+    ));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
 
 SET @s = (SELECT IF(
     (SELECT COUNT(*)
@@ -105,3 +119,6 @@ REPLACE INTO Monitors_Permissions (UserId,Permission, MonitorId)
 REPLACE INTO Monitors_Permissions (UserId,Permission, MonitorId)
    SELECT Id, 'View', SUBSTRING_INDEX(SUBSTRING_INDEX(t.MonitorIds, ',', n.n), ',', -1) value FROM Users t CROSS JOIN (
     SELECT a.N + b.N * 10 + 1 n FROM (SELECT 0 AS N UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) a    ,(SELECT 0 AS N UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) b     ORDER BY n ) n  WHERE t.Monitors!='Edit' and t.MonitorIds != '' AND n.n <= 1 + (LENGTH(t.MonitorIds) - LENGTH(REPLACE(t.MonitorIds, ',', '')))  ORDER BY value;
+
+DELETE FROM Monitors_Permissions WHERE MonitorID NOT IN (SELECT Id FROM Monitors);
+ALTER TABLE Monitors_Permissions ADD CONSTRAINT Monitors_Permissions_ibfk_1 FOREIGN KEY (`MonitorId`) REFERENCES `Monitors` (`Id`) ON DELETE CASCADE;

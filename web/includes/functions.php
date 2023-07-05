@@ -21,15 +21,6 @@
 require_once('Filter.php');
 require_once('FilterTerm.php');
 
-// Compatibility functions
-if ( version_compare(phpversion(), '4.3.0', '<') ) {
-  function ob_get_clean() {
-    $buffer = ob_get_contents();
-    ob_end_clean();
-    return $buffer;
-  }
-}
-
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -40,7 +31,7 @@ function noCacheHeaders() {
 
 function CSPHeaders($view, $nonce) {
   global $Servers;
-  if ( ! $Servers )
+  if (!$Servers)
     $Servers = ZM\Server::find();
 
   $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
@@ -55,7 +46,8 @@ function CSPHeaders($view, $nonce) {
       // fall through
     default:
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      header("Content-Security-Policy-Report-Only: worker-src 'self' blob:; script-src 'self' 'nonce-$nonce' 'unsafe-eval' $additionalScriptSrc".
+      //header("Content-Security-Policy-Report-Only: worker-src 'self' blob:; script-src 'self' 'nonce-$nonce' 'unsafe-eval' $additionalScriptSrc".
+      header("Content-Security-Policy: worker-src 'self' blob:; object-src 'self'; script-src 'self' 'nonce-$nonce' 'wasm-unsafe-eval' $additionalScriptSrc".
         (ZM_CSP_REPORT_URI ? '; report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;
@@ -63,17 +55,15 @@ function CSPHeaders($view, $nonce) {
 }
 
 function CORSHeaders() {
-  if ( isset($_SERVER['HTTP_ORIGIN']) ) {
-
+  if (isset($_SERVER['HTTP_ORIGIN'])) {
 # The following is left for future reference/use.
     $valid = false;
     global $Servers;
-    if ( ! $Servers )
-      $Servers = ZM\Server::find();
-    if ( sizeof($Servers) < 1 ) {
+    if (!$Servers) $Servers = ZM\Server::find();
+    if (sizeof($Servers) < 1) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
-      if ( ZM_MIN_STREAMING_PORT ) {
+      if (ZM_MIN_STREAMING_PORT) {
         ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Credentials: true');
@@ -81,7 +71,7 @@ function CORSHeaders() {
       }
       return;
     }
-    foreach ( $Servers as $Server ) {
+    foreach ($Servers as $Server) {
       if (
         preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
         or
@@ -95,16 +85,16 @@ function CORSHeaders() {
         break;
       }
     }
-    if ( !$valid ) {
+    if (!$valid) {
       ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
     }
   }
 }
 
-function getMimeType( $file ) {
-  if ( function_exists('mime_content_type') ) {
+function getMimeType($file) {
+  if (function_exists('mime_content_type')) {
     return mime_content_type($file);
-  } elseif ( function_exists('finfo_file') ) {
+  } else if (function_exists('finfo_file')) {
     $finfo = finfo_open(FILEINFO_MIME);
     $mimeType = finfo_file($finfo, $file);
     finfo_close($finfo);
@@ -216,7 +206,7 @@ function getVideoStreamHTML($id, $src, $width, $height, $format, $title='') {
     } # end switch
   } # end if use object tags
 
-  switch( $mimeType ) {
+  switch ($mimeType) {
     case 'video/mp4' :
       global $rates;
       return '<video autoplay id="videoobj" class="video-js vjs-default-skin"'
@@ -252,7 +242,7 @@ function outputImageStream( $id, $src, $width, $height, $title='' ) {
 
 // width and height MUST be valid and include the px
 function getImageStreamHTML( $id, $src, $width, $height, $title='' ) {
-  if ( canStreamIframe() ) {
+  if (canStreamIframe()) {
       return '<iframe id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" '.($width? ' width="'. validInt($width).'"' : '').($height?' height="'.validInt($height).'"' : '' ).'/>';
   } else {
       return '<img id="'.$id.'" src="'.$src.'" alt="'. validHtmlStr($title) .'" style="'.
@@ -269,15 +259,15 @@ function outputControlStream($src, $width, $height, $monitor, $scale, $target) {
     <input type="hidden" name="mid" value="<?php echo $monitor['Id'] ?>"/>
     <input type="hidden" name="action" value="control"/>
     <?php
-    if ( $monitor['CanMoveMap'] ) {
+    if ($monitor['CanMoveMap']) {
     ?>
       <input type="hidden" name="control" value="moveMap"/>
     <?php
-    } else if ( $monitor['CanMoveRel'] ) {
+    } else if ($monitor['CanMoveRel']) {
     ?>
       <input type="hidden" name="control" value="movePseudoMap"/>
     <?php
-    } else if ( $monitor['CanMoveCon'] ) {
+    } else if ($monitor['CanMoveCon']) {
     ?>
       <input type="hidden" name="control" value="moveConMap"/>
     <?php
@@ -372,33 +362,32 @@ function getEventDefaultVideoPath($event) {
 
 function deletePath( $path ) {
   ZM\Debug('Deleting '.$path);
-  if ( is_dir($path) ) {
+  if (is_dir($path)) {
     system(escapeshellcmd('rm -rf '.$path));
-  } else if ( file_exists($path) ) {
+  } else if (file_exists($path)) {
     unlink($path);
   }
 }
 
 function deleteEvent($event) {
-
-  if ( empty($event) ) {
+  if (empty($event)) {
     ZM\Error('Empty event passed to deleteEvent.');
     return;
   }
 
-  if ( gettype($event) != 'array' ) {
+  if (gettype($event) != 'array') {
 # $event could be an eid, so turn it into an event hash
     $event = new ZM\Event($event);
   }
 
-  if ( $event->Archived() ) {
+  if ($event->Archived()) {
     ZM\Info('Cannot delete Archived event.');
     return;
   } # end if Archived
 
   global $user;
 
-  if ( $user['Events'] == 'Edit' ) {
+  if ($user->Events() == 'Edit') {
     $event->delete();
   } # CAN EDIT
 }
@@ -408,11 +397,11 @@ function deleteEvent($event) {
  */
 function makeLink($url, $label, $condition=1, $options='') {
   $string = '';
-  if ( $condition ) {
+  if ($condition) {
     $string .= '<a href="'.$url.'"'.($options?(' '.$options):'').'>';
   }
   $string .= $label;
-  if ( $condition ) {
+  if ($condition) {
     $string .= '</a>';
   }
   return $string;
@@ -420,9 +409,7 @@ function makeLink($url, $label, $condition=1, $options='') {
 
 //Make it slightly easier to create a link to help text modal
 function makeHelpLink($ohndx) {
-  $string = '&nbsp;(<a id="' .$ohndx. '" class="optionhelp">?</a>)';
-
-  return $string;
+  return '&nbsp;(<a id="'.$ohndx.'" class="optionhelp">?</a>)';
 }
 
 function makeButton($url, $buttonValue, $condition=1, $options='') {
@@ -484,7 +471,8 @@ function htmlOptions($options, $values) {
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {
-    ZM\Warning('Specified value '.print_r($values, true).' not in contents: '.print_r($options, true));
+    $backTrace = debug_backtrace();
+    ZM\Warning('Specified value '.print_r($values, true).' not in contents: '.print_r($options, true). ' from ' . print_r($backTrace, true));
   }
   return $options_html;
 } # end function htmlOptions
@@ -898,13 +886,12 @@ function deScale($dimension, $dummy) {
 
 function monitorLimitSql() {
   global $user;
-  if ( !empty($user['MonitorIds']) )
-    $midSql = ' AND MonitorId IN ('.join(',', preg_split('/["\'\s]*,["\'\s]*/', $user['MonitorIds'])).')';
+  if ( count($user->unviewableMonitorIds()) )
+    $midSql = ' AND MonitorId IN ('.join(',', $user->viewableMonitorIds()).')';
   else
     $midSql = '';
   return $midSql;
 }
-
 
 function parseSort($saveToSession=false, $querySep='&amp;') {
   global $sortQuery, $sortColumn, $sortOrder, $limitQuery; // Outputs
@@ -1187,7 +1174,6 @@ function getDiskBlocks($path = ZM_DIR_EVENTS) {
 }
 
 function systemStats() {
-
   $load = getLoad();
   $diskPercent = getDiskPercent();
   $pathMapPercent = getDiskPercent(ZM_PATH_MAP);
@@ -1234,7 +1220,6 @@ function systemStats() {
 }
 
 function getcpus() {
-
   if ( is_readable('/proc/cpuinfo') ) { # Works on Linux
     preg_match_all('/^processor/m', file_get_contents('/proc/cpuinfo'), $matches);
     $num_cpus = count($matches[0]);
@@ -1279,8 +1264,8 @@ function verNum($version) {
 function fixSequences() {
   $sequence = 1;
   $sql = 'SELECT * FROM Monitors ORDER BY Sequence ASC, Id ASC';
-  foreach( dbFetchAll($sql) as $monitor ) {
-    if ( $monitor['Sequence'] != $sequence ) {
+  foreach (dbFetchAll($sql) as $monitor) {
+    if ($monitor['Sequence'] != $sequence) {
       dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($sequence, $monitor['Id']));
     }
     $sequence++;
@@ -1288,8 +1273,8 @@ function fixSequences() {
 }
 
 function firstSet() {
-  foreach ( func_get_args() as $arg ) {
-    if ( !empty($arg) )
+  foreach (func_get_args() as $arg) {
+    if (!empty($arg))
       return $arg;
   }
 }
@@ -1889,7 +1874,9 @@ function generateConnKey() {
 
 function detaintPath($path) {
   // Remove any absolute paths, or relative ones that want to go up
-  $path = str_replace('../', '', $path);
+  do {
+    $path = str_replace('../', '', $path, $count);
+  } while($count);
   $path = ltrim($path, '/');
   return $path;
 }
@@ -1901,7 +1888,11 @@ function cache_bust($file) {
   global $css;
   $dirname = str_replace('/', '_', $parts['dirname']);
   $cacheFile = $dirname.'_'.$parts['filename'].'-'.$css.'-'.filemtime($file).'.'.$parts['extension'];
-  if ( file_exists(ZM_DIR_CACHE.'/'.$cacheFile) or symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile) ) {
+  if (
+    @symlink(ZM_PATH_WEB.'/'.$file, ZM_DIR_CACHE.'/'.$cacheFile)
+    or
+    file_exists(ZM_DIR_CACHE.'/'.$cacheFile)
+  ) {
     return 'cache/'.$cacheFile;
   } else {
     ZM\Warning('Failed linking '.$file.' to '.$cacheFile);
@@ -2218,6 +2209,19 @@ function array_recursive_diff($aArray1, $aArray2) {
   return $aReturn;
 }
 
+function html_input($name, $type='text', $value='', $options=array()) {
+  $html = '<input ';
+  $attributes = [];
+  $options = array_merge($options, ['name'=>$name, 'value'=>$value, 'type'=>$type]);
+
+  foreach (array_keys($options) as $k) {
+    $attributes[] = $k.'="'.$options[$k].'"';
+  }
+  $html .= join(' ', $attributes);
+  $html .= '/>';
+  return $html;
+}
+
 function html_radio($name, $values, $selected=null, $options=array(), $attrs=array()) {
 
   $html = '';
@@ -2376,8 +2380,8 @@ function output_file($path, $chunkSize=1024) {
 
   $contentType = getMimeType($path);
 
-  header("Cache-Control: public");
-  header("Content-Transfer-Encoding: binary");
+  header('Cache-Control: public');
+  header('Content-Transfer-Encoding: binary');
   header("Content-Type: $contentType");
 
   $contentDisposition = 'inline';
@@ -2417,7 +2421,6 @@ function output_file($path, $chunkSize=1024) {
     print(@fread($fp, 1024*$chunkSize));
     flush();
     ob_flush();
-    // sleep(1);
   }
   fclose($fp);
 
@@ -2428,5 +2431,38 @@ function array_to_hash_by_key($key, $array) {
   $results = array();
   foreach ($array as $a) { $results[$a->$key()] = $a; }
   return $results;
+}
+
+function check_datetime($x) {
+  return (date('Y-m-d H:i:s', strtotime($x)) == $x);
+}
+
+function getHomeView() {
+  global $user;
+  global $skin;
+  if ($user and $user->HomeView()) {
+    $view = detaintPath($user->HomeView());
+    $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$view.'.php';
+    if (file_exists($path)) {
+      return $view;
+    } else {
+      ZM\Warning('Invalid view '.$user->HomeView().' in HomeView for user '.$user->Username().' does not exist at '.$path);
+    }
+  }
+  if (defined('ZM_WEB_HOMEVIEW') and ZM_WEB_HOMEVIEW) {
+    $view = detaintPath(ZM_WEB_HOMEVIEW);
+    $path = dirname(__FILE__, 2).'/skins/'.$skin.'/views/'.$view.'.php';
+    if (file_exists($path)) {
+      return $view;
+    } else {
+      ZM\Warning('Invalid view '.ZM_WEB_HOMEVIEW.' in ZM_WEB_HOMEVIEW does not exist at '.$path);
+    }
+  }
+  return 'console';
+}
+
+function systemd_isactive($service) {
+  $output = shell_exec("systemctl is-active $service");
+  return (trim($output) == 'active');
 }
 ?>

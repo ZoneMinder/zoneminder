@@ -29,6 +29,7 @@ ZMPacket::ZMPacket() :
   keyframe(0),
   stream(nullptr),
   image(nullptr),
+  y_image(nullptr),
   analysis_image(nullptr),
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
@@ -45,6 +46,7 @@ ZMPacket::ZMPacket(Image *i, SystemTimePoint tv) :
   stream(nullptr),
   timestamp(tv),
   image(i),
+  y_image(nullptr),
   analysis_image(nullptr),
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
@@ -61,6 +63,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   stream(nullptr),
   timestamp(p.timestamp),
   image(nullptr),
+  y_image(nullptr),
   analysis_image(nullptr),
   score(-1),
   codec_type(AVMEDIA_TYPE_UNKNOWN),
@@ -79,6 +82,7 @@ ZMPacket::ZMPacket(ZMPacket &p) :
 ZMPacket::~ZMPacket() {
   delete analysis_image;
   delete image;
+  delete y_image;
 }
 
 ssize_t ZMPacket::ram() {

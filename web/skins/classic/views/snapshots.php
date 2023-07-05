@@ -22,7 +22,7 @@ if (!canView('Snapshots')) {
   $view = 'error';
   return;
 } else if (!ZM_FEATURES_SNAPSHOTS) {
-  $view = 'console';
+  $view = getHomeView();
   return;
 }
 
@@ -34,62 +34,66 @@ getBodyTopHTML();
 
 ?>
   <?php echo getNavBarHTML() ?>
-  <div id="page" class="container-fluid p-3">
-    <!-- Toolbar button placement and styling handled by bootstrap-tables -->
-    <div id="toolbar">
-      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
-      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-      <!--<button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>-->
-      <!--<button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>" disabled><i class="fa fa-external-link"></i></button>-->
-      <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
-    </div>
+  <div id="page">
+    <div id="content">
+      <!-- Toolbar button placement and styling handled by bootstrap-tables -->
+      <div id="toolbar">
+        <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <!--<button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>-->
+        <!--<button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>" disabled><i class="fa fa-external-link"></i></button>-->
+        <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
+      </div>
 
-      <!-- Table styling handled by bootstrap-tables -->
-      <div class="row justify-content-center table-responsive-sm">
-        <table
-          id="snapshotTable"
-          data-locale="<?php echo i18n() ?>"
-          data-side-pagination="server"
-          data-ajax="ajaxRequest"
-          data-pagination="true"
-          data-show-pagination-switch="true"
-          data-page-list="[10, 25, 50, 100, 200, All]"
-          data-search="true"
-          data-cookie="true"
-          data-cookie-id-table="zmSnapshotsTable"
-          data-cookie-expire="2y"
-          data-click-to-select="true"
-          data-remember-order="true"
-          data-show-columns="true"
-          data-show-export="true"
-          data-uncheckAll="true"
-          data-toolbar="#toolbar"
-          data-show-fullscreen="true"
-          data-click-to-select="true"
-          data-maintain-meta-data="true"
-          data-buttons-class="btn btn-normal"
-          data-show-jump-to="true"
-          data-show-refresh="true"
-          class="table-sm table-borderless"
-          style="display:none;"
-        >
-          <thead>
-            <!-- Row styling is handled by bootstrap-tables -->
-            <tr>
-              <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
-              <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
-              <th data-sortable="true" data-field="Name"><?php echo translate('Reference') ?></th>
-              <th data-sortable="false" data-field="Description"><?php echo translate('Notes') ?></th>
-              <th data-sortable="true" data-field="CreatedOn"><?php echo translate('When') ?></th>
-              <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
-            </tr>
-          </thead>
+      <div id="snapshots" class="container-fluid">
+        <!-- Table styling handled by bootstrap-tables -->
+        <div class="row justify-content-center table-responsive-sm">
+          <table
+            id="snapshotTable"
+            data-locale="<?php echo i18n() ?>"
+            data-side-pagination="server"
+            data-ajax="ajaxRequest"
+            data-pagination="true"
+            data-show-pagination-switch="true"
+            data-page-list="[10, 25, 50, 100, 200, All]"
+            data-search="true"
+            data-cookie="true"
+            data-cookie-id-table="zmSnapshotsTable"
+            data-cookie-expire="2y"
+            data-click-to-select="true"
+            data-remember-order="true"
+            data-show-columns="true"
+            data-show-export="true"
+            data-uncheckAll="true"
+            data-toolbar="#toolbar"
+            data-show-fullscreen="true"
+            data-click-to-select="true"
+            data-maintain-meta-data="true"
+            data-buttons-class="btn btn-normal"
+            data-show-jump-to="true"
+            data-show-refresh="true"
+            class="table-sm table-borderless"
+            style="display:none;"
+          >
+            <thead>
+              <!-- Row styling is handled by bootstrap-tables -->
+              <tr>
+                <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
+                <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
+                <th data-sortable="true" data-field="Name"><?php echo translate('Reference') ?></th>
+                <th data-sortable="false" data-field="Description"><?php echo translate('Notes') ?></th>
+                <th data-sortable="true" data-field="CreatedOn"><?php echo translate('When') ?></th>
+                <th data-sortable="false" data-field="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+              </tr>
+            </thead>
 
-          <tbody>
-          <!-- Row data populated via Ajax -->
-          </tbody>
+            <tbody>
+            <!-- Row data populated via Ajax -->
+            </tbody>
 
-        </table>
-      </div>       
+          </table>
+        </div>
+      </div>
+    </div><!--content-->
   </div>
 <?php xhtmlFooter() ?>

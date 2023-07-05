@@ -42,18 +42,21 @@ extern "C" {
 VideoStore::CodecData VideoStore::codec_data[] = {
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
   { AV_CODEC_ID_H265, "h265", "hevc_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
+  { AV_CODEC_ID_H265, "h265", "hevc_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV },
   { AV_CODEC_ID_H265, "h265", "hevc_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
+  { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
 
   { AV_CODEC_ID_H264, "h264", "h264_vaapi", AV_PIX_FMT_NV12, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI },
+  { AV_CODEC_ID_H264, "h264", "h264_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV },
   { AV_CODEC_ID_H264, "h264", "h264_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "h264_omx", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
+  { AV_CODEC_ID_H264, "h264", "libx264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
   { AV_CODEC_ID_MJPEG, "mjpeg", "mjpeg", AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ422P, AV_HWDEVICE_TYPE_NONE },
-  { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
-  { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
-  { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE  },
+  { AV_CODEC_ID_VP9, "vp9", "libvpx-vp9", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
+  { AV_CODEC_ID_AV1, "av1", "libsvtav1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
+  { AV_CODEC_ID_AV1, "av1", "libaom-av1", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE },
+  { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV },
 #else
   { AV_CODEC_ID_H265, "h265", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P },
 
@@ -323,12 +326,11 @@ bool VideoStore::open() {
         }
 #if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
         if (codec_data[i].hwdevice_type != AV_HWDEVICE_TYPE_NONE) {
-          Debug(1, "Setting up hwdevice");
           ret = av_hwdevice_ctx_create(&hw_device_ctx,
               codec_data[i].hwdevice_type,
               nullptr, nullptr, 0);
           if (0>ret) {
-            Error("Failed to create hwdevice_ctx");
+            Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
             continue;
           }
 
@@ -494,12 +496,16 @@ bool VideoStore::open() {
               av_make_error_string(ret).c_str());
       }
 
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+      /* Seems like technically we could have multple channels, so let's not implement this for ffmpeg 5 */
+#else
       if (audio_out_ctx->channels > 1) {
         Warning("Audio isn't mono, changing it.");
         audio_out_ctx->channels = 1;
       } else {
         Debug(3, "Audio is mono");
       }
+#endif
     } // end if is AAC
 
     if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
@@ -775,17 +781,23 @@ bool VideoStore::setup_resampler() {
 
   Debug(2, "Got something other than AAC (%s)", audio_in_codec->name);
 
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#else
   // Some formats (i.e. WAV) do not produce the proper channel layout
   if (audio_in_ctx->channel_layout == 0) {
     Debug(2, "Setting input channel layout to mono");
     // Perhaps we should not be modifying the audio_in_ctx....
     audio_in_ctx->channel_layout = av_get_channel_layout("mono");
   }
+#endif
 
   /* put sample parameters */
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 32768 ? audio_in_ctx->bit_rate : 32768;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  av_channel_layout_copy(&audio_out_ctx->ch_layout, &audio_in_ctx->ch_layout);
+#else
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
   if (!audio_out_ctx->channel_layout) {
@@ -795,6 +807,7 @@ bool VideoStore::setup_resampler() {
         );
       audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
   }
+#endif
 
   if (audio_out_codec->supported_samplerates) {
     int found = 0;
@@ -857,21 +870,36 @@ bool VideoStore::setup_resampler() {
         audio_out_ctx->time_base.num, audio_out_ctx->time_base.den);
 
   Debug(1,
-        "Audio in bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) layout(%" PRIi64 ") frame_size(%d)",
+        "Audio in bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_in_ctx->bit_rate, audio_in_ctx->sample_rate,
-        audio_in_ctx->channels, audio_in_ctx->sample_fmt,
-        audio_in_ctx->channel_layout, audio_in_ctx->frame_size);
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_in_ctx->ch_layout.nb_channels,
+#else
+        audio_in_ctx->channels,
+#endif
+        audio_in_ctx->sample_fmt,
+        audio_in_ctx->frame_size);
   Debug(1,
-        "Audio out context bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) layout(% " PRIi64 ") frame_size(%d)",
+        "Audio out context bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,
-        audio_out_ctx->channels, audio_out_ctx->sample_fmt,
-        audio_out_ctx->channel_layout, audio_out_ctx->frame_size);
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_out_ctx->ch_layout.nb_channels,
+#else
+        audio_out_ctx->channels,
+#endif
+        audio_out_ctx->sample_fmt,
+        audio_out_ctx->frame_size);
 
   Debug(1,
-        "Audio out stream bit_rate (%" PRIi64 ") sample_rate(%d) channels(%d) fmt(%d) layout(%" PRIi64 ") frame_size(%d)",
+        "Audio out stream bit_rate (%" PRIi64 ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_out_stream->codecpar->bit_rate, audio_out_stream->codecpar->sample_rate,
-        audio_out_stream->codecpar->channels, audio_out_stream->codecpar->format,
-        audio_out_stream->codecpar->channel_layout, audio_out_stream->codecpar->frame_size);
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_out_stream->codecpar->ch_layout.nb_channels,
+#else
+        audio_out_stream->codecpar->channels,
+#endif
+        audio_out_stream->codecpar->format,
+        audio_out_stream->codecpar->frame_size);
 
   /** Create a new frame to store the audio samples. */
   if (!in_frame) {
@@ -890,10 +918,28 @@ bool VideoStore::setup_resampler() {
 
   if (!(fifo = av_audio_fifo_alloc(
           audio_out_ctx->sample_fmt,
-          audio_out_ctx->channels, 1))) {
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+          audio_out_ctx->ch_layout.nb_channels
+#else
+          audio_out_ctx->channels
+#endif
+          , 1))) {
     Error("Could not allocate FIFO");
     return false;
   }
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  if ((ret = swr_alloc_set_opts2(&resample_ctx,
+      &audio_out_ctx->ch_layout,
+      audio_out_ctx->sample_fmt,
+      audio_out_ctx->sample_rate,
+      &audio_in_ctx->ch_layout,
+      audio_in_ctx->sample_fmt,
+      audio_in_ctx->sample_rate,
+      0, nullptr)) < 0) {
+    Error("Could not allocate resample context");
+    return false;
+  }
+#else
   resample_ctx = swr_alloc_set_opts(nullptr,
       audio_out_ctx->channel_layout,
       audio_out_ctx->sample_fmt,
@@ -906,6 +952,7 @@ bool VideoStore::setup_resampler() {
     Error("Could not allocate resample context");
     return false;
   }
+#endif
   if ((ret = swr_init(resample_ctx)) < 0) {
     Error("Could not open resampler %d", ret);
     swr_free(&resample_ctx);
@@ -915,14 +962,23 @@ bool VideoStore::setup_resampler() {
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  out_frame->ch_layout = audio_out_ctx->ch_layout,
+#else
   out_frame->channels = audio_out_ctx->channels;
   out_frame->channel_layout = audio_out_ctx->channel_layout;
+#endif
   out_frame->sample_rate = audio_out_ctx->sample_rate;
 
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
   unsigned int audioSampleBuffer_size = av_samples_get_buffer_size(
-      nullptr, audio_out_ctx->channels,
+      nullptr,
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+      audio_out_ctx->ch_layout.nb_channels,
+#else
+      audio_out_ctx->channels,
+#endif
       audio_out_ctx->frame_size,
       audio_out_ctx->sample_fmt, 0);
   converted_in_samples = reinterpret_cast<uint8_t *>(av_malloc(audioSampleBuffer_size));
@@ -936,7 +992,12 @@ bool VideoStore::setup_resampler() {
 
   // Setup the data pointers in the AVFrame
   if (avcodec_fill_audio_frame(
-        out_frame.get(), audio_out_ctx->channels,
+        out_frame.get(),
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_out_ctx->ch_layout.nb_channels,
+#else
+        audio_out_ctx->channels,
+#endif
         audio_out_ctx->sample_fmt,
         (const uint8_t *)converted_in_samples,
         audioSampleBuffer_size, 0) < 0) {
@@ -983,12 +1044,13 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
   }  // end while
 
   if (have_out_of_order) {
-    queue.insert(rit.base(), zm_pkt);
     if (rit == queue.rend()) {
-      Warning("Unable to re-order packet");
+      Debug(1, "Unable to re-order packet, packet dts is %" PRId64, av_pkt->dts);
     } else {
-      Debug(1, "Found out of order packet");
+      AVPacket *p = ((*rit)->packet).get();
+      Debug(1, "Found out of order packet, inserting after %" PRId64, p->dts);
     }
+    queue.insert(rit.base(), zm_pkt);
   } else {
     queue.push_back(zm_pkt);
     Debug(1, "Pushing on queue %d, size is %zu", stream_index, queue.size());

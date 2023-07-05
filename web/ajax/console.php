@@ -29,5 +29,5 @@ if ( canEdit('Monitors') ) {
   ZM\Warning('Cannot edit monitors');
 }
 
-ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user ' . $user['Username']);
+ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user ' . $user->Username());
 ?>

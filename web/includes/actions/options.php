@@ -45,7 +45,7 @@ if ( $action == 'delete' ) {
     // deletes users
     foreach( $_REQUEST['markUids'] as $markUid )
       dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
-    if ( $markUid == $user['Id'] )
+    if ( $markUid == $user->Id() )
       userLogout();
   }
 
@@ -63,7 +63,7 @@ if ( $action == 'delete' ) {
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       $newValue = 0;
     } else if (isset($_REQUEST['newConfig'][$config['Name']])) {
-      $newValue = preg_replace('/\r\n/', '\n', stripslashes($_REQUEST['newConfig'][$config['Name']]));
+      $newValue = preg_replace('/\r\n/', '\n', $_REQUEST['newConfig'][$config['Name']]);
     }
 
     if (isset($newValue) && ($newValue != $config['Value'])) {
@@ -108,5 +108,50 @@ if ( $action == 'delete' ) {
     #generateAuthHash(ZM_AUTH_HASH_IPS, true);
   }
   return;
+} else if ($action == 'save') {
+  if (isset($_REQUEST['object'])) {
+    if ($_REQUEST['object'] == 'dnsmasq') {
+      $config = isset($_REQUEST['config']) ? $_REQUEST['config'] : [];
+      $conf = '';
+      foreach ($config as $name=>$value) {
+        if ($name == 'dhcp-host') {
+          foreach ($value as $mac=>$ip) {
+            $conf .= $name.'='.$mac.','.$ip.PHP_EOL;
+          }
+        } else if (
+            ($name == 'bind-interfaces')
+            or
+            ($name == 'dhcp-authoritative')
+            ) {
+          if ($value=='yes') {
+            $conf .= $name.PHP_EOL;
+          }
+        } else if ($name == 'dhcp-range') {
+          $conf .= $name.'='.$value['min'].','.$value['max'].','.$value['expires'].PHP_EOL;
+        } else {
+          if (is_array($value)) {
+            foreach ($value as $v) {
+            }
+          } else {
+            $conf .= $name.'='.$value.PHP_EOL;
+          }
+        }
+      }
+      file_put_contents(ZM_PATH_DNSMASQ_CONF, $conf);
+      exec('sudo -n /bin/systemctl restart dnsmasq.service');
+    }
+  }
+} else if ($action == 'start') {
+  if (isset($_REQUEST['object'])) {
+    if ($_REQUEST['object'] == 'dnsmasq') {
+      exec('sudo -n /bin/systemctl start dnsmasq.service');
+    }
+  }
+} else if ($action == 'stop') {
+  if (isset($_REQUEST['object'])) {
+    if ($_REQUEST['object'] == 'dnsmasq') {
+      exec('sudo -n /bin/systemctl stop dnsmasq.service');
+    }
+  }
 } // end if object vs action
 ?>

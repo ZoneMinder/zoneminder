@@ -28,6 +28,7 @@
 #include <mutex>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <vector>
 
 static unsigned char y_table_global[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54, 55, 57, 58, 59, 60, 61, 62, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 76, 78, 79, 80, 81, 82, 83, 85, 86, 87, 88, 89, 90, 91, 93, 94, 95, 96, 97, 98, 100, 101, 102, 103, 104, 105, 107, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 119, 121, 122, 123, 124, 125, 126, 128, 129, 130, 131, 132, 133, 135, 136, 137, 138, 139, 140, 142, 143, 144, 145, 146, 147, 149, 150, 151, 152, 153, 154, 156, 157, 158, 159, 160, 161, 163, 164, 165, 166, 167, 168, 170, 171, 172, 173, 174, 175, 176, 178, 179, 180, 181, 182, 183, 185, 186, 187, 188, 189, 190, 192, 193, 194, 195, 196, 197, 199, 200, 201, 202, 203, 204, 206, 207, 208, 209, 210, 211, 213, 214, 215, 216, 217, 218, 220, 221, 222, 223, 224, 225, 227, 228, 229, 230, 231, 232, 234, 235, 236, 237, 238, 239, 241, 242, 243, 244, 245, 246, 248, 249, 250, 251, 252, 253, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 
@@ -142,9 +143,10 @@ Image::Image() :
   blend = fptr_blend;
 }
 
-Image::Image(const char *filename) {
+Image::Image(const std::string &filename) {
   if ( !initialised )
     Initialise();
+  filename_ = filename;
   width = 0;
   linesize = 0;
   height = 0;
@@ -175,19 +177,29 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
     Initialise();
   pixels = width * height;
   linesize = p_width * p_colours;
-  size = linesize * height + padding;
-  if (p_buffer) {
-    allocation = size;
-    buffertype = ZM_BUFTYPE_DONTFREE;
-    buffer = p_buffer;
-  } else {
-    AllocImgBuffer(size);
-  }
+
   if (!subpixelorder and (colours>1)) {
     // Default to RGBA when no subpixelorder is specified.
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
   }
+
   imagePixFormat = AVPixFormat();
+
+  if (p_buffer) {
+    size = linesize * height + padding;
+    allocation = size;
+    buffertype = ZM_BUFTYPE_DONTFREE;
+    buffer = p_buffer;
+  } else {
+    size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
+    linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
+
+    Debug(1, "line size: %d =? %d width %d Size %d ?= %d", linesize,
+        av_image_get_linesize(imagePixFormat, width, 0),
+        width, linesize * height + padding, size);
+
+    AllocImgBuffer(size);
+  }
 
   update_function_pointers();
 }
@@ -266,15 +278,15 @@ int Image::PopulateFrame(AVFrame *frame) {
   frame->buf[0] = ref;
 
   // From what I've read, we should align the linesizes to 32bit so that ffmpeg can use SIMD instructions too.
-  int size = av_image_fill_arrays(
+  int rc_size = av_image_fill_arrays(
       frame->data, frame->linesize,
       buffer, imagePixFormat, width, height,
       32 //alignment
       );
-  if ( size < 0 ) {
+  if (rc_size < 0) {
     Error("Problem setting up data pointers into image %s",
-        av_make_error_string(size).c_str());
-    return size;
+        av_make_error_string(rc_size).c_str());
+    return rc_size;
   }
 
   frame->width = width;
@@ -314,12 +326,13 @@ bool Image::Assign(const AVFrame *frame, SwsContext *convert_context, AVFrame *t
   PopulateFrame(temp_frame);
   zm_dump_video_frame(frame, "source frame before convert");
   temp_frame->pts = frame->pts;
-  AVPixelFormat format = (AVPixelFormat)AVPixFormat();
 
-      int ret = sws_scale(convert_context,
-        frame->data, frame->linesize, 0, frame->height,
-        temp_frame->data, temp_frame->linesize);
+  Debug(1, "Assign src linesize: %d, dest linesize: %d", frame->linesize[0], temp_frame->linesize[0]);
+  int ret = sws_scale(convert_context,
+      frame->data, frame->linesize, 0, frame->height,
+      temp_frame->data, temp_frame->linesize);
   if (ret < 0) {
+    AVPixelFormat format = (AVPixelFormat)AVPixFormat();
     Error("Unable to convert raw format %u %s %ux%u to target format %u %s %ux%u: %s",
         frame->format, av_get_pix_fmt_name(static_cast<AVPixelFormat>(frame->format)), frame->width, frame->height,
         format, av_get_pix_fmt_name(format), width, height,
@@ -805,8 +818,21 @@ void Image::Assign(const Image &image) {
     update_function_pointers();
   }
 
-  if ( image.buffer != buffer )
-    (*fptr_imgbufcpy)(buffer, image.buffer, size);
+  if ( image.buffer != buffer ) {
+    if (image.linesize > linesize) {
+      Debug(1, "Must copy line by line due to different line size %d != %d", image.linesize, linesize);
+      uint8_t *src_ptr = image.buffer;
+      uint8_t *dst_ptr = buffer;
+      for (unsigned int i=0; i< image.height; i++) {
+        (*fptr_imgbufcpy)(dst_ptr, src_ptr, image.linesize);
+        src_ptr += image.linesize;
+        dst_ptr += linesize;
+      }
+    } else {
+      Debug(1, "Doing full copy line size %d != %d", image.linesize, linesize);
+      (*fptr_imgbufcpy)(buffer, image.buffer, size);
+    }
+  }
 }
 
 Image *Image::HighlightEdges(
@@ -901,29 +927,29 @@ Image *Image::HighlightEdges(
   return high_image;
 }
 
-bool Image::ReadRaw(const char *filename) {
+bool Image::ReadRaw(const std::string &filename) {
   FILE *infile;
-  if ( (infile = fopen(filename, "rb")) == nullptr ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
+  if ( (infile = fopen(filename.c_str(), "rb")) == nullptr ) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
   struct stat statbuf;
-  if ( fstat( fileno(infile), &statbuf ) < 0 ) {
+  if (fstat(fileno(infile), &statbuf) < 0) {
     fclose(infile);
-    Error("Can't fstat %s: %s", filename, strerror(errno));
+    Error("Can't fstat %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
-  if ( (unsigned int)statbuf.st_size != size ) {
+  if ((unsigned int)statbuf.st_size != size) {
     fclose(infile);
     Error("Raw file size mismatch, expected %d bytes, found %jd", size, static_cast<intmax_t>(statbuf.st_size));
     return false;
   }
 
-  if ( fread(buffer, size, 1, infile) < 1 ) {
+  if (fread(buffer, size, 1, infile) < 1) {
     fclose(infile);
-    Error("Unable to read from '%s': %s", filename, strerror(errno));
+    Error("Unable to read from '%s': %s", filename.c_str(), strerror(errno));
     return false;
   }
 
@@ -932,15 +958,15 @@ bool Image::ReadRaw(const char *filename) {
   return true;
 }
 
-bool Image::WriteRaw(const char *filename) const {
+bool Image::WriteRaw(const std::string &filename) const {
   FILE *outfile;
-  if ( (outfile = fopen(filename, "wb")) == nullptr ) {
-    Error("Can't open %s: %s", filename, strerror(errno));
+  if ((outfile = fopen(filename.c_str(), "wb")) == nullptr) {
+    Error("Can't open %s: %s", filename.c_str(), strerror(errno));
     return false;
   }
 
-  if ( fwrite( buffer, size, 1, outfile ) != 1 ) {
-    Error("Unable to write to '%s': %s", filename, strerror(errno));
+  if (fwrite(buffer, size, 1, outfile) != 1) {
+    Error("Unable to write to '%s': %s", filename.c_str(), strerror(errno));
     fclose(outfile);
     return false;
   }
@@ -1198,6 +1224,8 @@ bool Image::WriteJpeg(const std::string &filename,
         fclose(outfile);
         return false;
 #endif
+      } else if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+        cinfo->in_color_space = JCS_YCbCr;
       } else {
         /* Assume RGB */
         /*
@@ -1252,10 +1280,28 @@ cinfo->out_color_space = JCS_RGB;
     jpeg_write_marker(cinfo, EXIF_CODE, (const JOCTET *) exiftimes, sizeof(exiftimes));
   }
 
-  JSAMPROW row_pointer = buffer;  /* pointer to a single row */
-  while (cinfo->next_scanline < cinfo->image_height) {
-    jpeg_write_scanlines(cinfo, &row_pointer, 1);
-    row_pointer += linesize;
+  if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+    std::vector<uint8_t> tmprowbuf(width * 3);
+    JSAMPROW row_pointer = &tmprowbuf[0];  /* pointer to a single row */
+    while (cinfo->next_scanline < cinfo->image_height) {
+      unsigned i, j;
+      unsigned offset = cinfo->next_scanline * cinfo->image_width * 2; //offset to the correct row
+      for (i = 0, j = 0; i < cinfo->image_width * 2; i += 4, j += 6) { //input strides by 4 bytes, output strides by 6 (2 pixels)
+        tmprowbuf[j + 0] = buffer[offset + i + 0]; // Y (unique to this pixel)
+        tmprowbuf[j + 1] = buffer[offset + i + 1]; // U (shared between pixels)
+        tmprowbuf[j + 2] = buffer[offset + i + 3]; // V (shared between pixels)
+        tmprowbuf[j + 3] = buffer[offset + i + 2]; // Y (unique to this pixel)
+        tmprowbuf[j + 4] = buffer[offset + i + 1]; // U (shared between pixels)
+        tmprowbuf[j + 5] = buffer[offset + i + 3]; // V (shared between pixels)
+      }
+      jpeg_write_scanlines(cinfo, &row_pointer, 1);
+    }
+  } else {
+    JSAMPROW row_pointer = buffer;  /* pointer to a single row */
+    while (cinfo->next_scanline < cinfo->image_height) {
+      jpeg_write_scanlines(cinfo, &row_pointer, 1);
+      row_pointer += linesize;
+    }
   }
   jpeg_finish_compress(cinfo);
   fclose(outfile);

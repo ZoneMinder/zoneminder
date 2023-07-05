@@ -92,7 +92,7 @@ $codecs = array(
   'MP4'   => translate('video.js MP4'),
   'MJPEG' => translate('MJPEG (zms)'),
 );
-if ($need_h265webhs and $has_h265webjs) {
+if ($need_h265webjs and $has_h265webjs) {
   $codecs['h265web.js'] = 'h265web.js H265';
 }
 
@@ -154,23 +154,29 @@ if ( !isset($_REQUEST['filter']) ) {
 }
 parseSort();
 $filter = ZM\Filter::parse($_REQUEST['filter']);
+if (count($filter->terms())==1 and $filter->has_term('Id')) {
+  # Special case, coming from filter specifying this exact event.
+  $filter->terms([]);
+  $filter->addTerm(['attr' => 'MonitorId', 'op' => '=', 'val' => $Event->MonitorId(), 'cnj' => 'and']);
+}
 $filterQuery = $filter->querystring();
-
 $connkey = generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Event').' '.$Event->Id());
+getBodyTopHTML();
 ?>
-<body>
   <div id="page">
-<?php
-echo getNavBarHTML();
-if (!$Event->Id())
+    <?php echo getNavBarHTML() ?>
+    <div id="content">
+<?php 
+if ( !$Event->Id() ) {
   echo '<div class="error">Event was not found.</div>';
-else if (!file_exists($Event->Path()))
+} else if (!file_exists($Event->Path())) {
   echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
+}
 ?>
 <!-- BEGIN HEADER -->
-    <div class="d-flex flex-row justify-content-between px-3 py-1">
+    <div class="d-flex flex-row flex-wrap justify-content-between px-3 py-1">
       <div id="toolbar" >
         <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
@@ -218,16 +224,43 @@ else if (!file_exists($Event->Path()))
     </div>
 <?php if ($Event->Id()) { ?>
 <!-- BEGIN VIDEO CONTENT ROW -->
-    <div id="content" class="d-flex flex-row justify-content-center">
-      <div id="eventStats" class="eventStats">
-        <!-- VIDEO STATISTICS TABLE -->
-        <table id="eventStatsTable" class="table-sm table-borderless">
-          <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
-        </table>
+    <div id="inner-content">
+      <div class="d-flex flex-row">
+        <div class="eventStats">
+          <!-- VIDEO STATISTICS TABLE -->
+          <table id="eventStatsTable" class="table-sm table-borderless">
+            <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
+          </table>
+
+      <div id="frames">
+<?php 
+if (file_exists($Event->Path().'/alarm.jpg')) {
+  echo '
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=alarm">
+  <img src="?view=image&eid='. $Event->Id().'&amp;fid=alarm&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="First alarmed frame" title="First alarmed frame"/>
+</a>    
+';
+}
+if (file_exists($Event->Path().'/snapshot.jpg')) {
+  echo '
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=snapshot">
+  <img src="?view=image&eid='. $Event->Id().'&amp;fid=snapshot&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Frame with the most motion" title="Frame with the most motion"/>
+</a>
+';
+}
+if (file_exists($Event->Path().'/objdetect.jpg')) {
+  echo '
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect">
+  <img src="?view=image&eid='. $Event->Id().'&amp;fid=objdetect" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Detected Objects" title="Detected Objects"/>
+</a>
+';
+}
+?>
       </div>
-      <div id="eventVideo">
-      <!-- VIDEO CONTENT -->
-        <div id="videoFeed">
+        </div>
+        <div id="eventVideo">
+        <!-- VIDEO CONTENT -->
+          <div id="videoFeed">
 <?php
 if ($player == 'video.js') {
 ?>
@@ -246,6 +279,11 @@ if ($player == 'video.js') {
           <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
           Your browser does not support the video tag.
           </video>
+        <div id="progressBar" style="width: 100%;">
+          <div id="alarmCues" style="width: 100%;"></div>
+          <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+          <div id="indicator" style="display: none;"></div>
+        </div><!--progressBar-->
 <?php
 } else if ($player == 'mjpeg') {
 ?>
@@ -266,7 +304,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 } // end if stream method
 ?>
         <div id="progressBar" style="width: 100%;">
-        <div id="alarmCues" style="width: 100%;"></div>
+          <div id="alarmCues" style="width: 100%;"></div>
           <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
           <div id="indicator" style="display: none;"></div>
         </div><!--progressBar-->
@@ -321,8 +359,8 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
           <i class="material-icons md-18">zoom_out</i>
           </button>
-          <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail">
-          <i class="material-icons md-18">fullscreen</i>
+          <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
+            <i class="material-icons md-18">fullscreen</i>
           </button>
           <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
           <i class="material-icons md-18">skip_next</i>
@@ -363,10 +401,12 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
           echo '</tbody></table>';
         }
       ?>
-      </div>
+      </div><!--EventData-->
+</div>
 <?php
 } // end if Event exists
 ?>
+    </div><!--inner-content-->
     </div><!--content-->
     
   </div><!--page-->

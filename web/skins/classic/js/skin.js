@@ -275,8 +275,8 @@ if ( currentView != 'none' && currentView != 'login' ) {
     reminderClickFunction();
     // Manage the widget bar minimize chevron
     $j("#flip").click(function() {
-      $j("#panel").slideToggle("slow");
-      var flip = $j("#flip");
+      $j("#navbar-two").slideToggle("slow");
+      const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
         setCookie('zmHeaderFlip', 'down', 3600);
@@ -590,8 +590,8 @@ function endOfResize(e) {
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
-  var ratio = baseWidth / baseHeight;
-  var container = $j('#content');
+  const ratio = baseWidth / baseHeight;
+  const container = $j('#content');
   if (!container) {
     console.error("No container found");
     return;
@@ -600,16 +600,20 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   if (!bottomEl || !bottomEl.length) {
     bottomEl = $j(container[0].lastElementChild);
   }
-  var viewPort = $j(window);
+  const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
   console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
   var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
-
   var newWidth = ratio * newHeight;
   console.log("newWidth = " + newWidth);
-  if (newWidth > container.innerWidth()) {
+
+  if (newHeight < 0) {
+    // Doesn't fit on screen anyways?
+    newWidth = container.innerWidth();
+    newHeight = newWidth / ratio;
+  } else if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth();
     newHeight = newWidth / ratio;
   }
@@ -646,11 +650,11 @@ function setButtonState(element_id, btnClass) {
   }
 }
 
-function setCookie(name, value, days) {
-  var expires = "";
-  if (days) {
-    var date = new Date();
-    date.setTime(date.getTime() + (days*24*60*60*1000));
+function setCookie(name, value, seconds) {
+  let expires = "";
+  if (seconds) {
+    const date = new Date();
+    date.setTime(date.getTime() + (seconds*1000));
     expires = "; expires=" + date.toUTCString();
   }
   document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
@@ -912,15 +916,15 @@ function manageShutdownBtns(element) {
 }
 
 var thumbnail_timeout;
+var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
   thumbnail_timeout = setTimeout(function() {
-    var img = event.target;
-    var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-    var imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
-    img.src = '';
-    img.src = img.getAttribute(imgAttr);
+    const img = event.target;
+    const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+    const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
     img.classList.add(imgClass);
-  }, 350);
+    img.src = img.getAttribute(imgAttr);
+  }, 150);
 }
 
 function thumbnail_onmouseout(event) {
@@ -982,3 +986,54 @@ function toggle_password_visibility(element) {
     element.innerHTML='visibility';
   }
 }
+
+/**
+ * sends a request to the specified url from a form. this will change the window location.
+ * @param {string} path the path to send the post request to
+ * @param {object} params the parameters to add to the url
+ * @param {string} [method=post] the method to use on the form
+ */
+
+function post(path, params, method='post') {
+  // The rest of this code assumes you are not using a library.
+  // It can be made less verbose if you use one.
+  const form = document.createElement('form');
+  form.method = method;
+  form.action = path;
+  if (ZM_ENABLE_CSRF_MAGIC === '1') {
+    const csrfField = document.createElement('input');
+    csrfField.type = 'hidden';
+    csrfField.name = csrfMagicName;
+    csrfField.value = csrfMagicToken;
+    form.appendChild(csrfField);
+  }
+
+  for (const key in params) {
+    if (params.hasOwnProperty(key)) {
+      if (Array.isArray(params[key])) {
+        for (let i=0, len=params[key].length; i<len; i++) {
+          const hiddenField = document.createElement('input');
+          hiddenField.type = 'hidden';
+          hiddenField.name = key;
+          hiddenField.value = params[key][i];
+          form.appendChild(hiddenField);
+        }
+      } else {
+        const hiddenField = document.createElement('input');
+        hiddenField.type = 'hidden';
+        hiddenField.name = key;
+        hiddenField.value = params[key];
+        form.appendChild(hiddenField);
+      }
+    } // end if hasOwnProperty(key)
+  }
+  document.body.appendChild(form);
+  form.submit();
+}
+
+const font = new FontFaceObserver('Material Icons', {weight: 400});
+font.load().then(function() {
+  $j('.material-icons').css('display', 'inline-block');
+}, function() {
+  $j('.material-icons').css('display', 'inline-block');
+});

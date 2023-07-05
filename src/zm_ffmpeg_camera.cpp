@@ -67,6 +67,8 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
       return AV_PIX_FMT_VDPAU;
     case AV_HWDEVICE_TYPE_CUDA:
       return AV_PIX_FMT_CUDA;
+    case AV_HWDEVICE_TYPE_QSV:
+      return AV_PIX_FMT_VAAPI;
 #ifdef AV_HWDEVICE_TYPE_MMAL
     case AV_HWDEVICE_TYPE_MMAL:
       return AV_PIX_FMT_MMAL;
@@ -122,7 +124,13 @@ FfmpegCamera::FfmpegCamera(
   mOptions(p_options),
   hwaccel_name(p_hwaccel_name),
   hwaccel_device(p_hwaccel_device),
-  frameCount(0)
+  frameCount(0),
+  use_hwaccel(true),
+  mCanCapture(false),
+  mConvertContext(nullptr),
+  error_count(0),
+  stream_width(0),
+  stream_height(0)
 {
   mMaskedPath = remove_authentication(mPath);
   mMaskedSecondPath = remove_authentication(mSecondPath);
@@ -130,9 +138,6 @@ FfmpegCamera::FfmpegCamera(
     FFMPEGInit();
   }
 
-  mCanCapture = false;
-  error_count = 0;
-  use_hwaccel = true;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   hw_device_ctx = nullptr;
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
@@ -140,7 +145,6 @@ FfmpegCamera::FfmpegCamera(
 #endif
 #endif
 
-  mConvertContext = nullptr;
   /* Has to be located inside the constructor so other components such as zma
    * will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {
@@ -188,6 +192,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   start_read_time = std::chrono::steady_clock::now();
   int ret;
   AVFormatContext *formatContextPtr;
+  int64_t lastPTS;
 
   if ( mSecondFormatContext and
       (
@@ -197,12 +202,14 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       ) ) {
     // if audio stream is behind video stream, then read from audio, otherwise video
     formatContextPtr = mSecondFormatContext;
+    lastPTS = mLastAudioPTS;
     Debug(4, "Using audio input because audio PTS %" PRId64 " < video PTS %" PRId64,
         av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q),
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
         );
   } else {
     formatContextPtr = mFormatContext;
+    lastPTS = mLastVideoPTS;
     Debug(4, "Using video input because %" PRId64 " >= %" PRId64,
         (mAudioStream?av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q):0),
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
@@ -222,6 +229,11 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       Error("Unable to read packet from stream %d: error %d \"%s\".",
           packet->stream_index, ret, av_make_error_string(ret).c_str());
     }
+    return -1;
+  }
+  if ((packet->pts < 0) and (packet->pts != AV_NOPTS_VALUE) and (lastPTS >= 0)) {
+    // 32-bit wrap around?
+    Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
     return -1;
   }
 
@@ -314,7 +326,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if( mUser.length() > 0 ) {
     // build the actual uri string with encoded parameters (from the user and pass fields)
-    mPath = StringToLower(protocol) + "://" + mUser + ":" + mPass + "@" + mMaskedPath.substr(7, std::string::npos);
+    mPath = StringToLower(protocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedPath.substr(7, std::string::npos);
     Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
   }
 
@@ -379,11 +391,11 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoStreamId, mAudioStreamId);
 
   const AVCodec *mVideoCodec = nullptr;
-  if (mVideoStream->codecpar->codec_id == AV_CODEC_ID_H264) {
-    if ((mVideoCodec = avcodec_find_decoder_by_name("h264_mmal")) == nullptr) {
-      Debug(1, "Failed to find decoder (h264_mmal)");
+  if (!monitor->DecoderName().empty()) {
+    if ((mVideoCodec = avcodec_find_decoder_by_name(monitor->DecoderName().c_str())) == nullptr) {
+      Debug(1, "Failed to find decoder %s, falling back to auto", monitor->DecoderName().c_str());
     } else {
-      Debug(1, "Success finding decoder (h264_mmal)");
+      Debug(1, "Success finding decoder %s", monitor->DecoderName().c_str());
     }
   }
 
@@ -483,6 +495,7 @@ int FfmpegCamera::OpenFfmpeg() {
   }  // end if hwaccel_name
 
   // set codec to automatically determine how many threads suits best for the decoding job
+#if 0
   mVideoCodecContext->thread_count = 0;
 
   if (mVideoCodec->capabilities | AV_CODEC_CAP_FRAME_THREADS) {
@@ -492,6 +505,7 @@ int FfmpegCamera::OpenFfmpeg() {
   } else {
     mVideoCodecContext->thread_count = 1; //don't use multithreading
   }
+#endif
 
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
@@ -504,6 +518,7 @@ int FfmpegCamera::OpenFfmpeg() {
     av_dict_free(&opts);
     return -1;
   }
+  Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);
   zm_dump_codec(mVideoCodecContext);
 
   if (mAudioStreamId == -1 and !monitor->GetSecondPath().empty()) {
@@ -540,7 +555,7 @@ int FfmpegCamera::OpenFfmpeg() {
       ||
       ((unsigned int)mVideoCodecContext->height != height)
       ) {
-    Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
+    Debug(1, "Monitor dimensions are %dx%d but camera is sending %dx%d",
         width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
 

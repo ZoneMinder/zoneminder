@@ -66,6 +66,7 @@ var eventDataStrings = {
     TotScore: '<?php echo translate('AttrTotalScore') ?>',
     AvgScore: '<?php echo translate('AttrAvgScore') ?>',
     MaxScore: '<?php echo translate('AttrMaxScore') ?>',
+    Resolution: '<?php echo translate('Resolution') ?>',
     DiskSpace: '<?php echo translate('DiskSpace') ?>',
     Storage: '<?php echo translate('Storage') ?>',
     Path: '<?php echo translate('Path') ?>',
@@ -100,3 +101,9 @@ const WEB_LIST_THUMB_WIDTH = '<?php echo ZM_WEB_LIST_THUMB_WIDTH ?>';
 const WEB_LIST_THUMB_HEIGHT = '<?php echo ZM_WEB_LIST_THUMB_HEIGHT ?>';
 const popup = '<?php echo $popup ?>';
 const playerType = '<?php echo $player ?>';
+
+var translate = {
+  "seconds": "<?php echo translate('seconds') ?>",
+  "Fullscreen": "<?php echo translate('Fullscreen') ?>",
+  "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
+};

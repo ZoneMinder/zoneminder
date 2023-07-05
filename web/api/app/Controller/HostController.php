@@ -6,11 +6,16 @@ class HostController extends AppController {
   public $components = array('RequestHandler');
 
   public function daemonCheck($daemon=false, $args=false) {
+    # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
+    $safe_daemon = $daemon ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count) : false;
+    if ($count) Error("Invalid characters found in daemon string ($daemon). Potential attack?");
+    $safe_args = $args ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $args, -1, $count) : false;
+    if ($count) Error("Invalid characters found in args string ($args). Potential attack?");
+
     $string = ZM_PATH_BIN.'/zmdc.pl check';
-    if ( $daemon ) {
-      $string .= " $daemon";
-      if ( $args )
-        $string .= " $args";
+    if ($safe_daemon) {
+      $string .= ' '.$safe_daemon;
+      if ($safe_args) $string .= ' '.$safe_args;
     }
     $result = exec($string);
     $result = preg_match('/running/', $result);
@@ -25,19 +30,24 @@ class HostController extends AppController {
   // invocation: https://server/zm/api/host/daemonControl/<daemon>.pl/<command>.json
   // note that this API is only for interaction with a specific
   // daemon. zmdc also allows other functions like logrot/etc
-  public function daemonControl($daemon_name, $command) {
+  public function daemonControl($daemon, $command) {
     global $user;
     if ($command == 'check' || $command == 'status') {
       $permission = 'View';
     } else {
       $permission = 'Edit';
     }
-    $allowed = (!$user) || ($user['System'] == $permission );
+    $allowed = (!$user) || ($user->System() == $permission );
     if ( !$allowed ) {
       throw new UnauthorizedException(__("Insufficient privileges"));
       return;
     }
-    $string = ZM_PATH_BIN."/zmdc.pl $command $daemon_name";
+    # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
+    $safe_daemon = preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count);
+    if ($count) Error("Invalid characters found in daemon string ($daemon). Potential attack?");
+    $safe_command = preg_replace('/[^a-z]/', '', $command, -1, $count);
+    if ($count) Error("Invalid characters found in command string ($command). Potential attack?");
+    $string = ZM_PATH_BIN."/zmdc.pl $safe_command $safe_daemon";
     $result = exec($string);
     $this->set(array(
       'result' => $result,
@@ -55,7 +65,6 @@ class HostController extends AppController {
   }
 
   function login() {
-
     $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
     if ( !$username )
       $username = $this->request->query('username') ? $this->request->query('username') : $this->request->data('username');
@@ -151,7 +160,7 @@ class HostController extends AppController {
     if ( $token ) {
       // If we have a token, we need to derive username from there
       $ret = validateToken($token, 'refresh', true);
-      $username = $ret[0]['Username'];
+      $username = $ret[0]->Username();
     }
 
     ZM\Info("Creating token for \"$username\"");

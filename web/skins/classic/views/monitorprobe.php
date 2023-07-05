@@ -221,6 +221,20 @@ function probeHikvision($ip) {
   return $camera;
 }
 
+function probeUbiquiti($ip) {
+  $camera = [
+    'model' => 'Unknown Ubiquiti Camera',
+    'monitor' => [
+      'Type' => 'FFmpeg',
+      'Path' => 'rtsp://ubnt:ubnt@'.$ip.':554/s0',
+      'Colours' => 4,
+      'Width'   => 1920,
+      'Height'  => 1080,
+    ]
+  ];
+  return $camera;
+}
+
 function probeVivotek($ip) {
   $url = 'http://'.$ip.'/cgi-bin/viewer/getparam.cgi';
   $camera = array(
@@ -338,8 +352,12 @@ function probeNetwork() {
   }
   foreach ( dbFetchAll("SELECT `Id`, `Name`, `Path` FROM `Monitors` WHERE `Type` = 'Ffmpeg' ORDER BY `Path`") as $monitor ) {
     $url_parts = parse_url($monitor['Path']);
-    ZM\Debug("Ffmpeg monitor ${url_parts['host']} = ${monitor['Id']} ${monitor['Name']}");
-    $monitors[gethostbyname($url_parts['host'])] = $monitor;
+    if ($url_parts !== false) {
+      ZM\Debug("Ffmpeg monitor ${url_parts['host']} = ${monitor['Id']} ${monitor['Name']}");
+      $monitors[gethostbyname($url_parts['host'])] = $monitor;
+    } else {
+      ZM\Debug("Unable to parse ${monitor['Path']}");
+    }
   }
 
   $macBases = array(
@@ -350,7 +368,8 @@ function probeNetwork() {
     '00:80:f0' => array('type'=>'Panasonic','probeFunc'=>'probePana'),
     '00:02:d1' => array('type'=>'Vivotek','probeFunc'=>'probeVivotek'),
     '7c:dd:90' => array('type'=>'Wansview','probeFunc'=>'probeWansview'),
-    '78:a5:dd' => array('type'=>'Wansview','probeFunc'=>'probeWansview')
+    '78:a5:dd' => array('type'=>'Wansview','probeFunc'=>'probeWansview'),
+    'fc:ec:da' => array('type'=>'Ubiquiti', 'probeFunc'=>'probeUbiquiti')
   );
 
   foreach ( get_arp_results() as $mac=>$ip ) {

@@ -49,6 +49,7 @@ class ZMPacket {
     av_frame_ptr out_frame;       // output image, Only filled if needed.
     SystemTimePoint timestamp;
     Image     *image;
+    Image     *y_image;
     Image     *analysis_image;
     int       score;
     AVMediaType codec_type;
@@ -99,22 +100,24 @@ class ZMLockedPacket {
     }
 
     void lock() {
-      Debug(4, "locking packet %d", packet_->image_index);
+      Debug(4, "locking packet %d %p %d owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       lck_.lock();
       locked = true;
       Debug(4, "packet %d locked", packet_->image_index);
     };
 
     bool trylock() {
-      Debug(4, "TryLocking packet %d", packet_->image_index);
+      Debug(4, "TryLocking packet %d %p locked: %d owns: %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       locked = lck_.try_lock();
+      Debug(4, "TryLocking packet %d %p %d, owns: %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       return locked;
     };
 
     void unlock() {
-      Debug(4, "packet %d unlocked", packet_->image_index);
+      Debug(4, "packet %d unlocked, %p, locked %d, owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       locked = false;
       lck_.unlock();
+      Debug(4, "packet %d unlocked, %p, locked %d, owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       packet_->condition_.notify_all();
     };
 

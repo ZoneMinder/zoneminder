@@ -91,11 +91,8 @@ int FFmpeg_Input::Open(const char *filepath) {
       Debug(1, "Using codec (%s) for stream %d", streams[i].codec->name, i);
     }
 
-    Debug(1, "Allocating");
     streams[i].context = avcodec_alloc_context3(streams[i].codec);
-    Debug(1, "Parameters");
     avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
-    Debug(1, "Dumping codec");
     zm_dump_codec(streams[i].context);
 
     error = avcodec_open2(streams[i].context, streams[i].codec, nullptr);
@@ -109,7 +106,7 @@ int FFmpeg_Input::Open(const char *filepath) {
     }
     zm_dump_codec(streams[i].context);
     if (!(streams[i].context->time_base.num && streams[i].context->time_base.den)) {
-      Warning("Setting to default time base");
+      Debug(1, "Setting to default time base");
       streams[i].context->time_base.num = 1;
       streams[i].context->time_base.den = 90000;
     }

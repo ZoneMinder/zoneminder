@@ -4,6 +4,7 @@
 web/api/lib
 web/includes/csrf/
 web/js/videojs.zoomrotate.js
+web/js/fontfaceobserver.standalone.js
 web/skins/classic/js/bootstrap-4.5.0.js
 web/skins/classic/js/bootstrap.bundle.min.js
 web/skins/classic/js/bootstrap-table-1.21.1

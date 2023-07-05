@@ -45,16 +45,30 @@
   text-rendering: optimizeLegibility;
   font-feature-settings: "liga";
   vertical-align: middle;
+  display: none;
 }
 
 .material-icons.md-18 { font-size: 18px; }
 .material-icons.md-36 { font-size: 36px; }
 
+html,
 body {
-    font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
-    font-size: 13px;
-    font-weight: 300;
-    text-align: center;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Open Sans", Verdana, Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  text-align: center;
+}
+
+body.sticky {
+  display: flex;
+  flex-flow: column nowrap;
+  flex-direction: column;
+  height: 100%;
 }
 
 h1 {
@@ -220,7 +234,30 @@ ul.tabList li.active {
 }
 
 ul.tabList li.active a {
-    font-weight: bold;
+  font-weight: bold;
+}
+
+#content {
+  width: 100%;
+  margin: 0 auto 8px auto;
+  line-height: 130%;
+  text-align: center;
+  clear: both;
+}
+body.sticky #content {
+/*
+  flex: 1 1 auto;
+  display: flex;
+  flex-flow: column;
+*/
+  overflow: hidden;
+  height: 100%;
+}
+
+#inner-content {
+  overflow: auto;
+  height: 100%;
+  width: 100%;
 }
 
 /*
@@ -328,6 +365,7 @@ ul.tabList li.active a {
 }
 .alert, .warnText, .warning, .disabledText {
     color: #ffa801;
+    padding: 0;
 }
 
 
@@ -454,6 +492,12 @@ th.table-th-sort-rev span.table-th-sort-span {
 #page {
     width: 100%;
 }
+body.sticky #page {
+  flex: 1 1 auto;
+  display: flex;
+  flex-flow: column;
+  overflow: hidden;
+}
 
 #header {
     width: 100%;
@@ -471,6 +515,11 @@ th.table-th-sort-rev span.table-th-sort-span {
     font-size: 0;
   clear: both;
   visibility: hidden;
+}
+@media screen and (max-width:767px) {
+  #header {
+    max-width: 100%;
+  }
 }
 
 
@@ -505,13 +554,6 @@ th.table-th-sort-rev span.table-th-sort-span {
     margin-left: 4px;
 }
 
-#content {
-    width: 100%;
-    margin: 0 auto 8px auto;
-    line-height: 130%;
-    text-align: center;
-    clear: both;
-}
 
 #content p {
     margin-top: 4px;
@@ -599,13 +641,12 @@ input[type=submit]:disabled,
 .btn-primary:disabled {
     background-color: #aaaaaa;    
     border-color: #bbbbbb;
-
 }
-
 
 #navbar-container {
-  padding: 0 0 10px 0;
+  padding: 0;
 }
+
 .navbar{
 	margin-bottom: 0 !important;
 	border-radius: 0;
@@ -621,6 +662,15 @@ input[type=submit]:disabled,
 .navbar-brand a {
 color:#ffa801;
 }
+@media (max-width: 600px){
+  .navbar-nav {
+    flex-direction: row;
+  }
+  .navbar-nav .nav-link {
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+  }
+}
 
 .navbar-btn {
   background-color:#95afc0;
@@ -628,13 +678,6 @@ color:#ffa801;
   padding:4px;
   margin-right:8px;
   border:none;
-}
-
-
-
-.container-fluid {
-  position: relative;
-  padding-bottom: 10px;
 }
 
 .sidebar {
@@ -721,14 +764,12 @@ li.search-choice {
     cursor: pointer;
 }
 
-.zoom {
-  transform-origin: 70% 50%;
-  transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
-}
-
+.zoom,
 .zoom-console {
   transform-origin: 0% 50%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
+  position: absolute;
+  z-index: 1001;
 }
 
 a.flip {
@@ -738,10 +779,6 @@ a.flip {
 
 #content table.major .colDiskSpace {
   text-align: right;
-}
-
-#objdetectModal .modal-content {
-    width: fit-content;
 }
 
 #modalLogout .modal-dialog {
@@ -820,4 +857,30 @@ a.flip {
   padding: 0;
   border-radius: 0;
   border: none;
+}
+.controlHeader {
+  display: flex;
+}
+/* to match chosen text input height */
+.controlHeader input[type="text"] {
+  height: 29px;
+  padding: 2px 5px 4px 5px;
+  margin-top:0;
+}
+@media screen and (max-width:767px) {
+  .controlHeader {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+#fieldsTable ul.chosen-choices {
+  max-height: 100px;
+  overflow-y:auto;
+}
+.search .form-control {
+  font-size: 100%;
+}
+
+button .material-icons {
+  font-size: 18px;
 }

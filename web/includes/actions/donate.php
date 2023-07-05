@@ -56,6 +56,6 @@ if ( $action == 'donate' && isset($_REQUEST['option']) ) {
       Warning("Unknown value for option in donate: $option");
       break;
   } // end switch option
-  $redirect = '?view=console';
+  $redirect = '?view='.getHomeView();
 }
 ?>

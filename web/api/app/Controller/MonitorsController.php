@@ -21,13 +21,6 @@ class MonitorsController extends AppController {
 
   public function beforeFilter() {
     parent::beforeFilter();
-    global $user;
-    # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user['Monitors'] != 'None');
-    if ( !$canView ) {
-      throw new UnauthorizedException(__('Insufficient Privileges'));
-      return;
-    }
   }
 
 /**
@@ -38,16 +31,11 @@ class MonitorsController extends AppController {
   public function index() {
     $this->Monitor->recursive = 0;
 
-    if ( $this->request->params['named'] ) {
+    if ($this->request->params['named']) {
       $this->FilterComponent = $this->Components->load('Filter');
       $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
     } else {
       $conditions = array();
-    }
-    global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
-    if ( $allowedMonitors ) {
-      $conditions['Monitor.Id' ] = $allowedMonitors;
     }
 
     $find_array = array(
@@ -62,11 +50,18 @@ class MonitorsController extends AppController {
           ),
         ),
       ),
-      'group' => '`Monitor`.`Id`',
+      'group' => '`Monitor`.`Id`'
     );
-    $monitors = $this->Monitor->find('all',$find_array);
+    $monitors = $this->Monitor->find('all', $find_array);
+    $allowed_monitors = [];
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    foreach ($monitors as $m) {
+      $monitor = new ZM\Monitor($m['Monitor']);
+      if (!$monitor->canView()) continue;
+      array_push($allowed_monitors, $m);
+    }
     $this->set(array(
-          'monitors' => $monitors,
+          'monitors' => $allowed_monitors,
           '_serialize' => array('monitors')
           ));
   }
@@ -80,26 +75,21 @@ class MonitorsController extends AppController {
  */
   public function view($id = null) {
     $this->Monitor->recursive = 0;
-    if ( !$this->Monitor->exists($id) ) {
+    if (!$this->Monitor->exists($id)) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
-    if ( $allowedMonitors ) {
-      $restricted = array('Monitor.' . $this->Monitor->primaryKey => $allowedMonitors);
-    } else {
-      $restricted = '';
-    }
     
-    $options = array('conditions' => array( 
-          array('Monitor.' . $this->Monitor->primaryKey => $id),
-          $restricted
-          )
-        );
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $options = array('conditions' => array( array('Monitor.'.$this->Monitor->primaryKey => $id)));
     $monitor = $this->Monitor->find('first', $options);
-    if ($monitor['Monitor']['JanusEnabled']) {
-      require_once __DIR__ .'/../../../includes/Monitor.php';
-      $monitor['Monitor']['Janus_Pin'] = (new ZM\Monitor($monitor['Monitor']))->Janus_Pin();
+    $zm_monitor = new ZM\Monitor($monitor['Monitor']);
+    if (!$zm_monitor->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
+    if ($zm_monitor->JanusEnabled()) {
+      $monitor['Monitor']['Janus_Pin'] = $zm_monitor->Janus_Pin();
     }
     $this->set(array(
       'monitor' => $monitor,
@@ -116,7 +106,7 @@ class MonitorsController extends AppController {
     if ( $this->request->is('post') ) {
 
       global $user;
-      $canAdd = (!$user) || ($user['System'] == 'Edit' );
+      $canAdd = (!$user) || ($user->System() == 'Edit' );
       if ( !$canAdd ) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
@@ -153,19 +143,19 @@ class MonitorsController extends AppController {
     if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    global $user;
-    $canEdit = (!$user) || ($user['Monitors'] == 'Edit');
-    if ( !$canEdit ) {
-      throw new UnauthorizedException(__('Insufficient privileges'));
-      return;
-    }
 
     $monitor = $this->Monitor->find('first', array(
       'conditions' => array('Id' => $id)
     ))['Monitor'];
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $zm_monitor = new ZM\Monitor($monitor);
+    if (!$zm_monitor->canEdit()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
 
     $message = '';
-    if ( $this->Monitor->save($this->request->data) ) {
+    if ($this->Monitor->save($this->request->data)) {
       $message = 'Saved';
 
       // Stop the monitor. Should happen before saving
@@ -199,7 +189,7 @@ class MonitorsController extends AppController {
       throw new NotFoundException(__('Invalid monitor'));
     }
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -287,15 +277,15 @@ class MonitorsController extends AppController {
           $password = $_SESSION['password'];
         }
 
-        $auth = ' -U ' .$user['Username'].' -P '.$password;
+        $auth = ' -U ' .$user->Username().' -P '.$password;
       } else if (ZM_AUTH_RELAY == 'none') {
-        $auth = ' -U ' .$user['Username'];
+        $auth = ' -U ' .$user->Username();
       }
     }
     
     $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
     $status = exec($shellcmd, $output, $rc);
-    ZM\Debug("Command: $shellcmd output: $output rc: $rc");
+    ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
     if ($rc) {
       $this->set(array(
         'status'=>'false',
@@ -307,8 +297,8 @@ class MonitorsController extends AppController {
       // In 1.36.16 the values got shifted up so that we could index into an array of strings.
       // So do a hack to restore the previous behavour
       $this->set(array(
-        'status' => $status-1,
-        'output' => $output[0]-1,
+        'status' => intval($status)-1,
+        'output' => intval($output[0])-1,
         '_serialize' => array('status','output'),
       ));
     } else {

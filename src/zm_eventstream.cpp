@@ -241,7 +241,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   int last_id = 0;
   SystemTimePoint last_timestamp = event_data->start_time;
   Microseconds last_offset = Seconds(0);
-  const FrameData *last_frame;
+  const FrameData *last_frame = nullptr;
 
   // Here are the issues: if showing jpegs, need FrameId.
   // Delta is the time since last frame, not since beginning of Event
@@ -290,24 +290,41 @@ bool EventStream::loadEventData(uint64_t event_id) {
           frame.in_db);
   }
   if (event_data->end_time.time_since_epoch() != Seconds(0)) {
-    while (event_data->end_time > last_timestamp) {
-        last_timestamp += last_frame->delta;
-        last_id ++;
-
-        auto frame = event_data->frames.emplace_back(
-          last_id,
-          last_timestamp,
-          last_frame->offset + last_frame->delta,
-          last_frame->delta,
+    Debug(1, "end_time > last_timestamp, filling frames");
+    Microseconds delta = last_frame ? last_frame->delta : Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
+    if (!last_frame) {
+      auto frame = event_data->frames.emplace_back(
+          1,
+          event_data->start_time,
+          Microseconds(0),
+          Microseconds(0),
           false
           );
-    last_frame = &frame;
-    Debug(3, "Trailing Frame %d timestamp (%f s), offset (%f s), delta(%f s), in_db(%d)",
+      last_frame = &frame;
+      last_id ++;
+      last_timestamp = event_data->start_time;
+      event_data->frame_count ++;
+    }
+
+    while (event_data->end_time > last_timestamp) {
+      last_timestamp += delta;
+      last_id ++;
+
+      auto frame = event_data->frames.emplace_back(
+          last_id,
+          last_timestamp,
+          last_frame->offset + delta,
+          delta,
+          false
+          );
+      last_frame = &frame;
+      Debug(3, "Trailing Frame %d timestamp (%f s), offset (%f s), delta(%f s), in_db(%d)",
           last_id,
           FPSeconds(frame.timestamp.time_since_epoch()).count(),
           FPSeconds(frame.offset).count(),
           FPSeconds(frame.delta).count(),
           frame.in_db);
+      event_data->frame_count ++;
     } // end while
   } // end if have endtime
 
@@ -631,6 +648,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     double progress;
     int rate;
     int zoom;
+    int scale;
     bool paused;
   } status_data = {};
 
@@ -641,14 +659,17 @@ void EventStream::processCommand(const CmdMsg *msg) {
   status_data.progress = std::chrono::duration<double>(event_data->frames[curr_frame_id-1].offset).count();
   status_data.rate = replay_rate;
   status_data.zoom = zoom;
+  status_data.scale = scale;
   status_data.paused = paused;
-  Debug(2, "Event:%" PRIu64 ", Duration %f, Paused:%d, progress:%f Rate:%d, Zoom:%d",
+  Debug(2, "Event:%" PRIu64 ", Duration %f, Paused:%d, progress:%f Rate:%d, Zoom:%d Scale:%d",
         status_data.event_id,
         FPSeconds(status_data.duration).count(),
         status_data.paused,
         FPSeconds(status_data.progress).count(),
         status_data.rate,
-        status_data.zoom);
+        status_data.zoom,
+        status_data.scale
+        );
 
   DataMsg status_msg;
   status_msg.msg_type = MSG_DATA_EVENT;
@@ -1061,7 +1082,7 @@ void EventStream::runStream() {
           }
           now = std::chrono::steady_clock::now();
           TimePoint::duration elapsed = now - start;
-          delta -= std::chrono::duration_cast<Milliseconds>(elapsed); // sending frames takes time, so remove it from the sleep time
+          delta -= std::chrono::duration_cast<Microseconds>(elapsed); // sending frames takes time, so remove it from the sleep time
 
           Debug(2, "New delta: %fs from last frame offset %fs - next_frame_offset %fs - elapsed %fs",
               FPSeconds(delta).count(),

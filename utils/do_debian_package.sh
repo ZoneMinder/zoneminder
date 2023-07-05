@@ -142,7 +142,7 @@ if [ "$SNAPSHOT" == "stable" ]; then
     BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
     if [ -z "$BRANCH" ]; then
       # This should only happen in CI environments where tag info isn't available
-      BRANCH=`cat version`
+      BRANCH=`cat version.txt`
       echo "Building branch $BRANCH"
     fi
     if [ "$BRANCH" == "" ]; then
@@ -161,7 +161,7 @@ else
   else
     if [ "$SNAPSHOT" == "CURRENT" ]; then
       # git the latest (short) commit hash of the version file
-      versionhash=$(git log -n1 --pretty=format:%h version)
+      versionhash=$(git log -n1 --pretty=format:%h version.txt)
 
       # Number of commits since the version file was last changed
       numcommits=$(git rev-list ${versionhash}..HEAD --count)
@@ -180,7 +180,7 @@ fi;
 echo "git pull..."
 git pull
 # Grab the ZoneMinder version from the contents of the version file
-VERSION=$(cat version)
+VERSION=$(cat version.txt)
 if [ -z "$VERSION" ]; then
   exit 1;
 fi;

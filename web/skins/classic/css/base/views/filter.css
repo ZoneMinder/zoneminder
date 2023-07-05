@@ -47,7 +47,7 @@ select {
 
 #actionsTable input[type=text] {
     margin-left: 4px;
-    width: 100%;
+    width: 60%;
 }
 #actionsTable, #optionsTable {
   float: left;
@@ -61,16 +61,26 @@ select {
   width: 320px;
   text-align: right;
 }
+@media screen and (max-width:767px) {
+  #actionsTable label,
+  #optionsTable label {
+    width: 220px;
+    text-align: right;
+  }
+}
 input[name="filter[EmailSubject]"],
 input[name="filter[EmailTo]"],
 textarea[name="filter[EmailBody]"] {
-width: 100%;
+width: 60%;
 }
 select#Id {
 min-width: 500px;
 }
 .Name input {
 min-width: 500px;
+}
+form {
+  border-bottom: 1px solid #3498db;
 }
 #ActionsAndOptions {
   padding-top: 5px;
@@ -87,4 +97,8 @@ min-width: 500px;
   font-size: 0;
   clear: both;
   visibility: hidden;
+}
+body.sticky #content {
+  overflow-y: auto;
+  overflow-x: auto;
 }

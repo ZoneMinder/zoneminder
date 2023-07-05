@@ -40,6 +40,7 @@ void Monitor::JanusManager::load_from_monitor() {
   //constructor takes care of init and calls add_to
   Use_RTSP_Restream = parent->janus_use_rtsp_restream;
   profile_override = parent->janus_profile_override;
+  rtsp_session_timeout = parent->janus_rtsp_session_timeout;
   if ((config.janus_path != nullptr) && (config.janus_path[0] != '\0')) {
     janus_endpoint = config.janus_path;
     //remove the trailing slash if present
@@ -65,8 +66,8 @@ void Monitor::JanusManager::load_from_monitor() {
       localtime_r(&now_t, &now_tm);
       if (parent->janus_rtsp_user) {
         std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
-          " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
-          " `MonitorIds` FROM `Users` WHERE `Enabled`=1 AND `Id`=" + std::to_string(parent->janus_rtsp_user);
+          " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
+          " FROM `Users` WHERE `Enabled`=1 AND `Id`=" + std::to_string(parent->janus_rtsp_user);
 
         MYSQL_RES *result = zmDbFetch(sql);
         if (result) {
@@ -195,18 +196,26 @@ int Monitor::JanusManager::add_to_janus() {
   postData += "\", \"pin\" : \"";
   postData += parent->janus_pin;
   if (profile_override[0] != '\0') {
-    postData += "\", \"videofmtp\" : \"";
-    postData += profile_override;
+      postData += "\", \"videofmtp\" : \"";
+      postData += profile_override;
   }
   if (!rtsp_username.empty()) {
-    postData += "\", \"rtsp_user\" : \"";
-    postData += rtsp_username;
-    postData += "\", \"rtsp_pwd\" : \"";
-    postData += rtsp_password;
+      postData += "\", \"rtsp_user\" : \"";
+      postData += rtsp_username;
+      postData += "\", \"rtsp_pwd\" : \"";
+      postData += rtsp_password;
   }
+
   postData += "\", \"id\" : ";
   postData += std::to_string(parent->id);
   if (parent->janus_audio_enabled)  postData += ", \"audio\" : true";
+  // Add rtsp_session_timeout if not set to 0
+  if (rtsp_session_timeout != 0) {
+      // Add rtsp_session_timeout to postData, this works. Is there a better way?
+      std::string rtsp_timeout = std::to_string(rtsp_session_timeout);
+      postData += ", \"rtsp_session_timeout\" : ";
+      postData += rtsp_timeout;
+  }
   postData += ", \"video\" : true}}";
   Debug(1, "Sending %s to %s", postData.c_str(), endpoint.c_str());
 

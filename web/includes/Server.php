@@ -3,8 +3,6 @@ namespace ZM;
 require_once('database.php');
 require_once('Object.php');
 
-ini_set('display_errors', false);
-
 class Server extends ZM_Object {
   protected static $table = 'Servers';
 
@@ -154,7 +152,7 @@ class Server extends ZM_Object {
 
     $context = stream_context_create();
     try {
-      $result = file_get_contents($url, false, $context);
+      $result = @file_get_contents($url, false, $context);
       if ($result === FALSE) { /* Handle error */
         Error("Error using $url");
       }

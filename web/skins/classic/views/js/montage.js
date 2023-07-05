@@ -13,7 +13,6 @@ var mode = 0; // start up in viewing mode
 function selectLayout(new_layout_id) {
   const ddm = $j('#zmMontageLayout');
   if (new_layout_id && (typeof(new_layout_id) != 'object')) {
-    console.log("Selecting " + new_layout_id);
     ddm.val(new_layout_id);
   }
   const layout_id = parseInt(ddm.val());
@@ -28,10 +27,9 @@ function selectLayout(new_layout_id) {
     return;
   }
 
-  for (var i = 0, length = monitors.length; i < length; i++) {
-    monitor = monitors[i];
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
     // Need to clear the current positioning, and apply the new
-
     monitor_frame = $j('#monitor'+monitor.id);
     if (!monitor_frame) {
       console.log('Error finding frame for ' + monitor.id);
@@ -67,7 +65,7 @@ function selectLayout(new_layout_id) {
   }
 
   for (let i = 0, length = monitors.length; i < length; i++) {
-    monitors[i].setStreamScale();
+    monitors[i].setScale( $j('#scale').val(), $j('#width').val(), $j('#height').val());
   } // end foreach monitor
 } // end function selectLayout(element)
 
@@ -85,15 +83,15 @@ function changeHeight() {
  * called when the widthControl select element is changed
  */
 function changeWidth() {
-  var width = $j('#width').val();
-  var height = $j('#height').val();
+  const width = $j('#width').val();
+  const height = $j('#height').val();
   console.log("changeWidth");
 
   selectLayout(freeform_layout_id);
   $j('#width').val(width);
   $j('#height').val(height);
 
-  for (var i = 0, length = monitors.length; i < length; i++) {
+  for (let i = 0, length = monitors.length; i < length; i++) {
     monitors[i].setScale('0', width, height);
   }
   $j('#scale').val('0');
@@ -106,7 +104,7 @@ function changeWidth() {
  * called when the scaleControl select element is changed
  */
 function changeScale() {
-  var scale = $j('#scale').val();
+  const scale = $j('#scale').val();
   selectLayout(freeform_layout_id); // Will also clear width and height
   $j('#scale').val(scale);
   setCookie('zmMontageScale', scale, 3600);
@@ -115,8 +113,8 @@ function changeScale() {
   $j('#width').val('auto');
   $j('#height').val('auto');
 
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
-    var monitor = monitors[i];
+  for ( let i = 0, length = monitors.length; i < length; i++ ) {
+    const monitor = monitors[i];
     monitor.setScale(scale);
   } // end foreach Monitor
 }
@@ -210,10 +208,13 @@ function reloadWebSite(ndx) {
 }
 
 function takeSnapshot() {
+  for (let i = 0, length = monitorData.length; i < length; i++) {
+    monitors[i].kill();
+  }
   monitor_ids = monitorData.map((monitor)=>{
-    return 'monitor_ids[]='+monitor.id;
+    return monitor.id;
   });
-  window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+  post('?view=snapshot', {'action': 'create', 'monitor_ids[]': monitor_ids});
 }
 
 function handleClick(evt) {

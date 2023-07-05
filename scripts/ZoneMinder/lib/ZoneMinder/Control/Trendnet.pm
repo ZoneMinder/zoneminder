@@ -52,17 +52,21 @@ sub open {
     $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
   } elsif ($self->{Monitor}{Path}) {
     Debug("Using Path for credentials: $self->{Monitor}{Path}");
-
     my $uri = URI->new($self->{Monitor}{Path});
-    Debug("Using Path for credentials: $self->{Monitor}{Path}" . $uri->userinfo());
-    ( $USERNAME, $PASSWORD ) = split(/:/, $uri->userinfo()) if $uri->userinfo();
+    if ($uri->userinfo()) {
+      Debug("Using Path for credentials: $self->{Monitor}{Path}");
+      ( $USERNAME, $PASSWORD ) = split(/:/, $uri->userinfo());
+    } elsif ($self->{Monitor}->{User} ) {
+      Debug('Using User/Pass for credentials');
+      ( $USERNAME, $PASSWORD ) = ($self->{Monitor}->{User}, $self->{Monitor}->{Pass});
+    }
     $ADDRESS = $uri->host();
+
   } else {
     Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
   if ( !($ADDRESS =~ /:/) ) {
-    Debug('You generally need to also specify the port.  I will append :80');
     $ADDRESS .= ':80';
   }
 
@@ -78,8 +82,9 @@ sub open {
   );
 
   # Detect REALM
-  $REALM = $self->detect_realm($PROTOCOL, $ADDRESS, $REALM, $USERNAME, $PASSWORD, '/');
+  $REALM = $self->detect_realm($PROTOCOL, $ADDRESS, $REALM, $USERNAME, $PASSWORD, '/cgi/ptdc.cgi');
   if (defined($REALM)) {
+    $self->{state} = 'open';
     return !undef;
   }
   return undef;
@@ -145,12 +150,20 @@ sub sendCmd {
   my $url = $PROTOCOL.$ADDRESS.'/cgi/ptdc.cgi?command='.$cmd;
   my $res = $self->{ua}->get($url);
   Debug('sendCmd command: ' . $url);
+  if (!$res->is_success) {
+    Error("sendCmdPost Error check failed: '".$res->status_line()."' cmd:");
+    my $new_realm = $self->detect_realm($PROTOCOL, $ADDRESS, $REALM, $USERNAME, $PASSWORD, $url);
+    if (defined($new_realm) and ($new_realm ne $REALM)) {
+      Debug("Success after re-detecting realm. New realm is $new_realm");
+      return !undef;
+    }
+  }
 
   if (!$self->{Monitor}->{ModectDuringPTZ}) {
     usleep(10000);
     $$self{Monitor}->resumeMotionDetection();
   }
-  if ( $res->is_success ) {
+  if ($res->is_success) {
     Debug($res->content);
     return !undef;
   }
@@ -412,7 +425,7 @@ sub reset {
 sub reboot {
   my $self = shift;
   Debug('Camera Reboot');
-  if (!$$self{open}) {
+  if ($$self{state} != 'open') {
     Warning("Not open. opening. Should call ->open() before calling reboot()"); 
     return if !$self->open();
   }

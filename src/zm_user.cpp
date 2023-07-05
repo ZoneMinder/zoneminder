@@ -78,64 +78,51 @@ void User::loadGroupPermissions() {
 
 bool User::canAccess(int monitor_id) {
   if (!monitor_permissions_loaded) loadMonitorPermissions();
-  {
-    auto it = monitor_permissions.find(monitor_id);
+  auto it = monitor_permissions.find(monitor_id);
 
-    if (it != monitor_permissions.end()) {
-      auto permission = it->second.getPermission();
-      switch (permission) {
-        case Monitor_Permission::PERM_NONE :
-          {
-            Debug(1, "Returning None from monitor_permission");
-            return false;
-          }
-        case Monitor_Permission::PERM_VIEW :
-          {
-            Debug(1, "Returning true because VIEW from monitor_permission");
-            return true;
-          }
-        case Monitor_Permission::PERM_EDIT :
-          {
-            Debug(1, "Returning true because EDIT from monitor_permission");
-            return true;
-          }
-        default:
-          {
-            Debug(1, "INHERIT from monitor_permission");
-            break;
-          }
-      }
+  if (it != monitor_permissions.end()) {
+    auto permission = it->second.getPermission();
+    switch (permission) {
+      case Monitor_Permission::PERM_NONE :
+        Debug(1, "Returning None from monitor_permission");
+        return false;
+      case Monitor_Permission::PERM_VIEW :
+        Debug(1, "Returning true because VIEW from monitor_permission");
+        return true;
+      case Monitor_Permission::PERM_EDIT :
+        Debug(1, "Returning true because EDIT from monitor_permission");
+        return true;
+      case Monitor_Permission::PERM_INHERIT :
+        Debug(1, "INHERIT from monitor_permission");
+        break;
+      default:
+        Warning("UNKNOWN permission %d from monitor_permission", permission);
+        break;
     }
   }
 
   if (!group_permissions_loaded) loadGroupPermissions();
-  {
-    for (Group_Permission &gp : group_permissions) {
-      auto permission = gp.getPermission(monitor_id);
-      switch (permission) {
-        case Group_Permission::PERM_NONE :
-          {
-            Debug(1, "Returning None from group_permission");
-            return false;
-          }
-        case Group_Permission::PERM_VIEW :
-          {
-            Debug(1, "Returning true because VIEW from group_permission");
-            return true;
-          }
-        case Group_Permission::PERM_EDIT :
-          {
-            Debug(1, "Returning true because EDIT from group_permission");
-            return true;
-          }
-        default :
-          {
-           Debug(1, "INHERIT from group_permission");
-            break;
-          }
-      }
-    }  // end foreach Group_Permission
-  }
+
+  for (Group_Permission &gp : group_permissions) {
+    auto permission = gp.getPermission(monitor_id);
+    switch (permission) {
+      case Group_Permission::PERM_NONE :
+        Debug(1, "Returning None from group_permission");
+        return false;
+      case Group_Permission::PERM_VIEW :
+        Debug(1, "Returning true because VIEW from group_permission");
+        return true;
+      case Group_Permission::PERM_EDIT :
+        Debug(1, "Returning true because EDIT from group_permission");
+        return true;
+      case Group_Permission::PERM_INHERIT :
+        Debug(1, "INHERIT from group_permission %d", gp.GroupId());
+        break;
+      default :
+        Warning("UNKNOWN permission %d from group_permission %d", permission, gp.GroupId());
+        break;
+    }
+  }  // end foreach Group_Permission
 
   return (monitors != PERM_NONE);
 }
@@ -189,7 +176,7 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
   Debug(1, "Inside zmLoadTokenUser, formed key=%s", key.c_str());
 
   std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
-  std::string username = ans.first;
+  std::string username = zmDbEscapeString(ans.first);
   unsigned int iat = ans.second;
   Debug(1, "retrieved user '%s' from token", username.c_str());
 

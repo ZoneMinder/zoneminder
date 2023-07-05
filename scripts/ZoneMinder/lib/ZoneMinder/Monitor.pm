@@ -39,16 +39,16 @@ require ZoneMinder::Event_Summary;
 require ZoneMinder::Zone;
 use ZoneMinder::Logger qw(:all);
 
-#our @ISA = qw(Exporter ZoneMinder::Base);
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
-$debug = 1;
+$debug = 0;
 $table = 'Monitors';
 $serial = $primary_key = 'Id';
 %fields = map { $_ => $_ } qw(
   Id
   Name
+  Deleted
   Notes
   ServerId
   StorageId
@@ -57,7 +57,6 @@ $serial = $primary_key = 'Id';
   Analysing
   Recording
   Decoding
-  Enabled
   LinkedMonitors
   Triggers
   EventStartCommand
@@ -151,15 +150,18 @@ $serial = $primary_key = 'Id';
   );
 
 %defaults = (
+    Deleted => 0,
     ServerId => 0,
     StorageId => 0,
     Type      => q`'Ffmpeg'`,
-    Capturing => 'Always',
-    Analysing => 'Always',
-    Recording => 'Always',
-    Decoding => 'Always',
-    Enabled   => 1,
+    Capturing => q`'Always'`,
+    Analysing => q`'Always'`,
+    Recording => q`'Always'`,
+    Decoding => q`'Always'`,
     LinkedMonitors => undef,
+    Triggers => '',
+    EventEndCommand => '',
+    EventStartCommand => '',
     Device  =>  '',
     Channel =>  0,
     Format  =>  0,
@@ -178,7 +180,7 @@ $serial = $primary_key = 'Id';
     Height => undef,
     Colours => 4,
     Palette =>  0,
-    Orientation => undef,
+    Orientation => q`'ROTATE_0'`,
     Deinterlacing =>  0,
     DecoderHWAccelName  =>  undef,
     DecoderHWAccelDevice  =>  undef,
@@ -237,13 +239,22 @@ $serial = $primary_key = 'Id';
     DefaultCodec  => q`'auto'`,
     Latitude  =>  undef,
     Longitude =>  undef,
+    ONVIF_Username => '',
+    ONVIF_Options => '',
+    ONVIF_Password => '',
+    ONVIF_URL => '',
+    RTSPStreamName => '',
+    RTSPServer => 0,
+    Importance => 0,
+    ONVIF_Event_Listener => 0,
+    use_Amcrest_API => 0,
     );
 
-  use constant CAPTURING_NONE     => 1;
-  use constant CAPTURING_ONDEMAND => 2;
-  use constant CAPTURING_ALWAYS   => 3;
-  use constant ANALYSING_ALWAYS   => 2;
-  use constant ANALYSING_NONE     => 1;
+use constant CAPTURING_NONE     => 1;
+use constant CAPTURING_ONDEMAND => 2;
+use constant CAPTURING_ALWAYS   => 3;
+use constant ANALYSING_ALWAYS   => 2;
+use constant ANALYSING_NONE     => 1;
 
 sub Server {
 	return new ZoneMinder::Server( $_[0]{ServerId} );
@@ -380,7 +391,7 @@ sub Control {
         my $Protocol = $$Control{Protocol};
 
         if (!$Protocol) {
-          Error("No protocol set in control $$Control{Id}, trying Name $$Control{Name}");
+          Debug("No protocol set in control $$Control{Id}, trying Name $$Control{Name}");
           $Protocol = $$Control{Name};
         }
         require Module::Load::Conditional;
@@ -388,8 +399,10 @@ sub Control {
           Error("Can't load ZoneMinder::Control::$Protocol\n$Module::Load::Conditional::ERROR");
           return undef;
         }
+        $Control = $Control->clone(); # Because this object is not per monitor specific
         bless $Control, 'ZoneMinder::Control::'.$Protocol;
         $$Control{MonitorId} = $$self{Id};
+        $$Control{Monitor} = $self;
         $$self{Control} = $Control;
       } else {
         Error("Unable to load control for control $$self{ControlId} for monitor $$self{Id}");
@@ -400,6 +413,49 @@ sub Control {
   }
   return $$self{Control};
 }
+
+sub zmcControl {
+  my $self = shift;
+  my $mode = shift;
+
+  if (!$$self{Id}) {
+    Warning('Attempt to control a monitor with no Id');
+    return;
+  }
+  my $zmcArgs = '';
+
+  if ((!$ZoneMinder::Config{ZM_SERVER_ID}) or ( $$self{ServerId} and ($ZoneMinder::Config{ZM_SERVER_ID}==$$self{ServerId}) )) {
+    if ($$self{Type} eq 'Local') {
+      $zmcArgs .= '-d '.$self->{Device};
+    } else {
+      $zmcArgs .= '-m '.$self->{Id};
+    }
+
+    `/usr/bin/zmdc.pl $mode zmc $zmcArgs`;
+  } elsif ($self->ServerId()) {
+    my $Server = $self->Server();
+
+    my $url = $Server->UrlToApi().'/monitors/daemonControl/'.$self->{'Id'}.'/'.$mode.'/zmc.json';
+    if ($ZoneMinder::Config{ZM_OPT_USE_AUTH}) {
+      if ($ZoneMinder::Config{ZM_AUTH_RELAY} eq 'hashed') {
+        #$url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
+      } elsif ($ZoneMinder::Config{ZM_AUTH_RELAY} == 'plain') {
+        #$url .= '?user='.$_SESSION['username'];
+        #$url .= '?pass='.$_SESSION['password'];
+      } else {
+        Error('Multi-Server requires AUTH_RELAY be either HASH or PLAIN');
+        return;
+      }
+    }
+    Debug('sending command to '.$url);
+    my $ua = LWP::UserAgent->new();
+    $ua->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
+    my $response = $ua->get($url);
+    if (!$response->is_success()) {
+      Error("Unable to restart remote monitor: " .$response->status_line);
+    }
+  } # end if local or remote
+} # end sub zmcControl
 
 sub ImportanceNumber {
   my $self = shift;

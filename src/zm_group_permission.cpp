@@ -32,7 +32,7 @@ Group_Permission::Group_Permission(const MYSQL_ROW &dbrow) {
   id = atoi(dbrow[index++]);
   user_id = atoi(dbrow[index++]);
   group_id = atoi(dbrow[index++]);
-  permission = static_cast<Permission>(atoi(dbrow[index++]));
+  permission = static_cast<Permission>(atoi(dbrow[index]));
   monitor_ids_loaded = false;
 }
 
@@ -45,15 +45,18 @@ void Group_Permission::Copy(const Group_Permission &gp) {
   group_id = gp.group_id;
   permission = gp.permission;
   monitor_ids = gp.monitor_ids;
+  monitor_ids_loaded = gp.monitor_ids_loaded;
 }
 
 Group_Permission::Permission Group_Permission::getPermission(int monitor_id) {
   if (!monitor_ids_loaded) {
     loadMonitorIds();
   }
-  if (monitor_ids.empty()) return PERM_INHERIT;
+  if (monitor_ids.empty()) {
+    return PERM_INHERIT;
+  }
 
-  for (std::vector<int>::iterator i = monitor_ids.begin();
+  for (auto i = monitor_ids.begin();
       i != monitor_ids.end(); ++i ) {
     if ( *i == monitor_id ) {
       return permission;
@@ -79,14 +82,18 @@ std::vector<Group_Permission> Group_Permission::find(int p_user_id) {
 }
 
 void Group_Permission::loadMonitorIds() {
-  std::string sql = stringtf("SELECT `MonitorId` FROM Groups_Monitors WHERE `GroupId`='%d'", group_id);
+  std::string sql = stringtf("SELECT `MonitorId` FROM Groups_Monitors WHERE `GroupId`=%d", group_id);
 
   MYSQL_RES *result = zmDbFetch(sql.c_str());
-  if (!result) return;
+  if (!result) {
+    Error("Error loading MonitorIds from %s", sql.c_str());
+    return;
+  }
 
   monitor_ids.reserve(mysql_num_rows(result));
   while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     monitor_ids.push_back(atoi(dbrow[0]));
   }
   mysql_free_result(result);
+  monitor_ids_loaded = true;
 }  // end loadMonitorsIds()

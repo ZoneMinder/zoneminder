@@ -8,7 +8,7 @@ $data = array();
 //
 
 if (!canView('Events'))
-  $message = 'Insufficient permissions for user '.$user['Username'].'<br/>';
+  $message = 'Insufficient permissions for user '.$user->Username().'<br/>';
 
 if (empty($_REQUEST['task'])) {
   $message = 'Must specify a task<br/>';
@@ -80,7 +80,7 @@ if (isset($_REQUEST['limit'])) {
 switch ($task) {
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user['Username']);
+			ajaxError('Insufficient permissions for user '.$user->Username());
 			return;
 		}
     foreach ($ids as $id) {

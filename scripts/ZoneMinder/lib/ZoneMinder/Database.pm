@@ -250,7 +250,8 @@ sub zmDbDo {
 		$sql =~ s/\?/'%s'/;
 		Error(sprintf("Failed $sql :", @_).$dbh->errstr());
   } elsif ( ZoneMinder::Logger::logLevel() > INFO ) {
-		$sql =~ s/\?/'%s'/;
+    ($rows) = $rows =~ /^(.*)$/; # de-taint
+    $sql =~ s/\?/'%s'/g;
 		Debug(sprintf("Succeeded $sql : $rows rows affected", @_));
 	}
   return $rows;

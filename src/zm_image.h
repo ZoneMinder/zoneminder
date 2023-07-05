@@ -135,10 +135,11 @@ class Image {
     int buffertype; /* 0=not ours, no need to call free(), 1=malloc() buffer, 2=new buffer */
     int holdbuffer; /* Hold the buffer instead of replacing it with new one */
     std::string annotation_;
+    std::string filename_;
 
   public:
     Image();
-    explicit Image(const char *filename);
+    explicit Image(const std::string &filename);
     Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
     Image(int p_width, int p_linesize, int p_height, int p_colours, int p_subpixelorder, uint8_t *p_buffer=0, unsigned int padding=0);
     explicit Image(const Image &p_image);
@@ -163,6 +164,7 @@ class Image {
     inline unsigned int Colours() const { return colours; }
     inline unsigned int SubpixelOrder() const { return subpixelorder; }
     inline unsigned int Size() const { return size; }
+    std::string Filename() const { return filename_; }
 
     AVPixelFormat AVPixFormat() const;
 
@@ -219,8 +221,8 @@ class Image {
       return *this;
     }
 
-    bool ReadRaw(const char *filename);
-    bool WriteRaw(const char *filename) const;
+    bool ReadRaw(const std::string &filename);
+    bool WriteRaw(const std::string &filename) const;
 
   bool ReadJpeg(const std::string &filename, unsigned int p_colours, unsigned int p_subpixelorder);
 

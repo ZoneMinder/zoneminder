@@ -1,6 +1,13 @@
 <?php
+if (!isset($_REQUEST['entity'])) {
+  Error("No entity pass to status request.");
+  http_response_code(404);
+  return;
+} else {
 
-if ( $_REQUEST['entity'] == 'navBar' ) {
+}
+
+if ($_REQUEST['entity'] == 'navBar') {
   global $bandwidth_options, $user;
   $data = array();
   if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
@@ -28,8 +35,8 @@ $statusData = array(
     'limit' => 1,
     'elements' => array(
       'MonitorCount' => array( 'sql' => 'count(*)' ),
-      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Function` != \'None\',1,NULL))' ),
-      'State' => array( 'func' => 'daemonCheck()?'.translate('Running').':'.translate('Stopped') ),
+      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Capturing` != \'None\',1,NULL))' ),
+      'State' => array( 'func' => 'daemonCheck()?\''.translate('Running').'\':\''.translate('Stopped').'\'' ),
       'Load' => array( 'func' => 'getLoad()' ),
       'Disk' => array( 'func' => 'getDiskPercent()' ),
     ),
@@ -43,7 +50,9 @@ $statusData = array(
       'Id' => array( 'sql' => 'Monitors.Id' ),
       'Name' => array( 'sql' => 'Monitors.Name' ),
       'Type' => true,
-      'Function' => true,
+      'Capturing' => true,
+      'Analysing' => true,
+      'Capturing' => true,
       'Enabled' => true,
       'LinkedMonitors' => true,
       'Triggers' => true,
@@ -221,9 +230,13 @@ $statusData = array(
 function collectData() {
   global $statusData;
 
-  $entitySpec = &$statusData[strtolower(validJsStr($_REQUEST['entity']))];
-  if ( !canView($entitySpec['permission']) )
-    ajaxError('Unrecognised action or insufficient permissions');
+  $entity = strtolower(validJsStr($_REQUEST['entity']));
+  $entitySpec = &$statusData[$entity];
+  #print_r( $entitySpec );
+  if (!canView($entitySpec['permission'])) {
+    ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$$entitySpec['permission']);
+    return;
+  }
 
   if ( !empty($entitySpec['func']) ) {
     $data = eval('return('.$entitySpec['func'].');');
@@ -448,9 +461,10 @@ function getNearEvents() {
 
   $filter = ZM\Filter::parse($_REQUEST['filter']);
   parseSort();
-  if ( $user['MonitorIds'] ) {
-    $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+  if ( count($user->unviewableMonitorIds()) ) {
+    $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
   }
+  $filter_sql = $filter->sql();
 
   # When listing, it may make sense to list them in descending order.
   # But when viewing Prev should timewise earlier and Next should be after.
@@ -458,7 +472,11 @@ function getNearEvents() {
     $sortOrder = 'ASC';
   }
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\' AND ('.$filter->sql().') AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
+  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn.' '.($sortOrder=='ASC'?'<=':'>=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  if ($filter->sql()) {
+    $sql .= ' AND ('.$filter->sql().')';
+  }
+  $sql .= ' AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
     $sql .= ', E.Id DESC';
@@ -472,7 +490,11 @@ function getNearEvents() {
 
   $prevEvent = dbFetchNext($result);
 
-  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']]."' AND (".$filter->sql().') AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
+  $sql = 'SELECT E.Id AS Id, E.StartDateTime AS StartDateTime FROM Events AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$sortColumn .' '.($sortOrder=='ASC'?'>=':'<=').' \''.$event[$_REQUEST['sort_field']].'\'';
+  if ($filter->sql()) {
+    $sql .= ' AND ('.$filter->sql().')';
+  }
+  $sql .=' AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
     # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';

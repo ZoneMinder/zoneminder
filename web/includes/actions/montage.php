@@ -31,8 +31,8 @@ if ( isset($_REQUEST['object']) ) {
       } else {
         $Layout = new ZM\MontageLayout($_REQUEST['zmMontageLayout']);
       }
-      if (canEdit('System') or !$Layout->Id() or ($user['Id'] == $Layout->UserId())) {
-        $Layout->UserId($user['Id']);
+      if (canEdit('System') or !$Layout->Id() or ($user->Id() == $Layout->UserId())) {
+        $Layout->UserId($user->Id());
         $Layout->Positions($_REQUEST['Positions']);
         $Layout->save();
         zm_session_start();

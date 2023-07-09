@@ -116,9 +116,9 @@ Event::Event(
 
   std::string sql = stringtf(
       "INSERT INTO `Events` "
-      "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
+      "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme`, `Latitude`, `Longitude` )"
       " VALUES "
-      "( %d, %d, 'New Event', from_unixtime(%" PRId64 "), %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
+      "( %d, %d, 'New Event', from_unixtime(%" PRId64 "), %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s', '%f', '%f' )",
       monitor->Id(), 
       storage->Id(),
       static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)),
@@ -131,7 +131,9 @@ Event::Event(
       0,
       video_incomplete_file.c_str(),
       save_jpegs,
-      storage->SchemeString().c_str()
+      storage->SchemeString().c_str(),
+      monitor->Latitude(),
+      monitor->Longitude()
       );
   do {
     id = zmDbDoInsert(sql);

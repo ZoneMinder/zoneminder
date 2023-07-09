@@ -176,6 +176,8 @@ protected:
     uint32_t state;             /* +12   */
     double      capture_fps;       // Current capturing fps
     double      analysis_fps;      // Current analysis fps
+    double      latitude;
+    double      longitude;
     uint64_t last_event_id;     /* +16   */
     uint32_t action;            /* +24   */
     int32_t brightness;         /* +28   */
@@ -468,6 +470,8 @@ protected:
   int         signal_check_points;  // Number of points in the image to check for signal
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
+  double      latitude;
+  double      longitude;
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
   std::string onvif_alarm_txt;     // def onvif_alarm_txt
@@ -702,6 +706,8 @@ public:
     return false;
   }
   inline bool Exif() const { return embed_exif; }
+  inline double Latitude() const { return shared_data ? shared_data->latitude : latitude; }
+  inline double Longitude() const { return shared_data ? shared_data->longitude : longitude; }
   inline bool RTSPServer() const { return rtsp_server; }
   inline bool RecordAudio() const { return record_audio; }
 

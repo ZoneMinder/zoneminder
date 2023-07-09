@@ -95,7 +95,8 @@ std::string load_monitor_sql =
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
 "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
 "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
-"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
+"`Latitude`, `Longitude`, "
 "`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`,"
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
@@ -237,6 +238,8 @@ Monitor::Monitor()
   signal_check_points(0),
   signal_check_colour(0),
   embed_exif(false),
+  latitude(0.0),
+  longitude(0.0),
   rtsp_server(false),
   rtsp_streamname(""),
   onvif_alarm_txt(""),
@@ -512,12 +515,15 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   track_motion = atoi(dbrow[col]); col++;
   embed_exif = (*dbrow[col] != '0'); col++;
 
+  /* These will only be used to init shmem */
+  latitude  = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
+  longitude  = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
+
  /* "`RTSPServer`,`RTSPStreamName`, */
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
 // get alarm text from table.
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : ""); col++;
-
 
    /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
@@ -970,6 +976,8 @@ bool Monitor::connect() {
     shared_data->signal = false;
     shared_data->capture_fps = 0.0;
     shared_data->analysis_fps = 0.0;
+    shared_data->latitude = latitude;
+    shared_data->longitude = longitude;
     shared_data->state = state = IDLE;
     shared_data->last_write_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;

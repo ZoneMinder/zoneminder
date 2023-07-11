@@ -664,9 +664,11 @@ function MonitorStream(monitorData) {
     } else {
       params.command = command;
     }
+    /*
     if (this.ajaxQueue) {
       this.ajaxQueue.abort();
     }
+    */
     this.streamCmdReq(params);
   };
 

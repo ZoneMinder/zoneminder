@@ -141,6 +141,10 @@ fieldset {
     background-color: #070707;
 }
 
+.fixed-table-loading {
+  background-color: #333333 !important;
+}
+
 #header {
     border-bottom: 1px solid #000000;
 }

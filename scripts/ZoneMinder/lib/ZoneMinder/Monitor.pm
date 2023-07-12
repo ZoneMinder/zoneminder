@@ -60,7 +60,7 @@ $serial = $primary_key = 'Id';
   Capturing
   Analysing
   AnalysisSource
-  AnalysisImage`
+  AnalysisImage
   Recording
   Decoding
   JanusEnabled

@@ -918,13 +918,13 @@ function manageShutdownBtns(element) {
 var thumbnail_timeout;
 var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
+  const img = event.target;
+  const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+  const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
+  img.src = img.getAttribute(imgAttr);
   thumbnail_timeout = setTimeout(function() {
-    const img = event.target;
-    const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-    const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
     img.classList.add(imgClass);
-    img.src = img.getAttribute(imgAttr);
-  }, 150);
+  }, 250);
 }
 
 function thumbnail_onmouseout(event) {
@@ -932,7 +932,6 @@ function thumbnail_onmouseout(event) {
   var img = event.target;
   var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
-  img.src = '';
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
 }

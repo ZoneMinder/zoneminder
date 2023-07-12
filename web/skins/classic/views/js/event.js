@@ -283,7 +283,8 @@ function changeScale() {
     //just re-render alarmCues.  skip ajax call
     alarmCue.html(renderAlarmCues(eventViewer));
   }
-  setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
+  // 63072000 seconds is 2 years
+  setCookie('zmEventScale'+eventData.MonitorId, scale, 63072000);
 
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
@@ -969,6 +970,9 @@ function getStat() {
       case 'AlarmFrames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
         break;
+      case 'Location':
+        tdString = eventData.Latitude + ', ' + eventData.Longitude;
+        break;
       case 'MonitorId':
         if (canView["Monitors"]) {
           tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
@@ -1259,6 +1263,31 @@ function initPage() {
   });
   document.addEventListener('fullscreenchange', fullscreenChangeEvent);
   streamPlay();
+
+  if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
+    if ( window.L ) {
+      map = L.map('LocationMap', {
+        center: L.latLng(eventData.Latitude, eventData.Longitude),
+        zoom: 8,
+        onclick: function() {
+          alert('click');
+        }
+      });
+      L.tileLayer(ZM_OPT_GEOLOCATION_TILE_PROVIDER, {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
+      }).addTo(map);
+      marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: 'false'});
+      marker.addTo(map);
+      map.invalidateSize();
+    } else {
+      console.log('Location turned on but leaflet not installed.');
+    }
+  } // end if ZM_OPT_USE_GEOLOCATION
 } // end initPage
 
 var toggleZonesButton = document.getElementById('toggleZonesButton');

@@ -1,9 +1,55 @@
+"use strict";
 const monitors = new Array();
+var monitors_ul = null;
 
 const VIEWING = 0;
 const EDITING = 1;
 
 var mode = 0; // start up in viewing mode
+
+function setSpeed(newSpeed) {
+  lastSpeed = currentSpeed;
+  currentSpeed = newSpeed;
+  setCookie('speed', String(currentSpeed), 3600);
+  for (let i=0, length = monitors.length; i < length; i++) {
+    const monitorStream = monitors[i];
+    if (lastSpeed != '0' && currentSpeed != '0') {
+      monitorStream.setMaxFPS(currentSpeed);
+    } else if (lastSpeed != '0') {
+      monitorStream.pause();
+      // pause
+    } else {
+      // play
+      monitorStream.play();
+    }
+  }
+}
+
+function speedChange(ddm) {
+  lastSpeed = $j(ddm).val();
+  if (lastSpeed == '0') {
+    pausedClicked();
+  } else {
+    playClicked();
+  }
+}
+
+function pauseClicked() {
+  console.log('pauseClicked');
+  setSpeed('0');
+  $j('#playBtn').show();
+  $j('#pauseBtn').hide();
+  $j('#speed').val(speed);
+}
+
+function playClicked() {
+  console.log(lastSpeed);
+  if (!lastSpeed) lastSpeed = 'auto';
+  setSpeed(lastSpeed);
+  $j('#playBtn').hide();
+  $j('#pauseBtn').show();
+  $j('#speed').val(speed);
+}
 
 /**
  * called when the layoutControl select element is changed, or the page
@@ -30,7 +76,7 @@ function selectLayout(new_layout_id) {
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
     // Need to clear the current positioning, and apply the new
-    monitor_frame = $j('#monitor'+monitor.id);
+    const monitor_frame = $j('#monitor'+monitor.id);
     if (!monitor_frame) {
       console.log('Error finding frame for ' + monitor.id);
       continue;
@@ -38,8 +84,8 @@ function selectLayout(new_layout_id) {
 
     // Apply default layout options, like float left
     if (layout.Positions['default']) {
-      styles = layout.Positions['default'];
-      for (style in styles) {
+      const styles = layout.Positions['default'];
+      for (const style in styles) {
         monitor_frame.css(style, styles[style]);
       }
     } else {
@@ -47,8 +93,8 @@ function selectLayout(new_layout_id) {
     } // end if default styles
 
     if (layout.Positions['mId'+monitor.id]) {
-      styles = layout.Positions['mId'+monitor.id];
-      for (style in styles) {
+      const styles = layout.Positions['mId'+monitor.id];
+      for (const style in styles) {
         monitor_frame.css(style, styles[style]);
       }
     } // end if specific monitor style
@@ -70,11 +116,11 @@ function selectLayout(new_layout_id) {
 } // end function selectLayout(element)
 
 function changeHeight() {
-  var height = $j('#height').val();
+  const height = $j('#height').val();
   setCookie('zmMontageHeight', height, 3600);
-  for (var i = 0, length = monitors.length; i < length; i++) {
-    var monitor = monitors[i];
-    monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
+    const monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
     monitor_frame.css('height', height);
   }
 }
@@ -85,7 +131,6 @@ function changeHeight() {
 function changeWidth() {
   const width = $j('#width').val();
   const height = $j('#height').val();
-  console.log("changeWidth");
 
   selectLayout(freeform_layout_id);
   $j('#width').val(width);
@@ -128,8 +173,8 @@ function edit_layout(button) {
   mode = EDITING;
 
   // Turn off the onclick on the image.
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
-    var monitor = monitors[i];
+  for ( let i = 0, length = monitors.length; i < length; i++ ) {
+    const monitor = monitors[i];
     monitor.disable_onclick();
   };
 
@@ -172,7 +217,7 @@ function save_layout(button) {
   var Positions = {};
   for ( var i = 0, length = monitors.length; i < length; i++ ) {
     var monitor = monitors[i];
-    monitor_frame = $j('#monitor'+monitor.id);
+    const monitor_frame = $j('#monitor'+monitor.id);
 
     Positions['mId'+monitor.id] = {
       width: monitor_frame.css('width'),
@@ -193,8 +238,8 @@ function cancel_layout(button) {
   mode = VIEWING;
   $j('#SaveLayout').hide();
   $j('#EditLayout').show();
-  for ( var i = 0, length = monitors.length; i < length; i++ ) {
-    var monitor = monitors[i];
+  for ( let i = 0, length = monitors.length; i < length; i++ ) {
+    const monitor = monitors[i];
     monitor.setup_onclick(handleClick);
 
     //monitor_feed = $j('#imageFeed'+monitor.id);
@@ -233,6 +278,7 @@ function handleClick(evt) {
 }
 
 function initPage() {
+  monitors_ul = $j('#monitors');
   $j("#hdrbutton").click(function() {
     $j("#flipMontageHeader").slideToggle("slow");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
@@ -246,6 +292,7 @@ function initPage() {
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i] = new MonitorStream(monitorData[i]);
   }
+
   selectLayout();
   for (let i = 0, length = monitorData.length; i < length; i++) {
     // Start the fps and status updates. give a random delay so that we don't assault the server
@@ -266,6 +313,16 @@ function initPage() {
       }
     };
   });
+}
+
+function formSubmit(form) {
+  console.log("Killing streaming");
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    if (monitors[i]) {
+      monitors[i].kill();
+    }
+  }
+  return true;
 }
 
 function watchFullscreen() {

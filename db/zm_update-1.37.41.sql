@@ -1,1 +1,1 @@
-ALTER TABLE Monitors RENAME COLUMN Onvif_Alarm_Text to ONVIF_Alarm_Text;
+ALTER TABLE Monitors CHANGE `Onvif_Alarm_Text` `ONVIF_Alarm_Text` VARCHAR(30) DEFAULT 'MotionAlarm';

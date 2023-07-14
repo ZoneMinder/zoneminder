@@ -470,7 +470,7 @@ bool VideoStore::open() {
       audio_out_ctx->codec_tag = 0;
 #endif
 
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
       /* Seems like technically we could have multple channels, so let's not implement this for ffmpeg 5 */
 #else
       if (audio_out_ctx->channels > 1) {
@@ -806,7 +806,7 @@ bool VideoStore::setup_resampler() {
 
   Debug(2, "Got something other than AAC (%s)", audio_in_codec->name);
 
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
 #else
   // Some formats (i.e. WAV) do not produce the proper channel layout
   if (audio_in_ctx->channel_layout == 0) {
@@ -820,7 +820,7 @@ bool VideoStore::setup_resampler() {
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 32768 ? audio_in_ctx->bit_rate : 32768;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
   av_channel_layout_copy(&audio_out_ctx->ch_layout, &audio_in_ctx->ch_layout);
 #else
   audio_out_ctx->channels = audio_in_ctx->channels;
@@ -904,19 +904,34 @@ bool VideoStore::setup_resampler() {
   Debug(1,
         "Audio in bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_in_ctx->bit_rate, audio_in_ctx->sample_rate,
-        audio_in_ctx->ch_layout.nb_channels, audio_in_ctx->sample_fmt,
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 0)
+        audio_in_ctx->ch_layout.nb_channels,
+#else
+	audio_in_ctx->channels,
+#endif
+       	audio_in_ctx->sample_fmt,
         audio_in_ctx->frame_size);
   Debug(1,
         "Audio out context bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,
-        audio_out_ctx->ch_layout.nb_channels, audio_out_ctx->sample_fmt,
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 0)
+        audio_out_ctx->ch_layout.nb_channels,
+#else
+	audio_out_ctx->channels,
+#endif
+	audio_out_ctx->sample_fmt,
         audio_out_ctx->frame_size);
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
   Debug(1,
         "Audio out stream bit_rate (%" PRIi64 ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_out_stream->codecpar->bit_rate, audio_out_stream->codecpar->sample_rate,
-        audio_out_stream->codecpar->ch_layout.nb_channels, audio_out_stream->codecpar->format,
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 0)
+        audio_out_stream->codecpar->ch_layout.nb_channels,
+#else
+	audio_out_stream->codecpar->channels,
+#endif
+	audio_out_stream->codecpar->format,
         audio_out_stream->codecpar->frame_size);
 #else
   Debug(1,
@@ -945,12 +960,17 @@ bool VideoStore::setup_resampler() {
 
   if (!(fifo = av_audio_fifo_alloc(
           audio_out_ctx->sample_fmt,
-          audio_out_ctx->ch_layout.nb_channels, 1))) {
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
+          audio_out_ctx->ch_layout.nb_channels
+#else
+	  audio_out_ctx->channels
+#endif
+	  , 1))) {
     Error("Could not allocate FIFO");
     return false;
   }
 #if defined(HAVE_LIBSWRESAMPLE)
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
   if ((ret = swr_alloc_set_opts2(&resample_ctx,
       &audio_out_ctx->ch_layout,
       audio_out_ctx->sample_fmt,
@@ -1027,7 +1047,7 @@ bool VideoStore::setup_resampler() {
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
 #if LIBAVCODEC_VERSION_CHECK(56, 8, 0, 60, 100)
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
   out_frame->ch_layout = audio_out_ctx->ch_layout,
 #else
   out_frame->channels = audio_out_ctx->channels;
@@ -1040,7 +1060,7 @@ bool VideoStore::setup_resampler() {
   // samples buffer in bytes
   unsigned int audioSampleBuffer_size = av_samples_get_buffer_size(
       nullptr,
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
       audio_out_ctx->ch_layout.nb_channels,
 #else
       audio_out_ctx->channels,
@@ -1059,7 +1079,7 @@ bool VideoStore::setup_resampler() {
   // Setup the data pointers in the AVFrame
   if (avcodec_fill_audio_frame(
         out_frame,
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#if LIBAVCODEC_VERSION_CHECK(59, 24, 100, 24, 100)
         audio_out_ctx->ch_layout.nb_channels,
 #else
         audio_out_ctx->channels,

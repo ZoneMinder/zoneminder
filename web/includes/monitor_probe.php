@@ -492,6 +492,61 @@ function probeUbiquiti($ip, $username, $password) {
   return $cameras;
 }
 
+function probeFoscam($ip, $username, $password) {
+  if ($username === null) $username = 'admin';
+
+  $rtsp_port = 0;
+  $http_port = 0;
+  if (port_open($ip, 554)) {
+	  $rtsp_port = 554;
+  }
+  if (port_open($ip, 88)) {
+	  $http_port = 88;
+  } else if (port_open($ip, 80)) {
+	  $http_port = 80;
+  }
+  if (!$rtsp_port) $rtsp_port = $http_port;
+  $cameras = [];
+  $camera = array(
+    'ip'      => $ip,
+    'Name'   => 'Foscam Camera',
+    'Manufacturer'  => 'Foscam',
+    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.':'.$http_port.'/videostream.cgi',
+    'monitor' => array(
+      'Manufacturer'  => 'Foscam',
+      'Type'     => 'Ffmpeg',
+      'Path' => ($rtsp_port == 554 ? 'rtsp' : 'http').'://'.$username.':'.$password.'@'.$ip.':'.$rtsp_port.'/videoMain',
+      'Host'    => $ip,
+      'Width'	=> 640,
+      'Height'	=> 480,
+    ),
+  );
+  if (!count($cameras)) {
+    $cameras[] = $camera;
+  }
+
+  return $cameras;
+}
+
+function probeDLinkInternational($ip, $username, $password) {
+  if ($username === null) $username = 'root';
+  if ($password === null) $password = '';
+  $cameras = [];
+  $camera = array(
+    'ip'      => $ip,
+    'Name'   => 'DLink Camera',
+    'Manufacturer'  => 'D-Link',
+    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/video.cgi',
+    'monitor' => array(
+      'Manufacturer'  => 'D-Link',
+      'Type'     => 'Ffmpeg',
+      'Path'     => 'http://'.$ip.'/video.cgi',
+      'Host'     => $ip,
+      'Width'	=> 640,
+      'Height'	=> 480,
+    ),
+  );
+}
 function probeVivotek($ip, $username, $password) {
   if ($username === null) $username = 'root';
   if ($password === null) $password = '';
@@ -705,7 +760,7 @@ function probeNetwork() {
           $macBases[$mac] = [ 'vendor'=>$record[1], 'type'=>$type];
       }
     }
-    ZM\Debug("bases: " . print_r($macBases, true));
+    #ZM\Debug("bases: " . print_r($macBases, true));
   }
 
   foreach (get_arp_results() as $mac=>$ip) {
@@ -765,11 +820,17 @@ function probeNetwork() {
           }
           if ($macBase['type'] != 'Unknown' and function_exists('probe'.$macBase['type'])) {
             ZM\Debug("Calling ".$macBase['type']);
+            $found_cameras = [];
             if (!$username and isset($monitors[$ip])) {
-              $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $monitors[$ip]->User(), $monitors[$ip]->Pass()));
+              $found_cameras = call_user_func('probe'.$macBase['type'], $ip, $monitors[$ip]->User(), $monitors[$ip]->Pass());
             } else {
               ZM\Debug("Not Using auth from monitor $ip $username $password");
-              $cameras = array_merge($cameras, call_user_func('probe'.$macBase['type'], $ip, $username, $password));
+              $found_cameras = call_user_func('probe'.$macBase['type'], $ip, $username, $password);
+            }
+            if (count($found_cameras)) {
+              $cameras = array_merge($cameras, $found_cameras);
+            } else {
+              ZM\Debug("DIdn't find any cameras");
             }
           } else {
             $cameras = array_merge($cameras, [['ip'=>$ip, 'Manufacturer'=>$macBase['vendor']]]);

@@ -691,7 +691,7 @@ public:
   bool hasViewers() {
     if (shared_data && shared_data->valid) {
       SystemTimePoint now = std::chrono::system_clock::now();
-      Debug(1, "Last viewed %" PRId64 " seconds ago", 
+      Debug(3, "Last viewed %" PRId64 " seconds ago", 
           static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
           -
           shared_data->last_viewed_time

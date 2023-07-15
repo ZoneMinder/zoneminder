@@ -1980,7 +1980,7 @@ bool Monitor::Analyse() {
               score += 20;
             }
           } else {
-            Debug(1, "Not linked_monitors");
+            Debug(4, "Not linked_monitors");
           }
 #endif
 

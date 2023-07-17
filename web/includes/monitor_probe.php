@@ -401,6 +401,32 @@ function probeAvigilon($ip, $username, $password) {
   return $cameras;
 } # End probeAvigilon
 
+function probeGrandstreamNetworksInc($ip, $username, $password) {
+  if (!$username) $username='admin';
+  if (!$password) $password='password';
+  $cameras = [];
+  $port_open = port_open($ip, 554);
+  $url = 'rtsp://'.$ip.':554/0';
+  $camera = array(
+    'ip'      => $ip,
+    'mjpegstream' => 'http://'.$username.':'.urlencode($password).'@'.$ip.'/jpg/image.jpg',
+    'Manufacturer'  => 'Grandstream',
+    'Model'         => ($port_open ? 'Camera' : 'Not Camera'),
+    'monitor' =>  array(
+      'Type'  =>  'Ffmpeg',
+      'Path' => $url,
+      'User' => $username,
+      'Pass' => $password,
+      'Width'   =>  1920,
+      'Height'  =>  1080,
+      'Manufacturer'  => 'Grandstream',
+    ),
+  );
+
+  $cameras[] = $camera;
+  return $cameras;
+}
+
 function probeHangzhouHikvisionDigitalTechnologyCoLtd($ip, $username, $password) {
   return probeHikvision($ip, $username, $password);
 }

@@ -1,6 +1,7 @@
 {
     "000f7c": { "type": "ACTi",      "control": "" },
     "00408c": { "type": "Axis",      "control": "AxisV2", "vendor": "Axis" },
+    "00626e": { "type": "Foscam",    "control": "Foscam", "vendor": "Foscam" },
     "2ca59c": { "type": "HikVision", "control": "HikVision", "vendor": "Hangzhou Hikvision Digital Technology Co.,Ltd."},
     "bcbac2": { "type": "HikVision", "control": "HikVision", "vendor": "Hangzhou Hikvision Digital Technology Co.,Ltd."},
     "bcad28": { "type": "HikVision", "control": "HikVision", "vendor": "Hangzhou Hikvision Digital Technology Co.,Ltd."},

@@ -519,6 +519,7 @@ protected:
   struct timeval *shared_timestamps;
   unsigned char *shared_images;
   std::vector<Image *> image_buffer;
+  AVPixelFormat *image_pixelformats;
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture

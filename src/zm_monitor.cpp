@@ -966,6 +966,7 @@ bool Monitor::connect() {
   if (alarm_image.Buffer() + image_size > mem_ptr + mem_size) {
     Warning("We will exceed memsize by %td bytes!", (alarm_image.Buffer() + image_size) - (mem_ptr + mem_size));
   }
+  image_pixelformats = (AVPixelFormat *)(shared_images + (image_buffer_count*image_size));
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -2813,6 +2814,7 @@ bool Monitor::Decode() {
     index++;
     index = index % image_buffer_count;
     image_buffer[index]->Assign(*(packet->image));
+    image_pixelformats[index] = packet->image->AVPixFormat();
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;

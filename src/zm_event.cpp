@@ -174,9 +174,7 @@ Event::~Event() {
         std::chrono::duration_cast<FPSeconds>(start_time.time_since_epoch()).count(),
         std::chrono::duration_cast<FPSeconds>(end_time.time_since_epoch()).count());
 
-  if (frame_data.size()){
-    WriteDbFrames();
-  }
+  if (frame_data.size()) WriteDbFrames();
 
   std::string sql = stringtf(
       "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64 " AND Name='New Event'",
@@ -671,6 +669,7 @@ void Event::Run() {
       Debug(1, "Video file is %s", video_file.c_str());
     }
   }  // end if GetOptVideoWriter
+
   if (storage != monitor->getStorage())
     delete storage;
 

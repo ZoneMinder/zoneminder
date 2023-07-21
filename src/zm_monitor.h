@@ -408,8 +408,8 @@ protected:
   int             channel;
   int             format;
 
-  unsigned int    camera_width;
-  unsigned int    camera_height;
+  int    camera_width;
+  int    camera_height;
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
   bool            v4l_multi_buffer;

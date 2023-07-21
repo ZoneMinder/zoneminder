@@ -104,7 +104,7 @@ getBodyTopHTML();
         data-search="true"
         data-cookie="true"
         data-cookie-id-table="AddMonitorsTable"
-        data-cookie-expire="86400s"
+        data-cookie-expire="2y"
         data-click-to-select="true"
         data-remember-order="false"
         data-show-columns="true"

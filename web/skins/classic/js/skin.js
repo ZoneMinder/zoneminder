@@ -658,7 +658,7 @@ function setCookie(name, value, seconds) {
     expires = "; expires=" + date.toUTCString();
   } else {
     // 2147483647 is 2^31 - 1 which is January of 2038 to avoid the 32bit integer overflow bug.
-    expires = "; expires=2147483647";
+    expires = "; max-age=2147483647";
   }
   document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
 }

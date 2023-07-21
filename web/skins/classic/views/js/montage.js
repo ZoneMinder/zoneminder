@@ -99,12 +99,12 @@ function selectLayout(new_layout_id) {
       }
     } // end if specific monitor style
   } // end foreach monitor
-  setCookie('zmMontageLayout', layout_id, 3600);
+  setCookie('zmMontageLayout', layout_id);
   if (layouts[layout_id].Name != 'Freeform') { // 'montage_freeform.css' ) {
     // For freeform, we don't touch the width/height/scale settings, but we may need to update sizing and scales
-    setCookie('zmMontageScale', '0', 3600);
-    setCookie('zmMontageWidth', 'auto', 3600);
-    //setCookie('zmMontageHeight', 'auto', 3600);
+    setCookie('zmMontageScale', '0');
+    setCookie('zmMontageWidth', 'auto');
+    //setCookie('zmMontageHeight', 'auto');
     $j('#scale').val('0');
     $j('#width').val('auto');
     //$j('#height').val('auto');
@@ -116,11 +116,11 @@ function selectLayout(new_layout_id) {
 } // end function selectLayout(element)
 
 function changeHeight() {
-  const height = $j('#height').val();
-  setCookie('zmMontageHeight', height, 3600);
-  for (let i = 0, length = monitors.length; i < length; i++) {
-    const monitor = monitors[i];
-    const monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
+  var height = $j('#height').val();
+  setCookie('zmMontageHeight', height);
+  for (var i = 0, length = monitors.length; i < length; i++) {
+    var monitor = monitors[i];
+    monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
     monitor_frame.css('height', height);
   }
 }
@@ -140,9 +140,9 @@ function changeWidth() {
     monitors[i].setScale('0', width, height);
   }
   $j('#scale').val('0');
-  setCookie('zmMontageScale', '0', 3600);
-  setCookie('zmMontageWidth', width, 3600);
-  setCookie('zmMontageHeight', height, 3600);
+  setCookie('zmMontageScale', '0');
+  setCookie('zmMontageWidth', width);
+  setCookie('zmMontageHeight', height);
 } // end function changeSize()
 
 /**
@@ -152,9 +152,9 @@ function changeScale() {
   const scale = $j('#scale').val();
   selectLayout(freeform_layout_id); // Will also clear width and height
   $j('#scale').val(scale);
-  setCookie('zmMontageScale', scale, 3600);
-  setCookie('zmMontageWidth', 'auto', 3600);
-  setCookie('zmMontageHeight', 'auto', 3600);
+  setCookie('zmMontageScale', scale);
+  setCookie('zmMontageWidth', 'auto');
+  setCookie('zmMontageHeight', 'auto');
   $j('#width').val('auto');
   $j('#height').val('auto');
 
@@ -282,7 +282,7 @@ function initPage() {
   $j("#hdrbutton").click(function() {
     $j("#flipMontageHeader").slideToggle("slow");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-    setCookie('zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down', 3600);
+    setCookie('zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down');
   });
   if (getCookie('zmMontageHeaderFlip') == 'down') {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header

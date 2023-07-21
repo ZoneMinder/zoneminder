@@ -96,19 +96,19 @@ function changeSize() {
 
   monitorStream.setScale('0', width, height);
   $j('#scale').val('0');
-  setCookie('zmWatchScale', '0', 3600);
-  setCookie('zmWatchWidth', width, 3600);
-  setCookie('zmWatchHeight', height, 3600);
+  setCookie('zmWatchScale', '0');
+  setCookie('zmWatchWidth', width);
+  setCookie('zmWatchHeight', height);
 } // end function changeSize()
 
 function changeScale() {
   var scale = $j('#scale').val();
-  setCookie('zmWatchScale'+monitorId, scale, 3600);
+  setCookie('zmWatchScale'+monitorId, scale);
   $j('#width').val('auto');
   $j('#height').val('auto');
-  setCookie('zmCycleScale', scale, 3600);
-  setCookie('zmWatchWidth', 'auto', 3600);
-  setCookie('zmWatchHeight', 'auto', 3600);
+  setCookie('zmCycleScale', scale);
+  setCookie('zmWatchWidth', 'auto');
+  setCookie('zmWatchHeight', 'auto');
 
   setScale();
 }
@@ -942,17 +942,17 @@ function cyclePrev() {
 function cyclePeriodChange() {
   const cyclePeriodSelect = $j('#cyclePeriod');
   secondsToCycle = cyclePeriodSelect.val();
-  setCookie('zmCyclePeriod', secondsToCycle, 3600);
+  setCookie('zmCyclePeriod', secondsToCycle);
 }
 function cycleToggle(e) {
   sidebar = $j('#sidebar');
   button = $j('#cycleToggle');
   if (sidebar.is(":visible")) {
     sidebar.hide();
-    setCookie('zmCycleShow', false, 3600);
+    setCookie('zmCycleShow', false);
   } else {
     sidebar.show();
-    setCookie('zmCycleShow', true, 3600);
+    setCookie('zmCycleShow', true);
   }
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
@@ -974,7 +974,7 @@ function changeRate(e) {
       streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
     }
   }
-  setCookie('zmWatchRate', newvalue, 3600);
+  setCookie('zmWatchRate', newvalue);
 }
 
 // Kick everything off

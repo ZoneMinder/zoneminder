@@ -283,8 +283,7 @@ function changeScale() {
     //just re-render alarmCues.  skip ajax call
     alarmCue.html(renderAlarmCues(eventViewer));
   }
-  // 63072000 seconds is 2 years
-  setCookie('zmEventScale'+eventData.MonitorId, scale, 63072000);
+  setCookie('zmEventScale'+eventData.MonitorId, scale);
 
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
@@ -951,7 +950,7 @@ function getEvtStatsCookie() {
 
   if (!stats) {
     stats = 'on';
-    setCookie(cookie, stats, 10*365);
+    setCookie(cookie, stats);
   }
   return stats;
 }
@@ -1070,7 +1069,7 @@ function initPage() {
       handleClick(event);
     });
     vid.on('volumechange', function() {
-      setCookie('volume', vid.volume(), 3600);
+      setCookie('volume', vid.volume());
     });
     const cookie = getCookie('volume');
     if (cookie) vid.volume(cookie);
@@ -1081,7 +1080,7 @@ function initPage() {
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
       $j('select[name="rate"]').val(rate);
-      setCookie('zmEventRate', rate, 3600);
+      setCookie('zmEventRate', rate);
     });
 
     // rate is in % so 100 would be 1x
@@ -1218,10 +1217,10 @@ function initPage() {
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
     if (table.is(':visible')) {
-      setCookie(cookie, 'off', 10*365);
+      setCookie(cookie, 'off');
       table.toggle(false);
     } else {
-      setCookie(cookie, 'on', 10*365);
+      setCookie(cookie, 'on');
       table.toggle(true);
     }
   });
@@ -1301,12 +1300,12 @@ function toggleZones(e) {
       zones.hide();
       button.setAttribute('title', showZonesString);
       $j('#toggleZonesButton .material-icons').text('layers');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
+      setCookie('zmEventShowZones'+eventData.MonitorId, '0');
     } else {
       zones.show();
       button.setAttribute('title', hideZonesString);
       $j('#toggleZonesButton .material-icons').text('layers_clear');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
+      setCookie('zmEventShowZones'+eventData.MonitorId, '1');
     }
   } else {
     console.error("Zones svg not found");

@@ -130,6 +130,7 @@ data-min-width="562"
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
               <th data-sortable="true" data-field="camera.Name" class="CameraName"><?php echo translate('Name') ?></th>
+              <th data-sortable="true" data-field="mac" class="CameraMAC"><?php echo translate('MAC Address') ?></th>
               <th data-sortable="true" data-field="camera.ip" class="CameraIP"><?php echo translate('IP Address') ?></th>
               <th data-sortable="true" data-field="url" class="Url"><?php echo translate('URL') ?></th>
               <th data-sortable="true" data-field="camera.Manufacturer" class="Manufacturer"><?php echo translate('Manufacturer') ?></th>

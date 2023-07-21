@@ -45,9 +45,9 @@ $j(document).on("keydown", "", function(e) {
       console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
     }
   } else {
-    if (e.key === "ArrowLeft") {
+    if (e.key === "ArrowLeft" && !e.altKey) {
       prevEvent();
-    } else if (e.key === "ArrowRight") {
+    } else if (e.key === "ArrowRight" && !e.altKey) {
       nextEvent();
     } else if (e.key === "Delete") {
       if ( $j("#deleteBtn").is(":disabled") == false ) {

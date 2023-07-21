@@ -903,6 +903,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             '2560x1440'=>'2560x1440 1440p QHD WQHD',
             '2560x1920'=>'2560x1920 5MP',
             '2688x1520'=>'2688x1520 4MP',
+	    '2960x1668'=>'2960x1668 5MP',
             '3072x2048'=>'3072x2048 6MP',
             '3840x2160'=>'3840x2160 4K UHD',
           );

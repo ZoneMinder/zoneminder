@@ -2026,12 +2026,14 @@ bool Monitor::Analyse() {
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
                     snap->score = DetectMotion(*(snap->y_image), zoneSet);
+                    if (!snap->analysis_image)
+                      snap->analysis_image = new Image(*(snap->y_image));
                   } else {
                     snap->score = DetectMotion(*(snap->image), zoneSet);
+                    if (!snap->analysis_image)
+                      snap->analysis_image = new Image(*(snap->image));
                   }
 
-                  if (!snap->analysis_image)
-                    snap->analysis_image = new Image(*(snap->image));
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
                   snap->zone_stats.reserve(zones.size());
                   int zone_index = 0;
@@ -2722,7 +2724,10 @@ bool Monitor::Decode() {
         ||
         ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
         ) ) {
-    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+        packet->y_image->Scale(camera_width, camera_height);
+
     if (orientation != ROTATE_0) {
       switch (orientation) {
         case ROTATE_0 :

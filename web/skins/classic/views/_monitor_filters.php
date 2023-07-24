@@ -118,7 +118,7 @@ function addFilterSelect($name, $options) {
   return $html;
 }
 
-$html .= addFilterSelect('Capturing', array('None'=>translate('None'), 'OnDemand'=>translate('On Demand')));
+$html .= addFilterSelect('Capturing', array('None'=>translate('None'), 'Always'=>translate('Always'), 'OnDemand'=>translate('On Demand')));
 $html .= addFilterSelect('Analysing', array('None'=>translate('None'), 'Always'=>translate('Always')));
 $html .= addFilterSelect('Recording', array('None'=>translate('None'), 'OnMotion'=>translate('On Motion'),'Always'=>translate('Always')));
 

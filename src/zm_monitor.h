@@ -176,6 +176,8 @@ protected:
     uint32_t state;             /* +12   */
     double      capture_fps;       // Current capturing fps
     double      analysis_fps;      // Current analysis fps
+    double      latitude;
+    double      longitude;
     uint64_t last_event_id;     /* +16   */
     uint32_t action;            /* +24   */
     int32_t brightness;         /* +28   */
@@ -406,8 +408,8 @@ protected:
   int             channel;
   int             format;
 
-  unsigned int    camera_width;
-  unsigned int    camera_height;
+  int    camera_width;
+  int    camera_height;
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
   bool            v4l_multi_buffer;
@@ -468,6 +470,8 @@ protected:
   int         signal_check_points;  // Number of points in the image to check for signal
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
+  double      latitude;
+  double      longitude;
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
   std::string onvif_alarm_txt;     // def onvif_alarm_txt
@@ -515,6 +519,7 @@ protected:
   struct timeval *shared_timestamps;
   unsigned char *shared_images;
   std::vector<Image *> image_buffer;
+  AVPixelFormat *image_pixelformats;
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
@@ -653,6 +658,9 @@ public:
     return shared_data->janus_pin;
   }
 
+  inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };
+  int get_max_keyframe_interval() const { return packetqueue.get_max_keyframe_interval(); };
+
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
@@ -687,7 +695,7 @@ public:
   bool hasViewers() {
     if (shared_data && shared_data->valid) {
       SystemTimePoint now = std::chrono::system_clock::now();
-      Debug(1, "Last viewed %" PRId64 " seconds ago", 
+      Debug(3, "Last viewed %" PRId64 " seconds ago", 
           static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
           -
           shared_data->last_viewed_time
@@ -702,6 +710,8 @@ public:
     return false;
   }
   inline bool Exif() const { return embed_exif; }
+  inline double Latitude() const { return shared_data ? shared_data->latitude : latitude; }
+  inline double Longitude() const { return shared_data ? shared_data->longitude : longitude; }
   inline bool RTSPServer() const { return rtsp_server; }
   inline bool RecordAudio() const { return record_audio; }
 

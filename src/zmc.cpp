@@ -361,6 +361,8 @@ int main(int argc, char *argv[]) {
     }
 
     if (zm_reload) {
+      zmLoadStaticConfig();
+      zmLoadDBConfig();
       for (std::shared_ptr<Monitor> &monitor : monitors) {
         monitor->Reload();
       }

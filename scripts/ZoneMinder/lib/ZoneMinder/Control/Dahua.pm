@@ -604,7 +604,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =head2 focusRel<range>
 
-    This set of methods invoke realtive focus in the range direction indicated by
+    This set of methods invoke relative focus in the range direction indicated by
     the <range> portion of their name. They accept no arguments.
 
     NOTE:
@@ -615,7 +615,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =head2 irisRel<Large/Small>
 
-    This set of methods invoke realtive iris size in the direction indicated by
+    This set of methods invoke relative iris size in the direction indicated by
     the <Large/Small> portion of their name. They accept no arguments.
 
     NOTE:

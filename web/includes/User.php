@@ -51,7 +51,7 @@ class User extends ZM_Object {
     if (property_exists($this, 'Name') and !empty($this->Name)) {
       return $this->Name;
     }
-    return $this->{'Username'};
+    return $this->Username();
   }
 
   public static function Indexed_By_Id() {

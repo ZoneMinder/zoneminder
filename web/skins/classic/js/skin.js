@@ -279,10 +279,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
-        setCookie('zmHeaderFlip', 'down', 3600);
+        setCookie('zmHeaderFlip', 'down');
       } else {
         flip.html('keyboard_arrow_up');
-        setCookie('zmHeaderFlip', 'up', 3600);
+        setCookie('zmHeaderFlip', 'up');
       }
     });
     // Manage the web console filter bar minimize chevron
@@ -291,10 +291,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var fbflip = $j("#fbflip");
       if ( fbflip.html() == 'keyboard_arrow_up' ) {
         fbflip.html('keyboard_arrow_down');
-        setCookie('zmFilterBarFlip', 'down', 3600);
+        setCookie('zmFilterBarFlip', 'down');
       } else {
         fbflip.html('keyboard_arrow_up');
-        setCookie('zmFilterBarFlip', 'up', 3600);
+        setCookie('zmFilterBarFlip', 'up');
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
@@ -306,10 +306,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
         mfbflip.html('keyboard_arrow_down');
-        setCookie('zmMonitorFilterBarFlip', 'up', 3600);
+        setCookie('zmMonitorFilterBarFlip', 'up');
       } else {
         mfbflip.html('keyboard_arrow_up');
-        setCookie('zmMonitorFilterBarFlip', 'down', 3600);
+        setCookie('zmMonitorFilterBarFlip', 'down');
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
@@ -656,6 +656,9 @@ function setCookie(name, value, seconds) {
     const date = new Date();
     date.setTime(date.getTime() + (seconds*1000));
     expires = "; expires=" + date.toUTCString();
+  } else {
+    // 2147483647 is 2^31 - 1 which is January of 2038 to avoid the 32bit integer overflow bug.
+    expires = "; max-age=2147483647";
   }
   document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
 }
@@ -678,7 +681,7 @@ function delCookie(name) {
 function bwClickFunction() {
   $j('.bwselect').click(function() {
     var bwval = $j(this).data('pdsa-dropdown-val');
-    setCookie("zmBandwidth", bwval, 3600);
+    setCookie("zmBandwidth", bwval);
     getNavBar();
   });
 }
@@ -918,13 +921,13 @@ function manageShutdownBtns(element) {
 var thumbnail_timeout;
 var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
+  const img = event.target;
+  const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+  const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
+  img.src = img.getAttribute(imgAttr);
   thumbnail_timeout = setTimeout(function() {
-    const img = event.target;
-    const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-    const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
     img.classList.add(imgClass);
-    img.src = img.getAttribute(imgAttr);
-  }, 150);
+  }, 250);
 }
 
 function thumbnail_onmouseout(event) {
@@ -932,7 +935,6 @@ function thumbnail_onmouseout(event) {
   var img = event.target;
   var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
-  img.src = '';
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
 }

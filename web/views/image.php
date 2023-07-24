@@ -60,7 +60,7 @@ if (!empty($_REQUEST['proxy'])) {
   }
   $url_parts = parse_url($url);
   $username = $url_parts['user'];
-  $password = $url_parts['pass'];
+  $password = isset($url_parts['pass']) ? $url_parts['pass'] : '';
 
   $method = 'GET';
   // preparing http options:
@@ -90,7 +90,7 @@ if (!empty($_REQUEST['proxy'])) {
     $meta_data = stream_get_meta_data($fp);
     ZM\Debug(print_r($meta_data, true));
     foreach ($meta_data['wrapper_data'] as $header) {
-      preg_match('/WWW-Authenticate: Digest (.*)/', $header, $matches);
+      preg_match('/WWW-Authenticate: Digest (.*)/i', $header, $matches);
       $nc = 1;
       if (!empty($matches)) {
         ZM\Debug("Matched $header");
@@ -479,6 +479,12 @@ if ( !empty($_REQUEST['height']) ) {
 if ( $errorText ) {
   ZM\Error($errorText);
 } else {
+  # Must lock it because zmc may be still writing the jpg and will have a lock on it.
+  $fp_path = fopen($path, 'r');
+  $lock = flock($fp_path, LOCK_SH);
+  if (!$lock) Warning("Unable to get a read lock on $path, continuing.");
+
+  # In order to use flock, must open it first.
   header('Content-type: '.$media_type);
   header('Cache-Control: max-age=86400');
   header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
@@ -493,6 +499,8 @@ if ( $errorText ) {
       ZM\Error('No bytes read from '. $path);
     }
   } else {
+
+
     ZM\Debug("Doing a scaled image: scale($scale) width($width) height($height)");
     $i = null;
     if ( ! ( $width && $height ) ) {
@@ -519,11 +527,14 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-${width}x${height}.jpg";
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
-    if ( !( file_exists($scaled_path) and readfile($scaled_path) ) ) {
-      ZM\Debug("Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
-      if (!$i)
+
+    if (!file_exists($scaled_path)) {
+      ZM\Debug("Cached scaled image does not exist at $scaled_path. Creating it");
+
+      if (!$i) {
         $i = imagecreatefromjpeg($path);
-      if ( !$i) {
+      }
+      if (!$i) {
         ZM\Error('Unable to load jpeg from '.$scaled_path);
         $i  = imagecreatetruecolor($width, $height);
         $bg_colour = imagecolorallocate($i, 255, 255, 255);
@@ -539,10 +550,15 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
         imagedestroy($i);
         imagedestroy($iScale);
         $scaled_jpeg_data = ob_get_contents();
-        file_put_contents($scaled_path, $scaled_jpeg_data);
+        file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
+
         echo $scaled_jpeg_data;
       }
     } else {
+      $fp_scaled_path = fopen($scaled_path, 'r');
+      $lock = flock($fp_scaled_path, LOCK_SH);
+      if (!$lock) Warning("Unable to get a read lock on $scaled_path, trying to send anyways.");
+
       ZM\Debug("Sending $scaled_path");
       $bytes = readfile($scaled_path);
       if ( !$bytes ) {
@@ -550,8 +566,13 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
       } else {
         ZM\Debug("$bytes sent");
       }
-    }
-  }
+      flock($fp_scaled_path, LOCK_UN);
+      fclose($fp_scaled_path);
+    } # end if scaled image doesn't exist or failed sending it
+
+  } # end if scaled or not
+  flock($fp_path, LOCK_UN);
+  fclose($fp_path);
 }
 
 function find_video($path) {

@@ -37,6 +37,8 @@ require ZoneMinder::Memory;
 require ZoneMinder::Monitor_Status;
 require ZoneMinder::Event_Summary;
 require ZoneMinder::Zone;
+require ZoneMinder::Manufacturer;
+require ZoneMinder::Model;
 use ZoneMinder::Logger qw(:all);
 
 use parent qw(ZoneMinder::Object);
@@ -52,11 +54,21 @@ $serial = $primary_key = 'Id';
   Notes
   ServerId
   StorageId
+  ManufacturerId
+  ModelId
   Type
   Capturing
   Analysing
+  AnalysisSource
+  AnalysisImage
   Recording
   Decoding
+  JanusEnabled
+  JanusAudioEnabled
+  Janus_Profile_Override
+  Janus_Use_RTSP_Restream
+  Janus_RTSP_User
+  Janus_RTSP_Session_Timeout
   LinkedMonitors
   Triggers
   EventStartCommand
@@ -66,6 +78,7 @@ $serial = $primary_key = 'Id';
   ONVIF_Password
   ONVIF_Options
   ONVIF_Event_Listener
+  ONVIF_Alarm_Text
   use_Amcrest_API
   Device
   Channel
@@ -78,6 +91,7 @@ $serial = $primary_key = 'Id';
   Port
   SubPath
   Path
+  SecondPath
   Options
   User
   Pass
@@ -87,6 +101,7 @@ $serial = $primary_key = 'Id';
   Palette
   Orientation
   Deinterlacing
+  Decoder
   DecoderHWAccelName
   DecoderHWAccelDevice
   SaveJPEGs
@@ -95,6 +110,7 @@ $serial = $primary_key = 'Id';
   OutputContainer
   EncoderParameters
   RecordAudio
+  RecordingSource
   RTSPDescribe
   Brightness
   Contrast
@@ -106,12 +122,14 @@ $serial = $primary_key = 'Id';
   LabelY
   LabelSize
   ImageBufferCount
+  MaxImageBufferCount
   WarmupCount
   PreEventCount
   PostEventCount
   StreamReplayBuffer
   AlarmFrameCount
   SectionLength
+  SectionLengthWarn
   MinSectionLength
   FrameSkip
   MotionFrameSkip
@@ -134,6 +152,7 @@ $serial = $primary_key = 'Id';
   ModectDuringPTZ
   DefaultRate
   DefaultScale
+  DefaultCodec
   SignalCheckPoints
   SignalCheckColour
   WebColour
@@ -147,21 +166,41 @@ $serial = $primary_key = 'Id';
   RTSPServer
   RTSPStreamName
   Importance
+  MQTT_Enabled
+  MQTT_Subscriptions
   );
 
 %defaults = (
+    Name => q`'Monitor'`,
     Deleted => 0,
     ServerId => 0,
     StorageId => 0,
+    ManufacturerId => undef,
+    ModelId => undef,
     Type      => q`'Ffmpeg'`,
     Capturing => q`'Always'`,
     Analysing => q`'Always'`,
+    AnalysisSource => q`'Primary'`,
+    AnalysisImage => q`'FullColour'`,
     Recording => q`'Always'`,
     Decoding => q`'Always'`,
+    JanusEnabled => 0,
+    JanusAudioEnabled => 0,
+    Janus_Profile_Override => q`''`,
+    Janus_Use_RTSP_Restream => 0,
+    Janus_RTSP_User => undef,
+    Janus_RTSP_Session_Timeout => 0,
     LinkedMonitors => undef,
     Triggers => '',
-    EventEndCommand => '',
     EventStartCommand => '',
+    EventEndCommand => '',
+    ONVIF_URL => q`''`,
+    ONVIF_Username => q`''`,
+    ONVIF_Password => q`''`,
+    ONVIF_Options => q`''`,
+    ONVIF_Event_Listener => 0,
+    ONVIF_Alarm_Text => q`'MotionAlarm'`,
+    use_Amcrest_API => 0,
     Device  =>  '',
     Channel =>  0,
     Format  =>  0,
@@ -173,6 +212,7 @@ $serial = $primary_key = 'Id';
     Port  =>  '',
     SubPath =>  '',
     Path  =>  undef,
+    SecondPath  => undef,
     Options =>  undef,
     User  =>  undef,
     Pass  =>  undef,
@@ -182,6 +222,7 @@ $serial = $primary_key = 'Id';
     Palette =>  0,
     Orientation => q`'ROTATE_0'`,
     Deinterlacing =>  0,
+    Decoder   => undef,
     DecoderHWAccelName  =>  undef,
     DecoderHWAccelDevice  =>  undef,
     SaveJPEGs =>  3,
@@ -190,6 +231,7 @@ $serial = $primary_key = 'Id';
     OutputContainer => undef,
     EncoderParameters => '',
     RecordAudio=>0,
+    RecordingSource  => q`'Primary'`,
     RTSPDescribe=>0,
     Brightness  =>  -1,
     Contrast    =>  -1,
@@ -201,12 +243,14 @@ $serial = $primary_key = 'Id';
     LabelY      =>  0,
     LabelSize   =>  1,
     ImageBufferCount =>  20,
+    MaxImageBufferCount =>  121,
     WarmupCount =>  0,
     PreEventCount =>  5,
     PostEventCount  =>  5,
     StreamReplayBuffer  => 0,
     AlarmFrameCount     =>  1,
     SectionLength      =>  600,
+    SectionLengthWarn => 1,
     MinSectionLength    =>  10,
     FrameSkip           =>  0,
     MotionFrameSkip     =>  0,
@@ -229,6 +273,7 @@ $serial = $primary_key = 'Id';
     ModectDuringPTZ =>  0,
     DefaultRate =>  100,
     DefaultScale  =>  100,
+    DefaultCodec =>  q`'auto'`,
     SignalCheckPoints =>  0,
     SignalCheckColour =>  q`'#0000BE'`,
     WebColour   =>  q`'#ff0000'`,
@@ -239,15 +284,11 @@ $serial = $primary_key = 'Id';
     DefaultCodec  => q`'auto'`,
     Latitude  =>  undef,
     Longitude =>  undef,
-    ONVIF_Username => '',
-    ONVIF_Options => '',
-    ONVIF_Password => '',
-    ONVIF_URL => '',
     RTSPStreamName => '',
     RTSPServer => 0,
     Importance => 0,
-    ONVIF_Event_Listener => 0,
-    use_Amcrest_API => 0,
+    MQTT_Enabled => 0,
+    MQTT_Subscriptions => q`''`,
     );
 
 use constant CAPTURING_NONE     => 1;
@@ -255,6 +296,31 @@ use constant CAPTURING_ONDEMAND => 2;
 use constant CAPTURING_ALWAYS   => 3;
 use constant ANALYSING_ALWAYS   => 2;
 use constant ANALYSING_NONE     => 1;
+
+sub save {
+  my $self = shift;
+
+  my $manufacturer = $self->Manufacturer();
+  my $model = $self->Model();
+
+  if ($manufacturer->Name() and !$self->ManufacturerId()) {
+    if ($manufacturer->save()) {
+      $$self{ManufacturerId} = $manufacturer->Id();
+      if ($model->Name()) {
+        $model->ManufacturerId($$self{ManufacturerId});
+      }
+    }
+  }
+  if ($model->Name() and !$self->ModelId()) {
+    if ($model->save()) {
+      $$self{ModelId} = $model->Id()
+    }
+  }
+
+  my $error = $self->SUPER::save( );
+  return $error;
+} # end sub save
+
 
 sub Server {
 	return new ZoneMinder::Server( $_[0]{ServerId} );
@@ -466,8 +532,65 @@ sub ImportanceNumber {
   } elsif ($$self{Importance} eq 'Normal') {
     return 0;
   }
-  Warning("Wierd value for Importance $$self{Importance}");
+  Warning("Weird value for Importance $$self{Importance}");
   return 0;
+}
+
+sub Manufacturer {
+  my $self = shift;
+  $$self{Manufacturer} = shift if @_;
+  if (!$$self{Manufacturer}) {
+    $$self{Manufacturer} = new ZoneMinder::Manufacturer($$self{ManufacturerId});
+  }
+  return $$self{Manufacturer};
+}
+
+sub manufacturer {
+  my $self = shift;
+  if (@_) {
+    my $new = shift;
+    $$self{Manufacturer} = ZoneMinder::Manufacturer->find_one(Name=>$new);
+    if (!$$self{Manufacturer}) {
+      $$self{Manufacturer} = new ZoneMinder::Manufacturer();
+      $$self{Manufacturer}->Name($new);
+    }
+  }
+  if (!$$self{Manufacturer}) {
+    $$self{Manufacturer} = new ZoneMinder::Manufacturer($$self{ManufacturerId});
+  }
+  return $$self{Manufacturer}->Name();
+}
+
+sub Model {
+  my $self = shift;
+  if (@_) {
+    $$self{Model} = shift;
+    $$self{ModelId} = $$self{Model} 
+  }
+  if (!$$self{Model}) {
+    $$self{Model} = new ZoneMinder::Model($$self{ModelId});
+  }
+  return $$self{Model};
+}
+
+sub model {
+  my $self = shift;
+  
+  if (@_) {
+    my $new = shift;
+    if ($new ne $$self{Model}->Name()) {
+      $$self{Model} = ZoneMinder::Model->find_one(Name=>$new);
+      if (!$$self{Model}) {
+        $$self{Model} = new ZoneMinder::Model();
+        $$self{Model}->Name($new);
+      }
+      $$self{ModelId} = $$self{Model}->Id(); 
+    }
+  }
+  if (!$$self{Model}) {
+    $$self{Model} = new ZoneMinder::Model($$self{ModelId});
+  }
+  return $$self{Model}->Name();
 }
 
 1;

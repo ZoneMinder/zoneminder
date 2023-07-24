@@ -391,7 +391,7 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoStreamId, mAudioStreamId);
 
   const AVCodec *mVideoCodec = nullptr;
-  if (!monitor->DecoderName().empty()) {
+  if (!monitor->DecoderName().empty() and (monitor->DecoderName() != "auto")) {
     if ((mVideoCodec = avcodec_find_decoder_by_name(monitor->DecoderName().c_str())) == nullptr) {
       Debug(1, "Failed to find decoder %s, falling back to auto", monitor->DecoderName().c_str());
     } else {

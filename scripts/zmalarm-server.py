@@ -152,7 +152,7 @@ while True:
         head, version, session, sequence_number, msgid, len_data = struct.unpack(
             'BB2xII2xHI', conn.recv(20)
         )
-        sleep(0.1)  # Just for recive whole packet
+        sleep(0.1)  # Just for receive whole packet
         data = conn.recv(len_data)
         conn.close()
         # make the json a Dictionary

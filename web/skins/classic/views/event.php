@@ -215,6 +215,13 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
           <table id="eventStatsTable" class="table-sm table-borderless">
             <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
           </table>
+<?php
+if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
+?>
+          <div id="LocationMap" style="height: 450px; width: 450px;"></div>
+<?php
+}
+?>
 
       <div id="frames">
 <?php 
@@ -370,5 +377,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   <script src="./js/videojs.zoomrotate.js"></script>
 <?php
   echo output_link_if_exists(array('css/base/zones.css'));
+  echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
+  echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
   xhtmlFooter();
 ?>

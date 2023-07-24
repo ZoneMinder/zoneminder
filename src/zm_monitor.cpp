@@ -95,7 +95,8 @@ std::string load_monitor_sql =
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
 "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
 "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
-"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
+"`Latitude`, `Longitude`, "
 "`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`,"
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
@@ -237,6 +238,8 @@ Monitor::Monitor()
   signal_check_points(0),
   signal_check_colour(0),
   embed_exif(false),
+  latitude(0.0),
+  longitude(0.0),
   rtsp_server(false),
   rtsp_streamname(""),
   onvif_alarm_txt(""),
@@ -512,12 +515,15 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   track_motion = atoi(dbrow[col]); col++;
   embed_exif = (*dbrow[col] != '0'); col++;
 
+  /* These will only be used to init shmem */
+  latitude  = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
+  longitude  = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
+
  /* "`RTSPServer`,`RTSPStreamName`, */
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
 // get alarm text from table.
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : ""); col++;
-
 
    /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
@@ -960,6 +966,7 @@ bool Monitor::connect() {
   if (alarm_image.Buffer() + image_size > mem_ptr + mem_size) {
     Warning("We will exceed memsize by %td bytes!", (alarm_image.Buffer() + image_size) - (mem_ptr + mem_size));
   }
+  image_pixelformats = (AVPixelFormat *)(shared_images + (image_buffer_count*image_size));
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -970,6 +977,8 @@ bool Monitor::connect() {
     shared_data->signal = false;
     shared_data->capture_fps = 0.0;
     shared_data->analysis_fps = 0.0;
+    shared_data->latitude = latitude;
+    shared_data->longitude = longitude;
     shared_data->state = state = IDLE;
     shared_data->last_write_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;
@@ -2049,7 +2058,7 @@ bool Monitor::Analyse() {
               score += 20;
             }
           } else {
-            Debug(1, "Not linked_monitors");
+            Debug(4, "Not linked_monitors");
           }
 #endif
 
@@ -2094,12 +2103,14 @@ bool Monitor::Analyse() {
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
                     snap->score = DetectMotion(*(snap->y_image), zoneSet);
+                    if (!snap->analysis_image)
+                      snap->analysis_image = new Image(*(snap->y_image));
                   } else {
                     snap->score = DetectMotion(*(snap->image), zoneSet);
+                    if (!snap->analysis_image)
+                      snap->analysis_image = new Image(*(snap->image));
                   }
 
-                  if (!snap->analysis_image)
-                    snap->analysis_image = new Image(*(snap->image));
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
                   snap->zone_stats.reserve(zones.size());
                   int zone_index = 0;
@@ -2790,7 +2801,10 @@ bool Monitor::Decode() {
         ||
         ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
         ) ) {
-    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+        packet->y_image->Scale(camera_width, camera_height);
+
     if (orientation != ROTATE_0) {
       switch (orientation) {
         case ROTATE_0 :
@@ -2882,6 +2896,7 @@ bool Monitor::Decode() {
     index++;
     index = index % image_buffer_count;
     image_buffer[index]->Assign(*(packet->image));
+    image_pixelformats[index] = packet->image->AVPixFormat();
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;

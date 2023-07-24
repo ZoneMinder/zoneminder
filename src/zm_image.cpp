@@ -1179,6 +1179,11 @@ bool Image::WriteJpeg(const std::string &filename,
     }
   }
 
+  struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
+  if (fcntl(raw_fd, F_SETLKW, &fl) == -1) {
+    Error("Couldn't get lock on %s, continuing", filename.c_str());
+  }
+
   jpeg_stdio_dest(cinfo, outfile);
 
   cinfo->image_width = width;   /* image width and height, in pixels */
@@ -1209,6 +1214,8 @@ bool Image::WriteJpeg(const std::string &filename,
 #else
       Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
       jpeg_abort_compress(cinfo);
+      fl.l_type = F_UNLCK;
+      fcntl(raw_fd, F_SETLK, &fl);
       fclose(outfile);
       return false;
 #endif
@@ -1221,6 +1228,8 @@ bool Image::WriteJpeg(const std::string &filename,
 #else
         Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
         jpeg_abort_compress(cinfo);
+        fl.l_type = F_UNLCK;
+        fcntl(raw_fd, F_SETLK, &fl);
         fclose(outfile);
         return false;
 #endif
@@ -1304,6 +1313,12 @@ cinfo->out_color_space = JCS_RGB;
     }
   }
   jpeg_finish_compress(cinfo);
+
+  fl.l_type = F_UNLCK;  /* set to unlock same region */
+  if (fcntl(raw_fd, F_SETLK, &fl) == -1) {
+    Error("Failed to unlock %s", filename.c_str());
+  }
+
   fclose(outfile);
 
   return true;

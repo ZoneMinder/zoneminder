@@ -23,16 +23,17 @@ controlOptions['.$control->Id().'][0] = '.
 var monitorNames = new Object();
 var rtspStreamNames = new Object();
 <?php
-$query = empty($_REQUEST['mid']) ?
-  dbQuery('SELECT Name,RTSPStreamName FROM Monitors') :
-  dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
+$mid = empty($_REQUEST['mid']) ? '0' : validCardinal($_REQUEST['mid']);
+$query = $mid ?
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Id != ?', array($mid)):
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors');
 if ($query) {
   while ($row = dbFetchNext($query)) {
     echo 'monitorNames[\''.validJsStr($row['Name']).'\'] = true;'.PHP_EOL;
     if ($row['RTSPStreamName'])
       echo 'rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;'.PHP_EOL;
   } // end foreach
-} # end if query
+} # end if $query
 ?>
 
 function validateForm(form) {

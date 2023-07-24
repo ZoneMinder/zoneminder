@@ -115,7 +115,7 @@ getBodyTopHTML();
         data-cookie="true"
         data-cookie-same-site="Strict"
         data-cookie-id-table="zmEventsTable"
-        data-cookie-expire="86400s"
+        data-cookie-expire="2y"
         data-click-to-select="true"
         data-remember-order="false"
         data-show-columns="true"

@@ -45,9 +45,9 @@ $j(document).on("keydown", "", function(e) {
       console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
     }
   } else {
-    if (e.key === "ArrowLeft") {
+    if (e.key === "ArrowLeft" && !e.altKey) {
       prevEvent();
-    } else if (e.key === "ArrowRight") {
+    } else if (e.key === "ArrowRight" && !e.altKey) {
       nextEvent();
     } else if (e.key === "Delete") {
       if ( $j("#deleteBtn").is(":disabled") == false ) {
@@ -283,7 +283,7 @@ function changeScale() {
     //just re-render alarmCues.  skip ajax call
     alarmCue.html(renderAlarmCues(eventViewer));
   }
-  setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
+  setCookie('zmEventScale'+eventData.MonitorId, scale);
 
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
@@ -950,7 +950,7 @@ function getEvtStatsCookie() {
 
   if (!stats) {
     stats = 'on';
-    setCookie(cookie, stats, 10*365);
+    setCookie(cookie, stats);
   }
   return stats;
 }
@@ -968,6 +968,9 @@ function getStat() {
         break;
       case 'AlarmFrames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+        break;
+      case 'Location':
+        tdString = eventData.Latitude + ', ' + eventData.Longitude;
         break;
       case 'MonitorId':
         if (canView["Monitors"]) {
@@ -1066,7 +1069,7 @@ function initPage() {
       handleClick(event);
     });
     vid.on('volumechange', function() {
-      setCookie('volume', vid.volume(), 3600);
+      setCookie('volume', vid.volume());
     });
     const cookie = getCookie('volume');
     if (cookie) vid.volume(cookie);
@@ -1077,7 +1080,7 @@ function initPage() {
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
       $j('select[name="rate"]').val(rate);
-      setCookie('zmEventRate', rate, 3600);
+      setCookie('zmEventRate', rate);
     });
 
     // rate is in % so 100 would be 1x
@@ -1214,10 +1217,10 @@ function initPage() {
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
     if (table.is(':visible')) {
-      setCookie(cookie, 'off', 10*365);
+      setCookie(cookie, 'off');
       table.toggle(false);
     } else {
-      setCookie(cookie, 'on', 10*365);
+      setCookie(cookie, 'on');
       table.toggle(true);
     }
   });
@@ -1259,6 +1262,31 @@ function initPage() {
   });
   document.addEventListener('fullscreenchange', fullscreenChangeEvent);
   streamPlay();
+
+  if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
+    if ( window.L ) {
+      map = L.map('LocationMap', {
+        center: L.latLng(eventData.Latitude, eventData.Longitude),
+        zoom: 8,
+        onclick: function() {
+          alert('click');
+        }
+      });
+      L.tileLayer(ZM_OPT_GEOLOCATION_TILE_PROVIDER, {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
+      }).addTo(map);
+      marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: 'false'});
+      marker.addTo(map);
+      map.invalidateSize();
+    } else {
+      console.log('Location turned on but leaflet not installed.');
+    }
+  } // end if ZM_OPT_USE_GEOLOCATION
 } // end initPage
 
 var toggleZonesButton = document.getElementById('toggleZonesButton');
@@ -1272,12 +1300,12 @@ function toggleZones(e) {
       zones.hide();
       button.setAttribute('title', showZonesString);
       $j('#toggleZonesButton .material-icons').text('layers');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
+      setCookie('zmEventShowZones'+eventData.MonitorId, '0');
     } else {
       zones.show();
       button.setAttribute('title', hideZonesString);
       $j('#toggleZonesButton .material-icons').text('layers_clear');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
+      setCookie('zmEventShowZones'+eventData.MonitorId, '1');
     }
   } else {
     console.error("Zones svg not found");

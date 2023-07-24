@@ -22,6 +22,9 @@
 #include "zm_monitor.h"
 #include "zm_signal.h"
 #include "zm_time.h"
+
+#include <libavutil/pixdesc.h>
+
 #include <arpa/inet.h>
 #include <glob.h>
 #include <sys/socket.h>
@@ -705,7 +708,8 @@ void MonitorStream::runStream() {
               send_image = monitor->image_buffer[index];
             }
           } else*/ {
-            Debug(1, "Sending regular image index %d", index);
+            AVPixelFormat pixformat = monitor->image_pixelformats[index];
+            Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
             send_image = monitor->image_buffer[index];
           }
 
@@ -902,7 +906,8 @@ void MonitorStream::SingleImage(int scale) {
     std::this_thread::sleep_for(Milliseconds(100));
   }
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
-  Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);
+  AVPixelFormat pixformat = monitor->image_pixelformats[index];
+  Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
   Image *snap_image = monitor->image_buffer[index];
   if (!config.timestamp_on_capture) {
     monitor->TimestampImage(snap_image,

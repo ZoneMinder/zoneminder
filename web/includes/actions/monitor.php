@@ -126,6 +126,10 @@ if ($action == 'save') {
       ZM\Debug('Auto selecting server to '.ZM_SERVER_ID);
     }
   }
+  if (!empty($newMonitor['ManufacturerId']) and empty($newMonitor['Manufacturer']))
+    unset($newMonitor['Manufacturer']);
+  if (!empty($newMonitor['ModelId']) and empty($newMonitor['Model']))
+    unset($newMonitor['Model']);
 
   $changes = $monitor->changes($newMonitor);
   ZM\Debug('Changes: '. print_r($changes, true));

@@ -6,7 +6,7 @@
     white-space: nowrap;
 }
 
-#contentTable.major .colId, #contentTable.major .colDuration, #contentTable.major .colFrames, #contentTable.major .colAlarmFrames, #contentTable.major .colTotScore, #contentTable.major .colMaxScore, #contentTable.major .colAvgScore {
+#contentTable.major .colId, #contentTable.major .colDuration, #contentTable.major .colFrames, #contentTable.major .colAlarmFrames, #contentTable.major .colTotScore, #contentTable.major .colMaxScore, #contentTable.major .colAvgScore, #eventTable th, #eventTable td {
     text-align: center;
 }
 

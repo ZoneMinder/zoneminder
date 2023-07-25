@@ -125,6 +125,10 @@ function probeV4L() {
   return $cameras;
 } # end function probeV4L
 
+function probeAxisCommunicationsAB($ip, $username, $password) {
+	return probeAxis($ip, $username, $password);
+}
+
 // Probe Network Cameras
 //
 function probeAxis($ip, $username, $password) {
@@ -137,23 +141,24 @@ function probeAxis($ip, $username, $password) {
     'Manufacturer' => 'Axis',
     'Model'   => 'Unknown Model',
     'monitor' => array(
-      'Path'    => 'rtsp://'.$username.':'.$password.'@'.$ip.'/cam/realmonitor?channel=1&subtype=0',
+      'Path'    => 'rtsp://'.$username.':'.$password.'@'.$ip.'/axis-media/media.amp',
+      'User'	=> $username,
+      'Pass'	=> $password,
       'Manufacturer' => 'Axis',
     ),
   );
 
-  $url = 'http://'.$ip.'/axis-cgi/admin/param.cgi?action=list&group=Brand';
-  $content = wget('GET', $url, $username, $password);
+  $url = 'http://'.$ip.'/axis-cgi/admin/param.cgi?action=list';
+  $content = curl('GET', $url, $username, $password);
+  #ZM\Debug($content);
 
   if ($content) {
-    ZM\Debug($content);
     $lines = explode("\n", $content);
     foreach ( $lines as $line ) {
       $line = rtrim( $line );
       if ( preg_match('/^(.+)=(.+)$/', $line, $matches) ) {
-        if ( $matches[1] == 'root.Brand.ProdShortName' ) {
+        if ( $matches[1] == 'root.Brand.ProdNbr' ) {
           $camera['Model'] = $camera['monitor']['Model'] = $matches[2];
-          break;
         } else if ( $matches[1] == 'root.Image.I0.Appearance.Resolution' ) {
           $resolution = explode('x', $matches[2]);
           $camera['monitor']['Width'] = $resolution[0];
@@ -161,6 +166,8 @@ function probeAxis($ip, $username, $password) {
         }
       }
     }
+  } else {
+	  ZM\Debug("No content from $url");
   }
   $cameras[] = $camera;
   return $cameras;
@@ -255,49 +262,18 @@ function curl($method, $url, $username, $password) {
     #curl_setopt($ch, CURLOPT_FORBID_REUSE, 1);
     #curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    #curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
-    #curl_setopt($ch, CURLOPT_USERPWD, "$username:$password");
+    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
+    curl_setopt($ch, CURLOPT_USERPWD, "$username:$password");
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_HEADER, 1);
-    curl_setopt( $curl_handle, CURLOPT_COOKIESESSION, true );
+    curl_setopt($ch, CURLOPT_COOKIESESSION, true);
 
     $res = curl_exec($ch);
     ZM\Debug($res);
     $status = curl_getinfo($ch);
     ZM\Debug(print_r($status, true));
-    preg_match('/WWW-Authenticate: Digest (.*)/', $res, $matches);
-    if (!empty($matches)) {
-      $auth_header = $matches[1];
-      $auth_header_array = explode(',', $auth_header);
-      $parsed = array();
-
-      foreach ($auth_header_array as $pair) {
-        $vals = explode('=', $pair);
-        $parsed[trim($vals[0])] = trim($vals[1], '" ');
-      }
-
-      $response_realm     = (isset($parsed['realm'])) ? $parsed['realm'] : '';
-      $response_nonce     = (isset($parsed['nonce'])) ? $parsed['nonce'] : '';
-      $response_opaque    = (isset($parsed['opaque'])) ? $parsed['opaque'] : '';
-
-      $authenticate1 = md5($username.':'.$response_realm.':'.$password);
-      $authenticate2 = md5($method.':'.$url);
-
-      $authenticate_response = md5($authenticate1.":".$response_nonce.":".$authenticate2);
-
-      $request = sprintf('Authorization: Digest username="%s", realm="%s", nonce="%s", opaque="%s", uri="%s", response="%s"',
-        $username, $response_realm, $response_nonce, $response_opaque, $url, $authenticate_response);
-      ZM\Debug($request);
-
-      $request_header = array($request);
-      curl_setopt($ch, CURLOPT_HTTPHEADER, $request_header);
-      $res = curl_exec($ch);
-      ZM\Debug($res);
-      $status = curl_getinfo($ch);
-      ZM\Debug(print_r($status, true));
-    }
     curl_close($ch);
     $headerSize = curl_getinfo( $ch , CURLINFO_HEADER_SIZE );
     $headerStr = substr( $res , 0 , $headerSize );
@@ -751,12 +727,12 @@ function get_arp_scan_results($network) {
     ZM\Error("Unable to probe network cameras, command was $arp_scan_command, status is '$status' output: ".implode(PHP_EOL, $output));
     return $results;
   }
-  ZM\Debug(print_r($output, true));
+  //ZM\Debug(print_r($output, true));
   foreach ($output as $line) {
     if (preg_match('/(\d+\.\d+\.\d+\.\d+)\s+([0-9a-f:]+)/', $line, $matches)) {
       $results[$matches[2]] = $matches[1];
-    } else {
-      ZM\Debug("Didn't match preg $line");
+    //} else {
+      //ZM\Debug("Didn't match preg $line");
     }
   }
   ZM\Debug(print_r($results, true));

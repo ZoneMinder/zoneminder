@@ -7747,3 +7747,4 @@ generated .h file in your code.
 /* End of /home/jbennett/src/zoneminder/build/generated/bindings.h */
 #import "wsse.h"
 #import "struct_timeval.h"
+#import "wsa5.h"

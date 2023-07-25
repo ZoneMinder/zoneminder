@@ -1164,19 +1164,17 @@ bool Image::WriteJpeg(const std::string &filename,
   }
 
   if (!on_blocking_abort) {
-    if ((outfile = fopen(filename.c_str(), "wb")) == nullptr) {
-      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
-      return false;
-    }
+    raw_fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
   } else {
     raw_fd = open(filename.c_str(), O_WRONLY | O_NONBLOCK | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-    if (raw_fd < 0)
-      return false;
-    outfile = fdopen(raw_fd, "wb");
-    if (outfile == nullptr) {
-      close(raw_fd);
-      return false;
-    }
+  }
+
+  if (raw_fd < 0)
+    return false;
+  outfile = fdopen(raw_fd, "wb");
+  if (outfile == nullptr) {
+    close(raw_fd);
+    return false;
   }
 
   struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };

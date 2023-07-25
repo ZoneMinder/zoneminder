@@ -181,8 +181,8 @@ sub sendCmdPost {
   my $url = shift;
   my $form = shift;
 
-  if ($url eq undef) {
-    Error('url passed to sendCmdPost is undefined.');
+  if (!$url) {
+    Error('no url passed to sendCmdPost');
     return -1;
   }
 

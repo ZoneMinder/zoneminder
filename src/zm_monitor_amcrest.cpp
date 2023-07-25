@@ -61,16 +61,16 @@ int Monitor::AmcrestAPI::start_Amcrest() {
   curl_easy_setopt(Amcrest_handle, CURLOPT_PASSWORD, parent->onvif_password.c_str());
   curl_easy_setopt(Amcrest_handle, CURLOPT_HTTPAUTH, CURLAUTH_DIGEST);
   curl_error = curl_multi_add_handle(curl_multi, Amcrest_handle);
-    if (curl_error != CURLM_OK) {
-      Warning("error of %i", curl_error);
-    }
+  if (curl_error != CURLM_OK) {
+    Warning("AMCREST error of %i", curl_error);
+  }
   curl_error = curl_multi_perform(curl_multi, &running_handles);
   if (curl_error == CURLM_OK) {
     curl_easy_getinfo(Amcrest_handle, CURLINFO_RESPONSE_CODE, &response_code);
     int msgq = 0;
     struct CURLMsg *m = curl_multi_info_read(curl_multi, &msgq);
     if (m && (m->msg == CURLMSG_DONE)) {
-      Warning("Libcurl exited Early: %i", m->data.result);
+      Warning("AMCREST Libcurl exited Early: %i", m->data.result);
     }
 
     curl_multi_wait(curl_multi, NULL, 0, 300, NULL);
@@ -80,13 +80,13 @@ int Monitor::AmcrestAPI::start_Amcrest() {
   if ((curl_error == CURLM_OK) && (running_handles > 0)) {
     parent->Event_Poller_Healthy = TRUE;
   } else {
-    Warning("Response: %s", amcrest_response.c_str());
-    Warning("Seeing %i streams, and error of %i, url: %s", running_handles, curl_error, full_url.c_str());
+    Warning("AMCREST Response: %s", amcrest_response.c_str());
+    Warning("AMCREST Seeing %i streams, and error of %i, url: %s", running_handles, curl_error, full_url.c_str());
     curl_easy_getinfo(Amcrest_handle, CURLINFO_OS_ERRNO, &response_code);
-    Warning("Response code: %lu", response_code);
+    Warning("AMCREST Response code: %lu", response_code);
   }
 
-return 0;
+  return 0;
 }
 
 void Monitor::AmcrestAPI::WaitForMessage() {
@@ -100,19 +100,21 @@ void Monitor::AmcrestAPI::WaitForMessage() {
     if (transfers > 0) { //have data to deal with
       curl_multi_perform(curl_multi, &open_handles); //actually grabs the data, populates amcrest_response
       if (amcrest_response.find("action=Start") != std::string::npos) {
-      //Event Start
-      Debug(1,"Triggered on ONVIF");
+        //Event Start
+        Debug(1, "AMCREST Triggered on ONVIF");
         if (!parent->Poll_Trigger_State) {
-          Debug(1,"Triggered Event");
+          Debug(1, "AMCREST Triggered Event");
           parent->Poll_Trigger_State = TRUE;
         }
-      } else if (amcrest_response.find("action=Stop") != std::string::npos){
-        Debug(1, "Triggered off ONVIF");
+      } else if (amcrest_response.find("action=Stop") != std::string::npos) {
+        Debug(1, "AMCREST Triggered off ONVIF");
         parent->Poll_Trigger_State = FALSE;
         if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
           parent->Event_Poller_Closes_Event = TRUE;
-          Debug(1,"Setting ClosesEvent");
+          Debug(1,"AMCREST Setting ClosesEvent");
         }
+      } else {
+        Debug(1, "AMCREST unhandled message: %s", amcrest_response.c_str());
       }
       amcrest_response.clear(); //We've dealt with the message, need to clear the queue
     }

@@ -43,6 +43,7 @@
 #ifdef WITH_GSOAP
 #include "soapPullPointSubscriptionBindingProxy.h"
 #include "plugin/wsseapi.h"
+#include "plugin/wsaapi.h"
 #include <openssl/err.h>
 #endif
 
@@ -583,6 +584,8 @@ protected:
   _tev__CreatePullPointSubscriptionResponse response;
   _tev__PullMessages tev__PullMessages;
   _tev__PullMessagesResponse tev__PullMessagesResponse;
+  _wsnt__Renew wsnt__Renew;
+  _wsnt__RenewResponse wsnt__RenewResponse;
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
 #endif

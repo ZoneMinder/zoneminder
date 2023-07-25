@@ -58,6 +58,7 @@ if (!empty($_REQUEST['proxy'])) {
     ZM\Warning('No url passed to image proxy');
     return;
   }
+
   $url_parts = parse_url($url);
   $username = $url_parts['user'];
   $password = isset($url_parts['pass']) ? $url_parts['pass'] : '';
@@ -98,13 +99,18 @@ if (!empty($_REQUEST['proxy'])) {
         $auth_header_array = explode(',', $auth_header);
         $parsed = array();
 
+
         foreach ($auth_header_array as $pair) {
-          $vals = explode('=', $pair);
-          $parsed[trim($vals[0])] = trim($vals[1], '" ');
+          preg_match('/^\s*(\w+)="?(.+)"?\s*$/', $pair, $vals);
+          if (!empty($vals)) {
+            $parsed[$vals[1]] = trim($vals[2], '"');
+          } else {
+            ZM\Debug("DIdn't match preg $pair");
+          }
         }
         ZM\Debug(print_r($parsed, true));
 
-        $cnonce = '0a4f113b';
+        $cnonce = uniqid();
         $response_realm     = (isset($parsed['realm'])) ? $parsed['realm'] : '';
         $response_nonce     = (isset($parsed['nonce'])) ? $parsed['nonce'] : '';
         $response_opaque    = (isset($parsed['opaque'])) ? $parsed['opaque'] : '';
@@ -112,7 +118,7 @@ if (!empty($_REQUEST['proxy'])) {
         $authenticate1 = md5($username.':'.$response_realm.':'.$password);
         $authenticate2 = md5($method.':'.$url);
 
-        $digestData = $authenticate1.":".$response_nonce;
+        $digestData = $authenticate1.':'.$response_nonce;
         if (!empty($parsed['qop'])) {
           $digestData .= ':' . sprintf('%08x', $nc) . ':' . $cnonce . ':' . $parsed['qop'];
         }
@@ -138,6 +144,7 @@ if (!empty($_REQUEST['proxy'])) {
         ZM\Debug(print_r($meta_data, true));
       } # end if have auth
     } # end foreach header
+
     while (substr_count($r, 'Content-Length') != 2) {
       $new = fread($fp, 512);
       if (!$new) break;

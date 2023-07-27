@@ -1263,7 +1263,7 @@ function initPage() {
   document.addEventListener('fullscreenchange', fullscreenChangeEvent);
   streamPlay();
 
-  if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
+  if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
     if ( window.L ) {
       map = L.map('LocationMap', {
         center: L.latLng(eventData.Latitude, eventData.Longitude),

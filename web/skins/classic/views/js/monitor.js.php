@@ -3,7 +3,7 @@ var hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
 var defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 
 <?php
-if ( ZM_OPT_CONTROL ) {
+if (ZM_OPT_CONTROL and canView('Controls')) {
 ?>
 var controlOptions = new Object();
 <?php

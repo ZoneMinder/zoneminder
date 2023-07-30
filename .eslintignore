@@ -18,6 +18,7 @@ web/skins/classic/js/video.js
 web/tools/mootools
 web/js/janus.js
 web/js/ajaxQueue.js
+web/js/hls.js
 
 # Cannot be parsed as JS
 web/skins/classic/includes/export_functions.php

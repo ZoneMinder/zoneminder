@@ -47,6 +47,8 @@ monitorData[monitorData.length] = {
   'connKey': <?php echo $m->connKey() ?>,
   'width': <?php echo $m->ViewWidth() ?>,
   'height':<?php echo $m->ViewHeight() ?>,
+  'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
+  'RTSP2WebType':'<?php echo $m->RTSP2WebType() ?>',
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,
   'url': '<?php echo $m->UrlToIndex() ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $m->Id() ?>' );},

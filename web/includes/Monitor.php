@@ -145,6 +145,8 @@ public static function getStatuses() {
     'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
+    'RTSP2WebEnabled'   => 'HLS',
+    'RTSP2WebType'   => array('type'=>'integer','default'=>0),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
@@ -1030,7 +1032,7 @@ public static function getStatuses() {
         'format' => ZM_MPEG_LIVE_FORMAT
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
-    } else if ( $this->JanusEnabled() ) {
+    } else if ( $this->JanusEnabled() or $this->RTSP2WebEnabled()) {
       $html .= '<video id="liveStream'.$this->Id().'" '.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
         ' autoplay muted controls playsinline=""></video>';

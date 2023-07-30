@@ -112,6 +112,12 @@ public:
   } DecodingOption;
 
   typedef enum {
+    HLS,
+    MSE,
+    WEBRTC
+  } RTSP2WebOption;
+
+  typedef enum {
     LOCAL=1,
     REMOTE,
     FILE,
@@ -332,6 +338,28 @@ protected:
     int start_Amcrest();
   };
 
+  class RTSP2WebManager {
+  protected:
+    Monitor *parent;
+    CURL *curl = nullptr;
+    //helper class for CURL
+    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    bool RTSP2Web_Healthy;
+    bool Use_RTSP_Restream;
+    std::string RTSP2Web_endpoint;
+    std::string rtsp_username;
+    std::string rtsp_password;
+    std::string rtsp_path;
+
+  public:
+    explicit RTSP2WebManager(Monitor *parent_);
+    ~RTSP2WebManager();
+    void load_from_monitor();
+    int add_to_RTSP2Web();
+    int check_RTSP2Web();
+    int remove_from_RTSP2Web();
+  };
+
   class JanusManager {
   protected:
     Monitor *parent;
@@ -379,6 +407,8 @@ protected:
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
+  bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
+  int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
@@ -575,6 +605,7 @@ protected:
   bool Event_Poller_Healthy;
   bool Event_Poller_Closes_Event;
 
+  RTSP2WebManager *RTSP2Web_Manager;
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
 

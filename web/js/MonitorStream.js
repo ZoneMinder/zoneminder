@@ -211,13 +211,13 @@ function MonitorStream(monitorData) {
       videoEl = document.getElementById("liveStream" + this.id);
       rtsp2webModUrl = ZM_RTSP2WEB_PATH.split('@')[1]; // drop the username and password for viewing
       if (this.RTSP2WebType == "HLS") {
-        hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8"
+        hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
         if (Hls.isSupported()) {
-          const hls = new Hls()
-          hls.loadSource(hlsUrl)
-          hls.attachMedia(videoEl)
+          const hls = new Hls();
+          hls.loadSource(hlsUrl);
+          hls.attachMedia(videoEl);
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          videoEl.src = hlsUrl
+          videoEl.src = hlsUrl;
         }
       } else if (this.RTSP2WebType == "MSE") {
         videoEl.addEventListener('pause', () => {
@@ -858,56 +858,55 @@ function startRTSP2WebRTSPPlay(videoEl, url) {
       urls: ['stun:stun.l.google.com:19302']
     }],
     sdpSemantics: 'unified-plan'
-  })
-  webrtc.ontrack = function (event) {
-    console.log(event.streams.length + ' track is delivered')
-    videoEl.srcObject = event.streams[0]
-    videoEl.play()
-  }
-  webrtc.addTransceiver('video', { direction: 'sendrecv' })
-  webrtc.onnegotiationneeded = async function handleNegotiationNeeded () {
-    const offer = await webrtc.createOffer()
+  });
+  webrtc.ontrack = function(event) {
+    console.log(event.streams.length + ' track is delivered');
+    videoEl.srcObject = event.streams[0];
+    videoEl.play();
+  };
+  webrtc.addTransceiver('video', {direction: 'sendrecv'});
+  webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
+    const offer = await webrtc.createOffer();
 
-    await webrtc.setLocalDescription(offer)
+    await webrtc.setLocalDescription(offer);
 
     fetch(url, {
       method: 'POST',
-      body: new URLSearchParams({ data: btoa(webrtc.localDescription.sdp) })
+      body: new URLSearchParams({data: btoa(webrtc.localDescription.sdp)})
     })
-      .then(response => response.text())
-      .then(data => {
-        try {
-          webrtc.setRemoteDescription(
-            new RTCSessionDescription({ type: 'answer', sdp: atob(data) })
-          )
-        } catch (e) {
-          console.warn(e)
-        }
-      })
-  }
+        .then((response) => response.text())
+        .then((data) => {
+          try {
+            webrtc.setRemoteDescription(
+                new RTCSessionDescription({type: 'answer', sdp: atob(data)})
+            );
+          } catch (e) {
+            console.warn(e);
+          }
+        });
+  };
 
-  const webrtcSendChannel = webrtc.createDataChannel('rtsptowebSendChannel')
+  const webrtcSendChannel = webrtc.createDataChannel('rtsptowebSendChannel');
   webrtcSendChannel.onopen = (event) => {
-    console.log(`${webrtcSendChannel.label} has opened`)
-    webrtcSendChannel.send('ping')
-  }
+    console.log(`${webrtcSendChannel.label} has opened`);
+    webrtcSendChannel.send('ping');
+  };
   webrtcSendChannel.onclose = (_event) => {
-    console.log(`${webrtcSendChannel.label} has closed`)
-    startPlay(videoEl, url)
-  }
-  webrtcSendChannel.onmessage = event => console.log(event.data)
+    console.log(`${webrtcSendChannel.label} has closed`);
+    startPlay(videoEl, url);
+  };
+  webrtcSendChannel.onmessage = (event) => console.log(event.data);
 }
 
-
-function startMsePlay (context, videoEl, url) {
+function startMsePlay(context, videoEl, url) {
   const mse = new MediaSource();
-  mse.addEventListener('sourceopen', function () {
+  mse.addEventListener('sourceopen', function() {
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
-    ws.onopen = function (event) {
+    ws.onopen = function(event) {
       console.log('Connect to ws');
-    }
-    ws.onmessage = function (event) {
+    };
+    ws.onmessage = function(event) {
       const data = new Uint8Array(event.data);
       if (data[0] === 9) {
         let mimeCodec;
@@ -923,39 +922,39 @@ function startMsePlay (context, videoEl, url) {
       } else {
         readMsePacket(event.data, videoEl, context);
       }
-    }
-  }, false)
+    };
+  }, false);
   videoEl.src = window.URL.createObjectURL(mse);
 }
 
-  function pushMsePacket (videoEl, context) {
-    //const videoEl = document.querySelector('#mse-video')
-    let packet
+function pushMsePacket(videoEl, context) {
+  //const videoEl = document.querySelector('#mse-video');
+  let packet;
 
-    if (context != undefined && !context.mseSourceBuffer.updating) {
-      if (context.mseQueue.length > 0) {
-        packet = context.mseQueue.shift()
-        context.mseSourceBuffer.appendBuffer(packet)
-      } else {
-        context.mseStreamingStarted = false
-      }
-    }
-    if (videoEl.buffered != undefined && videoEl.buffered.length > 0) {
-      if (typeof document.hidden !== 'undefined' && document.hidden) {
-      // no sound, browser paused video without sound in background
-        videoEl.currentTime = videoEl.buffered.end((videoEl.buffered.length - 1)) - 0.5
-      }
+  if (context != undefined && !context.mseSourceBuffer.updating) {
+    if (context.mseQueue.length > 0) {
+      packet = context.mseQueue.shift();
+      context.mseSourceBuffer.appendBuffer(packet);
+    } else {
+      context.mseStreamingStarted = false;
     }
   }
-
-  function readMsePacket (packet, videoEl, context) {
-    if (!context.mseStreamingStarted) {
-      context.mseSourceBuffer.appendBuffer(packet)
-      context.mseStreamingStarted = true
-      return
-    }
-    context.mseQueue.push(packet)
-    if (!context.mseSourceBuffer.updating) {
-      pushMsePacket(videoEl, context)
+  if (videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+    if (typeof document.hidden !== 'undefined' && document.hidden) {
+    // no sound, browser paused video without sound in background
+      videoEl.currentTime = videoEl.buffered.end((videoEl.buffered.length - 1)) - 0.5;
     }
   }
+}
+
+function readMsePacket(packet, videoEl, context) {
+  if (!context.mseStreamingStarted) {
+    context.mseSourceBuffer.appendBuffer(packet);
+    context.mseStreamingStarted = true;
+    return;
+  }
+  context.mseQueue.push(packet);
+  if (!context.mseSourceBuffer.updating) {
+    pushMsePacket(videoEl, context);
+  }
+}

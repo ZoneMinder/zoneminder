@@ -209,9 +209,14 @@ function MonitorStream(monitorData) {
       return;
     } else if (this.RTSP2WebEnabled) {
       videoEl = document.getElementById("liveStream" + this.id);
+      useSSL = ZM_RTSP2WEB_PATH.startsWith('https');
       rtsp2webModUrl = ZM_RTSP2WEB_PATH.split('@')[1]; // drop the username and password for viewing
       if (this.RTSP2WebType == "HLS") {
-        hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+        if (useSSL) {
+          hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+        } else {
+          hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+        }
         if (Hls.isSupported()) {
           const hls = new Hls();
           hls.loadSource(hlsUrl);
@@ -226,9 +231,18 @@ function MonitorStream(monitorData) {
             videoEl.play();
           }
         });
-        startMsePlay(this, videoEl, "ws://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0");
+        if (useSSL) {
+          mseUrl = "wss://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+        } else {
+          mseUrl = "ws://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+        }
+        startMsePlay(this, videoEl, mseUrl);
       } else if (this.RTSP2WebType == "WebRTC") {
-        webrtcUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/webrtc";
+        if (useSSL) {
+          webrtcUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/webrtc";
+        } else {
+          webrtcUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/webrtc";
+        }
         console.log(webrtcUrl);
         startRTSP2WebRTSPPlay(videoEl, webrtcUrl);
       }

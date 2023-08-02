@@ -162,9 +162,6 @@ sub Sql {
           next;
         }
 
-        my $value = $term->{val};
-        my @value_list;
-
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
@@ -192,7 +189,7 @@ sub Sql {
         } elsif ( $term->{attr} eq 'Weekday' or $term->{attr} eq 'StartWeekday' ) {
           $self->{Sql} .= 'weekday( E.StartDateTime )';
 
-          # EndTIme options
+          # EndTime options
         } elsif ( $term->{attr} eq 'EndDateTime' ) {
           $self->{Sql} .= 'E.EndDateTime';
         } elsif ( $term->{attr} eq 'EndDate' ) {
@@ -217,10 +214,15 @@ sub Sql {
           $self->{Sql} .= 'E.'.$term->{attr};
         }
 
+        my $value = defined($term->{val}) ? $term->{val} : '';
+        my @value_list;
+
         if ( $term->{attr} eq 'ExistsInFileSystem' ) {
           # PostCondition, so no further SQL
         } else {
-          ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
+          my $stripped_value = $value;
+          $stripped_value =~ s/^["\']+?(.+)["\']+?$/$1/ if $stripped_value;
+
           # Empty value will result in () from split
           foreach my $temp_value ( $stripped_value ne '' ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {

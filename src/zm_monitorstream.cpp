@@ -456,10 +456,6 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 }  // end bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp)
 
 void MonitorStream::runStream() {
-
-  // Notify capture that we might want to view
-  monitor->setLastViewed();
-
   if (type == STREAM_SINGLE) {
     Debug(1, "Single");
     if (!checkInitialised()) {
@@ -468,6 +464,8 @@ void MonitorStream::runStream() {
       } else if (monitor->Deleted()) {
         sendTextFrame("Monitor has been deleted");
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        // Notify capture that we might want to view
+        monitor->setLastViewed();
         sendTextFrame("Waiting for capture");
       } else {
         sendTextFrame("Unable to stream");
@@ -563,7 +561,6 @@ void MonitorStream::runStream() {
     }
 
     now = std::chrono::steady_clock::now();
-    monitor->setLastViewed();
 
     bool was_paused = paused;
     if (!checkInitialised()) {
@@ -577,6 +574,7 @@ void MonitorStream::runStream() {
         zm_terminate = true;
         continue;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        monitor->setLastViewed();
         if (!sendTextFrame("Waiting for capture")) return;
       } else {
         if (!sendTextFrame("Unable to stream")) {
@@ -588,6 +586,7 @@ void MonitorStream::runStream() {
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
+    monitor->setLastViewed();
 
     if (paused) {
       if (!was_paused) {

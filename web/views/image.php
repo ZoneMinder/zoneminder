@@ -489,25 +489,22 @@ if ( $errorText ) {
   # Must lock it because zmc may be still writing the jpg and will have a lock on it.
   $fp_path = fopen($path, 'r');
   $lock = flock($fp_path, LOCK_SH);
-  if (!$lock) Warning("Unable to get a read lock on $path, continuing.");
+  if (!$lock) ZM\Warning("Unable to get a read lock on $path, continuing.");
 
-  # In order to use flock, must open it first.
   header('Content-type: '.$media_type);
   header('Cache-Control: max-age=86400');
   header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
   header('Pragma: cache');
-  if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
+  if (($scale==0 || $scale==100) && ($width==0) && ($height==0)) {
     # This is so that Save Image As give a useful filename
-    if ( $Event ) {
+    if ($Event) {
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
-    if ( !readfile($path) ) {
+    if (!readfile($path)) {
       ZM\Error('No bytes read from '. $path);
     }
   } else {
-
-
     ZM\Debug("Doing a scaled image: scale($scale) width($width) height($height)");
     $i = null;
     if ( ! ( $width && $height ) ) {

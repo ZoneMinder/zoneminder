@@ -652,7 +652,7 @@ sub CopyTo {
 
   my $moved = 0;
 
-  if ( $$NewStorage{Type} eq 's3fs' ) {
+  if ($$NewStorage{Type} eq 's3fs') {
     my $s3 = $NewStorage->s3();
     my $bucket = $NewStorage->bucket();
     if ($s3 and $bucket) {
@@ -699,12 +699,16 @@ sub CopyTo {
       }
     }
     return $error if $error;
-    my @files = glob("$OldPath/*");
+    Debug("Made new path at $NewPath, starting to glob");
+    opendir(my $dh, $OldPath) || return "Failed to open $OldPath";
+    my @files = readdir($dh);
     return 'No files to move.' if !@files;
 
     for my $file (@files) {
       next if $file =~ /^\./;
       ($file) = ($file =~ /^(.*)$/); # De-taint
+      $file = $OldPath.'/'.$file;
+      next if !-f $file;
       my $starttime = [gettimeofday];
       my $size = -s $file;
       if (!File::Copy::copy($file, $NewPath)) {

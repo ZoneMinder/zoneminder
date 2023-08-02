@@ -235,7 +235,7 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   update_function_pointers();
 }
 
-Image::Image(const AVFrame *frame) :
+Image::Image(const AVFrame *frame, int p_width, int p_height) :
   colours(ZM_COLOUR_RGB32),
   padding(0),
   subpixelorder(ZM_SUBPIX_ORDER_RGBA),
@@ -243,9 +243,9 @@ Image::Image(const AVFrame *frame) :
   buffer(0),
   holdbuffer(0)
 {
-  width = frame->width;
-  height = frame->height;
-  pixels = width*height;
+  width = (p_width == -1 ? frame->width : p_width);
+  height = (p_height == -1 ? frame->height : p_height);
+  pixels = width * height;
 
   zm_dump_video_frame(frame, "Image.Assign(frame)");
   // FIXME

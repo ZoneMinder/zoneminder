@@ -10,6 +10,11 @@ function MonitorStream(monitorData) {
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
   this.height = monitorData.height;
+  this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
+  this.RTSP2WebType = monitorData.RTSP2WebType;
+  this.mseStreamingStarted = false;
+  this.mseQueue = [];
+  this.mseSourceBuffer = null;
   this.janusEnabled = monitorData.janusEnabled;
   this.janusPin = monitorData.janus_pin;
   this.server_id = monitorData.server_id;
@@ -202,33 +207,72 @@ function MonitorStream(monitorData) {
       attachVideo(parseInt(this.id), this.janusPin);
       this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
       return;
+    } else if (this.RTSP2WebEnabled) {
+      videoEl = document.getElementById("liveStream" + this.id);
+      useSSL = ZM_RTSP2WEB_PATH.startsWith('https');
+      rtsp2webModUrl = ZM_RTSP2WEB_PATH.split('@')[1]; // drop the username and password for viewing
+      if (this.RTSP2WebType == "HLS") {
+        if (useSSL) {
+          hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+        } else {
+          hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+        }
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(hlsUrl);
+          hls.attachMedia(videoEl);
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          videoEl.src = hlsUrl;
+        }
+      } else if (this.RTSP2WebType == "MSE") {
+        videoEl.addEventListener('pause', () => {
+          if (videoEl.currentTime > videoEl.buffered.end(videoEl.buffered.length - 1)) {
+            videoEl.currentTime = videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1;
+            videoEl.play();
+          }
+        });
+        if (useSSL) {
+          mseUrl = "wss://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+        } else {
+          mseUrl = "ws://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+        }
+        startMsePlay(this, videoEl, mseUrl);
+      } else if (this.RTSP2WebType == "WebRTC") {
+        if (useSSL) {
+          webrtcUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/webrtc";
+        } else {
+          webrtcUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/webrtc";
+        }
+        console.log(webrtcUrl);
+        startRTSP2WebRTSPPlay(videoEl, webrtcUrl);
+      }
+    } else {
+      // zms stream
+      const stream = this.getElement();
+      if (!stream) return;
+      if (!stream.src) {
+        // Website Monitors won't have an img tag, neither will video
+        console.log('No src for #liveStream'+this.id);
+        console.log(stream);
+        return;
+      }
+      this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+      // Step 1 make sure we are streaming instead of a static image
+      if (stream.getAttribute('loading') == 'lazy') {
+        stream.setAttribute('loading', 'eager');
+      }
+      src = stream.src.replace(/mode=single/i, 'mode=jpeg');
+      if (-1 == src.search('connkey')) {
+        src += '&connkey='+this.connKey;
+      }
+      if (stream.src != src) {
+        console.log("Setting to streaming: " + src);
+        stream.src = '';
+        stream.src = src;
+      }
+      stream.onerror = this.img_onerror.bind(this);
+      stream.onload = this.img_onload.bind(this);
     }
-
-    // zms stream
-    const stream = this.getElement();
-    if (!stream) return;
-    if (!stream.src) {
-      // Website Monitors won't have an img tag, neither will video
-      console.log('No src for #liveStream'+this.id);
-      console.log(stream);
-      return;
-    }
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-    // Step 1 make sure we are streaming instead of a static image
-    if (stream.getAttribute('loading') == 'lazy') {
-      stream.setAttribute('loading', 'eager');
-    }
-    src = stream.src.replace(/mode=single/i, 'mode=jpeg');
-    if (-1 == src.search('connkey')) {
-      src += '&connkey='+this.connKey;
-    }
-    if (stream.src != src) {
-      console.log("Setting to streaming: " + src);
-      stream.src = '';
-      stream.src = src;
-    }
-    stream.onerror = this.img_onerror.bind(this);
-    stream.onload = this.img_onload.bind(this);
   }; // this.start
 
   this.stop = function() {
@@ -821,3 +865,110 @@ const waitUntil = (condition) => {
     }, 100);
   });
 };
+
+function startRTSP2WebRTSPPlay(videoEl, url) {
+  const webrtc = new RTCPeerConnection({
+    iceServers: [{
+      urls: ['stun:stun.l.google.com:19302']
+    }],
+    sdpSemantics: 'unified-plan'
+  });
+  webrtc.ontrack = function(event) {
+    console.log(event.streams.length + ' track is delivered');
+    videoEl.srcObject = event.streams[0];
+    videoEl.play();
+  };
+  webrtc.addTransceiver('video', {direction: 'sendrecv'});
+  webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
+    const offer = await webrtc.createOffer();
+
+    await webrtc.setLocalDescription(offer);
+
+    fetch(url, {
+      method: 'POST',
+      body: new URLSearchParams({data: btoa(webrtc.localDescription.sdp)})
+    })
+        .then((response) => response.text())
+        .then((data) => {
+          try {
+            webrtc.setRemoteDescription(
+                new RTCSessionDescription({type: 'answer', sdp: atob(data)})
+            );
+          } catch (e) {
+            console.warn(e);
+          }
+        });
+  };
+
+  const webrtcSendChannel = webrtc.createDataChannel('rtsptowebSendChannel');
+  webrtcSendChannel.onopen = (event) => {
+    console.log(`${webrtcSendChannel.label} has opened`);
+    webrtcSendChannel.send('ping');
+  };
+  webrtcSendChannel.onclose = (_event) => {
+    console.log(`${webrtcSendChannel.label} has closed`);
+    startPlay(videoEl, url);
+  };
+  webrtcSendChannel.onmessage = (event) => console.log(event.data);
+}
+
+function startMsePlay(context, videoEl, url) {
+  const mse = new MediaSource();
+  mse.addEventListener('sourceopen', function() {
+    const ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+    ws.onopen = function(event) {
+      console.log('Connect to ws');
+    };
+    ws.onmessage = function(event) {
+      const data = new Uint8Array(event.data);
+      if (data[0] === 9) {
+        let mimeCodec;
+        const decodedArr = data.slice(1);
+        if (window.TextDecoder) {
+          mimeCodec = new TextDecoder('utf-8').decode(decodedArr);
+        } else {
+          mimeCodec = Utf8ArrayToStr(decodedArr);
+        }
+        context.mseSourceBuffer = mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
+        context.mseSourceBuffer.mode = 'segments';
+        context.mseSourceBuffer.addEventListener('updateend', pushMsePacket, videoEl, context);
+      } else {
+        readMsePacket(event.data, videoEl, context);
+      }
+    };
+  }, false);
+  videoEl.src = window.URL.createObjectURL(mse);
+}
+
+function pushMsePacket(videoEl, context) {
+  //const videoEl = document.querySelector('#mse-video');
+  let packet;
+
+  if (context != undefined && !context.mseSourceBuffer.updating) {
+    if (context.mseQueue.length > 0) {
+      packet = context.mseQueue.shift();
+      context.mseSourceBuffer.appendBuffer(packet);
+    } else {
+      context.mseStreamingStarted = false;
+    }
+  }
+  if (videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+    if (typeof document.hidden !== 'undefined' && document.hidden) {
+    // no sound, browser paused video without sound in background
+      videoEl.currentTime = videoEl.buffered.end((videoEl.buffered.length - 1)) - 0.5;
+    }
+  }
+}
+
+function readMsePacket(packet, videoEl, context) {
+  if (!context.mseStreamingStarted) {
+    context.mseSourceBuffer.appendBuffer(packet);
+    context.mseStreamingStarted = true;
+    return;
+  }
+  context.mseQueue.push(packet);
+  if (!context.mseSourceBuffer.updating) {
+    pushMsePacket(videoEl, context);
+  }
+}

@@ -82,7 +82,7 @@ struct Namespace namespaces[] =
 // It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
 "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-"`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+"`Recording`+0, `RecordingSource`+0, `Decoding`+0, `RTSP2WebEnabled`, `RTSP2WebType`,"
 "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
@@ -155,6 +155,12 @@ std::string Decoding_Strings[] = {
   "Always"
 };
 
+std::string RTSP2Web_Strings[] = {
+  "HLS",
+  "MSE",
+  "WebRTC"
+};
+
 std::string TriggerState_Strings[] = {
   "Cancel", "On", "Off"
 };
@@ -169,6 +175,8 @@ Monitor::Monitor()
   analysing(ANALYSING_ALWAYS),
   recording(RECORDING_ALWAYS),
   decoding(DECODING_ALWAYS),
+  RTSP2Web_enabled(false),
+  RTSP2Web_type(WEBRTC),
   janus_enabled(false),
   janus_audio_enabled(false),
   janus_profile_override(""),
@@ -301,6 +309,7 @@ Monitor::Monitor()
   Poll_Trigger_State(false),
   Event_Poller_Healthy(false),
   Event_Poller_Closes_Event(false),
+  RTSP2Web_Manager(nullptr),
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
 #ifdef WITH_GSOAP
@@ -330,7 +339,7 @@ Monitor::Monitor()
 /*
    std::string load_monitor_sql =
    "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -390,6 +399,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   decoding = (DecodingOption)atoi(dbrow[col]); col++;
   // See below after save_jpegs for a recalculation of decoding_enabled
+  RTSP2Web_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  RTSP2Web_type = (RTSP2WebOption)atoi(dbrow[col]); col++;
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   janus_profile_override = std::string(dbrow[col] ? dbrow[col] : ""); col++;
@@ -1015,6 +1026,9 @@ bool Monitor::connect() {
 
     ReloadLinkedMonitors();
 
+    if (RTSP2Web_enabled) {
+      RTSP2Web_Manager = new RTSP2WebManager(this);
+    }
     if (janus_enabled) {
       Janus_Manager = new JanusManager(this);
     }
@@ -1887,6 +1901,13 @@ bool Monitor::Poll() {
 #endif
     }  // end if Amcrest or not
   }  // end if Healthy
+    Debug(1, "Trying to check RTSP2Web in Poller");
+  if (RTSP2Web_enabled and RTSP2Web_Manager) {
+    Debug(1, "Trying to add stream to RTSP2Web");
+    if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
+      RTSP2Web_Manager->add_to_RTSP2Web();
+    }
+  }
   if (janus_enabled and Janus_Manager) {
     if (Janus_Manager->check_janus() == 0) {
       Janus_Manager->add_to_janus();
@@ -3331,7 +3352,7 @@ int Monitor::PrimeCapture() {
   }  // end if rtsp_server
 
   //Poller Thread
-  if (onvif_event_listener || janus_enabled || use_Amcrest_API) {
+  if (onvif_event_listener || janus_enabled || RTSP2Web_enabled ||use_Amcrest_API) {
     if (!Poller) {
       Debug(1, "Creating unique poller  thread");
       Poller = zm::make_unique<PollThread>(this);
@@ -3411,6 +3432,12 @@ int Monitor::Close() {
     soap = nullptr;
   }  //End ONVIF
 #endif
+    //RTSP2Web teardoen
+  if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
+    delete RTSP2Web_Manager;
+    RTSP2Web_Manager = nullptr;
+  }
+
    //Janus Teardown
   if (janus_enabled and (purpose == CAPTURE) and Janus_Manager) {
     delete Janus_Manager;

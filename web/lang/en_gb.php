@@ -906,6 +906,16 @@ KeyFrames: Only keyframes will be decoded, so viewing frame rate will be very lo
 None: No frames will be decoded, live view and thumbnails will not be available~~~~
 '
   ),
+  'FUNCTION_RTSP2WEB_ENABLED' => array(
+    'Help' => '
+      Attempt to use RTSP2Web streaming server for h264/h265 live view. Experimental, but allows
+      for significantly better performance.'
+  ),
+  'FUNCTION_RTSP2WEB_TYPE' => array(
+    'Help' => '
+      RTSP2Web supports MSE (Media Source Extensions), HLS (HTTP Live Streaming), and WebRTC.
+      Each has its advantages, with WebRTC probably being the most performant, but also the most picky about codecs.'
+  ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '
       Attempt to use Janus streaming server for h264/h265 live view. Experimental, but allows

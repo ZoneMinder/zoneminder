@@ -434,6 +434,18 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_RTSP2WEB_PATH',
+    default     => '',
+    description => 'URL for RTSP2Web port.',
+    help        => q`This value points to the location of the RTSP2Web
+      install, including username and password. If left blank, this
+      will default to demo:demo@127.0.0.1:8083
+      port 8083.
+      `,
+    type        => $types{string},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_JANUS_SECRET',
     default     => '',
     description => 'Password for Janus streaming administration.',

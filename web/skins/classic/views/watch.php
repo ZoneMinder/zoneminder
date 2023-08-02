@@ -165,6 +165,8 @@ if (
 }
 if ($monitor->JanusEnabled()) {
   $streamMode = 'janus';
+} else if ($monitor->RTSP2WebEnabled()) {
+  $streamMode = $monitor->RTSP2WebType();
 } else {
   $streamMode = getStreamMode();
 }
@@ -415,6 +417,13 @@ if ( $monitor->JanusEnabled() ) {
 ?>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
   <script src="/javascript/janus/janus.js"></script>
+<?php
+}
+?>
+<?php
+if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+?>
+  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
 <?php
 }
 ?>

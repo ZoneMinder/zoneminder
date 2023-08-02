@@ -324,7 +324,7 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext->interrupt_callback.opaque = this;
   mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
 
-  if( mUser.length() > 0 ) {
+  if (mUser.length() > 0) {
     // build the actual uri string with encoded parameters (from the user and pass fields)
     mPath = StringToLower(protocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedPath.substr(7, std::string::npos);
     Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
@@ -472,7 +472,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
           (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
-      if ( ret < 0 and hwaccel_device != "" ) {
+      if (ret < 0 and hwaccel_device != "") {
         ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
       }
       if (ret < 0) {
@@ -507,6 +507,9 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 #endif
 
+  if (!mOptions.empty()) {
+    ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+  }
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
   e = nullptr;

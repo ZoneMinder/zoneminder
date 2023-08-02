@@ -267,7 +267,7 @@ function visibleMonitor($mid) {
 
   # First check for direct monitor permission
   if ($monitor_permissions === null) {
-    $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user->Id())));
+    $monitor_permissions = array_to_hash_by_key('MonitorId', $user->Monitor_Permissions());
   }
 
   if (isset($monitor_permissions[$mid])) {
@@ -280,7 +280,7 @@ function visibleMonitor($mid) {
 
   global $group_permissions;
   if ($group_permissions === null)
-    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user->Id()));
+    $group_permissions = $user->Group_Permissions();
 
   # If denied view in any group, then can't view it.
   $group_permission_value = 'Inherit';

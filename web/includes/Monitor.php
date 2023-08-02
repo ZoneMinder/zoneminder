@@ -780,14 +780,14 @@ public static function getStatuses() {
     if ($u===null or $u->Id() == $user->Id())
       return editableMonitor($this->{'Id'});
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u->Id(), 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = $u->Monitor_Permission($this->{'Id'});
     if ($monitor_permission and
       ($monitor_permission->Permission() == 'None' or $monitor_permission->Permission() == 'View')) {
       Debug("Can't edit monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user->Id()));
+    $group_permissions = $u->Group_Permissions();
 
     # If denied view in any group, then can't view it.
     foreach ($group_permissions as $permission) {
@@ -804,20 +804,20 @@ public static function getStatuses() {
     if (($u === null) or ($u->Id() == $user->Id()))
       return visibleMonitor($this->Id());
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u->Id(), 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = $u->Monitor_Permission($this->{'Id'});
     if ($monitor_permission and ($monitor_permission->Permission() == 'None')) {
-      Debug("Can't view monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
+      Debug('Can\'t view monitor '.$this->{'Id'}.' because of monitor permission '.$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user->Id()));
+    $group_permissions = $u->Group_Permissions();
 
     # If denied view in any group, then can't view it.
     $group_permission_value = 'Inherit';
     foreach ($group_permissions as $permission) {
       $value = $permission->MonitorPermission($this->Id());
       if ($value == 'None') {
-        Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permission->Group()->Name().' '.$permission->Permission());
+        Debug('Can\'t view monitor '.$this->{'Id'}.' because of group '.$permission->Group()->Name().' '.$permission->Permission());
         return false;
       }
       if ($value == 'Edit' or $value == 'View') {

@@ -531,18 +531,20 @@ function probeFoscam($ip, $username, $password) {
 }
 
 function probeDLinkInternational($ip, $username, $password) {
-  if ($username === null) $username = 'root';
+  if ($username === null) $username = 'admin';
   if ($password === null) $password = '';
   $cameras = [];
   $camera = array(
     'ip'      => $ip,
-    'Name'   => 'DLink Camera',
+    'Name'   => 'D-Link Camera',
     'Manufacturer'  => 'D-Link',
-    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/video.cgi',
+    'mjpegstream' => 'http://'.$username.':'.$password.'@'.$ip.'/image/jpeg.cgi',
     'monitor' => array(
       'Manufacturer'  => 'D-Link',
       'Type'     => 'Ffmpeg',
-      'Path'     => 'http://'.$ip.'/video.cgi',
+      'Path'     => 'rtsp://'.$username.':'.$password.'@'.$ip.'/live1.sdp',
+      'User' => $username,
+      'Pass' => $password,
       'Host'     => $ip,
       'Width'	=> 640,
       'Height'	=> 480,
@@ -844,6 +846,7 @@ function probeNetwork() {
           continue;
         }
         $macRoot = str_replace(':', '', substr($mac, 0, 8));
+        if (!isset($cameras[$mac])) $cameras[$mac] = [];
         #ZM\Debug("Got $macRoot from $mac");
         if (isset($macBases[$macRoot])) {
           ZM\Debug("Have match for $macRoot $ip ".$macBases[$macRoot]['type']);

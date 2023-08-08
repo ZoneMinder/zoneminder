@@ -123,7 +123,7 @@ Debug("Have " . $+{PASSWORD});
   # Save the base url
   $self->{BaseURL} = "http://$host:$port";
 
-  $ChannelID = $self->{Monitor}{ControlDevice};
+  $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice};
   $realm = '';
 
   if (defined($user)) {
@@ -194,7 +194,7 @@ sub PutCmd {
     Error("No cmd specified in PutCmd");
     return;
   }
-  Debug("Put: $cmd to ".$self->{BaseURL});
+  Debug("Put: $cmd to ".$self->{BaseURL}.(defined($content)?' content:'.$content:''));
   my $req = HTTP::Request->new(PUT => $self->{BaseURL}.'/'.$cmd);
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
@@ -274,11 +274,10 @@ sub moveVector {
   # Change from microseconds to milliseconds
   $duration = int($duration/1000);
   my $momentxml;
-  if( $duration ) {
+  if ($duration) {
     $momentxml = "<Momentary><duration>$duration</duration></Momentary>";
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/momentary";
-  }
-  else {
+  } else {
     $momentxml = '';
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/continuous";
   }

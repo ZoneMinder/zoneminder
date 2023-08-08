@@ -86,7 +86,7 @@ ul.form > li {
   padding-left: 300px;
   margin: 10px 0;
 }
-ul.form > li > label {
+ul.form > li > label:first-child {
   width: 290px;
   margin-left: -300px;
   text-align: right;

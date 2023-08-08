@@ -21,6 +21,8 @@
 #include "zm_monitor.h"
 #include "zm_server.h"
 #include "zm_time.h"
+
+#include <algorithm>
 #include <regex>
 
 std::string remove_newlines(std::string input);

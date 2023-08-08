@@ -83,7 +83,7 @@ class AppController extends Controller {
             throw new UnauthorizedException(__($retstatus));
             return;
           } 
-          ZM\Info("Login successful for user \"$username\"");
+          ZM\Debug("Login successful for user \"$username\"");
         }
       }
 

@@ -164,7 +164,7 @@ class HostController extends AppController {
       $username = $ret[0]['Username'];
     }
 
-    ZM\Info("Creating token for \"$username\"");
+    ZM\Debug("Creating token for \"$username\"");
 
     /* we won't support AUTH_HASH_IPS in token mode
       reasons:

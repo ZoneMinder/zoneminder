@@ -252,20 +252,21 @@ function changeCodec() {
 }
 
 function changeScale() {
-  const scale = $j('#scale').val();
+  let scale = parseFloat($j('#scale').val());
+  setCookie('zmEventScale'+eventData.MonitorId, scale);
+
   let newWidth;
   let newHeight;
-  let autoScale;
   const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
 
   const alarmCue = $j('#alarmCues');
   const bottomEl = $j('#replayStatus');
 
-  if (scale == '0') {
+  if (!scale) {
     const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
-    autoScale = newSize.autoScale;
+    scale = newSize.autoScale;
   } else {
     $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
     newWidth = eventData.Width * scale / SCALE_BASE;
@@ -273,17 +274,14 @@ function changeScale() {
   }
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
-  console.log(scale, (scale == '0'));
-  scaleValue = scale == '0' ? autoScale : scale;
   if (!vid) { // zms needs extra sizing
-    streamScale(scaleValue);
+    streamScale(scale);
     drawProgressBar();
   }
   if (cueFrames) {
     //just re-render alarmCues.  skip ajax call
     alarmCue.html(renderAlarmCues(eventViewer));
   }
-  setCookie('zmEventScale'+eventData.MonitorId, scale);
 
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);

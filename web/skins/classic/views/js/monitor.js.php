@@ -8,15 +8,17 @@ if (ZM_OPT_CONTROL and canView('Control')) {
 var controlOptions = new Object();
 <?php
   global $controls;
-  foreach ( $controls as $control ) {
-    echo '
+  if ($controls) {
+    foreach ($controls as $control) {
+      echo '
 controlOptions['.$control->Id().'] = new Array();
 controlOptions['.$control->Id().'][0] = '.
-    ( $control->HasHomePreset() ? '\''.translate('Home').'\'' : 'null' ).PHP_EOL;
-    for ( $i = 1; $i <= $control->NumPresets(); $i++ ) {
-      echo 'controlOptions['. $control->Id().']['.$i.'] = \''.translate('Preset').' '.$i .'\';'.PHP_EOL;
-    }
-  } # end foreach row
+      ( $control->HasHomePreset() ? '\''.translate('Home').'\'' : 'null' ).PHP_EOL;
+      for ( $i = 1; $i <= $control->NumPresets(); $i++ ) {
+        echo 'controlOptions['. $control->Id().']['.$i.'] = \''.translate('Preset').' '.$i .'\';'.PHP_EOL;
+      }
+    } # end foreach row
+  }
 } # end if ZM_OPT_CONTROL
 ?>
 

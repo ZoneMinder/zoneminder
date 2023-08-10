@@ -426,9 +426,9 @@ function getStorageHTML() {
 
   $func = function($S, $class='') {
     if ( $S->disk_usage_percent() > 98 ) {
-      $class = 'text-danger';
-    } else if ( $S->disk_usage_percent() > 90 ) {
-      $class = 'text-warning';
+      $class .= 'text-danger';
+    } else if ( $S->disk_usage_percent() > 95 ) {
+      $class .= 'text-warning';
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
@@ -442,7 +442,7 @@ function getStorageHTML() {
   $full_error = 0;
   foreach ( $storage_areas as $area ) {  
     if ( $area->disk_usage_percent() > 98 ) { $full_error++; continue; }
-    if ( $area->disk_usage_percent() > 90 ) $full_warning++;    
+    if ( $area->disk_usage_percent() > 95 ) $full_warning++;
   } 
   
   $class = '';

@@ -135,10 +135,14 @@ if (isset($_REQUEST['period'])) {
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
-  $scale = $_COOKIE['zmWatchScale'.$mid];
-  if ($scale == '0') $scale = '0';
+  $scale = validInt($_COOKIE['zmWatchScale'.$mid]);
 } else {
   $scale = $monitor->DefaultScale();
+}
+if ( !isset($scales[$scale])) {
+  ZM\Info("Invalid scale found in cookie: $scale, defaulting to auto");
+  zm_setcookie('zmWatchScale'.$mid, 0);
+  $scale = 0;
 }
 $options['scale'] = $scale;
 
@@ -161,7 +165,7 @@ if (
   or 
   ($options['height'] and ($options['height'] != 'auto'))
 ) {
-  $options['scale'] = 'auto';
+  $options['scale'] = 0;
 }
 if ($monitor->JanusEnabled()) {
   $streamMode = 'janus';

@@ -102,7 +102,7 @@ function changeSize() {
 } // end function changeSize()
 
 function changeScale() {
-  var scale = $j('#scale').val();
+  const scale = $j('#scale').val();
   setCookie('zmWatchScale'+monitorId, scale);
   $j('#width').val('auto');
   $j('#height').val('auto');
@@ -114,7 +114,7 @@ function changeScale() {
 }
 // Implement current scale, as opposed to changing it
 function setScale() {
-  var scale = $j('#scale').val();
+  const scale = $j('#scale').val();
   monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be

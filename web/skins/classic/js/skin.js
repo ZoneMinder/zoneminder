@@ -302,7 +302,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
     // Manage the web console filter bar minimize chevron
     $j("#mfbflip").click(function() {
-      $j("#mfbpanel").slideToggle("slow");
+      $j("#mfbpanel").slideToggle("slow", function() { changeScale(); });
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
         mfbflip.html('keyboard_arrow_down');

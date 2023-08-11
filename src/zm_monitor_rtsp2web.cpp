@@ -69,6 +69,9 @@ int Monitor::RTSP2WebManager::check_RTSP2Web() {
   curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
   CURLcode res = curl_easy_perform(curl);
   curl_easy_cleanup(curl);
 
@@ -118,18 +121,20 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
   res = curl_easy_perform(curl);
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Error("Failed to curl_easy_perform adding rtsp stream");
+    Error("Failed to curl_easy_perform adding rtsp stream %s", curl_easy_strerror(res));
     return -1;
   }
 
   Debug(1, "Adding stream response: %s", remove_newlines(response).c_str());
   //scan for missing session or handle id "No such session" "no such handle"
-  if (response.find("\"status\": 1") != std::string::npos) {
-      Warning("RTSP2Web failed adding stream");
+  if (response.find("\"status\": 1") == std::string::npos) {
+      Warning("RTSP2Web failed adding stream, response: %s", response.c_str());
       return -2;
   }
 
@@ -148,6 +153,8 @@ int Monitor::RTSP2WebManager::remove_from_RTSP2Web() {
   curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 
   CURLcode res = curl_easy_perform(curl);
   if (res != CURLE_OK) {

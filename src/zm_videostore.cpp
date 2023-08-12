@@ -372,6 +372,14 @@ bool VideoStore::open() {
         ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
         if (ret < 0) {
           Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+	} else {
+		const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+		if (entry) {
+			reorder_queue_size = std::stoul(entry->value);
+			Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+			// remove it to prevent complaining later.
+			av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+		}
         }
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {

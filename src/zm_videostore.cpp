@@ -246,7 +246,7 @@ bool VideoStore::open() {
 
         ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
         if (ret < 0) {
-          Error("Could not initialize stream parameteres");
+          Error("Could not initialize stream parameters");
         }
         av_dict_free(&opts);
         // Reload it for next attempt and/or avformat open
@@ -431,7 +431,7 @@ bool VideoStore::open() {
       video_out_stream = avformat_new_stream(oc, nullptr);
       ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
       if (ret < 0) {
-        Error("Could not initialize stream parameteres");
+        Error("Could not initialize stream parameters");
         return false;
       }
     }  // end if copying or transcoding
@@ -510,7 +510,7 @@ bool VideoStore::open() {
       }
 
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-      /* Seems like technically we could have multple channels, so let's not implement this for ffmpeg 5 */
+      /* Seems like technically we could have multiple channels, so let's not implement this for ffmpeg 5 */
 #else
       if (audio_out_ctx->channels > 1) {
         Warning("Audio isn't mono, changing it.");
@@ -869,7 +869,7 @@ bool VideoStore::setup_resampler() {
 
   audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
   if ((ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx)) < 0) {
-    Error("Could not initialize stream parameteres");
+    Error("Could not initialize stream parameters");
     return false;
   }
   zm_dump_codecpar(audio_out_stream->codecpar);

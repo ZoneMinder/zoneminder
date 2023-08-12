@@ -570,7 +570,7 @@ class tev__Capabilities
 /// Attribute "EventBrokerProtocols" of type xs:string.
   @ std::string*                         EventBrokerProtocols           0;	///< Optional attribute.
 /// <PRE><BLOCKQUOTE>
-///   Maxiumum number of event broker configurations that can be added to the device.
+///   Maximum number of event broker configurations that can be added to the device.
 /// </BLOCKQUOTE></PRE>
 ///
 /// Attribute "MaxEventBrokers" of type xs:int.

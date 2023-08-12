@@ -1604,7 +1604,7 @@ void Image::Overlay( const Image &image ) {
         subpixelorder, image.subpixelorder);
   }
 
-  /* Grayscale ontop of grayscale - complete */
+  /* Grayscale on top of grayscale - complete */
   if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
@@ -1618,7 +1618,7 @@ void Image::Overlay( const Image &image ) {
       psrc++;
     }
 
-    /* RGB24 ontop of grayscale - convert to same format first - complete */
+    /* RGB24 on top of grayscale - convert to same format first - complete */
   } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB24 ) {
     Colourise(image.colours, image.subpixelorder);
 
@@ -1636,7 +1636,7 @@ void Image::Overlay( const Image &image ) {
       psrc += 3;
     }
 
-    /* RGB32 ontop of grayscale - convert to same format first - complete */
+    /* RGB32 on top of grayscale - convert to same format first - complete */
   } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB32 ) {
     Colourise(image.colours, image.subpixelorder);
 
@@ -1664,7 +1664,7 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* Grayscale ontop of RGB24 - complete */
+    /* Grayscale on top of RGB24 - complete */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
@@ -1678,7 +1678,7 @@ void Image::Overlay( const Image &image ) {
       psrc++;
     }
 
-    /* RGB24 ontop of RGB24 - not complete. need to take care of different subpixel orders */
+    /* RGB24 on top of RGB24 - not complete. need to take care of different subpixel orders */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB24 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
@@ -1694,11 +1694,11 @@ void Image::Overlay( const Image &image ) {
       psrc += 3;
     }
 
-    /* RGB32 ontop of RGB24 - TO BE DONE */
+    /* RGB32 on top of RGB24 - TO BE DONE */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB32 ) {
-    Error("Overlay of RGB32 ontop of RGB24 is not supported.");
+    Error("Overlay of RGB32 on top of RGB24 is not supported.");
 
-    /* Grayscale ontop of RGB32 - complete */
+    /* Grayscale on top of RGB32 - complete */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_GRAY8 ) {
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
     Rgb* prdest = (Rgb*)buffer;
@@ -1724,11 +1724,11 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* RGB24 ontop of RGB32 - TO BE DONE */
+    /* RGB24 on top of RGB32 - TO BE DONE */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB24 ) {
-    Error("Overlay of RGB24 ontop of RGB32 is not supported.");
+    Error("Overlay of RGB24 on top of RGB32 is not supported.");
 
-    /* RGB32 ontop of RGB32 - not complete. need to take care of different subpixel orders */
+    /* RGB32 on top of RGB32 - not complete. need to take care of different subpixel orders */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB32 ) {
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
     Rgb* prdest = (Rgb*)buffer;
@@ -1940,7 +1940,7 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
   return result;
 }
 
-/* New function to allow buffer re-using instead of allocationg memory for the delta image every time */
+/* New function to allow buffer re-using instead of allocating memory for the delta image every time */
 void Image::Delta(const Image &image, Image* targetimage) const {
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) ) {
     Panic( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",

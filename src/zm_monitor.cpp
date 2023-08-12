@@ -79,7 +79,7 @@ struct Namespace namespaces[] =
 #endif
 
 // This is the official SQL (and ordering of the fields) to load a Monitor.
-// It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
+// It will be used wherever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
 "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
 "`Recording`+0, `RecordingSource`+0, `Decoding`+0, `RTSP2WebEnabled`, `RTSP2WebType`,"

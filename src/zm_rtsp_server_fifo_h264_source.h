@@ -53,7 +53,7 @@ class H264_ZoneMinderFifoSource : public H26X_ZoneMinderFifoSource {
         const std::string &fifo
         );
 
-		// overide ZoneMinderFifoSource
+		// override ZoneMinderFifoSource
 		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, size_t &frameSize) override;
 };
 
@@ -66,7 +66,7 @@ class H265_ZoneMinderFifoSource : public H26X_ZoneMinderFifoSource {
         const std::string &fifo
         );
 
-		// overide ZoneMinderFifoSource
+		// override ZoneMinderFifoSource
 		virtual std::list< std::pair<unsigned char*,size_t> > splitFrames(unsigned char* frame, size_t &frameSize) override;
 
 	protected:

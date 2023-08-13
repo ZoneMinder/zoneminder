@@ -150,7 +150,7 @@ Orientation
 WebSite
 ^^^^^^^
 
-This Source Type allows one to configure an arbitrary website as a non-recordable, fully interactive, monitor in ZoneMinder. Note that sites with self-signed certificates will not display until the end user first manually navigates to the site and accpets the unsigned certificate. Also note that some sites will set an X-Frame option in the header, which discourages their site from being displayed within a frame. ZoneMinder will detect this condition and present a warning in the log. When this occurs, the end user can choose to install a browser plugin or extension to workaround this issue.
+This Source Type allows one to configure an arbitrary website as a non-recordable, fully interactive, monitor in ZoneMinder. Note that sites with self-signed certificates will not display until the end user first manually navigates to the site and accepts the unsigned certificate. Also note that some sites will set an X-Frame option in the header, which discourages their site from being displayed within a frame. ZoneMinder will detect this condition and present a warning in the log. When this occurs, the end user can choose to install a browser plugin or extension to workaround this issue.
 
 Website URL 
     Enter the full http or https url to the desired website.

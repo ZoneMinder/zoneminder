@@ -401,7 +401,7 @@ void StreamBase::closeComms() {
     }
     // Can't delete any files because another zms might have come along and opened them and is waiting on the lock.
     if ( lock_fd > 0 ) {
-      close(lock_fd); //close it rather than unlock it incase it got deleted.
+      close(lock_fd); //close it rather than unlock it in case it got deleted.
     }
   }
 } // end void StreamBase::closeComms

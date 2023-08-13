@@ -534,10 +534,10 @@ void* cURLCamera::thread_func() {
       Error("Failed setting password: %s", (*curl_easy_strerror_f)(cRet));
   }
 
-  /* Authenication preference */
+  /* Authentication preference */
   cRet = (*curl_easy_setopt_f)(c, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
   if (cRet != CURLE_OK)
-    Warning("Failed setting libcurl acceptable http authenication methods: %s", (*curl_easy_strerror_f)(cRet));
+    Warning("Failed setting libcurl acceptable http authentication methods: %s", (*curl_easy_strerror_f)(cRet));
 
 
   /* Work loop */

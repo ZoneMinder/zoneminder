@@ -134,7 +134,7 @@ bool verifyPassword(const char *username, const char *input_password, const char
 
   bool password_correct = false;
   if ( strlen(db_password_hash) < 4 ) {
-    // actually, shoud be more, but this is min. for next code
+    // actually, should be more, but this is min. for next code
     Error("DB Password is too short or invalid to check");
     return false;
   }

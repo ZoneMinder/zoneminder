@@ -1007,7 +1007,7 @@ int RemoteCameraHttp::GetResponse() {
                       content_length = start_ptr - (char *)buffer;
                       Debug(2, "Got end of image by pattern (crlf--), content-length = %d", content_length);
                     } else {
-                      Debug(2, "Did not find end of image by patten (crlf--) yet, content-length = %d", content_length);
+                      Debug(2, "Did not find end of image by pattern (crlf--) yet, content-length = %d", content_length);
                     }
                   } // end if MULTI_IMAGE
                 } else {

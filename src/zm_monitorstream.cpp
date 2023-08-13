@@ -713,7 +713,7 @@ void MonitorStream::runStream() {
           }
 
           if (!sendFrame(send_image, last_frame_timestamp)) {
-            Debug(2, "sendFrame failed, quiting.");
+            Debug(2, "sendFrame failed, quitting.");
             zm_terminate = true;
             break;
           }
@@ -722,7 +722,7 @@ void MonitorStream::runStream() {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
             if (!sendFrame(send_image, last_frame_timestamp)) {
-              Debug(2, "sendFrame failed, quiting.");
+              Debug(2, "sendFrame failed, quitting.");
               zm_terminate = true;
               break;
             }

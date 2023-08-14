@@ -704,6 +704,10 @@ public:
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
+    if (packetqueue.has_out_of_order_packets() and !packetqueue.get_max_keyframe_interval()) {
+      Debug(1, "Have out of order packets, but no keyframe interval.");
+      return false;
+    }
     if (image_count >= ready_count) {
       return true;
     }

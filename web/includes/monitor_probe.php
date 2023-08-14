@@ -875,7 +875,7 @@ function probeNetwork() {
           }
         } else {
           ZM\Debug("No match for $macRoot");
-          $cameras += [['ip'=>$ip, 'Manufacturer'=>'Unknown']];
+          $cameras[$mac] += [['ip'=>$ip, 'Manufacturer'=>'Unknown']];
         }
         if (connection_aborted()) exit();
       } # end foreach output line

@@ -246,7 +246,7 @@ bool VideoStore::open() {
 
         ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
         if (ret < 0) {
-          Error("Could not initialize stream parameteres");
+          Error("Could not initialize stream parameters");
         }
         av_dict_free(&opts);
         // Reload it for next attempt and/or avformat open
@@ -372,6 +372,14 @@ bool VideoStore::open() {
         ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
         if (ret < 0) {
           Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+	} else {
+		const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+		if (entry) {
+			reorder_queue_size = std::stoul(entry->value);
+			Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+			// remove it to prevent complaining later.
+			av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+		}
         }
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
@@ -423,7 +431,7 @@ bool VideoStore::open() {
       video_out_stream = avformat_new_stream(oc, nullptr);
       ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
       if (ret < 0) {
-        Error("Could not initialize stream parameteres");
+        Error("Could not initialize stream parameters");
         return false;
       }
     }  // end if copying or transcoding
@@ -502,7 +510,7 @@ bool VideoStore::open() {
       }
 
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-      /* Seems like technically we could have multple channels, so let's not implement this for ffmpeg 5 */
+      /* Seems like technically we could have multiple channels, so let's not implement this for ffmpeg 5 */
 #else
       if (audio_out_ctx->channels > 1) {
         Warning("Audio isn't mono, changing it.");
@@ -861,7 +869,7 @@ bool VideoStore::setup_resampler() {
 
   audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
   if ((ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx)) < 0) {
-    Error("Could not initialize stream parameteres");
+    Error("Could not initialize stream parameters");
     return false;
   }
   zm_dump_codecpar(audio_out_stream->codecpar);

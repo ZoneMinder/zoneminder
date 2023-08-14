@@ -96,7 +96,7 @@ void MQTT::addValue(std::string name, double value) {
   sensorListIterator = sensorList.find(name);
   Debug(1, "found sensor: %s", sensorListIterator->first.c_str());
   //    if(it == sensorList.end()) {
-  //        clog<<__FUNCTION__<<" Could not find coresponding sensor name"<<endl;
+  //        clog<<__FUNCTION__<<" Could not find corresponding sensor name"<<endl;
   //    } else {
   //
   //    }

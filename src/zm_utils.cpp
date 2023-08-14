@@ -474,7 +474,7 @@ std::string mask_authentication(const std::string &url) {
   std::size_t password_at = masked_url.rfind(":", at_at);
 
   if (password_at == std::string::npos) {
-    // no : means no http:// either so something liek username@192.168.1.1
+    // no : means no http:// either so something like username@192.168.1.1
     masked_url.replace(0, at_at, at_at, '*');
   } else if (masked_url[password_at+1] == '/') {
     // no password, something like http://username@192.168.1.1

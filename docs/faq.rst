@@ -115,7 +115,7 @@ A sample output on Ubuntu:
 	tmpfs                      2.6G  923M  1.7G  36% /run/shm
 
 
-The key item here is tmpfs --> the example above shows we have allocated 1.7G of mapped memory space of which 36% is used which is a healthy number. If you are seeing ``Use%`` going beyond 70% you should probaby increase the mapped memory.
+The key item here is tmpfs --> the example above shows we have allocated 1.7G of mapped memory space of which 36% is used which is a healthy number. If you are seeing ``Use%`` going beyond 70% you should probably increase the mapped memory.
 
 For example, if you want to increase this limit to 70% of your memory, add the following to ``/etc/fstab``
 ``tmpfs SHMPATH tmpfs defaults,noexec,nosuid,size=70% 0 0``
@@ -432,7 +432,7 @@ Here are some commands to get information about your hardware. Some commands are
 * ``[[zmu]]  -m 0 -q -v`` -- Returns various information regarding a monitor configuration.
 * ``[[ipcs]] ``  -- Provides information on the ipc facilities for which the calling process has read access.
 * ``[[ipcrm]] ``  -- The ipcrm command can be used to remove an IPC object from the kernel.
-* ``cat /proc/interrupts``  -- This will dispaly what interrupts your hardware is using.
+* ``cat /proc/interrupts``  -- This will display what interrupts your hardware is using.
 
 Why am I getting a 403 access error with my web browser when trying to access http //localhost/zm?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

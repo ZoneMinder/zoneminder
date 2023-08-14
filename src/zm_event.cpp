@@ -683,7 +683,7 @@ void Event::Run() {
       if (packet_queue.empty()) {
         if (terminate_ or zm_terminate) break;
         packet_queue_condition.wait(lck);
-        // Neccessary because we don't hold the lock in the while condition
+        // Necessary because we don't hold the lock in the while condition
       } 
       if (!packet_queue.empty()) {
         packet = packet_queue.front();

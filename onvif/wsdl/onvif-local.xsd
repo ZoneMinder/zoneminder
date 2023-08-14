@@ -354,7 +354,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 		</xs:sequence>
 		<xs:attribute name="token" type="tt:ReferenceToken" use="required">
 			<xs:annotation>
-				<xs:documentation>Token that uniquely refernces this configuration. Length up to 64 characters.</xs:documentation>
+				<xs:documentation>Token that uniquely references this configuration. Length up to 64 characters.</xs:documentation>
 			</xs:annotation>
 		</xs:attribute>
 	</xs:complexType>
@@ -700,7 +700,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 			</xs:element>
 			<xs:element name="EncodingIntervalRange" type="tt:IntRange">
 				<xs:annotation>
-					<xs:documentation>Supported encoding interval range. The encoding interval corresponds to the number of frames devided by the encoded frames. An encoding interval value of "1" means that all frames are encoded.</xs:documentation>
+					<xs:documentation>Supported encoding interval range. The encoding interval corresponds to the number of frames divided by the encoded frames. An encoding interval value of "1" means that all frames are encoded.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 		</xs:sequence>
@@ -741,7 +741,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 			</xs:element>
 			<xs:element name="EncodingIntervalRange" type="tt:IntRange">
 				<xs:annotation>
-					<xs:documentation>Supported encoding interval range. The encoding interval corresponds to the number of frames devided by the encoded frames. An encoding interval value of "1" means that all frames are encoded.</xs:documentation>
+					<xs:documentation>Supported encoding interval range. The encoding interval corresponds to the number of frames divided by the encoded frames. An encoding interval value of "1" means that all frames are encoded.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="Mpeg4ProfilesSupported" type="tt:Mpeg4Profile" maxOccurs="unbounded">
@@ -787,7 +787,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 			</xs:element>
 			<xs:element name="EncodingIntervalRange" type="tt:IntRange">
 				<xs:annotation>
-					<xs:documentation>Supported encoding interval range. The encoding interval corresponds to the number of frames devided by the encoded frames. An encoding interval value of "1" means that all frames are encoded.</xs:documentation>
+					<xs:documentation>Supported encoding interval range. The encoding interval corresponds to the number of frames divided by the encoded frames. An encoding interval value of "1" means that all frames are encoded.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="H264ProfilesSupported" type="tt:H264Profile" maxOccurs="unbounded">
@@ -1016,7 +1016,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 	<!--===============================-->
 	<xs:complexType name="EventSubscription">
 		<xs:annotation>
-			<xs:documentation>Subcription handling in the same way as base notification subscription.</xs:documentation>
+			<xs:documentation>Subscription handling in the same way as base notification subscription.</xs:documentation>
 		</xs:annotation>
 		<xs:sequence>
 <!--
@@ -1052,7 +1052,7 @@ IN NO EVENT WILL THE CORPORATION OR ITS MEMBERS OR THEIR AFFILIATES BE LIABLE FO
 			</xs:element>
 			<xs:element name="ZoomStatusSupported" type="xs:boolean">
 				<xs:annotation>
-					<xs:documentation>True if the device is able to stream zoom status inforamtion.</xs:documentation>
+					<xs:documentation>True if the device is able to stream zoom status information.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
@@ -1469,7 +1469,7 @@ decoding .A decoder shall decode every data it receives (according to its capabi
 			</xs:element>
 			<xs:element name="AutoStart" type="xs:boolean">
 				<xs:annotation>
-					<xs:documentation>Read only property signalling that streaming is persistant. Use the methods StartMulticastStreaming and StopMulticastStreaming to switch its state.</xs:documentation>
+					<xs:documentation>Read only property signalling that streaming is persistent. Use the methods StartMulticastStreaming and StopMulticastStreaming to switch its state.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:any namespace="##any" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
@@ -1800,7 +1800,7 @@ decoding .A decoder shall decode every data it receives (according to its capabi
 		<xs:sequence>
 			<xs:element name="AcceptRouterAdvert" type="xs:boolean" minOccurs="0">
 				<xs:annotation>
-					<xs:documentation>Indicates whether router advertisment is used.</xs:documentation>
+					<xs:documentation>Indicates whether router advertisement is used.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="DHCP" type="tt:IPv6DHCPConfiguration">
@@ -1825,7 +1825,7 @@ decoding .A decoder shall decode every data it receives (according to its capabi
 			</xs:element>
 			<xs:element name="FromRA" type="tt:PrefixedIPv6Address" minOccurs="0" maxOccurs="unbounded">
 				<xs:annotation>
-					<xs:documentation>List of IPv6 addresses configured by using router advertisment.</xs:documentation>
+					<xs:documentation>List of IPv6 addresses configured by using router advertisement.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="Extension" type="tt:IPv6ConfigurationExtension" minOccurs="0"/>
@@ -2179,7 +2179,7 @@ decoding .A decoder shall decode every data it receives (according to its capabi
 			</xs:element>
 			<xs:element name="AcceptRouterAdvert" type="xs:boolean" minOccurs="0">
 				<xs:annotation>
-					<xs:documentation>Indicates whether router advertisment is used.</xs:documentation>
+					<xs:documentation>Indicates whether router advertisement is used.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="Manual" type="tt:PrefixedIPv6Address" minOccurs="0" maxOccurs="unbounded">
@@ -3182,12 +3182,12 @@ decoding .A decoder shall decode every data it receives (according to its capabi
 	<!--===============================-->
 	<xs:complexType name="SystemDateTime">
 		<xs:annotation>
-			<xs:documentation>General date time inforamtion returned by the GetSystemDateTime method.</xs:documentation>
+			<xs:documentation>General date time information returned by the GetSystemDateTime method.</xs:documentation>
 		</xs:annotation>
 		<xs:sequence>
 			<xs:element name="DateTimeType" type="tt:SetDateTimeType">
 				<xs:annotation>
-					<xs:documentation>Indicates if the time is set manully or through NTP.</xs:documentation>
+					<xs:documentation>Indicates if the time is set manually or through NTP.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="DaylightSavings" type="xs:boolean">
@@ -3482,7 +3482,7 @@ decoding .A decoder shall decode every data it receives (according to its capabi
 		<xs:sequence>
 			<xs:element name="TLSConfiguration" type="tt:TLSConfiguration" minOccurs="0">
 				<xs:annotation>
-					<xs:documentation>Confgiuration information for TLS Method.</xs:documentation>
+					<xs:documentation>Configuration information for TLS Method.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="Password" type="xs:string" minOccurs="0">
@@ -4506,7 +4506,7 @@ decoding .A decoder shall decode every data it receives (according to its capabi
 			</xs:element>
 			<xs:element name="Home" type="xs:boolean" minOccurs="0">
 				<xs:annotation>
-					<xs:documentation>An option to indicate Home postion for tour spots.</xs:documentation>
+					<xs:documentation>An option to indicate Home position for tour spots.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="PanTiltPositionSpace" type="tt:Space2DDescription" minOccurs="0">
@@ -6482,7 +6482,7 @@ If set to 0.0, infinity will be used.</xs:documentation>
 										<xs:documentation>
 											The ParentTopic labels the message (e.g. "nn:RuleEngine/LineCrossing"). The real message can extend the ParentTopic
 											by for example the name of the instaniated rule (e.g. "nn:RuleEngine/LineCrossing/corssMyFirstLine").
-											Even without knowing the complete topic name, the subscriber will be able to distiguish the
+											Even without knowing the complete topic name, the subscriber will be able to distinguish the
 											messages produced by different rule instances of the same type via the Source fields of the message.
 											There the name of the rule instance, which produced the message, must be listed.
 										</xs:documentation>
@@ -6819,7 +6819,7 @@ and sample rate. </xs:documentation>
 	<!--===============================-->
 	<xs:complexType name="Layout">
 		<xs:annotation>
-			<xs:documentation>A layout describes a set of Video windows that are displayed simultaniously on a display. </xs:documentation>
+			<xs:documentation>A layout describes a set of Video windows that are displayed simultaneously on a display. </xs:documentation>
 		</xs:annotation>
 		<xs:sequence>
 			<xs:element name="PaneLayout" type="tt:PaneLayout" maxOccurs="unbounded">
@@ -6855,7 +6855,7 @@ and sample rate. </xs:documentation>
 			</xs:element>
 			<xs:element name="VideoDecodingCapabilities" type="tt:VideoDecoderConfigurationOptions">
 				<xs:annotation>
-					<xs:documentation>This section describes the supported video codesc and their configuration.</xs:documentation>
+					<xs:documentation>This section describes the supported video codecs and their configuration.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:any namespace="##any" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
@@ -7226,7 +7226,7 @@ and sample rate. </xs:documentation>
 			</xs:element>
 			<xs:element name="Time" type="xs:dateTime">
 				<xs:annotation>
-					<xs:documentation>The time when the event occured.</xs:documentation>
+					<xs:documentation>The time when the event occurred.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 <!--
@@ -7384,7 +7384,7 @@ and sample rate. </xs:documentation>
 	<xs:complexType name="RecordingSourceInformation">
 		<xs:annotation>
 			<xs:documentation>
-				A set of informative desciptions of a data source. The Search searvice allows a client to filter on recordings based on information in this structure.
+				A set of informative descriptions of a data source. The Search searvice allows a client to filter on recordings based on information in this structure.
 			</xs:documentation>
 		</xs:annotation>
 		<xs:sequence>
@@ -8398,7 +8398,7 @@ and sample rate. </xs:documentation>
 			</xs:element>
 			<xs:element name="Transparent" type="tt:IntRange" minOccurs="0">
 				<xs:annotation>
-					<xs:documentation>Range of the transparent level. Larger means more tranparent.</xs:documentation>
+					<xs:documentation>Range of the transparent level. Larger means more transparent.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="Extension" type="tt:OSDColorOptionsExtension" minOccurs="0"/>
@@ -8461,7 +8461,7 @@ and sample rate. </xs:documentation>
 		<xs:sequence>
 			<xs:element name="ImagePath" type="xs:anyURI" maxOccurs="unbounded">
 				<xs:annotation>
-					<xs:documentation>List of avaiable uris of image.</xs:documentation>
+					<xs:documentation>List of available uris of image.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="Extension" type="tt:OSDImgOptionsExtension" minOccurs="0"/>

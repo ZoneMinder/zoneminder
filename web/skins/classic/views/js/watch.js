@@ -871,6 +871,7 @@ function initPage() {
   } else {
     cyclePause();
   }
+  bindButton('#ptzToggle', 'click', null, ptzToggle);
 } // initPage
 
 function watchFullscreen() {
@@ -941,18 +942,31 @@ function cyclePrev() {
 
 function cyclePeriodChange() {
   const cyclePeriodSelect = $j('#cyclePeriod');
-  secondsToCycle = cyclePeriodSelect.val();
-  setCookie('zmCyclePeriod', secondsToCycle);
+  setCookie('zmCyclePeriod', cyclePeriodSelect.val());
 }
 function cycleToggle(e) {
-  sidebar = $j('#sidebar');
-  button = $j('#cycleToggle');
+  const sidebar = $j('#sidebar');
+  const button = $j('#cycleToggle');
   if (sidebar.is(":visible")) {
     sidebar.hide();
     setCookie('zmCycleShow', false);
   } else {
     sidebar.show();
     setCookie('zmCycleShow', true);
+  }
+  button.toggleClass('btn-secondary');
+  button.toggleClass('btn-primary');
+}
+
+function ptzToggle(e) {
+  const controls = $j('#ptzControls');
+  const button = $j('#ptzToggle');
+  if (controls.is(":visible")) {
+    controls.hide();
+    setCookie('ptzShow', false);
+  } else {
+    controls.show();
+    setCookie('ptzShow', true);
   }
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');

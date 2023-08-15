@@ -103,7 +103,15 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
   $showCycle = $_COOKIE['zmCycleShow'] == 'true';
 }
 #Whether to show the controls button
-$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
+$hasPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
+$showPtzControls = false;
+if ($hasPtzControls) {
+  if (isset($_REQUEST['ptzShow']) and ($_REQUEST['ptzShow'] == 'true')) {
+    $showPtzControls = true;
+  } else if (isset($_COOKIE['ptzShow'])) {
+    $showPtzControls = $_COOKIE['ptzShow'] == 'true';
+  }
+}
 
 $options = array();
 if (0) {
@@ -211,6 +219,9 @@ echo getNavBarHTML() ?>
 -->
         <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
             <span class="material-icons md-18">view_carousel</span>
+        </button>
+        <button type="button" id="ptzToggle" class="btn <?php echo $showPtzControls ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle PTZ Controls')?>">
+            <span class="material-icons md-18">open_with</span>
         </button>
         <span id="rateControl">
           <label><?php echo translate('Rate') ?>:</label>
@@ -355,15 +366,6 @@ if ($streamMode == 'jpeg') {
       </div><!--dvrButtons-->
 <?php } // end if $monitor->Type() != 'WebSite' ?>
 <?php
-if ( $showPtzControls ) {
-    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
-        require_once $includeFile;
-?>
-      <div id="ptzControls" class="ptzControls">
-      <?php echo ptzControls($monitor) ?>
-      </div>
-<?php
-}
 if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 ?>
       <!-- Table styling handled by bootstrap-tables -->
@@ -412,6 +414,15 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
       </div>
     </div>
 <?php
+if ( $hasPtzControls ) {
+    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
+        require_once $includeFile;
+?>
+      <div id="ptzControls" class="ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
+      <?php echo ptzControls($monitor) ?>
+      </div>
+<?php
+}
 }
 ?>
     </div>

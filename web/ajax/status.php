@@ -418,8 +418,8 @@ switch ( $_REQUEST['layout'] ) {
 }
 
 function getFrameImage() {
-  $eventId = $_REQUEST['id'][0];
-  $frameId = $_REQUEST['id'][1];
+  $eventId = validCardinal($_REQUEST['eid']);
+  $frameId = validCardinal($_REQUEST['fid']);
 
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
   if ( !($frame = dbFetchOne($sql, NULL, array($eventId, $frameId))) ) {

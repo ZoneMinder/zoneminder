@@ -767,7 +767,8 @@ function frameQuery(eventId, frameId, loadImage) {
   var data = {};
   if (auth_hash) data.auth = auth_hash;
   data.loopback = loadImage;
-  data.id = {eventId, frameId};
+  data.eid = eventId;
+  data.fid = frameId;
 
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frameimage', data)
       .done(getFrameResponse)

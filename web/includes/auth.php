@@ -394,7 +394,7 @@ if (ZM_OPT_USE_AUTH) {
       # The shortened versions are used in auth_relay = PLAIN
       $ret = validateUser($_REQUEST['user'], $_REQUEST['pass']);
       if (!$ret[0]) {
-        ZM\Error($ret[1]);
+        ZM\Warning($ret[1]);
         unset($user); // unset should be ok here because we aren't in a function
         return;
       }
@@ -403,7 +403,7 @@ if (ZM_OPT_USE_AUTH) {
       # Longer versions are used on login page
       $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
       if (!$ret[0]) {
-        ZM\Error($ret[1]);
+        ZM\Warning($ret[1]);
         unset($user); // unset should be ok here because we aren't in a function
         return;
       }

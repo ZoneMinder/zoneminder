@@ -31,16 +31,20 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
     $_REQUEST['filter'] = addFilterTerm($_REQUEST['filter'], $_REQUEST['line']);
   } else if ($action == 'delterm') {
     $_REQUEST['filter'] = delFilterTerm($_REQUEST['filter'], $_REQUEST['line']);
-  } else if (canEdit('Events')) {
+  } else if (canView('Events')) {
     require_once('includes/Filter.php');
     $filter = new ZM\Filter($_REQUEST['Id']);
 
     if ($action == 'delete') {
       if (!empty($_REQUEST['Id'])) {
+        if ($filter->canDelete()) {
           if ($filter->Background()) {
             $filter->control('stop');
           }
           $filter->delete();
+        } else {
+          $error_message .= 'You do not have permission to delete the filter.<br/>';
+        }
       } else {
         ZM\Error('No filter id passed when deleting');
       }
@@ -69,30 +73,39 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       ZM\Debug('Changes: ' . print_r($changes, true));
 
       if (count($changes)) {
-        if ($filter->Id() and ($action == 'Save') and $filter->Background()) {
-          $filter->control('stop');
-        } else if ($action == 'execute') {
-          # If there are changes use a temp filter to do the execute
-          $filter->Name('_TempFilter'.time());
-          $filter->Id(null);
-        } else if ($action == 'SaveAs') {
-          $filter->Id(null);
-        }
-        if (!$filter->save($changes)) {
-          $error_message = $filter->get_last_error();
-          return;
-        }
-        if ($action == 'Save' or $action == 'SaveAs' ) {
-          // We update the request id so that the newly saved filter is auto-selected
-          $_REQUEST['Id'] = $filter->Id();
+        $filter->set($changes); // apply changes so that canEdit can use new values
+        if ($filter->canEdit()) {
+          if ($filter->Id() and ($action == 'Save') and $filter->Background()) {
+            $filter->control('stop');
+          } else if ($action == 'execute') {
+            # If there are changes use a temp filter to do the execute
+            $filter->Name('_TempFilter'.time());
+            $filter->Id(null);
+          } else if ($action == 'SaveAs') {
+            $filter->Id(null);
+          }
+          if (!$filter->save($changes)) {
+            $error_message = $filter->get_last_error();
+            return;
+          }
+          if ($action == 'Save' or $action == 'SaveAs' ) {
+            // We update the request id so that the newly saved filter is auto-selected
+            $_REQUEST['Id'] = $filter->Id();
+          }
+        } else {
+          $error_message .= 'You do not have permission to save this filter.<br/>';
         }
       } # end if changes
 
       if ($action == 'execute') {
-        $filter->execute();
-        if (count($changes)) {
-          $filter->delete();
-					$filter->Id($_REQUEST['Id']);
+        if ($filter->canEdit()) {
+          $filter->execute();
+          if (count($changes)) {
+            $filter->delete();
+            $filter->Id($_REQUEST['Id']);
+          }
+        } else {
+          $error_message .= 'You do not have permission to execute this filter.<br/>';
         }
       } else if ($filter->Background()) {
         $filter->control('start');
@@ -110,6 +123,6 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         ZM\Error('Invalid command for filter ('.$_REQUEST['command'].')');
       }
     } // end if save or execute
-  } // end if canEdit(Events)
+  } // end if canView(Events)
 } // end if object == filter
 ?>

@@ -1187,5 +1187,35 @@ class Filter extends ZM_Object {
     $this->terms($new_terms);
   }
 
+  public function canDelete($u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    if ($u->canEdit('System') or ($this->UserId() == $u->Id())) return true;
+    return false;
+  }
+
+  public function canEdit($u=null) {
+    global $user;
+    if (!$u) $u=$user;
+    if ($u->canEdit('System')) return true;
+
+    if ($this->UserId() == $u->Id()) {
+      if ($u->canEdit('Events')) return true;
+      if ($u->canView('Events')) {
+        // If we can only view events, then we can't perform filters that involve changing the event.
+        if (!(
+          $this->AutoExecute() and
+          $this->AutoDelete() and
+          $this->AutoUnarchive() and
+          $this->AutoMove() and
+          $this->AutoCopy()
+        )) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
 } # end class Filter
 ?>

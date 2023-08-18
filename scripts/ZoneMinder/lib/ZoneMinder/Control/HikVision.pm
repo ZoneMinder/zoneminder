@@ -231,7 +231,7 @@ sub PutCmd {
                 return PutCmd($self, $cmd, $content);
               }
             } else {
-              Debug('Not realm: '.$auth);
+              Debug('Not realm: '.$_);
             }
           } # end foreach auth token
         } # end foreach auth token

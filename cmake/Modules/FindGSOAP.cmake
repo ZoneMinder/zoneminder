@@ -78,7 +78,7 @@ find_program(GSOAP_SOAPCPP2
 )
 # -----------------------------------------------------
 # GSOAP version
-# try to determine the flagfor the 2.7.6 compatiblity, break with 2.7.13 and re-break with 2.7.16
+# try to determine the flag for the 2.7.6 compatibility, break with 2.7.13 and re-break with 2.7.16
 # ----------------------------------------------------
 if(GSOAP_SOAPCPP2)
   execute_process(COMMAND ${GSOAP_SOAPCPP2}  "-V"   OUTPUT_VARIABLE GSOAP_STRING_VERSION ERROR_VARIABLE GSOAP_STRING_VERSION )
@@ -86,7 +86,7 @@ if(GSOAP_SOAPCPP2)
 endif()
 # -----------------------------------------------------
 # GSOAP_276_COMPAT_FLAGS and GSOAPVERSION
-# try to determine the flagfor the 2.7.6 compatiblity, break with 2.7.13 and re-break with 2.7.16
+# try to determine the flag for the 2.7.6 compatibility, break with 2.7.13 and re-break with 2.7.16
 # ----------------------------------------------------
 if( "${GSOAP_VERSION}"  VERSION_LESS "2.7.6")
 	set(GSOAP_276_COMPAT_FLAGS "")

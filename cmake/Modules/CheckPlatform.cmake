@@ -15,7 +15,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 endif()
 if(NOT HOST_OS)
   message(FATAL_ERROR
-    "ZoneMinder was unable to deterimine the host OS. Please report this.
+    "ZoneMinder was unable to determine the host OS. Please report this.
     Value of CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 endif()
 

@@ -87,7 +87,7 @@ int Buffer::read_into(int sd, unsigned int bytes, Microseconds timeout) {
     Error("Error %d %s from select", errno, strerror(errno));
     return rv;
   } else if (rv == 0) {
-    Debug(1, "timeout"); /* a timeout occured */
+    Debug(1, "timeout"); /* a timeout occurred */
     return 0;
   }
 

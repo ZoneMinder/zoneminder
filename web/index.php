@@ -200,7 +200,7 @@ if ( (!$view and !$request) or ($view == 'console') ) {
   check_timezone();
 }
 
-ZM\Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user['Username'] : 'none' ));
+ZM\Debug("View: $view Request: $request Action: $action User: " . ( isset($user) ? $user->Username() : 'none' ));
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&

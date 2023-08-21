@@ -42,7 +42,9 @@ var eventData = {
     Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>,
-    Path: '<?php echo $Event->Path() ?>'
+    Path: '<?php echo $Event->Path() ?>',
+    Latitude: '<?php echo $Event->Latitude() ?>',
+    Longitude: '<?php echo $Event->Longitude() ?>'
 <?php } ?>
 };
 
@@ -64,12 +66,16 @@ var eventDataStrings = {
     TotScore: '<?php echo translate('AttrTotalScore') ?>',
     AvgScore: '<?php echo translate('AttrAvgScore') ?>',
     MaxScore: '<?php echo translate('AttrMaxScore') ?>',
+    Resolution: '<?php echo translate('Resolution') ?>',
     DiskSpace: '<?php echo translate('DiskSpace') ?>',
     Storage: '<?php echo translate('Storage') ?>',
     Path: '<?php echo translate('Path') ?>',
     Archived: '<?php echo translate('Archived') ?>',
     Emailed: '<?php echo translate('Emailed') ?>'
 };
+if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
+  eventDataStrings.Location = '<?php echo translate('Location') ?>';
+}
 
 var monitorUrl = '<?php echo $Event->Server()->UrlToIndex(); ?>';
 

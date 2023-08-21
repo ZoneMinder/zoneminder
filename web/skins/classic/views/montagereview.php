@@ -169,9 +169,9 @@ $eventsSql = 'SELECT
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
 $monitor_ids_sql = '';
-#if ( !empty($user['MonitorIds']) ) {
-  #$eventsSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
-#}
+if (count($user->unviewableMonitorIds())) {
+  $eventsSql .= ' AND E.MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
+}
 if ( count($selected_monitor_ids) ) {
   $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;

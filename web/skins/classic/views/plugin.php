@@ -84,8 +84,8 @@ foreach($pluginOptions as $name => $values)
 }
 
 $PLANG=array();
-if(file_exists($plugin_path."/lang/".$user['Language'].".php")) {
-   include_once($plugin_path."/lang/".$user['Language'].".php");
+if(file_exists($plugin_path."/lang/".$user->Language().".php")) {
+   include_once($plugin_path."/lang/".$user->Language().".php");
 }
 
 function pLang($name)

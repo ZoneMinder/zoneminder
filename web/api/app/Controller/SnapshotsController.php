@@ -18,7 +18,7 @@ class SnapshotsController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user['Snapshots'] != 'None');
+    $canView = (!$user) || ($user->Snapshots() != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -93,7 +93,7 @@ class SnapshotsController extends AppController {
       global $user;
       # We already tested for auth in appController,
       # so we just need to test for specific permission
-      $canEdit = (!$user) || ($user['Snapshots'] == 'Edit');
+      $canEdit = (!$user) || ($user->Snapshots() == 'Edit');
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
@@ -134,7 +134,7 @@ class SnapshotsController extends AppController {
       global $user;
       # We already tested for auth in appController,
       # so we just need to test for specific permission
-      $canEdit = (!$user) || ($user['Snapshots'] == 'Edit');
+      $canEdit = (!$user) || ($user->Snapshots() == 'Edit');
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
@@ -176,7 +176,7 @@ class SnapshotsController extends AppController {
     global $user;
     # We already tested for auth in appController,
     # so we just need to test for specific permission
-    $canEdit = (!$user) || ($user['Snapshots'] == 'Edit');
+    $canEdit = (!$user) || ($user->Snapshots() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

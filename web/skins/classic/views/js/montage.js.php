@@ -4,6 +4,7 @@
 
 const COMPACT_MONTAGE = <?php echo ZM_WEB_COMPACT_MONTAGE ?>;
 const POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
+const ZM_DIR_SOUNDS = '<?php echo ZM_DIR_SOUNDS ?>';
 
 const statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
 
@@ -17,9 +18,12 @@ foreach ( $monitors as $monitor ) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $monitor->Id() ?>,
+  'server_id': '<?php echo $monitor->ServerId() ?>',
   'connKey': '<?php echo $monitor->connKey() ?>',
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
+  'RTSP2WebEnabled':<?php echo $monitor->RTSP2WebEnabled() ?>,
+  'RTSP2WebType':'<?php echo $monitor->RTSP2WebType() ?>',
   'janusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'url_to_zms': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',

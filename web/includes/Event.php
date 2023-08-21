@@ -113,6 +113,13 @@ class Event extends ZM_Object {
     return $this->{'Time'};
   }
 
+  public function StartDateTimeSecs() {
+    return strtotime($this->{'StartDateTime'});
+  }
+  public function EndDateTimeSecs() {
+    return strtotime($this->{'EndDateTime'});
+  }
+
   public function Path() {
     $Storage = $this->Storage();
     if ( $Storage->Path() and $this->Relative_Path() ) {
@@ -378,7 +385,11 @@ class Event extends ZM_Object {
       null);
 
     $args['eid'] = $this->{'Id'};
-    $args['fid'] = 'snapshot';
+    if (file_exists($this->Path().'/objdetect.jpg')) {
+      $args['fid'] = 'objdetect';
+    } else {
+      $args['fid'] = 'snapshot';
+    }
     $args['view'] = 'image';
     $args['width'] = $this->ThumbnailWidth();
     $args['height'] = $this->ThumbnailHeight();
@@ -645,10 +656,10 @@ class Event extends ZM_Object {
     }
     if (!$this->Monitor()->canView($u)) return false;
 
-    if ($u['Events'] != 'None') {
+    if ($u->Events() != 'None') {
       return true;
     }
-    if ($u['Snapshots'] != 'None') {
+    if ($u->Snapshots() != 'None') {
       # If the event is contained in a snapshot, then we can still view it.
       if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
         return true;
@@ -663,7 +674,7 @@ class Event extends ZM_Object {
       return false;
     }
     if (!$this->Monitor()->canView($u)) return false;
-    if ($u['Events'] != 'Edit') {
+    if ($u->Events() != 'Edit') {
       return false;
     }
     return true;

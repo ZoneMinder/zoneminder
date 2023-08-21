@@ -255,7 +255,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     int id_diff = id - last_id;
     Microseconds delta =
         std::chrono::duration_cast<Microseconds>(id_diff ? (offset - last_offset) / id_diff : (offset - last_offset));
-    Debug(1, "New delta %f from id_diff %d = id %d - last_id %d offset %f - last)_offset %f",
+    Debug(4, "New delta %f from id_diff %d = id %d - last_id %d offset %f - last)_offset %f",
         FPSeconds(delta).count(), id_diff, id, last_id, FPSeconds(offset).count(), FPSeconds(last_offset).count());
 
     // Fill in data between bulk frames
@@ -269,7 +269,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
             false
             );
         last_frame = &frame;
-        Debug(3, "Frame %d %d timestamp (%f s), offset (%f s) delta (%f s), in_db (%d)",
+        Debug(4, "Frame %d %d timestamp (%f s), offset (%f s) delta (%f s), in_db (%d)",
               i, frame.id,
               FPSeconds(frame.timestamp.time_since_epoch()).count(),
               FPSeconds(frame.offset).count(),
@@ -282,7 +282,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     last_id = id;
     last_offset = offset;
     last_timestamp = timestamp;
-    Debug(3, "Frame %d timestamp (%f s), offset (%f s), delta(%f s), in_db(%d)",
+    Debug(4, "Frame %d timestamp (%f s), offset (%f s), delta(%f s), in_db(%d)",
           id,
           FPSeconds(frame.timestamp.time_since_epoch()).count(),
           FPSeconds(frame.offset).count(),
@@ -648,6 +648,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     double progress;
     int rate;
     int zoom;
+    int scale;
     bool paused;
   } status_data = {};
 
@@ -658,14 +659,17 @@ void EventStream::processCommand(const CmdMsg *msg) {
   status_data.progress = std::chrono::duration<double>(event_data->frames[curr_frame_id-1].offset).count();
   status_data.rate = replay_rate;
   status_data.zoom = zoom;
+  status_data.scale = scale;
   status_data.paused = paused;
-  Debug(2, "Event:%" PRIu64 ", Duration %f, Paused:%d, progress:%f Rate:%d, Zoom:%d",
+  Debug(2, "Event:%" PRIu64 ", Duration %f, Paused:%d, progress:%f Rate:%d, Zoom:%d Scale:%d",
         status_data.event_id,
         FPSeconds(status_data.duration).count(),
         status_data.paused,
         FPSeconds(status_data.progress).count(),
         status_data.rate,
-        status_data.zoom);
+        status_data.zoom,
+        status_data.scale
+        );
 
   DataMsg status_msg;
   status_msg.msg_type = MSG_DATA_EVENT;
@@ -830,13 +834,13 @@ bool EventStream::sendFrame(Microseconds delta_us) {
 
       if (!filepath.empty()) {
         image = new Image(filepath.c_str());
-      } else if ( ffmpeg_input ) {
+      } else if (ffmpeg_input) {
         // Get the frame from the mp4 input
         const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
         AVFrame *frame =
             ffmpeg_input->get_frame(ffmpeg_input->get_video_stream_id(), FPSeconds(frame_data->offset).count());
         if (frame) {
-          image = new Image(frame);
+          image = new Image(frame, monitor->Width(), monitor->Height());
         } else {
           Error("Failed getting a frame.");
           return false;
@@ -1078,7 +1082,7 @@ void EventStream::runStream() {
           }
           now = std::chrono::steady_clock::now();
           TimePoint::duration elapsed = now - start;
-          delta -= std::chrono::duration_cast<Milliseconds>(elapsed); // sending frames takes time, so remove it from the sleep time
+          delta -= std::chrono::duration_cast<Microseconds>(elapsed); // sending frames takes time, so remove it from the sleep time
 
           Debug(2, "New delta: %fs from last frame offset %fs - next_frame_offset %fs - elapsed %fs",
               FPSeconds(delta).count(),

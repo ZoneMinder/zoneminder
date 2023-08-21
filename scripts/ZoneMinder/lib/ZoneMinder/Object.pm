@@ -86,7 +86,7 @@ sub new {
 
   if ( $id and (!$no_cache) and $$sub_cache{$id} ) {
     if ( $data ) {
-      # The reason to use load is if we have overriden it in the object,
+      # The reason to use load is if we have overridden it in the object,
       $$sub_cache{$id}->load( $data );
     } 
     return $$sub_cache{$id};
@@ -239,7 +239,7 @@ $log->debug("No serial") if $debug;
 					ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
 					return $local_dbh->errstr;
 				} elsif ( $debug ) {
-					$log->debug("SQL succesful DELETE FROM $table WHERE $where");
+					$log->debug("SQL successful DELETE FROM $table WHERE $where");
 				} # end if
 			} # end if
 			$insert = 1;
@@ -818,7 +818,7 @@ sub find_sql {
 
 	my @param_keys = keys %$params;
 
-	# no operators, just which fields are being searched on. Mostly just useful for detetion of the deleted field.
+	# no operators, just which fields are being searched on. Mostly just useful for detection of the deleted field.
 	my %used_fields;
 
 	# We use this search hash so that we can mash it up and leave the params hash alone

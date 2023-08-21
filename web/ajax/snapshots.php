@@ -9,7 +9,7 @@ $data = array();
 //
 
 if (!canView('Snapshots'))
-  $message = 'Insufficient permissions for user '.$user['Username'];
+  $message = 'Insufficient permissions for user '.$user->Username();
 
 $task = '';
 if (empty($_REQUEST['task'])) {
@@ -73,7 +73,7 @@ if (isset($_REQUEST['limit'])) {
 switch ($task) {
   case 'delete' :
 		if (!canEdit('Snapshots'))  {
-			ajaxError('Insufficient permissions for user '.$user['Username']);
+			ajaxError('Insufficient permissions for user '.$user->Username());
 			return;
 		}
 
@@ -200,8 +200,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     foreach ( $snapshot->Events() as $event ) {
       $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
       $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
-
-      $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" loading="lazy" />';
+      $row['imgHtml'] .= '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" loading="lazy" />'.PHP_EOL;
     }
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Description'] = validHtmlStr($row['Description']);

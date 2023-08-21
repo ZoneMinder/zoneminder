@@ -844,6 +844,15 @@ $OLANG = array(
       for new images. In this case, it is safe to use the field.
       '
 	),
+	'OPTIONS_ALARMMAXFPS' => array(
+    'Help' => '
+    This field has certain limitations when used for non-local devices.~~
+    Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping,
+    and missed events~
+    This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS 
+    setting, leaving this blank implies no limit.
+    '
+	),
 	'OPTIONS_LINKED_MONITORS' => array(
     'Help' => '
       This field allows you to select other monitors on your system that act as 
@@ -896,6 +905,16 @@ OnDemand: only do decoding when someone is watching.~~~~
 KeyFrames: Only keyframes will be decoded, so viewing frame rate will be very low, depending on the keyframe interval set in the camera.~~~~
 None: No frames will be decoded, live view and thumbnails will not be available~~~~
 '
+  ),
+  'FUNCTION_RTSP2WEB_ENABLED' => array(
+    'Help' => '
+      Attempt to use RTSP2Web streaming server for h264/h265 live view. Experimental, but allows
+      for significantly better performance.'
+  ),
+  'FUNCTION_RTSP2WEB_TYPE' => array(
+    'Help' => '
+      RTSP2Web supports MSE (Media Source Extensions), HLS (HTTP Live Streaming), and WebRTC.
+      Each has its advantages, with WebRTC probably being the most performant, but also the most picky about codecs.'
   ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '

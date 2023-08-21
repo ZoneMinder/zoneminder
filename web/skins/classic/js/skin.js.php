@@ -96,9 +96,8 @@ const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
 var auth_relay = '<?php echo get_auth_relay() ?>';
 var user = <?php
-$user_without_password = $user;
-unset($user_without_password['Password']);
-echo json_encode($user_without_password);
+
+echo $user ? json_encode($user->expose(['Password'])) : '{}';
 ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 

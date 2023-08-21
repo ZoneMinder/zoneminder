@@ -14,6 +14,7 @@
 // Import constants
 //
 
+var ZM_DIR_SOUNDS = "<?php echo ZM_DIR_SOUNDS ?>";
 var POPUP_ON_ALARM = <?php echo ZM_WEB_POPUP_ON_ALARM ?>;
 var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 
@@ -42,9 +43,12 @@ foreach ($monitors as $m) {
 ?>
 monitorData[monitorData.length] = {
   'id': <?php echo $m->Id() ?>,
+  'server_id': '<?php echo $m->ServerId() ?>',
   'connKey': <?php echo $m->connKey() ?>,
   'width': <?php echo $m->ViewWidth() ?>,
   'height':<?php echo $m->ViewHeight() ?>,
+  'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
+  'RTSP2WebType':'<?php echo $m->RTSP2WebType() ?>',
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,
   'url': '<?php echo $m->UrlToIndex() ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $m->Id() ?>' );},

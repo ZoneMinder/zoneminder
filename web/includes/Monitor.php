@@ -130,6 +130,7 @@ public static function getStatuses() {
   protected $defaults = array(
     'Id' => null,
     'Name' => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Monitor'),
+    'Deleted' => 0,
     'Notes' => '',
     'ServerId' => 0,
     'StorageId' => 0,
@@ -144,6 +145,8 @@ public static function getStatuses() {
     'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
+    'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
+    'RTSP2WebType'   => 'HLS',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
@@ -186,12 +189,12 @@ public static function getStatuses() {
     'Decoder'  =>  '',
     'DecoderHWAccelName'  =>  null,
     'DecoderHWAccelDevice'  =>  null,
-    'SaveJPEGs' =>  2,
+    'SaveJPEGs' =>  0,
     'VideoWriter' =>  '2',
     'OutputCodec' =>  null,
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
-    'EncoderParameters' => "# Lines beginning with # are a comment \n# For changing quality, use the crf option\n# 1 is best, 51 is worst quality\ncrf=23\n",
+    'EncoderParameters' => '',
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
     #'OutputSourceStream'  => 'Primary',
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
@@ -200,12 +203,12 @@ public static function getStatuses() {
     'Hue'         =>  -1,
     'Colour'      =>  -1,
     'EventPrefix' =>  'Event-',
-    'LabelFormat' => '%N - %d/%m/%y %H:%M:%S',
+    'LabelFormat' => '',
     'LabelX'      =>  0,
     'LabelY'      =>  0,
     'LabelSize'   =>  2,
     'ImageBufferCount'  =>  3,
-    'MaxImageBufferCount'  =>  0,
+    'MaxImageBufferCount'  =>  121,
     'WarmupCount' =>  0,
     'PreEventCount' =>  5,
     'PostEventCount'  =>  5,
@@ -216,7 +219,7 @@ public static function getStatuses() {
     'MinSectionLength'    =>  10,
     'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,
-    'AnalysisFPSLimit'  =>  null,
+    'AnalysisFPSLimit'  =>  2,
     'AnalysisUpdateDelay'  =>  0,
     'MaxFPS' => null,
     'AlarmMaxFPS' => null,
@@ -272,6 +275,22 @@ public static function getStatuses() {
     'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
+
+  public function save($data = null) {
+    if ($data) $this->set($data);
+    if ($this->Manufacturer() and $this->Manufacturer()->Name() and ! $this->Manufacturer->Id()) {
+      if ($this->Manufacturer()->save()) {
+        $this->ManufacturerId = $this->Manufacturer()->Id();
+      }
+    }
+    if ($this->Model() and $this->Model()->Name() and ! $this->Model->Id()) {
+      if ($this->Model()->save(['ManufacturerId'=>$this->ManufacturerId])) {
+        $this->ModelId = $this->Model()->Id();
+      }
+    }
+    return parent::save();
+  }
+
   public function Janus_Pin() {
     if (!$this->{'JanusEnabled'}) return '';
 
@@ -569,8 +588,12 @@ public static function getStatuses() {
   }
 
   public function delete() {
+    $this->save(['Deleted'=>true]);
+  }
+  public function destroy() {
+    $this->zmcControl('stop');
     if (!$this->{'Id'}) {
-      Warning('Attempt to delete a monitor without id.');
+      Warning('Attempt to destroy a monitor without id.');
       return;
     }
     $this->zmcControl('stop');
@@ -601,7 +624,7 @@ public static function getStatuses() {
     dbQuery('DELETE FROM Monitor_Status WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Event_Summaries WHERE MonitorId = ?', array($this->{'Id'}));
     dbQuery('DELETE FROM Monitors WHERE Id = ?', array($this->{'Id'}));
-  } // end function delete
+  } // end function destroy
 
   public function Storage($new = null) {
     if ($new) {
@@ -675,7 +698,7 @@ public static function getStatuses() {
     # Convert from a command line params to an option array
     foreach (explode(' ', $command) as $option) {
       if (preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches)) {
-        $options[$matches[1]] = $matches[2]?$matches[2]:1;
+        $options[$matches[1]] = isset($matches[2]) ? $matches[2] : 1;
       } else if ($option != '' and $option != 'quit' and $option != 'start' and $option != 'stop') {
         Warning("Ignored command for zmcontrol $option in $command");
       }
@@ -754,17 +777,17 @@ public static function getStatuses() {
 
   function canEdit($u=null) {
     global $user;
-    if ($u===null or $u['Id'] == $user['Id'])
+    if ($u===null or $u->Id() == $user->Id())
       return editableMonitor($this->{'Id'});
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = $u->Monitor_Permission($this->{'Id'});
     if ($monitor_permission and
       ($monitor_permission->Permission() == 'None' or $monitor_permission->Permission() == 'View')) {
       Debug("Can't edit monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user['Id']));
+    $group_permissions = $u->Group_Permissions();
 
     # If denied view in any group, then can't view it.
     foreach ($group_permissions as $permission) {
@@ -778,23 +801,23 @@ public static function getStatuses() {
 
   function canView($u=null) {
     global $user;
-    if (($u === null) or ($u['Id'] == $user['Id']))
+    if (($u === null) or ($u->Id() == $user->Id()))
       return visibleMonitor($this->Id());
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u['Id'], 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = $u->Monitor_Permission($this->{'Id'});
     if ($monitor_permission and ($monitor_permission->Permission() == 'None')) {
-      Debug("Can't view monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
+      Debug('Can\'t view monitor '.$this->{'Id'}.' because of monitor permission '.$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user['Id']));
+    $group_permissions = $u->Group_Permissions();
 
     # If denied view in any group, then can't view it.
     $group_permission_value = 'Inherit';
     foreach ($group_permissions as $permission) {
-      $value = $pmerssion->MonitorPermission($mid);
+      $value = $permission->MonitorPermission($this->Id());
       if ($value == 'None') {
-        Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+        Debug('Can\'t view monitor '.$this->{'Id'}.' because of group '.$permission->Group()->Name().' '.$permission->Permission());
         return false;
       }
       if ($value == 'Edit' or $value == 'View') {
@@ -802,7 +825,7 @@ public static function getStatuses() {
       }
     }
   if ($group_permission_value != 'Inherit') return true;
-    return ($u['Monitors'] != 'None');
+    return ($u->Monitors() != 'None');
   } # end function canView
 
   function AlarmCommand($cmd) {
@@ -850,7 +873,21 @@ public static function getStatuses() {
   function DisableAlarms() {
     $output = $this->AlarmCommand('disable');
   }
-  function Model() {
+  function Model($new=-1) {
+    if ($new != -1) {
+      Debug("New model $new");
+      $model = Model::find_one(['Name'=>$new]);
+      if (!$model) {
+        $model = new Model();
+        $model->set(['Name'=>$new, 'ManufacturerId'=>$this->ManufacturerId()]);
+        $this->Model = $model;
+        if ($this->ModelId) $this->ModelId = null;
+        Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId);
+      } else {
+        $this->ModelId = $model->Id();
+        Debug("Foud model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId);
+      }
+    }
     if (!property_exists($this, 'Model')) {
       if (property_exists($this, 'ModelId') and $this->{'ModelId'}) {
         $this->{'Model'} = Model::find_one(array('Id'=>$this->ModelId()));
@@ -862,7 +899,20 @@ public static function getStatuses() {
     }
     return $this->{'Model'};
   }
-  function Manufacturer() {
+  function Manufacturer($new=-1) {
+    if ($new != -1) {
+      $manufacturer = Manufacturer::find_one(array('Name'=>$new));
+      if (!$manufacturer) {
+        $manufacturer = new Manufacturer();
+        $manufacturer->set(['Name'=>$new]);
+        $this->Manufacturer = $manufacturer;
+        if ($this->ManufacturerId)
+          $this->ManufacturerId = null;
+      } else {
+        $this->ManufacturerId = $manufacturer->Id();
+      }
+    }
+
     if (!property_exists($this, 'Manufacturer')) {
       if (property_exists($this, 'ManufacturerId') and $this->{'ManufacturerId'}) {
         $this->{'Manufacturer'} = Manufacturer::find_one(array('Id'=>$this->ManufacturerId()));
@@ -877,13 +927,14 @@ public static function getStatuses() {
   function getMonitorStateHTML() {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
+<span class="MonitorName">'.$this->Name().'</span>
   <div id="monitorState'.$this->Id().'" class="monitorState">
-    <span>'.translate('State').':<span id="stateValue'.$this->Id().'"></span></span>
-    <span id="viewingFPS'.$this->Id().'" title="'.translate('Viewing FPS').'"><span id="viewingFPSValue'.$this->Id().'"></span> fps</span>
-    <span id="captureFPS'.$this->Id().'" title="'.translate('Capturing FPS').'"><span id="captureFPSValue'.$this->Id().'"></span> fps</span>
+    <span>'.translate('State').':<span id="stateValue'.$this->Id().'">'.$this->Status().'</span></span>
+    <span class="viewingFPS" id="viewingFPS'.$this->Id().'" title="'.translate('Viewing FPS').'"><span id="viewingFPSValue'.$this->Id().'"></span> fps</span>
+    <span class="captureFPS" id="captureFPS'.$this->Id().'" title="'.translate('Capturing FPS').'"><span id="captureFPSValue'.$this->Id().'"></span> fps</span>
 ';
     if ($this->Analysing() != 'None') {
-      $html .= '<span id="analysisFPS'.$this->Id().'" title="'.translate('Analysis FPS').'"><span id="analysisFPSValue'.$this->Id().'"></span> fps</span>
+      $html .= '<span class="analysisFPS" id="analysisFPS'.$this->Id().'" title="'.translate('Analysis FPS').'"><span id="analysisFPSValue'.$this->Id().'"></span> fps</span>
       ';
     }
     $html .= '
@@ -953,7 +1004,7 @@ public static function getStatuses() {
       $options['buffer'] = $this->StreamReplayBuffer();
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
     $html = '
-          <div id="monitor'. $this->Id() . '" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
+          <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
             <div
               id="imageFeed'. $this->Id() .'"
               class="monitorStream imageFeed"
@@ -981,7 +1032,7 @@ public static function getStatuses() {
         'format' => ZM_MPEG_LIVE_FORMAT
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
-    } else if ( $this->JanusEnabled() ) {
+    } else if ( $this->JanusEnabled() or $this->RTSP2WebEnabled()) {
       $html .= '<video id="liveStream'.$this->Id().'" '.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
         ' autoplay muted controls playsinline=""></video>';
@@ -1026,7 +1077,7 @@ public static function getStatuses() {
   public function effectivePermission($u=null) {
     if ($u === null) {
       global $user;
-      $u = new User($user);
+      $u = $user;
     }
     $monitor_permission = $u->Monitor_Permission($this->Id());
     if ($monitor_permission->Permission() != 'Inherit') {
@@ -1045,6 +1096,10 @@ public static function getStatuses() {
     if (isset($gp_permissions['View'])) return 'View';
     if (isset($gp_permissions['Edit'])) return 'Edit';
     return $u->Monitors();
+  }
+
+  public function link_to($text='') {
+    return '<a href="?view=monitor&mid='.$this->Id().'">'.($text ? $text : $this->Name()).'</a>';
   }
 } // end class Monitor
 ?>

@@ -69,8 +69,8 @@ $eventsSql = 'SELECT *,
   FROM Events AS E
   WHERE 1 > 0 
 ';
-if ( !empty($user['MonitorIds']) ) {
-  $eventsSql .= ' AND MonitorId IN ('.$user['MonitorIds'].')';
+if ( count($user->unviewableMonitorIds()) ) {
+  $eventsSql .= ' AND MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
 }
 if ( count($selected_monitor_ids) ) {
   $eventsSql .= ' AND MonitorId IN ('.implode(',', $selected_monitor_ids).')';

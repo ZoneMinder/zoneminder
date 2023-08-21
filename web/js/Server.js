@@ -54,6 +54,13 @@ var Server = function() {
         const url = this.urlToApi() + (arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '');
         return fetch(url + '?' + auth_relay + (arguments.length > 1 && arguments[1] !== undefined ? '&'+arguments[1] : ''));
       }
+    },
+    {
+      key: 'urlToJanus',
+      value: function urlToJanus() {
+        const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
+        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : '') + '/janus';
+      }
     }
   ]);
 

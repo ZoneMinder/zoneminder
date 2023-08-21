@@ -40,6 +40,7 @@
 	Router::mapResources('snapshots');
 	Router::mapResources('states');
 	Router::mapResources('users');
+	Router::mapResources('user_preference');
 	Router::mapResources('zonepresets');
 	Router::mapResources('zones');
 

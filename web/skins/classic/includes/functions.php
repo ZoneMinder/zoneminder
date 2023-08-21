@@ -206,6 +206,9 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <!--
     <div class="nav justify-content-end flex-grow-1">
 -->
+<?php 
+  if ((!ZM_OPT_USE_AUTH) or $user) {
+?>
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon">
@@ -225,7 +228,6 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 <?php
 
   // *** Build the navigation bar menu items ***
-  if ( $user and $user['Username'] ) {
         echo '<ul class="nav navbar-nav align-self-start justify-content-center">';
           echo getConsoleHTML();
           echo getOptionsHTML();
@@ -250,7 +252,6 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
         echo '</ul>
     </div>
       ';
-  }
 ?>
   </nav><!-- End First Navbar -->
 
@@ -259,8 +260,6 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
 >
     <div class="container-fluid" id="panel" >
 <?php
-
-  if ( (!ZM_OPT_USE_AUTH) or $user ) {
 
 // *** Build the statistics shown on the navigation bar ***
 ?>
@@ -285,12 +284,12 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
         </ul>
       </div>
 <?php
-  } // end if (!ZM_OPT_USE_AUTH) or $user )
 ?>
     </div><!-- End Collapsible Panel -->
   </nav><!-- End Second Navbar -->
   
 <?php
+  } // end if (!ZM_OPT_USE_AUTH) or $user )
   $banner_html = getConsoleBannerHTML();
   if ($banner_html) {
     echo '<nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">'.$banner_html.'</nav>';
@@ -360,7 +359,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 
       <div style="background-color:#485460" class="dropdown-menu dropdown-menu-right px-3" id="main-header-nav">
       <?php
-      if ( $user and $user['Username'] ) {
+      if ( $user and $user->Username() ) {
           echo '<ul class="navbar-nav">';
             echo getConsoleHTML();
             echo getOptionsHTML();
@@ -427,9 +426,9 @@ function getStorageHTML() {
 
   $func = function($S, $class='') {
     if ( $S->disk_usage_percent() > 98 ) {
-      $class = 'text-danger';
-    } else if ( $S->disk_usage_percent() > 90 ) {
-      $class = 'text-warning';
+      $class .= 'text-danger';
+    } else if ( $S->disk_usage_percent() > 95 ) {
+      $class .= 'text-warning';
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
@@ -443,7 +442,7 @@ function getStorageHTML() {
   $full_error = 0;
   foreach ( $storage_areas as $area ) {  
     if ( $area->disk_usage_percent() > 98 ) { $full_error++; continue; }
-    if ( $area->disk_usage_percent() > 90 ) $full_warning++;    
+    if ( $area->disk_usage_percent() > 95 ) $full_warning++;
   } 
   
   $class = '';
@@ -541,30 +540,31 @@ function getConsoleBannerHTML() {
 function getBandwidthHTML($bandwidth_options, $user) {
 
   # Limit available options to what are available in user
-  if ( $user && !empty($user['MaxBandwidth']) ) {
-    if ( $user['MaxBandwidth'] == 'low' ) {
+  if ( $user && !empty($user->MaxBandwidth()) ) {
+    if ( $user->MaxBandwidth() == 'low' ) {
       unset($bandwidth_options['high']);
       unset($bandwidth_options['medium']);
-    } else if ( $user['MaxBandwidth'] == 'medium' ) {
+    } else if ( $user->MaxBandwidth() == 'medium' ) {
       unset($bandwidth_options['high']);
     }
   }
 
-  $result = '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-  $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
+  $result = '';
+  if (count($bandwidth_options) > 1) {
+    $result .= '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
 
-  $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
-  if ( count($bandwidth_options) > 1 ) {
+    $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
     if ( isset($bandwidth_options['high']) )
       $result .= '<a data-pdsa-dropdown-val="high" class="dropdown-item bwselect" href="#">' .translate('High'). '</a>'.PHP_EOL;
     if ( isset($bandwidth_options['medium']) )
       $result .= '<a data-pdsa-dropdown-val="medium" class="dropdown-item bwselect" href="#">' .translate('Medium'). '</a>'.PHP_EOL;
     # low is theoretically always available
     $result .= '<a data-pdsa-dropdown-val="low" class="dropdown-item bwselect" href="#">' .translate('Low'). '</a>'.PHP_EOL;    
-  }
-  $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
 
-  $result .= '</li>'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  }
     
   return $result;
 }
@@ -828,7 +828,7 @@ function getAccountCircleHTML($skin, $user=null) {
   
   if ( ZM_OPT_USE_AUTH and $user ) {
     $result .= '<li id="getAccountCircleHTML" class="navbar-text navbar-nav mr-2">'.PHP_EOL;
-    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '. validHtmlStr($user['Username']),
+    $result .= makeLink('#', '<i class="material-icons">account_circle</i> '. validHtmlStr($user->Username()),
       (ZM_AUTH_TYPE == 'builtin'), 'id="logoutButton" data-toggle="modal" data-target="#modalLogout" data-backdrop="false"' ).PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }

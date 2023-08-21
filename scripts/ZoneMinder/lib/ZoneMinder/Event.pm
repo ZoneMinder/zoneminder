@@ -505,33 +505,34 @@ sub delete_files {
       }
     } # end if Scheme eq Deep
 
-    # Now check for empty directories and delete them.
-    my @path_parts = split('/', $event_path);
-    pop @path_parts;
-    # Guaranteed the first part is the monitor id
-    Debug("Initial path_parts: @path_parts");
-    while ( @path_parts > 1 ) {
-      my $path = join('/', $storage_path, @path_parts);
-      my $dh;
-      if ( !opendir($dh, $path) ) {
-        Warning("Fail to open $path");
-        last;
-      }
-      my @dir =  readdir($dh);
-      closedir($dh);
-      if ( scalar(grep { $_ ne '.' and $_ ne '..' } @dir) == 0 ) {
-        Debug("Removing empty dir at $path");
-        if ( !rmdir $path ) {
-          Warning("Fail to rmdir $path: $!");
+    if ($Storage->Type() ne 's3fs') {
+      # Now check for empty directories and delete them.
+      my @path_parts = split('/', $event_path);
+      pop @path_parts;
+      # Guaranteed the first part is the monitor id
+      Debug("Initial path_parts: @path_parts");
+      while ( @path_parts > 1 ) {
+        my $path = join('/', $storage_path, @path_parts);
+        my $dh;
+        if ( !opendir($dh, $path) ) {
+          Warning("Fail to open $path");
           last;
         }
-      } else {
-        Debug(4, "Dir $path is not empty @dir");
-        last;
-      }
-      pop @path_parts;
-    } # end while path_parts
-
+        my @dir =  readdir($dh);
+        closedir($dh);
+        if ( scalar(grep { $_ ne '.' and $_ ne '..' } @dir) == 0 ) {
+          Debug("Removing empty dir at $path");
+          if ( !rmdir $path ) {
+            Warning("Fail to rmdir $path: $!");
+            last;
+          }
+        } else {
+          Debug(4, "Dir $path is not empty @dir");
+          last;
+        }
+        pop @path_parts;
+      } # end while path_parts
+    } # end if not s3fs
   } # end foreach Storage
 } # end sub delete_files
 
@@ -693,7 +694,7 @@ sub CopyTo {
 
   my $moved = 0;
 
-  if ( $$NewStorage{Type} eq 's3fs' ) {
+  if ($$NewStorage{Type} eq 's3fs') {
     my $s3 = $NewStorage->s3();
     my $bucket = $NewStorage->bucket();
     if ($s3 and $bucket) {
@@ -740,12 +741,16 @@ sub CopyTo {
       }
     }
     return $error if $error;
-    my @files = glob("$OldPath/*");
+    Debug("Made new path at $NewPath, starting to glob");
+    opendir(my $dh, $OldPath) || return "Failed to open $OldPath";
+    my @files = readdir($dh);
     return 'No files to move.' if !@files;
 
     for my $file (@files) {
       next if $file =~ /^\./;
       ($file) = ($file =~ /^(.*)$/); # De-taint
+      $file = $OldPath.'/'.$file;
+      next if !-f $file;
       my $starttime = [gettimeofday];
       my $size = -s $file;
       if (!File::Copy::copy($file, $NewPath)) {

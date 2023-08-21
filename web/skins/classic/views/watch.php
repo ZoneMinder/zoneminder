@@ -103,7 +103,15 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
   $showCycle = $_COOKIE['zmCycleShow'] == 'true';
 }
 #Whether to show the controls button
-$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
+$hasPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
+$showPtzControls = false;
+if ($hasPtzControls) {
+  if (isset($_REQUEST['ptzShow']) and ($_REQUEST['ptzShow'] == 'true')) {
+    $showPtzControls = true;
+  } else if (isset($_COOKIE['ptzShow'])) {
+    $showPtzControls = $_COOKIE['ptzShow'] == 'true';
+  }
+}
 
 $options = array();
 if (0) {
@@ -135,10 +143,14 @@ if (isset($_REQUEST['period'])) {
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
-  $scale = $_COOKIE['zmWatchScale'.$mid];
-  if ($scale == '0') $scale = '0';
+  $scale = validInt($_COOKIE['zmWatchScale'.$mid]);
 } else {
   $scale = $monitor->DefaultScale();
+}
+if ( !isset($scales[$scale])) {
+  ZM\Info("Invalid scale found in cookie: $scale, defaulting to auto");
+  zm_setcookie('zmWatchScale'.$mid, 0);
+  $scale = 0;
 }
 $options['scale'] = $scale;
 
@@ -161,10 +173,12 @@ if (
   or 
   ($options['height'] and ($options['height'] != 'auto'))
 ) {
-  $options['scale'] = 'auto';
+  $options['scale'] = 0;
 }
 if ($monitor->JanusEnabled()) {
   $streamMode = 'janus';
+} else if ($monitor->RTSP2WebEnabled()) {
+  $streamMode = $monitor->RTSP2WebType();
 } else {
   $streamMode = getStreamMode();
 }
@@ -205,6 +219,9 @@ echo getNavBarHTML() ?>
 -->
         <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
             <span class="material-icons md-18">view_carousel</span>
+        </button>
+        <button type="button" id="ptzToggle" class="btn <?php echo $showPtzControls ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle PTZ Controls')?>">
+            <span class="material-icons md-18">open_with</span>
         </button>
         <span id="rateControl">
           <label><?php echo translate('Rate') ?>:</label>
@@ -337,7 +354,7 @@ if ($streamMode == 'jpeg') {
 <?php
   }
 ?>
-            <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="streamCmdZoomOut">
+            <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="zoomOutClick">
             <i class="material-icons md-18">zoom_out</i>
             </button>
             <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
@@ -349,15 +366,6 @@ if ($streamMode == 'jpeg') {
       </div><!--dvrButtons-->
 <?php } // end if $monitor->Type() != 'WebSite' ?>
 <?php
-if ( $showPtzControls ) {
-    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
-        require_once $includeFile;
-?>
-      <div id="ptzControls" class="ptzControls">
-      <?php echo ptzControls($monitor) ?>
-      </div>
-<?php
-}
 if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 ?>
       <!-- Table styling handled by bootstrap-tables -->
@@ -406,41 +414,15 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
       </div>
     </div>
 <?php
-}
-if ( ZM_WEB_SOUND_ON_ALARM ) {
-    $soundSrc = ZM_DIR_SOUNDS.'/'.ZM_WEB_ALARM_SOUND;
+if ( $hasPtzControls ) {
+    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
+        require_once $includeFile;
 ?>
-      <div id="alarmSound" class="hidden">
-<?php
-    if ( ZM_WEB_USE_OBJECT_TAGS && isWindows() ) {
-?>
-        <object id="MediaPlayer" width="0" height="0"
-          classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95"
-          codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,0,02,902">
-          <param name="FileName" value="<?php echo $soundSrc ?>"/>
-          <param name="autoStart" value="0"/>
-          <param name="loop" value="1"/>
-          <param name="hidden" value="1"/>
-          <param name="showControls" value="0"/>
-          <embed src="<?php echo $soundSrc ?>"
-            autostart="true"
-            loop="true"
-            hidden="true">
-          </embed>
-        </object>
-<?php
-    } else {
-?>
-        <embed src="<?php echo $soundSrc ?>"
-          autostart="true"
-          loop="true"
-          hidden="true">
-        </embed>
-<?php
-    }
-?>
+      <div id="ptzControls" class="ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
+      <?php echo ptzControls($monitor) ?>
       </div>
 <?php
+}
 }
 ?>
     </div>
@@ -450,6 +432,13 @@ if ( $monitor->JanusEnabled() ) {
 ?>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
   <script src="/javascript/janus/janus.js"></script>
+<?php
+}
+?>
+<?php
+if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+?>
+  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
 <?php
 }
 ?>

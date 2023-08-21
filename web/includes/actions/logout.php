@@ -23,7 +23,7 @@ if ( $action == 'logout' ) {
   userLogout();
   $view = 'login';
 } elseif ( $action == 'config' ) {
-  $redirect = '?view=user&prev=console&uid='.$user['Id'];
+  $redirect = '?view=user&prev=console&uid='.$user->Id();
 }
 
 ?>

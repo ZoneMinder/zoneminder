@@ -35,10 +35,10 @@ if ( empty($view) ) {
 
 if ( isset($user) ) {
   // Bandwidth Limiter
-  if ( !empty($user['MaxBandwidth']) ) {
-    if ( $user['MaxBandwidth'] == 'low' ) {
+  if ($user->MaxBandwidth()) {
+    if ($user->MaxBandwidth() == 'low' ) {
       $_COOKIE['zmBandwidth'] = 'low';
-    } elseif ( $user['MaxBandwidth'] == 'medium' && $_COOKIE['zmBandwidth'] == 'high' ) {
+    } else if ( $user->MaxBandwidth() == 'medium' && $_COOKIE['zmBandwidth'] == 'high' ) {
       $_COOKIE['zmBandwidth'] = 'medium';
     }
   }

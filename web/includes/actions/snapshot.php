@@ -27,7 +27,7 @@ if ( $action == 'create' ) {
     return;
   }
   $snapshot = new ZM\Snapshot();
-  $snapshot->save(array('CreatedBy'=>$user['Id']));
+  $snapshot->save(array('CreatedBy'=>$user->Id()));
 
   foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
     if (!validCardinal($monitor_id)) {
@@ -68,7 +68,7 @@ if ( $action == 'create' ) {
 if ( isset($_REQUEST['id']) ) {
   $snapshot = new ZM\Snapshot($_REQUEST['id']);
   if ( ($action == 'save') ) {
-    if ( canEdit('Events') or $snapshot->CreatedBy() == $user['Id'] ) {
+    if ( canEdit('Events') or $snapshot->CreatedBy() == $user->Id() ) {
 
       $changes = $snapshot->changes($_REQUEST['snapshot']);
       if ( count($changes) ) {

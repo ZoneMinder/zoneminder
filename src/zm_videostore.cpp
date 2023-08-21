@@ -152,6 +152,11 @@ bool VideoStore::open() {
       Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    } else {
+      if (monitor->has_out_of_order_packets()) {
+        reorder_queue_size = monitor->get_max_keyframe_interval();
+        Debug(1, "reorder_queue_size set to %zu because we have out of order packets", reorder_queue_size);
+      }
     }
   }
 
@@ -241,7 +246,7 @@ bool VideoStore::open() {
 
         ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
         if (ret < 0) {
-          Error("Could not initialize stream parameteres");
+          Error("Could not initialize stream parameters");
         }
         av_dict_free(&opts);
         // Reload it for next attempt and/or avformat open
@@ -367,6 +372,14 @@ bool VideoStore::open() {
         ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
         if (ret < 0) {
           Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+	} else {
+		const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+		if (entry) {
+			reorder_queue_size = std::stoul(entry->value);
+			Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+			// remove it to prevent complaining later.
+			av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+		}
         }
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
@@ -418,7 +431,7 @@ bool VideoStore::open() {
       video_out_stream = avformat_new_stream(oc, nullptr);
       ret = avcodec_parameters_from_context(video_out_stream->codecpar, video_out_ctx);
       if (ret < 0) {
-        Error("Could not initialize stream parameteres");
+        Error("Could not initialize stream parameters");
         return false;
       }
     }  // end if copying or transcoding
@@ -496,12 +509,16 @@ bool VideoStore::open() {
               av_make_error_string(ret).c_str());
       }
 
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+      /* Seems like technically we could have multiple channels, so let's not implement this for ffmpeg 5 */
+#else
       if (audio_out_ctx->channels > 1) {
         Warning("Audio isn't mono, changing it.");
         audio_out_ctx->channels = 1;
       } else {
         Debug(3, "Audio is mono");
       }
+#endif
     } // end if is AAC
 
     if (oc->oformat->flags & AVFMT_GLOBALHEADER) {
@@ -777,17 +794,23 @@ bool VideoStore::setup_resampler() {
 
   Debug(2, "Got something other than AAC (%s)", audio_in_codec->name);
 
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#else
   // Some formats (i.e. WAV) do not produce the proper channel layout
   if (audio_in_ctx->channel_layout == 0) {
     Debug(2, "Setting input channel layout to mono");
     // Perhaps we should not be modifying the audio_in_ctx....
     audio_in_ctx->channel_layout = av_get_channel_layout("mono");
   }
+#endif
 
   /* put sample parameters */
   audio_out_ctx->bit_rate = audio_in_ctx->bit_rate <= 32768 ? audio_in_ctx->bit_rate : 32768;
   audio_out_ctx->sample_rate = audio_in_ctx->sample_rate;
   audio_out_ctx->sample_fmt = audio_in_ctx->sample_fmt;
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  av_channel_layout_copy(&audio_out_ctx->ch_layout, &audio_in_ctx->ch_layout);
+#else
   audio_out_ctx->channels = audio_in_ctx->channels;
   audio_out_ctx->channel_layout = audio_in_ctx->channel_layout;
   if (!audio_out_ctx->channel_layout) {
@@ -797,6 +820,7 @@ bool VideoStore::setup_resampler() {
         );
       audio_out_ctx->channel_layout = av_get_default_channel_layout(audio_out_ctx->channels);
   }
+#endif
 
   if (audio_out_codec->supported_samplerates) {
     int found = 0;
@@ -845,7 +869,7 @@ bool VideoStore::setup_resampler() {
 
   audio_out_stream->time_base = (AVRational){1, audio_out_ctx->sample_rate};
   if ((ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx)) < 0) {
-    Error("Could not initialize stream parameteres");
+    Error("Could not initialize stream parameters");
     return false;
   }
   zm_dump_codecpar(audio_out_stream->codecpar);
@@ -859,21 +883,36 @@ bool VideoStore::setup_resampler() {
         audio_out_ctx->time_base.num, audio_out_ctx->time_base.den);
 
   Debug(1,
-        "Audio in bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) layout(%" PRIi64 ") frame_size(%d)",
+        "Audio in bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_in_ctx->bit_rate, audio_in_ctx->sample_rate,
-        audio_in_ctx->channels, audio_in_ctx->sample_fmt,
-        audio_in_ctx->channel_layout, audio_in_ctx->frame_size);
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_in_ctx->ch_layout.nb_channels,
+#else
+        audio_in_ctx->channels,
+#endif
+        audio_in_ctx->sample_fmt,
+        audio_in_ctx->frame_size);
   Debug(1,
-        "Audio out context bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) layout(% " PRIi64 ") frame_size(%d)",
+        "Audio out context bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,
-        audio_out_ctx->channels, audio_out_ctx->sample_fmt,
-        audio_out_ctx->channel_layout, audio_out_ctx->frame_size);
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_out_ctx->ch_layout.nb_channels,
+#else
+        audio_out_ctx->channels,
+#endif
+        audio_out_ctx->sample_fmt,
+        audio_out_ctx->frame_size);
 
   Debug(1,
-        "Audio out stream bit_rate (%" PRIi64 ") sample_rate(%d) channels(%d) fmt(%d) layout(%" PRIi64 ") frame_size(%d)",
+        "Audio out stream bit_rate (%" PRIi64 ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_out_stream->codecpar->bit_rate, audio_out_stream->codecpar->sample_rate,
-        audio_out_stream->codecpar->channels, audio_out_stream->codecpar->format,
-        audio_out_stream->codecpar->channel_layout, audio_out_stream->codecpar->frame_size);
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_out_stream->codecpar->ch_layout.nb_channels,
+#else
+        audio_out_stream->codecpar->channels,
+#endif
+        audio_out_stream->codecpar->format,
+        audio_out_stream->codecpar->frame_size);
 
   /** Create a new frame to store the audio samples. */
   if (!in_frame) {
@@ -892,10 +931,28 @@ bool VideoStore::setup_resampler() {
 
   if (!(fifo = av_audio_fifo_alloc(
           audio_out_ctx->sample_fmt,
-          audio_out_ctx->channels, 1))) {
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+          audio_out_ctx->ch_layout.nb_channels
+#else
+          audio_out_ctx->channels
+#endif
+          , 1))) {
     Error("Could not allocate FIFO");
     return false;
   }
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  if ((ret = swr_alloc_set_opts2(&resample_ctx,
+      &audio_out_ctx->ch_layout,
+      audio_out_ctx->sample_fmt,
+      audio_out_ctx->sample_rate,
+      &audio_in_ctx->ch_layout,
+      audio_in_ctx->sample_fmt,
+      audio_in_ctx->sample_rate,
+      0, nullptr)) < 0) {
+    Error("Could not allocate resample context");
+    return false;
+  }
+#else
   resample_ctx = swr_alloc_set_opts(nullptr,
       audio_out_ctx->channel_layout,
       audio_out_ctx->sample_fmt,
@@ -908,6 +965,7 @@ bool VideoStore::setup_resampler() {
     Error("Could not allocate resample context");
     return false;
   }
+#endif
   if ((ret = swr_init(resample_ctx)) < 0) {
     Error("Could not open resampler %d", ret);
     swr_free(&resample_ctx);
@@ -917,14 +975,23 @@ bool VideoStore::setup_resampler() {
 
   out_frame->nb_samples = audio_out_ctx->frame_size;
   out_frame->format = audio_out_ctx->sample_fmt;
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+  out_frame->ch_layout = audio_out_ctx->ch_layout,
+#else
   out_frame->channels = audio_out_ctx->channels;
   out_frame->channel_layout = audio_out_ctx->channel_layout;
+#endif
   out_frame->sample_rate = audio_out_ctx->sample_rate;
 
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
   unsigned int audioSampleBuffer_size = av_samples_get_buffer_size(
-      nullptr, audio_out_ctx->channels,
+      nullptr,
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+      audio_out_ctx->ch_layout.nb_channels,
+#else
+      audio_out_ctx->channels,
+#endif
       audio_out_ctx->frame_size,
       audio_out_ctx->sample_fmt, 0);
   converted_in_samples = reinterpret_cast<uint8_t *>(av_malloc(audioSampleBuffer_size));
@@ -938,7 +1005,12 @@ bool VideoStore::setup_resampler() {
 
   // Setup the data pointers in the AVFrame
   if (avcodec_fill_audio_frame(
-        out_frame.get(), audio_out_ctx->channels,
+        out_frame.get(),
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        audio_out_ctx->ch_layout.nb_channels,
+#else
+        audio_out_ctx->channels,
+#endif
         audio_out_ctx->sample_fmt,
         (const uint8_t *)converted_in_samples,
         audioSampleBuffer_size, 0) < 0) {

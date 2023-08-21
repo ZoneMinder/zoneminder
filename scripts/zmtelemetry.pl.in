@@ -41,7 +41,7 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-# Setting these as contants for now. 
+# Setting these as constants for now. 
 
 my $help = 0;
 my $force = 0;

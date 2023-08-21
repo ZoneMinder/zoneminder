@@ -96,25 +96,25 @@ function changeSize() {
 
   monitorStream.setScale('0', width, height);
   $j('#scale').val('0');
-  setCookie('zmWatchScale', '0', 3600);
-  setCookie('zmWatchWidth', width, 3600);
-  setCookie('zmWatchHeight', height, 3600);
+  setCookie('zmWatchScale', '0');
+  setCookie('zmWatchWidth', width);
+  setCookie('zmWatchHeight', height);
 } // end function changeSize()
 
 function changeScale() {
-  var scale = $j('#scale').val();
-  setCookie('zmWatchScale'+monitorId, scale, 3600);
+  const scale = $j('#scale').val();
+  setCookie('zmWatchScale'+monitorId, scale);
   $j('#width').val('auto');
   $j('#height').val('auto');
-  setCookie('zmCycleScale', scale, 3600);
-  setCookie('zmWatchWidth', 'auto', 3600);
-  setCookie('zmWatchHeight', 'auto', 3600);
+  setCookie('zmCycleScale', scale);
+  setCookie('zmWatchWidth', 'auto');
+  setCookie('zmWatchHeight', 'auto');
 
   setScale();
 }
 // Implement current scale, as opposed to changing it
 function setScale() {
-  var scale = $j('#scale').val();
+  const scale = $j('#scale').val();
   monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
@@ -393,6 +393,9 @@ function streamCmdZoomIn(x, y) {
 function streamCmdZoomOut() {
   monitorStream.streamCommand(CMD_ZOOMOUT);
 }
+function streamCmdZoomStop() {
+  monitorStream.streamCommand(CMD_ZOOMSTOP);
+}
 
 function streamCmdScale(scale) {
   monitorStream.streamCommand({command: CMD_SCALE, scale: scale});
@@ -579,6 +582,14 @@ function handleClick(event) {
   }
 }
 
+function zoomOutClick(event) {
+  if (event.ctrlKey) {
+    streamCmdZoomStop();
+  } else {
+    streamCmdZoomOut();
+  }
+}
+
 var watchdogInactive = {
   'stream': false,
   'status': false
@@ -667,14 +678,23 @@ function getSettingsModal() {
 
 function processClicks(event, field, value, row, $element) {
   if (field == 'Delete') {
-    $j.getJSON(monitorUrl + '?request=modal&modal=delconfirm')
-        .done(function(data) {
-          insertModalHtml('deleteConfirm', data.html);
-          manageDelConfirmModalBtns();
-          $j('#deleteConfirm').data('eid', row.Id.replace(/(<([^>]+)>)/gi, ''));
-          $j('#deleteConfirm').modal('show');
-        })
-        .fail(logAjaxFail);
+    if (window.event.shiftKey) {
+      var eid = row.Id.replace(/(<([^>]+)>)/gi, '');
+      $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
+          .done(function(data) {
+            table.bootstrapTable('refresh');
+          })
+          .fail(logAjaxFail);
+    } else {
+      $j.getJSON(monitorUrl + '?request=modal&modal=delconfirm')
+          .done(function(data) {
+            insertModalHtml('deleteConfirm', data.html);
+            manageDelConfirmModalBtns();
+            $j('#deleteConfirm').data('eid', row.Id.replace(/(<([^>]+)>)/gi, ''));
+            $j('#deleteConfirm').modal('show');
+          })
+          .fail(logAjaxFail);
+    }
   }
 }
 
@@ -851,6 +871,7 @@ function initPage() {
   } else {
     cyclePause();
   }
+  bindButton('#ptzToggle', 'click', null, ptzToggle);
 } // initPage
 
 function watchFullscreen() {
@@ -921,18 +942,31 @@ function cyclePrev() {
 
 function cyclePeriodChange() {
   const cyclePeriodSelect = $j('#cyclePeriod');
-  secondsToCycle = cyclePeriodSelect.val();
-  setCookie('zmCyclePeriod', secondsToCycle, 3600);
+  setCookie('zmCyclePeriod', cyclePeriodSelect.val());
 }
 function cycleToggle(e) {
-  sidebar = $j('#sidebar');
-  button = $j('#cycleToggle');
+  const sidebar = $j('#sidebar');
+  const button = $j('#cycleToggle');
   if (sidebar.is(":visible")) {
     sidebar.hide();
-    setCookie('zmCycleShow', false, 3600);
+    setCookie('zmCycleShow', false);
   } else {
     sidebar.show();
-    setCookie('zmCycleShow', true, 3600);
+    setCookie('zmCycleShow', true);
+  }
+  button.toggleClass('btn-secondary');
+  button.toggleClass('btn-primary');
+}
+
+function ptzToggle(e) {
+  const controls = $j('#ptzControls');
+  const button = $j('#ptzToggle');
+  if (controls.is(":visible")) {
+    controls.hide();
+    setCookie('ptzShow', false);
+  } else {
+    controls.show();
+    setCookie('ptzShow', true);
   }
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
@@ -954,7 +988,7 @@ function changeRate(e) {
       streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
     }
   }
-  setCookie('zmWatchRate', newvalue, 3600);
+  setCookie('zmWatchRate', newvalue);
 }
 
 // Kick everything off

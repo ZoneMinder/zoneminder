@@ -79,10 +79,10 @@ struct Namespace namespaces[] =
 #endif
 
 // This is the official SQL (and ordering of the fields) to load a Monitor.
-// It will be used whereever a Monitor dbrow is needed. WHERE conditions can be appended
+// It will be used wherever a Monitor dbrow is needed. WHERE conditions can be appended
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-"`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+"SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+"`Recording`+0, `RecordingSource`+0, `Decoding`+0, `RTSP2WebEnabled`, `RTSP2WebType`,"
 "`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
 "`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
 "`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
@@ -95,7 +95,8 @@ std::string load_monitor_sql =
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
 "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
 "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
-"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`,"
+"`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
+"`Latitude`, `Longitude`, "
 "`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`,"
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
@@ -154,6 +155,12 @@ std::string Decoding_Strings[] = {
   "Always"
 };
 
+std::string RTSP2Web_Strings[] = {
+  "HLS",
+  "MSE",
+  "WebRTC"
+};
+
 std::string TriggerState_Strings[] = {
   "Cancel", "On", "Off"
 };
@@ -168,6 +175,8 @@ Monitor::Monitor()
   analysing(ANALYSING_ALWAYS),
   recording(RECORDING_ALWAYS),
   decoding(DECODING_ALWAYS),
+  RTSP2Web_enabled(false),
+  RTSP2Web_type(WEBRTC),
   janus_enabled(false),
   janus_audio_enabled(false),
   janus_profile_override(""),
@@ -237,6 +246,8 @@ Monitor::Monitor()
   signal_check_points(0),
   signal_check_colour(0),
   embed_exif(false),
+  latitude(0.0),
+  longitude(0.0),
   rtsp_server(false),
   rtsp_streamname(""),
   onvif_alarm_txt(""),
@@ -298,6 +309,7 @@ Monitor::Monitor()
   Poll_Trigger_State(false),
   Event_Poller_Healthy(false),
   Event_Poller_Closes_Event(false),
+  RTSP2Web_Manager(nullptr),
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
 #ifdef WITH_GSOAP
@@ -326,8 +338,8 @@ Monitor::Monitor()
 
 /*
    std::string load_monitor_sql =
-   "SELECT `Id`, `Name`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
+   "SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
+   "`Recording`+0, `RecordingSource`+0, `Decoding`+0, RTSP2WebEnabled, RTSP2WebType, JanusEnabled, JanusAudioEnabled, Janus_Profile_Override, Janus_Use_RTSP_Restream, Janus_RTSP_User, Janus_RTSP_Session_Timeout, "
    "LinkedMonitors, `EventStartCommand`, `EventEndCommand`, "
    "AnalysisFPSLimit, AnalysisUpdateDelay, MaxFPS, AlarmMaxFPS,"
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
@@ -350,6 +362,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   id = atoi(dbrow[col]); col++;
   name = dbrow[col]; col++;
+  deleted = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   server_id = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
   storage_id = atoi(dbrow[col]); col++;
@@ -386,6 +399,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
   decoding = (DecodingOption)atoi(dbrow[col]); col++;
   // See below after save_jpegs for a recalculation of decoding_enabled
+  RTSP2Web_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
+  RTSP2Web_type = (RTSP2WebOption)atoi(dbrow[col]); col++;
   janus_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   janus_audio_enabled = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   janus_profile_override = std::string(dbrow[col] ? dbrow[col] : ""); col++;
@@ -511,12 +526,15 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   track_motion = atoi(dbrow[col]); col++;
   embed_exif = (*dbrow[col] != '0'); col++;
 
+  /* These will only be used to init shmem */
+  latitude  = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
+  longitude  = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
+
  /* "`RTSPServer`,`RTSPStreamName`, */
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
 // get alarm text from table.
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : ""); col++;
-
 
    /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
@@ -959,6 +977,7 @@ bool Monitor::connect() {
   if (alarm_image.Buffer() + image_size > mem_ptr + mem_size) {
     Warning("We will exceed memsize by %td bytes!", (alarm_image.Buffer() + image_size) - (mem_ptr + mem_size));
   }
+  image_pixelformats = (AVPixelFormat *)(shared_images + (image_buffer_count*image_size));
 
   if (purpose == CAPTURE) {
     memset(mem_ptr, 0, mem_size);
@@ -969,6 +988,8 @@ bool Monitor::connect() {
     shared_data->signal = false;
     shared_data->capture_fps = 0.0;
     shared_data->analysis_fps = 0.0;
+    shared_data->latitude = latitude;
+    shared_data->longitude = longitude;
     shared_data->state = state = IDLE;
     shared_data->last_write_index = image_buffer_count;
     shared_data->last_read_index = image_buffer_count;
@@ -1005,6 +1026,13 @@ bool Monitor::connect() {
 
     ReloadLinkedMonitors();
 
+    if (RTSP2Web_enabled) {
+      RTSP2Web_Manager = new RTSP2WebManager(this);
+    }
+    if (janus_enabled) {
+      Janus_Manager = new JanusManager(this);
+    }
+
     //ONVIF and Amcrest Setup
     //For now, only support one event type per camera, so share some state.
     Poll_Trigger_State = false;
@@ -1018,56 +1046,90 @@ bool Monitor::connect() {
         Amcrest_Manager = new AmcrestAPI(this);
       } else { //using GSOAP
 #ifdef WITH_GSOAP
-        tev__PullMessages.Timeout = "PT600S";
-        tev__PullMessages.MessageLimit = 100;
+        tev__PullMessages.Timeout = "PT20S";
+        tev__PullMessages.MessageLimit = 10;
+        std::string Termination_time = "PT60S";
+        wsnt__Renew.TerminationTime = &Termination_time;
         soap = soap_new();
-        soap->connect_timeout = 5;
-        soap->recv_timeout = 5;
-        soap->send_timeout = 5;
+        soap->connect_timeout = 0;
+        soap->recv_timeout = 0;
+        soap->send_timeout = 0;
+        //soap->bind_flags |= SO_REUSEADDR;
         soap_register_plugin(soap, soap_wsse);
+        soap_register_plugin(soap, soap_wsa);
         proxyEvent = PullPointSubscriptionBindingProxy(soap);
         if (!onvif_url.empty()) {
           std::string full_url = onvif_url + "/Events";
           proxyEvent.soap_endpoint = full_url.c_str();
-
           set_credentials(soap);
-          Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
-          if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
-            const char *detail = soap_fault_detail(soap);
-            Error("Couldn't create subscription! %s, %s", soap_fault_string(soap), detail ? detail : "null");
-            _wsnt__Unsubscribe wsnt__Unsubscribe;
-            _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-            proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-            soap_destroy(soap);
-            soap_end(soap);
-            soap_free(soap);
-            soap = nullptr;
-          } else {
-            //Empty the stored messages
-            set_credentials(soap);
-            if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-                ( soap->error != SOAP_EOF)) { //SOAP_EOF could indicate no messages to pull.
-              Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+          const char *RequestMessageID = soap_wsa_rand_uuid(soap);
+          if (soap_wsa_request(soap, RequestMessageID,  proxyEvent.soap_endpoint , "CreatePullPointSubscriptionRequest") == SOAP_OK) {
+            Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
+            if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
+              const char *detail = soap_fault_detail(soap);
+              Error("ONVIF Couldn't create subscription! %s, %s", soap_fault_string(soap), detail ? detail : "null");
+              _wsnt__Unsubscribe wsnt__Unsubscribe;
+              _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
+              proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+              soap_destroy(soap);
+              soap_end(soap);
+              soap_free(soap);
+              soap = nullptr;
             } else {
-              Debug(1, "Good Initial ONVIF Pull");
-              Event_Poller_Healthy = TRUE;
+              //Empty the stored messages
+              set_credentials(soap);
+              RequestMessageID = soap_wsa_rand_uuid(soap);
+              if (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address , "PullMessageRequest") == SOAP_OK) {
+                Debug(1, "ONVIF :soap_wsa_request  OK ");
+                if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+                    (soap->error != SOAP_EOF)
+                    ) { //SOAP_EOF could indicate no messages to pull.
+                  Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+                  Event_Poller_Healthy = FALSE;
+                } else {
+                  Debug(1, "Good Initial ONVIF Pull%i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+                  Event_Poller_Healthy = TRUE;
+                }
+              } else {
+                Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",RequestMessageID , response.SubscriptionReference.Address , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+                Event_Poller_Healthy = FALSE;
+              }
+
+              // we renew  the current subscription .........
+              set_credentials(soap);
+              RequestMessageID = soap_wsa_rand_uuid(soap);
+              if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
+                Debug(1, "ONVIF :soap_wsa_request OK");
+                if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  { 
+                  Error("ONVIF Couldn't do initial Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+                  Event_Poller_Healthy = FALSE;
+                } else {
+                  Debug(1, "Good Initial ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+                  Event_Poller_Healthy = TRUE;
+                }
+              } else {
+                Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  RenewRequest .... ! Error %i %s, %s",
+                    RequestMessageID,
+                    response.SubscriptionReference.Address,
+                    soap->error,
+                    soap_fault_string(soap),
+                    soap_fault_detail(soap));
+                Event_Poller_Healthy = FALSE;
+              }
             }
+          } else {
+            Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  CreatePullPointSubscriptionRequest .... ! Error %i %s, %s",RequestMessageID , proxyEvent.soap_endpoint , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
           }
         } else {
-          Warning("You must specify the url to the onvif endpoint");
+          Warning("You must specify the url to the ONVIF endpoint");
         }
 #else
-          Error("zmc not compiled with GSOAP. ONVIF support not built in!");
+        Error("zmc not compiled with GSOAP. ONVIF support not built in!");
 #endif
-      }  // end if Armcrest of GSOAP
+      }  // end if Armcrest or GSOAP
     } else {
       Debug(1, "Not Starting ONVIF");
-    }
-    //End ONVIF Setup
-
-    if (janus_enabled) {
-      Janus_Manager = new JanusManager(this);
-    }
+    }  //End ONVIF Setup
 
 #if MOSQUITTOPP_FOUND
     if (mqtt_enabled) {
@@ -1751,63 +1813,107 @@ void Monitor::UpdateFPS() {
 //Thread where ONVIF polling, and other similar status polling can happen.
 //Since these can be blocking, run here to avoid intefering with other processing
 bool Monitor::Poll() {
-
-  //We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
+  // We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
   if (Event_Poller_Healthy) {
-    if(use_Amcrest_API) {
+    if (use_Amcrest_API) {
       Amcrest_Manager->WaitForMessage();
     } else {
-
 #ifdef WITH_GSOAP
       set_credentials(soap);
-      int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
-      if (result != SOAP_OK) {
-        if (result != SOAP_EOF) { //Ignore the timeout error
-          Error("Failed to get ONVIF messages! %s", soap_fault_string(soap));
-          Event_Poller_Healthy = false;
-        }
+      const char *RequestMessageID = soap_wsa_rand_uuid(soap);
+      if (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address , "PullMessageRequest") == SOAP_OK)
+      {
+	Debug(1, ":soap_wsa_request OK ; starting ONVIF  PullMessageRequest ... ");
+	int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
+	      Debug(1,"Result of getting  ONVIF messages= %d %s", result, soap_fault_string(soap));
+	if (result != SOAP_OK) {
+	      const char *detail = soap_fault_detail(soap);
+	      Debug(1,"Result of getting  ONVIF messages= %d %s", result, soap_fault_string(soap));
+	      Debug(1," soap_fault_string = %s,detail=  %s", soap_fault_string(soap), detail ? detail : "null");
+	  if (result != SOAP_EOF) { //Ignore the timeout error
+	    Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
+	    // Event_Poller_Healthy = false;
+	  }
+	} else {
+	  Info( "ONVIF polling : Got Good Response! %i", result);
+	  for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
+	    Info( "Got msg ");
+	    if ((msg->Topic != nullptr) &&
+		(msg->Topic->__any.text != nullptr) &&
+		std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
+		(msg->Message.__any.elts != nullptr) &&
+		(msg->Message.__any.elts->next != nullptr) &&
+		(msg->Message.__any.elts->next->elts != nullptr) &&
+		(msg->Message.__any.elts->next->elts->atts != nullptr) &&
+		(msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
+		(msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
+	      ) {
+	      Info( "Got Motion Alarm!");
+	      if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
+		//Event Start
+		Info( "Triggered on ONVIF");
+		if (!Poll_Trigger_State) {
+		  Info( "Triggered Event");
+		  Poll_Trigger_State = TRUE;
+		  std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
+		}
+	      } else {
+		Info("Triggered off ONVIF");
+		Poll_Trigger_State = false;
+		if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
+		  Event_Poller_Closes_Event = TRUE;
+		  Info("Setting ClosesEvent");
+		}
+	      }
+	    } else {
+	      Debug(1, "Got a message that we couldn't parse");
+	    }
+	  }  // end foreach msg
+            ////////////////////////////////////////////////////
+            // we renew  the current subscription .........
+
+	    set_credentials(soap);
+            std::string Termination_time = "PT60S";
+	    wsnt__Renew.TerminationTime=&Termination_time;
+	    RequestMessageID = soap_wsa_rand_uuid(soap);
+	    if (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address , "RenewRequest") == SOAP_OK)
+	    {
+	      Debug(1, ":soap_wsa_request  OK ");
+	      if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  { 
+	        Error("Couldn't do  Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+	         Event_Poller_Healthy = FALSE;
+	      } else {
+      	        Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+	        Event_Poller_Healthy = TRUE;
+	      }
+	    } else {
+	       Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  RenewRequest .... ! Error %i %s, %s",RequestMessageID , response.SubscriptionReference.Address , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+	       Event_Poller_Healthy = FALSE;
+	    }
+            //////////////////////////////////////////////////////
+	}  // end if SOAP OK/NOT OK
       } else {
-        Debug(1, "Got Good Response! %i", result);
-        for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
-          if (msg->Topic->__any.text != NULL &&
-          std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
-          msg->Message.__any.elts != NULL &&
-          msg->Message.__any.elts->next != NULL &&
-          msg->Message.__any.elts->next->elts != NULL &&
-          msg->Message.__any.elts->next->elts->atts != NULL &&
-          msg->Message.__any.elts->next->elts->atts->next != NULL &&
-          msg->Message.__any.elts->next->elts->atts->next->text != NULL) {
-          Debug(1,"Got Motion Alarm!");
-            if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
-            //Event Start
-              Debug(1,"Triggered on ONVIF");
-              if (!Poll_Trigger_State) {
-                Debug(1,"Triggered Event");
-                Poll_Trigger_State = TRUE;
-                std::this_thread::sleep_for (std::chrono::seconds(1)); //thread sleep
-              }
-            } else {
-              Debug(1, "Triggered off ONVIF");
-              Poll_Trigger_State = false;
-              if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
-                Event_Poller_Closes_Event = TRUE;
-                Debug(1,"Setting ClosesEvent");
-              }
-            }
-          }
-        }
+	Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",RequestMessageID , response.SubscriptionReference.Address , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+
       }
 #endif
+    }  // end if Amcrest or not
+  }  // end if Healthy
+    Debug(1, "Trying to check RTSP2Web in Poller");
+  if (RTSP2Web_enabled and RTSP2Web_Manager) {
+    Debug(1, "Trying to add stream to RTSP2Web");
+    if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
+      RTSP2Web_Manager->add_to_RTSP2Web();
     }
   }
-  if (janus_enabled) {
+  if (janus_enabled and Janus_Manager) {
     if (Janus_Manager->check_janus() == 0) {
       Janus_Manager->add_to_janus();
     }
   }
-  std::this_thread::sleep_until(loop_start_time + std::chrono::seconds(5));
+  std::this_thread::sleep_until(loop_start_time + std::chrono::seconds(10));
   return TRUE;
 } //end Poll
 
@@ -1968,7 +2074,7 @@ bool Monitor::Analyse() {
               score += 20;
             }
           } else {
-            Debug(1, "Not linked_monitors");
+            Debug(4, "Not linked_monitors");
           }
 #endif
 
@@ -2013,12 +2119,14 @@ bool Monitor::Analyse() {
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
                     snap->score = DetectMotion(*(snap->y_image), zoneSet);
+                    if (!snap->analysis_image)
+                      snap->analysis_image = new Image(*(snap->y_image));
                   } else {
                     snap->score = DetectMotion(*(snap->image), zoneSet);
+                    if (!snap->analysis_image)
+                      snap->analysis_image = new Image(*(snap->image));
                   }
 
-                  if (!snap->analysis_image)
-                    snap->analysis_image = new Image(*(snap->image));
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
                   snap->zone_stats.reserve(zones.size());
                   int zone_index = 0;
@@ -2219,14 +2327,30 @@ bool Monitor::Analyse() {
               event->updateNotes(noteSetMap);
           } else if (state == TAPE || state == IDLE) {
             if (event) {
-              if (section_length >= Seconds(min_section_length) && (event->Duration() >= section_length)) {
-                Debug(1, "%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
-                        name.c_str(), event->Id(),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                        static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
-                        static_cast<int64>(Seconds(section_length).count()));
-                closeEvent();
+              if (
+                  section_length >= Seconds(min_section_length)
+                  &&
+                  (event->Duration() >= section_length)
+                  ) {
+                if (event->Frames() < Seconds(min_section_length).count()) {
+                  /* This is a detection for the case where huge keyframe
+                   * intervals cause a huge time gap between the first
+                   * frame and second frame */
+                  Warning("%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                      name.c_str(), event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
+                } else {
+                  Debug(1, "%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                      name.c_str(), event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
+                  closeEvent();
+                }
               }
             }
           } // end if state machine
@@ -2251,7 +2375,7 @@ bool Monitor::Analyse() {
               }  // end if section_length
             }  // end if event
 
-            if (!event and (shared_data->recording == RECORDING_ALWAYS)) {
+            if ((!event) and (shared_data->recording == RECORDING_ALWAYS)) {
               if ((event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
                 Info("%s: %03d - Opened new event %" PRIu64 ", continuous section start",
                     name.c_str(), analysis_image_count, event->Id());
@@ -2693,7 +2817,10 @@ bool Monitor::Decode() {
         ||
         ((AVPixelFormat)packet->in_frame->format == AV_PIX_FMT_YUVJ420P)
         ) ) {
-    packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+      packet->y_image = new Image(packet->in_frame->width, packet->in_frame->height, 1, ZM_SUBPIX_ORDER_NONE, packet->in_frame->data[0], 0);
+      if (packet->in_frame->width != camera_width || packet->in_frame->height != camera_height)
+        packet->y_image->Scale(camera_width, camera_height);
+
     if (orientation != ROTATE_0) {
       switch (orientation) {
         case ROTATE_0 :
@@ -2785,6 +2912,7 @@ bool Monitor::Decode() {
     index++;
     index = index % image_buffer_count;
     image_buffer[index]->Assign(*(packet->image));
+    image_pixelformats[index] = packet->image->AVPixFormat();
     shared_timestamps[index] = zm::chrono::duration_cast<timeval>(packet->timestamp.time_since_epoch());
     shared_data->signal = (capture_image and signal_check_points) ? CheckSignal(capture_image) : true;
     shared_data->last_write_index = index;
@@ -3224,10 +3352,12 @@ int Monitor::PrimeCapture() {
   }  // end if rtsp_server
 
   //Poller Thread
-  if (onvif_event_listener || janus_enabled || use_Amcrest_API) {
+  if (onvif_event_listener || janus_enabled || RTSP2Web_enabled ||use_Amcrest_API) {
     if (!Poller) {
+      Debug(1, "Creating unique poller  thread");
       Poller = zm::make_unique<PollThread>(this);
     } else {
+      Debug(1, "Starting existing  poller  thread");
       Poller->Start();
     }
   }
@@ -3289,13 +3419,25 @@ int Monitor::Close() {
     Debug(1, "Tearing Down Onvif");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-    proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+    const char *RequestMessageID = soap_wsa_rand_uuid(soap);
+    if (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address , "UnsubscribeRequest") == SOAP_OK)
+    {
+      proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
+    } else {
+      Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  UnsubscribeRequest .... ! Error %i %s, %s",RequestMessageID , response.SubscriptionReference.Address , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    }
     soap_destroy(soap);
     soap_end(soap);
     soap_free(soap);
     soap = nullptr;
   }  //End ONVIF
 #endif
+    //RTSP2Web teardoen
+  if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
+    delete RTSP2Web_Manager;
+    RTSP2Web_Manager = nullptr;
+  }
+
    //Janus Teardown
   if (janus_enabled and (purpose == CAPTURE) and Janus_Manager) {
     delete Janus_Manager;

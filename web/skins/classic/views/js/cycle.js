@@ -73,9 +73,9 @@ function changeSize() {
   if (scale <= 0) scale = 100;
 
   $j('#scale').val('0');
-  setCookie('zmCycleScale', '0', 3600);
-  setCookie('zmCycleWidth', width, 3600);
-  setCookie('zmCycleHeight', height, 3600);
+  setCookie('zmCycleScale', '0');
+  setCookie('zmCycleWidth', width);
+  setCookie('zmCycleHeight', height);
   applyScale();
   monitor.setStreamScale(scale);
 } // end function changeSize()
@@ -84,9 +84,9 @@ function changeScale() {
   var scale = $j('#scale').val();
   $j('#width').val('auto');
   $j('#height').val('auto');
-  setCookie('zmCycleScale', scale, 3600);
-  setCookie('zmCycleWidth', 'auto', 3600);
-  setCookie('zmCycleHeight', 'auto', 3600);
+  setCookie('zmCycleScale', scale);
+  setCookie('zmCycleWidth', 'auto');
+  setCookie('zmCycleHeight', 'auto');
   applyScale();
 } // end function changeScale()
 

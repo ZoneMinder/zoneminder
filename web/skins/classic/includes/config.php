@@ -18,6 +18,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+$RTSP2WebTypes = array(
+  'HLS' => 'HLS',
+  'MSE' => 'MSE',
+  'WebRTC' => 'WebRTC',
+);
 $rates = array(
   -1600 => '-16x',
   -1000 => '-10x',

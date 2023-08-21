@@ -18,7 +18,7 @@ class UserPreferenceController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user['Users'] != 'None');
+    $canView = $user && ($user->System() != 'None');
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -42,10 +42,10 @@ class UserPreferenceController extends AppController {
     $find_array = array(
       'conditions' => &$conditions,
     );
-    $user_preference = $this->UserPreference->find('all', $find_array);
+    $user_preferences = $this->UserPreference->find('all', $find_array);
     $this->set(array(
-      'user_preference' => $user_preference,
-      '_serialize' => array('user_preference')
+      'user_preferences' => $user_preferences,
+      '_serialize' => array('user_preferences')
     ));
 	}
 
@@ -59,9 +59,9 @@ class UserPreferenceController extends AppController {
 	public function view($id = null) {
 		$this->UserPreference->recursive = -1;
 		if (!$this->UserPreference->exists($id)) {
-			throw new NotFoundException(__('Invalid user data'));
+			throw new NotFoundException(__('Invalid user preference'));
 		}
-		$options = array('conditions' => array('User_Data.' . $this->UserPreference->primaryKey => $id));
+		$options = array('conditions' => array('User_Preferences.' . $this->UserPreference->primaryKey => $id));
 		$user_preference = $this->UserPreference->find('first', $options);
 		$this->set(array(
 			'user_preference' => $user_preference,
@@ -75,13 +75,33 @@ class UserPreferenceController extends AppController {
  * @return void
  */
 	public function add() {
+    $data = $this->request->data;
+    if ($this->RequestHandler->requestedWith('json')) {
+      $data = $this->request->input('json_decode', true) ;
+    }
+    $message = '';
 		if ($this->request->is('post')) {
-			$this->UserPreference->create();
-			if ($this->UserPreference->save($this->request->data)) {
-			}
-		}
-		$users = $this->UserPreference->User->find('list');
-		$this->set(compact('users'));
+      $exists = $this->UserPreference->find('first', ['conditions'=>['UserId'=>$data['UserId'],'Name'=>$data['Name']]]);
+      if ($exists) {
+        $this->UserPreference->id = $exists['UserPreference']['Id'];
+        $rc = $this->UserPreference->save($data);
+      } else {
+        $this->UserPreference->create();
+        $rc = $this->UserPreference->save($data);
+      }
+      if ($rc) {
+        $message = 'Success';
+      } else {
+        $message = 'Failure';
+        ZM\Warning($this->validationErrors);
+      }
+    } else {
+      ZM\Error("NOT POST in add()");
+    }
+    $this->set(array(
+      'message' => $message,
+      '_serialize' => array('message')
+    ));
 	}
 
 /**
@@ -99,11 +119,11 @@ class UserPreferenceController extends AppController {
 			if ($this->UserPreference->save($this->request->data)) {
 			}
 		} else {
-			$options = array('conditions' => array('User_Data.' . $this->UserPreference->primaryKey => $id));
+			$options = array('conditions' => array('User_Preferences.'.$this->UserPreference->primaryKey => $id));
 			$this->request->data = $this->UserPreference->find('first', $options);
 		}
-		$users = $this->UserPreference->User->find('list');
-		$this->set(compact('users'));
+		$preference = $this->UserPreference;
+		$this->set(compact('user_preference'));
 	}
 
 /**

@@ -12,7 +12,7 @@ class UserPreference extends AppModel {
  *
  * @var mixed False or table name
  */
-	public $useTable = 'User_Data';
+	public $useTable = 'User_Preferences';
 
 /**
  * Primary key field

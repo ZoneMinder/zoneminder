@@ -67,7 +67,7 @@ if [ "$1" = "configure" ] || [ "$1" = "reconfigure" ]; then
     # Remove the password from debconf database
     test -z $ADMIN_PASSWORD || db_reset zoneminder/admin_password || true
 
-    # Get the lastest database version from dbconfig upgrade folder
+    # Get the latest database version from dbconfig upgrade folder
     DB_VERSION=$(ls -rv /usr/share/dbconfig-common/data/zoneminder/upgrade/$dbc_dbtypes | head -1)
 
     # Update the default admin account and database version

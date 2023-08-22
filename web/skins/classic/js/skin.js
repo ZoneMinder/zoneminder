@@ -715,9 +715,14 @@ function enoperm() {
 function getLogoutModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=logout')
       .done(function(data) {
-        insertModalHtml('modalLogout', data.html);
-        manageModalBtns('modalLogout');
-        clickLogout();
+        if (data['result'] != 'Ok') {
+          alert('Failed to load logout modal. See javascript console for details.');
+          console.log(data);
+        } else {
+          insertModalHtml('modalLogout', data.html);
+          manageModalBtns('modalLogout');
+          clickLogout();
+        }
       })
       .fail(logAjaxFail);
 }

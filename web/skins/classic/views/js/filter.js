@@ -74,33 +74,24 @@ function updateButtons(element) {
   const form = element.form;
 
   let canExecute = false;
-    // If you can't edit events, then you cannot perform actions on them via filter
+  // If you can't edit events, then you cannot perform actions on them via filter
   if (canEdit['Events']) {
     if (
-      (form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked)
-      ||
-      (form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked)
-      ||
-      (form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked)
-      ||
-      (form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked)
-      ||
-      (form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked)
-      ||
-      (form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '')
-      ||
-      (form.elements['filter[AutoDelete]'].checked)
-      ||
+      (form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked) ||
+      (form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked) ||
+      (form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked) ||
+      (form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked) ||
+      (form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked) ||
+      (form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '') ||
+      (form.elements['filter[AutoDelete]'].checked) ||
       (form.elements['filter[UpdateDiskSpace]'].checked)
     ) {
       canExecute = true;
     }
   } else if (canView['Events']) {
     if (
-      (form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked)
-      ||
-      (form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked)
-      ||
+      (form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked) ||
+      (form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked) ||
       (form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked)
     ) {
       canExecute = true;

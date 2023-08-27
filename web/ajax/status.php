@@ -123,7 +123,7 @@ $statusData = array(
         global $dateTimeFormatter;
         return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
       }),
-      # Left for backwards compatability. Remove in 1.37
+      # Left for backwards compatibility. Remove in 1.37
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
@@ -157,7 +157,7 @@ $statusData = array(
         global $dateTimeFormatter;
         return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
       }),
-      # Left for backwards compatability. Remove in 1.37
+      # Left for backwards compatibility. Remove in 1.37
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
@@ -478,7 +478,7 @@ function getNearEvents() {
   }
   $sql .= ' AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
   if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id DESC';
   }
   $sql .= ' LIMIT 1';
@@ -496,7 +496,7 @@ function getNearEvents() {
   }
   $sql .=' AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';
   }
   $sql .= ' LIMIT 1';

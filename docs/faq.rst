@@ -396,7 +396,7 @@ ZoneMinder provides a sample alarm script called `zmalarm.pl <https://github.com
 
 Trouble Shooting
 -------------------
-Here are some things that will help you track down whats wrong.
+Here are some things that will help you track down what's wrong.
 This is also how to obtain the info that we need to help you on the forums.
 
 What logs should I check for errors?

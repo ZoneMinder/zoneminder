@@ -581,10 +581,12 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
 
 function find_video($path) {
   # Look for other mp4s
-  $files = scandir($path);
-  foreach ($files as $file) {
-    if (preg_match('/.mp4$/i', $file)) {
-      return $file;
+  if (file_exists($path)) {
+    $files = scandir($path);
+    foreach ($files as $file) {
+      if (preg_match('/.mp4$/i', $file)) {
+        return $file;
+      }
     }
   }
 }

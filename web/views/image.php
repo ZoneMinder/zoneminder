@@ -154,12 +154,15 @@ if (!empty($_REQUEST['proxy'])) {
 
     $start = strpos($r, "\xff");
     if (false !== $start) {
-      $end   = strpos($r, "--\n", $start)-1;
-      $frame = substr($r, $start, $end - $start);
-      ZM\Debug("Start $start end $end");
-
       header('Content-type: image/jpeg');
-      echo $frame;
+      $end   = strpos($r, "--\n", $start)-1;
+      if ($end > $start) {
+        $frame = substr($r, $start, $end - $start);
+        ZM\Debug("Start $start end $end");
+        echo $frame;
+      } else {
+        echo $r;
+      }
     } else {
       $img = imagecreate(320, 240);
 

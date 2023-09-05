@@ -110,7 +110,7 @@ $serial = $primary_key = 'Id';
 sub save {
   my ( $self, $params ) = @_;
 
-  if ( ( my $error = $self->SUPER::save( ) ) ) {
+  if ( ( my $error = $self->SUPER::save($params) ) ) {
     return $error;
   } # end if
 

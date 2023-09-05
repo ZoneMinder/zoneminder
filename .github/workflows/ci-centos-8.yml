@@ -29,7 +29,7 @@ jobs:
         run: yum -y install "dnf-command(config-manager)" https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && yum config-manager --set-enabled powertools
       - name: Install git
         run: yum -y install git
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Install dependencies

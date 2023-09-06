@@ -31,7 +31,7 @@ class ZM_Object {
           return;
         }
         foreach ($row as $k => $v) {
-          $this->{$k} = $v;
+          $this->$k = $v;
         }
         global $object_cache;
         if (!isset($object_cache[$class])) {

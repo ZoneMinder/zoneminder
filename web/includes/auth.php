@@ -302,7 +302,7 @@ function visibleMonitor($mid) {
 function canView($area, $mid=false) {
   global $user;
 
-  return ( $user && ($user->{$area} == 'View' || $user->{$area} == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
+  return ( $user && $user->$area() && ($user->$area() == 'View' || $user->$area() == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
 }
 
 function editableMonitor($mid) {
@@ -337,7 +337,7 @@ function editableMonitor($mid) {
 function canEdit($area, $mid=false) {
   global $user;
 
-  return ( $user && ($user->{$area} == 'Edit') && ( !$mid || visibleMonitor($mid) ));
+  return ( $user && ($user->$area() == 'Edit') && ( !$mid || visibleMonitor($mid) ));
 }
 
 function userFromSession() {

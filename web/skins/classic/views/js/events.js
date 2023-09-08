@@ -420,6 +420,11 @@ function initPage() {
     }
   });
 
+  window.onpageshow = function(evt) {
+    console.log('Refreshing table');
+    table.bootstrapTable('refresh');
+  };
+
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();

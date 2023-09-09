@@ -110,7 +110,7 @@ getBodyTopHTML();
         data-ajax="ajaxRequest"
         data-pagination="true"
         data-show-pagination-switch="true"
-        data-page-list="[5, 10, 25, 50, 100, 200, All]"
+        data-page-list="[5, 10, 25, 50, 100, 200, 500, 1000, All]"
         data-search="true"
         data-cookie="true"
         data-cookie-same-site="Strict"

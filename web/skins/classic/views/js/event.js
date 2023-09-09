@@ -26,7 +26,6 @@ var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
-var scaleValue = 0;
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
@@ -252,7 +251,7 @@ function changeCodec() {
 }
 
 function changeScale() {
-  let scale = parseFloat($j('#scale').val());
+  scale = parseFloat($j('#scale').val());
   setCookie('zmEventScale'+eventData.MonitorId, scale);
 
   let newWidth;
@@ -378,9 +377,9 @@ function getCmdResponse(respObj, respText) {
   } else {
     setButtonState('zoomOutBtn', 'inactive');
   }
-  if ((streamStatus.scale !== undefined) && (streamStatus.scale != scaleValue)) {
-    console.log("Stream not scaled, re-applying", scaleValue, streamStatus.scale);
-    streamScale(scaleValue);
+  if (scale && (streamStatus.scale !== undefined) && (streamStatus.scale != scale)) {
+    console.log("Stream not scaled, re-applying", scale, streamStatus.scale);
+    streamScale(scale);
   }
 
   updateProgressBar();

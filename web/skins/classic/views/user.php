@@ -92,11 +92,15 @@ echo getNavBarHTML();
   ?>
               <tr class="Password">
                 <th scope="row"><?php echo translate('NewPassword') ?></th>
-                <td><input type="password" name="user[Password]" autocomplete="new-password"/></td>
+                <td><input type="password" name="user[Password]" id="user[Password]" autocomplete="new-password"/>
+                  <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="user[Password]">visibility</span>
+                </td>
               </tr>
               <tr class="ConfirmPassword">
                 <th scope="row"><?php echo translate('ConfirmPassword') ?></th>
-                <td><input type="password" name="conf_password" autocomplete="new-password"/></td>
+                <td><input type="password" name="conf_password" id="conf_password" autocomplete="new-password"/>
+                  <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="conf_password">visibility</span>
+                </td>
               </tr>
               <tr class="Name">
                 <th scope="row"><?php echo translate('Full Name') ?></th>

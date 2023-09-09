@@ -38,6 +38,8 @@ class FFmpeg_Input {
       return ( audio_stream_id >= 0 ) ? input_format_context->streams[audio_stream_id] : nullptr;
     }
     AVFormatContext *get_format_context() { return input_format_context; };
+    AVCodecContext *get_video_codec_context() { return ( video_stream_id >= 0 ) ? streams[video_stream_id].context : nullptr; };
+    AVCodecContext *get_audio_codec_context() { return ( audio_stream_id >= 0 ) ? streams[audio_stream_id].context : nullptr; };
 
   private:
     typedef struct {

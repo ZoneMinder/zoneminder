@@ -46,30 +46,49 @@ $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc'
 // MAIN LOOP
 //
 
+// The names of the dB columns in the events table we are interested in
+$columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartDateTime', 'EndDateTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'Notes', 'DiskSpace');
+
+if ( $sort != 'Id' ) {
+  if (!in_array($sort, $columns)) {
+    ZM\Error('Invalid sort field: ' . $sort);
+    $sort = 'Id';
+  } else if ($sort == 'EndDateTime') {
+    if ($order == 'ASC') {
+      $sort = 'E.EndDateTime IS NULL, E.EndDateTime';
+    } else {
+      $sort = 'E.EndDateTime IS NOT NULL, E.EndDateTime';
+    }
+  } else {
+    $sort = 'E.'.$sort;
+  }
+}
 $where = 'WHERE MonitorId = '.$mid;
 $col_str = 'E.*';
 $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E '.$where.' ORDER BY '.$sort.' '.$order. ' LIMIT ?';
 ZM\Debug('Calling the following sql query: ' .$sql);
 $rows = dbQuery($sql, array($limit));
-
 $returned_rows = array();
-foreach ( $rows as $row ) {
-  $event = new ZM\Event($row['Id']);
 
-  $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
-  $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
-  $streamSrc = $event->getStreamSrc(array(
-    'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
+if ($rows) {
+  foreach ( $rows as $row ) {
+    $event = new ZM\Event($row['Id']);
 
-  // Modify the row data as needed
-  $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '" loading="lazy" />';
-  $row['Name'] = validHtmlStr($row['Name']);
-  $row['StartDateTime'] = $dateTimeFormatter->format(strtotime($row['StartDateTime']));
+    $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
+    $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
+    $streamSrc = $event->getStreamSrc(array(
+      'mode'=>'jpeg', 'scale'=>$scale, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>'single', 'rate'=>'400'), '&amp;');
+
+    // Modify the row data as needed
+    $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '" loading="lazy" />';
+    $row['Name'] = validHtmlStr($row['Name']);
+    $row['StartDateTime'] = $dateTimeFormatter->format(strtotime($row['StartDateTime']));
     $row['EndDateTime'] = $row['EndDateTime'] ? $dateTimeFormatter->format(strtotime($row['EndDateTime'])) : null;
-  $row['Length'] = gmdate('H:i:s', intval($row['Length']));
+    $row['Length'] = gmdate('H:i:s', intval($row['Length']));
 
-  $returned_rows[] = $row;
-} # end foreach row matching search
+    $returned_rows[] = $row;
+  } # end foreach row matching search
+}
 
 $data['rows'] = $returned_rows;
 ajaxResponse($data);

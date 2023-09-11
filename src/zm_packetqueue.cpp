@@ -114,8 +114,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         if ((*rit)->packet->stream_index == add_packet->packet->stream_index) {
           if ((*rit)->keyframe) break;
           packet_count ++;
-          ++rit;
         }
+        ++rit;
       }
       Debug(1, "Have keyframe interval: %d", packet_count);
       max_keyframe_interval_ = packet_count;

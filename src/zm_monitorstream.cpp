@@ -22,6 +22,9 @@
 #include "zm_monitor.h"
 #include "zm_signal.h"
 #include "zm_time.h"
+
+#include <libavutil/pixdesc.h>
+
 #include <arpa/inet.h>
 #include <glob.h>
 #include <sys/socket.h>
@@ -453,13 +456,24 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 }  // end bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp)
 
 void MonitorStream::runStream() {
-
-  // Notify capture that we might want to view
-  monitor->setLastViewed();
-
   if (type == STREAM_SINGLE) {
+    Debug(1, "Single");
+    if (!checkInitialised()) {
+      if (!loadMonitor(monitor_id)) {
+        sendTextFrame("Not connected");
+      } else if (monitor->Deleted()) {
+        sendTextFrame("Monitor has been deleted");
+      } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        // Notify capture that we might want to view
+        monitor->setLastViewed();
+        sendTextFrame("Waiting for capture");
+      } else {
+        sendTextFrame("Unable to stream");
+      }
+    } else {
     // Not yet migrated over to stream class
-    SingleImage(scale);
+      SingleImage(scale);
+    }
     return;
   }
 
@@ -547,7 +561,6 @@ void MonitorStream::runStream() {
     }
 
     now = std::chrono::steady_clock::now();
-    monitor->setLastViewed();
 
     bool was_paused = paused;
     if (!checkInitialised()) {
@@ -556,7 +569,12 @@ void MonitorStream::runStream() {
           Debug(1, "Failed Send not connected");
           continue;
         }
+      } else if (monitor->Deleted()) {
+        sendTextFrame("Monitor has been deleted");
+        zm_terminate = true;
+        continue;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+        monitor->setLastViewed();
         if (!sendTextFrame("Waiting for capture")) return;
       } else {
         if (!sendTextFrame("Unable to stream")) {
@@ -568,6 +586,7 @@ void MonitorStream::runStream() {
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
+    monitor->setLastViewed();
 
     if (paused) {
       if (!was_paused) {
@@ -688,12 +707,13 @@ void MonitorStream::runStream() {
               send_image = monitor->image_buffer[index];
             }
           } else*/ {
-            Debug(1, "Sending regular image index %d", index);
+            AVPixelFormat pixformat = monitor->image_pixelformats[index];
+            Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
             send_image = monitor->image_buffer[index];
           }
 
           if (!sendFrame(send_image, last_frame_timestamp)) {
-            Debug(2, "sendFrame failed, quiting.");
+            Debug(2, "sendFrame failed, quitting.");
             zm_terminate = true;
             break;
           }
@@ -702,7 +722,7 @@ void MonitorStream::runStream() {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
             if (!sendFrame(send_image, last_frame_timestamp)) {
-              Debug(2, "sendFrame failed, quiting.");
+              Debug(2, "sendFrame failed, quitting.");
               zm_terminate = true;
               break;
             }
@@ -775,6 +795,14 @@ void MonitorStream::runStream() {
       Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
           monitor->shared_data->last_write_index,
           last_read_index);
+
+      if (now - last_frame_sent > Seconds(5)) {
+        if (last_read_index == monitor->GetImageBufferCount()) {
+          sendTextFrame("Waiting for initial capture");
+        } else {
+          sendTextFrame("Waiting for capture");
+        }
+      }
     } // end if ( (unsigned int)last_read_index != monitor->shared_data->last_write_index )
 
     FPSeconds sleep_time;
@@ -877,7 +905,8 @@ void MonitorStream::SingleImage(int scale) {
     std::this_thread::sleep_for(Milliseconds(100));
   }
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
-  Debug(1, "write index: %d %d", monitor->shared_data->last_write_index, index);
+  AVPixelFormat pixformat = monitor->image_pixelformats[index];
+  Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
   Image *snap_image = monitor->image_buffer[index];
   if (!config.timestamp_on_capture) {
     monitor->TimestampImage(snap_image,

@@ -11,14 +11,14 @@ if (!isset($_REQUEST['task'])) {
   $message = 'This request requires a task to be set';
 } else if ($_REQUEST['task'] == 'query') {
   if (!canView('System')) {
-    $message = 'Insufficient permissions to view log entries for user '.$user['Username'];
+    $message = 'Insufficient permissions to view log entries for user '.$user->Username();
   } else {
     $data = queryRequest();
   }
 } else if ($_REQUEST['task'] == 'create' ) {
   global $user;
   if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
-    $message = 'Insufficient permissions to create log entries for user '.$user['Username'];
+    $message = 'Insufficient permissions to create log entries for user '.$user->Username();
   } else {
     createRequest();
   }

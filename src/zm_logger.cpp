@@ -507,7 +507,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   if (level <= mFileLevel) {
     if (!mLogFileFP) {
       // FIXME unlocking here is a problem. Another thread could sneak in.
-      // We are using a recursive mutex so unlocking shouldn't be neccessary
+      // We are using a recursive mutex so unlocking shouldn't be necessary
       //log_mutex.unlock();
       // We do this here so that we only create the file if we ever write to it.
       openFile();

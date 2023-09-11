@@ -26,7 +26,7 @@ We strongly recommend enabling authentication right away. There are some situati
 * Enable OPT_USE_AUTH - this automatically switches to authentication mode with a default user (more on that later)
 * Select a random string for AUTH_HASH_SECRET - this is used to make the authentication logic more secure, so 
   please generate your own string and make sure it is sufficiently randomized and long. Note that if you plan to use APIs with ZoneMinder (needed by zmNinja/other apps), it is mandatory that you have this field populated
-* The other options highlighed above should already be set, but if not, please make sure they are
+* The other options highlighted above should already be set, but if not, please make sure they are
 * Note that if you are planning to use zmNinja and plan to use ZM authentication, you must also:
 
   * set ``AUTH_RELAY`` to hashed
@@ -112,7 +112,7 @@ This brings up the new monitor window:
 * In Analysis FPS, we've put in 5FPS here. Note that you should not put an FPS that is greater than the camera FPS. In my case, 5FPS is sufficient for my needs
 
 .. note::
-  Leave Maximum FPS and Alarm Maximum FPS **empty** if you are configuring an IP camera. In older versions of ZoneMinder, you were encouraged to put a value here, but that is no longer recommended. Infact, if you see your feed going much slower than the feed is supposed to go, or you get a lot of buffering/display issues, make sure this is empty. If you need to control camera FPS, please do it directly on the camera (via its own web interface, for example)
+  Leave Maximum FPS and Alarm Maximum FPS **empty** if you are configuring an IP camera. In older versions of ZoneMinder, you were encouraged to put a value here, but that is no longer recommended. In fact, if you see your feed going much slower than the feed is supposed to go, or you get a lot of buffering/display issues, make sure this is empty. If you need to control camera FPS, please do it directly on the camera (via its own web interface, for example)
 
 
 * We are done for the General tab. Let's move to the next tab

@@ -20,7 +20,7 @@
 
 // Device view actions
 if ( !canEdit('Devices') ) {
-  ajaxError('Insufficient permissions for user '.$user['Username']);
+  ajaxError('Insufficient permissions for user '.$user->Username());
   return;
 }
 

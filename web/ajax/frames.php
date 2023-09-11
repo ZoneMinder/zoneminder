@@ -6,7 +6,7 @@ $message = '';
 // INITIALIZE AND CHECK SANITY
 //
 
-if ( !canView('Events') ) $message = 'Insufficient permissions to view frames for user '.$user['Username'];
+if ( !canView('Events') ) $message = 'Insufficient permissions to view frames for user '.$user->Username();
 
 // task must be set
 if ( empty($_REQUEST['task']) ) {

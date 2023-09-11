@@ -82,7 +82,7 @@ class AppController extends Controller {
             throw new UnauthorizedException(__($retstatus));
             return;
           } 
-          ZM\Info("Login successful for user \"$username\"");
+          ZM\Debug("Login successful for user \"$username\"");
         }
       }
 
@@ -92,7 +92,7 @@ class AppController extends Controller {
         if ( $stateful ) {
           zm_session_start();
           $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-          $_SESSION['username'] = $user['Username'];
+          $_SESSION['username'] = $user->Username();
           if ( ZM_AUTH_RELAY == 'plain' ) {
             // Need to save this in session, can't use the value in User because it is hashed
             $_SESSION['password'] = $_REQUEST['password'];
@@ -132,19 +132,19 @@ class AppController extends Controller {
         } 
       } # end if token
 
-      if ( $user and ( $user['APIEnabled'] != 1 ) ) {
-        ZM\Error('API disabled for: '.$user['Username']);
-        throw new UnauthorizedException(__('API disabled for: '.$user['Username']));
+      if ( $user and ( $user->APIEnabled() != 1 ) ) {
+        ZM\Error('API disabled for: '.$user->Username());
+        throw new UnauthorizedException(__('API disabled for: '.$user->Username()));
         $user = null;
       }
 
       // We need to reject methods that are not authenticated
       // besides login and logout
       if ( strcasecmp($this->params->action, 'logout') ) {
-        if ( !( $user and $user['Username'] ) ) {
+        if ( !( $user and $user->Username() ) ) {
           throw new UnauthorizedException(__('Not Authenticated'));
           return;
-        } else if ( !( $user and $user['Enabled'] ) ) {
+        } else if ( !( $user and $user->Enabled() ) ) {
           throw new UnauthorizedException(__('User is not enabled'));
           return;
         }

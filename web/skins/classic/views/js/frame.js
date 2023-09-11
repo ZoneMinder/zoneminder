@@ -28,7 +28,7 @@ function changeScale() {
     img.css('width', newWidth + 'px');
     img.css('height', newHeight + 'px');
   }
-  setCookie('zmWatchScale', scale, 3600);
+  setCookie('zmWatchScale', scale);
   $j.each(controlsLinks, function(k, anchor) { // Make frames respect scale choices
     if (anchor) {
       anchor.prop('href', anchor.prop('href').replace(/scale=.*&/, 'scale=' + scale + '&'));

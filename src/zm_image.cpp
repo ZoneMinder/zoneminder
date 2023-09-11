@@ -28,6 +28,7 @@
 #include <mutex>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <vector>
 
 static unsigned char y_table_global[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 36, 37, 38, 39, 40, 41, 43, 44, 45, 46, 47, 48, 50, 51, 52, 53, 54, 55, 57, 58, 59, 60, 61, 62, 64, 65, 66, 67, 68, 69, 71, 72, 73, 74, 75, 76, 78, 79, 80, 81, 82, 83, 85, 86, 87, 88, 89, 90, 91, 93, 94, 95, 96, 97, 98, 100, 101, 102, 103, 104, 105, 107, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 119, 121, 122, 123, 124, 125, 126, 128, 129, 130, 131, 132, 133, 135, 136, 137, 138, 139, 140, 142, 143, 144, 145, 146, 147, 149, 150, 151, 152, 153, 154, 156, 157, 158, 159, 160, 161, 163, 164, 165, 166, 167, 168, 170, 171, 172, 173, 174, 175, 176, 178, 179, 180, 181, 182, 183, 185, 186, 187, 188, 189, 190, 192, 193, 194, 195, 196, 197, 199, 200, 201, 202, 203, 204, 206, 207, 208, 209, 210, 211, 213, 214, 215, 216, 217, 218, 220, 221, 222, 223, 224, 225, 227, 228, 229, 230, 231, 232, 234, 235, 236, 237, 238, 239, 241, 242, 243, 244, 245, 246, 248, 249, 250, 251, 252, 253, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 
@@ -234,7 +235,7 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
   update_function_pointers();
 }
 
-Image::Image(const AVFrame *frame) :
+Image::Image(const AVFrame *frame, int p_width, int p_height) :
   colours(ZM_COLOUR_RGB32),
   padding(0),
   subpixelorder(ZM_SUBPIX_ORDER_RGBA),
@@ -242,9 +243,9 @@ Image::Image(const AVFrame *frame) :
   buffer(0),
   holdbuffer(0)
 {
-  width = frame->width;
-  height = frame->height;
-  pixels = width*height;
+  width = (p_width == -1 ? frame->width : p_width);
+  height = (p_height == -1 ? frame->height : p_height);
+  pixels = width * height;
 
   zm_dump_video_frame(frame, "Image.Assign(frame)");
   // FIXME
@@ -1163,19 +1164,22 @@ bool Image::WriteJpeg(const std::string &filename,
   }
 
   if (!on_blocking_abort) {
-    if ((outfile = fopen(filename.c_str(), "wb")) == nullptr) {
-      Error("Can't open %s for writing: %s", filename.c_str(), strerror(errno));
-      return false;
-    }
+    raw_fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
   } else {
     raw_fd = open(filename.c_str(), O_WRONLY | O_NONBLOCK | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-    if (raw_fd < 0)
-      return false;
-    outfile = fdopen(raw_fd, "wb");
-    if (outfile == nullptr) {
-      close(raw_fd);
-      return false;
-    }
+  }
+
+  if (raw_fd < 0)
+    return false;
+  outfile = fdopen(raw_fd, "wb");
+  if (outfile == nullptr) {
+    close(raw_fd);
+    return false;
+  }
+
+  struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
+  if (fcntl(raw_fd, F_SETLKW, &fl) == -1) {
+    Error("Couldn't get lock on %s, continuing", filename.c_str());
   }
 
   jpeg_stdio_dest(cinfo, outfile);
@@ -1208,6 +1212,8 @@ bool Image::WriteJpeg(const std::string &filename,
 #else
       Error("libjpeg-turbo is required for JPEG encoding directly from RGB32 source");
       jpeg_abort_compress(cinfo);
+      fl.l_type = F_UNLCK;
+      fcntl(raw_fd, F_SETLK, &fl);
       fclose(outfile);
       return false;
 #endif
@@ -1220,9 +1226,13 @@ bool Image::WriteJpeg(const std::string &filename,
 #else
         Error("libjpeg-turbo is required for JPEG encoding directly from BGR24 source");
         jpeg_abort_compress(cinfo);
+        fl.l_type = F_UNLCK;
+        fcntl(raw_fd, F_SETLK, &fl);
         fclose(outfile);
         return false;
 #endif
+      } else if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+        cinfo->in_color_space = JCS_YCbCr;
       } else {
         /* Assume RGB */
         /*
@@ -1277,12 +1287,36 @@ cinfo->out_color_space = JCS_RGB;
     jpeg_write_marker(cinfo, EXIF_CODE, (const JOCTET *) exiftimes, sizeof(exiftimes));
   }
 
-  JSAMPROW row_pointer = buffer;  /* pointer to a single row */
-  while (cinfo->next_scanline < cinfo->image_height) {
-    jpeg_write_scanlines(cinfo, &row_pointer, 1);
-    row_pointer += linesize;
+  if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+    std::vector<uint8_t> tmprowbuf(width * 3);
+    JSAMPROW row_pointer = &tmprowbuf[0];  /* pointer to a single row */
+    while (cinfo->next_scanline < cinfo->image_height) {
+      unsigned i, j;
+      unsigned offset = cinfo->next_scanline * cinfo->image_width * 2; //offset to the correct row
+      for (i = 0, j = 0; i < cinfo->image_width * 2; i += 4, j += 6) { //input strides by 4 bytes, output strides by 6 (2 pixels)
+        tmprowbuf[j + 0] = buffer[offset + i + 0]; // Y (unique to this pixel)
+        tmprowbuf[j + 1] = buffer[offset + i + 1]; // U (shared between pixels)
+        tmprowbuf[j + 2] = buffer[offset + i + 3]; // V (shared between pixels)
+        tmprowbuf[j + 3] = buffer[offset + i + 2]; // Y (unique to this pixel)
+        tmprowbuf[j + 4] = buffer[offset + i + 1]; // U (shared between pixels)
+        tmprowbuf[j + 5] = buffer[offset + i + 3]; // V (shared between pixels)
+      }
+      jpeg_write_scanlines(cinfo, &row_pointer, 1);
+    }
+  } else {
+    JSAMPROW row_pointer = buffer;  /* pointer to a single row */
+    while (cinfo->next_scanline < cinfo->image_height) {
+      jpeg_write_scanlines(cinfo, &row_pointer, 1);
+      row_pointer += linesize;
+    }
   }
   jpeg_finish_compress(cinfo);
+
+  fl.l_type = F_UNLCK;  /* set to unlock same region */
+  if (fcntl(raw_fd, F_SETLK, &fl) == -1) {
+    Error("Failed to unlock %s", filename.c_str());
+  }
+
   fclose(outfile);
 
   return true;
@@ -1570,7 +1604,7 @@ void Image::Overlay( const Image &image ) {
         subpixelorder, image.subpixelorder);
   }
 
-  /* Grayscale ontop of grayscale - complete */
+  /* Grayscale on top of grayscale - complete */
   if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
@@ -1584,7 +1618,7 @@ void Image::Overlay( const Image &image ) {
       psrc++;
     }
 
-    /* RGB24 ontop of grayscale - convert to same format first - complete */
+    /* RGB24 on top of grayscale - convert to same format first - complete */
   } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB24 ) {
     Colourise(image.colours, image.subpixelorder);
 
@@ -1602,7 +1636,7 @@ void Image::Overlay( const Image &image ) {
       psrc += 3;
     }
 
-    /* RGB32 ontop of grayscale - convert to same format first - complete */
+    /* RGB32 on top of grayscale - convert to same format first - complete */
   } else if ( colours == ZM_COLOUR_GRAY8 && image.colours == ZM_COLOUR_RGB32 ) {
     Colourise(image.colours, image.subpixelorder);
 
@@ -1630,7 +1664,7 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* Grayscale ontop of RGB24 - complete */
+    /* Grayscale on top of RGB24 - complete */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_GRAY8 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
@@ -1644,7 +1678,7 @@ void Image::Overlay( const Image &image ) {
       psrc++;
     }
 
-    /* RGB24 ontop of RGB24 - not complete. need to take care of different subpixel orders */
+    /* RGB24 on top of RGB24 - not complete. need to take care of different subpixel orders */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB24 ) {
     const uint8_t* const max_ptr = buffer+size;
     const uint8_t* psrc = image.buffer;
@@ -1660,11 +1694,11 @@ void Image::Overlay( const Image &image ) {
       psrc += 3;
     }
 
-    /* RGB32 ontop of RGB24 - TO BE DONE */
+    /* RGB32 on top of RGB24 - TO BE DONE */
   } else if ( colours == ZM_COLOUR_RGB24 && image.colours == ZM_COLOUR_RGB32 ) {
-    Error("Overlay of RGB32 ontop of RGB24 is not supported.");
+    Error("Overlay of RGB32 on top of RGB24 is not supported.");
 
-    /* Grayscale ontop of RGB32 - complete */
+    /* Grayscale on top of RGB32 - complete */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_GRAY8 ) {
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
     Rgb* prdest = (Rgb*)buffer;
@@ -1690,11 +1724,11 @@ void Image::Overlay( const Image &image ) {
       }
     }
 
-    /* RGB24 ontop of RGB32 - TO BE DONE */
+    /* RGB24 on top of RGB32 - TO BE DONE */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB24 ) {
-    Error("Overlay of RGB24 ontop of RGB32 is not supported.");
+    Error("Overlay of RGB24 on top of RGB32 is not supported.");
 
-    /* RGB32 ontop of RGB32 - not complete. need to take care of different subpixel orders */
+    /* RGB32 on top of RGB32 - not complete. need to take care of different subpixel orders */
   } else if ( colours == ZM_COLOUR_RGB32 && image.colours == ZM_COLOUR_RGB32 ) {
     const Rgb* const max_ptr = (Rgb*)(buffer+size);
     Rgb* prdest = (Rgb*)buffer;
@@ -1906,7 +1940,7 @@ Image *Image::Highlight( unsigned int n_images, Image *images[], const Rgb thres
   return result;
 }
 
-/* New function to allow buffer re-using instead of allocationg memory for the delta image every time */
+/* New function to allow buffer re-using instead of allocating memory for the delta image every time */
 void Image::Delta(const Image &image, Image* targetimage) const {
   if ( !(width == image.width && height == image.height && colours == image.colours && subpixelorder == image.subpixelorder) ) {
     Panic( "Attempt to get delta of different sized images, expected %dx%dx%d %d, got %dx%dx%d %d",

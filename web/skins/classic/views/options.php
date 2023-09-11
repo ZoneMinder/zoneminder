@@ -29,6 +29,9 @@ $tabs = array();
 $tabs['skins'] = translate('Display');
 $tabs['system'] = translate('System');
 $tabs['config'] = translate('Config');
+if (defined('ZM_PATH_DNSMASQ_CONF') and ZM_PATH_DNSMASQ_CONF) {
+  $tabs['dnsmasq'] = translate('DHCP');
+}
 $tabs['API'] = translate('API');
 $tabs['servers'] = translate('Servers');
 $tabs['storage'] = translate('Storage');
@@ -109,8 +112,6 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
             </div>
           </form>
 <?php
-} else if ($tab == 'users') {
-  include('_options_users.php');
 } else if ($tab == 'control') {
   if (canView('Control')) {
     $redirect = '?view=controlcaps';
@@ -142,14 +143,20 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
             <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
             <input type="hidden" name="action" value="delete"/>
             <input type="hidden" name="object" value="server"/>
+            <div id="contentButtons">
+              <button type="button" id="NewServerBtn" value="<?php echo translate('AddNewServer') ?>" disabled="disabled"><?php echo translate('AddNewServer') ?></button>
+              <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+            </div>
             <table id="contentTable" class="table table-striped">
               <thead class="thead-highlight">
                 <tr>
+                  <th class="colMark"><?php echo translate('Mark') ?></th>
+                  <th class="colId"><?php echo translate('Id') ?></th>
                   <th class="colName"><?php echo translate('Name') ?></th>
                   <th class="colUrl"><?php echo translate('Url') ?></th>
                   <th class="colPathToIndex"><?php echo translate('PathToIndex') ?></th>
                   <th class="colPathToZMS"><?php echo translate('PathToZMS') ?></th>
-                  <th class="colPathToApi"><?php echo translate('PathToApi') ?></th>
+                  <th class="colPathToAPI"><?php echo translate('PathToApi') ?></th>
                   <th class="colStatus"><?php echo translate('Status') ?></th>
                   <th class="colMonitorCount"><?php echo translate('Monitors') ?></th>
                   <th class="colCpuLoad"><?php echo translate('CpuLoad') ?></th>
@@ -159,16 +166,17 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                   <th class="colAudit"><?php echo translate('RunAudit') ?></th>
                   <th class="colTrigger"><?php echo translate('RunTrigger') ?></th>
                   <th class="colEventNotification"><?php echo translate('RunEventNotification') ?></th>
-                  <th class="colMark"><?php echo translate('Mark') ?></th>
                 </tr>
               </thead>
               <tbody>
 <?php
-          $monitor_counts = dbFetchAssoc('SELECT Id,(SELECT COUNT(Id) FROM Monitors WHERE ServerId=Servers.Id) AS MonitorCount FROM Servers', 'Id', 'MonitorCount');
+          $monitor_counts = dbFetchAssoc('SELECT Id,(SELECT COUNT(Id) FROM Monitors WHERE Deleted!=1 AND ServerId=Servers.Id) AS MonitorCount FROM Servers', 'Id', 'MonitorCount');
           foreach (ZM\Server::find() as $Server) {
             $svr_opt = 'class="serverCol" data-sid="'.$Server->Id().'"';
             ?>
                 <tr>
+                  <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Server->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
+                  <td class="colId"><?php echo makeLink('#', $Server->Id(), $canEdit, $svr_opt ) ?></td>
                   <td class="colName"><?php echo makeLink('#', validHtmlStr($Server->Name()), $canEdit, $svr_opt ) ?></td>
                   <td class="colUrl"><?php echo makeLink('#', validHtmlStr($Server->Url()), $canEdit, $svr_opt ) ?></td>
                   <td class="colPathToIndex"><?php echo makeLink('#', validHtmlStr($Server->PathToIndex()), $canEdit, $svr_opt ) ?></td>
@@ -186,16 +194,10 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                   <td class="colAudit"><?php echo makeLink('#', $Server->zmaudit() ? 'yes' : 'no', $canEdit, $svr_opt) ?></td>
                   <td class="colTrigger"><?php echo makeLink('#', $Server->zmtrigger() ? 'yes' : 'no', $canEdit, $svr_opt) ?></td>
                   <td class="colEventNotification"><?php echo makeLink('#', $Server->zmeventnotification() ? 'yes' : 'no', $canEdit, $svr_opt) ?></td>
-
-                  <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Server->Id() ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
                 </tr>
 <?php } #end foreach Server ?>
               </tbody>
             </table>
-            <div id="contentButtons">
-              <button type="button" id="NewServerBtn" value="<?php echo translate('AddNewServer') ?>" disabled="disabled"><?php echo translate('AddNewServer') ?></button>
-              <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
-            </div>
           </form>
 <?php
 } else if ($tab == 'storage') { 
@@ -224,8 +226,8 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   foreach (ZM\Storage::find(null, array('order'=>'lower(Name)')) as $Storage) { 
     $filter = new ZM\Filter();
     $filter->addTerm(array('attr'=>'StorageId','op'=>'=','val'=>$Storage->Id()));
-    if ($user['MonitorIds']) {
-      $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+    if (count($user->unviewableMonitorIds())) {
+      $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
     }
 
     $str_opt = 'class="storageCol" data-sid="'.$Storage->Id().'"';
@@ -261,6 +263,10 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
             </div>
           </form>
 <?php
+} else if ($tab == 'dnsmasq' and file_exists('skins/classic/views/_options_dnsmasq.php')) {
+  include('_options_dnsmasq.php');
+} else if ($tab == 'users') {
+  include('_options_users.php');
 } else if ($tab == 'API') {
   include('_options_api.php');
 }  // $tab == API
@@ -281,7 +287,16 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
     }
   }
 
-  if ($tab == 'system') {
+  if ($tab == 'web') {
+    $configCats[$tab]['ZM_WEB_HOMEVIEW']['Hint'] = [
+      'console'=>translate('Console'),
+      'events'=>'Events',
+      'map'   =>  'Map',
+      'montage'=>'Montage',
+      'montagereview'=>'Montage Review',
+      'watch' => 'Watch',
+    ];
+  } else if ($tab == 'system') {
     $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join('|', getLanguages());
     $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
     $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));

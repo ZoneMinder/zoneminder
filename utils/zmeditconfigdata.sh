@@ -14,7 +14,7 @@ Replace the default value, DEFAULT, of the specified ZoneMinder
 variable, VARIABLE, located in ConfigData.pm.in.
 
 Default folder for ConfigData is ./scripts/ZoneMinder/lib/ZoneMinder
-Specify CONFIGDATA DIRETORY to override.
+Specify CONFIGDATA DIRECTORY to override.
 
 Run this script from your build folder, before running configure or cmake.
 

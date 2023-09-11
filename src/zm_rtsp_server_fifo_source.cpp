@@ -59,6 +59,7 @@ void ZoneMinderFifoSource::ReadRun() {
     }
 	}
 }
+
 void ZoneMinderFifoSource::WriteRun() {
   size_t maxNalSize = 1400;
 
@@ -178,7 +179,7 @@ int ZoneMinderFifoSource::getNextFrame() {
       header_end = (unsigned char *)memchr(header_start, '\n', m_buffer.tail()-header_start);
       if (!header_end) {
         // Must not have enough data.  So... keep all.
-        Debug(1, "Didn't find newline buffer size is %d", m_buffer.size());
+        Debug(1, "Didn't find newline in %s buffer size is %d", m_fifo.c_str(), m_buffer.size());
         return 0;
       }
 

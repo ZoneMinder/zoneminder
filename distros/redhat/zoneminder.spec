@@ -24,7 +24,7 @@
 %endif
 
 Name: zoneminder
-Version: 1.37.37
+Version: 1.37.43
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -621,7 +621,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 - New contact email
 
 * Thu Mar 3 2016 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.30.0-1 
-- Bump version fo 1.30.0 release.
+- Bump version for 1.30.0 release.
 
 * Sat Nov 21 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.29.0-1 
 - Bump version for 1.29.0 release on Fedora 23.
@@ -639,7 +639,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 - Add zmcamtool.pl. Bump version for 1.27 release. 
 
 * Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5-1
-- This is a bug fixe release
+- This is a bug fix release
 - RTSP fixes, cmake enhancements, couple other misc fixes
 
 * Mon Oct 07 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4-1

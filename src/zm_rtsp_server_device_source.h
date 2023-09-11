@@ -54,7 +54,7 @@ class ZoneMinderDeviceSource: public FramedSource {
 		// split packet in frames
 		virtual std::list< std::pair<unsigned char*, size_t> > splitFrames(unsigned char* frame, unsigned frameSize);
 		
-		// overide FramedSource
+		// override FramedSource
 		virtual void doGetNextFrame();	
 		virtual void doStopGettingFrames();
     virtual unsigned char *extractFrame(unsigned char *data, size_t& size, size_t& outsize);

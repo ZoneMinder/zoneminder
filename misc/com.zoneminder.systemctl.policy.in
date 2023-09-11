@@ -5,7 +5,7 @@
 <policyconfig>
 
   <vendor>The ZoneMinder Project</vendor>
-  <vendor_url>http://www.zoneminder.com/</vendor_url>
+  <vendor_url>https://www.zoneminder.com/</vendor_url>
 
   <action id="com.zoneminder.policykit.pkexec.run-zmsystemctl">
     <description>Allow the ZoneMinder webuser to run zmsystemctl.pl</description>

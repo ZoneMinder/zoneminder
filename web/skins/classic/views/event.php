@@ -215,6 +215,13 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
           <table id="eventStatsTable" class="table-sm table-borderless">
             <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
           </table>
+<?php
+if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
+?>
+          <div id="LocationMap" style="height: 450px; width: 450px;"></div>
+<?php
+}
+?>
 
       <div id="frames">
 <?php 
@@ -271,10 +278,10 @@ if ($video_tag) {
 <?php
 } else {
 if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
-  $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
+  $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
   outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
 } else {
-  $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
+  $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
   if (!canStreamNative()) {
     echo '<div class="warning">We have detected an inability to stream natively.  Unfortunately we no longer support really ancient browsers.  Trying anyways.</div>';
   }
@@ -370,5 +377,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   <script src="./js/videojs.zoomrotate.js"></script>
 <?php
   echo output_link_if_exists(array('css/base/zones.css'));
+  echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
+  echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
   xhtmlFooter();
 ?>

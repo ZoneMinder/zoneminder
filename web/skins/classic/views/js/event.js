@@ -26,7 +26,44 @@ var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
-var scaleValue = 0;
+
+$j(document).on("keydown", "", function(e) {
+  e = e || window.event;
+  if ( $j(".modal").is(":visible") ) {
+    if (e.key === "Enter") {
+      if ( $j("#deleteConfirm").is(":visible") ) {
+        $j("#delConfirmBtn").click();
+      } else if ( $j("#eventDetailModal").is(":visible") ) {
+        $j("#eventDetailSaveBtn").click();
+      } else if ( $j("#eventRenamelModal").is(":visible") ) {
+        $j("#eventRenameBtn").click();
+      }
+    } else if (e.key === "Escape") {
+      $j(".modal").modal('hide');
+    } else {
+      console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+    }
+  } else {
+    if (e.key === "ArrowLeft" && !e.altKey) {
+      prevEvent();
+    } else if (e.key === "ArrowRight" && !e.altKey) {
+      nextEvent();
+    } else if (e.key === "Delete") {
+      if ( $j("#deleteBtn").is(":disabled") == false ) {
+        $j("#deleteBtn").click();
+      }
+    } else if (e.keyCode === 32) {
+      // space bar for Play/Pause
+      if ( $j("#playBtn").is(":visible") ) {
+        playClicked();
+      } else {
+        pauseClicked();
+      }
+    } else {
+      console.log('Modal is not visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+    }
+  }
+});
 
 function streamReq(data) {
   if (auth_hash) data.auth = auth_hash;
@@ -214,20 +251,21 @@ function changeCodec() {
 }
 
 function changeScale() {
-  const scale = $j('#scale').val();
+  scale = parseFloat($j('#scale').val());
+  setCookie('zmEventScale'+eventData.MonitorId, scale);
+
   let newWidth;
   let newHeight;
-  let autoScale;
   const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
 
   const alarmCue = $j('#alarmCues');
   const bottomEl = $j('#replayStatus');
 
-  if (scale == '0') {
+  if (!scale) {
     const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
-    autoScale = newSize.autoScale;
+    scale = newSize.autoScale;
   } else {
     $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
     newWidth = eventData.Width * scale / SCALE_BASE;
@@ -235,17 +273,14 @@ function changeScale() {
   }
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
-  console.log(scale, (scale == '0'));
-  scaleValue = scale == '0' ? autoScale : scale;
   if (!vid) { // zms needs extra sizing
-    streamScale(scaleValue);
+    streamScale(scale);
     drawProgressBar();
   }
   if (cueFrames) {
     //just re-render alarmCues.  skip ajax call
     alarmCue.html(renderAlarmCues(eventViewer));
   }
-  setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
 
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
@@ -342,9 +377,9 @@ function getCmdResponse(respObj, respText) {
   } else {
     setButtonState('zoomOutBtn', 'inactive');
   }
-  if ((streamStatus.scale !== undefined) && (streamStatus.scale != scaleValue)) {
-    console.log("Stream not scaled, re-applying", scaleValue, streamStatus.scale);
-    streamScale(scaleValue);
+  if (scale && (streamStatus.scale !== undefined) && (streamStatus.scale != scale)) {
+    console.log("Stream not scaled, re-applying", scale, streamStatus.scale);
+    streamScale(scale);
   }
 
   updateProgressBar();
@@ -370,6 +405,9 @@ function pauseClicked() {
 
 function streamPause() {
   $j('#modeValue').html('Paused');
+
+  $j('#pauseBtn').hide();
+  $j('#playBtn').show();
   setButtonState('pauseBtn', 'active');
   setButtonState('playBtn', 'inactive');
   setButtonState('fastFwdBtn', 'unavail');
@@ -406,6 +444,8 @@ function vjsPlay() { //catches if we change mode programatically
 }
 
 function streamPlay( ) {
+  $j('#pauseBtn').show();
+  $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
   setButtonState('playBtn', 'active');
   setButtonState('fastFwdBtn', 'inactive');
@@ -726,7 +766,8 @@ function frameQuery(eventId, frameId, loadImage) {
   var data = {};
   if (auth_hash) data.auth = auth_hash;
   data.loopback = loadImage;
-  data.id = {eventId, frameId};
+  data.eid = eventId;
+  data.fid = frameId;
 
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frameimage', data)
       .done(getFrameResponse)
@@ -798,7 +839,7 @@ function updateProgressBar() {
   if (!(eventData && streamStatus)) {
     return;
   } // end if ! eventData && streamStatus
-  const curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+  let curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
   if (curWidth > 100) curWidth = 100;
 
   const progressDate = new Date(eventData.StartDateTime);
@@ -907,7 +948,7 @@ function getEvtStatsCookie() {
 
   if (!stats) {
     stats = 'on';
-    setCookie(cookie, stats, 10*365);
+    setCookie(cookie, stats);
   }
   return stats;
 }
@@ -925,6 +966,9 @@ function getStat() {
         break;
       case 'AlarmFrames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+        break;
+      case 'Location':
+        tdString = eventData.Latitude + ', ' + eventData.Longitude;
         break;
       case 'MonitorId':
         if (canView["Monitors"]) {
@@ -1023,7 +1067,7 @@ function initPage() {
       handleClick(event);
     });
     vid.on('volumechange', function() {
-      setCookie('volume', vid.volume(), 3600);
+      setCookie('volume', vid.volume());
     });
     const cookie = getCookie('volume');
     if (cookie) vid.volume(cookie);
@@ -1034,7 +1078,7 @@ function initPage() {
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
       $j('select[name="rate"]').val(rate);
-      setCookie('zmEventRate', rate, 3600);
+      setCookie('zmEventRate', rate);
     });
 
     // rate is in % so 100 would be 1x
@@ -1171,10 +1215,10 @@ function initPage() {
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
     if (table.is(':visible')) {
-      setCookie(cookie, 'off', 10*365);
+      setCookie(cookie, 'off');
       table.toggle(false);
     } else {
-      setCookie(cookie, 'on', 10*365);
+      setCookie(cookie, 'on');
       table.toggle(true);
     }
   });
@@ -1215,9 +1259,36 @@ function initPage() {
     }
   });
   document.addEventListener('fullscreenchange', fullscreenChangeEvent);
+  streamPlay();
+
+  if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
+    if ( window.L ) {
+      map = L.map('LocationMap', {
+        center: L.latLng(eventData.Latitude, eventData.Longitude),
+        zoom: 8,
+        onclick: function() {
+          alert('click');
+        }
+      });
+      L.tileLayer(ZM_OPT_GEOLOCATION_TILE_PROVIDER, {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
+      }).addTo(map);
+      marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: 'false'});
+      marker.addTo(map);
+      map.invalidateSize();
+    } else {
+      console.log('Location turned on but leaflet not installed.');
+    }
+  } // end if ZM_OPT_USE_GEOLOCATION
 } // end initPage
 
-document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
+var toggleZonesButton = document.getElementById('toggleZonesButton');
+if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 
 function toggleZones(e) {
   const zones = $j('#zones'+eventData.MonitorId);
@@ -1227,12 +1298,12 @@ function toggleZones(e) {
       zones.hide();
       button.setAttribute('title', showZonesString);
       $j('#toggleZonesButton .material-icons').text('layers');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
+      setCookie('zmEventShowZones'+eventData.MonitorId, '0');
     } else {
       zones.show();
       button.setAttribute('title', hideZonesString);
       $j('#toggleZonesButton .material-icons').text('layers_clear');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
+      setCookie('zmEventShowZones'+eventData.MonitorId, '1');
     }
   } else {
     console.error("Zones svg not found");

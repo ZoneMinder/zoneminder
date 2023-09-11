@@ -67,7 +67,7 @@ ONVIF::Media::Types::Layout
 Perl data type class for the XML Schema defined complexType
 Layout from the namespace http://www.onvif.org/ver10/schema.
 
-A layout describes a set of Video windows that are displayed simultaniously on a display. 
+A layout describes a set of Video windows that are displayed simultaneously on a display. 
 
 
 

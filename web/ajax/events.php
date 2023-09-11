@@ -8,7 +8,7 @@ $data = array();
 //
 
 if (!canView('Events'))
-  $message = 'Insufficient permissions for user '.$user['Username'].'<br/>';
+  $message = 'Insufficient permissions for user '.$user->Username().'<br/>';
 
 if (empty($_REQUEST['task'])) {
   $message = 'Must specify a task<br/>';
@@ -30,8 +30,8 @@ if ($message) {
 
 require_once('includes/Filter.php');
 $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
-if ($user['MonitorIds']) {
-  $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user['MonitorIds']));
+if (count( $user->unviewableMonitorIds())) {
+  $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
 }
 if (!empty($_REQUEST['StartDateTime'])) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '>=', 'val'=>$_REQUEST['StartDateTime']));
@@ -100,14 +100,14 @@ switch ($task) {
   case 'unarchive' :
 		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user['Username']);
+			ajaxError('Insufficient permissions for user '.$user->Username());
 			return;
 		}
     foreach ($eids as $eid) archiveRequest($task, $eid);
     break;
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user['Username']);
+			ajaxError('Insufficient permissions for user '.$user->Username());
 			return;
 		}
     foreach ($eids as $eid) {
@@ -199,9 +199,12 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $likes = array();
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
 
-  $col_str = 'E.*, M.Name AS Monitor';
+  $col_str = 'E.*, UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
+    M.Name AS Monitor';
   $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
-  if ($filter->limit() and !count($filter->post_sql_conditions())) {
+  if (int($filter->limit()) and !count($filter->post_sql_conditions())) {
     $sql .= ' LIMIT '.$filter->limit();
   }
 
@@ -259,7 +262,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       $search = '%' .$search. '%';
       $terms = array();
       foreach ($columns as $col) {
-        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search);
+        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>strtolower($search), 'collate'=>'utf8mb4_general_ci');
       }
       $terms[0]['obr'] = 1;
       $terms[0]['cnj'] = 'and';
@@ -282,6 +285,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $returned_rows = array();
   foreach ($filtered_rows as $row) {
     $event = new ZM\Event($row);
+    $event->remove_from_cache();
+    if (!$event->canView()) continue;
+    if ($event->Monitor()->Deleted()) continue;
 
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
     $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
@@ -290,6 +296,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
     // Modify the row data as needed
     $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '" loading="lazy" />';
+    $row['imgWidth'] = validInt($event->ThumbnailWidth());
+    $row['imgHeight'] = validInt($event->ThumbnailHeight());
+
     $row['Name'] = validHtmlStr($row['Name']);
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
@@ -302,7 +311,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $returned_rows[] = $row;
   } # end foreach row matching search
 
-  $data['rows'] = $returned_rows;
+  $data['rows'] = &$returned_rows;
 
   # totalNotFiltered must equal total, except when either search bar has been used
   $data['totalNotFiltered'] = count($unfiltered_rows);
@@ -311,7 +320,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
-
+ZM\Debug("Done");
   return $data;
 }
 ?>

@@ -18,7 +18,7 @@ class StorageController extends AppController {
   public function beforeFilter() {
     parent::beforeFilter();
     global $user;
-    $canView = (!$user) || ($user['System'] != 'None');
+    $canView = (!$user) || ($user->System() != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -33,8 +33,15 @@ class StorageController extends AppController {
   public function index() {
     $this->Storage->recursive = -1;
     
-    $options = '';
-    $storage_areas = $this->Storage->find('all',$options);
+    $named_params = $this->request->params['named'];
+    if ( $named_params ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($named_params);
+    } else {
+      $conditions = array();
+    }
+    $options = ['conditions'=>&$conditions];
+    $storage_areas = $this->Storage->find('all', $options);
     require_once __DIR__ .'/../../../includes/Storage.php';
 
     foreach ($storage_areas as &$s) {
@@ -84,7 +91,7 @@ class StorageController extends AppController {
     if ( $this->request->is('post') ) {
 
       global $user;
-      $canEdit = (!$user) || ($user['System'] == 'Edit');
+      $canEdit = (!$user) || ($user->System() == 'Edit');
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
@@ -110,7 +117,7 @@ class StorageController extends AppController {
     $this->Storage->id = $id;
 
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -142,7 +149,7 @@ class StorageController extends AppController {
  */
   public function delete($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;

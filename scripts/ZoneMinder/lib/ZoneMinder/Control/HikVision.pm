@@ -56,7 +56,7 @@ my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
 my $uri;
-my ($user,$pass,$host,$port) = ();
+my ($user, $pass, $host, $port, $realm) = ();
 
 sub credentials {
   my $self = shift;
@@ -123,11 +123,12 @@ Debug("Have " . $+{PASSWORD});
   # Save the base url
   $self->{BaseURL} = "http://$host:$port";
 
-  # Save and test the credentials
+  $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice};
+  $realm = '';
+
   if (defined($user)) {
-    $self->{Monitor}{ControlDevice} = '' if !defined $self->{Monitor}{ControlDevice};
-    Debug("Credentials: $host:$port, realm:$self->{Monitor}{ControlDevice}, $user, $pass");
-    $self->{UA}->credentials("$host:$port", $self->{Monitor}{ControlDevice}, $user, $pass);
+    Debug("Credentials: $host:$port, realm:$realm, $user, $pass");
+    $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
   } # end if defined user
 
   my $url = $self->{BaseURL} .'/ISAPI/Streaming/channels/101';
@@ -138,12 +139,10 @@ Debug("Have " . $+{PASSWORD});
       Debug("Initial Header $k => $$headers{$k}");
     }
 
-    my $realm = $self->{Monitor}->{ControlDevice};
-
     if ( $$headers{'www-authenticate'} ) {
       foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
         my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
-  Debug("Have tokens $auth $tokens");
+        Debug("Have tokens $auth $tokens");
         my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
         if ( $tokens{realm} ) {
           if ( $realm ne $tokens{realm} ) {
@@ -157,8 +156,8 @@ Debug("Have " . $+{PASSWORD});
               foreach my $k ( keys %$headers ) {
                 Debug("Initial Header $k => $$headers{$k}\n");
               }  # end foreach
-      } else {
-	      last;
+            } else {
+              last;
             }
           } else {
             Error('Authentication failed, not a REALM problem');
@@ -195,13 +194,14 @@ sub PutCmd {
     Error("No cmd specified in PutCmd");
     return;
   }
+  Debug("Put: $cmd to ".$self->{BaseURL}.(defined($content)?' content:'.$content:''));
   my $req = HTTP::Request->new(PUT => $self->{BaseURL}.'/'.$cmd);
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $content);
   }
   my $res = $self->{UA}->request($req);
-  unless( $res->is_success ) {
+  if (!$res->is_success) {
     #
     # The camera timeouts connections at short intervals. When this
     # happens the user agent connects again and uses the same auth tokens.
@@ -210,47 +210,55 @@ sub PutCmd {
     # succeed the second time if the credentials are correct.
     #
     if ( $res->code == 401 ) {
-      $res = $self->{UA}->request($req);
-      unless( $res->is_success ) {
-        #
-        # It has failed authentication. The odds are
-        # that the user has set some parameter incorrectly
-        # so check the realm against the ControlDevice
-        # entry and send a message if different
-        #
-        my $auth = $res->headers->www_authenticate;
-        foreach (split(/\s*,\s*/,$auth)) {
-          if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
-            if ( $self->{Monitor}{ControlDevice} ne $1 ) {
-              Warning("Control Device appears to be incorrect.
-                Control Device should be set to \"$1\".
-                Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
-              $self->{Monitor}{ControlDevice} = $1;
-              $self->{UA}->credentials("$host:$port", $self->{Monitor}{ControlDevice}, $user, $pass);
-              return PutCmd($self,$cmd,$content);
-            }
-          }
-        }
-        #
-        # Check for username/password
-        #
-        if ( $self->{Monitor}{ControlAddress} =~ /.+:(.+)@.+/ ) {
-          Info('Check username/password is correct');
-        } elsif ( $self->{Monitor}{ControlAddress} =~ /^[^:]+@.+/ ) {
-          Info('No password in Control Address. Should there be one?');
-        } elsif ( $self->{Monitor}{ControlAddress} =~ /^:.+@.+/ ) {
-          Info('Password but no username in Control Address.');
-        } else {
-          Info('Missing username and password in Control Address.');
-        }
-        Error($res->status_line);
+      #
+      # It has failed authentication. The odds are
+      # that the user has set some parameter incorrectly
+      # so check the realm against the ControlDevice
+      # entry and send a message if different
+      #
+      my $headers = $res->headers();
+      foreach my $k ( keys %$headers ) {
+        Debug("Initial Header $k => $$headers{$k}");
       }
+
+      if ( $$headers{'www-authenticate'} ) {
+        foreach my $auth ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
+          foreach (split(/\s*,\s*/, $auth)) {
+            if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
+              if ($realm ne $1) {
+                $realm = $1;
+                $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
+                return PutCmd($self, $cmd, $content);
+              }
+            } else {
+              Debug('Not realm: '.$_);
+            }
+          } # end foreach auth token
+        } # end foreach auth token
+      } else {
+        Debug('No authenticate header');
+      }
+      #
+      # Check for username/password
+      #
+      if ( $self->{Monitor}{ControlAddress} =~ /.+:.+@.+/ ) {
+        Info('Check username/password is correct');
+      } elsif ( $self->{Monitor}{ControlAddress} =~ /^[^:]+@.+/ ) {
+        Info('No password in Control Address. Should there be one?');
+      } elsif ( $self->{Monitor}{ControlAddress} =~ /^:.+@.+/ ) {
+        Info('Password but no username in Control Address.');
+      } else {
+        Info('Missing username and password in Control Address.');
+      }
+      Error($res->status_line);
     } else {
       Error($res->status_line);
     }
+  } else {
+    Debug('Success: ' . $res->content);
   } # end unless res->is_success
 } # end sub putCmd
-#
+
 # The move continuous functions all call moveVector
 # with the direction to move in. This includes zoom
 #
@@ -263,16 +271,18 @@ sub moveVector {
   my $command;                    # The ISAPI/PTZ command
 
   # Calculate autostop time
-  my $duration = $self->getParam( $params, 'autostop', 0 ) * $self->{Monitor}{AutoStopTimeout};
-  # Change from microseconds to milliseconds
-  $duration = int($duration/1000);
+  my $autostop = $self->getParam($params, 'autostop', 0);
+
+  my $duration = $autostop * $self->{Monitor}{AutoStopTimeout};
+  $duration = ($duration < 1000) ? $duration * 1000 : int($duration/1000);
+  # Change from microseconds to milliseconds or seconds to milliseconds
+  Debug("Calculate duration $duration from autostop($autostop) and AutoStopTimeout ".$self->{Monitor}{AutoStopTimeout});
   my $momentxml;
-  if( $duration ) {
+  if ($duration) {
     $momentxml = "<Momentary><duration>$duration</duration></Momentary>";
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/momentary";
-  }
-  else {
-    $momentxml = "";
+  } else {
+    $momentxml = '';
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/continuous";
   }
   # Calculate movement speeds
@@ -280,10 +290,15 @@ sub moveVector {
   my $y = $tiltdirection * $self->getParam( $params, 'tiltspeed', 0 );
   my $z = $zoomdirection * $self->getParam( $params, 'speed', 0 );
   # Create the XML
-  my $xml = "<PTZData><pan>$x</pan><tilt>$y</tilt><zoom>$z</zoom>$momentxml</PTZData>";
+  my $xml = '<PTZData>';
+  $xml .= "<pan>$x</pan>" if $x;
+  $xml .= "<tilt>$y</tilt>" if $y;
+  $xml .= "<zoom>$z</zoom>" if $z;
+  $xml .= $momentxml.'</PTZData>';
   # Send it to the camera
-  $self->PutCmd($command,$xml);
+  $self->PutCmd($command, $xml);
 }
+
 sub zoomStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }
 sub moveStop         { $_[0]->moveVector(  0,  0, 0, splice(@_,1)); }
 sub moveConUp        { $_[0]->moveVector(  0,  1, 0, splice(@_,1)); }

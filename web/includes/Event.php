@@ -113,6 +113,13 @@ class Event extends ZM_Object {
     return $this->{'Time'};
   }
 
+  public function StartDateTimeSecs() {
+    return strtotime($this->{'StartDateTime'});
+  }
+  public function EndDateTimeSecs() {
+    return strtotime($this->{'EndDateTime'});
+  }
+
   public function Path() {
     $Storage = $this->Storage();
     if ( $Storage->Path() and $this->Relative_Path() ) {
@@ -378,7 +385,11 @@ class Event extends ZM_Object {
       null);
 
     $args['eid'] = $this->{'Id'};
-    $args['fid'] = 'snapshot';
+    if (file_exists($this->Path().'/objdetect.jpg')) {
+      $args['fid'] = 'objdetect';
+    } else {
+      $args['fid'] = 'snapshot';
+    }
     $args['view'] = 'image';
     $args['width'] = $this->ThumbnailWidth();
     $args['height'] = $this->ThumbnailHeight();
@@ -404,9 +415,15 @@ class Event extends ZM_Object {
     $eventPath = $Event->Path();
 
     if ( $frame and !is_array($frame) ) {
-      # Must be an Id
       Debug("Assuming that $frame is an Id");
-      $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
+      $f = Frame::find_one(['Id'=>$frame]);
+      if ($f) {
+        $frame = (array)$f;
+      } else {
+        $frame = $this->find_virtual_frame($frame);
+        if (!$frame)
+          $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
+      }
     }
 
     if ( ( !$frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
@@ -645,10 +662,10 @@ class Event extends ZM_Object {
     }
     if (!$this->Monitor()->canView($u)) return false;
 
-    if ($u['Events'] != 'None') {
+    if ($u->Events() != 'None') {
       return true;
     }
-    if ($u['Snapshots'] != 'None') {
+    if ($u->Snapshots() != 'None') {
       # If the event is contained in a snapshot, then we can still view it.
       if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
         return true;
@@ -663,7 +680,7 @@ class Event extends ZM_Object {
       return false;
     }
     if (!$this->Monitor()->canView($u)) return false;
-    if ($u['Events'] != 'Edit') {
+    if ($u->Events() != 'Edit') {
       return false;
     }
     return true;
@@ -689,6 +706,36 @@ class Event extends ZM_Object {
     $result = exec($command, $output, $status);
     Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
     return $status ? '' : rtrim($result);
+  }
+
+  public function find_virtual_frame($frameid) {
+    $frame = null;
+
+    $previousBulkFrame = dbFetchOne(
+      'SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1',
+      NULL, array($this->Id(), $fid)
+    );
+    $nextBulkFrame = dbFetchOne(
+      'SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1',
+      NULL, array($this->Id(), $fid)
+    );
+    if ($previousBulkFrame and $nextBulkFrame) {
+      $frame = new Frame($previousBulkFrame);
+      $frame->FrameId($fid);
+
+      $percentage = ($frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
+      $frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
+      Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
+    } else if ($previousBulkFrame) {
+      //If no next Frame we have to pull data from the Event itself
+      $frame = new Frame($previousBulkFrame);
+      $frame->FrameId($_REQUEST['fid']);
+
+      $percentage = ($frame->FrameId()/$this->Frames());
+
+      $frame->Delta(floor($this->Length() * $percentage));
+    }
+    return $frame;
   }
 
 } # end class

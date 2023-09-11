@@ -545,7 +545,6 @@ switch ($name) {
               <li><label><?php echo translate('Triggers') ?></label>
 <?php
       $optTriggers = getSetValues('Monitors', 'Triggers');
-      ZM\Debug("Triggers: " . print_r($optTriggers, true));
       $breakCount = (int)(ceil(count($optTriggers)));
       $breakCount = min(3, $breakCount);
       $optCount = 0;
@@ -825,6 +824,7 @@ $decoders = array(
   'libx264' => 'libx264',
   'h264' => 'h264',
   'h264_cuvid' => 'h264_cuvid',
+  'h264_nvmpi' => 'h264_nvmpi',
   'h264_mmal'   => 'h264_mmal',
   'h264_omx' => 'h264_omx',
   'h264_qsv' => 'h264_qsv',
@@ -903,6 +903,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             '2560x1440'=>'2560x1440 1440p QHD WQHD',
             '2560x1920'=>'2560x1920 5MP',
             '2688x1520'=>'2688x1520 4MP',
+	    '2960x1668'=>'2960x1668 5MP',
             '3072x2048'=>'3072x2048 6MP',
             '3840x2160'=>'3840x2160 4K UHD',
           );
@@ -962,7 +963,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               
             </li>
             <li>
-              <label><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></label>
+              <label><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_ALARMMAXFPS') ?></label>
               <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
 <?php
       if ( $monitor->Type() != 'Local' && $monitor->Type() != 'File' && $monitor->Type() != 'NVSocket' ) {
@@ -1232,6 +1233,18 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <label><?php echo translate('RTSPStreamName'); echo makeHelpLink('OPTIONS_RTSPSTREAMNAME') ?></label>
               <input type="text" name="newMonitor[RTSPStreamName]" value="<?php echo validHtmlStr($monitor->RTSPStreamName()) ?>"/>
             </li>
+            <li id="FunctionRTSP2WebEnabled">
+              <label><?php echo translate('RTSP2Web Live Stream') ?></label>
+              <input type="checkbox" name="newMonitor[RTSP2WebEnabled]" value="1"<?php echo $monitor->RTSP2WebEnabled() ? ' checked="checked"' : '' ?>/>
+<?php
+  if ( isset($OLANG['FUNCTION_RTSP2WEB_ENABLED']) ) {
+    echo '<div class="form-text">'.$OLANG['FUNCTION_RTSP2WEB_ENABLED']['Help'].'</div>';
+  }
+?>
+            <li>
+              <label><?php echo translate('RTSP2Web Type') ?> <?php echo $monitor->RTSP2WebType() ?> </label>
+              <?php echo htmlSelect('newMonitor[RTSP2WebType]', $RTSP2WebTypes, $monitor->RTSP2WebType()); ?>
+            </li>
             <li id="FunctionJanusEnabled">
               <label><?php echo translate('Janus Live Stream') ?></label>
               <input type="checkbox" name="newMonitor[JanusEnabled]" value="1"<?php echo $monitor->JanusEnabled() ? ' checked="checked"' : '' ?>/>
@@ -1283,7 +1296,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <?php
                 $users = array(''=>translate('None'));
                 foreach (ZM\User::find() as $u) {
-                  if ($u->MonitorIds() and (!$monitor->Id() or in_array($monitor->Id(), explode(',', $u->MonitorIds()))))
+                  if (!$monitor->Id() or !$monitor->canView($u))
                     continue;
                   $users[$u->Id()] = $u->Username();
                 }

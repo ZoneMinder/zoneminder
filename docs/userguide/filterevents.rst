@@ -34,7 +34,7 @@ Here is what the filter window looks like
   * Update used disk space: calculates how much disk space is currently taken by the event and updates the db record.
   * Create video for all matches: creates a video file of all the events that match 
   * Create video for all matches: ffmpeg will be used to create a video file (mp4) out of all the stored jpgs if using jpeg storage.
-	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguents to the command, the last argument will be the absolute path to the event, preceded by replacement arguents. eg: /usr/bin/script.sh %MN% will execute as /usr/bin/script.sh MonitorName /path/to/event. Please note that urls may contain characters like & that need quoting. So you may need to put quotes around them like /usr/bin/scrupt.sh "%MN%".
+	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguments to the command, the last argument will be the absolute path to the event, preceded by replacement arguments. eg: /usr/bin/script.sh %MN% will execute as /usr/bin/script.sh MonitorName /path/to/event. Please note that urls may contain characters like & that need quoting. So you may need to put quotes around them like /usr/bin/scrupt.sh "%MN%".
 	* Delete all matches: Deletes all the matched events.
 	* Email details of all matches: Sends an email to the configured address with details about the event. 
   * Copy all matches: copies the event files to another location, specified in the Copy To dropdown.  The other location must be setup in the Storage Tab under options.
@@ -59,6 +59,7 @@ Here is what the filter window looks like
 	If you do this then the subsequent dialog will also allow you specify whether you want this filter automatically applied in order to delete events or upload events via ftp to another server and mail notifications of events to one or more email accounts. Emails and messages (essentially small emails intended for mobile phones or pagers) have a format defined in the Options screen, and may include a variety of tokens that can be substituted for various details of the event that caused them. This includes links to the event view or the filter as well as the option of attaching images or videos to the email itself. Be aware that tokens that represent links may require you to log in to access the actual page, and sometimes may function differently when viewed outside of the general ZoneMinder context. The tokens you can use are as follows.
 
     *    %EI%       Id of the event
+    *    %EID%      Id of the event
     *    %EN%       Name of the event
     *    %EC%       Cause of the event
     *    %ED%       Event description
@@ -88,6 +89,7 @@ Here is what the filter window looks like
     *    %EIMODG%   Attach image containing object detection animated gif version
     *    %EV%       Attach event mpeg video
     *    %EVM%      Attach event mpeg video in phone format
+    *    %MID%      Monitor Id
     *    %MN%       Name of the monitor
     *    %MET%      Total number of events for the monitor
     *    %MEH%      Number of events for the monitor in the last hour

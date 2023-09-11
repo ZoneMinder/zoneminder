@@ -1,7 +1,8 @@
-var backBtn = $j('#backBtn');
-var exportBtn = $j('#exportBtn');
-var deleteBtn = $j('#deleteBtn');
-var table = $j('#snapshotTable');
+const backBtn = $j('#backBtn');
+const exportBtn = $j('#exportBtn');
+const deleteBtn = $j('#deleteBtn');
+const table = $j('#snapshotTable');
+var ajax = null;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -30,17 +31,25 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
+  if (ajax) ajax.abort();
+
   if ( params.data && params.data.filter ) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }
-  $j.getJSON(thisUrl + '?view=request&request=snapshots&task=query', params.data)
+  ajax = $j.ajax({
+    url: thisUrl + '?view=request&request=snapshots&task=query',
+    data: params.data,
+    timeout: 0
+  })
       .done(function(data) {
+        ajax = null;
         var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
       .fail(function(jqXHR) {
+        ajax = null;
         logAjaxFail(jqXHR);
         table.bootstrapTable('refresh');
       });

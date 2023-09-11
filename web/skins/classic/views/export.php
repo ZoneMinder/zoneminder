@@ -83,8 +83,8 @@ $sortColumn = '';
 $sortOrder = '';
 $limitQuery = '';
 
-if ( $user['MonitorIds'] ) {
-  $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
+if (count($user->unviewableMonitorIds())) {
+  $user_monitor_ids = ' M.Id in ('.implode(',',$user->viewableMonitorIds()).')';
   $eventsSql .= $user_monitor_ids;
 } else if ( !isset($_REQUEST['filter']) ) {
   $eventsSql .= ' 1';

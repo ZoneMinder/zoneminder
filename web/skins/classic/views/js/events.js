@@ -88,7 +88,7 @@ function processRows(rows) {
     date.setSeconds(row.Length);
     row.Length = date.toISOString().substr(11, 8);
 
-    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
+    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<div class="thumbnail" style="height: '+row.imgHeight+'px;"><a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a></div>';
   });
 
   return rows;
@@ -419,6 +419,11 @@ function initPage() {
       el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
   });
+
+  window.onpageshow = function(evt) {
+    console.log('Refreshing table');
+    table.bootstrapTable('refresh');
+  };
 
   table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it

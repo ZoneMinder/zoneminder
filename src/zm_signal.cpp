@@ -129,7 +129,10 @@ RETSIGTYPE zm_die_handler(int signal)
 	}
   #endif				// ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
 #endif                          // (defined(__i386__) || defined(__x86_64__)
-	exit(signal);
+  // Icon: Don't exit, setting zm_terminate should cause the exit to happen in a timely manner.
+  // The main reason not to here is to make valgrind traces quieter because logger gets free while other threads
+  // are still running and trying to log.                                
+	//exit(signal);
 }
 
 void zmSetHupHandler(SigHandler * handler) {

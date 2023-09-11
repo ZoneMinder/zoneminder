@@ -19,7 +19,7 @@ class FramesController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user['Events'] != 'None');
+    $canView = (!$user) || ($user->Events() != 'None');
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -34,7 +34,7 @@ class FramesController extends AppController {
 		$this->Frame->recursive = -1;
 
     global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
     if ( $allowedMonitors ) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);
     } else {

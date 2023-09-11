@@ -396,7 +396,7 @@ int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPack
       // The codec may need more samples than it has, perfectly valid
       Debug(2, "Codec not ready to give us a frame");
     } else {
-      Error("Could not recieve frame (error %d = '%s')", ret,
+      Error("Could not receive frame (error %d = '%s')", ret,
           av_make_error_string(ret).c_str());
     }
     return ret;
@@ -422,7 +422,7 @@ int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &
       return 0;
     } else if (frame) {
       // May get EOF if frame is NULL because it signals flushing
-      Error("Could not recieve packet (error %d = '%s')", ret,
+      Error("Could not receive packet (error %d = '%s')", ret,
             av_make_error_string(ret).c_str());
     }
     zm_av_packet_unref(&packet);

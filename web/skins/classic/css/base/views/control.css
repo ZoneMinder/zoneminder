@@ -1,7 +1,7 @@
 .ptzControls {
     vertical-align: top;
     margin: 10px auto 0;
-    width: 90%;
+    width: 150px;
 }
 
 .ptzControls::after {
@@ -23,6 +23,8 @@
 
 .ptzControls .controlsPanel {
     margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .ptzControls input[type=image] {
@@ -67,28 +69,22 @@
 }
 
 .ptzControls .controlsPanel .focusControls {
-    float: left;
 }
 
 .ptzControls .controlsPanel .zoomControls {
-    float: left;
 }
 
 .ptzControls .controlsPanel .irisControls {
-    float: right;
     text-align: center;
 }
 
 .ptzControls .controlsPanel .whiteControls {
-    float: right;
     width: 120px;
     text-align: center;
 }
 
 .ptzControls .controlsPanel .pantiltPanel {
     margin: 0 auto;
-    height: 180px;
-    float: left;
     width: 100px;
 }
 
@@ -99,13 +95,14 @@
     padding: 1px;
     width: 100px;
     height: 100px;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .arrowBtn {
     width: 32px;
     height: 32px;
     cursor: pointer;
-    float: left;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .upLeftBtn {
@@ -146,7 +143,6 @@
 
 .ptzControls .controlsPanel .powerControls,
 .ptzControls .presetControls div {
-    margin: 5px 200px 5px 180px;
 }
 
 .ptzControls .presetControls button {

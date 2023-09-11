@@ -1,25 +1,14 @@
 <?php
-error_reporting(0);
+require_once('includes/monitor_probe.php');
 
 $defaultMonitor = new ZM\Monitor();
-$defaultMonitor->set(array(
-  'StorageId' =>  1,
-  'ServerId'  =>  'auto',
-  'Function'  =>  'Mocord',
-  'Type'      =>  'Ffmpeg',
-  'Enabled'   =>  '1',
-  'Colour'    =>  '4', // 32bit
-  'ImageBufferCount'  =>  '20',
-  'WarmupCount' =>  '0',
-  'PreEventCount' =>  '0',
-  'StreamReplayBuffer'  =>  '0',
-  'SaveJPEGs' =>  '4',
-  'VideoWriter' =>  '1',
-  'MaxFPS'      =>  '20',
-  'AlarmMaxFPS' =>  '20',
-) );
 
-function probe( &$url_bits ) {
+function probe(&$url_bits) {
+  $cameras = probeNetwork();
+  return $cameras;
+}
+
+function tprobe( &$url_bits ) {
   error_reporting(0);
   global $defaultMonitor;
   $available_streams = array();
@@ -129,95 +118,83 @@ if ( 0 ) {
   return $available_streams;
 } // end function probe
 
-if ( canEdit('Monitors') ) {
-    switch ( $_REQUEST['action'] ) {
-      case 'probe' :
-        {
-        $available_streams = array();
-        $url_bits = null;
-        if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $_REQUEST['url']) ) {
-          $url_bits = array('host'=>$_REQUEST['url']);
-        } else {
-          $url_bits = parse_url($_REQUEST['url']);
-        }
+if (canEdit('Monitors')) {
+  switch ($_REQUEST['action']) {
+  case 'probe' :
+  {
+    $available_streams = array();
+    $url = isset($_REQUEST['url']) ? $_REQUEST['url'] : '';
+    $url_bits = null;
+    if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
+      $url_bits = array('host'=>$url);
+    } else {
+      $url_bits = parse_url($url);
+    }
 
-if ( 0 ) {
-        // Shortcut test
-        $monitors = ZM\Monitor::find( array('Path'=>$_REQUEST['url']) );
-        if ( count( $monitors ) ) {
-          ZM\Info("Monitor found for " . $_REQUEST['url']);
-          $url_bits['url'] = $_REQUEST['url'];
-          $url_bits['Monitor'] = $monitors[0];
-          $available_stream[] = $url_bits;
-          ajaxResponse( array ( 'Streams'=>$available_streams) );
-          return;
-        } # end url already has a monitor
-}
+    if (!$url_bits) {
+      ajaxError('The given URL was too malformed to parse.');
+      return;
+    }
 
-        if ( ! $url_bits ) {
-          ajaxError('The given URL was too malformed to parse.');
-          return;
-        }
+    $available_streams = probe($url_bits);
+    #ZM\Debug("available_streams".print_r($available_streams, true));
 
-        $available_streams = probe($url_bits);
+    ajaxResponse(array('Streams'=>$available_streams));
+    return;
+  } // end case url_probe
+  case 'import':
+  {
 
-        ajaxResponse(array('Streams'=>$available_streams));
-        return;
-      } // end case url_probe
-      case 'import':
-      {
+    $file = $_FILES['import_file'];
 
-        $file = $_FILES['import_file'];
+    if ( $file['error'] > 0 ) {
+      ajaxError($file['error']);
+      return;
+    } else {
+      $filename = $file['name'];
 
-        if ( $file['error'] > 0 ) {
-          ajaxError($file['error']);
-          return;
-        } else {
-          $filename = $file['name'];
+      $available_streams = array();
+      $row = 1;
+      if ( ($handle = fopen($file['tmp_name'], 'r')) !== FALSE ) {
+        while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {
+          $name = $data[0];
+          $url = $data[1];
+          $group = $data[2];
+          ZM\Info("Have the following line data $name $url $group");
 
-          $available_streams = array();
-          $row = 1;
-          if ( ($handle = fopen($file['tmp_name'], 'r')) !== FALSE ) {
-            while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {
-              $name = $data[0];
-              $url = $data[1];
-              $group = $data[2];
-              ZM\Info("Have the following line data $name $url $group");
-
-              $url_bits = null;
-              if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
-                $url_bits = array('host'=>$url, 'scheme'=>'http');
-              } else {
-                $url_bits = parse_url($url);
-              }
-              if ( ! $url_bits ) {
-                ZM\Info("Bad url, skipping line $name $url $group");
-                continue;
-              }
-
-              $available_streams += probe($url_bits);
-
-              //$url_bits['url'] = unparse_url( $url_bits );
-              //$url_bits['Monitor'] = $defaultMonitor;
-              //$url_bits['Monitor']->Name( $name );
-              //$url_bits['Monitor']->merge( $_POST['newMonitor'] );
-              //$available_streams[] = $url_bits;
-              
-            } // end while rows
-            fclose($handle);
-            ajaxResponse(array('Streams'=>$available_streams));
+          $url_bits = null;
+          if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
+            $url_bits = array('host'=>$url, 'scheme'=>'http');
           } else {
-            ajaxError('Uploaded file does not exist');
-            return;
+            $url_bits = parse_url($url);
           }
-        }
-      } // end case import
-      default:
-        ZM\Warning('unknown action '.$_REQUEST['action']);
-    } // end switch action
+          if ( ! $url_bits ) {
+            ZM\Info("Bad url, skipping line $name $url $group");
+            continue;
+          }
+
+          $available_streams += probe($url_bits);
+
+          //$url_bits['url'] = unparse_url( $url_bits );
+          //$url_bits['Monitor'] = $defaultMonitor;
+          //$url_bits['Monitor']->Name( $name );
+          //$url_bits['Monitor']->merge( $_POST['newMonitor'] );
+          //$available_streams[] = $url_bits;
+
+        } // end while rows
+        fclose($handle);
+        ajaxResponse(array('Streams'=>$available_streams));
+      } else {
+        ajaxError('Uploaded file does not exist');
+        return;
+      }
+    }
+  } // end case import
+  default:
+  ZM\Warning('unknown action '.$_REQUEST['action']);
+  } // end switch action
 } else {
   ZM\Warning('Cannot edit monitors');
 }
-
-ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user ' . $user['Username']);
+ajaxError('Unrecognised action '.$_REQUEST['action'].' or insufficient permissions for user ' . $user->Username());
 ?>

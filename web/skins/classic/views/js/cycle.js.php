@@ -23,6 +23,8 @@ monitorData[monitorData.length] = {
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
   'type': '<?php echo $monitor->Type() ?>',
   'refresh': '<?php echo $monitor->Refresh() ?>',
+  'RTSP2WebEnabled': <?php echo $monitor->RTSP2WebEnabled() ?>,
+  'RTSP2WebType': '<?php echo $monitor->RTSP2WebType() ?>',
   'janusEnabled': <?php echo $monitor->JanusEnabled() ?>,
   'janus_pin': '<?php echo $monitor->Janus_Pin() ?>'
 };

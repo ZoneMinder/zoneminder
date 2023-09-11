@@ -47,7 +47,7 @@ select {
 
 #actionsTable input[type=text] {
     margin-left: 4px;
-    width: 100%;
+    width: 60%;
 }
 #actionsTable, #optionsTable {
   float: left;
@@ -71,7 +71,7 @@ select {
 input[name="filter[EmailSubject]"],
 input[name="filter[EmailTo]"],
 textarea[name="filter[EmailBody]"] {
-width: 100%;
+width: 60%;
 }
 select#Id {
 min-width: 500px;

@@ -50,10 +50,10 @@ createvars () {
     shorthash=$(git describe --long --always | awk -F - '{print $3}')
 
     # Grab the ZoneMinder version from the contents of the version file
-    versionfile=$(cat version)
+    versionfile=$(cat version.txt)
 
     # git the latest (short) commit hash of the version file
-    versionhash=$(git log -n1 --pretty=format:%h version)
+    versionhash=$(git log -n1 --pretty=format:%h version.txt)
 
     # Number of commits since the version file was last changed
     numcommits=$(git rev-list ${versionhash}..HEAD --count)
@@ -101,7 +101,7 @@ commonprep () {
         echo "Retrieving Crud ${CRUDVER} submodule..."
         curl -L https://github.com/FriendsOfCake/crud/archive/v${CRUDVER}.tar.gz > build/crud-${CRUDVER}.tar.gz
         if [ $? -ne 0 ]; then
-            echo "ERROR: Crud tarball retreival failed..."
+            echo "ERROR: Crud tarball retrieval failed..."
             exit 1
         fi
     fi
@@ -113,7 +113,7 @@ commonprep () {
         echo "Retrieving CakePHP-Enum-Behavior ${CEBVER} submodule..."
         curl -L https://github.com/ZoneMinder/CakePHP-Enum-Behavior/archive/${CEBVER}.tar.gz > build/cakephp-enum-behavior-${CEBVER}.tar.gz
         if [ $? -ne 0 ]; then
-            echo "ERROR: CakePHP-Enum-Behavior tarball retreival failed..."
+            echo "ERROR: CakePHP-Enum-Behavior tarball retrieval failed..."
             exit 1
         fi
     fi
@@ -125,7 +125,7 @@ commonprep () {
         echo "Retrieving RTSP ${RTSPVER} submodule..."
         curl -L https://github.com/ZoneMinder/RtspServer/archive/${RTSPVER}.tar.gz > build/RtspServer-${RTSPVER}.tar.gz
         if [ $? -ne 0 ]; then
-            echo "ERROR: RtspServer tarball retreival failed..."
+            echo "ERROR: RtspServer tarball retrieval failed..."
             exit 1
         fi
     fi
@@ -159,7 +159,7 @@ movecrud () {
     fi
 }
 
-# previsouly part of installzm.sh
+# previously part of installzm.sh
 # install the deb and test zoneminder
 install_deb () {
 
@@ -369,7 +369,7 @@ elif [ "${OS}" == "debian" ] || [ "${OS}" == "ubuntu" ] || [ "${OS}" == "raspbia
   setdebpkgname
   movecrud
 
-  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "jammy" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ]; then
+  if [ "${DIST}" == "bionic" ] || [ "${DIST}" == "focal" ] || [ "${DIST}" == "hirsute" ] || [ "${DIST}" == "impish" ] || [ "${DIST}" == "jammy" ] || [ "${DIST}" == "buster" ] || [ "${DIST}" == "bullseye" ] || [ "${DIST}" == "bookworm" ]; then
     ln -sfT distros/ubuntu2004 debian
   elif [ "${DIST}" == "beowulf" ]; then
     ln -sfT distros/beowulf debian

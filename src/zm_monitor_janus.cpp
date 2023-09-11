@@ -66,8 +66,8 @@ void Monitor::JanusManager::load_from_monitor() {
       localtime_r(&now_t, &now_tm);
       if (parent->janus_rtsp_user) {
         std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
-          " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
-          " `MonitorIds` FROM `Users` WHERE `Enabled`=1 AND `Id`=" + std::to_string(parent->janus_rtsp_user);
+          " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
+          " FROM `Users` WHERE `Enabled`=1 AND `Id`=" + std::to_string(parent->janus_rtsp_user);
 
         MYSQL_RES *result = zmDbFetch(sql);
         if (result) {
@@ -101,7 +101,7 @@ void Monitor::JanusManager::load_from_monitor() {
     rtsp_path = parent->path;
   }
   parent->janus_pin = generateKey(16);
-  Debug(1, "Monitor %u assigned secret %s, rtsp url is %s", parent->id, parent->janus_pin.c_str(), rtsp_path.c_str());
+  Debug(1, "JANUS Monitor %u assigned secret %s, rtsp url is %s", parent->id, parent->janus_pin.c_str(), rtsp_path.c_str());
   strncpy(parent->shared_data->janus_pin, parent->janus_pin.c_str(), 17); //copy the null termination, as we're in C land
 }
 
@@ -139,32 +139,31 @@ int Monitor::JanusManager::check_janus() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) { //may mean an error code thrown by Janus, because of a bad session
-    Warning("Attempted to send %s to %s and got %s", postData.c_str(), endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Attempted to send %s to %s and got %s", postData.c_str(), endpoint.c_str(), curl_easy_strerror(res));
     janus_session = "";
     janus_handle = "";
     return -1;
   }
 
-  Debug(1, "Queried for stream status: %s", response.c_str());
+  Debug(1, "JANUS Queried for stream status: %s", response.c_str());
   if (response.find("\"janus\": \"error\"") != std::string::npos) {
     if (response.find("No such session") != std::string::npos) {
-      Warning("Janus Session timed out");
+      Warning("JANUS Session timed out");
       janus_session = "";
       return -2;
     } else if (response.find("No such handle") != std::string::npos) {
-      Warning("Janus Handle timed out");
+      Warning("JANUS Handle timed out");
       janus_handle = "";
       return -2;
     }
   } else if (response.find("No such mountpoint") != std::string::npos) {
-    Warning("Mountpoint Missing");
+    Warning("JANUS Mountpoint Missing");
     return 0;
   }
 
-
   //check for changed PIN
   if (response.find(parent->janus_pin) == std::string::npos){
-    Warning("PIN changed, remounting.");
+    Warning("JANUS PIN changed, remounting.");
     return remove_from_janus();
   }
   return 1;
@@ -217,7 +216,7 @@ int Monitor::JanusManager::add_to_janus() {
       postData += rtsp_timeout;
   }
   postData += ", \"video\" : true}}";
-  Debug(1, "Sending %s to %s", postData.c_str(), endpoint.c_str());
+  Debug(1, "JANUS Sending %s to %s", postData.c_str(), endpoint.c_str());
 
   CURLcode res;
   std::string response;
@@ -230,24 +229,24 @@ int Monitor::JanusManager::add_to_janus() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Error("Failed to curl_easy_perform adding rtsp stream");
+    Error("JANUS Failed to curl_easy_perform adding rtsp stream");
     return -1;
   }
 
   //scan for missing session or handle id "No such session" "no such handle"
   if (response.find("\"janus\": \"error\"") != std::string::npos) {
     if (response.find("No such session") != std::string::npos) {
-      Warning("Janus Session timed out");
+      Warning("JANUS Session timed out");
       janus_session = "";
       return -2;
     } else if (response.find("No such handle") != std::string::npos) {
-      Warning("Janus Handle timed out");
+      Warning("JANUS Handle timed out");
       janus_handle = "";
       return -2;
     }
   }
 
-  Debug(1,"Added stream to Janus: %s", response.c_str());
+  Debug(1, "JANUS Added stream: %s", response.c_str());
   return 0;
 }
 
@@ -277,9 +276,9 @@ int Monitor::JanusManager::remove_from_janus() {
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
   CURLcode res = curl_easy_perform(curl);
   if (res != CURLE_OK) {
-    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
   } else {
-    Debug(1, "Removed stream from Janus: %s", response.c_str());
+    Debug(1, "JANUS Removed stream: %s", response.c_str());
   }
 
   curl_easy_cleanup(curl);
@@ -310,7 +309,7 @@ int Monitor::JanusManager::get_janus_session() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
     return -1;
   }
 
@@ -339,7 +338,7 @@ int Monitor::JanusManager::get_janus_handle() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
     return -1;
   }
 

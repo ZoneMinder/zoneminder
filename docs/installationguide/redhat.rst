@@ -19,7 +19,7 @@ Background: Fedora
 
 One can think of Fedora as RHEL Beta. This is, in fact, what it is. Fedora is primarily geared towards development and testing of newer, sometimes bleeding edge, packages. The ZoneMinder team uses this distro to determine the interoperability of ZoneMinder with the latest and greatest versions of packages like mysql, apache, systemd, and others. If a problem is detected, it will be addressed long before it makes it way into RHEL.
 
-Fedora has a short life-cycle of just 6 months. However, Fedora, and consequently ZoneMinder, is available on armv7 architecture. Rejoice, Raspberry Pi users!
+Fedora has a short life-cycle of just 6 months. Fedora 36 is the last release supporting armv7 architecture, and consequently Raspberry Pis earlier than the Raspberry Pi 2 v 1.2. F36 is end-of-life in May 2023.
 
 If you desire newer packages than what is available in RHEL or its clones, you should consider using Fedora.
 
@@ -73,7 +73,7 @@ Install ZoneMinder for Apache web server:
 
 .. sidebar :: Note
 
-    A virtual package called zoneminder exists. This package contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
+    A virtual package called zoneminder exists. This package contains no files and will pull in the zoneminder-httpd package for backwards compatibility.
 
 ::
 
@@ -213,7 +213,7 @@ Now clone the ZoneMinder git repository from your home folder:
 
 This will create a sub-folder called zoneminder, which will contain the latest development source code.
 
-If you have previsouly cloned the ZoneMinder git repo and wish to update it to the most recent, then issue these commands instead:
+If you have previously cloned the ZoneMinder git repo and wish to update it to the most recent, then issue these commands instead:
 
 ::
 
@@ -225,6 +225,19 @@ Get the crud submodule tarball:
 ::
 
     spectool -f -g -R -s 1 ~/zoneminder/distros/redhat/zoneminder.spec
+
+Get the cakephp-enum-behavior submodule tarball:
+
+::
+
+    spectool -f -g -R -s 2 ~/zoneminder/distros/redhat/zoneminder.spec
+
+
+Get the Rtsp-Server submodule tarball:
+
+::
+
+    spectool -f -g -R -s 3 ~/zoneminder/distros/redhat/zoneminder.spec
 
 At this point, you can make changes to the source code. Depending on what you want to do with those changes, you generally want to create a new branch first:
 

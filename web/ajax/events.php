@@ -204,7 +204,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
     M.Name AS Monitor';
   $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
-  if (int($filter->limit()) and !count($filter->post_sql_conditions())) {
+  if ((int)$filter->limit() and !count($filter->post_sql_conditions())) {
     $sql .= ' LIMIT '.$filter->limit();
   }
 

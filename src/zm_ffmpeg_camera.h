@@ -24,6 +24,8 @@
 
 #include <memory>
 
+class FFmpeg_Input;
+
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 typedef struct DecodeContext {
       AVBufferRef *hw_device_ref;
@@ -48,7 +50,9 @@ class FfmpegCamera : public Camera {
     std::string         hwaccel_name;
     std::string         hwaccel_device;
 
-    int frameCount;    
+    std::unique_ptr<FFmpeg_Input> mSecondInput;
+
+    int frameCount;
 
     _AVPIXELFORMAT      imagePixFormat;
 

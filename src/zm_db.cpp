@@ -41,10 +41,6 @@ bool zmDbConnect() {
     return false;
   }
 
-  bool reconnect = 1;
-  if ( mysql_options(&dbconn, MYSQL_OPT_RECONNECT, &reconnect) )
-    Error("Can't set database auto reconnect option: %s", mysql_error(&dbconn));
-
   if ( !staticConfig.DB_SSL_CA_CERT.empty() ) {
     mysql_ssl_set(&dbconn,
         staticConfig.DB_SSL_CLIENT_KEY.c_str(),

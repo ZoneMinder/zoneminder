@@ -12,9 +12,9 @@ class Filter extends ZM_Object {
   protected static $archiveTypes = null;
   protected static $booleanValues = null;
 
-  private $Query;
-  private $Terms;
-  private $Query_json;
+  protected $Query;
+  protected $Terms;
+  protected $Query_json;
 
 
   protected $defaults = array(

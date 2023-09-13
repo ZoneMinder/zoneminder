@@ -694,12 +694,12 @@ function get_arp_results() {
     return $results;
   }
   if (count($result)==1) {
-    $arp_command .= ' -n';
+    $arp_command .= ' -an';
   }
 
   $result = exec(escapeshellcmd($arp_command), $output, $status);
   if ($status) {
-    ZM\Error("Unable to probe network cameras, status is '$status'");
+    ZM\Error("Unable to probe network cameras using $arp_command, status is '$status' output is ".implode("\n", $output));
     return $results;
   }
   foreach ($output as $line) {
@@ -779,21 +779,25 @@ function probeNetwork() {
     ZM\Warning('No content from '.ZM_PATH_DATA.'/MacVendors.json');
   }
   $macBases = json_decode($macVendors, true);
-  $oui_txt = file_get_contents('/usr/share/arp-scan/ieee-oui.txt');
-  if (!$oui_txt) {
-    ZM\Warning('No content from /usr/share/arp-scan/ieee-oui.txt');
-  } else {
-    foreach (explode(PHP_EOL, $oui_txt) as $line) {
-      if (false === strpos($line , '#')) {
-        $record = explode("\t", $line);
-        if (count($record) < 2) continue;
-        $mac = strtolower($record[0]);
-        $type = preg_replace('/\W/', '', $record[1]);
-        if (!isset($macBases[$mac]))
-          $macBases[$mac] = [ 'vendor'=>$record[1], 'type'=>$type];
+  if (defined('ZM_PATH_OUI') and ZM_PATH_OUI and file_exists(ZM_PATH_OUI)) {
+    $oui_txt = file_get_contents(ZM_PATH_OUI);
+    if (!$oui_txt) {
+      ZM\Warning('No content from /usr/share/arp-scan/ieee-oui.txt');
+    } else {
+      foreach (explode(PHP_EOL, $oui_txt) as $line) {
+        if (false === strpos($line , '#')) {
+          $record = explode("\t", $line);
+          if (count($record) < 2) continue;
+          $mac = strtolower($record[0]);
+          $type = preg_replace('/\W/', '', $record[1]);
+          if (!isset($macBases[$mac]))
+            $macBases[$mac] = [ 'vendor'=>$record[1], 'type'=>$type];
+        }
       }
+      #ZM\Debug("bases: " . print_r($macBases, true));
     }
-    #ZM\Debug("bases: " . print_r($macBases, true));
+  } else {
+    ZM\Debug("No ieee-oui.txt");
   }
 
   foreach (get_arp_results() as $mac=>$ip) {

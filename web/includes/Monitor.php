@@ -276,6 +276,8 @@ public static function getStatuses() {
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
 
+  protected $Id;
+
   public function save($data = null) {
     if ($data) $this->set($data);
     if ($this->Manufacturer() and $this->Manufacturer()->Name() and ! $this->Manufacturer->Id()) {
@@ -412,17 +414,19 @@ public static function getStatuses() {
       }
       return $this->defaults[$fn];
     } else if (array_key_exists($fn, $this->status_fields)) {
-      $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
-      $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
-      if (!$row) {
-        Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
-        return null;
-      } else {
-        foreach ($row as $k => $v) {
-          $this->{$k} = $v;
+      if ($this->Id()) {
+        $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
+        $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
+        if (!$row) {
+          Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
+        } else {
+          foreach ($row as $k => $v) {
+            $this->{$k} = $v;
+          }
+          return $this->{$fn};
         }
-      }
-      return $this->{$fn};
+      } # end if this->Id
+      return null;
     } else if (array_key_exists($fn, $this->summary_fields)) {
       $sql = 'SELECT * FROM `Event_Summaries` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));

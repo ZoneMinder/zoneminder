@@ -123,7 +123,7 @@ $statusData = array(
         global $dateTimeFormatter;
         return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
       }),
-      # Left for backwards compatability. Remove in 1.37
+      # Left for backwards compatibility. Remove in 1.37
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
@@ -157,7 +157,7 @@ $statusData = array(
         global $dateTimeFormatter;
         return $dateTimeFormatter->format(strtotime($row['StartDateTime']));
       }),
-      # Left for backwards compatability. Remove in 1.37
+      # Left for backwards compatibility. Remove in 1.37
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
@@ -423,14 +423,14 @@ function getFrameImage() {
 
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
   if ( !($frame = dbFetchOne($sql, NULL, array($eventId, $frameId))) ) {
-    ZM\Error("Frame not found for event $eventId frame $frameId");
+    ZM\Debug("Frame not found for event $eventId frame $frameId");
     $frame = array();
     $frame['EventId'] = $eventId;
     $frame['FrameId'] = $frameId;
     $frame['Type'] = 'Virtual';
   }
-  $event = dbFetchOne('SELECT * FROM Events WHERE Id = ?', NULL, array($frame['EventId']));
-  $frame['Image'] = getImageSrc($event, $frame, SCALE_BASE);
+  $event = new ZM\Event($frame['EventId']);
+  $frame['Image'] = $event->getImageSrc($frame, SCALE_BASE);
   return $frame;
 }
 
@@ -478,7 +478,7 @@ function getNearEvents() {
   }
   $sql .= ' AND E.Id<'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
   if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id DESC';
   }
   $sql .= ' LIMIT 1';
@@ -496,7 +496,7 @@ function getNearEvents() {
   }
   $sql .=' AND E.Id>'.$event['Id'] . ' ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
   if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (diffreent monitors) then we should sort secondly by Id
+    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
     $sql .= ', E.Id ASC';
   }
   $sql .= ' LIMIT 1';

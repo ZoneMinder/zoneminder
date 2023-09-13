@@ -1,4 +1,4 @@
-name: CI Debian Buster
+name: CI Debian Bookworm
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
           - crypto_backend: gnutls
             jwt_backend: jwt_cpp
     runs-on: ubuntu-latest
-    container: debian:buster
+    container: debian:bookworm
 
     steps:
       - name: Update packages

@@ -750,7 +750,7 @@ function initPage() {
     settingsBtn.prop('disabled', false);
   }
 
-  if (monitorType != 'WebSite') {
+  if ((monitorType != 'WebSite') && monitorData.length) {
     monitorStream = new MonitorStream(monitorData[monIdx]);
     monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
@@ -875,7 +875,7 @@ function initPage() {
   bindButton('#cyclePrevBtn', 'click', null, cyclePrev);
   bindButton('#cycleToggle', 'click', null, cycleToggle);
   bindButton('#cyclePeriod', 'change', null, cyclePeriodChange);
-  if (cycle) {
+  if (monitorData.length && cycle) {
     cycleStart();
   } else {
     cyclePause();

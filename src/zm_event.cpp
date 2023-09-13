@@ -139,6 +139,16 @@ Event::Event(
     id = zmDbDoInsert(sql);
   } while (!id and !zm_terminate);
 
+  sql = stringtf("INSERT INTO Event_Summaries (MonitorId,HourEvents,DayEvents,WeekEvents,MonthEvents,TotalEvents) VALUES (%d,1,1,1,1,1) ON DUPLICATE KEY "
+      "UPDATE "
+      "HourEvents = COALESCE(HourEvents,0)+1,"
+      "DayEvents = COALESCE(DayEvents,0)+1,"
+      "WeekEvents = COALESCE(WeekEvents,0)+1,"
+      "MonthEvents = COALESCE(MonthEvents,0)+1,"
+      "TotalEvents = COALESCE(TotalEvents,0)+1",
+      monitor->Id());
+  zmDbDoInsert(sql);
+
   thread_ = std::thread(&Event::Run, this);
 }
 

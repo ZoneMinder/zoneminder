@@ -17,7 +17,7 @@ if ( !canView('Events') ) $message = 'Insufficient permissions for user '.$user-
 if ( empty($_REQUEST['mid']) ) {
   $message = 'Must specify a monitor Id';
 } else {
-  $mid = $_REQUEST['mid'];
+  $mid = validCardinal($_REQUEST['mid']);
 }
 
 // Limit specifies the number of rows to return
@@ -27,7 +27,7 @@ if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
   $limit = $_REQUEST['limit'];
 }
 
-if ( $message ) {
+if ($message) {
   ZM\Error($message);
   ajaxError($message);
   return;
@@ -35,7 +35,7 @@ if ( $message ) {
 
 // Sort specifies the name of the column to sort on
 $sort = 'Id';
-if ( isset($_REQUEST['sort']) ) {
+if (isset($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
 }
 

@@ -525,7 +525,22 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);
   zm_dump_codec(mVideoCodecContext);
 
-  if (mAudioStreamId == -1 and !monitor->GetSecondPath().empty()) {
+  if (mAudioStreamId >= 0) {
+    const AVCodec *mAudioCodec = nullptr;
+    if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
+      Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
+    } else {
+      mAudioCodecContext = avcodec_alloc_context3(mAudioCodec);
+      avcodec_parameters_to_context(mAudioCodecContext, mAudioStream->codecpar);
+
+      zm_dump_stream_format((mSecondFormatContext?mSecondFormatContext:mFormatContext), mAudioStreamId, 0, 0);
+      // Open the codec
+      if (avcodec_open2(mAudioCodecContext, mAudioCodec, nullptr) < 0) {
+        Error("Unable to open codec for audio stream from %s", mMaskedPath.c_str());
+        return -1;
+      }  // end if opened
+    }  // end if found decoder
+  } else if (!monitor->GetSecondPath().empty()) {
     Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
     mSecondInput = zm::make_unique<FFmpeg_Input>();
     if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {

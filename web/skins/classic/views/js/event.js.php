@@ -25,6 +25,7 @@ var eventData = {
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
     Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
+    <!-- Tags: '<?php echo validHtmlStr($Event->Tags()) ?>', -->
     Notes: `<?php echo $Event->Notes()?>`,
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
@@ -57,6 +58,8 @@ var eventDataStrings = {
     MonitorId: '<?php echo translate('AttrMonitorId') ?>',
     MonitorName: '<?php echo translate('AttrMonitorName') ?>',
     Cause: '<?php echo translate('Cause') ?>',
+    <!-- Tags is not necessary since tags are displayed above -->
+    <!-- Tags: '<?php echo translate('Tags') ?>', -->  
     Notes: '<?php echo translate('Notes') ?>',
     StartDateTimeFormatted: '<?php echo translate('AttrStartTime') ?>',
     EndDateTimeFormatted: '<?php echo translate('AttrEndTime') ?>',

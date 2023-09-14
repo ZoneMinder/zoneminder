@@ -59,7 +59,12 @@ if (!$filter->Id()) {
       'val' => $num_terms ? '' : (isset($_COOKIE['eventsEndDateTimeEnd']) ? $_COOKIE['eventsEndDateTimeEnd'] : ''),
       'cnj' => 'and', 'cookie'=>'eventsEndDateTimeEnd'));
   }
-  $filter->sort_terms(['Group','Monitor','StartDateTime','EndDateTime']);
+  if (!$filter->has_term('Tags')) {
+    $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
+      'val' => $num_terms ? '' : (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
+      'cnj' => 'and', 'cookie'=>'eventsTags'));
+  }
+  $filter->sort_terms(['Group','Monitor','StartDateTime','EndDateTime','Tags']);
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'AlarmFrames', 'op'=> '>', 'val'=>'10'));
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '<=', 'val'=>''));
 }
@@ -149,6 +154,7 @@ data-min-width="562"
               <th data-sortable="true" data-field="Emailed" class="Emailed"><?php echo translate('Emailed') ?></th>
               <th data-sortable="true" data-field="Monitor" class="Monitor"><?php echo translate('Monitor') ?></th>
               <th data-sortable="true" data-field="Cause" class="Cause" data-click-to-select="false"><?php echo translate('Cause') ?></th>
+              <th data-sortable="true" data-field="Tags" class="Tags"><?php echo translate('Tags') ?></th>
               <th data-sortable="true" data-field="StartDateTime" class="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
               <th data-sortable="true" data-field="EndDateTime" class="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="true" data-field="Length" class="Length"><?php echo translate('Duration') ?></th>

@@ -11,6 +11,7 @@ class Event_Data extends ZM_Object {
     'EventId' => null,
     'FrameId' => null,
     'MonitorId' => null,
+    'Tags' => array(),
     'TimeStamp' => 0,
     'Data' => '',
   );

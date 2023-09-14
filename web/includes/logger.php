@@ -35,6 +35,9 @@ class Logger {
   private $logFile = '';
   private $logFd = NULL;
 
+  private $savedLogErrors = null;
+  private $savedDisplayErrors = null;
+
   public static $codes = array(
     self::DEBUG => 'DBG',
     self::INFO => 'INF',
@@ -238,7 +241,7 @@ class Logger {
       if ( !$this->hasTerm ) {
         if ( $lastLevel < self::DEBUG && $this->level >= self::DEBUG ) {
           $this->savedErrorReporting = error_reporting(E_ALL);
-          $this->savedDisplayErrors = ini_set('display_errors', true);
+          $this->savedDisplayErrors = ini_set('display_errors', false);
         } elseif ( $lastLevel >= self::DEBUG && $this->level < self::DEBUG ) {
           error_reporting($this->savedErrorReporting);
           ini_set('display_errors', $this->savedDisplayErrors);

@@ -423,14 +423,14 @@ function getFrameImage() {
 
   $sql = 'SELECT * FROM Frames WHERE EventId = ? AND FrameId = ?';
   if ( !($frame = dbFetchOne($sql, NULL, array($eventId, $frameId))) ) {
-    ZM\Error("Frame not found for event $eventId frame $frameId");
+    ZM\Debug("Frame not found for event $eventId frame $frameId");
     $frame = array();
     $frame['EventId'] = $eventId;
     $frame['FrameId'] = $frameId;
     $frame['Type'] = 'Virtual';
   }
-  $event = dbFetchOne('SELECT * FROM Events WHERE Id = ?', NULL, array($frame['EventId']));
-  $frame['Image'] = getImageSrc($event, $frame, SCALE_BASE);
+  $event = new ZM\Event($frame['EventId']);
+  $frame['Image'] = $event->getImageSrc($frame, SCALE_BASE);
   return $frame;
 }
 

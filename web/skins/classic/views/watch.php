@@ -75,9 +75,10 @@ if ($mid and ($monitor_index == -1)) {
   }
 }
 
-if (!$mid) {
+if (!$mid and count($monitors)) {
   $mid = $monitors[0]->Id();
   $monitor_index = 0;
+  $nextMid = ($monitor_index == count($monitors)-1) ? $monitors[0]->Id() : $monitors[$monitor_index+1]->Id();
 }
 
 if (!visibleMonitor($mid)) {
@@ -86,7 +87,6 @@ if (!visibleMonitor($mid)) {
 }
 
 $monitor = new ZM\Monitor($mid);
-$nextMid = ($monitor_index == count($monitors)-1) ? $monitors[0]->Id() : $monitors[$monitor_index+1]->Id();
 
 # cycle is wether to do the countdown/move to next monitor bit.
 # showCycle is whether to show the cycle controls.
@@ -257,6 +257,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
   </div><!--header-->
   <div class="container-fluid h-100">
     <div class="row flex-nowrap h-100" id="content">
+<?php if (count($monitors)) { ?>
       <nav id="sidebar" class="h-100"<?php echo $showCycle?'':' style="display:none;"'?>>
         <div id="cycleButtons" class="buttons">
 <?php
@@ -443,5 +444,10 @@ if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
 <?php
 }
 ?>
-  <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
-<?php xhtmlFooter() ?>
+<?php
+  } else {
+    echo "There are no monitors to display\n";
+  }
+  echo '<script src="'.cache_bust('js/MonitorStream.js') .'"></script>'.PHP_EOL;
+  xhtmlFooter();
+?>

@@ -61,6 +61,11 @@ function processRows(rows) {
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
     if ( LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + '&amp;page=1">' + row.imgHtml + '</a>';
+    if ( row.Notes.indexOf('detected:') >= 0 ) {
+      row.Notes = '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted">' + row.Notes + '</div></a>';
+    } else if ( row.Notes != 'Forced Web: ' ) {
+      row.Notes = '<div class="small text-muted">' + row.Notes + '</div>';
+    }
   });
 
   return rows;
@@ -745,7 +750,7 @@ function initPage() {
     settingsBtn.prop('disabled', false);
   }
 
-  if (monitorType != 'WebSite') {
+  if ((monitorType != 'WebSite') && monitorData.length) {
     monitorStream = new MonitorStream(monitorData[monIdx]);
     monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
@@ -819,6 +824,10 @@ function initPage() {
       // Update table rows each time after new data is loaded
       table.on('post-body.bs.table', function(data) {
         $j('#eventList tr:contains("New Event")').addClass('recent');
+        $j('.objDetectLink').click(function(evt) {
+          evt.preventDefault();
+          getObjdetectModal($j(this).data('eid'));
+        });
       });
 
       // Take appropriate action when the user clicks on a cell
@@ -866,7 +875,7 @@ function initPage() {
   bindButton('#cyclePrevBtn', 'click', null, cyclePrev);
   bindButton('#cycleToggle', 'click', null, cycleToggle);
   bindButton('#cyclePeriod', 'change', null, cyclePeriodChange);
-  if (cycle) {
+  if (monitorData.length && cycle) {
     cycleStart();
   } else {
     cyclePause();
@@ -989,6 +998,18 @@ function changeRate(e) {
     }
   }
   setCookie('zmWatchRate', newvalue);
+}
+
+function getObjdetectModal(eid) {
+  $j.getJSON(thisUrl + '?request=modal&modal=objdetect&eid=' + eid)
+      .done(function(data) {
+        insertModalHtml('objdetectModal', data.html);
+        $j('#objdetectModal').modal('show');
+      })
+      .fail(function(jqxhr) {
+        console.log("Fail get objdetect details");
+        logAjaxFail(jqxhr);
+      });
 }
 
 // Kick everything off

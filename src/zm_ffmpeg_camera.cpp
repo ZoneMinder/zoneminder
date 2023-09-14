@@ -124,6 +124,7 @@ FfmpegCamera::FfmpegCamera(
   mOptions(p_options),
   hwaccel_name(p_hwaccel_name),
   hwaccel_device(p_hwaccel_device),
+  mSecondInput(nullptr),
   frameCount(0),
   use_hwaccel(true),
   mCanCapture(false),
@@ -524,19 +525,7 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);
   zm_dump_codec(mVideoCodecContext);
 
-  if (mAudioStreamId == -1 and !monitor->GetSecondPath().empty()) {
-    Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
-    FFmpeg_Input *second_input = new FFmpeg_Input();
-    if (second_input->Open(monitor->GetSecondPath().c_str()) > 0) {
-      mSecondFormatContext = second_input->get_format_context();
-      mAudioStreamId = second_input->get_audio_stream_id();
-      mAudioStream = second_input->get_audio_stream();
-    } else {
-      Warning("Failed to open secondary input");
-    }
-  }  // end if have audio stream
-
-  if ( mAudioStreamId >= 0 ) {
+  if (mAudioStreamId >= 0) {
     const AVCodec *mAudioCodec = nullptr;
     if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
       Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
@@ -551,7 +540,18 @@ int FfmpegCamera::OpenFfmpeg() {
         return -1;
       }  // end if opened
     }  // end if found decoder
-  }  // end if mAudioStreamId
+  } else if (!monitor->GetSecondPath().empty()) {
+    Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
+    mSecondInput = zm::make_unique<FFmpeg_Input>();
+    if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
+      mSecondFormatContext = mSecondInput->get_format_context();
+      mAudioStreamId = mSecondInput->get_audio_stream_id();
+      mAudioStream = mSecondInput->get_audio_stream();
+      mAudioCodecContext = mSecondInput->get_audio_codec_context();
+    } else {
+      Warning("Failed to open secondary input");
+    }
+  }  // end if have audio stream
 
   if (
       ((unsigned int)mVideoCodecContext->width != width)
@@ -574,11 +574,6 @@ int FfmpegCamera::Close() {
     avcodec_close(mVideoCodecContext);
     avcodec_free_context(&mVideoCodecContext);
     mVideoCodecContext = nullptr;  // Freed by av_close_input_file
-  }
-  if ( mAudioCodecContext ) {
-    avcodec_close(mAudioCodecContext);
-    avcodec_free_context(&mAudioCodecContext);
-    mAudioCodecContext = nullptr;  // Freed by av_close_input_file
   }
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H

@@ -894,7 +894,7 @@ sub sendSummaryEmail {
     return 1;
   }
   return 0;
-}
+} # end sub sendSummaryEmail
 
 sub sendEmail {
   my $filter = shift;
@@ -919,6 +919,8 @@ sub sendEmail {
   if (sendTheEmail($filter, $subject, $body, @attachments)) {
     $event->save({Emailed=>1});
     return 1;
+  } else {
+    Warning("Failed to send the email");
   }
   return 0;
 }
@@ -929,7 +931,7 @@ sub sendTheEmail {
   eval {
     if ($Config{ZM_NEW_MAIL_MODULES}) {
       my $total_size = 0;
-### Create the multipart container
+      # Create the multipart container
       my $mail = MIME::Lite->new(
           From => $Config{ZM_FROM_EMAIL},
           To => $$filter{EmailTo},
@@ -946,7 +948,6 @@ sub sendTheEmail {
           Type => 'multipart/alternative'
         );
         $related->attach($alternative);
-
 
         # Create a text-only version, it has to go first
         require HTML::FormatText;

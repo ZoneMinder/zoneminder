@@ -212,14 +212,14 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon">
-					<i class="material-icons md-20">menu</i>
-				</span>
+          <i class="material-icons md-20">menu</i>
+        </span>
       </button>
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
         <span class="sr-only">Toggle guages</span>
         <span class="navbar-toggler-icon">
-					<i class="material-icons md-20">monitoring</i>
-				</span>
+          <i class="material-icons md-20">monitoring</i>
+        </span>
       </button>
 <!--
    </div>
@@ -352,8 +352,8 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-haspopup="true" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon">
-					<i class="material-icons md-20">menu</i>
-				</span>
+          <i class="material-icons md-20">menu</i>
+        </span>
       </button>
     <?php } ?>
 
@@ -476,32 +476,34 @@ function getStorageHTML() {
 function getRamHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
-  $contents = file_get_contents('/proc/meminfo');
-  preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
-  $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
-  $mem_used = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
-  $mem_used_percent = (int)(100*$mem_used/$meminfo['MemTotal']);
-  $used_class = '';
-  if ($mem_used_percent > 95) {
-    $used_class = 'text-danger';
-  } else if ($mem_used_percent > 90) {
-    $used_class = 'text-warning';
-  }
-  $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
-    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> ';
-
-  if ($meminfo['SwapTotal']) {
-    $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
-    $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
-    $swap_class = '';
-    if ($swap_used_percent > 95) {
-      $swap_class = 'text-danger';
-    } else if ($swap_used_percent > 90) {
-      $swap_class = 'text-warning';
+  if (file_exists('/proc')) {
+    $contents = file_get_contents('/proc/meminfo');
+    preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
+    $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
+    $mem_used = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
+    $mem_used_percent = (int)(100*$mem_used/$meminfo['MemTotal']);
+    $used_class = '';
+    if ($mem_used_percent > 95) {
+      $used_class = 'text-danger';
+    } else if ($mem_used_percent > 90) {
+      $used_class = 'text-warning';
     }
-    $result .= '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> ';
-  } # end if SwapTotal
-  $result .= '</li>'.PHP_EOL;
+    $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
+      '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> ';
+
+    if ($meminfo['SwapTotal']) {
+      $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
+      $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
+      $swap_class = '';
+      if ($swap_used_percent > 95) {
+        $swap_class = 'text-danger';
+      } else if ($swap_used_percent > 90) {
+        $swap_class = 'text-warning';
+      }
+      $result .= '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> ';
+    } # end if SwapTotal
+    $result .= '</li>'.PHP_EOL;
+  }
   
   return $result;
 }

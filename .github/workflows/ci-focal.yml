@@ -1,4 +1,4 @@
-name: CI Ubuntu Bionic (18.04)
+name: CI Ubuntu Focal (20.04)
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
             crypto_package: libssl-dev
             jwt_package: libjwt-dev
     runs-on: ubuntu-latest
-    container: ubuntu:bionic
+    container: ubuntu:focal
 
     steps:
       - name: Update packages
@@ -34,7 +34,7 @@ jobs:
           add-apt-repository ppa:git-core/ppa
           apt-get -qq update
           apt-get -qq install git
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Install dependencies

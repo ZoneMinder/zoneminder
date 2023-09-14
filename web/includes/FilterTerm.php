@@ -25,6 +25,7 @@ class FilterTerm {
   public $cookie;
   public $placeholder;
   public $collate;
+  public $tablename;
 
   public function __construct($filter = null, $term = null, $index=0) {
     $this->cnj = '';
@@ -35,7 +36,7 @@ class FilterTerm {
     if ($term) {
       $this->attr = isset($term['attr']) ? $term['attr'] : '';
       $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $this->attr, -1, $count);
-      if ($count) Error("Invalid characters removed from filter attr ${term['attr']}, possible hacking attempt.");
+      if ($count) Error("Invalid characters removed from filter attr {$term['attr']}, possible hacking attempt.");
       $this->op = isset($term['op']) ? $term['op'] : '=';
       $this->val = isset($term['val']) ? $term['val'] : '';
       if (is_array($this->val)) $this->val = implode(',', $this->val);

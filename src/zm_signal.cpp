@@ -62,8 +62,10 @@ RETSIGTYPE zm_die_handler(int signal)
 		ucontext_t *uc = (ucontext_t *) context;
 		cr2 = info->si_addr;
     #if defined(__x86_64__)
-	    #if defined(__FreeBSD_kernel__) || defined(__FreeBSD__) 
+	    #if defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
 		ip = (void *)(uc->uc_mcontext.mc_rip);
+	    #elif defined(__OpenBSD__)
+		ip = (void *)(uc->sc_rip);
 	    #else
 		ip = (void *)(uc->uc_mcontext.gregs[REG_RIP]);
 	    #endif

@@ -208,6 +208,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   // Error($filter->sql());
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
 
+
   $col_str = '
   E.*, 
   UNIX_TIMESTAMP(E.StartDateTime) 
@@ -245,7 +246,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   GROUP BY E.Id 
   '.($sort?' ORDER BY '.$sort.' '.$order:'');
 
-  if ($filter->limit() and !count($filter->post_sql_conditions())) {
+  if ((int)$filter->limit() and !count($filter->post_sql_conditions())) {
+
     $sql .= ' LIMIT '.$filter->limit();
   }
 

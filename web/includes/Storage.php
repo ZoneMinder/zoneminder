@@ -6,6 +6,18 @@ require_once('Object.php');
 
 class Storage extends ZM_Object {
   protected static $table = 'Storage';
+
+  protected $Id;
+  protected $Path;
+  protected $Name;
+  protected $Type;
+  protected $Url;
+  protected $DiskSpace;
+  protected $Scheme;
+  protected $ServerId;
+  protected $DoDelete;
+  protected $Enabled;
+
   protected $defaults = array(
     'Id'        => null,
     'Path'      => array('type'=>'text','filter_regexp'=>array('/[^\w\-\.\(\)\:\/ ]/','/\/$/'), 'default'=>''),

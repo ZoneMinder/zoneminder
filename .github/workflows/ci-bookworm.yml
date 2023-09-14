@@ -1,4 +1,4 @@
-name: CI Debian Buster
+name: CI Debian Bookworm
 
 on:
   push:
@@ -30,14 +30,14 @@ jobs:
           - crypto_backend: gnutls
             jwt_backend: jwt_cpp
     runs-on: ubuntu-latest
-    container: debian:buster
+    container: debian:bookworm
 
     steps:
       - name: Update packages
         run: apt-get -qq update && apt-get -qq upgrade
       - name: Install git
         run: apt-get -qq install git
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Install dependencies

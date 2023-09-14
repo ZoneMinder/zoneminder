@@ -154,12 +154,15 @@ if (!empty($_REQUEST['proxy'])) {
 
     $start = strpos($r, "\xff");
     if (false !== $start) {
-      $end   = strpos($r, "--\n", $start)-1;
-      $frame = substr($r, $start, $end - $start);
-      ZM\Debug("Start $start end $end");
-
       header('Content-type: image/jpeg');
-      echo $frame;
+      $end   = strpos($r, "--\n", $start)-1;
+      if ($end > $start) {
+        $frame = substr($r, $start, $end - $start);
+        ZM\Debug("Start $start end $end");
+        echo $frame;
+      } else {
+        echo $r;
+      }
     } else {
       $img = imagecreate(320, 240);
 
@@ -357,31 +360,8 @@ if ( empty($_REQUEST['path']) ) {
     } else {
       $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));
       if (!$Frame) {
-        $previousBulkFrame = dbFetchOne(
-          'SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1',
-          NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
-        );
-        $nextBulkFrame = dbFetchOne(
-          'SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1',
-          NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
-        );
-        if ($previousBulkFrame and $nextBulkFrame) {
-          $Frame = new ZM\Frame($previousBulkFrame);
-          $Frame->FrameId($_REQUEST['fid']);
-
-          $percentage = ($Frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
-
-          $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
-          ZM\Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
-        } else if ($previousBulkFrame) {
-          //If no next Frame we have to pull data from the Event itself
-          $Frame = new ZM\Frame($previousBulkFrame);
-          $Frame->FrameId($_REQUEST['fid']);
-
-          $percentage = ($Frame->FrameId()/$Event->Frames());
-
-          $Frame->Delta(floor($Event->Length() * $percentage));
-        } else {
+        $Frame = $Event->find_virtual_frame($_REQUEST['fid']);
+        if (!$Frame) {
           header('HTTP/1.0 404 Not Found');
           ZM\Error('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
           return;
@@ -581,10 +561,12 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
 
 function find_video($path) {
   # Look for other mp4s
-  $files = scandir($path);
-  foreach ($files as $file) {
-    if (preg_match('/.mp4$/i', $file)) {
-      return $file;
+  if (file_exists($path)) {
+    $files = scandir($path);
+    foreach ($files as $file) {
+      if (preg_match('/.mp4$/i', $file)) {
+        return $file;
+      }
     }
   }
 }

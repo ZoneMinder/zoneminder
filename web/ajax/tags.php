@@ -7,13 +7,12 @@ switch ( $_REQUEST['action'] ) {
     ajaxResponse(array('response'=>$dbFetchResult));
     break;
   case 'createtag' :
-    $sql = 'INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?) RETURNING Id';
+    $sql = 'INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?)';
     $values = array($_REQUEST['tname'], $user->Id());
     $result = dbFetchAll($sql, NULL, $values);
-    $r = $result[0];
 
     $sql = 'SELECT * FROM Tags WHERE Id = ?';
-    $values = array($r['Id']);
+    $values = array(dbInsertId());
     $dbFetchResult = dbFetchAll($sql, NULL, $values);
 
     ajaxResponse(array('response'=>$dbFetchResult));

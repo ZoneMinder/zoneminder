@@ -40,7 +40,7 @@ Homepage: https://www.zoneminder.com/
 Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
-        ,sudo
+        ,sudo, pkexec
         ,javascript-common
         ,libavdevice59|libavdevice58|libavdevice57
         ,libswscale6|libswscale5|libswscale4

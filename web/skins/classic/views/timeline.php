@@ -130,9 +130,63 @@ $chart = array(
 $monitors = array();
 
 # The as E, and joining with Monitors is required for the filterSQL filters.
-$rangeSql = 'SELECT min(E.StartDateTime) AS MinTime, max(E.EndDateTime) AS MaxTime FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(E.StartDateTime) AND NOT isnull(E.EndDateTime)';
-$eventsSql = 'SELECT E.* FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartDateTime)';
-$eventIdsSql = 'SELECT E.Id FROM Events AS E INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) WHERE NOT isnull(StartDateTime)';
+$rangeSql = '
+SELECT 
+  min(E.StartDateTime) 
+    AS MinTime, 
+  max(E.EndDateTime) 
+    AS MaxTime, 
+  GROUP_CONCAT(T.Name SEPARATOR ", ")
+    AS Tags 
+FROM Events 
+  AS E 
+INNER JOIN Monitors 
+  AS M 
+  ON (E.MonitorId = M.Id) 
+LEFT JOIN Events_Tags 
+  AS ET 
+  ON E.Id = ET.EventId 
+LEFT JOIN Tags 
+  AS T 
+  ON T.Id = ET.TagId 
+WHERE NOT isnull(E.StartDateTime) 
+  AND NOT isnull(E.EndDateTime)';
+
+$eventsSql = '
+SELECT 
+  E.*, 
+  GROUP_CONCAT(T.Name SEPARATOR ", ")
+    AS Tags 
+FROM Events 
+  AS E 
+INNER JOIN Monitors 
+  AS M 
+  ON (E.MonitorId = M.Id) 
+LEFT JOIN Events_Tags 
+  AS ET 
+  ON E.Id = ET.EventId 
+LEFT JOIN Tags 
+  AS T 
+  ON T.Id = ET.TagId 
+WHERE NOT isnull(StartDateTime)';
+
+$eventIdsSql = '
+SELECT 
+  E.Id, 
+  GROUP_CONCAT(T.Name SEPARATOR ", ")
+    AS TagsFROM Events 
+  AS E 
+INNER JOIN Monitors 
+  AS M 
+  ON (E.MonitorId = M.Id) 
+LEFT JOIN Events_Tags 
+  AS ET 
+  ON E.Id = ET.EventId 
+LEFT JOIN Tags 
+  AS T 
+  ON T.Id = ET.TagId 
+WHERE NOT isnull(StartDateTime)';
+
 $eventsValues = array();
 
 if ( count($user->unviewableMonitorIds()) ) {

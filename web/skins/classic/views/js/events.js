@@ -220,7 +220,7 @@ function initPage() {
 
   // Hide these columns on first run when no cookie is saved
   if (!getCookie('zmEventsTable.bs.table.columns')) {
-    table.bootstrapTable('hideColumn', 'Archived');
+    // table.bootstrapTable('hideColumn', 'Archived');
     table.bootstrapTable('hideColumn', 'Emailed');
   }
 
@@ -434,10 +434,12 @@ function filterEvents() {
   filterQuery = '';
   $j('#fieldsTable input').each(function(index) {
     const el = $j(this);
+    console.log('input index: '+index+'  this: '+encodeURIComponent(el.val()));
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
   $j('#fieldsTable select').each(function(index) {
     const el = $j(this);
+    console.log('select index: '+index+'  this: '+encodeURIComponent(el.val()));
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
   console.log(filterQuery);

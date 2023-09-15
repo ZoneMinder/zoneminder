@@ -224,8 +224,8 @@ function dbFetchNext($result, $col=false) {
   return false;
 }
 
-function dbNumRows( $sql ) {
-  $result = dbQuery($sql);
+function dbNumRows($sql, $params=NULL) {
+  $result = dbQuery($sql, $params);
   return $result->rowCount();
 }
 

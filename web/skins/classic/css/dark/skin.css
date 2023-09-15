@@ -230,3 +230,19 @@ ul.nav.nav-pills.flex-column {
 .thead-highlight {
     background-color:#485460;
 }
+
+.tag {
+  background-color: #444444;
+}
+
+.tag-dropdown-content {
+  background-color: #333333;
+}
+
+.tag-dropdown-item:hover {
+  background-color: #222222;
+}
+
+.hlight{
+  background:#444444;
+}

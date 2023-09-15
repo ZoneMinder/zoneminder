@@ -291,6 +291,13 @@ function parseRows(rows) {
       });
       var monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal).chosen({width: '101%'});
+    } else if ( attr == 'Tags' ) { // Tags
+      var tagSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      for (var key in availableTags) {
+        tagSelect.append('<option value="' + key + '">' + escapeHTML(availableTags[key]) + '</option>');
+      };
+      var tagVal = inputTds.eq(4).children().val();
+      inputTds.eq(4).html(tagSelect).children().val(tagVal).chosen({width: '101%'});
     } else if ( attr == 'ExistsInFileSystem' ) {
       var select = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for ( var booleanVal in booleanValues ) {
@@ -399,6 +406,14 @@ function manageModalBtns(id) {
     });
   }
 }
+
+// function getAvailableTags() {
+//   $j.getJSON(thisUrl + '?request=tags&action=getavailabletags')
+//       .done(function(data) {
+//         return data.response;
+//       })
+//       .fail(logAjaxFail);
+// }
 
 function initPage() {
   updateButtons($j('#executeButton')[0]);

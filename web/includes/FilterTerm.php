@@ -102,6 +102,7 @@ class FilterTerm {
       case 'DiskPercent':
         $value = '';
         break;
+      case 'Tags':
       case 'MonitorName':
       case 'Name':
       case 'Cause':
@@ -294,6 +295,8 @@ class FilterTerm {
     case 'StateId':
     case 'Archived':
       return $this->tablename.'.'.$this->attr;
+    case 'Tags':
+      return 'T.Id';
     default :
       return $this->tablename.'.'.$this->attr;
     }
@@ -445,6 +448,11 @@ class FilterTerm {
           Error('Failed evaluating '.$string_to_eval);
           return false;
         }
+      } else if ( $this->attr == 'Tags' ) {
+        // Debug('TODO: Complete this post_sql_condition for Tags  val: ' . $this->val . '  op: ' . $this->op . '  id: ' . $this->id);
+        // Debug(print_r($this, true));
+        // Debug(print_r($event, true));
+        return true;
       } else {
         Error('testing unsupported post term ' . $this->attr);
       }
@@ -461,7 +469,7 @@ class FilterTerm {
   }
 
   public function is_post_sql() {
-    if ( $this->attr == 'ExistsInFileSystem' ) {
+    if ( $this->attr == 'ExistsInFileSystem' || $this->attr == 'Tags') {
         return true;
     }
     return false;
@@ -516,6 +524,7 @@ class FilterTerm {
       'Notes',
       'StateId',
       'Archived',
+      'Tags',
       # The following are for snapshots
       'CreatedOn', 
       'Description'
@@ -537,6 +546,7 @@ class FilterTerm {
         return false;
       break;
     case 'Archived' :
+    case 'Tags' :
     case 'Monitor' :
     case 'MonitorId' :
     case 'ServerId' :

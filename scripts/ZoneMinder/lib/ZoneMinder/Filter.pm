@@ -148,15 +148,9 @@ sub Sql {
         E.*, 
         unix_timestamp(E.StartDateTime) 
           AS Time,
-        GROUP_CONCAT(T.Name SEPARATOR ", ") 
+        CONCAT_WS(", ", (SELECT Name FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE EventId=E.Id))) 
       FROM Events 
         AS E 
-      LEFT JOIN Events_Tags 
-        AS ET 
-        ON E.Id = ET.EventId 
-      LEFT JOIN Tags 
-        AS T 
-        ON T.Id = ET.TagId 
     ';
 
     if ( $filter_expr->{terms} ) {

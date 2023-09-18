@@ -251,11 +251,8 @@ $log->debug("No serial") if $debug;
 					next;
 				}
 				if ( ! $$self{$id} ) {
-          my $s = qq{SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE `table_name` = '$table'};
-
-					($$self{$id}) = ($sql{$$fields{$id}}) = $local_dbh->selectrow_array( $s );
 					#($$self{$id}) = ($sql{$$fields{$id}}) = $local_dbh->selectrow_array( q{SELECT nextval('} . $serial{$id} . q{')} );
-					$log->debug("SQL statement execution SELECT $s returned $$self{$id}") if $debug or DEBUG_ALL;
+          #$log->debug("SQL statement execution SELECT $s returned $$self{$id}") if $debug or DEBUG_ALL;
 					$insert = 1;
 				} # end if
 			} # end foreach
@@ -300,22 +297,6 @@ $log->debug("No serial") if $debug;
 		my $need_serial = @identified_by_without_values > 0;
 
 		if ( $force_insert or $need_serial ) {
-			
-			if ( $need_serial ) {
-				if ( $serial ) {
-          $log->debug("Getting auto_increments");
-          my $s = qq{SELECT `auto_increment` FROM INFORMATION_SCHEMA.TABLES WHERE `table_name` = '$table'};
-					@$self{@identified_by} = @sql{@$fields{@identified_by}} = $local_dbh->selectrow_array( $s );
-#@$self{@identified_by} = @sql{@$fields{@identified_by}} = $local_dbh->selectrow_array( q{SELECT nextval('} . $serial . q{')} );
-					if ( $local_dbh->errstr() )  {
-						$log->error("Error getting next id. " . $local_dbh->errstr() ."\n".
-              "SQL statement execution $s returned ".join(',',@$self{@identified_by}));
-					} elsif ( $debug or DEBUG_ALL ) {
-						$log->debug("SQL statement execution $s returned ".join(',',@$self{@identified_by}));
-					} # end if
-				} # end if
-			} # end if
-
 			my @keys = keys %sql;
 			my $command = "INSERT INTO `$table` (" . join(',', map { '`'.$_.'`' } @keys ) . ') VALUES (' . join(',', map { '?' } @sql{@keys} ) . ')';
 			if ( ! ( $_ = $local_dbh->prepare($command) and $_->execute( @sql{@keys} ) ) ) {
@@ -330,6 +311,7 @@ $log->debug("No serial") if $debug;
 				$command =~ s/\?/\%s/g;
 				$log->debug('SQL DEBUG: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys} ) ).'):' );
 			} # end if
+      $$self{Id} = $local_dbh->{'mysql_insertid'} if !$$self{Id};
 		} else {
 			delete $sql{created_on};
 			my @keys = keys %sql;
@@ -352,16 +334,6 @@ $log->debug("No serial") if $debug;
 		} # end if
 	} # end if
   ZoneMinder::Database::end_transaction( $local_dbh, $ac ) if $ac;
-  #$self->load();
-	#if ( $$fields{id} ) {
-		#if ( ! $ZoneMinder::Object::cache{$type}{$$self{id}} ) {
-			#$ZoneMinder::Object::cache{$type}{$$self{id}} = $self;
-		#} # end if
-	#delete $ZoneMinder::Object::cache{$config{db_name}}{$type}{$$self{id}};
-	#} # end if
-#$log->debug("after delete");
-	#eval 'if ( %'.$type.'::find_cache ) { %'.$type.'::find_cache = (); }';
-#$log->debug("after clear cache");
 	return '';
 } # end sub save
 

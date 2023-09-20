@@ -148,9 +148,15 @@ sub Sql {
         E.*, 
         unix_timestamp(E.StartDateTime) 
           AS Time,
-        CONCAT_WS(", ", (SELECT Name FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE EventId=E.Id))) 
+        GROUP_CONCAT(T.Name SEPARATOR ", ") 
       FROM Events 
         AS E 
+      LEFT JOIN Events_Tags 
+        AS ET 
+        ON E.Id = ET.EventId 
+      LEFT JOIN Tags 
+        AS T 
+        ON T.Id = ET.TagId 
     ';
 
     if ( $filter_expr->{terms} ) {
@@ -410,6 +416,7 @@ sub Sql {
     } elsif ( $filter_expr->{sort_field} ne '' ) {
       $sort_column = 'E.'.$filter_expr->{sort_field};
     }
+    $sql .= ' GROUP BY E.Id ';
     if ( $sort_column ne '' ) {
       $sql .= ' ORDER BY '.$sort_column.' '.($filter_expr->{sort_asc} ? 'ASC' : 'DESC');
     }

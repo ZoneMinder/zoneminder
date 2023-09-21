@@ -137,20 +137,34 @@ if ( $action == 'delete' ) {
           }
         }
       }
-      file_put_contents(ZM_PATH_DNSMASQ_CONF, $conf);
+      if (false===file_put_contents(ZM_PATH_DNSMASQ_CONF, $conf)) {
+        ZM\Warning("Failed to writh to ".ZM_PATH_DNSMASQ_CONF);
+      } else {
+        exec('sudo -n /bin/systemctl restart dnsmasq.service');
+      }
       exec('sudo -n /bin/systemctl restart dnsmasq.service');
     }
   }
 } else if ($action == 'start') {
   if (isset($_REQUEST['object'])) {
     if ($_REQUEST['object'] == 'dnsmasq') {
-      exec('sudo -n /bin/systemctl start dnsmasq.service');
+      exec('sudo -n /bin/systemctl start dnsmasq.service', $output, $result);
+      if ($result) {
+              ZM\Warning("Error execing sudo -n /bin/systemctl start dnsmasq.service. Output: ".implode(PHP_EOL, $output));
+      } else {
+              ZM\Debug("Error execing sudo -n /bin/systemctl start dnsmasq.service. Output: ".implode(PHP_EOL, $output));
+      }
     }
   }
 } else if ($action == 'stop') {
   if (isset($_REQUEST['object'])) {
     if ($_REQUEST['object'] == 'dnsmasq') {
-      exec('sudo -n /bin/systemctl stop dnsmasq.service');
+      exec('sudo -n /bin/systemctl stop dnsmasq.service', $output, $result);
+      if ($result) {
+              ZM\Warning("Error execing sudo -n /bin/systemctl start dnsmasq.service. Output: ".implode(PHP_EOL, $output));
+      } else {
+              ZM\Debug("Error execing sudo -n /bin/systemctl start dnsmasq.service. Output: ".implode(PHP_EOL, $output));
+      }
     }
   }
 } // end if object vs action

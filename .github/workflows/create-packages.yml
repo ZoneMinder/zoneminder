@@ -14,12 +14,12 @@ jobs:
         os_dist:
           - os: debian
             dist: bullseye
-          - os: debian
-            dist: bookworm
           - os: ubuntu
             dist: focal
           - os: ubuntu
             dist: jammy
+          - os: debian
+            dist: bookworm
     runs-on: ubuntu-latest
 
     steps:

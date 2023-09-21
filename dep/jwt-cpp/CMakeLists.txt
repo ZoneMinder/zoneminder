@@ -15,7 +15,7 @@ endif()
 
 project(jwt-cpp)
 
-option(JWT_BUILD_EXAMPLES "Configure CMake to build examples (or not)" ON)
+option(JWT_BUILD_EXAMPLES "Configure CMake to build examples (or not)" OFF)
 option(JWT_BUILD_TESTS "Configure CMake to build tests (or not)" OFF)
 option(JWT_ENABLE_COVERAGE "Enable code coverage testing" OFF)
 option(JWT_ENABLE_FUZZING "Enable fuzz testing" OFF)

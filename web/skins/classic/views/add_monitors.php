@@ -36,23 +36,23 @@ getBodyTopHTML();
 
           <div class="toolbar" id="toolbar">
             <div class="filters">
-              <input type="text" id="ip" name="ip" placeholder="IP of camera"/>
-              <input type="text" id="probe_username" name="probe_username" placeholder="username to use when probing"
-                value="<?php echo isset($_COOKIE['addMonitorsprobe_username']) ? $_COOKIE['addMonitorsprobe_username'] : '' ?>"/>
-              <input type="text" id="probe_password" name="probe_password" placeholder="password to use when probing"
-                value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? $_COOKIE['addMonitorsprobe_password'] : '' ?>"/>
   <?php 
   $manufacturers = array_to_hash_by_key('Name', ZM\Manufacturer::find());
-  echo htmlSelect('probe_Manufacturer', [''=>'All']+$manufacturers, 
+  echo htmlSelect('probe_Manufacturer', [''=>translate('All Manufacturers')]+$manufacturers, 
     (isset($_COOKIE['addMonitorsprobe_Manufacturer']) ? $_COOKIE['addMonitorsprobe_Manufacturer'] : ''), [
     #'multiple'=>'multiple',
           'class'=>'chosen']);
   ?>
+              <input type="text" id="ip" name="ip" placeholder="Camera IP Address"/>
+              <input type="text" id="probe_username" name="probe_username" placeholder="Camera Username"
+                value="<?php echo isset($_COOKIE['addMonitorsprobe_username']) ? $_COOKIE['addMonitorsprobe_username'] : '' ?>"/>
+              <input type="text" id="probe_password" name="probe_password" placeholder="Camera Password"
+                value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? $_COOKIE['addMonitorsprobe_password'] : '' ?>"/>
             </div>
             <div id="contentButtons">
               <button type="button" name="addBtn" data-on-click-this="addMonitor" title="<?php echo translate('Add New Monitor') ?>">
                 <i class="material-icons md-18">add_circle</i>
-                <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
+                <span class="text"><?php echo translate('AddNewMonitor') ?></span>
               </button>
               <button type="button" id="importBtn" data-on-click-this="importMonitors" title="<?php echo translate('Import CSV') ?>">
                 <i class="material-icons md-18">upload</i>
@@ -104,7 +104,7 @@ getBodyTopHTML();
         data-search="true"
         data-cookie="true"
         data-cookie-id-table="AddMonitorsTable"
-        data-cookie-expire="86400s"
+        data-cookie-expire="2y"
         data-click-to-select="true"
         data-remember-order="false"
         data-show-columns="true"
@@ -119,24 +119,28 @@ getBodyTopHTML();
         data-buttons-class="btn btn-normal"
         data-show-jump-to="true"
         data-show-refresh="true"
-        data-show-multi-sort="true"
+        data-show-multi-sort="false"
+data-check-on-init="true"
+data-mobile-responsive="true"
+data-min-width="562"
         class="table-sm table-borderless"
         style="display:none;"
       >
         <thead>
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
-              <th data-sortable="true" data-field="camera.Name"><?php echo translate('Name') ?></th>
-              <th data-sortable="true" data-field="camera.ip"><?php echo translate('IP Address') ?></th>
-              <th data-sortable="true" data-field="url"><?php echo translate('URL') ?></th>
-              <th data-sortable="true" data-field="camera.Manufacturer"><?php echo translate('Manufacturer') ?></th>
-              <th data-sortable="true" data-field="camera.Model"><?php echo translate('Model') ?></th>
-              <th data-sortable="true" data-field="camera.monitor.Width"><?php echo translate('Width') ?></th>
-              <th data-sortable="true" data-field="camera.monitor.Height"><?php echo translate('Height') ?></th>
-              <th data-sortable="true" data-field="camera.Codec"><?php echo translate('Codec') ?></th>
-              <th data-sortable="true" data-field="Monitor.Name"><?php echo translate('Monitor') ?></th>
-              <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;"><?php echo translate('Thumbnail') ?></th>
-              <th data-sortable="false" data-field="buttons"></th>
+              <th data-sortable="true" data-field="camera.Name" class="CameraName"><?php echo translate('Name') ?></th>
+              <th data-sortable="true" data-field="mac" class="CameraMAC"><?php echo translate('MAC Address') ?></th>
+              <th data-sortable="true" data-field="camera.ip" class="CameraIP"><?php echo translate('IP Address') ?></th>
+              <th data-sortable="true" data-field="url" class="Url"><?php echo translate('URL') ?></th>
+              <th data-sortable="true" data-field="camera.Manufacturer" class="Manufacturer"><?php echo translate('Manufacturer') ?></th>
+              <th data-sortable="true" data-field="camera.Model" class="Model"><?php echo translate('Model') ?></th>
+              <th data-sortable="true" data-field="camera.monitor.Width" class="Width"><?php echo translate('Width') ?></th>
+              <th data-sortable="true" data-field="camera.monitor.Height" class="Height"><?php echo translate('Height') ?></th>
+              <th data-sortable="true" data-field="camera.Codec" class="Codec"><?php echo translate('Codec') ?></th>
+              <th data-sortable="true" data-field="Monitor.Name" class="MonitorName"><?php echo translate('Monitor') ?></th>
+              <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;" class="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+              <th data-sortable="false" data-field="buttons"><?php echo translate('Add').' / '.translate('Edit') ?></th>
             </tr>
           </thead>
 

@@ -66,8 +66,7 @@ if ($action == 'Save') {
       if ($uid) {
         if ($user and ($dbUser->Username() == $user->Username())) {
           # We are the logged in user, need to update the $user object and generate a new auth_hash
-          $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
-          $user = dbFetchOne($sql, NULL, array($uid));
+          $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
 
           # Have to update auth hash in session
           zm_session_start();
@@ -124,13 +123,12 @@ if ($action == 'Save') {
       }
 
       # We are the logged in user, need to update the $user object and generate a new auth_hash
-      $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Id=?';
-      $user = dbFetchOne($sql, NULL, array($uid));
+      $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
       
       zm_session_start();
       generateAuthHash(ZM_AUTH_HASH_IPS, true);
       session_write_close();
-    }
-  }
+    } # end if changes
+  } # canEdit(System) or self edit
 } // end if $action == user
 ?>

@@ -365,6 +365,7 @@ body.sticky #content {
 }
 .alert, .warnText, .warning, .disabledText {
     color: #ffa801;
+    padding: 0;
 }
 
 
@@ -708,6 +709,7 @@ ul.nav.nav-pills.flex-column {
 
 .chosen-container {
 text-align: left;
+min-width: 11em;
 }
 
 .chosen-single,
@@ -767,7 +769,7 @@ li.search-choice {
 .zoom-console {
   transform-origin: 0% 50%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
-  position: absolute;
+  position: sticky;
   z-index: 1001;
 }
 
@@ -778,10 +780,6 @@ a.flip {
 
 #content table.major .colDiskSpace {
   text-align: right;
-}
-
-#objdetectModal .modal-content {
-    width: fit-content;
 }
 
 #modalLogout .modal-dialog {
@@ -882,4 +880,89 @@ a.flip {
 }
 .search .form-control {
   font-size: 100%;
+}
+
+button .material-icons {
+  font-size: 18px;
+}
+
+/* input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+} */
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid;
+  border-color: #ccc;
+  border-radius: 4px;
+  min-height: 35px;
+  margin: 0.25rem 1rem 0.25rem 1rem;
+}
+
+.tag {
+  background-color: #F0F0F0;
+  border-radius: 12px;
+  padding: 4px 8px;
+  margin: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.tag-text {
+  margin-right: 4px;
+}
+
+.tag-remove {
+  cursor: pointer;
+  color: red;
+}
+
+.tag-input {
+  height: 30px;
+  margin-left: 8px;
+  border: none;
+  width: 100%;
+}
+
+.tag-input:focus {
+  outline: none;
+}
+
+.tag-dropdown {
+  vertical-align: center;
+  margin-right: 8px;
+  display: inline-block;
+  flex-grow: 2;
+}
+
+.tag-dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 15;
+  padding: 4px 0;
+  overflow-y: auto;
+  max-height: 800px;
+}
+
+.tag-dropdown-item {
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+}
+
+.tag-dropdown-item:hover {
+  background-color: #dfdfdf;
+}
+
+.hlight{
+  background:#dfdfdf;
+}
+
+.tag-input:focus + .tag-dropdown-content,
+.tag-input + .tag-dropdown-content:active {
+  display: block;
 }

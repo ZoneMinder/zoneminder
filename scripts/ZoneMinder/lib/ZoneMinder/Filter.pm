@@ -143,8 +143,21 @@ sub Sql {
     }
 
     my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query_json});
-    my $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time
-         FROM Events as E';
+    my $sql = '
+      SELECT 
+        E.*, 
+        unix_timestamp(E.StartDateTime) 
+          AS Time,
+        GROUP_CONCAT(T.Name SEPARATOR ", ") 
+      FROM Events 
+        AS E 
+      LEFT JOIN Events_Tags 
+        AS ET 
+        ON E.Id = ET.EventId 
+      LEFT JOIN Tags 
+        AS T 
+        ON T.Id = ET.TagId 
+    ';
 
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
@@ -162,11 +175,10 @@ sub Sql {
           next;
         }
 
-        my $value = $term->{val};
-        my @value_list;
-
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
+        } elsif ( $term->{attr} eq 'Tags' ) {
+          $self->{Sql} .= 'T.Name';
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
           $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
           FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
@@ -192,7 +204,7 @@ sub Sql {
         } elsif ( $term->{attr} eq 'Weekday' or $term->{attr} eq 'StartWeekday' ) {
           $self->{Sql} .= 'weekday( E.StartDateTime )';
 
-          # EndTIme options
+          # EndTime options
         } elsif ( $term->{attr} eq 'EndDateTime' ) {
           $self->{Sql} .= 'E.EndDateTime';
         } elsif ( $term->{attr} eq 'EndDate' ) {
@@ -217,10 +229,15 @@ sub Sql {
           $self->{Sql} .= 'E.'.$term->{attr};
         }
 
+        my $value = defined($term->{val}) ? $term->{val} : '';
+        my @value_list;
+
         if ( $term->{attr} eq 'ExistsInFileSystem' ) {
           # PostCondition, so no further SQL
         } else {
-          ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
+          my $stripped_value = $value;
+          $stripped_value =~ s/^["\']+?(.+)["\']+?$/$1/ if $stripped_value;
+
           # Empty value will result in () from split
           foreach my $temp_value ( $stripped_value ne '' ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
@@ -366,6 +383,8 @@ sub Sql {
     my $sort_column = '';
     if ( $filter_expr->{sort_field} eq 'Id' ) {
       $sort_column = 'E.Id';
+    } elsif ( $filter_expr->{sort_field} eq 'Tag' ) {
+      $sort_column = 'T.Name';
     } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
             $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
          FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
@@ -397,6 +416,7 @@ sub Sql {
     } elsif ( $filter_expr->{sort_field} ne '' ) {
       $sort_column = 'E.'.$filter_expr->{sort_field};
     }
+    $sql .= ' GROUP BY E.Id ';
     if ( $sort_column ne '' ) {
       $sql .= ' ORDER BY '.$sort_column.' '.($filter_expr->{sort_asc} ? 'ASC' : 'DESC');
     }

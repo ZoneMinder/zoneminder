@@ -61,6 +61,11 @@ function processRows(rows) {
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
     if ( LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + '&amp;page=1">' + row.imgHtml + '</a>';
+    if ( row.Notes.indexOf('detected:') >= 0 ) {
+      row.Notes = '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted">' + row.Notes + '</div></a>';
+    } else if ( row.Notes != 'Forced Web: ' ) {
+      row.Notes = '<div class="small text-muted">' + row.Notes + '</div>';
+    }
   });
 
   return rows;
@@ -96,25 +101,25 @@ function changeSize() {
 
   monitorStream.setScale('0', width, height);
   $j('#scale').val('0');
-  setCookie('zmWatchScale', '0', 3600);
-  setCookie('zmWatchWidth', width, 3600);
-  setCookie('zmWatchHeight', height, 3600);
+  setCookie('zmWatchScale', '0');
+  setCookie('zmWatchWidth', width);
+  setCookie('zmWatchHeight', height);
 } // end function changeSize()
 
 function changeScale() {
-  var scale = $j('#scale').val();
-  setCookie('zmWatchScale'+monitorId, scale, 3600);
+  const scale = $j('#scale').val();
+  setCookie('zmWatchScale'+monitorId, scale);
   $j('#width').val('auto');
   $j('#height').val('auto');
-  setCookie('zmCycleScale', scale, 3600);
-  setCookie('zmWatchWidth', 'auto', 3600);
-  setCookie('zmWatchHeight', 'auto', 3600);
+  setCookie('zmCycleScale', scale);
+  setCookie('zmWatchWidth', 'auto');
+  setCookie('zmWatchHeight', 'auto');
 
   setScale();
 }
 // Implement current scale, as opposed to changing it
 function setScale() {
-  var scale = $j('#scale').val();
+  const scale = $j('#scale').val();
   monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
@@ -745,7 +750,7 @@ function initPage() {
     settingsBtn.prop('disabled', false);
   }
 
-  if (monitorType != 'WebSite') {
+  if ((monitorType != 'WebSite') && monitorData.length) {
     monitorStream = new MonitorStream(monitorData[monIdx]);
     monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
@@ -819,6 +824,10 @@ function initPage() {
       // Update table rows each time after new data is loaded
       table.on('post-body.bs.table', function(data) {
         $j('#eventList tr:contains("New Event")').addClass('recent');
+        $j('.objDetectLink').click(function(evt) {
+          evt.preventDefault();
+          getObjdetectModal($j(this).data('eid'));
+        });
       });
 
       // Take appropriate action when the user clicks on a cell
@@ -866,11 +875,12 @@ function initPage() {
   bindButton('#cyclePrevBtn', 'click', null, cyclePrev);
   bindButton('#cycleToggle', 'click', null, cycleToggle);
   bindButton('#cyclePeriod', 'change', null, cyclePeriodChange);
-  if (cycle) {
+  if (monitorData.length && cycle) {
     cycleStart();
   } else {
     cyclePause();
   }
+  bindButton('#ptzToggle', 'click', null, ptzToggle);
 } // initPage
 
 function watchFullscreen() {
@@ -941,18 +951,31 @@ function cyclePrev() {
 
 function cyclePeriodChange() {
   const cyclePeriodSelect = $j('#cyclePeriod');
-  secondsToCycle = cyclePeriodSelect.val();
-  setCookie('zmCyclePeriod', secondsToCycle, 3600);
+  setCookie('zmCyclePeriod', cyclePeriodSelect.val());
 }
 function cycleToggle(e) {
-  sidebar = $j('#sidebar');
-  button = $j('#cycleToggle');
+  const sidebar = $j('#sidebar');
+  const button = $j('#cycleToggle');
   if (sidebar.is(":visible")) {
     sidebar.hide();
-    setCookie('zmCycleShow', false, 3600);
+    setCookie('zmCycleShow', false);
   } else {
     sidebar.show();
-    setCookie('zmCycleShow', true, 3600);
+    setCookie('zmCycleShow', true);
+  }
+  button.toggleClass('btn-secondary');
+  button.toggleClass('btn-primary');
+}
+
+function ptzToggle(e) {
+  const controls = $j('#ptzControls');
+  const button = $j('#ptzToggle');
+  if (controls.is(":visible")) {
+    controls.hide();
+    setCookie('ptzShow', false);
+  } else {
+    controls.show();
+    setCookie('ptzShow', true);
   }
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
@@ -974,7 +997,19 @@ function changeRate(e) {
       streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
     }
   }
-  setCookie('zmWatchRate', newvalue, 3600);
+  setCookie('zmWatchRate', newvalue);
+}
+
+function getObjdetectModal(eid) {
+  $j.getJSON(thisUrl + '?request=modal&modal=objdetect&eid=' + eid)
+      .done(function(data) {
+        insertModalHtml('objdetectModal', data.html);
+        $j('#objdetectModal').modal('show');
+      })
+      .fail(function(jqxhr) {
+        console.log("Fail get objdetect details");
+        logAjaxFail(jqxhr);
+      });
 }
 
 // Kick everything off

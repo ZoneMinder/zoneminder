@@ -43,6 +43,7 @@
 #ifdef WITH_GSOAP
 #include "soapPullPointSubscriptionBindingProxy.h"
 #include "plugin/wsseapi.h"
+#include "plugin/wsaapi.h"
 #include <openssl/err.h>
 #endif
 
@@ -111,6 +112,12 @@ public:
   } DecodingOption;
 
   typedef enum {
+    HLS,
+    MSE,
+    WEBRTC
+  } RTSP2WebOption;
+
+  typedef enum {
     LOCAL=1,
     REMOTE,
     FILE,
@@ -176,6 +183,8 @@ protected:
     uint32_t state;             /* +12   */
     double      capture_fps;       // Current capturing fps
     double      analysis_fps;      // Current analysis fps
+    double      latitude;
+    double      longitude;
     uint64_t last_event_id;     /* +16   */
     uint32_t action;            /* +24   */
     int32_t brightness;         /* +28   */
@@ -329,6 +338,28 @@ protected:
     int start_Amcrest();
   };
 
+  class RTSP2WebManager {
+  protected:
+    Monitor *parent;
+    CURL *curl = nullptr;
+    //helper class for CURL
+    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    bool RTSP2Web_Healthy;
+    bool Use_RTSP_Restream;
+    std::string RTSP2Web_endpoint;
+    std::string rtsp_username;
+    std::string rtsp_password;
+    std::string rtsp_path;
+
+  public:
+    explicit RTSP2WebManager(Monitor *parent_);
+    ~RTSP2WebManager();
+    void load_from_monitor();
+    int add_to_RTSP2Web();
+    int check_RTSP2Web();
+    int remove_from_RTSP2Web();
+  };
+
   class JanusManager {
   protected:
     Monitor *parent;
@@ -376,6 +407,8 @@ protected:
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
+  bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
+  int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
@@ -406,8 +439,8 @@ protected:
   int             channel;
   int             format;
 
-  unsigned int    camera_width;
-  unsigned int    camera_height;
+  int    camera_width;
+  int    camera_height;
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
   bool            v4l_multi_buffer;
@@ -468,6 +501,8 @@ protected:
   int         signal_check_points;  // Number of points in the image to check for signal
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
+  double      latitude;
+  double      longitude;
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
   std::string onvif_alarm_txt;     // def onvif_alarm_txt
@@ -515,6 +550,7 @@ protected:
   struct timeval *shared_timestamps;
   unsigned char *shared_images;
   std::vector<Image *> image_buffer;
+  AVPixelFormat *image_pixelformats;
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
@@ -569,6 +605,7 @@ protected:
   bool Event_Poller_Healthy;
   bool Event_Poller_Closes_Event;
 
+  RTSP2WebManager *RTSP2Web_Manager;
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
 
@@ -578,6 +615,8 @@ protected:
   _tev__CreatePullPointSubscriptionResponse response;
   _tev__PullMessages tev__PullMessages;
   _tev__PullMessagesResponse tev__PullMessagesResponse;
+  _wsnt__Renew wsnt__Renew;
+  _wsnt__RenewResponse wsnt__RenewResponse;
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
 #endif
@@ -653,6 +692,9 @@ public:
     return shared_data->janus_pin;
   }
 
+  inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };
+  int get_max_keyframe_interval() const { return packetqueue.get_max_keyframe_interval(); };
+
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
@@ -662,6 +704,10 @@ public:
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
+    if (packetqueue.has_out_of_order_packets() and !packetqueue.get_max_keyframe_interval()) {
+      Debug(1, "Have out of order packets, but no keyframe interval.");
+      return false;
+    }
     if (image_count >= ready_count) {
       return true;
     }
@@ -687,7 +733,7 @@ public:
   bool hasViewers() {
     if (shared_data && shared_data->valid) {
       SystemTimePoint now = std::chrono::system_clock::now();
-      Debug(1, "Last viewed %" PRId64 " seconds ago", 
+      Debug(3, "Last viewed %" PRId64 " seconds ago", 
           static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
           -
           shared_data->last_viewed_time
@@ -702,6 +748,8 @@ public:
     return false;
   }
   inline bool Exif() const { return embed_exif; }
+  inline double Latitude() const { return shared_data ? shared_data->latitude : latitude; }
+  inline double Longitude() const { return shared_data ? shared_data->longitude : longitude; }
   inline bool RTSPServer() const { return rtsp_server; }
   inline bool RecordAudio() const { return record_audio; }
 

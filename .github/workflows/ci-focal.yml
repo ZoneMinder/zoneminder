@@ -1,4 +1,4 @@
-name: CI Debian Buster
+name: CI Ubuntu Focal (20.04)
 
 on:
   push:
@@ -17,26 +17,23 @@ jobs:
         shell: bash
     strategy:
       matrix:
-        crypto_backend: [ gnutls, openssl ]
+        crypto_backend: [ openssl ]
         jwt_backend: [ libjwt, jwt_cpp ]
         include:
-          - crypto_backend: gnutls
-            crypto_package: libgnutls28-dev
-            jwt_package: libjwt-gnutls-dev
           - crypto_backend: openssl
             crypto_package: libssl-dev
             jwt_package: libjwt-dev
-        exclude:
-          - crypto_backend: gnutls
-            jwt_backend: jwt_cpp
     runs-on: ubuntu-latest
-    container: debian:buster
+    container: ubuntu:focal
 
     steps:
       - name: Update packages
-        run: apt-get -qq update && apt-get -qq upgrade
+        run: apt-get -qq update && apt-get -qq upgrade && apt-get -qq install software-properties-common
       - name: Install git
-        run: apt-get -qq install git
+        run: |
+          add-apt-repository ppa:git-core/ppa
+          apt-get -qq update
+          apt-get -qq install git
       - uses: actions/checkout@v4
         with:
           submodules: recursive

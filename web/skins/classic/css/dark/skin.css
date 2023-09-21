@@ -141,6 +141,10 @@ fieldset {
     background-color: #070707;
 }
 
+.fixed-table-loading {
+  background-color: #333333 !important;
+}
+
 #header {
     border-bottom: 1px solid #000000;
 }
@@ -225,4 +229,20 @@ ul.nav.nav-pills.flex-column {
 
 .thead-highlight {
     background-color:#485460;
+}
+
+.tag {
+  background-color: #444444;
+}
+
+.tag-dropdown-content {
+  background-color: #333333;
+}
+
+.tag-dropdown-item:hover {
+  background-color: #222222;
+}
+
+.hlight{
+  background:#444444;
 }

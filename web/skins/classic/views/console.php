@@ -34,7 +34,7 @@ $eventCounts = array(
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 hour' ),
+          array( 'cnj'=>'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 hour' ),
         )
       )
     ),
@@ -46,7 +46,7 @@ $eventCounts = array(
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 day' ),
+          array( 'cnj'=>'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 day' ),
         )
       )
     ),
@@ -58,7 +58,7 @@ $eventCounts = array(
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-7 day' ),
+          array( 'cnj'=>'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-7 day' ),
         )
       )
     ),
@@ -70,7 +70,7 @@ $eventCounts = array(
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 month' ),
+          array( 'cnj'=>'and', 'attr' => 'StartDateTime', 'op' => '>=', 'val' => '-1 month' ),
         )
       )
     ),
@@ -82,7 +82,7 @@ $eventCounts = array(
     'filter' => array(
       'Query' => array(
         'terms' => array(
-          array( 'attr' => 'Archived', 'op' => '=', 'val' => '1' ),
+          array( 'cnj'=>'and', 'attr' => 'Archived', 'op' => '=', 'val' => '1' ),
         )
       )
     ),
@@ -185,32 +185,32 @@ echo $navbar ?>
 
       <div class="middleButtons">
         <button type="button" id="scanBtn" title="<?php echo translate('Network Scan') ?>" data-on-click="scanNetwork">
-        <i class="material-icons md-18">wifi</i>
+        <i class="material-icons">wifi</i>
         <span class="text"><?php echo translate('Scan Network') ?></span>
         </button>
         <button type="button" name="addBtn" data-on-click="addMonitor"
         <?php echo canEdit('Monitors') ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
         >
-          <i class="material-icons md-18">add_circle</i>
+          <i class="material-icons">add_circle</i>
           <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
         </button>
         <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
         <?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>
         style="display:none;">
-          <i class="material-icons md-18">content_copy</i>
+          <i class="material-icons">content_copy</i>
   <!--content_copy used instead of file_copy as there is a bug in material-icons -->
           <span class="text">&nbsp;<?php echo translate('CloneMonitor') ?></span>
         </button>
         <button type="button" name="editBtn" data-on-click-this="editMonitor" disabled="disabled">
-          <i class="material-icons md-18">edit</i>
+          <i class="material-icons">edit</i>
           <span class="text">&nbsp;<?php echo translate('Edit') ?></span>
         </button>
         <button type="button" name="deleteBtn" data-on-click-this="deleteMonitor" disabled="disabled">
-          <i class="material-icons md-18">delete</i>
+          <i class="material-icons">delete</i>
           <span class="text">&nbsp;<?php echo translate('Delete') ?></span>
         </button>
         <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled">
-          <i class="material-icons md-18">view_list</i>
+          <i class="material-icons">view_list</i>
           <span class="text">&nbsp;<?php echo translate('Select') ?></span>
         </button>
       </div>
@@ -221,7 +221,7 @@ echo $navbar ?>
         </button>
       </div>
         
-        &nbsp;<a href="#"><i id="fbflip" class="material-icons md-18">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
+        &nbsp;<a href="#"><i id="fbflip" class="material-icons">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
     
     </div><!-- contentButtons -->
 <?php
@@ -237,12 +237,12 @@ ob_start();
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
             <th class="colId"><?php echo translate('Id') ?></th>
 <?php } ?>
-            <th class="colName"><i class="material-icons md-18">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
+            <th class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
             <th class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($Servers) ) { ?>
             <th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
-            <th class="colSource"><i class="material-icons md-18">settings</i>&nbsp;<?php echo translate('Source') ?></th>
+            <th class="colSource"><i class="material-icons">settings</i>&nbsp;<?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
             <th class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
@@ -291,6 +291,9 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   if ( (!$monitor['Status'] || ($monitor['Status'] == 'NotRunning')) && ($monitor['Type'] != 'WebSite')) {
     $source_class = 'errorText';
     $source_class_reason = translate('Not Running');
+  } else if (!$monitor['UpdatedOn'] or (strtotime($monitor['UpdatedOn']) < time()-60)) {
+    $source_class = 'errorText';
+    $source_class_reason = translate('Offline');
   } else {
     if ( $monitor['CaptureFPS'] == '0.00' ) {
       $source_class = 'errorText';
@@ -354,7 +357,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   }
 ?>
             <td class="colName">
-            <i class="material-icons md-18 <?php echo $dot_class ?>" title="<?php echo $dot_class_reason ?>">lens</i>
+            <i class="material-icons <?php echo $dot_class ?>" title="<?php echo $dot_class_reason ?>">lens</i>
               <a <?php echo ($stream_available ? 'href="?view=watch&amp;mid='.$monitor['Id'].'">' : '>') . validHtmlStr($monitor['Name']) ?></a><br/>
               <?php echo $imgHTML ?>
               <div class="small text-nowrap text-muted">
@@ -381,33 +384,36 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
             </div></td>
             <td class="colFunction">
               <!--<a class="functionLnk <?php echo $function_class ?>" data-mid="<?php echo $monitor['Id'] ?>" id="functionLnk-<?php echo $monitor['Id'] ?>" href="#"><?php echo translate('Fn'.$monitor['Function']) ?></a>-->
-              <?php
-              echo translate('Status'.$monitor['Status']).'<br/>';
-              if ($monitor['Analysing'] != 'None') {
-                echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
-              }
-              if ($monitor['Recording'] != 'None') {
-                echo translate('Recording'). ': '.translate($monitor['Recording']).'<br/>';
-              }
+<?php
+  if (!$monitor['UpdatedOn'] or (strtotime($monitor['UpdatedOn']) < time()-60)) {
+    echo translate('Offline').'<br/>';
+  } else {
+    echo translate('Status'.$monitor['Status']).'<br/>';
+    if ($monitor['Analysing'] != 'None') {
+      echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
+    }
+    if ($monitor['Recording'] != 'None') {
+      echo translate('Recording'). ': '.translate($monitor['Recording']).'<br/>';
+    }
  ?><br/>
               <div class="small text-nowrap text-muted">
 <?php 
-  $fps_string = '';
-  if (isset($monitor['CaptureFPS'])) {
-    $fps_string .= $monitor['CaptureFPS'];
-  }
+    $fps_string = '';
+    if (isset($monitor['CaptureFPS'])) {
+      $fps_string .= $monitor['CaptureFPS'];
+    }
 
-  if ( isset($monitor['AnalysisFPS']) and ($monitor['Analysing'] != 'None')) {
-    $fps_string .= '/' . $monitor['AnalysisFPS'];
-  }
-  if ($fps_string) $fps_string .= ' fps';
-  if (!empty($monitor['CaptureBandwidth']))
-    $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
-  $total_capturing_bandwidth += $monitor['CaptureBandwidth'];
-  echo $fps_string;
-?>
-              </div></td>
-<?php
+    if ( isset($monitor['AnalysisFPS']) and ($monitor['Analysing'] != 'None')) {
+      $fps_string .= '/' . $monitor['AnalysisFPS'];
+    }
+    if ($fps_string) $fps_string .= ' fps';
+    if (!empty($monitor['CaptureBandwidth']))
+      $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
+    $total_capturing_bandwidth += $monitor['CaptureBandwidth'];
+    echo $fps_string;
+    echo '</div>';
+  } # end if offline
+  echo '</td>'.PHP_EOL;
   if (count($Servers)) {
     $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new ZM\Server($monitor['ServerId']);
     echo '<td class="colServer">'.validHtmlStr($Server->Name()).'</td>'.PHP_EOL;

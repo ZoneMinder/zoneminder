@@ -75,9 +75,10 @@ if ($mid and ($monitor_index == -1)) {
   }
 }
 
-if (!$mid) {
+if (!$mid and count($monitors)) {
   $mid = $monitors[0]->Id();
   $monitor_index = 0;
+  $nextMid = ($monitor_index == count($monitors)-1) ? $monitors[0]->Id() : $monitors[$monitor_index+1]->Id();
 }
 
 if (!visibleMonitor($mid)) {
@@ -86,7 +87,6 @@ if (!visibleMonitor($mid)) {
 }
 
 $monitor = new ZM\Monitor($mid);
-$nextMid = ($monitor_index == count($monitors)-1) ? $monitors[0]->Id() : $monitors[$monitor_index+1]->Id();
 
 # cycle is wether to do the countdown/move to next monitor bit.
 # showCycle is whether to show the cycle controls.
@@ -103,7 +103,15 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
   $showCycle = $_COOKIE['zmCycleShow'] == 'true';
 }
 #Whether to show the controls button
-$showPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
+$hasPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
+$showPtzControls = false;
+if ($hasPtzControls) {
+  if (isset($_REQUEST['ptzShow']) and ($_REQUEST['ptzShow'] == 'true')) {
+    $showPtzControls = true;
+  } else if (isset($_COOKIE['ptzShow'])) {
+    $showPtzControls = $_COOKIE['ptzShow'] == 'true';
+  }
+}
 
 $options = array();
 if (0) {
@@ -135,10 +143,14 @@ if (isset($_REQUEST['period'])) {
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
-  $scale = $_COOKIE['zmWatchScale'.$mid];
-  if ($scale == '0') $scale = '0';
+  $scale = validInt($_COOKIE['zmWatchScale'.$mid]);
 } else {
   $scale = $monitor->DefaultScale();
+}
+if ( !isset($scales[$scale])) {
+  ZM\Info("Invalid scale found in cookie: $scale, defaulting to auto");
+  zm_setcookie('zmWatchScale'.$mid, 0);
+  $scale = 0;
 }
 $options['scale'] = $scale;
 
@@ -161,10 +173,12 @@ if (
   or 
   ($options['height'] and ($options['height'] != 'auto'))
 ) {
-  $options['scale'] = 'auto';
+  $options['scale'] = 0;
 }
 if ($monitor->JanusEnabled()) {
   $streamMode = 'janus';
+} else if ($monitor->RTSP2WebEnabled()) {
+  $streamMode = $monitor->RTSP2WebType();
 } else {
   $streamMode = getStreamMode();
 }
@@ -206,6 +220,9 @@ echo getNavBarHTML() ?>
         <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
             <span class="material-icons md-18">view_carousel</span>
         </button>
+        <button type="button" id="ptzToggle" class="btn <?php echo $showPtzControls ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle PTZ Controls')?>">
+            <span class="material-icons md-18">open_with</span>
+        </button>
         <span id="rateControl">
           <label><?php echo translate('Rate') ?>:</label>
           <?php
@@ -240,6 +257,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
   </div><!--header-->
   <div class="container-fluid h-100">
     <div class="row flex-nowrap h-100" id="content">
+<?php if (count($monitors)) { ?>
       <nav id="sidebar" class="h-100"<?php echo $showCycle?'':' style="display:none;"'?>>
         <div id="cycleButtons" class="buttons">
 <?php
@@ -349,15 +367,6 @@ if ($streamMode == 'jpeg') {
       </div><!--dvrButtons-->
 <?php } // end if $monitor->Type() != 'WebSite' ?>
 <?php
-if ( $showPtzControls ) {
-    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
-        require_once $includeFile;
-?>
-      <div id="ptzControls" class="ptzControls">
-      <?php echo ptzControls($monitor) ?>
-      </div>
-<?php
-}
 if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
 ?>
       <!-- Table styling handled by bootstrap-tables -->
@@ -384,6 +393,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="false" data-field="Name"><?php echo translate('Name') ?></th>
               <th data-sortable="false" data-field="Cause"><?php echo translate('Cause') ?></th>
+              <th data-sortable="false" data-field="Tags"><?php echo translate('Tags') ?></th>
               <th data-sortable="false" data-field="Notes"><?php echo translate('Notes') ?></th>
               <th data-sortable="false" data-field="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
               <th data-sortable="false" data-field="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
@@ -406,6 +416,15 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
       </div>
     </div>
 <?php
+if ( $hasPtzControls ) {
+    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
+        require_once $includeFile;
+?>
+      <div id="ptzControls" class="ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
+      <?php echo ptzControls($monitor) ?>
+      </div>
+<?php
+}
 }
 ?>
     </div>
@@ -418,5 +437,17 @@ if ( $monitor->JanusEnabled() ) {
 <?php
 }
 ?>
-  <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
-<?php xhtmlFooter() ?>
+<?php
+if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+?>
+  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
+<?php
+}
+?>
+<?php
+  } else {
+    echo "There are no monitors to display\n";
+  }
+  echo '<script src="'.cache_bust('js/MonitorStream.js') .'"></script>'.PHP_EOL;
+  xhtmlFooter();
+?>

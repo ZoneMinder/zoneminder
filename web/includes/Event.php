@@ -14,6 +14,7 @@ class Event extends ZM_Object {
     'StorageId' => null,
     'SecondaryStorageId' => null,
     'Cause' => '',
+    'Tags' => array(),
     'StartDateTime' => null,
     'EndDateTime' => null,
     'Width' => null,
@@ -415,9 +416,15 @@ class Event extends ZM_Object {
     $eventPath = $Event->Path();
 
     if ( $frame and !is_array($frame) ) {
-      # Must be an Id
       Debug("Assuming that $frame is an Id");
-      $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
+      $f = Frame::find_one(['Id'=>$frame]);
+      if ($f) {
+        $frame = (array)$f;
+      } else {
+        $frame = $this->find_virtual_frame($frame);
+        if (!$frame)
+          $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
+      }
     }
 
     if ( ( !$frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
@@ -700,6 +707,36 @@ class Event extends ZM_Object {
     $result = exec($command, $output, $status);
     Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
     return $status ? '' : rtrim($result);
+  }
+
+  public function find_virtual_frame($frameid) {
+    $frame = null;
+
+    $previousBulkFrame = dbFetchOne(
+      'SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1',
+      NULL, array($this->Id(), $fid)
+    );
+    $nextBulkFrame = dbFetchOne(
+      'SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1',
+      NULL, array($this->Id(), $fid)
+    );
+    if ($previousBulkFrame and $nextBulkFrame) {
+      $frame = new Frame($previousBulkFrame);
+      $frame->FrameId($fid);
+
+      $percentage = ($frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
+      $frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
+      Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
+    } else if ($previousBulkFrame) {
+      //If no next Frame we have to pull data from the Event itself
+      $frame = new Frame($previousBulkFrame);
+      $frame->FrameId($_REQUEST['fid']);
+
+      $percentage = ($frame->FrameId()/$this->Frames());
+
+      $frame->Delta(floor($this->Length() * $percentage));
+    }
+    return $frame;
   }
 
 } # end class

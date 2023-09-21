@@ -233,6 +233,7 @@ function calculateAuthHash($remoteAddr='') {
 
 function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
+  if (!isset($_SESSION['remoteAddr'])) $_SESSION['remoteAddr'] = '';
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and $user and $user->Username() and $user->Password()) {
     if (!isset($_SESSION)) {
       # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
@@ -267,16 +268,20 @@ function visibleMonitor($mid) {
 
   # First check for direct monitor permission
   if ($monitor_permissions === null) {
-    $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user->Id())));
+    $monitor_permissions = array_to_hash_by_key('MonitorId', $user->Monitor_Permissions());
   }
+
   if (isset($monitor_permissions[$mid])) {
-    ZM\Debug('Returning '.($monitor_permissions[$mid]->Permission() == 'None' ? false : true)." for monitor $mid");
-    return ($monitor_permissions[$mid]->Permission() == 'None' ? false : true);
+    $permission = $monitor_permissions[$mid]->Permission();
+    if ($permission != 'Inherit') {
+      ZM\Debug('Returning '.($permission == 'None' ? false : true)." for monitor $mid");
+      return ($permission == 'None' ? false : true);
+    }
   }
 
   global $group_permissions;
   if ($group_permissions === null)
-    $group_permissions = ZM\Group_Permission::find(array('UserId'=>$user->Id()));
+    $group_permissions = $user->Group_Permissions();
 
   # If denied view in any group, then can't view it.
   $group_permission_value = 'Inherit';
@@ -297,7 +302,7 @@ function visibleMonitor($mid) {
 function canView($area, $mid=false) {
   global $user;
 
-  return ( $user && ($user->{$area} == 'View' || $user->{$area} == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
+  return ( $user && $user->$area() && ($user->$area() == 'View' || $user->$area() == 'Edit') && ( !$mid || visibleMonitor($mid) ) );
 }
 
 function editableMonitor($mid) {
@@ -332,7 +337,7 @@ function editableMonitor($mid) {
 function canEdit($area, $mid=false) {
   global $user;
 
-  return ( $user && ($user->{$area} == 'Edit') && ( !$mid || visibleMonitor($mid) ));
+  return ( $user && ($user->$area() == 'Edit') && ( !$mid || visibleMonitor($mid) ));
 }
 
 function userFromSession() {
@@ -390,7 +395,7 @@ if (ZM_OPT_USE_AUTH) {
       # The shortened versions are used in auth_relay = PLAIN
       $ret = validateUser($_REQUEST['user'], $_REQUEST['pass']);
       if (!$ret[0]) {
-        ZM\Error($ret[1]);
+        ZM\Warning($ret[1]);
         unset($user); // unset should be ok here because we aren't in a function
         return;
       }
@@ -399,7 +404,7 @@ if (ZM_OPT_USE_AUTH) {
       # Longer versions are used on login page
       $ret = validateUser($_REQUEST['username'], $_REQUEST['password']);
       if (!$ret[0]) {
-        ZM\Error($ret[1]);
+        ZM\Warning($ret[1]);
         unset($user); // unset should be ok here because we aren't in a function
         return;
       }

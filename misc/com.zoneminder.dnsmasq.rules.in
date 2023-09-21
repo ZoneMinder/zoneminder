@@ -1,0 +1,9 @@
+// Allow www-data to manage dnsmasq.service;
+// fall back to implicit authorization otherwise.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") == "dnsmasq.service" &&
+        subject.user == "@WEB_USER@") {
+        return polkit.Result.YES;
+    }
+});

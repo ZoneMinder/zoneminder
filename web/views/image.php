@@ -58,9 +58,10 @@ if (!empty($_REQUEST['proxy'])) {
     ZM\Warning('No url passed to image proxy');
     return;
   }
+
   $url_parts = parse_url($url);
   $username = $url_parts['user'];
-  $password = $url_parts['pass'];
+  $password = isset($url_parts['pass']) ? $url_parts['pass'] : '';
 
   $method = 'GET';
   // preparing http options:
@@ -84,13 +85,13 @@ if (!empty($_REQUEST['proxy'])) {
   @ini_set('zlib.output_compression', 0);
 
   /* Sends an http request with additional headers shown above */
-  $fp = fopen($url, 'r', false, $context);
+  $fp = @fopen($url, 'r', false, $context);
   $r = '';
   if ($fp) {
     $meta_data = stream_get_meta_data($fp);
     ZM\Debug(print_r($meta_data, true));
     foreach ($meta_data['wrapper_data'] as $header) {
-      preg_match('/WWW-Authenticate: Digest (.*)/', $header, $matches);
+      preg_match('/WWW-Authenticate: Digest (.*)/i', $header, $matches);
       $nc = 1;
       if (!empty($matches)) {
         ZM\Debug("Matched $header");
@@ -98,13 +99,18 @@ if (!empty($_REQUEST['proxy'])) {
         $auth_header_array = explode(',', $auth_header);
         $parsed = array();
 
+
         foreach ($auth_header_array as $pair) {
-          $vals = explode('=', $pair);
-          $parsed[trim($vals[0])] = trim($vals[1], '" ');
+          preg_match('/^\s*(\w+)="?(.+)"?\s*$/', $pair, $vals);
+          if (!empty($vals)) {
+            $parsed[$vals[1]] = trim($vals[2], '"');
+          } else {
+            ZM\Debug("DIdn't match preg $pair");
+          }
         }
         ZM\Debug(print_r($parsed, true));
 
-        $cnonce = '0a4f113b';
+        $cnonce = uniqid();
         $response_realm     = (isset($parsed['realm'])) ? $parsed['realm'] : '';
         $response_nonce     = (isset($parsed['nonce'])) ? $parsed['nonce'] : '';
         $response_opaque    = (isset($parsed['opaque'])) ? $parsed['opaque'] : '';
@@ -112,7 +118,7 @@ if (!empty($_REQUEST['proxy'])) {
         $authenticate1 = md5($username.':'.$response_realm.':'.$password);
         $authenticate2 = md5($method.':'.$url);
 
-        $digestData = $authenticate1.":".$response_nonce;
+        $digestData = $authenticate1.':'.$response_nonce;
         if (!empty($parsed['qop'])) {
           $digestData .= ':' . sprintf('%08x', $nc) . ':' . $cnonce . ':' . $parsed['qop'];
         }
@@ -138,6 +144,7 @@ if (!empty($_REQUEST['proxy'])) {
         ZM\Debug(print_r($meta_data, true));
       } # end if have auth
     } # end foreach header
+
     while (substr_count($r, 'Content-Length') != 2) {
       $new = fread($fp, 512);
       if (!$new) break;
@@ -146,16 +153,38 @@ if (!empty($_REQUEST['proxy'])) {
     #ZM\Debug($r);
 
     $start = strpos($r, "\xff");
-    $end   = strpos($r, "--\n", $start)-1;
-    $frame = substr($r, $start, $end - $start);
-    ZM\Debug("Start $start end $end");
+    if (false !== $start) {
+      header('Content-type: image/jpeg');
+      $end   = strpos($r, "--\n", $start)-1;
+      if ($end > $start) {
+        $frame = substr($r, $start, $end - $start);
+        ZM\Debug("Start $start end $end");
+        echo $frame;
+      } else {
+        echo $r;
+      }
+    } else {
+      $img = imagecreate(320, 240);
 
-    header('Content-type: image/jpeg');
-    echo $frame;
+      $textbgcolor = imagecolorallocate($img, 0, 0, 0);
+      $textcolor = imagecolorallocate($img, 255, 255, 255);
+
+      imagestring($img, 5, 5, 5, 'Authentication Failed', $textcolor);
+      header('Content-type: image/jpeg');
+      imagejpeg($img);
+    }
 
     fclose($fp);
   } else {
     ZM\Debug("Failed to open $url");
+    $img = imagecreate(320, 200);
+
+    $textbgcolor = imagecolorallocate($img, 0, 0, 0);
+    $textcolor = imagecolorallocate($img, 255, 255, 255);
+
+    imagestring($img, 5, 5, 5, 'Failed to open', $textcolor);
+    header('Content-type: image/jpeg');
+    imagejpeg($img);
   }
   return;
 }
@@ -255,13 +284,12 @@ if ( empty($_REQUEST['path']) ) {
             $Frame->FrameId(1);
           }
         }
-        $Monitor = $Event->Monitor();
         if ( $Event->SaveJPEGs() & 1 ) {
           # If we store Frames as jpgs, then we don't store an alarmed snapshot
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           header('HTTP/1.0 404 Not Found');
-          ZM\Error('No alarm jpg found for event '.$_REQUEST['eid']);
+          ZM\Error('No alarm jpg found for event '.$_REQUEST['eid'].' at '.$path);
           return;
         }
       } else {
@@ -285,7 +313,6 @@ if ( empty($_REQUEST['path']) ) {
             $Frame->FrameId('snapshot');
           }
         }
-        $Monitor = $Event->Monitor();
         if ( $Event->SaveJPEGs() & 1 ) {
           # If we store Frames as jpgs, then we don't store a snapshot
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
@@ -333,33 +360,8 @@ if ( empty($_REQUEST['path']) ) {
     } else {
       $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));
       if (!$Frame) {
-        $previousBulkFrame = dbFetchOne(
-          'SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1',
-          NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
-        );
-        $nextBulkFrame = dbFetchOne(
-          'SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1',
-          NULL, array($_REQUEST['eid'], $_REQUEST['fid'])
-        );
-        if ($previousBulkFrame and $nextBulkFrame) {
-          $Frame = new ZM\Frame($previousBulkFrame);
-          $Frame->FrameId($_REQUEST['fid']);
-
-          $percentage = ($Frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
-
-          $Frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
-          ZM\Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
-        } 
-        else if($previousBulkFrame){
-          //If no next Frame we have to pull data from the Event itself
-          $Frame = new ZM\Frame($previousBulkFrame);
-          $Frame->FrameId($_REQUEST['fid']);
-
-          $percentage = ($Frame->FrameId()/$Event->Frames());
-
-          $Frame->Delta(floor($Event->Length() * $percentage));
-        }
-        else {
+        $Frame = $Event->find_virtual_frame($_REQUEST['fid']);
+        if (!$Frame) {
           header('HTTP/1.0 404 Not Found');
           ZM\Error('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
           return;
@@ -367,7 +369,6 @@ if ( empty($_REQUEST['path']) ) {
       }  # end if !Frame
       // Frame can be non-existent.  We have Bulk frames.  So now we should try to load the bulk frame 
       $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d',$Frame->FrameId()).'-'.$show.'.jpg';
-      ZM\Debug("Path: $path");
     }  # if special frame (snapshot, alarm etc) or identified by id
 
   } else {
@@ -465,17 +466,22 @@ if ( !empty($_REQUEST['height']) ) {
 if ( $errorText ) {
   ZM\Error($errorText);
 } else {
+  # Must lock it because zmc may be still writing the jpg and will have a lock on it.
+  $fp_path = fopen($path, 'r');
+  $lock = flock($fp_path, LOCK_SH);
+  if (!$lock) ZM\Warning("Unable to get a read lock on $path, continuing.");
+
   header('Content-type: '.$media_type);
   header('Cache-Control: max-age=86400');
   header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
   header('Pragma: cache');
-  if ( ( $scale==0 || $scale==100 ) && ($width==0) && ($height==0) ) {
+  if (($scale==0 || $scale==100) && ($width==0) && ($height==0)) {
     # This is so that Save Image As give a useful filename
-    if ( $Event ) {
+    if ($Event) {
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
-    if ( !readfile($path) ) {
+    if (!readfile($path)) {
       ZM\Error('No bytes read from '. $path);
     }
   } else {
@@ -505,11 +511,14 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId()."-${width}x${height}.jpg";
       header('Content-Disposition: inline; filename="' . $filename . '"');
     }
-    if ( !( file_exists($scaled_path) and readfile($scaled_path) ) ) {
-      ZM\Debug("Cached scaled image does not exist at $scaled_path or is no good.. Creating it");
-      if (!$i)
+
+    if (!file_exists($scaled_path)) {
+      ZM\Debug("Cached scaled image does not exist at $scaled_path. Creating it");
+
+      if (!$i) {
         $i = imagecreatefromjpeg($path);
-      if ( !$i) {
+      }
+      if (!$i) {
         ZM\Error('Unable to load jpeg from '.$scaled_path);
         $i  = imagecreatetruecolor($width, $height);
         $bg_colour = imagecolorallocate($i, 255, 255, 255);
@@ -525,10 +534,15 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
         imagedestroy($i);
         imagedestroy($iScale);
         $scaled_jpeg_data = ob_get_contents();
-        file_put_contents($scaled_path, $scaled_jpeg_data);
+        file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
+
         echo $scaled_jpeg_data;
       }
     } else {
+      $fp_scaled_path = fopen($scaled_path, 'r');
+      $lock = flock($fp_scaled_path, LOCK_SH);
+      if (!$lock) Warning("Unable to get a read lock on $scaled_path, trying to send anyways.");
+
       ZM\Debug("Sending $scaled_path");
       $bytes = readfile($scaled_path);
       if ( !$bytes ) {
@@ -536,16 +550,23 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
       } else {
         ZM\Debug("$bytes sent");
       }
-    }
-  }
+      flock($fp_scaled_path, LOCK_UN);
+      fclose($fp_scaled_path);
+    } # end if scaled image doesn't exist or failed sending it
+
+  } # end if scaled or not
+  flock($fp_path, LOCK_UN);
+  fclose($fp_path);
 }
 
 function find_video($path) {
   # Look for other mp4s
-  $files = scandir($path);
-  foreach ($files as $file) {
-    if (preg_match('/.mp4$/i', $file)) {
-      return $file;
+  if (file_exists($path)) {
+    $files = scandir($path);
+    foreach ($files as $file) {
+      if (preg_match('/.mp4$/i', $file)) {
+        return $file;
+      }
     }
   }
 }

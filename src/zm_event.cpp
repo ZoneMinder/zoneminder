@@ -116,9 +116,9 @@ Event::Event(
 
   std::string sql = stringtf(
       "INSERT INTO `Events` "
-      "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme` )"
+      "( `MonitorId`, `StorageId`, `Name`, `StartDateTime`, `Width`, `Height`, `Cause`, `Notes`, `StateId`, `Orientation`, `Videoed`, `DefaultVideo`, `SaveJPEGs`, `Scheme`, `Latitude`, `Longitude` )"
       " VALUES "
-      "( %d, %d, 'New Event', from_unixtime(%" PRId64 "), %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s' )",
+      "( %d, %d, 'New Event', from_unixtime(%" PRId64 "), %u, %u, '%s', '%s', %d, %d, %d, '%s', %d, '%s', '%f', '%f' )",
       monitor->Id(), 
       storage->Id(),
       static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)),
@@ -131,7 +131,9 @@ Event::Event(
       0,
       video_incomplete_file.c_str(),
       save_jpegs,
-      storage->SchemeString().c_str()
+      storage->SchemeString().c_str(),
+      monitor->Latitude(),
+      monitor->Longitude()
       );
   do {
     id = zmDbDoInsert(sql);
@@ -172,9 +174,7 @@ Event::~Event() {
         std::chrono::duration_cast<FPSeconds>(start_time.time_since_epoch()).count(),
         std::chrono::duration_cast<FPSeconds>(end_time.time_since_epoch()).count());
 
-  if (frame_data.size()){
-    WriteDbFrames();
-  }
+  if (frame_data.size()) WriteDbFrames();
 
   std::string sql = stringtf(
       "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64 " AND Name='New Event'",
@@ -669,6 +669,7 @@ void Event::Run() {
       Debug(1, "Video file is %s", video_file.c_str());
     }
   }  // end if GetOptVideoWriter
+
   if (storage != monitor->getStorage())
     delete storage;
 
@@ -682,7 +683,7 @@ void Event::Run() {
       if (packet_queue.empty()) {
         if (terminate_ or zm_terminate) break;
         packet_queue_condition.wait(lck);
-        // Neccessary because we don't hold the lock in the while condition
+        // Necessary because we don't hold the lock in the while condition
       } 
       if (!packet_queue.empty()) {
         packet = packet_queue.front();

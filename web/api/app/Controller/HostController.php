@@ -7,6 +7,7 @@ class HostController extends AppController {
 
   public function daemonCheck($daemon=false, $args=false) {
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
+    $count = 0;
     $safe_daemon = $daemon ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count) : false;
     if ($count) Error("Invalid characters found in daemon string ($daemon). Potential attack?");
     $safe_args = $args ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $args, -1, $count) : false;
@@ -163,7 +164,7 @@ class HostController extends AppController {
       $username = $ret[0]->Username();
     }
 
-    ZM\Info("Creating token for \"$username\"");
+    ZM\Debug("Creating token for \"$username\"");
 
     /* we won't support AUTH_HASH_IPS in token mode
       reasons:

@@ -19,7 +19,7 @@
 #
 # ==========================================================================
 #
-# This module contains an example overriden trigger connection class
+# This module contains an example overridden trigger connection class
 #
 package ZoneMinder::Trigger::Connection::Example;
 

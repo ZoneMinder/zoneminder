@@ -1,3 +1,11 @@
+#inner-content {
+  display: flex;
+  justify-content: center;
+}
+#contentForm {
+  height: 100%;
+}
+
 .Import {
   width: 50%;
   height: 100%;
@@ -14,6 +22,7 @@
 
 th[data-field="camera.Manufacturer"],
 th[data-field="camera.Model"],
+th[data-field="camera.Monitor.Name"],
 th[data-field="camera.monitor.Width"],
 th[data-field="camera.monitor.Height"],
 th[data-field="camera.monitor.Codec"],

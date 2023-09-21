@@ -46,7 +46,7 @@ function dbConnect() {
   } else {
     $dsn .= ':host=localhost;';
   }
-  $dsn .= 'dbname='.ZM_DB_NAME.';charset=utf8';
+  $dsn .= 'dbname='.ZM_DB_NAME.';charset=utf8mb4';
 
   try {
     $dbOptions = null;
@@ -224,8 +224,8 @@ function dbFetchNext($result, $col=false) {
   return false;
 }
 
-function dbNumRows( $sql ) {
-  $result = dbQuery($sql);
+function dbNumRows($sql, $params=NULL) {
+  $result = dbQuery($sql, $params);
   return $result->rowCount();
 }
 
@@ -388,7 +388,6 @@ function db_supports_feature($feature) {
   $version = db_version();
   if ($feature == 'skip_locks') {
     $just_the_version = strstr($version, '-MariaDB', true);
-    ZM\Debug("Just the version $just_the_version from $version");
     if (false === $just_the_version) {
       # Is MYSQL
       return version_compare($version, '8.0.1', '>=');

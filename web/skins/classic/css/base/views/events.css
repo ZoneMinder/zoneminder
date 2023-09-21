@@ -6,7 +6,7 @@
     white-space: nowrap;
 }
 
-#contentTable.major .colId, #contentTable.major .colDuration, #contentTable.major .colFrames, #contentTable.major .colAlarmFrames, #contentTable.major .colTotScore, #contentTable.major .colMaxScore, #contentTable.major .colAvgScore {
+#contentTable.major .colId, #contentTable.major .colDuration, #contentTable.major .colFrames, #contentTable.major .colAlarmFrames, #contentTable.major .colTotScore, #contentTable.major .colMaxScore, #contentTable.major .colAvgScore, #eventTable th, #eventTable td {
     text-align: center;
 }
 
@@ -43,11 +43,21 @@ input[type="number"].form-control {
   padding: 5px;
 }
 
+#toolbar,
 .filterTable {
-  display:inline;
+  display:flex;
 }
 #events {
   height: 100%;
   overflow-y: auto;
   justify-content: center;
+}
+
+#objdetectModal  .modal-dialog {
+  width: 65%;
+  max-width: 65%;
+}
+
+#objdetectModal img {
+  width: 100%;
 }

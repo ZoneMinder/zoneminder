@@ -209,13 +209,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     } else {
       zm_dump_frame(frame.get(), "resulting frame");
     }
-
   } // end while !frameComplete
-  if (is_video_stream(input_format_context->streams[packet->stream_index])) {
-    zm_dump_video_frame(frame.get(), "resulting video frame");
-  } else {
-    zm_dump_frame(frame.get(), "resulting frame");
-  }
   return frame.get();
 }  // end AVFrame *FFmpeg_Input::get_frame
 
@@ -299,7 +293,6 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
         return frame.get();
       }
     }
-    zm_dump_frame(frame, "frame->pts <= seek_target, got");
     return frame.get();
   }
 

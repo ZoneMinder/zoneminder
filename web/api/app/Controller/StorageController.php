@@ -33,8 +33,15 @@ class StorageController extends AppController {
   public function index() {
     $this->Storage->recursive = -1;
     
-    $options = '';
-    $storage_areas = $this->Storage->find('all',$options);
+    $named_params = $this->request->params['named'];
+    if ( $named_params ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($named_params);
+    } else {
+      $conditions = array();
+    }
+    $options = ['conditions'=>&$conditions];
+    $storage_areas = $this->Storage->find('all', $options);
     require_once __DIR__ .'/../../../includes/Storage.php';
 
     foreach ($storage_areas as &$s) {

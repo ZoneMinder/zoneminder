@@ -145,6 +145,8 @@ public static function getStatuses() {
     'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
+    'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
+    'RTSP2WebType'   => 'HLS',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
@@ -273,6 +275,8 @@ public static function getStatuses() {
     'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
+
+  protected $Id;
 
   public function save($data = null) {
     if ($data) $this->set($data);
@@ -410,17 +414,19 @@ public static function getStatuses() {
       }
       return $this->defaults[$fn];
     } else if (array_key_exists($fn, $this->status_fields)) {
-      $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
-      $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
-      if (!$row) {
-        Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
-        return null;
-      } else {
-        foreach ($row as $k => $v) {
-          $this->{$k} = $v;
+      if ($this->Id()) {
+        $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
+        $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
+        if (!$row) {
+          Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
+        } else {
+          foreach ($row as $k => $v) {
+            $this->{$k} = $v;
+          }
+          return $this->{$fn};
         }
-      }
-      return $this->{$fn};
+      } # end if this->Id
+      return null;
     } else if (array_key_exists($fn, $this->summary_fields)) {
       $sql = 'SELECT * FROM `Event_Summaries` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
@@ -696,7 +702,7 @@ public static function getStatuses() {
     # Convert from a command line params to an option array
     foreach (explode(' ', $command) as $option) {
       if (preg_match('/--([^=]+)(?:=(.+))?/', $option, $matches)) {
-        $options[$matches[1]] = $matches[2]?$matches[2]:1;
+        $options[$matches[1]] = isset($matches[2]) ? $matches[2] : 1;
       } else if ($option != '' and $option != 'quit' and $option != 'start' and $option != 'stop') {
         Warning("Ignored command for zmcontrol $option in $command");
       }
@@ -778,14 +784,14 @@ public static function getStatuses() {
     if ($u===null or $u->Id() == $user->Id())
       return editableMonitor($this->{'Id'});
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u->Id(), 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = $u->Monitor_Permission($this->{'Id'});
     if ($monitor_permission and
       ($monitor_permission->Permission() == 'None' or $monitor_permission->Permission() == 'View')) {
       Debug("Can't edit monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user->Id()));
+    $group_permissions = $u->Group_Permissions();
 
     # If denied view in any group, then can't view it.
     foreach ($group_permissions as $permission) {
@@ -802,20 +808,20 @@ public static function getStatuses() {
     if (($u === null) or ($u->Id() == $user->Id()))
       return visibleMonitor($this->Id());
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u->Id(), 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = $u->Monitor_Permission($this->{'Id'});
     if ($monitor_permission and ($monitor_permission->Permission() == 'None')) {
-      Debug("Can't view monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
+      Debug('Can\'t view monitor '.$this->{'Id'}.' because of monitor permission '.$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user->Id()));
+    $group_permissions = $u->Group_Permissions();
 
     # If denied view in any group, then can't view it.
     $group_permission_value = 'Inherit';
     foreach ($group_permissions as $permission) {
-      $value = $pmerssion->MonitorPermission($mid);
+      $value = $permission->MonitorPermission($this->Id());
       if ($value == 'None') {
-        Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+        Debug('Can\'t view monitor '.$this->{'Id'}.' because of group '.$permission->Group()->Name().' '.$permission->Permission());
         return false;
       }
       if ($value == 'Edit' or $value == 'View') {
@@ -1030,7 +1036,7 @@ public static function getStatuses() {
         'format' => ZM_MPEG_LIVE_FORMAT
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
-    } else if ( $this->JanusEnabled() ) {
+    } else if ( $this->JanusEnabled() or $this->RTSP2WebEnabled()) {
       $html .= '<video id="liveStream'.$this->Id().'" '.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
         ' autoplay muted controls playsinline=""></video>';
@@ -1094,6 +1100,10 @@ public static function getStatuses() {
     if (isset($gp_permissions['View'])) return 'View';
     if (isset($gp_permissions['Edit'])) return 'Edit';
     return $u->Monitors();
+  }
+
+  public function link_to($text='') {
+    return '<a href="?view=monitor&mid='.$this->Id().'">'.($text ? $text : $this->Name()).'</a>';
   }
 } // end class Monitor
 ?>

@@ -38,8 +38,9 @@ xhtmlHeaders(__FILE__, translate('Reports'));
 getBodyTopHTML();
    echo getNavBarHTML();
 ?>
-  <div id="page" class="container-fluid p-3">
-    <div class="Edit">
+  <div id="page">
+    <div id="content">
+      <div id="inner-content">
       <form name="report" id="reportForm" method="post" action="?view=report&id=<?php echo $report_id ?>">
       <!-- Toolbar button placement and styling handled by bootstrap-tables -->
       <div id="toolbar">
@@ -83,8 +84,9 @@ getBodyTopHTML();
           </tbody>
         </table>
       </form>
-    </div>
     <canvas id="bar-chart" width=300" height="150"></canvas>
+    </div>
+  </div>
 
   <script src="/skins/classic/js/Chart.min.js"></script>
 <script nonce="<?php echo $cspNonce; ?>">

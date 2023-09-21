@@ -26,7 +26,55 @@ var streamStatus = null;
 var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
-var scaleValue = 0;
+var availableTags = [];
+var selectedTags = [];
+
+$j(document).on("keydown", "", function(e) {
+  e = e || window.event;
+  if (!$j(".tag-input").is(":focus")) {
+    if ( $j(".modal").is(":visible") ) {
+      if (e.key === "Enter") {
+        if ( $j("#deleteConfirm").is(":visible") ) {
+          $j("#delConfirmBtn").click();
+        } else if ( $j("#eventDetailModal").is(":visible") ) {
+          $j("#eventDetailSaveBtn").click();
+        } else if ( $j("#eventRenamelModal").is(":visible") ) {
+          $j("#eventRenameBtn").click();
+        }
+      } else if (e.key === "Escape") {
+        $j(".modal").modal('hide');
+      } else {
+        console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+      }
+    } else {
+      if (e.key === "ArrowLeft" && !e.altKey) {
+        prevEvent();
+      } else if (e.key === "ArrowRight" && !e.altKey) {
+        nextEvent();
+      } else if (e.key === "Delete") {
+        if ( $j("#deleteBtn").is(":disabled") == false ) {
+          $j("#deleteBtn").click();
+        }
+      } else if (e.keyCode === 32) {
+        // space bar for Play/Pause
+        if ( $j("#playBtn").is(":visible") ) {
+          playClicked();
+        } else {
+          pauseClicked();
+        }
+      } else if (e.key === "ArrowDown") {
+        if (e.ctrlKey) {
+          addTag(availableTags[0]);
+        } else {
+          $j("#tagInput").focus();
+          showDropdown();
+        }
+      } else {
+        console.log('Modal is not visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
+      }
+    }
+  }
+});
 
 function streamReq(data) {
   if (auth_hash) data.auth = auth_hash;
@@ -214,20 +262,21 @@ function changeCodec() {
 }
 
 function changeScale() {
-  const scale = $j('#scale').val();
+  scale = parseFloat($j('#scale').val());
+  setCookie('zmEventScale'+eventData.MonitorId, scale);
+
   let newWidth;
   let newHeight;
-  let autoScale;
   const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
 
   const alarmCue = $j('#alarmCues');
   const bottomEl = $j('#replayStatus');
 
-  if (scale == '0') {
+  if (!scale) {
     const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
     newWidth = newSize.width;
     newHeight = newSize.height;
-    autoScale = newSize.autoScale;
+    scale = newSize.autoScale;
   } else {
     $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
     newWidth = eventData.Width * scale / SCALE_BASE;
@@ -235,17 +284,14 @@ function changeScale() {
   }
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
-  console.log(scale, (scale == '0'));
-  scaleValue = scale == '0' ? autoScale : scale;
   if (!vid) { // zms needs extra sizing
-    streamScale(scaleValue);
+    streamScale(scale);
     drawProgressBar();
   }
   if (cueFrames) {
     //just re-render alarmCues.  skip ajax call
     alarmCue.html(renderAlarmCues(eventViewer));
   }
-  setCookie('zmEventScale'+eventData.MonitorId, scale, 3600);
 
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
@@ -342,9 +388,9 @@ function getCmdResponse(respObj, respText) {
   } else {
     setButtonState('zoomOutBtn', 'inactive');
   }
-  if ((streamStatus.scale !== undefined) && (streamStatus.scale != scaleValue)) {
-    console.log("Stream not scaled, re-applying", scaleValue, streamStatus.scale);
-    streamScale(scaleValue);
+  if (scale && (streamStatus.scale !== undefined) && (streamStatus.scale != scale)) {
+    console.log("Stream not scaled, re-applying", scale, streamStatus.scale);
+    streamScale(scale);
   }
 
   updateProgressBar();
@@ -731,7 +777,8 @@ function frameQuery(eventId, frameId, loadImage) {
   var data = {};
   if (auth_hash) data.auth = auth_hash;
   data.loopback = loadImage;
-  data.id = {eventId, frameId};
+  data.eid = eventId;
+  data.fid = frameId;
 
   $j.getJSON(thisUrl + '?view=request&request=status&entity=frameimage', data)
       .done(getFrameResponse)
@@ -912,7 +959,7 @@ function getEvtStatsCookie() {
 
   if (!stats) {
     stats = 'on';
-    setCookie(cookie, stats, 10*365);
+    setCookie(cookie, stats);
   }
   return stats;
 }
@@ -930,6 +977,9 @@ function getStat() {
         break;
       case 'AlarmFrames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+        break;
+      case 'Location':
+        tdString = eventData.Latitude + ', ' + eventData.Longitude;
         break;
       case 'MonitorId':
         if (canView["Monitors"]) {
@@ -1007,6 +1057,9 @@ function onStatsResize(vidWidth) {
 }
 
 function initPage() {
+  getAvailableTags();
+  getSelectedTags();
+
   // Load the event stats
   getStat();
 
@@ -1028,7 +1081,7 @@ function initPage() {
       handleClick(event);
     });
     vid.on('volumechange', function() {
-      setCookie('volume', vid.volume(), 3600);
+      setCookie('volume', vid.volume());
     });
     const cookie = getCookie('volume');
     if (cookie) vid.volume(cookie);
@@ -1039,7 +1092,7 @@ function initPage() {
     vid.on('ratechange', function() {
       rate = vid.playbackRate() * 100;
       $j('select[name="rate"]').val(rate);
-      setCookie('zmEventRate', rate, 3600);
+      setCookie('zmEventRate', rate);
     });
 
     // rate is in % so 100 would be 1x
@@ -1176,10 +1229,10 @@ function initPage() {
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
     if (table.is(':visible')) {
-      setCookie(cookie, 'off', 10*365);
+      setCookie(cookie, 'off');
       table.toggle(false);
     } else {
-      setCookie(cookie, 'on', 10*365);
+      setCookie(cookie, 'on');
       table.toggle(true);
     }
   });
@@ -1220,10 +1273,238 @@ function initPage() {
     }
   });
   document.addEventListener('fullscreenchange', fullscreenChangeEvent);
+
+  if (isMobile()) { // Mobile
+    // Event listener for adding tags when Space or Comma key is pressed on mobile devices
+    // Mobile Firefox is consistent with Desktop Firefox and Desktop Chrome supporting event.key for space and comma.
+    // Mobile Chrome always returns Unidentified for event.key for space and comma.
+    $j('#tagInput').on('input', function(event) {
+      var key = this.value.substr(-1).charCodeAt(0);
+      if (key === 32 || key === 44) { // Space or Comma
+        const tagInput = $j(this);
+        const tagValue = tagInput.val().slice(0, -1).trim();
+        addOrCreateTag(tagValue);
+        event.preventDefault(); // Prevent the key from being entered in the input field
+      }
+    });
+    // Event listener for adding tags when Enter key is pressed on mobile devices
+    // All mobile and desktop browsers don't pick up on Enter as 'input'.
+    // Mobile Chrome 'input' doesn't pick up "Next" button as Enter.
+    $j('#tagInput').on('keydown', function(event) {
+      var key = event.key;
+      if (key === "Enter") { // Enter
+        const tagInput = $j(this);
+        const tagValue = tagInput.val().trim();
+        addOrCreateTag(tagValue);
+        event.preventDefault(); // Prevent the key from being entered in the input field
+      }
+    });
+  } else { // Desktop
+    // Event listener for adding tags when Enter key is pressed or highlighting available tag when up/down arrows are pressed
+    $j('#tagInput').on('keydown', function(event) {
+      event = event || window.event;
+      var $hlight = $j('div.tag-dropdown-item.hlight');
+      var $div = $j('div.tag-dropdown-item');
+      if (event.key === "ArrowDown") {
+        if (event.ctrlKey) {
+          addTag(availableTags[0]);
+        } else if ($div.is(":visible")) {
+          $hlight.removeClass('hlight').next().addClass('hlight');
+          if ($hlight.next().length == 0) {
+            $div.eq(0).addClass('hlight');
+          }
+        } else {
+          showDropdown();
+        }
+      } else if (event.key === "ArrowUp") {
+        $hlight.removeClass('hlight').prev().addClass('hlight');
+        if ($hlight.prev().length == 0) {
+          $div.eq(-1).addClass('hlight');
+        }
+      } else if (event.key === "Enter") {
+        var tagValue = $hlight.text();
+        if (!tagValue) {
+          const tagInput = $j(this);
+          tagValue = tagInput.val().trim();
+        }
+        addOrCreateTag(tagValue);
+      } else if (event.key === " " || event.key === ",") {
+        const tagInput = $j(this);
+        const tagValue = tagInput.val().trim();
+        addOrCreateTag(tagValue);
+        event.preventDefault(); // Prevent the key from being entered in the input field
+      } else if (event.key === "Escape") {
+        $j("#tagInput").blur();
+      }
+    });
+  }
+
+  // Event listener for typing in the tag input
+  $j('#tagInput').on('input', showDropdown);
+
+  // Event listener for clicking in the tag input
+  $j('#tagInput').on('focus', showDropdown);
+
+  // Event listener for removing tags
+  $j('.tags-container').on('click', '.tag-remove', function() {
+    const tagElement = $j(this).closest('.tag');
+    const tag = tagElement.data('tag');
+    removeTag(tag);
+  });
+
   streamPlay();
+
+  if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
+    if ( window.L ) {
+      map = L.map('LocationMap', {
+        center: L.latLng(eventData.Latitude, eventData.Longitude),
+        zoom: 8,
+        onclick: function() {
+          alert('click');
+        }
+      });
+      L.tileLayer(ZM_OPT_GEOLOCATION_TILE_PROVIDER, {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
+      }).addTo(map);
+      marker = L.marker([eventData.Latitude, eventData.Longitude], {draggable: 'false'});
+      marker.addTo(map);
+      map.invalidateSize();
+    } else {
+      console.log('Location turned on but leaflet not installed.');
+    }
+  } // end if ZM_OPT_USE_GEOLOCATION
 } // end initPage
 
-document.getElementById('toggleZonesButton').addEventListener('click', toggleZones);
+function addOrCreateTag(tagValue) {
+  const tagNames = availableTags.map((t) => t.Name.toLowerCase());
+  const index = tagNames.indexOf(tagValue.toLowerCase());
+  if (index > -1) {
+    addTag(availableTags[index]);
+    $j('.tag-dropdown-content').hide();
+  } else if (tagValue.trim().length > 0) {
+    createTag(tagValue);
+  }
+}
+
+function clickTag() {
+  const tagName = $j(this).text();
+  const selectedTag = availableTags.find((tag) => tag.Name === tagName);
+  addTag(selectedTag);
+}
+
+function showDropdown() {
+  const dropdownContent = $j('.tag-dropdown-content');
+  dropdownContent.empty();
+  const input = $j('#tagInput').val().trim();
+
+  var matchingTags = [];
+  if (availableTags) {
+    matchingTags = availableTags.filter(function(tag) {
+      var isMatch = tag.Name.toLowerCase().includes(input.toLowerCase());
+      return isMatch && !isDup(tag.Name);
+    });
+  }
+
+  matchingTags.forEach(function(tag) {
+    const dropdownItem = $j('<div>', {class: 'tag-dropdown-item', text: tag.Name});
+    dropdownItem.appendTo(dropdownContent); // Append the element to the dropdown content
+  });
+
+  if (matchingTags.length > 0) {
+    $j('.tag-dropdown-content').off('click');
+    $j('.tag-dropdown-content').on('click', '.tag-dropdown-item', clickTag);
+    $j('.tag-dropdown-content').show();
+  } else {
+    $j('.tag-dropdown-content').hide();
+  }
+}
+
+function isDup(tagName) {
+  return $j('.tag-text').filter(function() {
+    var elemText = $j(this).text();
+    return elemText === tagName;
+  }).length != 0;
+}
+
+function formatTag(tag) {
+  const tagName = tag.Name;
+  const tagElement = $j('<div>', {class: 'tag'});
+  tagElement.data('tag', tag);
+  tagElement.append($j('<span>', {class: 'tag-text', text: tagName}));
+  tagElement.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}));
+  $j('.tag-dropdown').before(tagElement);
+}
+
+function addTag(tag) {
+  if (tag.Name.trim() !== '' && !isDup(tag.Name)) {
+    $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
+        .done(function(data) {
+          formatTag(tag);
+          selectedTags.push(tag);
+
+          // Move the added tag to the front(top) of the availableTags array
+          const index = availableTags.map((t) => t.Id).indexOf(tag.Id);
+          availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
+        })
+        .fail(logAjaxFail);
+  } else {
+    $j('.tag-dropdown-content').hide();
+  }
+  $j('#tagInput').val('');
+  $j('#tagInput').blur();
+}
+
+function removeTag(tag) {
+  $j.getJSON(thisUrl + '?request=event&action=removetag&tid=' + tag.Id + '&id=' + eventData.Id)
+      .done(function(data) {
+        $j('.tag-text').filter(function() {
+          return $j(this).text() === tag.Name;
+        }).parent().remove();
+        if (data.response > 0) {
+          getAvailableTags();
+        }
+      })
+      .fail(logAjaxFail);
+}
+
+function createTag(tagName) {
+  $j.getJSON(thisUrl + '?request=tags&action=createtag&tname=' + tagName)
+      .done(function(data) {
+        if (data.response.length > 0) {
+          var tag = data.response[0];
+          if (availableTags) {
+            availableTags.splice(0, 0, tag);
+          }
+          addTag(tag);
+        }
+      })
+      .fail(logAjaxFail);
+}
+
+function getAvailableTags() {
+  $j.getJSON(thisUrl + '?request=tags&action=getavailabletags')
+      .done(function(data) {
+        availableTags = data.response;
+      })
+      .fail(logAjaxFail);
+}
+
+function getSelectedTags() {
+  $j.getJSON(thisUrl + '?request=event&action=getselectedtags&id=' + eventData.Id)
+      .done(function(data) {
+        selectedTags = data.response;
+        selectedTags.forEach((tag) => formatTag(tag));
+      })
+      .fail(logAjaxFail);
+}
+
+var toggleZonesButton = document.getElementById('toggleZonesButton');
+if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
 
 function toggleZones(e) {
   const zones = $j('#zones'+eventData.MonitorId);
@@ -1233,12 +1514,12 @@ function toggleZones(e) {
       zones.hide();
       button.setAttribute('title', showZonesString);
       $j('#toggleZonesButton .material-icons').text('layers');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '0', 3600);
+      setCookie('zmEventShowZones'+eventData.MonitorId, '0');
     } else {
       zones.show();
       button.setAttribute('title', hideZonesString);
       $j('#toggleZonesButton .material-icons').text('layers_clear');
-      setCookie('zmEventShowZones'+eventData.MonitorId, '1', 3600);
+      setCookie('zmEventShowZones'+eventData.MonitorId, '1');
     }
   } else {
     console.error("Zones svg not found");

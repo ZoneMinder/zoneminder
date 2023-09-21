@@ -1,31 +1,3 @@
-#layout {
-    margin-right: 10px;
-}
-
-#content {
-    width: 99%;
-}
-
-#monitors .monitor {
-  min-width: 180px;
-}
-
-#monitors .alarm {
-    color: #ff0000;
-}
-
-#monitors .alert {
-    color: #ffa500;
-    margin: 0;
-    padding: 0;
-    border-radius: 0;
-    border: none;
-}
-
-#monitors .imageFeed {
-    text-align: center;
-    vertical-align: middle;
-}
 
 #monitors .imageFeed img ,
 #monitors .imageFeed svg {
@@ -45,18 +17,6 @@
     border: 2px solid #ffa500;
 }
 
-#monitors .monitorState {
-    margin: 2px auto;
-    text-align: center;
-    border: 0;
-}
-#monitors .alert .monitorState {
-    border: 0;
-}
-
-.zones polygon {
-  fill-opacity: 0.25;
-}
 .Active {
   stroke: #ff0000;
   fill: #ff0000;

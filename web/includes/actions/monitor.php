@@ -93,6 +93,7 @@ if ($action == 'save') {
       'ModectDuringPTZ' =>  0,
       'Enabled' => 0,
       'DecodingEnabled' => 0,
+      'RTSP2WebEnabled' => 0,
       'JanusEnabled' => 0,
       'JanusAudioEnabled' => 0,
       'Janus_Use_RTSP_Restream' => 0,
@@ -126,6 +127,10 @@ if ($action == 'save') {
       ZM\Debug('Auto selecting server to '.ZM_SERVER_ID);
     }
   }
+  if (!empty($newMonitor['ManufacturerId']) and empty($newMonitor['Manufacturer']))
+    unset($newMonitor['Manufacturer']);
+  if (!empty($newMonitor['ModelId']) and empty($newMonitor['Model']))
+    unset($newMonitor['Model']);
 
   $changes = $monitor->changes($newMonitor);
   ZM\Debug('Changes: '. print_r($changes, true));

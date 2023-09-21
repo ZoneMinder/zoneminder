@@ -3,36 +3,39 @@ var hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
 var defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 
 <?php
-if ( ZM_OPT_CONTROL ) {
+if (ZM_OPT_CONTROL and canView('Control')) {
 ?>
 var controlOptions = new Object();
 <?php
   global $controls;
-  foreach ( $controls as $control ) {
-    echo '
+  if ($controls) {
+    foreach ($controls as $control) {
+      echo '
 controlOptions['.$control->Id().'] = new Array();
 controlOptions['.$control->Id().'][0] = '.
-    ( $control->HasHomePreset() ? '\''.translate('Home').'\'' : 'null' ).PHP_EOL;
-    for ( $i = 1; $i <= $control->NumPresets(); $i++ ) {
-      echo 'controlOptions['. $control->Id().']['.$i.'] = \''.translate('Preset').' '.$i .'\';'.PHP_EOL;
-    }
-  } # end foreach row
+      ( $control->HasHomePreset() ? '\''.translate('Home').'\'' : 'null' ).PHP_EOL;
+      for ( $i = 1; $i <= $control->NumPresets(); $i++ ) {
+        echo 'controlOptions['. $control->Id().']['.$i.'] = \''.translate('Preset').' '.$i .'\';'.PHP_EOL;
+      }
+    } # end foreach row
+  }
 } # end if ZM_OPT_CONTROL
 ?>
 
 var monitorNames = new Object();
 var rtspStreamNames = new Object();
 <?php
-$query = empty($_REQUEST['mid']) ?
-  dbQuery('SELECT Name,RTSPStreamName FROM Monitors') :
-  dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Id != ?', array($_REQUEST['mid']) );
+$mid = empty($_REQUEST['mid']) ? '0' : validCardinal($_REQUEST['mid']);
+$query = $mid ?
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Id != ?', array($mid)):
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors');
 if ($query) {
   while ($row = dbFetchNext($query)) {
     echo 'monitorNames[\''.validJsStr($row['Name']).'\'] = true;'.PHP_EOL;
     if ($row['RTSPStreamName'])
       echo 'rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;'.PHP_EOL;
   } // end foreach
-} # end if query
+} # end if $query
 ?>
 
 function validateForm(form) {

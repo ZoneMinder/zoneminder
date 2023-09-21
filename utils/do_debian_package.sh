@@ -142,7 +142,7 @@ if [ "$SNAPSHOT" == "stable" ]; then
     BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
     if [ -z "$BRANCH" ]; then
       # This should only happen in CI environments where tag info isn't available
-      BRANCH=`cat version`
+      BRANCH=`cat version.txt`
       echo "Building branch $BRANCH"
     fi
     if [ "$BRANCH" == "" ]; then
@@ -161,7 +161,7 @@ else
   else
     if [ "$SNAPSHOT" == "CURRENT" ]; then
       # git the latest (short) commit hash of the version file
-      versionhash=$(git log -n1 --pretty=format:%h version)
+      versionhash=$(git log -n1 --pretty=format:%h version.txt)
 
       # Number of commits since the version file was last changed
       numcommits=$(git rev-list ${versionhash}..HEAD --count)
@@ -180,7 +180,7 @@ fi;
 echo "git pull..."
 git pull
 # Grab the ZoneMinder version from the contents of the version file
-VERSION=$(cat version)
+VERSION=$(cat version.txt)
 if [ -z "$VERSION" ]; then
   exit 1;
 fi;
@@ -235,7 +235,7 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
     rm -rf debian
   fi;
 
-  # Generate Changlog
+  # Generate Changelog
   if [ "$DISTRO" == "beowulf" ]; then
     cp -Rpd distros/beowulf debian
   else
@@ -292,14 +292,14 @@ EOF
   # Leave the .orig so that we don't pollute it when building deps
   cd ..
   if [ $TYPE == "binary" ]; then
-	  # Auto-install all ZoneMinder's depedencies using the Debian control file
+	  # Auto-install all ZoneMinder's dependencies using the Debian control file
 	  sudo apt-get install devscripts equivs
 	  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
 	  echo "Status: $?"
 	  DEBUILD=debuild
   else
 	  if [ $TYPE == "local" ]; then
-		  # Auto-install all ZoneMinder's depedencies using the Debian control file
+		  # Auto-install all ZoneMinder's dependencies using the Debian control file
 		  sudo apt-get install devscripts equivs
 		  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
 		  echo "Status: $?"
@@ -381,7 +381,7 @@ EOF
 done; # foreach distro
 
 if [ "$INTERACTIVE" != "no" ]; then
-  read -p "Do you want to keep the checked out version of Zoneminder (incase you want to modify it later) [y/N]"
+  read -p "Do you want to keep the checked out version of Zoneminder (in case you want to modify it later) [y/N]"
   [[ $REPLY == [yY] ]] && { mv "$DIRECTORY.orig" zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted"; }
   echo "Done!"
 else 

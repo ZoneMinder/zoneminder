@@ -9,6 +9,29 @@ require_once('User_Preference.php');
 class User extends ZM_Object {
   protected static $table = 'Users';
 
+  protected $Id;
+  protected $Username;
+  protected $Name;
+  protected $Email;
+  protected $Phone;
+  protected $Password;
+  protected $Language;
+  protected $Enabled;
+  protected $Stream;
+  protected $Events;
+  protected $Experiments;
+  protected $Control;
+  protected $Monitors;
+  protected $Groups;
+  protected $Devices;
+  protected $Snapshots;
+  protected $System;
+  protected $MaxBandwidth;
+  protected $TokenMinExpiry;
+  protected $APIEnabled;
+  protected $HomeView;
+
+
 	protected $defaults = array(
 			'Id'              => null,
       'Username'        => array('type'=>'text','filter_regexp'=>'/[^\w\.@ ]/', 'default'=>''),
@@ -44,8 +67,14 @@ class User extends ZM_Object {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
-  public function Name( ) {
-    return $this->{'Username'};
+  public function Name($new=null) {
+    if ($new != null) {
+      $this->Name = $new;
+    }
+    if (property_exists($this, 'Name') and !empty($this->Name)) {
+      return $this->Name;
+    }
+    return $this->Username();
   }
 
   public static function Indexed_By_Id() {

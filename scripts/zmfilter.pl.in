@@ -151,10 +151,10 @@ if (!EVENT_PATH) {
   die;
 }
 
-# In future, should not be neccessary wrt StorageAreas
+# In future, should not be necessary wrt StorageAreas
 chdir(EVENT_PATH);
 
-# Should not be neccessary... but nice to get a local var.  What if it fails?
+# Should not be necessary... but nice to get a local var.  What if it fails?
 my $dbh = zmDbConnect();
 $dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 
@@ -710,14 +710,17 @@ sub substituteTags {
     $text =~ s/%MEA%/$Summary->{ArchivedEvents}/g;
   }
   if ($Event) {
+    $text =~ s/%MID%/$Event->{MonitorId}/g;
     $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
     $text =~ s/%MPS%/$url?view=watch&mid=$Event->{MonitorId}&mode=stream/g;
     $text =~ s/%MPI%/$url?view=watch&mid=$Event->{MonitorId}&mode=still/g;
     $text =~ s/%EP%/$url?view=event&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
     $text =~ s/%EPS%/$url?view=event&mode=stream&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
     $text =~ s/%EPI%/$url?view=event&mode=still&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
-    $text =~ s/%EPATH%/$Event->Path()/g;
+    my $path = $Event->Path();
+    $text =~ s/%EPATH%/$path/g;
     $text =~ s/%EI%/$Event->{Id}/g;
+    $text =~ s/%EID%/$Event->{Id}/g;
     $text =~ s/%EN%/$Event->{Name}/g;
     $text =~ s/%EC%/$Event->{Cause}/g;
     $text =~ s/%ED%/$Event->{Notes}/g;
@@ -849,7 +852,7 @@ sub substituteTags {
   $text =~ s/%FP%/$url?view=filter&filter_name=$filter_name/g;
 
   return $text;
-} # end subsitituteTags
+} # end substituteTags
 
 sub sendSummaryEmail {
   my $filter = shift;
@@ -891,7 +894,7 @@ sub sendSummaryEmail {
     return 1;
   }
   return 0;
-}
+} # end sub sendSummaryEmail
 
 sub sendEmail {
   my $filter = shift;
@@ -916,6 +919,8 @@ sub sendEmail {
   if (sendTheEmail($filter, $subject, $body, @attachments)) {
     $event->save({Emailed=>1});
     return 1;
+  } else {
+    Warning("Failed to send the email");
   }
   return 0;
 }
@@ -926,7 +931,7 @@ sub sendTheEmail {
   eval {
     if ($Config{ZM_NEW_MAIL_MODULES}) {
       my $total_size = 0;
-### Create the multipart container
+      # Create the multipart container
       my $mail = MIME::Lite->new(
           From => $Config{ZM_FROM_EMAIL},
           To => $$filter{EmailTo},
@@ -937,14 +942,12 @@ sub sendTheEmail {
       my $related = MIME::Lite->new(
         Type => 'multipart/related',
       );
-
+      $mail->attach($related);
       if ($body =~ /<html/) {
-        $mail->attach($related);
         my $alternative = MIME::Lite->new(
           Type => 'multipart/alternative'
         );
         $related->attach($alternative);
-
 
         # Create a text-only version, it has to go first
         require HTML::FormatText;
@@ -963,7 +966,8 @@ sub sendTheEmail {
         $alternative->attach($html);
       } else {
         my $html = MIME::Lite->new(
-          Type => 'text/html', Data => $body
+          'Content-Transfer-Encoding' => 'quoted-printable',
+          Type => 'TEXT', Data => $body
         );
         $related->attach($html);
       } # end if html or not
@@ -1107,7 +1111,8 @@ sub sendMessage {
           Type => 'multipart/mixed'
           );
 ### Add the text message part
-      $mail->attach (
+      Debug("Body: $body");
+      $mail->attach(
           Type => 'TEXT',
           Data => $body
           );
@@ -1131,15 +1136,15 @@ sub sendMessage {
         }
         if ( !$ssmtp_location ) {
           Debug('Unable to find ssmtp, trying MIME::Lite->send');
-          MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
-          $mail->send();
+          #MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
+          $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
         } else {
 ### Send using SSMTP
           $mail->send('sendmail', $ssmtp_location, $Config{ZM_MESSAGE_ADDRESS});
         }
       } else {
-        MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
-        $mail->send();
+        #MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
+        $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
       }
     } else {
       my $mail = MIME::Entity->build(
@@ -1184,7 +1189,7 @@ sub executeCommand {
   my $Event = shift;
 
   my $command = $filter->{AutoExecuteCmd};
-  if ($command =~ /%\w+.%/) {
+  if ($command =~ /%\w+%/) {
     $command = substituteTags($command, $filter, $Event);
   } else {
     $command .= ' '.$Event->Path();

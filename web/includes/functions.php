@@ -1872,6 +1872,9 @@ function generateConnKey() {
 }
 
 function detaintPath($path) {
+
+  // Strip out :// because php:// is a way to inject code apparently
+  $path = str_replace('://', '', $path);
   // Remove any absolute paths, or relative ones that want to go up
   do {
     $path = str_replace('../', '', $path, $count);
@@ -2290,37 +2293,57 @@ function i18n() {
 function get_networks() {
   $interfaces = array();
 
-  exec('ip link', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output);
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ( $output as $line ) {
-      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
-        if ( $matches[1] != 'lo' ) {
-          $interfaces[$matches[1]] = $matches[1];
-        } else {
-          ZM\Debug("No match for $line");
-        }
-      }
-    }
-  }
-  $routes = array();
-  exec('ip route', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output);
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ( $output as $line ) {
-      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
-        $interfaces['default'] = $matches[1];
-      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
-        $interfaces[$matches[2]] .= ' ' . $matches[1];
-        ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
-      } else {
-        ZM\Debug("Didn't match $line");
-      }
-    } # end foreach line of output
+  if (file_exists('/usr/sbin/ip')) {
+	  exec('ip link', $output, $status);
+	  if ( $status ) {
+	    $html_output = implode('<br/>', $output);
+	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+	  } else {
+	    foreach ( $output as $line ) {
+	      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
+		if ( $matches[1] != 'lo' ) {
+		  $interfaces[$matches[1]] = $matches[1];
+		} else {
+		  ZM\Debug("No match for $line");
+		}
+	      }
+	    }
+	  }
+	  $routes = array();
+	  exec('ip route', $output, $status);
+	  if ( $status ) {
+	    $html_output = implode('<br/>', $output);
+	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+	  } else {
+	    foreach ( $output as $line ) {
+	      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
+		$interfaces['default'] = $matches[1];
+	      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
+		$interfaces[$matches[2]] .= ' ' . $matches[1];
+		ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
+	      } else {
+		ZM\Debug("Didn't match $line");
+	      }
+	    } # end foreach line of output
+	  }
+  } else if (file_exists('/sbin/ifconfig')) {
+	  ZM\Debug("Executing ifconfig");
+	  exec('ifconfig', $output, $status);
+	  if ( $status ) {
+	    $html_output = implode("\n", $output);
+	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
+	  } else {
+		  preg_match("/^([eth|enp][A-z0-9]*)\s+Link\s+encap:([A-z]*)\s+HWaddr\s+([A-z0-9:]*).*".
+			"inet addr:([0-9.]+).*Bcast:([0-9.]+).*Mask:([0-9.]+).*".
+			"MTU:([0-9.]+).*Metric:([0-9.]+).*".
+			"RX packets:([0-9.]+).*errors:([0-9.]+).*dropped:([0-9.]+).*overruns:([0-9.]+).*frame:([0-9.]+).*".
+			"TX packets:([0-9.]+).*errors:([0-9.]+).*dropped:([0-9.]+).*overruns:([0-9.]+).*carrier:([0-9.]+).*".
+			"RX bytes:([0-9.]+).*\((.*)\).*TX bytes:([0-9.]+).*\((.*)\)".
+			"/ims", implode("\n", $output), $regex);
+
+		  ZM\Debug(print_r( $regex,true));
+	  }
+
   }
   return $interfaces;
 }
@@ -2458,5 +2481,10 @@ function getHomeView() {
     }
   }
   return 'console';
+}
+
+function systemd_isactive($service) {
+  $output = shell_exec("systemctl is-active $service");
+  return (trim($output) == 'active');
 }
 ?>

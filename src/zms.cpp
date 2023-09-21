@@ -30,18 +30,20 @@
 bool ValidateAccess(User *user, int mon_id) {
   bool allowed = true;
 
-  if ( mon_id > 0 ) {
-    if ( user->getStream() < User::PERM_VIEW )
+  if (mon_id > 0) {
+    if (user->getStream() < User::PERM_VIEW) {
       allowed = false;
-    if ( !user->canAccess(mon_id) )
+      Warning("Insufficient privileges for request user %d %s for monitor %d, user does not have permission to stream live view.",
+          user->Id(), user->getUsername(), mon_id);
+    } else if (!user->canAccess(mon_id)) {
       allowed = false;
-  } else {
-    if ( user->getEvents() < User::PERM_VIEW )
-      allowed = false;
-  }
-  if ( !allowed ) {
-    Error("Insufficient privileges for request user %d %s for monitor %d",
-      user->Id(), user->getUsername(), mon_id);
+      Warning("Insufficient privileges for request user %d %s for monitor %d, user does not have permission view this monitor.",
+          user->Id(), user->getUsername(), mon_id);
+    }
+  } else if (user->getEvents() < User::PERM_VIEW) {
+    allowed = false;
+    Warning("Insufficient privileges for request user %d %s, user does not have permission view events.",
+        user->Id(), user->getUsername());
   }
   return allowed;
 }

@@ -7,6 +7,8 @@ configure_file(logrotate.conf.in "${CMAKE_CURRENT_BINARY_DIR}/logrotate.conf" @O
 configure_file(syslog.conf.in "${CMAKE_CURRENT_BINARY_DIR}/syslog.conf" @ONLY)
 configure_file(com.zoneminder.systemctl.policy.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.policy" @ONLY)
 configure_file(com.zoneminder.systemctl.rules.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.systemctl.rules" @ONLY)
+configure_file(com.zoneminder.dnsmasq.policy.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.dnsmasq.policy" @ONLY)
+configure_file(com.zoneminder.dnsmasq.rules.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.dnsmasq.rules" @ONLY)
 configure_file(com.zoneminder.arp-scan.policy.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.arp-scan.policy" @ONLY)
 configure_file(com.zoneminder.arp-scan.rules.in "${CMAKE_CURRENT_BINARY_DIR}/com.zoneminder.arp-scan.rules" @ONLY)
 configure_file(zoneminder.service.in "${CMAKE_CURRENT_BINARY_DIR}/zoneminder.service" @ONLY)

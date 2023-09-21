@@ -124,7 +124,14 @@ FfmpegCamera::FfmpegCamera(
   mOptions(p_options),
   hwaccel_name(p_hwaccel_name),
   hwaccel_device(p_hwaccel_device),
-  frameCount(0)
+  mSecondInput(nullptr),
+  frameCount(0),
+  use_hwaccel(true),
+  mCanCapture(false),
+  mConvertContext(nullptr),
+  error_count(0),
+  stream_width(0),
+  stream_height(0)
 {
   mMaskedPath = remove_authentication(mPath);
   mMaskedSecondPath = remove_authentication(mSecondPath);
@@ -132,9 +139,6 @@ FfmpegCamera::FfmpegCamera(
     FFMPEGInit();
   }
 
-  mCanCapture = false;
-  error_count = 0;
-  use_hwaccel = true;
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
   hw_device_ctx = nullptr;
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
@@ -142,7 +146,6 @@ FfmpegCamera::FfmpegCamera(
 #endif
 #endif
 
-  mConvertContext = nullptr;
   /* Has to be located inside the constructor so other components such as zma
    * will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {
@@ -322,7 +325,7 @@ int FfmpegCamera::OpenFfmpeg() {
   mFormatContext->interrupt_callback.opaque = this;
   mFormatContext->flags |= AVFMT_FLAG_NOBUFFER | AVFMT_FLAG_FLUSH_PACKETS;
 
-  if( mUser.length() > 0 ) {
+  if (mUser.length() > 0) {
     // build the actual uri string with encoded parameters (from the user and pass fields)
     mPath = StringToLower(protocol) + "://" + mUser + ":" + UriEncode(mPass) + "@" + mMaskedPath.substr(7, std::string::npos);
     Debug(1, "Rebuilt URI with encoded parameters: '%s'", mPath.c_str());
@@ -389,7 +392,7 @@ int FfmpegCamera::OpenFfmpeg() {
       mVideoStreamId, mAudioStreamId);
 
   const AVCodec *mVideoCodec = nullptr;
-  if (!monitor->DecoderName().empty()) {
+  if (!monitor->DecoderName().empty() and (monitor->DecoderName() != "auto")) {
     if ((mVideoCodec = avcodec_find_decoder_by_name(monitor->DecoderName().c_str())) == nullptr) {
       Debug(1, "Failed to find decoder %s, falling back to auto", monitor->DecoderName().c_str());
     } else {
@@ -470,7 +473,7 @@ int FfmpegCamera::OpenFfmpeg() {
 
       ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
           (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
-      if ( ret < 0 and hwaccel_device != "" ) {
+      if (ret < 0 and hwaccel_device != "") {
         ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
       }
       if (ret < 0) {
@@ -505,6 +508,9 @@ int FfmpegCamera::OpenFfmpeg() {
   }
 #endif
 
+  if (!mOptions.empty()) {
+    ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+  }
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 
   e = nullptr;
@@ -519,19 +525,7 @@ int FfmpegCamera::OpenFfmpeg() {
   Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);
   zm_dump_codec(mVideoCodecContext);
 
-  if (mAudioStreamId == -1 and !monitor->GetSecondPath().empty()) {
-    Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
-    FFmpeg_Input *second_input = new FFmpeg_Input();
-    if (second_input->Open(monitor->GetSecondPath().c_str()) > 0) {
-      mSecondFormatContext = second_input->get_format_context();
-      mAudioStreamId = second_input->get_audio_stream_id();
-      mAudioStream = second_input->get_audio_stream();
-    } else {
-      Warning("Failed to open secondary input");
-    }
-  }  // end if have audio stream
-
-  if ( mAudioStreamId >= 0 ) {
+  if (mAudioStreamId >= 0) {
     const AVCodec *mAudioCodec = nullptr;
     if (!(mAudioCodec = avcodec_find_decoder(mAudioStream->codecpar->codec_id))) {
       Debug(1, "Can't find codec for audio stream from %s", mMaskedPath.c_str());
@@ -546,14 +540,25 @@ int FfmpegCamera::OpenFfmpeg() {
         return -1;
       }  // end if opened
     }  // end if found decoder
-  }  // end if mAudioStreamId
+  } else if (!monitor->GetSecondPath().empty()) {
+    Debug(1, "Trying secondary stream at %s", monitor->GetSecondPath().c_str());
+    mSecondInput = zm::make_unique<FFmpeg_Input>();
+    if (mSecondInput->Open(monitor->GetSecondPath().c_str()) > 0) {
+      mSecondFormatContext = mSecondInput->get_format_context();
+      mAudioStreamId = mSecondInput->get_audio_stream_id();
+      mAudioStream = mSecondInput->get_audio_stream();
+      mAudioCodecContext = mSecondInput->get_audio_codec_context();
+    } else {
+      Warning("Failed to open secondary input");
+    }
+  }  // end if have audio stream
 
   if (
       ((unsigned int)mVideoCodecContext->width != width)
       ||
       ((unsigned int)mVideoCodecContext->height != height)
       ) {
-    Warning("Monitor dimensions are %dx%d but camera is sending %dx%d",
+    Debug(1, "Monitor dimensions are %dx%d but camera is sending %dx%d",
         width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
 
@@ -569,11 +574,6 @@ int FfmpegCamera::Close() {
     avcodec_close(mVideoCodecContext);
     avcodec_free_context(&mVideoCodecContext);
     mVideoCodecContext = nullptr;  // Freed by av_close_input_file
-  }
-  if ( mAudioCodecContext ) {
-    avcodec_close(mAudioCodecContext);
-    avcodec_free_context(&mAudioCodecContext);
-    mAudioCodecContext = nullptr;  // Freed by av_close_input_file
   }
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H

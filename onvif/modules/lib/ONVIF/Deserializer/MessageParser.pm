@@ -252,7 +252,7 @@ sub _initialize {
             # stop believing we're a leaf node
             $_leaf = 0;
 
-            # return if there's only one elment - can't set it in parent ;-)
+            # return if there's only one element - can't set it in parent ;-)
             # but set as root element if we don't have one already.
             if (not defined $list->[-1]) {
                 $self->{ data } = $current if (not exists $self->{ data });

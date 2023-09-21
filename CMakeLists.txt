@@ -4,7 +4,7 @@
 #
 cmake_minimum_required(VERSION 3.5.0)
 project(zoneminder)
-file(STRINGS "version" zoneminder_VERSION)
+file(STRINGS "version.txt" zoneminder_VERSION)
 # make API version a minor of ZM version
 set(zoneminder_API_VERSION "${zoneminder_VERSION}.1")
 
@@ -298,16 +298,6 @@ check_type_size("siginfo_t" HAVE_SIGINFO_T)
 check_type_size("ucontext_t" HAVE_UCONTEXT_T)
 
 # *** LIBRARY CHECKS ***
-
-if(UNIX)
-  include(CheckLibraryExists)
-  CHECK_LIBRARY_EXISTS(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
-  if(NOT HAVE_CLOCK_GETTIME)
-    message(FATAL_ERROR "clock_gettime not found")
-  else()
-    list(APPEND ZM_BIN_LIBS "-lrt")
-  endif()
-endif()
 
 # zlib
 find_package(ZLIB)

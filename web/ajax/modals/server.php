@@ -35,56 +35,56 @@ if ( $sid and ! $Server->Id() ) return;
           <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>
           <table class="table-sm">
             <tbody>
-              <tr>
+              <tr class="Name">
                 <th scope="row"><?php echo translate('Name') ?></th>
                 <td><input type="text" name="newServer[Name]" value="<?php echo $Server->Name() ?>"/></td>
               </tr>
-              <tr>
+              <tr class="Protocol">
                 <th scope="row"><?php echo translate('Protocol') ?></th>
                 <td><input type="text" name="newServer[Protocol]" value="<?php echo $Server->Protocol() ?>"/></td>
               </tr>
-              <tr>
+              <tr class="Hostname">
                 <th scope="row"><?php echo translate('Hostname') ?></th>
                 <td><input type="text" name="newServer[Hostname]" value="<?php echo $Server->Hostname() ?>"/></td>
               </tr>
-              <tr>
+              <tr class="Port">
                 <th scope="row"><?php echo translate('Port') ?></th>
                 <td><input type="number" name="newServer[Port]" value="<?php echo $Server->Port() ?>"/></td>
               </tr>
-              <tr>
+              <tr class="PathToIndex">
                 <th scope="row"><?php echo translate('PathToIndex') ?></th>
                 <td><input type="text" name="newServer[PathToIndex]" value="<?php echo $Server->PathToIndex() ?>"/></td>
               </tr>
-              <tr>
+              <tr class="PathToZMS">
                 <th scope="row"><?php echo translate('PathToZMS') ?></th>
                 <td><input type="text" name="newServer[PathToZMS]" value="<?php echo $Server->PathToZMS() ?>"/></td>
               </tr>
-              <tr>
+              <tr class="PathToApi">
                 <th scope="row"><?php echo translate('PathToApi') ?></th>
                 <td><input type="text" name="newServer[PathToApi]" value="<?php echo $Server->PathToApi() ?>"/></td>
               </tr>
-              <tr>
+              <tr class="RunStats">
                 <th scope="row"><?php echo translate('RunStats') ?></th>
                 <td>
                   <input type="radio" name="newServer[zmstats]" value="1" <?php echo $Server->zmstats() ? $checked : $null ?>/> Yes
                   <input type="radio" name="newServer[zmstats]" value="0" <?php echo $Server->zmstats() ? $null : $checked ?>/> No
                 </td>
               </tr>
-              <tr>
+              <tr class="RunAudit">
                 <th scope="row"><?php echo translate('RunAudit') ?></th>
                 <td>
                   <input type="radio" name="newServer[zmaudit]" value="1"<?php echo $Server->zmaudit() ? $checked : $null ?>/> Yes
                   <input type="radio" name="newServer[zmaudit]" value="0"<?php echo $Server->zmaudit() ? $null : $checked ?>/> No
                 </td>
               </tr>
-              <tr>
+              <tr class="RunTrigger">
                 <th scope="row"><?php echo translate('RunTrigger') ?></th>
                 <td>
                   <input type="radio" name="newServer[zmtrigger]" value="1" <?php echo $Server->zmtrigger() ? $checked : $null ?>/> Yes
                   <input type="radio" name="newServer[zmtrigger]" value="0" <?php echo $Server->zmtrigger() ? $null : $checked ?>/> No
                 </td>
               </tr>
-              <tr>
+              <tr class="RunEventNotification">
                 <th scope="row"><?php echo translate('RunEventNotification') ?></th>
                 <td>
                   <input type="radio" name="newServer[zmeventnotification]" value="1" <?php echo $Server->zmeventnotification() ? $checked : $null ?>/> Yes

@@ -10,8 +10,14 @@ function MonitorStream(monitorData) {
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
   this.height = monitorData.height;
+  this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
+  this.RTSP2WebType = monitorData.RTSP2WebType;
+  this.mseStreamingStarted = false;
+  this.mseQueue = [];
+  this.mseSourceBuffer = null;
   this.janusEnabled = monitorData.janusEnabled;
   this.janusPin = monitorData.janus_pin;
+  this.server_id = monitorData.server_id;
   this.scale = 100;
   this.status = {capturefps: 0, analysisfps: 0}; // json object with alarmstatus, fps etc
   this.lastAlarmState = STATE_IDLE;
@@ -50,7 +56,7 @@ function MonitorStream(monitorData) {
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
-      console.log('Image stream has loaded! starting streamCmd for '+this.connKey);
+      console.log('Image stream has loaded! starting streamCmd for '+this.connKey+' in '+statusRefreshTimeout + 'ms');
       this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
@@ -101,7 +107,7 @@ function MonitorStream(monitorData) {
 
     if (((newscale == '0') || (newscale == 0) || (newscale=='auto')) && (width=='auto' || !width)) {
       if (!this.bottomElement) {
-        newscale = parseInt(100*monitor_frame.width() / this.width);
+        newscale = Math.floor(100*monitor_frame.width() / this.width);
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
         width = monitor_frame.css('width');
         height = Math.round(parseInt(this.height) * newscale / 100)+'px';
@@ -129,9 +135,8 @@ function MonitorStream(monitorData) {
       // a numeric scale, must take actual monitor dimensions and calculate
       width = Math.round(parseInt(this.width) * newscale / 100)+'px';
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
-      console.log("Specified scale: ", newscale, width, height);
     }
-    if (width && (width != '0px')) {
+    if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
       monitor_frame.css('width', parseInt(width));
     }
     if (height && height != '0px') img.style.height = height;
@@ -185,11 +190,13 @@ function MonitorStream(monitorData) {
       let server;
       if (ZM_JANUS_PATH) {
         server = ZM_JANUS_PATH;
+      } else if (this.server_id && Servers[this.server_id]) {
+        server = Servers[this.server_id].urlToJanus();
       } else if (window.location.protocol=='https:') {
         // Assume reverse proxy setup for now
         server = "https://" + window.location.hostname + "/janus";
       } else {
-        server = "http://" + window.location.hostname + ":8088/janus";
+        server = "http://" + window.location.hostname + "/janus";
       }
 
       if (janus == null) {
@@ -200,33 +207,77 @@ function MonitorStream(monitorData) {
       attachVideo(parseInt(this.id), this.janusPin);
       this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
       return;
-    }
+    } else if (this.RTSP2WebEnabled) {
+      videoEl = document.getElementById("liveStream" + this.id);
+      const url = new URL(ZM_RTSP2WEB_PATH);
+      const useSSL = (url.protocol == 'https');
 
-    // zms stream
-    const stream = this.getElement();
-    if (!stream) return;
-    if (!stream.src) {
-      // Website Monitors won't have an img tag, neither will video
-      console.log('No src for #liveStream'+this.id);
-      console.log(stream);
-      return;
+      rtsp2webModUrl = url;
+      rtsp2webModUrl.username='';
+      rtsp2webModUrl.password='';
+      //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
+      if (this.RTSP2WebType == 'HLS') {
+        hlsUrl = rtsp2webModUrl;
+        hlsUrl.pathname = "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+        /*
+        if (useSSL) {
+          hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+        } else {
+          hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+        }
+        */
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(hlsUrl.href);
+          hls.attachMedia(videoEl);
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          videoEl.src = hlsUrl.href;
+        }
+      } else if (this.RTSP2WebType == "MSE") {
+        videoEl.addEventListener('pause', () => {
+          if (videoEl.currentTime > videoEl.buffered.end(videoEl.buffered.length - 1)) {
+            videoEl.currentTime = videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1;
+            videoEl.play();
+          }
+        });
+        mseUrl = rtsp2webModUrl;
+        mseUrl.protocol = useSSL ? 'wss' : 'ws';
+        mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+        console.log(mseUrl.href);
+        startMsePlay(this, videoEl, mseUrl.href);
+      } else if (this.RTSP2WebType == 'WebRTC') {
+        webrtcUrl = rtsp2webModUrl;
+        webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
+        console.log(webrtcUrl.href);
+        startRTSP2WebRTSPPlay(videoEl, webrtcUrl.href);
+      }
+    } else {
+      // zms stream
+      const stream = this.getElement();
+      if (!stream) return;
+      if (!stream.src) {
+        // Website Monitors won't have an img tag, neither will video
+        console.log('No src for #liveStream'+this.id);
+        console.log(stream);
+        return;
+      }
+      this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+      // Step 1 make sure we are streaming instead of a static image
+      if (stream.getAttribute('loading') == 'lazy') {
+        stream.setAttribute('loading', 'eager');
+      }
+      src = stream.src.replace(/mode=single/i, 'mode=jpeg');
+      if (-1 == src.search('connkey')) {
+        src += '&connkey='+this.connKey;
+      }
+      if (stream.src != src) {
+        console.log("Setting to streaming: " + src);
+        stream.src = '';
+        stream.src = src;
+      }
+      stream.onerror = this.img_onerror.bind(this);
+      stream.onload = this.img_onload.bind(this);
     }
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-    // Step 1 make sure we are streaming instead of a static image
-    if (stream.getAttribute('loading') == 'lazy') {
-      stream.setAttribute('loading', 'eager');
-    }
-    src = stream.src.replace(/mode=single/i, 'mode=jpeg');
-    if (-1 == src.search('connkey')) {
-      src += '&connkey='+this.connKey;
-    }
-    if (stream.src != src) {
-      console.log("Setting to streaming: " + src);
-      stream.src = '';
-      stream.src = src;
-    }
-    stream.onerror = this.img_onerror.bind(this);
-    stream.onload = this.img_onload.bind(this);
   }; // this.start
 
   this.stop = function() {
@@ -254,6 +305,13 @@ function MonitorStream(monitorData) {
     if (!stream) return;
     stream.onerror = null;
     stream.onload = null;
+    this.stop();
+
+    if (this.ajaxQueue) {
+      console.log("Aborting in progress ajax for kill");
+      // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
+      this.ajaxQueue.abort();
+    }
     this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
   };
@@ -463,8 +521,10 @@ function MonitorStream(monitorData) {
             if (this.onplay) this.onplay();
           } // end if paused or delayed
           if ((this.status.scale !== undefined) && (this.status.scale !== undefined) && (this.status.scale != this.scale)) {
-            console.log("Stream not scaled, re-applying", this.scale, this.status.scale);
-            this.streamCommand({command: CMD_SCALE, scale: this.scale});
+            if (this.status.scale != 0) {
+              console.log("Stream not scaled, re-applying", this.scale, this.status.scale);
+              this.streamCommand({command: CMD_SCALE, scale: this.scale});
+            }
           }
 
           $j('#zoomValue'+this.id).text(this.status.zoom);
@@ -642,20 +702,23 @@ function MonitorStream(monitorData) {
       this.streamCmdParms.command = CMD_QUERY;
       this.streamCmdReq(this.streamCmdParms);
     }
-    // Queue up another query 
+    // Queue up another query
     this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCommand = function(command) {
+    const params = Object.assign({}, this.streamCmdParms);
     if (typeof(command) == 'object') {
-      for (const key in command) this.streamCmdParms[key] = command[key];
+      for (const key in command) params[key] = command[key];
     } else {
-      this.streamCmdParms.command = command;
+      params.command = command;
     }
+    /*
     if (this.ajaxQueue) {
       this.ajaxQueue.abort();
     }
-    this.streamCmdReq(this.streamCmdParms);
+    */
+    this.streamCmdReq(params);
   };
 
   this.alarmCommand = function(command) {
@@ -670,7 +733,7 @@ function MonitorStream(monitorData) {
     alarmCmdParms.id = this.id;
 
     this.ajaxQueue = jQuery.ajaxQueue({
-      url: this.url,
+      url: this.url + (auth_relay?'?'+auth_relay:''),
       xhrFields: {withCredentials: true},
       data: alarmCmdParms,
       dataType: "json"
@@ -699,6 +762,22 @@ function MonitorStream(monitorData) {
     this.streamCmdParms.command = this.analyse_frames ? CMD_ANALYZE_ON : CMD_ANALYZE_OFF;
     this.streamCmdReq(this.streamCmdParms);
   };
+
+  this.setMaxFPS = function(maxfps) {
+    if (1) {
+      this.streamCommand({command: CMD_MAXFPS, maxfps: currentSpeed});
+    } else {
+      var streamImage = this.getElement();
+      const oldsrc = streamImage.attr('src');
+      streamImage.attr('src', ''); // stop streaming
+      if (maxfps == '0') {
+        // Unlimited
+        streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps=0.00100'));
+      } else {
+        streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
+      }
+    }
+  }; // end setMaxFPS
 } // end function MonitorStream
 
 async function attachVideo(id, pin) {
@@ -791,3 +870,110 @@ const waitUntil = (condition) => {
     }, 100);
   });
 };
+
+function startRTSP2WebRTSPPlay(videoEl, url) {
+  const webrtc = new RTCPeerConnection({
+    iceServers: [{
+      urls: ['stun:stun.l.google.com:19302']
+    }],
+    sdpSemantics: 'unified-plan'
+  });
+  webrtc.ontrack = function(event) {
+    console.log(event.streams.length + ' track is delivered');
+    videoEl.srcObject = event.streams[0];
+    videoEl.play();
+  };
+  webrtc.addTransceiver('video', {direction: 'sendrecv'});
+  webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
+    const offer = await webrtc.createOffer();
+
+    await webrtc.setLocalDescription(offer);
+
+    fetch(url, {
+      method: 'POST',
+      body: new URLSearchParams({data: btoa(webrtc.localDescription.sdp)})
+    })
+        .then((response) => response.text())
+        .then((data) => {
+          try {
+            webrtc.setRemoteDescription(
+                new RTCSessionDescription({type: 'answer', sdp: atob(data)})
+            );
+          } catch (e) {
+            console.warn(e);
+          }
+        });
+  };
+
+  const webrtcSendChannel = webrtc.createDataChannel('rtsptowebSendChannel');
+  webrtcSendChannel.onopen = (event) => {
+    console.log(`${webrtcSendChannel.label} has opened`);
+    webrtcSendChannel.send('ping');
+  };
+  webrtcSendChannel.onclose = (_event) => {
+    console.log(`${webrtcSendChannel.label} has closed`);
+    startPlay(videoEl, url);
+  };
+  webrtcSendChannel.onmessage = (event) => console.log(event.data);
+}
+
+function startMsePlay(context, videoEl, url) {
+  const mse = new MediaSource();
+  mse.addEventListener('sourceopen', function() {
+    const ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+    ws.onopen = function(event) {
+      console.log('Connect to ws');
+    };
+    ws.onmessage = function(event) {
+      const data = new Uint8Array(event.data);
+      if (data[0] === 9) {
+        let mimeCodec;
+        const decodedArr = data.slice(1);
+        if (window.TextDecoder) {
+          mimeCodec = new TextDecoder('utf-8').decode(decodedArr);
+        } else {
+          console.log("Browser too old. Doesn't support TextDecoder");
+        }
+        context.mseSourceBuffer = mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
+        context.mseSourceBuffer.mode = 'segments';
+        context.mseSourceBuffer.addEventListener('updateend', pushMsePacket, videoEl, context);
+      } else {
+        readMsePacket(event.data, videoEl, context);
+      }
+    };
+  }, false);
+  videoEl.src = window.URL.createObjectURL(mse);
+}
+
+function pushMsePacket(videoEl, context) {
+  //const videoEl = document.querySelector('#mse-video');
+  let packet;
+
+  if (context != undefined && !context.mseSourceBuffer.updating) {
+    if (context.mseQueue.length > 0) {
+      packet = context.mseQueue.shift();
+      context.mseSourceBuffer.appendBuffer(packet);
+    } else {
+      context.mseStreamingStarted = false;
+    }
+  }
+  if (videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+    if (typeof document.hidden !== 'undefined' && document.hidden) {
+    // no sound, browser paused video without sound in background
+      videoEl.currentTime = videoEl.buffered.end((videoEl.buffered.length - 1)) - 0.5;
+    }
+  }
+}
+
+function readMsePacket(packet, videoEl, context) {
+  if (!context.mseStreamingStarted) {
+    context.mseSourceBuffer.appendBuffer(packet);
+    context.mseStreamingStarted = true;
+    return;
+  }
+  context.mseQueue.push(packet);
+  if (!context.mseSourceBuffer.updating) {
+    pushMsePacket(videoEl, context);
+  }
+}

@@ -113,6 +113,7 @@ include('_monitor_filters.php');
 $filterbar = ob_get_contents();
 ob_end_clean();
 
+$need_hls = false;
 $need_janus = false;
 $monitors = array();
 foreach ($displayMonitors as &$row) {
@@ -131,6 +132,10 @@ foreach ($displayMonitors as &$row) {
     $heights[$row['Height'].'px'] = $row['Height'].'px';
   }
   $monitor = $monitors[] = new ZM\Monitor($row);
+
+  if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+    $need_hls = true;
+  }
   if ($monitor->JanusEnabled()) {
     $need_janus = true;
   }
@@ -270,6 +275,9 @@ foreach ($monitors as $monitor) {
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
 <?php if ($need_janus) { ?>
   <script src="/javascript/janus/janus.js"></script>
+<?php } ?>
+<?php if ($need_hls) { ?>
+  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>

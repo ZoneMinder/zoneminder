@@ -73,7 +73,7 @@ Install ZoneMinder for Apache web server:
 
 .. sidebar :: Note
 
-    A virtual package called zoneminder exists. This package contains no files and will pull in the zoneminder-httpd package for backwards compatiblity.
+    A virtual package called zoneminder exists. This package contains no files and will pull in the zoneminder-httpd package for backwards compatibility.
 
 ::
 
@@ -213,7 +213,7 @@ Now clone the ZoneMinder git repository from your home folder:
 
 This will create a sub-folder called zoneminder, which will contain the latest development source code.
 
-If you have previsouly cloned the ZoneMinder git repo and wish to update it to the most recent, then issue these commands instead:
+If you have previously cloned the ZoneMinder git repo and wish to update it to the most recent, then issue these commands instead:
 
 ::
 
@@ -225,6 +225,19 @@ Get the crud submodule tarball:
 ::
 
     spectool -f -g -R -s 1 ~/zoneminder/distros/redhat/zoneminder.spec
+
+Get the cakephp-enum-behavior submodule tarball:
+
+::
+
+    spectool -f -g -R -s 2 ~/zoneminder/distros/redhat/zoneminder.spec
+
+
+Get the Rtsp-Server submodule tarball:
+
+::
+
+    spectool -f -g -R -s 3 ~/zoneminder/distros/redhat/zoneminder.spec
 
 At this point, you can make changes to the source code. Depending on what you want to do with those changes, you generally want to create a new branch first:
 

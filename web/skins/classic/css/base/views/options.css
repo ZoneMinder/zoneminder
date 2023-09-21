@@ -105,3 +105,34 @@ form {
     text-align: left;
   }
 }
+
+div.dnsmasq,
+.dnsmasq .config {
+text-align: left;
+}
+.dnsmasq .container {
+margin-left: 0;
+}
+.dnsmasq .config .row > label {
+width: 150px;
+text-align: right;
+}
+.dnsmasq .config .row {
+min-height:36px;
+text-align: left;
+display: flex;
+align-content: space-around;
+}
+#leasesTable td,
+#leasesTable th {
+  text-align: left;
+}
+input[name="config[dhcp-range][min]"],
+input[name="config[dhcp-range][max]"] {
+width: 120px;
+min-width: 120px;
+}
+input[name="config[dhcp-range][expires]"] {
+width: 100px;
+min-width: 100px;
+}

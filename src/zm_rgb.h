@@ -111,6 +111,7 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 #define ZM_SUBPIX_ORDER_RGBA 8
 #define ZM_SUBPIX_ORDER_ABGR 9
 #define ZM_SUBPIX_ORDER_ARGB 10
+#define ZM_SUBPIX_ORDER_YUV420P 11
 
 /* A macro to use default subpixel order for a specified colour. */
 /* for grayscale it will use NONE, for 3 colours it will use R,G,B, for 4 colours it will use R,G,B,A */

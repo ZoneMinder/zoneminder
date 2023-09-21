@@ -19,8 +19,6 @@ jobs:
           - os: debian
             dist: bookworm
           - os: ubuntu
-            dist: bionic
-          - os: ubuntu
             dist: focal
           - os: ubuntu
             dist: jammy

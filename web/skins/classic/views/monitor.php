@@ -143,7 +143,6 @@ $sourceTypes = array(
     'File'   => translate('File'),
     'Ffmpeg' => translate('Ffmpeg'),
     'Libvlc' => translate('Libvlc'),
-    'cURL'   => 'cURL (HTTP(S) only)',
     'WebSite'=> 'Web Site',
     'NVSocket'	=> translate('NVSocket'),
     'VNC' => translate('VNC'),
@@ -732,20 +731,6 @@ include('_monitor_source_nvsocket.php');
           <li>
             <label><?php echo translate('SourcePath') ?></label>
             <input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/>
-          </li>
-<?php
-      } elseif ( $monitor->Type() == 'cURL' ) {
-?>
-          <li><label><?php echo 'URL' ?></label>
-            <input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>"/>
-          </li>
-          <li><label><?php echo 'Username' ?></label>
-            <input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
-          </li>
-          <li>
-            <label><?php echo 'Password' ?></label>
-              <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
-              <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </li>
 <?php
       } elseif ( $monitor->Type() == 'WebSite' ) {

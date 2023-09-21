@@ -13,8 +13,6 @@ jobs:
       matrix:
         os_dist:
           - os: debian
-            dist: buster
-          - os: debian
             dist: bullseye
           - os: debian
             dist: bookworm

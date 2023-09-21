@@ -7,16 +7,16 @@ require_once('Object.php');
 class Storage extends ZM_Object {
   protected static $table = 'Storage';
 
-  protected $Id;
-  protected $Path;
-  protected $Name;
-  protected $Type;
-  protected $Url;
-  protected $DiskSpace;
-  protected $Scheme;
-  protected $ServerId;
-  protected $DoDelete;
-  protected $Enabled;
+  public $Id;
+  public $Path;
+  public $Name;
+  public $Type;
+  public $Url;
+  public $DiskSpace;
+  public $Scheme;
+  public $ServerId;
+  public $DoDelete;
+  public $Enabled;
 
   protected $defaults = array(
     'Id'        => null,

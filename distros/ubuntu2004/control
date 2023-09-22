@@ -41,7 +41,7 @@ Homepage: https://www.zoneminder.com/
 Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
-        ,sudo, pkexec
+        ,sudo
         ,javascript-common
         ,libavdevice59|libavdevice58|libavdevice57
         ,libswscale6|libswscale5|libswscale4
@@ -75,7 +75,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libfile-slurp-perl
         ,default-mysql-client | mariadb-client | virtual-mysql-client
         ,php-mysql, php-gd, php-apcu, php-json, php-intl, php-xml
-        ,policykit-1
+        ,policykit-1|pkexec
         ,rsyslog | system-log-daemon
         ,zip
         ,arp-scan

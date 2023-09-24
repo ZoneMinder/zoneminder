@@ -750,7 +750,7 @@ sub substituteTags {
             my $filename = fileparse($path);
             my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EI1%/<img src="cid:$$attachment{content_id}"\/>/g;
+            $text =~ s/%EI1%/$$attachment{content_id}/g;
           } else {
             Warning("Path to first image does not exist at $path for image $first_alarm_frame");
             $text =~ s/%EI1%/No image found for EI1/g;
@@ -763,7 +763,7 @@ sub substituteTags {
             my $filename = fileparse($path);
             my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
+            $text =~ s/%EIM%/$$attachment{content_id}/g;
           } else {
             Warning("No image for EIM at $path");
             $text =~ s/%EIM%/No image found for EIM/g;
@@ -776,7 +776,7 @@ sub substituteTags {
             my $filename = fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g;
+            $text =~ s/%EI1A%/$$attachment{content_id}/g;
           } else {
             Warning("No image for EI1A at $path");
             $text =~ s/%EI1A%/No image found for EI1A/g;
@@ -790,7 +790,7 @@ sub substituteTags {
             my $filename = fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
+            $text =~ s/%EIMA%/$$attachment{content_id}/g;
           } else {
             Debug(1, "No image for EIMA at $path");
             $text =~ s/%EIMA%//g;
@@ -803,7 +803,7 @@ sub substituteTags {
             my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
+            $text =~ s/%EIMOD%/$$attachment{content_id}/g;
           } else {
             Debug(1, 'No image for MOD at '.$path);
             $text =~ s/%EIMOD%//g;
@@ -816,7 +816,7 @@ sub substituteTags {
             my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment = { type=>'image/gif', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
+            $text =~ s/%EIMODG%/$$attachment{content_id}/g;
           } else {
             Debug(1, 'No image for MODG at '.$path);
             $text =~ s/%EIMODG%//g;
@@ -939,15 +939,11 @@ sub sendTheEmail {
           Type => 'multipart/mixed'
         );
 
-      my $related = MIME::Lite->new(
-        Type => 'multipart/related',
-      );
-      $mail->attach($related);
       if ($body =~ /<html/) {
         my $alternative = MIME::Lite->new(
           Type => 'multipart/alternative'
         );
-        $related->attach($alternative);
+        $mail->attach($alternative);
 
         # Create a text-only version, it has to go first
         require HTML::FormatText;
@@ -969,14 +965,14 @@ sub sendTheEmail {
           'Content-Transfer-Encoding' => 'quoted-printable',
           Type => 'TEXT', Data => $body
         );
-        $related->attach($html);
+        $mail->attach($html);
       } # end if html or not
 
       foreach my $attachment ( @attachments ) {
         my $size = -s $attachment->{path};
         $total_size += $size;
         Info("Attaching '$attachment->{path}' which is $size bytes");
-        $related->attach(
+        $mail->attach(
           Path => $attachment->{path},
           Type => $attachment->{type},
           ($attachment->{content_id} ? ('Id' => '<'.$attachment->{content_id}.'>') : () ),
@@ -1015,10 +1011,8 @@ sub sendTheEmail {
         Type => 'multipart/mixed'
       );
       if ($body =~ /<html/) {
-        my $related = MIME::Entity->build(Type => 'multipart/related');
-        $mail->add_part($related);
         my $alternative = MIME::Entity->build(Type => 'multipart/alternative');
-        $related->add_part($alternative);
+        $mail->add_part($alternative);
         # Create a text-only version
         require HTML::FormatText;
         $alternative->attach(
@@ -1036,7 +1030,7 @@ sub sendTheEmail {
           $total_size += $size;
           Debug("Attaching '$attachment->{path}' which is $size bytes");
 
-          $related->attach(
+          $mail->attach(
             Path => $attachment->{path},
             Type => $attachment->{type},
             ($attachment->{content_id} ? ('Content-Id' => '<'.$attachment->{content_id}.'>') : () ),

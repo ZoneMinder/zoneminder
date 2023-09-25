@@ -178,7 +178,7 @@ class Filter extends ZM_Object {
   public function Query_json() {
     if ( func_num_args( ) ) {
       $this->{'Query_json'} = func_get_arg(0);
-      $this->{'Query'} = jsonDecode($this->{'Query_json'});
+      $this->{'Query'} = empty($this->{'Query_json'}) ? [] : jsonDecode($this->{'Query_json'});
     }
     return $this->{'Query_json'};
   }
@@ -186,7 +186,7 @@ class Filter extends ZM_Object {
   public function Query() {
     if ( func_num_args( ) ) {
       $this->{'Query'} = func_get_arg(0);
-      $this->{'Query_json'} = jsonEncode($this->{'Query'});
+      $this->{'Query_json'} = empty($this->{'Query'}) ? '{}' : jsonEncode($this->{'Query'});
       # We have altered the query so need to reset all the calculated results.
       unset($this->_querystring);
       unset($this->_sql);
@@ -204,7 +204,7 @@ class Filter extends ZM_Object {
     } else {
       if ( !is_array($this->{'Query'}) ) {
         # Handle existence of both Query_json and Query in the row
-        $this->{'Query'} = jsonDecode($this->{'Query_json'});
+        $this->{'Query'} = empty($this->{'Query_json'}) ? [] : jsonDecode($this->{'Query_json'});
       }
     }
 

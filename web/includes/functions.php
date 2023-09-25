@@ -1741,18 +1741,28 @@ function checkJsonError($value) {
     switch ( json_last_error() ) {
       case JSON_ERROR_DEPTH :
         ZM\Error("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_CTRL_CHAR :
         ZM\Error("Unable to decode JSON string '$value', unexpected control character found");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_STATE_MISMATCH :
         ZM\Error("Unable to decode JSON string '$value', invalid or malformed JSON");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_SYNTAX :
         ZM\Error("Unable to decode JSON string '$value', syntax error");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       default :
         ZM\Error("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_NONE:
         break;

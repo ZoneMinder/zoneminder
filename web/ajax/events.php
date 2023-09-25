@@ -284,8 +284,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $filtered_rows = null;
 
-  ZM\Debug('$advsearch: ' . $advsearch );
-  ZM\Debug('$search: ' . $search);
   if (count($advsearch) or $search != '') {
     $search_filter = new ZM\Filter();
     $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$event_ids));

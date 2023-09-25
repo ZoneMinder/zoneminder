@@ -112,19 +112,6 @@ function getArchivedSelections() {
   return selection.includes('Yes');
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        manageDelConfirmModalBtns();
-      })
-      .fail(function(jqXHR) {
-        console.log('error getting delconfirm', jqXHR);
-        logAjaxFail(jqXHR);
-      });
-}
-
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
@@ -212,8 +199,6 @@ function initPage() {
   // Remove the thumbnail column from the DOM if thumbnails are off globally
   if (!WEB_LIST_THUMBS) $j('th[data-field="Thumbnail"]').remove();
 
-  // Load the delete confirmation modal into the DOM
-  getDelConfirmModal();
 
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
@@ -379,14 +364,28 @@ function initPage() {
       enoperm();
       return;
     }
-
     evt.preventDefault();
     if (evt.shiftKey) {
       const selections = getIdSelections();
       deleteEvents(selections);
     } else {
-      $j('#deleteConfirm').modal('show');
-    }
+      if (!document.getElementById('deleteConfirm')) {
+        // Load the delete confirmation modal into the DOM
+        $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+        .done(function(data) {
+          insertModalHtml('deleteConfirm', data.html);
+          manageDelConfirmModalBtns();
+          $j('#deleteConfirm').modal('show');
+        })
+        .fail(function(jqXHR) {
+          console.log('error getting delconfirm', jqXHR);
+          logAjaxFail(jqXHR);
+        });
+        return;
+      } else {
+        $j('#deleteConfirm').modal('show');
+      }
+    } // Shift
   });
 
   // Update table links each time after new data is loaded

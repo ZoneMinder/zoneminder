@@ -709,7 +709,7 @@ class Event extends ZM_Object {
     return $status ? '' : rtrim($result);
   }
 
-  public function find_virtual_frame($frameid) {
+  public function find_virtual_frame($fid) {
     $frame = null;
 
     $previousBulkFrame = dbFetchOne(

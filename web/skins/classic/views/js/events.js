@@ -112,6 +112,52 @@ function getArchivedSelections() {
   return selection.includes('Yes');
 }
 
+function onDeleteClick(evt) {
+  if (!canEdit.Events) {
+    enoperm();
+    return;
+  }
+  evt.preventDefault();
+  if (evt.shiftKey) {
+    const selections = getIdSelections();
+    deleteEvents(selections);
+  } else {
+    if (!document.getElementById('deleteConfirm')) {
+      // Load the delete confirmation modal into the DOM
+      $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+        .done(function(data) {
+          insertModalHtml('deleteConfirm', data.html);
+          manageDelConfirmModalBtns();
+          $j('#deleteConfirm').modal('show');
+        })
+        .fail(function(jqXHR) {
+          console.log('error getting delconfirm', jqXHR);
+          logAjaxFail(jqXHR);
+        });
+      return;
+    } else {
+      $j('#deleteConfirm').modal('show');
+    }
+  } // Shift
+}
+
+function onDownloadClick(evt) {
+  evt.preventDefault();
+  $j.ajax({
+    method: 'POST',
+    timeout: 0,
+    url: thisUrl + '?request=modal&modal=download',
+    data: {'eids[]': getIdSelections()},
+    success: function(data) {
+      insertModalHtml('downloadModal', data.html);
+      $j('#downloadModal').modal('show');
+      // Manage the GENERATE DOWNLOAD button
+      $j('#exportButton').click(exportEvent);
+    },
+    error: logAjaxFail,
+  });
+}
+
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
@@ -341,52 +387,10 @@ function initPage() {
   });
 
   // Manage the DOWNLOAD VIDEO button
-  document.getElementById('downloadBtn').addEventListener('click', function onDownloadClick(evt) {
-    evt.preventDefault();
-    $j.ajax({
-      method: 'POST',
-      timeout: 0,
-      url: thisUrl + '?request=modal&modal=download',
-      data: {'eids[]': getIdSelections()},
-      success: function(data) {
-        insertModalHtml('downloadModal', data.html);
-        $j('#downloadModal').modal('show');
-        // Manage the GENERATE DOWNLOAD button
-        $j('#exportButton').click(exportEvent);
-      },
-      error: logAjaxFail,
-    });
-  });
+  document.getElementById('downloadBtn').addEventListener('click', onDownloadClick):
 
   // Manage the DELETE button
-  document.getElementById('deleteBtn').addEventListener('click', function onDeleteClick(evt) {
-    if (!canEdit.Events) {
-      enoperm();
-      return;
-    }
-    evt.preventDefault();
-    if (evt.shiftKey) {
-      const selections = getIdSelections();
-      deleteEvents(selections);
-    } else {
-      if (!document.getElementById('deleteConfirm')) {
-        // Load the delete confirmation modal into the DOM
-        $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-        .done(function(data) {
-          insertModalHtml('deleteConfirm', data.html);
-          manageDelConfirmModalBtns();
-          $j('#deleteConfirm').modal('show');
-        })
-        .fail(function(jqXHR) {
-          console.log('error getting delconfirm', jqXHR);
-          logAjaxFail(jqXHR);
-        });
-        return;
-      } else {
-        $j('#deleteConfirm').modal('show');
-      }
-    } // Shift
-  });
+  document.getElementById('deleteBtn').addEventListener('click', onDeleteClick);
 
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {

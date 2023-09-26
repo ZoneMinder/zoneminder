@@ -327,6 +327,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       ON T.Id = ET.TagId 
     WHERE 
       '.$search_filter->sql().' 
+    GROUP BY E.Id 
     ORDER BY 
       ' .$sort. ' 
       ' .$order;

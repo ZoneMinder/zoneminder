@@ -387,7 +387,7 @@ function initPage() {
   });
 
   // Manage the DOWNLOAD VIDEO button
-  document.getElementById('downloadBtn').addEventListener('click', onDownloadClick):
+  document.getElementById('downloadBtn').addEventListener('click', onDownloadClick);
 
   // Manage the DELETE button
   document.getElementById('deleteBtn').addEventListener('click', onDeleteClick);

@@ -408,7 +408,7 @@ MAIN: while( $loop ) {
               }
               aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
               if ( confirm() ) {
-                executeShellCommand("rm -rf $event_dir");
+                executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$event_dir);
                 $cleaned = 1;
               }
             } # end if able to find id
@@ -515,7 +515,7 @@ MAIN: while( $loop ) {
         aud_print("Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database");
 
         if ( confirm() ) {
-          executeShellCommand("rm -rf $monitor_id");
+          executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$monitor_id);
           $cleaned = 1;
         }
       }
@@ -529,7 +529,7 @@ MAIN: while( $loop ) {
       aud_print("Filesystem monitor link '$link' does not point to valid monitor directory");
       if ( confirm() ) {
         ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
-        executeShellCommand(qq`rm "$link"`);
+        executeShellCommand($Config{ZM_PATH_RM}.qq` "$link"`);
         $cleaned = 1;
       }
     } # end foreach monitor link

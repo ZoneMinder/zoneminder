@@ -88,6 +88,8 @@ mark_as_advanced(
   ZM_PATH_MAP
   ZM_PATH_ARP
   ZM_PATH_ARP_SCAN
+  ZM_PATH_RM
+  ZM_PATH_UNAME
   ZM_CONFIG_DIR
   ZM_CONFIG_SUBDIR
   ZM_DETECT_SYSTEMD
@@ -155,6 +157,10 @@ set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_PATH_ARP_SCAN "" CACHE PATH
   "Full path to compatible scan_arp binary. Leave empty for automatic detection.")
+set(ZM_PATH_RM "" CACHE PATH
+  "Full path to compatible rm binary. Leave empty for automatic detection.")
+set(ZM_PATH_UNAME "" CACHE PATH
+  "Full path to compatible uname binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
@@ -668,6 +674,30 @@ if(ZM_PATH_ARP_SCAN STREQUAL "")
   endif()
   if(ARP_SCAN_EXECUTABLE-NOTFOUND)
     message(WARNING "Unable to find a compatible arp-scan binary. Monitor probe will be less powerful.")
+  endif()
+endif()
+
+# Find the path to an rm compatible executable
+if(ZM_PATH_RM STREQUAL "")
+  find_program(RM_EXECUTABLE rm)
+  if(RM_EXECUTABLE)
+    set(ZM_PATH_RM "${RM_EXECUTABLE}")
+    mark_as_advanced(RM_EXECUTABLE)
+  endif()
+  if(RM_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible rm binary.")
+  endif()
+endif()
+
+# Find the path to a uname compatible executable
+if(ZM_PATH_UNAME STREQUAL "")
+  find_program(UNAME_EXECUTABLE uname)
+  if(UNAME_EXECUTABLE)
+    set(ZM_PATH_UNAME "${UNAME_EXECUTABLE}")
+    mark_as_advanced(UNAME_EXECUTABLE)
+  endif()
+  if(UNAME_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible uname binary.")
   endif()
 endif()
 

@@ -2303,8 +2303,8 @@ function i18n() {
 function get_networks() {
   $interfaces = array();
 
-  if (file_exists('/usr/sbin/ip')) {
-	  exec('ip link', $output, $status);
+  if (file_exists(ZM_PATH_IP)) {
+	  exec(ZM_PATH_IP.' link', $output, $status);
 	  if ( $status ) {
 	    $html_output = implode('<br/>', $output);
 	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
@@ -2320,7 +2320,7 @@ function get_networks() {
 	    }
 	  }
 	  $routes = array();
-	  exec('ip route', $output, $status);
+	  exec(ZM_PATH_IP.' route', $output, $status);
 	  if ( $status ) {
 	    $html_output = implode('<br/>', $output);
 	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
@@ -2336,9 +2336,8 @@ function get_networks() {
 	      }
 	    } # end foreach line of output
 	  }
-  } else if (file_exists('/sbin/ifconfig')) {
-	  ZM\Debug("Executing ifconfig");
-	  exec('ifconfig', $output, $status);
+  } else if (defined('ZM_PATH_IFCONFIG') and ZM_PATH_IFCONFIG and file_exists(ZM_PATH_IFCONFIG)) {
+	  exec(ZM_PATH_IFCONFIG, $output, $status);
 	  if ( $status ) {
 	    $html_output = implode("\n", $output);
 	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
@@ -2363,7 +2362,8 @@ function get_networks() {
 
 function get_subnets($interface) {
   $subnets = array();
-  exec('ip route', $output, $status);
+  if (defined('ZM_PATH_IP') and ZM_PATH_IP and file_exists(ZM_PATH_IP)) {
+  exec(ZM_PATH_IP.' route', $output, $status);
   if ( $status ) {
     $html_output = implode('<br/>', $output); 
     ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");

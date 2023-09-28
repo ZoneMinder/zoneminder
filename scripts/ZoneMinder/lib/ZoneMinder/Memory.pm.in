@@ -138,7 +138,7 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 #our $arch = int(3.2*length(~0));
 
 # New method for determining the bitness
-our $arch = 32 + 32*( qx(uname -m) =~ /64/ );
+our $arch = 32 + 32*( qx($Config{ZM_PATH_UNAME} -m) =~ /64/ );
 
 our $native = $arch/8;
 our $mem_seq = 0;

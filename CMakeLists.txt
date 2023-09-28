@@ -90,6 +90,8 @@ mark_as_advanced(
   ZM_PATH_ARP_SCAN
   ZM_PATH_RM
   ZM_PATH_UNAME
+  ZM_PATH_IP
+  ZM_PATH_IFCONFIG
   ZM_CONFIG_DIR
   ZM_CONFIG_SUBDIR
   ZM_DETECT_SYSTEMD
@@ -161,6 +163,10 @@ set(ZM_PATH_RM "" CACHE PATH
   "Full path to compatible rm binary. Leave empty for automatic detection.")
 set(ZM_PATH_UNAME "" CACHE PATH
   "Full path to compatible uname binary. Leave empty for automatic detection.")
+set(ZM_PATH_IP "" CACHE PATH
+  "Full path to compatible ip binary. Leave empty for automatic detection.")
+set(ZM_PATH_IFCONFIG "" CACHE PATH
+  "Full path to compatible ifconfig binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH

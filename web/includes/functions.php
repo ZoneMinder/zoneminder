@@ -2303,7 +2303,7 @@ function i18n() {
 function get_networks() {
   $interfaces = array();
 
-  if (file_exists(ZM_PATH_IP)) {
+  if (defined('ZM_PATH_IP') and ZM_PATH_IP and file_exists(ZM_PATH_IP)) {
 	  exec(ZM_PATH_IP.' link', $output, $status);
 	  if ( $status ) {
 	    $html_output = implode('<br/>', $output);
@@ -2311,34 +2311,34 @@ function get_networks() {
 	  } else {
 	    foreach ( $output as $line ) {
 	      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
-		if ( $matches[1] != 'lo' ) {
-		  $interfaces[$matches[1]] = $matches[1];
-		} else {
-		  ZM\Debug("No match for $line");
-		}
-	      }
+          if ( $matches[1] != 'lo' ) {
+            $interfaces[$matches[1]] = $matches[1];
+          } else {
+            ZM\Debug("No match for $line");
+          }
+        }
 	    }
 	  }
 	  $routes = array();
 	  exec(ZM_PATH_IP.' route', $output, $status);
-	  if ( $status ) {
+	  if ($status) {
 	    $html_output = implode('<br/>', $output);
 	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
 	  } else {
-	    foreach ( $output as $line ) {
+	    foreach ($output as $line) {
 	      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
-		$interfaces['default'] = $matches[1];
+          $interfaces['default'] = $matches[1];
 	      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
-		$interfaces[$matches[2]] .= ' ' . $matches[1];
-		ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
-	      } else {
-		ZM\Debug("Didn't match $line");
-	      }
-	    } # end foreach line of output
+          $interfaces[$matches[2]] .= ' ' . $matches[1];
+          ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
+        } else {
+          ZM\Debug("Didn't match $line");
+        }
+      } # end foreach line of output
 	  }
   } else if (defined('ZM_PATH_IFCONFIG') and ZM_PATH_IFCONFIG and file_exists(ZM_PATH_IFCONFIG)) {
 	  exec(ZM_PATH_IFCONFIG, $output, $status);
-	  if ( $status ) {
+	  if ($status) {
 	    $html_output = implode("\n", $output);
 	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
 	  } else {
@@ -2352,7 +2352,6 @@ function get_networks() {
 
 		  ZM\Debug(print_r( $regex,true));
 	  }
-
   }
   return $interfaces;
 }
@@ -2363,27 +2362,28 @@ function get_networks() {
 function get_subnets($interface) {
   $subnets = array();
   if (defined('ZM_PATH_IP') and ZM_PATH_IP and file_exists(ZM_PATH_IP)) {
-  exec(ZM_PATH_IP.' route', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output); 
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ($output as $line) {
-      if (preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches)) {
-        if ($matches[1] == '169.254.0.0/16') {
-          # Ignore mdns
-        } else if ($matches[2] == $interface) {
-          $subnets[] = $matches[1];
+    exec(ZM_PATH_IP.' route', $output, $status);
+    if ( $status ) {
+      $html_output = implode('<br/>', $output); 
+      ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+    } else {
+      foreach ($output as $line) {
+        if (preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches)) {
+          if ($matches[1] == '169.254.0.0/16') {
+            # Ignore mdns
+          } else if ($matches[2] == $interface) {
+            $subnets[] = $matches[1];
+          } else {
+            ZM\Debug("Wrong interface $matches[1] != $interface");
+          }
         } else {
-          ZM\Debug("Wrong interface $matches[1] != $interface");
+          ZM\Debug("Didn't match $line");
         }
-      } else {
-        ZM\Debug("Didn't match $line");
-      }
-    } # end foreach line of output
+      } # end foreach line of output
+    }
   }
   return $subnets;
-}
+} # end function get_subnets($interface)
 
 function extract_auth_values_from_url($url) {
   $protocolPrefixPos = strpos($url, '://');

@@ -288,10 +288,13 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 <?php
   $source_class = 'infoText';
   $source_class_reason = '';
+
+  # 1 minute + fps_report_interval should be plenty.  
+  $fps_report_seconds = 60+($monitor['FPSReportInterval'] * $monitor['CaptureFPS']);
   if ( (!$monitor['Status'] || ($monitor['Status'] == 'NotRunning')) && ($monitor['Type'] != 'WebSite')) {
     $source_class = 'errorText';
     $source_class_reason = translate('Not Running');
-  } else if (!$monitor['UpdatedOn'] or (strtotime($monitor['UpdatedOn']) < time()-60)) {
+  } else if (!$monitor['UpdatedOn'] or (strtotime($monitor['UpdatedOn']) < time()-$fps_report_seconds)) {
     $source_class = 'errorText';
     $source_class_reason = translate('Offline');
   } else {

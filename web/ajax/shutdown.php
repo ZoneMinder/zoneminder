@@ -37,13 +37,10 @@ $command = $_REQUEST['command'];
 
 if ( $command == 'shutdown' ) {
   exec('sudo -n '.ZM_PATH_SHUTDOWN." -P $when 2>&1", $data['output'], $data['rc']);
-  #exec('sudo -n /bin/systemctl poweroff -i 2>&1', $data['output'], $data['rc']);
   ZM\Debug('Shutdown output ' .$data['rc'].' '.implode("\n",$data['output']));
-  #ZM\Debug("Shutdown output " . shell_exec('/bin/systemctl poweroff -i 2>&1'));
 } else if ( $command == 'restart' ) {
   $data['output'] = array();
   exec('sudo -n '.ZM_PATH_SHUTDOWN." -r $when 2>&1", $data['output'], $data['rc']);
-  #exec('sudo -n /bin/systemctl reboot -i 2>&1', $data['output'], $data['rc']);
   ZM\Debug("Shutdown output " . implode("\n",$data['output']));
 } else if ( $command == 'cancel' ) {
   $data['output'] = array();

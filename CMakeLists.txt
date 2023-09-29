@@ -707,6 +707,30 @@ if(ZM_PATH_UNAME STREQUAL "")
   endif()
 endif()
 
+# Find the path to a uname compatible executable
+if(ZM_PATH_IP STREQUAL "")
+  find_program(IP_EXECUTABLE ip)
+  if(IP_EXECUTABLE)
+    set(ZM_PATH_IP "${IP_EXECUTABLE}")
+    mark_as_advanced(IP_EXECUTABLE)
+  endif()
+  if(IP_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible ip binary.")
+  endif()
+endif()
+
+# Find the path to a ifconfig compatible executable
+if(ZM_PATH_IFCONFIG STREQUAL "")
+  find_program(IFCONFIG_EXECUTABLE ifconfig)
+  if(IFCONFIG_EXECUTABLE)
+    set(ZM_PATH_IFCONFIG "${IFCONFIG_EXECUTABLE}")
+    mark_as_advanced(IFCONFIG_EXECUTABLE)
+  endif()
+  if(IFCONFIG_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible ifconfig binary.")
+  endif()
+endif()
+
 # Some variables that zm expects
 set(ZM_PID "${ZM_RUNDIR}/zm.pid")
 set(ZM_CONFIG "${ZM_CONFIG_DIR}/zm.conf")

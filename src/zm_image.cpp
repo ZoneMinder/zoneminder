@@ -1021,6 +1021,8 @@ bool Image::ReadJpeg(const std::string &filename, unsigned int p_colours, unsign
 
   if ((width != new_width) || (height != new_height)) {
     Debug(9, "Image dimensions differ. Old: %ux%u New: %ux%u", width, height, new_width, new_height);
+    width = new_width;
+    height = new_height;
   }
 
   switch (p_colours) {

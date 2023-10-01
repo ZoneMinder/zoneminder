@@ -125,15 +125,15 @@ function onDeleteClick(evt) {
     if (!document.getElementById('deleteConfirm')) {
       // Load the delete confirmation modal into the DOM
       $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-        .done(function(data) {
-          insertModalHtml('deleteConfirm', data.html);
-          manageDelConfirmModalBtns();
-          $j('#deleteConfirm').modal('show');
-        })
-        .fail(function(jqXHR) {
-          console.log('error getting delconfirm', jqXHR);
-          logAjaxFail(jqXHR);
-        });
+          .done(function(data) {
+            insertModalHtml('deleteConfirm', data.html);
+            manageDelConfirmModalBtns();
+            $j('#deleteConfirm').modal('show');
+          })
+          .fail(function(jqXHR) {
+            console.log('error getting delconfirm', jqXHR);
+            logAjaxFail(jqXHR);
+          });
       return;
     } else {
       $j('#deleteConfirm').modal('show');

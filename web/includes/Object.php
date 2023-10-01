@@ -4,6 +4,12 @@ require_once('database.php');
 
 $object_cache = array();
 
+/**
+ * Use the fully-qualified AllowDynamicProperties, otherwise the #[AllowDynamicProperties] attribute on "MyClass" WILL NOT WORK.
+ */
+use \AllowDynamicProperties;
+
+#[AllowDynamicProperties]
 class ZM_Object {
   protected $_last_error;
 

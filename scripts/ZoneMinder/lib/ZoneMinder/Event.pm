@@ -755,6 +755,7 @@ sub MoveTo {
     # Succeeded in copying all files, so we may now update the Event.
     $$self{StorageId} = $$NewStorage{Id};
     $self->Storage($NewStorage);
+    $self->Path(undef);
     $error .= $self->save();
 
     # Going to leave it to upper layer as to whether we rollback or not

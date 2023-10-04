@@ -33,6 +33,8 @@ require ZoneMinder::Object;
 require ZoneMinder::Storage;
 require ZoneMinder::Frame;
 require ZoneMinder::Monitor;
+require ZoneMinder::Event_Tag;
+require ZoneMinder::Tag;
 require Date::Manip;
 require File::Find;
 require File::Path;
@@ -944,6 +946,31 @@ FROM `Frames` WHERE `EventId`=?';
       Notes => $self->Notes() . ' ' . $text,
     });
 } # end sub Close
+
+sub Event_Tags {
+  my $self = shift;
+  $$self{Event_Tags} = shift if @_;
+  if (!$$self{Event_Tags}) {
+    $$self{Event_Tags} = [ ZoneMinder::Event_Tag->find(EventId=>$$self{Id}) ];
+  }
+  return wantarray ? @{$$self{Event_Tags}} : $$self{Event_Tags};
+}
+
+sub Tags {
+  my $self = shift;
+  $$self{Tags} = shift if @_;
+
+  if (!$$self{Tags}) {
+    $$self{Tags} = [ map { $_->Tag() } $self->Event_Tags() ];
+  }
+  return wantarray ? @{$$self{Tags}} : $$self{Tags};
+}
+
+sub tags {
+  my $self = shift;
+  my @tags = map { $_->Name() } $self->Tags();
+  return wantarray ? @tags : \@tags;
+}
 
 1;
 __END__

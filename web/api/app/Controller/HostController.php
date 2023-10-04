@@ -141,8 +141,8 @@ class HostController extends AppController {
         $credentials = 'user='.$_SESSION['Username'].'&pass=';
         $appendPassword = 1;
       }
-      return array($credentials, $appendPassword);
     }
+    return array($credentials, $appendPassword);
   }
 
   private function _getCredentials($generate_refresh_token=false, $token='', $username='') {

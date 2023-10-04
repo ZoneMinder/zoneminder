@@ -178,7 +178,7 @@ sub Sql {
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
-          $self->{Sql} .= 'T.Name';
+          $self->{Sql} .= 'T.Id';
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
           $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
           FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';

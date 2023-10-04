@@ -84,7 +84,10 @@ function updateButtons(element) {
       (form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked) ||
       (form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '') ||
       (form.elements['filter[AutoDelete]'].checked) ||
-      (form.elements['filter[UpdateDiskSpace]'].checked)
+      (form.elements['filter[UpdateDiskSpace]'].checked) ||
+      (form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked) ||
+      (form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked) ||
+      (form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked)
     ) {
       canExecute = true;
     }

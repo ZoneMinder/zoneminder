@@ -123,28 +123,40 @@ if ( canView('Events') or canView('Snapshots') ) {
     }
     break;
   case 'download' :
-    require_once(ZM_SKIN_PATH.'/includes/export_functions.php');
-    $exportVideo = 1;
-    $exportFormat = $_REQUEST['exportFormat'];
-    $exportStructure = 'flat';
-    $exportIds = !empty($_REQUEST['eids'])?$_REQUEST['eids']:$_REQUEST['id'];
+    require_once('includes/download_functions.php');
+    $exportFormat = isset($_REQUEST['exportFormat']) ? $_REQUEST['exportFormat'] : 'zip';
+    $exportFileName = isset($_REQUEST['exportFileName']) ? $_REQUEST['exportFileName'] : '';
+
+    if (!$exportFileName) $exportFileName = 'Export'.(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'');
+    $exportFileName = preg_replace('/[^\w\-\.\(\):]+/', '', $exportFileName);
+
+    $exportIds = !empty($_REQUEST['eids']) ? $_REQUEST['eids'] : (isset($_REQUEST['id']) ? [$_REQUEST['id']] : []);
+    ZM\Debug("Export IDS". print_r($exportIds, true));
+
+    $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : null;
+    if ($filter and !count($exportIds)) {
+      $eventsSql = 'SELECT E.Id FROM Events AS E WHERE ';
+      $eventsSql .= $filter->sql();
+      $results = dbQuery($eventsSql);
+      while ($event_row = dbFetchNext($results)) {
+        $exportIds[] = $event_row['Id'];
+      }
+    } else {
+      ZM\Debug("No filter");
+    }
+
     if ( $exportFile = exportEvents(
       $exportIds,
-      (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
-      false,#detail
-      false,#frames
-      false,#images
-      true, #$exportVideo,
-      false,#Misc
+      $exportFileName,
       $exportFormat,
       false#,#Compress
-      , $exportStructure
     ) ) {
     ajaxResponse(array(
       'exportFile'=>$exportFile,
       'exportFormat'=>$exportFormat,
       'connkey'=>(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'')
     ));
+
     } else {
       ajaxError('Export Failed');
     }

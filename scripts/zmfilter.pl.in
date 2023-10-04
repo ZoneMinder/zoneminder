@@ -733,6 +733,11 @@ sub substituteTags {
     $text =~ s/%ESA%/$Event->{AvgScore}/g;
     $text =~ s/%ESM%/$Event->{MaxScore}/g;
 
+    if ($text =~ /%ETAGS%/) {
+      my $tags = join(', ', $Event->tags());
+      $text =~ s/%ETAGS%/$tags/g;
+    }
+
     if ( $first_alarm_frame ) {
       $text =~ s/%EPF1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
       $text =~ s/%EPFM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
@@ -867,20 +872,15 @@ sub sendSummaryEmail {
     return 0;
   }
   my $subject = substituteTags($$filter{EmailSubject}, $filter);
-  print "Got $subject";
   return 0 if !$subject;
 
   my ($body_head, $summary_part, $body_tail) = split(/%SUMMARY%/m, $$filter{EmailBody});
-  print "Head: $body_head\n";
-  print "Summary: $summary_part\n";
-  print "Tail: $body_tail\n";
-
   if (!$summary_part) {
     Error('Failed finding summary part of email body');
     return 0;
   }
   my @attachments;
-  my $body = $body_head;
+  my $body = substituteTags($body_head, $filter, undef, \@attachments);
   foreach my $event (@events) {
     $body .= substituteTags($summary_part, $filter, $event, \@attachments);
   }

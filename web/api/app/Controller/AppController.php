@@ -154,7 +154,7 @@ class AppController extends Controller {
     // make sure populated user object has APIs enabled
 
     if (isset($_SERVER['HTTP_ORIGIN'])) {
-      $Servers = ZM\Server::find();
+      global $Servers;
       if ( sizeof($Servers) < 1 ) {
         # Only need CORSHeaders in the event that there are multiple servers in use.
         # ICON: Might not be true. multi-port?

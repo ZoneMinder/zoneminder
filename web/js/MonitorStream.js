@@ -912,7 +912,7 @@ function startRTSP2WebRTSPPlay(videoEl, url) {
   };
   webrtcSendChannel.onclose = (_event) => {
     console.log(`${webrtcSendChannel.label} has closed`);
-    startPlay(videoEl, url);
+    startRTSP2WebRTSPPlay(videoEl, url);
   };
   webrtcSendChannel.onmessage = (event) => console.log(event.data);
 }

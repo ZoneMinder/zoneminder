@@ -14,7 +14,6 @@ class Event extends ZM_Object {
     'StorageId' => null,
     'SecondaryStorageId' => null,
     'Cause' => '',
-    'Tags' => array(),
     'StartDateTime' => null,
     'EndDateTime' => null,
     'Width' => null,

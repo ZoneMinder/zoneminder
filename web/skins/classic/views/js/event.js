@@ -1498,7 +1498,11 @@ function getSelectedTags() {
   $j.getJSON(thisUrl + '?request=event&action=getselectedtags&id=' + eventData.Id)
       .done(function(data) {
         selectedTags = data.response;
-        selectedTags.forEach((tag) => formatTag(tag));
+        if (!selectedTags) {
+          console.log(data);
+        } else {
+          selectedTags.forEach((tag) => formatTag(tag));
+        }
       })
       .fail(logAjaxFail);
 }

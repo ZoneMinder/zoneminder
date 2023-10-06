@@ -11,7 +11,6 @@ class Event_Data extends ZM_Object {
     'EventId' => null,
     'FrameId' => null,
     'MonitorId' => null,
-    'Tags' => array(),
     'TimeStamp' => 0,
     'Data' => '',
   );
@@ -36,5 +35,5 @@ class Event_Data extends ZM_Object {
     }
     return $this->Event;
   }
-} # end class Enent_Data
+} # end class Event_Data
 ?>

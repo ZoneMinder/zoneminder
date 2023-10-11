@@ -336,17 +336,12 @@ class ZM_Object {
     # Set defaults.  Note that we only replace "" with null, not other values
     # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
     foreach ( $this->defaults as $field => $default ) {
-      if (!property_exists($this, $field)) {
+      if (empty($this->$field)) {
+        Debug("Empty $field defaults:".print_r($default, true));
         if (is_array($default)) {
-          $this->{$field} = $default['default'];
+          $this->$field = $default['default'];
         } else {
-          $this->{$field} = $default;
-        }
-      } else if ($this->{$field} === '') {
-        if (is_array($default)) {
-          $this->{$field} = $default['default'];
-        } else if ($default == null) {
-          $this->{$field} = $default;
+          $this->$field = $default;
         }
       }
     } # end foreach default

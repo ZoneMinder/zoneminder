@@ -294,7 +294,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   if ( (!$monitor['Status'] || ($monitor['Status'] == 'NotRunning')) && ($monitor['Type'] != 'WebSite')) {
     $source_class = 'errorText';
     $source_class_reason = translate('Not Running');
-  } else if (!$monitor['UpdatedOn'] or (strtotime($monitor['UpdatedOn']) < time()-$fps_report_seconds)) {
+  } else if ((!$monitor['UpdatedOn']) or (strtotime($monitor['UpdatedOn']) < time()-$fps_report_seconds)) {
     $source_class = 'errorText';
     $source_class_reason = translate('Offline');
   } else {
@@ -388,7 +388,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
             <td class="colFunction">
               <!--<a class="functionLnk <?php echo $function_class ?>" data-mid="<?php echo $monitor['Id'] ?>" id="functionLnk-<?php echo $monitor['Id'] ?>" href="#"><?php echo translate('Fn'.$monitor['Function']) ?></a>-->
 <?php
-  if (!$monitor['UpdatedOn'] or (strtotime($monitor['UpdatedOn']) < time()-60)) {
+  if ((!$monitor['UpdatedOn']) or (strtotime($monitor['UpdatedOn']) < time()-$fps_report_seconds)) {
     echo translate('Offline').'<br/>';
   } else {
     echo translate('Status'.$monitor['Status']).'<br/>';

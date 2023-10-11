@@ -43,12 +43,15 @@ if ( $action == 'delete' ) {
     } # end if isset($_REQUEST['object'] )
   } else if ( isset($_REQUEST['markUids']) ) {
     // deletes users
-    foreach( $_REQUEST['markUids'] as $markUid )
+    foreach ($_REQUEST['markUids'] as $markUid)
       dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
-    if ( $markUid == $user->Id() )
+    if ($markUid == $user->Id()) {
       userLogout();
+      $redirect = '?view=login';
+    } else {
+      $redirect = '?view=options&tab=users';
+    }
   }
-
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
 
   $result = dbQuery('SELECT Name,Value,Type,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));

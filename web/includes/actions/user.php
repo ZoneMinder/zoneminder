@@ -54,8 +54,6 @@ if ($action == 'Save') {
       }
     }
     $changes = $dbUser->changes($_REQUEST['user']);
-    ZM\Debug('Changes: ' . print_r($changes, true));
-
     if (count($changes)) {
       if (!$dbUser->save($changes)) {
         $error_message .= $dbUser->get_last_error().'<br/>';
@@ -111,9 +109,7 @@ if ($action == 'Save') {
       }
     }
     $fields = array('Password'=>'', 'Language'=>'', 'HomeView'=>'');
-    ZM\Debug("changes: ".print_r(array_intersect_key($_REQUEST['user'], $fields),true));
     $changes = $dbUser->changes(array_intersect_key($_REQUEST['user'], $fields));
-    ZM\Debug("changes: ".print_r($changes, true));
 
     if (count($changes)) {
       if (!$dbUser->save($changes)) {

@@ -257,7 +257,7 @@ function wget($method, $url, $username, $password) {
 }
 
 function curl($method, $url, $username, $password) {
-
+  if (function_exists('curl_version')) {
     $ch = curl_init();
     #curl_setopt($ch, CURLOPT_FORBID_REUSE, 1);
     #curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1);
@@ -279,6 +279,10 @@ function curl($method, $url, $username, $password) {
     $headerStr = substr( $res , 0 , $headerSize );
     $bodyStr = substr( $res , $headerSize );
     return $bodyStr;
+  } else {
+    ZM\Error("php-curl is not installed. Cannot use curl functions.");
+  }
+  return '';
 }
 
 function probeAzureWaveTechnologyInc($ip, $username, $password) {

@@ -98,6 +98,7 @@ To make sure zoneminder can read the configuration file, run the following comma
 ::
 
     sudo a2enconf zoneminder
+    sudo a2enmod cgi
     sudo systemctl reload apache2.service
     sudo systemctl restart zoneminder.service
     sudo systemctl status zoneminder.service

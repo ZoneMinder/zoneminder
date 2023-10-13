@@ -19,6 +19,7 @@
         <tr>
           <th class="colMark"><?php echo translate('Mark') ?></th>
           <th data-sortable="true" class="colUsername"><?php echo translate('Username') ?></th>
+          <th data-sortable="true" class="colEmail"><?php echo translate('Email') ?></th>
           <th data-sortable="true" class="colLanguage"><?php echo translate('Language') ?></th>
           <th data-sortable="true" class="colEnabled"><?php echo translate('Enabled') ?></th>
           <th data-sortable="true" class="colStream"><?php echo translate('Stream') ?></th>
@@ -40,6 +41,7 @@
         <tr>
           <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $user_row->Id() ?>" data-on-click-this="configureDeleteButton"<?php echo (!$canEdit) ? ' disabled="disabled"' : '' ?>/></td>
           <td class="colUsername"><?php echo makeLink('?view=user&amp;uid='.$user_row->Id(), validHtmlStr($user_row->Username()).($user->Username()==$user_row->Username()?'*':''), $canEdit) ?></td>
+          <td class="colEmail"><?php echo $user_row->Email()?validHtmlStr($user_row->Email()):'' ?></td>
           <td class="colLanguage"><?php echo $user_row->Language()?validHtmlStr($user_row->Language()):'default' ?></td>
           <td class="colEnabled"><?php echo translate($user_row->Enabled()?'Yes':'No') ?></td>
           <td class="colStream"><?php echo validHtmlStr($user_row->Stream()) ?></td>

@@ -38,8 +38,6 @@ $j(document).on("keydown", "", function(e) {
           $j("#delConfirmBtn").click();
         } else if ( $j("#eventDetailModal").is(":visible") ) {
           $j("#eventDetailSaveBtn").click();
-        } else if ( $j("#eventRenamelModal").is(":visible") ) {
-          $j("#eventRenameBtn").click();
         }
       } else if (e.key === "Escape") {
         $j(".modal").modal('hide');
@@ -799,34 +797,6 @@ function nextEvent() {
   }
 }
 
-function getActResponse(respObj, respText) {
-  if (checkStreamForErrors('getActResponse', respObj)) {
-    return;
-  }
-
-  if (respObj.refreshEvent) {
-    eventQuery(eventData.Id);
-  }
-  $j('#eventRenameModal').modal('hide');
-}
-
-function actQuery(action, parms) {
-  var data = {};
-  if (parms) data = parms;
-  if (auth_hash) data.auth = auth_hash;
-  data.id = eventData.Id;
-  data.action = action;
-
-  $j.getJSON(thisUrl + '?view=request&request=event', data)
-      .done(getActResponse)
-      .fail(logAjaxFail);
-}
-
-function renameEvent() {
-  var newName = $j('input').val();
-  actQuery('rename', {eventName: newName});
-}
-
 function showEventFrames() {
   window.location.assign('?view=frames&eid='+eventData.Id);
 }
@@ -1148,19 +1118,6 @@ function initPage() {
   bindButton('#refreshBtn', 'click', null, function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
-  });
-
-  // Manage the Event RENAME button
-  bindButton('#renameBtn', 'click', null, function onRenameClick(evt) {
-    evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=modal&modal=eventrename&eid='+eventData.Id)
-        .done(function(data) {
-          insertModalHtml('eventRenameModal', data.html);
-          $j('#eventRenameModal').modal('show');
-          // Manage the SAVE button
-          $j('#eventRenameBtn').click(renameEvent);
-        })
-        .fail(logAjaxFail);
   });
 
   // Manage the ARCHIVE button

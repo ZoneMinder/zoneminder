@@ -714,7 +714,7 @@ bool EventStream::checkEventLoaded() {
         event_data->monitor_id, event_data->event_id);
   } else {
     // No event change required
-    Debug(3, "No event change required, as curr frame %d <=> event frames %d",
+    Debug(4, "No event change required, as curr frame %d <=> event frames %d",
         curr_frame_id, event_data->frame_count);
     return false;
   }

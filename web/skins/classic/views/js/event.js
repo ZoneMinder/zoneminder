@@ -1045,7 +1045,7 @@ function initPage() {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     //$j('.vjs-progress-control').append('<div id="alarmCues" class="alarmCues"></div>');//add a place for videojs only on first load
     vid.on('ended', vjsReplay);
-    vid.on('play', vjsPlay);
+    vid.on('play', playClicked);
     vid.on('pause', pauseClicked);
     vid.on('click', function(event) {
       handleClick(event);
@@ -1502,6 +1502,7 @@ function fullscreenClicked() {
   if (document.fullscreenElement) {
     closeFullscreen();
   } else {
+    console.log(content);
     openFullscreen(content);
   }
 }

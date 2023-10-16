@@ -7,6 +7,7 @@ var exportBtn = $j('#exportBtn');
 var downloadBtn = $j('#downloadBtn');
 var deleteBtn = $j('#deleteBtn');
 var table = $j('#eventTable');
+var ajax = null;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -43,7 +44,8 @@ function ajaxRequest(params) {
     const el = $j(this);
     params.data[el.attr('name')] = el.val();
   });
-  $j.ajax({
+  if (ajax) ajax.abort();
+  ajax = $j.ajax({
     url: thisUrl + '?view=request&request=events&task=query'+filterQuery,
     data: params.data,
     timeout: 0,
@@ -245,7 +247,6 @@ function initPage() {
   // Remove the thumbnail column from the DOM if thumbnails are off globally
   if (!WEB_LIST_THUMBS) $j('th[data-field="Thumbnail"]').remove();
 
-
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
@@ -413,8 +414,7 @@ function initPage() {
   });
 
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
-    el = $j(this);
-    el.on('change', filterEvents);
+    const el = $j(this);
     if (el.hasClass('datetimepicker')) {
       el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }

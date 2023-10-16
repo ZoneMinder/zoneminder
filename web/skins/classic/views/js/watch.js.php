@@ -23,13 +23,13 @@ var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"eve
 var cycle = <?php echo $cycle ? 'true' : 'false' ?>;
 
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
-var monitorId = '<?php echo $monitor->Id() ?>';
-var monitorWidth = '<?php echo $monitor->ViewWidth() ?>';
-var monitorHeight = '<?php echo $monitor->ViewHeight() ?>';
+var monitorId = parseInt('<?php echo $monitor->Id() ?>');
+var monitorWidth = parseInt('<?php echo $monitor->ViewWidth() ?>');
+var monitorHeight = parseInt('<?php echo $monitor->ViewHeight() ?>');
 var monitorUrl = '<?php echo $monitor->UrlToIndex() ?>';
 var monitorType = '<?php echo $monitor->Type() ?>';
 var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
-var monitorStreamReplayBuffer = '<?php echo $monitor->StreamReplayBuffer() ?>';
+var monitorStreamReplayBuffer = parseInt('<?php echo $monitor->StreamReplayBuffer() ?>');
 var monitorControllable = <?php echo $monitor->Controllable()?'true':'false' ?>;
 
 var monIdx = '<?php echo $monitor_index; ?>';

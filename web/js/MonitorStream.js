@@ -249,7 +249,7 @@ function MonitorStream(monitorData) {
         webrtcUrl = rtsp2webModUrl;
         webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
         console.log(webrtcUrl.href);
-        startRTSP2WebRTSPPlay(videoEl, webrtcUrl.href);
+        startRTSP2WebPlay(videoEl, webrtcUrl.href);
       }
     } else {
       // zms stream
@@ -871,7 +871,7 @@ const waitUntil = (condition) => {
   });
 };
 
-function startRTSP2WebRTSPPlay(videoEl, url) {
+function startRTSP2WebPlay(videoEl, url) {
   const webrtc = new RTCPeerConnection({
     iceServers: [{
       urls: ['stun:stun.l.google.com:19302']
@@ -912,7 +912,7 @@ function startRTSP2WebRTSPPlay(videoEl, url) {
   };
   webrtcSendChannel.onclose = (_event) => {
     console.log(`${webrtcSendChannel.label} has closed`);
-    startPlay(videoEl, url);
+    startRTSP2WebPlay(videoEl, url);
   };
   webrtcSendChannel.onmessage = (event) => console.log(event.data);
 }

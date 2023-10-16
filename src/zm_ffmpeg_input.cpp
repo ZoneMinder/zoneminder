@@ -168,7 +168,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     av_packet_guard pkt_guard{packet};
 
     if ((stream_id >= 0) && (packet->stream_index != stream_id)) {
-      Debug(1,"Packet is not for our stream (%d)", packet->stream_index );
+      Debug(4, "Packet is not for our stream (%d)", packet->stream_index );
       continue;
     }
 

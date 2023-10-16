@@ -196,6 +196,10 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     frameComplete = true;
 
     if (context->time_base.num && context->time_base.den) {
+      Debug(1, "Converting frame pts from %" PRId64 " to %" PRId64 " using codec time base %d/%d to stream time base %d/%d",
+          frame->pts, av_rescale_q(frame->pts, context->time_base, input_format_context->streams[stream_id]->time_base), 
+          context->time_base.num, context->time_base.den,
+          input_format_context->streams[stream_id]->time_base.num, input_format_context->streams[stream_id]->time_base.den);
     // Convert timestamps to stream timebase instead of codec timebase
     frame->pts = av_rescale_q(frame->pts,
         context->time_base,
@@ -279,6 +283,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     }
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
+    zm_dump_frame(frame, "got");
   }
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
   if (frame->pts <= seek_target) {

@@ -282,6 +282,8 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   }
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
   if (frame->pts <= seek_target) {
+    Debug(1, "Frame pts %" PRId64 " + duration %" PRId64 "= %" PRId64 " <=? %" PRId64,
+        frame->pts, frame->pkt_duration, frame->pts + frame->pkt_duration, seek_target);
     while (frame && (frame->pts + frame->pkt_duration < seek_target)) {
       if (is_video_stream(input_format_context->streams[stream_id])) {
         zm_dump_video_frame(frame, "pts <= seek_target");

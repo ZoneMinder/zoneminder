@@ -165,8 +165,8 @@ function renderAlarmCues(containerEl) {
   cues_div = document.getElementById('alarmCues');
   const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
   const span_count = 10;
-  const span_seconds = parseInt(event_length / span_count);
-  const span_width = parseInt(containerEl.width() / span_count);
+  const span_seconds = parseFloat(event_length / span_count);
+  const span_width = parseFloat(containerEl.width() / span_count);
   const date = new Date(eventData.StartDateTime);
   for (let i=0; i < span_count; i += 1) {
     html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
@@ -837,14 +837,14 @@ function progressBarNav() {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
-    console.log("clicked at ", x, seekTime);
+    console.log("clicked at ", x, seekTime, date.toLocaleTimeString(), "from pageX", e.pageX, "offsetleft", $j(this).offset().left );
     streamSeek(seekTime);
   });
   $j('#progressBar').mouseover(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
-    console.log(x);
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+    console.log("mouseed at ", x, seekTime, date.toLocaleTimeString(), "from pageX", e.pageX, "offsetleft", $j(this).offset().left );
     const indicator = document.getElementById('indicator');
     indicator.style.display = 'block';
     indicator.style.left = x + 'px';

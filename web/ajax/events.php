@@ -337,11 +337,11 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);
   } else {
-    $filtered_rows = &$unfiltered_rows;
+    $filtered_rows = $unfiltered_rows;
   } # end if search_filter->terms() > 1
 
   if ($limit and ($limit < count($filtered_rows))) {
-    ZM\Debug("Filtering rows due to limit " . count($filtered_rows)." offset: $offset limit: $limit");
+    ZM\Debug("Filtering rows due to limit rows: " . count($filtered_rows)." offset: $offset limit: $limit");
     $filtered_rows = array_slice($filtered_rows, $offset, $limit);
   }
 

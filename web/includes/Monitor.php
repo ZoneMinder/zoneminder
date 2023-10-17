@@ -191,7 +191,7 @@ public static function getStatuses() {
     'DecoderHWAccelDevice'  =>  null,
     'SaveJPEGs' =>  0,
     'VideoWriter' =>  '2',
-    'OutputCodec' =>  null,
+    'OutputCodec' =>  '0',
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
     'EncoderParameters' => '',

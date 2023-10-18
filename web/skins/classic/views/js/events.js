@@ -275,7 +275,7 @@ function initPage() {
   backBtn.prop('disabled', !document.referrer.length);
 
   // Setup the thumbnail video animation
-  initThumbAnimation();
+  if (!isMobile()) initThumbAnimation();
 
   // Some toolbar events break the thumbnail animation, so re-init eventlistener
   table.on('all.bs.table', initThumbAnimation);

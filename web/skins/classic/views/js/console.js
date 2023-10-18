@@ -194,7 +194,7 @@ function initPage() {
   // Makes table sortable
 
   // Setup the thumbnail video animation
-  initThumbAnimation();
+  if (!isMobile()) initThumbAnimation();
 
   $j('.functionLnk').click(manageFunctionModal);
 

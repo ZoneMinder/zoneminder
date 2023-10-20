@@ -10,7 +10,7 @@ class User_Preference extends ZM_Object {
     'Id' => null,
     'UserId' => null,
     'Name' => '',
-    'value' => '',
+    'Value' => '',
   );
   private $User = null;
 

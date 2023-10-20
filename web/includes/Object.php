@@ -32,12 +32,12 @@ class ZM_Object {
       }
 
       if ( $row ) {
-        if (!isset($row['Id'])) {
-          Error("No Id in " . print_r($row, true));
-          return;
-        }
         foreach ($row as $k => $v) {
           $this->$k = $v;
+        }
+        if (!isset($row['Id'])) {
+          Debug("No Id in " . print_r($row, true));
+          return;
         }
         global $object_cache;
         if (!isset($object_cache[$class])) {

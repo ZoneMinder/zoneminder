@@ -106,8 +106,9 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 $hasPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
 $showPtzControls = false;
 if ($hasPtzControls) {
-  if (isset($_REQUEST['ptzShow']) and ($_REQUEST['ptzShow'] == 'true')) {
-    $showPtzControls = true;
+  $showPtzControls = true;
+  if (isset($_REQUEST['ptzShow']) and ($_REQUEST['ptzShow'] == 'false')) {
+    $showPtzControls = false;
   } else if (isset($_COOKIE['ptzShow'])) {
     $showPtzControls = $_COOKIE['ptzShow'] == 'true';
   }

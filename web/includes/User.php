@@ -135,9 +135,9 @@ class User extends ZM_Object {
     if (!$this->Preferences) $this->Preferences();
 
     if (!isset($this->Preferences[$name])) {
-      $mp = $this->Preferences[$name] = new User_Preference();
-      $mp->UserId($this->Id());
-      $mp->Name($name);
+      $up = $this->Preferences[$name] = new User_Preference();
+      $up->UserId($this->Id());
+      $up->Name($name);
     }
     return $this->Preferences[$name];
   }

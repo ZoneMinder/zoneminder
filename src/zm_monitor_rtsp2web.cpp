@@ -59,19 +59,18 @@ Monitor::RTSP2WebManager::~RTSP2WebManager() {
 }
 
 int Monitor::RTSP2WebManager::check_RTSP2Web() {
-
   curl = curl_easy_init();
   if (!curl) return -1;
 
   //Assemble our actual request
   std::string response;
   std::string endpoint = RTSP2Web_endpoint+"/stream/"+std::to_string(parent->id)+"/info";
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+  //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
   CURLcode res = curl_easy_perform(curl);
   curl_easy_cleanup(curl);
 
@@ -83,7 +82,7 @@ int Monitor::RTSP2WebManager::check_RTSP2Web() {
   Debug(1, "Queried for stream status: %s", remove_newlines(response).c_str());
   if (response.find("\"status\": 0") != std::string::npos) {
     if (response.find("stream not found") != std::string::npos) {
-      Warning("Mountpoint Missing");
+      Debug(1, "Mountpoint Missing");
       return 0;
     } else {
       Warning("unknown RTSP2Web error");
@@ -138,19 +137,18 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
       return -2;
   }
 
-  Debug(1,"Added stream to RTSP2Web: %s", response.c_str());
+  Debug(1, "Added stream to RTSP2Web: %s", response.c_str());
   return 0;
 }
 
 int Monitor::RTSP2WebManager::remove_from_RTSP2Web() {
-
   curl = curl_easy_init();
   if (!curl) return -1;
 
   std::string endpoint = RTSP2Web_endpoint+"/stream/"+std::to_string(parent->id)+"/delete";
   std::string response;
 
-  curl_easy_setopt(curl, CURLOPT_URL,endpoint.c_str());
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
@@ -167,8 +165,7 @@ int Monitor::RTSP2WebManager::remove_from_RTSP2Web() {
   return 0;
 }
 
-size_t Monitor::RTSP2WebManager::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
+size_t Monitor::RTSP2WebManager::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
   ((std::string*)userp)->append((char*)contents, size * nmemb);
   return size * nmemb;
 }

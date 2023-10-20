@@ -288,9 +288,15 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
 <?php
   $source_class = 'infoText';
   $source_class_reason = '';
+
+  # 1 minute + fps_report_interval should be plenty.  
+  $fps_report_seconds = 60+($monitor['FPSReportInterval'] * $monitor['CaptureFPS']);
   if ( (!$monitor['Status'] || ($monitor['Status'] == 'NotRunning')) && ($monitor['Type'] != 'WebSite')) {
     $source_class = 'errorText';
     $source_class_reason = translate('Not Running');
+  } else if ((!$monitor['UpdatedOn']) or (strtotime($monitor['UpdatedOn']) < time()-$fps_report_seconds)) {
+    $source_class = 'errorText';
+    $source_class_reason = translate('Offline');
   } else {
     if ( $monitor['CaptureFPS'] == '0.00' ) {
       $source_class = 'errorText';
@@ -381,33 +387,36 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
             </div></td>
             <td class="colFunction">
               <!--<a class="functionLnk <?php echo $function_class ?>" data-mid="<?php echo $monitor['Id'] ?>" id="functionLnk-<?php echo $monitor['Id'] ?>" href="#"><?php echo translate('Fn'.$monitor['Function']) ?></a>-->
-              <?php
-              echo translate('Status'.$monitor['Status']).'<br/>';
-              if ($monitor['Analysing'] != 'None') {
-                echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
-              }
-              if ($monitor['Recording'] != 'None') {
-                echo translate('Recording'). ': '.translate($monitor['Recording']).'<br/>';
-              }
+<?php
+  if ((!$monitor['UpdatedOn']) or (strtotime($monitor['UpdatedOn']) < time()-$fps_report_seconds)) {
+    echo translate('Offline').'<br/>';
+  } else {
+    echo translate('Status'.$monitor['Status']).'<br/>';
+    if ($monitor['Analysing'] != 'None') {
+      echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
+    }
+    if ($monitor['Recording'] != 'None') {
+      echo translate('Recording'). ': '.translate($monitor['Recording']).'<br/>';
+    }
  ?><br/>
               <div class="small text-nowrap text-muted">
 <?php 
-  $fps_string = '';
-  if (isset($monitor['CaptureFPS'])) {
-    $fps_string .= $monitor['CaptureFPS'];
-  }
+    $fps_string = '';
+    if (isset($monitor['CaptureFPS'])) {
+      $fps_string .= $monitor['CaptureFPS'];
+    }
 
-  if ( isset($monitor['AnalysisFPS']) and ($monitor['Analysing'] != 'None')) {
-    $fps_string .= '/' . $monitor['AnalysisFPS'];
-  }
-  if ($fps_string) $fps_string .= ' fps';
-  if (!empty($monitor['CaptureBandwidth']))
-    $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
-  $total_capturing_bandwidth += $monitor['CaptureBandwidth'];
-  echo $fps_string;
-?>
-              </div></td>
-<?php
+    if ( isset($monitor['AnalysisFPS']) and ($monitor['Analysing'] != 'None')) {
+      $fps_string .= '/' . $monitor['AnalysisFPS'];
+    }
+    if ($fps_string) $fps_string .= ' fps';
+    if (!empty($monitor['CaptureBandwidth']))
+      $fps_string .= ' ' . human_filesize($monitor['CaptureBandwidth']).'/s';
+    $total_capturing_bandwidth += $monitor['CaptureBandwidth'];
+    echo $fps_string;
+    echo '</div>';
+  } # end if offline
+  echo '</td>'.PHP_EOL;
   if (count($Servers)) {
     $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new ZM\Server($monitor['ServerId']);
     echo '<td class="colServer">'.validHtmlStr($Server->Name()).'</td>'.PHP_EOL;

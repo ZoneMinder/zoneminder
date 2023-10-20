@@ -118,6 +118,28 @@ foreach my $event_id (@ARGV) {
     }
   } elsif ($command eq 'deleteanalysisjpegs') {
     $event->delete_analysis_jpegs();
+  } elsif ($command eq 'renumber') {
+    my $old_path = $event->Path();
+    if (! -e $old_path) {
+      Warning("Event $event_id does not exist at $old_path. Skipping renumbering.");
+      continue;
+    }
+
+    my $new_event = $event->clone();
+    $new_event->Id(undef);
+    $new_event->save();
+    my $new_id = $new_event->Id();
+    die "No new id returned!\n" if ! $new_id;
+    Debug("Renumbering event $event_id to $new_id");
+    $new_event->RelativePath(undef);
+    my $new_path = $new_event->Path(undef);
+    die "New path same as old path $old_path == $new_path!\n" if $old_path eq $new_path;
+    Debug("Renaming event from $old_path to $new_path");
+    rename($old_path, $new_path) or die "Failed to rename $old_path to $new_path\n";
+    zmDbDo('UPDATE Frames SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    zmDbDo('UPDATE Stats SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    zmDbDo('UPDATE Event_Data SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    $event->delete();
   }
 }
 

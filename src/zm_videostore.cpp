@@ -154,7 +154,7 @@ bool VideoStore::open() {
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
     } else {
       if (monitor->has_out_of_order_packets()) {
-        reorder_queue_size = monitor->get_max_keyframe_interval();
+        reorder_queue_size = 2*monitor->get_max_keyframe_interval();
         Debug(1, "reorder_queue_size set to %zu because we have out of order packets", reorder_queue_size);
       }
     }

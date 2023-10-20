@@ -7,6 +7,7 @@ var exportBtn = $j('#exportBtn');
 var downloadBtn = $j('#downloadBtn');
 var deleteBtn = $j('#deleteBtn');
 var table = $j('#eventTable');
+var ajax = null;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -43,7 +44,8 @@ function ajaxRequest(params) {
     const el = $j(this);
     params.data[el.attr('name')] = el.val();
   });
-  $j.ajax({
+  if (ajax) ajax.abort();
+  ajax = $j.ajax({
     url: thisUrl + '?view=request&request=events&task=query'+filterQuery,
     data: params.data,
     timeout: 0,
@@ -112,17 +114,50 @@ function getArchivedSelections() {
   return selection.includes('Yes');
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        manageDelConfirmModalBtns();
-      })
-      .fail(function(jqXHR) {
-        console.log('error getting delconfirm', jqXHR);
-        logAjaxFail(jqXHR);
-      });
+function onDeleteClick(evt) {
+  if (!canEdit.Events) {
+    enoperm();
+    return;
+  }
+  evt.preventDefault();
+  if (evt.shiftKey) {
+    const selections = getIdSelections();
+    deleteEvents(selections);
+  } else {
+    if (!document.getElementById('deleteConfirm')) {
+      // Load the delete confirmation modal into the DOM
+      $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+          .done(function(data) {
+            insertModalHtml('deleteConfirm', data.html);
+            manageDelConfirmModalBtns();
+            $j('#deleteConfirm').modal('show');
+          })
+          .fail(function(jqXHR) {
+            console.log('error getting delconfirm', jqXHR);
+            logAjaxFail(jqXHR);
+          });
+      return;
+    } else {
+      $j('#deleteConfirm').modal('show');
+    }
+  } // Shift
+}
+
+function onDownloadClick(evt) {
+  evt.preventDefault();
+  $j.ajax({
+    method: 'POST',
+    timeout: 0,
+    url: thisUrl + '?request=modal&modal=download',
+    data: {'eids[]': getIdSelections()},
+    success: function(data) {
+      insertModalHtml('downloadModal', data.html);
+      $j('#downloadModal').modal('show');
+      // Manage the GENERATE DOWNLOAD button
+      $j('#exportButton').click(exportEvent);
+    },
+    error: logAjaxFail,
+  });
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -212,15 +247,12 @@ function initPage() {
   // Remove the thumbnail column from the DOM if thumbnails are off globally
   if (!WEB_LIST_THUMBS) $j('th[data-field="Thumbnail"]').remove();
 
-  // Load the delete confirmation modal into the DOM
-  getDelConfirmModal();
-
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
   // Hide these columns on first run when no cookie is saved
   if (!getCookie('zmEventsTable.bs.table.columns')) {
-    table.bootstrapTable('hideColumn', 'Archived');
+    // table.bootstrapTable('hideColumn', 'Archived');
     table.bootstrapTable('hideColumn', 'Emailed');
   }
 
@@ -356,38 +388,10 @@ function initPage() {
   });
 
   // Manage the DOWNLOAD VIDEO button
-  document.getElementById('downloadBtn').addEventListener('click', function onDownloadClick(evt) {
-    evt.preventDefault();
-    $j.ajax({
-      method: 'POST',
-      timeout: 0,
-      url: thisUrl + '?request=modal&modal=download',
-      data: {'eids[]': getIdSelections()},
-      success: function(data) {
-        insertModalHtml('downloadModal', data.html);
-        $j('#downloadModal').modal('show');
-        // Manage the GENERATE DOWNLOAD button
-        $j('#exportButton').click(exportEvent);
-      },
-      error: logAjaxFail,
-    });
-  });
+  document.getElementById('downloadBtn').addEventListener('click', onDownloadClick);
 
   // Manage the DELETE button
-  document.getElementById('deleteBtn').addEventListener('click', function onDeleteClick(evt) {
-    if (!canEdit.Events) {
-      enoperm();
-      return;
-    }
-
-    evt.preventDefault();
-    if (evt.shiftKey) {
-      const selections = getIdSelections();
-      deleteEvents(selections);
-    } else {
-      $j('#deleteConfirm').modal('show');
-    }
-  });
+  document.getElementById('deleteBtn').addEventListener('click', onDeleteClick);
 
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
@@ -410,8 +414,7 @@ function initPage() {
   });
 
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
-    el = $j(this);
-    el.on('change', filterEvents);
+    const el = $j(this);
     if (el.hasClass('datetimepicker')) {
       el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     }
@@ -434,10 +437,12 @@ function filterEvents() {
   filterQuery = '';
   $j('#fieldsTable input').each(function(index) {
     const el = $j(this);
+    console.log('input index: '+index+'  this: '+encodeURIComponent(el.val()));
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
   $j('#fieldsTable select').each(function(index) {
     const el = $j(this);
+    console.log('select index: '+index+'  this: '+encodeURIComponent(el.val()));
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
   console.log(filterQuery);

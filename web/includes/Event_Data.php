@@ -35,5 +35,5 @@ class Event_Data extends ZM_Object {
     }
     return $this->Event;
   }
-} # end class Enent_Data
+} # end class Event_Data
 ?>

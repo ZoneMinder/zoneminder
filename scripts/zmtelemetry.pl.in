@@ -140,7 +140,7 @@ sub collectData {
   $telemetry->{timestamp} = strftime('%Y-%m-%dT%H:%M:%S%z', localtime());
   $telemetry->{monitor_count} = countQuery($dbh, 'Monitors');
   $telemetry->{event_count} = countQuery($dbh, 'Events');
-  $telemetry->{architecture} = runSysCmd('uname -p');
+  $telemetry->{architecture} = runSysCmd($Config{ZM_PATH_UNAME}.' -p');
   @$telemetry{qw(kernel distro version)} = getDistro();
   $telemetry->{zm_version} = ZoneMinder::Base::ZM_VERSION;
   $telemetry->{system_memory} = totalmem();

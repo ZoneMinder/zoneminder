@@ -43,10 +43,6 @@
 #include "zm_libvlc_camera.h"
 #endif // HAVE_LIBVLC
 
-#if HAVE_LIBCURL
-#include "zm_curl_camera.h"
-#endif // HAVE_LIBCURL
-
 #if HAVE_LIBVNC
 #include "zm_libvnc_camera.h"
 #endif // HAVE_LIBVNC
@@ -113,7 +109,6 @@ std::string CameraType_Strings[] = {
   "Ffmpeg",
   "LibVLC",
   "NVSOCKET",
-  "CURL",
   "VNC"
 };
 
@@ -381,8 +376,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     type = NVSOCKET;
   } else if ( ! strcmp(dbrow[col], "Libvlc") ) {
     type = LIBVLC;
-  } else if ( ! strcmp(dbrow[col], "cURL") ) {
-    type = LIBCURL;
   } else if ( ! strcmp(dbrow[col], "VNC") ) {
     type = VNC;
   } else {
@@ -759,27 +752,6 @@ void Monitor::LoadCamera() {
 #else // HAVE_LIBVLC
       Error("You must have vlc libraries installed to use vlc cameras for monitor %d", id);
 #endif // HAVE_LIBVLC
-      break;
-    }
-    case LIBCURL: {
-#if HAVE_LIBCURL
-      camera = zm::make_unique<cURLCamera>(this,
-                                           path.c_str(),
-                                           user.c_str(),
-                                           pass.c_str(),
-                                           camera_width,
-                                           camera_height,
-                                           colours,
-                                           brightness,
-                                           contrast,
-                                           hue,
-                                           colour,
-                                           purpose == CAPTURE,
-                                           record_audio
-      );
-#else // HAVE_LIBCURL
-      Error("You must have libcurl installed to use ffmpeg cameras for monitor %d", id);
-#endif // HAVE_LIBCURL
       break;
     }
     case VNC: {

@@ -32,7 +32,10 @@ require_once('includes/Filter.php');
 $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
 if (count( $user->unviewableMonitorIds())) {
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
+  // $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>'5'));
 }
+// TODO: Why is $user->viewableMonitorIds() returning $user->unviewableMonitorIds()
+// Error('$user->viewableMonitorIds(): '.print_r($user->viewableMonitorIds()));
 if (!empty($_REQUEST['StartDateTime'])) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '>=', 'val'=>$_REQUEST['StartDateTime']));
 }
@@ -41,6 +44,9 @@ if (!empty($_REQUEST['EndDateTime'])) {
 }
 if (!empty($_REQUEST['MonitorId'])) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=> '=', 'val'=>$_REQUEST['MonitorId']));
+}
+if (!empty($_REQUEST['Tag'])) {
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Tag', 'op'=>'=', 'val'=>''));
 }
 
 // Search contains a user entered string to search on
@@ -176,12 +182,14 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartDateTime', 'EndDateTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'Notes', 'DiskSpace');
 
   // The names of columns shown in the event view that are NOT dB columns in the database
-  $col_alt = array('Monitor', 'Storage');
+  $col_alt = array('Monitor', 'Tags', 'Storage');
 
   if ( $sort != '' ) {
     if (!in_array($sort, array_merge($columns, $col_alt))) {
       ZM\Error('Invalid sort field: ' . $sort);
       $sort = '';
+    } else if ( $sort == 'Tags' ) {
+       $sort = 'T.Name';
     } else if ( $sort == 'Monitor' ) {
       $sort = 'M.Name';
     } else if ($sort == 'EndDateTime') {
@@ -197,14 +205,49 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $values = array();
   $likes = array();
+  // Error($filter->sql());
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
 
-  $col_str = 'E.*, UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
-    CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
-    CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
-    M.Name AS Monitor';
-  $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
+
+  $col_str = '
+  E.*, 
+  UNIX_TIMESTAMP(E.StartDateTime) 
+    AS StartTimeSecs, 
+  CASE WHEN E.EndDateTime 
+    IS NULL 
+    THEN (SELECT NOW()) 
+    ELSE E.EndDateTime END 
+      AS EndDateTime, 
+  CASE WHEN E.EndDateTime 
+    IS NULL 
+    THEN (SELECT UNIX_TIMESTAMP(NOW())) 
+    ELSE UNIX_TIMESTAMP(EndDateTime) END 
+      AS EndTimeSecs, 
+  M.Name 
+    AS Monitor,
+  GROUP_CONCAT(T.Name SEPARATOR ", ")
+    AS Tags';
+
+  $sql = '
+  SELECT 
+    ' .$col_str. ' 
+  FROM `Events` 
+    AS E 
+  INNER JOIN Monitors 
+    AS M 
+    ON E.MonitorId = M.Id 
+  LEFT JOIN Events_Tags 
+    AS ET 
+    ON E.Id = ET.EventId 
+  LEFT JOIN Tags 
+    AS T 
+    ON T.Id = ET.TagId 
+  '.$where.' 
+  GROUP BY E.Id 
+  '.($sort?' ORDER BY '.$sort.' '.$order:'');
+
   if ((int)$filter->limit() and !count($filter->post_sql_conditions())) {
+
     $sql .= ' LIMIT '.$filter->limit();
   }
 
@@ -270,7 +313,25 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
+    $sql = 'SELECT ' .$col_str. ' 
+    FROM `Events` 
+      AS E 
+    INNER JOIN Monitors 
+      AS M 
+      ON E.MonitorId = M.Id 
+    LEFT JOIN Events_Tags 
+      AS ET 
+      ON E.Id = ET.EventId 
+    LEFT JOIN Tags 
+      AS T 
+      ON T.Id = ET.TagId 
+    WHERE 
+      '.$search_filter->sql().' 
+    GROUP BY E.Id 
+    ORDER BY 
+      ' .$sort. ' 
+      ' .$order;
+
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);
   } else {
@@ -303,6 +364,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Archived'] = $row['Archived'] ? translate('Yes') : translate('No');
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     $row['Cause'] = validHtmlStr($row['Cause']);
+    $row['Tags'] = validHtmlStr($row['Tags']);
     $row['StartDateTime'] = $dateTimeFormatter->format(strtotime($row['StartDateTime']));
     $row['EndDateTime'] = $row['EndDateTime'] ? $dateTimeFormatter->format(strtotime($row['EndDateTime'])) : null;
     $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
@@ -320,7 +382,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }
-ZM\Debug("Done");
+  ZM\Debug("Done");
   return $data;
 }
 ?>

@@ -34,6 +34,7 @@ Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-ap
               ,libjwt-gnutls-dev|libjwt-dev
               ,libgsoap-dev, gsoap
               ,libmosquittopp-dev
+              ,nlohmann-json3-dev
 Standards-Version: 4.5.0
 Homepage: https://www.zoneminder.com/
 
@@ -73,8 +74,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
         ,default-mysql-client | mariadb-client | virtual-mysql-client
-        ,php-mysql, php-gd, php-apcu, php-json, php-intl, php-xml
-        ,policykit-1
+        ,php-mysql, php-gd, php-apcu, php-json, php-intl, php-xml, php-curl
+        ,policykit-1|pkexec
         ,rsyslog | system-log-daemon
         ,zip
         ,arp-scan

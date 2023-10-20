@@ -88,6 +88,10 @@ mark_as_advanced(
   ZM_PATH_MAP
   ZM_PATH_ARP
   ZM_PATH_ARP_SCAN
+  ZM_PATH_RM
+  ZM_PATH_UNAME
+  ZM_PATH_IP
+  ZM_PATH_IFCONFIG
   ZM_CONFIG_DIR
   ZM_CONFIG_SUBDIR
   ZM_DETECT_SYSTEMD
@@ -155,6 +159,14 @@ set(ZM_PATH_ARP "" CACHE PATH
   "Full path to compatible arp binary. Leave empty for automatic detection.")
 set(ZM_PATH_ARP_SCAN "" CACHE PATH
   "Full path to compatible scan_arp binary. Leave empty for automatic detection.")
+set(ZM_PATH_RM "" CACHE PATH
+  "Full path to compatible rm binary. Leave empty for automatic detection.")
+set(ZM_PATH_UNAME "" CACHE PATH
+  "Full path to compatible uname binary. Leave empty for automatic detection.")
+set(ZM_PATH_IP "" CACHE PATH
+  "Full path to compatible ip binary. Leave empty for automatic detection.")
+set(ZM_PATH_IFCONFIG "" CACHE PATH
+  "Full path to compatible ifconfig binary. Leave empty for automatic detection.")
 set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
@@ -298,16 +310,6 @@ check_type_size("siginfo_t" HAVE_SIGINFO_T)
 check_type_size("ucontext_t" HAVE_UCONTEXT_T)
 
 # *** LIBRARY CHECKS ***
-
-if(UNIX)
-  include(CheckLibraryExists)
-  CHECK_LIBRARY_EXISTS(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
-  if(NOT HAVE_CLOCK_GETTIME)
-    message(FATAL_ERROR "clock_gettime not found")
-  else()
-    list(APPEND ZM_BIN_LIBS "-lrt")
-  endif()
-endif()
 
 # zlib
 find_package(ZLIB)
@@ -678,6 +680,54 @@ if(ZM_PATH_ARP_SCAN STREQUAL "")
   endif()
   if(ARP_SCAN_EXECUTABLE-NOTFOUND)
     message(WARNING "Unable to find a compatible arp-scan binary. Monitor probe will be less powerful.")
+  endif()
+endif()
+
+# Find the path to an rm compatible executable
+if(ZM_PATH_RM STREQUAL "")
+  find_program(RM_EXECUTABLE rm)
+  if(RM_EXECUTABLE)
+    set(ZM_PATH_RM "${RM_EXECUTABLE}")
+    mark_as_advanced(RM_EXECUTABLE)
+  endif()
+  if(RM_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible rm binary.")
+  endif()
+endif()
+
+# Find the path to a uname compatible executable
+if(ZM_PATH_UNAME STREQUAL "")
+  find_program(UNAME_EXECUTABLE uname)
+  if(UNAME_EXECUTABLE)
+    set(ZM_PATH_UNAME "${UNAME_EXECUTABLE}")
+    mark_as_advanced(UNAME_EXECUTABLE)
+  endif()
+  if(UNAME_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible uname binary.")
+  endif()
+endif()
+
+# Find the path to a uname compatible executable
+if(ZM_PATH_IP STREQUAL "")
+  find_program(IP_EXECUTABLE ip)
+  if(IP_EXECUTABLE)
+    set(ZM_PATH_IP "${IP_EXECUTABLE}")
+    mark_as_advanced(IP_EXECUTABLE)
+  endif()
+  if(IP_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible ip binary.")
+  endif()
+endif()
+
+# Find the path to a ifconfig compatible executable
+if(ZM_PATH_IFCONFIG STREQUAL "")
+  find_program(IFCONFIG_EXECUTABLE ifconfig)
+  if(IFCONFIG_EXECUTABLE)
+    set(ZM_PATH_IFCONFIG "${IFCONFIG_EXECUTABLE}")
+    mark_as_advanced(IFCONFIG_EXECUTABLE)
+  endif()
+  if(IFCONFIG_EXECUTABLE-NOTFOUND)
+    message(WARNING "Unable to find a compatible ifconfig binary.")
   endif()
 endif()
 

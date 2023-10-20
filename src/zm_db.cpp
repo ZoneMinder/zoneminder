@@ -1,21 +1,21 @@
 //
 // ZoneMinder MySQL Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 #include "zm_db.h"
 
 #include "zm_logger.h"
@@ -119,12 +119,23 @@ void zmDbClose() {
 
 MYSQL_RES *zmDbFetch(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
-  if (!zmDbConnected) {
+  if (!zmDbConnected && !zmDbConnect()) {
     Error("Not connected.");
     return nullptr;
   }
 
-  if (mysql_query(&dbconn, query.c_str())) {
+  int rc = mysql_query(&dbconn, query.c_str());
+
+  if (rc) {
+    if (mysql_ping(&dbconn)) {
+      zmDbConnected = false;
+      if (zmDbConnect()) {
+        Warning("Reconnected to db...");
+        rc = mysql_query(&dbconn, query.c_str());
+      }
+    }
+  }
+  if (rc) {
     Error("Can't run query: %s", mysql_error(&dbconn));
     return nullptr;
   }
@@ -139,7 +150,7 @@ zmDbRow *zmDbFetchOne(const std::string &query) {
   zmDbRow *row = new zmDbRow();
   if (row->fetch(query)) {
     return row;
-  } 
+  }
   delete row;
   return nullptr;
 }
@@ -167,18 +178,24 @@ MYSQL_RES *zmDbRow::fetch(const std::string &query) {
 
 int zmDbDo(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
-  if (!zmDbConnected)
+  if (!zmDbConnected and !zmDbConnect())
     return 0;
   int rc;
   while ((rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
-    Logger *logger = Logger::fetch();
-    Logger::Level oldLevel = logger->databaseLevel();
-    logger->databaseLevel(Logger::NOLOG);
-    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
-    logger->databaseLevel(oldLevel);
-    if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) ) {
-      return rc;
+    if (mysql_ping(&dbconn)) {
+      zmDbConnected = false;
+      zmDbConnect();
     }
+    if (zmDbConnected) {
+      Logger *logger = Logger::fetch();
+      Logger::Level oldLevel = logger->databaseLevel();
+      logger->databaseLevel(Logger::NOLOG);
+      Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
+      logger->databaseLevel(oldLevel);
+      if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) ) {
+        return rc;
+      }
+    } // end if connected
   }
   Logger *logger = Logger::fetch();
   Logger::Level oldLevel = logger->databaseLevel();
@@ -191,12 +208,17 @@ int zmDbDo(const std::string &query) {
 
 int zmDbDoInsert(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
-  if (!zmDbConnected) return 0;
   int rc;
   while ( (rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
-    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
-    if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
-      return 0;
+    if (mysql_ping(&dbconn)) {
+      zmDbConnected = false;
+      zmDbConnect();
+    }
+    if (zmDbConnected) {
+      Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
+      if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
+        return 0;
+    }
   }
   int id = mysql_insert_id(&dbconn);
   Debug(2, "Success running sql insert %s. Resulting id is %d", query.c_str(), id);
@@ -205,12 +227,17 @@ int zmDbDoInsert(const std::string &query) {
 
 int zmDbDoUpdate(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
-  if (!zmDbConnected) return 0;
   int rc;
   while ( (rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
-    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
-    if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
-      return -rc;
+    if (mysql_ping(&dbconn)) {
+      zmDbConnected = false;
+      zmDbConnect();
+    }
+    if (zmDbConnected) {
+      Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
+      if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
+        return -rc;
+    }
   }
   int affected = mysql_affected_rows(&dbconn);
   Debug(2, "Success running sql update %s. Rows modified %d", query.c_str(), affected);

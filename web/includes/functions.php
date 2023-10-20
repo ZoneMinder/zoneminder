@@ -1741,18 +1741,28 @@ function checkJsonError($value) {
     switch ( json_last_error() ) {
       case JSON_ERROR_DEPTH :
         ZM\Error("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_CTRL_CHAR :
         ZM\Error("Unable to decode JSON string '$value', unexpected control character found");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_STATE_MISMATCH :
         ZM\Error("Unable to decode JSON string '$value', invalid or malformed JSON");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_SYNTAX :
         ZM\Error("Unable to decode JSON string '$value', syntax error");
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       default :
         ZM\Error("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        $backTrace = debug_backtrace();
+        ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_NONE:
         break;
@@ -2293,37 +2303,55 @@ function i18n() {
 function get_networks() {
   $interfaces = array();
 
-  exec('ip link', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output);
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ( $output as $line ) {
-      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
-        if ( $matches[1] != 'lo' ) {
-          $interfaces[$matches[1]] = $matches[1];
-        } else {
-          ZM\Debug("No match for $line");
+  if (defined('ZM_PATH_IP') and ZM_PATH_IP and file_exists(ZM_PATH_IP)) {
+	  exec(ZM_PATH_IP.' link', $output, $status);
+	  if ( $status ) {
+	    $html_output = implode('<br/>', $output);
+	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+	  } else {
+	    foreach ( $output as $line ) {
+	      if ( preg_match('/^\d+: ([[:alnum:]]+):/', $line, $matches ) ) {
+          if ( $matches[1] != 'lo' ) {
+            $interfaces[$matches[1]] = $matches[1];
+          } else {
+            ZM\Debug("No match for $line");
+          }
         }
-      }
-    }
-  }
-  $routes = array();
-  exec('ip route', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output);
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ( $output as $line ) {
-      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
-        $interfaces['default'] = $matches[1];
-      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
-        $interfaces[$matches[2]] .= ' ' . $matches[1];
-        ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
-      } else {
-        ZM\Debug("Didn't match $line");
-      }
-    } # end foreach line of output
+	    }
+	  }
+	  $routes = array();
+	  exec(ZM_PATH_IP.' route', $output, $status);
+	  if ($status) {
+	    $html_output = implode('<br/>', $output);
+	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+	  } else {
+	    foreach ($output as $line) {
+	      if ( preg_match('/^default via [.[:digit:]]+ dev ([[:alnum:]]+)/', $line, $matches) ) {
+          $interfaces['default'] = $matches[1];
+	      } else if ( preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches) ) {
+          $interfaces[$matches[2]] .= ' ' . $matches[1];
+          ZM\Debug("Matched $line: $matches[2] .= $matches[1]");
+        } else {
+          ZM\Debug("Didn't match $line");
+        }
+      } # end foreach line of output
+	  }
+  } else if (defined('ZM_PATH_IFCONFIG') and ZM_PATH_IFCONFIG and file_exists(ZM_PATH_IFCONFIG)) {
+	  exec(ZM_PATH_IFCONFIG, $output, $status);
+	  if ($status) {
+	    $html_output = implode("\n", $output);
+	    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:$html_output");
+	  } else {
+		  preg_match("/^([eth|enp][A-z0-9]*)\s+Link\s+encap:([A-z]*)\s+HWaddr\s+([A-z0-9:]*).*".
+			"inet addr:([0-9.]+).*Bcast:([0-9.]+).*Mask:([0-9.]+).*".
+			"MTU:([0-9.]+).*Metric:([0-9.]+).*".
+			"RX packets:([0-9.]+).*errors:([0-9.]+).*dropped:([0-9.]+).*overruns:([0-9.]+).*frame:([0-9.]+).*".
+			"TX packets:([0-9.]+).*errors:([0-9.]+).*dropped:([0-9.]+).*overruns:([0-9.]+).*carrier:([0-9.]+).*".
+			"RX bytes:([0-9.]+).*\((.*)\).*TX bytes:([0-9.]+).*\((.*)\)".
+			"/ims", implode("\n", $output), $regex);
+
+		  ZM\Debug(print_r( $regex,true));
+	  }
   }
   return $interfaces;
 }
@@ -2333,27 +2361,29 @@ function get_networks() {
 
 function get_subnets($interface) {
   $subnets = array();
-  exec('ip route', $output, $status);
-  if ( $status ) {
-    $html_output = implode('<br/>', $output); 
-    ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
-  } else {
-    foreach ($output as $line) {
-      if (preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches)) {
-        if ($matches[1] == '169.254.0.0/16') {
-          # Ignore mdns
-        } else if ($matches[2] == $interface) {
-          $subnets[] = $matches[1];
+  if (defined('ZM_PATH_IP') and ZM_PATH_IP and file_exists(ZM_PATH_IP)) {
+    exec(ZM_PATH_IP.' route', $output, $status);
+    if ( $status ) {
+      $html_output = implode('<br/>', $output); 
+      ZM\Error("Unable to list network interfaces, status is '$status'. Output was:<br/><br/>$html_output");
+    } else {
+      foreach ($output as $line) {
+        if (preg_match('/^([.[:digit:]]+\/[[:digit:]]+) dev ([[:alnum:]]+)/', $line, $matches)) {
+          if ($matches[1] == '169.254.0.0/16') {
+            # Ignore mdns
+          } else if ($matches[2] == $interface) {
+            $subnets[] = $matches[1];
+          } else {
+            ZM\Debug("Wrong interface $matches[1] != $interface");
+          }
         } else {
-          ZM\Debug("Wrong interface $matches[1] != $interface");
+          ZM\Debug("Didn't match $line");
         }
-      } else {
-        ZM\Debug("Didn't match $line");
-      }
-    } # end foreach line of output
+      } # end foreach line of output
+    }
   }
   return $subnets;
-}
+} # end function get_subnets($interface)
 
 function extract_auth_values_from_url($url) {
   $protocolPrefixPos = strpos($url, '://');

@@ -25,6 +25,7 @@ class FilterTerm {
   public $cookie;
   public $placeholder;
   public $collate;
+  public $tablename;
 
   public function __construct($filter = null, $term = null, $index=0) {
     $this->cnj = '';
@@ -35,7 +36,7 @@ class FilterTerm {
     if ($term) {
       $this->attr = isset($term['attr']) ? $term['attr'] : '';
       $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $this->attr, -1, $count);
-      if ($count) Error("Invalid characters removed from filter attr ${term['attr']}, possible hacking attempt.");
+      if ($count) Error("Invalid characters removed from filter attr {$term['attr']}, possible hacking attempt.");
       $this->op = isset($term['op']) ? $term['op'] : '=';
       $this->val = isset($term['val']) ? $term['val'] : '';
       if (is_array($this->val)) $this->val = implode(',', $this->val);
@@ -101,6 +102,7 @@ class FilterTerm {
       case 'DiskPercent':
         $value = '';
         break;
+      case 'Tags':
       case 'MonitorName':
       case 'Name':
       case 'Cause':
@@ -293,6 +295,8 @@ class FilterTerm {
     case 'StateId':
     case 'Archived':
       return $this->tablename.'.'.$this->attr;
+    case 'Tags':
+      return 'T.Id';
     default :
       return $this->tablename.'.'.$this->attr;
     }
@@ -444,6 +448,11 @@ class FilterTerm {
           Error('Failed evaluating '.$string_to_eval);
           return false;
         }
+      } else if ( $this->attr == 'Tags' ) {
+        // Debug('TODO: Complete this post_sql_condition for Tags  val: ' . $this->val . '  op: ' . $this->op . '  id: ' . $this->id);
+        // Debug(print_r($this, true));
+        // Debug(print_r($event, true));
+        return true;
       } else {
         Error('testing unsupported post term ' . $this->attr);
       }
@@ -460,7 +469,7 @@ class FilterTerm {
   }
 
   public function is_post_sql() {
-    if ( $this->attr == 'ExistsInFileSystem' ) {
+    if ( $this->attr == 'ExistsInFileSystem' || $this->attr == 'Tags') {
         return true;
     }
     return false;
@@ -515,6 +524,7 @@ class FilterTerm {
       'Notes',
       'StateId',
       'Archived',
+      'Tags',
       # The following are for snapshots
       'CreatedOn', 
       'Description'
@@ -536,6 +546,7 @@ class FilterTerm {
         return false;
       break;
     case 'Archived' :
+    case 'Tags' :
     case 'Monitor' :
     case 'MonitorId' :
     case 'ServerId' :

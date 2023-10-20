@@ -12,6 +12,11 @@ class Filter extends ZM_Object {
   protected static $archiveTypes = null;
   protected static $booleanValues = null;
 
+  protected $Query;
+  protected $Terms;
+  protected $Query_json;
+
+
   protected $defaults = array(
     'Id'              =>  null,
     'Name'            =>  '',
@@ -47,12 +52,19 @@ class Filter extends ZM_Object {
   public $_pre_sql_conditions;
   public $_post_sql_conditions;
   protected $_Terms;
+  public $availableTags = array();
 
   public function sql() {
+    // Debug('$_Terms: '. $_Terms);
+    // Debug('$_sql: ' . $_sql);
+    // Debug('$this->_sql: ' . $this->_sql);
     if (!isset($this->_sql)) {
       $this->_sql = '';
       foreach ( $this->FilterTerms() as $term ) {
+        // Error($term->valid());
         if ($term->valid()) {
+          // Debug('$this->_sql: ' . $this->_sql);
+          // Error($this-cnj);
           if (!$this->_sql) {
             if ($term->cnj) unset($term->cnj);
           } else {
@@ -60,10 +72,12 @@ class Filter extends ZM_Object {
           }
           $this->_sql .= $term->sql();
         } else {
-          Debug('Term is not valid '.$term->to_string());
+          // Debug('Term is not valid '.$term->to_string());
         }
+        // Debug('$term->_sql: ' . $term->_sql);
       } # end foreach term
     }
+    // Debug('$this->_sql: ' . $this->_sql);
     return $this->_sql;
   }
 
@@ -117,19 +131,25 @@ class Filter extends ZM_Object {
     return $this->_post_sql_conditions;
   }
 
-  public function FilterTerms() { 
+  public function FilterTerms() {
+    // echo '<pre style="text-align: start;">Terms before: '; print_r($this->Terms); echo '</pre>';
     if (!isset($this->Terms)) {
       $this->Terms = array();
       $_terms = $this->terms();
+      // echo '<pre style="text-align: start;">$_terms: '; print_r($_terms); echo '</pre>';
       if ($_terms) {
         for ($i=0; $i < count($_terms); $i++) {
+          // Error($i);
+          // Error($_terms[$i]);
           if (isset($_terms[$i])) {
             $term = new FilterTerm($this, $_terms[$i], $i);
             $this->Terms[] = $term;
+            // Error($this->Terms[]);
           }
         } # end foreach term
       }
     }
+    // echo '<pre style="text-align: start;">Terms after: '; print_r($this->Terms); echo '</pre>';
     return $this->Terms;
   }
 
@@ -158,7 +178,7 @@ class Filter extends ZM_Object {
   public function Query_json() {
     if ( func_num_args( ) ) {
       $this->{'Query_json'} = func_get_arg(0);
-      $this->{'Query'} = jsonDecode($this->{'Query_json'});
+      $this->{'Query'} = empty($this->{'Query_json'}) ? [] : jsonDecode($this->{'Query_json'});
     }
     return $this->{'Query_json'};
   }
@@ -166,7 +186,7 @@ class Filter extends ZM_Object {
   public function Query() {
     if ( func_num_args( ) ) {
       $this->{'Query'} = func_get_arg(0);
-      $this->{'Query_json'} = jsonEncode($this->{'Query'});
+      $this->{'Query_json'} = empty($this->{'Query'}) ? '{}' : jsonEncode($this->{'Query'});
       # We have altered the query so need to reset all the calculated results.
       unset($this->_querystring);
       unset($this->_sql);
@@ -184,7 +204,7 @@ class Filter extends ZM_Object {
     } else {
       if ( !is_array($this->{'Query'}) ) {
         # Handle existence of both Query_json and Query in the row
-        $this->{'Query'} = jsonDecode($this->{'Query_json'});
+        $this->{'Query'} = empty($this->{'Query_json'}) ? [] : jsonDecode($this->{'Query_json'});
       }
     }
 
@@ -204,7 +224,7 @@ class Filter extends ZM_Object {
     return ZM_Object::_find_one(get_class(), $parameters, $options);
   }
 
-  public function terms( ) {
+  public function terms() {
     if ( func_num_args() ) {
       $Query = $this->Query();
       $Query['terms'] = func_get_arg(0);
@@ -260,6 +280,7 @@ class Filter extends ZM_Object {
       $Query['limit'] = func_get_arg(0);
       $this->Query($Query);
     }
+    // Error($this->Query()['limit']);
     if ( isset( $this->Query()['limit'] ) )
       return $this->{'Query'}['limit'];
     return 0;
@@ -414,8 +435,12 @@ class Filter extends ZM_Object {
         }
       }
       if ( !empty($term['attr']) ) {
+        // Error($term['attr']);
         $dtAttr = false;
         switch ( $term['attr']) {
+        case 'Tags':
+          $sqlValue = 'T.Name';
+          break;
         case 'Group':
           $sqlValue = 'M.Id';
         case 'Monitor':
@@ -586,6 +611,8 @@ class Filter extends ZM_Object {
           case 'Group':
             $value = Group::get_group_sql($value);
             break;
+          case 'Tags':
+            // Error($term['attr']);
           case 'MonitorName':
           case 'Name':
           case 'Cause':
@@ -719,10 +746,30 @@ class Filter extends ZM_Object {
     }
 
     $where = $this->sql() ? ' WHERE ('.$this->sql().')' : '';
+    // $where = ' WHERE ( T.Name = "Bird" )';
     $sort = $this->sort_field() ? $this->sort_field() .' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
 
-    $col_str = 'E.*, M.Name AS Monitor';
-    $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort:'');
+    $col_str = '
+    E.*, 
+    M.Name 
+     AS Monitor';
+
+    $sql = '
+    SELECT 
+      ' .$col_str. ' 
+    FROM `Events` 
+      AS E 
+    INNER JOIN Monitors 
+      AS M 
+      ON E.MonitorId = M.Id
+    LEFT JOIN Events_Tags 
+      AS ET 
+      ON E.Id = ET.EventId 
+    LEFT JOIN Tags 
+      AS T 
+      ON T.Id = ET.TagId 
+    '.$where.($sort?' ORDER BY '.$sort:'');
+    
     if ($this->limit() and !count($this->pre_sql_conditions()) and !count($this->post_sql_conditions())) {
       $sql .= ' LIMIT '.$this->limit();
     }
@@ -785,6 +832,7 @@ class Filter extends ZM_Object {
         'StorageId'           => translate('AttrStorageArea'),
         'StorageServerId'    => translate('AttrStorageServer'),
         'SystemLoad'  => translate('AttrSystemLoad'),
+        'Tags'         => translate('Tags'),
         'TotScore'    => translate('AttrTotalScore'),
       );
     }
@@ -896,6 +944,10 @@ class Filter extends ZM_Object {
         }
       }
     }
+    // $availableTags = array();
+    foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
+      $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
+    }
 
     for ($i=0; $i < count($terms); $i++) {
       $term = $terms[$i];
@@ -919,6 +971,23 @@ class Filter extends ZM_Object {
         if ( $term['attr'] == 'Archived' ) {
           $html .= '<td>'.translate('OpEq').'<input type="hidden" name="filter[Query][terms]['.$i.'][op]" value="="/></td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).'</td>'.PHP_EOL;
+        
+        
+        
+        } else if ( $term['attr'] == 'Tags') {
+          // Error($term['attr']);
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
+          $options = ['class'=>'chosen', 'multiple'=>'multiple'];
+          $selected = explode(',', $term['val']);
+          if (count($selected) == 1 and !$selected[0]) {
+            $selected = null;
+          }
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).'</td>'.PHP_EOL;
+          // ZM\Debug('$availableTags: '.$availableTags);
+          // ZM\Debug('$selected: '.$selected);
+
+
+
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</td>'.PHP_EOL;
           $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></td>'.PHP_EOL;
@@ -983,6 +1052,7 @@ class Filter extends ZM_Object {
             </tr>
 ';
     } # end foreach term
+    // Error($html);
     return $html;
   }  # end function widget()
 
@@ -1005,6 +1075,10 @@ class Filter extends ZM_Object {
     global $Servers;
     foreach ( $Servers as $server ) {
       $servers[$server->Id()] = validHtmlStr($server->Name());
+    }
+    // $availableTags = array();
+    foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
+      $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }
 
     for ($i=0; $i < count($terms); $i++) {
@@ -1033,6 +1107,39 @@ class Filter extends ZM_Object {
 
         if ( $term['attr'] == 'Archived' ) {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val']).PHP_EOL;
+
+
+
+
+        } else if ( $term['attr'] == 'Tags' ) {
+          $selected = explode(',', $term['val']);
+          // echo '<pre>selected: '; print_r($selected); echo '</pre>';
+          if (count($selected) == 1 and !$selected[0]) {
+            $selected = null;
+          }
+          $options = ['class'=>'chosen', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
+          if (isset($term['cookie'])) {
+            $options['data-cookie'] = $term['cookie'];
+
+            if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
+              $selected = explode(',', $_COOKIE[$term['cookie']]);
+          }
+          // These echo statements print these variables at the top of the view.
+          // echo '<pre>availableTags: '; print_r($availableTags); echo '</pre>';
+          // echo '<pre>selected: '; print_r($selected); echo '</pre>';
+          // echo '<pre>options: '; print_r($options); echo '</pre>';
+
+          $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).'</span>'.PHP_EOL;
+          // $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($availableTags,$availableTags), $term['val'],
+          // $options).'</span>'.PHP_EOL;
+          // $html .= '<span>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $term['val'], $options).'</span>'.PHP_EOL;
+
+          // Debug doesn't work here.
+          // Debug('$availableTags: '.$availableTags);
+          // Debug('$selected: '.$selected);
+          // Debug('$options: '.$options);
+
+
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<span><input type="text" class="datetimepicker" name="filter[Query][terms]['.$i.'][val]"';
@@ -1079,6 +1186,7 @@ class Filter extends ZM_Object {
             }
           }
           $selected = explode(',', $term['val']);
+          // echo '<pre>Monitor selected: '; print_r($selected); echo '</pre>';
           if (count($selected) == 1 and !$selected[0]) {
             $selected = null;
           }
@@ -1145,8 +1253,9 @@ class Filter extends ZM_Object {
       $html .= '</span>';
     } # end foreach term
     $html .= '</div>';
+    // Error($html);
     return $html;
-  }  # end function widget()
+  }  # end function simple_widget()
 
   public function has_term($attr, $op=null) {
     foreach ($this->terms() as $term) {

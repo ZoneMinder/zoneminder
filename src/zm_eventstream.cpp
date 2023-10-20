@@ -567,7 +567,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
         break;
     case CMD_SEEK :
       {
-        std::scoped_lock  lck{mutex};
         double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
             | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
         double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
@@ -579,6 +578,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
           break;
         }
 
+        std::scoped_lock  lck{mutex};
         // This should get us close, but not all frames will have the same duration
         curr_frame_id = (int) (event_data->frame_count * offset / event_data->duration) + 1;
         if (curr_frame_id < 1) {
@@ -587,13 +587,13 @@ void EventStream::processCommand(const CmdMsg *msg) {
         }
         // TODO Replace this with a binary search
         if (event_data->frames[curr_frame_id - 1].offset > offset) {
-          Debug(1, "Searching for frame at %.2f, offset of frame %d is %.2f",
+          Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
               FPSeconds(offset).count(),
               curr_frame_id,
               FPSeconds(event_data->frames[curr_frame_id - 1].offset).count()
               );
           while ((curr_frame_id--) && (event_data->frames[curr_frame_id - 1].offset > offset)) {
-            Debug(1, "Searching for frame at %.2f, offset of frame %d is %.2f",
+            Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
                 FPSeconds(offset).count(),
                 curr_frame_id,
                 FPSeconds(event_data->frames[curr_frame_id - 1].offset).count()
@@ -601,7 +601,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
           }
         } else if (event_data->frames[curr_frame_id - 1].offset < offset) {
           while ((curr_frame_id++ < event_data->last_frame_id) && (event_data->frames[curr_frame_id - 1].offset < offset)) {
-            Debug(1, "Searching for frame at %.2f, offset of frame %d is %.2f",
+            Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
                 FPSeconds(offset).count(),
                 curr_frame_id,
                 FPSeconds(event_data->frames[curr_frame_id - 1].offset).count()

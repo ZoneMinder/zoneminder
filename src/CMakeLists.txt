@@ -11,7 +11,6 @@ set(ZM_BIN_SRC_FILES
   zm_camera.cpp
   zm_comms.cpp
   zm_config.cpp
-  zm_curl_camera.cpp
   zm_crypt.cpp
   zm.cpp
   zm_db.cpp

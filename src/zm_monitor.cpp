@@ -1067,12 +1067,12 @@ bool Monitor::connect() {
                 Event_Poller_Healthy = FALSE;
               }
 
-              // we renew  the current subscription .........
+              // we renew the current subscription .........
               set_credentials(soap);
               RequestMessageID = soap_wsa_rand_uuid(soap);
               if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
                 Debug(1, "ONVIF :soap_wsa_request OK");
-                if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  { 
+                if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
                   Error("ONVIF Couldn't do initial Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
                   Event_Poller_Healthy = FALSE;
                 } else {
@@ -1292,7 +1292,7 @@ ZMPacket *Monitor::getSnapshot(int index) const {
 
 SystemTimePoint Monitor::GetTimestamp(int index) const {
   ZMPacket *packet = getSnapshot(index);
-  if (packet) 
+  if (packet)
     return packet->timestamp;
 
   return {};
@@ -1516,7 +1516,7 @@ int Monitor::actionColour(int p_colour) {
     }
   }
   return shared_data->colour;
-} 
+}
 
 int Monitor::actionColour() {
   if (purpose == CAPTURE) {
@@ -1795,85 +1795,80 @@ bool Monitor::Poll() {
 #ifdef WITH_GSOAP
       set_credentials(soap);
       const char *RequestMessageID = soap_wsa_rand_uuid(soap);
-      if (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address , "PullMessageRequest") == SOAP_OK)
-      {
-	Debug(1, ":soap_wsa_request OK ; starting ONVIF  PullMessageRequest ... ");
-	int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
-	      Debug(1,"Result of getting  ONVIF messages= %d %s", result, soap_fault_string(soap));
-	if (result != SOAP_OK) {
-	      const char *detail = soap_fault_detail(soap);
-	      Debug(1,"Result of getting  ONVIF messages= %d %s", result, soap_fault_string(soap));
-	      Debug(1," soap_fault_string = %s,detail=  %s", soap_fault_string(soap), detail ? detail : "null");
-	  if (result != SOAP_EOF) { //Ignore the timeout error
-	    Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
-	    // Event_Poller_Healthy = false;
-	  }
-	} else {
-	  Info( "ONVIF polling : Got Good Response! %i", result);
-	  for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
-	    Info( "Got msg ");
-	    if ((msg->Topic != nullptr) &&
-		(msg->Topic->__any.text != nullptr) &&
-		std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
-		(msg->Message.__any.elts != nullptr) &&
-		(msg->Message.__any.elts->next != nullptr) &&
-		(msg->Message.__any.elts->next->elts != nullptr) &&
-		(msg->Message.__any.elts->next->elts->atts != nullptr) &&
-		(msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
-		(msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
-	      ) {
-	      Info( "Got Motion Alarm!");
-	      if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
-		//Event Start
-		Info( "Triggered on ONVIF");
-		if (!Poll_Trigger_State) {
-		  Info( "Triggered Event");
-		  Poll_Trigger_State = TRUE;
-		  std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
-		}
-	      } else {
-		Info("Triggered off ONVIF");
-		Poll_Trigger_State = false;
-		if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
-		  Event_Poller_Closes_Event = TRUE;
-		  Info("Setting ClosesEvent");
-		}
-	      }
-	    } else {
-	      Debug(1, "Got a message that we couldn't parse");
-	    }
-	  }  // end foreach msg
-            ////////////////////////////////////////////////////
-            // we renew  the current subscription .........
+      if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK) {
+        Debug(1, ":soap_wsa_request OK; starting ONVIF PullMessageRequest ...");
+        int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
+        if (result != SOAP_OK) {
+          const char *detail = soap_fault_detail(soap);
+          Debug(1, "Result of getting  ONVIF messages= %d soap_fault_string=%s detail=%s",
+              result, soap_fault_string(soap), detail ? detail : "null");
+          if (result != SOAP_EOF) { //Ignore the timeout error
+            Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
+            // Event_Poller_Healthy = false;
+          }
+        } else {
+          Info("ONVIF polling : Got Good Response! %i", result);
+          for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
+            if ((msg->Topic != nullptr) &&
+                (msg->Topic->__any.text != nullptr) &&
+                std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
+                (msg->Message.__any.elts != nullptr) &&
+                (msg->Message.__any.elts->next != nullptr) &&
+                (msg->Message.__any.elts->next->elts != nullptr) &&
+                (msg->Message.__any.elts->next->elts->atts != nullptr) &&
+                (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
+                (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
+               ) {
+              Info("Got Motion Alarm!");
+              if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
+                //Event Start
+                Info("Triggered on ONVIF");
+                if (!Poll_Trigger_State) {
+                  Info("Triggered Event");
+                  Poll_Trigger_State = TRUE;
+                  std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
+                }
+              } else {
+                Info("Triggered off ONVIF");
+                Poll_Trigger_State = false;
+                if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
+                  Event_Poller_Closes_Event = TRUE;
+                  Info("Setting ClosesEvent");
+                }
+              }
+            } else {
+              Debug(1, "Got a message that we couldn't parse");
+            }
+          }  // end foreach msg
 
-	    set_credentials(soap);
-            std::string Termination_time = "PT60S";
-	    wsnt__Renew.TerminationTime=&Termination_time;
-	    RequestMessageID = soap_wsa_rand_uuid(soap);
-	    if (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address , "RenewRequest") == SOAP_OK)
-	    {
-	      Debug(1, ":soap_wsa_request  OK ");
-	      if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  { 
-	        Error("Couldn't do  Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-	         Event_Poller_Healthy = FALSE;
-	      } else {
-      	        Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-	        Event_Poller_Healthy = TRUE;
-	      }
-	    } else {
-	       Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  RenewRequest .... ! Error %i %s, %s",RequestMessageID , response.SubscriptionReference.Address , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-	       Event_Poller_Healthy = FALSE;
-	    }
-            //////////////////////////////////////////////////////
-	}  // end if SOAP OK/NOT OK
+          // we renew the current subscription .........
+          set_credentials(soap);
+          std::string Termination_time = "PT60S";
+          wsnt__Renew.TerminationTime = &Termination_time;
+          RequestMessageID = soap_wsa_rand_uuid(soap);
+          if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
+            Debug(1, ":soap_wsa_request OK");
+            if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
+              Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+              Event_Poller_Healthy = FALSE;
+            } else {
+              Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+              Event_Poller_Healthy = TRUE;
+            }
+          } else {
+            Error("Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=  RenewRequest .... ! Error %i %s, %s",
+                RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+            Event_Poller_Healthy = FALSE;
+          }
+        }  // end if SOAP OK/NOT OK
       } else {
-	Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",RequestMessageID , response.SubscriptionReference.Address , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-
-      }
+        Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",
+            RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+      }  // end if soap == OK
 #endif
     }  // end if Amcrest or not
   }  // end if Healthy
-    Debug(1, "Trying to check RTSP2Web in Poller");
+  Debug(1, "Trying to check RTSP2Web in Poller");
   if (RTSP2Web_enabled and RTSP2Web_Manager) {
     Debug(1, "Trying to add stream to RTSP2Web");
     if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
@@ -2414,7 +2409,7 @@ bool Monitor::Analyse() {
 void Monitor::Reload() {
   Debug(1, "Reloading monitor %s", name.c_str());
 
-  // Access to the event needs to be protected.  Either thread could call Reload.  Either thread could close the event. 
+  // Access to the event needs to be protected.  Either thread could call Reload.  Either thread could close the event.
   // Need a mutex on it I guess.  FIXME
   // Need to guard around event creation/deletion This will prevent event creation until new settings are loaded
   {
@@ -2862,7 +2857,7 @@ bool Monitor::Decode() {
           break;
         case ROTATE_90 :
         case ROTATE_180 :
-        case ROTATE_270 : 
+        case ROTATE_270 :
           capture_image->Rotate((orientation-1)*90);
           break;
         case FLIP_HORI :
@@ -2978,7 +2973,7 @@ Event * Monitor::openEvent(
   ZMLockedPacket *starting_packet_lock = nullptr;
   if (*start_it != *analysis_it) {
     starting_packet_lock = packetqueue.get_packet(start_it);
-    
+
     if (!starting_packet_lock) {
       Warning("Unable to get starting packet lock");
       return nullptr;
@@ -3455,13 +3450,13 @@ void Monitor::get_ref_image() {
   ZMLockedPacket *snap_lock = nullptr;
   Warning("get_ref_image is deprecated");
 
-  if ( !analysis_it ) 
+  if ( !analysis_it )
     analysis_it = packetqueue.get_video_it(true);
 
-  while ( 
+  while (
       (
        !( snap_lock = packetqueue.get_packet(analysis_it))
-       or 
+       or
        ( snap_lock->packet_->codec_type != AVMEDIA_TYPE_VIDEO )
        or
        ! snap_lock->packet_->image

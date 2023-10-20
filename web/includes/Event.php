@@ -3,9 +3,14 @@ namespace ZM;
 require_once('Storage.php');
 require_once('functions.php');
 require_once('Object.php');
+require_once('Event_Tag.php');
+require_once('Tag.php');
 
 class Event extends ZM_Object {
   protected static $table = 'Events';
+
+  protected $Tags;
+  protected $Event_Tags;
 
   protected $defaults = array(
     'Id' => null,
@@ -736,6 +741,22 @@ class Event extends ZM_Object {
       $frame->Delta(floor($this->Length() * $percentage));
     }
     return $frame;
+  }
+
+  public function Event_Tags() {
+    if (!isset($this->Event_Tags)) {
+      $this->Event_Tags = $this->Id() ? Event_Tag::find(['EventId'=>$this->Id()]) : [];
+    }
+    return $this->Event_Tags;
+  }
+
+  public function Tags() {
+    if (!isset($this->Tags)) {
+      $this->Tags = array_map(function($t){return $t->Tag();}, $this->Event_Tags());
+    } else {
+      Debug("Have Tags");
+    }
+    return $this->Tags;
   }
 
 } # end class

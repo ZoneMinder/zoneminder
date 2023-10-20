@@ -570,10 +570,17 @@ int FfmpegCamera::OpenFfmpeg() {
 int FfmpegCamera::Close() {
   mCanCapture = false;
 
-  if ( mVideoCodecContext ) {
+  if (mVideoCodecContext) {
     avcodec_close(mVideoCodecContext);
     avcodec_free_context(&mVideoCodecContext);
-    mVideoCodecContext = nullptr;  // Freed by av_close_input_file
+    mVideoCodecContext = nullptr;
+  }
+
+  if (mAudioCodecContext and !mSecondInput) {
+    // If second input, then these will get freed in FFmpeg_Input's destructor
+    avcodec_close(mAudioCodecContext);
+    avcodec_free_context(&mAudioCodecContext);
+    mAudioCodecContext = nullptr;
   }
 
 #if HAVE_LIBAVUTIL_HWCONTEXT_H

@@ -195,15 +195,6 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 
     frameComplete = true;
 
-    if (context->time_base.num && context->time_base.den) {
-    // Convert timestamps to stream timebase instead of codec timebase
-    frame->pts = av_rescale_q(frame->pts,
-        context->time_base,
-        input_format_context->streams[stream_id]->time_base
-        );
-    } else {
-      Warning("No timebase set in context!");
-    }
     if (is_video_stream(input_format_context->streams[packet->stream_index])) {
       zm_dump_video_frame(frame.get(), "resulting video frame");
     } else {
@@ -213,6 +204,7 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
   return frame.get();
 }  // end AVFrame *FFmpeg_Input::get_frame
 
+/* at is FPSeconds */
 AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   Debug(1, "Getting frame from stream %d at %f", stream_id, at);
 
@@ -279,9 +271,22 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     }
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
+    zm_dump_frame(frame, "got");
+    if (frame->pts > seek_target) {
+      if (( ret = av_seek_frame(input_format_context, stream_id, seek_target,
+              AVSEEK_FLAG_FRAME|AVSEEK_FLAG_BACKWARD
+              ) ) < 0) {
+        Error("Unable to seek in stream %d", ret);
+        return nullptr;
+      }
+      get_frame(stream_id);
+      zm_dump_frame(frame, "Had to seek backwards");
+    }
   }
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
   if (frame->pts <= seek_target) {
+    Debug(1, "Frame pts %" PRId64 " + duration %" PRId64 "= %" PRId64 " <=? %" PRId64,
+        frame->pts, frame->pkt_duration, frame->pts + frame->pkt_duration, seek_target);
     while (frame && (frame->pts + frame->pkt_duration < seek_target)) {
       if (is_video_stream(input_format_context->streams[stream_id])) {
         zm_dump_video_frame(frame, "pts <= seek_target");

@@ -25,7 +25,7 @@ var eventData = {
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
     Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
-    <!-- Tags: '<?php echo validHtmlStr($Event->Tags()) ?>', -->
+    <!-- Tags: '<?php echo validHtmlStr(implode(', ', array_map(function($t){return $t->Name();}, $Event->Tags()))); ?>', -->
     Notes: `<?php echo $Event->Notes()?>`,
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',

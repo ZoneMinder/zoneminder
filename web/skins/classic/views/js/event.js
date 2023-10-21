@@ -38,8 +38,6 @@ $j(document).on("keydown", "", function(e) {
           $j("#delConfirmBtn").click();
         } else if ( $j("#eventDetailModal").is(":visible") ) {
           $j("#eventDetailSaveBtn").click();
-        } else if ( $j("#eventRenamelModal").is(":visible") ) {
-          $j("#eventRenameBtn").click();
         }
       } else if (e.key === "Escape") {
         $j(".modal").modal('hide');
@@ -167,8 +165,8 @@ function renderAlarmCues(containerEl) {
   cues_div = document.getElementById('alarmCues');
   const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
   const span_count = 10;
-  const span_seconds = parseInt(event_length / span_count);
-  const span_width = parseInt(containerEl.width() / span_count);
+  const span_seconds = parseFloat(event_length / span_count);
+  const span_width = parseFloat(containerEl.width() / span_count);
   const date = new Date(eventData.StartDateTime);
   for (let i=0; i < span_count; i += 1) {
     html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
@@ -799,34 +797,6 @@ function nextEvent() {
   }
 }
 
-function getActResponse(respObj, respText) {
-  if (checkStreamForErrors('getActResponse', respObj)) {
-    return;
-  }
-
-  if (respObj.refreshEvent) {
-    eventQuery(eventData.Id);
-  }
-  $j('#eventRenameModal').modal('hide');
-}
-
-function actQuery(action, parms) {
-  var data = {};
-  if (parms) data = parms;
-  if (auth_hash) data.auth = auth_hash;
-  data.id = eventData.Id;
-  data.action = action;
-
-  $j.getJSON(thisUrl + '?view=request&request=event', data)
-      .done(getActResponse)
-      .fail(logAjaxFail);
-}
-
-function renameEvent() {
-  var newName = $j('input').val();
-  actQuery('rename', {eventName: newName});
-}
-
 function showEventFrames() {
   window.location.assign('?view=frames&eid='+eventData.Id);
 }
@@ -867,14 +837,21 @@ function progressBarNav() {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
-    console.log("clicked at ", x, seekTime);
+
+    const date = new Date(eventData.StartDateTime);
+    date.setTime(date.getTime() + (seekTime*1000));
+    console.log("clicked at ", x, seekTime, date.toLocaleTimeString(), "from pageX", e.pageX, "offsetleft", $j(this).offset().left );
     streamSeek(seekTime);
   });
   $j('#progressBar').mouseover(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
-    console.log(x);
     const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
+
+    const date = new Date(eventData.StartDateTime);
+    date.setTime(date.getTime() + (seekTime*1000));
+    console.log("mouseovered at ", x, seekTime, date.toLocaleTimeString(), "from pageX", e.pageX, "offsetleft", $j(this).offset().left );
+
     const indicator = document.getElementById('indicator');
     indicator.style.display = 'block';
     indicator.style.left = x + 'px';
@@ -1148,19 +1125,6 @@ function initPage() {
   bindButton('#refreshBtn', 'click', null, function onRefreshClick(evt) {
     evt.preventDefault();
     window.location.reload(true);
-  });
-
-  // Manage the Event RENAME button
-  bindButton('#renameBtn', 'click', null, function onRenameClick(evt) {
-    evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=modal&modal=eventrename&eid='+eventData.Id)
-        .done(function(data) {
-          insertModalHtml('eventRenameModal', data.html);
-          $j('#eventRenameModal').modal('show');
-          // Manage the SAVE button
-          $j('#eventRenameBtn').click(renameEvent);
-        })
-        .fail(logAjaxFail);
   });
 
   // Manage the ARCHIVE button

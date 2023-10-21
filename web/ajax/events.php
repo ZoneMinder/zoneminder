@@ -207,6 +207,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $likes = array();
   // Error($filter->sql());
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
+  $has_post_sql_conditions = count($filter->post_sql_conditions());
 
 
   $col_str = '
@@ -246,8 +247,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   GROUP BY E.Id 
   '.($sort?' ORDER BY '.$sort.' '.$order:'');
 
-  if ((int)$filter->limit() and !count($filter->post_sql_conditions())) {
-
+  if ((int)$filter->limit() and !$has_post_sql_conditions()) {
     $sql .= ' LIMIT '.$filter->limit();
   }
 
@@ -267,12 +267,14 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     return;
   }
   while ($row = dbFetchNext($query)) {
-    $event = new ZM\Event($row);
-    $event->remove_from_cache();
-    if (!$filter->test_post_sql_conditions($event)) {
-      continue;
+    if ($has_post_sql_conditions) {
+      $event = new ZM\Event($row);
+      $event->remove_from_cache();
+      if (!$filter->test_post_sql_conditions($event)) {
+        continue;
+      }
     }
-    $event_ids[] = $event->Id();
+    $event_ids[] = $row['Id'];
     $unfiltered_rows[] = $row;
   } # end foreach row
 
@@ -338,8 +340,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $filtered_rows = $unfiltered_rows;
   } # end if search_filter->terms() > 1
 
-  if ($limit and $limit < count($filtered_rows)) {
-    ZM\Debug("Filtering rows due to limit " . count($filtered_rows)." offset: $offset limit: $limit");
+  if ($limit and ($limit < count($filtered_rows))) {
+    ZM\Debug("Filtering rows due to limit rows: " . count($filtered_rows)." offset: $offset limit: $limit");
     $filtered_rows = array_slice($filtered_rows, $offset, $limit);
   }
 

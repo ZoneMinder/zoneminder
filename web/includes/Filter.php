@@ -1076,7 +1076,7 @@ class Filter extends ZM_Object {
     foreach ( $Servers as $server ) {
       $servers[$server->Id()] = validHtmlStr($server->Name());
     }
-    // $availableTags = array();
+    $availableTags = array();
     foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
       $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
     }

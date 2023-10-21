@@ -576,15 +576,21 @@ void EventStream::processCommand(const CmdMsg *msg) {
         if (offset < Seconds(0)) {
           Warning("Invalid offset, not seeking");
           break;
+        } else if (offset > event_data->duration) {
+          Warning("Invalid offset past end of event, seeking to end");
+          offset = event_data->duration;
         }
 
-        std::scoped_lock  lck{mutex};
+        std::scoped_lock lck{mutex};
         // This should get us close, but not all frames will have the same duration
         curr_frame_id = (int) (event_data->frame_count * offset / event_data->duration) + 1;
         if (curr_frame_id < 1) {
           Debug(1, "curr_frame_id = %d, so setting to 1", curr_frame_id);
           curr_frame_id = 1;
+        } else if (curr_frame_id > event_data->last_frame_id) {
+          curr_frame_id = event_data->last_frame_id;
         }
+
         // TODO Replace this with a binary search
         if (event_data->frames[curr_frame_id - 1].offset > offset) {
           Debug(1, "Searching for frame at %.6f, offset of frame %d is %.6f",
@@ -714,7 +720,7 @@ bool EventStream::checkEventLoaded() {
         event_data->monitor_id, event_data->event_id);
   } else {
     // No event change required
-    Debug(3, "No event change required, as curr frame %d <=> event frames %d",
+    Debug(4, "No event change required, as curr frame %d <=> event frames %d",
         curr_frame_id, event_data->frame_count);
     return false;
   }

@@ -36,6 +36,7 @@ class Logger {
   private $logFd = NULL;
 
   private $savedLogErrors = null;
+  private $savedErrorReporting = null;
   private $savedDisplayErrors = null;
 
   public static $codes = array(

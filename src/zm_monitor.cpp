@@ -2150,7 +2150,6 @@ bool Monitor::Analyse() {
             Debug(1, "Not analysing %d", shared_data->analysing);
           } // end if active and doing motion detection
 
-
           // Set this before any state changes so that it's value is picked up immediately by linked monitors
           shared_data->last_frame_score = score;
 
@@ -2367,12 +2366,13 @@ bool Monitor::Analyse() {
       shared_data->state = state = IDLE;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
-
     if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
       packetqueue.clearPackets(snap);
       // Only do these if it's a video packet.
       shared_data->last_read_index = snap->image_index;
       analysis_image_count++;
+    } else {
+      Debug(3, "Not video, not clearing packets");
     }
 
     if (event) {
@@ -2395,7 +2395,6 @@ bool Monitor::Analyse() {
       }
       // Free up the decoded frame as well, we won't be using it for anything at this time.
       snap->out_frame = nullptr;
-
     }
   }  // end scope for event_lock
   delete packet_lock;

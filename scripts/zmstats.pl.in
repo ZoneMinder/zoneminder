@@ -61,9 +61,14 @@ while (!$zm_terminate) {
   }
 
   # Get CPU utilization percentages
-  my ($user_utilization, $system_utilization) = split(/ /, `top -b -n 1 | grep "Cpu(s)" | awk '{print \$2, \$4}'`);
+  my $top_output = `top -b -n 1 | grep "^%Cpu(s)" | awk '{print \$2, \$4}'`;
+  my ($user_utilization, $system_utilization) = split(/ /, $top_output);
   $user_utilization =~ s/[^\d\.]//g;
   $system_utilization =~ s/[^\d\.]//g;
+  if (!$user_utilization) {
+    Warning("Failed getting user_utilization from $top_output");
+    $user_utilization = 0;
+  }
 
   zmDbDo('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuSystemPercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?)',
     $Config{ZM_SERVER_ID},

@@ -286,7 +286,7 @@ $serial = $primary_key = 'Id';
     Longitude =>  undef,
     RTSPStreamName => '',
     RTSPServer => 0,
-    Importance => 0,
+    Importance => q`'Normal'`,
     MQTT_Enabled => 0,
     MQTT_Subscriptions => q`''`,
     );

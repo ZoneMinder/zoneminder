@@ -1868,10 +1868,10 @@ bool Monitor::Poll() {
 #endif
     }  // end if Amcrest or not
   }  // end if Healthy
-  Debug(1, "Trying to check RTSP2Web in Poller");
   if (RTSP2Web_enabled and RTSP2Web_Manager) {
-    Debug(1, "Trying to add stream to RTSP2Web");
+    Debug(1, "Trying to check RTSP2Web in Poller");
     if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
+      Debug(1, "Trying to add stream to RTSP2Web");
       RTSP2Web_Manager->add_to_RTSP2Web();
     }
   }

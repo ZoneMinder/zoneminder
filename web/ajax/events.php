@@ -212,37 +212,16 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $col_str = '
   E.*, 
-  UNIX_TIMESTAMP(E.StartDateTime) 
-    AS StartTimeSecs, 
-  CASE WHEN E.EndDateTime 
-    IS NULL 
-    THEN (SELECT NOW()) 
-    ELSE E.EndDateTime END 
-      AS EndDateTime, 
-  CASE WHEN E.EndDateTime 
-    IS NULL 
-    THEN (SELECT UNIX_TIMESTAMP(NOW())) 
-    ELSE UNIX_TIMESTAMP(EndDateTime) END 
-      AS EndTimeSecs, 
-  M.Name 
-    AS Monitor,
-  GROUP_CONCAT(T.Name SEPARATOR ", ")
-    AS Tags';
+  UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs, 
+  CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime, 
+  CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs, 
+  M.Name AS Monitor,
+  GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags';
 
-  $sql = '
-  SELECT 
-    ' .$col_str. ' 
-  FROM `Events` 
-    AS E 
-  INNER JOIN Monitors 
-    AS M 
-    ON E.MonitorId = M.Id 
-  LEFT JOIN Events_Tags 
-    AS ET 
-    ON E.Id = ET.EventId 
-  LEFT JOIN Tags 
-    AS T 
-    ON T.Id = ET.TagId 
+  $sql = 'SELECT '.$col_str.' FROM `Events` AS E 
+  INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
+  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
+  LEFT JOIN Tags AS T ON T.Id = ET.TagId 
   '.$where.' 
   GROUP BY E.Id 
   '.($sort?' ORDER BY '.$sort.' '.$order:'');
@@ -315,24 +294,13 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $sql = 'SELECT ' .$col_str. ' 
-    FROM `Events` 
-      AS E 
-    INNER JOIN Monitors 
-      AS M 
-      ON E.MonitorId = M.Id 
-    LEFT JOIN Events_Tags 
-      AS ET 
-      ON E.Id = ET.EventId 
-    LEFT JOIN Tags 
-      AS T 
-      ON T.Id = ET.TagId 
-    WHERE 
-      '.$search_filter->sql().' 
+    $sql = 'SELECT '.$col_str.' FROM `Events` AS E 
+    INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
+    LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
+    LEFT JOIN Tags AS T ON T.Id = ET.TagId 
+    WHERE '.$search_filter->sql().' 
     GROUP BY E.Id 
-    ORDER BY 
-      ' .$sort. ' 
-      ' .$order;
+    ORDER BY ' .$sort. ' ' .$order;
 
     $filtered_rows = dbFetchAll($sql);
     ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);

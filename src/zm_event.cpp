@@ -142,7 +142,6 @@ Event::Event(
   sql = stringtf("INSERT INTO Events_Hour (EventId,MonitorId,StartDateTime) VALUES (%" PRIu64 ", %d, from_unixtime(%" PRId64 "))",
       id, monitor->Id(),  static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)));
   zmDbDoInsert(sql);
-
   sql = stringtf("INSERT INTO Events_Day (EventId,MonitorId,StartDateTime) VALUES (%" PRIu64 ", %d, from_unixtime(%" PRId64 "))",
       id, monitor->Id(),  static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)));
   zmDbDoInsert(sql);
@@ -151,6 +150,15 @@ Event::Event(
   zmDbDoInsert(sql);
   sql = stringtf("INSERT INTO Events_Month (EventId,MonitorId,StartDateTime) VALUES (%" PRIu64 ", %d, from_unixtime(%" PRId64 "))",
       id, monitor->Id(),  static_cast<int64>(std::chrono::system_clock::to_time_t(start_time)));
+  zmDbDoInsert(sql);
+  sql = stringtf("INSERT INTO Event_Summaries (MonitorId,HourEvents,DayEvents,WeekEvents,MonthEvents,TotalEvents) VALUES (%d,1,1,1,1,1) ON DUPLICATE KEY "
+      "UPDATE "
+      "HourEvents = COALESCE(HourEvents,0)+1,"
+      "DayEvents = COALESCE(DayEvents,0)+1,"
+      "WeekEvents = COALESCE(WeekEvents,0)+1,"
+      "MonthEvents = COALESCE(MonthEvents,0)+1,"
+      "TotalEvents = COALESCE(TotalEvents,0)+1",
+      monitor->Id());
   zmDbDoInsert(sql);
 
   thread_ = std::thread(&Event::Run, this);

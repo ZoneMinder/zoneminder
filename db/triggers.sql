@@ -184,6 +184,7 @@ DROP TRIGGER IF EXISTS event_insert_trigger//
 /* The assumption is that when an Event is inserted, it has no size yet, so don't bother updating the DiskSpace, just the count.
  * The DiskSpace will get update in the Event Update Trigger
  */
+/*
 CREATE TRIGGER event_insert_trigger AFTER INSERT ON Events
 FOR EACH ROW
   BEGIN
@@ -200,6 +201,7 @@ FOR EACH ROW
   MonthEvents = COALESCE(MonthEvents,0)+1,
   TotalEvents = COALESCE(TotalEvents,0)+1;
 END;
+*/
 //
 
 DROP TRIGGER IF EXISTS event_delete_trigger//

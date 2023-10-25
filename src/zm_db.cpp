@@ -210,13 +210,13 @@ int zmDbDoInsert(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   int rc;
   while ( (rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
+    Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
     if (mysql_ping(&dbconn)) {
       zmDbConnected = false;
       zmDbConnect();
     }
     if (zmDbConnected) {
-      Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
-      if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
+      if ((mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT))
         return 0;
     }
   }

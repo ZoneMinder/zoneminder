@@ -174,7 +174,8 @@ $eventIdsSql = '
 SELECT 
   E.Id, 
   GROUP_CONCAT(T.Name SEPARATOR ", ")
-    AS TagsFROM Events 
+    AS Tags
+FROM Events 
   AS E 
 INNER JOIN Monitors 
   AS M 

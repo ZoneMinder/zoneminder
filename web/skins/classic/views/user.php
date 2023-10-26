@@ -36,7 +36,6 @@ if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
 	}
 } else {
   $User = new ZM\User();
-	$User->Username(translate('NewUser'));
 }
 
 $yesno = array( 0=>translate('No'), 1=>translate('Yes') );
@@ -85,7 +84,7 @@ echo getNavBarHTML();
   ?>
               <tr class="Username">
                 <th scope="row"><?php echo translate('Username') ?></th>
-                <td><input type="text" name="user[Username]" pattern="[A-Za-z0-9 .@]+" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
+                <td><input type="text" name="user[Username]" pattern="[A-Za-z0-9 .@]+" placeholder="<?php echo translate('NewUser') ?>" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
               </tr>
   <?php
   }

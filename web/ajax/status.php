@@ -373,7 +373,7 @@ function collectData() {
       } # end if have limit == 1
     }
   }
-  ZM\Debug(print_r($data, true));
+  //ZM\Debug(print_r($data, true));
   return $data;
 }
 

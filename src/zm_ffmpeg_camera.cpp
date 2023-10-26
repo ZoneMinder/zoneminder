@@ -517,9 +517,9 @@ int FfmpegCamera::OpenFfmpeg() {
   while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
     Warning("Option %s not recognized by ffmpeg", e->key);
   }
+  av_dict_free(&opts);
   if (ret < 0) {
     Error("Unable to open codec for video stream from %s", mMaskedPath.c_str());
-    av_dict_free(&opts);
     return -1;
   }
   Debug(1, "Thread count? %d", mVideoCodecContext->thread_count);

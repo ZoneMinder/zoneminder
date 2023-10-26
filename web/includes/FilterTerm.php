@@ -25,6 +25,8 @@ class FilterTerm {
   public $cookie;
   public $placeholder;
   public $collate;
+  public $multiple;
+  public $chosen;
   public $tablename;
 
   public function __construct($filter = null, $term = null, $index=0) {
@@ -70,6 +72,8 @@ class FilterTerm {
       $this->cookie = isset($term['cookie']) ? $term['cookie'] : '';
       $this->placeholder = isset($term['placeholder']) ? $term['placeholder'] : null;
       $this->collate = isset($term['collate']) ? $term['collate'] : '';
+      $this->multiple = isset($term['multiple']) ? $term['multiple'] : '';
+      $this->chosen = isset($term['chosen']) ? $term['chosen'] : '';
 
     } else {
       Warning("No term in FilterTerm constructor");

@@ -130,82 +130,42 @@ $chart = array(
 $monitors = array();
 
 # The as E, and joining with Monitors is required for the filterSQL filters.
-$rangeSql = '
-SELECT 
-  min(E.StartDateTime) 
-    AS MinTime, 
-  max(E.EndDateTime) 
-    AS MaxTime, 
-  GROUP_CONCAT(T.Name SEPARATOR ", ")
-    AS Tags 
-FROM Events 
-  AS E 
-INNER JOIN Monitors 
-  AS M 
-  ON (E.MonitorId = M.Id) 
-LEFT JOIN Events_Tags 
-  AS ET 
-  ON E.Id = ET.EventId 
-LEFT JOIN Tags 
-  AS T 
-  ON T.Id = ET.TagId 
-WHERE NOT isnull(E.StartDateTime) 
-  AND NOT isnull(E.EndDateTime)';
+$rangeSql = 'SELECT 
+  min(E.StartDateTime) AS MinTime, 
+  max(E.EndDateTime) AS MaxTime, 
+FROM Events AS E 
+INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) 
+LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
+LEFT JOIN Tags AS T ON T.Id = ET.TagId 
+WHERE NOT isnull(E.StartDateTime) AND NOT isnull(E.EndDateTime)';
 
-$eventsSql = '
-SELECT 
-  E.*, 
-  GROUP_CONCAT(T.Name SEPARATOR ", ")
-    AS Tags 
-FROM Events 
-  AS E 
-INNER JOIN Monitors 
-  AS M 
-  ON (E.MonitorId = M.Id) 
-LEFT JOIN Events_Tags 
-  AS ET 
-  ON E.Id = ET.EventId 
-LEFT JOIN Tags 
-  AS T 
-  ON T.Id = ET.TagId 
+$eventsSql = 'SELECT 
+  E.*, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags 
+FROM Events AS E 
+INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) 
+LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
+LEFT JOIN Tags AS T ON T.Id = ET.TagId 
 WHERE NOT isnull(StartDateTime)';
 
-$eventIdsSql = '
-SELECT 
-  E.Id, 
-  GROUP_CONCAT(T.Name SEPARATOR ", ")
-    AS Tags
-FROM Events 
-  AS E 
-INNER JOIN Monitors 
-  AS M 
-  ON (E.MonitorId = M.Id) 
-LEFT JOIN Events_Tags 
-  AS ET 
-  ON E.Id = ET.EventId 
-LEFT JOIN Tags 
-  AS T 
-  ON T.Id = ET.TagId 
+$eventIdsSql = 'SELECT E.Id FROM Events AS E 
+INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) 
+LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
+LEFT JOIN Tags AS T ON T.Id = ET.TagId 
 WHERE NOT isnull(StartDateTime)';
 
 $eventsValues = array();
 
 if ( count($user->unviewableMonitorIds()) ) {
-  $monFilterSql = ' AND MonitorId IN ('.$user->viewableMonitorIds().')';
-
+  $monFilterSql = ' AND E.MonitorId IN ('.$user->viewableMonitorIds().')';
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;
   $eventIdsSql .= $monFilterSql;
 }
 
-if ( isset($_REQUEST['range']) )
-  $range = validHtmlStr($_REQUEST['range']);
-if ( isset($_REQUEST['minTime']) )
-  $minTime = validHtmlStr($_REQUEST['minTime']);
-if ( isset($_REQUEST['midTime']) )
-  $midTime = validHtmlStr($_REQUEST['midTime']);
-if ( isset($_REQUEST['maxTime']) )
-  $maxTime = validHtmlStr($_REQUEST['maxTime']);
+if ( isset($_REQUEST['range']) ) $range = validHtmlStr($_REQUEST['range']);
+if ( isset($_REQUEST['minTime']) ) $minTime = validHtmlStr($_REQUEST['minTime']);
+if ( isset($_REQUEST['midTime']) ) $midTime = validHtmlStr($_REQUEST['midTime']);
+if ( isset($_REQUEST['maxTime']) ) $maxTime = validHtmlStr($_REQUEST['maxTime']);
 
 if ( isset($range) and validInt($range) ) {
   $halfRange = (int)($range/2);
@@ -257,7 +217,7 @@ if ( $filterSql ) {
 }
 
 if (!isset($minTime) || !isset($maxTime)) {
-  if ( $filterSql ) $rangeSql .= ' AND '.$filterSql;
+  if ($filterSql) $rangeSql .= ' AND '.$filterSql;
   // Dynamically determine range
   $row = dbFetchOne($rangeSql);
   if ( $row ) {
@@ -322,7 +282,8 @@ if ( isset($minTime) && isset($maxTime) ) {
 }
 
 $framesByEventId = array();
-$eventsSql .= ' ORDER BY E.Id ASC';
+$eventsSql .= ' GROUP BY E.Id ORDER BY E.Id ASC';
+$eventIdsSql .= ' GROUP BY E.Id';
 $framesSql = "SELECT EventId,FrameId,Delta,Score FROM Frames WHERE EventId IN($eventIdsSql) AND Score > 0 ORDER BY Score DESC";
 $frames_result = dbQuery($framesSql);
 if ($frames_result) {

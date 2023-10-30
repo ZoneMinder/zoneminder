@@ -75,7 +75,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       if (count($changes)) {
         $filter->set($changes); // apply changes so that canEdit can use new values
         if ($filter->canEdit()) {
-          if ($filter->Id() and ($action == 'Save') and $filter->Background()) {
+          if ($filter->Id() and ($action == 'Save')) {
             $filter->control('stop');
           } else if ($action == 'execute') {
             # If there are changes use a temp filter to do the execute

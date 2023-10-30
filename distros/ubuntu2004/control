@@ -2,7 +2,7 @@ Source: zoneminder
 Section: net
 Priority: optional
 Maintainer: Isaac Connor <isaac@zoneminder.com>
-Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, dh-linktree, dh-apache2
+Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd-theme, dh-linktree, dh-apache2
               ,cmake
               ,libavcodec-dev
               ,libavdevice-dev

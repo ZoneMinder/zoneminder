@@ -28,7 +28,7 @@ foreach (getSkinIncludes('includes/timeline_functions.php') as $includeFile)
 global $dateTimeFormatter;
 
 //
-// Date/time formats used in charts 
+// Date/time formats used in charts
 //
 // These are the time axis range text. The first of each pair is the start date/time
 // and the second is the last so often contains additional information
@@ -130,27 +130,27 @@ $chart = array(
 $monitors = array();
 
 # The as E, and joining with Monitors is required for the filterSQL filters.
-$rangeSql = 'SELECT 
-  min(E.StartDateTime) AS MinTime, 
-  max(E.EndDateTime) AS MaxTime, 
-FROM Events AS E 
-INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) 
-LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
-LEFT JOIN Tags AS T ON T.Id = ET.TagId 
+$rangeSql = 'SELECT
+  min(E.StartDateTime) AS MinTime,
+  max(E.EndDateTime) AS MaxTime
+FROM Events AS E
+INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
+LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+LEFT JOIN Tags AS T ON T.Id = ET.TagId
 WHERE NOT isnull(E.StartDateTime) AND NOT isnull(E.EndDateTime)';
 
-$eventsSql = 'SELECT 
-  E.*, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags 
-FROM Events AS E 
-INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) 
-LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
-LEFT JOIN Tags AS T ON T.Id = ET.TagId 
+$eventsSql = 'SELECT
+  E.*, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags
+FROM Events AS E
+INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
+LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+LEFT JOIN Tags AS T ON T.Id = ET.TagId
 WHERE NOT isnull(StartDateTime)';
 
-$eventIdsSql = 'SELECT E.Id FROM Events AS E 
-INNER JOIN Monitors AS M ON (E.MonitorId = M.Id) 
-LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
-LEFT JOIN Tags AS T ON T.Id = ET.TagId 
+$eventIdsSql = 'SELECT E.Id FROM Events AS E
+INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
+LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+LEFT JOIN Tags AS T ON T.Id = ET.TagId
 WHERE NOT isnull(StartDateTime)';
 
 $eventsValues = array();
@@ -171,8 +171,8 @@ if ( isset($range) and validInt($range) ) {
   $halfRange = (int)($range/2);
   if ( isset($midTime) ) {
     $midTimeT = strtotime($midTime);
-    $minTimeT = $midTimeT-$halfRange; 
-    $maxTimeT = $midTimeT+$halfRange; 
+    $minTimeT = $midTimeT-$halfRange;
+    $maxTimeT = $midTimeT+$halfRange;
     if ( !($range%1) ) {
       $maxTimeT--;
     }
@@ -685,7 +685,7 @@ xhtmlHeaders(__FILE__, translate('Timeline'));
       </div>
       <h2 class="align-self-end"><?php echo translate('Timeline') ?></h2>
     </div>
-    
+
     <div id="content" class="chartSize">
       <div id="instruction">
         <p><?php echo translate('TimelineTip1') ?></p>
@@ -694,7 +694,7 @@ xhtmlHeaders(__FILE__, translate('Timeline'));
         <p><?php echo translate('TimelineTip4') ?></p>
       </div>
       <div id="topPanel" class="graphWidth">
-<?php 
+<?php
 foreach ( $monitors as $monitor ) {
 ?>
         <div class="monitorPanel" style="width:<?php echo 100/count($monitors); ?>%; float:left;">
@@ -710,7 +710,7 @@ foreach ( $monitors as $monitor ) {
             </div>
           </div>
         </div>
-<?php 
+<?php
 } # end foreach monitor
 ?>
           <div id="navPanel">

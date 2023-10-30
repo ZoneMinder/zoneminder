@@ -116,11 +116,14 @@ if (isset($_REQUEST['replayMode'])) {
     ZM\Warning('Invalid value for replayMode in cookies. Removing.');
     zm_setcookie('replayMode', '', time()-86400);
   }
-} else if ($preference = $user->Preference('replayMode')) {
-  if (isset($replayModes[$preference->Value()])) {
-    $replayMode = $preference->Value();
-  } else {
-    ZM\Warning('Invalid value for replayMode in user preferences.');
+} else {
+  $preference = $user->Preference('replayMode');
+  if ($preference->Value()) {
+    if (isset($replayModes[$preference->Value()])) {
+      $replayMode = $preference->Value();
+    } else {
+      ZM\Warning('Invalid value '.$preference->Value().' for replayMode in user preferences for user '.$user->Username());
+    }
   }
 }
 

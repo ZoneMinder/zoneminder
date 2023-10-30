@@ -274,8 +274,6 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getDbConHTML();
           echo getStorageHTML();
           echo getRamHTML();
-          #echo getShmHTML();
-          #echo getLogIconHTML();
           ?>
         </ul>
 
@@ -669,7 +667,7 @@ function getLogIconHTML() {
   if ( canView('System') ) {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
-      $class = ( $logstate == 'alert' ) ? 'text-warning' : (( $logstate == 'alarm' ) ? 'text-danger' : '');
+      $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
       $result .= '<li id="getLogIconHTML" class="nav-item">'.
         makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
         '</li>'.PHP_EOL;

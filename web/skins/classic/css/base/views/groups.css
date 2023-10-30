@@ -4,3 +4,7 @@
 
 #contentTable .colSelect input {
 }
+#content form {
+  height: 100%;
+  overflow: auto;
+}

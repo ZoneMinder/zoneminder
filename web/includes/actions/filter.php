@@ -54,6 +54,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['AutoMove'] = empty($_REQUEST['filter']['AutoMove']) ? 0 : 1;
       $_REQUEST['filter']['AutoMoveTo'] = empty($_REQUEST['filter']['AutoMoveTo']) ? 0 : $_REQUEST['filter']['AutoMoveTo'];
       $_REQUEST['filter']['AutoArchive'] = empty($_REQUEST['filter']['AutoArchive']) ? 0 : 1;
+      $_REQUEST['filter']['AutoUnarchive'] = empty($_REQUEST['filter']['AutoUnarchive']) ? 0 : 1;
       $_REQUEST['filter']['AutoVideo'] = empty($_REQUEST['filter']['AutoVideo']) ? 0 : 1;
       $_REQUEST['filter']['AutoUpload'] = empty($_REQUEST['filter']['AutoUpload']) ? 0 : 1;
       $_REQUEST['filter']['AutoEmail'] = empty($_REQUEST['filter']['AutoEmail']) ? 0 : 1;

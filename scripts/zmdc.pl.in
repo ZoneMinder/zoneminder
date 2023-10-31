@@ -800,24 +800,24 @@ sub check {
 
 sub status {
   my $daemon = shift;
-  my @args = @_;
 
-  if ( defined($daemon) ) {
-    my $command = join(' ', $daemon, @args);
+  if (defined($daemon)) {
+    my $command = join(' ', $daemon, @_);
     my $process = $cmd_hash{$command};
-    if ( ! $process ) {
+    if (!$process) {
       dPrint(ZoneMinder::Logger::DEBUG, "'$command' not running\n");
       return;
     }
 
-    if ( $process->{pending} ) {
+    if ($process->{pending}) {
       dPrint(ZoneMinder::Logger::DEBUG, "'$command' pending at "
           .strftime('%y/%m/%d %H:%M:%S', localtime($process->{pending}))
           ."\n"
           );
+          return;
     } else {
       my $pid = $process->{pid};
-      if ( ! $pid_hash{$pid} ) {
+      if (!$pid_hash{$pid}) {
         dPrint(ZoneMinder::Logger::DEBUG, "'$command' not running\n");
         return;
       }
@@ -827,17 +827,17 @@ sub status {
         .", pid = $process->{pid}"
         );
   } else {
-    foreach my $process ( values %pid_hash ) {
+    foreach my $pid (sort { $a <=> $b } keys %pid_hash) {
+      my $process = $pid_hash{$pid};
       my $out_str = "'$process->{command}' running since "
         .strftime('%y/%m/%d %H:%M:%S', localtime($process->{started}))
-        .", pid = $process->{pid}"
-        ;
-      $out_str .= ", valid" if ( kill(0, $process->{pid}) );
+        .", pid = $process->{pid}";
+      $out_str .= ", valid" if kill(0, $process->{pid});
       $out_str .= "\n";
       dPrint(ZoneMinder::Logger::DEBUG, $out_str);
     }
-    foreach my $process ( values %cmd_hash ) {
-      if ( $process->{pending} ) {
+    foreach my $process (values %cmd_hash) {
+      if ($process->{pending}) {
         dPrint(ZoneMinder::Logger::DEBUG, "'$process->{command}' pending at "
             .strftime('%y/%m/%d %H:%M:%S', localtime($process->{pending}))
             ."\n"

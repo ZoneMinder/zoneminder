@@ -47,8 +47,7 @@ bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_tim
                              "ORDER BY `Id` ASC LIMIT 1", monitor_id, std::chrono::system_clock::to_time_t(event_time));
 
   MYSQL_RES *result = zmDbFetch(sql);
-  if (!result)
-    exit(-1);
+  if (!result) exit(-1);
 
   MYSQL_ROW dbrow = mysql_fetch_row(result);
 
@@ -68,7 +67,7 @@ bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_tim
     curr_frame_id = 1; // curr_frame_id is 1-based
     if (event_time >= event_data->start_time) {
       Debug(2, "event time is after event start");
-      for (int i = 0; i < event_data->frame_count; i++) {
+      for (int i=0; i < event_data->frame_count; i++) {
         //Info( "eft %d > et %d", event_data->frames[i].timestamp, event_time );
         if (event_data->frames[i].timestamp >= event_time) {
           curr_frame_id = i + 1;
@@ -750,19 +749,14 @@ bool EventStream::checkEventLoaded() {
 
       loadEventData(event_id);
 
-      if ( replay_rate < 0 )  // rewind
-        curr_frame_id = event_data->last_frame_id;
-      else
-        curr_frame_id = 1;
+      curr_frame_id = replay_rate < 0 ? event_data->last_frame_id : 1;
       Debug(2, "New frame id = %d", curr_frame_id);
       start = std::chrono::steady_clock::now();
+      mysql_free_result(result);
       return true;
     } else {
       Debug(2, "No next event loaded using %s. Pausing", sql.c_str());
-      if ( curr_frame_id <= 0 )
-        curr_frame_id = 1;
-      else
-        curr_frame_id = event_data->frame_count;
+      curr_frame_id = curr_frame_id <= 0 ? 1 : event_data->frame_count;
       paused = true;
       sendTextFrame("No more event data found");
     }  // end if found a new event or not
@@ -770,10 +764,7 @@ bool EventStream::checkEventLoaded() {
     forceEventChange = false;
   } else {
     Debug(2, "Pausing because mode is %s", StreamMode_Strings[mode].c_str());
-    if ( curr_frame_id <= 0 )
-      curr_frame_id = 1;
-    else
-      curr_frame_id = event_data->last_frame_id;
+    curr_frame_id = curr_frame_id <= 0 ? 1 : event_data->last_frame_id;
     paused = true;
   }
   return false;
@@ -964,7 +955,7 @@ void EventStream::runStream() {
 
       if (!paused) {
         // Figure out if we should send this frame
-        Debug(3, "not paused at cur_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
+        Debug(3, "not paused at curr_frame_id (%d-1) mod frame_mod(%d)", curr_frame_id, frame_mod);
         // If we are streaming and this frame is due to be sent
         // frame mod defaults to 1 and if we are going faster than max_fps will get multiplied by 2
         // so if it is 2, then we send every other frame, if is it 4 then every fourth frame, etc.
@@ -1111,7 +1102,7 @@ void EventStream::runStream() {
       }  // end if !paused
     }  // end scope for mutex lock
 
-    if (send_frame && type != STREAM_MPEG) {
+    if (send_frame && (type != STREAM_MPEG)) {
       if (delta > Seconds(0)) {
         if (delta > MAX_SLEEP) {
           Debug(1, "Limiting sleep to %" PRIi64 " ms because calculated sleep is too long %" PRIi64,

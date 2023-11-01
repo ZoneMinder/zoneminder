@@ -136,7 +136,7 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($codec == 'MP4') | ((false !== strpos($Event->DefaultVideo(), 'h264')) & ($codec === 'auto'));
+$video_tag = $codec == 'MP4' or ((false !== strpos($Event->DefaultVideo(), 'h264')) and ($codec == 'auto'));
 
 // videojs zoomrotate only when direct recording
 $Zoom = 1;

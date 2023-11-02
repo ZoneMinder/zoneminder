@@ -102,17 +102,12 @@ if ( $begin > 0 || $end < $size-1 ) {
 
 // Apparently without these we get a few extra bytes of output at the end...
 flush();
-
-$cur = $begin;
 fseek($fh, $begin, 0);
 
-while ( $length && ( !feof($fh) ) && ( connection_status() == 0 ) ) {
+while ($length && (!feof($fh)) && (connection_status() == 0)) {
   $amount = min(1024*16, $length);
-
-  print fread($fh, $amount);
+  echo fread($fh, $amount);
   $length -= $amount;
-  # Why introduce a speed limit?
-  #usleep(100);
   flush();
 }
 

@@ -73,6 +73,11 @@ if (isset($_REQUEST['showZones'])) {
   $showZones = $_SESSION['zmEventShowZones'.$monitor->Id()];
 }
 
+$codecs = array(
+  'auto'  => translate('Auto'),
+  'MP4'   => translate('MP4'),
+  'MJPEG' => translate('MJPEG'),
+);
 $codec = 'auto';
 if (isset($_REQUEST['codec'])) {
   $codec = $_REQUEST['codec'];
@@ -82,13 +87,13 @@ if (isset($_REQUEST['codec'])) {
 } else {
   $codec = $monitor->DefaultCodec();
 }
+if (!isset($codecs[$codec])) {
+  ZM\Warning("Invalid value for Codec: $codec, reverting to auto");
+  $codec = 'auto';
+  unset($_SESSION['zmEventCodec'.$Event->MonitorId()]);
+}
 session_write_close();
 
-$codecs = array(
-  'auto'  => translate('Auto'),
-  'MP4'   => translate('MP4'),
-  'MJPEG' => translate('MJPEG'),
-);
 
 $replayModes = array(
   'none'    => translate('None'),
@@ -131,7 +136,7 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ((false !== strpos($Event->DefaultVideo(), 'h264')) and ($codec == 'MP4' or $codec == 'auto'));
+$video_tag = ($codec == 'MP4') | ((false !== strpos($Event->DefaultVideo(), 'h264')) & ($codec === 'auto'));
 
 // videojs zoomrotate only when direct recording
 $Zoom = 1;

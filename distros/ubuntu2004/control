@@ -43,8 +43,8 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,sudo
         ,javascript-common
-        ,libavdevice59|libavdevice58|libavdevice57
-        ,libswscale6|libswscale5|libswscale4
+        ,libavdevice60|libavdevice59|libavdevice58|libavdevice57
+        ,libswscale7|libswscale6|libswscale5|libswscale4
         ,libswresample4|libswresample3|libswresample2
         ,ffmpeg
         ,libcurl4, libcurl4-gnutls-dev

@@ -562,6 +562,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
 
+  image_count = 0;
   last_alarm_count = 0;
   state = IDLE;
   last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.

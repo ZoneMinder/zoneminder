@@ -562,6 +562,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
 
+  image_count = 0;
   last_alarm_count = 0;
   state = IDLE;
   last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.
@@ -1030,6 +1031,7 @@ bool Monitor::connect() {
         soap_register_plugin(soap, soap_wsse);
         soap_register_plugin(soap, soap_wsa);
         proxyEvent = PullPointSubscriptionBindingProxy(soap);
+
         if (!onvif_url.empty()) {
           std::string full_url = onvif_url + "/Events";
           proxyEvent.soap_endpoint = full_url.c_str();
@@ -1080,7 +1082,7 @@ bool Monitor::connect() {
                   Event_Poller_Healthy = TRUE;
                 }
               } else {
-                Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  RenewRequest .... ! Error %i %s, %s",
+                Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=RenewRequest Error %i %s, %s",
                     RequestMessageID,
                     response.SubscriptionReference.Address,
                     soap->error,
@@ -1090,7 +1092,8 @@ bool Monitor::connect() {
               }
             }
           } else {
-            Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  CreatePullPointSubscriptionRequest .... ! Error %i %s, %s",RequestMessageID , proxyEvent.soap_endpoint , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+            Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=CreatePullPointSubscriptionRequest Error %i %s, %s",
+                RequestMessageID, proxyEvent.soap_endpoint, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
           }
         } else {
           Warning("You must specify the url to the ONVIF endpoint");
@@ -1868,13 +1871,15 @@ bool Monitor::Poll() {
 #endif
     }  // end if Amcrest or not
   }  // end if Healthy
-  Debug(1, "Trying to check RTSP2Web in Poller");
+
   if (RTSP2Web_enabled and RTSP2Web_Manager) {
-    Debug(1, "Trying to add stream to RTSP2Web");
+    Debug(1, "Trying to check RTSP2Web in Poller");
     if (RTSP2Web_Manager->check_RTSP2Web() == 0) {
+      Debug(1, "Trying to add stream to RTSP2Web");
       RTSP2Web_Manager->add_to_RTSP2Web();
     }
   }
+
   if (janus_enabled and Janus_Manager) {
     if (Janus_Manager->check_janus() == 0) {
       Janus_Manager->add_to_janus();
@@ -1895,7 +1900,10 @@ bool Monitor::Analyse() {
 
   // get_analysis_packet will lock the packet and may wait if analysis_it is at the end
   ZMLockedPacket *packet_lock = packetqueue.get_packet(analysis_it);
-  if (!packet_lock) return false;
+  if (!packet_lock) {
+    Debug(1, "No packet lock, returning false");
+    return false;
+  }
   std::shared_ptr<ZMPacket> snap = packet_lock->packet_;
 
   // Is it possible for snap->score to be ! -1 ? Not if everything is working correctly
@@ -2051,6 +2059,7 @@ bool Monitor::Analyse() {
               // We no longer wait because we need to be checking the triggers and other inputs.
               // Also the logic is too hairy.  capture process can delete the packet that we have here.
               delete packet_lock;
+              Debug(1, "Not decoded, waiting for decode");
               return false;
             }
           }  // end if decoding enabled
@@ -2149,7 +2158,6 @@ bool Monitor::Analyse() {
           } else {
             Debug(1, "Not analysing %d", shared_data->analysing);
           } // end if active and doing motion detection
-
 
           // Set this before any state changes so that it's value is picked up immediately by linked monitors
           shared_data->last_frame_score = score;
@@ -2367,12 +2375,13 @@ bool Monitor::Analyse() {
       shared_data->state = state = IDLE;
     } // end if ( trigger_data->trigger_state != TRIGGER_OFF )
 
-
     if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
       packetqueue.clearPackets(snap);
       // Only do these if it's a video packet.
       shared_data->last_read_index = snap->image_index;
       analysis_image_count++;
+    } else {
+      Debug(3, "Not video, not clearing packets");
     }
 
     if (event) {
@@ -2395,7 +2404,6 @@ bool Monitor::Analyse() {
       }
       // Free up the decoded frame as well, we won't be using it for anything at this time.
       snap->out_frame = nullptr;
-
     }
   }  // end scope for event_lock
   delete packet_lock;
@@ -3387,12 +3395,14 @@ int Monitor::Close() {
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
     const char *RequestMessageID = soap_wsa_rand_uuid(soap);
-    if (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address , "UnsubscribeRequest") == SOAP_OK)
+    if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "UnsubscribeRequest") == SOAP_OK)
     {
       proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     } else {
-      Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  UnsubscribeRequest .... ! Error %i %s, %s",RequestMessageID , response.SubscriptionReference.Address , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+      Error("Couldn't set wsa headers RequestMessageID=%s; TO= %s; Request=UnsubscribeRequest .... ! Error %i %s, %s",
+          RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     }
+    
     soap_destroy(soap);
     soap_end(soap);
     soap_free(soap);

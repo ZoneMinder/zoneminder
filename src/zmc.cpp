@@ -386,8 +386,8 @@ int main(int argc, char *argv[]) {
   curl_global_cleanup();
   Debug(1, "terminating");
   dbQueue.stop();
-  logTerm();
   zmDbClose();
+  logTerm();
 
   return zm_terminate ? 0 : result;
 }

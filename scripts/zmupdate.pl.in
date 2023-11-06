@@ -158,20 +158,22 @@ if ($check) {
     zmDbDo("UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_DYN_CURR_VERSION'", $currVersion);
   }
 
+  use LWP::UserAgent;
+  my $ua = LWP::UserAgent->new;
+  $ua->agent('ZoneMinder Update Agent/'.ZM_VERSION);
+  if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
+    $ua->proxy('https', $Config{ZM_UPDATE_CHECK_PROXY});
+  }
+  my $req = HTTP::Request->new(GET=>'https://update.zoneminder.com/version.txt');
+
   while ( 1 ) {
     my $now = time();
+    $dbh->ping();
     if ( !$interactive and $lastVersion and $lastCheck and (($now-$lastCheck) <= CHECK_INTERVAL) ) {
       Debug("Not checking for updates since we already have less than " . CHECK_INTERVAL . " seconds ago.");
     } else {
       Info('Checking for updates');
 
-      use LWP::UserAgent;
-      my $ua = LWP::UserAgent->new;
-      $ua->agent('ZoneMinder Update Agent/'.ZM_VERSION);
-      if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
-        $ua->proxy('https', $Config{ZM_UPDATE_CHECK_PROXY});
-      }
-      my $req = HTTP::Request->new(GET=>'https://update.zoneminder.com/version.txt');
       my $res = $ua->request($req);
 
       if ( $res->is_success ) {

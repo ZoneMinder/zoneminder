@@ -16,7 +16,7 @@ class User extends ZM_Object {
   protected $Phone;
   protected $Password;
   protected $Language;
-  protected $Enabled;
+  protected $Enabled = 1;
   protected $Stream;
   protected $Events;
   protected $Experiments;
@@ -28,8 +28,8 @@ class User extends ZM_Object {
   protected $System;
   protected $MaxBandwidth;
   protected $TokenMinExpiry;
-  protected $APIEnabled;
-  protected $HomeView;
+  protected $APIEnabled = 1;
+  protected $HomeView = 'console';
 
 
 	protected $defaults = array(
@@ -87,7 +87,11 @@ class User extends ZM_Object {
 
   public function Group_Permissions() {
     if (!$this->Group_Permissions) {
+      if ($this->Id()) {
       $this->Group_Permissions = array_to_hash_by_key('GroupId', Group_Permission::find(['UserId'=>$this->Id()]));
+      } else {
+        $this->Group_Permissions = [];
+      }
     }
     return array_values($this->Group_Permissions);
   }
@@ -107,7 +111,11 @@ class User extends ZM_Object {
   public function Monitor_Permissions($new=-1) {
     if ($new != -1) $this->Monitor_Permissions = $new;
     if (!$this->Monitor_Permissions) {
-      $this->Monitor_Permissions = array_to_hash_by_key('MonitorId', Monitor_Permission::find(['UserId'=>$this->Id()]));
+      if ($this->Id()) {
+        $this->Monitor_Permissions = array_to_hash_by_key('MonitorId', Monitor_Permission::find(['UserId'=>$this->Id()]));
+      } else {
+        $this->Monitor_Permissions = [];
+      }
     }
     return array_values($this->Monitor_Permissions);
   }

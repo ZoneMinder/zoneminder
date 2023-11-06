@@ -420,6 +420,11 @@ int RemoteCameraHttp::GetResponse() {
                 mode = SINGLE_IMAGE;
                 format = JPEG;
                 state = CONTENT;
+              } else if ( !strcasecmp( content_type, "application/octet-stream" ) ) {
+                // Single image
+                mode = SINGLE_IMAGE;
+                format = JPEG;
+                state = CONTENT;
               } else if ( !strcasecmp( content_type, "image/x-rgb" ) ) {
                 // Single image
                 mode = SINGLE_IMAGE;
@@ -507,6 +512,8 @@ int RemoteCameraHttp::GetResponse() {
             }
 
             if ( !strcasecmp( content_type, "image/jpeg" ) || !strcasecmp( content_type, "image/jpg" ) ) {
+              format = JPEG;
+            } else if ( !strcasecmp( content_type, "application/octet-stream" ) ) {
               format = JPEG;
             } else if ( !strcasecmp( content_type, "image/x-rgb" ) ) {
               format = X_RGB;
@@ -808,6 +815,11 @@ int RemoteCameraHttp::GetResponse() {
                 mode = SINGLE_IMAGE;
                 format = JPEG;
                 state = CONTENT;
+              } else if (!strcasecmp(content_type, "application/octet-stream")) {
+                // Single image
+                mode = SINGLE_IMAGE;
+                format = JPEG;
+                state = CONTENT;
               } else if (!strcasecmp(content_type, "image/x-rgb")) {
                 // Single image
                 mode = SINGLE_IMAGE;
@@ -958,6 +970,8 @@ int RemoteCameraHttp::GetResponse() {
             }
 
             if (!strcasecmp(content_type, "image/jpeg") || !strcasecmp(content_type, "image/jpg")) {
+              format = JPEG;
+            } else if (!strcasecmp(content_type, "application/octet-stream")) {
               format = JPEG;
             } else if (!strcasecmp(content_type, "image/x-rgb")) {
               format = X_RGB;

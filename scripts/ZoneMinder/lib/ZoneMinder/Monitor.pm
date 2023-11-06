@@ -286,7 +286,7 @@ $serial = $primary_key = 'Id';
     Longitude =>  undef,
     RTSPStreamName => '',
     RTSPServer => 0,
-    Importance => 0,
+    Importance => q`'Normal'`,
     MQTT_Enabled => 0,
     MQTT_Subscriptions => q`''`,
     );
@@ -532,7 +532,7 @@ sub ImportanceNumber {
   } elsif ($$self{Importance} eq 'Normal') {
     return 0;
   }
-  Warning("Weird value for Importance $$self{Importance}");
+  Warning("Weird value for Importance $$self{Importance} in monitor $$self{Id} $$self{Name}");
   return 0;
 }
 

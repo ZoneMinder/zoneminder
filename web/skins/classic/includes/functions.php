@@ -274,8 +274,6 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getDbConHTML();
           echo getStorageHTML();
           echo getRamHTML();
-          #echo getShmHTML();
-          #echo getLogIconHTML();
           ?>
         </ul>
 
@@ -290,10 +288,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   
 <?php
   } // end if (!ZM_OPT_USE_AUTH) or $user )
-  $banner_html = getConsoleBannerHTML();
-  if ($banner_html) {
-    echo '<nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">'.$banner_html.'</nav>';
-  }
+  echo getConsoleBannerHTML();
 ?>
 </div>
 <?php
@@ -380,10 +375,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
       </div>
 
     </nav><!-- End First Navbar -->
-
-    <nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">
-      <?php echo getConsoleBannerHTML() ?>
-    </nav><!-- End Second Navbar -->
+    <?php echo getConsoleBannerHTML() ?>
   </div>
   
   <?php
@@ -533,7 +525,9 @@ function getConsoleBannerHTML() {
   $result = '';
 
   if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) {
+    $result .= '<nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">';
     $result .= '<h2 id="getConsoleBannerHTML">'.validHtmlStr(ZM_WEB_CONSOLE_BANNER).'</h2>';
+    $result .= '</nav>';
   }
   return $result;
 }
@@ -673,7 +667,7 @@ function getLogIconHTML() {
   if ( canView('System') ) {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
-      $class = ( $logstate == 'alert' ) ? 'text-warning' : (( $logstate == 'alarm' ) ? 'text-danger' : '');
+      $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
       $result .= '<li id="getLogIconHTML" class="nav-item">'.
         makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
         '</li>'.PHP_EOL;

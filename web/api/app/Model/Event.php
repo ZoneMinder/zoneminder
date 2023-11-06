@@ -106,6 +106,22 @@ class Event extends AppModel {
       'finderQuery' => '',
       'counterQuery' => ''
     ),
+    'Tag' => array(
+      'className' => 'Tag',
+      'joinTable' =>  'Events_Tags',
+      'foreignKey' => 'EventId',
+      'associationForeignKey' => 'TagId',
+      'unique'      =>  true,
+      'dependent' => false,
+      'conditions' => '',
+      'fields' => '',
+      'order' => '',
+      'limit' => '',
+      'offset' => '',
+      'exclusive' => '',
+      'finderQuery' => '',
+      'counterQuery' => ''
+    ),
   );
 
   public $actsAs = array(

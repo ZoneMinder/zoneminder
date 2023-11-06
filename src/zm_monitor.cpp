@@ -1942,7 +1942,7 @@ bool Monitor::Analyse() {
       if (onvif_event_listener && Event_Poller_Healthy) {
         if (Poll_Trigger_State) {
           score += 9;
-          Debug(1, "Triggered on ONVIF");
+          Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
           noteSet.insert("ONVIF2");
           noteSetMap[MOTION_CAUSE] = noteSet;

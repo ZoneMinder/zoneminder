@@ -245,7 +245,6 @@ int main(int argc, char *argv[]) {
       }
       SystemTimePoint now = std::chrono::system_clock::now();
       monitor->SetStartupTime(now);
-      monitor->SetHeartbeatTime(now);
 
       std::string sql = stringtf(
           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS,CaptureBandwidth)"

@@ -709,6 +709,7 @@ public:
       return false;
     }
     if (image_count >= ready_count) {
+      Debug(2, "Ready because image_count(%d) >= ready_count(%d)", image_count, ready_count);
       return true;
     }
     Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count);

@@ -562,6 +562,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);
 
+  image_count = 0;
   last_alarm_count = 0;
   state = IDLE;
   last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.
@@ -994,6 +995,8 @@ bool Monitor::connect() {
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
+    SystemTimePoint now = std::chrono::system_clock::now();
+    shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(now);
     shared_data->valid = true;
 
     ReloadLinkedMonitors();

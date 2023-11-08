@@ -476,7 +476,7 @@ int main(int argc, char *argv[]) {
         exit_zmu(-1);
       }
       if ( auth ) {
-        user = zmLoadAuthUser(auth, false);
+        user = zmLoadAuthUser(auth, username, false);
       }
       if ( username && password ) {
         if ( !checkUser(username)) {

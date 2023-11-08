@@ -61,8 +61,10 @@ class ZM_RtspServer_Authenticator : public xop::Authenticator {
       } else {
         if (query.has("auth")) {
           std::string auth_hash = query.get("auth")->firstValue();
-          if ( !auth_hash.empty() )
-            user = zmLoadAuthUser(auth_hash.c_str(), config.auth_hash_ips);
+          if (!auth_hash.empty()) {
+            std::string username = query.has("username") ? query.get("username")->firstValue() : "";
+            user = zmLoadAuthUser(auth_hash, username, config.auth_hash_ips);
+          }
         }
         Debug(1, "Query has username ? %d", query.has("username"));
         if ((!user) and query.has("username") and query.has("password")) {

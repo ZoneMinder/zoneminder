@@ -219,7 +219,7 @@ int main(int argc, const char *argv[], char **envp) {
       }
     } else {
       if ( *auth ) {
-        user = zmLoadAuthUser(auth, config.auth_hash_ips);
+        user = zmLoadAuthUser(auth, username, config.auth_hash_ips);
       } else if ( username.length() && password.length() ) {
         user = zmLoadUser(username.c_str(), password.c_str());
       }

@@ -216,7 +216,7 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
 }  // User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr)
  
 // Function to validate an authentication string
-User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
+User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr) {
   const char *remote_addr = "";
   if (use_remote_addr) {
     remote_addr = getenv("REMOTE_ADDR");
@@ -226,10 +226,13 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     }
   }
 
-  Debug(1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth, remote_addr);
+  Debug(1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth.c_str(), remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
                     " FROM `Users` WHERE `Enabled` = 1";
+  if (!username.empty()) {
+    sql += " AND `Username`='"+zmDbEscapeString(username)+"'";
+  }
 
   MYSQL_RES *result = zmDbFetch(sql);
   if (!result)
@@ -255,8 +258,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   }
 
   while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
-    const char *username = dbrow[1];
-    const char *password = dbrow[2];
+    const char *db_username = dbrow[1];
+    const char *db_password = dbrow[2];
 
     SystemTimePoint our_now = now;
     tm now_tm = {};
@@ -266,8 +269,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 
       std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
                                       config.auth_hash_secret,
-                                      username,
-                                      password,
+                                      db_username,
+                                      db_password,
                                       remote_addr,
                                       now_tm.tm_hour,
                                       now_tm.tm_mday,
@@ -277,24 +280,24 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
       zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
       std::string auth_md5 = ByteArrayToHexString(md5_digest);
 
-      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5.c_str(), auth);
+      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5.c_str(), auth.c_str());
 
-      if (!strcmp(auth, auth_md5.c_str())) {
+      if (auth == auth_md5) {
         // We have a match
         User *user = new User(dbrow);
         Debug(1, "Authenticated user '%s'", user->getUsername());
         mysql_free_result(result);
         return user;
       } else {
-        Debug(1, "No match for %s", auth);
+        Debug(1, "No match for %s", auth.c_str());
       }
     }  // end foreach hour
   }  // end foreach user
   mysql_free_result(result);
 
-  Debug(1, "No user found for auth_key %s", auth);
+  Debug(1, "No user found for auth_key %s", auth.c_str());
   return nullptr;
-}  // end User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
+}  // end User *zmLoadAuthUser( const std::string &auth, const std::string &username, bool use_remote_addr )
 
 // Function to check Username length
 bool checkUser(const char *username) {

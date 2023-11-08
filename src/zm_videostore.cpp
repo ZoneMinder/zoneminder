@@ -1294,14 +1294,28 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
 
     int64_t duration = 0;
     if (zm_packet->in_frame) {
-      if (zm_packet->in_frame->pkt_duration) {
+
+      if (
+#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
+          zm_packet->in_frame->duration
+#else
+          zm_packet->in_frame->pkt_duration
+#endif
+         ) {
         duration = av_rescale_q(
+#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
+            zm_packet->in_frame->duration,
+#else
             zm_packet->in_frame->pkt_duration,
+#endif
             video_in_stream->time_base,
             video_out_stream->time_base);
-        Debug(1, "duration from ipkt: pts(%" PRId64 ") = pkt_duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
-            zm_packet->in_frame->pts,
+        Debug(1, "duration from ipkt: = duration(%" PRId64 ") => (%" PRId64 ") (%d/%d) (%d/%d)",
+#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
+            zm_packet->in_frame->duration,
+#else
             zm_packet->in_frame->pkt_duration,
+#endif
             duration,
             video_in_stream->time_base.num,
             video_in_stream->time_base.den,
@@ -1320,9 +1334,15 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             duration
             );
         if (duration <= 0) {
+#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
+          duration = zm_packet->in_frame->duration ?
+            zm_packet->in_frame->duration :
+            av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
+#else
           duration = zm_packet->in_frame->pkt_duration ?
             zm_packet->in_frame->pkt_duration :
             av_rescale_q(1, video_in_stream->time_base, video_out_stream->time_base);
+#endif
         }
       }  // end if in_frmae->pkt_duration
       video_last_pts = zm_packet->in_frame->pts;

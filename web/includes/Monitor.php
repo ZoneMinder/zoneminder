@@ -458,6 +458,8 @@ public static function getStatuses() {
     if (ZM_OPT_USE_AUTH) {
       if (ZM_AUTH_RELAY == 'hashed') {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+        # Include user so that db lookups can be more efficient
+        $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
         $args['pass'] = isset($_SESSION['password']) ? $_SESSION['password'] : '';

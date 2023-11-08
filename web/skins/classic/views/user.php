@@ -63,7 +63,7 @@ echo getNavBarHTML();
     <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
         <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? $_REQUEST['prev'] : 'options&tab=users' ?>"/>
-        <input type="hidden" name="uid" value="<?php echo validHtmlStr($_REQUEST['uid']) ?>"/>
+        <input type="hidden" name="uid" value="<?php echo validHtmlStr($User->Id()) ?>"/>
         <div id="header">
           <div class="float-left pl-3 pt-1">
             <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>

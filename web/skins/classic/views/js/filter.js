@@ -309,6 +309,10 @@ function parseRows(rows) {
       var val = inputTds.eq(4).children().val();
       if ( ! val ) val = 'false'; // default to the first option false
       inputTds.eq(4).html(select).children().val(val);
+    } else if ( attr == 'DiskPercent' ) {
+      const textInput = $j('<input></input>').attr('type', 'number').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]').attr('min', '0').attr('step','1');
+      const textVal = inputTds.eq(4).children().val();
+      inputTds.eq(4).html(textInput).children().val(textVal);
     } else { // Reset to regular text field and operator for everything that isn't special
       var textInput = $j('<input></input>').attr('type', 'text').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       var textVal = inputTds.eq(4).children().val();

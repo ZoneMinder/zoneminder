@@ -234,15 +234,16 @@ function generateAuthHash($useRemoteAddr, $force=false) {
     # We use 1800 so that we regenerate the hash at half the TTL
     $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
 
+    $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
     # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
-    if ($force or ( !isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime )) {
-      $auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
+    if ($force or ( !isset($_SESSION['AuthHash'.$remoteAddr]) ) or ( $_SESSION['AuthHashGeneratedAt'] < $mintime )) {
+      $auth = calculateAuthHash($useRemoteAddr ? $remoteAddr : '');
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
-      $_SESSION['AuthHash'.$_SESSION['remoteAddr']] = $auth;
+      $_SESSION['AuthHash'.$remoteAddr] = $auth;
       $_SESSION['AuthHashGeneratedAt'] = $time;
       # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.
     } # end if AuthHash is not cached
-    return $_SESSION['AuthHash'.$_SESSION['remoteAddr']];
+    return $_SESSION['AuthHash'.$remoteAddr];
   } # end if using AUTH and AUTH_RELAY
   return '';
 }
@@ -268,11 +269,12 @@ function canEdit($area, $mid=false) {
 function userFromSession() {
   $user = null; // Not global
   if (isset($_SESSION['username'])) {
+    $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
     if (ZM_AUTH_HASH_LOGINS and (ZM_AUTH_RELAY == 'hashed')) {
       # Extra validation, if logged in, then the auth hash will be set in the session, so we can validate it.
       # This prevent session modification to switch users
-      if (isset($_SESSION['AuthHash'.$_SESSION['remoteAddr']]))
-        $user = getAuthUser($_SESSION['AuthHash'.$_SESSION['remoteAddr']]);
+      if (isset($_SESSION['AuthHash'.$remoteAddr]))
+        $user = getAuthUser($_SESSION['AuthHash'.$remoteAddr]);
       else
         ZM\Debug('No auth hash in session, there should have been');
     } else {

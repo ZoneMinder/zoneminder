@@ -417,7 +417,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
-* Sunday Nov 12 2023 Jonathan Bennett <JBennett@IncomSystems.biz> - 1.37.47
+* Sun Nov 12 2023 Jonathan Bennett <JBennett@IncomSystems.biz> - 1.37.47
 - Specify folders to remove before packaging
 
 * Thu Sep 28 2023  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.45-2

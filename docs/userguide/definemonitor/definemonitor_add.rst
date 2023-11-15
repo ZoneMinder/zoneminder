@@ -1,0 +1,12 @@
+Adding Monitors
+---------------
+
+There are several methods for adding Monitors in ZoneMinder. Most commonly one will use Manual entry in which each tab is completed with the appropriate information. There are several ways to identify and add Monitors through network scanning, ONVIF probing and available presets that can enter partial Monitor information. However, even with these aids, one will still need to review the appropriate Monitor tabs and enter or confirm the required information.
+
+- **Manual Entry**: Use the :guilabel:`+ADD` link on Console and enter the Monitor information manually into each tab. Enter Monitor configuration by selecting each tab described in the sections below and entering the configuration.
+- **Scan Network**: Use the :guilabel:`SCAN NETWORK` link on Console and select the network device from the list. It will still be necessary to review all Monitor tabs and confirm all settings.
+- **Monitor Probe**: Use the :guilabel:`+ADD` link then the **Probe** icon link in the Monitor General Tab. It will still be necessary to review all Monitor tabs and confirm all settings.
+- **ONVIF Probe**: Use the :guilabel:`+ADD` link then the **ONVIF** icon link in the Monitor General Tab. ZoneMinder can use ONVIF protocol to locate cameras on the network and fill in some of the Monitor configuration. It will still be necessary to review all Monitor tabs and confirm all settings.
+- **Presets**: Use the :guilabel:`+ADD` link then the **Presets** icon link in the Monitor General Tab. ZoneMinder contains a small database of cameras and can fill in some of the monitor configuration. It will still be necessary to review all Monitor tabs and confirm all settings.
+
+ZoneMinder Monitor setup includes not only the basic stream settings such as the source path and resolution but also settings related to analysis, recording, PTZ control, time stamping, RTSP re-streaming, and much more. As such, the Monitor options are divided into a set of tabs related to each category to facilitate configuration. One note regarding Monitor tabs is that it is not necessary to :guilabel:`SAVE` each tab separately. Before leaving the Monitor setup one can click :guilabel:`SAVE` on any tab to update the Monitor settings. It is recommended that Monitor entry starts with the General tab and then steps to each successive tab below. Monitor tabs are explained in more detail in the sections below.

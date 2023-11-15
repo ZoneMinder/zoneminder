@@ -995,6 +995,8 @@ bool Monitor::connect() {
     snprintf(video_store_data->event_file, sizeof(video_store_data->event_file), "nothing");
     video_store_data->size = sizeof(VideoStoreData);
     usedsubpixorder = camera->SubpixelOrder();  // Used in CheckSignal
+    SystemTimePoint now = std::chrono::system_clock::now();
+    shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(now);
     shared_data->valid = true;
 
     ReloadLinkedMonitors();
@@ -1943,7 +1945,7 @@ bool Monitor::Analyse() {
       if (onvif_event_listener && Event_Poller_Healthy) {
         if (Poll_Trigger_State) {
           score += 9;
-          Debug(1, "Triggered on ONVIF");
+          Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
           noteSet.insert("ONVIF2");
           noteSetMap[MOTION_CAUSE] = noteSet;

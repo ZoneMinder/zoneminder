@@ -1,6 +1,7 @@
 <?php
+  if (!canEdit('System')) return;
 // This is the HTML representing the Storage modal from Options -> Storage
-  if ( !isset($_REQUEST['id']) ) {
+  if (!isset($_REQUEST['id'])) {
     ajaxError('Storage Id Not Provided');
     return;
   }
@@ -8,8 +9,6 @@
   $null = '';
   $checked = 'checked="checked"';
   $sid = validInt($_REQUEST['id']);
-  
-  if (!canEdit('System')) return;
 
   require_once('includes/Server.php');
   require_once('includes/Storage.php');
@@ -17,6 +16,7 @@
   if ($_REQUEST['id']) {
     if (!($newStorage = ZM\Storage::find_one(array('Id'=>$sid)))) {
       // Perhaps do something different here, rather than return nothing
+      ajaxError('Storage area '.$sid.' not found');
       return;
     }
   } else {

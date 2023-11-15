@@ -219,7 +219,7 @@ int main(int argc, const char *argv[], char **envp) {
       }
     } else {
       if ( *auth ) {
-        user = zmLoadAuthUser(auth, config.auth_hash_ips);
+        user = zmLoadAuthUser(auth, username, config.auth_hash_ips);
       } else if ( username.length() && password.length() ) {
         user = zmLoadUser(username.c_str(), password.c_str());
       }
@@ -229,16 +229,16 @@ int main(int argc, const char *argv[], char **envp) {
 
       const char *referer = getenv("HTTP_REFERER");
       Error("Unable to authenticate user from %s", referer);
-      logTerm();
       zmDbClose();
+      logTerm();
       return 0;
     }
     if ( !ValidateAccess(user, monitor_id) ) {
       delete user;
       user = nullptr;
       fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
-      logTerm();
       zmDbClose();
+      logTerm();
       return 0;
     }
     delete user;
@@ -333,8 +333,8 @@ int main(int argc, const char *argv[], char **envp) {
   Debug(1, "Terminating");
   Image::Deinitialise();
   dbQueue.stop();
-  logTerm();
   zmDbClose();
+  logTerm();
 
   return 0;
 }

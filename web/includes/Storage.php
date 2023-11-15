@@ -10,13 +10,13 @@ class Storage extends ZM_Object {
   public $Id;
   public $Path;
   public $Name;
-  public $Type;
+  public $Type = 'local';
   public $Url;
   public $DiskSpace;
-  public $Scheme;
+  public $Scheme = 'Medium';
   public $ServerId;
-  public $DoDelete;
-  public $Enabled;
+  public $DoDelete = 1;
+  public $Enabled = 1;
 
   protected $defaults = array(
     'Id'        => null,

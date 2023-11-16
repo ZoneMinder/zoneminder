@@ -67,6 +67,8 @@ class Server extends ZM_Object {
               ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
               or
               ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
+              or
+              ( isset($_SERVER['HTTP_FRONT_END_HTTPS']) and ($_SERVER['HTTP_FRONT_END_HTTPS'] == 'On' ) )
             ) ? 'https' : 'http';
   }
 

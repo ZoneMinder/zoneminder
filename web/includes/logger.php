@@ -363,13 +363,14 @@ class Logger {
     }
 
     $string = preg_replace('/[\r\n]+$/', '', $string);
+    $string = substr($string, 0, 65535); # Message Column has max length
     $code = self::$codes[$level];
 
     global $dateTimeFormatter;
     $time = gettimeofday();
     $message = sprintf('%s.%06d %s[%d].%s [%s] [%s]',
       $dateTimeFormatter->format($time['sec']), $time['usec'],
-      $this->id, getmypid(), $code, $_SERVER['REMOTE_ADDR'], $string);
+      $this->id, getmypid(), $code, (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR']), $string);
 
     if ( is_null($file) ) {
       if ( $this->useErrorLog || ($this->databaseLevel > self::NOLOG) ) {

@@ -163,7 +163,7 @@ function renderAlarmCues(containerEl) {
   let html = '';
 
   cues_div = document.getElementById('alarmCues');
-  const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
+  const event_length = (!cueFrames.length || (eventData.Length > cueFrames[cueFrames.length - 1].Delta)) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
   const span_count = 10;
   const span_seconds = parseFloat(event_length / span_count);
   const span_width = parseFloat(containerEl.width() / span_count);

@@ -60,10 +60,12 @@ use POSIX;
 sub executeShellCommand {
   my $command = shift;
   my $output = qx($command);
+  $output = '' if !defined($output);
+  chomp($output);
   my $status = $? >> 8;
-  if ( $status || logDebugging() ) {
-    $output = '' if !defined($output);
-    chomp($output);
+  if ($status) {
+    Warning("Failed Command: $command Status: $status Output: $output");
+  } elsif (logDebugging()) {
     Debug("Command: $command Status: $status Output: $output");
   }
   return $status;

@@ -1259,7 +1259,7 @@ class Filter extends ZM_Object {
 
   public function has_term($attr, $op=null) {
     foreach ($this->terms() as $term) {
-      if (($term['attr'] == $attr) and ((!$op) or ($term['op']==$op)) ) return true;
+      if (($term['attr'] == $attr) and ((!$op) or ($term['op']==$op)) ) return $term;
     }
     return false;
   }

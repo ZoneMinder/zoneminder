@@ -224,8 +224,6 @@ function loadConfig( $defineConsts=true ) {
 } # end function loadConfig
 
 require_once('Server.php');
-#global $Servers;
-#global $thisServer;
 $Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
 $thisServer = null;
 

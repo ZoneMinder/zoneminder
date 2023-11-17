@@ -163,7 +163,7 @@ function renderAlarmCues(containerEl) {
   let html = '';
 
   cues_div = document.getElementById('alarmCues');
-  const event_length = (eventData.Length > cueFrames[cueFrames.length - 1].Delta) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
+  const event_length = (!cueFrames.length || (eventData.Length > cueFrames[cueFrames.length - 1].Delta)) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
   const span_count = 10;
   const span_seconds = parseFloat(event_length / span_count);
   const span_width = parseFloat(containerEl.width() / span_count);
@@ -298,7 +298,7 @@ function changeScale() {
 function changeReplayMode() {
   var replayMode = $j('#replayMode').val();
 
-  setCookie('replayMode', replayMode, 3600);
+  setCookie('replayMode', replayMode);
 
   refreshWindow();
 }
@@ -331,7 +331,7 @@ function changeRate() {
       streamReq({command: CMD_VARPLAY, rate: rate});
     }
   }
-  setCookie('zmEventRate', rate, 3600);
+  setCookie('zmEventRate', rate);
 } // end function changeRate
 
 function getCmdResponse(respObj, respText) {
@@ -376,7 +376,7 @@ function getCmdResponse(respObj, respText) {
     streamPause( );
   } else {
     $j('select[name="rate"]').val(streamStatus.rate*100);
-    setCookie('zmEventRate', streamStatus.rate*100, 3600);
+    setCookie('zmEventRate', streamStatus.rate*100);
     streamPlay( );
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
@@ -448,7 +448,7 @@ function vjsPlay() { //catches if we change mode programatically
     stopFastRev();
   }
   $j('select[name="rate"]').val(vid.playbackRate()*100);
-  setCookie('zmEventRate', vid.playbackRate()*100, 3600);
+  setCookie('zmEventRate', vid.playbackRate()*100);
   streamPlay();
 }
 
@@ -477,7 +477,7 @@ function streamFastFwd(action) {
       setButtonState('fastFwdBtn', 'unavail');
     }
     $j('select[name="rate"]').val(vid.playbackRate()*100);
-    setCookie('zmEventRate', vid.playbackRate()*100, 3600);
+    setCookie('zmEventRate', vid.playbackRate()*100);
   } else {
     streamReq({command: CMD_FASTFWD});
   }
@@ -503,7 +503,7 @@ function stopFastRev() {
   clearInterval(intervalRewind);
   vid.playbackRate(1);
   $j('select[name="rate"]').val(vid.playbackRate()*100);
-  setCookie('zmEventRate', vid.playbackRate()*100, 3600);
+  setCookie('zmEventRate', vid.playbackRate()*100);
   revSpeed = .5;
 }
 
@@ -524,7 +524,7 @@ function streamFastRev(action) {
     }
     clearInterval(intervalRewind);
     $j('select[name="rate"]').val(-revSpeed*100);
-    setCookie('zmEventRate', vid.playbackRate()*100, 3600);
+    setCookie('zmEventRate', vid.playbackRate()*100);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
         clearInterval(intervalRewind);

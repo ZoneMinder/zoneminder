@@ -747,8 +747,8 @@ include('_monitor_source_nvsocket.php');
             <label><?php echo translate('Height') ?> (<?php echo translate('Pixels') ?>)</label>
             <input type="number" name="newMonitor[Height]" value="<?php echo validHtmlStr($monitor->Height()) ?>" min="1" step="1"/>
           </li>
-          <li>
-            <label<?php echo 'Web Site Refresh (Optional)' ?></label>
+	  <li>
+            <label><?php echo 'Web Site Refresh (Optional)' ?></label>
             <input type="number" name="newMonitor[Refresh]" value="<?php echo validHtmlStr($monitor->Refresh()) ?>" min="1" step="1"/>
           </li>
 <?php

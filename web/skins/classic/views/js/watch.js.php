@@ -26,7 +26,7 @@ var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 var monitorId = parseInt('<?php echo $monitor->Id() ?>');
 var monitorWidth = parseInt('<?php echo $monitor->ViewWidth() ?>');
 var monitorHeight = parseInt('<?php echo $monitor->ViewHeight() ?>');
-var monitorUrl = '<?php echo $monitor->UrlToIndex() ?>';
+var monitorUrl = '<?php echo $monitor->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>';
 var monitorType = '<?php echo $monitor->Type() ?>';
 var monitorRefresh = '<?php echo $monitor->Refresh() ?>';
 var monitorStreamReplayBuffer = parseInt('<?php echo $monitor->StreamReplayBuffer() ?>');
@@ -49,7 +49,7 @@ monitorData[monitorData.length] = {
   'RTSP2WebEnabled':<?php echo $m->RTSP2WebEnabled() ?>,
   'RTSP2WebType':'<?php echo $m->RTSP2WebType() ?>',
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,
-  'url': '<?php echo $m->UrlToIndex() ?>',
+  'url': '<?php echo $m->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $m->Id() ?>' );},
   'type': '<?php echo $m->Type() ?>',
   'refresh': '<?php echo $m->Refresh() ?>',

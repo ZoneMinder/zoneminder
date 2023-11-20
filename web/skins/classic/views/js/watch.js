@@ -883,9 +883,13 @@ function initPage() {
   }
   bindButton('#ptzToggle', 'click', null, ptzToggle);
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
-    $j('body').on('mousemove', function() { idle = 0; console.log('idle'); });
-    setInterval(function(){idle+=60;}, 60*1000);
-    setInterval(function(){
+    $j('body').on('mousemove', function() {
+      idle = 0;
+    });
+    setInterval(function() {
+      idle+=60;
+    }, 60*1000);
+    setInterval(function() {
       if (idle > ZM_WEB_VIEWING_TIMEOUT) {
         streamCmdPause(true);
         if ( confirm("Are you still watching?") ) {

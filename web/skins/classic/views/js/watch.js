@@ -4,6 +4,7 @@ var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
 var table = $j('#eventList');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
+var idle = 0;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -881,6 +882,19 @@ function initPage() {
     cyclePause();
   }
   bindButton('#ptzToggle', 'click', null, ptzToggle);
+  if (ZM_WEB_VIEWING_TIMEOUT > 0) {
+    $j('body').on('mousemove', function() { idle = 0; console.log('idle'); });
+    setInterval(function(){idle+=60;}, 60*1000);
+    setInterval(function(){
+      if (idle > ZM_WEB_VIEWING_TIMEOUT) {
+        streamCmdPause(true);
+        if ( confirm("Are you still watching?") ) {
+          streamCmdPlay(true);
+        }
+        idle = 0;
+      }
+    }, 60*1000);
+  }
 } // initPage
 
 function watchFullscreen() {

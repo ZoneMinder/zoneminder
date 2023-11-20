@@ -477,7 +477,7 @@ class Event extends ZM_Object {
     $hasAnalysisImage = $alarmFrame && file_exists($analysisPath) && filesize($analysisPath);
     $isAnalysisImage = $hasAnalysisImage && !$captureOnly;
 
-    if ( !ZM_WEB_SCALE_THUMBS || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
+    if ( !ZM_WEB_SCALE_THUMBS || !$scale || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
       $imagePath = $thumbPath = $isAnalysisImage ? $analysisPath : $capturePath;
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;

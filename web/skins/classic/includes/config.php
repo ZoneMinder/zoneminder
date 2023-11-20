@@ -85,7 +85,7 @@ switch ( $_COOKIE['zmBandwidth'] ) {
         define( 'ZM_WEB_EVENTS_VIEW', ZM_WEB_H_EVENTS_VIEW );           // What the default view of multiple events should be.
         define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_H_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
         define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_H_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
-        define( 'ZM_WEB_VIEWING_TIMEOUT', ZM_WEB_H_VIEWING_TIMEOUT );
+        define( 'ZM_WEB_VIEWING_TIMEOUT', defined('ZM_WEB_H_VIEWING_TIMEOUT') ? ZM_WEB_H_VIEWING_TIMEOUT : 0 );
         break;
     } case 'medium' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_M_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
@@ -104,7 +104,7 @@ switch ( $_COOKIE['zmBandwidth'] ) {
         define( 'ZM_WEB_EVENTS_VIEW', ZM_WEB_M_EVENTS_VIEW );           // What the default view of multiple events should be.
         define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_M_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
         define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_M_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
-        define( 'ZM_WEB_VIEWING_TIMEOUT', ZM_WEB_M_VIEWING_TIMEOUT );
+        define( 'ZM_WEB_VIEWING_TIMEOUT', defined('ZM_WEB_M_VIEWING_TIMEOUT') ? ZM_WEB_M_VIEWING_TIMEOUT : 0 );
         break;
     } case 'low' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_L_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
@@ -123,7 +123,7 @@ switch ( $_COOKIE['zmBandwidth'] ) {
         define( 'ZM_WEB_EVENTS_VIEW', ZM_WEB_L_EVENTS_VIEW );           // What the default view of multiple events should be.
         define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_L_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
         define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_L_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
-        define( 'ZM_WEB_VIEWING_TIMEOUT', ZM_WEB_L_VIEWING_TIMEOUT );
+        define( 'ZM_WEB_VIEWING_TIMEOUT', defined('ZM_WEB_L_VIEWING_TIMEOUT') ? ZM_WEB_L_VIEWING_TIMEOUT : 0 );
         break;
     }
 }

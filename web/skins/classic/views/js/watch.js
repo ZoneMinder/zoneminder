@@ -887,17 +887,28 @@ function initPage() {
       idle = 0;
     });
     setInterval(function() {
-      idle+=60;
-    }, 60*1000);
+      idle += 10;
+    }, 10*1000);
     setInterval(function() {
-      if (idle > ZM_WEB_VIEWING_TIMEOUT) {
+      if (idle >= ZM_WEB_VIEWING_TIMEOUT) {
         streamCmdPause(true);
-        if ( confirm("Are you still watching?") ) {
-          streamCmdPlay(true);
+        let ayswModal = $j('#AYSWModal');
+        if (!ayswModal.length) {
+          $j.getJSON('?request=modal&modal=areyoustillwatching')
+            .done(function(data) {
+              ayswModal = insertModalHtml('AYSWModal', data.html);
+              $j('#AYSWYesBtn').on('click', function() {
+                streamCmdPlay(true);
+                idle = 0;
+              });
+              ayswModal.modal('show');
+            })
+            .fail(logAjaxFail);
+        } else {
+          ayswModal.modal('show');
         }
-        idle = 0;
       }
-    }, 60*1000);
+    }, 10*1000);
   }
 } // initPage
 

@@ -320,17 +320,29 @@ function initPage() {
       idle = 0;
     });
     setInterval(function() {
-      idle += 60;
-    }, 60*1000);
+      idle += 10;
+    }, 10*1000);
     setInterval(function() {
       if (idle > ZM_WEB_VIEWING_TIMEOUT) {
         for (let i=0, length = monitors.length; i < length; i++) monitors[i].pause();
-        if (confirm("Are you still watching?")) {
-          for (let i=0, length = monitors.length; i < length; i++) monitors[i].play();
+        let ayswModal = $j('#AYSWModal');
+        if (!ayswModal.length) {
+          $j.getJSON('?request=modal&modal=areyoustillwatching')
+            .done(function(data) {
+              ayswModal = insertModalHtml('AYSWModal', data.html);
+              $j('#AYSWYesBtn').on('click', function() {
+                for (let i=0, length = monitors.length; i < length; i++) monitors[i].play();
+                idle = 0;
+              });
+              ayswModal.modal('show');
+            })
+            .fail(logAjaxFail);
+        } else {
+          ayswModal.modal('show');
         }
         idle = 0;
       }
-    }, 60*1000);
+    }, 10*1000);
   }
 } // end initPage
 

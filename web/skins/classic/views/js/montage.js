@@ -1,6 +1,7 @@
 "use strict";
 const monitors = new Array();
 var monitors_ul = null;
+var idle = 0;
 
 const VIEWING = 0;
 const EDITING = 1;
@@ -313,7 +314,21 @@ function initPage() {
       }
     };
   });
-}
+
+  if (ZM_WEB_VIEWING_TIMEOUT > 0) {
+    $j('body').on('mousemove', function() { idle = 0; console.log('idle'); });
+    setInterval(function(){idle+=60;}, 60*1000);
+    setInterval(function(){
+      if (idle > ZM_WEB_VIEWING_TIMEOUT) {
+        for (let i=0, length = monitors.length; i < length; i++) monitors[i].pause();
+        if (confirm("Are you still watching?")) {
+          for (let i=0, length = monitors.length; i < length; i++) monitors[i].play();
+        }
+        idle = 0;
+      }
+    }, 60*1000);
+  }
+} // end initPage
 
 function formSubmit(form) {
   console.log("Killing streaming");

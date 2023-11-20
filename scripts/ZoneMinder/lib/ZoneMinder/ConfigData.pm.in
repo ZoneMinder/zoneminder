@@ -2959,6 +2959,16 @@ our @options = (
     category    => 'highband',
   },
   {
+    name        => 'ZM_WEB_H_VIEWING_TIMEOUT',
+    default     => '',
+    description => 'If the user does not interact with the ZM UI in this many seconds, streaming will be paused.',
+    help        => q`
+      This setting is to prevent unintentional bandwidth use if the user has live view up but isn't actually watching. If the user does not interact with the UI in this many seconds, streams will be paused and a popup asking if they are still watching will occur. Streaming will resume when the user clicks Ok. 
+      `,
+    type        => $types{integer},
+    category    => 'highband',
+  },
+  {
     name        => 'ZM_WEB_H_REFRESH_NAVBAR',
     default     => '60',
     description => 'How often (in seconds) the navigation header should refresh itself',
@@ -3242,6 +3252,16 @@ our @options = (
     category    => 'medband',
   },
   {
+    name        => 'ZM_WEB_M_VIEWING_TIMEOUT',
+    default     => '',
+    description => 'If the user does not interact with the ZM UI in this many seconds, streaming will be paused.',
+    help        => q`
+      This setting is to prevent unintentional bandwidth use if the user has live view up but isn't actually watching. If the user does not interact with the UI in this many seconds, streams will be paused and a popup asking if they are still watching will occur. Streaming will resume when the user clicks Ok. 
+      `,
+    type        => $types{integer},
+    category    => 'medband',
+  },
+  {
     name        => 'ZM_WEB_M_REFRESH_CYCLE',
     default     => '20',
     description => 'How often (in seconds) the cycle watch window swaps to the next monitor',
@@ -3510,6 +3530,16 @@ our @options = (
     description => 'How often (in seconds) the navigation header should refresh itself',
     help        => q`
       The navigation header contains the general status information about server load and storage space.
+      `,
+    type        => $types{integer},
+    category    => 'lowband',
+  },
+  {
+    name        => 'ZM_WEB_L_VIEWING_TIMEOUT',
+    default     => '',
+    description => 'If the user does not interact with the ZM UI in this many seconds, streaming will be paused.',
+    help        => q`
+      This setting is to prevent unintentional bandwidth use if the user has live view up but isn't actually watching. If the user does not interact with the UI in this many seconds, streams will be paused and a popup asking if they are still watching will occur. Streaming will resume when the user clicks Ok. 
       `,
     type        => $types{integer},
     category    => 'lowband',

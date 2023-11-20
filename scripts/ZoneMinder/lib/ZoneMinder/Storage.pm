@@ -176,7 +176,7 @@ sub delete_path {
     ($path) = ($path =~ /^(.*)$/); # De-taint
     my $command = "$Config{ZM_PATH_RM} -rf $storage_path/$path 2>&1";
     if (ZoneMinder::General::executeShellCommand($command)) {
-      Error("Error deleting event directory at $storage_path/$path");
+      Error("Error deleting event directory at $storage_path/$path using $command");
     }
   }
 } # end sub delete_path

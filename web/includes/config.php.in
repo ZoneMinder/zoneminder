@@ -205,7 +205,7 @@ function loadConfig( $defineConsts=true ) {
 
   $config = array();
 
-  $result = $dbConn->query('SELECT Name,Value,Private FROM Config');
+  $result = $dbConn->query('SELECT Name,Value,Type,Private FROM Config');
   if ( !$result )
     echo mysql_error();
   while( $row = dbFetchNext($result) ) {
@@ -224,8 +224,6 @@ function loadConfig( $defineConsts=true ) {
 } # end function loadConfig
 
 require_once('Server.php');
-#global $Servers;
-#global $thisServer;
 $Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
 $thisServer = null;
 

@@ -31,8 +31,6 @@ function noCacheHeaders() {
 
 function CSPHeaders($view, $nonce) {
   global $Servers;
-  if (!$Servers)
-    $Servers = ZM\Server::find();
 
   $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
@@ -58,7 +56,6 @@ function CORSHeaders() {
 # The following is left for future reference/use.
     $valid = false;
     global $Servers;
-    if (!$Servers) $Servers = ZM\Server::find();
     if (sizeof($Servers) < 1) {
 # Only need CORSHeaders in the event that there are multiple servers in use.
       # ICON: Might not be true. multi-port?
@@ -2429,6 +2426,7 @@ function output_file($path, $chunkSize=1024) {
   if (isset($_SERVER['HTTP_RANGE'])) {
     list($a, $range) = explode('=', $_SERVER['HTTP_RANGE']);
     str_replace($range, '-', $range);
+    $range = int($range); #fseek etc require integers not strings
     $size2 = $size - 1;
     $new_length = $size - $range;
     header('HTTP/1.1 206 Partial Content');

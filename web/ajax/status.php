@@ -240,138 +240,143 @@ function collectData() {
 
   if ( !empty($entitySpec['func']) ) {
     $data = eval('return('.$entitySpec['func'].');');
-  } else {
-    $data = array();
-    $postFuncs = array();
-    $postFunctions = array();
+    return $data;
+  }
 
-    $fieldSql = array();
-    $joinSql = array();
-    $groupSql = array();
-    $values = array();
+  $data = array();
+  $postFuncs = array();
+  $postFunctions = array();
 
-    $elements = &$entitySpec['elements'];
-    $lc_elements = array_change_key_case($elements);
+  $fieldSql = array();
+  $joinSql = array();
+  $groupSql = array();
+  $values = array();
 
-    $id = false;
-    if ( isset($_REQUEST['id']) )
-      if ( !is_array($_REQUEST['id']) )
-        $id = array( validJsStr($_REQUEST['id']) );
+  $elements = &$entitySpec['elements'];
+  $lc_elements = array_change_key_case($elements);
+
+  $id = false;
+  if ( isset($_REQUEST['id']) )
+    if ( !is_array($_REQUEST['id']) )
+      $id = array( validJsStr($_REQUEST['id']) );
+    else
+      $id = array_values($_REQUEST['id']);
+
+  if ( !isset($_REQUEST['element']) )
+    $_REQUEST['element'] = array_keys($elements);
+  else if ( !is_array($_REQUEST['element']) )
+    $_REQUEST['element'] = array( validJsStr($_REQUEST['element']) );
+
+  if ( isset($entitySpec['selector']) ) {
+    if ( !is_array($entitySpec['selector']) )
+      $entitySpec['selector'] = array( $entitySpec['selector'] );
+    foreach( $entitySpec['selector'] as $selector )
+      if ( is_array( $selector ) && isset($selector['table']) && isset($selector['join']) )
+        $joinSql[] = 'left join '.$selector['table'].' on '.$selector['join'];
+  }
+
+  foreach ( $_REQUEST['element'] as $element ) {
+    if ( !($elementData = $lc_elements[strtolower($element)]) ) {
+      ajaxError('Bad '.validJsStr($_REQUEST['entity']).' element '.$element);
+      continue;
+    }
+    if (isset($elementData['func'])) {
+      $data[$element] = eval('return( '.$elementData['func'].' );');
+    } else if ( isset($elementData['postFunc']) ) {
+      $postFuncs[$element] = $elementData['postFunc'];
+    } else if ( isset($elementData['postFunction']) ) {
+      $postFunctions[$element] = $elementData['postFunction'];
+    } else if ( isset($elementData['zmu']) ) {
+      $command = escapeshellcmd(getZmuCommand(' '.$elementData['zmu']));
+      $data[$element] = exec($command);
+    } else {
+      if ( isset($elementData['sql']) )
+        $fieldSql[] = $elementData['sql'].' as '.$element;
       else
-        $id = array_values($_REQUEST['id']);
-
-    if ( !isset($_REQUEST['element']) )
-      $_REQUEST['element'] = array_keys($elements);
-    else if ( !is_array($_REQUEST['element']) )
-      $_REQUEST['element'] = array( validJsStr($_REQUEST['element']) );
-
-    if ( isset($entitySpec['selector']) ) {
-      if ( !is_array($entitySpec['selector']) )
-        $entitySpec['selector'] = array( $entitySpec['selector'] );
-      foreach( $entitySpec['selector'] as $selector )
-        if ( is_array( $selector ) && isset($selector['table']) && isset($selector['join']) )
-          $joinSql[] = 'left join '.$selector['table'].' on '.$selector['join'];
-    }
-
-    foreach ( $_REQUEST['element'] as $element ) {
-      if ( !($elementData = $lc_elements[strtolower($element)]) )
-        ajaxError('Bad '.validJsStr($_REQUEST['entity']).' element '.$element);
-      if ( isset($elementData['func']) )
-        $data[$element] = eval('return( '.$elementData['func'].' );');
-      else if ( isset($elementData['postFunc']) )
-        $postFuncs[$element] = $elementData['postFunc'];
-      else if ( isset($elementData['postFunction']) )
-        $postFunctions[$element] = $elementData['postFunction'];
-      else if ( isset($elementData['zmu']) )
-        $data[$element] = exec(escapeshellcmd(getZmuCommand(' '.$elementData['zmu'])));
-      else {
-        if ( isset($elementData['sql']) )
-          $fieldSql[] = $elementData['sql'].' as '.$element;
-        else
-          $fieldSql[] = '`'.$element.'`';
-        if ( isset($elementData['table']) && isset($elementData['join']) ) {
-          $joinSql[] = 'left join '.$elementData['table'].' on '.$elementData['join'];
-        }
-        if ( isset($elementData['group']) ) {
-          $groupSql[] = $elementData['group'];
-        }
+        $fieldSql[] = '`'.$element.'`';
+      if ( isset($elementData['table']) && isset($elementData['join']) ) {
+        $joinSql[] = 'left join '.$elementData['table'].' on '.$elementData['join'];
       }
-    } # end foreach element
-
-    if ( count($fieldSql) ) {
-      $sql = 'SELECT '.join(', ', $fieldSql).' FROM '.$entitySpec['table'];
-      if ( $joinSql )
-        $sql .= ' '.join(' ', array_unique($joinSql));
-      if ( $id && !empty($entitySpec['selector']) ) {
-        $index = 0;
-        $where = array();
-        foreach ( $entitySpec['selector'] as $selIndex => $selector ) {
-          $selectorParamName = ':selector' . $selIndex;
-          if ( is_array($selector) ) {
-            $where[] = $selector['selector'].' = '.$selectorParamName;
-            $values[$selectorParamName] = validInt($id[$index]);
-          } else {
-            $where[] = $selector.' = '.$selectorParamName;
-            $values[$selectorParamName] = validInt($id[$index]);
-          }
-          $index++;
-        }
-        $sql .= ' WHERE '.join(' AND ', $where);
+      if ( isset($elementData['group']) ) {
+        $groupSql[] = $elementData['group'];
       }
-      if ( $groupSql )
-        $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
-      if ( !empty($_REQUEST['sort']) ) {
-        $sql .= ' ORDER BY ';
-        $sort_fields = explode(',', $_REQUEST['sort']);
-        foreach ( $sort_fields as $sort_field ) {
-          
-          preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
-          if ( count($matches) ) {
-            if ( in_array($matches[1], $fieldSql) or  in_array('`'.$matches[1].'`', $fieldSql) ) {
-              $sql .= $matches[1];
-            } else {
-              ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));
-            }
-            if ( count($matches) > 2 ) {
-              $sql .= ' '.strtoupper($matches[2]);
-              if ( count($matches) > 3 )
-                $sql .= ' '.strtoupper($matches[3]);
-            }
-          } else {
-            ZM\Error('Sort field didn\'t match regexp '.$sort_field);
-          }
-        } # end foreach sort field
-      } # end if has sort
-      if ( !empty($entitySpec['limit']) )
-        $limit = $entitySpec['limit'];
-      elseif ( !empty($_REQUEST['count']) )
-        $limit = validInt($_REQUEST['count']);
-      $limit_offset = '';
-      if ( !empty($_REQUEST['offset']) )
-        $limit_offset = validInt($_REQUEST['offset']) . ', ';
-      if ( !empty($limit) )
-        $sql .= ' limit '.$limit_offset.$limit;
-      if ( isset($limit) && ($limit == 1) ) {
-        if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
-          foreach ( $postFuncs as $element=>$func )
-            $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
-          foreach ( $postFunctions as $element=>$function )
-            $sqlData[$element] = $function($sqlData);
-          $data = array_merge($data, $sqlData);
-        }
-      } else {
-        $count = 0;
-        foreach ( dbFetchAll($sql, NULL, $values) as $sqlData ) {
-          foreach ( $postFuncs as $element=>$func )
-            $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
-          foreach ( $postFunctions as $element=>$function )
-            $sqlData[$element] = $function($sqlData);
-          $data[] = $sqlData;
-          if ( isset($limit) && ++$count >= $limit )
-            break;
-        } # end foreach
-      } # end if have limit == 1
     }
+  } # end foreach element
+
+  if ( count($fieldSql) ) {
+    $sql = 'SELECT '.join(', ', $fieldSql).' FROM '.$entitySpec['table'];
+    if ( $joinSql )
+      $sql .= ' '.join(' ', array_unique($joinSql));
+    if ( $id && !empty($entitySpec['selector']) ) {
+      $index = 0;
+      $where = array();
+      foreach ( $entitySpec['selector'] as $selIndex => $selector ) {
+        $selectorParamName = ':selector' . $selIndex;
+        if ( is_array($selector) ) {
+          $where[] = $selector['selector'].' = '.$selectorParamName;
+          $values[$selectorParamName] = validInt($id[$index]);
+        } else {
+          $where[] = $selector.' = '.$selectorParamName;
+          $values[$selectorParamName] = validInt($id[$index]);
+        }
+        $index++;
+      }
+      $sql .= ' WHERE '.join(' AND ', $where);
+    }
+    if ( $groupSql )
+      $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
+    if ( !empty($_REQUEST['sort']) ) {
+      $sql .= ' ORDER BY ';
+      $sort_fields = explode(',', $_REQUEST['sort']);
+      foreach ( $sort_fields as $sort_field ) {
+        preg_match('/^`?(\w+)`?\s*(ASC|DESC)?( NULLS FIRST)?$/i', $sort_field, $matches);
+        if ( count($matches) ) {
+          if ( in_array($matches[1], $fieldSql) or  in_array('`'.$matches[1].'`', $fieldSql) ) {
+            $sql .= $matches[1];
+          } else {
+            ZM\Error('Sort field '.$matches[1].' from ' .$sort_field.' not in SQL Fields: '.join(',', $sort_field));
+          }
+          if ( count($matches) > 2 ) {
+            $sql .= ' '.strtoupper($matches[2]);
+            if ( count($matches) > 3 )
+              $sql .= ' '.strtoupper($matches[3]);
+          }
+        } else {
+          ZM\Error('Sort field didn\'t match regexp '.$sort_field);
+        }
+      } # end foreach sort field
+    } # end if has sort
+    if ( !empty($entitySpec['limit']) )
+      $limit = $entitySpec['limit'];
+    elseif ( !empty($_REQUEST['count']) )
+      $limit = validInt($_REQUEST['count']);
+    $limit_offset = '';
+    if ( !empty($_REQUEST['offset']) )
+      $limit_offset = validInt($_REQUEST['offset']) . ', ';
+    if ( !empty($limit) )
+      $sql .= ' limit '.$limit_offset.$limit;
+    if ( isset($limit) && ($limit == 1) ) {
+      if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
+        foreach ( $postFuncs as $element=>$func )
+          $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
+        foreach ( $postFunctions as $element=>$function )
+          $sqlData[$element] = $function($sqlData);
+        $data = array_merge($data, $sqlData);
+      }
+    } else {
+      $count = 0;
+      foreach ( dbFetchAll($sql, NULL, $values) as $sqlData ) {
+        foreach ( $postFuncs as $element=>$func )
+          $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
+        foreach ( $postFunctions as $element=>$function )
+          $sqlData[$element] = $function($sqlData);
+        $data[] = $sqlData;
+        if ( isset($limit) && ++$count >= $limit )
+          break;
+      } # end foreach
+    } # end if have limit == 1
+  } else {
+    ZM\Debug("No fieldSQL");
   }
   //ZM\Debug(print_r($data, true));
   return $data;

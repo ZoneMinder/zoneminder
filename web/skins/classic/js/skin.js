@@ -334,13 +334,15 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {
-    var modal = $j('#' + name);
+    let modal = $j('#' + name);
 
     if (modal.length) {
       modal.replaceWith(html);
     } else {
-      $j("body").append(html);
+      $j('body').append(html);
+      modal = $j('#' + name);
     }
+    return modal;
   }
 
   // Manage the modal html we received after user clicks help link

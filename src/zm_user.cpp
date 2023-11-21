@@ -129,7 +129,7 @@ bool User::canAccess(int monitor_id) {
 
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
-User *zmLoadUser(const char *username, const char *password) {
+User *zmLoadUser(const std::string &username, const std::string &password) {
   std::string escaped_username = zmDbEscapeString(username);
 
   std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`,"
@@ -146,9 +146,9 @@ User *zmLoadUser(const char *username, const char *password) {
     User *user = new User(dbrow);
 
     if ( 
-        (! password )  // relay type must be none
+        (password.empty())  // relay type must be none
         ||
-        verifyPassword(username, password, user->getPassword()) ) {
+        verifyPassword(username.c_str(), password.c_str(), user->getPassword()) ) {
       mysql_free_result(result);
       Info("Authenticated user '%s'", user->getUsername());
       return user;
@@ -156,7 +156,7 @@ User *zmLoadUser(const char *username, const char *password) {
   }  // end if 1 result from db
   mysql_free_result(result);
 
-  Warning("Unable to authenticate user %s", username);
+  Warning("Unable to authenticate user %s", username.c_str());
   return nullptr;
 }  // end User *zmLoadUser(const char *username, const char *password)
 
@@ -300,20 +300,20 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
 }  // end User *zmLoadAuthUser( const std::string &auth, const std::string &username, bool use_remote_addr )
 
 // Function to check Username length
-bool checkUser(const char *username) {
-  if ( !username )
+bool checkUser(const std::string &username) {
+  if (username.empty())
     return false;
-  if ( strlen(username) > 32 )
+  if (username.length() > 32)
     return false;
 
   return true;
 }
 
 // Function to check password length
-bool checkPass(const char *password) {
-  if ( !password )
+bool checkPass(const std::string &password) {
+  if (password.empty())
     return false;
-  if ( strlen(password) > 64 )
+  if (password.length() > 64)
     return false;
 
   return true;

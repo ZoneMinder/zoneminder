@@ -275,8 +275,8 @@ int main(int argc, char *argv[]) {
   bool have_colour = false;
 
   char *zoneString = nullptr;
-  char *username = nullptr;
-  char *password = nullptr;
+  std::string username;
+  std::string password;
   char *auth = nullptr;
   std::string jwt_token_str = "";
 #if ZM_HAS_V4L2
@@ -458,12 +458,12 @@ int main(int argc, char *argv[]) {
     if ( jwt_token_str != "" ) {
       user = zmLoadTokenUser(jwt_token_str, false);
     } else if ( strcmp(config.auth_relay, "none") == 0 ) {
-      if ( !username ) {
+      if (username.empty()) {
         Error("Username must be supplied");
         exit_zmu(-1);
       }
 
-      if ( !checkUser(username)) {
+      if (!checkUser(username)) {
         Error("Username greater than allowed 32 characters");
         exit_zmu(-1);
       }
@@ -471,14 +471,14 @@ int main(int argc, char *argv[]) {
       user = zmLoadUser(username);
     } else {
 
-      if ( !(username && password) && !auth ) {
+      if ( !(!username.empty() && !password.empty()) && !auth ) {
         Error("Username and password or auth/token string must be supplied");
         exit_zmu(-1);
       }
       if ( auth ) {
         user = zmLoadAuthUser(auth, username, false);
       }
-      if ( username && password ) {
+      if ( !username.empty() && !password.empty() ) {
         if ( !checkUser(username)) {
           Error("username greater than allowed 32 characters");
           exit_zmu(-1);
@@ -495,7 +495,7 @@ int main(int argc, char *argv[]) {
       exit_zmu(-1);
     }
 		if ( !ValidateAccess(user, mon_id, function) ) {
-			Error("Insufficient privileges for user %s for requested function %x", username, function);
+			Error("Insufficient privileges for user %s for requested function %x", username.c_str(), function);
 			exit_zmu(-1);
 		}
   } // end if auth

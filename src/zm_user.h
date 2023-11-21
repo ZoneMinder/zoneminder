@@ -76,10 +76,10 @@ class User {
   void loadGroupPermissions();
 };
 
-User *zmLoadUser(const char *username, const char *password=0);
+User *zmLoadUser(const std::string&username, const std::string &password="");
 User *zmLoadAuthUser(const std::string &auth, const std::string &user, bool use_remote_addr);
 User *zmLoadTokenUser(const std::string &jwt, bool use_remote_addr);
-bool checkUser(const char *username);
-bool checkPass(const char *password);
+bool checkUser(const std::string &username);
+bool checkPass(const std::string &password);
 
 #endif // ZM_USER_H

@@ -45,18 +45,18 @@ class Event extends ZM_Object {
     'Locked' => 0,
 );
   public static function find( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
   public static function clear_cache() {
-    return ZM_Object::_clear_cache(get_class());
+    return ZM_Object::_clear_cache(self::class);
   }
   public function remove_from_cache() {
-    return ZM_Object::_remove_from_cache(get_class(), $this);
+    return ZM_Object::_remove_from_cache(self::class, $this);
   }
 
   public function Storage( $new = null ) {

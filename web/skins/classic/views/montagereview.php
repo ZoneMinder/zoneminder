@@ -56,10 +56,28 @@ if ( !canView('Events') ) {
   return;
 }
 
+require_once('includes/Filter.php');
 ob_start();
 include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
+
+$preference = ZM\User_Preference::find_one([
+    'UserId'=>$user->Id(),
+    'Name'=>'MontageSort'.(isset($_SESSION['GroupId']) ? implode(',', $_SESSION['GroupId']) : '')
+]);
+if ($preference) {
+  $monitors_by_id = array_to_hash_by_key('Id', $displayMonitors);
+  $sorted_monitors = [];
+  foreach (explode(',', $preference->Value()) as $id) {
+    if (isset($monitors_by_id[$id])) {
+      $sorted_monitors[] = $monitors_by_id[$id];
+    } else {
+      ZM\Debug("Ordered monitor not found in monitorsById $id");
+    }
+  }
+  if (count($sorted_monitors)) $displayMonitors = $sorted_monitors;
+}
 
 $liveMode = 0; // default to live
 if ( isset($_REQUEST['live']) && ($_REQUEST['live'] != '0') )

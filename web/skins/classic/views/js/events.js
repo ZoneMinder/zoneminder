@@ -46,6 +46,7 @@ function ajaxRequest(params) {
   });
   if (ajax) ajax.abort();
   ajax = $j.ajax({
+    method: 'POST',
     url: thisUrl + '?view=request&request=events&task=query'+filterQuery,
     data: params.data,
     timeout: 0,

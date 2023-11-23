@@ -623,7 +623,7 @@ CREATE TABLE `Monitors` (
   `Longitude`  DECIMAL(11,8),
   `FloorplanX` INT NOT NULL default '0',
   `FloorplanY` INT NOT NULL default '0',
-  `FloorplanID` INT(10) default NULL,
+  `FloorplanID` INT(10) UNSIGNED default NULL,
   `FloorplanPoint` SMALLINT NOT NULL default '0',
   `RTSPServer`  BOOLEAN NOT NULL DEFAULT FALSE,
   `RTSPStreamName`  varchar(255) NOT NULL default '',

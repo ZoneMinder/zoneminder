@@ -210,11 +210,13 @@ else
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
-if ( isset($_REQUEST['speed']) ) {
-  $defaultSpeed = validHtmlStr($_REQUEST['speed']);
-
-else
+if (isset($_REQUEST['speed'])) {
+  $defaultSpeed = validNum($_REQUEST['speed']);
+} else if (isset($_COOKIE['speed'])) {
+  $defaultSpeed = validNum($_COOKIE['speed']);
+} else {
   $defaultSpeed = 1;
+}
 
 $speedIndex = 5; // default to 1x
 for ( $i = 0; $i < count($speeds); $i++ ) {

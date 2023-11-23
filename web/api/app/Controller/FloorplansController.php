@@ -26,7 +26,7 @@ class FloorplansController extends AppController {
  * @return void
  */
 	public function index() {
-		$this->Floorplans->recursive = -1;
+		$this->Floorplan->recursive = -1;
     $conditions = array();
 
     $find_array = array(

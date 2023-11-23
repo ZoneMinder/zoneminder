@@ -32,7 +32,7 @@ class FloorplansController extends AppController {
     $find_array = array(
       'conditions' => &$conditions,
     );
-    $Floorplans = $this->Floorplans;
+		$Floorplans = $this->Floorplan->find('all', $find_array);
     $this->set(array(
       'Floorplans' => $Floorplans,
       '_serialize' => array('Floorplans')

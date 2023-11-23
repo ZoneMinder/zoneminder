@@ -4,7 +4,7 @@ App::uses('AppModel', 'Model');
  * Tag Model
  *
  */
-class Floorplans extends AppModel {
+class Floorplan extends AppModel {
 
 /**
  * Use table

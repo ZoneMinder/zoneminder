@@ -61,9 +61,9 @@ include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
-$liveMode = 1; // default to live
-if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
-  $liveMode = 0;
+$liveMode = 0; // default to live
+if ( isset($_REQUEST['live']) && ($_REQUEST['live'] != '0') )
+  $liveMode = 1;
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
 // Live overrides all the min/max stuff but it is still processed

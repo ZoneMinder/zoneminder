@@ -36,6 +36,12 @@ if (!$Server) {
   $Server = array('Id' => '');
 }
 
+if (!empty($_POST['newFloorPlanURL'])) {
+  dbQuery('INSERT INTO Floorplans (url, name) VALUES (?, ?)', array($_POST['newFloorPlanURL'], $_POST['newFloorPlanName']));
+}
+
+$Floorplans = dbFetchAll('SELECT * FROM Floorplans');
+
 $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
 $monitors_by_id = array();
 foreach ($monitors as $row) {
@@ -382,8 +388,8 @@ if ( $monitor->Type() != 'WebSite' ) {
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
   $tabs['misc'] = translate('Misc');
-  if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
-    $tabs['location'] = translate('Location');
+  //if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
+  $tabs['location'] = translate('Location');
   $tabs['mqtt'] = translate('MQTT');
 }
 
@@ -1526,6 +1532,40 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
   case 'location':
 ?>
         <li>
+          <label class="FloorplanX"><?php echo translate('FloorplanX') ?></label>
+          <input type="number" name="newMonitor[FloorplanX]" step="any" value="<?php echo $monitor->FloorplanX() ?>"/>
+        </li>
+        <li>
+          <label class="FloorplanY"><?php echo translate('FloorplanY') ?></label>
+          <input type="number" name="newMonitor[FloorplanY]" step="any" value="<?php echo $monitor->FloorplanY() ?>"/>
+        </li>
+        <li>
+          <label class="FloorplanID"><?php echo translate('FloorplanID') ?></label>
+<?php
+      $Floorplans_by_ID = array();
+      $Floorplans_by_ID[''] = 'None';
+      foreach ($Floorplans as $Floorplan_row) {
+        $Floorplans_by_ID[$Floorplan_row['id']] = $Floorplan_row['name'];
+      }
+      $Floorplans_by_ID['new'] = 'New';
+      echo htmlselect('newMonitor[FloorplanID]', $Floorplans_by_ID, $monitor->FloorplanID());
+?>
+          <div id="newFloorplanDiv" style="visibility:hidden;">
+          Name:
+          <input type="text" name="newFloorplanName">
+          URL
+          <input type="text" name="newFloorplanURL">
+          <button type="button" name="FloorplanAddURL">Add</button>
+          </div>
+        </li>
+        <li>
+          <label class="FloorplanPoint"><?php echo translate('FloorplanPoint') ?></label>
+          <input type="number" name="newMonitor[FloorplanPoint]" step="any" value="<?php echo $monitor->FloorplanPoint() ?>"/>
+        </li>
+<?php
+    if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
+?>
+        <li>
           <label class="Latitude"><?php echo translate('Latitude') ?></label>
           <input type="number" name="newMonitor[Latitude]" step="any" value="<?php echo $monitor->Latitude() ?>" min="-90" max="90"/>
         </li>
@@ -1540,6 +1580,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
           <div id="LocationMap" style="height: 500px; width: 500px;"></div>
         </li>
 <?php
+      };
     break;
   case 'mqtt':
 ?>

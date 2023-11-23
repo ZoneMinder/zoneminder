@@ -121,20 +121,25 @@ if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
 $filter = null;
 if (isset($_REQUEST['filter'])) {
   $filter = ZM\Filter::parse($_REQUEST['filter']);
+  $terms = $filter->terms();
 
 	# Try to guess min/max time from filter
-	foreach ($filter->terms() as $term) {
-		if ( $term['attr'] == 'StartDateTime' ) {
-			if ( $term['op'] == '<=' or $term['op'] == '<' ) {
+	foreach ($terms as &$term) {
+    if ($term['attr'] == 'Notes') {
+      $term['cookie'] = 'Notes';
+      if (empty($term['val']) and isset($_COOKIE['Notes'])) $term['val'] = $_COOKIE['Notes'];
+    } else if ($term['attr'] == 'StartDateTime') {
+			if ($term['op'] == '<=' or $term['op'] == '<') {
 				$maxTime = $term['val'];
 			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
 				$minTime = $term['val'];
 			}
-		}
-	}
+    }
+  } # end foreach term
+  $filter->terms($terms);
 } else {
   $filter = new ZM\Filter();
-  if ( isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0) ) {
+  if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'));
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
     if (count($selected_monitor_ids)) {
@@ -165,7 +170,6 @@ if (!$liveMode) {
   }
 }
 if (count($filter->terms()) ) {
-  #parseFilter($filter);
   # This is to enable the download button
   zm_session_start();
   $_SESSION['montageReviewFilter'] = $filter;
@@ -179,7 +183,7 @@ if (count($filter->terms()) ) {
 $eventsSql = 'SELECT
   E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
     CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
-    UNIX_TIMESTAMP(EndDateTime) AS EndTimeSecs,
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
     M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
   WHERE 1 > 0 
 ';
@@ -196,18 +200,19 @@ if ( count($selected_monitor_ids) ) {
 }
 
 $fitMode = 1;
-if ( isset($_REQUEST['fit']) && ($_REQUEST['fit'] == '0') )
-  $fitMode = 0;
+if (isset($_REQUEST['fit'])
+  $fitMode = validCardinal($_REQUEST['fit']);
 
-if ( isset($_REQUEST['scale']) )
+if (isset($_REQUEST['scale']))
   $defaultScale = validHtmlStr($_REQUEST['scale']);
 else
   $defaultScale = 1;
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
-if ( isset($_REQUEST['speed']) )
+if ( isset($_REQUEST['speed']) ) {
   $defaultSpeed = validHtmlStr($_REQUEST['speed']);
+
 else
   $defaultSpeed = 1;
 

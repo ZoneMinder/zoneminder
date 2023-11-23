@@ -272,6 +272,26 @@ function initPage() {
 
   const form = document.getElementById('contentForm');
 
+  // handle the new floorplan form &tab=location
+  form.elements['FloorplanAddURL'].onclick = async() => {
+    floorplanData = new FormData();
+    floorplanData.append("newFloorPlanURL", form.elements['newFloorplanURL'].value);
+    floorplanData.append("newFloorPlanName", form.elements['newFloorplanName'].value);
+    floorplanData.append("__csrf_magic", form.elements['__csrf_magic'].value);
+    let response = await fetch(window.location.href, {
+      method: 'POST',
+      body: floorplanData
+    });
+    alert(response);
+    window.location.replace(window.location.href + "&tab=location");
+  }
+  form.elements['newMonitor[FloorplanID]'].onchange = function() {
+    if (form.elements['newMonitor[FloorplanID]'].selectedIndex == form.elements['newMonitor[FloorplanID]'].options.length - 1) {
+      document.getElementById("newFloorplanDiv").style.visibility = "visible";
+    } else {
+      document.getElementById("newFloorplanDiv").style.visibility = "hidden";
+    }
+  }
   //manage the Janus settings div
 
   const janusEnabled = form.elements['newMonitor[JanusEnabled]'];

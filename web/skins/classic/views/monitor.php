@@ -36,6 +36,12 @@ if (!$Server) {
   $Server = array('Id' => '');
 }
 
+if (!empty($_POST['newFloorPlanURL'])) {
+  dbQuery('INSERT INTO Floorplans (url, name) VALUES (?, ?)', array($_POST['newFloorPlanURL'], $_POST['newFloorPlanName']));
+}
+
+$Floorplans = dbFetchAll('SELECT * FROM Floorplans');
+
 $monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
 $monitors_by_id = array();
 foreach ($monitors as $row) {
@@ -1535,7 +1541,22 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         </li>
         <li>
           <label class="FloorplanID"><?php echo translate('FloorplanID') ?></label>
-          <input type="number" name="newMonitor[FloorplanID]" step="any" value="<?php echo $monitor->FloorplanID() ?>"/>
+<?php
+      $Floorplans_by_ID = array();
+      $Floorplans_by_ID[''] = 'None';
+      foreach ($Floorplans as $Floorplan_row) {
+        $Floorplans_by_ID[$Floorplan_row['id']] = $Floorplan_row['name'];
+      }
+      $Floorplans_by_ID['new'] = 'New';
+      echo htmlselect('newMonitor[FloorplanID]', $Floorplans_by_ID, $monitor->FloorplanID());
+?>
+          <div id="newFloorplanDiv" style="visibility:hidden;">
+          Name:
+          <input type="text" name="newFloorplanName">
+          URL
+          <input type="text" name="newFloorplanURL">
+          <button type="button" name="FloorplanAddURL">Add</button>
+          </div>
         </li>
         <li>
           <label class="FloorplanPoint"><?php echo translate('FloorplanPoint') ?></label>

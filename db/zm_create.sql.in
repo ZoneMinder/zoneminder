@@ -484,6 +484,18 @@ CREATE TABLE `MonitorPresets` (
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 --
+-- Table structure for table `Floorplans`
+--
+
+DROP TABLE IF EXISTS `Floorplans`;
+CREATE TABLE `Floorplans` (
+ `id` INT(10) unsigned NOT NULL AUTO_INCREMENT,
+ `url` text,
+ `name` text,
+ PRIMARY KEY(id)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+--
 -- Table structure for table `Monitors`
 --
 
@@ -611,14 +623,15 @@ CREATE TABLE `Monitors` (
   `Longitude`  DECIMAL(11,8),
   `FloorplanX` INT NOT NULL default '0',
   `FloorplanY` INT NOT NULL default '0',
-  `FloorplanID` INT default NULL,
+  `FloorplanID` INT(10) default NULL,
   `FloorplanPoint` SMALLINT NOT NULL default '0',
   `RTSPServer`  BOOLEAN NOT NULL DEFAULT FALSE,
   `RTSPStreamName`  varchar(255) NOT NULL default '',
   `Importance`  enum('Normal','Less','Not') NOT NULL default 'Normal',
   `MQTT_Enabled`  BOOLEAN NOT NULL DEFAULT false,
   `MQTT_Subscriptions`  varchar(255) default '',
-  PRIMARY KEY (`Id`)
+  PRIMARY KEY (`Id`),
+  FORIEGN KEY `FloorplanID` REFERNCES Floorplans(`id`) ON DELETE SET NULL
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`);

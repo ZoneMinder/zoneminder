@@ -328,15 +328,15 @@ function initPage() {
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
           $j.getJSON('?request=modal&modal=areyoustillwatching')
-            .done(function(data) {
-              ayswModal = insertModalHtml('AYSWModal', data.html);
-              $j('#AYSWYesBtn').on('click', function() {
-                for (let i=0, length = monitors.length; i < length; i++) monitors[i].play();
-                idle = 0;
-              });
-              ayswModal.modal('show');
-            })
-            .fail(logAjaxFail);
+              .done(function(data) {
+                ayswModal = insertModalHtml('AYSWModal', data.html);
+                $j('#AYSWYesBtn').on('click', function() {
+                  for (let i=0, length = monitors.length; i < length; i++) monitors[i].play();
+                  idle = 0;
+                });
+                ayswModal.modal('show');
+              })
+              .fail(logAjaxFail);
         } else {
           ayswModal.modal('show');
         }

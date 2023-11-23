@@ -503,7 +503,7 @@ body.sticky #page {
     width: 100%;
     text-align: left;
     background-color: #34495e;
-    padding: 5px 20px;
+    padding: 5px 0px;
     margin: 0 auto 4px auto;
     color: white;
     font-weight: 300;
@@ -776,7 +776,6 @@ li.search-choice {
 
 a.flip {
   float: right;
-  margin-right: -20px;
 }
 
 #content table.major .colDiskSpace {

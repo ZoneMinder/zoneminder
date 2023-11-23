@@ -1812,7 +1812,7 @@ bool Monitor::Poll() {
             // Event_Poller_Healthy = false;
           }
         } else {
-          Info("ONVIF polling : Got Good Response! %i", result);
+          Debug(1, "ONVIF polling : Got Good Response! %i", result);
           for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
             if ((msg->Topic != nullptr) &&
                 (msg->Topic->__any.text != nullptr) &&

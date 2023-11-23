@@ -40,7 +40,7 @@ SET @s = (SELECT IF(
  ADD COLUMN  `FloorplanY` INT NOT NULL default '0' AFTER `FloorplanX`,
  ADD COLUMN  `FloorplanID` INT(10) default NULL AFTER `FloorplanY`,
  ADD COLUMN  `FloorplanPoint` SMALLINT NOT NULL default '0' AFTER `FloorplanID`,
- ADD FORIEGN KEY `FloorplanID` REFERNCES Floorplans(`id`) ON DELETE SET NULL"
+ ADD FOREIGN KEY `FloorplanID` REFERENCES Floorplans(`id`) ON DELETE SET NULL"
 ));
 
 PREPARE stmt FROM @s;

@@ -631,7 +631,7 @@ CREATE TABLE `Monitors` (
   `MQTT_Enabled`  BOOLEAN NOT NULL DEFAULT false,
   `MQTT_Subscriptions`  varchar(255) default '',
   PRIMARY KEY (`Id`),
-  FORIEGN KEY `FloorplanID` REFERNCES Floorplans(`id`) ON DELETE SET NULL
+  FOREIGN KEY `FloorplanID` REFERENCES Floorplans(`id`) ON DELETE SET NULL
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
 CREATE INDEX `Monitors_ServerId_idx` ON `Monitors` (`ServerId`);

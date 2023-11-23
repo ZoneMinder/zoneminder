@@ -1,0 +1,12 @@
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+.blueprint {
+    width: 90%;height: 600px;display: block;/*background-image: url("House-Blueprint2.png");*/background-size: contain;background-repeat: no-repeat;left: 100px;position: absolute;z-index: 1;
+}
+
+.camera {
+    display: block;background-image: url("camera-svgrepo-com.svg");width: 40px;height: 40px;background-size: auto;position: absolute;background-repeat: no-repeat;z-index: 3;background-size: contain;
+}

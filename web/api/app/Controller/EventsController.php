@@ -40,7 +40,7 @@ class EventsController extends AppController {
 
     global $user;
     require_once __DIR__ .'/../../../includes/Event.php';
-    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+    $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : [];
 
     if (count($allowedMonitors)) {
       $mon_options = array('Event.MonitorId' => $allowedMonitors);

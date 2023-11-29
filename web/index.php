@@ -20,22 +20,6 @@
 
 error_reporting(E_ALL);
 
-$debug = false;
-if ( $debug ) {
-  // Use these for debugging, though not both at once!
-  phpinfo(INFO_VARIABLES);
-}
-
-// Useful debugging lines for mobile devices
-if ( false ) {
-  ob_start();
-  phpinfo(INFO_VARIABLES);
-  $fp = fopen('/tmp/env.html', 'w+');
-  fwrite($fp, ob_get_contents());
-  fclose($fp);
-  ob_end_clean();
-}
-
 require_once('includes/config.php');
 require_once('includes/session.php');
 require_once('includes/logger.php'); // already included in config

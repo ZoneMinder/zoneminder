@@ -29,6 +29,7 @@
 
 #include <cstring>
 #include <list>
+#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -186,27 +187,53 @@ Event::~Event() {
 
   if (frame_data.size()) WriteDbFrames();
 
+  uint64_t video_size = 0;
+  DIR *video_dir;
+  if ((video_dir = opendir(path.c_str())) != NULL) {
+    struct dirent *video_file;
+    while ((video_file = readdir(video_dir)) != NULL) {
+      struct stat vf_stat;
+      if (stat((path + "/" + video_file->d_name).c_str(), &vf_stat) == 0 &&
+          S_ISREG(vf_stat.st_mode))
+        video_size += vf_stat.st_size;
+    }
+    closedir(video_dir);
+  }
+
   std::string sql = stringtf(
-      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64 " AND Name='New Event'",
+      "UPDATE Events SET Name='%s%" PRIu64 "', EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64 " AND Name='New Event'",
       monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), id, std::chrono::system_clock::to_time_t(end_time),
       delta_time.count(),
       frames, alarm_frames,
       tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
       video_file.c_str(), // defaults to ""
+      video_size,
       id);
 
   if (!zmDbDoUpdate(sql)) {
     // Name might have been changed during recording, so just do the update without changing the name.
     sql = stringtf(
-        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s' WHERE Id = %" PRIu64,
+        "UPDATE Events SET EndDateTime = from_unixtime(%ld), Length = %.2f, Frames = %d, AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d, DefaultVideo='%s', DiskSpace=%" PRIu64 " WHERE Id = %" PRIu64,
         std::chrono::system_clock::to_time_t(end_time),
         delta_time.count(),
         frames, alarm_frames,
         tot_score, static_cast<uint32>(alarm_frames ? (tot_score / alarm_frames) : 0), max_score,
         video_file.c_str(), // defaults to ""
+        video_size,
         id);
     zmDbDoUpdate(sql);
   }  // end if no changed rows due to Name change during recording
+
+  sql = stringtf("UPDATE Event_Summaries SET "
+      "HourEventDiskSpace = COALESCE(HourEventDiskSpace,0)+%" PRIu64 ","
+      "DayEventDiskSpace = COALESCE(DayEventDiskSpace,0)+%" PRIu64 ","
+      "WeekEventDiskSpace = COALESCE(WeekEventDiskSpace,0)+%" PRIu64 ","
+      "MonthEventDiskSpace = COALESCE(MonthEventDiskSpace,0)+%" PRIu64 ","
+      "TotalEventDiskSpace = COALESCE(TotalEventDiskSpace,0)+%" PRIu64
+      " WHERE MonitorId=%d",
+      video_size, video_size, video_size, video_size, video_size,
+      monitor->Id());
+  zmDbDoUpdate(sql);
 }  // Event::~Event()
 
 void Event::createNotes(std::string &notes) {

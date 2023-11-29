@@ -4,10 +4,8 @@ const xmlns = "http://www.w3.org/2000/svg";
 const cameras = new Array();
 const floorplans = {};
 const urlParams = new URLSearchParams(window.location.search);
+const currentFloorplanID = urlParams.has('floorplanid') ? urlParams.get('floorplanid') : 0;
 
-if (urlParams.has('floorplanid')) {
-  currentFloorplanID = urlParams.get('floorplanid');
-}
 init();
 
 async function init() {

@@ -200,7 +200,7 @@ if ( count($selected_monitor_ids) ) {
 }
 
 $fitMode = 1;
-if (isset($_REQUEST['fit'])
+if (isset($_REQUEST['fit']))
   $fitMode = validCardinal($_REQUEST['fit']);
 
 if (isset($_REQUEST['scale']))

@@ -69,6 +69,10 @@ while (!$zm_terminate) {
     Warning("Failed getting user_utilization from $top_output");
     $user_utilization = 0;
   }
+  if (!$system_utilization) {
+    Warning("Failed getting user_utilization from $top_output");
+    $system_utilization = 0;
+  }
 
   zmDbDo('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuSystemPercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?)',
     $Config{ZM_SERVER_ID},

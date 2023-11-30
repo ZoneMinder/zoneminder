@@ -201,23 +201,22 @@ if (canEdit('System')) {
         </div><!--Permissions-->
       <br class="clear"/>
 <?php
+$groups = array();
 if (canEdit('Groups')) {
-  $groups = array();
-  foreach ( ZM\Group::find() as $group ) {
+  foreach (ZM\Group::find() as $group) {
     $groups[$group->Id()] = $group;
   }
 
   $max_depth = 0;
   # This  array is indexed by parent_id
   $children = array();
-  foreach ( $groups as $id=>$group ) {
-    if ( ! isset( $children[$group->ParentId()] ) )
+  foreach ($groups as $id=>$group) {
+    if (!isset( $children[$group->ParentId()]))
       $children[$group->ParentId()] = array();
     $children[$group->ParentId()][] = $group;
-    if ( $max_depth < $group->depth() )
+    if ($max_depth < $group->depth())
       $max_depth = $group->depth();
   }
-
 ?>
     <div id="GroupPermissions">
       <fieldset><legend><?php echo translate('Groups Permissions') ?></legend>

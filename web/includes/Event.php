@@ -759,9 +759,8 @@ class Event extends ZM_Object {
     return $this->Tags;
   }
 
-  public function GenerateVideo( $rate, $fps, $scale, $size, $overwrite, $format, $transforms )  {
+  public function GenerateVideo($rate=0, $fps=0, $scale=0, $size=0, $overwrite=false, $format='mp4', $transforms='')  {
     $event_path = $this->Path();
-    chdir($event_path);
     $video_name = preg_replace('/\s/', '_', $this->Name());
 
     $file_parts = [$video_name];
@@ -786,12 +785,12 @@ class Event extends ZM_Object {
       $file_size = 'S'.$size;
       $file_parts[] = $file_size;
     }
-    array_push($file_parts, explode(',', $transforms));
+    array_merge($file_parts, explode(',', $transforms));
     $video_file = implode('-', $file_parts).'.'.$format;
     if ( $overwrite || ! file_exists($video_file) ) {
-      Info("Creating video file $video_file for event ${this['Id']}");
+      Info("Creating video file $video_file for event ".$this->Id());
 
-      $frame_rate = sprintf('%.2f', $this['Frames']/$this['FullLength']);
+      $frame_rate = sprintf('%.2f', $this->Frames()/$this->Length());
       if ($rate) {
         if ( $rate != 1.0 ) {
           $frame_rate *= $rate;
@@ -816,14 +815,14 @@ class Event extends ZM_Object {
       $command = ZM_PATH_FFMPEG
       ." -y -r $frame_rate "
         .ZM_FFMPEG_INPUT_OPTIONS
-        .' -i ' . ( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )
+        .' -i ' . $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )
         #. " -f concat -i /tmp/event_files.txt"
         #
-        .implode(' ', array_map(function($t){ return ' -vf '.$t; }, $transforms))
+        .implode(' ', array_map(function($t){ return ' -vf '.$t; }, explode(',', $transforms)))
       ." -s $video_size "
 
         .ZM_FFMPEG_OUTPUT_OPTIONS
-        ." '$video_file' > ffmpeg.log 2>&1"
+        ." '$event_path/$video_file' > $event_path/ffmpeg.log 2>&1"
         ;
       Debug($command);
       if(!exec(escapeshellcmd($command), $output, $rc)) {
@@ -832,10 +831,10 @@ class Event extends ZM_Object {
       }
 
       Info("Finished $video_file");
-      return $event_path.'/'.$video_file;
+      return $video_file;
     } else {
       Info("Video file $video_file already exists for event ${this['Id']}");
-      return $event_path.'/'.$video_file;
+      return $video_file;
     }
     return;
   } # end sub GenerateVideo

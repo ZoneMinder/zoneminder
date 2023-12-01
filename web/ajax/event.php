@@ -8,43 +8,31 @@ if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
 if ( canView('Events') or canView('Snapshots') ) {
   switch ( $_REQUEST['action'] ) {
   case 'video' :
-    if ( empty($_REQUEST['videoFormat']) ) {
+    if (empty($_REQUEST['videoFormat'])) {
       ajaxError('Video Generation Failure, no format given');
-    } elseif ( empty($_REQUEST['rate']) ) {
+    } else if (empty($_REQUEST['rate'])) {
       ajaxError('Video Generation Failure, no rate given');
-    } elseif ( empty($_REQUEST['scale']) ) {
+    } else if (empty($_REQUEST['scale'])) {
       ajaxError('Video Generation Failure, no scale given');
     } else {
       $sql = '
-      SELECT 
-        E.*,
-        M.Name 
-          AS MonitorName,M.DefaultRate,M.DefaultScale, 
-        GROUP_CONCAT(T.Name SEPARATOR ", ")
-          AS Tags
-      FROM Events 
-        AS E 
-      INNER JOIN Monitors 
-        AS M 
-        ON E.MonitorId = M.Id 
-      LEFT JOIN Events_Tags 
-        AS ET 
-        ON E.Id = ET.EventId 
-      LEFT JOIN Tags 
-        AS T 
-        ON T.Id = ET.TagId 
-      WHERE 
-        E.Id = ?'.monitorLimitSql();
-      if ( !($event = dbFetchOne($sql, NULL, array( $_REQUEST['id']))) ) {
+      SELECT E.*, M.Name AS MonitorName,M.DefaultRate,M.DefaultScale, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags
+      FROM Events AS E
+      INNER JOIN Monitors AS M ON E.MonitorId = M.Id
+      LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+      LEFT JOIN Tags AS T ON T.Id = ET.TagId
+      WHERE E.Id = ? GROUP BY E.Id '.monitorLimitSql();
+      if (!($event = dbFetchOne($sql, NULL, array( $_REQUEST['id'])))) {
         ajaxError('Video Generation Failure, Unable to load event');
       } else {
         require_once('includes/Event.php');
         $Event = new ZM\Event($event);
 
-        if ( $videoFile = $Event->createVideo($_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], $_REQUEST['transform'], !empty($_REQUEST['overwrite'])) )
+        if ( $videoFile = $Event->createVideo( $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], $_REQUEST['transform'], !empty($_REQUEST['overwrite'])) ) {
           ajaxResponse(array('response'=>$videoFile));
-        else
+        } else {
           ajaxError('Video Generation Failed');
+        }
       }
     }
     $ok = true;

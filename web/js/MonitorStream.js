@@ -185,7 +185,7 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
-  this.start = function(delay) {
+  this.start = function(delay=500) {
     if (this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {
@@ -206,15 +206,14 @@ function MonitorStream(monitorData) {
       }
       attachVideo(parseInt(this.id), this.janusPin);
       this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
-      return;
     } else if (this.RTSP2WebEnabled) {
       videoEl = document.getElementById("liveStream" + this.id);
       const url = new URL(ZM_RTSP2WEB_PATH);
       const useSSL = (url.protocol == 'https');
 
       rtsp2webModUrl = url;
-      rtsp2webModUrl.username='';
-      rtsp2webModUrl.password='';
+      rtsp2webModUrl.username = '';
+      rtsp2webModUrl.password = '';
       //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
       if (this.RTSP2WebType == 'HLS') {
         hlsUrl = rtsp2webModUrl;
@@ -233,7 +232,7 @@ function MonitorStream(monitorData) {
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           videoEl.src = hlsUrl.href;
         }
-      } else if (this.RTSP2WebType == "MSE") {
+      } else if (this.RTSP2WebType == 'MSE') {
         videoEl.addEventListener('pause', () => {
           if (videoEl.currentTime > videoEl.buffered.end(videoEl.buffered.length - 1)) {
             videoEl.currentTime = videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1;
@@ -251,6 +250,7 @@ function MonitorStream(monitorData) {
         console.log(webrtcUrl.href);
         startRTSP2WebPlay(videoEl, webrtcUrl.href);
       }
+      this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
     } else {
       // zms stream
       const stream = this.getElement();
@@ -286,7 +286,6 @@ function MonitorStream(monitorData) {
       if (!stream) return;
       src = stream.src.replace(/mode=jpeg/i, 'mode=single');
       if (stream.src != src) {
-        console.log("Setting to stopped");
         stream.src = '';
         stream.src = src;
       }
@@ -295,6 +294,7 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
   };
+
   this.kill = function() {
     if (janus) {
       if (streaming[this.id]) {
@@ -315,6 +315,7 @@ function MonitorStream(monitorData) {
     this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
     this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
   };
+
   this.pause = function() {
     this.streamCommand(CMD_PAUSE);
   };
@@ -609,7 +610,6 @@ function MonitorStream(monitorData) {
     //watchdogOk('status');
     this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
 
-
     if (respObj.result == 'Ok') {
       const monitorStatus = respObj.monitor.Status;
       const captureFPSValue = $j('#captureFPSValue'+this.id);
@@ -682,6 +682,7 @@ function MonitorStream(monitorData) {
   };
 
   this.statusCmdQuery=function() {
+    console.log('statusCmdQuery');
     $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+this.id+'&'+this.auth_relay)
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
@@ -947,12 +948,9 @@ function startMsePlay(context, videoEl, url) {
 }
 
 function pushMsePacket(videoEl, context) {
-  //const videoEl = document.querySelector('#mse-video');
-  let packet;
-
   if (context != undefined && !context.mseSourceBuffer.updating) {
     if (context.mseQueue.length > 0) {
-      packet = context.mseQueue.shift();
+      const packet = context.mseQueue.shift();
       context.mseSourceBuffer.appendBuffer(packet);
     } else {
       context.mseStreamingStarted = false;

@@ -428,11 +428,6 @@ sub delete {
       $storage->save();
     }
 
-    ZoneMinder::Database::zmDbDo('DELETE FROM Events_Hour WHERE EventId=?', $$event{Id});
-    ZoneMinder::Database::zmDbDo('DELETE FROM Events_Day WHERE EventId=?', $$event{Id});
-    ZoneMinder::Database::zmDbDo('DELETE FROM Events_Week WHERE EventId=?', $$event{Id});
-    ZoneMinder::Database::zmDbDo('DELETE FROM Events_Month WHERE EventId=?', $$event{Id});
-    # Don't need to delete from Archived because we don't delete Archived events.
     ZoneMinder::Database::zmDbDo('UPDATE Event_Summaries SET
     TotalEvents = GREATEST(COALESCE(TotalEvents,1)-1,0),
     TotalEventDiskSpace=GREATEST(COALESCE(TotalEventDiskSpace,0)-COALESCE(?,0),0)

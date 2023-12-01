@@ -903,7 +903,7 @@ FROM `Frames` WHERE `EventId`=?';
   my $eventcounts_hour_sql = '
   UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `HourEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `HourEventDiskSpace`
-  FROM `Events_Hour` GROUP BY `MonitorId`
+  FROM `Events` WHERE StartDateTime >= SUBTIME(UTC_TIMESTAMP(), "1:0:0") GROUP BY `MonitorId`
   ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
   `Event_Summaries`.`HourEvents` = `E`.`HourEvents`,
   `Event_Summaries`.`HourEventDiskSpace` = `E`.`HourEventDiskSpace`
@@ -915,7 +915,7 @@ FROM `Frames` WHERE `EventId`=?';
   my $eventcounts_day_sql = '
   UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `DayEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `DayEventDiskSpace`
-  FROM `Events_Day` GROUP BY `MonitorId`
+  FROM `Events` WHERE StartDateTime >= SUBTIME(UTC_TIMESTAMP(), "1 0:0:0") GROUP BY `MonitorId`
   ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
   `Event_Summaries`.`DayEvents` = `E`.`DayEvents`,
   `Event_Summaries`.`DayEventDiskSpace` = `E`.`DayEventDiskSpace`
@@ -926,7 +926,7 @@ FROM `Frames` WHERE `EventId`=?';
   my $eventcounts_week_sql = '
   UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `WeekEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `WeekEventDiskSpace`
-  FROM `Events_Week` GROUP BY `MonitorId`
+  FROM `Events` WHERE StartDateTime >= SUBTIME(UTC_TIMESTAMP(), "7 0:0:0") GROUP BY `MonitorId`
   ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
   `Event_Summaries`.`WeekEvents` = `E`.`WeekEvents`,
   `Event_Summaries`.`WeekEventDiskSpace` = `E`.`WeekEventDiskSpace`
@@ -937,7 +937,7 @@ FROM `Frames` WHERE `EventId`=?';
   my $eventcounts_month_sql = '
   UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `MonthEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `MonthEventDiskSpace`
-  FROM `Events_Month` GROUP BY `MonitorId`
+  FROM `Events` WHERE StartDateTime >= SUBTIME(UTC_TIMESTAMP(), "30 0:0:0") GROUP BY `MonitorId`
   ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
   `Event_Summaries`.`MonthEvents` = `E`.`MonthEvents`,
   `Event_Summaries`.`MonthEventDiskSpace` = `E`.`MonthEventDiskSpace`

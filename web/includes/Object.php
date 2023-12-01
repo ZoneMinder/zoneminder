@@ -127,7 +127,7 @@ class ZM_Object {
           $sql .= ' LIMIT '.$options['limit'];
         } else {
           $backTrace = debug_backtrace();
-          Error('Invalid value for limit('.$options['limit'].') passed to '.get_class()."::find from ".print_r($backTrace,true));
+          Error('Invalid value for limit('.$options['limit'].') passed to '.self::class."::find from ".print_r($backTrace,true));
           return array();
         }
       }
@@ -460,7 +460,7 @@ class ZM_Object {
     }
   }
   public function remove_from_cache() {
-    return ZM_Object::_remove_from_cache(get_class(), $this);
+    return ZM_Object::_remove_from_cache(self::class, $this);
   }
   public function get_last_error() {
     return $this->_last_error;

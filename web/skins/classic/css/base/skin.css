@@ -861,6 +861,7 @@ a.flip {
 }
 .controlHeader {
   display: flex;
+  flex-wrap: wrap;
 }
 /* to match chosen text input height */
 .controlHeader input[type="text"] {

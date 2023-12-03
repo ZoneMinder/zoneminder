@@ -282,14 +282,15 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     int n_bytes = 0;
 
     image.EncodeJpeg(buffer, &n_bytes);
-    Debug(4, "Encoded to %d bytes", n_bytes);
 
-    if (0 > fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout)) {
-      Debug(1, "Error sending  --" BOUNDARY "\r\nContent-Type: image/jpeg\r\n");
-      return false;
+    if (type == STREAM_JPEG) {
+      if (0 > fputs("--" BOUNDARY "\r\n", stdout)) {
+        Debug(1, "Error sending  --" BOUNDARY "\r\n");
+        return false;
+      }
     }
-    if (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes)) {
-      Debug(1, "Error sending Content-Length: %d\r\n\r\n", n_bytes);
+    if (0 > fprintf(stdout, "Content-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n", n_bytes)) {
+      Debug(1, "Error sending Content-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n", n_bytes);
       return false;
     }
     int rc = fwrite(buffer, n_bytes, 1, stdout);

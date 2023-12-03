@@ -900,10 +900,19 @@ void MonitorStream::SingleImage(int scale) {
   int img_buffer_size = 0;
   static JOCTET img_buffer[ZM_MAX_IMAGE_SIZE];
   Image scaled_image;
-  while ((monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
+
+  int count = 10; // Give it 1 second to connect or else send text frame.
+  while (count and (monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
     Debug(1, "Waiting for capture to begin");
     std::this_thread::sleep_for(Milliseconds(100));
+    count--;
   }
+  if (!count) {
+    sendTextFrame("No image available.");
+    sendTextFrame("No image available.");
+    return;
+  }
+
   int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
   AVPixelFormat pixformat = monitor->image_pixelformats[index];
   Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));

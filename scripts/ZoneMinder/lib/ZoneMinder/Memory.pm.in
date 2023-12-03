@@ -436,6 +436,8 @@ sub zmMemWrite {
       $data = pack('Z'.$size, $value);
     } elsif ( $type =~ /^uint8\[\d+\]$/ ) {
       $data = pack('C'.$size, $value);
+    } elsif ( $type eq 'double' ) {
+      $data = pack('d', $value);
     } else {
       Fatal("Unexpected type \"$type\" found for \"$field\"");
     }

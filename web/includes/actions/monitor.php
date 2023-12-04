@@ -325,7 +325,7 @@ if ($action == 'save') {
   } # end if ZM_OPT_X10
 
   if ( $restart ) {
-    if ( $monitor->Capturing() != 'None' and $monitor->Type() != 'WebSite' ) {
+    if ( $monitor->Capturing() != 'None' and $monitor->Type() != 'WebSite' and !$monitor->Deleted()) {
       $monitor->zmcControl('start');
 
       if ( $monitor->Controllable() ) {

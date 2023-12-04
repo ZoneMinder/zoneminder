@@ -99,18 +99,13 @@ include('_monitor_filters.php');
 $filterbar = ob_get_contents();
 ob_end_clean();
 
+$displayMonitorIds = array_map(function($m){return $m['Id'];}, $displayMonitors);
+
 $show_storage_areas = (count($storage_areas) > 1) and (canEdit('System') ? 1 : 0);
 $maxWidth = 0;
 $maxHeight = 0;
 $zoneCount = 0;
 $total_capturing_bandwidth=0;
-
-$group_ids_by_monitor_id = array();
-foreach ( ZM\Group_Monitor::find(array('MonitorId'=>$selected_monitor_ids)) as $GM ) {
-  if ( !isset($group_ids_by_monitor_id[$GM->MonitorId()]) )
-    $group_ids_by_monitor_id[$GM->MonitorId()] = array();
-  $group_ids_by_monitor_id[$GM->MonitorId()][] = $GM->GroupId();
-}
 
 $status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
@@ -255,7 +250,7 @@ ob_start();
         'cnj'=>'and',
         'attr'=>'Monitor',
         'op'=>'IN',
-        'val'=>implode(',', array_map(function($m){return $m['Id'];}, $displayMonitors))
+        'val'=>implode(',', $displayMonitorIds)
         )
     );
     parseFilter($filter);
@@ -273,6 +268,13 @@ ob_start();
 $table_head = ob_get_contents();
 ob_end_clean();
 echo $table_head;
+
+$group_ids_by_monitor_id = array();
+foreach (ZM\Group_Monitor::find(array('MonitorId'=>$displayMonitorIds)) as $GM) {
+  if ( !isset($group_ids_by_monitor_id[$GM->MonitorId()]) )
+    $group_ids_by_monitor_id[$GM->MonitorId()] = array();
+  $group_ids_by_monitor_id[$GM->MonitorId()][] = $GM->GroupId();
+}
 $monitors = array();
 for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   $monitor = $displayMonitors[$monitor_i];
@@ -464,7 +466,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
         'cnj'=>'and',
         'attr'=>'Monitor',
         'op'=>'IN',
-        'val'=>implode(',',array_map(function($m){return $m['Id'];}, $displayMonitors))
+        'val'=>implode(',', $displayMonitorIds)
         )
     );
     parseFilter($filter);

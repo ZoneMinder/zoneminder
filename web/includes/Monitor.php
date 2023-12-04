@@ -582,8 +582,8 @@ public static function getStatuses() {
     }
 
     if (!property_exists($this, 'GroupIds')) {
-      if (property_exists($this, 'Id') and $this->{'Id'}) {
-        $this->{'GroupIds'} = dbFetchAll('SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=?', 'GroupId', array($this->{'Id'}));
+      if ($this->Id()) {
+        $this->{'GroupIds'} = dbFetchAll('SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=?', 'GroupId', [$this->Id()]);
         if (!$this->{'GroupIds'})
           $this->{'GroupIds'} = array();
       } else {

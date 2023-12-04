@@ -87,14 +87,14 @@ while (!$zm_terminate) {
 
   zmDbDo('
     UPDATE `Event_Summaries` SET
-    `HourEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(UTC_TIMESTAMP(), "1:0:0")),0),
-    `HourEventDiskSpace`=COALESCE((SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(UTC_TIMESTAMP(), "1:0:0") AND `DiskSpace` IS NOT NULL),0),
-    `DayEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(UTC_TIMESTAMP(), "1 0:0:0")),0),
-    `DayEventDiskSpace`=COALESCE((SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(UTC_TIMESTAMP(), "1 0:0:0") AND `DiskSpace` IS NOT NULL),0),
-    `WeekEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(UTC_TIMESTAMP(), "7 0:0:0")),0),
-    `WeekEventDiskSpace`=COALESCE((SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(UTC_TIMESTAMP(), "7 0:0:0") AND `DiskSpace` IS NOT NULL),0),
-    `MonthEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(UTC_TIMESTAMP(), "30 0:0:0")),0),
-    `MonthEventDiskSpace`=COALESCE((SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(UTC_TIMESTAMP(), "30 0:0:0") AND `DiskSpace` IS NOT NULL),0),
+    `HourEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(CURRENT_TIMESTAMP(), "1:0:0")),0),
+    `HourEventDiskSpace`=COALESCE((SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(CURRENT_TIMESTAMP(), "1:0:0") AND `DiskSpace` IS NOT NULL),0),
+    `DayEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(CURRENT_TIMESTAMP(), "1 0:0:0")),0),
+    `DayEventDiskSpace`=COALESCE((SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(CURRENT_TIMESTAMP(), "1 0:0:0") AND `DiskSpace` IS NOT NULL),0),
+    `WeekEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(CURRENT_TIMESTAMP(), "7 0:0:0")),0),
+    `WeekEventDiskSpace`=COALESCE((SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(CURRENT_TIMESTAMP(), "7 0:0:0") AND `DiskSpace` IS NOT NULL),0),
+    `MonthEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(CURRENT_TIMESTAMP(), "30 0:0:0")),0),
+    `MonthEventDiskSpace`=COALESCE((SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `StartDateTime` >= SUBTIME(CURRENT_TIMESTAMP(), "30 0:0:0") AND `DiskSpace` IS NOT NULL),0),
     `TotalEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId`),0),
     `TotalEventDiskSpace`=COALESCE((SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `DiskSpace` IS NOT NULL),0),
     `ArchivedEvents`=COALESCE((SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `Archived`=1),0),

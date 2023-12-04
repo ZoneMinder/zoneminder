@@ -648,7 +648,7 @@ sub CopyTo {
 	($NewPath) = ( $NewPath =~ /^(.*)$/ ); # De-taint
   if ( $NewPath eq $OldPath ) {
     $ZoneMinder::Database::dbh->commit();
-    return "New path and old path are the same! $NewPath";
+    return "New path and old path are the same! $OldPath $NewPath";
   }
   Debug("Copying event $$self{Id} from $OldPath to $NewPath");
 
@@ -748,22 +748,19 @@ sub MoveTo {
   my ( $SrcPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
   my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
   my $error = '';
-  if (! -e $SrcPath and -e $NewPath) {
-    Warning("Event has already been moved, just updating the event.");
+  if ((! -e $SrcPath) and -e $NewPath) {
+    Warning("Event has already been moved, just updating the event record in db.");
   } else {
     $error = $self->CopyTo($NewStorage);
+    return $error if $error;
   }
-  if (!$error) {
-    # Succeeded in copying all files, so we may now update the Event.
-    $$self{StorageId} = $$NewStorage{Id};
-    $self->Storage($NewStorage);
-    $self->Path(undef);
-    $error .= $self->save();
 
-    # Going to leave it to upper layer as to whether we rollback or not
-  }
-  $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
+  # Succeeded in copying all files, so we may now update the Event.
+  $self->Storage($NewStorage);
+  $error .= $self->save();
+  # Going to leave it to upper layer as to whether we rollback or not
   return $error if $error;
+  $ZoneMinder::Database::dbh->commit() if !$was_in_transaction;
 
   $self->delete_files($OldStorage);
   return $error;

@@ -206,7 +206,7 @@ if (
   ( $action != 'login' ) &&
   ( $view != 'view_video' ) && // only video no html
   ( $view != 'image' ) && // view=image doesn't return html, just image data.
-  (!$request) && // requests are ajax and can only return json.
+  (!$request or ($request == 'modal')) && // requests are ajax and can only return json.
   //( $view != 'frames' ) &&  // big html can overflow ob
   ( $view != 'archive' ) // returns data
   && ( (!isset($_SERVER['CONTENT_TYPE']) or ($_SERVER['CONTENT_TYPE'] != 'application/csp-report')) )

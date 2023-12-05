@@ -27,6 +27,7 @@ package ZoneMinder::Database;
 use 5.006;
 use strict;
 use warnings;
+use version;
 
 require Exporter;
 require ZoneMinder::Base;
@@ -50,6 +51,7 @@ our %EXPORT_TAGS = (
       zmDbDo
       zmSQLExecute
       zmDbFetchOne
+      zmDbSupportsFeature
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -271,6 +273,21 @@ sub zmDbFetchOne {
   my $row = $sth->fetchrow_hashref();
   $sth->finish();
   return $row;
+}
+
+sub zmDbSupportsFeature {
+  my $feature = shift;
+  my $row = zmDbFetchOne('SELECT VERSION()');
+  my ($version) = $$row{'VERSION()'} =~ /(^[0-9\.]+)/;
+  if ($feature eq 'skip_locked') {
+    if ($$row{'VERSION()'} =~ /MariaDB/) {
+      return version->parse($version) >= version->parse('10.6');
+    } else {
+      return version->parse($version) >= version->parse('8.0.1');
+    }
+  } else {
+    Warning("Unknown feature requested $feature");
+  }
 }
 
 1;

@@ -56,7 +56,7 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
   }
 
   if (!monitor->connect()) {
-    Error("Unable to connect to monitor id %d for streaming", monitor_id);
+    Info("Unable to connect to monitor id %d for streaming", monitor_id);
     monitor->disconnect();
     return false;
   }

@@ -850,7 +850,7 @@ bool Monitor::connect() {
   }
 
   if (map_fd < 0) {
-    Error("Can't open memory map file %s: %s", mem_file.c_str(), strerror(errno));
+    Info("Can't open memory map file %s: %s", mem_file.c_str(), strerror(errno));
     return false;
   } else {
     Debug(3, "Success opening mmap file at (%s)", mem_file.c_str());

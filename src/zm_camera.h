@@ -65,6 +65,7 @@ protected:
   int64_t     mLastVideoPTS;
   int64_t     mLastAudioPTS;
   unsigned int  bytes;
+  bool mIsPrimed;
 
 public:
   Camera(
@@ -84,6 +85,7 @@ public:
   virtual ~Camera();
 
   SourceType Type() const { return type; }
+  bool isPrimed() const { return mIsPrimed; }
   bool IsLocal() const { return type == LOCAL_SRC; }
   bool IsRemote() const { return type == REMOTE_SRC; }
   bool IsFile() const { return type == FILE_SRC; }

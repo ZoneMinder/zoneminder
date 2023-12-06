@@ -59,7 +59,8 @@ Camera::Camera(
     mFirstAudioPTS(0),
     mLastVideoPTS(0),
     mLastAudioPTS(0),
-    bytes(0)
+    bytes(0),
+    mIsPrimed(false)
 {
   linesize = width * colours;
   pixels = width * height;

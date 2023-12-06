@@ -68,7 +68,6 @@ class FfmpegCamera : public Camera {
 
     int OpenFfmpeg();
     int Close() override;
-    bool mCanCapture;
 
     struct SwsContext   *mConvertContext;
 

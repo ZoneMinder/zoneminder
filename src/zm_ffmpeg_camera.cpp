@@ -127,7 +127,6 @@ FfmpegCamera::FfmpegCamera(
   mSecondInput(nullptr),
   frameCount(0),
   use_hwaccel(true),
-  mCanCapture(false),
   mConvertContext(nullptr),
   error_count(0),
   stream_width(0),
@@ -172,7 +171,7 @@ FfmpegCamera::~FfmpegCamera() {
 
 int FfmpegCamera::PrimeCapture() {
   start_read_time = std::chrono::steady_clock::now();
-  if ( mCanCapture ) {
+  if ( mIsPrimed ) {
     Debug(1, "Priming capture from %s, Closing", mMaskedPath.c_str());
     Close();
   }
@@ -188,7 +187,7 @@ int FfmpegCamera::PreCapture() {
 }
 
 int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
-  if (!mCanCapture) return -1;
+  if (!mIsPrimed) return -1;
 
   start_read_time = std::chrono::steady_clock::now();
   int ret;
@@ -562,13 +561,13 @@ int FfmpegCamera::OpenFfmpeg() {
         width, height, mVideoCodecContext->width, mVideoCodecContext->height);
   }
 
-  mCanCapture = true;
+  mIsPrimed = true;
 
   return 1;
 } // int FfmpegCamera::OpenFfmpeg()
 
 int FfmpegCamera::Close() {
-  mCanCapture = false;
+  mIsPrimed = false;
 
   if (mVideoCodecContext) {
     avcodec_close(mVideoCodecContext);

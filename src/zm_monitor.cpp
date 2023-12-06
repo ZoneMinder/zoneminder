@@ -1018,7 +1018,7 @@ bool Monitor::connect() {
       Debug(1, "Starting ONVIF");
       Event_Poller_Healthy = false;
       if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
-        Event_Poller_Closes_Event = TRUE;
+        Event_Poller_Closes_Event = true;
       }
       if (use_Amcrest_API) {
         Amcrest_Manager = new AmcrestAPI(this);
@@ -1064,14 +1064,14 @@ bool Monitor::connect() {
                     (soap->error != SOAP_EOF)
                     ) { //SOAP_EOF could indicate no messages to pull.
                   Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  Event_Poller_Healthy = FALSE;
+                  Event_Poller_Healthy = false;
                 } else {
                   Debug(1, "Good Initial ONVIF Pull%i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  Event_Poller_Healthy = TRUE;
+                  Event_Poller_Healthy = true;
                 }
               } else {
                 Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",RequestMessageID , response.SubscriptionReference.Address , soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                Event_Poller_Healthy = FALSE;
+                Event_Poller_Healthy = false;
               }
 
               // we renew the current subscription .........
@@ -1081,10 +1081,14 @@ bool Monitor::connect() {
                 Debug(1, "ONVIF :soap_wsa_request OK");
                 if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
                   Error("ONVIF Couldn't do initial Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  Event_Poller_Healthy = FALSE;
+                  if (soap->error==12) {//ActionNotSupported
+                    Event_Poller_Healthy = true;
+                  } else {
+                    Event_Poller_Healthy = false;
+                  }
                 } else {
                   Debug(1, "Good Initial ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  Event_Poller_Healthy = TRUE;
+                  Event_Poller_Healthy = true;
                 }
               } else {
                 Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=RenewRequest Error %i %s, %s",
@@ -1093,7 +1097,7 @@ bool Monitor::connect() {
                     soap->error,
                     soap_fault_string(soap),
                     soap_fault_detail(soap));
-                Event_Poller_Healthy = FALSE;
+                Event_Poller_Healthy = false;
               }
             }
           } else {
@@ -1833,14 +1837,14 @@ bool Monitor::Poll() {
                 Info("Triggered on ONVIF");
                 if (!Poll_Trigger_State) {
                   Info("Triggered Event");
-                  Poll_Trigger_State = TRUE;
+                  Poll_Trigger_State = true;
                   std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
                 }
               } else {
                 Info("Triggered off ONVIF");
                 Poll_Trigger_State = false;
                 if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
-                  Event_Poller_Closes_Event = TRUE;
+                  Event_Poller_Closes_Event = true;
                   Info("Setting ClosesEvent");
                 }
               }
@@ -1858,15 +1862,15 @@ bool Monitor::Poll() {
             Debug(1, ":soap_wsa_request OK");
             if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
               Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-              Event_Poller_Healthy = FALSE;
+              Event_Poller_Healthy = false;
             } else {
               Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-              Event_Poller_Healthy = TRUE;
+              Event_Poller_Healthy = true;
             }
           } else {
             Error("Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=  RenewRequest .... ! Error %i %s, %s",
                 RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            Event_Poller_Healthy = FALSE;
+            Event_Poller_Healthy = false;
           }
         }  // end if SOAP OK/NOT OK
       } else {
@@ -1891,7 +1895,7 @@ bool Monitor::Poll() {
     }
   }
   std::this_thread::sleep_until(loop_start_time + std::chrono::seconds(10));
-  return TRUE;
+  return true;
 } //end Poll
 
 // Would be nice if this JUST did analysis

@@ -109,7 +109,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       }  // end while
     }
     
-    if (!max_keyframe_interval_ and add_packet->keyframe) {
+    if (!max_keyframe_interval_ and add_packet->keyframe and (video_stream_id==add_packet->packet->stream_index)) {
       auto rit = pktQueue.rbegin();
       int packet_count = 0;
       while (rit != pktQueue.rend()) {

@@ -1003,9 +1003,12 @@ bool Monitor::connect() {
 
     if (RTSP2Web_enabled) {
       RTSP2Web_Manager = new RTSP2WebManager(this);
+      RTSP2Web_Manager->add_to_RTSP2Web();
     }
+
     if (janus_enabled) {
       Janus_Manager = new JanusManager(this);
+      Janus_Manager->add_to_janus();
     }
 
     //ONVIF and Amcrest Setup
@@ -3329,12 +3332,12 @@ int Monitor::PrimeCapture() {
   }  // end if rtsp_server
 
   //Poller Thread
-  if (onvif_event_listener || janus_enabled || RTSP2Web_enabled ||use_Amcrest_API) {
+  if (onvif_event_listener || janus_enabled || RTSP2Web_enabled || use_Amcrest_API) {
     if (!Poller) {
-      Debug(1, "Creating unique poller  thread");
+      Debug(1, "Creating unique poller thread");
       Poller = zm::make_unique<PollThread>(this);
     } else {
-      Debug(1, "Starting existing  poller  thread");
+      Debug(1, "Starting existing poller thread");
       Poller->Start();
     }
   }
@@ -3369,18 +3372,46 @@ int Monitor::PrimeCapture() {
 
 int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
-int Monitor::Close() {
-  Debug(1, "Stopping packetqueue");
-  // Wake everyone up
-  packetqueue.stop();
-  Debug(1, "Stopped packetqueue");
 
+int Monitor::Pause() {
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
     Debug(1, "Decoder stopping");
     decoder->Stop();
     Debug(1, "Decoder stopped");
   }
+  return 1;
+}
+int Monitor::Play() {
+  int ret = camera->PrimeCapture();
+  if (ret <= 0) return ret;
+
+  if ( -1 != camera->getVideoStreamId() ) {
+    video_stream_id = packetqueue.addStream();
+  }
+
+  if ( -1 != camera->getAudioStreamId() ) {
+    audio_stream_id = packetqueue.addStream();
+    packetqueue.addStream();
+    shared_data->audio_frequency = camera->getFrequency();
+    shared_data->audio_channels = camera->getChannels();
+  }
+
+  Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
+      video_stream_id, audio_stream_id, pre_event_count);
+  if (decoding != DECODING_NONE) {
+    Debug(1, "Restarting decoder thread");
+    decoder->Start();
+  }
+  return 1;
+}
+int Monitor::Close() {
+  Debug(1, "Stopping packetqueue");
+  // Wake everyone up
+  packetqueue.stop();
+  Debug(1, "Stopped packetqueue");
+  Pause();
+
   if (analysis_thread) {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
@@ -3411,7 +3442,7 @@ int Monitor::Close() {
     soap = nullptr;
   }  //End ONVIF
 #endif
-    //RTSP2Web teardoen
+    //RTSP2Web teardown
   if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
     RTSP2Web_Manager = nullptr;

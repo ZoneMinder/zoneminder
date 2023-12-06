@@ -293,15 +293,13 @@ int main(int argc, char *argv[]) {
           if (since_last_view > 10 and monitors[i]->Ready()) {
             if (monitors[i]->getCamera()->isPrimed()) {
               monitors[i]->Pause();
-              monitors[i]->getCamera()->Close();
             }
             std::this_thread::sleep_for(Microseconds(100000));
             result = 0;
             continue;
           } else if (!monitors[i]->getCamera()->isPrimed()) {
-            if (1 > (result = monitors[i]->getCamera()->PrimeCapture()))
+            if (1 > (result = monitors[i]->Play()))
               break;
-            monitors[i]->Play();
           }
         }
 

@@ -1910,7 +1910,7 @@ bool Monitor::Analyse() {
   // get_analysis_packet will lock the packet and may wait if analysis_it is at the end
   ZMLockedPacket *packet_lock = packetqueue.get_packet(analysis_it);
   if (!packet_lock) {
-    Debug(1, "No packet lock, returning false");
+    Debug(4, "No packet lock, returning false");
     return false;
   }
   std::shared_ptr<ZMPacket> snap = packet_lock->packet_;
@@ -2068,7 +2068,7 @@ bool Monitor::Analyse() {
               // We no longer wait because we need to be checking the triggers and other inputs.
               // Also the logic is too hairy.  capture process can delete the packet that we have here.
               delete packet_lock;
-              Debug(1, "Not decoded, waiting for decode");
+              Debug(2, "Not decoded, waiting for decode");
               return false;
             }
           }  // end if decoding enabled
@@ -3378,12 +3378,17 @@ int Monitor::PreCapture() const { return camera->PreCapture(); }
 int Monitor::PostCapture() const { return camera->PostCapture(); }
 
 int Monitor::Pause() {
+  Debug(1, "Stopping packetqueue");
+  // Wake everyone up
+  packetqueue.stop();
+  Debug(1, "Stopped packetqueue");
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
     Debug(1, "Decoder stopping");
     decoder->Stop();
     Debug(1, "Decoder stopped");
   }
+  camera->Close();
   return 1;
 }
 int Monitor::Play() {
@@ -3410,10 +3415,6 @@ int Monitor::Play() {
   return 1;
 }
 int Monitor::Close() {
-  Debug(1, "Stopping packetqueue");
-  // Wake everyone up
-  packetqueue.stop();
-  Debug(1, "Stopped packetqueue");
   Pause();
 
   if (analysis_thread) {

@@ -252,13 +252,6 @@ int main(int argc, char *argv[]) {
           monitor->Id());
       zmDbDo(sql);
 
-      if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
-        while (!zm_terminate and !monitor->hasViewers()) {
-          Debug(1, "ONDEMAND and no Viewers.  Sleeping");
-          std::this_thread::sleep_for(Seconds(1));
-          monitor->SetHeartbeatTime(std::chrono::system_clock::now());
-        }
-      }
 
       Seconds sleep_time = Seconds(0);
       while ((monitor->PrimeCapture() <= 0) and !zm_terminate) {
@@ -293,30 +286,43 @@ int main(int argc, char *argv[]) {
       for (size_t i = 0; i < monitors.size(); i++) {
         monitors[i]->CheckAction();
 
-        if ((monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND) and !monitors[i]->hasViewers()) {
-          std::this_thread::sleep_for(Microseconds(100000));
-          result = 0;
-          continue;
+        if (monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND) {
+          SystemTimePoint now = std::chrono::system_clock::now();
+          int64 since_last_view = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()) - monitors[i]->getLastViewed();
+
+          if (since_last_view > 10 and monitors[i]->Ready()) {
+            if (monitors[i]->getCamera()->isPrimed()) {
+              monitors[i]->Pause();
+              monitors[i]->getCamera()->Close();
+            }
+            std::this_thread::sleep_for(Microseconds(100000));
+            result = 0;
+            continue;
+          } else if (!monitors[i]->getCamera()->isPrimed()) {
+            if (1 > (result = monitors[i]->getCamera()->PrimeCapture()))
+              break;
+            monitors[i]->Play();
+          }
         }
 
-        if (monitors[i]->PreCapture() < 0) {
-          Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
+          if (monitors[i]->PreCapture() < 0) {
+            Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
-          result = -1;
-          break;
-        }
-        if (monitors[i]->Capture() < 0) {
-          Error("Failed to capture image from monitor %d %s (%zu/%zu)",
+            result = -1;
+            break;
+          }
+          if (monitors[i]->Capture() < 0) {
+            Error("Failed to capture image from monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
-          result = -1;
-          break;
-        }
-        if (monitors[i]->PostCapture() < 0) {
-          Error("Failed to post-capture monitor %d %s (%zu/%zu)",
+            result = -1;
+            break;
+          }
+          if (monitors[i]->PostCapture() < 0) {
+            Error("Failed to post-capture monitor %d %s (%zu/%zu)",
                 monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
-          result = -1;
-          break;
-        }
+            result = -1;
+            break;
+          }
         if (!result) monitors[i]->UpdateFPS();
 
         SystemTimePoint now = std::chrono::system_clock::now();

@@ -557,7 +557,7 @@ protected:
   Fifo *video_fifo;
   Fifo *audio_fifo;
 
-  std::unique_ptr<Camera> camera;
+  std::shared_ptr<Camera> camera;
   Event       *event;
   std::mutex   event_mutex;
   Storage     *storage;
@@ -638,6 +638,7 @@ public:
   void AddPrivacyBitmask();
 
   void LoadCamera();
+  const std::shared_ptr<Camera> getCamera() { return camera; }
   bool connect();
   bool disconnect();
   inline bool isConnected() const { return mem_ptr != nullptr; }
@@ -852,6 +853,8 @@ public:
   int PreCapture() const;
   int Capture();
   int PostCapture() const;
+  int Pause();
+  int Play();
   int Close();
 
   void CheckAction();

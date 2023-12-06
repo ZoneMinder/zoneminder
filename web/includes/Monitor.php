@@ -888,10 +888,10 @@ public static function getStatuses() {
         $model->set(['Name'=>$new, 'ManufacturerId'=>$this->ManufacturerId()]);
         $this->Model = $model;
         if ($this->ModelId) $this->ModelId = null;
-        Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId);
+        Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId());
       } else {
         $this->ModelId = $model->Id();
-        Debug("Foud model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId);
+        Debug("Foud model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId());
       }
     }
     if (!property_exists($this, 'Model')) {

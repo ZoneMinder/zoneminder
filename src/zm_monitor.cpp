@@ -1862,7 +1862,11 @@ bool Monitor::Poll() {
             Debug(1, ":soap_wsa_request OK");
             if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
               Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-              Event_Poller_Healthy = false;
+              if (soap->error==12) {//ActionNotSupported
+                Event_Poller_Healthy = true;
+              } else {
+                Event_Poller_Healthy = false;
+              }
             } else {
               Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
               Event_Poller_Healthy = true;

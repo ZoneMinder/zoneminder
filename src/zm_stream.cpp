@@ -295,7 +295,8 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     }
     int rc = fwrite(buffer, n_bytes, 1, stdout);
     if (rc != 1) {
-      Error("Unable to send stream text frame: %d %s", rc, strerror(errno));
+      if (!zm_terminate)
+        Error("Unable to send stream text frame: %d %s", rc, strerror(errno));
       return false;
     }
     fputs("\r\n\r\n", stdout);

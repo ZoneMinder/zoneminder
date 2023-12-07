@@ -1038,7 +1038,7 @@ public static function getStatuses() {
         'format' => ZM_MPEG_LIVE_FORMAT
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
-    } else if ( $this->JanusEnabled() or $this->RTSP2WebEnabled()) {
+    } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH)) {
       $html .= '<video id="liveStream'.$this->Id().'" '.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
         ' autoplay muted controls playsinline=""></video>';

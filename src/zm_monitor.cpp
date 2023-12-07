@@ -32,6 +32,7 @@
 #include "zm_signal.h"
 #include "zm_time.h"
 #include "zm_utils.h"
+#include "zm_uri.h"
 #include "zm_zone.h"
 
 
@@ -531,6 +532,12 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
    /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+  if (onvif_url.empty()) {
+    Uri path_uri(path);
+    if (!path_uri.Host.empty()) {
+      onvif_url = "http://"+path_uri.Host+"/onvif/device_service";
+    }
+  }
   onvif_username = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_password = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_options = std::string(dbrow[col] ? dbrow[col] : ""); col++;

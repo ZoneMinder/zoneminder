@@ -125,7 +125,7 @@ MYSQL_RES * zmDbFetch(const char * query) {
     if (mysql_ping(&dbconn)) {
       zmDbConnected = false;
       if (zmDbConnect()) {
-        Warning("Reconnected to db...");
+        Debug(1, "Reconnected to db...");
         rc = mysql_query(&dbconn, query);
       }
     }

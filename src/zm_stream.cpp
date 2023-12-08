@@ -59,6 +59,9 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
   if ( !monitor->connect() ) {
     Error("Unable to connect to monitor id %d for streaming", monitor_id);
     monitor->disconnect();
+    // If we couldn't connect, it might be due to size mismatch in shm. Need to reload
+    if ( !(monitor = Monitor::Load(monitor_id, false, Monitor::QUERY)))
+      Error("Unable to reload monitor id %d for streaming", monitor_id);
     return false;
   }
 

@@ -49,7 +49,6 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
 use File::Path qw(make_path);
 use File::Basename;
-use URI::Encode qw(uri_encode);
 require MIME::QuotedPrint;
 require MIME::Base64;
 
@@ -729,11 +728,12 @@ sub substituteTags {
     $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
     $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
     if ($attachments_ref) {
+      require URI::Encode;
       if ($text =~ /%EISNAP%/g ) {
         my $path = $Event->Path().'/snapshot.jpg';
         if (-e $path) {
           my $filename = $Event->Id().'_'.fileparse($path);
-          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
           push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
           if ($html) {
             $text =~ s/%EISNAP%/<img src="cid:$$attachment{content_id}"\/>/g;
@@ -749,7 +749,7 @@ sub substituteTags {
         my $path = $Event->Path().'/objdetect.jpg';
         if (-e $path) {
           my $filename = $Event->Id().'_'.fileparse($path);
-          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
           push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
           if ($html) {
             $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
@@ -765,7 +765,7 @@ sub substituteTags {
         my $path = $Event->Path().'/objdetect.gif';
         if (-e $path) {
           my $filename = $Event->Id().'_'.fileparse($path);
-          my $attachment = { type=>'image/gif', path=>$path, content_id=>uri_encode($filename) };
+          my $attachment = { type=>'image/gif', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
           push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
           if ($html) {
             $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
@@ -795,11 +795,12 @@ sub substituteTags {
       $text =~ s/%EPIM%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
 
       if ($attachments_ref) {
+        require URI::Encode;
         if ($text =~ /%EI1%/g) {
           my $path = generateImage($Event, $first_alarm_frame);
           if (-e $path) {
             my $filename = fileparse($path);
-            my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+            my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
               $text =~ s/%EI1%/<img src="cid:$$attachment{content_id}"\/>/g;
@@ -816,7 +817,7 @@ sub substituteTags {
           my $path = generateImage($Event, $max_alarm_frame);
           if (-e $path) {
             my $filename = fileparse($path);
-            my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+            my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
               $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
@@ -834,7 +835,7 @@ sub substituteTags {
           my $path = generateImage($Event, $first_alarm_frame, 'analyse');
           if (-e $path) {
             my $filename = fileparse($path);
-            my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+            my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
               $text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g;
@@ -852,7 +853,7 @@ sub substituteTags {
           my $path = generateImage($Event, $max_alarm_frame, 'analyse');
           if (-e $path) {
             my $filename = fileparse($path);
-            my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+            my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
               $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;

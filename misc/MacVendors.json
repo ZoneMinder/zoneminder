@@ -12,6 +12,7 @@
     "bc5e33": { "type": "HikVision", "control": "HikVision", "vendor": "Hangzhou Hikvision Digital Technology Co.,Ltd."},
     "c0517e": { "type": "HikVision", "control": "HikVision", "vendor": "Hangzhou Hikvision Digital Technology Co.,Ltd."},
     "ecc89c": { "type": "HikVision", "control": "HikVision", "vendor": "Hangzhou Hikvision Digital Technology Co.,Ltd."},
+    "20de88": { "type": "ICRealtime", "control": "Dahua", "vendor": "IC Realtime LLC"},
     "0080f0": { "type": "Panasonic", "control": "" },
     "0002d1": { "type": "Vivotek",   "control": "", "vendor": "Vivotek" },
     "7cdd90": { "type": "Wansview",  "control": "" },

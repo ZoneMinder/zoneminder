@@ -29,7 +29,6 @@ use strict;
 use warnings;
 
 require ZoneMinder::Base;
-require Date::Manip;
 require POSIX;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
@@ -468,6 +467,7 @@ sub getLoad {
 #
 sub strtotime {
   my $dt_str = shift;
+  require Date::Manip;
   return Date::Manip::UnixDate($dt_str, '%s');
 }
 

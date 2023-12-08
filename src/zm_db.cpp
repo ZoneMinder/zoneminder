@@ -128,7 +128,7 @@ MYSQL_RES *zmDbFetch(const std::string &query) {
     if (mysql_ping(&dbconn)) {
       zmDbConnected = false;
       if (zmDbConnect()) {
-        Warning("Reconnected to db...");
+        Debug(1, "Reconnected to db...");
         rc = mysql_query(&dbconn, query.c_str());
       }
     }

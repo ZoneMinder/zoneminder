@@ -3399,7 +3399,7 @@ int Monitor::Pause() {
     decoder->Stop();
     Debug(1, "Decoder stopped");
   }
-  camera->Close();
+  if (camera) camera->Close();
   return 1;
 }
 int Monitor::Play() {

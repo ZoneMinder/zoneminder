@@ -288,6 +288,7 @@ int main(int argc, char *argv[]) {
 
         if (monitors[i]->Capturing() == Monitor::CAPTURING_ONDEMAND) {
           SystemTimePoint now = std::chrono::system_clock::now();
+          monitors[i]->SetHeartbeatTime(now);
           int64 since_last_view = static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()) - monitors[i]->getLastViewed();
 
           if (since_last_view > 10 and monitors[i]->Ready()) {
@@ -303,24 +304,25 @@ int main(int argc, char *argv[]) {
           }
         }
 
-          if (monitors[i]->PreCapture() < 0) {
-            Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
-                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
-            result = -1;
-            break;
-          }
-          if (monitors[i]->Capture() < 0) {
-            Error("Failed to capture image from monitor %d %s (%zu/%zu)",
-                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
-            result = -1;
-            break;
-          }
-          if (monitors[i]->PostCapture() < 0) {
-            Error("Failed to post-capture monitor %d %s (%zu/%zu)",
-                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
-            result = -1;
-            break;
-          }
+        if (monitors[i]->PreCapture() < 0) {
+          Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
+              monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          result = -1;
+          break;
+        }
+        if (monitors[i]->Capture() < 0) {
+          Error("Failed to capture image from monitor %d %s (%zu/%zu)",
+              monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          result = -1;
+          break;
+        }
+        if (monitors[i]->PostCapture() < 0) {
+          Error("Failed to post-capture monitor %d %s (%zu/%zu)",
+              monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          result = -1;
+          break;
+        }
+
         if (!result) monitors[i]->UpdateFPS();
 
         SystemTimePoint now = std::chrono::system_clock::now();

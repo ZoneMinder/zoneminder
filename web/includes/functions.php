@@ -337,12 +337,13 @@ function getZmuCommand($args) {
   $zmuCommand = ZMU_PATH;
 
   if ( ZM_OPT_USE_AUTH ) {
+    global $user;
+    // Always include username, so that we can do lookups faster
+    $zmuCommand .= ' -U '.escapeshellarg($user->Username());
     if ( ZM_AUTH_RELAY == 'hashed' ) {
       $zmuCommand .= ' -A '.generateAuthHash(false, true);
-    } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-      $zmuCommand .= ' -U ' .escapeshellarg($_SESSION['username']).' -P '.escapeshellarg($_SESSION['password']);
-    } elseif ( ZM_AUTH_RELAY == 'none' ) {
-      $zmuCommand .= ' -U '.escapeshellarg($_SESSION['username']);
+    } else if ( ZM_AUTH_RELAY == 'plain' ) {
+      $zmuCommand .= ' -P '.escapeshellarg($_SESSION['password']);
     }
   }
 

@@ -1,113 +1,148 @@
 Defining Zones
 ==============
 
-The next important thing to do with a new monitor is set up Zones for it to use. By default you'll already have one generated for you when you created your monitor (the default zone is the full area captured by the monitor) but you might want to modify it or add others. 
+Zones are used for image analysis in ZoneMinder and Zone definition has a significant effect on the effectiveness and performance of a ZoneMinder server. An optimally configured Zone will reduce CPU processing requirements as well the number of unintended saved events. Therefore, it is important to understand the concepts behind the many Zone types as well as Zone parameter settings and their proper use. From the Console interface, click on the number in the Zones column of any monitor to enter the Zone view.
 
-Click on the Zones column for your monitor and you should see a small popup window appear which contains an image from your camera overlain with a stippled pattern representing your zone. In the default case this will cover the whole image. The colour of the zones appearing here is determined by what type they are. The default zone is Active and so will be red, Inclusive zones are orange, exclusive zones are purple, preclusive zones are blue and inactive zones are white.
+Zone View
+---------
 
-Beneath the zones image will be a table containing a listing of your zones. Clicking on either the relevant bit of the image or on the Id or Name in the table will bring up another window where you can edit the particulars for your Zones. For more information on defining or editing a zone, see Defining Zones.
+.. figure:: definezone/images/define-zone-list.png
 
-Zone configuration and tuning are important when running in the motion detection modes to avoid storing, sorting through, or being alerted on uninteresting video data.  Configuring a zone involves setting some basic parameters, as well as choosing an alarm check method and tuning their associated detection parameters.
+    Defining Zones - Zone View
 
-The Zone view is split into two main areas, on the left is the options are area and on the right is the zone drawing area. A default or new zone will cover the whole drawing area and will overlay any other zones you already have on there. Unlike the previous zones image, the current zone is coloured green, other zones will be orange regardless of type. The smaller the zone, the less processing time it takes to examine it.
+An illustrative (but not very practical) example is shown above to help introduce the items found in the Zone View.
 
-Basic parameters
-^^^^^^^^^^^^^^^^
-Name
-  Each Zone can be named for reference purposes.  It is used for logging and debugging.  Choose a name that helps you identify your zones.
+[A] Monitor View
+    Shows the selected monitor live view with overlay of existing defined Zones and their respective regions. An existing Zone can be edited by clicking on its region. Note that the different types of Zones are depicted with specific colours. The default Zone type is **Active** shown in red, **Inclusive** Zones are orange, **Exclusive** Zones are purple, **Preclusive** Zones are blue, **Inactive** Zones are grey and **Privacy** Zones are opaque black. The definition for each Zone type is explained below in the `Zone Parameters`_ section.
 
-Type
-  This is one of the more important concepts in ZoneMinder and there are six to choose from.
+[B] Zone List
+    Lists the existing defined Zones for the monitor along with their Type and Area given in both number of pixels and area in percent relative to the entire monitor image. Knowing the number of pixels in a Zone region will be necessary for setting many of the Alarm Check related parameters. An existing Zone can be edited by clicking on its :guilabel:`Name`.
+[C] Mark
+    Used for deleting Zones. Check each box of the Zone to be deleted and click :guilabel:`DELETE`.
 
-  * Active 
-    Triggers an alarm when motion is detected within it.  This is the zone type you'll use most often, and which will be set for your default zone.  Only Active and Exclusive zones can trigger an alarm.
+[D] +ADD NEW ZONE
+    Click :guilabel:`+ADD NEW ZONE` to add a new Zone for the monitor.
 
-  * Inclusive 
-    This zone type can be used for any zones that you want to trigger an alarm only if at least one other Active zone has already triggered one. This might be for example to cover an area of the image like a plant or tree which moves a lot and which would trigger lots of alarms. Perhaps this is behind an area you'd like to monitor though, in this case you'd create an active zone covering the non-moving parts and an inclusive zone covering the tree perhaps with less sensitive detection settings also. If something triggered an alarm in the Active zone and also in the Inclusive zone they would both be registered and the resulting alarm would be that much bigger than if you had blanked it out altogether.
+[E] Status
+    Displays basic monitor status: alarm state, viewing FPS, capturing FPS and analysis FPS.
 
-  * Exclusive
-    Triggers an alarm when motion is detected within it, as long as no alarms have already been triggered in an Active zone.  This is the most specialized of the zone types. For instance in the camera covering my garden I keep watch for a hedgehog that visits most nights and scoffs the food out of my cats bowls. By creating a sensitive Exclusive zone in that area I can ensure that a hedgehog alarm will only trigger if there is activity in that small area. If something much bigger occurs, like someone walking by it will trigger a regular alarm and not one from the Exclusive zone. Thus I can ensure I get alarms for big events and also special small events but not the noise in between.
+Zone Parameters
+---------------
 
-  * Preclusive 
-    This zone type is relatively recent. It is called a Preclusive zone because if it is triggered it actually precludes an alarm being generated for that image frame. So motion or other changes that occur in a Preclusive zone will have the effect of ensuring that no alarm occurs at all. The application for this zone type is primarily as a shortcut for detecting general large-scale lighting or other changes. Generally this may be achieved by limiting the maximum number of alarm pixels or other measure in an Active zone. However in some cases that zone may cover an area where the area of variable illumination occurs in different places as the sun and/or shadows move and it thus may be difficult to come up with general values. Additionally, if the sun comes out rapidly then although the initial change may be ignored in this way as the reference image catches up an alarm may ultimately be triggered as the image becomes less different. Using one or more Preclusive zones offers a different approach. Preclusive zones are designed to be fairly small, even just a few pixels across, with quite low alarm thresholds. They should be situated in areas of the image that are less likely to have motion occur such as high on a wall or in a corner. Should a general illumination change occur they would be triggered at least as early as any Active zones and prevent any other zones from generating an alarm. Obviously careful placement is required to ensure that they do not cancel any genuine alarms or that they are not so close together that any motion just hops from one Preclusive zone to another.  Preclusive zones may also be used to reduce processing time by situating one over an Active zone.  The Preclusive zone is processed first; if it is small, and is triggered, the rest of the zone/image will not be processed. See Extend Alarm Frame Count below for a way to hold the preclusive zone active for an extended period.
+To modify an existing Zone, from the `Zone View`_, click on either the Zone region or Zone Name. After making any changes to the Zone Parameters, click :guilabel:`SAVE`.
 
-  * Inactive
-    Suppresses the detection of motion within it.  This can be layered on top of any other zone type, preventing motion within the Inactive zone from being effective for any other zone type.  Use inactive zones to cover areas in which nothing notable will ever happen or where you get false alarms that don't relate to what you are trying to monitor.  Inactive zones may be overlaid on other zones to blank out areas, and are processed first (with the exception of Privacy zones, see below).  As a general practice, you should try and make zones abut each other instead of overlapping to avoid repeated duplicate processing of the same area.  
+.. figure:: definezone/images/define-zone-parameters.png
 
-  * Privacy
-    Blackens the pixels within it. This can be used if you want to hide some regions in the image if the situation does not allow another solution. This zone type is different to all the others in that it gets processed as soon as possible during capture (even before the timestamp gets into the image) and not in the analyzing process. So if you add, change or delete a Privacy zone, you don't see the changes in the image until the capture process gets restarted. This will be done automatically, but needs a few seconds.
+    Defining Zones - Zone Analysis Parameters
 
-Preset
-  The preset chooser sets sensible default values based on computational needs (fast v. best) and sensitivity (low, medium, high.)  It is not required that you select a preset, and you can alter any of the parameters after choosing a preset.  For a small number of monitors with ZoneMinder running on modern equipment, Best, high sensitivity can be chosen as a good starting point.
+The right side of the display contains the Zone analysis parameter information. This is where the analysis type and various tuning parameters can be set. The user can manually fine tune the analysis settings or if desired various Preset options are available.
 
-  It is important to understand that the available presets are intended merely as a starting point. Since every camera's view is unique, they are not guaranteed to work properly in every case. Presets tend to work acceptably for indoor cameras, where the objects of interest are relatively close and there typically are few or no unwanted objects moving within the cameras view. Presets, on the other hand, tend to not work acceptably for outdoor cameras, where the field of view is typically much wider, objects of interest are farther away, and changing weather patterns can cause false triggers. For outdoor cameras in particular, you will almost certainly have to tune your motion detection zone to get desired results. Please refer to `this guide <https://wiki.zoneminder.com/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ to learn how to do this.
+[A] Name
+    Each Zone can be named for reference purposes which will be used for logging and debugging. Choose a Name that helps uniquely identify the Zone.
 
-Units
-  * Pixels - Selecting this option will allow many of the following values to be entered (or viewed) in units of pixels.
-  * Percentage -  Selecting this option will allow may of the following values to be entered (or viewed) as a percentage.  The sense of the percentage values refers to the area of the zone and not the image as a whole. This makes trying to work out necessary sizes rather easier.
+[B] Type
+    The Zone Type determines the image processing method and is one of the more important concepts in ZoneMinder.
 
-Region points
+    - **Active:** This is the default Zone type and triggers an alarm when motion is detected within it. Most Zones will use this type. Only Active and Exclusive Zones can initiate the triggering of an alarm.
+    - **Inclusive:** This Zone type can be used for any Zones that you want to trigger an alarm only if at least one Active Zone has already triggered one. For example this could cover an area of the image like a plant or tree which moves a lot and would trigger many alarms. Perhaps this is behind an area to be monitored though, in this case create an Active Zone covering the non-moving parts and an Inclusive Zone covering the tree perhaps with less sensitive detection settings. If something triggers an alarm in the Active Zone and also in the Inclusive Zone they would both be registered. The resulting alarm would be larger than if it had been blanked out altogether.
+    - **Exclusive:** Triggers an alarm when motion is detected within it, as long as no alarms have already been triggered in an Active zone. This is the most specialized of the Zone types. For instance for the camera covering my garden I keep watch for a hedgehog that visits most nights and scoffs the food out of my cat's bowls. By creating a sensitive Exclusive Zone in that area I can ensure that a hedgehog alarm will only trigger if there is activity in that small area. If something much bigger occurs, like someone walking by, it will trigger a regular alarm and not one from the Exclusive Zone. Thus, it can be ensured that alarms for big events are captured as well as special small events. Any others are ignored.
+    - **Preclusive:** If triggered this Zone type will preclude an alarm being generated for that image frame. So motion or other changes that occur in a Preclusive Zone will have the effect of ensuring that no alarm occurs at all. The application for this Zone type is primarily as a shortcut for detecting general large-scale lighting or other changes. Preclusive Zones are designed to be fairly small, even just a few pixels across, with quite low alarm thresholds. They should be situated in areas of the image that are less likely to have motion occur such as high on a wall or in a corner. Should a general illumination change occur they would be triggered at least as early as any Active Zones and prevent any other Zones from generating an alarm. Obviously, careful placement is required to ensure that they do not cancel any genuine alarms or that they are not so close together that any motion just hops from one Preclusive Zone to another. Preclusive Zones may also be used to reduce processing time by situating one over an Active zone. The Preclusive Zone is processed first; if it is triggered the rest of the Zones will not be processed. See Extend Alarm Frame Count below for a way to hold the Preclusive Zone active for an extended period.
+    - **Inactive:** Suppresses the detection of motion within it. This can be layered on top of any other Zone type, preventing motion within the Inactive Zone from being effective for any other Zone type. Use Inactive Zones to cover areas in which nothing notable will ever happen or where false alarms would occur that don't relate to what is being monitored. Inactive Zones may be placed over other Zones to reduce detection areas. As a general practice Zones should abut each other instead of overlapping to avoid processing of the same area more than once.
+    - **Privacy:** Blackens the pixels within it to make the region completely opaque. This can be used to hide regions within the image if the situation does not allow another solution. This Zone type is different from all the others in that it gets processed as soon as possible during capture (even before the timestamp is added to the image) and is not part of the analyzing process. Note that if a Privacy Zone is added, changed or deleted, the changes will not be seen in the image until the capture process is restarted. This is done automatically, but generally takes a few seconds.
 
-.. image:: images/define-zone-region-sample.jpg
+[C] Preset
+    The Preset chooser sets sensible default values for the Zone parameters based on computational needs (fast or best) and sensitivity (low, medium, high). It is not required to use a Preset but if one is selected, the parameters can be subsequently changed as desired. For a ZoneMinder server running on modern equipment with few monitors, the 'Best, high sensitivity' Preset can be chosen as a good starting point.
 
-The sample region shown to the right shows a region defined by 6 control points.  The shape of the region causes the check methods to ignore the sidewalk and areas of the porch wall that receive changing sunlight; two conditions that are not of interest in this zone.
+    It is important to understand that the available Presets are intended merely as a starting point. Because every camera view is unique, they are not guaranteed to work properly in every case. Presets tend to work acceptably for indoor cameras where the objects of interest are relatively close and typically there are few or no unwanted objects moving within the camera view. Presets, on the other hand, tend to not work acceptably for outdoor cameras where the field of view is typically much wider, objects of interest are farther away and changing weather patterns can cause false triggers. For outdoor cameras the motion detection will need to be tuned for each Zone to obtain desired results.
 
-  A region is a part of the captured image that is of interest for this zone.  By default, a region is configured to cover the whole captured image.  Depending on the selected type of this zone, the shape of the region can be adjusted to accommodate multiple effects.  This can be done by dragging the control points in the reference image around, or by altering the coordinates found in the controls below the reference image.  Clicking on a control point in the reference image highlights the coordinates in the table below.  Clicking the + button in a point row adds a control point between this point and the next; clicking the - button removes this control point.  It is possible to accidentally place a control point outside of the valid coordinates of the image.  This will prevent the monitor from working properly.  You can make zones almost any shape you like; except that zones may not self-intersect (i.e. edges crossing over each other).
+[D] Units
+    Selects the method for entry of Zone area parameters.
 
-Alarm Colour
-  These parameters can be used to individually colorize the zone overlay pattern.  Alarms in this zone will be highlighted in the alarm colour.  This option is irrelevant for Preclusive and Inactive zones and will be disabled.
+    - **Pixels:** Selecting this option will allow the analysis parameters related to area to be entered or viewed in units of Pixels. The advantage of using Pixels for area parameters is that it allows a more fine-grained control of the settings.
+    - **Percentage:** Selecting this option will allow the analysis parameters related to area to be entered or viewed as a Percentage. These Percentage values refer to the area of the Zone region and not the monitor image as a whole. This facilitates the estimation of area in most cases.
 
-Alarm Check Methods
-  There are 3 Alarm Check Methods.  They are sequential, and are layered:  In AlarmedPixels mode, only the AlarmedPixel analysis is performed.  In FilteredPixels mode, the AlarmedPixel analysis is performed first, followed by the FilteredPixel analysis.  In the Blobs mode, all 3 analysis methods are performed in order.  An alarm is only triggered if *all* of the enabled analysis modes are triggered.  For performance reasons, as soon as the criteria for one of the analysis modes is not met, the alarm checking for the frame is complete.  Since the subsequent modes each require progressively more computations, it is a good idea to tune the parameters in each of the activated layers.
+[E] Alarm Colour
+    These parameters can be used to individually colour the Zone alarm overlay pattern. Alarms in this Zone will be highlighted in the alarm colour. The RGB colour system is used with a range of values of 0-255 for each primary colour. This option is irrelevant for Preclusive, Inactive and Privacy Zones and will be disabled.
 
-  For reference purposes, the Zone Area box shows the area of the entire region of interest.  In percent mode, this is 100.  In Pixels mode, this is the pixel count of the region.  All 3 Min/Max Area parameter groups are based on the Zone Area as the maximum sensible value, and all 3 are interpreted in the units specified in the Units input.
+[F] Alarm Check Method
+    There are three Alarm Check Methods. They are applied sequentially and are layered. In AlarmedPixels mode, only the AlarmedPixels analysis is performed. For FilteredPixels mode, the AlarmedPixels analysis is performed first, followed by the FilteredPixels analysis. Using the Blobs mode, all 3 analysis methods are performed sequentially. An alarm is triggered only if *all* of the enabled analysis mode criteria are met. For performance reasons, as soon as the criteria for one of the analysis modes is *not* met, the alarm checking for the frame ends. Because the subsequent modes each require progressively more computations, it is a good idea to tune the parameters in each of the activated layers.
 
-AlarmedPixels
-  Alarmed pixels is the first layer of analysis, and is always enabled.  Its recommended that you start with this method and move on to the subsequent methods once the effects of the basic parameters are understood.  In the AlarmedPixels mode, 2 parameter categories are available for tuning: Min/Max Pixel Threshold, and Min/Max Alarmed Area.
+    - **AlarmedPixels:** Alarmed pixels is the first layer of analysis and is always enabled. It is recommended to start with this method and move on to the subsequent methods once the effects of the related analysis parameters are understood. In the AlarmedPixels mode, 2 parameter categories are available for tuning: Min/Max Pixel Threshold, and Min/Max Alarmed Area.
+    - **FilteredPixels:** Selecting the FilteredPixels Alarm Check Method adds another layer of analysis to the AlarmedPixels check along with 2 additional parameter categories for tuning. This layer works by analyzing the alarmed pixels identified in the first layer. Alarmed pixels are disregarded, in this and future layers if enabled, if they are not in groups of a minimum small square size. Primarily, this filtering removes isolated alarmed pixels that may be artifacts of the camera, lens, or compression.
+    - **Blobs:** When two or more Filtered areas touch or share a boundary, it is sensible to evaluate the regions as one contiguous area instead of separate entities. A Blob is a contiguous area made up of multiple filtered areas. Whereas FilteredPixels is useful for excluding parts of the image that are not part of the actual scene, Blob filtering is better suited to disregarding areas of the actual scene that are not of interest.
 
-Min/Max Pixel Threshold (0-255)
-  In the AlarmedPixel layer of analysis, each individual pixel of the image is compared to the current reference image.  Pixels that are different from the reference image are considered alarmed pixels.  However, small aberrations in lighting or auto exposure camera adjustments may cause the explicit value of a pixel to vary by small amounts from image to image.  This parameter allows you to set the limits of what will be considered a changed pixel.  For example, if your camera points to a blank white wall, and you raise a black colored item into view, then the change in any one pixel will be great, indeed, extreme.  If however, you raise a white piece of paper, then the change in an individual pixel will be less.
+    .. figure:: definezone/images/define-zone-alarm-check.png
 
-  The minimum pixel threshold setting should be high enough to cause minor lighting, imaging, or compression changes to be ignored.  Setting the minimum value too high, may allow a white cat to walk undetected across the view of the white wall.  A good starting point for the minimum pixel threshold is 40, meaning that the difference in pixel value from must be greater than 40.  A good default for the maximum pixel threshold is 0 (indicating that all differences above the minimum threshold are considered a change.)
+        Alarm Check Method Comparison (Left to Right): AlarmedPixels, FilteredPixels, Blobs
 
-Min/Max Alarmed Area
-  The count of alarmed pixels (or percentage of alarmed pixels relative to the pixel area of the region if in percent mode) is used in this first layer of analysis to determine if an alarm is triggered.  If the count or percentage is above the minimum alarmed area, but less than the maximum alarmed area, an alarm is triggered.  These settings depend on the size of the object you are trying to capture: a value too low may cause false alarms, while a value too high might not detect small objects.  A good starting point for both the minimum and maximum are 0 and 0, indicating that any number of alarmed pixels (or any percentage) greater than 0 will trigger an alarm.  The frame scores from logged events can then be used to bring the minimum up to a reasonable value.  An alternative starting point for the minimum alarmed area (in percent) is 25% of the area that an object of interest takes up in the region.  For example, if you approximate that a subject moving through the frame takes up 30% of the frame, then a good starting minimum area is about 7.5%.
+    The images above serve to illustrate Alarm Check Methods. AlarmedPixels is performed first on the image on the left with a person entering the Zone region. Pixels in white exceeded the Minimum Pixel threshold. However, as one can see there are many pixels included that are not part of the person to be detected. This is due to the motion of the person across the Zone region relative to the reference frame. FilteredPixels Alarm check is performed next which has the effect of eliminating many of the residual pixels that are not of interest. Blob Alarm Check is the final process performed and combines contiguous regions of the FilteredPixels. The result of this final process can be seen as a green Blob outline of the person detected in the final image on the right.
 
-FilteredPixels
-  Selecting the FilteredPixels Alarm Check Method adds an additional layer of analysis to the AlarmedPixels check along with 2 additional parameter categories for tuning.  This layer works by analyzing the alarmed pixels identified in the first layer.  Alarmed pixels are disregarded, in this and future layers if enabled, if they are not in groups of a minimum small square size.  Primarily, this filtering removes isolated alarmed pixels that may be artifacts of the camera, lens, or compression.
+[G] Min/Max Pixel Threshold (0-255)
+    Used by *AlarmedPixels* Alarm Check. In the AlarmedPixels layer of analysis each individual pixel of the image is compared to the current reference image. Pixels that are different from the reference image are considered alarmed pixels. However, small aberrations in lighting or auto exposure camera adjustments may cause the explicit value of a pixel to vary by small amounts from image to image. This parameter sets the limit for what will be considered a changed pixel. For example, if the camera points at a blank white wall and a black coloured item is raised into view, then the change in any one pixel will be extreme. If however, a white piece of white paper is raised then the change in an individual pixel will be much smaller.
 
-Filter Width/Height (pixels)
-  This parameter is always specified in Pixels, even when Percentages are the selected units.  It specifies the size of the group of pixels surrounding a given pixel that must be in alarmed pixels for the pixel itself to be considered an alarmed pixel.  The width and height should always be an odd number.  3 x 3 is the default value, and 5 x 5 is also suggested as a sensible alternative.  Avoid using large numbers for the width and height of the filter area.  When using the Blobs Alarm Check Method, FilteredPixels can be effectively disabled by setting either the width or height to a value less than 1.
-Min/Max Filtered Area
-  Applying the filtering analysis results in an area that is less than or equal to the alarmed area.  Thus the minimum and maximum filtered area parameters for alarm should be equal to or less than the corresponding alarm area parameters, or the FilteredPixels analysis will never trigger an alarm.  In particular, it is useful to raise the minimum alarmed area parameter until false events from image artifacts disappear, and setting a minimum filtered area parameter less the minimum alarmed area parameter by enough to capture small events of interest.
+    The Minimum Pixel Threshold setting should be high enough to prevent minor lighting, imaging, or compression changes from triggering an alarm. A good starting point for the Minimum Pixel Threshold is 40, meaning that the difference in pixel value from must be greater than 40. A good default for the Maximum Pixel Threshold is 0 which indicates that all differences above the Minimum Threshold are considered a change.
 
-Blobs
+[H] Filter Width/Height (Pixels)
+    Used by *FilteredPixels* Alarm Check. This parameter is always specified in Pixels, even when Percent is the selected Unit. It specifies the size of the group of pixels surrounding a given pixel that must be alarmed pixels for the pixel itself to be considered a filtered pixel. The width and height should always be an odd number. The default value is 3 x 3, and 5 x 5 is also suggested as a sensible alternative. Avoid using large numbers for the width and height of the filter area. When using the Blobs Alarm Check Method, FilteredPixels can be effectively disabled by setting either the width or height to a value less than 1.
 
-.. image:: images/define-zone-blob.jpg
+[I] Zone Area
+    Zone Area is a display only parameter and is calculated from the `Zone Regions`_ which is described in the section below. When Units are set to Percent, the Zone Area displays the area of the Zone region relative to the entire monitor image. When Units are set to Pixels, the Zone Area displays the number of pixels contained in the Zone region. Note that the Zone Area and pixel count can also be found on the main `Zone View`_. All 3 Min/Max Area parameter groups are based on the Zone Area as the maximum value and all 3 are interpreted in the Units specified in the Units parameter.
 
-This image shows an image with 1 identified blob.  The blob is outlined in the Alarm Colour specified above.
+[J] Min/Max Alarmed Area
+    Used by *AlarmedPixels* Alarm Check. The pixel count or area of alarmed pixels is used in this first layer of analysis to determine if an alarm is triggered. If the pixel count or area percentage is above the minimum Alarmed Area, but less than the maximum Alarmed Area, an alarm is triggered. These settings depend on the size of the object to be captured: a value too low may cause false alarms, while a value too high might not detect small objects. A good starting point for both the minimum and maximum are 0 and 0, indicating that any number of alarmed pixels (or any percentage) greater than 0 will trigger an alarm. The frame scores from logged events can then be used to bring the minimum up to a reasonable value. An alternative starting point for the minimum Alarmed Area (in percent) is 25% of the area that an object of interest takes up in the Zone region. For example, if a subject moving through the frame takes up approximately 30% of the Zone region, then a good starting minimum Alarmed Area is about 7.5%.
 
-When two or more Filtered areas touch or share a boundary, it is sensible to evaluate the regions as one contiguous area instead of separate entities.  A Blob is a contiguous area made up of multiple filtered areas.  Whereas FilteredPixes is useful for excluding parts of the image that are not part of the actual scene, Blob filtering is better suited to disregarding areas of the actual scene that are not of interest. 
+[K] Min/Max Filtered Area
+    Used by *FilteredPixels* Alarm Check. Applying the FilteredPixels analysis results in an area that is less than or equal to the Alarmed Area. Thus, the minimum and maximum Filtered Area parameters for alarm should be equal to or less than the corresponding Alarmed Area parameters, or the FilteredPixels analysis will never trigger an alarm. In particular, it is useful to raise the minimum Alarmed Area parameter until false events from image artifacts disappear, then setting a minimum Filtered Area parameter less the minimum Alarmed Area parameter by enough to capture small events of interest.
 
-  Selecting the Blobs Alarm Check Method opens up all of the available parameters.  Enabling Blobs adds one more layer of analysis to the AlarmedPixel and FilteredPixel checks in the determination of a valid alarm along along with 2 additional parameter categories for tuning: the size of the blobs, and the number of blobs.  A Blob is not necessarily the whole object that may be of interest.  In the example image, the subject is moving, but only a portion of him is marked as a blob.  This is because as the subject moves, many pixels of the image do not change in value beyond the set threshold.  A pixel that is representing the subject's shoulder in one frame may be representing his back in the next, however, the value of the pixel remains nearly the same. 
+[L] Min/Max Blob Area
+    Used by *Blob* Alarm Check. The Blob Area parameters control the smallest and largest contiguous areas that are to be considered a Blob. A good value for the maximum area is the default of 0. Similar to the preceding analyses, the minimum Blob Area should be raised until events triggered from unwanted image artifacts disappear. There is no upper bound for the size of a contiguous area that will still be considered a Blob.
 
-Min/Max Blob Area
-  The blob area parameters control the smallest and largest contiguous areas that are to be considered a blob.  A good value for the maximum area is the default of 0. (There is no upper bound for the size of a contiguous area that will still be considered a blob.)
+[M] Min/Max Blobs
+    Used by *Blob* Alarm Check. Any positive number of blobs will trigger an event, so the default value of 1 for Minimum Blobs works for most cases. In some circumstances it may benefit to have only one blob NOT trigger an event. In this case setting Minimum Blobs value to 2 or higher may serve some special purpose. A good value for the Maximum Blobs is the default of 0. There is no upper bound for the number of Blobs that will trigger an event. Use the Maximum Blobs parameter to prevent alarms from events that show a high number of Blobs if desired.
 
-Min/Max Blobs
-  Normally, you would want any positive number of blobs to trigger an event, so the default value of 1 should suffice.  In some circumstances, it may benefit to have only one blob NOT trigger an event, in which case, setting this value to 2 or higher may serve some special purpose.  A good value for the maximum blobs is the default of 0. (There is no upper bound for the number of blobs that will trigger an event.  Use the maximum blobs parameter can be used to tune out events that show a high number of blobs.
+[N] Overload Frame Ignore Count
+    This setting specifies the number of frames to NOT raise an alarm after an Overload. In this context, Overload is defined as a detected change too big to raise an alarm. The idea is that after a change like a light turning on covering the entire image which is considered too big to count as an alarm, it could take a couple of frames for things to settle down again. Depending on the alarm check method that could be:
 
-Overload Frame Ignore Count
-  This setting specifies the number of frames to NOT raise an alarm after an overload. In this context, overload is defined as a detected change too big to raise an alarm. Depending on the alarm check method that could be 
-  * Number of alarmed pixels > Max Alarmed Area or
-  * Number of filtered pixels > Max Filtered Area or
-  * Number of Blobs > Max Blobs
-  The idea is that after a change like a light going on that is considered too big to count as an alarm, it could take a couple of frames for things to settle down again.
+    - Number of alarmed pixels > Max Alarmed Area or
+    - Number of filtered pixels > Max Filtered Area or
+    - Number of Blobs > Max Blobs
 
-Extend Alarm Frame Count
-  This field applies to Preclusive Zones only. Placing a value in this field holds the Preclusive zone active for the specified number of frames after the initial triggering event. This is useful in cases where a sudden change in light level triggers the Preclusive zone, but the zone needs to be held active for a few frames as the camera itself adjusts to that change in light level.
-  
-Other information
+[O] Extend Alarm Frame Count
+    This field applies to Preclusive Zones only. Placing a value in this field holds the Preclusive Zone active for the specified number of frames after the initial triggering event. This is useful in cases where a sudden change in light level triggers the Preclusive zone, but the Zone needs to be held active for a few frames as the camera itself adjusts to that change in light level.
+
+Zone Regions
+------------
+
+To modify an existing Zone, from the `Zone View`_ click on either the Zone region or Zone Name. After making any changes to the Zone Regions, click :guilabel:`SAVE`.
+
+.. figure:: definezone/images/define-zone-region.png
+
+    Zone Region Definitions
+
+The left side of the display contains the Zone region information. The sample shown above shows a Zone region defined by 5 points which is intended to watch the driveway for motion. The shape of the region causes the analysis methods to ignore the sidewalk and road which are areas that are not of interest in this Zone. Separate Zone regions within the monitor image area can also be defined for those areas.
+
+[A] Zone Region
+    Displays an overlay of the current Zone region on the monitor stream. Note that the area of the region is proportional to the processing time required. Only include areas where motion detection and analysis are required. Zone Regions can be any shape as long as they do not self-intersect with the outside edges crossing over each other. Colour of Region indicates the Zone type with **Active** shown in red, **Inclusive** Zones are orange, **Exclusive** Zones are purple, **Preclusive** Zones are blue, **Inactive** Zones are white and **Privacy** Zones are black and opaque. Please note that the default Region for a newly defined monitor covers the entire captured image area. In most cases this is not desired, so it should be either deleted or re-defined to cover the area of interest.
+
+[B] Point
+    Lists the defined region outline Points. Note that Points are generally listed in clockwise order with 1 being in the upper left area of the view. The currently selected Point is highlighted yellow in the Point list. A Point can be defined by dragging the Point in the image or typing specific values in the Coordinates boxes. Please note that it is possible to define Points outside the image capture resolution area and will prevent the Zone from functioning.
+
+[C] Coordinates
+    Displays the Coordinates of the points with 0,0 being defined as the upper left corner of the region. Make sure that all Coordinates are within the captured resolution area otherwise the image analysis will not work properly or possibly not at all.
+
+[D] Action
+    Remove or add points. To remove the currently selected point select :guilabel:`-`. To add a new point after the currently selected point click :guilabel:`+`.
+
+[E] Analysis
+    Allows selection of Showing Analysis or Not Showing Analysis in the Zone View. Click on the icon to toggle.
+
+[F] Viewing
+    Allows Play or Pause the monitor stream in the Zone View. Click on the icon to toggle.
+
+[G] Save / Cancel
+    Click :guilabel:`SAVE` to save the currently entered Zone points and parameters. Click :guilabel:`CANCEL` to cancel any changes that have been made to the Zone points and parameters.
+
+Other Information
 -----------------
-Refer to `this <https://wiki.zoneminder.com/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ user contributed Zone guide for additional information will illustrations if you are new to zones and need more help.
 
+Refer to `this <https://wiki.zoneminder.com/index.php/Understanding_ZoneMinder%27s_Zoning_system_for_Dummies>`__ user contributed guide in the ZoneMinder Wiki for additional detailed information with illustrations if you are new to ZoneMinder and need additional help understanding Zone Definition.

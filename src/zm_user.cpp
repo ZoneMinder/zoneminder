@@ -226,7 +226,8 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
     }
   }
 
-  Debug(1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth.c_str(), remote_addr);
+  Debug(1, "Attempting to authenticate user %s from auth string '%s', remote addr(%s)",
+      username.c_str(), auth.c_str(), remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
                     " FROM `Users` WHERE `Enabled` = 1";

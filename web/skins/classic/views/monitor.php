@@ -471,6 +471,14 @@ switch ($name) {
               </li>
 <?php
       } # end if ! $monitor->Id() and count($monitors)
+      if ($monitor->Deleted()) {
+?>
+              <li class="Deleted warning">
+                <label><?php echo translate('Monitor is Deleted, Undelete') ?>?</label>
+                <input type="checkbox" name="newMonitor[Deleted]" value="0"/>
+              </li>
+<?php
+      }
 ?>
               <li class="Name">
                 <label><?php echo translate('Name') ?></label>

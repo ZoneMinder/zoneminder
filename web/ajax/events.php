@@ -226,7 +226,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   GROUP BY E.Id 
   '.($sort?' ORDER BY '.$sort.' '.$order:'');
 
-  if ((int)($filter->limit()) and !$has_post_sql_conditions()) {
+  if ((int)($filter->limit()) and !$has_post_sql_conditions) {
     $sql .= ' LIMIT '.(int)($filter->limit());
   }
 

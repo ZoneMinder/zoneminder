@@ -240,7 +240,9 @@ use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
 use ZoneMinder::Server qw(CpuLoad);
 #use Data::Dumper;
 
-use constant KILL_DELAY => 10; # seconds to wait between sending TERM and sending KILL
+use constant KILL_DELAY => 30; # seconds to wait between sending TERM and sending KILL
+# ffmpeg connect can take up to 30 seconds at least and doesn't seem to ack signals
+# or get back to zm code so we can exit gracefully
 
 our %cmd_hash;
 our %pid_hash;

@@ -14,7 +14,7 @@ class Server extends ZM_Object {
     'Port'                 => null,
     'PathToIndex'          => null,
     'PathToZMS'            => ZM_PATH_ZMS,
-    'PathToApi'            => '/zm/api',
+    'PathToApi'            => ZM_PATH_API,
     'zmaudit'              => 1,
     'zmstats'              => 1,
     'zmtrigger'            => 0,
@@ -144,7 +144,7 @@ class Server extends ZM_Object {
     if ( isset($this->{'PathToApi'}) and $this->{'PathToApi'} ) {
       return $this->{'PathToApi'};
     }
-    return '/zm/api';
+    return ZM_PATH_API;
   }
   public function SendToApi($path) {
     $url = $this->UrlToApi().$path;

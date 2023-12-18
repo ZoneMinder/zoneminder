@@ -245,7 +245,6 @@ sub Sql {
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
             } elsif ( $term->{attr} =~ /ServerId/) {
-              Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what

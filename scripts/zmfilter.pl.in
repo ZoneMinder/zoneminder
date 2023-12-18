@@ -195,6 +195,7 @@ while (!$zm_terminate) {
     my $elapsed = ($now - ($$filter{last_ran} ? $$filter{last_ran} : 0));
     my $filter_delay = $$filter{ExecuteInterval} - $elapsed;
     $delay = $filter_delay > 0 ? $filter_delay : 0;
+    Warn("Filter is taking $filter_delay seconds longer than execute interval.") if $delay < 0;
     Debug("Setting delay to $delay because ExecuteInterval=$$filter{ExecuteInterval} and $elapsed have elapsed");
 
     if ($$filter{Concurrent} and !($filter_id or $filter_name)) {

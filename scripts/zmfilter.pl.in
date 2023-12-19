@@ -660,7 +660,7 @@ sub substituteTags {
   my $Summary = $Monitor->Event_Summary() if $Monitor and $need_summary;
 
 # Do we need the image information too?
-  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD|EIMODG)%/;
+  my $need_images = $text =~ /%(?:EPI1|EPIM|EPISNAP|EI1|EIM|EI1A|EIMA|EISNAP|EIMOD|EIMODG)%/;
   my $first_alarm_frame = '';
   my $max_alarm_frame = '';
   my $max_alarm_score = 0;
@@ -722,11 +722,24 @@ sub substituteTags {
       $text =~ s/%ETAGS%/$tags/g;
     }
 
+    $text =~ s/%EPISNAP%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=snapshot/g;
     $text =~ s/%EPFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
     $text =~ s/%EPIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
     $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
     $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
     if ($attachments_ref) {
+      if ($text =~ /%EISNAP%/g ) {
+        my $path = $Event->Path().'/snapshot.jpg';
+        if (-e $path) {
+          my $filename = $Event->Id().'_'.fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EISNAP%/<img src="cid:$$attachment{content_id}"\/>/g;
+        } else {
+          Debug(1, 'No image for SNAP at '.$path);
+          $text =~ s/%EISNAP%//g;
+        }
+      }
       if ($text =~ /%EIMOD%/g ) {
         my $path = $Event->Path().'/objdetect.jpg';
         if (-e $path) {

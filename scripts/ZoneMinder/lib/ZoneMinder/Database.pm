@@ -197,6 +197,7 @@ sub zmDbExecute {
     Error("Can't execute '$sql': ".$sth->errstr());
     return undef;
   }
+  return ($sth, $res) if wantarray();
   return $res;
 } 
 

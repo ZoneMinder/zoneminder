@@ -245,10 +245,7 @@ sub getFilters {
     or `AutoMove` = 1
     or `AutoCopy` = 1
     ) ORDER BY `Name`';
-  my $sth = $dbh->prepare_cached($sql)
-    or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-  my $res = $sth->execute(@sql_values)
-    or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+  my ($sth, $res) = zmDbExecute($sql, @sql_values) or Fatal("Unable to execute '$sql'");
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     my $filter = new ZoneMinder::Filter($$db_filter{Id}, $db_filter);
     Debug("Found filter '$db_filter->{Name}'");
@@ -261,8 +258,7 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     }
     push @filters, $filter;
   }
-  $sth->finish();
-  if ( ! @filters ) {
+  if (!@filters) {
     Warning("No filter found for $sql with values(@sql_values)");
   } else {
     Debug("Got " . @filters . " filters");
@@ -446,14 +442,8 @@ sub generateVideo {
     }
     return 0;
   } else {
-    my $sql = 'UPDATE `Events` SET `Videoed` = 1 WHERE `Id` = ?';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($Event->{Id})
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
-    if ( wantarray() ) {
-      return( $format, $output );
-    }
+    zmDbExecute('UPDATE `Events` SET `Videoed`=1 WHERE `Id`=?', $Event->{Id});
+    return ($format, $output) if wantarray();
   }
   return 1;
 }
@@ -640,11 +630,7 @@ sub uploadArchFile {
         or Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
     }
     unlink($archLocPath);
-    my $sql = 'UPDATE `Events` SET `Uploaded` = 1 WHERE `Id` = ?';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($Event->{Id})
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+    dbDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
   }
   return 1;
 } # end sub uploadArchFile
@@ -678,14 +664,12 @@ sub substituteTags {
   my $first_alarm_frame = '';
   my $max_alarm_frame = '';
   my $max_alarm_score = 0;
-  if ( $need_images ) {
+  if ($need_images) {
     my $sql = 'SELECT * FROM `Frames` WHERE `EventId`=? AND `Type`=? ORDER BY `FrameId`';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($Event->{Id},'Alarm')
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+    my $res = zmDbExecute($Event->{Id}, 'Alarm') or return;
+
     my $rows = 0;
-    while ( my $frame = $sth->fetchrow_hashref() ) {
+    while ( my $frame = $res->fetchrow_hashref() ) {
       if ( !$first_alarm_frame ) {
         $first_alarm_frame = $frame;
       }
@@ -696,7 +680,6 @@ sub substituteTags {
       $rows ++;
     }
     Debug("Frames: rows: $rows first alarm frame: $first_alarm_frame max_alarm_frame: $max_alarm_frame, score: $max_alarm_score");
-    $sth->finish();
   }
 
   my $url = $Config{ZM_URL};
@@ -739,15 +722,47 @@ sub substituteTags {
       $text =~ s/%ETAGS%/$tags/g;
     }
 
-    if ( $first_alarm_frame ) {
+    $text =~ s/%EPFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+    $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+    if ($attachments_ref) {
+      if ($text =~ /%EIMOD%/g ) {
+        my $path = $Event->Path().'/objdetect.jpg';
+        if (-e $path) {
+          my $filename = $Event->Id().'_'.fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
+        } else {
+          Debug(1, 'No image for MOD at '.$path);
+          $text =~ s/%EIMOD%//g;
+        }
+      }
+      if ($text =~ s/%EIMODG%//g) {
+        my $path = $Event->Path().'/objdetect.gif';
+        if (-e $path) {
+          my $filename = $Event->Id().'_'.fileparse($path);
+          my $attachment = { type=>'image/gif', path=>$path, content_id=>uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
+        } else {
+          Debug(1, 'No image for MODG at '.$path);
+          $text =~ s/%EIMODG%//g;
+        }
+      }
+    } # end if attachments_ref
+
+    if (!$first_alarm_frame) {
+      $text =~ s/%EPF1%//g; #Path to the frame view for the first alarmed event image
+      $text =~ s/%EPFM%//g; #Path to the frame view for the (first) event image with the highest score
+      $text =~ s/%EPI1%//g; #Path to the first alarmed event image, suitable for use in img tags
+      $text =~ s/%EPIM%//g; #Path to the (first) event image with the highest score, suitable for use in img tags
+    } else {
       $text =~ s/%EPF1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
       $text =~ s/%EPFM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
       $text =~ s/%EPI1%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
       $text =~ s/%EPIM%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
-      $text =~ s/%EPFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
-      $text =~ s/%EPIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
-      $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
-      $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
 
       if ($attachments_ref) {
         if ($text =~ /%EI1%/g) {
@@ -803,31 +818,7 @@ sub substituteTags {
           }
         }
 
-        if ($text =~ /%EIMOD%/g ) {
-          my $path = $Event->Path().'/objdetect.jpg';
-          if (-e $path) {
-            my $filename = $Event->Id().'_'.fileparse($path);
-            my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
-            push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
-          } else {
-            Debug(1, 'No image for MOD at '.$path);
-            $text =~ s/%EIMOD%//g;
-          }
-        }
 
-        if ( $text =~ s/%EIMODG%//g ) {
-          my $path = $Event->Path().'/objdetect.gif';
-          if ( -e $path ) {
-            my $filename = $Event->Id().'_'.fileparse($path);
-            my $attachment = { type=>'image/gif', path=>$path, content_id=>uri_encode($filename) };
-            push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
-          } else {
-            Debug(1, 'No image for MODG at '.$path);
-            $text =~ s/%EIMODG%//g;
-          }
-        }
 
       } # end if attachments_ref
     } # end if $first_alarm_frame

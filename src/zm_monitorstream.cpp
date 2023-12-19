@@ -550,7 +550,6 @@ void MonitorStream::runStream() {
     command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
   }
 
-
   while (!zm_terminate) {
     if (feof(stdout)) {
       Debug(2, "feof stdout");
@@ -708,7 +707,7 @@ void MonitorStream::runStream() {
             }
           } else*/ {
             AVPixelFormat pixformat = monitor->image_pixelformats[index];
-            Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
+            //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
             send_image = monitor->image_buffer[index];
           }
 

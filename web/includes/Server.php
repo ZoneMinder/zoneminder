@@ -5,6 +5,24 @@ require_once('Object.php');
 
 class Server extends ZM_Object {
   protected static $table = 'Servers';
+  public $Id;
+  public $Name = '';
+  public $Protocol = '';
+  public $Hostname = '';
+  public $Port = null;
+  public $PathToIndex = '';
+  public $PathToZMS = ZM_PATH_ZMS;
+  public $PathToApi = ZM_PATH_API;
+  public $State_Id = 0;
+  public $Status = 'Unknown';
+  public $CpuLoad;
+  public $CpuUsagePercent;
+  public $TotalMem;
+  public $FreeMem;
+  public $TotalSwap;
+  public $FreeSwap;
+  public $Latitude;
+  public $Longitude;
 
   protected $defaults = array(
     'Id'                   => null,
@@ -152,7 +170,13 @@ class Server extends ZM_Object {
     if ($auth_relay) $url .= '?'.$auth_relay;
     Debug('sending command to '.$url);
 
-    $context = stream_context_create();
+    $context_options=array(
+      "ssl"=>array(
+        "verify_peer"=>false,
+        "verify_peer_name"=>false,
+      ),
+    );
+    $context = stream_context_create($context_options);
     try {
       $result = @file_get_contents($url, false, $context);
       if ($result === FALSE) { /* Handle error */

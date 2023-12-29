@@ -6,6 +6,7 @@ class HostController extends AppController {
   public $components = array('RequestHandler');
 
   public function daemonCheck($daemon=false, $args=false) {
+    $count = 0;
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
     $count = 0;
     $safe_daemon = $daemon ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count) : false;

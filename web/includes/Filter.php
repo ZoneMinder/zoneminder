@@ -334,6 +334,10 @@ class Filter extends ZM_Object {
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'POST',
             'content' => http_build_query($data)
+          ),
+          'ssl'=>array(
+            'verify_peer'=>false,
+            'verify_peer_name'=>false,
           )
         );
         $context  = stream_context_create($options);

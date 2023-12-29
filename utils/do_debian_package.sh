@@ -122,7 +122,7 @@ else
       BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
       if [ -z "$BRANCH" ]; then
         # This should only happen in CI environments where tag info isn't available
-        BRANCH=`cat version`
+        BRANCH=$(cat "$(find . -name 'version' -o -name 'version.txt')")
         echo "Building branch $BRANCH"
       fi
       if [ "$BRANCH" == "" ]; then
@@ -197,7 +197,7 @@ fi;
 cd "${GITHUB_FORK}_zoneminder_release"
 git checkout $BRANCH
 
-VERSION=`cat version`
+VERSION=$(cat "$(find . -name 'version' -o -name 'version.txt')")
 if [ "$SNAPSHOT" == "NOW" ]; then
   SNAPSHOT=`date +%Y%m%d%H%M%S`;
 else

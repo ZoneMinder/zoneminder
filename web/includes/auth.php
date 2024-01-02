@@ -338,7 +338,13 @@ function editableMonitor($mid) {
 function canEdit($area, $mid=false) {
   global $user;
 
-  return ( $user && ($user->$area() == 'Edit') && ( !$mid || visibleMonitor($mid) ));
+  return ( $user && ($user->$area() == 'Edit' or $user->$area() == 'Create') && ( !$mid || visibleMonitor($mid) ));
+}
+
+function canCreate($area) {
+  global $user;
+
+  return ( $user && ($user->$area() == 'Create') );
 }
 
 function userFromSession() {

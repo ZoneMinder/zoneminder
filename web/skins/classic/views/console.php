@@ -18,6 +18,9 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+$canEditMonitors = canEdit('Monitors');
+$canCreateMonitors = canCreate('Monitors');
+
 $eventCounts = array(
   'Total'=>  array(
     'title' => translate('Events'),
@@ -179,18 +182,24 @@ echo $navbar ?>
       </div>
 
       <div class="middleButtons">
+<?php
+  if ($canEditMonitors) {
+?>
         <button type="button" id="scanBtn" title="<?php echo translate('Network Scan') ?>" data-on-click="scanNetwork">
         <i class="material-icons">wifi</i>
         <span class="text"><?php echo translate('Scan Network') ?></span>
         </button>
+<?php
+  }
+?>
         <button type="button" name="addBtn" data-on-click="addMonitor"
-        <?php echo canEdit('Monitors') ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
+        <?php echo $canCreateMonitors ? '' : ' disabled="disabled" title="'.translate('AddMonitorDisabled').'"' ?>
         >
           <i class="material-icons">add_circle</i>
           <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
         </button>
         <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
-        <?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>
+        <?php echo $canCreateMonitors ? '' : ' disabled="disabled"' ?>
         style="display:none;">
           <i class="material-icons">content_copy</i>
   <!--content_copy used instead of file_copy as there is a bug in material-icons -->
@@ -226,7 +235,7 @@ ob_start();
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>
-<?php if ( canEdit('Monitors') ) { ?>
+<?php if ($canEditMonitors) { ?>
             <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
 <?php } ?>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
@@ -324,10 +333,10 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   $scale = max(reScale(SCALE_BASE, $monitor['DefaultScale'], ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
   $stream_available = canView('Stream') and $monitor['Type']=='WebSite' or ($monitor['CaptureFPS'] && $monitor['Capturing'] != 'None');
 
-  if ( canEdit('Monitors') ) {
+  if ($canEditMonitors) {
 ?>
             <td class="colMark">
-              <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" data-on-click-this="setButtonStates"<?php if ( !canEdit( 'Monitors' ) ) { ?> disabled="disabled"<?php } ?>/>
+              <input type="checkbox" name="markMids[]" value="<?php echo $monitor['Id'] ?>" data-on-click-this="setButtonStates"/>
             </td>
 <?php
   }
@@ -423,7 +432,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new ZM\Server($monitor['ServerId']);
     echo '<td class="colServer">'.validHtmlStr($Server->Name()).'</td>'.PHP_EOL;
   }
-  echo '<td class="colSource">'. makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$source_class.'">'.validHtmlStr($Monitor->Source()).'</span>', canEdit('Monitors') ).'</td>';
+  echo '<td class="colSource">'. makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$source_class.'">'.validHtmlStr($Monitor->Source()).'</span>', $canEditMonitors).'</td>';
   if ($show_storage_areas) {
     echo '<td class="colStorage">'.
       (isset($StorageById[$monitor['StorageId']]) ? validHtmlStr($StorageById[$monitor['StorageId']]->Name()) : ($monitor['StorageId']?'<span class="error">Deleted '.$monitor['StorageId'].'</span>' : '')).'</td>'.PHP_EOL;
@@ -442,7 +451,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
         </tbody>
         <tfoot>
           <tr>
-<?php if ( canEdit('Monitors') ) { ?>
+<?php if ($canEditMonitors) { ?>
             <td class="colMark"></td>
 <?php } ?>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>

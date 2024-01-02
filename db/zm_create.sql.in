@@ -776,7 +776,7 @@ CREATE TABLE `Users` (
   `Stream` enum('None','View') NOT NULL default 'None',
   `Events` enum('None','View','Edit') NOT NULL default 'None',
   `Control` enum('None','View','Edit') NOT NULL default 'None',
-  `Monitors` enum('None','View','Edit') NOT NULL default 'None',
+  `Monitors` enum('None','View','Edit','Create') NOT NULL default 'None',
   `Groups` enum('None','View','Edit') NOT NULL default 'None',
   `Devices` enum('None','View','Edit') NOT NULL default 'None',
   `Snapshots` enum('None','View','Edit') NOT NULL default 'None',

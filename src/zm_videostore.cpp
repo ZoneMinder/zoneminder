@@ -492,9 +492,6 @@ bool VideoStore::open() {
         return false;
       }
 
-      // We don't actually care what the time_base is..
-      audio_out_ctx->time_base = audio_in_ctx->time_base;
-
       // Copy params from instream to ctx
       ret = avcodec_parameters_to_context(
           audio_out_ctx, audio_in_stream->codecpar);

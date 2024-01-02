@@ -86,7 +86,7 @@ VideoStore::VideoStore(
   video_in_stream(p_video_in_stream),
   audio_in_stream(p_audio_in_stream),
   audio_in_codec(nullptr),
-  audio_in_ctx(p_audio_in_ctx),
+  audio_in_ctx(nullptr),
   audio_out_codec(nullptr),
   audio_out_ctx(nullptr),
   packets_written(0),
@@ -444,7 +444,7 @@ bool VideoStore::open() {
 
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
 
-  if (audio_in_stream and audio_in_ctx) {
+  if (audio_in_stream) {
     Debug(2, "Have audio_in_stream %p", audio_in_stream);
 
     if (CODEC(audio_in_stream)->codec_id != AV_CODEC_ID_AAC) {
@@ -452,9 +452,7 @@ bool VideoStore::open() {
       if (!audio_out_codec) {
         Error("Could not find codec for AAC");
       } else {
-        if (audio_in_ctx == nullptr) {
-          audio_in_ctx = avcodec_alloc_context3(audio_out_codec);
-        }
+        audio_in_ctx = avcodec_alloc_context3(audio_out_codec);
         ret = avcodec_parameters_to_context(audio_in_ctx, audio_in_stream->codecpar);
         if (ret < 0)
           Error("Failure from avcodec_parameters_to_context %s",
@@ -747,6 +745,10 @@ VideoStore::~VideoStore() {
 
   if (audio_out_stream) {
     audio_in_codec = nullptr;
+    if (audio_in_ctx) {
+      avcodec_close(audio_in_ctx);
+      avcodec_free_context(&audio_in_ctx);
+    }
 
     if (audio_out_ctx) {
       Debug(4, "Success closing audio_out_ctx");

@@ -706,7 +706,7 @@ void MonitorStream::runStream() {
               send_image = monitor->image_buffer[index];
             }
           } else*/ {
-            AVPixelFormat pixformat = monitor->image_pixelformats[index];
+            //AVPixelFormat pixformat = monitor->image_pixelformats[index];
             //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
             send_image = monitor->image_buffer[index];
           }

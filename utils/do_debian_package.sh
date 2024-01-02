@@ -142,7 +142,7 @@ if [ "$SNAPSHOT" == "stable" ]; then
     BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
     if [ -z "$BRANCH" ]; then
       # This should only happen in CI environments where tag info isn't available
-      BRANCH=`cat version.txt`
+      BRANCH=$(cat "$(find . -name 'version' -o -name 'version.txt')")
       echo "Building branch $BRANCH"
     fi
     if [ "$BRANCH" == "" ]; then
@@ -180,7 +180,7 @@ fi;
 echo "git pull..."
 git pull
 # Grab the ZoneMinder version from the contents of the version file
-VERSION=$(cat version.txt)
+VERSION=$(cat "$(find . -name 'version' -o -name 'version.txt')")
 if [ -z "$VERSION" ]; then
   exit 1;
 fi;

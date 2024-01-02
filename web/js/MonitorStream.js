@@ -616,14 +616,15 @@ function MonitorStream(monitorData) {
   this.getStatusCmdResponse=function(respObj, respText) {
     //watchdogOk('status');
     this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
-
     if (respObj.result == 'Ok') {
       const monitorStatus = respObj.monitor.Status;
       const captureFPSValue = $j('#captureFPSValue'+this.id);
       const analysisFPSValue = $j('#analysisFPSValue'+this.id);
+      const viewingFPSValue = $j('#viewingFPSValue'+this.id);
+      const monitor = respObj.monitor;
 
-      if (respObj.monitor.FrameRate) {
-        const fpses = respObj.monitor.FrameRate.split(",");
+      if (monitor.FrameRate) {
+        const fpses = monitor.FrameRate.split(",");
         fpses.forEach(function(fps) {
           const name_values = fps.split(':');
           const name = name_values[0].trim();
@@ -642,6 +643,14 @@ function MonitorStream(monitorData) {
             console.log("Unknown fps name " + name);
           }
         });
+      } else {
+        if (analysisFPSValue.length && (analysisFPSValue.text() != monitor.AnalysisFPS))
+          analysisFPSValue.text(monitor.AnalysisFPS);
+        if (captureFPSValue.length && (captureFPSValue.text() != monitor.CaptureFPS))
+          captureFPSValue.text(monitor.CaptureFPS);
+        if (viewingFPSValue.length && viewingFPSValue.text() == '') {
+          $j('#viewingFPS'+this.id).hide();
+        }
       }
 
       if (canEdit.Monitors) {
@@ -686,11 +695,10 @@ function MonitorStream(monitorData) {
     }
 
     this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-  };
+  }; // this.getStatusCmdResponse
 
   this.statusCmdQuery=function() {
-    console.log('statusCmdQuery');
-    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+this.id+'&'+this.auth_relay)
+    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+this.auth_relay)
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
 
@@ -901,11 +909,14 @@ function startRTSP2WebPlay(videoEl, url) {
       method: 'POST',
       body: new URLSearchParams({data: btoa(webrtc.localDescription.sdp)})
     })
+        .catch(rejected => {
+          console.log(rejected);
+        })
         .then((response) => response.text())
         .then((data) => {
           try {
             webrtc.setRemoteDescription(
-                new RTCSessionDescription({type: 'answer', sdp: atob(data)})
+              new RTCSessionDescription({type: 'answer', sdp: atob(data)})
             );
           } catch (e) {
             console.warn(e);

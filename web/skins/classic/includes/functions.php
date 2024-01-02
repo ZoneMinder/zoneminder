@@ -198,10 +198,11 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   $status = runtimeStatus($running);
 ?>
 <div class="container-fluid" id="navbar-container">
-  <nav class="navbar navbar-expand-md justify-content-center flex-row" id="navbar-one">
-    <div class="navbar-brand justify-content-start align-self-start">
-      <?php echo getNavBrandHTML() ?>
-    </div>
+  <div class="navbar-brand">
+    <?php echo getNavBrandHTML() ?>
+  </div>
+  <div class="navbars">
+    <nav class="navbar navbar-expand-md flex-row" id="navbar-one">
     <!-- the Navigation Bar Hamburger Button   -->
 <!--
     <div class="nav justify-content-end flex-grow-1">
@@ -258,7 +259,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two"
 <?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>
 >
-    <div class="container-fluid" id="panel" >
+    <div class="container-fluid" id="panel">
 <?php
 
 // *** Build the statistics shown on the navigation bar ***
@@ -290,7 +291,8 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   } // end if (!ZM_OPT_USE_AUTH) or $user )
   echo getConsoleBannerHTML();
 ?>
-</div>
+  </div><!--navbars-->
+</div><!--navbar continaer-->
 <?php
 } // end function getNormalNavBarHTML()
 
@@ -301,24 +303,24 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
   $status = runtimeStatus($running);
   ?>
   <div class="container-fluid" id="navbar-container">
-    <nav class="navbar px-1 flex-nowrap">
-      <div class="navbar-brand align-self-start px-0">
+    <nav class="navbar flex-nowrap">
+      <div class="navbar-brand">
         <?php echo getNavBrandHTML() ?>
       </div>
-      <nav class="navbar navbar-expand-md align-self-start px-0">
+      <nav class="navbar navbar-expand-md">
 <?php
   // *** Build the statistics shown on the navigation bar ***
   if ( (!ZM_OPT_USE_AUTH) or $user ) {
 ?>
-        <div id="reload" class="collapse navbar-collapse px-0">
-          <ul id="Version" class="pr-2 navbar-nav">
+        <div id="reload" class="collapse navbar-collapse">
+          <ul id="Version" class="navbar-nav">
             <?php echo getZMVersionHTML() ?>
           </ul>
-          <ul id="Bandwidth" class="px-2 navbar-nav">
+          <ul id="Bandwidth" class="navbar-nav">
             <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
           </ul>
 
-          <ul class="nav navbar-nav list-group px-0">
+          <ul class="nav navbar-nav list-group">
             <?php
             echo getSysLoadHTML();
             echo getDbConHTML();
@@ -842,7 +844,7 @@ function getStatusBtnHTML($status) {
     $result .= '</li>'.PHP_EOL;
 
     if (ZM_SYSTEM_SHUTDOWN) {
-      $result .= '<li class="pr-2">'.PHP_EOL;
+      $result .= '<li class="shutdown">'.PHP_EOL;
       $result .= '<button id="shutdownButton" class="btn btn-default navbar-btn" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate('Shutdown'). '"><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
       $result .= '</li>'.PHP_EOL;
      } 

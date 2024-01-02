@@ -645,10 +645,24 @@ input[type=submit]:disabled,
 
 #navbar-container {
   padding: 0;
+  display: flex;
+  justify-content: space-between;
+	background-color:#485460 !important;
+}
+
+#reload, #panel {
+  padding: 0;
+}
+#Version {
+  padding-right: 8px;
+}
+
+.navbars {
+  width: 100%;
 }
 
 .navbar {
-  padding: 0 0 0 8px;
+  padding: 0 0 0 0px;
 	margin-bottom: 0 !important;
 	border-radius: 0;
 	background-color:#485460 !important;
@@ -657,13 +671,17 @@ input[type=submit]:disabled,
 }
 
 .navbar-brand {
+  margin-left: 15px;
 	font-weight: normal;
-	font-size: 20px;
+	font-size: 30px;
 }
 .navbar-brand a {
 color:#ffa801;
 }
 @media (max-width: 600px){
+  .navbar-brand {
+    display: none;
+  }
   .navbar-nav {
     flex-direction: row;
   }
@@ -799,7 +817,7 @@ a.flip {
   padding: 4px 10px 7px 10px;
 }
 #stateModalBtn {
-  padding: 4px 10px 6px 10px;
+  padding: 5px 10px 4px 10px;
 }
 #shutdownButton {
   padding: 4px 10px 4px 10px;

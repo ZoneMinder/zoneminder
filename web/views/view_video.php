@@ -83,7 +83,7 @@ if ( isset($_SERVER['HTTP_RANGE']) ) {
 } # end if HTTP_RANGE
 
 header('Content-type: video/mp4');
-header('Accept-Ranges: bytes');
+//header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
 # This is so that Save Image As give a useful filename
 if ( $Event ) {

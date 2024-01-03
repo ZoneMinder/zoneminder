@@ -33,9 +33,6 @@ function CSPHeaders($view, $nonce) {
   global $Servers;
 
   $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
-  if (ZM_RTSP2WEB_PATH) {
-    $additionalScriptSrc .= ' '.ZM_RTSP2WEB_PATH;
-  }
   switch ($view) {
     case 'login':
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
@@ -81,10 +78,6 @@ function CORSHeaders() {
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
-        if (ZM_RTSP2WEB_PATH) {
-          header('Access-Control-Allow-Origin: '.$_SERVER['HTTP_ORIGIN'].' '. ZM_RTSP2WEB_PATH);
-          ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']. ' ' .ZM_RTSP2WEB_PATH);
-        }
 
         break;
       }
@@ -94,10 +87,6 @@ function CORSHeaders() {
     }
   } else {
     ZM\Debug('CORS: NO origin');
-        if (ZM_RTSP2WEB_PATH) {
-          header('Access-Control-Allow-Origin: '.ZM_RTSP2WEB_PATH);
-          ZM\Debug('Setting Access-Control-Allow-Origin from '.ZM_RTSP2WEB_PATH);
-        }
   }
 }
 

@@ -452,13 +452,24 @@ bool VideoStore::open() {
       if (!audio_out_codec) {
         Error("Could not find codec for AAC");
       } else {
-        audio_in_ctx = avcodec_alloc_context3(audio_out_codec);
+        // Newer ffmpeg wants to keep everything separate... so have to lookup our own
+        // decoder, can't reuse the one from the camera.
+        audio_in_codec = avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
+        audio_in_ctx = avcodec_alloc_context3(audio_in_codec);
+        // ctx already allocated at this point
+        // Copy params from instream to ctx
         ret = avcodec_parameters_to_context(audio_in_ctx, audio_in_stream->codecpar);
-        if (ret < 0)
-          Error("Failure from avcodec_parameters_to_context %s",
+        if (ret < 0) {
+          Error("Unable to copy audio params to ctx %s",
               av_make_error_string(ret).c_str());
-
+        }
         audio_in_ctx->time_base = audio_in_stream->time_base;
+
+        // if the codec is already open, nothing is done.
+        if ((ret = avcodec_open2(audio_in_ctx, audio_in_codec, nullptr)) < 0) {
+          Error("Can't open audio in codec!");
+          return false;
+        }
 
         audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
         if (!audio_out_ctx) {
@@ -776,22 +787,6 @@ VideoStore::~VideoStore() {
 bool VideoStore::setup_resampler() {
   int ret;
 
-  // Newer ffmpeg wants to keep everything separate... so have to lookup our own
-  // decoder, can't reuse the one from the camera.
-  audio_in_codec = avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
-  // ctx already allocated at this point
-  // Copy params from instream to ctx
-  ret = avcodec_parameters_to_context(audio_in_ctx, audio_in_stream->codecpar);
-  if (ret < 0) {
-    Error("Unable to copy audio params to ctx %s",
-        av_make_error_string(ret).c_str());
-  }
-
-  // if the codec is already open, nothing is done.
-  if ((ret = avcodec_open2(audio_in_ctx, audio_in_codec, nullptr)) < 0) {
-    Error("Can't open audio in codec!");
-    return false;
-  }
 
   Debug(2, "Got something other than AAC (%s)", audio_in_codec->name);
 

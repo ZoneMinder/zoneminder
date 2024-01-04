@@ -846,6 +846,9 @@ void MonitorStream::runStream() {
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(ttl).count()));
       break;
     }
+    if (frames_to_send > 0 && frame_count >= frames_to_send) {
+      break;
+    }
   } // end while ! zm_terminate
 
   if (buffered_playback) {

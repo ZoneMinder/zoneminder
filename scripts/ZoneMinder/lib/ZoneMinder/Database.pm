@@ -194,7 +194,8 @@ sub zmDbExecute {
   }
   my $res = $sth->execute(@_);
   if (!$res) {
-    Error("Can't execute '$sql': ".$sth->errstr());
+    my ( $caller, undef, $line ) = caller;
+    Error("Can't execute '$sql' from $caller:$line: ".$sth->errstr());
     return undef;
   }
   return ($sth, $res) if wantarray();

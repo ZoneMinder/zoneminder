@@ -666,10 +666,10 @@ sub substituteTags {
   my $max_alarm_score = 0;
   if ($need_images) {
     my $sql = 'SELECT * FROM `Frames` WHERE `EventId`=? AND `Type`=? ORDER BY `FrameId`';
-    my $res = zmDbExecute($Event->{Id}, 'Alarm') or return;
+    my ($sth, $res) = zmDbExecute($sql, $Event->{Id}, 'Alarm') or return;
 
     my $rows = 0;
-    while ( my $frame = $res->fetchrow_hashref() ) {
+    while ( my $frame = $sth->fetchrow_hashref() ) {
       if ( !$first_alarm_frame ) {
         $first_alarm_frame = $frame;
       }

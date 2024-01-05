@@ -67,6 +67,8 @@ class HostController extends AppController {
   }
 
   function login() {
+    if (!ZM_OPT_USE_AUTH) return;
+
     $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
     if ( !$username )
       $username = $this->request->query('username') ? $this->request->query('username') : $this->request->data('username');
@@ -91,7 +93,6 @@ class HostController extends AppController {
       ZM\Debug('Only generating access token');
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
     }
-
     $login_array = array (
       'access_token'          => $cred[0],
       'access_token_expires'  => $cred[1]
@@ -149,7 +150,7 @@ class HostController extends AppController {
 
     if ( !ZM_OPT_USE_AUTH ) {
       ZM\Debug('OPT_USE_AUTH is turned off. Tokens will be null');
-      return;
+      return [];
     }
       
 

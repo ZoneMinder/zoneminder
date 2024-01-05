@@ -745,10 +745,13 @@ sub MoveTo {
 
   # In strange situations where commits don't happen, the files can be moved but the db hasn't been updated.
   # So here's a special case test to fix that.
-  my ( $SrcPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
-  my ( $NewPath ) = ( $NewStorage->Path() =~ /^(.*)$/ ); # De-taint
+  my ( $SrcPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
+  my $NewPath = $NewStorage->Path().$self->RelativePath();
+  $NewPath =~ /^(.*)$/; # De-taint
+
   my $error = '';
   if ((! -e $SrcPath) and -e $NewPath) {
+    Debug("srcPath: $SrcPath newPath: $NewPath");
     Warning("Event has already been moved, just updating the event record in db.");
   } else {
     $error = $self->CopyTo($NewStorage);

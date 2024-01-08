@@ -91,6 +91,7 @@ sub new {
     if ( $id and (!$no_cache) and $$sub_cache{$id} ) {
       if ( $data ) {
         # The reason to use load is if we have overridden it in the object,
+        $$sub_cache{$id} = $self;
         $$sub_cache{$id}->load( $data );
       } 
       return $$sub_cache{$id};

@@ -330,6 +330,14 @@ function parseRows(rows) {
       for ( var key of ['IS', 'IS NOT'] ) {
         opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
       }
+    } else if (attr == 'Tags') {
+      if ( ! opVal ) {
+        // Default to LIKE so that something gets selected
+        opVal = 'LIKE';
+      }
+      for ( var key in tags_opTypes ) {
+        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + tags_opTypes[key] + '</option>');
+      }
     } else {
       if ( ! opVal ) {
         // Default to equals so that something gets selected

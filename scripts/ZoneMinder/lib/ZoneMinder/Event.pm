@@ -746,7 +746,7 @@ sub MoveTo {
   # In strange situations where commits don't happen, the files can be moved but the db hasn't been updated.
   # So here's a special case test to fix that.
   my ( $SrcPath ) = ( $self->Path(undef) =~ /^(.*)$/ ); # De-taint
-  my $NewPath = $NewStorage->Path().$self->RelativePath();
+  my $NewPath = $NewStorage->Path().'/'.$self->RelativePath();
   $NewPath =~ /^(.*)$/; # De-taint
 
   my $error = '';

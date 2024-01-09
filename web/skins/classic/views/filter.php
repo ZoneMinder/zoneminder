@@ -205,6 +205,7 @@ $sort_fields = array(
     'Notes'         => translate('AttrNotes'),
     'MonitorName'   => translate('AttrMonitorName'),
     'StartDateTime' => translate('AttrStartDateTime'),
+    'EndDateTime'   => translate('AttrEndDateTime'),
     'Length'        => translate('AttrDuration'),
     'Frames'        => translate('AttrFrames'),
     'AlarmFrames'   => translate('AttrAlarmFrames'),

@@ -650,6 +650,10 @@ input[type=submit]:disabled,
 	background-color:#485460 !important;
 }
 
+#navbar-container > nav {
+  width: 100%;
+}
+
 #reload, #panel {
   padding: 0;
 }

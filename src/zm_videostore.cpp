@@ -372,14 +372,14 @@ bool VideoStore::open() {
         ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
         if (ret < 0) {
           Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
-	} else {
-		const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-		if (entry) {
-			reorder_queue_size = std::stoul(entry->value);
-			Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-			// remove it to prevent complaining later.
-			av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-		}
+        } else {
+          const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          if (entry) {
+            reorder_queue_size = std::stoul(entry->value);
+            Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+            // remove it to prevent complaining later.
+            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          }
         }
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
@@ -456,12 +456,10 @@ bool VideoStore::open() {
         // decoder, can't reuse the one from the camera.
         audio_in_codec = avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
         audio_in_ctx = avcodec_alloc_context3(audio_in_codec);
-        // ctx already allocated at this point
         // Copy params from instream to ctx
         ret = avcodec_parameters_to_context(audio_in_ctx, audio_in_stream->codecpar);
         if (ret < 0) {
-          Error("Unable to copy audio params to ctx %s",
-              av_make_error_string(ret).c_str());
+          Error("Unable to copy audio params to ctx %s", av_make_error_string(ret).c_str());
         }
         audio_in_ctx->time_base = audio_in_stream->time_base;
 
@@ -504,17 +502,13 @@ bool VideoStore::open() {
       }
 
       // Copy params from instream to ctx
-      ret = avcodec_parameters_to_context(
-          audio_out_ctx, audio_in_stream->codecpar);
+      ret = avcodec_parameters_to_context(audio_out_ctx, audio_in_stream->codecpar);
       if (ret < 0) {
-        Error("Unable to copy audio params to ctx %s",
-              av_make_error_string(ret).c_str());
+        Error("Unable to copy audio params to ctx %s", av_make_error_string(ret).c_str());
       }
-      ret = avcodec_parameters_from_context(
-          audio_out_stream->codecpar, audio_out_ctx);
+      ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx);
       if (ret < 0) {
-        Error("Unable to copy audio params to stream %s",
-              av_make_error_string(ret).c_str());
+        Error("Unable to copy audio params to stream %s", av_make_error_string(ret).c_str());
       }
 
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
@@ -548,8 +542,7 @@ bool VideoStore::open() {
   if (!(out_format->flags & AVFMT_NOFILE)) {
     ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, nullptr, nullptr);
     if (ret < 0) {
-      Error("Could not open out file '%s': %s", filename,
-          av_make_error_string(ret).c_str());
+      Error("Could not open out file '%s': %s", filename, av_make_error_string(ret).c_str());
       return false;
     }
   }

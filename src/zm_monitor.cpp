@@ -2237,7 +2237,7 @@ bool Monitor::Analyse() {
           // snap->score -1 means didn't do motion detection so don't do state transition
           // In Nodect, we may still have a triggered event, so need this code to run to end the event.
           } else if (!score and ((snap->score == 0) or (shared_data->analysing == ANALYSING_NONE))) {
-            Debug(1, "!score %s", State_Strings[state].c_str());
+            Debug(1, "!score state=%s", State_Strings[state].c_str());
             alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
 
             if (state == ALARM) {
@@ -2263,6 +2263,8 @@ bool Monitor::Analyse() {
                 } else {
                   shared_data->state = state = TAPE;
                 }
+              } else {
+                shared_data->state = state = IDLE;
               }
             } else if (state == PREALARM) {
               // Back to IDLE
@@ -2282,6 +2284,8 @@ bool Monitor::Analyse() {
             }
             if (Event::PreAlarmCount())
               Event::EmptyPreAlarmFrames();
+          } else {
+            Debug(1, "No state change because score=%d and snap->score=%d", score, snap->score);
           } // end if score or not
 
           // At this point, snap ONLY has motion score, so this adds other sources

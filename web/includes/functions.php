@@ -2499,4 +2499,10 @@ function systemd_isactive($service) {
   $output = shell_exec("systemctl is-active $service");
   return (trim($output) == 'active');
 }
+
+function to_string($thing) {
+  if (empty($thing)) return '';
+  if (is_array($thing)) return implode(', ', $thing);
+  return strval($thing);
+}
 ?>

@@ -55,7 +55,6 @@ use constant START_DELAY => 30; # To give everything else time to start
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
-use ZoneMinder::Storage;
 use ZoneMinder::Monitor;
 use POSIX;
 use DBI;
@@ -82,6 +81,9 @@ Info('Watchdog starting, pausing for '.START_DELAY.' seconds');
 
 my $dbh = zmDbConnect();
 
+# We don't need to keep objects cached
+$ZoneMinder::Object::no_cache = 1;
+
 while (!$zm_terminate) {
   while (!($dbh and $dbh->ping())) {
     if (!($dbh = zmDbConnect())) {
@@ -95,7 +97,6 @@ while (!$zm_terminate) {
 
     my $now = time(); 
     my $restart = 0;
-    zmMemInvalidate($monitor);
     if (!zmMemVerify($monitor)) {
       Info("Restarting capture daemon for $monitor->{Id} $monitor->{Name}, shared data not valid");
       $monitor->control('restart');

@@ -102,7 +102,6 @@ echo $user ? json_encode($user->expose(['Password'])) : '{}';
 ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 
-const STATE_UNKNOWN = <?php echo STATE_UNKNOWN ?>;
 const STATE_IDLE = <?php echo STATE_IDLE ?>;
 const STATE_PREALARM = <?php echo STATE_PREALARM ?>;
 const STATE_ALARM = <?php echo STATE_ALARM ?>;
@@ -133,7 +132,6 @@ const CMD_QUIT = <?php echo CMD_QUIT ?>;
 const CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;
 
 const stateStrings = new Array();
-stateStrings[STATE_UNKNOWN] = "<?php echo translate('Unknown') ?>";
 stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
 stateStrings[STATE_PREALARM] = "<?php echo translate('Prealarm') ?>";
 stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";

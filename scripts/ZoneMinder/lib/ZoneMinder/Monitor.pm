@@ -468,7 +468,7 @@ sub Control {
         $Control = $Control->clone(); # Because this object is not per monitor specific
         bless $Control, 'ZoneMinder::Control::'.$Protocol;
         $$Control{MonitorId} = $$self{Id};
-        $$Control{Monitor} = $self;
+        $$Control{Monitor} = $self->clone();
         $$self{Control} = $Control;
       } else {
         Error("Unable to load control for control $$self{ControlId} for monitor $$self{Id}");
@@ -591,6 +591,10 @@ sub model {
     $$self{Model} = new ZoneMinder::Model($$self{ModelId});
   }
   return $$self{Model}->Name();
+}
+
+sub DESTROY {
+  ZoneMinder::Memory::zmMemInvalidate($_[0]) if ZoneMinder::Memory::zmMemKey($_[0]);
 }
 
 1;

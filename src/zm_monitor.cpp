@@ -114,7 +114,6 @@ std::string CameraType_Strings[] = {
 };
 
 std::string State_Strings[] = {
-  "Unknown",
   "IDLE",
   "PREALARM",
   "ALARM",
@@ -3425,6 +3424,7 @@ int Monitor::Play() {
   }
   return 1;
 }
+
 int Monitor::Close() {
   Pause();
 
@@ -3444,8 +3444,7 @@ int Monitor::Close() {
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
     const char *RequestMessageID = soap_wsa_rand_uuid(soap);
-    if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "UnsubscribeRequest") == SOAP_OK)
-    {
+    if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "UnsubscribeRequest") == SOAP_OK) {
       proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     } else {
       Error("Couldn't set wsa headers RequestMessageID=%s; TO= %s; Request=UnsubscribeRequest .... ! Error %i %s, %s",

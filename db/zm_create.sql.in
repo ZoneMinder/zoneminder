@@ -770,7 +770,7 @@ CREATE TABLE `Users` (
   `Password` varchar(64) NOT NULL default '',
   `Name`     varchar(64) NOT NULL default '',
   `Email`    varchar(64) NOT NULL default '',
-  `Phone`    varchar(16) NOT NULL default '',/* Space for 2 numbers, country codes, etc */
+  `Phone`    varchar(64) NOT NULL default '',/* Space for 2 numbers, country codes, etc */
   `Language` varchar(8),
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `Stream` enum('None','View') NOT NULL default 'None',

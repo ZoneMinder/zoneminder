@@ -905,12 +905,12 @@ void MonitorStream::SingleImage(int scale) {
 
   int count = 10; // Give it 1 second to connect or else send text frame.
   while (count and (monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
-    Debug(1, "Waiting for capture to begin");
+    Debug(1, "Waiting for capture to begin. last write index %d >=? %d",
+        monitor->shared_data->last_write_index, monitor->image_buffer_count);
     std::this_thread::sleep_for(Milliseconds(100));
     count--;
   }
   if (!count) {
-    sendTextFrame("No image available.");
     sendTextFrame("No image available.");
     return;
   }

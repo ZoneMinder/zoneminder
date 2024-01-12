@@ -61,7 +61,7 @@ while (!$zm_terminate) {
   }
 
   # Get CPU utilization percentages
-  my $top_output = `top -b -n 1 | grep "^%Cpu(s)" | awk '{print \$2, \$4}'`;
+  my $top_output = `top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print \$2, \$4}'`;
   my ($user_utilization, $system_utilization) = split(/ /, $top_output);
   $user_utilization =~ s/[^\d\.]//g;
   $system_utilization =~ s/[^\d\.]//g;

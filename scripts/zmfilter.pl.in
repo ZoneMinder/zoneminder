@@ -679,7 +679,7 @@ sub substituteTags {
       }
       $rows ++;
     }
-    Debug("Frames: rows: $rows first alarm frame: $first_alarm_frame max_alarm_frame: $max_alarm_frame, score: $max_alarm_score");
+    Debug("Frames: rows: $rows first alarm frame: $$first_alarm_frame{FrameId} max_alarm_frame: $$max_alarm_frame{FrameId}, score: $max_alarm_score");
   }
 
   my $url = $Config{ZM_URL};
@@ -771,6 +771,10 @@ sub substituteTags {
       $text =~ s/%EPFM%//g; #Path to the frame view for the (first) event image with the highest score
       $text =~ s/%EPI1%//g; #Path to the first alarmed event image, suitable for use in img tags
       $text =~ s/%EPIM%//g; #Path to the (first) event image with the highest score, suitable for use in img tags
+      $text =~ s/%EI1%/There is no image for EI1/g;
+      $text =~ s/%EIM%/There is no image for EIM/g;
+      $text =~ s/%EI1A%/There is no image for EI1A/g;
+      $text =~ s/%EIMA%/There is no image for EIMA/g;
     } else {
       $text =~ s/%EPF1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
       $text =~ s/%EPFM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;

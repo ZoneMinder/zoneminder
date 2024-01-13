@@ -169,12 +169,14 @@ sub Sql {
           $self->{Sql} .= 'T.Id';
           $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
-          $fields .= ', M.Name as MonitorName';
-          $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          if (!($fields =~ /MonitorName/)) {
+            $fields .= ', M.Name as MonitorName';
+            $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          }
           my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
           $self->{Sql} .= 'M.'.($temp_attr_name ? $temp_attr_name : 'Id');
         } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
-          if (!($fields =~ /MonitorName/)) { 
+          if (!($fields =~ /MonitorName/)) {
             $fields .= ', M.Name as MonitorName';
             $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
           }
@@ -377,7 +379,7 @@ sub Sql {
     } elsif ( $filter_expr->{sort_field} eq 'Tag' ) {
       $sort_column = 'T.Name';
     } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
-      if (!($fields =~ /MonitorName/)) { 
+      if (!($fields =~ /MonitorName/)) {
         $fields .= ', M.Name as MonitorName';
         $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
         $sql = ' SELECT '.$fields. ' FROM ' . $from;

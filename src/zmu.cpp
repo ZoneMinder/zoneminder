@@ -43,8 +43,8 @@ problems.
 General options:
   -v, --verbose                           - Produce more verbose output
   -l, --list                              - List the current status of active (or all with -v) monitors
-  -h, --help                               - Display usage information
-  -v, --version                            - Print the installed version of ZoneMinder
+  -h, --help                              - Display usage information
+  -v, --version                           - Print the installed version of ZoneMinder
 
 Options for use with devices:
   -d, --device [device_path]              - Get the current video device settings for [device_path] or all devices
@@ -54,8 +54,8 @@ Options for use with devices:
 Options for use with monitors:
   -m, --monitor <monitor_id>              - Specify which monitor to address, default 1 if absent
   -q, --query                             - Query the current settings for the monitor
-  -s, --state                             - Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,
-                                            3 = alert, 4 = tape
+  -s, --state                             - Output the current monitor state, 0 = unknown, 1 = idle, 2 = prealarm,
+                                            3 = alarm, 4 = alert, 5 = tape
   -B, --brightness [value]                - Output the current brightness, set to value if given
   -C, --contrast [value]                  - Output the current contrast, set to value if given
   -H, --hue [value]                       - Output the current hue, set to value if given

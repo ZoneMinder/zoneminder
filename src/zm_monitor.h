@@ -154,6 +154,7 @@ public:
   } Deinterlace;
 
   typedef enum {
+    UNKNOWN = 0,
     IDLE,
     PREALARM,
     ALARM,

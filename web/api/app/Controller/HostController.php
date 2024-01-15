@@ -67,7 +67,10 @@ class HostController extends AppController {
   }
 
   function login() {
-    if (!ZM_OPT_USE_AUTH) return;
+    if (!ZM_OPT_USE_AUTH) {
+      $this->set([]);
+      return;
+    }
 
     $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
     if ( !$username )

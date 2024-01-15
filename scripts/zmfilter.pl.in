@@ -978,9 +978,7 @@ sub sendTheEmail {
           Type => 'multipart/mixed'
         );
 
-      my $related = MIME::Lite->new(
-        Type => 'multipart/related',
-      );
+      my $related = MIME::Lite->new(Type=>'multipart/related');
       $mail->attach($related);
       if ($body =~ /<html/) {
         my $alternative = MIME::Lite->new(
@@ -1004,11 +1002,11 @@ sub sendTheEmail {
         );
         $alternative->attach($html);
       } else {
-        my $html = MIME::Lite->new(
+        my $text = MIME::Lite->new(
           'Content-Transfer-Encoding' => 'quoted-printable',
           Type => 'TEXT', Data => $body
         );
-        $related->attach($html);
+        $related->attach($text);
       } # end if html or not
 
       foreach my $attachment ( @attachments ) {

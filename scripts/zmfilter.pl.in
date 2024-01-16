@@ -659,6 +659,7 @@ sub substituteTags {
   my $Monitor = $Event->Monitor() if $Event and $need_monitor;
   my $Summary = $Monitor->Event_Summary() if $Monitor and $need_summary;
 
+  my $html = ($text =~ /<html/ ? !undef : undef);
 # Do we need the image information too?
   my $need_images = $text =~ /%(?:EPI1|EPIM|EPISNAP|EI1|EIM|EI1A|EIMA|EISNAP|EIMOD|EIMODG)%/;
   my $first_alarm_frame = '';
@@ -734,7 +735,11 @@ sub substituteTags {
           my $filename = $Event->Id().'_'.fileparse($path);
           my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
           push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-          $text =~ s/%EISNAP%/<img src="cid:$$attachment{content_id}"\/>/g;
+          if ($html) {
+            $text =~ s/%EISNAP%/<img src="cid:$$attachment{content_id}"\/>/g;
+          } else {
+            $text =~ s/%EISNAP%//g;
+          }
         } else {
           Debug(1, 'No image for SNAP at '.$path);
           $text =~ s/%EISNAP%//g;
@@ -746,7 +751,11 @@ sub substituteTags {
           my $filename = $Event->Id().'_'.fileparse($path);
           my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
           push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-          $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
+          if ($html) {
+            $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
+          } else {
+            $text =~ s/%EIMOD%//g;
+          }
         } else {
           Debug(1, 'No image for MOD at '.$path);
           $text =~ s/%EIMOD%//g;
@@ -758,7 +767,11 @@ sub substituteTags {
           my $filename = $Event->Id().'_'.fileparse($path);
           my $attachment = { type=>'image/gif', path=>$path, content_id=>uri_encode($filename) };
           push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-          $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
+          if ($html) {
+            $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
+          } else {
+            $text =~ s/%EIMODG%//g;
+          }
         } else {
           Debug(1, 'No image for MODG at '.$path);
           $text =~ s/%EIMODG%//g;
@@ -788,7 +801,11 @@ sub substituteTags {
             my $filename = fileparse($path);
             my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EI1%/<img src="cid:$$attachment{content_id}"\/>/g;
+            if ($html) {
+              $text =~ s/%EI1%/<img src="cid:$$attachment{content_id}"\/>/g;
+            } else{
+              $text =~ s/%EI1%//g;
+            }
           } else {
             Warning("Path to first image does not exist at $path for image $first_alarm_frame");
             $text =~ s/%EI1%/No image found for EI1/g;
@@ -801,7 +818,12 @@ sub substituteTags {
             my $filename = fileparse($path);
             my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
+            if ($html) {
+              $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
+            } else {
+              $text =~ s/%EIM%//g;
+            }
+
           } else {
             Warning("No image for EIM at $path");
             $text =~ s/%EIM%/No image found for EIM/g;
@@ -814,7 +836,11 @@ sub substituteTags {
             my $filename = fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g;
+            if ($html) {
+              $text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g;
+            } else {
+              $text =~ s/%EI1A%//g;
+            }
           } else {
             Warning("No image for EI1A at $path");
             $text =~ s/%EI1A%/No image found for EI1A/g;
@@ -828,15 +854,16 @@ sub substituteTags {
             my $filename = fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
-            $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
+            if ($html) {
+              $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
+            } else {
+              $text =~ s/%EIMA%//g;
+            }
           } else {
             Debug(1, "No image for EIMA at $path");
             $text =~ s/%EIMA%//g;
           }
         }
-
-
-
       } # end if attachments_ref
     } # end if $first_alarm_frame
 
@@ -861,6 +888,9 @@ sub substituteTags {
       }
     }
   } # end if Event
+
+
+  $text =~ s/%FID%/$filter->{Id}/g;
   $text =~ s/%FN%/$filter->{Name}/g;
   ( my $filter_name = $filter->{Name} ) =~ s/ /+/g;
   $text =~ s/%FP%/$url?view=filter&filter_name=$filter_name/g;

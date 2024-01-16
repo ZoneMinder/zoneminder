@@ -102,6 +102,7 @@ Here is what the filter window looks like
     *    %MP%       Path to the monitor window
     *    %MPS%      Path to the monitor stream
     *    %MPI%      Path to the monitor recent image
+    *    %FID%      Id of the current filter that matched
     *    %FN%       Name of the current filter that matched
     *    %FP%       Path to the current filter that matched
     *    %ZP%       Path to your ZoneMinder console

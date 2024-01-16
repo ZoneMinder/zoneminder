@@ -451,12 +451,8 @@ sub termLevel {
   my $this = shift;
   my $termLevel = shift;
   if ( defined($termLevel) ) {
-    # What is the point of this next lint if we are just going to overwrite it with the next line? I propose we move it down one line or remove it altogether
-    $termLevel = NOLOG if !$this->{hasTerm};
     $termLevel = $this->limit($termLevel);
-    if ( $this->{termLevel} != $termLevel ) {
-      $this->{termLevel} = $termLevel;
-    }
+    $this->{termLevel} = $termLevel;
   }
   return $this->{termLevel};
 }

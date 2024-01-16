@@ -256,6 +256,7 @@ Monitor::Monitor()
   image_count(0),
   last_capture_image_count(0),
   analysis_image_count(0),
+  decoding_image_count(0),
   motion_frame_count(0),
   last_motion_frame_count(0),
   ready_count(0),
@@ -2909,6 +2910,7 @@ bool Monitor::Decode() {
 
     unsigned int index = shared_data->last_write_index;
     index++;
+    decoding_image_count++;
     index = index % image_buffer_count;
     image_buffer[index]->Assign(*(packet->image));
     image_pixelformats[index] = packet->image->AVPixFormat();
@@ -3034,7 +3036,10 @@ Event * Monitor::openEvent(
 		      std::to_string(event->Id()).c_str(),
 		      std::to_string(event->MonitorId()).c_str(),
 		      nullptr);
-      Error("Error execing %s", event_start_command.c_str());
+      Logger *log = Logger::fetch();
+      log->databaseLevel(Logger::NOLOG);
+      Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
+      exit(0);
     }
   }
 
@@ -3077,14 +3082,16 @@ void Monitor::closeEvent() {
         int monitor_id = e->MonitorId();
         delete e;
 
-
         if (!command.empty()) {
           if (fork() == 0) {
             execlp(command.c_str(), command.c_str(),
-			    std::to_string(event_id).c_str(),
-			    std::to_string(monitor_id).c_str(), // monitor id
-			    nullptr);
-            Error("Error execing %s", command.c_str());
+                std::to_string(event_id).c_str(),
+                std::to_string(monitor_id).c_str(),
+                nullptr);
+            Logger *log = Logger::fetch();
+            log->databaseLevel(Logger::NOLOG);
+            Error("Error execing %s: %s", command.c_str(), strerror(errno));
+            exit(0);
           }
         }
       }, event, event_end_command);
@@ -3396,13 +3403,19 @@ int Monitor::Pause() {
   Debug(1, "Stopping packetqueue");
   // Wake everyone up
   packetqueue.stop();
-  Debug(1, "Stopped packetqueue");
+
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
     Debug(1, "Decoder stopping");
     decoder->Stop();
     Debug(1, "Decoder stopped");
   }
+
+  if (analysis_thread) {
+    analysis_thread->Stop();
+    Debug(1, "Analysis stopped");
+  }
+
   // Must close event before closing camera because it uses in_streams
   if (close_event_thread.joinable()) {
     Debug(1, "Joining event thread");
@@ -3418,8 +3431,11 @@ int Monitor::Pause() {
     }
   }
   if (camera) camera->Close();
+
+  packetqueue.clear();
   return 1;
 }
+
 int Monitor::Play() {
   int ret = camera->PrimeCapture();
   if (ret <= 0) return ret;
@@ -3441,15 +3457,14 @@ int Monitor::Play() {
     Debug(1, "Restarting decoder thread");
     decoder->Start();
   }
+  if (analysing != ANALYSING_NONE) {
+    Debug(1, "Restarting analysis thread");
+    analysis_thread->Start();
+  }
   return 1;
 }
 int Monitor::Close() {
   Pause();
-
-  if (analysis_thread) {
-    analysis_thread->Stop();
-    Debug(1, "Analysis stopped");
-  }
 
   //ONVIF Teardown
   if (Poller) {
@@ -3476,13 +3491,13 @@ int Monitor::Close() {
     soap = nullptr;
   }  //End ONVIF
 #endif
-    //RTSP2Web teardown
+  //RTSP2Web teardown
   if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
     RTSP2Web_Manager = nullptr;
   }
 
-   //Janus Teardown
+  //Janus Teardown
   if (janus_enabled and (purpose == CAPTURE) and Janus_Manager) {
     delete Janus_Manager;
     Janus_Manager = nullptr;
@@ -3499,7 +3514,6 @@ int Monitor::Close() {
     video_fifo = nullptr;
   }
 
-  packetqueue.clear();
   return 1;
 }
 

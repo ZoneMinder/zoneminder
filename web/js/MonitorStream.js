@@ -644,10 +644,12 @@ function MonitorStream(monitorData) {
           }
         });
       } else {
-        if (analysisFPSValue.length && (analysisFPSValue.text() != monitor.AnalysisFPS))
+        if (analysisFPSValue.length && (analysisFPSValue.text() != monitor.AnalysisFPS)) {
           analysisFPSValue.text(monitor.AnalysisFPS);
-        if (captureFPSValue.length && (captureFPSValue.text() != monitor.CaptureFPS))
+        }
+        if (captureFPSValue.length && (captureFPSValue.text() != monitor.CaptureFPS)) {
           captureFPSValue.text(monitor.CaptureFPS);
+        }
         if (viewingFPSValue.length && viewingFPSValue.text() == '') {
           $j('#viewingFPS'+this.id).hide();
         }
@@ -909,14 +911,14 @@ function startRTSP2WebPlay(videoEl, url) {
       method: 'POST',
       body: new URLSearchParams({data: btoa(webrtc.localDescription.sdp)})
     })
-        .catch(rejected => {
+        .catch((rejected) => {
           console.log(rejected);
         })
         .then((response) => response.text())
         .then((data) => {
           try {
             webrtc.setRemoteDescription(
-              new RTCSessionDescription({type: 'answer', sdp: atob(data)})
+                new RTCSessionDescription({type: 'answer', sdp: atob(data)})
             );
           } catch (e) {
             console.warn(e);

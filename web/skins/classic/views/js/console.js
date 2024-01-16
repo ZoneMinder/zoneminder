@@ -36,10 +36,11 @@ function scanNetwork(element) {
   window.location.assign('?view=add_monitors');
 }
 function addMonitor(element) {
-  if (user.Monitors == 'Create')
+  if (user.Monitors == 'Create') {
     window.location.assign('?view=monitor');
-  else
+  } else {
     alert('Need create monitors privilege');
+  }
 }
 
 function cloneMonitor(element) {
@@ -185,8 +186,9 @@ function manageFunctionModal(evt) {
 } // end function manageFunctionModal
 
 function initPage() {
-  if (consoleRefreshTimeout > 0)
+  if (consoleRefreshTimeout > 0) {
     setInterval(reloadWindow, consoleRefreshTimeout);
+  }
   if ( showDonatePopup ) {
     $j.getJSON(thisUrl + '?request=modal&modal=donate')
         .done(function(data) {

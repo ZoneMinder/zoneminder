@@ -303,7 +303,12 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
 	last_seek_request = seek_target;
 
   // Normally it is likely just the next packet. Need a heuristic for seeking, something like duration * keyframe interval
-  if (frame->pts + 10*frame->pkt_duration < seek_target) {
+#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
+  if (frame->pts + 10*frame->duration < seek_target)
+#else
+  if (frame->pts + 10*frame->pkt_duration < seek_target)
+#endif
+  {
     Debug(1, "Jumping ahead");
     if (( ret = av_seek_frame(input_format_context, stream_id, seek_target,
             AVSEEK_FLAG_FRAME
@@ -316,7 +321,21 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   }
   // Seeking seems to typically seek to a keyframe, so then we have to decode until we get the frame we want.
   if (frame->pts <= seek_target) {
-    while (frame && (frame->pts + frame->pkt_duration < seek_target)) {
+    Debug(1, "Frame pts %" PRId64 " + duration %" PRId64 "= %" PRId64 " <=? %" PRId64,
+        frame->pts,
+#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
+        frame->duration, frame->pts + frame->duration,
+#else
+        frame->pkt_duration, frame->pts + frame->pkt_duration,
+#endif
+        seek_target);
+    while (frame && (frame->pts +
+#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
+          frame->duration
+#else
+          frame->pkt_duration
+#endif
+          < seek_target)) {
       if (is_video_stream(input_format_context->streams[stream_id])) {
         zm_dump_video_frame(frame, "pts <= seek_target");
       } else {

@@ -3403,6 +3403,20 @@ int Monitor::Pause() {
     decoder->Stop();
     Debug(1, "Decoder stopped");
   }
+  // Must close event before closing camera because it uses in_streams
+  if (close_event_thread.joinable()) {
+    Debug(1, "Joining event thread");
+    close_event_thread.join();
+    Debug(1, "Joined event thread");
+  }
+  {
+    std::lock_guard<std::mutex> lck(event_mutex);
+    if (event) {
+      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), image_count, event->Id());
+      closeEvent();
+      close_event_thread.join();
+    }
+  }
   if (camera) camera->Close();
   return 1;
 }
@@ -3485,22 +3499,7 @@ int Monitor::Close() {
     video_fifo = nullptr;
   }
 
-
-  if (close_event_thread.joinable()) {
-    Debug(1, "Joining event thread");
-    close_event_thread.join();
-    Debug(1, "Joined event thread");
-  }
-  {
-    std::lock_guard<std::mutex> lck(event_mutex);
-    if (event) {
-      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), image_count, event->Id());
-      closeEvent();
-      close_event_thread.join();
-    }
-  }
   packetqueue.clear();
-  if (camera) camera->Close();
   return 1;
 }
 

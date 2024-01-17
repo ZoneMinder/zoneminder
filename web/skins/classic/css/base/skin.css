@@ -670,7 +670,7 @@ input[type=submit]:disabled,
 	margin-bottom: 0 !important;
 	border-radius: 0;
 	background-color:#485460 !important;
-	color: #0fbcf9 !important;
+	color: #0fbcf9;
 	border:none;
 }
 

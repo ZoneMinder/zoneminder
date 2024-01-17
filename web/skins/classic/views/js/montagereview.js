@@ -865,15 +865,6 @@ function allnon() {
 }
 /// handles packing different size/aspect monitors on screen
 
-function compSize(a, b) { // sort array by some size parameter  - height seems to work best.  A semi-greedy algorithm
-  var a_value = monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a];
-  var b_value = monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] * monitorNormalizeScale[b] * monitorZoomScale[b];
-
-  if ( a_value > b_value ) return -1;
-  else if ( a_value == b_value ) return 0;
-  else return 1;
-}
-
 function maxfit2(divW, divH) {
   var bestFitX = []; // how we arranged the so-far best match
   var bestFitX2 = [];
@@ -885,8 +876,6 @@ function maxfit2(divW, divH) {
   var bestFitArea = 0;
   var borders_width=-1;
   var borders_height=-1;
-
-  //monitorPtr.sort(compSize); //Sorts monitors by size in viewport.  If enabled makes captions not line up with graphs.
 
   while (1) {
     if ( maxScale - minScale < 0.01 ) break;

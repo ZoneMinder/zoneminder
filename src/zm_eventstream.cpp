@@ -820,8 +820,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       } else if (ffmpeg_input) {
         // Get the frame from the mp4 input
         const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
-        AVFrame *frame =
-            ffmpeg_input->get_frame(ffmpeg_input->get_video_stream_id(), FPSeconds(frame_data->offset).count());
+        AVFrame *frame = ffmpeg_input->get_frame(
+            ffmpeg_input->get_video_stream_id(),
+            FPSeconds(frame_data->offset).count());
         if (frame) {
           image = new Image(frame, monitor->Width(), monitor->Height());
         } else {

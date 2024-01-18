@@ -231,13 +231,19 @@ WHERE M.`Deleted`=false
       $php_errormsg = '';
       $regexp = $_SESSION['Source'];
 
+      if (!preg_match("/^\/.+\/[a-z]*$/i",$regexp))
+        $regexp = '/'.$regexp.'/i';
+
       @preg_match($regexp, '');
       if ( $php_errormsg ) {
-        $regexp = '/'.preg_quote($regexp,'/').'/i';
-      }
-      if ( !preg_match($regexp, $Monitor->Source()) ) {
-        if ( !preg_match($regexp, $Monitor->Path()) ) {
-          continue;
+        ZM\Warning($_SESSION['Source'].' is not a valid search string');
+      } else {
+        ZM\Debug("Using $regexp for source");
+        if ( !preg_match($regexp, $Monitor->Source()) ) {
+          ZM\Debug("Source didn't match $regexp ".$Monitor->Source());
+          if ( !preg_match($regexp, $Monitor->Path()) ) {
+            continue;
+          }
         }
       }
     }

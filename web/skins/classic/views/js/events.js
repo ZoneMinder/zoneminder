@@ -195,10 +195,13 @@ function deleteEvents(event_ids) {
     url: thisUrl + '?request=events&task=delete',
     data: {'eids[]': chunk},
     success: function(data) {
+      if (data.message) alert(data.message.join("\n"));
+
       if (!event_ids.length) {
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
       } else {
+
         if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
           ticker.innerHTML = '.';
         } else {

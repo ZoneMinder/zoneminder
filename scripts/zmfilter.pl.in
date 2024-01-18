@@ -738,7 +738,7 @@ sub substituteTags {
           if ($html) {
             $text =~ s/%EISNAP%/<img src="cid:$$attachment{content_id}"\/>/g;
           } else {
-            $text =~ s/%EISNAP%//g;
+            $text =~ s/%EISNAP%/$$attachment{content_id}/g;
           }
         } else {
           Debug(1, 'No image for SNAP at '.$path);
@@ -754,7 +754,7 @@ sub substituteTags {
           if ($html) {
             $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
           } else {
-            $text =~ s/%EIMOD%//g;
+            $text =~ s/%EIMOD%/$$attachment{content_id}/g;
           }
         } else {
           Debug(1, 'No image for MOD at '.$path);
@@ -770,7 +770,7 @@ sub substituteTags {
           if ($html) {
             $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
           } else {
-            $text =~ s/%EIMODG%//g;
+            $text =~ s/%EIMODG%/$$attachment{content_id}/g;
           }
         } else {
           Debug(1, 'No image for MODG at '.$path);
@@ -804,7 +804,7 @@ sub substituteTags {
             if ($html) {
               $text =~ s/%EI1%/<img src="cid:$$attachment{content_id}"\/>/g;
             } else{
-              $text =~ s/%EI1%//g;
+              $text =~ s/%EI1%/$$attachment{content_id}/g;
             }
           } else {
             Warning("Path to first image does not exist at $path for image $first_alarm_frame");
@@ -821,7 +821,7 @@ sub substituteTags {
             if ($html) {
               $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
             } else {
-              $text =~ s/%EIM%//g;
+              $text =~ s/%EIM%/$$attachment{content_id}/g;
             }
 
           } else {
@@ -839,7 +839,7 @@ sub substituteTags {
             if ($html) {
               $text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g;
             } else {
-              $text =~ s/%EI1A%//g;
+              $text =~ s/%EI1A%/$$attachment{content_id}/g;
             }
           } else {
             Warning("No image for EI1A at $path");
@@ -857,7 +857,7 @@ sub substituteTags {
             if ($html) {
               $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
             } else {
-              $text =~ s/%EIMA%//g;
+              $text =~ s/%EIMA%/$$attachment{content_id}/g;
             }
           } else {
             Debug(1, "No image for EIMA at $path");
@@ -978,9 +978,7 @@ sub sendTheEmail {
           Type => 'multipart/mixed'
         );
 
-      my $related = MIME::Lite->new(
-        Type => 'multipart/related',
-      );
+      my $related = MIME::Lite->new(Type=>'multipart/related');
       $mail->attach($related);
       if ($body =~ /<html/) {
         my $alternative = MIME::Lite->new(
@@ -1004,11 +1002,11 @@ sub sendTheEmail {
         );
         $alternative->attach($html);
       } else {
-        my $html = MIME::Lite->new(
+        my $text = MIME::Lite->new(
           'Content-Transfer-Encoding' => 'quoted-printable',
           Type => 'TEXT', Data => $body
         );
-        $related->attach($html);
+        $related->attach($text);
       } # end if html or not
 
       foreach my $attachment ( @attachments ) {

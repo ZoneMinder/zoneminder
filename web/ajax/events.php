@@ -118,8 +118,9 @@ switch ($task) {
 		}
     foreach ($eids as $eid) {
       $message = deleteRequest($eid);
-      if (count($message)) {
-        $data[] = $message;
+      if ($message) {
+        if (empty($data['message'])) $data['message'] = [];
+        $data['message'][] = $message;
       }
     }
     break;
@@ -145,19 +146,18 @@ function archiveRequest($task, $eid) {
 }
 
 function deleteRequest($eid) {
-  $message = array();
   $event = new ZM\Event($eid);
-  if ( !$event->Id() ) {
-    $message[] = array($eid=>'Event not found.');
+  if (!$event->Id()) {
+    return 'Event '.$eid.' not found.';
   } else if ( $event->Archived() ) {
-    $message[] = array($eid=>'Event is archived, cannot delete it.');
+    return 'Event '.$eid.' is archived, cannot delete it.';
   } else if (!$event->canEdit()) {
-    $message[] = array($eid=>'You do not have permission to delete event '.$event->Id());
+    return 'You do not have permission to delete event '.$event->Id();
   } else {
     $event->delete();
   }
   
-  return $message;
+  return '';
 }
 
 function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit) {

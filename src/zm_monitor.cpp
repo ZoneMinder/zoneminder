@@ -2294,7 +2294,7 @@ bool Monitor::Analyse() {
                   closeEvent();
                 }
               } else if (state == IDLE) {
-                if (event->AlarmFrames() > alarm_frame_count) {
+                if (event->AlarmFrames() > alarm_frame_count and (analysis_image_count - last_alarm_count > post_event_count)) {
                   Info("%s: %03d - Closing event %" PRIu64 ", alarm end", name.c_str(), analysis_image_count, event->Id());
                   closeEvent();
                 } else if (event->Duration() > section_length) {

@@ -308,7 +308,10 @@ function canView($area, $mid=false) {
 
 function editableMonitor($mid) {
   global $user;
-  if (!$user) return false;
+  if (!$user) {
+    ZM\Debug("Not logged in");
+    return false;
+  }
 
   global $monitor_permissions;
 
@@ -317,9 +320,11 @@ function editableMonitor($mid) {
     $monitor_permissions = array_to_hash_by_key('MonitorId', ZM\Monitor_Permission::find(array('UserId'=>$user->Id())));
   }
   if (isset($monitor_permissions[$mid]) and 
-    ($monitor_permissions[$mid]->Permission() == 'None' or $monitor_permissions[$mid]->Permission() == 'View') )
+    ($monitor_permissions[$mid]->Permission() == 'None' or $monitor_permissions[$mid]->Permission() == 'View')
+  ) {
+    ZM\Debug("Have monitor permission == ".$monitor_permissions[$mid]->Permission());
     return false;
-
+  }
 
   global $group_permissions;
   if ($group_permissions === null)
@@ -328,11 +333,13 @@ function editableMonitor($mid) {
   # If denied view in any group, then can't view it.
   foreach ($group_permissions as $permission) {
     if (!$permission->canEditMonitor($mid)) {
+      ZM\Debug("Have group permission");
       return false;
     }
   }
 
-  return ($user->Monitors() == 'Edit');
+  ZM\Debug("Monitors permission is ".$user->Monitors());
+  return (($user->Monitors() == 'Edit') || ($user->Monitors() == 'Create'));
 }
 
 function canEdit($area, $mid=false) {

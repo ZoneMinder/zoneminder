@@ -225,6 +225,7 @@ if ( $action and $view and !$request ) {
     ZM\Debug("No includes/actions/$view.php for action $action");
   }
 }
+if ($error_message) ZM\Warning($error_message);
 
 if ( isset($_REQUEST['redirect']) ) {
   $redirect = '?view='.detaintPath($_REQUEST['redirect']);

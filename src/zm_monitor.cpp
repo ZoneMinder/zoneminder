@@ -2063,18 +2063,16 @@ bool Monitor::Analyse() {
           } // end if linked_monitors
 #else
           if (linked_monitors) {
-            bool eval = linked_monitors->evaluate();
-            Debug(4, "evaluate %d", eval ? 1 : 0);
-            if (eval) {
-              if (!event) {
-                if (cause.length())
-                  cause += ", ";
-                cause += LINKED_CAUSE;
-              }
+            //bool eval = linked_monitors->evaluate();
+            MonitorLinkExpression::Result result = linked_monitors->result();
+
+            if (result.score > 0) {
+              if (cause.length())
+                cause += ", ";
+              cause += LINKED_CAUSE;
               //Event::StringSet noteSet;
               //noteSet.insert(linked_monitors[i]->Name());
-              //score += linked_monitors->score();
-              score += 20;
+              score += result.score;
             }
           } else {
             Debug(4, "Not linked_monitors");
@@ -2239,7 +2237,7 @@ bool Monitor::Analyse() {
                 } else {
                   shared_data->state = state = TAPE;
                 }
-                Info("%s: %03d - Left alert state (%" PRIu64 ") - %d(%d) images",
+                Info("%s: %03d - Left alert state event id:%" PRIu64 " event frames:%d alarm frames:%d",
                     name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
               } else {
                 shared_data->state = state = IDLE;
@@ -2287,10 +2285,10 @@ bool Monitor::Analyse() {
 
             if (event_close_mode == CLOSE_ALARM) {
               if (state == ALARM) {
-                // If we should end then previous continuous event and start a new non-continuous event
-                if (event->Frames() && (event->AlarmFrames() < alarm_frame_count)) {
-                  Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
-                      name.c_str(), snap->image_index, event->Id());
+                // If we should end the previous continuous event and start a new non-continuous event
+                if (event->AlarmFrames() < alarm_frame_count) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
+                      name.c_str(), snap->image_index, event->Id(), event->AlarmFrames(), alarm_frame_count);
                   closeEvent();
                 }
               } else if (state == IDLE) {
@@ -2325,7 +2323,7 @@ bool Monitor::Analyse() {
                 closeEvent();
               }
             } else if (event_close_mode == CLOSE_IDLE) {
-              if (state == IDLE) {
+              if (state == IDLE and std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                     name.c_str(),
                     snap->image_index,

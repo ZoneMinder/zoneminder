@@ -528,7 +528,7 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
         $i  = imagecreatetruecolor($width, $height);
         $bg_colour = imagecolorallocate($i, 255, 255, 255);
         $fg_colour = imagecolorallocate($i, 0, 0, 0);
-        imagefilledrectangle($im, 0, 0, $width, $height, $bg_colour);
+        imagefilledrectangle($i, 0, 0, $width, $height, $bg_colour);
         imagestring($i, 1, 5, 5, 'Unable to load jpeg from  ' . $scaled_path, $fg_colour);
         imagejpeg($i);
       } else {

@@ -60,7 +60,10 @@ Monitor::RTSP2WebManager::~RTSP2WebManager() {
 
 int Monitor::RTSP2WebManager::check_RTSP2Web() {
   curl = curl_easy_init();
-  if (!curl) return -1;
+  if (!curl) {
+    Error("Failed to init curl");
+    return -1;
+  }
 
   //Assemble our actual request
   std::string response;

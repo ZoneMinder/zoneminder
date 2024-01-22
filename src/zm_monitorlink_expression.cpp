@@ -55,7 +55,7 @@ bool MonitorLinkExpression::evaluate() {
     Debug(1, "No tree");
     return false;
   }
-  MonitorLinkExpression::result result = this->visit(*tree_);
+  MonitorLinkExpression::Result result = this->visit(*tree_);
   if (!result.success) {
     Warning("%s", std::string(result.message).c_str());
     return false;
@@ -63,7 +63,16 @@ bool MonitorLinkExpression::evaluate() {
   return result.score > 0;
 }
 
-MonitorLinkExpression::result
+const MonitorLinkExpression::Result MonitorLinkExpression::result() {
+  if (!tree_) {
+    Debug(1, "No tree");
+    MonitorLinkExpression::Result result;
+    return result;
+  }
+  return this->visit(*tree_);
+}
+
+MonitorLinkExpression::Result
 MonitorLinkExpression::visit(Node const & node) {
   Debug(1, "visit: Node: %p Token: %d value %s",
       &node,
@@ -93,7 +102,7 @@ MonitorLinkExpression::visit(Node const & node) {
   }
 }
 
-MonitorLinkExpression::result
+MonitorLinkExpression::Result
 MonitorLinkExpression::visit_logical_and(MonitorLinkExpression::Node const & node) 
 {
   auto const left  { visit(*node.left) };
@@ -110,7 +119,7 @@ MonitorLinkExpression::visit_logical_and(MonitorLinkExpression::Node const & nod
   };
 }
 
-MonitorLinkExpression::result
+MonitorLinkExpression::Result
 MonitorLinkExpression::visit_logical_or(MonitorLinkExpression::Node const & node) 
 {
   auto const left  { visit(*node.left) };

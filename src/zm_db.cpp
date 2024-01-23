@@ -122,16 +122,19 @@ MYSQL_RES * zmDbFetch(const char * query) {
   int rc = mysql_query(&dbconn, query);
 
   if (rc) {
+    Debug(1, "Can't run query: %s rc:%d, reason:%s", query, rc, mysql_error(&dbconn));
     if (mysql_ping(&dbconn)) {
       zmDbConnected = false;
       if (zmDbConnect()) {
         Debug(1, "Reconnected to db...");
         rc = mysql_query(&dbconn, query);
+      } else {
+        Debug(1, "Failed to reconnect to db");
       }
     }
   }
   if (rc) {
-    Error("Can't run query: %s", mysql_error(&dbconn));
+    Error("Can't run query: %s rc:%d, reason:%s", query, rc, mysql_error(&dbconn));
     return nullptr;
   }
   MYSQL_RES *result = mysql_store_result(&dbconn);

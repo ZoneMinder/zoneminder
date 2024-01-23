@@ -122,6 +122,18 @@ GetOptions(
     'dir:s'          =>\$updateDir
     ) or pod2usage(-exitstatus => -1);
 
+if ($updateDir) {
+  $updateDir =~ s/[*?;&\\:<>"|]//g;
+  if (! -d $updateDir) {
+    Warning("$updateDir does not exist or is not a directory");
+  }
+} else {
+  $updateDir = $Config{ZM_PATH_DATA}.'/db' if ! $updateDir;
+  if (! -d $updateDir) {
+    Error("$updateDir does not exist or is not a directory");
+  }
+}
+
 my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
 die "Unable to connect to db\n" if !$dbh;
 
@@ -910,7 +922,6 @@ if ( $version ) {
   if ( $version ge '1.26.0' ) {
 
     my @files;
-    $updateDir = $Config{ZM_PATH_DATA}.'/db' if ! $updateDir;
     opendir( my $dh, $updateDir ) || die "Can't open updateDir $!";
 #@files = sort grep { (!/^\./) && /^zm_update\-[\d\.]+\.sql$/ && -f "$updateDir/$_" } readdir($dh);
 #PP - use perl version sort
@@ -1017,13 +1028,7 @@ sub patchDB {
   } elsif ( $host ) {
     $command .= ' -h'.$host;
   }
-  $command .= ' '.$Config{ZM_DB_NAME}.' < ';
-  if ( $updateDir ) {
-    $command .= $updateDir;
-  } else {
-    $command .= $Config{ZM_PATH_DATA}.'/db';
-  }
-  $command .= '/zm_update-'.$version.'.sql';
+  $command .= ' '.$Config{ZM_DB_NAME}.' < '.$updateDir.'/zm_update-'.$version.'.sql';
 
   print("Executing '$command'\n") if logDebugging();
   ($command) = $command =~ /(.*)/; # detaint

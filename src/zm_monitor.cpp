@@ -2323,7 +2323,8 @@ bool Monitor::Analyse() {
                 closeEvent();
               }
             } else if (event_close_mode == CLOSE_IDLE) {
-              if (state == IDLE and std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
+              if ((state == IDLE) and (event->Duration() >= section_length)) {
+                  //std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                     name.c_str(),
                     snap->image_index,

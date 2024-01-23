@@ -348,6 +348,14 @@ void Config::Load() {
     exit(-1);
   }
 
+  if (items) {
+    for ( int i = 0; i < n_items; i++ ) {
+      delete items[i];
+      items[i] = nullptr;
+    }
+    delete[] items;
+    items = nullptr;
+  }
   items = new ConfigItem *[n_items];
   for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
     items[i] = new ConfigItem(dbrow[0], dbrow[1], dbrow[2]);

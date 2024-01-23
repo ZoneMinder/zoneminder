@@ -3555,8 +3555,8 @@ std::vector<Group *> Monitor::Groups() {
 StringVector Monitor::GroupNames() {
   StringVector groupnames;
   for ( Group * g: Groups() ) {
-    groupnames.push_back(std::string(g->Name()));
-    Debug(1, "Groups: %s", g->Name());
+    groupnames.push_back(g->Name());
+    Debug(1, "Groups: %s", g->Name().c_str());
   }
   return groupnames;
 } // end Monitor::GroupNames()

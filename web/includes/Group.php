@@ -201,6 +201,10 @@ class Group extends ZM_Object {
         $this->{'Monitors'} = array();
       }
     }
+    if (count($this->Children())) {
+      foreach ($this->Children() as $g)
+        $this->{'Monitors'} += $g->Monitors();
+    }
     return $this->{'Monitors'};
   }
 

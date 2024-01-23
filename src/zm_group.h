@@ -21,23 +21,25 @@
 #define ZM_GROUP_H
 
 #include "zm_db.h"
+#include <string>
+#include <vector>
 
 class Group {
+ protected:
+  unsigned int  id;
+  unsigned int  parent_id;
+  std::string   name;
 
-protected:
-	unsigned int	id;
-	unsigned int	parent_id;
-	char name[64+1];
+ public:
+  Group();
+  explicit Group(const MYSQL_ROW &dbrow);
+  explicit Group(unsigned int p_id);
+  ~Group();
 
-public:
-	Group();
-	explicit Group(const MYSQL_ROW &dbrow );
-	explicit Group( unsigned int p_id );
-	~Group();
-
-	unsigned int	Id() const { return id; }
-	unsigned int	ParentId() const { return id; }
-	const char *Name() const { return name; }
+  unsigned int  Id() const { return id; }
+  unsigned int  ParentId() const { return id; }
+  const  std::string Name() const { return name; }
+  std::vector<int> MonitorIds();
 };
 
-#endif // ZM_GROUP_H
+#endif  // ZM_GROUP_H

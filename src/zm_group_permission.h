@@ -23,6 +23,7 @@
 #define ZM_GROUP_PERMISSION_H
 
 #include "zm_db.h"
+#include "zm_group.h"
 #include <vector>
 
 class Group_Permission {

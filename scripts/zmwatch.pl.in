@@ -70,22 +70,22 @@ my $log = logInit();
 logSetSignal();
 my $zm_terminate = 0;
 sub TermHandler {
-  Info('Received TERM, exiting');
+  Debug('Received TERM, exiting');
   $zm_terminate = 1;
 }
 $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
-
-Info('Watchdog starting, pausing for '.START_DELAY.' seconds');
-#sleep(START_DELAY);
 
 my $dbh = zmDbConnect();
 
 # We don't need to keep objects cached
 $ZoneMinder::Object::no_cache = 1;
 
+Debug('Watchdog starting, pausing for '.START_DELAY.' seconds');
+sleep(START_DELAY);
+
 while (!$zm_terminate) {
-  while (!($dbh and $dbh->ping())) {
+  while (!($dbh and $dbh->ping()) and !$zm_terminate) {
     if (!($dbh = zmDbConnect())) {
       sleep($Config{ZM_WATCH_CHECK_INTERVAL});
     }
@@ -191,10 +191,12 @@ while (!$zm_terminate) {
     } # end if check analysis daemon
   } # end foreach monitor
 
+  Debug("Sleeping $Config{ZM_WATCH_CHECK_INTERVAL}");
   sleep($Config{ZM_WATCH_CHECK_INTERVAL});
+  Debug("Done Sleeping $Config{ZM_WATCH_CHECK_INTERVAL}");
 } # end while (!$zm_terminate)
 
-Info('Watchdog exiting');
+Debug('Watchdog exiting');
 exit();
 
 1;

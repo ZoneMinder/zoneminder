@@ -57,7 +57,7 @@ function MonitorStream(monitorData) {
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
       console.log('Image stream has loaded! starting streamCmd for '+this.connKey+' in '+statusRefreshTimeout + 'ms');
-      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
 
@@ -179,7 +179,7 @@ function MonitorStream(monitorData) {
           console.log("Changing src from " + img.src + " to " + newSrc + 'refresh timeout:' + statusRefreshTimeout);
           img.src = '';
           img.src = newSrc;
-          this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+          this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
         }
       }
     }
@@ -205,7 +205,7 @@ function MonitorStream(monitorData) {
         }});
       }
       attachVideo(parseInt(this.id), this.janusPin);
-      this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
       return;
     }
     if (this.RTSP2WebEnabled) {
@@ -253,7 +253,7 @@ function MonitorStream(monitorData) {
           console.log(webrtcUrl.href);
           startRTSP2WebPlay(videoEl, webrtcUrl.href);
         }
-        this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
+        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -442,8 +442,6 @@ function MonitorStream(monitorData) {
     } else if (error == 'Unauthorized') {
       window.location.reload();
     } else {
-      console.log("Queuing up a new query after a pause");
-      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), 10*statusRefreshTimeout);
       logAjaxFail(jqxhr, textStatus, error);
     }
   };
@@ -696,7 +694,7 @@ function MonitorStream(monitorData) {
       checkStreamForErrors('getStatusCmdResponse', respObj);
     }
 
-    this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+    this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
   }; // this.getStatusCmdResponse
 
   this.statusCmdQuery=function() {
@@ -709,7 +707,6 @@ function MonitorStream(monitorData) {
 
   this.statusQuery = function() {
     this.streamCommand(CMD_QUERY);
-    this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCmdQuery = function(resent) {
@@ -720,8 +717,6 @@ function MonitorStream(monitorData) {
       this.streamCmdParms.command = CMD_QUERY;
       this.streamCmdReq(this.streamCmdParms);
     }
-    // Queue up another query
-    this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCommand = function(command) {

@@ -52,7 +52,7 @@ function MonitorStream(monitorData) {
 
   this.img_onerror = function() {
     console.log('Image stream has been stoppd! stopping streamCmd');
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
@@ -298,8 +298,8 @@ function MonitorStream(monitorData) {
       }
     }
     this.streamCommand(CMD_STOP);
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
 
   this.kill = function() {
@@ -319,8 +319,8 @@ function MonitorStream(monitorData) {
       // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
 
   this.pause = function() {
@@ -613,7 +613,6 @@ function MonitorStream(monitorData) {
   /* getStatusCmd is used when not streaming, since there is no persistent zms */
   this.getStatusCmdResponse=function(respObj, respText) {
     //watchdogOk('status');
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
     if (respObj.result == 'Ok') {
       const monitorStatus = respObj.monitor.Status;
       const captureFPSValue = $j('#captureFPSValue'+this.id);
@@ -693,16 +692,12 @@ function MonitorStream(monitorData) {
     } else {
       checkStreamForErrors('getStatusCmdResponse', respObj);
     }
-
-    this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
   }; // this.getStatusCmdResponse
 
   this.statusCmdQuery=function() {
     $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+this.auth_relay)
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
-
-    this.statusCmdTimer = null;
   };
 
   this.statusQuery = function() {

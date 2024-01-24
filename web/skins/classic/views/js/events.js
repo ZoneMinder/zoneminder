@@ -90,6 +90,17 @@ function processRows(rows) {
     const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
     date.setSeconds(row.Length);
     row.Length = date.toISOString().substr(11, 8);
+    if (ZM_DATETIME_FORMAT_PATTERN) {
+      if (window.DateTime) {
+        row.StartDateTime = DateTime.fromSQL(row.StartDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        if (row.EndDateTime)
+          row.EndDateTime = DateTime.fromSQL(row.EndDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
+      } else {
+        console.log("DateTime is not defined");
+      }
+    } else {
+      console.log("No ZM_DATETIME_FORMAT_PATTERN");
+    }
 
     if ( WEB_LIST_THUMBS ) row.Thumbnail = '<div class="thumbnail" style="height: '+row.imgHeight+'px;"><a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a></div>';
   });

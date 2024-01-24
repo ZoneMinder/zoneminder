@@ -973,10 +973,12 @@ function xhtmlFooter() {
 ), true );
 ?>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/luxon-3.4.4.min.js"></script>
 <?php
 ?>
   <script nonce="<?php echo $cspNonce; ?>">
     var $j = jQuery.noConflict();
+    var DateTime = luxon.DateTime;
 <?php
   if ( $skinJsPhpFile ) {
     require_once( $skinJsPhpFile );

@@ -2323,7 +2323,8 @@ bool Monitor::Analyse() {
                 closeEvent();
               }
             } else if (event_close_mode == CLOSE_IDLE) {
-              if ((state == IDLE) and (event->Duration() >= section_length)) {
+              if (state == IDLE) {
+                if ((shared_data->recording == RECORDING_ALWAYS) and (event->Duration() >= section_length)) {
                   //std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                     name.c_str(),
@@ -2334,6 +2335,11 @@ bool Monitor::Analyse() {
                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
                     static_cast<int64>(Seconds(section_length).count()));
                 closeEvent();
+                } else if ((shared_data->recording == RECORDING_ONMOTION) and
+                    (analysis_image_count - last_alarm_count > post_event_count)) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", alarm end", name.c_str(), analysis_image_count, event->Id());
+                  closeEvent();
+                }
               }  // end if IDLE
             }  // end if event_close_mode
           }  // end if event and event->Duration > min_section_length

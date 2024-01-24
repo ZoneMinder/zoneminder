@@ -475,7 +475,7 @@ if ( $errorText ) {
   header('Cache-Control: max-age=86400');
   header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
   header('Pragma: cache');
-  if (($scale==0 || $scale==100) && ($width==0) && ($height==0)) {
+  if ((($scale==0 || $scale==100) && ($width==0) && ($height==0) ) or !function_exists('imagecreatefromjpeg')) {
     # This is so that Save Image As give a useful filename
     if ($Event) {
       $filename = $Event->MonitorId().'_'.$Event->Id().'_'.$Frame->FrameId().'.jpg';

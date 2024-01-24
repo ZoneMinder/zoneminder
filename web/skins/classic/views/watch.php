@@ -263,10 +263,10 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
     </div><!--control header-->
     </div><!--flip-->
   </div><!--header-->
-  <div class="container-fluid">
-    <div class="row flex-nowrap" id="content">
+  <div class="container-fluid h-100">
+    <div class="row flex-nowrap h-100" id="content">
 <?php if (count($monitors)) { ?>
-      <nav id="sidebar"<?php echo $showCycle?'':' style="display:none;"'?>>
+      <nav id="sidebar" class="h-100"<?php echo $showCycle?'':' style="display:none;"'?>>
         <div id="cycleButtons" class="buttons">
 <?php
 $seconds = translate('seconds');
@@ -307,8 +307,14 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
  ?>
         </ul>
       </nav>
-      <div id="inner-content" class="col-sm-offset-2">
-<div class="Monitor" <?php echo ($streamMode == 'jpeg') ? 'title="Click to zoom, shift click to pan, ctrl click to zoom out"' : '';?>>
+      <div class="container-fluid col-sm-offset-2 h-100 pr-0">
+<div class="Monitor"
+<?php
+if ($streamMode == 'jpeg') {
+  echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
+}
+?>
+>
 <?php 
 if ($monitor->Type() != 'WebSite') {
   $options['state'] = true;

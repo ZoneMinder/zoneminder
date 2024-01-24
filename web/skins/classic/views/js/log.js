@@ -1,4 +1,5 @@
 const table = $j('#logTable');
+var ajax = null;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -33,6 +34,9 @@ function ajaxRequest(params) {
   if ($j('#filterLevel').val()) {
     params.data.level = $j('#filterLevel').val();
   }
+  if ($j('#filterComponent').val()) {
+    params.data.Component = $j('#filterComponent').val();
+  }
   if ($j('#filterStartDateTime').val()) {
     params.data.StartDateTime = $j('#filterStartDateTime').val();
   }
@@ -40,7 +44,8 @@ function ajaxRequest(params) {
     params.data.EndDateTime = $j('#filterEndDateTime').val();
   }
 
-  $j.ajax({
+  if (ajax) ajax.abort();
+  ajax = $j.ajax({
     url: thisUrl + '?view=request&request=log&task=query',
     data: params.data,
     timeout: 0,
@@ -146,6 +151,8 @@ function initPage() {
   $j('#filterStartDateTime, #filterEndDateTime')
       .datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: filterLog});
   $j('#filterServerId')
+      .on('change', filterLog);
+  $j('#filterComponent')
       .on('change', filterLog);
 }
 

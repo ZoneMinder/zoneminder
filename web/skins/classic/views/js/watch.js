@@ -34,7 +34,7 @@ var params =
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
   // Maintain legacy behavior by statically setting these parameters
-  var data = params.data;
+  const data = params.data;
   data.order = 'desc';
   data.limit = maxDisplayEvents;
   data.sort = 'Id';
@@ -45,7 +45,7 @@ function ajaxRequest(params) {
 
   $j.getJSON(thisUrl, data)
       .done(function(data) {
-        var rows = processRows(data.rows);
+        const rows = processRows(data.rows);
         params.success(rows);
       })
       .fail(logAjaxFail);
@@ -66,6 +66,17 @@ function processRows(rows) {
       row.Notes = '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted">' + row.Notes + '</div></a>';
     } else if ( row.Notes != 'Forced Web: ' ) {
       row.Notes = '<div class="small text-muted">' + row.Notes + '</div>';
+    }
+    if (ZM_DATETIME_FORMAT_PATTERN) {
+      if (window.DateTime) {
+        row.StartDateTime = DateTime.fromSQL(row.StartDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        if (row.EndDateTime)
+          row.EndDateTime = DateTime.fromSQL(row.EndDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
+      } else {
+        console.log("DateTime is not defined");
+      }
+    } else {
+      console.log("No ZM_DATETIME_FORMAT_PATTERN");
     }
   });
 

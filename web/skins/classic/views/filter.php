@@ -85,6 +85,7 @@ if ( count($terms) ) {
 $attrTypes = ZM\Filter::attrTypes();
 
 $opTypes = ZM\Filter::opTypes();
+$tags_opTypes = ZM\Filter::tags_opTypes();
 $is_isnot_opTypes = array(
   'IS'  => translate('OpIs'),
   'IS NOT'  => translate('OpIsNot'),
@@ -204,6 +205,7 @@ $sort_fields = array(
     'Notes'         => translate('AttrNotes'),
     'MonitorName'   => translate('AttrMonitorName'),
     'StartDateTime' => translate('AttrStartDateTime'),
+    'EndDateTime'   => translate('AttrEndDateTime'),
     'Length'        => translate('AttrDuration'),
     'Frames'        => translate('AttrFrames'),
     'AlarmFrames'   => translate('AttrAlarmFrames'),

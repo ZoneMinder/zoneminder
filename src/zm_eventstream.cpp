@@ -287,11 +287,12 @@ bool EventStream::loadEventData(uint64_t event_id) {
           FPSeconds(frame.offset).count(),
           FPSeconds(frame.delta).count(),
           frame.in_db);
-  }
+  } // end foreach db row
+
   if (event_data->end_time.time_since_epoch() != Seconds(0)) {
-    Debug(1, "end_time > last_timestamp, filling frames");
-    Microseconds delta = last_frame ? last_frame->delta : Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
+    Microseconds delta = (last_frame && (last_frame->delta > Microseconds(0))) ? last_frame->delta : Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
     if (!last_frame) {
+      // There were no frames in db
       auto frame = event_data->frames.emplace_back(
           1,
           event_data->start_time,
@@ -305,7 +306,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
       event_data->frame_count ++;
     }
 
-    while (event_data->end_time > last_timestamp) {
+    while (event_data->end_time > last_timestamp and !zm_terminate) {
       last_timestamp += delta;
       last_id ++;
 
@@ -820,8 +821,9 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       } else if (ffmpeg_input) {
         // Get the frame from the mp4 input
         const FrameData *frame_data = &event_data->frames[curr_frame_id-1];
-        AVFrame *frame =
-            ffmpeg_input->get_frame(ffmpeg_input->get_video_stream_id(), FPSeconds(frame_data->offset).count());
+        AVFrame *frame = ffmpeg_input->get_frame(
+            ffmpeg_input->get_video_stream_id(),
+            FPSeconds(frame_data->offset).count());
         if (frame) {
           image = new Image(frame, monitor->Width(), monitor->Height());
         } else {

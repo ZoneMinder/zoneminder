@@ -139,6 +139,7 @@ protected:
   int last_frame_count; // Used in calculating actual_fps from frame_count - last_frame_count
 
   int frame_mod;
+  int frames_to_send;
 
   TimePoint last_frame_sent;
   SystemTimePoint last_frame_timestamp;
@@ -192,6 +193,7 @@ public:
     frame_count(0),
     last_frame_count(0),
     frame_mod(1),
+    frames_to_send(-1),
     got_command(false),
     temp_img_buffer(nullptr),
     temp_img_buffer_size(0)
@@ -241,6 +243,7 @@ public:
   void setStreamQueue(int p_connkey) {
     connkey = p_connkey;
   }
+  void setFramesToSend(int p_frames_to_send) { frames_to_send = p_frames_to_send; }
   bool sendTextFrame(const char *text);
   virtual void openComms();
   virtual void closeComms();

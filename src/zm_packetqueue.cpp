@@ -94,10 +94,12 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       auto rit = pktQueue.rbegin();
       // Find the previous packet for the stream, and check dts
       while (rit != pktQueue.rend()) {
-        if ((*rit)->packet->stream_index == add_packet->packet->stream_index) {
-          if ((*rit)->packet->dts >= add_packet->packet->dts) {
+        std::shared_ptr<ZMPacket> prev_packet = *rit;
+
+        if (prev_packet->packet->stream_index == add_packet->packet->stream_index) {
+          if (prev_packet->packet->dts >= add_packet->packet->dts) {
             Debug(1, "Have out of order packets");
-            ZM_DUMP_PACKET((*rit)->packet, "queued_packet");
+            ZM_DUMP_PACKET(prev_packet->packet, "queued_packet");
             ZM_DUMP_PACKET(add_packet->packet, "add_packet");
             has_out_of_order_packets_ = true;
           }
@@ -111,8 +113,9 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       auto rit = pktQueue.rbegin();
       int packet_count = 0;
       while (rit != pktQueue.rend()) {
-        if ((*rit)->packet->stream_index == add_packet->packet->stream_index) {
-          if ((*rit)->keyframe) break;
+        std::shared_ptr<ZMPacket> prev_packet = *rit;
+        if (prev_packet->packet->stream_index == add_packet->packet->stream_index) {
+          if (prev_packet->keyframe) break;
           packet_count ++;
         }
         ++rit;
@@ -122,6 +125,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     }
 
     pktQueue.push_back(add_packet);
+
+    /* Any iterators that are pointing to the end will now point to the newly pushed packet */
     for (
         auto iterators_it = iterators.begin();
         iterators_it != iterators.end();
@@ -156,7 +161,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
       for (
           // Start at second packet because the first is always a keyframe
           auto it = ++pktQueue.begin();
-          //it != pktQueue.end() and  // can't git end because we added our packet
+          //it != pktQueue.end() and  // can't hit end because we added our packet
           (*it != add_packet) && !(deleting or zm_terminate);
           // iterator is incremented by erase
       ) {
@@ -167,7 +172,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
           if (warned_count < 2) {
             warned_count++;
             // Can't delete a locked packet, but can delete one after it.
-            Warning("Found locked packet when trying to free up video packets. This basically means that decoding is not keeping up.");
+            Warning("Found locked packet when trying to free up video packets. This means that decoding is not keeping up.");
           }
           ++it;
           continue;
@@ -600,25 +605,19 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
   // snapshot it might already point to the beginning
-  if (pre_event_count) {
-    while ((*it) != pktQueue.begin()) {
-      packet = *(*it);
-      /*
-      Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d score %d",
-          pre_event_count, packet->packet->stream_index, packet->keyframe, packet->score);
-      ZM_DUMP_PACKET(packet->packet, "");
-      */
-      if (packet->packet->stream_index == video_stream_id) {
-        pre_event_count --;
-        if (!pre_event_count)
-          break;
-      }
-      (*it)--;
-    }
+  while (pre_event_count and ((*it) != pktQueue.begin())) {
+    /*
+    Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d score %d",
+        pre_event_count, packet->packet->stream_index, packet->keyframe, packet->score);
+    ZM_DUMP_PACKET(packet->packet, "");
+    */
+    if (packet->packet->stream_index == video_stream_id)
+      pre_event_count --;
+    (*it)--;
     packet = *(*it);
   }
+
   // it either points to beginning or we have seen pre_event_count video packets.
-  
   if (pre_event_count) {
     if (packet->image_index < (int)pre_event_count) {
       // probably just starting up
@@ -630,17 +629,18 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     return it;
   } else if (!keep_keyframes) {
     // Are encoding, so don't care about keyframes
+    // We could be pointing to a non-video frame though.  Do we care?
     return it;
   }
 
   while ((*it) != pktQueue.begin()) {
-    packet = *(*it);
     //ZM_DUMP_PACKET(packet->packet, "No keyframe");
     if ((packet->packet->stream_index == video_stream_id) and packet->keyframe)
       return it; // Success
     --(*it);
+    packet = *(*it);
   }
-  if (!(*(*it))->keyframe) {
+  if (!packet->keyframe) {
     Warning("Hit beginning of packetqueue and packet is not a keyframe. index is %d", packet->image_index);
   }
   return it;

@@ -20,24 +20,7 @@
 
 error_reporting(E_ALL);
 
-$debug = false;
-if ( $debug ) {
-  // Use these for debugging, though not both at once!
-  phpinfo(INFO_VARIABLES);
-}
-
-// Useful debugging lines for mobile devices
-if ( false ) {
-  ob_start();
-  phpinfo(INFO_VARIABLES);
-  $fp = fopen('/tmp/env.html', 'w+');
-  fwrite($fp, ob_get_contents());
-  fclose($fp);
-  ob_end_clean();
-}
-
 require_once('includes/config.php');
-require_once('includes/session.php');
 require_once('includes/logger.php'); // already included in config
 
 // Useful debugging lines for mobile devices
@@ -87,8 +70,7 @@ if ( isset($_GET['skin']) ) {
 
 if (!is_dir('skins/'.$skin) ) {
   $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
-
-  if ( !in_array($skin, $skins) ) {
+  if (!in_array($skin, $skins)) {
     ZM\Error("Invalid skin '$skin' setting to ".$skins[0]);
     $skin = $skins[0];
   }
@@ -132,6 +114,7 @@ if (!file_exists(ZM_SKIN_PATH))
   ZM\Fatal("Invalid skin '$skin'");
 $skinBase[] = $skin;
 
+require_once('includes/session.php');
 zm_session_start();
 if (
   !isset($_SESSION['skin']) ||
@@ -242,6 +225,7 @@ if ( $action and $view and !$request ) {
     ZM\Debug("No includes/actions/$view.php for action $action");
   }
 }
+if ($error_message) ZM\Warning($error_message);
 
 if ( isset($_REQUEST['redirect']) ) {
   $redirect = '?view='.detaintPath($_REQUEST['redirect']);

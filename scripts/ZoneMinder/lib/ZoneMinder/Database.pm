@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Database Module, $Date$, $Revision$
+# ZoneMinder Database Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -49,6 +49,7 @@ our %EXPORT_TAGS = (
       zmDbGetMonitor
       zmDbGetMonitorAndControl
       zmDbDo
+      zmDbExecute
       zmSQLExecute
       zmDbFetchOne
       zmDbSupportsFeature
@@ -179,20 +180,27 @@ sub zmDbGetMonitors {
 }
 
 sub zmSQLExecute {
+  Warning("zmSQLExecute is deprecated. Please update to use zmDbExecute");
+  return zmDbExecute(@_) ? 1 : undef;
+}
+
+sub zmDbExecute {
   my $sql = shift;
 
-  my $sth = $dbh->prepare_cached( $sql );
-  if ( ! $sth ) {
+  my $sth = $dbh->prepare_cached($sql);
+  if (!$sth) {
     Error("Can't prepare '$sql': ".$dbh->errstr());
     return undef;
   }
-  my $res = $sth->execute( @_ );
-  if ( ! $res ) {
-    Error("Can't execute '$sql': ".$sth->errstr());
+  my $res = $sth->execute(@_);
+  if (!$res) {
+    my ( $caller, undef, $line ) = caller;
+    Error("Can't execute '$sql' from $caller:$line: ".$sth->errstr());
     return undef;
   }
-  return 1;
-}
+  return ($sth, $res) if wantarray();
+  return $res;
+} 
 
 sub zmDbGetMonitor {
   zmDbConnect();

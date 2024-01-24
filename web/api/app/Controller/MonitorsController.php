@@ -106,7 +106,7 @@ class MonitorsController extends AppController {
     if ( $this->request->is('post') ) {
 
       global $user;
-      $canAdd = (!$user) || ($user->System() == 'Edit' );
+      $canAdd = (!$user) || ($user->System() == 'Edit' || $user->Monitors() == 'Create' );
       if ( !$canAdd ) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;

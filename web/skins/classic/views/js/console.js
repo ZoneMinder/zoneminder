@@ -36,14 +36,22 @@ function scanNetwork(element) {
   window.location.assign('?view=add_monitors');
 }
 function addMonitor(element) {
-  window.location.assign('?view=monitor');
+  if (user.Monitors == 'Create') {
+    window.location.assign('?view=monitor');
+  } else {
+    alert('Need create monitors privilege');
+  }
 }
 
 function cloneMonitor(element) {
+  if (user.Monitors != 'Create') {
+    alert('Need create monitors privilege');
+    return;
+  }
   var form = element.form;
-  var monitorId=-1;
+  var monitorId = -1;
   // get the value of the first checkbox
-  for ( var i = 0; i < form.elements.length; i++ ) {
+  for ( var i=0, len=form.elements.length; i < len; i++ ) {
     if (
       form.elements[i].type == "checkbox" &&
       form.elements[i].name == "markMids[]" &&
@@ -55,6 +63,8 @@ function cloneMonitor(element) {
   } // end foreach element
   if ( monitorId != -1 ) {
     window.location.assign('?view=monitor&dupId='+monitorId);
+  } else {
+    alert('Please select a monitor to clone');
   }
 }
 
@@ -81,8 +91,8 @@ function editMonitor( element ) {
 }
 
 function deleteMonitor( element ) {
-  if ( confirm( 'Warning, deleting a monitor also deletes all events and database entries associated with it.\nAre you sure you wish to delete?' ) ) {
-    var form = element.form;
+  if (confirm('Deleting a monitor only marks it as deleted.  Events will age out. If you want them to be immediately removed, please delete them first.\nAre you sure you wish to delete?')) {
+    const form = element.form;
     form.elements['action'].value = 'delete';
     form.submit();
   }
@@ -176,7 +186,9 @@ function manageFunctionModal(evt) {
 } // end function manageFunctionModal
 
 function initPage() {
-  setInterval(reloadWindow, consoleRefreshTimeout);
+  if (consoleRefreshTimeout > 0) {
+    setInterval(reloadWindow, consoleRefreshTimeout);
+  }
   if ( showDonatePopup ) {
     $j.getJSON(thisUrl + '?request=modal&modal=donate')
         .done(function(data) {
@@ -191,19 +203,19 @@ function initPage() {
         .fail(logAjaxFail);
   }
 
-  // Makes table sortable
 
   // Setup the thumbnail video animation
   if (!isMobile()) initThumbAnimation();
 
   $j('.functionLnk').click(manageFunctionModal);
 
+  // Makes table sortable
   $j('#consoleTableBody').sortable({
     disabled: true,
     update: applySort,
     axis: 'Y'} );
 } // end function initPage
-//
+
 function sortMonitors(button) {
   if (button.classList.contains('btn-success')) {
     $j( "#consoleTableBody" ).sortable('disable');
@@ -221,4 +233,4 @@ function applySort(event, ui) {
       .fail(logAjaxFail);
 } // end function applySort(event,ui)
 
-$j(document).ready(initPage );
+$j(document).ready(initPage);

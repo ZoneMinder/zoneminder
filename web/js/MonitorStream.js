@@ -52,12 +52,12 @@ function MonitorStream(monitorData) {
 
   this.img_onerror = function() {
     console.log('Image stream has been stoppd! stopping streamCmd');
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
       console.log('Image stream has loaded! starting streamCmd for '+this.connKey+' in '+statusRefreshTimeout + 'ms');
-      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
 
@@ -139,6 +139,7 @@ function MonitorStream(monitorData) {
     if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
       monitor_frame.css('width', parseInt(width));
     }
+    if (img.style.width) img.style.width = 'auto';
     if (height && height != '0px') img.style.height = height;
 
     this.setStreamScale(newscale);
@@ -179,7 +180,7 @@ function MonitorStream(monitorData) {
           console.log("Changing src from " + img.src + " to " + newSrc + 'refresh timeout:' + statusRefreshTimeout);
           img.src = '';
           img.src = newSrc;
-          this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+          this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
         }
       }
     }
@@ -205,7 +206,7 @@ function MonitorStream(monitorData) {
         }});
       }
       attachVideo(parseInt(this.id), this.janusPin);
-      this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
       return;
     }
     if (this.RTSP2WebEnabled) {
@@ -253,7 +254,7 @@ function MonitorStream(monitorData) {
           console.log(webrtcUrl.href);
           startRTSP2WebPlay(videoEl, webrtcUrl.href);
         }
-        this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
+        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -298,8 +299,8 @@ function MonitorStream(monitorData) {
       }
     }
     this.streamCommand(CMD_STOP);
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
 
   this.kill = function() {
@@ -319,8 +320,8 @@ function MonitorStream(monitorData) {
       // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
 
   this.pause = function() {
@@ -442,8 +443,6 @@ function MonitorStream(monitorData) {
     } else if (error == 'Unauthorized') {
       window.location.reload();
     } else {
-      console.log("Queuing up a new query after a pause");
-      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), 10*statusRefreshTimeout);
       logAjaxFail(jqxhr, textStatus, error);
     }
   };
@@ -615,15 +614,15 @@ function MonitorStream(monitorData) {
   /* getStatusCmd is used when not streaming, since there is no persistent zms */
   this.getStatusCmdResponse=function(respObj, respText) {
     //watchdogOk('status');
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
-
     if (respObj.result == 'Ok') {
       const monitorStatus = respObj.monitor.Status;
       const captureFPSValue = $j('#captureFPSValue'+this.id);
       const analysisFPSValue = $j('#analysisFPSValue'+this.id);
+      const viewingFPSValue = $j('#viewingFPSValue'+this.id);
+      const monitor = respObj.monitor;
 
-      if (respObj.monitor.FrameRate) {
-        const fpses = respObj.monitor.FrameRate.split(",");
+      if (monitor.FrameRate) {
+        const fpses = monitor.FrameRate.split(",");
         fpses.forEach(function(fps) {
           const name_values = fps.split(':');
           const name = name_values[0].trim();
@@ -642,6 +641,16 @@ function MonitorStream(monitorData) {
             console.log("Unknown fps name " + name);
           }
         });
+      } else {
+        if (analysisFPSValue.length && (analysisFPSValue.text() != monitor.AnalysisFPS)) {
+          analysisFPSValue.text(monitor.AnalysisFPS);
+        }
+        if (captureFPSValue.length && (captureFPSValue.text() != monitor.CaptureFPS)) {
+          captureFPSValue.text(monitor.CaptureFPS);
+        }
+        if (viewingFPSValue.length && viewingFPSValue.text() == '') {
+          $j('#viewingFPS'+this.id).hide();
+        }
       }
 
       if (canEdit.Monitors) {
@@ -684,22 +693,16 @@ function MonitorStream(monitorData) {
     } else {
       checkStreamForErrors('getStatusCmdResponse', respObj);
     }
-
-    this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-  };
+  }; // this.getStatusCmdResponse
 
   this.statusCmdQuery=function() {
-    console.log('statusCmdQuery');
-    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+this.id+'&'+this.auth_relay)
+    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+this.auth_relay)
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
-
-    this.statusCmdTimer = null;
   };
 
   this.statusQuery = function() {
     this.streamCommand(CMD_QUERY);
-    this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCmdQuery = function(resent) {
@@ -710,8 +713,6 @@ function MonitorStream(monitorData) {
       this.streamCmdParms.command = CMD_QUERY;
       this.streamCmdReq(this.streamCmdParms);
     }
-    // Queue up another query
-    this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCommand = function(command) {
@@ -901,6 +902,9 @@ function startRTSP2WebPlay(videoEl, url) {
       method: 'POST',
       body: new URLSearchParams({data: btoa(webrtc.localDescription.sdp)})
     })
+        .catch((rejected) => {
+          console.log(rejected);
+        })
         .then((response) => response.text())
         .then((data) => {
           try {

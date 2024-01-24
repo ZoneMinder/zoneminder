@@ -142,21 +142,8 @@ sub Sql {
     }
 
     my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query_json});
-    my $sql = '
-      SELECT 
-        E.*, 
-        unix_timestamp(E.StartDateTime) 
-          AS Time,
-        GROUP_CONCAT(T.Name SEPARATOR ", ") 
-      FROM Events 
-        AS E 
-      LEFT JOIN Events_Tags 
-        AS ET 
-        ON E.Id = ET.EventId 
-      LEFT JOIN Tags 
-        AS T 
-        ON T.Id = ET.TagId 
-    ';
+    my $fields = 'E.*, unix_timestamp(E.StartDateTime) AS Time';
+    my $from = 'Events AS E';
 
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
@@ -177,15 +164,21 @@ sub Sql {
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
         } elsif ( $term->{attr} eq 'Tags' ) {
+          $fields .= ', (SELECT Name FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
           $self->{Sql} .= 'T.Id';
+          $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
-          $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
-          FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          if (!($fields =~ /MonitorName/)) {
+            $fields .= ', M.Name as MonitorName';
+            $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          }
           my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
           $self->{Sql} .= 'M.'.($temp_attr_name ? $temp_attr_name : 'Id');
         } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
-          $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
-          FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          if (!($fields =~ /MonitorName/)) {
+            $fields .= ', M.Name as MonitorName';
+            $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          }
           $self->{Sql} .= 'M.ServerId';
         } elsif ( $term->{attr} eq 'StorageServerId' ) {
           $self->{Sql} .= '(SELECT Storage.ServerId FROM Storage WHERE Storage.Id=E.StorageId)';
@@ -244,7 +237,6 @@ sub Sql {
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
             } elsif ( $term->{attr} =~ /ServerId/) {
-              Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what
@@ -346,6 +338,7 @@ sub Sql {
       } # end foreach term
     } # end if terms
 
+    my $sql = ' SELECT '.$fields. ' FROM ' . $from;
     if ( $self->{Sql} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
@@ -385,8 +378,13 @@ sub Sql {
     } elsif ( $filter_expr->{sort_field} eq 'Tag' ) {
       $sort_column = 'T.Name';
     } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
-            $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
-         FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
+      if (!($fields =~ /MonitorName/)) {
+        $fields .= ', M.Name as MonitorName';
+        $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
+        $sql = ' SELECT '.$fields. ' FROM ' . $from;
+        $sql .= ' WHERE ( '.$self->{Sql}.' )' if $self->{Sql};
+        $sql .= ' AND ( '.join(' or ', @auto_terms).' )' if @auto_terms;
+      }
       $sort_column = 'M.Name';
     } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
       $sort_column = 'E.Name';
@@ -415,7 +413,7 @@ sub Sql {
     } elsif ( $filter_expr->{sort_field} ne '' ) {
       $sort_column = 'E.'.$filter_expr->{sort_field};
     }
-    $sql .= ' GROUP BY E.Id ';
+    #$sql .= ' GROUP BY E.Id ';
     if ( $sort_column ne '' ) {
       $sql .= ' ORDER BY '.$sort_column.' '.($filter_expr->{sort_asc} ? 'ASC' : 'DESC');
     }

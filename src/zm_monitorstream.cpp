@@ -550,7 +550,6 @@ void MonitorStream::runStream() {
     command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
   }
 
-
   while (!zm_terminate) {
     if (feof(stdout)) {
       Debug(2, "feof stdout");
@@ -707,8 +706,8 @@ void MonitorStream::runStream() {
               send_image = monitor->image_buffer[index];
             }
           } else*/ {
-            AVPixelFormat pixformat = monitor->image_pixelformats[index];
-            Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
+            //AVPixelFormat pixformat = monitor->image_pixelformats[index];
+            //Debug(1, "Sending regular image index %d, pix format is %d %s", index, pixformat, av_get_pix_fmt_name(pixformat));
             send_image = monitor->image_buffer[index];
           }
 
@@ -847,6 +846,9 @@ void MonitorStream::runStream() {
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(ttl).count()));
       break;
     }
+    if (frames_to_send > 0 && frame_count >= frames_to_send) {
+      break;
+    }
   } // end while ! zm_terminate
 
   if (buffered_playback) {
@@ -903,12 +905,12 @@ void MonitorStream::SingleImage(int scale) {
 
   int count = 10; // Give it 1 second to connect or else send text frame.
   while (count and (monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
-    Debug(1, "Waiting for capture to begin");
+    Debug(1, "Waiting for capture to begin. last write index %d >=? %d",
+        monitor->shared_data->last_write_index, monitor->image_buffer_count);
     std::this_thread::sleep_for(Milliseconds(100));
     count--;
   }
   if (!count) {
-    sendTextFrame("No image available.");
     sendTextFrame("No image available.");
     return;
   }

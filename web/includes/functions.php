@@ -74,16 +74,19 @@ function CORSHeaders() {
         preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
       ) {
         $valid = true;
-        ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
+        ZM\Debug('CORS Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
+
         break;
       }
     }
     if (!$valid) {
       ZM\Warning($_SERVER['HTTP_ORIGIN'] . ' is not found in servers list.');
     }
+  } else {
+    ZM\Debug('CORS: NO origin');
   }
 }
 
@@ -337,12 +340,13 @@ function getZmuCommand($args) {
   $zmuCommand = ZMU_PATH;
 
   if ( ZM_OPT_USE_AUTH ) {
+    global $user;
+    // Always include username, so that we can do lookups faster
+    $zmuCommand .= ' -U '.escapeshellarg($user->Username());
     if ( ZM_AUTH_RELAY == 'hashed' ) {
       $zmuCommand .= ' -A '.generateAuthHash(false, true);
-    } elseif ( ZM_AUTH_RELAY == 'plain' ) {
-      $zmuCommand .= ' -U ' .escapeshellarg($_SESSION['username']).' -P '.escapeshellarg($_SESSION['password']);
-    } elseif ( ZM_AUTH_RELAY == 'none' ) {
-      $zmuCommand .= ' -U '.escapeshellarg($_SESSION['username']);
+    } else if ( ZM_AUTH_RELAY == 'plain' ) {
+      $zmuCommand .= ' -P '.escapeshellarg($_SESSION['password']);
     }
   }
 
@@ -2494,5 +2498,11 @@ function getHomeView() {
 function systemd_isactive($service) {
   $output = shell_exec("systemctl is-active $service");
   return (trim($output) == 'active');
+}
+
+function to_string($thing) {
+  if (empty($thing)) return '';
+  if (is_array($thing)) return implode(', ', $thing);
+  return strval($thing);
 }
 ?>

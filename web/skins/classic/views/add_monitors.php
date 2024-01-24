@@ -22,6 +22,7 @@ if (!canEdit('Monitors')) {
   $view = 'error';
   return;
 }
+$canCreateMonitors = canCreate('Monitors');
 
 $focusWindow = true;
 
@@ -50,6 +51,9 @@ getBodyTopHTML();
                 value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? $_COOKIE['addMonitorsprobe_password'] : '' ?>"/>
             </div>
             <div id="contentButtons">
+<?php 
+  if ($canCreateMonitors) {
+?>
               <button type="button" name="addBtn" data-on-click-this="addMonitor" title="<?php echo translate('Add New Monitor') ?>">
                 <i class="material-icons md-18">add_circle</i>
                 <span class="text"><?php echo translate('AddNewMonitor') ?></span>
@@ -58,6 +62,9 @@ getBodyTopHTML();
                 <i class="material-icons md-18">upload</i>
                 <span class="text"><?php echo translate('Import CSV') ?></span>
               </button>
+<?php 
+  }
+?>
             </div>
           </div><!--toolbar-->
 

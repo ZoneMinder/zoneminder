@@ -65,35 +65,22 @@ if ( $sort != 'Id' ) {
 }
 $where = 'WHERE MonitorId = '.$mid;
 
-$col_str = '
-E.*, 
-T.Name 
-  AS Tags ';
+$col_str = ' E.*, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tag ';
 
-$sql = '
-SELECT 
-  ' .$col_str. ' 
-FROM `Events` 
-  AS E 
-LEFT JOIN Events_Tags 
-  AS ET 
-  ON E.Id = ET.EventId 
-LEFT JOIN Tags 
-  AS T 
-  ON T.Id = ET.TagId 
-'.$where.' 
-ORDER BY 
-'.$sort.' 
-'.$order.' 
-LIMIT ?';
+$sql = 'SELECT ' .$col_str. ' FROM `Events` AS E
+LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+LEFT JOIN Tags AS T ON T.Id = ET.TagId
+'.$where.' GROUP BY E.Id ORDER BY '.$sort.' '.$order.' LIMIT ?';
 
-ZM\Debug('Calling the following sql query: ' .$sql);
 $rows = dbQuery($sql, array($limit));
 $returned_rows = array();
 
 if ($rows) {
   foreach ( $rows as $row ) {
-    $event = new ZM\Event($row['Id']);
+    $event = new ZM\Event($row);
+    $event->remove_from_cache();
+    if (!$event->canView()) continue;
+    if ($event->Monitor()->Deleted()) continue;
 
     $scale = intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width());
     $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
@@ -103,14 +90,12 @@ if ($rows) {
     // Modify the row data as needed
     $row['imgHtml'] = '<img id="thumbnail' .$event->Id(). '" src="' .$imgSrc. '" alt="Event '.$event->Id().'" width="' .validInt($event->ThumbnailWidth()). '" height="' .validInt($event->ThumbnailHeight()).'" stream_src="' .$streamSrc. '" still_src="' .$imgSrc. '" loading="lazy" />';
     $row['Name'] = validHtmlStr($row['Name']);
-    $row['StartDateTime'] = $dateTimeFormatter->format(strtotime($row['StartDateTime']));
-    $row['EndDateTime'] = $row['EndDateTime'] ? $dateTimeFormatter->format(strtotime($row['EndDateTime'])) : null;
     $row['Length'] = gmdate('H:i:s', intval($row['Length']));
 
     $returned_rows[] = $row;
   } # end foreach row matching search
 }
 
-$data['rows'] = $returned_rows;
+$data['rows'] = &$returned_rows;
 ajaxResponse($data);
 ?>

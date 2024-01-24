@@ -19,33 +19,38 @@
 //
 require_once('includes/Zone.php');
 global $error_message;
+global $redirect;
 
-$monitors_to_restart = array();
 
-if ( $action == 'delete' ) {
-  if ( isset($_REQUEST['markZids']) ) {
+if ($action == 'delete') {
+  if (isset($_REQUEST['markZids'])) {
+    $monitors_to_restart = array();
     foreach ( $_REQUEST['markZids'] as $markZid ) {
       $zone = new ZM\Zone($markZid);
-      if ( ! $zone->Id() ) {
+      if (!$zone->Id()) {
         $error_message .= 'Zone not found for id ' . $markZid.'<br/>';
         continue;
       }
       $monitor = $zone->Monitor();
-      if ( !$monitor->CanEdit() ) {
+      if (!$monitor->canEdit()) {
         $error_message .= 'You do not have permission to edit zones for monitor ' . $monitor->Name().'.<br/>';
         continue;
       }
       # Could use true but store the object instead for easy access later
-      $monitors_to_restart[$monitor->Id()] = $monitor;
+      $monitors_to_restart[] = $monitor;
       $error_message .= $zone->delete();
     } # end foreach Zone
 
-    foreach ( $monitors_to_restart as $mid => $monitor ) {
+    foreach ( $monitors_to_restart as $monitor ) {
       if ( daemonCheck() and ($monitor->Type() != 'WebSite') ) {
-        zmcControl($mid, 'restart');
+        $monitor->zmcControl('restart');
       } // end if daemonCheck()
     }
     $refreshParent = true;
+    if (!$error_message)
+      $redirect = '?view=zones&'.implode('&', array_map(function($mid){ return 'mids[]='.$mid; }, $_REQUEST['mids']));
+  } else {
+    $error_message .= 'No Zones marked for deletion.<br/>';
   } // end if isset($_REQUEST['markZids'])
 } // end if action 
 

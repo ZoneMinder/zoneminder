@@ -135,6 +135,11 @@ function queryRequest() {
     $where = '(' .implode(' OR ', $likes). ')';
   }
 
+  if (!empty($_REQUEST['Component'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'Component = ?';
+    $query['values'][] = $_REQUEST['Component'];
+  }
   if (!empty($_REQUEST['ServerId'])) {
     if ($where) $where .= ' AND ';
     $where .= 'ServerId = ?';
@@ -183,7 +188,7 @@ function queryRequest() {
   global $dateTimeFormatter;
   foreach ($results as $row) {
     $row['DateTime'] = empty($row['TimeKey']) ? '' : $dateTimeFormatter->format(intval($row['TimeKey']));
-    $Server = ZM\Server::find_one(array('Id'=>$row['ServerId']));
+    $Server = $row['ServerId'] ? ZM\Server::find_one(array('Id'=>$row['ServerId'])) : null;
 
     $row['Server'] = $Server ? $Server->Name() : '';
     // Strip out all characters that are not ASCII 32-126 (yes, 126)

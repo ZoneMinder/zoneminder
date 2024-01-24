@@ -60,6 +60,7 @@ int main(int argc, const char *argv[], char **envp) {
   time_t event_time = 0;
   uint64_t event_id = 0;
   unsigned int frame_id = 1;
+  int frames_to_send = -1;
   unsigned int scale = 100;
   unsigned int rate = 100;
   double maxfps = 10.0;
@@ -152,6 +153,8 @@ int main(int argc, const char *argv[], char **envp) {
     } else if ( !strcmp(name, "frame") ) {
       frame_id = strtoull(value, nullptr, 10);
       source = ZMS_EVENT;
+    } else if ( !strcmp(name, "frames") ) {
+      frames_to_send = strtoll(value, nullptr, 10);
     } else if ( !strcmp(name, "scale") ) {
       scale = atoi(value);
     } else if ( !strcmp(name, "rate") ) {
@@ -279,6 +282,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamTTL(ttl);
     stream.setStreamQueue(connkey);
     stream.setStreamBuffer(playback_buffer);
+    stream.setFramesToSend(frames_to_send);
     stream.setStreamStart(monitor_id);
     stream.setStreamFrameType(analysis_frames ? StreamBase::FRAME_ANALYSIS: StreamBase::FRAME_NORMAL);
 

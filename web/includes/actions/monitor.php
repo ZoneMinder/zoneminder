@@ -20,7 +20,7 @@
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
 if (!canEdit('Monitors')) {
-  ZM\Warning('Monitor actions require Monitors Permissions');
+  ZM\Warning('Monitor actions require Monitors Edit Permissions');
   return;
 }
 
@@ -42,6 +42,10 @@ if ($action == 'save') {
       if (!$x10Monitor) $x10Monitor = array();
     }
   } else {
+    if (!canCreate('Monitors')) {
+      ZM\Warning('Monitor actions require Monitors Create Permissions');
+      return;
+    }
     if ($user->unviewableMonitorIds()) {
       ZM\Warning('You are restricted to certain monitors so cannot add a new one.');
       return;

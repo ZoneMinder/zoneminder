@@ -81,12 +81,14 @@ Here is what the filter window looks like
     *    %EPIM%     Path to the (first) event image with the highest score, suitable for use in img tags
     *    %EPIMOD%   Path to image containing object detection, suitable for use in img tags
     *    %EPIMODG%  Path to image containing object detection animated gif version, suitable for use in img tags
+    *    %EPISNAP%  Path to the snapshot image, which should be the frame with the most motion
     *    %EI1%      Attach first alarmed event image
     *    %EI1A%     Attach first alarmed event analysis image
     *    %EIM%      Attach (first) event image with the highest score
     *    %EIMA%     Attach (first) event analysis image with the highest score
     *    %EIMOD%    Attach image containing object detection
     *    %EIMODG%   Attach image containing object detection animated gif version
+    *    %EISNAP%   Attach the snapshot image, which should be the frame with the most motion
     *    %EV%       Attach event mpeg video
     *    %EVM%      Attach event mpeg video in phone format
     *    %MID%      Monitor Id
@@ -100,6 +102,7 @@ Here is what the filter window looks like
     *    %MP%       Path to the monitor window
     *    %MPS%      Path to the monitor stream
     *    %MPI%      Path to the monitor recent image
+    *    %FID%      Id of the current filter that matched
     *    %FN%       Name of the current filter that matched
     *    %FP%       Path to the current filter that matched
     *    %ZP%       Path to your ZoneMinder console

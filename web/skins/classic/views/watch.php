@@ -104,6 +104,7 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
+ZM\Debug("Has ptz: $hasPtzControls");
 $showPtzControls = false;
 if ($hasPtzControls) {
   $showPtzControls = true;
@@ -221,9 +222,15 @@ echo getNavBarHTML() ?>
         <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
             <span class="material-icons md-18">view_carousel</span>
         </button>
+<?php
+    if ($hasPtzControls) {
+?>
         <button type="button" id="ptzToggle" class="btn <?php echo $showPtzControls ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle PTZ Controls')?>">
             <span class="material-icons md-18">open_with</span>
         </button>
+<?php
+    }
+?>
         <span id="rateControl">
           <label><?php echo translate('Rate') ?>:</label>
           <?php

@@ -41,6 +41,7 @@ if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
 $yesno = array( 0=>translate('No'), 1=>translate('Yes') );
 $nv = array( 'None'=>translate('None'), 'View'=>translate('View') );
 $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
+$nvec = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit'), 'Create'=>translate('Create') );
 $inve = array( 'Inherit'=>translate('Inherit'),'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
 $bandwidths = array_merge( array( ''=>'' ), $bandwidth_options );
 $langs = array_merge( array( ''=>'' ), getLanguages() );
@@ -182,7 +183,7 @@ if (canEdit('System')) {
               </tr>
               <tr class="Monitors">
                 <th scope="row"><?php echo translate('Monitors') ?></th>
-                <td><?php echo htmlSelect('user[Monitors]', $nve, $User->Monitors(), ['id'=>'user[Monitors]', 'data-on-change'=>'updateEffectivePermissions']) ?></td>
+                <td><?php echo htmlSelect('user[Monitors]', $nvec, $User->Monitors(), ['id'=>'user[Monitors]', 'data-on-change'=>'updateEffectivePermissions']) ?></td>
               </tr>
               <tr class="Groups">
                 <th scope="row"><?php echo translate('Groups') ?></th>

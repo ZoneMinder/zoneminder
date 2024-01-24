@@ -341,4 +341,5 @@ if (count($filter->terms())) {
   </div><!--content-->
 </div><!--page-->
 <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
+<script src="<?php echo cache_bust('skins/classic/js/montage_common.js') ?>"></script>
 <?php xhtmlFooter() ?>

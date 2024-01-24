@@ -14,6 +14,7 @@
        data-check-on-init="true"
        data-mobile-responsive="true"
        data-min-width="562"
+data-show-export="true"
      >
       <thead class="thead-highlight">
         <tr>

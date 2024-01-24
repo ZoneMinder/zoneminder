@@ -3,6 +3,7 @@
   global $sortQuery;
   global $conjunctionTypes;
   global $opTypes;
+  global $tags_opTypes;
   global $archiveTypes;
   global $weekdays;
   global $states;
@@ -23,6 +24,7 @@ const conjTypes = <?php echo isset($conjunctionTypes) ? json_encode($conjunction
 const opTypes = <?php echo isset($opTypes) ? json_encode($opTypes) : '' ?>;
 
 const archiveTypes = <?php echo isset($archiveTypes) ? json_encode($archiveTypes) : '' ?>;
+const tags_opTypes = <?php echo isset($tags_opTypes) ? json_encode($tags_opTypes) : '' ?>;
 const weekdays = <?php echo isset($weekdays) ? json_encode($weekdays) : '' ?>;
 const states = <?php echo isset($states) ? json_encode($states) : '{}' ?>;
 const servers = <?php echo isset($servers) ? json_encode($servers) : '{}' ?>;

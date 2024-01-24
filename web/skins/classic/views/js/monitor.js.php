@@ -27,8 +27,8 @@ var rtspStreamNames = new Object();
 <?php
 $mid = empty($_REQUEST['mid']) ? '0' : validCardinal($_REQUEST['mid']);
 $query = $mid ?
-  dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Id != ?', array($mid)):
-  dbQuery('SELECT Name,RTSPStreamName FROM Monitors');
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Id != ? AND Deleted=false', array($mid)):
+  dbQuery('SELECT Name,RTSPStreamName FROM Monitors WHERE Deleted=false');
 if ($query) {
   while ($row = dbFetchNext($query)) {
     echo 'monitorNames[\''.validJsStr($row['Name']).'\'] = true;'.PHP_EOL;

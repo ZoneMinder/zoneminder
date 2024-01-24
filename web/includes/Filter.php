@@ -8,6 +8,7 @@ class Filter extends ZM_Object {
   protected static $table = 'Filters';
   protected static $attrTypes = null;
   protected static $opTypes = null;
+  protected static $tags_opTypes = null;
   protected static $is_isnot_opTypes = null;
   protected static $archiveTypes = null;
   protected static $booleanValues = null;
@@ -334,6 +335,10 @@ class Filter extends ZM_Object {
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'POST',
             'content' => http_build_query($data)
+          ),
+          'ssl'=>array(
+            'verify_peer'=>false,
+            'verify_peer_name'=>false,
           )
         );
         $context  = stream_context_create($options);
@@ -857,6 +862,16 @@ class Filter extends ZM_Object {
       );
     }
     return self::$is_isnot_opTypes;
+  }
+
+  public static function tags_opTypes() {
+    if (!self::$tags_opTypes) {
+      self::$tags_opTypes = array(
+        'LIKE' => translate('OpLike'),
+        'NOT LIKE' => translate('OpNotLike'),
+      );
+    }
+    return self::$tags_opTypes;
   }
 
   public static function opTypes() {

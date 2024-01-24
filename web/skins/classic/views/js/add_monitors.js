@@ -1,6 +1,6 @@
 var ProbeResults = {};
 var table = null;
-//
+
 function ajaxRequest(params) {
   return probe(params);
 }
@@ -29,15 +29,13 @@ function probe(params) {
         alert(data.message);
         return;
       }
-      // parses into ProbeResults
-      //getProbeResponse(data);
 
       if (data.Streams && data.Streams.length) {
         for ( i in data.Streams ) {
           const stream = data.Streams[i];
           if (stream.Monitor) {
             stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-          } else {
+          } else if (user.Monitors == 'Create') {
             stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
           }
           if (ZM_WEB_LIST_THUMBS && stream.camera.mjpegstream) {
@@ -50,7 +48,6 @@ function probe(params) {
           ProbeResults[stream.url] = stream;
         } // end for each Stream
 
-        //const rows = processRows(ProbeResults);
         const rows = data.Streams;
         // rearrange the result into what bootstrap-table expects
         params.success({total: rows.length, totalNotFiltered: rows.length, rows: rows});
@@ -62,36 +59,6 @@ function probe(params) {
       //$j('#eventTable').bootstrapTable('refresh');
     }
   });
-}
-
-function processRows(rows) {
-  $j.each(rows, function(ndx, row) {
-    var eid = row.Id;
-    var archived = row.Archived == yesString ? archivedString : '';
-    var emailed = row.Emailed == yesString ? emailedString : '';
-
-    row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
-    row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>' +
-        '<br/><div class="small text-muted">' + archived + emailed + '</div>';
-    if ( canEdit.Monitors ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
-    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
-    if ( row.Notes.indexOf('detected:') >= 0 ) {
-      row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted"><u>' + row.Notes + '</u></div></div></a>';
-    } else if ( row.Notes != 'Forced Web: ' ) {
-      row.Cause = row.Cause + '<br/><div class="small text-muted">' + row.Notes + '</div>';
-    }
-    row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
-    row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
-    row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
-
-    const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-    date.setSeconds(row.Length);
-    row.Length = date.toISOString().substr(11, 8);
-
-    if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
-  });
-
-  return rows;
 }
 
 function onvif_probe() {

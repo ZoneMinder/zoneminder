@@ -86,7 +86,7 @@ VideoStore::VideoStore(
   video_in_stream(p_video_in_stream),
   audio_in_stream(p_audio_in_stream),
   audio_in_codec(nullptr),
-  audio_in_ctx(p_audio_in_ctx),
+  audio_in_ctx(nullptr),
   audio_out_codec(nullptr),
   audio_out_ctx(nullptr),
   packets_written(0),
@@ -372,14 +372,14 @@ bool VideoStore::open() {
         ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
         if (ret < 0) {
           Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
-	} else {
-		const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-		if (entry) {
-			reorder_queue_size = std::stoul(entry->value);
-			Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-			// remove it to prevent complaining later.
-			av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-		}
+        } else {
+          const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          if (entry) {
+            reorder_queue_size = std::stoul(entry->value);
+            Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+            // remove it to prevent complaining later.
+            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          }
         }
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
@@ -444,7 +444,7 @@ bool VideoStore::open() {
 
   video_out_stream->time_base = video_in_stream ? video_in_stream->time_base : AV_TIME_BASE_Q;
 
-  if (audio_in_stream and audio_in_ctx) {
+  if (audio_in_stream) {
     Debug(2, "Have audio_in_stream %p", audio_in_stream);
 
     if (CODEC(audio_in_stream)->codec_id != AV_CODEC_ID_AAC) {
@@ -452,15 +452,22 @@ bool VideoStore::open() {
       if (!audio_out_codec) {
         Error("Could not find codec for AAC");
       } else {
-        if (audio_in_ctx == nullptr) {
-          audio_in_ctx = avcodec_alloc_context3(audio_out_codec);
-        }
+        // Newer ffmpeg wants to keep everything separate... so have to lookup our own
+        // decoder, can't reuse the one from the camera.
+        audio_in_codec = avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
+        audio_in_ctx = avcodec_alloc_context3(audio_in_codec);
+        // Copy params from instream to ctx
         ret = avcodec_parameters_to_context(audio_in_ctx, audio_in_stream->codecpar);
-        if (ret < 0)
-          Error("Failure from avcodec_parameters_to_context %s",
-              av_make_error_string(ret).c_str());
-
+        if (ret < 0) {
+          Error("Unable to copy audio params to ctx %s", av_make_error_string(ret).c_str());
+        }
         audio_in_ctx->time_base = audio_in_stream->time_base;
+
+        // if the codec is already open, nothing is done.
+        if ((ret = avcodec_open2(audio_in_ctx, audio_in_codec, nullptr)) < 0) {
+          Error("Can't open audio in codec!");
+          return false;
+        }
 
         audio_out_ctx = avcodec_alloc_context3(audio_out_codec);
         if (!audio_out_ctx) {
@@ -494,21 +501,14 @@ bool VideoStore::open() {
         return false;
       }
 
-      // We don't actually care what the time_base is..
-      audio_out_ctx->time_base = audio_in_ctx->time_base;
-
       // Copy params from instream to ctx
-      ret = avcodec_parameters_to_context(
-          audio_out_ctx, audio_in_stream->codecpar);
+      ret = avcodec_parameters_to_context(audio_out_ctx, audio_in_stream->codecpar);
       if (ret < 0) {
-        Error("Unable to copy audio params to ctx %s",
-              av_make_error_string(ret).c_str());
+        Error("Unable to copy audio params to ctx %s", av_make_error_string(ret).c_str());
       }
-      ret = avcodec_parameters_from_context(
-          audio_out_stream->codecpar, audio_out_ctx);
+      ret = avcodec_parameters_from_context(audio_out_stream->codecpar, audio_out_ctx);
       if (ret < 0) {
-        Error("Unable to copy audio params to stream %s",
-              av_make_error_string(ret).c_str());
+        Error("Unable to copy audio params to stream %s", av_make_error_string(ret).c_str());
       }
 
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
@@ -542,8 +542,7 @@ bool VideoStore::open() {
   if (!(out_format->flags & AVFMT_NOFILE)) {
     ret = avio_open2(&oc->pb, filename, AVIO_FLAG_WRITE, nullptr, nullptr);
     if (ret < 0) {
-      Error("Could not open out file '%s': %s", filename,
-          av_make_error_string(ret).c_str());
+      Error("Could not open out file '%s': %s", filename, av_make_error_string(ret).c_str());
       return false;
     }
   }
@@ -747,6 +746,10 @@ VideoStore::~VideoStore() {
 
   if (audio_out_stream) {
     audio_in_codec = nullptr;
+    if (audio_in_ctx) {
+      avcodec_close(audio_in_ctx);
+      avcodec_free_context(&audio_in_ctx);
+    }
 
     if (audio_out_ctx) {
       Debug(4, "Success closing audio_out_ctx");
@@ -776,23 +779,6 @@ VideoStore::~VideoStore() {
 
 bool VideoStore::setup_resampler() {
   int ret;
-
-  // Newer ffmpeg wants to keep everything separate... so have to lookup our own
-  // decoder, can't reuse the one from the camera.
-  audio_in_codec = avcodec_find_decoder(audio_in_stream->codecpar->codec_id);
-  // ctx already allocated at this point
-  // Copy params from instream to ctx
-  ret = avcodec_parameters_to_context(audio_in_ctx, audio_in_stream->codecpar);
-  if (ret < 0) {
-    Error("Unable to copy audio params to ctx %s",
-        av_make_error_string(ret).c_str());
-  }
-
-  // if the codec is already open, nothing is done.
-  if ((ret = avcodec_open2(audio_in_ctx, audio_in_codec, nullptr)) < 0) {
-    Error("Can't open audio in codec!");
-    return false;
-  }
 
   Debug(2, "Got something other than AAC (%s)", audio_in_codec->name);
 

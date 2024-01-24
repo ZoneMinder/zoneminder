@@ -39,13 +39,16 @@ getBodyTopHTML();
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-
-<!--
       <span class="ComponentFilter">
         <label><?php echo translate('Component') ?></label>
-        <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
+<?php
+$components = dbFetchAll('SELECT DISTINCT Component FROM Logs ORDER BY Component', 'Component');
+ZM\Debug(print_r($components, true));
+$options = [''=>translate('All')] + array_combine($components, $components);
+ZM\Debug(print_r($options, true));
+echo htmlSelect('filterComponent', $options, '', array('id'=>'filterComponent'));
+?>
       </span>
--->
 <?php if (count($Servers)>1) { ?>
       <span class="ServerFilter">
         <label><?php echo translate('Server') ?></label>

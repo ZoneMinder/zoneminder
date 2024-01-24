@@ -495,7 +495,9 @@ function configureDeleteButton( element ) {
       }
     }
   }
-  form.deleteBtn.disabled = !checked;
+  let btn = form.deleteBtn;
+  if (!btn) btn = document.getElementById('deleteBtn');
+  if (btn) btn.disabled = !checked;
 }
 
 function confirmDelete( message ) {

@@ -194,7 +194,7 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
     size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
     linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
 
-    Debug(1, "line size: %d =? %d width %d Size %d ?= %d", linesize,
+    Debug(4, "line size: %d =? %d width %d Size %d ?= %d", linesize,
         av_image_get_linesize(imagePixFormat, width, 0),
         width, linesize * height + padding, size);
 
@@ -829,7 +829,7 @@ void Image::Assign(const Image &image) {
         dst_ptr += linesize;
       }
     } else {
-      Debug(1, "Doing full copy line size %d != %d", image.linesize, linesize);
+      Debug(4, "Doing full copy line size %d != %d", image.linesize, linesize);
       (*fptr_imgbufcpy)(buffer, image.buffer, size);
     }
   }

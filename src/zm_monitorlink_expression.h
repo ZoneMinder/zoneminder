@@ -56,7 +56,7 @@ class MonitorLinkExpression {
       ~Node() noexcept = default;
     };
 
-    struct result {
+    struct Result {
       /**
        * True if evaluation process is successful. Otherwise, false.
        */
@@ -85,9 +85,9 @@ class MonitorLinkExpression {
       return current < std::size( tokens );
     }
 
-    static result visit(Node const &node);
-    static result visit_logical_and(Node const &node);
-    static result visit_logical_or(Node const &node);
+    static Result visit(Node const &node);
+    static Result visit_logical_and(Node const &node);
+    static Result visit_logical_or(Node const &node);
 
   public:
     MonitorLinkExpression();
@@ -95,6 +95,7 @@ class MonitorLinkExpression {
     };
     int score() { return score_; }
     bool evaluate();
+    const Result result();
     bool parse();
   private:
     const std::string_view delimiters_ = "|&(),";

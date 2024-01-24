@@ -3373,41 +3373,13 @@ int Monitor::Pause() {
   Debug(1, "Stopping packetqueue");
   // Wake everyone up
   packetqueue.stop();
-  Debug(1, "Stopped packetqueue");
+
   // Because the stream indexes may change we have to clear out the packetqueue
   if (decoder) {
     Debug(1, "Decoder stopping");
     decoder->Stop();
     Debug(1, "Decoder stopped");
   }
-  camera->Close();
-  return 1;
-}
-int Monitor::Play() {
-  int ret = camera->PrimeCapture();
-  if (ret <= 0) return ret;
-
-  if ( -1 != camera->getVideoStreamId() ) {
-    video_stream_id = packetqueue.addStream();
-  }
-
-  if ( -1 != camera->getAudioStreamId() ) {
-    audio_stream_id = packetqueue.addStream();
-    packetqueue.addStream();
-    shared_data->audio_frequency = camera->getFrequency();
-    shared_data->audio_channels = camera->getChannels();
-  }
-
-  Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
-      video_stream_id, audio_stream_id, pre_event_count);
-  if (decoding != DECODING_NONE) {
-    Debug(1, "Restarting decoder thread");
-    decoder->Start();
-  }
-  return 1;
-}
-int Monitor::Close() {
-  Pause();
 
   if (analysis_thread) {
     analysis_thread->Stop();

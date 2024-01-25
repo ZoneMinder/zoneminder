@@ -99,7 +99,6 @@ if (!empty($_REQUEST['proxy'])) {
         $auth_header_array = explode(',', $auth_header);
         $parsed = array();
 
-
         foreach ($auth_header_array as $pair) {
           preg_match('/^\s*(\w+)="?(.+)"?\s*$/', $pair, $vals);
           if (!empty($vals)) {
@@ -159,9 +158,15 @@ if (!empty($_REQUEST['proxy'])) {
       if ($end > $start) {
         $frame = substr($r, $start, $end - $start);
         ZM\Debug("Start $start end $end");
-        echo $frame;
+        if (imagecreatefromstream($frame)) {
+          echo $frame;
+        }
       } else {
-        echo $r;
+        # This is possibly an XSS but I don't see how to get around it other than actually trying to parse it as a valid image first.
+        # So we only output it if imagecreatefromdata succeeds
+        if (imagecreatefromstream($r)) {
+          echo $r;
+        }
       }
     } else {
       $img = imagecreate(320, 240);

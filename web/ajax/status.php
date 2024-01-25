@@ -400,13 +400,15 @@ switch ( $_REQUEST['layout'] ) {
     header('Content-type: application/xml');
     echo('<?xml version="1.0" encoding="iso-8859-1"?>
       ');
-    echo '<'.strtolower($_REQUEST['entity']).'>
+    $entity = strtolower($_REQUEST['entity']);
+    $entity = preg_replace('/[^A-Za-z0-9]/', '', $entity);
+    echo '<'.$entity.'>
 ';
     foreach ( $data as $key=>$value ) {
       $key = strtolower($key);
       echo "<$key>".htmlentities($value)."</$key>\n";
     }
-    echo '</'.strtolower($_REQUEST['entity']).">\n";
+    echo '</'.$entity.">\n";
     break;
   case 'json' :
     {

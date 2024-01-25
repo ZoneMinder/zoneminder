@@ -28,12 +28,12 @@ $monitor = $monitors[0];
 $servers = ZM\Server::find();
 $ServersById = array();
 foreach ( $servers as $S ) {
-  $ServersById[$S->Id()] = $S;
+  $ServersById[validCardinal($S->Id())] = $S;
 }
 $storage_areas = ZM\Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
-  $StorageById[$S->Id()] = $S;
+  $StorageById[validCardinal($S->Id())] = $S;
 }
 
 $focusWindow = true;

@@ -34,7 +34,7 @@ if (count($user->unviewableMonitorIds())) {
   $eventsSql .= ' 1';
 }
 
-$filter = isset($_REQUEST['filter_id']) ? new ZM\Filter($_REQUEST['filter_id']) : new ZM\Filter();
+$filter = isset($_REQUEST['filter_id']) ? new ZM\Filter(validCardinal($_REQUEST['filter_id'])) : new ZM\Filter();
 if ( isset($_REQUEST['filter'])) {
   $filter->set($_REQUEST['filter']);
 }

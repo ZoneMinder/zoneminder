@@ -69,9 +69,14 @@ function processRows(rows) {
     }
     if (ZM_DATETIME_FORMAT_PATTERN) {
       if (window.DateTime) {
-        row.StartDateTime = DateTime.fromSQL(row.StartDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
-        if (row.EndDateTime)
-          row.EndDateTime = DateTime.fromSQL(row.EndDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        row.StartDateTime = DateTime.fromSQL(row.StartDateTime)
+        //.setZone(ZM_TIMEZONE)
+            .toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        if (row.EndDateTime) {
+          row.EndDateTime = DateTime.fromSQL(row.EndDateTime)
+          //.setZone(ZM_TIMEZONE)
+              .toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        }
       } else {
         console.log("DateTime is not defined");
       }

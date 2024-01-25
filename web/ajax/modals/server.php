@@ -8,7 +8,7 @@ if ( !isset($_REQUEST['id']) ) {
 $result = '';
 $checked = ' checked="checked"';
 $null = '';
-$sid = $_REQUEST['id'];
+$sid = validCardinal($_REQUEST['id']);
 
 if ( !canEdit('System') ) return;
 
@@ -32,7 +32,7 @@ if ( $sid and ! $Server->Id() ) return;
           echo getCSRFinputHTML();
           ?>
           <input type="hidden" name="object" value="server"/>
-          <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>
+          <input type="hidden" name="id" value="<?php echo $sid ?>"/>
           <table class="table-sm">
             <tbody>
               <tr class="Name">

@@ -48,7 +48,7 @@ function parentGrpSelect($newGroup) {
   $options = array(''=>'None');
 
   foreach ( dbFetchAll($sql, null, $kids) as $option ) {
-    $options[$option['Id']] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()) . $option['Name'];
+    $options[validCardinal($option['Id'])] = str_repeat('&nbsp;&nbsp;', $Groups[$option['Id']]->depth()).$option['Name'];
   }
 
   return htmlSelect('newGroup[ParentId]', $options, $newGroup->ParentId(), array('data-on-change'=>'configModalBtns'));
@@ -61,7 +61,7 @@ function monitorList($newGroup) {
   $monitorIds = $newGroup->MonitorIds();
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor($monitor['Id']) ) {
-      $result .= '<option value="' .$monitor['Id']. '"' .( in_array( $monitor['Id'], $monitorIds ) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
+      $result .= '<option value="' .validCardinal($monitor['Id']). '"' .( in_array( $monitor['Id'], $monitorIds ) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
     }
   }
   
@@ -78,14 +78,10 @@ if ( !canEdit('Groups') ) {
 }
 
 if ( !empty($_REQUEST['gid']) ) {
-  $newGroup = new ZM\Group($_REQUEST['gid']);
+  $newGroup = new ZM\Group(validCardinal($_REQUEST['gid']));
 } else {
   $newGroup = new ZM\Group();
 }
-
-//
-// BEGIN HTML
-//
 ?>
 <div id="groupModal" class="modal" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">

@@ -78,21 +78,33 @@ if ( isset($_COOKIE['zmMontageLayout']) ) {
 $options = array();
 
 if (isset($_REQUEST['zmMontageWidth'])) {
-  $_SESSION['zmMontageWidth'] = $options['width'] = $_REQUEST['zmMontageWidth'];
+  $width = $_REQUEST['zmMontageWidth'];
+  if (($width == 'auto') or preg_match('/^\d+px$/', $width))
+    $_SESSION['zmMontageWidth'] = $options['width'] = $width;
 } else if (isset($_COOKIE['zmMontageWidth'])) {
-  $_SESSION['zmMontageWidth'] = $options['width'] = $_COOKIE['zmMontageWidth'];
+  $width = $_COOKIE['zmMontageWidth'];
+  if (($width == 'auto') or preg_match('/^\d+px$/', $width))
+    $_SESSION['zmMontageWidth'] = $options['width'] = $width;
 } else if (isset($_SESSION['zmMontageWidth']) and $_SESSION['zmMontageWidth']) {
-  $options['width'] = $_SESSION['zmMontageWidth'];
+  $width = $_SESSION['zmMontageWidth'];
+  if (($width == 'auto') or preg_match('/^\d+px$/', $width))
+    $options['width'] = $width;
 } else {
   $options['width'] = 0;
 }
 
 if (isset($_REQUEST['zmMontageHeight'])) {
-  $_SESSION['zmMontageHeight'] = $options['height'] = $_REQUEST['zmMontageHeight'];
+  $height = $_REQUEST['zmMontageHeight'];
+  if (($height == 'auto') or preg_match('/^\d+px$/', $height))
+    $_SESSION['zmMontageHeight'] = $options['height'] = $height;
 } else if (isset($_COOKIE['zmMontageHeight'])) {
-  $_SESSION['zmMontageHeight'] = $options['height'] = $_COOKIE['zmMontageHeight'];
+  $height = $_COOKIE['zmMontageHeight'];
+  if (($height == 'auto') or preg_match('/^\d+px$/', $height))
+    $_SESSION['zmMontageHeight'] = $options['height'] = $height;
 } else if (isset($_SESSION['zmMontageHeight']) and $_SESSION['zmMontageHeight']) {
-  $options['height'] = $_SESSION['zmMontageHeight'];
+  $height = $_SESSION['zmMontageHeight'];
+  if (($height == 'auto') or preg_match('/^\d+px$/', $height))
+    $options['height'] = $height;
 } else {
   $options['height'] = 0;
 }
@@ -103,8 +115,10 @@ if (isset($_REQUEST['scale'])) {
 } else if (isset($_COOKIE['zmMontageScale'])) {
   $scale = $_COOKIE['zmMontageScale'];
 }
-if ($scale != 'fixed' and $scale != 'auto')
+if ($scale != 'fixed' and $scale != 'auto') {
+  $scale = validNum($scale);
   $options['scale'] = $scale;
+}
 
 session_write_close();
 

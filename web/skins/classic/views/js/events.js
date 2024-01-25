@@ -92,9 +92,14 @@ function processRows(rows) {
     row.Length = date.toISOString().substr(11, 8);
     if (ZM_DATETIME_FORMAT_PATTERN) {
       if (window.DateTime) {
-        row.StartDateTime = DateTime.fromSQL(row.StartDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
-        if (row.EndDateTime)
-          row.EndDateTime = DateTime.fromSQL(row.EndDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        row.StartDateTime = DateTime.fromSQL(row.StartDateTime)
+        //.setZone(ZM_TIMEZONE)
+            .toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        if (row.EndDateTime) {
+          row.EndDateTime = DateTime.fromSQL(row.EndDateTime)
+          //.setZone(ZM_TIMEZONE)
+              .toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        }
       } else {
         console.log("DateTime is not defined");
       }
@@ -212,7 +217,6 @@ function deleteEvents(event_ids) {
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
       } else {
-
         if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
           ticker.innerHTML = '.';
         } else {

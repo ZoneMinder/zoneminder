@@ -68,7 +68,7 @@ if (!$monitor) {
 } # end if $_REQUEST['mid']
 
 if (isset($_REQUEST['dupId'])) {
-  $monitor = new ZM\Monitor($_REQUEST['dupId']);
+  $monitor = new ZM\Monitor(validCardinal($_REQUEST['dupId']));
   $monitor->GroupIds(); // have to load before we change the Id
   if (ZM_OPT_X10)
     $x10Monitor = dbFetchOne('SELECT * FROM TriggersX10 WHERE MonitorId = ?', NULL, array($_REQUEST['dupId']));
@@ -1533,13 +1533,17 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     }
   case 'location':
 ?>
-        <li>
+        <li class="Latitude">
           <label class="Latitude"><?php echo translate('Latitude') ?></label>
-          <input type="number" name="newMonitor[Latitude]" step="any" value="<?php echo $monitor->Latitude() ?>" min="-90" max="90"/>
+          <input type="number" id="newMonitor[Latitude]" name="newMonitor[Latitude]" step="any" value="<?php echo $monitor->Latitude() ?>" min="-90" max="90" data-on-change="LL2DMS" placeholder="degrees"/>
+          <input type="text" id="LatitudeDMS" data-on-change-this="DMS2LL" placeholder="DMS" />
         </li>
-        <li>
+        <li class="Longitude">
           <label class="Longitude"><?php echo translate('Longitude') ?></label>
-          <input type="number" name="newMonitor[Longitude]" step="any" value="<?php echo $monitor->Longitude() ?>" min="-180" max="180"/>
+          <input type="number" id="newMonitor[Longitude]" name="newMonitor[Longitude]" step="any" value="<?php echo $monitor->Longitude() ?>" min="-180" max="180" data-on-change="LL2DMS" placeholder="degrees"/>
+          <input type="text" id="LongitudeDMS" data-on-change-this="DMS2LL" placeholder="DMS"/>
+        </li>
+        <li class="DMS">
         </li>
         <li>
           <button type="button" data-on-click="getLocation"><?php echo translate('GetCurrentLocation') ?></button>

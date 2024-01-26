@@ -77,11 +77,11 @@ bool Fifo::open() {
 #ifdef __linux__
   int ret = fcntl(raw_fd, F_SETPIPE_SZ, PIPE_SIZE);
   if (ret < 0) {
-    Error("set pipe size failed.");
+    Error("set pipe size to %ld failed: %s.", (long)PIPE_SIZE, strerror(errno));
   }
   long pipe_size = (long)fcntl(raw_fd, F_GETPIPE_SZ);
   if (pipe_size == -1) {
-    Error("get pipe size failed.");
+    Error("get pipe size failed: %s.", strerror(errno));
   }
   Debug(1, "default pipe size: %ld\n", pipe_size);
 #endif

@@ -231,16 +231,24 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     }
     return -1;
   }
-  if ((packet->pts < 0) and (packet->pts != AV_NOPTS_VALUE) and (lastPTS >= 0)) {
-    // 32-bit wrap around?
-    Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
-    return -1;
+
+  AVStream *stream = formatContextPtr->streams[packet->stream_index];
+  ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
+
+  if ((packet->pts != AV_NOPTS_VALUE) and (lastPTS >= 0)) {
+    if (packet->pts < 0) {
+      // 32-bit wrap around?
+      Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
+      return -1;
+    } else if (packet->pts - lastPTS < -1*stream->time_base.den) {
+      Warning("Stream pts jumped back in time too far. pts %" PRId64 " - last pts %" PRId64 "= %" PRId64 " > %d",
+          packet->pts, lastPTS, packet->pts-lastPTS, -1*stream->time_base.den);
+      return -1;
+    }
   }
 
   av_packet_guard pkt_guard{packet};
 
-  AVStream *stream = formatContextPtr->streams[packet->stream_index];
-  ZM_DUMP_STREAM_PACKET(stream, packet, "ffmpeg_camera in");
 
   zm_packet->codec_type = stream->codecpar->codec_type;
 

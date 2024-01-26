@@ -30,7 +30,7 @@ require_once('includes/Group.php');
 require_once('includes/Group_Permission.php');
 
 if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
-	if ( !($User = new ZM\User($_REQUEST['uid'])) ) {
+	if ( !($User = new ZM\User(validCardinal($_REQUEST['uid']))) ) {
 		$view = 'error';
 		return;
 	}
@@ -63,7 +63,7 @@ echo getNavBarHTML();
   <div id="page">
     <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
-        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? $_REQUEST['prev'] : 'options&tab=users' ?>"/>
+        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=users' ?>"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($User->Id()) ?>"/>
         <div id="header">
           <div class="float-left pl-3 pt-1">

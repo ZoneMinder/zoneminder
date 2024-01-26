@@ -55,9 +55,9 @@ if ($rate > 1600) {
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if (isset($_COOKIE['zmEventScale'.$Event->MonitorId()])) {
-  $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
+  $scale = validInt($_COOKIE['zmEventScale'.$Event->MonitorId()]);
 } else {
-  $scale = $monitor->DefaultScale();
+  $scale = validInt($monitor->DefaultScale());
 }
 if (!validInt($scale) and $scale != '0') {
   $scale = '0';

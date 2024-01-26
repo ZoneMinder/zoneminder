@@ -23,7 +23,7 @@ if ( isset($_REQUEST['mid']) ) {
   $mids = array();
   $mids[] = validInt($_REQUEST['mid']);
 } else if ( isset($_REQUEST['mids']) ) {
-  $mids = $_REQUEST['mids'];
+  $mids = arrap_map(function($thing){return validInt($thing);}, $_REQUEST['mids'] );
 } else {
   $mids = dbFetchAll('SELECT Id FROM Monitors'.($user->unviewableMonitorIds() ? 'WHERE Id IN ('.$user->viewableMonitorIds().')' : ''), 'Id');
 }

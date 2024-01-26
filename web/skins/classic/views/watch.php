@@ -120,7 +120,7 @@ if (0) {
 if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode']=='stream')) {
   $options['mode'] = validHtmlStr($_REQUEST['mode']);
 } else if (isset($_COOKIE['zmWatchMode'])) {
-  $options['mode'] = $_COOKIE['zmWatchMode'];
+  $options['mode'] = validHtmlStr($_COOKIE['zmWatchMode']);
 } else {
   $options['mode'] = canStream() ? 'stream' : 'still';
 }
@@ -130,7 +130,7 @@ $options['mode'] = 'single';
 if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
   $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
 } else if (isset($_COOKIE['zmWatchRate'])) {
-  $options['maxfps'] = $_COOKIE['zmWatchRate'];
+  $options['maxfps'] = validHtmlStr($_COOKIE['zmWatchRate']);
 } else {
   $options['maxfps'] = ''; // unlimited
 }
@@ -147,7 +147,7 @@ if (isset($_REQUEST['scale'])) {
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
   $scale = validInt($_COOKIE['zmWatchScale'.$mid]);
 } else {
-  $scale = $monitor->DefaultScale();
+  $scale = validInt($monitor->DefaultScale());
 }
 if ( !isset($scales[$scale])) {
   ZM\Info("Invalid scale found in cookie: $scale, defaulting to auto");
@@ -161,15 +161,18 @@ if (isset($_REQUEST['width'])) {
 } else if ( isset($_COOKIE['zmWatchWidth']) and $_COOKIE['zmWatchWidth'] ) {
   $options['width'] = $_COOKIE['zmWatchWidth'];
 } else {
-  $options['width'] = '';
+  $options['width'] = 'auto';
 }
+$options['width'] = preg_replace('/[^0-9A-Za-z%]/', '', $options['width']);
+
 if (isset($_REQUEST['height'])) {
   $options['height'] =validInt($_REQUEST['height']);
 } else if (isset($_COOKIE['zmWatchHeight']) and $_COOKIE['zmWatchHeight']) {
   $options['height'] = $_COOKIE['zmWatchHeight'];
 } else {
-  $options['height'] = '';
+  $options['height'] = 'auto';
 }
+$options['height'] = preg_replace('/[^0-9A-Za-z%]/', '', $options['height']);
 if (
   ($options['width'] and ($options['width'] != 'auto'))
   or 

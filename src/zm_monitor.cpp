@@ -2065,6 +2065,7 @@ bool Monitor::Analyse() {
           if (linked_monitors) {
             //bool eval = linked_monitors->evaluate();
             MonitorLinkExpression::Result result = linked_monitors->result();
+            Debug(1, "Linked_monitor score %d", result.score);
 
             if (result.score > 0) {
               if (cause.length())
@@ -2641,7 +2642,7 @@ int Monitor::Capture() {
       }
       return 1;
     } else {
-      Debug(1, "Unknown codec type %d", packet->codec_type);
+      Debug(1, "Unknown codec type %d %s", packet->codec_type, av_get_media_type_string(packet->codec_type));
       return 1;
     } // end if audio
 

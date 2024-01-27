@@ -595,6 +595,8 @@ int FfmpegCamera::OpenFfmpeg() {
 
 int FfmpegCamera::Close() {
   mIsPrimed = false;
+  mLastVideoPTS = 0;
+  mLastAudioPTS = 0;
 
   if (mVideoCodecContext) {
     avcodec_close(mVideoCodecContext);

@@ -207,29 +207,48 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q),
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
         );
+    if ((ret = av_read_frame(formatContextPtr, packet.get())) < 0) {
+      if (
+          // Check if EOF.
+          (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
+          // Check for Connection failure.
+          (ret == -110)
+         ) {
+        Info("Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
+      } else {
+        Error("Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
+      }
+      return -1;
+    }
   } else {
     formatContextPtr = mFormatContext;
-    lastPTS = mLastVideoPTS;
     Debug(4, "Using video input because %" PRId64 " >= %" PRId64,
         (mAudioStream?av_rescale_q(mLastAudioPTS, mAudioStream->time_base, AV_TIME_BASE_Q):0),
         av_rescale_q(mLastVideoPTS, mVideoStream->time_base, AV_TIME_BASE_Q)
         );
-  }
 
-  if ((ret = av_read_frame(formatContextPtr, packet.get())) < 0) {
-    if (
-        // Check if EOF.
-        (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
-        // Check for Connection failure.
-        (ret == -110)
-       ) {
-      Info("Unable to read packet from stream %d: error %d \"%s\".",
-          packet->stream_index, ret, av_make_error_string(ret).c_str());
-    } else {
-      Error("Unable to read packet from stream %d: error %d \"%s\".",
-          packet->stream_index, ret, av_make_error_string(ret).c_str());
+    if ((ret = av_read_frame(formatContextPtr, packet.get())) < 0) {
+      if (
+          // Check if EOF.
+          (ret == AVERROR_EOF || (formatContextPtr->pb && formatContextPtr->pb->eof_reached)) ||
+          // Check for Connection failure.
+          (ret == -110)
+         ) {
+        Info("Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
+      } else {
+        Error("Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
+      }
+      return -1;
     }
-    return -1;
+    if ( packet->stream_index == mAudioStreamId) {
+      lastPTS = mLastAudioPTS;
+    } else {
+      lastPTS = mLastVideoPTS;
+    }
   }
 
   AVStream *stream = formatContextPtr->streams[packet->stream_index];
@@ -240,9 +259,10 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       // 32-bit wrap around?
       Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
       return -1;
-    } else if (packet->pts - lastPTS < -1*stream->time_base.den) {
+    } else if (packet->pts - lastPTS < -10*stream->time_base.den) {
+      // -10 is for 10 seconds
       Warning("Stream pts jumped back in time too far. pts %" PRId64 " - last pts %" PRId64 "= %" PRId64 " > %d",
-          packet->pts, lastPTS, packet->pts-lastPTS, -1*stream->time_base.den);
+          packet->pts, lastPTS, packet->pts-lastPTS, -10*stream->time_base.den);
       return -1;
     }
   }
@@ -280,7 +300,6 @@ int FfmpegCamera::PostCapture() {
 
 int FfmpegCamera::OpenFfmpeg() {
   int ret = 0;
-
   error_count = 0;
 
 #if LIBAVFORMAT_VERSION_CHECK(59, 16, 100, 16, 100)

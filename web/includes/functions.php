@@ -1601,7 +1601,7 @@ function trimString($string, $length) {
 function monitorIdsToNames($ids) {
   global $mITN_monitors;
   if ( !$mITN_monitors ) {
-    $sql = 'SELECT Id, Name FROM Monitors';
+    $sql = 'SELECT Id, Name FROM Monitors WHERE `Deleted`=false';
     foreach ( dbFetchAll($sql) as $monitor ) {
       $mITN_monitors[$monitor['Id']] = $monitor;
     }

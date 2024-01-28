@@ -121,21 +121,22 @@ foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Servers` ORDER BY lower(`Name`) 
 }
 $monitors = array();
 $monitor_names = array();
-foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`) ASC') as $monitor ) {
-  if ( visibleMonitor($monitor['Id']) ) {
-    $monitors[$monitor['Id']] = new ZM\Monitor($monitor);
-		$monitor_names[] = validHtmlStr($monitor['Name']);
+foreach ( ZM\Monitor::find(['Deleted'=>0], ['order'=>'lower(`Name`) ASC']) as $monitor) {
+  if ($monitor->canView()) {
+    $monitors[$monitor->Id()] = $monitor;
+		$monitor_names[] = validHtmlStr($monitor->Name());
   }
 }
 $zones = array();
-foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name`) ASC') as $zone ) {
-  if ( visibleMonitor($zone['MonitorId']) ) {
-    if ( isset($monitors[$zone['MonitorId']]) ) {
-      $zone['Name'] = validHtmlStr($monitors[$zone['MonitorId']]->Name().': '.$zone['Name']);
-      $zones[$zone['Id']] = new ZM\Zone($zone);
-    }
+foreach (ZM\Zone::find([], ['order'=>'lower(`Name`) ASC']) as $zone ) {
+  if (isset($monitors[$zone->MonitorId()])) {
+    $zone->Name(validHtmlStr($monitors[$zone->MonitorId()]->Name().': '.$zone->Name()));
+    $zones[$zone->Id()] = $zone;
+  } else {
+    ZM\Debug('Zone '.$zone->Monitor()->Name().' '.$zone->Name().' is not visible');
   }
 }
+
 $availableTags = array();
 foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
   $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);

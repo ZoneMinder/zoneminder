@@ -72,15 +72,14 @@ const MonitorLinkExpression::Result MonitorLinkExpression::result() {
   return this->visit(*tree_);
 }
 
-MonitorLinkExpression::Result
-MonitorLinkExpression::visit(Node const & node) {
+MonitorLinkExpression::Result MonitorLinkExpression::visit(Node const & node) {
   Debug(1, "visit: Node: %p Token: %d value %s",
       &node,
       static_cast<int>(node.token.type()),
       std::string(node.token.value()).c_str()
       );
   if (node.token.type() == Token::TokenType::monitorlink) {
-    Debug(1, "Have monitorlink, return true, value");
+    Debug(1, "Have monitorlink, return true, value %d", node.token.score());
     return { true, "", node.token.score() };
   } else if (nullptr == node.left || nullptr == node.right) {
     return { false, "Missing operand", 0 };
@@ -113,7 +112,7 @@ MonitorLinkExpression::visit_logical_and(MonitorLinkExpression::Node const & nod
     left.message.empty() ? right.message : left.message
   };
 
-  Debug(1, "aND left score %d right score %d", left.score, right.score);
+  Debug(1, "AND left score %d right score %d", left.score, right.score);
   return { left.success && right.success, message,
     ((left.score and right.score) ? left.score + right.score : 0)
   };

@@ -944,14 +944,14 @@ class Filter extends ZM_Object {
     }
     $monitors = array();
     $monitor_names = array();
-    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`) ASC') as $monitor ) {
+    foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` WHERE Deleted=false ORDER BY lower(`Name`) ASC') as $monitor ) {
       if ( visibleMonitor($monitor['Id']) ) {
         $monitors[$monitor['Id']] = new Monitor($monitor);
         $monitor_names[] = validHtmlStr($monitor['Name']);
       }
     }
     $zones = array();
-    foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name`) ASC') as $zone ) {
+    foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones WHERE EXISTS (SELECT * FROM Monitors WHERE Monitors.Id=MonitorId AND Monitors.Deleted=false) ORDER BY lower(`Name`) ASC') as $zone ) {
       if ( visibleMonitor($zone['MonitorId']) ) {
         if ( isset($monitors[$zone['MonitorId']]) ) {
           $zone['Name'] = validHtmlStr($monitors[$zone['MonitorId']]->Name().': '.$zone['Name']);

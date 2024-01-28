@@ -46,13 +46,6 @@ $inve = array( 'Inherit'=>translate('Inherit'),'None'=>translate('None'), 'View'
 $bandwidths = array_merge( array( ''=>'' ), $bandwidth_options );
 $langs = array_merge( array( ''=>'' ), getLanguages() );
 
-$sql = 'SELECT Id, Name FROM Monitors ORDER BY Sequence ASC';
-$monitors = array();
-foreach ( dbFetchAll($sql) as $monitor ) {
-  if ( visibleMonitor($monitor['Id']) ) {
-    $monitors[$monitor['Id']] = $monitor;
-  }
-}
 
 $focusWindow = true;
 
@@ -279,9 +272,10 @@ if (canEdit('Groups')) {
       </thead>
       <tbody>
 <?php
-  foreach ($monitors as $m) {
-    $monitor = new ZM\Monitor($m);
-    echo '
+  $monitors = ZM\Monitor::find(['Deleted'=>0], ['order'=>'Sequence ASC']);
+  foreach ( $monitors as $monitor ) {
+    if ($monitor->canView()) {
+      echo '
 <tr class="monitor">
   <td class="Id">'.$monitor->Id().'</td>
   <td class="Name">'.validHtmlStr($monitor->Name()).'</td>
@@ -291,6 +285,9 @@ if (canEdit('Groups')) {
     ['data-on-change'=>'updateEffectivePermissions']).'</td>
   <td class="effective_permission" id="effective_permission'.$monitor->Id().'">'.translate($monitor->effectivePermission($User)).'</td>
 </tr>';
+    } else {
+      ZM\Debug("Can't view monitor ".$monitor->Id(). ' ' .$monitor->canView());
+    }
   }
 ?>
       </tbody>

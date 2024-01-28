@@ -51,6 +51,10 @@ class Group extends ZM_Object {
     if ( ! property_exists($this, 'MonitorIds') ) {
       if (!isset($monitor_ids_cache[$this->{'Id'}])) {
         $monitor_ids_cache[$this->{'Id'}] = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($this->{'Id'}));
+        if (count($this->Children())) {
+          foreach ($this->Children() as $g)
+            $monitor_ids_cache[$this->{'Id'}] += $g->MonitorIds();
+        }
       }
       $this->{'MonitorIds'} = &$monitor_ids_cache[$this->{'Id'}];
     }

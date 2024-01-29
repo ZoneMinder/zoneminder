@@ -2562,13 +2562,13 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
                               std::max(p1.y_, p2.y_),
                               p1.y_ < p2.y_ ? p1.x_ : p2.x_,
                               d.x_ / static_cast<double>(d.y_));
-
   }
-  std::sort(global_edges.begin(), global_edges.end(), PolygonFill::Edge::CompareYX);
 
+  if (global_edges.empty()) return;
+
+  std::sort(global_edges.begin(), global_edges.end(), PolygonFill::Edge::CompareYX);
   std::vector<PolygonFill::Edge> active_edges;
   active_edges.reserve(global_edges.size());
-
   int32 scan_line = global_edges[0].min_y;
   while (!global_edges.empty() || !active_edges.empty()) {
     // Deactivate edges with max_y < current scan line
@@ -2632,10 +2632,10 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
           }
         }
       }
-    }
+    }  // end if (!(scan_line % density))
 
     scan_line++;
-  }
+  } // end while
 }
 
 void Image::Rotate(int angle) {

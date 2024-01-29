@@ -171,10 +171,7 @@ FfmpegCamera::~FfmpegCamera() {
 
 int FfmpegCamera::PrimeCapture() {
   start_read_time = std::chrono::steady_clock::now();
-  if ( mIsPrimed ) {
-    Debug(1, "Priming capture from %s, Closing", mMaskedPath.c_str());
-    Close();
-  }
+  Close();
   mVideoStreamId = -1;
   mAudioStreamId = -1;
   Debug(1, "Priming capture from %s", mMaskedPath.c_str());

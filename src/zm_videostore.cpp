@@ -871,16 +871,21 @@ bool VideoStore::setup_resampler() {
         audio_out_stream->time_base.num, audio_out_stream->time_base.den,
         audio_out_ctx->time_base.num, audio_out_ctx->time_base.den);
 
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
   Debug(1,
         "Audio in bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_in_ctx->bit_rate, audio_in_ctx->sample_rate,
-#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
         audio_in_ctx->ch_layout.nb_channels,
-#else
-        audio_in_ctx->channels,
-#endif
         audio_in_ctx->sample_fmt,
         audio_in_ctx->frame_size);
+#else
+  Debug(1,
+        "Audio in bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
+        audio_in_ctx->bit_rate, audio_in_ctx->sample_rate,
+        audio_in_ctx->channels,
+        audio_in_ctx->sample_fmt,
+        audio_in_ctx->frame_size);
+#endif
   Debug(1,
         "Audio out context bit_rate (%" AV_PACKET_DURATION_FMT ") sample_rate(%d) channels(%d) fmt(%d) frame_size(%d)",
         audio_out_ctx->bit_rate, audio_out_ctx->sample_rate,

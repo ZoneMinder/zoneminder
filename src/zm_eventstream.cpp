@@ -290,7 +290,9 @@ bool EventStream::loadEventData(uint64_t event_id) {
   } // end foreach db row
 
   if (event_data->end_time.time_since_epoch() != Seconds(0)) {
-    Microseconds delta = (last_frame && (last_frame->delta > Microseconds(0))) ? last_frame->delta : Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
+    Microseconds delta = (last_frame && (last_frame->delta > Microseconds(0)))
+      ? last_frame->delta
+      : Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
     if (!last_frame) {
       // There were no frames in db
       auto frame = event_data->frames.emplace_back(
@@ -538,13 +540,13 @@ void EventStream::processCommand(const CmdMsg *msg) {
         break;
     case CMD_PREV :
         Debug(1, "Got PREV command");
-        curr_frame_id = replay_rate >= 0 ? 0 : event_data->last_frame_id+1;
+        curr_frame_id = replay_rate >= 0 ? 1 : event_data->last_frame_id+1;
         paused = false;
         forceEventChange = true;
         break;
     case CMD_NEXT :
         Debug(1, "Got NEXT command");
-        curr_frame_id = replay_rate >= 0 ? event_data->last_frame_id+1 : 0;
+        curr_frame_id = replay_rate >= 0 ? event_data->last_frame_id+1 : 1;
         paused = false;
         forceEventChange = true;
         break;

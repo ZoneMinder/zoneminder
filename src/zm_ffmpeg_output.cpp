@@ -88,7 +88,7 @@ AVFrame *FFmpeg_Output::get_frame( int stream_id ) {
   char errbuf[AV_ERROR_MAX_STRING_SIZE];
 
   if (!packet) {
-    Error("Unable to allocate packet.", );
+    Error("Unable to allocate packet.");
     return nullptr;
   }
 

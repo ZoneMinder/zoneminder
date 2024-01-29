@@ -293,14 +293,13 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     if (tbn)
       zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
   } else if (codec->codec_type == AVMEDIA_TYPE_AUDIO) {
-    Debug(1, "profile %d channels %d sample_rate %d",
-        codec->profile, 
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-        codec->ch_layout.nb_channels,
+    Debug(1, "profile %d channels %d sample_rate %d",
+        codec->profile, codec->ch_layout.nb_channels, codec->sample_rate);
 #else
-        codec->channels,
+    Debug(1, "profile %d channels %d sample_rate %d",
+        codec->profile, codec->channels, codec->sample_rate);
 #endif
-        codec->sample_rate);
   } else {
     Debug(1, "Unknown codec type %d", codec->codec_type);
   }

@@ -38,29 +38,31 @@
 
 #if ZM_HAS_V4L2
 #include "zm_local_camera.h"
-#endif // ZM_HAS_V4L2
+#endif  // ZM_HAS_V4L2
 
 #if HAVE_LIBVLC
 #include "zm_libvlc_camera.h"
-#endif // HAVE_LIBVLC
+#endif  // HAVE_LIBVLC
 
 #if HAVE_LIBVNC
 #include "zm_libvnc_camera.h"
-#endif // HAVE_LIBVNC
+#endif  // HAVE_LIBVNC
 
 #include <algorithm>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <chrono>
+#include <string>
+#include <utility>
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
 #include <fcntl.h>
-#else // ZM_MEM_MAPPED
+#else  // ZM_MEM_MAPPED
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#endif // ZM_MEM_MAPPED
+#endif  // ZM_MEM_MAPPED
 
 // SOLARIS - we don't have MAP_LOCKED on openSolaris/illumos
 #ifndef MAP_LOCKED
@@ -68,7 +70,7 @@
 #endif
 
 #ifdef WITH_GSOAP
-//Workaround for the gsoap library on RHEL
+// Workaround for the gsoap library on RHEL
 struct Namespace namespaces[] =
 {
    {NULL, NULL, NULL, NULL} // end of table
@@ -76,26 +78,35 @@ struct Namespace namespaces[] =
 #endif
 
 // This is the official SQL (and ordering of the fields) to load a Monitor.
-// It will be used wherever a Monitor dbrow is needed. WHERE conditions can be appended
+// It will be used wherever a Monitor dbrow is needed.
 std::string load_monitor_sql =
-"SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, `Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0,"
-"`Recording`+0, `RecordingSource`+0, `Decoding`+0, `RTSP2WebEnabled`, `RTSP2WebType`,"
-"`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, `Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
-"`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`, `AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
-"`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, " // V4L Settings
-"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, `SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, `Deinterlacing`, "
+"SELECT `Id`, `Name`, `Deleted`, `ServerId`, `StorageId`, `Type`, "
+"`Capturing`+0, `Analysing`+0, `AnalysisSource`+0, `AnalysisImage`+0, "
+"`Recording`+0, `RecordingSource`+0, `Decoding`+0, "
+"`RTSP2WebEnabled`, `RTSP2WebType`, "
+"`JanusEnabled`, `JanusAudioEnabled`, `Janus_Profile_Override`, "
+"`Janus_Use_RTSP_Restream`, `Janus_RTSP_User`, `Janus_RTSP_Session_Timeout`, "
+"`LinkedMonitors`, `EventStartCommand`, `EventEndCommand`, `AnalysisFPSLimit`,"
+"`AnalysisUpdateDelay`, `MaxFPS`, `AlarmMaxFPS`,"
+"`Device`, `Channel`, `Format`, `V4LMultiBuffer`, `V4LCapturesPerFrame`, "
+"`Protocol`, `Method`, `Options`, `User`, `Pass`, `Host`, `Port`, `Path`, "
+"`SecondPath`, `Width`, `Height`, `Colours`, `Palette`, `Orientation`+0, "
+"`Deinterlacing`, "
 "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
 "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
 "`OutputCodec`, `Encoder`, `OutputContainer`, "
 "`RecordAudio`, "
 "`Brightness`, `Contrast`, `Hue`, `Colour`, "
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
-"`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, `PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
-"`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `FrameSkip`, `MotionFrameSkip`, "
+"`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, "
+"`PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
+"`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `FrameSkip`,"
+"`MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
 "`Latitude`, `Longitude`, "
 "`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
-"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`,"
+"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, "
+"`ONVIF_Event_Listener`, `use_Amcrest_API`,"
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
 #if MOSQUITTOPP_FOUND
 ", `MQTT_Enabled`, `MQTT_Subscriptions`"
@@ -161,8 +172,8 @@ std::string TriggerState_Strings[] = {
   "Cancel", "On", "Off"
 };
 
-Monitor::Monitor()
- : id(0),
+Monitor::Monitor() :
+  id(0),
   name(""),
   server_id(0),
   storage_id(0),
@@ -366,19 +377,19 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   delete storage;
   storage = new Storage(storage_id);
 
-  if ( ! strcmp(dbrow[col], "Local") ) {
+  if (!strcmp(dbrow[col], "Local")) {
     type = LOCAL;
-  } else if ( ! strcmp(dbrow[col], "Ffmpeg") ) {
+  } else if (!strcmp(dbrow[col], "Ffmpeg")) {
     type = FFMPEG;
-  } else if ( ! strcmp(dbrow[col], "Remote") ) {
+  } else if (!strcmp(dbrow[col], "Remote")) {
     type = REMOTE;
-  } else if ( ! strcmp(dbrow[col], "File") ) {
+  } else if (!strcmp(dbrow[col], "File")) {
     type = FILE;
-  } else if ( ! strcmp(dbrow[col], "NVSocket") ) {
+  } else if (!strcmp(dbrow[col], "NVSocket")) {
     type = NVSOCKET;
-  } else if ( ! strcmp(dbrow[col], "Libvlc") ) {
+  } else if (!strcmp(dbrow[col], "Libvlc")) {
     type = LIBVLC;
-  } else if ( ! strcmp(dbrow[col], "VNC") ) {
+  } else if (!strcmp(dbrow[col], "VNC")) {
     type = VNC;
   } else {
     Fatal("Bogus monitor type '%s' for monitor %d", dbrow[col], id);
@@ -411,15 +422,17 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   analysis_fps_limit = dbrow[col] ? strtod(dbrow[col], nullptr) : 0.0; col++;
   analysis_update_delay = Seconds(strtoul(dbrow[col++], nullptr, 0));
   capture_delay =
-      (dbrow[col] && atof(dbrow[col]) > 0.0) ? std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
+      (dbrow[col] && atof(dbrow[col]) > 0.0) ?
+      std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
                                              : Microseconds(0);
   col++;
   alarm_capture_delay =
-      (dbrow[col] && atof(dbrow[col]) > 0.0) ? std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
+      (dbrow[col] && atof(dbrow[col]) > 0.0) ?
+      std::chrono::duration_cast<Microseconds>(FPSeconds(1 / atof(dbrow[col])))
                                              : Microseconds(0);
   col++;
 
-  /* "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings */
+  /* "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " */
   device = dbrow[col] ? dbrow[col] : ""; col++;
   channel = atoi(dbrow[col]); col++;
   format = atoi(dbrow[col]); col++;
@@ -434,7 +447,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
 
   v4l_captures_per_frame = 0;
-  if ( dbrow[col] ) {
+  if (dbrow[col]) {
     v4l_captures_per_frame = atoi(dbrow[col]);
   } else {
     v4l_captures_per_frame = config.captures_per_frame;
@@ -461,27 +474,27 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   deinterlacing = atoi(dbrow[col]); col++;
   deinterlacing_value = deinterlacing & 0xff;
 
-/*"`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, " */
+  /*"`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, " */
   decoder_name = dbrow[col] ? dbrow[col] : ""; col++;
   decoder_hwaccel_name = dbrow[col] ? dbrow[col] : ""; col++;
   decoder_hwaccel_device = dbrow[col] ? dbrow[col] : ""; col++;
   rtsp_describe = (dbrow[col] && *dbrow[col] != '0'); col++;
 
 
-/* "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, " */
+  /* "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, " */
   savejpegs = atoi(dbrow[col]); col++;
   videowriter = (VideoWriter)atoi(dbrow[col]); col++;
   encoderparams = dbrow[col] ? dbrow[col] : ""; col++;
 
   Debug(3, "Decoding: %d savejpegs %d videowriter %d", decoding, savejpegs, videowriter);
 
-/*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
+  /*"`OutputCodec`, `Encoder`, `OutputContainer`, " */
   output_codec = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
   encoder = dbrow[col] ? dbrow[col] : ""; col++;
   output_container = dbrow[col] ? dbrow[col] : ""; col++;
   record_audio = (*dbrow[col] != '0'); col++;
 
- /* "Brightness, Contrast, Hue, Colour, " */
+  /* "Brightness, Contrast, Hue, Colour, " */
   brightness = atoi(dbrow[col]); col++;
   contrast = atoi(dbrow[col]); col++;
   hue = atoi(dbrow[col]); col++;
@@ -504,10 +517,13 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   post_event_count = atoi(dbrow[col]); col++;
   stream_replay_buffer = atoi(dbrow[col]); col++;
   alarm_frame_count = atoi(dbrow[col]); col++;
-  if (alarm_frame_count < 1) alarm_frame_count = 1;
-  else if (alarm_frame_count > MAX_PRE_ALARM_FRAMES) alarm_frame_count = MAX_PRE_ALARM_FRAMES;
+  if (alarm_frame_count < 1) {
+    alarm_frame_count = 1;
+  } else if (alarm_frame_count > MAX_PRE_ALARM_FRAMES) {
+    alarm_frame_count = MAX_PRE_ALARM_FRAMES;
+  }
 
- /* "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, " */
+  /* "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, " */
   section_length = Seconds(atoi(dbrow[col])); col++;
   section_length_warn = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   min_section_length = Seconds(atoi(dbrow[col])); col++;
@@ -521,7 +537,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   frame_skip = atoi(dbrow[col]); col++;
   motion_frame_skip = atoi(dbrow[col]); col++;
 
- /* "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif," */
+  /* "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif," */
   fps_report_interval = atoi(dbrow[col]); col++;
   ref_blend_perc = atoi(dbrow[col]); col++;
   alarm_ref_blend_perc = atoi(dbrow[col]); col++;
@@ -532,13 +548,13 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   latitude  = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
   longitude  = dbrow[col] ? atof(dbrow[col]) : 0.0; col++;
 
- /* "`RTSPServer`,`RTSPStreamName`, */
+  /* "`RTSPServer`,`RTSPStreamName`, */
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
-// get alarm text from table.
+  // get alarm text from table.
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : ""); col++;
 
-   /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
+  /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   if (onvif_url.empty()) {
     Uri path_uri(path);
@@ -552,7 +568,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   onvif_event_listener = (*dbrow[col] != '0'); col++;
   use_Amcrest_API = (*dbrow[col] != '0'); col++;
 
- /*"SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors"; */
+  /*"SignalCheckPoints, SignalCheckColour, Importance-1 FROM Monitors"; */
   signal_check_points = atoi(dbrow[col]); col++;
   signal_check_colour = strtol(dbrow[col][0] == '#' ? dbrow[col]+1 : dbrow[col], 0, 16); col++;
 
@@ -561,11 +577,11 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   red_val = RED_VAL_BGRA(signal_check_colour);
   green_val = GREEN_VAL_BGRA(signal_check_colour);
   blue_val = BLUE_VAL_BGRA(signal_check_colour);
-  grayscale_val = signal_check_colour & 0xff; /* Clear all bytes but lowest byte */
+  grayscale_val = signal_check_colour & 0xff;  /* Clear all bytes but lowest byte */
 
   importance = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
-  if (importance < 0) importance = 0; // Should only be >= 0
-  zone_count = dbrow[col] ? atoi(dbrow[col]) : 0;// col++;
+  if (importance < 0) importance = 0;  // Should only be >= 0
+  zone_count = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
 #if MOSQUITTOPP_FOUND
   mqtt_enabled = (*dbrow[col] != '0'); col++;
@@ -583,17 +599,18 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.
                         // Instead initial failure to capture will cause a loss of signal change which I think makes more sense.
 
-  if ( strcmp(config.event_close_mode, "time") == 0 )
+  if (strcmp(config.event_close_mode, "time") == 0) {
     event_close_mode = CLOSE_TIME;
-  else if ( strcmp(config.event_close_mode, "alarm") == 0 )
+  } else if (strcmp(config.event_close_mode, "alarm") == 0) {
     event_close_mode = CLOSE_ALARM;
-  else
+  } else {
+  }
     event_close_mode = CLOSE_IDLE;
 
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%u", storage->Path(), id);
 
-  if ( purpose != QUERY ) {
+  if (purpose != QUERY) {
     LoadCamera();
 
     if ( mkdir(monitor_dir.c_str(), 0755) && ( errno != EEXIST ) ) {
@@ -1941,12 +1958,6 @@ bool Monitor::Analyse() {
     packetqueue.increment_it(analysis_it);
     return false;
   }
-  // Ready means that we have captured the warmup # of frames
-  if (!Ready()) {
-    Debug(3, "Not ready?");
-    delete packet_lock;
-    return false;
-  }
 
   // signal is set by capture
   bool signal = shared_data->signal;
@@ -2091,7 +2102,8 @@ bool Monitor::Analyse() {
             }
           }  // end if decoding enabled
 
-          if (shared_data->analysing > ANALYSING_NONE) {
+          // Ready means that we have captured the warmup # of frames
+          if ((shared_data->analysing > ANALYSING_NONE) && Ready()) {
             Debug(3, "signal and capturing and doing motion detection %d", shared_data->analysing);
 
             if (analysis_fps_limit) {
@@ -3003,10 +3015,10 @@ Event * Monitor::openEvent(
   if (!event_start_command.empty()) {
     if (fork() == 0) {
       execlp(event_start_command.c_str(),
-		      event_start_command.c_str(),
-		      std::to_string(event->Id()).c_str(),
-		      std::to_string(event->MonitorId()).c_str(),
-		      nullptr);
+          event_start_command.c_str(),
+          std::to_string(event->Id()).c_str(),
+          std::to_string(event->MonitorId()).c_str(),
+          nullptr);
       Logger *log = Logger::fetch();
       log->databaseLevel(Logger::NOLOG);
       Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
@@ -3562,7 +3574,7 @@ std::vector<Group *> Monitor::Groups() {
 
 StringVector Monitor::GroupNames() {
   StringVector groupnames;
-  for ( Group * g: Groups() ) {
+  for ( Group * g : Groups() ) {
     groupnames.push_back(g->Name());
     Debug(1, "Groups: %s", g->Name().c_str());
   }
@@ -3571,16 +3583,14 @@ StringVector Monitor::GroupNames() {
 
 #ifdef WITH_GSOAP
 //ONVIF Set Credentials
-void Monitor::set_credentials(struct soap *soap)
-{
+void Monitor::set_credentials(struct soap *soap) {
   soap_wsse_delete_Security(soap);
   soap_wsse_add_Timestamp(soap, NULL, 10);
   soap_wsse_add_UsernameTokenDigest(soap, "Auth", onvif_username.c_str(), onvif_password.c_str());
 }
 
 //GSOAP boilerplate
-int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char *faultactor, struct SOAP_ENV__Detail *detail, struct SOAP_ENV__Code *SOAP_ENV__Code, struct SOAP_ENV__Reason *SOAP_ENV__Reason, char *SOAP_ENV__Node, char *SOAP_ENV__Role, struct SOAP_ENV__Detail *SOAP_ENV__Detail)
-{
+int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char *faultactor, struct SOAP_ENV__Detail *detail, struct SOAP_ENV__Code *SOAP_ENV__Code, struct SOAP_ENV__Reason *SOAP_ENV__Reason, char *SOAP_ENV__Node, char *SOAP_ENV__Role, struct SOAP_ENV__Detail *SOAP_ENV__Detail) {
   // populate the fault struct from the operation arguments to print it
   soap_fault(soap);
   // SOAP 1.1

@@ -3448,6 +3448,7 @@ int Monitor::Play() {
   }
   return 1;
 }
+
 int Monitor::Close() {
   Pause();
 
@@ -3476,13 +3477,13 @@ int Monitor::Close() {
     soap = nullptr;
   }  //End ONVIF
 #endif
-  //RTSP2Web teardown
+  // RTSP2Web teardown
   if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
     RTSP2Web_Manager = nullptr;
   }
 
-  //Janus Teardown
+  // Janus Teardown
   if (janus_enabled and (purpose == CAPTURE) and Janus_Manager) {
     delete Janus_Manager;
     Janus_Manager = nullptr;
@@ -3493,6 +3494,7 @@ int Monitor::Close() {
     audio_fifo = nullptr;
     Debug(1, "audio fifo deleted");
   }
+
   if (video_fifo) {
     delete video_fifo;
     Debug(1, "video fifo deleted");
@@ -3500,7 +3502,7 @@ int Monitor::Close() {
   }
 
   return 1;
-}
+} // end Monitor::Close()
 
 Monitor::Orientation Monitor::getOrientation() const { return orientation; }
 

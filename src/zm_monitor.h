@@ -711,10 +711,10 @@ public:
       return false;
     }
     if (decoding_image_count >= ready_count) {
-      Debug(4, "Ready because image_count(%d) >= ready_count(%d)", image_count, ready_count);
+      Debug(4, "Ready because image_count(%d) >= ready_count(%d)", decoding_image_count, ready_count);
       return true;
     }
-    Debug(4, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count);
+    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count, ready_count);
     return false;
   }
   inline bool Active() const {

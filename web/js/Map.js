@@ -22,9 +22,9 @@ function _classCallCheck(instance, Constructor) {
   }
 }
 
-var Map = function() {
-  function Map(json) {
-    _classCallCheck(this, Map);
+var zmMap = function() {
+  function zmMap(json) {
+    _classCallCheck(this, zmMap);
 
     for (var k in json) {
       this[k] = json[k];
@@ -65,7 +65,7 @@ var Map = function() {
     });
   }
 
-  _createClass(Map, [
+  _createClass(zmMap, [
     {
       key: 'addMonitors',
       value: function addMonitors() {
@@ -78,14 +78,36 @@ var Map = function() {
             .then((monitors) => {
               console.log(monitors);
 
-              var cant_connected = 0;
-              var cant_disconnected = 0;
-              var cant_error = 0;
+              let cant_connected = 0;
+              let cant_disconnected = 0;
+              let cant_error = 0;
               let total_cameras = 0;
-              var div_connected = document.getElementById("progress-connected");
-              var div_disconnected = document.getElementById("progress-disconnected");
-              var div_error = document.getElementById("progress-error");
+              let div_connected = document.getElementById("progress-connected");
+              let div_disconnected = document.getElementById("progress-disconnected");
+              let div_error = document.getElementById("progress-error");
 
+              let pins = [];
+
+              for (let i=0, len = monitors.monitors.length; i<len; i++) {
+                const monitor = monitors.monitors[i].Monitor;
+                if (!monitor.Latitude || !monitor.Longitude) continue;
+                if (!pins.length) {
+                  pins[pins.length] = {
+                    latitude: monitor.Latitude,
+                    longitude: monitor.Longitude,
+                    monitors: [ monitor ]
+                  };
+                  continue;
+                }
+                for (let ii=0; ii < pins.len; ii++) {
+                  if (haversineDistance(
+                    pins[ii].latitude, monitor.Latitude,
+                    pins[ii].longitude, monitor.Longitude,
+                  ) > 10 ) {
+                    pins[ii].monitors[pins[ii].monitors.length] = monitor;
+                  }
+                }
+              }
               for (let i=0, len = monitors.monitors.length; i<len; i++) {
                 const monitor = monitors.monitors[i].Monitor;
                 console.log(monitor);
@@ -146,5 +168,31 @@ var Map = function() {
     } // end addMonitors
   ]);
 
-  return Map;
+  return zmMap;
 }();
+
+function haversineDistance($lat1, $lon1, $lat2, $lon2) {
+  // Convert latitude and longitude from degrees to radians
+  const $lat1Rad = deg2rad($lat1);
+  const $lon1Rad = deg2rad($lon1);
+  const $lat2Rad = deg2rad($lat2);
+  const $lon2Rad = deg2rad($lon2);
+
+  // Calculate differences
+  const $latDiff = $lat2Rad - $lat1Rad;
+  const $lonDiff = $lon2Rad - $lon1Rad;
+
+  // Haversine formula
+  const $a = sin($latDiff / 2) * sin($latDiff / 2) +
+    cos($lat1Rad) * cos($lat2Rad) *
+    sin($lonDiff / 2) * sin($lonDiff / 2);
+  const $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+  // Earth's radius in kilometers (you can use 3959 for miles)
+  const $radius = 6371;
+
+  // Calculate the distance
+  const $distance = $radius * $c;
+
+  return $distance;
+}

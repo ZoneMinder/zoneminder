@@ -629,7 +629,7 @@ function getNavBrandHTML() {
 function getConsoleHTML() {
   $result = '';
   
-  if ( canView('Monitors') ) {
+  if (count($user->viewableMonitorIds())) {
     $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
   
@@ -728,7 +728,7 @@ function getCycleHTML($view) {
 function getMontageHTML($view) {
   $result = '';
   
-  if ( canView('Stream') ) {
+  if (canView('Stream') and count($user->viewableMonitorIds())) {
     $class = $view == 'montage' ? ' selected' : '';
     $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }

@@ -395,7 +395,14 @@ function initPage() {
 
 function LL2DMS(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
+  if (latitude.value === '') return;
+  if (latitude.value < -90) latitude.value=-90;
+  if (latitude.value > 90) latitude.value=90;
+
   const longitude = document.getElementById('newMonitor[Longitude]');
+  if (longitude.value === '') return;
+  if (longitude.value < -180) longitude.value=-180;
+  if (longitude.value > 180) longitude.value=180;
   const dmsCoords = new DmsCoordinates(parseFloat(latitude.value), parseFloat(longitude.value));
 
   if (input.id == 'newMonitor[Latitude]') {

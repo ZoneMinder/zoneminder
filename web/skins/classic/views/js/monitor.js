@@ -351,45 +351,79 @@ function initPage() {
 
   if (parseInt(ZM_OPT_USE_GEOLOCATION)) {
     if (window.L) {
-      if (form.elements['newMonitor[Type]'].value != 'WebSite') {
-        const latitude = form.elements['newMonitor[Latitude]'].value;
-        const longitude = form.elements['newMonitor[Longitude]'].value;
-        map = L.map('LocationMap', {
-          center: L.latLng(latitude, longitude),
-          zoom: 8,
-          onclick: function() {
-            alert('click');
-          }
-        });
-        L.tileLayer(ZM_OPT_GEOLOCATION_TILE_PROVIDER, {
-          attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-          maxZoom: 18,
-          id: 'mapbox/streets-v11',
-          tileSize: 512,
-          zoomOffset: -1,
-          accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
-        }).addTo(map);
-        marker = L.marker([latitude, longitude], {draggable: 'true'});
-        marker.addTo(map);
-        marker.on('dragend', function(event) {
-          const marker = event.target;
-          const position = marker.getLatLng();
-          const form = document.getElementById('contentForm');
-          form.elements['newMonitor[Latitude]'].value = position.lat;
-          form.elements['newMonitor[Longitude]'].value = position.lng;
-        });
+      const latitude = form.elements['newMonitor[Latitude]'].value;
+      const longitude = form.elements['newMonitor[Longitude]'].value;
+      map = L.map('LocationMap', {
+        center: L.latLng(latitude, longitude),
+        zoom: 8,
+        onclick: function() {
+          alert('click');
+        }
+      });
+      L.tileLayer(ZM_OPT_GEOLOCATION_TILE_PROVIDER, {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: ZM_OPT_GEOLOCATION_ACCESS_TOKEN,
+      }).addTo(map);
+      marker = L.marker([latitude, longitude], {draggable: 'true'});
+      marker.addTo(map);
+      marker.on('dragend', function(event) {
+        const marker = event.target;
+        const position = marker.getLatLng();
+        const form = document.getElementById('contentForm');
+        form.elements['newMonitor[Latitude]'].value = position.lat;
+        LL2DMS(form.elements['newMonitor[Latitude]']);
+        form.elements['newMonitor[Longitude]'].value = position.lng;
+        LL2DMS(form.elements['newMonitor[Longitude]']);
+      });
+      map.invalidateSize();
+      $j("a[href='#pills-location']").on('shown.bs.tab', function(e) {
         map.invalidateSize();
-        $j("a[href='#pills-location']").on('shown.bs.tab', function(e) {
-          map.invalidateSize();
-        });
-      } // end if not website
+      });
     } else {
       console.log('Location turned on but leaflet not installed.');
     }
+    LL2DMS(form.elements['newMonitor[Latitude]']);
+    LL2DMS(form.elements['newMonitor[Longitude]']);
   } // end if ZM_OPT_USE_GEOLOCATION
 
   updateLinkedMonitorsUI();
 } // end function initPage()
+
+function LL2DMS(input) {
+  const latitude = document.getElementById('newMonitor[Latitude]');
+  const longitude = document.getElementById('newMonitor[Longitude]');
+  const dmsCoords = new DmsCoordinates(parseFloat(latitude.value), parseFloat(longitude.value));
+
+  if (input.id == 'newMonitor[Latitude]') {
+    const dms = document.getElementById('LatitudeDMS');
+    dms.value = dmsCoords.latitude.toString(2);
+  } else if (input.id == 'newMonitor[Longitude]') {
+    const dms = document.getElementById('LongitudeDMS');
+    dms.value = dmsCoords.longitude.toString(2);
+  } else {
+    console.log("Unknown input in LL2DMS");
+  }
+  updateMarker();
+}
+
+function DMS2LL(input) {
+  const latitude = document.getElementById('newMonitor[Latitude]');
+  const longitude = document.getElementById('newMonitor[Longitude]');
+  const dms = parseDms(input.value);
+
+  if (input.id == 'LatitudeDMS') {
+    latitude.value = dms.toFixed(8);
+  } else if (input.id == 'LongitudeDMS') {
+    longitude.value = dms.toFixed(8);
+  } else {
+    console.log('Unknown input in DMS2LL');
+  }
+  updateMarker();
+}
 
 function change_Path(event) {
   const pathInput = document.getElementsByName("newMonitor[Path]")[0];
@@ -488,16 +522,20 @@ function update_estimated_ram_use() {
   }
 }
 
+function updateMarker() {
+  const latitude = document.getElementById('newMonitor[Latitude]').value;
+  const longitude = document.getElementById('newMonitor[Longitude]').value;
+  console.log("Updating marker at ", latitude, longitude);
+  const latlng = new L.LatLng(latitude, longitude);
+  marker.setLatLng(latlng);
+  map.setView(latlng, 8, {animation: true});
+  setTimeout(function() { map.invalidateSize(true); }, 100);
+}
 function updateLatitudeAndLongitude(latitude, longitude) {
   var form = document.getElementById('contentForm');
   form.elements['newMonitor[Latitude]'].value = latitude;
   form.elements['newMonitor[Longitude]'].value = longitude;
-  const latlng = new L.LatLng(latitude, longitude);
-  marker.setLatLng(latlng);
-  map.setView(latlng, 8, {animation: true});
-  setTimeout(function() {
-    map.invalidateSize(true);
-  }, 100);
+  updateMarker(latitude, longitude);
 }
 
 function getLocation() {

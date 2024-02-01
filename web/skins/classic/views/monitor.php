@@ -1535,13 +1535,13 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 ?>
         <li class="Latitude">
           <label class="Latitude"><?php echo translate('Latitude') ?></label>
-          <input type="number" id="newMonitor[Latitude]" name="newMonitor[Latitude]" step="any" value="<?php echo $monitor->Latitude() ?>" min="-90" max="90" data-on-change="LL2DMS" placeholder="degrees"/>
-          <input type="text" id="LatitudeDMS" data-on-change-this="DMS2LL" placeholder="DMS" />
+          <input type="number" id="newMonitor[Latitude]" name="newMonitor[Latitude]" step="any" value="<?php echo $monitor->Latitude() ?>" min="-90" max="90" data-on-input-this="LL2DMS" placeholder="degrees"/>
+          <input type="text" id="LatitudeDMS" data-on-input-this="DMS2LL" placeholder="Degrees Minutes Seconds" />
         </li>
         <li class="Longitude">
           <label class="Longitude"><?php echo translate('Longitude') ?></label>
-          <input type="number" id="newMonitor[Longitude]" name="newMonitor[Longitude]" step="any" value="<?php echo $monitor->Longitude() ?>" min="-180" max="180" data-on-change="LL2DMS" placeholder="degrees"/>
-          <input type="text" id="LongitudeDMS" data-on-change-this="DMS2LL" placeholder="DMS"/>
+          <input type="number" id="newMonitor[Longitude]" name="newMonitor[Longitude]" step="any" value="<?php echo $monitor->Longitude() ?>" min="-180" max="180" data-on-input-this="LL2DMS" placeholder="degrees"/>
+          <input type="text" id="LongitudeDMS" data-on-input-this="DMS2LL" placeholder="Degrees Minutes Seconds"/>
         </li>
         <li class="DMS">
         </li>
@@ -1585,6 +1585,12 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     </div><!--content-->
   </div><!--page-->
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
+  <!--<script src="<?php echo cache_bust('js/dms.js') ?>" type="module"></script>-->
+<script type="module" nonce="<?php echo $cspNonce ?>">
+  import DmsCoordinates, { parseDms } from "/js/dms.js";
+  window.DmsCoordinates = DmsCoordinates;
+  window.parseDms = parseDms;
+</script>
 <?php
 echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
 echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);

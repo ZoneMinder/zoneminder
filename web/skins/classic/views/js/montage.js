@@ -257,7 +257,7 @@ function takeSnapshot() {
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i].kill();
   }
-  monitor_ids = monitorData.map((monitor)=>{
+  const monitor_ids = monitorData.map((monitor)=>{
     return monitor.id;
   });
   post('?view=snapshot', {'action': 'create', 'monitor_ids[]': monitor_ids});

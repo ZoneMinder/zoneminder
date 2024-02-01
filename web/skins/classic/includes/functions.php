@@ -627,6 +627,7 @@ function getNavBrandHTML() {
 
 // Returns the html representing the Console menu item
 function getConsoleHTML() {
+  global $user;
   $result = '';
   
   if (count($user->viewableMonitorIds())) {
@@ -726,6 +727,7 @@ function getCycleHTML($view) {
 
 // Returns the html representing the Montage menu item
 function getMontageHTML($view) {
+  global $user;
   $result = '';
   
   if (canView('Stream') and count($user->viewableMonitorIds())) {

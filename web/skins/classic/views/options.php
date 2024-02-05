@@ -82,7 +82,7 @@ if ($tab == 'skins') {
             <div class="form-group row">
               <label for="skin" class="col-sm-3 col-form-label"><?php echo translate('Skin')?></label>
               <div class="col-sm-6">
-                <select name="skin" class="form-control chosen">
+                <select id="skin" name="skin" class="form-control chosen">
 <?php
 # Have to do this stuff up here before including header.php because of the cookie setting
 $skin_options = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
@@ -97,7 +97,7 @@ foreach ($skin_options as $dir) {
             <div class="form-group row">
               <label for="css" class="col-sm-3 col-form-label">CSS</label>
               <div class="col-sm-6">
-                <select name="css" class="form-control chosen">
+                <select id="css" name="css" class="form-control chosen">
 <?php
 foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $dir) {
   echo '<option value="'.$dir.'" '.($css==$dir ? 'SELECTED="SELECTED"' : '').'>'.$dir.'</option>';
@@ -370,7 +370,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               ( $value['Value'] ? ' checked="checked"' : '').
               ( $optionCanEdit ? '' : ' disabled="disabled"').' />'.PHP_EOL;
             } else if (is_array($value['Hint'])) {
-              $attributes = ['class'=>'form-control-sm'.(count($value['Hint'])>10?' chosen':'')];
+              $attributes = ['id'=>$name, 'class'=>'form-control-sm'.(count($value['Hint'])>10?' chosen':'')];
               if (!$optionCanEdit) $attributes['disabled']='disabled';
               echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value'], $attributes);
             } else if (preg_match('/\|/', $value['Hint'])) {
@@ -384,7 +384,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                     $html_options[$option] = $option;
                   }
                 }
-                $attributes = ['class'=>'form-control-sm'.(count($html_options)>10?' chosen':'')];
+                $attributes = ['id'=>$name, 'class'=>'form-control-sm'.(count($html_options)>10?' chosen':'')];
                 if (!$optionCanEdit) $attributes['disabled']='disabled';
                 echo htmlSelect("newConfig[$name]", $html_options, $value['Value'], $attributes);
               } else {

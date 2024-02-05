@@ -775,6 +775,9 @@ sub recover_timestamps {
   my ( $Event, $path ) = @_;
   $path = $Event->Path() if ! $path;
 
+  # Get timestamp of the dir.  Any files older than this will override this as the starttime
+  my $starttime = (stat($path))[9];
+
   if ( !opendir(DIR, $path) ) {
     Error("Can't open directory '$path': $!");
     return;
@@ -783,7 +786,7 @@ sub recover_timestamps {
   Debug('Have ' . @contents . ' files in '.$path);
   closedir(DIR);
 
-  my @mp4_files = grep(/^\d+\-video\.mp4$/, @contents);
+  my @mp4_files = grep(/^\d+\-video\.\w+\.mp4$/, @contents);
   if ( @mp4_files ) {
     $$Event{DefaultVideo} = $mp4_files[0];
   }
@@ -802,6 +805,7 @@ sub recover_timestamps {
     my $first_file = "$path/$capture_jpgs[0]";
     ( $first_file ) = $first_file =~ /^(.*)$/;
     my $first_timestamp = (stat($first_file))[9];
+    $starttime = $first_timestamp if $first_timestamp < $starttime;
 
     my $last_file = $path.'/'.$capture_jpgs[@capture_jpgs-1];
     ( $last_file ) = $last_file =~ /^(.*)$/;
@@ -842,6 +846,7 @@ sub recover_timestamps {
     ( $file ) = $file =~ /^(.*)$/;
 
     my $first_timestamp = (stat($file))[9];
+    $starttime = $first_timestamp if $first_timestamp < $starttime;
     my $output = `ffprobe $file 2>&1`;
     my ($duration) = $output =~ /Duration: [:\.0-9]+/gm;
     Debug("From mp4 have duration $duration, start: $first_timestamp");
@@ -859,6 +864,7 @@ sub recover_timestamps {
   if ( @mp4_files ) {
     $Event->DefaultVideo($mp4_files[0]);
   }
+  $Event->StartDateTime( Date::Format::time2str('%Y-%m-%d %H:%M:%S', $starttime) );
 }
 
 sub files {

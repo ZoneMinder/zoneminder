@@ -2336,7 +2336,7 @@ bool Monitor::Analyse() {
                 closeEvent();
               }
             } else if (event_close_mode == CLOSE_IDLE) {
-              if (state == IDLE) {
+              if (state == IDLE || state == TAPE) {
                 if ((shared_data->recording == RECORDING_ALWAYS) and (event->Duration() >= section_length)) {
                   //std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                   Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,

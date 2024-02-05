@@ -629,7 +629,7 @@ sub uploadArchFile {
         or Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
     }
     unlink($archLocPath);
-    dbDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
+    zmDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
   }
   return 1;
 } # end sub uploadArchFile

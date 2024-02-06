@@ -170,6 +170,8 @@ void process_configfile(char const *configFile) {
       staticConfig.DB_SSL_CLIENT_KEY = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_DB_SSL_CLIENT_CERT") == 0 )
       staticConfig.DB_SSL_CLIENT_CERT = std::string(val_ptr);
+    else if ( strcasecmp(name_ptr, "ZM_DB_SSL_VERIFY_SERVER_CERT") == 0 )
+      staticConfig.DB_SSL_VERIFY_SERVER_CERT = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_PATH_WEB") == 0 )
       staticConfig.PATH_WEB = std::string(val_ptr);
     else if ( strcasecmp(name_ptr, "ZM_SERVER_HOST") == 0 )

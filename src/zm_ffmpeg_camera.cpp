@@ -256,10 +256,10 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       // 32-bit wrap around?
       Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
       return -1;
-    } else if (packet->pts - lastPTS < -10*stream->time_base.den) {
+    } else if (packet->pts - lastPTS < -20*stream->time_base.den) {
       // -10 is for 10 seconds
       Warning("Stream pts jumped back in time too far. pts %" PRId64 " - last pts %" PRId64 "= %" PRId64 " > %d",
-          packet->pts, lastPTS, packet->pts-lastPTS, -10*stream->time_base.den);
+          packet->pts, lastPTS, packet->pts-lastPTS, -20*stream->time_base.den);
       return -1;
     }
   }

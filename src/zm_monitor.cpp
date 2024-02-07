@@ -2282,6 +2282,10 @@ bool Monitor::Analyse() {
             snap->score = score;
 
           if (event && (event->Duration() >= min_section_length)) {
+            Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64,
+                event->Id(), event->AlarmFrames(), alarm_frame_count,
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count())
+                );
             // If doing record, check to see if we need to close the event or not.
 
             if ((event->Duration() >= section_length) and (event->Frames() < Seconds(min_section_length).count())) {
@@ -2303,6 +2307,9 @@ bool Monitor::Analyse() {
                   Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
                       name.c_str(), snap->image_index, event->Id(), event->AlarmFrames(), alarm_frame_count);
                   closeEvent();
+                } else {
+                  Debug(1, "Not Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
+                      event->Id(), event->AlarmFrames(), alarm_frame_count);
                 }
               } else if (state == IDLE) {
                 if (event->AlarmFrames() > alarm_frame_count and (analysis_image_count - last_alarm_count > post_event_count)) {

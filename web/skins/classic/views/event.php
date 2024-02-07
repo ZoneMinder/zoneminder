@@ -248,7 +248,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 <?php
 if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
 ?>
-          <div id="LocationMap" style="height: 450px; width: 450px;"></div>
+          <div id="LocationMap"></div>
 <?php
 }
 ?>

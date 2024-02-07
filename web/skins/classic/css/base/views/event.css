@@ -1,3 +1,8 @@
+#content {
+  display: flex;
+  flex-direction: column;
+}
+
 #content .vjsMessage {
     width: 100%;
     position: absolute;
@@ -96,6 +101,8 @@ margin: auto 5px;
 height: 100%;
 }
 
+#eventStatsTable {
+}
 #eventVideo {
   width: 100%; /* flex will make it fill the available space */
 }

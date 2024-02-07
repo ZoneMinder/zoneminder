@@ -239,7 +239,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
     </div>
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="inner-content">
-      <div class="d-flex flex-row">
+      <div class="d-flex flex-row px-3">
         <div class="eventStats">
           <!-- VIDEO STATISTICS TABLE -->
           <table id="eventStatsTable" class="table-sm table-borderless">

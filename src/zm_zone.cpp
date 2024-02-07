@@ -826,8 +826,6 @@ bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &
 }  // end bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon)
 
 std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
-  std::vector<Zone> zones;
-
   std::string sql = stringtf("SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
                              "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
                              "FilterX,FilterY,MinFilterPixels,MaxFilterPixels,"
@@ -843,7 +841,9 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   uint32 n_zones = mysql_num_rows(result);
   Debug(1, "Got %d zones for monitor %s", n_zones, monitor->Name());
 
+  std::vector<Zone> zones;
   zones.reserve(n_zones);
+
   for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
     int col = 0;
 

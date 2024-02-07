@@ -375,9 +375,9 @@ function initPage() {
         const position = marker.getLatLng();
         const form = document.getElementById('contentForm');
         form.elements['newMonitor[Latitude]'].value = position.lat;
-        LL2DMS(form.elements['newMonitor[Latitude]']);
+        ll2dms(form.elements['newMonitor[Latitude]']);
         form.elements['newMonitor[Longitude]'].value = position.lng;
-        LL2DMS(form.elements['newMonitor[Longitude]']);
+        ll2dms(form.elements['newMonitor[Longitude]']);
       });
       map.invalidateSize();
       $j("a[href='#pills-location']").on('shown.bs.tab', function(e) {
@@ -386,14 +386,14 @@ function initPage() {
     } else {
       console.log('Location turned on but leaflet not installed.');
     }
-    LL2DMS(form.elements['newMonitor[Latitude]']);
-    LL2DMS(form.elements['newMonitor[Longitude]']);
+    ll2dms(form.elements['newMonitor[Latitude]']);
+    ll2dms(form.elements['newMonitor[Longitude]']);
   } // end if ZM_OPT_USE_GEOLOCATION
 
   updateLinkedMonitorsUI();
 } // end function initPage()
 
-function LL2DMS(input) {
+function ll2dms(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
   if (latitude.value === '') return;
   if (latitude.value < -90) latitude.value=-90;
@@ -412,7 +412,7 @@ function LL2DMS(input) {
     const dms = document.getElementById('LongitudeDMS');
     dms.value = dmsCoords.longitude.toString(2);
   } else {
-    console.log("Unknown input in LL2DMS");
+    console.log("Unknown input in ll2dms");
   }
   updateMarker();
 }
@@ -536,8 +536,11 @@ function updateMarker() {
   const latlng = new L.LatLng(latitude, longitude);
   marker.setLatLng(latlng);
   map.setView(latlng, 8, {animation: true});
-  setTimeout(function() { map.invalidateSize(true); }, 100);
+  setTimeout(function() {
+    map.invalidateSize(true);
+  }, 100);
 }
+
 function updateLatitudeAndLongitude(latitude, longitude) {
   var form = document.getElementById('contentForm');
   form.elements['newMonitor[Latitude]'].value = latitude;

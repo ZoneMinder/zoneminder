@@ -59,6 +59,9 @@ ZM_DB_SSL_CLIENT_KEY=@ZM_DB_SSL_CLIENT_KEY@
 # SSL client cert for ZoneMinder database
 ZM_DB_SSL_CLIENT_CERT=@ZM_DB_SSL_CLIENT_CERT@
 
+# Verify database SSL Cert
+ZM_DB_SSL_VERIFY_SERVER_CERT=@ZM_DB_SSL_VERIFY_SERVER_CERT@
+
 # Do NOT set ZM_SERVER_HOST if you are not using Multi-Server
 # You have been warned
 #

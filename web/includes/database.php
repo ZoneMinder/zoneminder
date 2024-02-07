@@ -55,6 +55,7 @@ function dbConnect() {
         PDO::MYSQL_ATTR_SSL_CA   => ZM_DB_SSL_CA_CERT,
         PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
         PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
+        PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => ZM_DB_SSL_VERIFY_SERVER_CERT,
       );
       $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
     } else {

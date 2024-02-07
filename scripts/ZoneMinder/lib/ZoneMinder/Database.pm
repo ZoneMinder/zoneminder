@@ -102,7 +102,8 @@ sub zmDbConnect {
           'mysql_ssl=1',
           'mysql_ssl_ca_file='.$ZoneMinder::Config::Config{ZM_DB_SSL_CA_CERT},
           'mysql_ssl_client_key='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_KEY},
-          'mysql_ssl_client_cert='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_CERT}
+          'mysql_ssl_client_cert='.$ZoneMinder::Config::Config{ZM_DB_SSL_CLIENT_CERT},
+          'mysql_ssl_verify_server_cert='.$ZoneMinder::Config::Config{ZM_DB_SSL_VERIFY_SERVER_CERT}
           );
     }
 

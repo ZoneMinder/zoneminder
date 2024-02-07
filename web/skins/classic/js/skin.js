@@ -594,10 +594,10 @@ function endOfResize(e) {
  * figures out where bottomEl is in the viewport
  * does calculations
  * */
-function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
+function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   const ratio = baseWidth / baseHeight;
-  const container = $j('#content');
+  if (!container) container = $j('#content');
   if (!container) {
     console.error("No container found");
     return;
@@ -608,12 +608,12 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   }
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
-  var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+  let bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
   console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
-  var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
+  let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
-  var newWidth = ratio * newHeight;
-  console.log("newWidth = " + newWidth);
+  let newWidth = ratio * newHeight;
+  console.log("newWidth = ", newWidth, "container width:", container.innerWidth());
 
   if (newHeight < 0) {
     // Doesn't fit on screen anyways?

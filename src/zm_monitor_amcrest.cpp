@@ -1,5 +1,5 @@
 //
-// ZoneMinder Monitor::AmcrestAPI Class Implementation, $Date$, $Revision$
+// ZoneMinder Monitor::AmcrestAPI Class Implementation
 // Copyright (C) 2022 Jonathan Bennett
 //
 // This program is free software; you can redistribute it and/or
@@ -19,7 +19,6 @@
 
 #include "zm_monitor.h"
 
-
 Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
   parent(parent_),
   Amcrest_Alarmed(false)
@@ -29,7 +28,7 @@ Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
 }
 
 Monitor::AmcrestAPI::~AmcrestAPI() {
-  if (Amcrest_handle != nullptr) {  //potentially clean up the old handle
+  if (Amcrest_handle != nullptr) {  // potentially clean up the old handle
     curl_multi_remove_handle(curl_multi, Amcrest_handle);
     curl_easy_cleanup(Amcrest_handle);
   }
@@ -37,11 +36,11 @@ Monitor::AmcrestAPI::~AmcrestAPI() {
 }
 
 int Monitor::AmcrestAPI::start_Amcrest() {
-  //init the transfer and start it in multi-handle
+  // init the transfer and start it in multi-handle
   int running_handles;
   long response_code;
   CURLMcode curl_error;
-  if (Amcrest_handle != nullptr) {  //potentially clean up the old handle
+  if (Amcrest_handle != nullptr) {  // potentially clean up the old handle
     curl_multi_remove_handle(curl_multi, Amcrest_handle);
     curl_easy_cleanup(Amcrest_handle);
   }
@@ -73,15 +72,17 @@ int Monitor::AmcrestAPI::start_Amcrest() {
       Warning("AMCREST Libcurl exited Early: %i", m->data.result);
     }
 
-    curl_multi_wait(curl_multi, NULL, 0, 300, NULL);
+    curl_multi_wait(curl_multi, nullptr, 0, 300, nullptr);
     curl_error = curl_multi_perform(curl_multi, &running_handles);
   }
 
   if ((curl_error == CURLM_OK) && (running_handles > 0)) {
-    parent->Event_Poller_Healthy = TRUE;
+    parent->Event_Poller_Healthy = true;
+    Debug(1, "AMCREST Healthy");
   } else {
     Warning("AMCREST Response: %s", amcrest_response.c_str());
-    Warning("AMCREST Seeing %i streams, and error of %i, url: %s", running_handles, curl_error, full_url.c_str());
+    Warning("AMCREST Seeing %i streams, and error of %i, url: %s",
+        running_handles, curl_error, full_url.c_str());
     curl_easy_getinfo(Amcrest_handle, CURLINFO_OS_ERRNO, &response_code);
     Warning("AMCREST Response code: %lu", response_code);
   }
@@ -94,36 +95,43 @@ void Monitor::AmcrestAPI::WaitForMessage() {
   int transfers;
   curl_multi_perform(curl_multi, &open_handles);
   if (open_handles == 0) {
-    start_Amcrest(); //http transfer ended, need to restart.
+    start_Amcrest();  // http transfer ended, need to restart.
   } else {
-    curl_multi_wait(curl_multi, NULL, 0, 5000, &transfers); //wait for max 5 seconds for event.
-    if (transfers > 0) { //have data to deal with
-      curl_multi_perform(curl_multi, &open_handles); //actually grabs the data, populates amcrest_response
+    // wait for max 5 seconds for event.
+    curl_multi_wait(curl_multi, nullptr, 0, 5000, &transfers); 
+    if (transfers > 0) {  // have data to deal with
+      // actually grabs the data, populates amcrest_response
+      curl_multi_perform(curl_multi, &open_handles);
       if (amcrest_response.find("action=Start") != std::string::npos) {
-        //Event Start
+        // Event Start
         Debug(1, "AMCREST Triggered on ONVIF");
         if (!parent->Poll_Trigger_State) {
           Debug(1, "AMCREST Triggered Event");
-          parent->Poll_Trigger_State = TRUE;
+          parent->Poll_Trigger_State = true;
         }
       } else if (amcrest_response.find("action=Stop") != std::string::npos) {
         Debug(1, "AMCREST Triggered off ONVIF");
-        parent->Poll_Trigger_State = FALSE;
-        if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
-          parent->Event_Poller_Closes_Event = TRUE;
-          Debug(1,"AMCREST Setting ClosesEvent");
+        parent->Poll_Trigger_State = false;
+        if (!parent->Event_Poller_Closes_Event) {  // If we get a close event, then we know to expect them.
+          parent->Event_Poller_Closes_Event = true;
+          Debug(1, "AMCREST Setting ClosesEvent");
         }
       } else {
         Debug(1, "AMCREST unhandled message: %s", amcrest_response.c_str());
       }
-      amcrest_response.clear(); //We've dealt with the message, need to clear the queue
+      amcrest_response.clear();  // We've dealt with the message, need to clear the queue
+    } else {
+      Debug(1, "AMCREST no transfers");
     }
   }
   return;
 }
 
-size_t Monitor::AmcrestAPI::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
-{
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
-    return size * nmemb;
+size_t Monitor::AmcrestAPI::WriteCallback(
+    void *contents,
+    size_t size,
+    size_t nmemb,
+    void *userp) {
+  ((std::string*)userp)->append((char*)contents, size * nmemb);
+  return size * nmemb;
 }

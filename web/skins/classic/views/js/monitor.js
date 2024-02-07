@@ -417,7 +417,7 @@ function ll2dms(input) {
   updateMarker();
 }
 
-function DMS2LL(input) {
+function dms2ll(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
   const longitude = document.getElementById('newMonitor[Longitude]');
   const dms = parseDms(input.value);
@@ -427,7 +427,7 @@ function DMS2LL(input) {
   } else if (input.id == 'LongitudeDMS') {
     longitude.value = dms.toFixed(8);
   } else {
-    console.log('Unknown input in DMS2LL');
+    console.log('Unknown input in dms2ll');
   }
   updateMarker();
 }

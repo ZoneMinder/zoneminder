@@ -1535,13 +1535,13 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 ?>
         <li class="Latitude">
           <label class="Latitude"><?php echo translate('Latitude') ?></label>
-          <input type="number" id="newMonitor[Latitude]" name="newMonitor[Latitude]" step="any" value="<?php echo $monitor->Latitude() ?>" min="-90" max="90" data-on-input-this="LL2DMS" placeholder="degrees"/>
-          <input type="text" id="LatitudeDMS" data-on-input-this="DMS2LL" placeholder="Degrees Minutes Seconds" />
+          <input type="number" id="newMonitor[Latitude]" name="newMonitor[Latitude]" step="any" value="<?php echo $monitor->Latitude() ?>" min="-90" max="90" data-on-input-this="ll2dms" placeholder="degrees"/>
+          <input type="text" id="LatitudeDMS" data-on-input-this="dms2ll" placeholder="Degrees Minutes Seconds" />
         </li>
         <li class="Longitude">
           <label class="Longitude"><?php echo translate('Longitude') ?></label>
-          <input type="number" id="newMonitor[Longitude]" name="newMonitor[Longitude]" step="any" value="<?php echo $monitor->Longitude() ?>" min="-180" max="180" data-on-input-this="LL2DMS" placeholder="degrees"/>
-          <input type="text" id="LongitudeDMS" data-on-input-this="DMS2LL" placeholder="Degrees Minutes Seconds"/>
+          <input type="number" id="newMonitor[Longitude]" name="newMonitor[Longitude]" step="any" value="<?php echo $monitor->Longitude() ?>" min="-180" max="180" data-on-input-this="ll2dms" placeholder="degrees"/>
+          <input type="text" id="LongitudeDMS" data-on-input-this="dms2ll" placeholder="Degrees Minutes Seconds"/>
         </li>
         <li class="DMS">
         </li>

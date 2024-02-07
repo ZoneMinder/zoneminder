@@ -97,8 +97,7 @@ height: 100%;
 }
 
 #eventVideo {
-    display: inline-block;
-    position: relative;
+  width: 100%; /* flex will make it fill the available space */
 }
 .eventStats {
   margin-right: 5px;

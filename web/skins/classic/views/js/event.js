@@ -1,4 +1,4 @@
-var table = $j('#eventStatsTable');
+var eventStatsTable = $j('#eventStatsTable');
 var backBtn = $j('#backBtn');
 var renameBtn = $j('#renameBtn');
 var archiveBtn = $j('#archiveBtn');
@@ -942,9 +942,9 @@ function getEvtStatsCookie() {
 }
 
 function getStat() {
-  table.empty().append('<tbody>');
+  eventStatsTable.empty().append('<tbody>');
   $j.each(eventDataStrings, function(key) {
-    var th = $j('<th>').addClass('text-right').text(eventDataStrings[key]);
+    var th = $j('<th class="label">').addClass('text-right').text(eventDataStrings[key]);
     var tdString;
 
     //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
@@ -1019,15 +1019,15 @@ function onStatsResize(vidWidth) {
   // Hide the stats table if we have run out of room to show it properly
   if (width < minWidth) {
     statsBtn.prop('disabled', true);
-    if (table.is(':visible')) {
-      table.toggle(false);
+    if (eventStatsTable.is(':visible')) {
+      eventStatsTable.toggle(false);
       wasHidden = true;
     }
   // Show the stats table if we hid it previously and sufficient room becomes available
   } else if (width >= minWidth) {
     statsBtn.prop('disabled', false);
-    if ( !table.is(':visible') && wasHidden ) {
-      table.toggle(true);
+    if ( !eventStatsTable.is(':visible') && wasHidden ) {
+      eventStatsTable.toggle(true);
       wasHidden = false;
     }
   }
@@ -1041,7 +1041,7 @@ function initPage() {
   getStat();
 
   if (getEvtStatsCookie() != 'on') {
-    table.toggle(false);
+    eventStatsTable.toggle(false);
   } else {
     onStatsResize(eventData.Width);
   }
@@ -1192,12 +1192,12 @@ function initPage() {
     var cookie = 'zmEventStats';
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
-    if (table.is(':visible')) {
+    if (eventStatsTable.is(':visible')) {
       setCookie(cookie, 'off');
-      table.toggle(false);
+      eventStatsTable.toggle(false);
     } else {
       setCookie(cookie, 'on');
-      table.toggle(true);
+      eventStatsTable.toggle(true);
     }
   });
 
@@ -1319,6 +1319,9 @@ function initPage() {
   streamPlay();
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
+    const mapDiv = document.getElementById('LocationMap');
+    mapDiv.style('width: 450px');
+    mapDiv.style('height: 450px');
     if ( window.L ) {
       map = L.map('LocationMap', {
         center: L.latLng(eventData.Latitude, eventData.Longitude),

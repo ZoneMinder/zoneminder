@@ -2003,7 +2003,6 @@ bool Monitor::Analyse() {
         Event::StringSet noteSet;
         noteSet.insert(trigger_data->trigger_text);
         noteSetMap[trigger_data->trigger_cause] = noteSet;
-        shared_data->state = state = ALARM;
       }  // end if trigger_on
 
       // FIXME this snap might not be the one that caused the signal change.  Need to store that in the packet.

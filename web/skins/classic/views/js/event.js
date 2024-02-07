@@ -271,7 +271,7 @@ function changeScale() {
   const bottomEl = $j('#replayStatus');
 
   if (!scale) {
-    const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
+    const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl, $j('#eventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     scale = newSize.autoScale;

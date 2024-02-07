@@ -54,9 +54,9 @@ var noStr = '<?php echo translate('No') ?>';
 
 var eventDataStrings = {
     Id: '<?php echo translate('EventId') ?>',
-    Name: '<?php echo translate('EventName') ?>',
+    Name: '<?php echo translate('Name') ?>',
     MonitorId: '<?php echo translate('AttrMonitorId') ?>',
-    MonitorName: '<?php echo translate('AttrMonitorName') ?>',
+    MonitorName: '<?php echo translate('Monitor') ?>',
     Cause: '<?php echo translate('Cause') ?>',
     <!-- Tags is not necessary since tags are displayed above -->
     <!-- Tags: '<?php echo translate('Tags') ?>', -->  

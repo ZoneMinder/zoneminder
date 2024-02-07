@@ -1,2 +1,2 @@
-const map = new zmMap();
+const map = new ZMMap();
 map.addMonitors();

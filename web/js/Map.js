@@ -22,9 +22,9 @@ function _classCallCheck(instance, Constructor) {
   }
 }
 
-var zmMap = function() {
-  function zmMap(json) {
-    _classCallCheck(this, zmMap);
+var ZMMap = function() {
+  function ZMMap(json) {
+    _classCallCheck(this, ZMMap);
 
     for (var k in json) {
       this[k] = json[k];
@@ -65,7 +65,7 @@ var zmMap = function() {
     });
   }
 
-  _createClass(zmMap, [
+  _createClass(ZMMap, [
     {
       key: 'addMonitors',
       value: function addMonitors() {
@@ -168,7 +168,7 @@ var zmMap = function() {
     } // end addMonitors
   ]);
 
-  return zmMap;
+  return ZMMap;
 }();
 
 function haversineDistance($lat1, $lon1, $lat2, $lon2) {

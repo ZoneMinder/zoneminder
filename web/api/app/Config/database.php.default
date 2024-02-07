@@ -73,7 +73,6 @@ class DATABASE_CONFIG {
 		'ssl_ca' => ZM_DB_SSL_CA_CERT,
 		'ssl_key' => ZM_DB_SSL_CLIENT_KEY,
 		'ssl_cert' => ZM_DB_SSL_CLIENT_CERT,
-		'ssl_verify_server_cert' => ZM_DB_SSL_VERIFY_SERVER_CERT,
 		'prefix' => '',
 		'encoding' => 'utf8',
 	);

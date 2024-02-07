@@ -46,7 +46,6 @@ bool zmDbConnect() {
     mysql_options(&dbconn, MYSQL_OPT_SSL_KEY,    staticConfig.DB_SSL_CLIENT_KEY.c_str());
     mysql_options(&dbconn, MYSQL_OPT_SSL_CERT,   staticConfig.DB_SSL_CLIENT_CERT.c_str());
     mysql_options(&dbconn, MYSQL_OPT_SSL_CA,     staticConfig.DB_SSL_CA_CERT.c_str());
-    mysql_options(&dbconn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT,     staticConfig.DB_SSL_VERIFY_SERVER_CERT.c_str());
   }
 
   std::string::size_type colonIndex = staticConfig.DB_HOST.find(":");

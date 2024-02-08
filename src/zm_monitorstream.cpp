@@ -476,6 +476,7 @@ void MonitorStream::runStream() {
     // Not yet migrated over to stream class
       SingleImage(scale);
     }
+    zm_terminate = true;
     return;
   }
 
@@ -555,9 +556,11 @@ void MonitorStream::runStream() {
   while (!zm_terminate) {
     if (feof(stdout)) {
       Debug(2, "feof stdout");
+      zm_terminate = true;
       break;
     } else if (ferror(stdout)) {
       Debug(2, "ferror stdout");
+      zm_terminate = true;
       break;
     }
 
@@ -575,7 +578,7 @@ void MonitorStream::runStream() {
         monitor->setLastViewed();
         rc= sendTextFrame("Waiting for capture");
       } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
-        rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide live stream.");
+        rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide a live image");
       } else {
         rc = sendTextFrame("Unable to stream");
       }

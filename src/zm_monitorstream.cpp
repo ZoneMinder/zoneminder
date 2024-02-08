@@ -467,6 +467,8 @@ void MonitorStream::runStream() {
         // Notify capture that we might want to view
         monitor->setLastViewed();
         sendTextFrame("Waiting for capture");
+      } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
+        sendTextFrame("Monitor has Decoding==None. We will not be able to provide live stream.");
       } else {
         sendTextFrame("Unable to stream");
       }
@@ -563,24 +565,24 @@ void MonitorStream::runStream() {
 
     bool was_paused = paused;
     if (!checkInitialised()) {
+      int rc = -1;
       if (!loadMonitor(monitor_id)) {
-        if (!sendTextFrame("Not connected")) {
-          Debug(1, "Failed Send not connected");
-          continue;
-        }
+        rc = sendTextFrame("Not connected");
       } else if (monitor->Deleted()) {
-        sendTextFrame("Monitor has been deleted");
+        rc = sendTextFrame("Monitor has been deleted");
         zm_terminate = true;
-        continue;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         monitor->setLastViewed();
-        if (!sendTextFrame("Waiting for capture")) return;
+        rc= sendTextFrame("Waiting for capture");
+      } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
+        rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide live stream.");
       } else {
-        if (!sendTextFrame("Unable to stream")) {
-          Debug(1, "Failed Send unable to stream");
-          zm_terminate = true;
-          continue;
-        }
+        rc = sendTextFrame("Unable to stream");
+      }
+      if (!rc) {
+        Debug(1, "Failed Send unable to stream");
+        zm_terminate = true;
+        continue;
       }
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
@@ -884,6 +886,7 @@ void MonitorStream::runStream() {
       }
     } // end if checking for swap_path
   } // end if buffered_playback
+
   if (zm_terminate)
     Debug(1, "zm_terminate");
 

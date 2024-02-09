@@ -18,10 +18,6 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
-function cmpDataTime($a, $b) {
-    return strcmp(strtotime($a->StartDateTime), strtotime($b->StartDateTime));
-}
-
 function exportEvents(
   $eids,
   $export_root,
@@ -87,7 +83,9 @@ function exportEvents(
       continue;
     }
 
-    usort($events_by_monitor_id[$mid], "cmpDataTime");
+    usort($events_by_monitor_id[$mid], function($a, $b) {
+        return strtotime($a->StartDateTime) <=> strtotime($b->StartDateTime);
+    });
 
     $eventFileList = '';
     $minTimeSecs = -1;

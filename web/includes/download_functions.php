@@ -18,6 +18,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+function cmpDataTime($a, $b) {
+    return strcmp(strtotime($a->StartDateTime), strtotime($b->StartDateTime));
+}
+
 function exportEvents(
   $eids,
   $export_root,
@@ -82,7 +86,9 @@ function exportEvents(
       ZM\Error("No monitor found for id $mid");
       continue;
     }
-    
+
+    usort($events_by_monitor_id[$mid], "cmpDataTime");
+
     $eventFileList = '';
     $minTimeSecs = -1;
     $minTime = '';

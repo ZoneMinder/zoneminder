@@ -2647,9 +2647,9 @@ our @options = (
       website to determine the most recent release. These checks are
       infrequent, about once per week, and no personal or system
       information is transmitted other than your current version
-      number. If you do not wish these checks to take place or your
-      ZoneMinder system has no internet access you can switch these
-      check off with this configuration variable
+      number. If you wish these checks to take place and your
+      ZoneMinder system has internet access you can switch these
+      checks on with this configuration variable
       `,
     type        => $types{boolean},
     category    => 'system',

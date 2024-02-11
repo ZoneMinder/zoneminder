@@ -153,6 +153,7 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
       Info("Authenticated user '%s'", user->getUsername());
       return user;
     } 
+    delete user;
   }  // end if 1 result from db
   mysql_free_result(result);
 

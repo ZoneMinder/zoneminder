@@ -77,6 +77,10 @@ struct Namespace namespaces[] =
 };
 #endif
 
+// temp variable to fix soap_wsa_compliance 
+// ovargasp 9-2-2024
+bool soap_wsa_compl = false;
+
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used wherever a Monitor dbrow is needed.
 std::string load_monitor_sql =
@@ -1072,15 +1076,15 @@ bool Monitor::connect() {
         soap->send_timeout = 0;
         //soap->bind_flags |= SO_REUSEADDR;
         soap_register_plugin(soap, soap_wsse);
-        soap_register_plugin(soap, soap_wsa);
+        if (soap_wsa_compl) {soap_register_plugin(soap, soap_wsa);}
         proxyEvent = PullPointSubscriptionBindingProxy(soap);
 
         if (!onvif_url.empty()) {
           std::string full_url = onvif_url + "/Events";
           proxyEvent.soap_endpoint = full_url.c_str();
           set_credentials(soap);
-          const char *RequestMessageID = soap_wsa_rand_uuid(soap);
-          if (soap_wsa_request(soap, RequestMessageID,  proxyEvent.soap_endpoint , "CreatePullPointSubscriptionRequest") == SOAP_OK) {
+          const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
+          if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  proxyEvent.soap_endpoint , "CreatePullPointSubscriptionRequest") == SOAP_OK)) {
             Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
             if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
               const char *detail = soap_fault_detail(soap);
@@ -1095,8 +1099,8 @@ bool Monitor::connect() {
             } else {
               //Empty the stored messages
               set_credentials(soap);
-              RequestMessageID = soap_wsa_rand_uuid(soap);
-              if (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address , "PullMessageRequest") == SOAP_OK) {
+              RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap):NULL;
+              if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address , "PullMessageRequest") == SOAP_OK)) {
                 Debug(1, "ONVIF :soap_wsa_request  OK ");
                 if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
                     (soap->error != SOAP_EOF)
@@ -1113,30 +1117,32 @@ bool Monitor::connect() {
               }
 
               // we renew the current subscription .........
-              set_credentials(soap);
-              RequestMessageID = soap_wsa_rand_uuid(soap);
-              if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
-                Debug(1, "ONVIF :soap_wsa_request OK");
-                if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-                  Error("ONVIF Couldn't do initial Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  if (soap->error==12) {//ActionNotSupported
-                    Event_Poller_Healthy = true;
+              if (soap_wsa_compl){
+                set_credentials(soap);
+                RequestMessageID = soap_wsa_rand_uuid(soap);
+                if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
+                  Debug(1, "ONVIF :soap_wsa_request OK");
+                  if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
+                    Error("ONVIF Couldn't do initial Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+                    if (soap->error==12) {//ActionNotSupported
+                      Event_Poller_Healthy = true;
+                    } else {
+                      Event_Poller_Healthy = false;
+                    }
                   } else {
-                    Event_Poller_Healthy = false;
+                    Debug(1, "Good Initial ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+                    Event_Poller_Healthy = true;
                   }
                 } else {
-                  Debug(1, "Good Initial ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  Event_Poller_Healthy = true;
-                }
-              } else {
-                Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=RenewRequest Error %i %s, %s",
-                    RequestMessageID,
-                    response.SubscriptionReference.Address,
-                    soap->error,
-                    soap_fault_string(soap),
-                    soap_fault_detail(soap));
-                Event_Poller_Healthy = false;
-              }
+                  Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=RenewRequest Error %i %s, %s",
+                      RequestMessageID,
+                      response.SubscriptionReference.Address,
+                      soap->error,
+                      soap_fault_string(soap),
+                      soap_fault_detail(soap));
+                  Event_Poller_Healthy = false;
+                }// end renew
+              } 
             }
           } else {
             Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=CreatePullPointSubscriptionRequest Error %i %s, %s",
@@ -1844,8 +1850,8 @@ bool Monitor::Poll() {
     } else {
 #ifdef WITH_GSOAP
       set_credentials(soap);
-      const char *RequestMessageID = soap_wsa_rand_uuid(soap);
-      if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK) {
+      const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
+      if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
         Debug(1, ":soap_wsa_request OK; starting ONVIF PullMessageRequest ...");
         int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
         if (result != SOAP_OK) {
@@ -1892,28 +1898,30 @@ bool Monitor::Poll() {
           }  // end foreach msg
 
           // we renew the current subscription .........
-          set_credentials(soap);
-          std::string Termination_time = "PT60S";
-          wsnt__Renew.TerminationTime = &Termination_time;
-          RequestMessageID = soap_wsa_rand_uuid(soap);
-          if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
-            Debug(1, ":soap_wsa_request OK");
-            if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-              Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-              if (soap->error==12) {//ActionNotSupported
-                Event_Poller_Healthy = true;
+          if (soap_wsa_compl){
+            set_credentials(soap);
+            std::string Termination_time = "PT60S";
+            wsnt__Renew.TerminationTime = &Termination_time;
+            RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
+            if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK)) {
+              Debug(1, ":soap_wsa_request OK");
+              if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
+                Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+                if (soap->error==12) {//ActionNotSupported
+                  Event_Poller_Healthy = true;
+                } else {
+                  Event_Poller_Healthy = false;
+                }
               } else {
-                Event_Poller_Healthy = false;
+                Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+                Event_Poller_Healthy = true;
               }
             } else {
-              Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-              Event_Poller_Healthy = true;
-            }
-          } else {
-            Error("Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=  RenewRequest .... ! Error %i %s, %s",
-                RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-            Event_Poller_Healthy = false;
-          }
+              Error("Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=  RenewRequest .... ! Error %i %s, %s",
+                  RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+              Event_Poller_Healthy = false;
+            } // end renew
+          } 
         }  // end if SOAP OK/NOT OK
       } else {
         Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",
@@ -3480,8 +3488,8 @@ int Monitor::Close() {
     Debug(1, "Tearing Down Onvif");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-    const char *RequestMessageID = soap_wsa_rand_uuid(soap);
-    if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "UnsubscribeRequest") == SOAP_OK)
+    const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
+    if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "UnsubscribeRequest") == SOAP_OK))
     {
       proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
     } else {

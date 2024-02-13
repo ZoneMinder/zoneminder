@@ -597,6 +597,10 @@ switch ($name) {
               <input type="text" name="newMonitor[ONVIF_Alarm_Text]" value="<?php echo validHtmlStr($monitor->ONVIF_Alarm_Text()) ?>"/>
             </li>
             <li>
+              <label><?php echo translate('SOAP WSA COMPLIANCE'); echo makeHelpLink('OPTIONS_SOAP_wsa') ?></label>
+              <input type="checkbox" name="newMonitor[SOAP_wsa_compl]" value="1"<?php echo $monitor->SOAP_wsa_compl()  ? ' checked="checked"' : '' ?>/>
+            </li>
+            <li>
               <label><?php echo translate('ONVIF_Event_Listener') ?></label>
               <?php echo html_radio('newMonitor[ONVIF_Event_Listener]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->ONVIF_Event_Listener()); ?>
             </li>

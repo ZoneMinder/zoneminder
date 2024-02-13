@@ -40,11 +40,15 @@ ZoneMinderFifoSource::ZoneMinderFifoSource(
 
 ZoneMinderFifoSource::~ZoneMinderFifoSource() {
   Debug(1, "Deleting Fifo Source");
-    Stop();
-  if (read_thread_.joinable())
+  Stop();
+  if (read_thread_.joinable()) {
+    Debug(3, "Joining read thread");
     read_thread_.join();
-  if (write_thread_.joinable())
+  }
+  if (write_thread_.joinable()) {
+    Debug(3, "Joining write thread");
     write_thread_.join();
+  }
   Debug(1, "Deleting Fifo Source done");
 }
 
@@ -66,11 +70,12 @@ void ZoneMinderFifoSource::WriteRun() {
   if (stop_) Warning("bad value for stop_ in WriteRun");
 	while (!stop_) {
     NAL_Frame *nal = nullptr;
-    while (!stop_ and !nal) {
+    while (!stop_ and !zm_terminate and !nal) {
       std::unique_lock<std::mutex> lck(mutex_);
       if (m_nalQueue.empty()) {
         Debug(3, "waiting");
         condition_.wait(lck);
+        if (stop_ or zm_terminate) return;
       }
       if (!m_nalQueue.empty()) {
         nal = m_nalQueue.front();

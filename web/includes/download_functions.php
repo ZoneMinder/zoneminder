@@ -82,7 +82,11 @@ function exportEvents(
       ZM\Error("No monitor found for id $mid");
       continue;
     }
-    
+
+    usort($events_by_monitor_id[$mid], function($a, $b) {
+        return strtotime($a->StartDateTime) <=> strtotime($b->StartDateTime);
+    });
+
     $eventFileList = '';
     $minTimeSecs = -1;
     $minTime = '';

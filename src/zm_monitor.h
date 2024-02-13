@@ -505,6 +505,7 @@ protected:
   double      longitude;
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
+  bool        soap_wsa_compl; // Whether the camera supports soap_wsa or not. 
   std::string onvif_alarm_txt;     // def onvif_alarm_txt
   int         importance;           // Importance of this monitor, affects Connection logging errors.
   unsigned int         zone_count;

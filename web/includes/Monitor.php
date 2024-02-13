@@ -251,6 +251,7 @@ public static function getStatuses() {
     'Longitude' =>  null,
     'RTSPServer' => array('type'=>'boolean', 'default'=>0),
     'RTSPStreamName'  => '',
+    'SOAP_wsa_compl' => array('type'=>'boolean', 'default'=>0), 
     'Importance'      =>  'Normal',
     'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
     'MQTT_Subscriptions'  =>  '',

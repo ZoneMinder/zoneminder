@@ -77,10 +77,6 @@ struct Namespace namespaces[] =
 };
 #endif
 
-// temp variable to fix soap_wsa_compliance 
-// ovargasp 9-2-2024
-bool soap_wsa_compl = false;
-
 // This is the official SQL (and ordering of the fields) to load a Monitor.
 // It will be used wherever a Monitor dbrow is needed.
 std::string load_monitor_sql =
@@ -108,7 +104,7 @@ std::string load_monitor_sql =
 "`MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
 "`Latitude`, `Longitude`, "
-"`RTSPServer`, `RTSPStreamName`, `ONVIF_Alarm_Text`,"
+"`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`, `ONVIF_Alarm_Text`," 
 "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, "
 "`ONVIF_Event_Listener`, `use_Amcrest_API`,"
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
@@ -261,6 +257,7 @@ Monitor::Monitor() :
   longitude(0.0),
   rtsp_server(false),
   rtsp_streamname(""),
+  soap_wsa_compl(false), 
   onvif_alarm_txt(""),
   importance(0),
   zone_count(0),
@@ -365,7 +362,7 @@ Monitor::Monitor() :
    "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
    "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
    "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
-   "`RTSPServer`,`RTSPStreamName`,
+   "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`,"
    "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
    "SignalCheckPoints, SignalCheckColour, Importance-1, ZoneCount, `MQTT_Enabled`, `MQTT_Subscriptions` FROM Monitors";
 */
@@ -557,6 +554,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   /* "`RTSPServer`,`RTSPStreamName`, */
   rtsp_server = (*dbrow[col] != '0'); col++;
   rtsp_streamname = dbrow[col]; col++;
+  // get soap_wsa_compliance value
+  soap_wsa_compl = (*dbrow[col] != '0'); col++; 
   // get alarm text from table.
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : ""); col++;
 

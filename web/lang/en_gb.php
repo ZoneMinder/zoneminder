@@ -954,6 +954,14 @@ None: No frames will be decoded, live view and thumbnails will not be available~
     You will get errors in your logs about this. So make sure your keyframe interval is low or you have enough ram.
   '
   ),
+// Help for soap_wsa issue with chinesse cameras
+   'OPTIONS_SOAP_wsa' => array(
+    'Help' => '
+     Disable it if you receive an error ~~~ Couldnt do Renew Error 12 ActionNotSupported
+     <env:Text>The device do NOT support this feature</env:Text> ~~~ when trying to enable/use ONVIF ~~it may
+     help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
+    '
+   ),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

@@ -48,6 +48,15 @@ bool ValidateAccess(User *user, int mon_id) {
   return allowed;
 }
 
+int exit_zms(int exit_code) {
+  Debug(1, "Terminating");
+  Image::Deinitialise();
+  dbQueue.stop();
+  zmDbClose();
+  logTerm();
+  exit(exit_code);
+  return exit_code;
+}
 int main(int argc, const char *argv[], char **envp) {
   self = argv[0];
 
@@ -99,7 +108,7 @@ int main(int argc, const char *argv[], char **envp) {
   const char *query = getenv("QUERY_STRING");
   if ( query == nullptr ) {
     Fatal("No query string.");
-    return 0;
+    return exit_zms(0);
   }  // end if query
 
   Debug(1, "Query: %s", query);
@@ -219,9 +228,7 @@ int main(int argc, const char *argv[], char **envp) {
 
       const char *referer = getenv("HTTP_REFERER");
       Error("Unable to authenticate user from %s", referer);
-      logTerm();
-      zmDbClose();
-      return 0;
+      return exit_zms(0);
     }
     if ( !ValidateAccess(user, monitor_id) ) {
       delete user;
@@ -230,9 +237,7 @@ int main(int argc, const char *argv[], char **envp) {
         fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
       }
       fputs("Status: 403\r\nContent-Type: text/html\r\n\r\n", stdout);
-      logTerm();
-      zmDbClose();
-      return 0;
+      return exit_zms(0);
     }
     delete user;
     user = nullptr;
@@ -341,11 +346,5 @@ int main(int argc, const char *argv[], char **envp) {
     Error("Neither a monitor or event was specified.");
   }  // end if monitor or event
 
-  Debug(1, "Terminating");
-  Image::Deinitialise();
-  dbQueue.stop();
-  logTerm();
-  zmDbClose();
-
-  return 0;
+  return exit_zms(0);
 }

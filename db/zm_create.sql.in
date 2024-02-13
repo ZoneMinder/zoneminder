@@ -611,6 +611,7 @@ CREATE TABLE `Monitors` (
   `Longitude`  DECIMAL(11,8),
   `RTSPServer`  BOOLEAN NOT NULL DEFAULT FALSE,
   `RTSPStreamName`  varchar(255) NOT NULL default '',
+  `SOAP_wsa_compl BOOLEAN NOT NULL default TRUE,
   `Importance`  enum('Normal','Less','Not') NOT NULL default 'Normal',
   `MQTT_Enabled`  BOOLEAN NOT NULL DEFAULT false,
   `MQTT_Subscriptions`  varchar(255) default '',

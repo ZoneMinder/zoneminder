@@ -1987,14 +1987,14 @@ bool Monitor::Analyse() {
     if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
       Debug(4, "Trigger not OFF state is (%d)", int(trigger_data->trigger_state));
 
-      int score = 0;
+      snap->score = 0;
       std::string cause;
       Event::StringSetMap noteSetMap;
 
 #ifdef WITH_GSOAP
       if (onvif_event_listener && Event_Poller_Healthy) {
         if (Poll_Trigger_State) {
-          score += 9;
+          snap->score += 9;
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
           noteSet.insert("ONVIF2");
@@ -2009,8 +2009,8 @@ bool Monitor::Analyse() {
 
       // Specifically told to be on.  Setting the score here is not enough to trigger the alarm. Must jump directly to ALARM
       if (trigger_data->trigger_state == TriggerState::TRIGGER_ON) {
-        score += trigger_data->trigger_score;
-        Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, score);
+        snap->score += trigger_data->trigger_score;
+        Debug(1, "Triggered on score += %d => %d", trigger_data->trigger_score, snap->score);
         if (!cause.empty()) cause += ", ";
         cause += trigger_data->trigger_cause;
         Event::StringSet noteSet;
@@ -2095,13 +2095,12 @@ bool Monitor::Analyse() {
             cause += LINKED_CAUSE;
             //Event::StringSet noteSet;
             //noteSet.insert(linked_monitors[i]->Name());
-            score += result.score;
+            snap->score += result.score;
           }
         } else {
           Debug(4, "Not linked_monitors");
         }
 #endif
-
         if (snap->codec_type == AVMEDIA_TYPE_VIDEO) {
           /* try to stay behind the decoder. */
           if (decoding != DECODING_NONE) {
@@ -2128,6 +2127,7 @@ bool Monitor::Analyse() {
             Event::StringSet zoneSet;
 
             if (snap->image) {
+              int motion_score = 0;
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
@@ -2143,11 +2143,11 @@ bool Monitor::Analyse() {
                   Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
-                    snap->score = DetectMotion(*(snap->y_image), zoneSet);
+                    motion_score += DetectMotion(*(snap->y_image), zoneSet);
                     if (!snap->analysis_image)
                       snap->analysis_image = new Image(*(snap->y_image));
                   } else {
-                    snap->score = DetectMotion(*(snap->image), zoneSet);
+                    motion_score += DetectMotion(*(snap->image), zoneSet);
                     if (!snap->analysis_image)
                       snap->analysis_image = new Image(*(snap->image));
                   }
@@ -2170,15 +2170,15 @@ bool Monitor::Analyse() {
                   }
                   //alarm_image.Assign(*(snap->analysis_image));
                   Debug(3, "After motion detection, score:%d last_motion_score(%d), new motion score(%d)",
-                      score, last_motion_score, snap->score);
+                      snap->score, last_motion_score, motion_score);
                   motion_frame_count += 1;
-                  last_motion_score = snap->score;
+                  last_motion_score = motion_score;
 
-                  if (snap->score) {
+                  if (motion_score) {
                     if (!cause.empty()) cause += ", ";
                     cause += MOTION_CAUSE + std::string(":") + snap->alarm_cause;
                     noteSetMap[MOTION_CAUSE] = zoneSet;
-                    score += snap->score;
+                    snap->score += motion_score;
                   } // end if motion_score
                 } else {
                   Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
@@ -2210,10 +2210,10 @@ bool Monitor::Analyse() {
         } // end if videostream
          
         // Set this before any state changes so that it's value is picked up immediately by linked monitors
-        shared_data->last_frame_score = score;
+        shared_data->last_frame_score = snap->score;
 
         // If motion detecting, score will be > 0 on motion, but if skipping frames, might not be. So also test snap->score
-        if ((score > 0) or (snap->score > 0)) {
+        if (snap->score > 0) {
           if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
@@ -2223,10 +2223,10 @@ bool Monitor::Analyse() {
               Info("%s: %03d - Gone into prealarm state", name.c_str(), analysis_image_count);
               shared_data->state = state = PREALARM;
               // incremement pre alarm image count
-              Event::AddPreAlarmFrame(snap->image, snap->timestamp, score, nullptr);
+              Event::AddPreAlarmFrame(snap->image, snap->timestamp, snap->score, nullptr);
             } else { // PREALARM
               // incremement pre alarm image count
-              Event::AddPreAlarmFrame(snap->image, snap->timestamp, score, nullptr);
+              Event::AddPreAlarmFrame(snap->image, snap->timestamp, snap->score, nullptr);
             }
           } else if (state == ALERT) {
             alert_to_alarm_frame_count--;
@@ -2249,7 +2249,7 @@ bool Monitor::Analyse() {
 
           // snap->score -1 means didn't do motion detection so don't do state transition
           // In Nodect, we may still have a triggered event, so need this code to run to end the event.
-        } else if (!score and ((snap->score == 0) or (shared_data->analysing == ANALYSING_NONE))) {
+        } else if (!snap->score) {
           Debug(1, "!score state=%s", State_Strings[state].c_str());
           alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
 
@@ -2287,12 +2287,8 @@ bool Monitor::Analyse() {
           if (Event::PreAlarmCount())
             Event::EmptyPreAlarmFrames();
         } else {
-          Debug(1, "No state change because score=%d and snap->score=%d", score, snap->score);
+          Debug(1, "No state change because score=%d", snap->score);
         } // end if score or not
-
-        // At this point, snap ONLY has motion score, so this adds other sources
-        if (score > snap->score)
-          snap->score = score;
 
         if (event && (event->Duration() >= min_section_length)) {
           Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64,

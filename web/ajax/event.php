@@ -1,10 +1,6 @@
 <?php
 ini_set('display_errors', '0');
 
-if ( empty($_REQUEST['id']) && empty($_REQUEST['eids']) ) {
-  ajaxError('No event id(s) supplied');
-}
-
 if ( canView('Events') or canView('Snapshots') ) {
   switch ( $_REQUEST['action'] ) {
   case 'video' :
@@ -86,7 +82,13 @@ if ( canView('Events') or canView('Snapshots') ) {
 
     session_write_close();
 
-    $exportIds = !empty($_REQUEST['eids']) ? array_map(function($eid) {return validCardinal($eid);}, $_REQUEST['eids']) : validCardinal($_REQUEST['id']);
+    $exportIds = [];
+    if (!empty($_REQUEST['eids'])) {
+      $exportIds = array_map(function($eid) {return validCardinal($eid);}, $_REQUEST['eids']);
+    } else if (isset($_REQUEST['id'])) {
+      $exportIds = [validCardinal($_REQUEST['id'])];
+    }
+
     if ($exportFile = exportEvents(
       $exportIds,
       (isset($_REQUEST['connkey'])?$_REQUEST['connkey']:''),
@@ -113,7 +115,12 @@ if ( canView('Events') or canView('Snapshots') ) {
     if (!$exportFileName) $exportFileName = 'Export'.(isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'');
     $exportFileName = preg_replace('/[^\w\-\.\(\):]+/', '', $exportFileName);
 
-    $exportIds = !empty($_REQUEST['eids']) ? array_map(function($eid) {return validCardinal($eid);}, $_REQUEST['eids']) : validCardinal($_REQUEST['id']);
+    $exportIds = [];
+    if (!empty($_REQUEST['eids'])) {
+      $exportIds = array_map(function($eid) {return validCardinal($eid);}, $_REQUEST['eids']);
+    } else if (isset($_REQUEST['id'])) {
+      $exportIds = [validCardinal($_REQUEST['id'])];
+    }
     ZM\Debug("Export IDS". print_r($exportIds, true));
 
     $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : null;

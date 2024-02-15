@@ -2302,9 +2302,9 @@ bool Monitor::Analyse() {
                 static_cast<int64>(Seconds(section_length).count()));
           }
 
-          Debug(1, "CLOSE_MOD %d", event_close_mode);
+          Debug(1, "CLOSE_MODE %d", event_close_mode);
           if (event_close_mode == CLOSE_ALARM) {
-          Debug(1, "CLOSE_MOD Alarm");
+          Debug(1, "CLOSE_MODE Alarm");
             if (state == ALARM) {
               // If we should end the previous continuous event and start a new non-continuous event
               if (event->AlarmFrames() < alarm_frame_count) {

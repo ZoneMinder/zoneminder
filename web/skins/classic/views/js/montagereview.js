@@ -848,15 +848,35 @@ function click_panright() {
 }
 // Manage the DOWNLOAD VIDEO button
 function click_download() {
-  $j.getJSON(thisUrl + '?request=modal&modal=download')
-      .done(function(data) {
-        insertModalHtml('downloadModal', data.html);
-        $j('#downloadModal').modal('show');
-        // Manage the GENERATE DOWNLOAD button
-        $j('#exportButton').click(exportEvent);
-      })
-      .fail(logAjaxFail);
-}
+  const form = $j('#montagereview_form');
+
+  const data = form.serializeArray();
+  data[data.length] = {name:'mergeevents', value: true};
+  data[data.length] = {name:'minTime', value: minTime};
+  data[data.length] = {name:'maxTime', value: maxTime};
+  data[data.length] = {name:'minTimeSecs', value: minTimeSecs};
+  data[data.length] = {name:'maxTimeSecs', value: maxTimeSecs};
+  console.log(data);
+  $j.ajax({
+    url: thisUrl+'?request=modal&modal=download'+(auth_relay?'&'+auth_relay:''),
+    data: data
+  })
+    .done(function(data) {
+      insertModalHtml('downloadModal', data.html);
+      $j('#downloadModal').modal('show');
+      $j('#downloadModal').on('keyup keypress', function(e) {
+        var keyCode = e.keyCode || e.which;
+        if (keyCode === 13) {
+          e.preventDefault();
+          return false;
+        }
+      });
+      // Manage the GENERATE DOWNLOAD button
+      $j('#exportButton').click(exportEvent);
+    })
+    .fail(logAjaxFail);
+} // end function click_download
+
 function click_all_events() {
   clicknav(0, 0, 0);
 }

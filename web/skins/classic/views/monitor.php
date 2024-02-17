@@ -1589,9 +1589,8 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
     </div><!--content-->
   </div><!--page-->
   <script src="<?php echo cache_bust('js/MonitorLinkExpression.js') ?>"></script>
-  <!--<script src="<?php echo cache_bust('js/dms.js') ?>" type="module"></script>-->
 <script type="module" nonce="<?php echo $cspNonce ?>">
-  import DmsCoordinates, { parseDms } from "/js/dms.js";
+  import DmsCoordinates, { parseDms } from "./js/dms.js";
   window.DmsCoordinates = DmsCoordinates;
   window.parseDms = parseDms;
 </script>

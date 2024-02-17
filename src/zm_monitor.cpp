@@ -100,8 +100,8 @@ std::string load_monitor_sql =
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
 "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, "
 "`PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
-"`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `FrameSkip`,"
-"`MotionFrameSkip`, "
+"`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventStartMode`+0, `EventCloseMode`+0, "
+"`FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
 "`Latitude`, `Longitude`, "
 "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`, `ONVIF_Alarm_Text`," 
@@ -237,6 +237,7 @@ Monitor::Monitor() :
   section_length(0),
   section_length_warn(true),
   min_section_length(0),
+  startstop_on_section_length(false),
   adaptive_skip(false),
   frame_skip(0),
   motion_frame_skip(0),
@@ -360,7 +361,8 @@ Monitor::Monitor() :
    "Brightness, Contrast, Hue, Colour, "
    "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
    "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
-   "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, "
+   "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventStartMode`, `EventCloseMode`, "
+   "`FrameSkip`, `MotionFrameSkip`, "
    "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
    "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`,"
    "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
@@ -526,7 +528,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     alarm_frame_count = MAX_PRE_ALARM_FRAMES;
   }
 
-  /* "SectionLength, MinSectionLength, FrameSkip, MotionFrameSkip, " */
+  /* "SectionLength, SectionLengthWarn, MinSectionLength, EventStartMode, EventCloseMode, FrameSkip, MotionFrameSkip, " */
   section_length = Seconds(atoi(dbrow[col])); col++;
   section_length_warn = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   min_section_length = Seconds(atoi(dbrow[col])); col++;
@@ -537,6 +539,33 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
         Seconds(min_section_length).count()
         );
   }
+  Debug(1, "EventStartMode: %s", dbrow[col]);
+  event_start_mode = static_cast<Monitor::EventStartMode>(dbrow[col] ? atoi(dbrow[col]) : 0); col++;
+
+  if (!(event_start_mode == START_IMMEDIATE or event_start_mode == START_TIME)) {
+    Warning("Unknown value for event_start_mode %d, defaulting to immediate", event_start_mode);
+    event_start_mode = START_IMMEDIATE;
+  }
+  Debug(1, "EventCloseMode: %s", dbrow[col]);
+  event_close_mode = static_cast<Monitor::EventCloseMode>(dbrow[col] ? atoi(dbrow[col]) : 0); col++;
+  if (event_close_mode == CLOSE_SYSTEM) {
+    if (strcmp(config.event_close_mode, "time") == 0) {
+      event_close_mode = CLOSE_TIME;
+    } else if (strcmp(config.event_close_mode, "alarm") == 0) {
+      event_close_mode = CLOSE_ALARM;
+    } else if (strcmp(config.event_close_mode, "idle") == 0) {
+      event_close_mode = CLOSE_IDLE;
+    } else {
+      Warning("Unknown value for event_close_mode %s", config.event_close_mode);
+      event_close_mode = CLOSE_IDLE;
+    }
+  } else if (event_close_mode == CLOSE_TIME or event_close_mode == CLOSE_ALARM or event_close_mode == CLOSE_IDLE) {
+    //valid value
+  } else {
+    Warning("Unknown value for event_close_mode %d, defaulting to idle", event_close_mode);
+    event_close_mode = CLOSE_IDLE;
+  }
+
   frame_skip = atoi(dbrow[col]); col++;
   motion_frame_skip = atoi(dbrow[col]); col++;
 
@@ -604,17 +633,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.
                         // Instead initial failure to capture will cause a loss of signal change which I think makes more sense.
 
-  // The following code is not currently necessary.  However once this setting is moved to the Monitor record, it will be.
-  if (strcmp(config.event_close_mode, "time") == 0) {
-    event_close_mode = CLOSE_TIME;
-  } else if (strcmp(config.event_close_mode, "alarm") == 0) {
-    event_close_mode = CLOSE_ALARM;
-  } else if (strcmp(config.event_close_mode, "idle") == 0) {
-    event_close_mode = CLOSE_IDLE;
-  } else {
-    Warning("Unknown value for event_close_mode %s", config.event_close_mode);
-    event_close_mode = CLOSE_IDLE;
-  }
 
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%u", storage->Path(), id);
@@ -2403,10 +2421,19 @@ bool Monitor::Analyse() {
 
         if (!event) {
           if (
-              (shared_data->recording == RECORDING_ALWAYS) 
+              ((shared_data->recording == RECORDING_ALWAYS)
+               and ((event_start_mode == START_IMMEDIATE) or (std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)))
+              )
               or
               ((shared_data->recording == RECORDING_ONMOTION) and (state == ALARM))
              ) {
+                Info("%s: %03d - Opening event timestamp %" PRIi64 " %% %" PRIi64 "  event_start_mode %d",
+                    name.c_str(),
+                    snap->image_index,
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch() % section_length).count()),
+                    event_start_mode
+                    );
             if ((event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
               Info("Opened new event %" PRIu64 " %s", event->Id(), cause.empty() ? "Continuous" : cause.c_str());
             }

@@ -651,6 +651,31 @@ $SLANG = array(
     'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'ZoomIn'                => 'Zoom In',
     'ZoomOut'               => 'Zoom Out',
+// language names translation
+    'es_la' => 'Spanish Latam',
+    'es_CR' => 'Spanish Costa Rica',
+    'es_ar' => 'Spanish Argentina',
+    'es_es' => 'Spanish Spain',
+    'en_gb' => 'British English',
+    'en_us' => 'Us English',
+    'fr_fr' => 'French',
+    'cs_cz' => 'Czech',
+    'zh_cn' => 'Simplified Chinese',
+    'zh_tw' => 'Traditional Chinese',
+    'de_de' => 'German',
+    'it_it' => 'Italian',
+    'ja_jp' => 'Japanese',
+    'hu_hu' => 'Hungarian',
+    'pl_pl' => 'Polish',
+    'pt_br' => 'Portuguese Brazil',
+    'ru_ru' => 'Russian',
+    'nl_nl' => 'Dutch',
+    'se_se' => 'Sami',
+    'et_ee' => 'Estonian',
+    'he_il' => 'Hebrew',
+    'dk_dk' => 'Danish',
+    'ro_ro' => 'Romanian',
+
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
@@ -967,6 +992,10 @@ None: No frames will be decoded, live view and thumbnails will not be available~
 //        'Prompt' => "This is a new prompt for this option",
 //        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
+);
+// language translations
+$LLANG = array(
+//    'es_la' => 'Español Latam',
 );
 
 ?>

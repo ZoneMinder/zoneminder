@@ -297,10 +297,21 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
       'watch' => 'Watch',
     ];
   } else if ($tab == 'system') {
-    $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join('|', getLanguages());
+//    $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = join('|', getLanguages());
     $configCats[$tab]['ZM_SKIN_DEFAULT']['Hint'] = join('|', array_map('basename', glob('skins/*',GLOB_ONLYDIR)));
     $configCats[$tab]['ZM_CSS_DEFAULT']['Hint'] = join('|', array_map ( 'basename', glob('skins/'.ZM_SKIN_DEFAULT.'/css/*',GLOB_ONLYDIR) ));
     $configCats[$tab]['ZM_BANDWIDTH_DEFAULT']['Hint'] = $bandwidth_options;
+
+// create new multidim array for languages (code1|translation)
+    $languagecodess=join('|', getLanguages());
+    $languagecodelist=explode('|',$languagecodess);
+    $languageslist = array();
+    foreach ($languagecodelist as $language){
+        $languageslist[$language] = translate($language);
+       }
+
+    $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = $languageslist;
+
 
     function timezone_list() {
       static $timezones = null;
@@ -334,7 +345,6 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
       return $name;
     }
     $configCats[$tab]['ZM_TIMEZONE']['Hint'] = array(''=> translate('TZUnset')) + timezone_list();
-
     $configCats[$tab]['ZM_LOCALE_DEFAULT']['Hint'] = array(''=> translate('System Default'));
     $locales = ResourceBundle::getLocales('');
     if ($locales) {
@@ -387,7 +397,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                 $attributes = ['id'=>$name, 'class'=>'form-control-sm'.(count($html_options)>10?' chosen':'')];
                 if (!$optionCanEdit) $attributes['disabled']='disabled';
                 echo htmlSelect("newConfig[$name]", $html_options, $value['Value'], $attributes);
-              } else {
+              } else { 
                 foreach ($options as $option) {
                   if (preg_match('/^([^=]+)=(.+)$/', $option)) {
                     $optionLabel = $matches[1];

@@ -993,9 +993,5 @@ None: No frames will be decoded, live view and thumbnails will not be available~
 //        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
-// language translations
-$LLANG = array(
-//    'es_la' => 'Español Latam',
-);
 
 ?>

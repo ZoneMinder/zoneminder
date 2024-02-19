@@ -258,9 +258,14 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       return -1;
     } else if (packet->pts - lastPTS < -20*stream->time_base.den) {
       // -10 is for 10 seconds
-      Warning("Stream pts jumped back in time too far. pts %" PRId64 " - last pts %" PRId64 "= %" PRId64 " > %d",
-          packet->pts, lastPTS, packet->pts-lastPTS, -20*stream->time_base.den);
-      return -1;
+      double pts_time = static_cast<double>(av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
+      double last_pts_time = static_cast<double>(av_rescale_q(lastPTS, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
+      Warning("Stream pts jumped back in time too far. pts %.2f - last pts %.2f = %.2f > 20seconds",
+          pts_time, last_pts_time, pts_time - last_pts_time);
+      if (error_count > 5)
+        return -1;
+      error_count += 1;
+      return 0;
     }
   }
 

@@ -32,12 +32,12 @@ bool zmDbConnected = false;
 bool zmDbConnect() {
   // For some reason having these lines causes memory corruption and crashing on newer debian/ubuntu
 	// But they really need to be here in order to prevent a double open of mysql
-  if ( zmDbConnected )  {
+  if (zmDbConnected)  {
     //Warning("Calling zmDbConnect when already connected");
     return true;
   }
 
-  if ( !mysql_init(&dbconn) ) {
+  if (!mysql_init(&dbconn)) {
     Error("Can't initialise database connection: %s", mysql_error(&dbconn));
     return false;
   }
@@ -101,6 +101,18 @@ bool zmDbConnect() {
   db_thread_id = mysql_thread_id(&dbconn);
   zmDbConnected = true;
   return zmDbConnected;
+}
+
+int zmDbReconnect() {
+  if (zmDbConnected) {
+    zmDbConnected = false;
+    mysql_close(&dbconn);
+  }
+  if (zmDbConnect()) {
+    Debug(1, "Reconnected to db...");
+  } else {
+    Debug(1, "Failed to reconnect to db");
+  }
 }
 
 void zmDbClose() {

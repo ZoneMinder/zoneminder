@@ -103,6 +103,16 @@ bool zmDbConnect() {
   return zmDbConnected;
 }
 
+int zmDbReconnect() {
+  zmDbConnected = false;
+  mysql_close(&dbconn);
+  if (zmDbConnect()) {
+    Debug(1, "Reconnected to db...");
+  } else {
+    Debug(1, "Failed to reconnect to db");
+  }
+}
+
 void zmDbClose() {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (zmDbConnected) {
@@ -126,14 +136,8 @@ MYSQL_RES *zmDbFetch(const std::string &query) {
 
   if (rc) {
     Debug(1, "Can't run query: %s rc:%d, reason:%s", query.c_str(), rc, mysql_error(&dbconn));
-    if (mysql_ping(&dbconn)) {
-      zmDbConnected = false;
-      if (zmDbConnect()) {
-        Debug(1, "Reconnected to db...");
-        rc = mysql_query(&dbconn, query.c_str());
-      } else {
-        Debug(1, "Faile to reconnect to db");
-      }
+    if (mysql_ping(&dbconn) and zmDbReconnect()) {
+      rc = mysql_query(&dbconn, query.c_str());
     }
   }
   if (rc) {
@@ -177,6 +181,11 @@ MYSQL_RES *zmDbRow::fetch(const std::string &query) {
   return result_set;
 }
 
+/* performs SQL queries.  Will repeat if error is LOCK_WAIT_TIMEOUT
+ * We assume that in general our SQL is properly formed, so errors will
+ * be due to external factors.
+ */
+
 int zmDbDo(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
   if (!zmDbConnected and !zmDbConnect())
@@ -184,40 +193,35 @@ int zmDbDo(const std::string &query) {
   int rc;
   while ((rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
     if (mysql_ping(&dbconn)) {
-      zmDbConnected = false;
-      zmDbConnect();
-    }
-    if (zmDbConnected) {
-      Logger *logger = Logger::fetch();
-      Logger::Level oldLevel = logger->databaseLevel();
-      logger->databaseLevel(Logger::NOLOG);
+      // Was a connection error
+      if (!zmDbReconnect()) {
+        // If we failed. Sleeping 1 sec may be way too much.
+        sleep(1);
+      }
+    } else {
+      // Not a connection error
       Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
-      logger->databaseLevel(oldLevel);
-      if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) ) {
+      if (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) {
         return rc;
       }
-    } // end if connected
+    } // end if !connected
   }
-  Logger *logger = Logger::fetch();
-  Logger::Level oldLevel = logger->databaseLevel();
-  logger->databaseLevel(Logger::NOLOG);
 
   Debug(1, "Success running sql query %s, thread_id: %lu", query.c_str(), db_thread_id);
-  logger->databaseLevel(oldLevel);
   return 1;
 }
 
 int zmDbDoInsert(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
+  if (!zmDbConnected and !zmDbConnect())
+    return 0;
   int rc;
-  while ( (rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
+  while ((rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
     if (mysql_ping(&dbconn)) {
-      zmDbConnected = false;
-      zmDbConnect();
-    }
-    if (zmDbConnected) {
+      if (!zmDbReconnect()) sleep(1);
+    } else {
       Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
-      if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
+      if ((mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT))
         return 0;
     }
   }
@@ -228,13 +232,13 @@ int zmDbDoInsert(const std::string &query) {
 
 int zmDbDoUpdate(const std::string &query) {
   std::lock_guard<std::mutex> lck(db_mutex);
+  if (!zmDbConnected and !zmDbConnect())
+    return 0;
   int rc;
   while ( (rc = mysql_query(&dbconn, query.c_str())) and !zm_terminate) {
     if (mysql_ping(&dbconn)) {
-      zmDbConnected = false;
-      zmDbConnect();
-    }
-    if (zmDbConnected) {
+      if (!zmDbReconnect()) sleep(1);
+    } else {
       Error("Can't run query %s: %s", query.c_str(), mysql_error(&dbconn));
       if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) )
         return -rc;

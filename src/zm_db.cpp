@@ -21,6 +21,7 @@
 #include "zm_logger.h"
 #include "zm_signal.h"
 #include <cstdlib>
+#include <unistd.h>
 
 MYSQL dbconn;
 std::mutex db_mutex;
@@ -94,7 +95,7 @@ bool zmDbConnect() {
     mysql_close(&dbconn);
     return false;
   }
-  if ( mysql_query(&dbconn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED") ) {
+  if (mysql_query(&dbconn, "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")) {
     Error("Can't set isolation level: %s", mysql_error(&dbconn));
   }
   mysql_set_character_set(&dbconn, "utf8");

@@ -104,7 +104,7 @@ bool zmDbConnect() {
 }
 
 /* Calls to zmDbReconnect must have the lock. */
-int zmDbReconnect() {
+bool zmDbReconnect() {
   if (zmDbConnected) {
     mysql_close(&dbconn);
     zmDbConnected = false;
@@ -114,6 +114,7 @@ int zmDbReconnect() {
   } else {
     Debug(1, "Failed to reconnect to db");
   }
+  return zmDbConnected;
 }
 
 void zmDbClose() {

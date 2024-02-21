@@ -121,7 +121,7 @@ class FilterTerm {
       case 'StorageServerId':
       case 'ServerId':
         if ( $value == 'ZM_SERVER_ID' ) {
-          $value = ZM_SERVER_ID;
+          $value = defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0;
         } else if ( $value_upper == 'NULL' ) {
 
         } else {
@@ -244,7 +244,7 @@ class FilterTerm {
     case 'StorageServerId':
       return 'S.ServerId';
     case 'FilterServerId':
-      return ZM_SERVER_ID;
+      return 'ZM_SERVER_ID:'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
       # Unspecified start or end, so assume start, this is to support legacy filters
     case 'DateTime':
       return 'E.StartDateTime';

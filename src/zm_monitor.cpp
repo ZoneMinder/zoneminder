@@ -1972,6 +1972,7 @@ bool Monitor::Analyse() {
   // signal is set by capture
   bool signal = shared_data->signal;
   bool signal_change = (signal != last_signal);
+  last_signal = signal;
 
   Debug(3, "Motion detection is enabled?(%d) signal(%d) signal_change(%d) trigger state(%s) image index %d",
       shared_data->analysing, signal, signal_change, TriggerState_Strings[trigger_data->trigger_state].c_str(), snap->image_index);
@@ -2302,9 +2303,9 @@ bool Monitor::Analyse() {
                 static_cast<int64>(Seconds(section_length).count()));
           }
 
-          Debug(1, "CLOSE_MOD %d", event_close_mode);
+          Debug(1, "CLOSE_MODE %d", event_close_mode);
           if (event_close_mode == CLOSE_ALARM) {
-          Debug(1, "CLOSE_MOD Alarm");
+          Debug(1, "CLOSE_MODE Alarm");
             if (state == ALARM) {
               // If we should end the previous continuous event and start a new non-continuous event
               if (event->AlarmFrames() < alarm_frame_count) {
@@ -2335,7 +2336,7 @@ bool Monitor::Analyse() {
                   State_Strings[state].c_str(), event->AlarmFrames(), alarm_frame_count);
             }
           } else if (event_close_mode == CLOSE_TIME) {
-          Debug(1, "CLOSE_MOD Timem");
+          Debug(1, "CLOSE_MODE Time");
             if (std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
               Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                   name.c_str(),
@@ -2348,7 +2349,7 @@ bool Monitor::Analyse() {
               closeEvent();
             }
           } else if (event_close_mode == CLOSE_IDLE) {
-          Debug(1, "CLOSE_MOD IDLE");
+          Debug(1, "CLOSE_MODE Idle");
             if (state == IDLE || state == TAPE) {
               if ((shared_data->recording == RECORDING_ALWAYS) and (event->Duration() >= section_length)) {
                 //std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
@@ -2370,7 +2371,7 @@ bool Monitor::Analyse() {
               }
             }  // end if IDLE
           } else {
-            Warning("UNKNOWN CLOSE_MOD");
+            Warning("CLOSE_MODE Unknown");
           }  // end if event_close_mode
         }  // end if event and event->Duration > min_section_length
 
@@ -2387,8 +2388,6 @@ bool Monitor::Analyse() {
         } else if (noteSetMap.size() > 0) {
           event->updateNotes(noteSetMap);
         } // end if ! event
-
-        last_signal = signal;
       } // end if signal
     } else {
       Debug(3, "trigger == off");

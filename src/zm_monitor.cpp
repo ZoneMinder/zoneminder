@@ -1972,6 +1972,7 @@ bool Monitor::Analyse() {
   // signal is set by capture
   bool signal = shared_data->signal;
   bool signal_change = (signal != last_signal);
+  last_signal = signal;
 
   Debug(3, "Motion detection is enabled?(%d) signal(%d) signal_change(%d) trigger state(%s) image index %d",
       shared_data->analysing, signal, signal_change, TriggerState_Strings[trigger_data->trigger_state].c_str(), snap->image_index);
@@ -2387,8 +2388,6 @@ bool Monitor::Analyse() {
         } else if (noteSetMap.size() > 0) {
           event->updateNotes(noteSetMap);
         } // end if ! event
-
-        last_signal = signal;
       } // end if signal
     } else {
       Debug(3, "trigger == off");

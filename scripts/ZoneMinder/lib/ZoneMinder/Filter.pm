@@ -183,7 +183,7 @@ sub Sql {
         } elsif ( $term->{attr} eq 'StorageServerId' ) {
           $self->{Sql} .= '(SELECT Storage.ServerId FROM Storage WHERE Storage.Id=E.StorageId)';
         } elsif ( $term->{attr} eq 'FilterServerId' ) {
-          $self->{Sql} .= $Config{ZM_SERVER_ID};
+          $self->{Sql} .= (defined($Config{ZM_SERVER_ID}) ? $Config{ZM_SERVER_ID}: '0').' /* ZM_SERVER_ID */';
           # StartTime options
         } elsif ( $term->{attr} eq 'DateTime' ) {
           $self->{Sql} .= 'E.StartDateTime';
@@ -236,7 +236,7 @@ sub Sql {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.$value.')';
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} =~ /ServerId/) {
+            } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' or $term->{attr} eq 'FilterServerId' ) {
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what

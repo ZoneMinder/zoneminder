@@ -942,6 +942,10 @@ function watchFullscreen() {
   }
 }
 
+function watchAllEvents() {
+  window.location.replace(document.getElementById('allEventsBtn').getAttribute('data-url'));
+}
+
 var intervalId;
 var secondsToCycle = 0;
 

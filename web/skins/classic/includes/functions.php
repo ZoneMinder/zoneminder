@@ -389,13 +389,12 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
 function getCpuUsageHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
-
-  $result .= '<li id="getCpuUsagesHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
   global $thisServer;
-
-  $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent(), 1, '.', '').'%'.PHP_EOL;
-  $result .= '</li>'.PHP_EOL;
-
+  if ($thisServer) {
+    $result .= '<li id="getCpuUsagesHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
+    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent(), 1, '.', '').'%'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  }
   return $result;
 }
 
@@ -403,13 +402,13 @@ function getCpuUsageHTML() {
 function getSysLoadHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
-
-  $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
-  $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
   global $thisServer;
-  $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad(), 2, '.', '').PHP_EOL;
-  $result .= '</li>'.PHP_EOL;
-  
+  if ($thisServer) {
+    $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
+    $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
+    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad(), 2, '.', '').PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  } 
   return $result;
 }
 

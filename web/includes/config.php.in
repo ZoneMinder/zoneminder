@@ -232,7 +232,7 @@ function loadConfig( $defineConsts=true ) {
 
 require_once('Server.php');
 $Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
-$thisServer = null;
+$thisServer = new ZM\Server();
 
 // For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
 if (!defined('ZM_SERVER_ID')) {

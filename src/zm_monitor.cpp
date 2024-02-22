@@ -2314,7 +2314,7 @@ bool Monitor::Analyse() {
                 closeEvent();
               // If we should end the event and start a new event because the current event is longer than the request section length
               } else if (event->Duration() > section_length) {
-                Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
+                Info("%s: %03d - Closing event %" PRIu64 ", section end forced still alarmed %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                     name.c_str(),
                     snap->image_index,
                     event->Id(),

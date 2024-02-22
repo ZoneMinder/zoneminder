@@ -236,7 +236,11 @@ sub Sql {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.$value.')';
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' or $term->{attr} eq 'FilterServerId' ) {
+            } elsif (
+              $term->{attr} eq 'ServerId' or
+              $term->{attr} eq 'MonitorServerId' or
+              $term->{attr} eq 'StorageServerId' or
+              $term->{attr} eq 'FilterServerId' ) {
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what

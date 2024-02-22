@@ -2284,75 +2284,61 @@ bool Monitor::Analyse() {
             Event::EmptyPreAlarmFrames();
         } // end if score or not
 
-        if (event && (event->Duration() >= min_section_length)) {
+        if (event) {
           Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%" PRIi64,
               event->Id(), event->AlarmFrames(), alarm_frame_count,
               static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count())
               );
-          // If doing record, check to see if we need to close the event or not.
+          if (event->Duration() >= min_section_length) {
+            // If doing record, check to see if we need to close the event or not.
 
-          if ((event->Duration() >= section_length) and (event->Frames() < Seconds(min_section_length).count())) {
-            /* This is a detection for the case where huge keyframe
-             * intervals cause a huge time gap between the first
-             * frame and second frame */
-            Warning("%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
-                name.c_str(), event->Id(),
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
-                static_cast<int64>(Seconds(section_length).count()));
-          }
-
-          Debug(1, "CLOSE_MODE %d", event_close_mode);
-          if (event_close_mode == CLOSE_ALARM) {
-          Debug(1, "CLOSE_MODE Alarm");
-            if (state == ALARM) {
-              // If we should end the previous continuous event and start a new non-continuous event
-              if (event->AlarmFrames() < alarm_frame_count) {
-                Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
-                    name.c_str(), snap->image_index, event->Id(), event->AlarmFrames(), alarm_frame_count);
-                closeEvent();
-              } else {
-                Debug(1, "Not Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
-                    event->Id(), event->AlarmFrames(), alarm_frame_count);
-              }
-            } else if (state == IDLE) {
-              if (event->AlarmFrames() > alarm_frame_count and (analysis_image_count - last_alarm_count > post_event_count)) {
-                Info("%s: %03d - Closing event %" PRIu64 ", alarm end", name.c_str(), analysis_image_count, event->Id());
-                closeEvent();
-              } else if (event->Duration() > section_length) {
-                Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
-                    name.c_str(),
-                    snap->image_index,
-                    event->Id(),
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
-                    static_cast<int64>(Seconds(section_length).count()));
-                closeEvent();
-              }
-            } else {
-              Debug(1, "Not closing event because state==%s and event AlarmFrames %d >= %d",
-                  State_Strings[state].c_str(), event->AlarmFrames(), alarm_frame_count);
-            }
-          } else if (event_close_mode == CLOSE_TIME) {
-          Debug(1, "CLOSE_MODE Time");
-            if (std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
-              Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
-                  name.c_str(),
-                  snap->image_index,
-                  event->Id(),
+            if ((event->Duration() >= section_length) and (event->Frames() < Seconds(min_section_length).count())) {
+              /* This is a detection for the case where huge keyframe
+               * intervals cause a huge time gap between the first
+               * frame and second frame */
+              Warning("%s: event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64,
+                  name.c_str(), event->Id(),
                   static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
                   static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
-                  static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
+                  static_cast<int64>(std::chrono::duration_cast<Seconds>(event->Duration()).count()),
                   static_cast<int64>(Seconds(section_length).count()));
-              closeEvent();
             }
-          } else if (event_close_mode == CLOSE_IDLE) {
-          Debug(1, "CLOSE_MODE Idle");
-            if (state == IDLE || state == TAPE) {
-              if ((shared_data->recording == RECORDING_ALWAYS) and (event->Duration() >= section_length)) {
-                //std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
+
+            Debug(1, "CLOSE_MODE %d", event_close_mode);
+            if (event_close_mode == CLOSE_ALARM) {
+              Debug(1, "CLOSE_MODE Alarm");
+              if (state == ALARM) {
+                // If we should end the previous continuous event and start a new non-continuous event
+                if (event->AlarmFrames() < alarm_frame_count) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
+                      name.c_str(), snap->image_index, event->Id(), event->AlarmFrames(), alarm_frame_count);
+                  closeEvent();
+                } else {
+                  Debug(1, "Not Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
+                      event->Id(), event->AlarmFrames(), alarm_frame_count);
+                }
+              } else if (state == IDLE) {
+                if (event->AlarmFrames() > alarm_frame_count and (analysis_image_count - last_alarm_count > post_event_count)) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", alarm end", name.c_str(), analysis_image_count, event->Id());
+                  closeEvent();
+                } else if (event->Duration() > section_length) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
+                      name.c_str(),
+                      snap->image_index,
+                      event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
+                  closeEvent();
+                }
+              } else {
+                Debug(1, "Not closing event because state==%s and event AlarmFrames %d >= %d",
+                    State_Strings[state].c_str(), event->AlarmFrames(), alarm_frame_count);
+              }
+            } else if (event_close_mode == CLOSE_TIME) {
+              Debug(1, "CLOSE_MODE Time");
+              if (std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                     name.c_str(),
                     snap->image_index,
@@ -2362,18 +2348,34 @@ bool Monitor::Analyse() {
                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
                     static_cast<int64>(Seconds(section_length).count()));
                 closeEvent();
-              } else if (
-                  (shared_data->recording == RECORDING_ONMOTION) and
-                  (analysis_image_count - last_alarm_count > post_event_count)
-                  ) {
-                Info("%s: %03d - Closing event %" PRIu64 ", alarm end", name.c_str(), analysis_image_count, event->Id());
-                closeEvent();
               }
-            }  // end if IDLE
-          } else {
-            Warning("CLOSE_MODE Unknown");
-          }  // end if event_close_mode
-        }  // end if event and event->Duration > min_section_length
+            } else if (event_close_mode == CLOSE_IDLE) {
+              Debug(1, "CLOSE_MODE Idle");
+              if (state == IDLE || state == TAPE) {
+                if ((shared_data->recording == RECORDING_ALWAYS) and (event->Duration() >= section_length)) {
+                  //std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
+                      name.c_str(),
+                      snap->image_index,
+                      event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
+                  closeEvent();
+                } else if (
+                    (shared_data->recording == RECORDING_ONMOTION) and
+                    (analysis_image_count - last_alarm_count > post_event_count)
+                    ) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", alarm end", name.c_str(), analysis_image_count, event->Id());
+                  closeEvent();
+                }
+                }  // end if IDLE
+              } else {
+                Warning("CLOSE_MODE Unknown");
+              }  // end if event_close_mode
+            }  // end if event->Duration > min_section_length
+        }  // end if event
 
         if (!event) {
           if (

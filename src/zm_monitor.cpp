@@ -100,7 +100,7 @@ std::string load_monitor_sql =
 "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
 "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, "
 "`PostEventCount`, `StreamReplayBuffer`, `AlarmFrameCount`, "
-"`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventStartMode`+0, `EventCloseMode`+0, "
+"`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventCloseMode`+0, "
 "`FrameSkip`, `MotionFrameSkip`, "
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
 "`Latitude`, `Longitude`, "
@@ -361,7 +361,7 @@ Monitor::Monitor() :
    "Brightness, Contrast, Hue, Colour, "
    "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
    "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "
-   "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventStartMode`, `EventCloseMode`, "
+   "`SectionLength`, `SectionLengthWarn`, `MinSectionLength`, `EventCloseMode`, "
    "`FrameSkip`, `MotionFrameSkip`, "
    "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
    "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`,"
@@ -528,7 +528,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     alarm_frame_count = MAX_PRE_ALARM_FRAMES;
   }
 
-  /* "SectionLength, SectionLengthWarn, MinSectionLength, EventStartMode, EventCloseMode, FrameSkip, MotionFrameSkip, " */
+  /* "SectionLength, SectionLengthWarn, MinSectionLength, EventCloseMode, FrameSkip, MotionFrameSkip, " */
   section_length = Seconds(atoi(dbrow[col])); col++;
   section_length_warn = dbrow[col] ? atoi(dbrow[col]) : false; col++;
   min_section_length = Seconds(atoi(dbrow[col])); col++;
@@ -539,14 +539,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
         Seconds(min_section_length).count()
         );
   }
-  Debug(1, "EventStartMode: %s", dbrow[col]);
-  event_start_mode = static_cast<Monitor::EventStartMode>(dbrow[col] ? atoi(dbrow[col]) : 0); col++;
-
-  if (!(event_start_mode == START_IMMEDIATE or event_start_mode == START_TIME)) {
-    Warning("Unknown value for event_start_mode %d, defaulting to immediate", event_start_mode);
-    event_start_mode = START_IMMEDIATE;
-  }
-  Debug(1, "EventCloseMode: %s", dbrow[col]);
   event_close_mode = static_cast<Monitor::EventCloseMode>(dbrow[col] ? atoi(dbrow[col]) : 0); col++;
   if (event_close_mode == CLOSE_SYSTEM) {
     if (strcmp(config.event_close_mode, "time") == 0) {

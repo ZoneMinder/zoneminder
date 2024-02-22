@@ -2313,6 +2313,17 @@ bool Monitor::Analyse() {
                   Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
                       name.c_str(), snap->image_index, event->Id(), event->AlarmFrames(), alarm_frame_count);
                   closeEvent();
+                  // If we should end the event and start a new event because the current event is longer than the request section length
+                } else if (event->Duration() > section_length) {
+                  Info("%s: %03d - Closing event %" PRIu64 ", section end forced still alarmed %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
+                      name.c_str(),
+                      snap->image_index,
+                      event->Id(),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(event->StartTime().time_since_epoch()).count()),
+                      static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp - event->StartTime()).count()),
+                      static_cast<int64>(Seconds(section_length).count()));
+                  closeEvent();
                 } else {
                   Debug(1, "Not Closing event %" PRIu64 ", continuous end, alarm begins. Event alarm frames %d < alarm_frame_count %d",
                       event->Id(), event->AlarmFrames(), alarm_frame_count);

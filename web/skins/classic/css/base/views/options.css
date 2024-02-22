@@ -1,3 +1,7 @@
+#optionsContainer {
+  overflow: auto;
+  height: 100%;
+}
 input.small {
     width: 6em;
 }

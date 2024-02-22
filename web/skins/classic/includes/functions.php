@@ -272,6 +272,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
         <ul class="navbar-nav list-inline justify-content-center">
           <?php
           echo getSysLoadHTML();
+          echo getCpuUsageHTML();
           echo getDbConHTML();
           echo getStorageHTML();
           echo getRamHTML();
@@ -323,6 +324,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
           <ul class="nav navbar-nav list-group">
             <?php
             echo getSysLoadHTML();
+            echo getCpuUsageHTML();
             echo getDbConHTML();
             echo getStorageHTML();
             echo getRamHTML();
@@ -383,6 +385,20 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
   <?php
 } // End function getCollapsedNavBarHTML
 
+// Returns the html representing the current cpu Usage Percent
+function getCpuUsageHTML() {
+  $result = '';
+  if ( !canView('System') ) return $result;
+
+  $result .= '<li id="getCpuUsagesHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
+  global $thisServer;
+
+  $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent(), 1, '.', '').'%'.PHP_EOL;
+  $result .= '</li>'.PHP_EOL;
+
+  return $result;
+}
+
 // Returns the html representing the current unix style system load
 function getSysLoadHTML() {
   $result = '';
@@ -390,7 +406,8 @@ function getSysLoadHTML() {
 
   $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
   $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
-  $result .= '&nbsp;'.translate('Load').': '.number_format(getLoad(), 2, '.', '').PHP_EOL;
+  global $thisServer;
+  $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad(), 2, '.', '').PHP_EOL;
   $result .= '</li>'.PHP_EOL;
   
   return $result;

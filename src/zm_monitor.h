@@ -173,7 +173,8 @@ protected:
 
   typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
 
-  typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
+  typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
+  typedef enum { START_UNKNOWN=0, START_IMMEDIATE, START_TIME } EventStartMode;
 
   /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
   typedef struct {
@@ -484,6 +485,7 @@ protected:
   Seconds    section_length;      // How long events should last in continuous modes
   bool        section_length_warn;  // Whether to log a warning when a motion event exceeds desired section_length
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
+  bool       startstop_on_section_length; // Whether to start/stop events on time % section_length
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
@@ -534,6 +536,7 @@ protected:
   SystemTimePoint auto_resume_time;
   unsigned int      last_motion_score;
 
+  EventStartMode  event_start_mode;
   EventCloseMode  event_close_mode;
 
 #if ZM_MEM_MAPPED

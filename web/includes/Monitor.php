@@ -217,6 +217,8 @@ public static function getStatuses() {
     'SectionLength'       =>  600,
     'SectionLengthWarn'   =>  true,
     'MinSectionLength'    =>  10,
+    'EventStartMode'    => 'immediate',
+    'EventCloseMode'    => 'system',
     'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,
     'AnalysisFPSLimit'  =>  2,

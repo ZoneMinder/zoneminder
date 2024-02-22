@@ -13,14 +13,18 @@ class Server extends ZM_Object {
   public $PathToIndex = '';
   public $PathToZMS = ZM_PATH_ZMS;
   public $PathToApi = ZM_PATH_API;
-  public $State_Id = 0;
+  public $State_Id = -1;
   public $Status = 'Unknown';
-  public $CpuLoad;
-  public $CpuUsagePercent;
-  public $TotalMem;
-  public $FreeMem;
-  public $TotalSwap;
-  public $FreeSwap;
+  public $CpuLoad = -1;
+  public $CpuUserPercent = -1;
+  public $CpuNicePercent = -1;
+  public $CpuSystemPercent = -1;
+  public $CpuIdlePercent = -1;
+  public $CpuUsagePercent = -1;
+  public $TotalMem = -1;
+  public $FreeMem = -1;
+  public $TotalSwap = -1;
+  public $FreeSwap = -1;
   public $Latitude;
   public $Longitude;
 

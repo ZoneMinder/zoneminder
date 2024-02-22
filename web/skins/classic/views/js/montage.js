@@ -294,6 +294,7 @@ function initPage() {
     monitors[i] = new MonitorStream(monitorData[i]);
   }
 
+  $j(window).on('resize', selectLayout);
   selectLayout();
   for (let i = 0, length = monitorData.length; i < length; i++) {
     // Start the fps and status updates. give a random delay so that we don't assault the server

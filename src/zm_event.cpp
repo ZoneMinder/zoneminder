@@ -399,6 +399,9 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
        ( ! (frames % config.bulk_frame_interval) )
       ) ? BULK : NORMAL 
       ) );
+
+  if (frame_type == ALARM) alarm_frames++;
+
   Debug(1, "Have frame type %s from score(%d) state %d frames %d bulk frame interval %d and mod%d", 
       frame_type_names[frame_type], score, monitor_state, frames, config.bulk_frame_interval, (frames % config.bulk_frame_interval));
 
@@ -438,7 +441,6 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
       } else {
         Debug(3, "Not Writing alarm image because alarm frame already written");
       }
-      alarm_frames++;
     } // end if is an alarm frame
 
     if (save_jpegs & 2) {

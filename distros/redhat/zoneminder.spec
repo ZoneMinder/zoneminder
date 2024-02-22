@@ -18,7 +18,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.37.51
+Version: 1.37.52
 Release: 2%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons

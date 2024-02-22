@@ -1,34 +1,62 @@
 --
--- Update Monitors table to have EventStartMode and EventCloseMode
+-- Add Type column to Storage 
 --
 
-/*
-SELECT 'Checking for EventStartMode in Monitors';
 SET @s = (SELECT IF(
-  (SELECT COUNT(*)
-  FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE table_name = 'Monitors'
-  AND table_schema = DATABASE()
-  AND column_name = 'EventStartMode'
-  ) > 0,
-"SELECT 'Column EventStartMode already exists on Monitors'",
-"ALTER TABLE Monitors add EventStartMode enum('immediate','time') NOT NULL DEFAULT 'immediate' AFTER SectionLengthWarn"
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Servers'
+     AND column_name = 'CpuUserPercent'
+    ) > 0,
+"SELECT 'Column CpuUserPercent already exists in Servers'",
+"ALTER TABLE Servers ADD `CpuUserPercent` DECIMAL(5,1) default NULL AFTER `CpuLoad`"
 ));
 
 PREPARE stmt FROM @s;
 EXECUTE stmt;
-*/
 
-SELECT 'Checking for EventCloseMode in Monitors';
 SET @s = (SELECT IF(
-  (SELECT COUNT(*)
-  FROM INFORMATION_SCHEMA.COLUMNS
-  WHERE table_name = 'Monitors'
-  AND table_schema = DATABASE()
-  AND column_name = 'EventCloseMode'
-  ) > 0,
-"ALTER TABLE Monitors MODIFY `EventCloseMode`  enum('system', 'time', 'duration', 'idle', 'alarm') NOT NULL DEFAULT 'system'",
-"ALTER TABLE Monitors add `EventCloseMode`  enum('system', 'time', 'duration', 'idle', 'alarm') NOT NULL DEFAULT 'system' AFTER SectionLengthWarn"
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Servers'
+     AND column_name = 'CpuNicePercent'
+    ) > 0,
+"SELECT 'Column CpuNicePercent already exists in Servers'",
+"ALTER TABLE Servers ADD `CpuNicePercent` DECIMAL(5,1) default NULL AFTER `CpuUserPercent`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Servers'
+     AND column_name = 'CpuSystemPercent'
+    ) > 0,
+"SELECT 'Column CpuSystemPercent already exists in Servers'",
+"ALTER TABLE Servers ADD `CpuSystemPercent` DECIMAL(5,1) default NULL AFTER `CpuNicePercent`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Servers'
+     AND column_name = 'CpuIdlePercent'
+    ) > 0,
+"SELECT 'Column CpuIdlePercent already exists in Servers'",
+"ALTER TABLE Servers ADD `CpuIdlePercent` DECIMAL(5,1) default NULL AFTER `CpuSystemPercent`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+
+SET @s = (SELECT IF(
+    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = DATABASE()
+     AND table_name = 'Servers'
+     AND column_name = 'CpuUsagePercent'
+    ) > 0,
+"SELECT 'Column CpuUsagePercent already exists in Servers'",
+"ALTER TABLE Servers ADD `CpuUsagePercent` DECIMAL(5,1) default NULL AFTER `CpuIdlePercent`"
 ));
 
 PREPARE stmt FROM @s;

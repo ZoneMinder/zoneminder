@@ -163,7 +163,7 @@ if (!$server_up) {
     my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
     if ($_=$server->save({Status=>'NotRunning',
           TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap,
-          CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSysPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent,
+          CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSystemPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent,
         })) {
       Error('Failed Updating status of Server record to Not Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
     }
@@ -325,7 +325,7 @@ sub run {
         my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
         if ($_=$server->save({Status=>'Running',
               TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap, CpuLoad=>$cpuload[0],
-              CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSysPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent
+              CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSystemPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent
             })) {
           Error('Failed Updating status of Server record to Not Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
         }

@@ -191,5 +191,12 @@ class Server extends ZM_Object {
     }
     return $result;
   }
+  public function CpuLoad() {
+    if ($this->CpuLoad == -1) {
+      $load = sys_getloadavg();
+      $this->CpuLoad = $load[0];
+    }
+    return $this->CpuLoad;
+  }
 } # end class Server
 ?>

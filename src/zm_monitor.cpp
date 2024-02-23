@@ -2419,8 +2419,6 @@ bool Monitor::Analyse() {
         if (!event) {
           if (
               ((shared_data->recording == RECORDING_ALWAYS)
-               and ((event_start_mode == START_IMMEDIATE) or (std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)))
-              )
               or
               ((shared_data->recording == RECORDING_ONMOTION) and (state == ALARM))
              ) {

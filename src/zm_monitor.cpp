@@ -540,22 +540,27 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
         );
   }
   event_close_mode = static_cast<Monitor::EventCloseMode>(dbrow[col] ? atoi(dbrow[col]) : 0); col++;
-  if (event_close_mode == CLOSE_SYSTEM) {
-    if (strcmp(config.event_close_mode, "time") == 0) {
-      event_close_mode = CLOSE_TIME;
-    } else if (strcmp(config.event_close_mode, "alarm") == 0) {
-      event_close_mode = CLOSE_ALARM;
-    } else if (strcmp(config.event_close_mode, "idle") == 0) {
+  switch (event_close_mode) {
+    case CLOSE_SYSTEM:
+      if (strcmp(config.event_close_mode, "time") == 0) {
+        event_close_mode = CLOSE_TIME;
+      } else if (strcmp(config.event_close_mode, "alarm") == 0) {
+        event_close_mode = CLOSE_ALARM;
+      } else if (strcmp(config.event_close_mode, "idle") == 0) {
+        event_close_mode = CLOSE_IDLE;
+      } else {
+        Warning("Unknown value for event_close_mode %s", config.event_close_mode);
+        event_close_mode = CLOSE_IDLE;
+      }
+      break;
+    case CLOSE_TIME:
+    case CLOSE_ALARM:
+    case CLOSE_IDLE:
+    case CLOSE_DURATION:
+      break;
+    default:
+      Warning("Unknown value for event_close_mode %d, defaulting to idle", event_close_mode);
       event_close_mode = CLOSE_IDLE;
-    } else {
-      Warning("Unknown value for event_close_mode %s", config.event_close_mode);
-      event_close_mode = CLOSE_IDLE;
-    }
-  } else if (event_close_mode == CLOSE_TIME or event_close_mode == CLOSE_ALARM or event_close_mode == CLOSE_IDLE) {
-    //valid value
-  } else {
-    Warning("Unknown value for event_close_mode %d, defaulting to idle", event_close_mode);
-    event_close_mode = CLOSE_IDLE;
   }
 
   frame_skip = atoi(dbrow[col]); col++;

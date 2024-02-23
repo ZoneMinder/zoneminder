@@ -1481,16 +1481,9 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
             <input type="number" name="newMonitor[MinSectionLength]" value="<?php echo validHtmlStr($monitor->MinSectionLength()) ?>" min="0"/>
             <?php echo translate('seconds')?>
         </li>
-        <li>
-          <label><?php echo translate('Event Start Mode') ?></label>
-          <?php echo html_radio('newMonitor[EventStartMode]',
-          ['immediate'=>translate('Immediately'), 'time'=>translate('Time')],
-          $monitor->EventStartMode()); ?>
-          <span class="form-text form-control-sm">When continuous events are started.&nbsp;(<a id="ZM_EVENT_START_MODE" class="optionhelp">?</a>)</span>
-        </li>
-        <li>
+        <li class="EventCloseMode">
           <label><?php echo translate('Event Close Mode') ?></label>
-          <?php echo html_radio('newMonitor[EventCloseMode]', ['system'=>translate('System'), 'time'=>translate('Time'), 'idle'=>translate('Idle'), 'alarm'=>translate('Alarm')], $monitor->EventCloseMode()); ?>
+          <?php echo html_radio('newMonitor[EventCloseMode]', ['system'=>translate('System'), 'time'=>translate('Time'), 'duration'=>translate('Duration'), 'idle'=>translate('Idle'), 'alarm'=>translate('Alarm')], $monitor->EventCloseMode()); ?>
           <span class="form-text form-control-sm">When continuous events are closed.&nbsp;(<a id="ZM_EVENT_CLOSE_MODE" class="optionhelp">?</a>)</span>
         </li>
         <li>

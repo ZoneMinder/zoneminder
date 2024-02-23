@@ -114,7 +114,7 @@ function initPage() {
   // Assign inf, err, fat, dbg color classes to the rows in the table
   table.on('post-body.bs.table', function(data) {
     var lvl_ndx = $j('#logTable tr th').filter(function() {
-      return $j(this).text().trim() == 'Level';
+      return $j(this).attr('data-field') == "Code";
     }).index();
 
     $j('#logTable tr').each(function(ndx, row) {

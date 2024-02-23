@@ -173,8 +173,7 @@ protected:
 
   typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
 
-  typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
-  typedef enum { START_UNKNOWN=0, START_IMMEDIATE, START_TIME } EventStartMode;
+  typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_DURATION, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
   /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
   typedef struct {

@@ -535,7 +535,6 @@ protected:
   SystemTimePoint auto_resume_time;
   unsigned int      last_motion_score;
 
-  EventStartMode  event_start_mode;
   EventCloseMode  event_close_mode;
 
 #if ZM_MEM_MAPPED

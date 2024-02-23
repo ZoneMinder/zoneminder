@@ -2418,16 +2418,15 @@ bool Monitor::Analyse() {
 
         if (!event) {
           if (
-              ((shared_data->recording == RECORDING_ALWAYS)
+              (shared_data->recording == RECORDING_ALWAYS)
               or
               ((shared_data->recording == RECORDING_ONMOTION) and (state == ALARM))
              ) {
-                Info("%s: %03d - Opening event timestamp %" PRIi64 " %% %" PRIi64 "  event_start_mode %d",
+                Info("%s: %03d - Opening event timestamp %" PRIi64 " %% %" PRIi64,
                     name.c_str(),
                     snap->image_index,
                     static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch() % section_length).count()),
-                    event_start_mode
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch() % section_length).count())
                     );
             if ((event = openEvent(snap, cause.empty() ? "Continuous" : cause, noteSetMap)) != nullptr) {
               Info("Opened new event %" PRIu64 " %s", event->Id(), cause.empty() ? "Continuous" : cause.c_str());

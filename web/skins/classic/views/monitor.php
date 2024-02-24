@@ -580,6 +580,10 @@ switch ($name) {
               <input type="text" name="newMonitor[ONVIF_URL]" value="<?php echo validHtmlStr($monitor->ONVIF_URL()) ?>"/>
             </li>
             <li>
+              <label><?php echo translate('ONVIF_EVENTS_PATH') ?></label>
+              <input type="text" name="newMonitor[ONVIF_Events_Path]" value="<?php echo validHtmlStr($monitor->ONVIF_Events_Path()) ?>"/>
+            </li>
+            <li>
               <label><?php echo translate('Username') ?></label>
               <input type="text" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/>
             </li>

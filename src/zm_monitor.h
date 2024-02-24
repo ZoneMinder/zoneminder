@@ -428,6 +428,7 @@ protected:
   std::string second_path;
 
   std::string onvif_url;
+  std::string onvif_events_path;
   std::string onvif_username;
   std::string onvif_password;
   std::string onvif_options;

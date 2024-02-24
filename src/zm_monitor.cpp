@@ -105,7 +105,7 @@ std::string load_monitor_sql =
 "`FPSReportInterval`, `RefBlendPerc`, `AlarmRefBlendPerc`, `TrackMotion`, `Exif`, "
 "`Latitude`, `Longitude`, "
 "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`, `ONVIF_Alarm_Text`," 
-"`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, "
+"`ONVIF_URL`, `ONVIF_EVENTS_PATH`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, "
 "`ONVIF_Event_Listener`, `use_Amcrest_API`,"
 "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
 #if MOSQUITTOPP_FOUND
@@ -593,6 +593,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
       onvif_url = "http://"+path_uri.Host+"/onvif/device_service";
     }
   }
+  onvif_events_path = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_username = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_password = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_options = std::string(dbrow[col] ? dbrow[col] : ""); col++;
@@ -1085,16 +1086,16 @@ bool Monitor::connect() {
         std::string Termination_time = "PT60S";
         wsnt__Renew.TerminationTime = &Termination_time;
         soap = soap_new();
-        soap->connect_timeout = 0;
+        soap->connect_timeout = 0; 
         soap->recv_timeout = 0;
         soap->send_timeout = 0;
         //soap->bind_flags |= SO_REUSEADDR;
         soap_register_plugin(soap, soap_wsse);
-        if (soap_wsa_compl) {soap_register_plugin(soap, soap_wsa);}
+        if (soap_wsa_compl) {soap_register_plugin(soap, soap_wsa);};
         proxyEvent = PullPointSubscriptionBindingProxy(soap);
 
         if (!onvif_url.empty()) {
-          std::string full_url = onvif_url + "/Events";
+          std::string full_url = onvif_url + onvif_events_path;
           proxyEvent.soap_endpoint = full_url.c_str();
           set_credentials(soap);
           const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";

@@ -146,11 +146,11 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
     User *user = new User(dbrow);
 
     if ( 
-        (password.empty())  // relay type must be none
+        (password.empty() and (!strcmp(config.auth_relay, "none")))  // relay type must be none
         ||
         verifyPassword(username.c_str(), password.c_str(), user->getPassword()) ) {
       mysql_free_result(result);
-      Info("Authenticated user '%s'", user->getUsername());
+      Debug(1, "Authenticated user '%s'", user->getUsername());
       return user;
     } 
     delete user;

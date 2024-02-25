@@ -199,31 +199,45 @@ class Server extends ZM_Object {
     return $this->CpuLoad;
   }
 
-  public function getServerLoadData() {
-    if (is_readable("/proc/stat")) {
-      $stats = @file_get_contents("/proc/stat");
+  public function getServerLoadData($mode) {
+    $stats = false;
+    $fileName = null;
+    $fileNameCurStat = sys_get_temp_dir()."/cpu_usage";
 
-      if ($stats !== false) {
-        // Remove double spaces to make it easier to extract values with explode()
-        $stats = preg_replace("/[[:blank:]]+/", " ", $stats);
+    if ($mode == "cur") {
+      $fileName = "/proc/stat";
+    } else if ($mode == "prev") {
+      $fileName = $fileNameCurStat;
+    }
+    if (is_readable($fileName)) {
+      $stats = @file_get_contents($fileName);
+    }
 
-        // Separate lines
-        $stats = str_replace(array("\r\n", "\n\r", "\r"), "\n", $stats);
-        $stats = explode("\n", $stats);
+    if ($stats !== false) {
+      //Save current state
+      if ($mode == "cur") {
+        file_put_contents($fileNameCurStat, $stats);
+      }
 
-        // Separate values and find line for main CPU load
-        foreach ($stats as $statLine) {
-          $statLineData = explode(" ", trim($statLine));
+      // Remove double spaces to make it easier to extract values with explode()
+      $stats = preg_replace("/[[:blank:]]+/", " ", $stats);
 
-          // Found!
-          if ((count($statLineData) >= 5) && ($statLineData[0] == "cpu")) {
-            return array(
-              $statLineData[1],
-              $statLineData[2],
-              $statLineData[3],
-              $statLineData[4],
-            );
-          }
+      // Separate lines
+      $stats = str_replace(array("\r\n", "\n\r", "\r"), "\n", $stats);
+      $stats = explode("\n", $stats);
+
+      // Separate values and find line for main CPU load
+      foreach ($stats as $statLine) {
+        $statLineData = explode(" ", trim($statLine));
+
+        // Found!
+        if ((count($statLineData) >= 5) && ($statLineData[0] == "cpu")) {
+          return array(
+            $statLineData[1],
+            $statLineData[2],
+            $statLineData[3],
+            $statLineData[4],
+          );
         }
       }
     }
@@ -234,32 +248,30 @@ class Server extends ZM_Object {
   // Returns server load in percent (just number, without percent sign)
   public function CpuUsagePercent() {
     if ($this->CpuUsagePercent == -1) {
-      if (is_readable("/proc/stat")) {
-        // Collect 2 samples - each with 1 second period
-        // See: https://de.wikipedia.org/wiki/Load#Der_Load_Average_auf_Unix-Systemen
-        $statData1 = $this->getServerLoadData();
-        sleep(1);
-        $statData2 = $this->getServerLoadData();
+      // Collect 2 samples - each with 1 second period
+      // See: https://de.wikipedia.org/wiki/Load#Der_Load_Average_auf_Unix-Systemen
+      $statData1 = $this->getServerLoadData("prev");
+      $statData2 = $this->getServerLoadData("cur");
 
-        if ((!is_null($statData1)) && (!is_null($statData2))) {
-          // Get difference
-          $statData2[0] -= $statData1[0];
-          $statData2[1] -= $statData1[1];
-          $statData2[2] -= $statData1[2];
-          $statData2[3] -= $statData1[3];
+      if ((!is_null($statData1)) && (!is_null($statData2))) {
+        // Get difference
+        $statData2[0] -= $statData1[0];
+        $statData2[1] -= $statData1[1];
+        $statData2[2] -= $statData1[2];
+        $statData2[3] -= $statData1[3];
 
-          // Sum up the 4 values for User, Nice, System and Idle and calculate
-          // the percentage of idle time (which is part of the 4 values!)
-          $cpuTime = $statData2[0] + $statData2[1] + $statData2[2] + $statData2[3];
+        // Sum up the 4 values for User, Nice, System and Idle and calculate
+        // the percentage of idle time (which is part of the 4 values!)
+        $cpuTime = $statData2[0] + $statData2[1] + $statData2[2] + $statData2[3];
 
-          // Invert percentage to get CPU time, not idle time
-          $this->CpuUsagePercent = 100 - ($statData2[3] * 100 / $cpuTime);
-        }
+        // Invert percentage to get CPU time, not idle time
+        $this->CpuUsagePercent = 100 - ($statData2[3] * 100 / $cpuTime);
       }
     }
 
     return $this->CpuUsagePercent;
   }
+
 
 } # end class Server
 ?>

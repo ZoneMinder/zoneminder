@@ -158,6 +158,7 @@ public static function getStatuses() {
     'EventStartCommand' => '',
     'EventEndCommand' => '',
     'ONVIF_URL' =>  '',
+    'ONVIF_Events_Path' =>  '',
     'ONVIF_Username'  =>  '',
     'ONVIF_Password'  =>  '',
     'ONVIF_Options'   =>  '',

@@ -158,8 +158,7 @@ public:
     IDLE,
     PREALARM,
     ALARM,
-    ALERT,
-    TAPE
+    ALERT
   } State;
 
   typedef enum {

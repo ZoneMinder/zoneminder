@@ -129,8 +129,7 @@ std::string State_Strings[] = {
   "IDLE",
   "PREALARM",
   "ALARM",
-  "ALERT",
-  "TAPE"
+  "ALERT"
 };
 
 std::string Capturing_Strings[] = {
@@ -2229,7 +2228,7 @@ bool Monitor::Analyse() {
         snap->score = score;
 
         if (score) {
-          if ((state == IDLE) || (state == TAPE) || (state == PREALARM)) {
+          if ((state == IDLE) || (state == PREALARM)) {
             if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
               Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
                   name.c_str(), snap->image_index, Event::PreAlarmCount(), alarm_frame_count, cause.c_str());
@@ -2251,10 +2250,6 @@ bool Monitor::Analyse() {
               Info("%s: %03d - ExtAlm - Gone back into alarm state", name.c_str(), analysis_image_count);
               shared_data->state = state = ALARM;
             }
-          } else if (state == TAPE) {
-            // Already recording, but IDLE so switch to ALARM
-            shared_data->state = state = ALARM;
-            Debug(1, "Was in TAPE, going into ALARM");
           } else {
             Debug(1, "Staying in %s", State_Strings[state].c_str());
           }
@@ -2269,20 +2264,14 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
             shared_data->state = state = ALERT;
           } else if (state == ALERT) {
-            if (event && ((analysis_image_count - last_alarm_count) > post_event_count)) {
-              if ((shared_data->recording == RECORDING_ONMOTION) || (event_close_mode != CLOSE_TIME)) {
-                shared_data->state = state = IDLE;
-              } else {
-                shared_data->state = state = TAPE;
-              }
+            if ((analysis_image_count - last_alarm_count) > post_event_count) {
+              shared_data->state = state = IDLE;
               Info("%s: %03d - Left alert state event id:%" PRIu64 " event frames:%d alarm frames:%d",
                   name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
-            } else {
-              shared_data->state = state = IDLE;
             }
           } else if (state == PREALARM) {
             // Back to IDLE
-            shared_data->state = state = ((shared_data->recording == RECORDING_ALWAYS) ? IDLE : TAPE);
+            shared_data->state = state = IDLE;
           }
           Debug(1,
               "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) = %d > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
@@ -2379,7 +2368,7 @@ bool Monitor::Analyse() {
                 }
               } else if (event_close_mode == CLOSE_IDLE) {
                 Debug(1, "CLOSE_MODE Idle");
-                if (state == IDLE || state == TAPE) {
+                if (state == IDLE) {
                   if (event->Duration() >= section_length) {
                     //std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()) % section_length == Seconds(0)) {
                     Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,

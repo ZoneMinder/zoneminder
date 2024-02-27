@@ -85,7 +85,7 @@ sub CpuLoad {
 sub ReadStat {
     if (!open(STAT, '/proc/stat')) {
       Error("Enable to open /proc/stat: $!");
-    return undef;
+      return undef;
     }
     my ($cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
     while (<STAT>) {
@@ -95,6 +95,8 @@ sub ReadStat {
       }
     }
     close STAT;
+
+    return ($cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
 }
 
 sub CpuUsage {

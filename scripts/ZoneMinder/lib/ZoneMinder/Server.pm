@@ -82,21 +82,11 @@ sub CpuLoad {
   return (undef, undef, undef);
 } # end sub CpuLoad
 
-sub CpuUsage {
-  if (-e '/proc/stat') {
+sub ReadStat {
     if (!open(STAT, '/proc/stat')) {
       Error("Enable to open /proc/stat: $!");
-      return;
+    return undef;
     }
-    my ($self, $prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total);
-    if (@_==1) {
-      $self = shift;
-      ($prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total) = @$self{'prev_user','prev_nice','prev_sys','prev_idle','prev_total'};
-    } elsif (@_>1) {
-      $self = {};
-      ($prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total) = @_;
-    }
-
     my ($cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
     while (<STAT>) {
       if (/^cpu\s+[0-9]+/) {
@@ -105,14 +95,19 @@ sub CpuUsage {
       }
     }
     close STAT;
+}
 
-    my $total = $cpu_user + $cpu_nice + $cpu_sys + $cpu_idle;
+sub CpuUsage {
+  if (-e '/proc/stat') {
+    my ($prev_user, $prev_nice, $prev_sys, $prev_idle) = ReadStat();
+    sleep 1;
+    my ($cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = ReadStat();
 
-    my $diff_user = $prev_user ? $cpu_user - $prev_user : $cpu_user;
-    my $diff_nice = $prev_nice ? $cpu_nice - $prev_nice : $cpu_nice;
-    my $diff_sys = $prev_sys ? $cpu_sys - $prev_sys : $cpu_sys;
-    my $diff_idle = $prev_idle ? $cpu_idle - $prev_idle : $cpu_idle;
-    my $diff_total = $prev_total ? $total - $prev_total : $total;
+    my $diff_user = $cpu_user - $prev_user;
+    my $diff_nice = $cpu_nice - $prev_nice;
+    my $diff_sys = $cpu_sys - $prev_sys;
+    my $diff_idle = $cpu_idle - $prev_idle;
+    my $diff_total = $diff_user + $diff_nice + $diff_sys + $diff_idle;
 
     my $user_percent = 100 * $diff_user / $diff_total;
     my $nice_percent = 100 * $diff_nice / $diff_total;
@@ -120,11 +115,6 @@ sub CpuUsage {
     my $idle_percent = 100 * $diff_idle / $diff_total;
     my $usage_percent = 100 * ($diff_total - $diff_idle) / $diff_total;
 
-    $$self{prev_user} = $cpu_user;
-    $$self{prev_nice} = $cpu_nice;
-    $$self{prev_sys} = $cpu_sys;
-    $$self{prev_idle} = $cpu_sys;
-    $$self{prev_total} = $cpu_sys;
     return ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent);
   } else {
     # Get CPU utilization percentages

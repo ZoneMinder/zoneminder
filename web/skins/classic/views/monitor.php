@@ -585,7 +585,7 @@ switch ($name) {
             </li>
             <li>
               <label><?php echo translate('Username') ?></label>
-              <input type="text" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/>
+              <input type="text" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>" autocomplete="off"/>
             </li>
             <li>
               <label><?php echo translate('Password') ?></label>
@@ -648,6 +648,7 @@ $localMethods = array(
     );
 if (!ZM_HAS_V4L2)
   unset($localMethods['v4l2']);
+if (!isset($localMethods[$monitor->Method()])) $monitor->Method('v4l2');
 echo htmlSelect('newMonitor[Method]', $localMethods, 
   ((count($localMethods)==1) ? array_keys($localMethods)[0] : $monitor->Method()),
   array('data-on-change'=>'submitTab', 'data-tab-name'=>$tab) );

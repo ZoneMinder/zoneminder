@@ -917,6 +917,7 @@ $SLANG = array(
     'minutes'              => 'минут',
     'on demand'            => 'по требованию',
     'On Motion'            => 'В движении',
+    'OnMotion'             => 'При движении',
     'Prealarm'             => 'Предаварийный',
     'Settings only available for Local monitors.' => 'Настройки доступны только для локальных мониторов.',
     'KeyFrames Only'       => 'Только ключевые кадры',

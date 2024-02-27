@@ -390,9 +390,11 @@ function getCpuUsageHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
   global $thisServer;
-  if ($thisServer and $thisServer->Id()) {
-    $result .= '<li id="getCpuUsagesHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
-    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent(), 1, '.', '').'%'.PHP_EOL;
+  if ($thisServer) {
+    $thisServer->ReadStats();
+
+    $result .= '<li id="getCpuUsageHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
+    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent, 1, '.', '').'%'.PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
   return $result;
@@ -404,9 +406,11 @@ function getSysLoadHTML() {
   if ( !canView('System') ) return $result;
   global $thisServer;
   if ($thisServer) {
+    $thisServer->ReadStats();
+
     $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
     $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
-    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad(), 2, '.', '').PHP_EOL;
+    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad, 2, '.', '').PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   } 
   return $result;

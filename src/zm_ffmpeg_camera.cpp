@@ -260,7 +260,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       // -10 is for 10 seconds
       double pts_time = static_cast<double>(av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
       double last_pts_time = static_cast<double>(av_rescale_q(lastPTS, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
-      Warning("Stream pts jumped back in time too far. pts %.2f - last pts %.2f = %.2f > 20seconds",
+      logPrintf(Logger::WARNING + monitor->Importance(), "Stream pts jumped back in time too far. pts %.2f - last pts %.2f = %.2f > 20seconds",
           pts_time, last_pts_time, pts_time - last_pts_time);
       if (error_count > 5)
         return -1;

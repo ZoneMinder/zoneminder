@@ -15,6 +15,7 @@ class Server extends ZM_Object {
   public $PathToApi = ZM_PATH_API;
   public $State_Id = -1;
   public $Status = 'Unknown';
+  public $TimeUpdateStats = null;
   public $CpuLoad = -1;
   public $CpuUserPercent = -1;
   public $CpuNicePercent = -1;
@@ -42,6 +43,22 @@ class Server extends ZM_Object {
     'zmtrigger'            => 0,
     'zmeventnotification'  => 0,
   );
+
+  public function ReadStats() {
+    #ToDo: Analyze the date of the last entry, because The entry may be out of date and not updated.
+    $dbStats = dbFetchAll('SELECT * FROM Server_Stats ' . ($this->Id() ? "WHERE ServerId=\'".$this->Id() . "\'" : "WHERE ServerId is NULL") . ' ORDER BY TimeStamp DESC LIMIT 1');
+    $this->TimeUpdateStats = $dbStats[0]['TimeStamp'];
+    $this->CpuLoad = $dbStats[0]['CpuLoad'];
+    $this->CpuUserPercent = $dbStats[0]['CpuUserPercent'];
+    $this->CpuNicePercent = $dbStats[0]['CpuNicePercent'];
+    $this->CpuSystemPercent = $dbStats[0]['CpuSystemPercent'];
+    $this->CpuIdlePercent = $dbStats[0]['CpuIdlePercent'];
+    $this->CpuUsagePercent = $dbStats[0]['CpuUsagePercent'];
+    $this->TotalMem = $dbStats[0]['TotalMem'];
+    $this->FreeMem = $dbStats[0]['FreeMem'];
+    $this->TotalSwap = $dbStats[0]['TotalSwap'];
+    $this->FreeSwap = $dbStats[0]['FreeSwap'];
+  }
 
   public static function find( $parameters = array(), $options = array() ) {
     return ZM_Object::_find(self::class, $parameters, $options);
@@ -190,13 +207,6 @@ class Server extends ZM_Object {
       Error("Except $e thrown sending to $url");
     }
     return $result;
-  }
-  public function CpuLoad() {
-    if ($this->CpuLoad == -1) {
-      $load = sys_getloadavg();
-      $this->CpuLoad = $load[0];
-    }
-    return $this->CpuLoad;
   }
 } # end class Server
 ?>

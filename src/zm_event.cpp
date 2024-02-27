@@ -392,7 +392,7 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
   bool write_to_db = false;
   FrameType frame_type = ( ( score > 0 ) ? ALARM : (
       (
-       ( monitor_state == Monitor::TAPE )
+       ( monitor_state == Monitor::IDLE )
        and
        ( config.bulk_frame_interval > 1 )
        and

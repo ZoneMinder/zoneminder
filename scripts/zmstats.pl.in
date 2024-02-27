@@ -57,9 +57,9 @@ while (!$zm_terminate) {
   my @cpuload = $server->CpuLoad();
 
   my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
-  zmDbDo('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuSystemPercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?)',
+  zmDbDo('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuNicePercent, CpuSystemPercent, CpuIdlePercent, CpuUsagePercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?,?,?,?)',
     $Config{ZM_SERVER_ID},
-    $cpuload[0], $user_percent, $sys_percent,
+    $cpuload[0], $user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent,
     &totalmem, &freemem, &totalswap, &freeswap);
 
   {

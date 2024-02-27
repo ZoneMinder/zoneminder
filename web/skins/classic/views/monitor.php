@@ -719,7 +719,7 @@ include('_monitor_source_nvsocket.php');
           </li>
           <li>
             <label><?php echo translate('RemoteProtocol') ?></label>
-            <?php echo htmlSelect('newMonitor[Protocol]', $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?>
+            <?php echo htmlSelect('newMonitor[Protocol]', $remoteProtocols, $monitor->Protocol(), ['data-on-change-this'=>'updateMethods'] ); ?>
           </li>
           <li>
             <label><?php echo translate('RemoteMethod') ?></label>

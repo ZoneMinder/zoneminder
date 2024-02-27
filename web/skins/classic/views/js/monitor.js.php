@@ -198,10 +198,10 @@ function validateForm(form) {
 }
 
 function updateMethods(element) {
-  var form = element.form;
+  const form = element.form;
 
-  var origMethod = form.elements['origMethod'];
-  var methodSelector = form.elements['newMonitor[Method]'];
+  const origMethod = form.elements['origMethod'];
+  const methodSelector = form.elements['newMonitor[Method]'];
   methodSelector.options.length = 0;
   switch ( element.value ) {
     case 'http' :
@@ -228,6 +228,11 @@ function updateMethods(element) {
         }
       ?>
     break;
+  }
+  if (element.value == 'rtsp') {
+    $j('#RTSPDescribe').show();
+  } else {
+    $j('#RTSPDescribe').hide();
   }
   return true;
 }

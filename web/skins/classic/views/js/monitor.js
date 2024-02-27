@@ -153,7 +153,7 @@ function initPage() {
   });
   document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
     el.onchange = function() {
-      var form = document.getElementById('contentForm');
+      const form = document.getElementById('contentForm');
       form.tab.value = 'general';
       form.submit();
     };

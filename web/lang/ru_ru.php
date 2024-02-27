@@ -870,6 +870,7 @@ $SLANG = array(
     'Location'             => 'Расположение',
     'ModectDuringPTZ'      => 'Обнаружение во время движения',
     'SourceSecondPath'     => 'Путь второго потока',
+    'Decoder'              => 'Декодер',
     'DecoderHWAccelName'   => 'Название типа декодирования ускорителя',
     'DecoderHWAccelDevice' => 'Название ускорителя декодирования',
     'MaxImageBufferCount'  => 'Максимальный размер буфера изображений (Кадров)',

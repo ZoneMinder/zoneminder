@@ -46,7 +46,7 @@ class Server extends ZM_Object {
 
   public function ReadStats() {
     #ToDo: Analyze the date of the last entry, because The entry may be out of date and not updated.
-    $dbStats = dbFetchAll('SELECT * FROM Server_Stats ' . ($this->Id() ? "WHERE ServerId=\'".$this->Id() . "\'" : "WHERE ServerId is NULL") . ' ORDER BY TimeStamp DESC LIMIT 1');
+    $dbStats = dbFetchAll('SELECT * FROM Server_Stats ' . ($this->Id()>1 ? "WHERE ServerId=\'".$this->Id() . "\'" : "WHERE ServerId is NULL") . ' ORDER BY TimeStamp DESC LIMIT 1');
     $this->TimeUpdateStats = $dbStats[0]['TimeStamp'];
     $this->CpuLoad = $dbStats[0]['CpuLoad'];
     $this->CpuUserPercent = $dbStats[0]['CpuUserPercent'];

@@ -36,7 +36,7 @@ if (!$Server) {
   $Server = array('Id' => '');
 }
 
-$monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
+$monitors = dbFetchAll('SELECT Id, Name FROM Monitors WHERE Deleted=false ORDER BY Name,Sequence ASC');
 $monitors_by_id = array();
 foreach ($monitors as $row) {
   $monitors_by_id[$row['Id']] = $row['Name'];

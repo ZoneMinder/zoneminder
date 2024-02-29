@@ -967,7 +967,7 @@ function getStat() {
         break;
       case 'MonitorName':
         if (canView["Monitors"]) {
-          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
+          tdString = '<a href="?view=watch&amp;mid='+eventData.MonitorId+'">'+translate["Live"]+" \""+eventData.MonitorName+'\"</a>';
         } else {
           tdString = eventData[key];
         }

@@ -1331,7 +1331,7 @@ $codecs = array(
 ?>
             <li>
               <label><?php echo translate('TimestampLabelFormat') ?></label>
-              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>"/>
+              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>" placeholder="POSIX date time format"/>
             </li>
             <li>
               <label><?php echo translate('TimestampLabelX') ?></label>

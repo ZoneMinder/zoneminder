@@ -243,8 +243,10 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     }
     if ( packet->stream_index == mAudioStreamId) {
       lastPTS = mLastAudioPTS;
-    } else {
+    } else if ( packet->stream_index == mVideoStreamId) {
       lastPTS = mLastVideoPTS;
+    } else {
+      lastPTS = 0;
     }
   }
 

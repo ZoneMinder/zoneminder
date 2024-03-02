@@ -1331,7 +1331,7 @@ $codecs = array(
 ?>
             <li>
               <label><?php echo translate('TimestampLabelFormat') ?></label>
-              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>" placeholder="Python strftime format. %f for hundreths, %N for Monitor Name, %Q for show text."/>
+              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>" placeholder="Python strftime format. %f for hundredths, %N for Monitor Name, %Q for show text."/>
             </li>
             <li>
               <label><?php echo translate('TimestampLabelX') ?></label>

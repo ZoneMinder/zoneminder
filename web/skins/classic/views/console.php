@@ -353,7 +353,8 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
     $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
     $options['scale'] = intval(100*ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth());
-    $options['mode'] = 'single';
+    $options['mode'] = 'jpeg';
+    $options['frames'] = 1;
 
     $stillSrc = $Monitor->getStreamSrc($options);
     $streamSrc = $Monitor->getStreamSrc(array('scale'=>$options['scale']*5));

@@ -2386,7 +2386,7 @@ bool Monitor::Analyse() {
                 Warning("CLOSE_MODE Unknown");
               }  // end if event_close_mode
             } else if (shared_data->recording == RECORDING_ONMOTION) {
-              if (event->Duration() > section_length || IDLE==state) {
+              if (event->Duration() > section_length or (IDLE==state and (analysis_image_count - last_alarm_count > post_event_count))) {
                 Info("%s: %03d - Closing event %" PRIu64 " %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %" PRIi64 ,
                     name.c_str(),
                     snap->image_index,

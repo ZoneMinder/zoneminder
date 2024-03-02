@@ -113,8 +113,8 @@ echo output_link_if_exists(array(
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.21.1/bootstrap-table.min.css',
-  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
+  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
 ), true);
 if ( $css != 'base' )
   echo output_link_if_exists(array(
@@ -982,13 +982,13 @@ function xhtmlFooter() {
 <?php echo output_script_if_exists(array(
   'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
-  'js/bootstrap-table-1.21.1/bootstrap-table.min.js',
-  'js/bootstrap-table-1.21.1/extensions/locale/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-1.21.1/extensions/export/bootstrap-table-export.min.js',
-  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-1.21.1/extensions/cookie/bootstrap-table-cookie.js',
-  'js/bootstrap-table-1.21.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-1.21.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.22.3/bootstrap-table.min.js',
+  'js/bootstrap-table-1.22.3/extensions/locale/bootstrap-table-locale-all.min.js',
+  'js/bootstrap-table-1.22.3/extensions/export/bootstrap-table-export.min.js',
+  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-1.22.3/extensions/cookie/bootstrap-table-cookie.js',
+  'js/bootstrap-table-1.22.3/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-1.22.3/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
   'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',

@@ -54,7 +54,7 @@ class Group extends ZM_Object {
         if (count($this->Children())) {
           foreach ($this->Children() as $g) {
             $child_monitor_ids = $g->MonitorIds();
-            $monitor_ids_cache[$this->{'Id'}] = array_unique(array_merge($monitor_ids_cache[$this->{'Id'}], $child_monitor_ids));
+            $monitor_ids_cache[$this->{'Id'}] = array_values(array_unique(array_merge($monitor_ids_cache[$this->{'Id'}], $child_monitor_ids)));
           }
         }
       }

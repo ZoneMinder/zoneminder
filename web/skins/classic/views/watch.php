@@ -429,35 +429,29 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
       </div>
     </div>
 <?php
-if ( $hasPtzControls ) {
-    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
-        require_once $includeFile;
+  if ($hasPtzControls) {
+    foreach (getSkinIncludes('includes/control_functions.php') as $includeFile)
+      require_once $includeFile;
 ?>
       <div id="ptzControls" class="ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
       <?php echo ptzControls($monitor) ?>
       </div>
 <?php
-}
-}
+    }
+  } # end if hasPtzControls
 ?>
     </div>
   </div>
 <?php
-if ( $monitor->JanusEnabled() ) {
+   if ($monitor->JanusEnabled()) {
 ?>
   <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
   <script src="/javascript/janus/janus.js"></script>
 <?php
-}
-?>
-<?php
-if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
-?>
-  <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
-<?php
-}
-?>
-<?php
+    } # end if JanusEnabled
+    if ($monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == 'HLS') {
+      echo '<script src="'.cache_bust('js/hls.js').'"></script>'.PHP_EOL;
+    }
   } else {
     echo "There are no monitors to display\n";
   }

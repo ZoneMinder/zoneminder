@@ -817,6 +817,10 @@ function eventEdit() {
   window.location.assign("?view=monitor&amp;mid='+eventData.MonitorId+'");
 }
 
+function viewAllEvents() {
+  window.location.assign("?view=events&page=1&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Battr%5D=Monitor&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bop%5D=%3D&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bval%5D="+eventData.MonitorId+"&filter%5BQuery%5D%5Bsort_asc%5D=1&filter%5BQuery%5D%5Bsort_field%5D=StartDateTime&filter%5BQuery%5D%5Bskip_locked%5D=&filter%5BQuery%5D%5Blimit%5D=0");
+}
+
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
   var barWidth = $j('#evtStream').width();
@@ -981,9 +985,10 @@ function getStat() {
       case 'MonitorName':
         if (canView["Monitors"]) {
           tdString = '('+ eventData.MonitorId +') '+ eventData.MonitorName+ '&nbsp';
-          tdString += '<div style="display:inline-block">' + '<button id="eventLiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Live"]+'" ><i class="fa fa-television"></i></button>';
+          tdString += '<div style="display:inline-block">';
+          tdString += '<button id="eventLiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Live"]+'" ><i class="fa fa-television"></i></button>';
           tdString += '<button id="eventEditBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Edit"]+'" ><i class="fa fa-edit"></i></button>';
-          tdString += '<button id="eventEditBtn000" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Edit"]+'" ><i class="fa fa-film"></i></button>';
+          tdString += '<button id="eventAllEvents" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["All Events"]+'" ><i class="fa fa-film"></i></button>';
           tdString += '</div>';
         } else {
           tdString = eventData[key];
@@ -1208,17 +1213,22 @@ function initPage() {
   });
 
   // Manage the generate Live button
-  bindButton('#eventLiveBtn', 'click', null, function onVideoClick(evt) {
+  bindButton('#eventLiveBtn', 'click', null, function onLiveClick(evt) {
     evt.preventDefault();
     eventLive();
   });
 
   // Manage the generate Edit button
-  bindButton('#eventEditBtn', 'click', null, function onVideoClick(evt) {
+  bindButton('#eventEditBtn', 'click', null, function onEditClick(evt) {
     evt.preventDefault();
     eventEdit();
   });
 
+  // Manage the generate All Events button
+  bindButton('#eventAllEvents', 'click', null, function onAllEventsClick(evt) {
+    evt.preventDefault();
+    viewAllEvents();
+  });
   // Manage the Event STATISTICS Button
   bindButton('#statsBtn', 'click', null, function onStatsClick(evt) {
     evt.preventDefault();

@@ -104,10 +104,10 @@ height: 100%;
 #eventStatsTable {
 }
 #eventVideo {
-  width: 100%; /* flex will make it fill the available space */
+  /* width: 100%; *//* flex will make it fill the available space */
 }
 .eventStats {
-  margin-right: 5px;
+  /* margin-right: 5px; */
 }
 
 #videoFeed {

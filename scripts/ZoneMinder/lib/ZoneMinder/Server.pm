@@ -32,6 +32,8 @@ require ZoneMinder::Object;
 
 use parent qw(ZoneMinder::Object);
 
+use File::Copy;
+
 use vars qw/ $table $primary_key %fields $serial @identified_by %defaults $debug/;
 $debug = 0;
 $table = 'Servers';
@@ -83,27 +85,48 @@ sub CpuLoad {
 } # end sub CpuLoad
 
 sub ReadStat {
-    if (!open(STAT, '/proc/stat')) {
-      Error("Enable to open /proc/stat: $!");
-      return undef;
+  my $fileNamePrevStat = "/tmp/cpu_usage";
+  my $fileNameCurStat = "/proc/stat";
+  my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
+  
+  # PREV
+  if (!open(STAT, $fileNamePrevStat)) {
+    ZoneMinder::Logger::Warning("Opening the previous CPU load state file '$fileNamePrevStat': $!");
+    $prev_user = $prev_nice = $prev_sys = $prev_idle = 0;
+  } else {
+    while (<STAT>) {
+      if (/^cpu\s+[0-9]+/) {
+        (undef, $prev_user, $prev_nice, $prev_sys, $prev_idle) = split /\s+/, $_;
+        last;
+      }
     }
-    my ($cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
+    close STAT;
+  }
+
+  # CUR 
+  if (!open(STAT, $fileNameCurStat)) {
+    ZoneMinder::Logger::Error("Opening the current CPU load state file '$fileNameCurStat': $!");
+    return (0, 0, 0, 0, 0, 0, 0, 0);
+    }
     while (<STAT>) {
       if (/^cpu\s+[0-9]+/) {
         (undef, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = split /\s+/, $_;
         last;
       }
     }
+  if (!copy($fileNameCurStat, $fileNamePrevStat)) {
+    ZoneMinder::Logger::Error("Copying current CPU load state file '$fileNameCurStat' to '$fileNamePrevStat': $!");
+    return (0, 0, 0, 0, 0, 0, 0, 0);
+  }
+  #copy($fileNameCurStat, $fileNamePrevStat);
     close STAT;
 
-    return ($cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
+  return ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
 }
 
 sub CpuUsage {
   if (-e '/proc/stat') {
-    my ($prev_user, $prev_nice, $prev_sys, $prev_idle) = ReadStat();
-    sleep 1;
-    my ($cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = ReadStat();
+    my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = ReadStat();
 
     my $diff_user = $cpu_user - $prev_user;
     my $diff_nice = $cpu_nice - $prev_nice;
@@ -111,6 +134,7 @@ sub CpuUsage {
     my $diff_idle = $cpu_idle - $prev_idle;
     my $diff_total = $diff_user + $diff_nice + $diff_sys + $diff_idle;
 
+    if ($diff_total != 0){
     my $user_percent = 100 * $diff_user / $diff_total;
     my $nice_percent = 100 * $diff_nice / $diff_total;
     my $sys_percent = 100 * $diff_sys / $diff_total;
@@ -118,6 +142,9 @@ sub CpuUsage {
     my $usage_percent = 100 * ($diff_total - $diff_idle) / $diff_total;
 
     return ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent);
+  } else {
+      return (0, 0, 0, 0, 0);
+    }
   } else {
     # Get CPU utilization percentages
     my $top_output = `top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print \$2, \$4, \$6, \$8}'`;

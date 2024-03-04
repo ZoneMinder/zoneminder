@@ -3,8 +3,18 @@ var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
 var table = $j('#eventList');
+var sidebarView = $j('#sidebar');
+var sidebarControls = $j('#ptzControls');
+var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 var idle = 0;
+
+var classSidebarL = 'col-sm-3'; /* id="sidebar" */
+var classSidebarR = 'col-sm-2'; /* id="ptzControls" */
+var classMonitorW_SB_LR = 'col-sm-7'; /* id="wrapperMonitor" MINIMUM width */
+var classMonitorW_SB_L = 'col-sm-9'; /* id="wrapperMonitor" ONLY WITH LEFT */
+var classMonitorW_SB_R = 'col-sm-10'; /* id="wrapperMonitor" ONLY WITH RIGHT */
+var classMonitorWO_SB = 'col-sm-12'; /* id="wrapperMonitor" MAXIMUM width */
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -118,6 +128,8 @@ function changeSize() {
 
   monitorStream.setScale('0', width, height);
   $j('#scale').val('0');
+  $j('#sidebar ul').height($j('#wrapperMonitor').height()-$j('#cycleButtons').height());
+
   setCookie('zmWatchScale', '0');
   setCookie('zmWatchWidth', width);
   setCookie('zmWatchHeight', height);
@@ -144,6 +156,7 @@ function setScale() {
   if (scale == '0') {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   }
+  changeSize();
 } // end function changeScale
 
 function getStreamCmdResponse(respObj, respText) {
@@ -926,6 +939,8 @@ function initPage() {
       }
     }, 10*1000);
   }
+  changeObjectClass();
+  changeSize();
 } // initPage
 
 function watchFullscreen() {
@@ -1003,31 +1018,33 @@ function cyclePeriodChange() {
   setCookie('zmCyclePeriod', cyclePeriodSelect.val());
 }
 function cycleToggle(e) {
-  const sidebar = $j('#sidebar');
   const button = $j('#cycleToggle');
-  if (sidebar.is(":visible")) {
-    sidebar.hide();
+  if (sidebarView.is(":visible")) {
+    sidebarView.hide();
     setCookie('zmCycleShow', false);
   } else {
-    sidebar.show();
+    sidebarView.show();
     setCookie('zmCycleShow', true);
   }
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
+  changeObjectClass();
+  changeSize();
 }
 
 function ptzToggle(e) {
-  const controls = $j('#ptzControls');
   const button = $j('#ptzToggle');
-  if (controls.is(":visible")) {
-    controls.hide();
+  if (sidebarControls.is(":visible")) {
+    sidebarControls.hide();
     setCookie('ptzShow', false);
   } else {
-    controls.show();
+    sidebarControls.show();
     setCookie('ptzShow', true);
   }
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
+  changeObjectClass();
+  changeSize();
 }
 
 function changeRate(e) {
@@ -1061,5 +1078,25 @@ function getObjdetectModal(eid) {
       });
 }
 
+function changeObjectClass() { 
+  if (sidebarView.is(":visible") && sidebarControls.is(":visible")) { //LEFT + RIGHT 
+    sidebarView.removeClass(classSidebarL).addClass(classSidebarL);
+    sidebarControls.removeClass(classSidebarR).addClass(classSidebarR);
+    wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorW_SB_LR);
+  } else if (sidebarView.is(":visible") && !sidebarControls.is(":visible")) { //LEFT
+    sidebarView.removeClass(classSidebarL).addClass(classSidebarL);
+    sidebarControls.removeClass(classSidebarR);
+    wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorW_SB_L);
+  } else if (!sidebarView.is(":visible") && sidebarControls.is(":visible")) { //RIGHT
+    sidebarView.removeClass(classSidebarL);
+    sidebarControls.removeClass(classSidebarR).addClass(classSidebarR);
+    wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorW_SB_R);
+  } else if (!sidebarView.is(":visible") && !sidebarControls.is(":visible")) { //NOT
+    sidebarView.removeClass(classSidebarL);
+    sidebarControls.removeClass(classSidebarR);
+    wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorWO_SB);
+  }
+}
+
 // Kick everything off
-$j(document).ready(initPage);
+$j( window ).on("load", initPage);

@@ -416,6 +416,7 @@ th.table-th-sort-rev span.table-th-sort-span {
 #content table button,
 #content table .btn-primary {
     margin-top: 0;
+    margin-right: 4px;
 }
 
 #contentButtons {

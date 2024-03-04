@@ -582,6 +582,7 @@ body.sticky #page {
 
 #content table input[type=submit], #content table input[type=button], #content table button, #content table .btn-primary {
     margin-top: 1px;
+    margin-right: 4px;
 }
 
 #contentButtons {

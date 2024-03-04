@@ -11,7 +11,7 @@ SET @s = (SELECT IF(
   AND column_name = 'ONVIF_Events_Path'
   ) > 0,
 "SELECT 'Column ONVIF_Events_Path already exists on Monitors'",
-"ALTER TABLE zm.Monitors ADD `ONVIF_Events_Path` varchar(20) DEFAULT '/Events' NOT NULL AFTER ONVIF_URL" 
+"ALTER TABLE Monitors ADD `ONVIF_Events_Path` varchar(20) DEFAULT '/Events' NOT NULL AFTER ONVIF_URL" 
 ));
 
 PREPARE stmt FROM @s;

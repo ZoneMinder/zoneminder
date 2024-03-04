@@ -36,7 +36,7 @@ if (!$Server) {
   $Server = array('Id' => '');
 }
 
-$monitors = dbFetchAll('SELECT Id, Name FROM Monitors ORDER BY Name,Sequence ASC');
+$monitors = dbFetchAll('SELECT Id, Name FROM Monitors WHERE Deleted=false ORDER BY Name,Sequence ASC');
 $monitors_by_id = array();
 foreach ($monitors as $row) {
   $monitors_by_id[$row['Id']] = $row['Name'];
@@ -585,7 +585,7 @@ switch ($name) {
             </li>
             <li>
               <label><?php echo translate('Username') ?></label>
-              <input type="text" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>"/>
+              <input type="text" name="newMonitor[ONVIF_Username]" value="<?php echo validHtmlStr($monitor->ONVIF_Username()) ?>" autocomplete="off"/>
             </li>
             <li>
               <label><?php echo translate('Password') ?></label>
@@ -648,6 +648,7 @@ $localMethods = array(
     );
 if (!ZM_HAS_V4L2)
   unset($localMethods['v4l2']);
+if (!isset($localMethods[$monitor->Method()])) $monitor->Method('v4l2');
 echo htmlSelect('newMonitor[Method]', $localMethods, 
   ((count($localMethods)==1) ? array_keys($localMethods)[0] : $monitor->Method()),
   array('data-on-change'=>'submitTab', 'data-tab-name'=>$tab) );
@@ -719,7 +720,7 @@ include('_monitor_source_nvsocket.php');
           </li>
           <li>
             <label><?php echo translate('RemoteProtocol') ?></label>
-            <?php echo htmlSelect('newMonitor[Protocol]', $remoteProtocols, $monitor->Protocol(), "updateMethods( this );if(this.value=='rtsp'){\$('RTSPDescribe').setStyle('display','table-row');}else{\$('RTSPDescribe').hide();}" ); ?>
+            <?php echo htmlSelect('newMonitor[Protocol]', $remoteProtocols, $monitor->Protocol(), ['data-on-change-this'=>'updateMethods'] ); ?>
           </li>
           <li>
             <label><?php echo translate('RemoteMethod') ?></label>
@@ -1330,7 +1331,7 @@ $codecs = array(
 ?>
             <li>
               <label><?php echo translate('TimestampLabelFormat') ?></label>
-              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>"/>
+              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>" placeholder="Python strftime format. %f for hundredths, %N for Monitor Name, %Q for show text."/>
             </li>
             <li>
               <label><?php echo translate('TimestampLabelX') ?></label>

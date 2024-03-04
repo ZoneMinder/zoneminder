@@ -240,20 +240,22 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="inner-content">
       <div class="d-flex flex-row px-3">
-        <div class="eventStats">
-          <!-- VIDEO STATISTICS TABLE -->
-          <table id="eventStatsTable" class="table-sm table-borderless">
-            <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
-          </table>
+        <div class="container-fluid">
+          <div class="row row-cols-1 row-cols-sm-2">
+            <div id = "eventStats" class="col col-sm-4 eventStats">
+              <!-- VIDEO STATISTICS TABLE -->
+              <table id="eventStatsTable" class="table-sm table-borderless">
+                <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
+              </table>
 <?php
 if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
 ?>
-          <div id="LocationMap"></div>
+              <div id="LocationMap"></div>
 <?php
 }
 ?>
 
-      <div id="frames">
+              <div id="frames">
 <?php 
 if (file_exists($Event->Path().'/alarm.jpg')) {
   echo '
@@ -277,34 +279,35 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 ';
 }
 ?>
-      </div>
-        </div>
-        <div id="eventVideo">
-        <!-- VIDEO CONTENT -->
-          <div id="videoFeed">
+              </div><!-- id="frames" -->
+            </div><!-- id="eventStats" -->
+            <div id="wrapperEventVideo" class="col col-sm-8 pl-0 pr-0">
+              <div id="eventVideo">
+              <!-- VIDEO CONTENT -->
+                <div id="videoFeed">
 <?php
 if ($video_tag) {
 ?>
-          <video autoplay id="videoobj" class="video-js vjs-default-skin"
-            style="transform: matrix(1, 0, 0, 1, 0, 0);"
-           <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
-           <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
-            data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ <?php echo implode(',',
-              array_map(function($r){return $r/100;},
-                array_filter(
-                  array_keys($rates),
-                  function($r){return $r >= 0 ? true : false;}
-                ))) ?>], "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
-          >
-          <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
-          <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
-          Your browser does not support the video tag.
-          </video>
-        <div id="progressBar" style="width: 100%;">
-          <div id="alarmCues" style="width: 100%;"></div>
-          <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
-          <div id="indicator" style="display: none;"></div>
-        </div><!--progressBar-->
+                  <video autoplay id="videoobj" class="video-js vjs-default-skin"
+                    style="transform: matrix(1, 0, 0, 1, 0, 0);"
+                   <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
+                   <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
+                    data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "playbackRates": [ <?php echo implode(',',
+                      array_map(function($r){return $r/100;},
+                        array_filter(
+                          array_keys($rates),
+                          function($r){return $r >= 0 ? true : false;}
+                        ))) ?>], "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'
+                  >
+                  <source src="<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&amp;'); ?>" type="video/mp4">
+                  <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
+                  Your browser does not support the video tag.
+                  </video>
+                  <div id="progressBar" style="width: 100%;">
+                    <div id="alarmCues" style="width: 100%;"></div>
+                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+                    <div id="indicator" style="display: none;"></div>
+                  </div><!--progressBar-->
 <?php
 } else {
 if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
@@ -321,79 +324,85 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
     validHtmlStr($Event->Name()));
 } // end if stream method
 ?>
-        <div id="progressBar" style="width: 100%;">
-          <div id="alarmCues" style="width: 100%;"></div>
-          <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
-          <div id="indicator" style="display: none;"></div>
-        </div><!--progressBar-->
+                  <div id="progressBar" style="width: 100%;">
+                    <div id="alarmCues" style="width: 100%;"></div>
+                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+                    <div id="indicator" style="display: none;"></div>
+                  </div><!--progressBar-->
 <?php
 } /*end if !DefaultVideo*/
 ?>
-<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
+                  <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
 <?php
     foreach (ZM\Zone::find(array('MonitorId'=>$monitor->Id()), array('order'=>'Area DESC')) as $zone) {
       echo $zone->svg_polygon();
     } // end foreach zone
 ?>
   Sorry, your browser does not support inline SVG
-</svg>
-        </div><!--videoFeed-->
-        <p id="dvrControls">
-          <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">
-          <i class="material-icons md-18">skip_previous</i>
-          </button>
-          <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" data-on-click-true="streamFastRev">
-          <i class="material-icons md-18">fast_rewind</i>
-          </button>
-          <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowRev">
-          <i class="material-icons md-18">chevron_left</i>
-          </button>
-          <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click="pauseClicked">
-          <i class="material-icons md-18">pause</i>
-          </button>
-          <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click="playClicked">
-          <i class="material-icons md-18">play_arrow</i>
-          </button>
-          <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowFwd">
-          <i class="material-icons md-18">chevron_right</i>
-          </button>
-          <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
-          <i class="material-icons md-18">fast_forward</i>
-          </button>
-          <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
-          <i class="material-icons md-18">zoom_out</i>
-          </button>
-          <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
-            <i class="material-icons md-18">fullscreen</i>
-            </button>
-          <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
-          <i class="material-icons md-18">skip_next</i>
-          </button>
-        </p>
-        <div id="replayStatus">
-          <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
-          <span id="rate"><?php echo translate('Rate') ?>: 
+                  </svg>
+                </div><!--videoFeed-->
+                <div class="monitorStatus">
+                  <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                </div>
+                <p id="dvrControls">
+                  <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">
+                  <i class="material-icons md-18">skip_previous</i>
+                  </button>
+                  <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" data-on-click-true="streamFastRev">
+                  <i class="material-icons md-18">fast_rewind</i>
+                  </button>
+                  <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowRev">
+                  <i class="material-icons md-18">chevron_left</i>
+                  </button>
+                  <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click="pauseClicked">
+                  <i class="material-icons md-18">pause</i>
+                  </button>
+                  <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click="playClicked">
+                  <i class="material-icons md-18">play_arrow</i>
+                  </button>
+                  <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowFwd">
+                  <i class="material-icons md-18">chevron_right</i>
+                  </button>
+                  <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
+                  <i class="material-icons md-18">fast_forward</i>
+                  </button>
+                  <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
+                  <i class="material-icons md-18">zoom_out</i>
+                  </button>
+                  <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
+                  <i class="material-icons md-18">fullscreen</i>
+                  </button>
+                  <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
+                  <i class="material-icons md-18">skip_next</i>
+                  </button>
+                </p>
+                <div id="replayStatus">
+                  <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
+                  <span id="rate"><?php echo translate('Rate') ?>: 
 <?php 
   #rates are defined in skins/classic/includes/config.php
   echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
-          <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
-          <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
-        </div>
-      </div><!--eventVideo-->
-      <div id="EventData" class="EventData">
-      <?php
-        $data = ZM\Event_Data::find(['EventId'=>$Event->Id()]);
-        if (count($data)) {
-          echo '<table class="table table-striped table-hover table-condensed"><thead><tr><th>'.translate('Timestamp').'</th><th>'.translate('Data').'</th></tr></thead><tbody>'.PHP_EOL;
-          foreach ($data as $d) {
-            echo '<tr><td class="Timestamp">'.$d->Timestamp().'</td><td class="Data">'.strip_tags($d->Data()).'</td></tr>'.PHP_EOL;
+                  <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+                  <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
+                </div>
+              </div><!--eventVideo-->
+            </div><!--wrapperEventVideo-->
+          </div><!-- class="row" -->
+        </div><!-- class="container-fluid" -->
+        <div id="EventData" class="EventData">
+        <?php
+          $data = ZM\Event_Data::find(['EventId'=>$Event->Id()]);
+          if (count($data)) {
+            echo '<table class="table table-striped table-hover table-condensed"><thead><tr><th>'.translate('Timestamp').'</th><th>'.translate('Data').'</th></tr></thead><tbody>'.PHP_EOL;
+            foreach ($data as $d) {
+              echo '<tr><td class="Timestamp">'.$d->Timestamp().'</td><td class="Data">'.strip_tags($d->Data()).'</td></tr>'.PHP_EOL;
+            }
+            echo '</tbody></table>';
           }
-          echo '</tbody></table>';
-        }
-      ?>
-      </div><!--EventData-->
-</div>
+        ?>
+        </div><!--EventData-->
+      </div>
 <?php
 } // end if Event exists
 ?>

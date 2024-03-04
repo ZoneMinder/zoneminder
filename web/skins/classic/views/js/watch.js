@@ -899,6 +899,12 @@ function initPage() {
     $j('#settingsModal').modal('show');
   });
 
+  // Manage the generate Edit button
+  bindButton('#editBtn', 'click', null, function onEditClick(evt) {
+    evt.preventDefault();
+    window.location.assign("?view=monitor&mid="+monitorId);
+  });
+
   bindButton('#cyclePlayBtn', 'click', null, cycleStart);
   bindButton('#cyclePauseBtn', 'click', null, cyclePause);
   bindButton('#cycleNextBtn', 'click', null, cycleNext);

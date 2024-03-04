@@ -810,11 +810,11 @@ function videoEvent() {
 }
 
 function eventLive() {
-  window.location.assign("?view=watch&amp;mid='+eventData.MonitorId+'");
+  window.location.assign("?view=watch&mid="+eventData.MonitorId);
 }
 
 function eventEdit() {
-  window.location.assign("?view=monitor&amp;mid='+eventData.MonitorId+'");
+  window.location.assign("?view=monitor&mid="+eventData.MonitorId);
 }
 
 function viewAllEvents() {

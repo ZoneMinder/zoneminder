@@ -217,7 +217,7 @@ int zmDbDo(const char *query) {
       if (zm_terminate) return 0;
     } else {
       // Not a connection error
-      Error("Can't run query %s: %s", query, reason.c_str());
+      Error("Can't run query %s: %d %s", query, rc, reason.c_str());
       if (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) {
         return rc;
       }

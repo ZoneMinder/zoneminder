@@ -156,6 +156,7 @@ function setScale() {
   if (scale == '0') {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   }
+  changeSize();
 } // end function changeScale
 
 function getStreamCmdResponse(respObj, respText) {
@@ -938,8 +939,8 @@ function initPage() {
       }
     }, 10*1000);
   }
-  changeSize();
   changeObjectClass();
+  changeSize();
 } // initPage
 
 function watchFullscreen() {
@@ -1028,7 +1029,7 @@ function cycleToggle(e) {
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
   changeObjectClass();
-  changeScale();
+  changeSize();
 }
 
 function ptzToggle(e) {

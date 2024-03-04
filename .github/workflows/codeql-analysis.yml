@@ -61,7 +61,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev libjwt-gnutls-dev libavdevice-dev
         sudo apt-get install libbz2-dev libcurl4-gnutls-dev libjpeg-turbo8-dev libturbojpeg0-dev
-        sudo apt-get install default-libmysqlclient-dev libpcre2-dev libpolkit-gobject-1-dev libv4l-dev libvlc-dev
+        sudo apt-get install default-libmysqlclient-dev libpcre3-dev libpolkit-gobject-1-dev libv4l-dev libvlc-dev
         sudo apt-get install libdate-manip-perl libdbd-mysql-perl libphp-serialization-perl libsys-mmap-perl
         sudo apt-get install libwww-perl libdata-uuid-perl libssl-dev libcrypt-eksblowfish-perl libdata-entropy-perl
         

@@ -201,16 +201,16 @@ int zmDbDo(const char *query) {
   int rc;
   while ((rc = mysql_query(&dbconn, query)) and !zm_terminate) {
     if (mysql_ping(&dbconn)) {
-      zmDbConnected = false;
-      zmDbConnect();
-    }
-    if (zmDbConnected) {
-      Logger *logger = Logger::fetch();
-      Logger::Level oldLevel = logger->databaseLevel();
-      logger->databaseLevel(Logger::NOLOG);
+      // Was a connection error
+      while (!zmDbReconnect() and !zm_terminate) {
+        // If we failed. Sleeping 1 sec may be way too much.
+        sleep(1);
+      }
+      if (zm_terminate) return 0;
+    } else {
+      // Not a connection error
       Error("Can't run query %s: %s", query, mysql_error(&dbconn));
-      logger->databaseLevel(oldLevel);
-      if ( (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) ) {
+      if (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) {
         return rc;
       }
     } // end if connected

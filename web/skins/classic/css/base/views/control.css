@@ -1,15 +1,15 @@
 .ptzControls {
-    vertical-align: top;
+/*    vertical-align: top;
     margin: 10px auto 0;
-    width: 150px;
+    width: 150px;*/
 }
 
 .ptzControls::after {
-  visibility: hidden;
+/*  visibility: hidden;
   display: block;
   content: "";
   clear: both;
-  height: 0;
+  height: 0;*/
 }
 
 .ptzControls input.ptzTextBtn {

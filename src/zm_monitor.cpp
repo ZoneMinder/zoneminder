@@ -2223,6 +2223,7 @@ bool Monitor::Analyse() {
 
         } // end if videostream
          
+        if (score > 255) score = 255;
         // Set this before any state changes so that it's value is picked up immediately by linked monitors
         shared_data->last_frame_score = score;
         snap->score = score;

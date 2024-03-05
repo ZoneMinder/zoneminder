@@ -5,6 +5,10 @@
 #contentTable .colSelect input {
 }
 #content form {
-  height: 100%;
-  overflow: auto;
+/*  height: 100%;
+  overflow: auto; */
+}
+
+form {
+    padding-top: 2rem;
 }

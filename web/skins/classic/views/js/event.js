@@ -1,4 +1,4 @@
-var eventStats = $j('#eventStats') ;
+var eventStats = $j('#eventStats');
 var eventVideo = $j('#eventVideo');
 var wrapperEventVideo = $j('#wrapperEventVideo');
 var videoFeed = $j('#videoFeed');
@@ -1026,6 +1026,7 @@ function getStat() {
   });
 }
 
+
 function onStatsResize(vidWidth) {
   if (!vidWidth) return;
   var minWidth = 200; // An arbitrary value in pixels used to hide the stats table
@@ -1044,15 +1045,15 @@ function onStatsResize(vidWidth) {
     if (eventStats.is(':visible')) {
       eventStats.toggle(false);
       wasHidden = true;
-      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12')
+      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
     }
   // Show the stats table if we hid it previously and sufficient room becomes available
   } else if (width >= minWidth) {
     statsBtn.prop('disabled', false);
     if ( !eventStats.is(':visible') && wasHidden ) {
-     eventStats.toggle(true);
+      eventStats.toggle(true);
       wasHidden = false;
-      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8')
+      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
     }
   }
 }
@@ -1066,10 +1067,10 @@ function initPage() {
 
   if (getEvtStatsCookie() != 'on') {
     eventStats.toggle(false);
-    wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12')
+    wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
   } else {
     onStatsResize(eventData.Width);
-    wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8')
+    wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
   }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
@@ -1238,11 +1239,11 @@ function initPage() {
     if (eventStats.is(':visible')) {
       setCookie(cookie, 'off');
       eventStats.toggle(false);
-      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12')
+      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
     } else {
       setCookie(cookie, 'on');
       eventStats.toggle(true);
-      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8')
+      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
     }
     changeScale();
   });

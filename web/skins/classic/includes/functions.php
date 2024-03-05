@@ -109,13 +109,21 @@ echo output_cache_busted_stylesheet_links(array(
 ));
 
 echo output_link_if_exists(array(
-  'css/base/skin.css',
-  'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
-  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+  'js/bootstrap-table-1.21.1/bootstrap-table.min.css',
+  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
 ), true);
+?>
+  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
+  <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
+  <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
+<?php
+echo output_link_if_exists(array(
+  'css/base/skin.css',
+  'css/base/views/'.$basename.'.css',
+), true);
+
 if ( $css != 'base' )
   echo output_link_if_exists(array(
     'css/'.$css.'/skin.css',
@@ -123,9 +131,6 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 ?>
-  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
-  <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
-  <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ( $basename == 'watch' ) {
     echo output_link_if_exists(array('/css/base/views/control.css'));

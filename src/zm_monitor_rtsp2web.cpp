@@ -136,11 +136,16 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
   Debug(1, "Adding stream response: %s", remove_newlines(response).c_str());
   //scan for missing session or handle id "No such session" "no such handle"
   if (response.find("\"status\": 1") == std::string::npos) {
+    if (response == "{ \"status\": 0, \"payload\": \"stream already exists\"}") {
+      Debug(1, "RTSP2Web failed adding stream, response: %s", response.c_str());
+    } else {
       Warning("RTSP2Web failed adding stream, response: %s", response.c_str());
       return -2;
+    }
+  } else {
+    Debug(1, "Added stream to RTSP2Web: %s", response.c_str());
   }
 
-  Debug(1, "Added stream to RTSP2Web: %s", response.c_str());
   return 0;
 }
 

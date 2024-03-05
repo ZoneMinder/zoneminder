@@ -69,8 +69,7 @@ function count_terms(tokens) {
 
 function expr_to_ui(expr, container) {
   container.html('');
-  var tokens = tokenize(expr);
-  console.log(tokens);
+  const tokens = tokenize(expr);
   //const term_count = count_terms(tokens);
   let brackets = 0;
   const used_monitorlinks = [];
@@ -194,13 +193,12 @@ function update_expr(ev) {
 }
 
 function ui_to_expr(container, expr_input) {
-  var expr = '';
-  var children = container.children();
+  let expr = '';
+  const children = container.children();
   for (let i = 0; i < children.length; i++) {
     expr += $j(children[i]).val();
   }
-  console.log(expr);
-  expr_input.value = expr;
+  expr_input.val(expr);
 }
 
 function parse_expression(tokens) {

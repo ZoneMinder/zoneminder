@@ -1,3 +1,8 @@
+.chosen-container-single .chosen-single {
+  height: calc(1.5em + 0.5rem + 2px);
+  line-height: calc(1.5em + 0.5rem + 2px);
+}
+
 #optionsContainer {
   overflow: auto;
   height: 100%;

@@ -318,7 +318,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               ( $value['Value'] ? ' checked="checked"' : '').
               ( $optionCanEdit ? '' : ' disabled="disabled"').' />'.PHP_EOL;
             } else if (is_array($value['Hint'])) {
-              $attributes = ['id'=>$name, 'class'=>'form-control-sm'.(count($value['Hint'])>10?' chosen':'')];
+              $attributes = ['id'=>$name, 'class'=>'form-control-sm chosen'];
               if (!$optionCanEdit) $attributes['disabled']='disabled';
               echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value'], $attributes);
             } else if (preg_match('/\|/', $value['Hint'])) {

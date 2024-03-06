@@ -1,3 +1,5 @@
+"use strict";
+
 
 function evaluateLoadTimes() {
   if (liveMode != 1 && currentSpeed == 0) return; // don't evaluate when we are not moving as we can do nothing really fast.
@@ -46,13 +48,13 @@ function evaluateLoadTimes() {
   $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
-function findEventByTime(arr, time) {
+function findEventByTime(arr, time, debug) {
   let start = 0;
   let end = arr.length-1; // -1 because 0 based indexing
 
   //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
   // Iterate while start not meets end
-  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (arr[end].EndTimeSecs >= time)) {
+  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (!arr[end].EndTimeSecs || (arr[end].EndTimeSecs >= time))) {
     //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
     // Find the middle index
     const middle = Math.floor((start + end)/2);
@@ -60,25 +62,25 @@ function findEventByTime(arr, time) {
 
     // If element is present at mid, return True
     //console.log(middle, zm_event, time);
-    if ((zm_event.StartTimeSecs <= time) && (zm_event.EndTimeSecs >= time)) {
+    if ((zm_event.StartTimeSecs <= time) && (!zm_event.EndTimeSecs || (zm_event.EndTimeSecs >= time))) {
       //console.log("Found it at ", zm_event);
       return zm_event;
-    } else {
-      //console.log("Didn't find it looking for "+time+" Start: " + zm_event.StartTimeSecs + ' End: ' + zm_event.EndTimeSecs);
-      // Else look in left or right half accordingly
-      if (zm_event.StartTimeSecs < time) {
-        start = middle + 1;
-      } else if (zm_event.EndTimeSecs > time) {
-        end = middle - 1;
-      } else {
-        break;
-      }
     }
-  }
-  return false;
-}
 
-function findFrameByTime(arr, time) {
+    //console.log("Didn't find it looking for "+time+" Start: " + zm_event.StartTimeSecs + ' End: ' + zm_event.EndTimeSecs);
+    // Else look in left or right half accordingly
+    if (zm_event.StartTimeSecs < time) {
+      start = middle + 1;
+    } else if (zm_event.EndTimeSecs > time) {
+      end = middle - 1;
+    } else {
+      break;
+    }
+  } // end while
+  return false;
+} // end function findEventByTime
+
+function findFrameByTime(arr, time, debug) {
   if (!arr) {
     console.log("No array in findFrameByTime");
     return false;
@@ -99,33 +101,61 @@ function findFrameByTime(arr, time) {
     // Find the mid index
     const middle = Math.floor((start + end)/2);
     const frame = arr[keys[middle]];
-    //console.log("Looking for ", time, "frame", frame, 'middle '+middle+ ' start '+ start + ' end ' +end);
+    if (debug) {
+      console.log("Looking for ", time, secs2inputstr(time), "frame", frame, 'middle '+middle+ ' start '+ start + ' end ' +end);
+      console.log(secs2inputstr(frame.TimeStampSecs));
+    }
 
     // If element is present at mid, return True
     if ((frame.TimeStampSecs == time) ||
         (frame.TimeStampSecs < time) &&
         (
-          (!frame.NextTimeStampSecs) || // only if event.EndTime is null
           (frame.NextTimeStampSecs > time)
+          || (!frame.NextTimeStampSecs) // only if event.EndTime is null
         )
     ) {
-      //console.log("Found it at ", frame);
-      return frame;
 
-    // Else look in left or right half accordingly
+      if (debug) console.log("Found it at ", frame);
+      const e = events[frame.EventId];
+      if (!e) {
+        console.log("No event for ", frame.EventId);
+        return frame;
+      }
+
+      if (frame.NextFrameId && e.FramesById) {
+        var NextFrame = e.FramesById[frame.NextFrameId];
+        if (!NextFrame) {
+          console.log("No nextframe for ", frame.NextFrameId);
+          return frame;
+        }
+        //console.log(NextFrame);
+
+        if (frame.Type == 'Bulk' || NextFrame.Type == 'Bulk') {
+          // There is time between this frame and a bulk frame
+          var duration = frame.NextTimeStampSecs - frame.TimeStampSecs;
+          frame.FrameId = parseInt(frame.FrameId) + parseInt( (NextFrame.FrameId-frame.FrameId) * ( time-frame.TimeStampSecs )/duration );
+          //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame.FrameId + " from " + NextFrame.FrameId + ' - ' + frame.FrameId + " time: " + (time-frame.TimeStampSecs)  );
+        } else if (debug) {
+          console.log("Bulk: " + "frame_id = " + frame.FrameId + " time: " + (time-frame.TimeStampSecs), (NextFrame.Type == 'Bulk'));
+        }
+      } else if (debug) {
+        console.log('No nextframeId');
+      }
+
+      return frame;
+      // Else look in left or right half accordingly
     } else if (frame.TimeStampSecs < time) {
       start = middle + 1;
     } else if (frame.TimeStampSecs > time) {
       end = middle - 1;
     } else {
-      console.log("Error");
+      console.log('Error');
       break;
     }
   } // end while
   //console.log("Didn't find it");
   return false;
 }
-
 
 function getFrame(monId, time, last_Frame) {
   if (last_Frame) {
@@ -172,6 +202,7 @@ function getFrame(monId, time, last_Frame) {
         const e = events[event_id];
         if ((e.StartTimeSecs <= time) && (e.EndTimeSecs >= time)) {
           console.log("Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+          break;
         } else {
           console.log("Not Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
         }
@@ -182,7 +213,6 @@ function getFrame(monId, time, last_Frame) {
 
   if (!Event.FramesById) {
     console.log('No FramesById for event ', Event.Id);
-    event_id = Event.Id;
     load_Frames({event_id: Event}).then(function() {
       if (!Event.FramesById) {
         console.log("No FramesById after load_Frames!", Event);
@@ -243,8 +273,17 @@ function getImageSource(monId, time) {
   const Frame = getFrame(monId, time);
   if (Frame) {
     const e = events[Frame.EventId];
+    if (!e) {
+      console.log('No event found for ' + Frame.EventId, Frame);
+      return '';
+    }
+
     // Adjust for bulk frames
     if (Frame.NextFrameId) {
+      if (!e.FramesById) {
+        console.log("No FramesById in event ", e, e.FramesById);
+        return '';
+      }
       const NextFrame = e.FramesById[Frame.NextFrameId];
       if (!NextFrame) {
         console.log("No next frame for " + Frame.NextFrameId);
@@ -258,6 +297,11 @@ function getImageSource(monId, time) {
       }
     } else {
       frame_id = Frame.FrameId;
+    }
+
+    if (!parseInt(frame_id)) {
+      console.log("No frame_id from ", Frame);
+      return;
     }
 
     // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
@@ -1060,13 +1104,13 @@ function initPage() {
     this.form.submit();
   });
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
-    el = $j(this);
-    el.on('change', changeDateTime);
+    const el = $j(this);
     if (el.hasClass('datetimepicker')) {
-      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
-    }
-    if (el.hasClass('datepicker')) {
-      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+    } else if (el.hasClass('datepicker')) {
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+    } else {
+      el.on('change', changeDateTime);
     }
   });
 }

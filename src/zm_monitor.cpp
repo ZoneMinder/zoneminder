@@ -2223,6 +2223,7 @@ bool Monitor::Analyse() {
 
         } // end if videostream
          
+        if (score > 255) score = 255;
         // Set this before any state changes so that it's value is picked up immediately by linked monitors
         shared_data->last_frame_score = score;
         snap->score = score;
@@ -2266,8 +2267,7 @@ bool Monitor::Analyse() {
           } else if (state == ALERT) {
             if ((analysis_image_count - last_alarm_count) > post_event_count) {
               shared_data->state = state = IDLE;
-              Info("%s: %03d - Left alert state event id:%" PRIu64 " event frames:%d alarm frames:%d",
-                  name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
+              Info("%s: %03d - Left alert state", name.c_str(), analysis_image_count);
             }
           } else if (state == PREALARM) {
             // Back to IDLE

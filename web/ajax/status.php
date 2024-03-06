@@ -42,7 +42,8 @@ $statusData = array(
     ),
   ),
   'monitor' => array(
-    'permission' => 'Monitors',
+    #'permission' => 'Monitors',
+    'object'  => 'Monitor',
     'table' => 'Monitors',
     'limit' => 1,
     'selector' => 'Monitors.Id',
@@ -236,9 +237,11 @@ function collectData() {
   $entity = strtolower(validJsStr($_REQUEST['entity']));
   $entitySpec = &$statusData[$entity];
   #print_r( $entitySpec );
-  if (!canView($entitySpec['permission'])) {
-    ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$$entitySpec['permission']);
-    return;
+  if (isset($entitySpec['permission'])) {
+    if (!canView($entitySpec['permission'])) {
+      ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$entitySpec['permission']);
+      return;
+    }
   }
 
   if ( !empty($entitySpec['func']) ) {
@@ -306,6 +309,10 @@ function collectData() {
     }
   } # end foreach element
 
+  if (isset($entitySpec['object'])) {
+    $fieldSql[] = 'Id';
+  }
+
   if ( count($fieldSql) ) {
     $sql = 'SELECT '.join(', ', $fieldSql).' FROM '.$entitySpec['table'];
     if ( $joinSql )
@@ -360,6 +367,16 @@ function collectData() {
       $sql .= ' limit '.$limit_offset.$limit;
     if ( isset($limit) && ($limit == 1) ) {
       if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
+        if (isset($entitySpec['object'])) {
+          ZM\Debug("Have object".$entitySpec['object']);
+          $object_name = 'ZM\\'.$entitySpec['object'];
+          $object = new $object_name($sqlData);
+          ZM\Debug("Canview:".$object->canView());
+          if (!$object->canView()) {
+            ajaxError('Unrecognised action or insufficient permissions for '.$entity.' '.print_r($object, true));
+            return;
+          }
+        }
         foreach ( $postFuncs as $element=>$func )
           $sqlData[$element] = eval( 'return( '.$func.'( $sqlData ) );' );
         foreach ( $postFunctions as $element=>$function )
@@ -369,6 +386,15 @@ function collectData() {
     } else {
       $count = 0;
       foreach ( dbFetchAll($sql, NULL, $values) as $sqlData ) {
+
+        if (isset($entitySpec['object'])) {
+          ZM\Debug("Have object".$entitySpec['object']);
+          $object_name = 'ZM\\'.$entitySpec['object'];
+          $object = new $object_name($sqlData);
+          ZM\Debug("Canview:".$object->canView());
+          if (!$object->canView()) continue;
+        }
+
         foreach ( $postFuncs as $element=>$func )
           $sqlData[$element] = eval('return( '.$func.'( $sqlData ) );');
         foreach ( $postFunctions as $element=>$function )

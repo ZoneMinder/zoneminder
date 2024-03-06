@@ -100,10 +100,6 @@ form {
   padding-top: 2rem;
 }
 
-form #contentButtons {
-  margin-top: -1rem;
-}
-
 @media screen and (max-width:767px) {
   #options label,
  label.col-form-label {

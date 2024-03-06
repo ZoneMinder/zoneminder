@@ -1,6 +1,3 @@
-"use strict";
-
-
 function evaluateLoadTimes() {
   if (liveMode != 1 && currentSpeed == 0) return; // don't evaluate when we are not moving as we can do nothing really fast.
 
@@ -92,7 +89,7 @@ function findFrameByTime(arr, time, debug) {
   //console.log(keys);
   //console.log(keys[start]);
   // Iterate while start not meets end
-  //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
+  if (debug) console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
   while ((start <= end)) {
     if ((arr[keys[start]].TimeStampSecs > time) || (arr[keys[end]].NextTimeStampSecs < time)) {
       console.log(time + " not found in array of frames.", arr[keys[start]], arr[keys[end]]);
@@ -110,11 +107,10 @@ function findFrameByTime(arr, time, debug) {
     if ((frame.TimeStampSecs == time) ||
         (frame.TimeStampSecs < time) &&
         (
-          (frame.NextTimeStampSecs > time)
-          || (!frame.NextTimeStampSecs) // only if event.EndTime is null
+          (frame.NextTimeStampSecs > time) ||
+          (!frame.NextTimeStampSecs) // only if event.EndTime is null
         )
     ) {
-
       if (debug) console.log("Found it at ", frame);
       const e = events[frame.EventId];
       if (!e) {
@@ -153,13 +149,14 @@ function findFrameByTime(arr, time, debug) {
       break;
     }
   } // end while
-  //console.log("Didn't find it");
+  if (debug) console.log("Didn't find it");
   return false;
-}
+} // end function findFrameByTime(arr, time, debug=false)
 
 function getFrame(monId, time, last_Frame) {
   if (last_Frame) {
     if (
+      (last_Frame.MonitorId == monId) &&
       (last_Frame.TimeStampSecs <= time) &&
       (last_Frame.EndTimeStampSecs >= time)
     ) {
@@ -167,12 +164,13 @@ function getFrame(monId, time, last_Frame) {
     }
   }
 
-  if (!events_by_monitor_id[monId]) {
+  if (!events_by_monitor_id[monId] || !events_by_monitor_id[monId].length) {
     // Need to load them?
+    console.log("No events_by_monitor_id for " + monId);
     return;
   }
 
-  if (!events_for_monitor[monId]) {
+  if (!events_for_monitor[monId] || !events_for_monitor[monId].length) {
     events_for_monitor[monId] = events_by_monitor_id[monId].map((x)=>events[x]);
     if (!events_for_monitor[monId].length) {
       //console.log("No events for monitor " + monId);
@@ -180,7 +178,7 @@ function getFrame(monId, time, last_Frame) {
     }
   }
 
-  let Event = findEventByTime(events_for_monitor[monId], time);
+  let Event = findEventByTime(events_for_monitor[monId], time, false);
   if (Event === false) {
     // This might be better with a binary search
     for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
@@ -308,6 +306,12 @@ function getImageSource(monId, time) {
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
+    return server.PathToZMS + '?mode=jpeg&event=' + Frame.EventId + '&frame='+frame_id +
+      "&width=" + monitorCanvasObj[monId].width +
+      "&height=" + monitorCanvasObj[monId].height +
+      "&rate=" + 100*speeds[speedIndex] +
+      '&' + auth_relay;
+
     return server.PathToIndex +
       '?view=image&eid=' + Frame.EventId + '&fid='+frame_id +
       "&width=" + monitorCanvasObj[monId].width +
@@ -319,11 +323,11 @@ function getImageSource(monId, time) {
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
   if ( success ) {
-    var canvasCtx = monitorCanvasCtx[monId];
-    var canvasObj = monitorCanvasObj[monId];
+    const canvasCtx = monitorCanvasCtx[monId];
+    const canvasObj = monitorCanvasObj[monId];
 
     canvasCtx.drawImage( monitorImageObject[monId], 0, 0, canvasObj.width, canvasObj.height );
-    var iconSize=(Math.max(canvasObj.width, canvasObj.height) * 0.10);
+    const iconSize=(Math.max(canvasObj.width, canvasObj.height) * 0.10);
     canvasCtx.font = "600 " + iconSize.toString() + "px Arial";
     canvasCtx.fillStyle = "white";
     canvasCtx.globalCompositeOperation = "difference";
@@ -675,21 +679,19 @@ function outputUpdate(time) {
   currentTimeSecs = time;
 }
 
-/// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
+// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
 function relMouseCoords(event) {
-  var totalOffsetX = 0;
-  var totalOffsetY = 0;
-  var canvasX = 0;
-  var canvasY = 0;
-  var currentElement = this;
+  let totalOffsetX = 0;
+  let totalOffsetY = 0;
+  let currentElement = event.target;
 
   do {
     totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
     totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
   } while (currentElement = currentElement.offsetParent);
 
-  canvasX = event.pageX - totalOffsetX;
-  canvasY = event.pageY - totalOffsetY;
+  const canvasX = event.pageX - totalOffsetX;
+  const canvasY = event.pageY - totalOffsetY;
 
   return {x: canvasX, y: canvasY};
 }
@@ -895,30 +897,30 @@ function click_download() {
   const form = $j('#montagereview_form');
 
   const data = form.serializeArray();
-  data[data.length] = {name:'mergeevents', value: true};
-  data[data.length] = {name:'minTime', value: minTime};
-  data[data.length] = {name:'maxTime', value: maxTime};
-  data[data.length] = {name:'minTimeSecs', value: minTimeSecs};
-  data[data.length] = {name:'maxTimeSecs', value: maxTimeSecs};
+  data[data.length] = {name: 'mergeevents', value: true};
+  data[data.length] = {name: 'minTime', value: minTime};
+  data[data.length] = {name: 'maxTime', value: maxTime};
+  data[data.length] = {name: 'minTimeSecs', value: minTimeSecs};
+  data[data.length] = {name: 'maxTimeSecs', value: maxTimeSecs};
   console.log(data);
   $j.ajax({
     url: thisUrl+'?request=modal&modal=download'+(auth_relay?'&'+auth_relay:''),
     data: data
   })
-    .done(function(data) {
-      insertModalHtml('downloadModal', data.html);
-      $j('#downloadModal').modal('show');
-      $j('#downloadModal').on('keyup keypress', function(e) {
-        var keyCode = e.keyCode || e.which;
-        if (keyCode === 13) {
-          e.preventDefault();
-          return false;
-        }
-      });
-      // Manage the GENERATE DOWNLOAD button
-      $j('#exportButton').click(exportEvent);
-    })
-    .fail(logAjaxFail);
+      .done(function(data) {
+        insertModalHtml('downloadModal', data.html);
+        $j('#downloadModal').modal('show');
+        $j('#downloadModal').on('keyup keypress', function(e) {
+          var keyCode = e.keyCode || e.which;
+          if (keyCode === 13) {
+            e.preventDefault();
+            return false;
+          }
+        });
+        // Manage the GENERATE DOWNLOAD button
+        $j('#exportButton').click(exportEvent);
+      })
+      .fail(logAjaxFail);
 } // end function click_download
 
 function click_all_events() {
@@ -1031,15 +1033,15 @@ function initPage() {
     drawGraph();
   }
 
-  for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
-    var monId = monitorPtr[i];
-    if ( !monId ) continue;
+  for ( let i = 0, len = monitorPtr.length; i < len; i += 1 ) {
+    const monId = monitorPtr[i];
+    if (!monId) continue;
     monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
     if ( !monitorCanvasObj[monId] ) {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
     } else {
       monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
-      var imageObject = monitorImageObject[monId] = new Image();
+      const imageObject = monitorImageObject[monId] = new Image();
       imageObject.monId = monId;
       imageObject.onload = function() {
         imagedone(this, this.monId, true);

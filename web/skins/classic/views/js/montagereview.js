@@ -332,7 +332,6 @@ function getImageSource(monId, time) {
 
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
-  console.log("imagedone", success, monId);
   if ( success ) {
     const canvasCtx = monitorCanvasCtx[monId];
     const canvasObj = monitorCanvasObj[monId];

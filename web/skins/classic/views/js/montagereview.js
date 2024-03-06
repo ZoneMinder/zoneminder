@@ -302,13 +302,23 @@ function getImageSource(monId, time) {
       return;
     }
 
+    let scale = parseInt(100*monitorCanvasObj[monId].width / monitorWidth[monId]);
+    if (scale > 100) {
+      scale = 100;
+    } else {
+      scale = 10 * parseInt(scale/10);
+    }
+
+
     // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
     return server.PathToZMS + '?mode=jpeg&event=' + Frame.EventId + '&frame='+frame_id +
-      "&width=" + monitorCanvasObj[monId].width +
-      "&height=" + monitorCanvasObj[monId].height +
+      //"&width=" + monitorCanvasObj[monId].width +
+      //"&height=" + monitorCanvasObj[monId].height +
+      "&scale=" + scale +
+      "&frames=1" +
       "&rate=" + 100*speeds[speedIndex] +
       '&' + auth_relay;
 
@@ -322,6 +332,7 @@ function getImageSource(monId, time) {
 
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
+  console.log("imagedone", success, monId);
   if ( success ) {
     const canvasCtx = monitorCanvasCtx[monId];
     const canvasObj = monitorCanvasObj[monId];

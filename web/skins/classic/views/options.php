@@ -388,7 +388,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
             }
 ?>
             <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
-	        </div><!-- End .col-sm-9 -->
+          </div><!-- End .col-md -->
         </div><!-- End .form-group -->
 <?php
           } # end foreach config entry in the category

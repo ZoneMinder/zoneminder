@@ -82,11 +82,11 @@ var ZMMap = function() {
               let cant_disconnected = 0;
               let cant_error = 0;
               let total_cameras = 0;
-              let div_connected = document.getElementById("progress-connected");
-              let div_disconnected = document.getElementById("progress-disconnected");
-              let div_error = document.getElementById("progress-error");
+              const div_connected = document.getElementById("progress-connected");
+              const div_disconnected = document.getElementById("progress-disconnected");
+              const div_error = document.getElementById("progress-error");
 
-              let pins = [];
+              const pins = [];
 
               for (let i=0, len = monitors.monitors.length; i<len; i++) {
                 const monitor = monitors.monitors[i].Monitor;
@@ -95,14 +95,14 @@ var ZMMap = function() {
                   pins[pins.length] = {
                     latitude: monitor.Latitude,
                     longitude: monitor.Longitude,
-                    monitors: [ monitor ]
+                    monitors: [monitor]
                   };
                   continue;
                 }
                 for (let ii=0; ii < pins.len; ii++) {
                   if (haversineDistance(
-                    pins[ii].latitude, monitor.Latitude,
-                    pins[ii].longitude, monitor.Longitude,
+                      pins[ii].latitude, monitor.Latitude,
+                      pins[ii].longitude, monitor.Longitude,
                   ) > 10 ) {
                     pins[ii].monitors[pins[ii].monitors.length] = monitor;
                   }

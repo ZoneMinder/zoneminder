@@ -46,10 +46,18 @@ input[type="number"].form-control {
 #toolbar,
 .filterTable {
   display:flex;
+  flex-wrap: wrap;
 }
+
+#toolbar,
+.filterTable > span{
+  padding-bottom: 5px;
+  padding-right: 15px;
+}
+
 #events {
   height: 100%;
-  overflow-y: auto;
+  overflow: visible;
   justify-content: center;
 }
 

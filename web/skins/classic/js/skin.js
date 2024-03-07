@@ -619,13 +619,10 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
   newWidth -= padding;
   newHeight = newWidth / ratio ;
   
-  console.log("newWidth = ", newWidth, "container width:", container.innerWidth());
+  console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
 
-  if (newHeight < 0) {
+  if (newHeight < 0 || newWidth > container.innerWidth()-padding){
     // Doesn't fit on screen anyways?
-    newWidth = container.innerWidth()-padding;
-    newHeight = newWidth / ratio;
-  } else if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth()-padding;
     newHeight = newWidth / ratio;
   }

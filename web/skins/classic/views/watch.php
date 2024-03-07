@@ -312,7 +312,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
  ?>
           </ul>
         </nav>
-        <div id="wrapperMonitor" class="container-fluid col h-100 pr-0"><!--IgorA100 правка-->
+        <div id="wrapperMonitor" class="container-fluid col h-100">
           <div id="Monitor" class="Monitor"
 <?php
 if ($streamMode == 'jpeg') {

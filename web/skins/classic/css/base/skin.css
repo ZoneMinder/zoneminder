@@ -110,7 +110,6 @@ th {
 */
 }
 
-
 .thead-highlight {
   background-color:#dfe4ea;
 }
@@ -123,6 +122,9 @@ table th:last-child{
   border-radius:0 5px 0 0 ;
 }
 
+a {
+  cursor: pointer;
+}
 
 a.optionhelp,
 a:link {

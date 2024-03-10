@@ -285,6 +285,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         setCookie('zmHeaderFlip', 'up');
       }
     });
+
     // Manage the web console filter bar minimize chevron
     $j("#fbflip").click(function() {
       $j("#fbpanel").slideToggle("slow");
@@ -297,6 +298,53 @@ if ( currentView != 'none' && currentView != 'login' ) {
         setCookie('zmFilterBarFlip', 'up');
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
+      }
+    });
+
+    // Manage visible object & control button (when pressing a button)
+    $j("[data-flip-сontrol-object]").click(function() {
+      let objIconButton = $j(this).find("i");
+      let obj = $j($j(this).attr('data-flip-сontrol-object'));
+
+      if ( obj.is(":visible") ) {
+        if (objIconButton.is('[class="material-icons"]')){ // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class^="fa-"]')){ //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        setCookie('zmFilterBarFlip'+$j(this).attr('data-flip-сontrol-object'), 'hidden');
+      } else { //hidden
+        if (objIconButton.is('[class="material-icons"]')){ // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class^="fa-"]')){ //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
+        }
+        setCookie('zmFilterBarFlip'+$j(this).attr('data-flip-сontrol-object'), 'visible');
+      }
+
+      obj.slideToggle("slow");
+    });
+
+    // Manage visible filter bar & control button (after document ready)
+    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects and set icons
+      let сookie = getCookie('zmFilterBarFlip'+$j(this).attr('data-flip-сontrol-object'));
+      let objIconButton = $j(this).find("i");
+      let obj = $j($j(this).attr('data-flip-сontrol-object'));
+
+      if (сookie == 'hidden') {
+        if (objIconButton.is('[class="material-icons"]')){ // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class^="fa-"]')){ //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        obj.css("display", "none");
+      } else { //no cookies or opened.
+        if (objIconButton.is('[class="material-icons"]')){ // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class^="fa-"]')){ //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+        }
+        obj.css("display", "unset");
       }
     });
 

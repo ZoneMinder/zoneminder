@@ -3,29 +3,28 @@
   line-height: calc(1.5em + 0.5rem + 2px);
 }
 
-
 input.small {
-    width: 6em;
+  width: 6em;
 }
 
 input.medium {
-    width: 9em;
+  width: 9em;
 }
 
 input.large {
-    width: 20em;
+  width: 20em;
 }
 
 #contentTable.optionTable th, #contentTable.optionTable td {
-    vertical-align: top;
+  vertical-align: top;
 }
 
 #contentTable.userTable th, #contentTable.userTable td {
-    text-align: center;
+  text-align: center;
 }
 
 #contentTable.userTable .colMonitor, #contentTable.userTable .colUsername {
-    text-align: left;
+  text-align: left;
 }
 #contentTable th {
   text-align: left;
@@ -34,12 +33,13 @@ input.large {
 #sidebar {
   overflow-y: auto;
   min-width: 160px;
+  height: 100vh;
 }
 
 #optionsContainer {
-  overflow: none;
 }
 #options {
+  margin-right: -15px;
   overflow-y: auto;
   height: 100%;
 }
@@ -98,8 +98,13 @@ input[name="newStorage[Url]"] {
 
 form {
 /*  height: 100% is to make scrollbars work in #options */
+  display: flex;
+  flex-direction: column;
   height: 100%;
+/*
+ * Why extra padding at top? 
   padding-top: 2rem;
+  */
 }
 
 @media screen and (max-width:767px) {

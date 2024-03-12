@@ -155,8 +155,8 @@ function setScale() {
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   if (scale == '0') {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
+    changeSize();
   }
-  changeSize();
 } // end function changeScale
 
 function getStreamCmdResponse(respObj, respText) {

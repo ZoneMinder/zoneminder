@@ -32,14 +32,16 @@ input.large {
 }
 
 #sidebar {
-/*  overflow-y: auto; */
+  overflow-y: auto;
   min-width: 160px;
 }
 
+#optionsContainer {
+  overflow: none;
+}
 #options {
-/*  overflow-y: auto;
-  padding-top: 15px;
-  height: 100%; */
+  overflow-y: auto;
+  height: 100%;
 }
 #options div.col-md {
   text-align: left;
@@ -95,8 +97,8 @@ input[name="newStorage[Url]"] {
 }
 
 form {
-/*  position: relative;
-  height: 100%; */
+/*  height: 100% is to make scrollbars work in #options */
+  height: 100%;
   padding-top: 2rem;
 }
 

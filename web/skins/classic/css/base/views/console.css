@@ -118,7 +118,7 @@ form[name="monitorForm"] {
 }
 #monitorList {
   flex: 1 1 auto;
-/*  overflow-y: scroll; */
+  overflow-y: scroll;
 }
 #contentButtons {
   float: none;

@@ -69,3 +69,11 @@ input[type="number"].form-control {
 #objdetectModal img {
   width: 100%;
 }
+
+.bootstrap-table {
+  height: 100%;
+}
+.fixed-table-container {
+  height: 100%;
+  overflow-y: auto;
+}

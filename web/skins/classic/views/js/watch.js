@@ -1084,8 +1084,8 @@ function getObjdetectModal(eid) {
       });
 }
 
-function changeObjectClass() { 
-  if (sidebarView.is(":visible") && sidebarControls.is(":visible")) { //LEFT + RIGHT 
+function changeObjectClass() {
+  if (sidebarView.is(":visible") && sidebarControls.is(":visible")) { //LEFT + RIGHT
     sidebarView.removeClass(classSidebarL).addClass(classSidebarL);
     sidebarControls.removeClass(classSidebarR).addClass(classSidebarR);
     wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorW_SB_LR);

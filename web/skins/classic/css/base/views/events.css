@@ -72,6 +72,8 @@ input[type="number"].form-control {
 
 .bootstrap-table {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .fixed-table-container {
   height: 100%;

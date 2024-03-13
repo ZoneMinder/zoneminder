@@ -113,8 +113,8 @@ getBodyTopHTML();
         </div> <!-- .row-->
       </div> <!-- #toolbar -->
 
-      <div class="row">
-        <div class="col">
+      <div class="row" style="height: 100%;">
+        <div class="col" style="height: 100%; padding-right: -15px;">
           <div id="events" class="table-responsive">
           <!-- Table styling handled by bootstrap-tables -->
             <table

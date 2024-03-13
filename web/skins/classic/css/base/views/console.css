@@ -123,6 +123,10 @@ form[name="monitorForm"] {
 body.sticky #monitorList {
   overflow: auto; 
 }
+body.sticky #monitorList thead {
+  position: sticky;
+  top: -1px;
+}
 #contentButtons {
   float: none;
   display: flex;

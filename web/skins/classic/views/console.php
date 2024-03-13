@@ -169,7 +169,7 @@ echo $navbar ?>
       <?php echo $filterbar ?>
     </div>
 
-    <div class="container-fluid pt-2" id="contentButtons">
+    <div class="container-fluid pt-2" id="toolbar">
       <div class="statusBreakdown">
 <?php
   $html = '';
@@ -231,24 +231,46 @@ echo $navbar ?>
 <?php
 ob_start();
 ?>
-	<div class="container-fluid table-responsive-sm pt-2" id="monitorList">
-      <table class="table table-striped table-hover table-condensed consoleTable">
+	  <div class="container-fluid table-responsive-sm pt-2" id="monitorList">
+      <table id="consoleTable" class="table table-striped table-hover table-condensed consoleTable"
+        style="display:none;"
+        data-toolbar="#toolbar"
+        data-checkbox="false"
+        data-checkbox-enabled="false"
+        data-uncheckAll="false"
+        data-click-to-select="false"
+        data-check-on-init="true"
+        data-mobile-responsive="true"
+        data-min-width="562"
+        data-show-export="true"
+        data-pagination="true"
+        data-show-pagination-switch="true"
+        data-page-list="[5, 10, 25, 50, 100, 200, 500, 1000, All]"
+        data-search="true"
+        data-cookie="true"
+        data-cookie-same-site="Strict"
+        data-cookie-id-table="zmEventsTable"
+        data-cookie-expire="2y"
+        data-remember-order="false"
+        data-show-columns="true"
+
+      >
         <thead class="thead-highlight">
           <tr>
 <?php if ($canEditMonitors) { ?>
             <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
 <?php } ?>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
-            <th class="colId"><?php echo translate('Id') ?></th>
+            <th data-sortable="true" data-field="Id" class="colId"><?php echo translate('Id') ?></th>
 <?php } ?>
-            <th class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
-            <th class="colFunction"><?php echo translate('Function') ?></th>
+            <th data-sortable="true" data-field="Name" class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
+            <th data-sortable="true" data-field="Function" class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($Servers) ) { ?>
-            <th class="colServer"><?php echo translate('Server') ?></th>
+            <th data-sortable="true" data-field="Server" class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
-            <th class="colSource"><i class="material-icons">settings</i>&nbsp;<?php echo translate('Source') ?></th>
+            <th data-sortable="true" data-field="Source" class="colSource"><i class="material-icons">settings</i>&nbsp;<?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
-            <th class="colStorage"><?php echo translate('Storage') ?></th>
+            <th data-sortable="true" data-field="Storage" class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
 
   foreach ( array_keys($eventCounts) as $i ) {
@@ -263,13 +285,13 @@ ob_start();
         )
     );
     parseFilter($filter);
-    echo '<th class="colEvents"><a '
+    echo '<th data-sortable="true" data-field="Events'.$eventCounts[$i]['title'].'" class="colEvents"><a '
       .(canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '')
       .$eventCounts[$i]['title']
       .'</a></th>'.PHP_EOL;
   } // end foreach eventCounts
 ?>
-            <th class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
+            <th data-sortable="true" data-field="Zones" class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
           </tr>
         </thead>
         <tbody id="consoleTableBody">

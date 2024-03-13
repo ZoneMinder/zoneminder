@@ -256,7 +256,6 @@ ob_start();
         data-show-columns="true"
 
       >
-
         <thead class="thead-highlight">
           <tr>
 <?php if ($canEditMonitors) { ?>

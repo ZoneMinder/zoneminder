@@ -31,18 +31,20 @@ input.large {
 }
 
 #sidebar {
-  overflow-y: auto;
   min-width: 160px;
-  height: 100vh;
 }
 
-#optionsContainer {
-}
 #options {
-  margin-right: -15px;
-  overflow-y: auto;
-  height: 100%;
+/*  margin-right: -15px;*/ /* you shouldn't do this for the sake of shifting the scrool bar, it breaks the style in different places. done differently*/
+  width: 100%;
+  margin-top: 15px;
 }
+
+body.sticky #sidebar, body.sticky #options {
+  height: 100%;
+  overflow-y: auto;
+}
+
 #options div.col-md {
   text-align: left;
 }
@@ -97,14 +99,10 @@ input[name="newStorage[Url]"] {
 }
 
 form {
-/*  height: 100% is to make scrollbars work in #options */
-  display: flex;
-  flex-direction: column;
+/*  display: flex;*/
+/*  flex-direction: column;*/
   height: 100%;
-/*
- * Why extra padding at top? 
   padding-top: 2rem;
-  */
 }
 
 @media screen and (max-width:767px) {

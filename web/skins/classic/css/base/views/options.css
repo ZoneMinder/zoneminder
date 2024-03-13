@@ -34,6 +34,9 @@ input.large {
   min-width: 160px;
 }
 
+#optionsContainer {
+}
+
 #options {
 /*  margin-right: -15px;*/ /* you shouldn't do this for the sake of shifting the scrool bar, it breaks the style in different places. done differently*/
   width: 100%;

@@ -120,9 +120,11 @@ form[name="monitorForm"] {
   flex: 1 1 auto;
   overflow-y: auto;
 }
+#toolbar,
 #contentButtons {
   float: none;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
 }

@@ -310,91 +310,93 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
-          <div class="row">
+          <div class="row pb-2">
             <div class="col">
               <div id="contentButtons">
                 <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
               </div>
             </div>
           </div>
-        <div id="options">
+        <div class="row h-100">
+          <div id="options">
 <?php
-        if (!isset($configCats[$tab])) {
-          echo 'There are no config entries for category '.$tab.'.<br/>';
-        } else {
-          foreach ($configCats[$tab] as $name=>$value) {
-            $shortName = preg_replace( '/^ZM_/', '', $name );
-            $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
-            $optionCanEdit = $canEdit && !$value['System'];
+          if (!isset($configCats[$tab])) {
+            echo 'There are no config entries for category '.$tab.'.<br/>';
+          } else {
+            foreach ($configCats[$tab] as $name=>$value) {
+              $shortName = preg_replace( '/^ZM_/', '', $name );
+              $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
+              $optionCanEdit = $canEdit && !$value['System'];
 ?>
-        <div class="form-group form-row <?php echo $name ?>">
-          <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
-          <div class="col-md">
+          <div class="form-group form-row <?php echo $name ?>">
+            <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
+            <div class="col-md">
 <?php   
-            if ($value['Type'] == 'boolean') {
-              echo '<input type="checkbox" id="'.$name.'" name="newConfig['.$name.']" value="1"'.
-              ( $value['Value'] ? ' checked="checked"' : '').
-              ( $optionCanEdit ? '' : ' disabled="disabled"').' />'.PHP_EOL;
-            } else if (is_array($value['Hint'])) {
-              $attributes = ['id'=>$name, 'class'=>'form-control-sm chosen'];
-              if (!$optionCanEdit) $attributes['disabled']='disabled';
-              echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value'], $attributes);
-            } else if (preg_match('/\|/', $value['Hint'])) {
-              $options = explode('|', $value['Hint']);
-              if (count($options) > 3) {
-                $html_options = array();
-                foreach ($options as $option) {
-                  if (preg_match('/^([^=]+)=(.+)$/', $option, $matches)) {
-                    $html_options[$matches[2]] = $matches[1];
-                  } else {
-                    $html_options[$option] = $option;
-                  }
-                }
-                $attributes = ['id'=>$name, 'class'=>'form-control-sm'.(count($html_options)>10?' chosen':'')];
+              if ($value['Type'] == 'boolean') {
+                echo '<input type="checkbox" id="'.$name.'" name="newConfig['.$name.']" value="1"'.
+                ( $value['Value'] ? ' checked="checked"' : '').
+                ( $optionCanEdit ? '' : ' disabled="disabled"').' />'.PHP_EOL;
+              } else if (is_array($value['Hint'])) {
+                $attributes = ['id'=>$name, 'class'=>'form-control-sm chosen'];
                 if (!$optionCanEdit) $attributes['disabled']='disabled';
-                echo htmlSelect("newConfig[$name]", $html_options, $value['Value'], $attributes);
-              } else { 
-                foreach ($options as $option) {
-                  if (preg_match('/^([^=]+)=(.+)$/', $option)) {
-                    $optionLabel = $matches[1];
-                    $optionValue = $matches[2];
-                  } else {
-                    $optionLabel = $optionValue = $option;
+                echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value'], $attributes);
+              } else if (preg_match('/\|/', $value['Hint'])) {
+                $options = explode('|', $value['Hint']);
+                if (count($options) > 3) {
+                  $html_options = array();
+                  foreach ($options as $option) {
+                    if (preg_match('/^([^=]+)=(.+)$/', $option, $matches)) {
+                      $html_options[$matches[2]] = $matches[1];
+                    } else {
+                      $html_options[$option] = $option;
+                    }
                   }
+                  $attributes = ['id'=>$name, 'class'=>'form-control-sm'.(count($html_options)>10?' chosen':'')];
+                  if (!$optionCanEdit) $attributes['disabled']='disabled';
+                  echo htmlSelect("newConfig[$name]", $html_options, $value['Value'], $attributes);
+                } else { 
+                  foreach ($options as $option) {
+                    if (preg_match('/^([^=]+)=(.+)$/', $option)) {
+                      $optionLabel = $matches[1];
+                      $optionValue = $matches[2];
+                    } else {
+                      $optionLabel = $optionValue = $option;
+                    }
 ?>
-                <label class="font-weight-bold form-control-sm">
-                  <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
-                  <?php echo htmlspecialchars($optionLabel) ?>
-                </label>
+                  <label class="font-weight-bold form-control-sm">
+                    <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
+                    <?php echo htmlspecialchars($optionLabel) ?>
+                  </label>
 <?php
-                } # end foreach option
-              } # end if count options > 3
-            } else if ( $value['Type'] == 'text' ) {
-              echo '<textarea class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" rows="5" cols="40"'.($optionCanEdit?'':' disabled="disabled"').'>'.validHtmlStr($value['Value']).'</textarea>'.PHP_EOL;
-            } else if ( $value['Type'] == 'integer' ) {
-              echo '<input type="number" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).' step="1"/>'.PHP_EOL;
-            } else if ( $value['Type'] == 'hexadecimal' ) {
-              echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
-            } else if ( $value['Type'] == 'decimal' ) {
-              echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
-            } else if ( $value['Type'] == 'password' ) {
-              echo '<input type="password" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
-              echo '<span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="'.$name.'">visibility</span>';
-            } else {
-              echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
-            }
-            if ($value['Value'] != constant($name)) {
-              echo '<p class="warning">Note: This value has been overriden via configuration files in '.ZM_CONFIG. ' or ' . ZM_CONFIG_SUBDIR.'.<br/>The overriden value is: '.constant($name).'</p>'.PHP_EOL;
-            }
+                  } # end foreach option
+                } # end if count options > 3
+              } else if ( $value['Type'] == 'text' ) {
+                echo '<textarea class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" rows="5" cols="40"'.($optionCanEdit?'':' disabled="disabled"').'>'.validHtmlStr($value['Value']).'</textarea>'.PHP_EOL;
+              } else if ( $value['Type'] == 'integer' ) {
+                echo '<input type="number" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).' step="1"/>'.PHP_EOL;
+              } else if ( $value['Type'] == 'hexadecimal' ) {
+                echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
+              } else if ( $value['Type'] == 'decimal' ) {
+                echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
+              } else if ( $value['Type'] == 'password' ) {
+                echo '<input type="password" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
+                echo '<span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="'.$name.'">visibility</span>';
+              } else {
+                echo '<input type="text" class="form-control-sm" id="'.$name.'" name="newConfig['.$name.']" value="'.validHtmlStr($value['Value']).'" '.($optionCanEdit?'':' disabled="disabled"' ).'/>'.PHP_EOL;
+              }
+              if ($value['Value'] != constant($name)) {
+                echo '<p class="warning">Note: This value has been overriden via configuration files in '.ZM_CONFIG. ' or ' . ZM_CONFIG_SUBDIR.'.<br/>The overriden value is: '.constant($name).'</p>'.PHP_EOL;
+              }
 ?>
-            <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
-          </div><!-- End .col-md -->
-        </div><!-- End .form-group -->
+              <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
+            </div><!-- End .col-md -->
+          </div><!-- End .form-group -->
 <?php
-          } # end foreach config entry in the category
-      } # end if category exists
+            } # end foreach config entry in the category
+        } # end if category exists
 ?>
-        </div><!--options-->        
+          </div><!--options-->
+        </div><!-- .row h-100 -->
       </form>
 <?php
 }

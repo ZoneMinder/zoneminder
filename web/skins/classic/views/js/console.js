@@ -204,16 +204,18 @@ function initPage() {
   }
 
 
-  // Setup the thumbnail video animation
-  if (!isMobile()) initThumbAnimation();
-
   $j('.functionLnk').click(manageFunctionModal);
+
+  $j('#consoleTable').bootstrapTable({icons: icons}).show();
 
   // Makes table sortable
   $j('#consoleTableBody').sortable({
     disabled: true,
     update: applySort,
     axis: 'Y'} );
+
+  // Setup the thumbnail video animation
+  if (!isMobile()) initThumbAnimation();
 } // end function initPage
 
 function sortMonitors(button) {

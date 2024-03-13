@@ -70,12 +70,17 @@ input[type="number"].form-control {
   width: 100%;
 }
 
-.bootstrap-table {
+body.sticky .bootstrap-table {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
-.fixed-table-container {
-  height: 100%;
+
+body.sticky .fixed-table-container {
   overflow-y: auto;
+}
+
+body.sticky #eventTable thead {
+  position: sticky;
+  top: -1px;
 }

@@ -37,10 +37,14 @@ input.large {
 #options {
 /*  margin-right: -15px;*/ /* you shouldn't do this for the sake of shifting the scrool bar, it breaks the style in different places. done differently*/
   width: 100%;
-  margin-top: 15px;
 }
 
-body.sticky #sidebar, body.sticky #options {
+body.sticky #options {
+  height: calc(100% - 50px); /* It's bad, but it's temporary */
+  overflow-y: auto;
+}
+
+body.sticky #sidebar {
   height: 100%;
   overflow-y: auto;
 }

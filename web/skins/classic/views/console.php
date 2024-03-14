@@ -225,7 +225,7 @@ echo $navbar ?>
         </button>
       </div>
         
-        &nbsp;<a href="#" data-flip-сontrol-object="#fbpanel"><i id="fbflip00" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
+        &nbsp;<a href="#" data-flip-сontrol-object="#fbpanel"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
     
     </div><!-- contentButtons -->
 <?php

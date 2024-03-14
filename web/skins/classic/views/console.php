@@ -169,7 +169,7 @@ echo $navbar ?>
       <?php echo $filterbar ?>
     </div>
 
-    <div id="toolbar" class="container-fluid pt-2">
+    <div id="toolbar" class="container-fluid">
       <div class="statusBreakdown">
 <?php
   $html = '';

@@ -267,8 +267,8 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
     </div><!--control header-->
     </div><!--flip-->
   </div><!--header-->
-  <div class="container-fluid h-100">
-    <div id="content">
+  <div id="content">
+    <div class="container-fluid h-100">
       <div class="row flex-nowrap h-100" >
 <?php if (count($monitors)) { ?>
         <nav id="sidebar" <?php echo $showCycle?'':' style="display:none;"'?>>

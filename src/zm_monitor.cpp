@@ -1995,6 +1995,8 @@ bool Monitor::Analyse() {
     // Need to guard around event creation/deletion from Reload()
     std::lock_guard<std::mutex> lck(event_mutex);
     int score = 0;
+    // Track this separately as alarm_frame_count messes with the logic
+    int motion_score = -1;
 
     // if we have been told to be OFF, then we are off and don't do any processing.
     if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
@@ -2139,7 +2141,6 @@ bool Monitor::Analyse() {
             Event::StringSet zoneSet;
 
             if (snap->image) {
-              int motion_score = 0;
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
@@ -2152,6 +2153,7 @@ bool Monitor::Analyse() {
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
+                  motion_score = 0;
                   Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
@@ -2177,7 +2179,7 @@ bool Monitor::Analyse() {
                       if (zone.AlarmImage())
                         snap->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
-                    Debug(1, "Setting zone score %d to %d", zone_index, zone.Score());
+                    Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
                     zone_scores[zone_index] = zone.Score(); zone_index ++;
                   }
                   //alarm_image.Assign(*(snap->analysis_image));
@@ -2258,7 +2260,7 @@ bool Monitor::Analyse() {
         } else {
           Debug(1, "!score state=%s, snap->score %d", State_Strings[state].c_str(), snap->score);
           // We only go out of alarm if we actually did motion detection or aren't doing any.
-          if ((snap->score >= 0) or (shared_data->analysing != ANALYSING_ALWAYS)) {
+          if ((motion_score >= 0) or (shared_data->analysing != ANALYSING_ALWAYS)) {
             alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
 
             if (state == ALARM) {

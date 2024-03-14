@@ -19,6 +19,7 @@ if ($_REQUEST['entity'] == 'navBar') {
   // Call the functions we want to dynamically update
   $data['getBandwidthHTML'] = getBandwidthHTML($bandwidth_options, $user);
   $data['getSysLoadHTML'] = getSysLoadHTML();
+  $data['getCpuUsageHTML'] = getCpuUsageHTML();
   $data['getDbConHTML'] = getDbConHTML();
   $data['getStorageHTML'] = getStorageHTML();
   //$data['getShmHTML'] = getShmHTML();

@@ -33,6 +33,8 @@ require ZoneMinder::Object;
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial @identified_by %defaults $debug/;
+my $prev_stat;
+
 $debug = 0;
 $table = 'Servers';
 @identified_by = ('Id');
@@ -83,49 +85,60 @@ sub CpuLoad {
 } # end sub CpuLoad
 
 sub CpuUsage {
-  if (-e '/proc/stat') {
-    if (!open(STAT, '/proc/stat')) {
-      Error("Enable to open /proc/stat: $!");
-      return;
-    }
-    my ($self, $prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total);
-    if (@_==1) {
-      $self = shift;
-      ($prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total) = @$self{'prev_user','prev_nice','prev_sys','prev_idle','prev_total'};
-    } elsif (@_>1) {
-      $self = {};
-      ($prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total) = @_;
-    }
+  use vars qw($prev_stat);
+  my $fileNameCurStat = '/proc/stat';
+  if (-e $fileNameCurStat) {
+    #my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = ReadStat();
+    my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = 0;
+    my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = 0;
 
-    my ($cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
-    while (<STAT>) {
-      if (/^cpu\s+[0-9]+/) {
-        (undef, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = split /\s+/, $_;
-        last;
+    # CUR 
+    if (!open(STAT, $fileNameCurStat)) {
+      ZoneMinder::Logger::Error("Opening the current CPU load state file '$fileNameCurStat': $!");
+      return (0, 0, 0, 0, 0);
+    } else {
+      while (<STAT>) {
+        if (/^cpu\s+[0-9]+/) {
+          (undef, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = split /\s+/, $_;
+          last;
+        }
       }
+      close STAT;
     }
-    close STAT;
 
-    my $total = $cpu_user + $cpu_nice + $cpu_sys + $cpu_idle;
+    my $diff_user = $cpu_user - ($$prev_stat{prev_user} // 0);
+    my $diff_nice = $cpu_nice - ($$prev_stat{prev_nice} // 0);
+    my $diff_sys = $cpu_sys - ($$prev_stat{prev_sys} // 0);
+    my $diff_idle = $cpu_idle - ($$prev_stat{prev_idle} // 0);
+    my $diff_total = $diff_user + $diff_nice + $diff_sys + $diff_idle;
 
-    my $diff_user = $prev_user ? $cpu_user - $prev_user : $cpu_user;
-    my $diff_nice = $prev_nice ? $cpu_nice - $prev_nice : $cpu_nice;
-    my $diff_sys = $prev_sys ? $cpu_sys - $prev_sys : $cpu_sys;
-    my $diff_idle = $prev_idle ? $cpu_idle - $prev_idle : $cpu_idle;
-    my $diff_total = $prev_total ? $total - $prev_total : $total;
+    if ($diff_total != 0){
+      $user_percent = 100 * $diff_user / $diff_total;
+      $nice_percent = 100 * $diff_nice / $diff_total;
+      $sys_percent = 100 * $diff_sys / $diff_total;
+      $idle_percent = 100 * $diff_idle / $diff_total;
+      $usage_percent = 100 * ($diff_total - $diff_idle) / $diff_total;
+    }
 
-    my $user_percent = 100 * $diff_user / $diff_total;
-    my $nice_percent = 100 * $diff_nice / $diff_total;
-    my $sys_percent = 100 * $diff_sys / $diff_total;
-    my $idle_percent = 100 * $diff_idle / $diff_total;
-    my $usage_percent = 100 * ($diff_total - $diff_idle) / $diff_total;
+    $$prev_stat{prev_user} = $cpu_user;
+    $$prev_stat{prev_nice} = $cpu_nice;
+    $$prev_stat{prev_sys} = $cpu_sys;
+    $$prev_stat{prev_idle} = $cpu_idle;
 
-    $$self{prev_user} = $cpu_user;
-    $$self{prev_nice} = $cpu_nice;
-    $$self{prev_sys} = $cpu_sys;
-    $$self{prev_idle} = $cpu_sys;
-    $$self{prev_total} = $cpu_sys;
+my $filename = '/tmp/OLD.txt';
+open(my $fh, '>', $filename) or die "Не могу открыть '$filename' $!";
+print $fh $$prev_stat{prev_user};
+print $fh "\n";
+print $fh $$prev_stat{prev_nice};
+print $fh "\n";
+print $fh $$prev_stat{prev_sys};
+print $fh "\n";
+print $fh $$prev_stat{prev_idle};
+close $fh;
+
+
     return ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent);
+
   } else {
     # Get CPU utilization percentages
     my $top_output = `top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print \$2, \$4, \$6, \$8}'`;

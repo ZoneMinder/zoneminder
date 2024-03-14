@@ -3,44 +3,57 @@
   line-height: calc(1.5em + 0.5rem + 2px);
 }
 
-
 input.small {
-    width: 6em;
+  width: 6em;
 }
 
 input.medium {
-    width: 9em;
+  width: 9em;
 }
 
 input.large {
-    width: 20em;
+  width: 20em;
 }
 
 #contentTable.optionTable th, #contentTable.optionTable td {
-    vertical-align: top;
+  vertical-align: top;
 }
 
 #contentTable.userTable th, #contentTable.userTable td {
-    text-align: center;
+  text-align: center;
 }
 
 #contentTable.userTable .colMonitor, #contentTable.userTable .colUsername {
-    text-align: left;
+  text-align: left;
 }
 #contentTable th {
   text-align: left;
 }
 
 #sidebar {
-/*  overflow-y: auto; */
   min-width: 160px;
 }
 
-#options {
-/*  overflow-y: auto;
-  padding-top: 15px;
-  height: 100%; */
+#optionsContainer {
 }
+
+#options {
+/*  margin-right: -15px;*/ /* you shouldn't do this for the sake of shifting the scrool bar, it breaks the style in different places. done differently*/
+  width: 100%;
+}
+
+body.sticky #options {
+  height: calc(100% - 50px); /* It's bad, but it's temporary */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body.sticky #sidebar {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 #options div.col-md {
   text-align: left;
 }
@@ -95,8 +108,9 @@ input[name="newStorage[Url]"] {
 }
 
 form {
-/*  position: relative;
-  height: 100%; */
+/*  display: flex;*/
+/*  flex-direction: column;*/
+  height: 100%;
   padding-top: 2rem;
 }
 

@@ -113,75 +113,71 @@ getBodyTopHTML();
         </div> <!-- .row-->
       </div> <!-- #toolbar -->
 
-      <div class="row">
-        <div class="col">
-          <div id="events" class="table-responsive">
-          <!-- Table styling handled by bootstrap-tables -->
-            <table
-              id="eventTable"
-              data-locale="<?php echo i18n() ?>"
-              data-side-pagination="server"
-              data-ajax="ajaxRequest"
-              data-pagination="true"
-              data-show-pagination-switch="true"
-              data-page-list="[5, 10, 25, 50, 100, 200, 500, 1000, All]"
-              data-search="true"
-              data-cookie="true"
-              data-cookie-same-site="Strict"
-              data-cookie-id-table="zmEventsTable"
-              data-cookie-expire="2y"
-              data-remember-order="false"
-              data-show-columns="true"
-              data-show-export="true"
-              data-uncheckAll="true"
-              data-toolbar="#toolbar"
-              data-sort-name="<?php echo $filter->sort_field() ?>"
-              data-sort-order="<?php echo $filter->sort_asc() ? 'asc' : 'desc' ?>"
-              data-server-sort="true"
-              data-show-fullscreen="true"
-              data-click-to-select="true"
-              data-maintain-meta-data="true"
-              data-buttons-class="btn btn-normal"
-              data-show-jump-to="true"
-              data-show-refresh="true"
-              data-columns-hidden="['Archived','Emailed','Monitor','Id','Name'.'Frames','AlarmFrames','TotScore','AvgScore']"
-              data-check-on-init="true"
-              data-mobile-responsive="true"
-              data-min-width="562"
-              class="table-sm table-borderless table"
-              style="display:none;"
-            >
-              <thead>
-                <!-- Row styling is handled by bootstrap-tables -->
-                <tr>
-                  <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
-                  <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;"><?php echo translate('Thumbnail') ?></th>
-                  <th data-sortable="true" data-field="Id" class="EventId"><?php echo translate('Id') ?></th>
-                  <th data-sortable="true" data-field="Name" class="Name"><?php echo translate('Name') ?></th>
-                  <th data-sortable="true" data-field="Archived" class="Archived"><?php echo translate('Archived') ?></th>
-                  <th data-sortable="true" data-field="Emailed" class="Emailed"><?php echo translate('Emailed') ?></th>
-                  <th data-sortable="true" data-field="Monitor" class="Monitor"><?php echo translate('Monitor') ?></th>
-                  <th data-sortable="true" data-field="Cause" class="Cause" data-click-to-select="false"><?php echo translate('Cause') ?></th>
-                  <th data-sortable="true" data-field="Tags" class="Tags"><?php echo translate('Tags') ?></th>
-                  <th data-sortable="true" data-field="StartDateTime" class="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
-                  <th data-sortable="true" data-field="EndDateTime" class="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
-                  <th data-sortable="true" data-field="Length" class="Length"><?php echo translate('Duration') ?></th>
-                  <th data-sortable="true" data-field="Frames" class="Frames"><?php echo translate('Frames') ?></th>
-                  <th data-sortable="true" data-field="AlarmFrames" class="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
-                  <th data-sortable="true" data-field="TotScore" class="TotScore"><?php echo translate('TotalBrScore') ?></th>
-                  <th data-sortable="true" data-field="AvgScore" class="AvgScore"><?php echo translate('AvgBrScore') ?></th>
-                  <th data-sortable="true" data-field="MaxScore" class="MaxScore"><?php echo translate('MaxBrScore') ?></th>
-                  <th data-sortable="false" data-field="Storage" class="Storage"><?php echo translate('Storage') ?></th>
-                  <th data-sortable="true" data-field="DiskSpace" class="DiskSpace"><?php echo translate('DiskSpace') ?></th>
-                </tr>
-              </thead>
-              <tbody>
-              <!-- Row data populated via Ajax -->
-              </tbody>
-            </table>
-          </div> <!--events-->
-        </div><!-- .col -->
-      </div><!-- .row -->
+      <div id="events" class="table-responsive">
+      <!-- Table styling handled by bootstrap-tables -->
+        <table
+          id="eventTable"
+          data-locale="<?php echo i18n() ?>"
+          data-side-pagination="server"
+          data-ajax="ajaxRequest"
+          data-pagination="true"
+          data-show-pagination-switch="true"
+          data-page-list="[5, 10, 25, 50, 100, 200, 500, 1000, All]"
+          data-search="true"
+          data-cookie="true"
+          data-cookie-same-site="Strict"
+          data-cookie-id-table="zmEventsTable"
+          data-cookie-expire="2y"
+          data-remember-order="false"
+          data-show-columns="true"
+          data-show-export="true"
+          data-uncheckAll="true"
+          data-toolbar="#toolbar"
+          data-sort-name="<?php echo $filter->sort_field() ?>"
+          data-sort-order="<?php echo $filter->sort_asc() ? 'asc' : 'desc' ?>"
+          data-server-sort="true"
+          data-show-fullscreen="true"
+          data-click-to-select="true"
+          data-maintain-meta-data="true"
+          data-buttons-class="btn btn-normal"
+          data-show-jump-to="true"
+          data-show-refresh="true"
+          data-columns-hidden="['Archived','Emailed','Monitor','Id','Name'.'Frames','AlarmFrames','TotScore','AvgScore']"
+          data-check-on-init="true"
+          data-mobile-responsive="true"
+          data-min-width="562"
+          class="table-sm table-borderless table"
+          style="display:none;"
+        >
+          <thead class="thead-highlight">
+            <!-- Row styling is handled by bootstrap-tables -->
+            <tr>
+              <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
+              <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;"><?php echo translate('Thumbnail') ?></th>
+              <th data-sortable="true" data-field="Id" class="EventId"><?php echo translate('Id') ?></th>
+              <th data-sortable="true" data-field="Name" class="Name"><?php echo translate('Name') ?></th>
+              <th data-sortable="true" data-field="Archived" class="Archived"><?php echo translate('Archived') ?></th>
+              <th data-sortable="true" data-field="Emailed" class="Emailed"><?php echo translate('Emailed') ?></th>
+              <th data-sortable="true" data-field="Monitor" class="Monitor"><?php echo translate('Monitor') ?></th>
+              <th data-sortable="true" data-field="Cause" class="Cause" data-click-to-select="false"><?php echo translate('Cause') ?></th>
+              <th data-sortable="true" data-field="Tags" class="Tags"><?php echo translate('Tags') ?></th>
+              <th data-sortable="true" data-field="StartDateTime" class="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
+              <th data-sortable="true" data-field="EndDateTime" class="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
+              <th data-sortable="true" data-field="Length" class="Length"><?php echo translate('Duration') ?></th>
+              <th data-sortable="true" data-field="Frames" class="Frames"><?php echo translate('Frames') ?></th>
+              <th data-sortable="true" data-field="AlarmFrames" class="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
+              <th data-sortable="true" data-field="TotScore" class="TotScore"><?php echo translate('TotalBrScore') ?></th>
+              <th data-sortable="true" data-field="AvgScore" class="AvgScore"><?php echo translate('AvgBrScore') ?></th>
+              <th data-sortable="true" data-field="MaxScore" class="MaxScore"><?php echo translate('MaxBrScore') ?></th>
+              <th data-sortable="false" data-field="Storage" class="Storage"><?php echo translate('Storage') ?></th>
+              <th data-sortable="true" data-field="DiskSpace" class="DiskSpace"><?php echo translate('DiskSpace') ?></th>
+            </tr>
+          </thead>
+          <tbody>
+          <!-- Row data populated via Ajax -->
+          </tbody>
+        </table>
+      </div> <!--events-->
     </div><!--content-->
   </div><!--#page-->
   <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>

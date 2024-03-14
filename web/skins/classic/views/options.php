@@ -310,14 +310,15 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
         <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="tab" value="<?php echo $tab ?>"/>
         <input type="hidden" name="action" value="options"/>
-          <div class="row">
+          <div class="row pb-2">
             <div class="col">
               <div id="contentButtons">
                 <button type="submit" <?php echo $canEdit?'':' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
               </div>
             </div>
           </div>
-        <div id="options">
+        <div class="row h-100">
+          <div id="options">
 <?php
         if (!isset($configCats[$tab])) {
           echo 'There are no config entries for category '.$tab.'.<br/>';
@@ -327,9 +328,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
             $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
             $optionCanEdit = $canEdit && !$value['System'];
 ?>
-        <div class="form-group form-row <?php echo $name ?>">
-          <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
-          <div class="col-md">
+          <div class="form-group form-row <?php echo $name ?>">
+            <label for="<?php echo $name ?>" class="col-md-4 control-label text-md-right"><?php echo $shortName ?></label>
+            <div class="col-md">
 <?php   
             if ($value['Type'] == 'boolean') {
               echo '<input type="checkbox" id="'.$name.'" name="newConfig['.$name.']" value="1"'.
@@ -362,10 +363,10 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                     $optionLabel = $optionValue = $option;
                   }
 ?>
-                <label class="font-weight-bold form-control-sm">
-                  <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
-                  <?php echo htmlspecialchars($optionLabel) ?>
-                </label>
+                  <label class="font-weight-bold form-control-sm">
+                    <input type="radio" id="<?php echo $name.'_'.preg_replace('/[^a-zA-Z0-9]/', '', $optionValue) ?>" name="newConfig[<?php echo $name ?>]" value="<?php echo $optionValue ?>"<?php if ( $value['Value'] == $optionValue ) { ?> checked="checked"<?php } ?><?php echo $optionCanEdit?'':' disabled="disabled"' ?>/>
+                    <?php echo htmlspecialchars($optionLabel) ?>
+                  </label>
 <?php
                 } # end foreach option
               } # end if count options > 3
@@ -387,14 +388,15 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               echo '<p class="warning">Note: This value has been overriden via configuration files in '.ZM_CONFIG. ' or ' . ZM_CONFIG_SUBDIR.'.<br/>The overriden value is: '.constant($name).'</p>'.PHP_EOL;
             }
 ?>
-            <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
-          </div><!-- End .col-md -->
-        </div><!-- End .form-group -->
+              <span class="form-text form-control-sm"><?php echo validHtmlStr($optionPromptText); echo makeHelpLink($name) ?></span>
+            </div><!-- End .col-md -->
+          </div><!-- End .form-group -->
 <?php
-          } # end foreach config entry in the category
-      } # end if category exists
+            } # end foreach config entry in the category
+        } # end if category exists
 ?>
-        </div><!--options-->        
+          </div><!--options-->
+        </div><!-- .row h-100 -->
       </form>
 <?php
 }

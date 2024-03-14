@@ -69,3 +69,18 @@ input[type="number"].form-control {
 #objdetectModal img {
   width: 100%;
 }
+
+body.sticky .bootstrap-table {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+body.sticky .fixed-table-container {
+  overflow-y: auto;
+}
+
+body.sticky #eventTable thead {
+  position: sticky;
+  top: -1px;
+}

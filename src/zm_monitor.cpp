@@ -630,7 +630,6 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   last_signal = true;   // Defaulting to having signal so that we don't get a signal change on the first frame.
                         // Instead initial failure to capture will cause a loss of signal change which I think makes more sense.
 
-
   // Should maybe store this for later use
   std::string monitor_dir = stringtf("%s/%u", storage->Path(), id);
 
@@ -1996,6 +1995,8 @@ bool Monitor::Analyse() {
     // Need to guard around event creation/deletion from Reload()
     std::lock_guard<std::mutex> lck(event_mutex);
     int score = 0;
+    // Track this separately as alarm_frame_count messes with the logic
+    int motion_score = -1;
 
     // if we have been told to be OFF, then we are off and don't do any processing.
     if (trigger_data->trigger_state != TriggerState::TRIGGER_OFF) {
@@ -2140,7 +2141,6 @@ bool Monitor::Analyse() {
             Event::StringSet zoneSet;
 
             if (snap->image) {
-              int motion_score = 0;
               // decoder may not have been able to provide an image
               if (!ref_image.Buffer()) {
                 Debug(1, "Assigning instead of Detecting");
@@ -2153,6 +2153,7 @@ bool Monitor::Analyse() {
               } else {
                 // didn't assign, do motion detection maybe and blending definitely
                 if (!(analysis_image_count % (motion_frame_skip+1))) {
+                  motion_score = 0;
                   Debug(1, "Detecting motion on image %d, image %p", snap->image_index, snap->image);
                   // Get new score.
                   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
@@ -2178,7 +2179,7 @@ bool Monitor::Analyse() {
                       if (zone.AlarmImage())
                         snap->analysis_image->Overlay(*(zone.AlarmImage()));
                     }
-                    Debug(1, "Setting zone score %d to %d", zone_index, zone.Score());
+                    Debug(4, "Setting score for zone %d to %d", zone_index, zone.Score());
                     zone_scores[zone_index] = zone.Score(); zone_index ++;
                   }
                   //alarm_image.Assign(*(snap->analysis_image));
@@ -2195,7 +2196,7 @@ bool Monitor::Analyse() {
                   } // end if motion_score
                 } else {
                   Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
-                  if (!score and last_motion_score) score = last_motion_score;
+                  //score += last_motion_score;
                 }
 
                 if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && snap->y_image) {
@@ -2226,7 +2227,6 @@ bool Monitor::Analyse() {
         if (score > 255) score = 255;
         // Set this before any state changes so that it's value is picked up immediately by linked monitors
         shared_data->last_frame_score = score;
-        snap->score = score;
 
         if (score) {
           if ((state == IDLE) || (state == PREALARM)) {
@@ -2258,35 +2258,38 @@ bool Monitor::Analyse() {
             last_alarm_count = analysis_image_count;
           } // This is needed so post_event_count counts after last alarmed frames while in ALARM not single alarmed frames while ALERT
         } else {
-          Debug(1, "!score state=%s", State_Strings[state].c_str());
-          alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
+          Debug(1, "!score state=%s, snap->score %d", State_Strings[state].c_str(), snap->score);
+          // We only go out of alarm if we actually did motion detection or aren't doing any.
+          if ((motion_score >= 0) or (shared_data->analysing != ANALYSING_ALWAYS)) {
+            alert_to_alarm_frame_count = alarm_frame_count; // load same value configured for alarm_frame_count
 
-          if (state == ALARM) {
-            Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
-            shared_data->state = state = ALERT;
-          } else if (state == ALERT) {
-            if ((analysis_image_count - last_alarm_count) > post_event_count) {
+            if (state == ALARM) {
+              Info("%s: %03d - Gone into alert state", name.c_str(), analysis_image_count);
+              shared_data->state = state = ALERT;
+            } else if (state == ALERT) {
+              if ((analysis_image_count - last_alarm_count) > post_event_count) {
+                shared_data->state = state = IDLE;
+                Info("%s: %03d - Left alert state", name.c_str(), analysis_image_count);
+              }
+            } else if (state == PREALARM) {
+              // Back to IDLE
               shared_data->state = state = IDLE;
-              Info("%s: %03d - Left alert state", name.c_str(), analysis_image_count);
             }
-          } else if (state == PREALARM) {
-            // Back to IDLE
-            shared_data->state = state = IDLE;
-          }
-          Debug(1,
-              "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) = %d > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
-              state,
-              State_Strings[state].c_str(),
-              analysis_image_count,
-              last_alarm_count,
-              analysis_image_count - last_alarm_count,
-              post_event_count,
-              static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
-              static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
-              static_cast<int64>(Seconds(min_section_length).count()));
+            Debug(1,
+                "State %d %s because analysis_image_count(%d)-last_alarm_count(%d) = %d > post_event_count(%d) and timestamp.tv_sec(%" PRIi64 ") - recording.tv_src(%" PRIi64 ") >= min_section_length(%" PRIi64 ")",
+                state,
+                State_Strings[state].c_str(),
+                analysis_image_count,
+                last_alarm_count,
+                analysis_image_count - last_alarm_count,
+                post_event_count,
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(snap->timestamp.time_since_epoch()).count()),
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(GetVideoWriterStartTime().time_since_epoch()).count()),
+                static_cast<int64>(Seconds(min_section_length).count()));
 
-          if (Event::PreAlarmCount())
-            Event::EmptyPreAlarmFrames();
+            if (Event::PreAlarmCount())
+              Event::EmptyPreAlarmFrames();
+          } // end if snap->score meaning did motion detection
         } // end if score or not
 
         if (event) {
@@ -2426,6 +2429,8 @@ bool Monitor::Analyse() {
           event->updateNotes(noteSetMap);
         } // end if ! event
       } // end if signal
+
+      snap->score = score;
     } else {
       Debug(3, "trigger == off");
       if (event) {

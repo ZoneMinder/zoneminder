@@ -286,21 +286,6 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
     });
 
-    // Manage the web console filter bar minimize chevron
-    $j("#fbflip").click(function() {
-      $j("#fbpanel").slideToggle("slow");
-      var fbflip = $j("#fbflip");
-      if ( fbflip.html() == 'keyboard_arrow_up' ) {
-        fbflip.html('keyboard_arrow_down');
-        setCookie('zmFilterBarFlip', 'down');
-      } else {
-        fbflip.html('keyboard_arrow_up');
-        setCookie('zmFilterBarFlip', 'up');
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
-      }
-    });
-
     // Manage visible object & control button (when pressing a button)
     $j("[data-flip-сontrol-object]").click(function() {
       let objIconButton = $j(this).find("i");

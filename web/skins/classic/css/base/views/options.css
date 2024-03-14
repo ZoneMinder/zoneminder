@@ -44,11 +44,13 @@ input.large {
 
 body.sticky #options {
   height: calc(100% - 50px); /* It's bad, but it's temporary */
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
 body.sticky #sidebar {
   height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 

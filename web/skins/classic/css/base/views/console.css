@@ -118,7 +118,14 @@ form[name="monitorForm"] {
 }
 #monitorList {
   flex: 1 1 auto;
-  overflow-y: auto;
+/*  overflow-y: scroll; */
+}
+body.sticky #monitorList {
+  overflow: auto; 
+}
+body.sticky #monitorList thead {
+  position: sticky;
+  top: -1px;
 }
 #toolbar,
 #contentButtons {

@@ -87,24 +87,19 @@ sub CpuLoad {
 sub CpuUsage {
   use vars qw($prev_stat);
   my $fileNameCurStat = '/proc/stat';
-  if (-e $fileNameCurStat) {
+  # If we fail, fall through to using top
+  if (-e $fileNameCurStat and open(STAT, $fileNameCurStat)) {
     #my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = ReadStat();
     my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = 0;
     my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = 0;
-
-    # CUR 
-    if (!open(STAT, $fileNameCurStat)) {
-      ZoneMinder::Logger::Error("Opening the current CPU load state file '$fileNameCurStat': $!");
-      return (0, 0, 0, 0, 0);
-    } else {
-      while (<STAT>) {
-        if (/^cpu\s+[0-9]+/) {
-          (undef, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = split /\s+/, $_;
-          last;
-        }
+    while (<STAT>) {
+      # Individual core lines will start with cpu\d+.  We want all cpus, which tends to be the first line, sans digit.
+      if (/^cpu\s+[0-9]+/) {
+        (undef, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = split /\s+/, $_;
+        last;
       }
-      close STAT;
     }
+    close STAT;
 
     my $diff_user = $cpu_user - ($$prev_stat{prev_user} // 0);
     my $diff_nice = $cpu_nice - ($$prev_stat{prev_nice} // 0);

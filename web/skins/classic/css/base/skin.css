@@ -110,7 +110,6 @@ th {
 */
 }
 
-
 .thead-highlight {
   background-color:#dfe4ea;
 }
@@ -123,6 +122,9 @@ table th:last-child{
   border-radius:0 5px 0 0 ;
 }
 
+a {
+  cursor: pointer;
+}
 
 a.optionhelp,
 a:link {
@@ -582,10 +584,12 @@ body.sticky #page {
 
 #content table input[type=submit], #content table input[type=button], #content table button, #content table .btn-primary {
     margin-top: 1px;
+    margin-right: 4px;
 }
 
 #contentButtons {
     margin-top: 8px;
+    margin-bottom: 8px;
     float: right;
 }
 

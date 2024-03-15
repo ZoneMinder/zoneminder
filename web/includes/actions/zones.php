@@ -21,12 +21,11 @@ require_once('includes/Zone.php');
 global $error_message;
 global $redirect;
 
-
 if ($action == 'delete') {
   if (isset($_REQUEST['markZids'])) {
     $monitors_to_restart = array();
-    foreach ( $_REQUEST['markZids'] as $markZid ) {
-      $zone = new ZM\Zone($markZid);
+    foreach ($_REQUEST['markZids'] as $markZid) {
+      $zone = new ZM\Zone(validCardinal($markZid));
       if (!$zone->Id()) {
         $error_message .= 'Zone not found for id ' . $markZid.'<br/>';
         continue;
@@ -41,14 +40,16 @@ if ($action == 'delete') {
       $error_message .= $zone->delete();
     } # end foreach Zone
 
-    foreach ( $monitors_to_restart as $monitor ) {
-      if ( daemonCheck() and ($monitor->Type() != 'WebSite') ) {
-        $monitor->zmcControl('restart');
-      } // end if daemonCheck()
+    if (daemonCheck()) {
+      foreach ($monitors_to_restart as $monitor) {
+        if ($monitor->Type() != 'WebSite') {
+          $monitor->zmcControl('restart');
+        }
+      }
     }
     $refreshParent = true;
     if (!$error_message)
-      $redirect = '?view=zones&'.implode('&', array_map(function($mid){ return 'mids[]='.$mid; }, $_REQUEST['mids']));
+      $redirect = '?view=zones'.(isset($_REQUEST['mids']) ? '&'.implode('&', array_map(function($mid){ return 'mids[]='.$mid; }, $_REQUEST['mids'])): '');
   } else {
     $error_message .= 'No Zones marked for deletion.<br/>';
   } // end if isset($_REQUEST['markZids'])

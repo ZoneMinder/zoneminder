@@ -68,7 +68,7 @@ height: 100%;
 }
 
 #eventVideo {
-    display: inline-block;
+    /* display: inline-block; */
 }
 
 #imageFeed {

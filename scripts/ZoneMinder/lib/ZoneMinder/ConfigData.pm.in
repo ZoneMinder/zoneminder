@@ -2534,15 +2534,10 @@ our @options = (
       the events may be shorter than the section length if an alarm
       has occurred.
       `,
-    type        => $types{boolean},
     type        => {
       db_type     =>'string',
-      hint        =>'time|idle|alarm',
-      pattern     =>qr|^([tia])|i,
-      format      =>q( ($1 =~ /^t/)
-          ? 'time'
-          : ($1 =~ /^i/ ? 'idle' : 'time' )
-          )
+      hint        =>'time|duration|idle|alarm',
+      pattern     =>qr/^(time|duration|idle|alarm)/,
     },
     category    => 'config',
   },

@@ -86,10 +86,12 @@ if ($action == 'Save') {
 
     if (isset($_POST['monitor_permission'])) {
       foreach (ZM\Monitor::find(['Deleted'=>false]) as $m) {
-        $permission = $dbUser->Monitor_Permission($m->Id());
-        $new_permission = $_POST['monitor_permission'][$m->Id()];
-        if ($permission->Permission() != $new_permission) {
-          $permission->save(['Permission'=>$new_permission]);
+        if (isset($_POST['monitor_permission'][$m->Id()])) {
+          $permission = $dbUser->Monitor_Permission($m->Id());
+          $new_permission = $_POST['monitor_permission'][$m->Id()];
+          if ($permission->Permission() != $new_permission) {
+            $permission->save(['Permission'=>$new_permission]);
+          }
         }
       }
     } # end if isset monitor_permission

@@ -46,10 +46,18 @@ input[type="number"].form-control {
 #toolbar,
 .filterTable {
   display:flex;
+  flex-wrap: wrap;
 }
+
+#toolbar,
+.filterTable > span{
+  padding-bottom: 5px;
+  padding-right: 15px;
+}
+
 #events {
   height: 100%;
-  overflow-y: auto;
+  overflow: visible;
   justify-content: center;
 }
 
@@ -60,4 +68,19 @@ input[type="number"].form-control {
 
 #objdetectModal img {
   width: 100%;
+}
+
+body.sticky .bootstrap-table {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+body.sticky .fixed-table-container {
+  overflow-y: auto;
+}
+
+body.sticky #eventTable thead {
+  position: sticky;
+  top: -1px;
 }

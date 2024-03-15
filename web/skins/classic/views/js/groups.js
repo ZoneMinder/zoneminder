@@ -5,7 +5,7 @@ function newGroup() {
         insertModalHtml('groupdModal', data.html);
         $j('#groupModal').modal('show');
         $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
+        $j('.chosen').chosen({width: "100%"});
       })
       .fail(logAjaxFail);
 }
@@ -26,7 +26,7 @@ function editGroup( element ) {
           insertModalHtml('groupModal', data.html);
           $j('#groupModal').modal('show');
           $j('.chosen').chosen("destroy");
-          $j('.chosen').chosen();
+          $j('.chosen').chosen({width: "100%"});
         })
         .fail(logAjaxFail);
   }

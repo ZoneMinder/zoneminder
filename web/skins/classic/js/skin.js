@@ -613,14 +613,17 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
   let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
   let newWidth = ratio * newHeight;
-  console.log("newWidth = ", newWidth, "container width:", container.innerWidth());
 
-  if (newHeight < 0) {
+  // Let's recalculate everything and reduce the height a little. Necessary if "padding" is specified for "wrapperEventVideo"
+  padding = parseInt(container.css("padding-left")) + parseInt(container.css("padding-right"));
+  newWidth -= padding;
+  newHeight = newWidth / ratio;
+
+  console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
+
+  if (newHeight < 0 || newWidth > container.innerWidth()-padding) {
     // Doesn't fit on screen anyways?
-    newWidth = container.innerWidth();
-    newHeight = newWidth / ratio;
-  } else if (newWidth > container.innerWidth()) {
-    newWidth = container.innerWidth();
+    newWidth = container.innerWidth()-padding;
     newHeight = newWidth / ratio;
   }
   console.log("newWidth = " + newWidth);

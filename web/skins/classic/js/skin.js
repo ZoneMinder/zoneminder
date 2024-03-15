@@ -295,7 +295,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       if ( obj.is(":visible") ) {
         if (objIconButton.is('[class="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
-        } else if (objIconButton.is('[class^="fa-"]')){ //use Font Awesome
+        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
           objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
         }
         setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'hidden');

@@ -402,7 +402,7 @@ foreach ($tabs as $name=>$value) {
         class="nav-link<?php echo $tab == $name ? ' active' : '' ?>"
         <?php 
         if ($name == 'zone') {
-          echo "href='index.php?view=zones&mid=" . $monitor->Id() . "' "; 
+          echo 'href="index.php?view=zones&mid=' . $monitor->Id() . '" ';
         } else {
           echo 'href="#pills-' . $name . '" '; 
           echo 'role="tab" '; 

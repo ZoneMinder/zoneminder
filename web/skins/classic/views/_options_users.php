@@ -41,7 +41,7 @@
               <td class="colMark"><input type="checkbox" name="markUids[]" value="<?php echo $user_row->Id() ?>" data-on-click-this="configureDeleteButton"<?php echo (!$canEdit) ? ' disabled="disabled"' : '' ?>/></td>
               <td class="colUsername"><?php echo makeLink('?view=user&amp;uid='.$user_row->Id(), validHtmlStr($user_row->Username()).($user->Username()==$user_row->Username()?'*':''), $canEdit) ?></td>
               <td class="colEmail"><?php echo $user_row->Email()?validHtmlStr($user_row->Email()):'' ?></td>
-              <td class="colLanguage"><?php echo $user_row->Language()?validHtmlStr($user_row->Language()):'default' ?></td>
+              <td class="colLanguage"><?php echo $user_row->Language()?translate(validHtmlStr($user_row->Language())):translate('default') ?></td>
               <td class="colEnabled"><?php echo translate($user_row->Enabled()?'Yes':'No') ?></td>
               <td class="colStream"><?php echo validHtmlStr($user_row->Stream()) ?></td>
               <td class="colEvents"><?php echo validHtmlStr($user_row->Events()) ?></td>

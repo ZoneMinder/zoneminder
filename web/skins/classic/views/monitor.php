@@ -382,6 +382,7 @@ if ( $monitor->Type() != 'WebSite' ) {
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
   $tabs['misc'] = translate('Misc');
+  $tabs['zone'] = translate('Zone');
   if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
     $tabs['location'] = translate('Location');
   $tabs['mqtt'] = translate('MQTT');
@@ -398,10 +399,16 @@ foreach ($tabs as $name=>$value) {
     <li class="nav-item form-control-sm my-1">
       <a 
         id="<?php echo $name?>-tab"
-        role="tab"
-        data-toggle="pill"
         class="nav-link<?php echo $tab == $name ? ' active' : '' ?>"
-        href="#pills-<?php echo $name?>"
+        <?php 
+        if ($name == 'zone') {
+          echo "href='index.php?view=zones&mid=" . $monitor->Id() . "' "; 
+        } else {
+          echo 'href="#pills-' . $name . '" '; 
+          echo 'role="tab" '; 
+          echo 'data-toggle="pill" '; 
+        }
+        ?>
         aria-controls="pills-<?php echo $name?>"
         aria-selected="<?php echo $tab == $name ? 'true':'false'?>"
       ><?php echo $value ?></a></li>

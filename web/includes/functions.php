@@ -1589,8 +1589,9 @@ function getLanguages() {
   $langs = array();
   foreach ( glob('lang/*_*.php') as $file ) {
     preg_match('/([^\/]+_.+)\.php/', $file, $matches);
-    $langs[$matches[1]] = $matches[1];
+    $langs[$matches[1]] = translate($matches[1]);
   }
+  asort($langs);
   return $langs;
 }
 

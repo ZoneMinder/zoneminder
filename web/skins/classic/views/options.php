@@ -259,7 +259,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
     $languagecodelist=explode('|',$languagecodess);
     $languageslist = array();
     foreach ($languagecodelist as $language){
-        $languageslist[$language] = translate($language);
+        $languageslist[$language] = $language;
        }
 
     $configCats[$tab]['ZM_LANG_DEFAULT']['Hint'] = $languageslist;

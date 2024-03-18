@@ -605,7 +605,7 @@ function handleClick(event) {
   const y = parseInt((event.pageY - pos.top) * scaleY);
 
   if (showMode == 'events' || !imageControlMode) {
-    if ( event.shift ) {
+    if ( event.shift || event.shiftKey ) {
       streamCmdPan(x, y);
     } else if (event.ctrlKey) {
       streamCmdZoomOut();

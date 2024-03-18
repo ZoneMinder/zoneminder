@@ -717,7 +717,7 @@ include('_monitor_source_nvsocket.php');
 <?php
       } else if ( $monitor->Type() == 'Remote' ) {
 ?>
-          <li><label><?php echo  translate('Username') ?></label>
+          <li><label><?php echo translate('Username') ?></label>
             <input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
           </li>
           <li>
@@ -782,11 +782,11 @@ include('_monitor_source_nvsocket.php');
             <label><?php echo translate('SourcePath') ?></label>
             <input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" />
           </li>
-          <li><label><?php echo  translate('Username') ?></label>
+          <li><label><?php echo translate('Username') ?></label>
             <input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
           </li>
           <li>
-            <label><?php echo  translate('Password') ?></label>
+            <label><?php echo translate('Password') ?></label>
             <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
             <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </li>

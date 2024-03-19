@@ -111,6 +111,7 @@ std::string load_monitor_sql =
 #if MOSQUITTOPP_FOUND
 ", `MQTT_Enabled`, `MQTT_Subscriptions`"
 #endif
+", `StartupDelay`"
 " FROM `Monitors`";
 
 std::string CameraType_Strings[] = {
@@ -365,7 +366,7 @@ Monitor::Monitor() :
    "FPSReportInterval, RefBlendPerc, AlarmRefBlendPerc, TrackMotion, Exif,"
    "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`,"
    "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, "
-   "SignalCheckPoints, SignalCheckColour, Importance-1, ZoneCount, `MQTT_Enabled`, `MQTT_Subscriptions` FROM Monitors";
+   "SignalCheckPoints, SignalCheckColour, Importance-1, ZoneCount, `MQTT_Enabled`, `MQTT_Subscriptions`, StartupDelay FROM Monitors";
 */
 
 void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
@@ -620,6 +621,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   mqtt_subscriptions = Split(mqtt_subscriptions_string, ','); col++;
   Error("MQTT enabled ? %d, subs %s", mqtt_enabled, mqtt_subscriptions_string.c_str());
 #endif
+  startup_delay = dbrow[col] ? atoi(dbrow[col]) : 0; col++;
 
   // How many frames we need to have before we start analysing
   ready_count = std::max(warmup_count, pre_event_count);

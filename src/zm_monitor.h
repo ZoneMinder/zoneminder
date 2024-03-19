@@ -509,6 +509,7 @@ protected:
   bool        soap_wsa_compl; // Whether the camera supports soap_wsa or not. 
   std::string onvif_alarm_txt;     // def onvif_alarm_txt
   int         importance;           // Importance of this monitor, affects Connection logging errors.
+  int         startup_delay;        // Seconds to sleep before connecting to camera 
   unsigned int         zone_count;
 
   int capture_max_fps;
@@ -909,6 +910,7 @@ public:
     return shared_data ? shared_data->analysis_fps : 0.0;
   }
   int Importance() const { return importance; }
+  int StartupDelay() const { return startup_delay; }
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

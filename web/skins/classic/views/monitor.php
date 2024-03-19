@@ -1513,6 +1513,10 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
               ), $monitor->Importance());
 ?>
         </li>
+        <li class="StartupDelay">
+          <label><?php echo translate('Startup Delay'); ?></label>
+          <input type="number" min="1" max="65536" step="1" name="newMonitor[StartupDelay]" value="<?php echo validCardinal($monitor->StartupDelay()) ?>"/><?php echo translate('seconds') ?>
+        </li>
 <?php
         break;
     }

@@ -257,6 +257,7 @@ public static function getStatuses() {
     'Importance'      =>  'Normal',
     'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
     'MQTT_Subscriptions'  =>  '',
+    'StartupDelay' => 0,
   );
   private $status_fields = array(
     'Status'  =>  null,

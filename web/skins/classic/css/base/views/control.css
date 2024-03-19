@@ -85,7 +85,7 @@
 
 .ptzControls .controlsPanel .pantiltPanel {
     margin: 0 auto;
-    width: 100px;
+    /* width: 100px; */ /* Probably unnecessary */
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .pantiltButtons {
@@ -100,8 +100,8 @@
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .arrowBtn {
-    width: 32px;
-    height: 32px;
+    width: calc(32px - 0.1rem); /* ( - 0.1rem) Necessary for correct operation at browser scale less than 100% */
+    height: calc(32px - 0.1rem);
     cursor: pointer;
 }
 

@@ -3453,6 +3453,11 @@ int Monitor::Pause() {
     Debug(1, "Decoder stopped");
   }
 
+  if (convert_context) {
+    sws_freeContext(convert_context);
+    convert_context = nullptr;
+  }
+
   if (analysis_thread) {
     analysis_thread->Stop();
     Debug(1, "Analysis stopped");
@@ -3472,11 +3477,13 @@ int Monitor::Pause() {
       close_event_thread.join();
     }
   }
-  if (camera) camera->Close();
+  if (camera) {
+    camera->Close();
+  }
 
   packetqueue.clear();
   return 1;
-}
+} // end int Monitor::Pause()
 
 int Monitor::Play() {
   int ret = camera->PrimeCapture();
@@ -3499,12 +3506,10 @@ int Monitor::Play() {
     Debug(1, "Restarting decoder thread");
     decoder->Start();
   }
-  if (analysing != ANALYSING_NONE) {
-    Debug(1, "Restarting analysis thread");
-    analysis_thread->Start();
-  }
+  Debug(1, "Restarting analysis thread");
+  analysis_thread->Start();
   return 1;
-}
+} // end int Monitor::Play()
 
 int Monitor::Close() {
   Pause();

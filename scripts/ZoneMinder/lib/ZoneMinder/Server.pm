@@ -72,10 +72,6 @@ sub CpuLoad {
   # returned value is 1min, 5min, 15min load
 
   if (join(', ',@sysloads) =~ /(\d+(\.|\,)\d+)\s*,\s+(\d+(\.|\,)\d+)\s*,\s+(\d+(\.|\,)\d+)\s*$/) {
-    if (@_) {
-      my $self = shift;
-      $$self{CpuLoad} = tr/,/./ for $sysloads[0];
-    }
     return @sysloads;
   }
 

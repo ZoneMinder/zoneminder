@@ -391,17 +391,23 @@ class FilterTerm {
       # Is a Pre Condition
       Debug("Testing " . $this->attr);
       if ( $this->attr == 'DiskPercent' ) {
-        # The logic on this is really ugly.  We are going to treat it as an OR
-        foreach ( $this->filter->get_StorageAreas() as $storage ) {
-          $string_to_eval = 'return $storage->disk_usage_percent() '.$this->op.' '.$this->val.';';
-          try {
-            $ret = eval($string_to_eval);
-            Debug("Evalled $string_to_eval = $ret");
-            if ( $ret )
-              return true;
-          } catch ( Throwable $t ) {
-            Error('Failed evaluating '.$string_to_eval);
-            return false;
+        $storage_areas = $this->filter->get_StorageAreas();
+        # The logic on this when there are multiple storage areas breaks.  We will just use the first.
+        foreach ( $storage_areas as $storage ) {
+          Debug($storage->disk_usage_percent(). ' '.$this->op.'? '.$this->val);
+          switch ($this->op) {
+          case '=':
+            return ($storage->disk_usage_percent() == $this->val);
+          case '>':
+            return ($storage->disk_usage_percent() > $this->val);
+          case '<':
+            return ($storage->disk_usage_percent() < $this->val);
+          case '<=':
+            return ($storage->disk_usage_percent() <= $this->val);
+          case '>=':
+            return ($storage->disk_usage_percent() >= $this->val);
+          default:
+            Warning('Invalid op '.$this->op .' for DiskPercent.');
           }
         } # end foreach Storage Area
       } else if ( $this->attr == 'SystemLoad' ) {

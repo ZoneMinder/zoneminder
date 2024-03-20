@@ -382,7 +382,7 @@ if ( $monitor->Type() != 'WebSite' ) {
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
   $tabs['misc'] = translate('Misc');
-  $tabs['zone'] = translate('Zone');
+  $tabs['zones'] = translate('Zones');
   if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
     $tabs['location'] = translate('Location');
   $tabs['mqtt'] = translate('MQTT');
@@ -401,7 +401,7 @@ foreach ($tabs as $name=>$value) {
         id="<?php echo $name?>-tab"
         class="nav-link<?php echo $tab == $name ? ' active' : '' ?>"
         <?php 
-        if ($name == 'zone') {
+        if ($name == 'zones') {
           echo 'href="index.php?view=zones&mid=' . $monitor->Id() . '" ';
         } else {
           echo 'href="#pills-' . $name . '" '; 
@@ -1035,7 +1035,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
           <?php
       } else {
 ?>
-            <li class="RefBlendPerc">>
+            <li class="RefBlendPerc">
               <label><?php echo translate('RefImageBlendPct') ?></label>
               <input type="number" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($monitor->RefBlendPerc()) ?>" step="any" min="0"/>
             </li>
@@ -1554,8 +1554,10 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         </li>
 <?php
     break;
+  case 'zones':
+    break;
   default :
-    ZM\Error("Unknown tab $tab");
+    ZM\Error("Unknown tab \"$name\"");
 } // end switch tab
 ?>
   </ul>

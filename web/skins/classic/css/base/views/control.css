@@ -100,9 +100,66 @@
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .arrowBtn {
-    width: calc(32px - 0.1rem); /* ( - 0.1rem) Necessary for correct operation at browser scale less than 100% */
-    height: calc(32px - 0.1rem);
+    width: 32px;
+    height: 32px;
     cursor: pointer;
+}
+.pantiltButtons {
+    position: relative;
+}
+
+.arrowBtn {
+    position: absolute;
+}
+
+.arrowBtn.upLeftBtn {
+    left: 0;
+    top: 0;
+}
+
+.arrowBtn.upBtn {
+    left: 33px;
+    top: 0;
+}
+
+.arrowBtn.upRightBtn {
+    left: 66px;
+    top: 0;
+}
+
+.arrowBtn.leftBtn {
+    left: 0;
+    top: 33px;
+}
+
+.arrowBtn.centerBtn {
+    left: 33px;
+    top: 33px;
+}
+
+.arrowBtn.centerBtn {
+    left: 33px;
+    top: 33px;
+}
+
+.arrowBtn.rightBtn {
+    left: 66px;
+    top: 33px;
+}
+
+.arrowBtn.downLeftBtn {
+    left: 0;
+    top: 66px;
+}
+
+.arrowBtn.downBtn {
+    left: 33px;
+    top: 66px;
+}
+
+.arrowBtn.downRightBtn {
+    left: 66px;
+    top: 66px;
 }
 
 .ptzControls .controlsPanel .pantiltPanel .pantiltControls .upLeftBtn {

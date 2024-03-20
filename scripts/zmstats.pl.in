@@ -55,8 +55,20 @@ while (!$zm_terminate) {
   }
 
   my @cpuload = $server->CpuLoad();
+  Debug("Cpuload: @cpuload");
+  my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
 
-  my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
+  if ($server->Id()) {
+    $server->load(); # get fresh other values
+    if ($_=$server->save({
+          CpuLoad=>$cpuload[0],
+          TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap,
+          CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSystemPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent,
+        })) {
+      Error('Failed Updating status of Server record for Id='.$server->Id().': '.$dbh->errstr());
+    }
+  }
+
   zmDbDo('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuNicePercent, CpuSystemPercent, CpuIdlePercent, CpuUsagePercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?,?,?,?)',
     $Config{ZM_SERVER_ID},
     $cpuload[0], $user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent,

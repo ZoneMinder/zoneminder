@@ -524,6 +524,19 @@ body.sticky #page {
   }
 }
 
+@media screen and (max-width:500px) {
+  .eventStats,
+  #navbar-one,
+  #navbar-two,
+  #exportBtn,
+  #downloadBtn,
+  #videoBtn,
+  #statsBtn,
+  #fullscreenBtn,
+  #zoomOutBtn {
+    display: none;
+  }
+}
 
 #header h2 {
     left: 0;

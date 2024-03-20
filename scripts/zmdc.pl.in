@@ -161,7 +161,9 @@ if (!$server_up) {
   if ($server->Id()) {
     use Sys::MemInfo qw(totalmem freemem totalswap freeswap);
     my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
+    my @cpuload = $server->CpuLoad();
     if ($_=$server->save({Status=>'NotRunning',
+          CpuLoad=>$cpuload[0],
           TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap,
           CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSystemPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent,
         })) {
@@ -321,13 +323,13 @@ sub run {
         }
         last if $zm_terminate;
 
-        my @cpuload = ZoneMinder::Server::CpuLoad();
+        my @cpuload = $server->CpuLoad();
         my  ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = $server->CpuUsage();
         if ($_=$server->save({Status=>'Running',
               TotalMem=>&totalmem, FreeMem=>&freemem, TotalSwap=>&totalswap, FreeSwap=>&freeswap, CpuLoad=>$cpuload[0],
               CpuUserPercent=>$user_percent, CpuNicePercent=>$nice_percent, CpuSystemPercent=>$sys_percent, CpuIdlePercent=>$idle_percent, CpuUsagePercent=>$usage_percent
             })) {
-          Error('Failed Updating status of Server record to Not Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
+          Error('Failed Updating status of Server record to Running for Id='.$Config{ZM_SERVER_ID}.': '.$dbh->errstr());
         }
       }
       $secs_count += 1;

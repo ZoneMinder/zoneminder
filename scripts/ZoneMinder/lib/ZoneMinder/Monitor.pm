@@ -170,6 +170,12 @@ $serial = $primary_key = 'Id';
   MQTT_Subscriptions
   );
 
+# These have subroutines
+$fields{Manufacturer} = undef;
+$fields{manufacturer} = undef;
+$fields{Model} = undef;
+$fields{model} = undef;
+
 %defaults = (
     Name => q`'Monitor'`,
     Deleted => 0,
@@ -227,7 +233,7 @@ $serial = $primary_key = 'Id';
     DecoderHWAccelDevice  =>  undef,
     SaveJPEGs =>  3,
     VideoWriter =>  0,
-    OutputCodec =>  undef,
+    OutputCodec =>  0,
     OutputContainer => undef,
     EncoderParameters => '',
     RecordAudio=>0,
@@ -286,7 +292,7 @@ $serial = $primary_key = 'Id';
     Longitude =>  undef,
     RTSPStreamName => '',
     RTSPServer => 0,
-    Importance => q`'Normal'`,
+    Importance => 0,
     MQTT_Enabled => 0,
     MQTT_Subscriptions => q`''`,
     );
@@ -303,7 +309,7 @@ sub save {
   my $manufacturer = $self->Manufacturer();
   my $model = $self->Model();
 
-  if ($manufacturer->Name() and !$self->ManufacturerId()) {
+  if ($manufacturer->Name() and !$manufacturer->Id()) {
     if ($manufacturer->save()) {
       $$self{ManufacturerId} = $manufacturer->Id();
       if ($model->Name()) {
@@ -311,16 +317,15 @@ sub save {
       }
     }
   }
-  if ($model->Name() and !$self->ModelId()) {
+  if ($model->Name() and !$model->Id()) {
     if ($model->save()) {
       $$self{ModelId} = $model->Id()
     }
   }
 
-  my $error = $self->SUPER::save( );
+  my $error = $self->SUPER::save(@_);
   return $error;
 } # end sub save
-
 
 sub Server {
 	return new ZoneMinder::Server( $_[0]{ServerId} );
@@ -554,18 +559,22 @@ sub manufacturer {
       $$self{Manufacturer} = new ZoneMinder::Manufacturer();
       $$self{Manufacturer}->Name($new);
     }
+    $$self{ManufacturerId} = $$self{Manufacturer}->Id();
   }
   if (!$$self{Manufacturer}) {
     $$self{Manufacturer} = new ZoneMinder::Manufacturer($$self{ManufacturerId});
   }
-  return $$self{Manufacturer}->Name();
+  return $$self{manufacturer} = $$self{Manufacturer}->Name();
 }
 
 sub Model {
   my $self = shift;
   if (@_) {
     $$self{Model} = shift;
-    $$self{ModelId} = $$self{Model} 
+    if (!$$self{Model}) {
+      $$self{Model} = new ZoneMinder::Model($$self{ModelId});
+    }
+    $$self{ModelId} = $$self{Model}->Id();
   }
   if (!$$self{Model}) {
     $$self{Model} = new ZoneMinder::Model($$self{ModelId});

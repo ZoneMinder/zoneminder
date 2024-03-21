@@ -329,14 +329,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
         } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
           objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
         }
-        obj.css({'display' : 'none'});
+        obj.css({'display': 'none'});
       } else { //no cookies or opened.
         if (objIconButton.is('[class="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-visible'));
         } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
           objIconButton.addClass(objIconButton.attr('data-icon-visible'));
         }
-        obj.css({'display' : 'block'});
+        obj.css({'display': 'block'});
       }
     });
 

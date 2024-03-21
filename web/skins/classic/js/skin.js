@@ -292,6 +292,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
+			obj.removeClass('hidden');
       if ( obj.is(":visible") ) {
         if (objIconButton.is('[class="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
@@ -318,7 +319,6 @@ if ( currentView != 'none' && currentView != 'login' ) {
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
-      obj.removeClass('hidden');
       if (сookie == 'hidden') {
         if (objIconButton.is('[class="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-hidden'));

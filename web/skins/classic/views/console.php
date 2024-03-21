@@ -165,10 +165,8 @@ echo $navbar ?>
   <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
 
-    <div style="display: block"> <!-- Elimination of jerks for slideToggle -->
-      <div id="fbpanel" class="filterBar hidden">
-        <?php echo $filterbar ?>
-      </div>
+    <div id="fbpanel" class="filterBar hidden">
+      <?php echo $filterbar ?>
     </div>
 
     <div id="toolbar" class="container-fluid pt-2">

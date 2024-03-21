@@ -292,6 +292,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
+      obj.removeClass('hidden');
       if ( obj.is(":visible") ) {
         if (objIconButton.is('[class="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
@@ -308,7 +309,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
       }
 
-      obj.slideToggle("slow");
+      obj.slideToggle("fast");
     });
 
     // Manage visible filter bar & control button (after document ready)
@@ -318,20 +319,24 @@ if ( currentView != 'none' && currentView != 'login' ) {
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
+      if (obj.parent().css('display') != 'block') {
+        obj.wrap('<div style="display: block"></div>');
+      }
+
       if (сookie == 'hidden') {
         if (objIconButton.is('[class="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
         } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
           objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
         }
-        obj.css("display", "none");
+        obj.css({'display': 'none'});
       } else { //no cookies or opened.
         if (objIconButton.is('[class="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-visible'));
         } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
           objIconButton.addClass(objIconButton.attr('data-icon-visible'));
         }
-        obj.css("display", "unset");
+        obj.css({'display': 'block'});
       }
     });
 

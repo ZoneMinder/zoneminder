@@ -74,10 +74,6 @@ sub CpuLoad {
   # returned value is 1min, 5min, 15min load
 
   if (join(', ',@sysloads) =~ /(\d+(\.|\,)\d+)\s*,\s+(\d+(\.|\,)\d+)\s*,\s+(\d+(\.|\,)\d+)\s*$/) {
-    if (@_) {
-      my $self = shift;
-      $$self{CpuLoad} = tr/,/./ for $sysloads[0];
-    }
     return @sysloads;
   }
 
@@ -88,7 +84,6 @@ sub CpuUsage {
   use vars qw($prev_stat);
   my $fileNameCurStat = '/proc/stat';
   if (-e $fileNameCurStat) {
-    #my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = ReadStat();
     my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = 0;
     my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = 0;
 
@@ -125,18 +120,6 @@ sub CpuUsage {
     $$prev_stat{prev_sys} = $cpu_sys;
     $$prev_stat{prev_idle} = $cpu_idle;
 
-my $filename = '/tmp/OLD.txt';
-open(my $fh, '>', $filename) or die "Не могу открыть '$filename' $!";
-print $fh $$prev_stat{prev_user};
-print $fh "\n";
-print $fh $$prev_stat{prev_nice};
-print $fh "\n";
-print $fh $$prev_stat{prev_sys};
-print $fh "\n";
-print $fh $$prev_stat{prev_idle};
-close $fh;
-
-
     return ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent);
 
   } else {
@@ -148,11 +131,11 @@ close $fh;
     $nice =~ s/[^\d\.]//g;
     $idle =~ s/[^\d\.]//g;
     if (!$user) {
-      Warning("Failed getting user_utilization from $top_output");
+      ZoneMinder::Logger::Warning("Failed getting user_utilization from $top_output");
       $user = 0;
     }
     if (!$system) {
-      Warning("Failed getting user_utilization from $top_output");
+      ZoneMinder::Logger::Warning("Failed getting user_utilization from $top_output");
       $system = 0;
     }
     return ($user, $nice, $system, $idle, $user + $system);

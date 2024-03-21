@@ -252,6 +252,10 @@ int main(int argc, char *argv[]) {
           monitor->Id());
       zmDbDo(sql);
 
+      if (monitor->StartupDelay() > 0) {
+        Debug(1, "Doing startup sleep for %ds", monitor->StartupDelay());
+        std::this_thread::sleep_for(Seconds(monitor->StartupDelay()));
+      }
 
       Seconds sleep_time = Seconds(0);
       while ((monitor->PrimeCapture() <= 0) and !zm_terminate) {

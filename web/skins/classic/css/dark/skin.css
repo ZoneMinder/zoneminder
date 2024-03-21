@@ -72,6 +72,10 @@ ul.tabList li.active {
     border-bottom: #8f8fc2 dotted 1px;
 }
 
+#content::backdrop {
+  background-color: black;
+}
+
 /*
  * Major league table for multiple inputs or presentation
  */

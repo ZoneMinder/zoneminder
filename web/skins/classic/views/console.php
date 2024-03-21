@@ -165,7 +165,7 @@ echo $navbar ?>
   <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
 
-    <div class="filterBar" id="fbpanel"<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down' ) ? ' style="display:none;"' : '' ?>>
+    <div id="fbpanel" class="filterBar hidden">
       <?php echo $filterbar ?>
     </div>
 
@@ -225,7 +225,7 @@ echo $navbar ?>
         </button>
       </div>
         
-        &nbsp;<a href="#"><i id="fbflip" class="material-icons">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
+        &nbsp;<a href="#" data-flip-сontrol-object="#fbpanel"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
     
     </div><!-- contentButtons -->
 <?php

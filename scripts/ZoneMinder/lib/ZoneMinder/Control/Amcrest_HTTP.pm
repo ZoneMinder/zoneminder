@@ -42,6 +42,10 @@ our @ISA = qw(ZoneMinder::Control);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
+our $username = '';
+our $password = '';
+our $realm = '';
+
 sub new {
   my $class = shift;
   my $id = shift;
@@ -50,32 +54,74 @@ sub new {
   return $self;
 }
 
+
+sub credentials {
+  my $self = shift;
+  ($username, $password) = @_;
+}
+
 sub open {
   my $self = shift;
 
   $self->loadMonitor();
-  if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
-    # Has no scheme at the beginning, so won't parse as a URI
-    $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
-  }
-  my $uri = URI->new($self->{Monitor}->{ControlAddress});
-
   $self->{ua} = LWP::UserAgent->new;
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
-  my ( $username, $password );
-  my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
-  if ( $self->{Monitor}->{ControlAddress} ) {
-    ( $username, $password ) = $uri->authority() =~ /^(.*):(.*)@(.*)$/;
 
-    $$self{address} = $uri->host_port();
-    $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
-    # Testing seems to show that we need the username/password in each url as well as credentials
+  if ($self->{Monitor}->{ControlAddress}
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:pass@ip'
+      and
+    $self->{Monitor}{ControlAddress} ne 'user:port@ip'
+  ) {
+
+    if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
+      # Has no scheme at the beginning, so won't parse as a URI
+      $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
+    }
+    my $uri = URI->new($self->{Monitor}->{ControlAddress});
+
+    $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
+    if ($self->{Monitor}->{ControlAddress}) {
+      if ( $uri->userinfo()) {
+        ( $username, $password ) = $uri->userinfo() =~ /^(.*):(.*)$/;
+      } else {
+        $username = $self->{Monitor}->{User};
+        $password = $self->{Monitor}->{Pass};
+      }
+
+      $$self{address} = $uri->host_port();
+      $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+      # Testing seems to show that we need the username/password in each url as well as credentials
+      $$self{base_url} = $uri->canonical();
+      Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, $password, base_url: $$self{base_url} auth:".$uri->authority());
+    }
+ } elsif ( $self->{Monitor}{Path}) {
+    my $uri = URI->new($self->{Monitor}{Path});
+    Debug("Using Path for credentials: $self->{Monitor}{Path} " . $uri->userinfo());
+      if ( $uri->userinfo()) {
+        ( $username, $password ) = $uri->userinfo() =~ /^(.*):(.*)$/;
+    } else {
+      $username = $self->{Monitor}->{User};
+      $password = $self->{Monitor}->{Pass};
+      $uri->userinfo($username.':'.$password);
+    }
+    $uri->scheme('http');
+    $uri->port(80);
+    $uri->path_query('');
+
     $$self{base_url} = $uri->canonical();
-    Debug('Using initial credentials for '.$uri->host_port().", $realm, $username, $password, base_url: $$self{base_url} auth:".$uri->authority());
+    $$self{address} = $uri->host_port();
+    Debug("User auth $username $password " . $uri->authority() . ' ' . $uri->host_port());
+    $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+    chomp $$self{base_url};
+    Debug("Base_url is ".$$self{base_url});
+  } else {
+    Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
   }
 
+  my $url = $$self{base_url}.'cgi-bin/magicBox.cgi?action=getDeviceType';
   # Detect REALM, has to be /cgi-bin/ptz.cgi because just / accepts no auth
-  my $res = $self->{ua}->get($$self{base_url}.'cgi-bin/magicBox.cgi?action=getDeviceType');
+  my $res = $self->get($url);
 
   if ( $res->is_success ) {
     $self->{state} = 'open';
@@ -96,14 +142,14 @@ sub open {
           $realm = $1;
           Debug("Changing REALM to ($realm)");
           $self->{ua}->credentials($$self{address}, $realm, $username, $password);
-          $res = $self->{ua}->get($$self{base_url}.'cgi-bin/ptz.cgi');
+          $res = $self->get($url);
           if ( $res->is_success() ) {
             $self->{state} = 'open';
-            return;
+            return !undef;
           } elsif ( $res->status_line eq '400 Bad Request' ) {
           # In testing, this second request fails with Bad Request, I assume because we didn't actually give it a command.
             $self->{state} = 'open';
-            return;
+            return !undef;
           } else {
             Error('Authentication still failed after updating REALM' . $res->status_line);
             $headers = $res->headers();
@@ -131,6 +177,15 @@ sub open {
 sub close {
   my $self = shift;
   $self->{state} = 'closed';
+}
+
+sub get {
+  my $self = shift;
+  my $url = shift;
+  Debug("Getting $url");
+  my $response = $self->{ua}->get($url);
+  Debug('Response: '. $response->status_line . ' ' . $response->content);
+  return $response;
 }
 
 sub sendCmd {
@@ -363,6 +418,48 @@ sub zoomConWide {
   $$self{LastCmd} = 'code=ZoomWide&channel=0&arg1=0&arg2=0&arg3=0&arg4=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
+
+my %config_urls = (
+  caps => 'cgi-bin/encode.cgi?action=getCaps',
+  encode1 => 'cgi-bin/encode.cgi?action=getConfigCaps&channel=1',
+
+);
+
+sub get_config {
+  my $self = shift;
+  my %config;
+
+  foreach my $cat ( keys %config_urls ) {
+    my $url = $$self{base_url}.$config_urls{$cat};
+    my $response = $self->get($url);
+    if ($response->is_success()) {
+      my $resp = $response->decoded_content;
+      $config{$cat} = ZoneMinder::General::parseNameEqualsValueToHash($resp);
+    }
+    Warning("Failed to get config from $url: " . $response->status_line());
+  } # end foreach
+  return keys %config ? \%config : undef;
+} # end sub get_config
+
+sub set_config {
+  my $self = shift;
+  my $diff = shift;
+
+  my $url = $$self{base_url}.'/cgi-bin/configManager.cgi?action=setConfig'.
+        join('&', map { $_.'='.uri_encode($$diff{$_}) } keys %$diff);
+  my $response = $self->{ua}->get($url);
+  Debug($response->content);
+  return $response->is_success();
+}
+
+sub reboot {
+  my $self = shift;
+  my $response = $self->{ua}->post( $$self{base_url}.'/cgi-bin/setparam.cgi', {
+      system_reset => 1
+    });
+  return $response->is_success();
+}
+
 
 1;
 

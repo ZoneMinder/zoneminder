@@ -382,6 +382,7 @@ if ( $monitor->Type() != 'WebSite' ) {
   if ( ZM_OPT_X10 )
     $tabs['x10'] = translate('X10');
   $tabs['misc'] = translate('Misc');
+  $tabs['zones'] = translate('Zones');
   if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION)
     $tabs['location'] = translate('Location');
   $tabs['mqtt'] = translate('MQTT');
@@ -398,10 +399,16 @@ foreach ($tabs as $name=>$value) {
     <li class="nav-item form-control-sm my-1">
       <a 
         id="<?php echo $name?>-tab"
-        role="tab"
-        data-toggle="pill"
         class="nav-link<?php echo $tab == $name ? ' active' : '' ?>"
-        href="#pills-<?php echo $name?>"
+        <?php 
+        if ($name == 'zones') {
+          echo 'href="index.php?view=zones&mid=' . $monitor->Id() . '" ';
+        } else {
+          echo 'href="#pills-' . $name . '" '; 
+          echo 'role="tab" '; 
+          echo 'data-toggle="pill" '; 
+        }
+        ?>
         aria-controls="pills-<?php echo $name?>"
         aria-selected="<?php echo $tab == $name ? 'true':'false'?>"
       ><?php echo $value ?></a></li>
@@ -710,11 +717,11 @@ include('_monitor_source_nvsocket.php');
 <?php
       } else if ( $monitor->Type() == 'Remote' ) {
 ?>
-          <li><label><?php echo 'Username' ?></label>
+          <li><label><?php echo translate('Username') ?></label>
             <input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
           </li>
           <li>
-            <label><?php echo 'Password' ?></label>
+            <label><?php echo translate('Password') ?></label>
               <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
               <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </li>
@@ -775,11 +782,11 @@ include('_monitor_source_nvsocket.php');
             <label><?php echo translate('SourcePath') ?></label>
             <input type="text" name="newMonitor[Path]" value="<?php echo validHtmlStr($monitor->Path()) ?>" />
           </li>
-          <li><label><?php echo 'Username' ?></label>
+          <li><label><?php echo translate('Username') ?></label>
             <input type="text" name="newMonitor[User]" value="<?php echo validHtmlStr($monitor->User()) ?>"/>
           </li>
           <li>
-            <label><?php echo 'Password' ?></label>
+            <label><?php echo translate('Password') ?></label>
             <input type="password" id="newMonitor[Pass]" name="newMonitor[Pass]" value="<?php echo validHtmlStr($monitor->Pass()) ?>" autocomplete="new-password"/>
             <span class="material-icons md-18" data-on-click-this="toggle_password_visibility" data-password-input="newMonitor[Pass]">visibility</span>
           </li>
@@ -1028,7 +1035,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
           <?php
       } else {
 ?>
-            <li class="RefBlendPerc">>
+            <li class="RefBlendPerc">
               <label><?php echo translate('RefImageBlendPct') ?></label>
               <input type="number" name="newMonitor[RefBlendPerc]" value="<?php echo validHtmlStr($monitor->RefBlendPerc()) ?>" step="any" min="0"/>
             </li>
@@ -1506,6 +1513,10 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
               ), $monitor->Importance());
 ?>
         </li>
+        <li class="StartupDelay">
+          <label><?php echo translate('Startup Delay'); ?></label>
+          <input type="number" min="0" max="65536" step="1" name="newMonitor[StartupDelay]" value="<?php echo validCardinal($monitor->StartupDelay()) ?>"/><?php echo translate('seconds') ?>
+        </li>
 <?php
         break;
     }
@@ -1543,8 +1554,10 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         </li>
 <?php
     break;
+  case 'zones':
+    break;
   default :
-    ZM\Error("Unknown tab $tab");
+    ZM\Error("Unknown tab \"$name\"");
 } // end switch tab
 ?>
   </ul>

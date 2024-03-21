@@ -47,24 +47,39 @@ getBodyTopHTML();
   <div id="page">
     <?php echo $navbar = getNavBarHTML(); ?>
     <div id="content" class="row">
-      <div class="col">
+      <div id="optionsContainer" class="col">
         <form name="groupsForm" method="post" action="?">
-          <input type="hidden" name="view" value="groups"/>
-          <input type="hidden" name="action" value="setgroup"/>
-          <div class="row">
-            <div class="col">
-
-              <table id="contentTable" class="major table-sm table-striped">
-                <thead class="thead-highlight">
-                  <tr>
+          <div id="options">
+            <input type="hidden" name="view" value="groups"/>
+            <input type="hidden" name="action" value="setgroup"/>
+            <div class="row">
+              <div class="col">
+                <div id="contentButtons">
+                  <button type="button" value="New" data-on-click="newGroup"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>>
+                  <i class="material-icons md-18">add_circle</i>
+                  <span class="text"><?php echo translate('New') ?></span>
+                  </button>
+                  <button type="button" name="deleteBtn" value="Delete" data-on-click-this="deleteGroup" disabled="disabled">
+                  <i class="material-icons md-18">delete</i>
+                  <span class="text"><?php echo translate('Delete') ?></span>
+                  </button>
+                </div>
+              </div> <!-- .col -->
+            </div> <!-- .row -->
+            <div class="wrapper-scroll-table">
+              <div class="row">
+                <div class="col">
+                  <table id="contentTable" class="major table-sm table-striped">
+                    <thead class="thead-highlight">
+                      <tr>
 <?php if ( canEdit('Groups') ) { ?>
-                    <th class="colSelect"><?php echo translate('Mark') ?></th>
+                        <th class="colSelect"><?php echo translate('Mark') ?></th>
 <?php } ?>
-                    <th class="colName" colspan="<?php echo $max_depth+1 ?>"><?php echo translate('Name') ?></th>
-                    <th class="colIds"><?php echo translate('Monitors') ?></th>
-                  </tr>
-                </thead>
-                <tbody>
+                        <th class="colName" colspan="<?php echo $max_depth+1 ?>"><?php echo translate('Name') ?></th>
+                        <th class="colIds"><?php echo translate('Monitors') ?></th>
+                      </tr>
+                    </thead>
+                    <tbody>
 <?php
 function group_line( $Group ) {
   global $children;
@@ -93,24 +108,12 @@ if ( isset( $children[null] ) )
   foreach ( $children[null] as $Group )
     echo group_line($Group);
 ?>
-                </tbody>
-              </table>
-            </div> <!-- .col -->
-          </div> <!-- .row -->
-          <div class="row">
-            <div class="col">
-              <div id="contentButtons">
-                <button type="button" value="New" data-on-click="newGroup"<?php echo canEdit('Groups')?'':' disabled="disabled"' ?>>
-                <i class="material-icons md-18">add_circle</i>
-                <span class="text"><?php echo translate('New') ?></span>
-                </button>
-                <button type="button" name="deleteBtn" value="Delete" data-on-click-this="deleteGroup" disabled="disabled">
-                <i class="material-icons md-18">delete</i>
-                <span class="text"><?php echo translate('Delete') ?></span>
-                </button>
-              </div>
-            </div> <!-- .col -->
-          </div> <!-- .row -->
+                    </tbody>
+                  </table>
+                </div> <!-- .col -->
+              </div> <!-- .row -->
+            </div> <!-- .wrapper-scroll-table -->
+          </div><!-- .options -->
         </form>
       </div> <!-- .col -->
     </div> <!-- .row -->

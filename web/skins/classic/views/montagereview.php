@@ -168,6 +168,14 @@ if (!$liveMode) {
   if (!$filter->has_term('StartDateTime', '<=')) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and'));
   }
+  if (!$filter->has_term('Tags')) {
+    $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
+      'val' => $num_terms ? '' : (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
+      'cnj' => 'and', 'cookie'=>'eventsTags'));
+  }
+  if (!$filter->has_term('Notes')) {
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
+  }
 }
 if (count($filter->terms()) ) {
   # This is to enable the download button

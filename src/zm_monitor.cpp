@@ -584,6 +584,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   soap_wsa_compl = (*dbrow[col] != '0'); col++; 
   // get alarm text from table.
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+  if (onvif_alarm_txt.empty()) onvif_alarm_txt = "MotionAlarm";
 
   /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : ""); col++;
@@ -594,6 +595,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     }
   }
   onvif_events_path = std::string(dbrow[col] ? dbrow[col] : ""); col++;
+  if (onvif_events_path.empty()) onvif_events_path = "/Events";
   onvif_username = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_password = std::string(dbrow[col] ? dbrow[col] : ""); col++;
   onvif_options = std::string(dbrow[col] ? dbrow[col] : ""); col++;

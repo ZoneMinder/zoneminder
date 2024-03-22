@@ -1185,10 +1185,10 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val']).'</span>'.PHP_EOL;
 
         } else if ( $term['attr'] == 'Group') {
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $term['val'],
+          $html .= '<span class="term-value-wrapper">'.htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $term['val'],
             ['class'=>'term-value chosen',
             'multiple'=>'multiple', 
-            'data-placeholder'=>translate('All Groups')]).'</td>'.PHP_EOL;
+            'data-placeholder'=>translate('All Groups')]).'</span>'.PHP_EOL;
         } else if ( $term['attr'] == 'StateId' ) {
           $html .= '<span class="term-value-wrapper">'.htmlSelect("filter[Query][terms][$i][val]", $states, $term['val']).'</span>'.PHP_EOL;
         } else if ( strpos($term['attr'], 'Weekday') !== false ) {

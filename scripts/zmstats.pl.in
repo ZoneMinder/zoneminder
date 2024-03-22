@@ -70,7 +70,7 @@ while (!$zm_terminate) {
   }
 
   zmDbDo('INSERT INTO Server_Stats (ServerId, TimeStamp, CpuLoad, CpuUserPercent, CpuNicePercent, CpuSystemPercent, CpuIdlePercent, CpuUsagePercent, TotalMem, FreeMem, TotalSwap, FreeSwap) VALUES (?,NOW(),?,?,?,?,?,?,?,?,?,?)',
-    $Config{ZM_SERVER_ID},
+    ($Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : 0),
     $cpuload[0], $user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent,
     &totalmem, &freemem, &totalswap, &freeswap);
 

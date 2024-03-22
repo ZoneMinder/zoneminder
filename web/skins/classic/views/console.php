@@ -169,7 +169,7 @@ echo $navbar ?>
       <?php echo $filterbar ?>
     </div>
 
-    <div id="toolbar" class="container-fluid pt-2">
+    <div id="toolbar" class="container-fluid pt-2 pb-2">
       <div class="statusBreakdown">
 <?php
   $html = '';
@@ -231,7 +231,7 @@ echo $navbar ?>
 <?php
 ob_start();
 ?>
-	<div class="container-fluid table-responsive-sm pt-2" id="monitorList">
+	<div id="monitorList" class="container-fluid table-responsive-sm">
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>

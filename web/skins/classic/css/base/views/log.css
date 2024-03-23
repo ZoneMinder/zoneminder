@@ -37,6 +37,8 @@ th[data-field="DateTime"] {
 }
 
 .sticky #logsTable .bootstrap-table {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   overflow-y: hidden;
 }

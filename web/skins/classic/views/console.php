@@ -185,9 +185,9 @@ echo $navbar ?>
 <?php
   if ($canEditMonitors) {
 ?>
-        <button type="button" id="scanBtn" title="<?php echo translate('Network Scan') ?>" data-on-click="scanNetwork">
+        <button type="button" id="scanBtn" title="<?php echo translate('NetworkScan') ?>" data-on-click="scanNetwork">
         <i class="material-icons">wifi</i>
-        <span class="text"><?php echo translate('Scan Network') ?></span>
+        <span class="text"><?php echo translate('NetworkScan') ?></span>
         </button>
 <?php
   }

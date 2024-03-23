@@ -36,6 +36,21 @@ th[data-field="DateTime"] {
   height: 100%;
 }
 
+.sticky #logsTable .bootstrap-table {
+  height: 100%;
+  overflow-y: hidden;
+}
+
+.sticky #logsTable .bootstrap-table .fixed-table-container {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.sticky #logsTable .bootstrap-table .fixed-table-container thead {
+  position: sticky;
+  top: -1px;
+}
+
 .bootstrap-table .fixed-table-container .table td,
 .bootstrap-table .fixed-table-container .table th {
   vertical-align: top!important;

@@ -421,6 +421,7 @@ $SLANG = array(
     'MustConfirmPassword'   => 'You must confirm the password',
     'MustSupplyPassword'    => 'You must supply a password',
     'MustSupplyUsername'    => 'You must supply a username',
+    'NetworkScan'           => 'Scan Network',
     'NewGroup'              => 'New Group',
     'NewLabel'              => 'New Label',
     'NewPassword'           => 'New Password',

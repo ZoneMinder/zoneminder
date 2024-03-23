@@ -69,8 +69,7 @@ function count_terms(tokens) {
 
 function expr_to_ui(expr, container) {
   container.html('');
-  var tokens = tokenize(expr);
-  console.log(tokens);
+  const tokens = tokenize(expr);
   //const term_count = count_terms(tokens);
   let brackets = 0;
   const used_monitorlinks = [];
@@ -111,6 +110,7 @@ function expr_to_ui(expr, container) {
       const select = $j('<select></select>');
       for ( monitor_id in monitors ) {
         const monitor = monitors[monitor_id];
+        if (mid && (monitor.Id == mid)) continue;
         select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
         for ( zone_id in zones ) {
           const zone = zones[zone_id];
@@ -158,6 +158,7 @@ function expr_to_ui(expr, container) {
   select.append('<option value="">Add MonitorLink</option>');
   for (monitor_id in monitors) {
     const monitor = monitors[monitor_id];
+    if (mid && (monitor.Id == mid)) continue;
     //if (!array_search(monitor.Id, used_monitorlinks))
     select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
     for ( zone_id in zones ) {
@@ -192,13 +193,12 @@ function update_expr(ev) {
 }
 
 function ui_to_expr(container, expr_input) {
-  var expr = '';
-  var children = container.children();
+  let expr = '';
+  const children = container.children();
   for (let i = 0; i < children.length; i++) {
     expr += $j(children[i]).val();
   }
-  console.log(expr);
-  expr_input.value = expr;
+  expr_input.val(expr);
 }
 
 function parse_expression(tokens) {

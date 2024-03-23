@@ -212,6 +212,7 @@ echo getNavBarHTML() ?>
       <div id="navButtons">
         <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button type="button" id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>"><i class="fa fa-edit"></i></button>
         <button type="button" id="settingsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Settings') ?>" disabled><i class="fa fa-sliders"></i></button>
         <button type="button" id="enableAlmBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('DisableAlarms') ?>" disabled><i class="fa fa-bell"></i></button>
         <button type="button" id="forceAlmBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ForceAlarm') ?>" disabled><i class="fa fa-exclamation-circle"></i></button>
@@ -266,9 +267,9 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
     </div><!--control header-->
     </div><!--flip-->
   </div><!--header-->
-  <div class="container-fluid h-100">
-    <div id="content">
-      <div class="row flex-nowrap h-100" >
+  <div id="content">
+    <div class="container-fluid">
+      <div class="row flex-nowrap" >
 <?php if (count($monitors)) { ?>
         <nav id="sidebar" <?php echo $showCycle?'':' style="display:none;"'?>>
           <div id="cycleButtons" class="buttons">
@@ -311,7 +312,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
  ?>
           </ul>
         </nav>
-        <div id="wrapperMonitor" class="container-fluid col h-100 pr-0"><!--IgorA100 правка-->
+        <div id="wrapperMonitor" class="container-fluid col">
           <div id="Monitor" class="Monitor"
 <?php
 if ($streamMode == 'jpeg') {

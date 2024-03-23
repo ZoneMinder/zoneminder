@@ -224,7 +224,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
         <span class="sr-only">Toggle guages</span>
         <span class="navbar-toggler-icon">
-          <i class="material-icons md-20">monitoring</i>
+          <i class="material-icons md-20">monitor</i>
         </span>
       </button>
 <!--
@@ -1021,7 +1021,7 @@ function xhtmlFooter() {
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
   <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
+  <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen({disable_search_threshold: 10});</script>
   </body>
 </html>
 <?php

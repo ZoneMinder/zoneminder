@@ -165,11 +165,11 @@ echo $navbar ?>
   <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
 
-    <div class="filterBar" id="fbpanel"<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down' ) ? ' style="display:none;"' : '' ?>>
+    <div id="fbpanel" class="filterBar hidden">
       <?php echo $filterbar ?>
     </div>
 
-    <div class="container-fluid pt-2" id="contentButtons">
+    <div id="toolbar" class="container-fluid pt-2">
       <div class="statusBreakdown">
 <?php
   $html = '';
@@ -225,7 +225,7 @@ echo $navbar ?>
         </button>
       </div>
         
-        &nbsp;<a href="#"><i id="fbflip" class="material-icons">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
+        &nbsp;<a href="#" data-flip-сontrol-object="#fbpanel"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
     
     </div><!-- contentButtons -->
 <?php
@@ -433,7 +433,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
     $Server = isset($ServersById[$monitor['ServerId']]) ? $ServersById[$monitor['ServerId']] : new ZM\Server($monitor['ServerId']);
     echo '<td class="colServer">'.validHtmlStr($Server->Name()).'</td>'.PHP_EOL;
   }
-  echo '<td class="colSource">'. makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$source_class.'">'.validHtmlStr($Monitor->Source()).'</span>', $canEditMonitors).'</td>';
+  echo '<td class="colSource">'. makeLink( '?view=monitor&amp;mid='.$monitor['Id'], '<span class="'.$source_class.'">'.validHtmlStr($Monitor->Source()).'</span>', $Monitor->canEdit()).'</td>';
   if ($show_storage_areas) {
     echo '<td class="colStorage">'.
       (isset($StorageById[$monitor['StorageId']]) ? validHtmlStr($StorageById[$monitor['StorageId']]->Name()) : ($monitor['StorageId']?'<span class="error">Deleted '.$monitor['StorageId'].'</span>' : '')).'</td>'.PHP_EOL;

@@ -5,6 +5,12 @@
 /*  padding-left: 0;
   padding-right: 0;*/
 }
+
+#wrapperMonitor {
+  width: 100%;
+  overflow-x: auto;
+}
+
 #wrapperMonitor .buttons {
   display: inline-block;
 }

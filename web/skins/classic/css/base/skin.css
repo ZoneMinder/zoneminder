@@ -110,7 +110,6 @@ th {
 */
 }
 
-
 .thead-highlight {
   background-color:#dfe4ea;
 }
@@ -123,6 +122,9 @@ table th:last-child{
   border-radius:0 5px 0 0 ;
 }
 
+a {
+  cursor: pointer;
+}
 
 a.optionhelp,
 a:link {
@@ -243,6 +245,9 @@ ul.tabList li.active a {
   line-height: 130%;
   text-align: center;
   clear: both;
+}
+#content::backdrop {
+  background-color: white;
 }
 body.sticky #content {
 /*
@@ -587,6 +592,7 @@ body.sticky #page {
 
 #contentButtons {
     margin-top: 8px;
+    margin-bottom: 8px;
     float: right;
 }
 

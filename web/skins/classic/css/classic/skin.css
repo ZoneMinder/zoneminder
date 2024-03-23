@@ -64,11 +64,14 @@ p {
     font-weight: normal;
 }
 
-
 a:link,
 a:visited {
     color: #7f7fb2;
     text-decoration: none;
+}
+
+a {
+  cursor: pointer;
 }
 
 a:hover {

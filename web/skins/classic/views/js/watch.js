@@ -155,8 +155,8 @@ function setScale() {
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   if (scale == '0') {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
+    changeSize();
   }
-  changeSize();
 } // end function changeScale
 
 function getStreamCmdResponse(respObj, respText) {
@@ -605,7 +605,7 @@ function handleClick(event) {
   const y = parseInt((event.pageY - pos.top) * scaleY);
 
   if (showMode == 'events' || !imageControlMode) {
-    if ( event.shift ) {
+    if ( event.shift || event.shiftKey ) {
       streamCmdPan(x, y);
     } else if (event.ctrlKey) {
       streamCmdZoomOut();
@@ -899,6 +899,12 @@ function initPage() {
     $j('#settingsModal').modal('show');
   });
 
+  // Manage the generate Edit button
+  bindButton('#editBtn', 'click', null, function onEditClick(evt) {
+    evt.preventDefault();
+    window.location.assign("?view=monitor&mid="+monitorId);
+  });
+
   bindButton('#cyclePlayBtn', 'click', null, cycleStart);
   bindButton('#cyclePauseBtn', 'click', null, cyclePause);
   bindButton('#cycleNextBtn', 'click', null, cycleNext);
@@ -1078,8 +1084,8 @@ function getObjdetectModal(eid) {
       });
 }
 
-function changeObjectClass() { 
-  if (sidebarView.is(":visible") && sidebarControls.is(":visible")) { //LEFT + RIGHT 
+function changeObjectClass() {
+  if (sidebarView.is(":visible") && sidebarControls.is(":visible")) { //LEFT + RIGHT
     sidebarView.removeClass(classSidebarL).addClass(classSidebarL);
     sidebarControls.removeClass(classSidebarR).addClass(classSidebarR);
     wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorW_SB_LR);

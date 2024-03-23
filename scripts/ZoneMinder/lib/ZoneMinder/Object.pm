@@ -23,11 +23,6 @@
 # of the ZoneMinder scripts
 #
 
-sub array_diff(\@\@) {
-  my %e = map { $_ => undef } @{$_[1]};
-  return @{[ ( grep { (exists $e{$_}) ? ( delete $e{$_} ) : ( 1 ) } @{ $_[0] } ), keys %e ] };
-}
-
 package ZoneMinder::Object;
 
 use 5.006;
@@ -842,6 +837,11 @@ sub find_sql {
   #$log->debug("Loading Debug:$debug $object_type ($sql) (".join(',', map { ref $_ eq 'ARRAY' ? join(',', @{$_}) : $_ } @values).')' ) if $debug;
   return \%sql;
 } # end sub find_sql
+
+sub array_diff(\@\@) {
+  my %e = map { $_ => undef } @{$_[1]};
+  return @{[ ( grep { (exists $e{$_}) ? ( delete $e{$_} ) : ( 1 ) } @{ $_[0] } ), keys %e ] };
+}
 
 sub changes {
   my ( $self, $params ) = @_;

@@ -285,18 +285,58 @@ if ( currentView != 'none' && currentView != 'login' ) {
         setCookie('zmHeaderFlip', 'up');
       }
     });
-    // Manage the web console filter bar minimize chevron
-    $j("#fbflip").click(function() {
-      $j("#fbpanel").slideToggle("slow");
-      var fbflip = $j("#fbflip");
-      if ( fbflip.html() == 'keyboard_arrow_up' ) {
-        fbflip.html('keyboard_arrow_down');
-        setCookie('zmFilterBarFlip', 'down');
-      } else {
-        fbflip.html('keyboard_arrow_up');
-        setCookie('zmFilterBarFlip', 'up');
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
+
+    // Manage visible object & control button (when pressing a button)
+    $j("[data-flip-сontrol-object]").click(function() {
+      const _this_ = $j(this);
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      obj.removeClass('hidden');
+      if ( obj.is(":visible") ) {
+        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'hidden');
+      } else { //hidden
+        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
+        }
+        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
+      }
+
+      obj.slideToggle("fast");
+    });
+
+    // Manage visible filter bar & control button (after document ready)
+    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects and set icons
+      const _this_ = $j(this);
+      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      if (obj.parent().css('display') != 'block') {
+        obj.wrap('<div style="display: block"></div>');
+      }
+
+      if (сookie == 'hidden') {
+        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        obj.css({'display': 'none'});
+      } else { //no cookies or opened.
+        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+        }
+        obj.css({'display': 'block'});
       }
     });
 
@@ -613,19 +653,16 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
   let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
   let newWidth = ratio * newHeight;
-  
+
   // Let's recalculate everything and reduce the height a little. Necessary if "padding" is specified for "wrapperEventVideo"
   padding = parseInt(container.css("padding-left")) + parseInt(container.css("padding-right"));
   newWidth -= padding;
-  newHeight = newWidth / ratio ;
-  
-  console.log("newWidth = ", newWidth, "container width:", container.innerWidth());
+  newHeight = newWidth / ratio;
 
-  if (newHeight < 0) {
+  console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
+
+  if (newHeight < 0 || newWidth > container.innerWidth()-padding) {
     // Doesn't fit on screen anyways?
-    newWidth = container.innerWidth()-padding;
-    newHeight = newWidth / ratio;
-  } else if (newWidth > container.innerWidth()) {
     newWidth = container.innerWidth()-padding;
     newHeight = newWidth / ratio;
   }

@@ -202,7 +202,7 @@ int zmDbDo(const std::string &query) {
     logger->databaseLevel(Logger::NOLOG);
 
     std::string reason = mysql_error(&dbconn);
-    Debug(1, "Failed running sql query %s, thread_id: %lu, %s", query.c_str(), db_thread_id, reason.c_str());
+    Debug(1, "Failed running sql query %s, thread_id: %lu, %d %s", query.c_str(), db_thread_id, rc, reason.c_str());
     logger->databaseLevel(oldLevel);
 
     if (mysql_ping(&dbconn)) {
@@ -214,7 +214,7 @@ int zmDbDo(const std::string &query) {
       if (zm_terminate) return 0;
     } else {
       // Not a connection error
-      Error("Can't run query %s: %s", query.c_str(), reason.c_str());
+      Error("Can't run query %s: %d %s", query.c_str(), rc, reason.c_str());
       if (mysql_errno(&dbconn) != ER_LOCK_WAIT_TIMEOUT) {
         return rc;
       }

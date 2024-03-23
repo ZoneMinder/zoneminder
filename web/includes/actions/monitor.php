@@ -19,10 +19,6 @@
 //
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
-if (!canEdit('Monitors')) {
-  ZM\Warning('Monitor actions require Monitors Edit Permissions');
-  return;
-}
 
 require_once('includes/Monitor.php');
 require_once('includes/Zone.php');

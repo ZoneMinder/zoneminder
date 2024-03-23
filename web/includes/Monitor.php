@@ -158,11 +158,11 @@ public static function getStatuses() {
     'EventStartCommand' => '',
     'EventEndCommand' => '',
     'ONVIF_URL' =>  '',
-    'ONVIF_Events_Path' =>  '',
+    'ONVIF_Events_Path' =>  '/Events',
     'ONVIF_Username'  =>  '',
     'ONVIF_Password'  =>  '',
     'ONVIF_Options'   =>  '',
-    'ONVIF_Alarm_Text'   =>  '',
+    'ONVIF_Alarm_Text'   =>  'MotionAlarm',
     'ONVIF_Event_Listener'  =>  '0',
     'use_Amcrest_API'  =>  '0',
     'Device'  =>  '',
@@ -257,6 +257,7 @@ public static function getStatuses() {
     'Importance'      =>  'Normal',
     'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
     'MQTT_Subscriptions'  =>  '',
+    'StartupDelay' => 0,
   );
   private $status_fields = array(
     'Status'  =>  null,

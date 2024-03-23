@@ -72,10 +72,6 @@ sub CpuLoad {
   # returned value is 1min, 5min, 15min load
 
   if (join(', ',@sysloads) =~ /(\d+(\.|\,)\d+)\s*,\s+(\d+(\.|\,)\d+)\s*,\s+(\d+(\.|\,)\d+)\s*$/) {
-    if (@_) {
-      my $self = shift;
-      $$self{CpuLoad} = tr/,/./ for $sysloads[0];
-    }
     return @sysloads;
   }
 
@@ -85,7 +81,7 @@ sub CpuLoad {
 sub CpuUsage {
   if (-e '/proc/stat') {
     if (!open(STAT, '/proc/stat')) {
-      Error("Enable to open /proc/stat: $!");
+      ZoneMinder::Logger::Error("Enable to open /proc/stat: $!");
       return;
     }
     my ($self, $prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total);
@@ -135,11 +131,11 @@ sub CpuUsage {
     $nice =~ s/[^\d\.]//g;
     $idle =~ s/[^\d\.]//g;
     if (!$user) {
-      Warning("Failed getting user_utilization from $top_output");
+      ZoneMinder::Logger::Warning("Failed getting user_utilization from $top_output");
       $user = 0;
     }
     if (!$system) {
-      Warning("Failed getting user_utilization from $top_output");
+      ZoneMinder::Logger::Warning("Failed getting user_utilization from $top_output");
       $system = 0;
     }
     return ($user, $nice, $system, $idle, $user + $system);

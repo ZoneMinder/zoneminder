@@ -274,7 +274,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Update update reminders when the user makes a selection from the dropdown
     reminderClickFunction();
     // Manage the widget bar minimize chevron
-    $j("#flip").click(function() {
+    $j("#flip").click(navbarTwoFlip);
+    $j("#flipNarrow").click(navbarTwoFlip);
+
+    function navbarTwoFlip() {
       $j("#navbar-two").slideToggle("slow");
       const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
@@ -284,7 +287,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         flip.html('keyboard_arrow_up');
         setCookie('zmHeaderFlip', 'up');
       }
-    });
+    }
 
     // Manage visible object & control button (when pressing a button)
     $j("[data-flip-сontrol-object]").click(function() {

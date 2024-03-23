@@ -964,6 +964,7 @@ $SLANG = array(
     'normal'               => 'нормальный',
     'Path'                 => 'Путь',
     'Snapshots'            => 'Снапшоты',
+    'NetworkScan'         => 'Сканировать сеть',
 /******************* 27-02-24 **********************************/
     'ONVIF_EVENTS_PATH'    => 'Путь к ONVIF событиям',
     'SOAP WSA COMPLIANCE'    => 'Совместимость с SOAP WSA',

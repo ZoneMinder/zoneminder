@@ -231,7 +231,7 @@ echo $navbar ?>
 <?php
 ob_start();
 ?>
-	<div id="monitorList" class="container-fluid table-responsive-sm">
+    <div id="monitorList" class="container-fluid table-responsive-sm">
       <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>

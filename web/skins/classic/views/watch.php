@@ -104,7 +104,6 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 }
 #Whether to show the controls button
 $hasPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
-ZM\Debug("Has ptz: $hasPtzControls");
 $showPtzControls = false;
 if ($hasPtzControls) {
   $showPtzControls = true;

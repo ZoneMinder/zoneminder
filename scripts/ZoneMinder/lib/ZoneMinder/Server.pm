@@ -68,8 +68,9 @@ $serial = $primary_key = 'Id';
 
 sub CpuLoad {
   my $output = qx(uptime);
-  my @sysloads = map { $_ =~ tr/,/./ } split ', ', (split ': ', $output)[-1];
+  my @sysloads = split ', ', (split ': ', $output)[-1];
   # returned value is 1min, 5min, 15min load
+  tr/,/./ foreach @sysloads;
 
   if (join(', ', @sysloads) =~ /(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*$/) {
     return @sysloads;

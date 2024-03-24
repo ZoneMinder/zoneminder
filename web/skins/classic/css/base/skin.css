@@ -997,3 +997,7 @@ button .material-icons {
 .tag-input + .tag-dropdown-content:active {
   display: block;
 }
+
+input.hasDatepicker {
+  max-width:140px;
+}

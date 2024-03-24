@@ -44,7 +44,6 @@ th[data-field="DateTime"] {
 }
 
 .sticky #logsTable .bootstrap-table .fixed-table-container {
-  height: 100%;
   overflow-y: auto;
 }
 

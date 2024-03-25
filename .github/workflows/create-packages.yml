@@ -34,6 +34,11 @@ jobs:
         with:
           fetch-depth: '0'
           submodules: recursive
+      - if: matrix.os_dist.arch == 'aarch64'
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
       - name: Run packpack
         env:
           SMPFLAGS: -j4

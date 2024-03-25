@@ -206,6 +206,7 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
 
   if ( stored_iat > iat ) { // admin revoked tokens
     mysql_free_result(result);
+    delete user;
     Error("Token was revoked for '%s'", username.c_str());
     return nullptr;
   }

@@ -14,12 +14,16 @@ jobs:
         os_dist:
           - os: debian
             dist: bullseye
+            arch: x86_64
           - os: ubuntu
             dist: focal
+            arch: x86_64
           - os: ubuntu
             dist: jammy
+            arch: x86_64
           - os: debian
             dist: bookworm
+            arch: x86_64
           - os: debian
             dist: bookworm
             arch: aarch64
@@ -35,6 +39,7 @@ jobs:
           SMPFLAGS: -j4
           OS: ${{ matrix.os_dist.os }}
           DIST: ${{ matrix.os_dist.dist }}
+          ARCH: ${{ matrix.os_dist.arch }}
           DOCKER_REPO: packpack/packpack
         run: utils/packpack/startpackpack.sh
 

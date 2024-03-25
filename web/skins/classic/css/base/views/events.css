@@ -104,4 +104,7 @@ body.sticky #eventTable thead {
   label {
     text-wrap: nowrap;
   }
+  input.hasDatepicker {
+    max-width: 100%;
+  }
 }

@@ -20,6 +20,9 @@ jobs:
             dist: jammy
           - os: debian
             dist: bookworm
+          - os: debian
+            dist: bookworm
+            arch: aarch64
     runs-on: ubuntu-latest
 
     steps:

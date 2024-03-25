@@ -670,12 +670,12 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     newHeight = newWidth / ratio;
   }
   console.log("newWidth = " + newWidth);
-  var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
-  var scales = $j('#scale option').map(function() {
+  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
+  const scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
   scales.shift(); // pop off Scale To Fit
-  var closest = null;
+  let closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
@@ -685,6 +685,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     console.log("Setting to closest: " + closest + " instead of " + autoScale);
     autoScale = closest;
   }
+  if (autoScale < 10) autoScale = 10;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 

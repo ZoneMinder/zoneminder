@@ -14,16 +14,28 @@ jobs:
         os_dist:
           - os: debian
             dist: bullseye
-            arch: [aarch64, x86_64]
+            arch: x86_64
           - os: ubuntu
             dist: focal
-            arch: [aarch64, x86_64]
+            arch: x86_64
           - os: ubuntu
             dist: jammy
-            arch: [aarch64, x86_64]
+            arch: x86_64
           - os: debian
             dist: bookworm
-            arch: [aarch64, x86_64]
+            arch: x86_64
+          - os: debian
+            dist: bullseye
+            arch: aarch64
+          - os: ubuntu
+            dist: focal
+            arch: aarch64
+          - os: ubuntu
+            dist: jammy
+            arch: aarch64
+          - os: debian
+            dist: bookworm
+            arch: aarch64
     runs-on: ubuntu-latest
 
     steps:

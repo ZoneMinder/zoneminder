@@ -252,16 +252,18 @@ ob_start();
 <?php }
 
   foreach ( array_keys($eventCounts) as $i ) {
-    $filter = addFilterTerm(
-      $eventCounts[$i]['filter'],
-      count($eventCounts[$i]['filter']['Query']['terms']),
-      array(
-        'cnj'=>'and',
-        'attr'=>'Monitor',
-        'op'=>'IN',
-        'val'=>implode(',', $displayMonitorIds)
-        )
-    );
+      $filter = addFilterTerm(
+        $eventCounts[$i]['filter'],
+        count($eventCounts[$i]['filter']['Query']['terms']),
+        gettype ($_SESSION['MonitorId']) == "array" #Add monitors to the filter only if they are selected in select
+          ? array(
+            'cnj'=>'and',
+            'attr'=>'Monitor',
+            'op'=>'IN',
+            'val'=>implode(',', $displayMonitorIds)
+            )
+          : false
+      );
     parseFilter($filter);
     echo '<th class="colEvents"><a '
       .(canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '')

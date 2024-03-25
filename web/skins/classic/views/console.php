@@ -255,7 +255,7 @@ ob_start();
       $filter = addFilterTerm(
         $eventCounts[$i]['filter'],
         count($eventCounts[$i]['filter']['Query']['terms']),
-        gettype ($_SESSION['MonitorId']) == "array" #Add monitors to the filter only if they are selected in select
+        count($displayMonitorIds) != $colAllAvailableMonitors #Add monitors to the filter only if the filter limit is set
           ? array(
             'cnj'=>'and',
             'attr'=>'Monitor',

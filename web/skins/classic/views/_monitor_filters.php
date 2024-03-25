@@ -174,14 +174,21 @@ $html .= '</span>
   $html .= '</span>
 ';
 
-  $sql = 'SELECT M.*, S.*, E.*
+  $sqlAll = 'SELECT M.*, S.*, E.*
   FROM Monitors AS M
- LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
- LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
-WHERE M.`Deleted`=false
-' .
-  ( count($conditions) ? ' AND ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
-  $monitors = dbFetchAll($sql, null, $values);
+  LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id 
+  LEFT JOIN Event_Summaries AS E ON E.MonitorId=M.Id 
+  WHERE M.`Deleted`=false';
+  $sqlSelected = $sqlAll . ( count($conditions) ? ' AND ' . implode(' AND ', $conditions) : '' ).' ORDER BY Sequence ASC';
+  $monitors = dbFetchAll($sqlSelected, null, $values);
+
+  $colAllAvailableMonitors = 0;
+  foreach ( dbFetchAll($sqlAll) as $row ) {
+    if ( visibleMonitor($row['Id']) ) { #We count only available monitors.
+      ++$colAllAvailableMonitors;
+    }
+  }  
+  
   $displayMonitors = array();
   $monitors_dropdown = array();
 

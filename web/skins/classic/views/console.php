@@ -262,7 +262,7 @@ ob_start();
             'op'=>'IN',
             'val'=>implode(',', $displayMonitorIds)
             )
-          : false
+          : ['cnj'=>'and', 'attr'=>'Monitor']
       );
     parseFilter($filter);
     echo '<th class="colEvents"><a '

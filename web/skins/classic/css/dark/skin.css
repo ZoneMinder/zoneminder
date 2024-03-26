@@ -21,6 +21,11 @@
  * Primary look and feel styles
  */
 
+:root {
+  --scrollbarBG: #CFD8DC;
+  --sliderBG: #95AFC0;
+}
+
 body {
     color: #dddddd;
     background-color: #222222;
@@ -272,4 +277,24 @@ ul.nav.nav-pills.flex-column {
 
 .hlight{
   background:#444444;
+}
+/* Change scrollbar style */
+div::-webkit-scrollbar, nav::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+div, nav {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sliderBG) var(--scrollbarBG);
+}
+
+div::-webkit-scrollbar-track, nav::-webkit-scrollbar-track {
+  background: var(--scrollbarBG);
+}
+
+div::-webkit-scrollbar-thumb, nav::-webkit-scrollbar-thumb {
+  background-color: var(--sliderBG);
+  border-radius: 6px;
+  border: 3px solid var(--scrollbarBG);
 }

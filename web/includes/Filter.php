@@ -133,24 +133,18 @@ class Filter extends ZM_Object {
   }
 
   public function FilterTerms() {
-    // echo '<pre style="text-align: start;">Terms before: '; print_r($this->Terms); echo '</pre>';
     if (!isset($this->Terms)) {
       $this->Terms = array();
       $_terms = $this->terms();
-      // echo '<pre style="text-align: start;">$_terms: '; print_r($_terms); echo '</pre>';
       if ($_terms) {
         for ($i=0; $i < count($_terms); $i++) {
-          // Error($i);
-          // Error($_terms[$i]);
           if (isset($_terms[$i])) {
             $term = new FilterTerm($this, $_terms[$i], $i);
             $this->Terms[] = $term;
-            // Error($this->Terms[]);
           }
         } # end foreach term
       }
     }
-    // echo '<pre style="text-align: start;">Terms after: '; print_r($this->Terms); echo '</pre>';
     return $this->Terms;
   }
 

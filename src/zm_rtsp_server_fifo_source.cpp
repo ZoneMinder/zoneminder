@@ -21,19 +21,18 @@
 
 #if HAVE_RTSP_SERVER
 ZoneMinderFifoSource::ZoneMinderFifoSource(
-    std::shared_ptr<xop::RtspServer>& rtspServer,
-    xop::MediaSessionId sessionId,
-    xop::MediaChannelId channelId,
-    const std::string &fifo
-    ) :
+  std::shared_ptr<xop::RtspServer>& rtspServer,
+  xop::MediaSessionId sessionId,
+  xop::MediaChannelId channelId,
+  const std::string &fifo
+) :
   stop_(false),
   m_rtspServer(rtspServer),
   m_sessionId(sessionId),
   m_channelId(channelId),
-	m_fifo(fifo),
+  m_fifo(fifo),
   m_fd(-1),
-  m_hType(0)
-{
+  m_hType(0) {
   read_thread_ = std::thread(&ZoneMinderFifoSource::ReadRun, this);
   write_thread_ = std::thread(&ZoneMinderFifoSource::WriteRun, this);
 }
@@ -55,20 +54,20 @@ ZoneMinderFifoSource::~ZoneMinderFifoSource() {
 // thread mainloop
 void ZoneMinderFifoSource::ReadRun() {
   if (stop_) Warning("bad value for stop_ in ReadRun");
-	while (!stop_ and !zm_terminate) {
-		if (getNextFrame() < 0) {
+  while (!stop_ and !zm_terminate) {
+    if (getNextFrame() < 0) {
       if (!stop_ and !zm_terminate) return;
       Debug(1, "Sleeping because couldn't getNextFrame");
       sleep(1);
     }
-	}
+  }
 }
 
 void ZoneMinderFifoSource::WriteRun() {
   size_t maxNalSize = 1400;
 
   if (stop_) Warning("bad value for stop_ in WriteRun");
-	while (!stop_) {
+  while (!stop_) {
     NAL_Frame *nal = nullptr;
     while (!stop_ and !zm_terminate and !nal) {
       std::unique_lock<std::mutex> lck(mutex_);
@@ -90,7 +89,7 @@ void ZoneMinderFifoSource::WriteRun() {
         u_int8_t *nalSrc = nal->buffer();
 
         int fuNalSize = maxNalSize;
-       // ? nalRemaining : maxNalSize;
+        // ? nalRemaining : maxNalSize;
         NAL_Frame fuNal(nullptr, fuNalSize, nal->pts());
         memcpy(fuNal.buffer()+1, nalSrc, fuNalSize-1);
 
@@ -139,7 +138,7 @@ void ZoneMinderFifoSource::WriteRun() {
       nal = nullptr;
       Debug(3, "Done Pushing nal");
     }  // end if nal
-	}  // end while !_stop
+  }  // end while !_stop
 }
 
 // read from monitor

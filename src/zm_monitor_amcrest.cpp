@@ -21,8 +21,7 @@
 
 Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
   parent(parent_),
-  Amcrest_Alarmed(false)
-{
+  Amcrest_Alarmed(false) {
   curl_multi = curl_multi_init();
   start_Amcrest();
 }
@@ -49,7 +48,7 @@ int Monitor::AmcrestAPI::start_Amcrest() {
   if (full_url.back() != '/') full_url += '/';
   full_url += "eventManager.cgi?action=attach&codes=[VideoMotion]";
   Amcrest_handle = curl_easy_init();
-  if (!Amcrest_handle){
+  if (!Amcrest_handle) {
     Warning("Handle is null!");
     return -1;
   }
@@ -82,7 +81,7 @@ int Monitor::AmcrestAPI::start_Amcrest() {
   } else {
     Warning("AMCREST Response: %s", amcrest_response.c_str());
     Warning("AMCREST Seeing %i streams, and error of %i, url: %s",
-        running_handles, curl_error, full_url.c_str());
+            running_handles, curl_error, full_url.c_str());
     curl_easy_getinfo(Amcrest_handle, CURLINFO_OS_ERRNO, &response_code);
     Warning("AMCREST Response code: %lu", response_code);
   }
@@ -98,7 +97,7 @@ void Monitor::AmcrestAPI::WaitForMessage() {
     start_Amcrest();  // http transfer ended, need to restart.
   } else {
     // wait for max 5 seconds for event.
-    curl_multi_wait(curl_multi, nullptr, 0, 5000, &transfers); 
+    curl_multi_wait(curl_multi, nullptr, 0, 5000, &transfers);
     if (transfers > 0) {  // have data to deal with
       // actually grabs the data, populates amcrest_response
       curl_multi_perform(curl_multi, &open_handles);
@@ -128,10 +127,10 @@ void Monitor::AmcrestAPI::WaitForMessage() {
 }
 
 size_t Monitor::AmcrestAPI::WriteCallback(
-    void *contents,
-    size_t size,
-    size_t nmemb,
-    void *userp) {
+  void *contents,
+  size_t size,
+  size_t nmemb,
+  void *userp) {
   ((std::string*)userp)->append((char*)contents, size * nmemb);
   return size * nmemb;
 }

@@ -34,16 +34,16 @@ bool ValidateAccess(User *user, int mon_id) {
     if (user->getStream() < User::PERM_VIEW) {
       allowed = false;
       Warning("Insufficient privileges for request user %d %s for monitor %d, user does not have permission to stream live view.",
-          user->Id(), user->getUsername(), mon_id);
+              user->Id(), user->getUsername(), mon_id);
     } else if (!user->canAccess(mon_id)) {
       allowed = false;
       Warning("Insufficient privileges for request user %d %s for monitor %d, user does not have permission view this monitor.",
-          user->Id(), user->getUsername(), mon_id);
+              user->Id(), user->getUsername(), mon_id);
     }
   } else if (user->getEvents() < User::PERM_VIEW) {
     allowed = false;
     Warning("Insufficient privileges for request user %d %s, user does not have permission view events.",
-        user->Id(), user->getUsername());
+            user->Id(), user->getUsername());
   }
   return allowed;
 }
@@ -268,16 +268,16 @@ int main(int argc, const char *argv[], char **envp) {
   char date_string[64];
   tm now_tm = {};
   strftime(date_string, sizeof(date_string)-1,
-      "%a, %d %b %Y %H:%M:%S GMT", gmtime_r(&now, &now_tm));
+           "%a, %d %b %Y %H:%M:%S GMT", gmtime_r(&now, &now_tm));
 
   fputs("Last-Modified: ", stdout);
   fputs(date_string, stdout);
   fputs(
-      "\r\nExpires: Mon, 26 Jul 1997 05:00:00 GMT\r\n"
-      "Cache-Control: no-store, no-cache, must-revalidate\r\n"
-      "Cache-Control: post-check=0, pre-check=0\r\n"
-      "Pragma: no-cache\r\n",
-      stdout);
+    "\r\nExpires: Mon, 26 Jul 1997 05:00:00 GMT\r\n"
+    "Cache-Control: no-store, no-cache, must-revalidate\r\n"
+    "Cache-Control: post-check=0, pre-check=0\r\n"
+    "Pragma: no-cache\r\n",
+    stdout);
 
   if ( source == ZMS_MONITOR ) {
     MonitorStream stream;

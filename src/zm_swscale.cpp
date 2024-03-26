@@ -1,17 +1,17 @@
 /*
  * ZoneMinder FFMPEG implementation, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -26,8 +26,7 @@ SWScale::SWScale() :
   gotdefaults(false),
   swscale_ctx(nullptr),
   default_width(0),
-  default_height(0)
-{
+  default_height(0) {
   Debug(4, "SWScale object created");
 }
 
@@ -58,10 +57,10 @@ SWScale::~SWScale() {
 }
 
 int SWScale::SetDefaults(
-    enum _AVPIXELFORMAT in_pf,
-    enum _AVPIXELFORMAT out_pf,
-    unsigned int width,
-    unsigned int height) {
+  enum _AVPIXELFORMAT in_pf,
+  enum _AVPIXELFORMAT out_pf,
+  unsigned int width,
+  unsigned int height) {
 
   /* Assign the defaults */
   default_input_pf = in_pf;
@@ -74,7 +73,7 @@ int SWScale::SetDefaults(
   return 0;
 }
 
-int SWScale::Convert( 
+int SWScale::Convert(
   AVFrame *in_frame,
   AVFrame *out_frame
 ) {
@@ -82,17 +81,17 @@ int SWScale::Convert(
   AVPixelFormat format = fix_deprecated_pix_fmt((AVPixelFormat)in_frame->format);
   /* Get the context */
   swscale_ctx = sws_getCachedContext(swscale_ctx,
-      in_frame->width, in_frame->height, format,
-      out_frame->width, out_frame->height, (AVPixelFormat)out_frame->format,
-      SWS_FAST_BILINEAR, NULL, NULL, NULL);
+                                     in_frame->width, in_frame->height, format,
+                                     out_frame->width, out_frame->height, (AVPixelFormat)out_frame->format,
+                                     SWS_FAST_BILINEAR, NULL, NULL, NULL);
   if ( swscale_ctx == NULL ) {
     Error("Failed getting swscale context");
     return -6;
   }
   /* Do the conversion */
   if (!sws_scale(swscale_ctx,
-        in_frame->data, in_frame->linesize, 0, in_frame->height,
-        out_frame->data, out_frame->linesize)) {
+                 in_frame->data, in_frame->linesize, 0, in_frame->height,
+                 out_frame->data, out_frame->linesize)) {
     Error("swscale conversion failed");
     return -10;
   }
@@ -101,20 +100,20 @@ int SWScale::Convert(
 }
 
 int SWScale::Convert(
-    const uint8_t* in_buffer,
-    const size_t in_buffer_size,
-    uint8_t* out_buffer,
-    const size_t out_buffer_size,
-    enum _AVPIXELFORMAT in_pf,
-    enum _AVPIXELFORMAT out_pf,
-    unsigned int width,
-    unsigned int height,
-    unsigned int new_width,
-    unsigned int new_height
-    ) {
+  const uint8_t* in_buffer,
+  const size_t in_buffer_size,
+  uint8_t* out_buffer,
+  const size_t out_buffer_size,
+  enum _AVPIXELFORMAT in_pf,
+  enum _AVPIXELFORMAT out_pf,
+  unsigned int width,
+  unsigned int height,
+  unsigned int new_width,
+  unsigned int new_height
+) {
   Debug(1, "Convert: in_buffer %p in_buffer_size %zu out_buffer %p size %zu width %d height %d width %d height %d %d %d",
-      in_buffer, in_buffer_size, out_buffer, out_buffer_size, width, height, new_width, new_height,
-      in_pf, out_pf);
+        in_buffer, in_buffer_size, out_buffer, out_buffer_size, width, height, new_width, new_height,
+        in_pf, out_pf);
   /* Parameter checking */
   if (in_buffer == nullptr) {
     Error("NULL Input buffer");
@@ -138,11 +137,11 @@ int SWScale::Convert(
   /* Warn if the input or output pixelformat is not supported */
   if (!sws_isSupportedInput(in_pf)) {
     Warning("swscale does not support the input format: %c%c%c%c",
-        (in_pf)&0xff,((in_pf)&0xff),((in_pf>>16)&0xff),((in_pf>>24)&0xff));
+            (in_pf)&0xff,((in_pf)&0xff),((in_pf>>16)&0xff),((in_pf>>24)&0xff));
   }
   if (!sws_isSupportedOutput(out_pf)) {
     Warning("swscale does not support the output format: %c%c%c%c",
-        (out_pf)&0xff,((out_pf>>8)&0xff),((out_pf>>16)&0xff),((out_pf>>24)&0xff));
+            (out_pf)&0xff,((out_pf>>8)&0xff),((out_pf>>16)&0xff),((out_pf>>24)&0xff));
   }
 
   int alignment = width % 32 ? 1 : 32;
@@ -150,12 +149,12 @@ int SWScale::Convert(
   size_t needed_insize = GetBufferSize(in_pf, width, height);
   if (needed_insize > in_buffer_size) {
     Warning(
-          "The input buffer size does not match the expected size for the input format. Required: %zu for %dx%d %d Available: %zu",
-          needed_insize,
-          width,
-          height,
-          in_pf,
-          in_buffer_size);
+      "The input buffer size does not match the expected size for the input format. Required: %zu for %dx%d %d Available: %zu",
+      needed_insize,
+      width,
+      height,
+      in_pf,
+      in_buffer_size);
   }
   size_t needed_outsize = GetBufferSize(out_pf, new_width, new_height);
   if (needed_outsize > out_buffer_size) {
@@ -167,9 +166,9 @@ int SWScale::Convert(
 
   /* Get the context */
   swscale_ctx = sws_getCachedContext(swscale_ctx,
-      width, height, in_pf,
-      new_width, new_height, out_pf,
-      SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
+                                     width, height, in_pf,
+                                     new_width, new_height, out_pf,
+                                     SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
   if (swscale_ctx == nullptr) {
     Error("Failed getting swscale context");
     return -6;
@@ -197,9 +196,9 @@ int SWScale::Convert(
 
   /* Do the conversion */
   if ( !sws_scale(swscale_ctx,
-        input_avframe->data, input_avframe->linesize,
-        0, height,
-        output_avframe->data, output_avframe->linesize) ) {
+                  input_avframe->data, input_avframe->linesize,
+                  0, height,
+                  output_avframe->data, output_avframe->linesize) ) {
     Error("swscale conversion failed");
     return -10;
   }
@@ -208,25 +207,25 @@ int SWScale::Convert(
 }
 
 int SWScale::Convert(
-    const uint8_t* in_buffer,
-    const size_t in_buffer_size,
-    uint8_t* out_buffer,
-    const size_t out_buffer_size,
-    enum _AVPIXELFORMAT in_pf,
-    enum _AVPIXELFORMAT out_pf,
-    unsigned int width,
-    unsigned int height) {
+  const uint8_t* in_buffer,
+  const size_t in_buffer_size,
+  uint8_t* out_buffer,
+  const size_t out_buffer_size,
+  enum _AVPIXELFORMAT in_pf,
+  enum _AVPIXELFORMAT out_pf,
+  unsigned int width,
+  unsigned int height) {
   return Convert(in_buffer, in_buffer_size, out_buffer, out_buffer_size, in_pf, out_pf, width, height, width, height);
 }
 
 int SWScale::Convert(
-    const Image* img,
-    uint8_t* out_buffer,
-    const size_t out_buffer_size,
-    enum _AVPIXELFORMAT in_pf,
-    enum _AVPIXELFORMAT out_pf,
-    unsigned int width,
-    unsigned int height) {
+  const Image* img,
+  uint8_t* out_buffer,
+  const size_t out_buffer_size,
+  enum _AVPIXELFORMAT in_pf,
+  enum _AVPIXELFORMAT out_pf,
+  unsigned int width,
+  unsigned int height) {
   if ( img->Width() != width ) {
     Error("Source image width differs. Source: %d Output: %d", img->Width(), width);
     return -12;

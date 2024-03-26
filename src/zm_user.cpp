@@ -83,21 +83,21 @@ bool User::canAccess(int monitor_id) {
   if (it != monitor_permissions.end()) {
     auto permission = it->second.getPermission();
     switch (permission) {
-      case Monitor_Permission::PERM_NONE :
-        Debug(1, "Returning None from monitor_permission");
-        return false;
-      case Monitor_Permission::PERM_VIEW :
-        Debug(1, "Returning true because VIEW from monitor_permission");
-        return true;
-      case Monitor_Permission::PERM_EDIT :
-        Debug(1, "Returning true because EDIT from monitor_permission");
-        return true;
-      case Monitor_Permission::PERM_INHERIT :
-        Debug(1, "INHERIT from monitor_permission");
-        break;
-      default:
-        Warning("UNKNOWN permission %d from monitor_permission", permission);
-        break;
+    case Monitor_Permission::PERM_NONE :
+      Debug(1, "Returning None from monitor_permission");
+      return false;
+    case Monitor_Permission::PERM_VIEW :
+      Debug(1, "Returning true because VIEW from monitor_permission");
+      return true;
+    case Monitor_Permission::PERM_EDIT :
+      Debug(1, "Returning true because EDIT from monitor_permission");
+      return true;
+    case Monitor_Permission::PERM_INHERIT :
+      Debug(1, "INHERIT from monitor_permission");
+      break;
+    default:
+      Warning("UNKNOWN permission %d from monitor_permission", permission);
+      break;
     }
   }
 
@@ -106,21 +106,21 @@ bool User::canAccess(int monitor_id) {
   for (Group_Permission &gp : group_permissions) {
     auto permission = gp.getPermission(monitor_id);
     switch (permission) {
-      case Group_Permission::PERM_NONE :
-        Debug(1, "Returning None from group_permission");
-        return false;
-      case Group_Permission::PERM_VIEW :
-        Debug(1, "Returning true because VIEW from group_permission");
-        return true;
-      case Group_Permission::PERM_EDIT :
-        Debug(1, "Returning true because EDIT from group_permission");
-        return true;
-      case Group_Permission::PERM_INHERIT :
-        Debug(1, "INHERIT from group_permission %d", gp.GroupId());
-        break;
-      default :
-        Warning("UNKNOWN permission %d from group_permission %d", permission, gp.GroupId());
-        break;
+    case Group_Permission::PERM_NONE :
+      Debug(1, "Returning None from group_permission");
+      return false;
+    case Group_Permission::PERM_VIEW :
+      Debug(1, "Returning true because VIEW from group_permission");
+      return true;
+    case Group_Permission::PERM_EDIT :
+      Debug(1, "Returning true because EDIT from group_permission");
+      return true;
+    case Group_Permission::PERM_INHERIT :
+      Debug(1, "INHERIT from group_permission %d", gp.GroupId());
+      break;
+    default :
+      Warning("UNKNOWN permission %d from group_permission %d", permission, gp.GroupId());
+      break;
     }
   }  // end foreach Group_Permission
 
@@ -145,14 +145,14 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
     MYSQL_ROW dbrow = mysql_fetch_row(result);
     User *user = new User(dbrow);
 
-    if ( 
-        (password.empty() and (!strcmp(config.auth_relay, "none")))  // relay type must be none
-        ||
-        verifyPassword(username.c_str(), password.c_str(), user->getPassword()) ) {
+    if (
+      (password.empty() and (!strcmp(config.auth_relay, "none")))  // relay type must be none
+      ||
+      verifyPassword(username.c_str(), password.c_str(), user->getPassword()) ) {
       mysql_free_result(result);
       Debug(1, "Authenticated user '%s'", user->getUsername());
       return user;
-    } 
+    }
     delete user;
   }  // end if 1 result from db
   mysql_free_result(result);
@@ -212,11 +212,11 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
   }
 
   Debug(1, "Authenticated user '%s' via token with last revoke time: %u",
-      username.c_str(), stored_iat);
+        username.c_str(), stored_iat);
   mysql_free_result(result);
   return user;
 }  // User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr)
- 
+
 // Function to validate an authentication string
 User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr) {
   const char *remote_addr = "";
@@ -229,7 +229,7 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
   }
 
   Debug(1, "Attempting to authenticate user %s from auth string '%s', remote addr(%s)",
-      username.c_str(), auth.c_str(), remote_addr);
+        username.c_str(), auth.c_str(), remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
                     " FROM `Users` WHERE `Enabled` = 1";

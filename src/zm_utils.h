@@ -1,21 +1,21 @@
 //
 // ZoneMinder General Utility Functions, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_UTILS_H
 #define ZM_UTILS_H
@@ -104,7 +104,7 @@ constexpr const T &clamp(const T &v, const T &lo, const T &hi, Compare comp) {
 }
 template<class T>
 constexpr const T &clamp(const T &v, const T &lo, const T &hi) {
-  return zm::clamp(v, lo, hi, std::less<T>{});
+  return zm::clamp(v, lo, hi, std::less<T> {});
 }
 
 // C++17 std::data (TODO: remove this once C++17 is supported)
@@ -186,13 +186,11 @@ namespace utils {
  *         last if no such element is found.
  */
 template< typename InputIt, typename UnaryPredicate >
-[[ nodiscard ]] constexpr InputIt find_if( InputIt first, InputIt last, UnaryPredicate p ) noexcept
-{
-    for ( ; first != last; ++first )
-    {
-        if ( p( *first ) ) { return first; }
-    }
-    return last;
+[[ nodiscard ]] constexpr InputIt find_if( InputIt first, InputIt last, UnaryPredicate p ) noexcept {
+  for ( ; first != last; ++first ) {
+    if ( p( *first ) ) { return first; }
+  }
+  return last;
 }
 };
 #endif // ZM_UTILS_H

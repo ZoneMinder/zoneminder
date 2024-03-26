@@ -1,21 +1,21 @@
 //
 // ZoneMinder Time Functions & Definitions, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_TIME_H
 #define ZM_TIME_H
@@ -63,8 +63,8 @@ template<typename Rep, typename Period>
 struct posix_duration_cast<timeval, std::chrono::duration<Rep, Period>> {
   static std::chrono::duration<Rep, Period> cast(timeval const &tv) {
     return std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
-        Seconds(tv.tv_sec) + Microseconds(tv.tv_usec)
-    );
+             Seconds(tv.tv_sec) + Microseconds(tv.tv_usec)
+           );
   }
 };
 }
@@ -92,9 +92,9 @@ Duration duration_cast(timeval const &tv) {
 class TimeSegmentAdder {
  public:
   explicit TimeSegmentAdder(Microseconds &in_target) :
-      target_(in_target),
-      start_time_(std::chrono::steady_clock::now()),
-      finished_(false) {
+    target_(in_target),
+    start_time_(std::chrono::steady_clock::now()),
+    finished_(false) {
   }
 
   ~TimeSegmentAdder() {

@@ -29,7 +29,7 @@ constexpr uint8 FontVariant::kMaxCharWidth;
 FontVariant::FontVariant() : char_height_(0), char_width_(0), char_padding_(0), codepoint_count_(0) {}
 
 FontVariant::FontVariant(uint16 char_height, uint16 char_width, uint8 char_padding, std::vector<uint64> bitmap)
-    : char_height_(char_height), char_width_(char_width), char_padding_(char_padding), bitmap_(std::move(bitmap)) {
+  : char_height_(char_height), char_width_(char_width), char_padding_(char_padding), bitmap_(std::move(bitmap)) {
   if (char_height_ > kMaxCharHeight) {
     throw std::invalid_argument("char_height > kMaxCharHeight");
   }
@@ -107,7 +107,7 @@ FontLoadError ZmFont::LoadFontFile(const std::string &loc) {
     font_file.read(reinterpret_cast<char *>(bitmap.data()), static_cast<std::streamsize>(bitmap_bytes));
 
     variants_[i] =
-        {bitmap_header.char_height, bitmap_header.char_width, bitmap_header.char_padding, std::move(bitmap)};
+    {bitmap_header.char_height, bitmap_header.char_width, bitmap_header.char_padding, std::move(bitmap)};
   }
 
   if (font_file.fail()) {

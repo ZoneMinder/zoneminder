@@ -1,21 +1,21 @@
 //
 // ZoneMinder Camera Class Interface, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_CAMERA_H
 #define ZM_CAMERA_H
@@ -34,7 +34,7 @@ class ZMPacket;
 // common attributes
 //
 class Camera {
-protected:
+ protected:
   typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC, VNC_SRC } SourceType;
 
   const Monitor *monitor;
@@ -67,21 +67,21 @@ protected:
   unsigned int  bytes;
   bool mIsPrimed;
 
-public:
+ public:
   Camera(
-      const Monitor* monitor,
-      SourceType p_type,
-      unsigned int p_width,
-      unsigned int p_height,
-      int p_colours,
-      int p_subpixelorder,
-      int p_brightness,
-      int p_contrast,
-      int p_hue,
-      int p_colour,
-      bool p_capture,
-      bool p_record_audio
-      );
+    const Monitor* monitor,
+    SourceType p_type,
+    unsigned int p_width,
+    unsigned int p_height,
+    int p_colours,
+    int p_subpixelorder,
+    int p_brightness,
+    int p_contrast,
+    int p_hue,
+    int p_colour,
+    bool p_capture,
+    bool p_record_audio
+  );
   virtual ~Camera();
 
   SourceType Type() const { return type; }
@@ -104,9 +104,11 @@ public:
   int getFrequency() { return mAudioStream ? mAudioStream->codecpar->sample_rate : -1; }
   int getChannels() {
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-    return mAudioStream ? mAudioStream->codecpar->ch_layout.nb_channels : -1; }
+    return mAudioStream ? mAudioStream->codecpar->ch_layout.nb_channels : -1;
+  }
 #else
-    return mAudioStream ? mAudioStream->codecpar->channels : -1; }
+    return mAudioStream ? mAudioStream->codecpar->channels : -1;
+  }
 #endif
 
   virtual int Brightness( int/*p_brightness*/=-1 ) { return -1; }

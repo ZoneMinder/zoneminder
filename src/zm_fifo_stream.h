@@ -25,27 +25,27 @@ class Monitor;
 
 class FifoStream : public StreamBase {
  private:
-    std::string stream_path;
-    int total_read;
-    int bytes_read;
+  std::string stream_path;
+  int total_read;
+  int bytes_read;
 
  protected:
-    typedef enum { UNKNOWN, MJPEG, RAW } StreamType;
-    StreamType  stream_type;
-    bool sendMJEGFrames();
-    bool sendRAWFrames();
-    void processCommand(const CmdMsg *msg) override {}
+  typedef enum { UNKNOWN, MJPEG, RAW } StreamType;
+  StreamType  stream_type;
+  bool sendMJEGFrames();
+  bool sendRAWFrames();
+  void processCommand(const CmdMsg *msg) override {}
 
  public:
-    FifoStream() : 
-      StreamBase(),
-      total_read(0),
-      bytes_read(0),
-      stream_type(UNKNOWN)
-    {}
+  FifoStream() :
+    StreamBase(),
+    total_read(0),
+    bytes_read(0),
+    stream_type(UNKNOWN)
+  {}
 
-    void setStreamStart(const std::string &path);
-    void setStreamStart(int monitor_id, const char * format);
-    void runStream() override;
+  void setStreamStart(const std::string &path);
+  void setStreamStart(int monitor_id, const char * format);
+  void runStream() override;
 };
 #endif  // ZM_FIFO_STREAM_H

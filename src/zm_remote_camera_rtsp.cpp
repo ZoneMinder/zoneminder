@@ -1,21 +1,21 @@
 //
 // ZoneMinder Remote Camera Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_remote_camera_rtsp.h"
 
@@ -25,35 +25,34 @@
 #include "zm_signal.h"
 
 RemoteCameraRtsp::RemoteCameraRtsp(
-    const Monitor *monitor,
-    const std::string &p_method,
-    const std::string &p_host,
-    const std::string &p_port,
-    const std::string &p_path,
-    const std::string &p_user,
-    const std::string &p_pass,
-    int p_width,
-    int p_height,
-    bool p_rtsp_describe,
-    int p_colours,
-    int p_brightness,
-    int p_contrast,
-    int p_hue,
-    int p_colour,
-    bool p_capture,
-    bool p_record_audio ) :
+  const Monitor *monitor,
+  const std::string &p_method,
+  const std::string &p_host,
+  const std::string &p_port,
+  const std::string &p_path,
+  const std::string &p_user,
+  const std::string &p_pass,
+  int p_width,
+  int p_height,
+  bool p_rtsp_describe,
+  int p_colours,
+  int p_brightness,
+  int p_contrast,
+  int p_hue,
+  int p_colour,
+  bool p_capture,
+  bool p_record_audio ) :
   RemoteCamera(
-      monitor, "rtsp",
-      p_host, p_port, p_path,
-      p_user, p_pass,
-      p_width, p_height, p_colours,
-      p_brightness, p_contrast, p_hue, p_colour,
-      p_capture, p_record_audio),
+    monitor, "rtsp",
+    p_host, p_port, p_path,
+    p_user, p_pass,
+    p_width, p_height, p_colours,
+    p_brightness, p_contrast, p_hue, p_colour,
+    p_capture, p_record_audio),
   rtsp_describe(p_rtsp_describe),
   user(p_user),
   pass(p_pass),
-  frameCount(0)
-{
+  frameCount(0) {
   if ( p_method == "rtpUni" )
     method = RtspThread::RTP_UNICAST;
   else if ( p_method == "rtpMulti" )
@@ -68,7 +67,7 @@ RemoteCameraRtsp::RemoteCameraRtsp(
   if ( capture ) {
     Initialise();
   }
-  
+
   /* Has to be located inside the constructor so other components such as zma will receive correct colours and subpixel order */
   if ( colours == ZM_COLOUR_RGB32 ) {
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
@@ -87,8 +86,8 @@ RemoteCameraRtsp::RemoteCameraRtsp(
 RemoteCameraRtsp::~RemoteCameraRtsp() {
 
   if ( mVideoCodecContext ) {
-     avcodec_close(mVideoCodecContext);
-     mVideoCodecContext = nullptr; // Freed by avformat_free_context in the destructor of RtspThread class
+    avcodec_close(mVideoCodecContext);
+    mVideoCodecContext = nullptr; // Freed by avformat_free_context in the destructor of RtspThread class
   }
   // Is allocated in RTSPThread and is free there as well
   mFormatContext = nullptr;
@@ -150,7 +149,7 @@ int RemoteCameraRtsp::PrimeCapture() {
   mVideoStreamId = -1;
   mAudioStreamId = -1;
 
-  // Find the first video stream. 
+  // Find the first video stream.
   for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
     if ( is_video_stream(mFormatContext->streams[i]) ) {
       if ( mVideoStreamId == -1 ) {
@@ -238,20 +237,20 @@ int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       if ( mVideoCodecContext->codec_id == AV_CODEC_ID_H264 ) {
         // SPS and PPS frames should be saved and appended to IDR frames
         int nalType = (buffer.head()[3] & 0x1f);
-        
+
         // SPS The SPS NAL unit contains parameters that apply to a series of consecutive coded video pictures
         if ( nalType == 1 ) {
         } else if ( nalType == 7 ) {
           lastSps = buffer;
           continue;
         } else if ( nalType == 8 ) {
-        // PPS The PPS NAL unit contains parameters that apply to the decoding of one or more individual pictures inside a coded video sequence
+          // PPS The PPS NAL unit contains parameters that apply to the decoding of one or more individual pictures inside a coded video sequence
           lastPps = buffer;
           continue;
         } else if ( nalType == 5 ) {
           packet->flags |= AV_PKT_FLAG_KEY;
           zm_packet->keyframe = 1;
-        // IDR
+          // IDR
           buffer += lastSps;
           buffer += lastPps;
         } else {

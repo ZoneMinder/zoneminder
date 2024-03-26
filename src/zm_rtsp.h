@@ -1,21 +1,21 @@
 //
 // ZoneMinder RTSP Class Interface, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_RTSP_H
 #define ZM_RTSP_H
@@ -30,22 +30,22 @@
 #include <thread>
 
 class RtspThread {
-public:
+ public:
   typedef enum { RTP_UNICAST, RTP_MULTICAST, RTP_RTSP, RTP_RTSP_HTTP } RtspMethod;
   typedef enum { UNDEFINED, UNICAST, MULTICAST } RtspDist;
 
-private:
+ private:
   typedef std::set<int>  PortSet;
   typedef std::set<uint32_t>  SsrcSet;
   typedef std::map<uint32_t,RtpSource *>  SourceMap;
 
-private:
+ private:
   static int  smMinDataPort;
   static int  smMaxDataPort;
   static PortSet  smLocalSsrcs;
   static PortSet  smAssignedPorts;
 
-private:
+ private:
   int mId;
 
   RtspMethod mMethod;
@@ -55,7 +55,7 @@ private:
   std::string mPath;
   bool mRtspDescribe;
   std::string mUrl;
-  
+
   // Reworked authentication system
   // First try without authentication, even if we have a username and password
   // on receiving a 401 response, select authentication method (basic or digest)
@@ -84,47 +84,43 @@ private:
   int mRemoteChannels[2];
   RtspDist mDist;
 
-  unsigned long mRtpTime; 
+  unsigned long mRtpTime;
 
   std::thread mThread;
   std::atomic<bool> mTerminate;
 
-private:
+ private:
   bool sendCommand( std::string message );
   bool recvResponse( std::string &response );
   void checkAuthResponse(std::string &response);
   void Run();
 
-public:
-  RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host, 
-              const std::string &port, const std::string &path, const std::string &user, const std::string &pass, 
+ public:
+  RtspThread( int id, RtspMethod method, const std::string &protocol, const std::string &host,
+              const std::string &port, const std::string &path, const std::string &user, const std::string &pass,
               bool rtsp_describe );
   ~RtspThread();
 
-public:
+ public:
   int requestPorts();
   void releasePorts( int port );
 
   bool isValidSsrc( uint32_t ssrc );
   bool updateSsrc( uint32_t ssrc, const RtpDataHeader *header );
 
-  uint32_t getSsrc() const
-  {
+  uint32_t getSsrc() const {
     return( mSsrc );
   }
 
-  bool hasSources() const
-  {
+  bool hasSources() const {
     return( !mSources.empty() );
   }
 
-  AVFormatContext *getFormatContext()
-  {
+  AVFormatContext *getFormatContext() {
     return( mFormatContext );
   }
-  
-  bool getFrame( Buffer &frame )
-  {
+
+  bool getFrame( Buffer &frame ) {
     SourceMap::iterator iter = mSources.begin();
     if ( iter == mSources.end() )
       return( false );
@@ -134,8 +130,7 @@ public:
   void Stop() { mTerminate = true; }
   bool IsStopped() const { return mTerminate; }
 
-  int getAddressFamily ()
-  {
+  int getAddressFamily () {
     return mRtspSocket.getDomain();
   }
 };

@@ -23,7 +23,7 @@
 #include <string>
 
 class Uri {
-  public:
+ public:
   std::string QueryString, Path, Protocol, Host, Port;
 
   Uri(const std::string &uri);

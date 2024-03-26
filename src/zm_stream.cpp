@@ -99,15 +99,15 @@ void StreamBase::updateFrameRate(double fps) {
   effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
   frame_mod = 1;
   Debug(3, "FPS:%.2f, MaxFPS:%.2f, BaseFPS:%.2f, EffectiveFPS:%.2f, FrameMod:%d, replay_rate(%d)",
-      fps, maxfps, base_fps, effective_fps, frame_mod, replay_rate);
+        fps, maxfps, base_fps, effective_fps, frame_mod, replay_rate);
   if (maxfps > 0.0) {
     // Min frame repeat?
-    // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.  
+    // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.
     while ( (int)effective_fps > (int)maxfps ) {
       effective_fps /= 2.0;
       frame_mod *= 2;
       Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d",
-          maxfps, effective_fps, frame_mod);
+            maxfps, effective_fps, frame_mod);
     }
   }
 } // void StreamBase::updateFrameRate(double fps)
@@ -153,7 +153,7 @@ Image *StreamBase::prepareImage(Image *image) {
         base_image_height = image->Height(),
         disp_image_width = image->Width() * scale/ZM_SCALE_BASE,
         disp_image_height = image->Height() * scale / ZM_SCALE_BASE;
-    /* x and y are scaled by web UI to base dimensions units. 
+    /* x and y are scaled by web UI to base dimensions units.
      * When zooming, we blow up the image by the amount 150 for first zoom, right? 150%, then cut out a base sized chunk
      * However if we have zoomed before, then we are zooming into the previous cutout
      * The box stored in last_crop should be in base_image units, So we need to turn x,y into percentages, then apply to last_crop
@@ -263,7 +263,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     labelsize = monitor->LabelSize();
   }
   Debug(2, "Sending %dx%dx%dx%d * %d scale text frame '%s'",
-      width, height, colours, subpixelorder, scale, frame_text);
+        width, height, colours, subpixelorder, scale, frame_text);
 
   Image image(width, height, colours, subpixelorder);
   image.Clear();
@@ -320,12 +320,12 @@ void StreamBase::openComms() {
     }
 
     unsigned int length = snprintf(
-        sock_path_lock,
-        sizeof(sock_path_lock),
-        "%s/zms-%06d.lock",
-        staticConfig.PATH_SOCKS.c_str(),
-        connkey
-        );
+                            sock_path_lock,
+                            sizeof(sock_path_lock),
+                            "%s/zms-%06d.lock",
+                            staticConfig.PATH_SOCKS.c_str(),
+                            connkey
+                          );
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
     }
@@ -363,12 +363,12 @@ void StreamBase::openComms() {
     }
 
     length = snprintf(
-        loc_sock_path,
-        sizeof(loc_sock_path),
-        "%s/zms-%06ds.sock",
-        staticConfig.PATH_SOCKS.c_str(),
-        connkey
-        );
+               loc_sock_path,
+               sizeof(loc_sock_path),
+               "%s/zms-%06ds.sock",
+               staticConfig.PATH_SOCKS.c_str(),
+               connkey
+             );
     if ( length >= sizeof(loc_sock_path) ) {
       Warning("Socket path was truncated.");
       length = sizeof(loc_sock_path)-1;
@@ -390,7 +390,7 @@ void StreamBase::openComms() {
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
-    struct timeval tv{1,0}; /* 1 Secs Timeout */
+    struct timeval tv {1,0}; /* 1 Secs Timeout */
     setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&tv, sizeof(struct timeval));
 
     last_comm_update = std::chrono::steady_clock::now();
@@ -411,8 +411,7 @@ void StreamBase::closeComms() {
   }
 } // end void StreamBase::closeComms
 
-void StreamBase::reserveTempImgBuffer(size_t size)
-{
+void StreamBase::reserveTempImgBuffer(size_t size) {
   if (temp_img_buffer_size < size) {
     Debug(1, "Resizing image buffer from %zu to %zu", temp_img_buffer_size, size);
     delete[] temp_img_buffer;

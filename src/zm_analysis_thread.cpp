@@ -5,7 +5,7 @@
 #include "zm_time.h"
 
 AnalysisThread::AnalysisThread(Monitor *monitor) :
-    monitor_(monitor), terminate_(false) {
+  monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&AnalysisThread::Run, this);
 }
 

@@ -21,15 +21,15 @@
 // ---------------------------------
 
 class ADTS_ZoneMinderFifoSource : public ZoneMinderFifoAudioSource {
-	public:
-    ADTS_ZoneMinderFifoSource(
-        std::shared_ptr<xop::RtspServer>& rtspServer,
-        xop::MediaSessionId sessionId,
-        xop::MediaChannelId channelId,
-        const std::string &fifo
-        );
+ public:
+  ADTS_ZoneMinderFifoSource(
+    std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    const std::string &fifo
+  );
 
-		virtual ~ADTS_ZoneMinderFifoSource() {}
+  virtual ~ADTS_ZoneMinderFifoSource() {}
 };
 #endif // HAVE_RTSP_SERVER
 

@@ -25,17 +25,17 @@
 #include <array>
 
 class VideoStream {
-protected:
+ protected:
   struct MimeData {
     const char *format;
     const char *mime_type;
   };
 
-protected:
+ protected:
   static bool initialised;
   static struct MimeData mime_data[];
 
-protected:
+ protected:
   char *codec_and_format;
   const char *filename;
   const char *format;
@@ -65,7 +65,7 @@ protected:
   int SendPacket(AVPacket *packet);
   static void* StreamingThreadCallback(void *ctx);
 
-protected:
+ protected:
   static void Initialise();
 
   void SetupFormat( );
@@ -74,7 +74,7 @@ protected:
   void ActuallyOpenStream();
   double ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 
-public:
+ public:
   VideoStream( const char *filename, const char *format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height );
   ~VideoStream();
   const char *MimeType() const;

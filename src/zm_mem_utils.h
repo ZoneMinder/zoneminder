@@ -1,21 +1,21 @@
 //
 // ZoneMinder Memory Utilities, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_MEM_UTILS_H
 #define ZM_MEM_UTILS_H
@@ -27,23 +27,23 @@ inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
 #if HAVE_POSIX_MEMALIGN
   if ( posix_memalign((void**)&retptr, reqalignment, reqsize) != 0 )
     return nullptr;
-  
+
   return retptr;
 #else
   uint8_t* alloc;
   retptr = (uint8_t*)malloc(reqsize+reqalignment+sizeof(void*));
-  
+
   if ( retptr == nullptr )
     return nullptr;
-  
+
   alloc = retptr + sizeof(void*);
-  
+
   if ( ((long)alloc % reqalignment) != 0 )
     alloc = alloc + (reqalignment - ((long)alloc % reqalignment));
-  
+
   /* Store a pointer before to the start of the block, just before returned aligned memory */
   *(void**)(alloc - sizeof(void*)) = retptr;
-  
+
   return alloc;
 #endif
 }

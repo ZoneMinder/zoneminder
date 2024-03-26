@@ -240,6 +240,10 @@ li.search-choice {
   background-image: none;
   color: #fff;
 }
+
+.chosen-container-active .chosen-choices li.search-field input[type=text] {
+  color: inherit !important;
+}
 /* end chosen override */
 
 .modal-content {

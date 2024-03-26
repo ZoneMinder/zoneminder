@@ -155,6 +155,7 @@ fieldset {
 
 input, textarea, select, button, .btn-primary {
   background-color: rgb(68,68,68);
+  border-color: var(--gray);
   color: #dddddd;
 }
 /* PP - make it easy to identify disabled buttons */
@@ -184,6 +185,10 @@ input[type=submit]:disabled,
   width: 100%;
   margin-bottom: 1rem;
   color: #eeeeee;
+}
+
+.table td, .table th, .table thead th {
+  border-color: var(--gray);
 }
 
 .table-striped > tbody > tr:nth-of-type(2n+1) {
@@ -220,6 +225,24 @@ li.search-choice {
     color: #eee !important;
     -webkit-box-shadow: none !important;
     background-image: none !important;
+}
+
+.chosen-container-multi .chosen-choices {
+  border-color: var(--gray);
+}
+
+.chosen-container-active .chosen-choices {
+  border-color: var(--gray);
+}
+
+.chosen-container .chosen-results li.highlighted {
+  background-color: #222222;
+  background-image: none;
+  color: #fff;
+}
+
+.chosen-container-active .chosen-choices li.search-field input[type=text] {
+  color: inherit !important;
 }
 /* end chosen override */
 

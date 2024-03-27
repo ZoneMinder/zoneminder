@@ -604,7 +604,6 @@ public static function getStatuses() {
         $this->sendControlCommand('stop');
       }
     }
-                }
     $this->save(['Deleted'=>true]);
   }
   public function destroy() {

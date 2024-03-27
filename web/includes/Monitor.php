@@ -598,15 +598,24 @@ public static function getStatuses() {
   }
 
   public function delete() {
+    if ($this->Type() != 'WebSite') {
+      $this->zmcControl('stop');
+      if ($this->Controllable()) {
+        $this->sendControlCommand('stop');
+      }
+    }
+                }
     $this->save(['Deleted'=>true]);
   }
   public function destroy() {
-    $this->zmcControl('stop');
     if (!$this->{'Id'}) {
       Warning('Attempt to destroy a monitor without id.');
       return;
     }
     $this->zmcControl('stop');
+    if ($this->Controllable()) {
+      $this->sendControlCommand('stop');
+    }
 
     // If fast deletes are on, then zmaudit will clean everything else up later
     // If fast deletes are off and there are lots of events then this step may

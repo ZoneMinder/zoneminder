@@ -79,9 +79,8 @@ class HostController extends AppController {
       throw new UnauthorizedException(__('No identity provided'));
     }
 
-    $ver = $this->_getVersion();
+    $login_array = [];
     $cred = [];
-    $cred_depr = [];
 
     if ( $username && $password ) {
       ZM\Debug('Username and password provided, generating access and refresh tokens');
@@ -90,25 +89,27 @@ class HostController extends AppController {
       ZM\Debug('Only generating access token');
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
     }
+    if ($cred) {
+      $login_array['access_token'] = $cred[0];
+      $login_array['access_token_expires'] = $cred[1];
 
-    $login_array = array (
-      'access_token'          => $cred[0],
-      'access_token_expires'  => $cred[1]
-    );
-
-    if ( $username && $password ) {
-      $login_array['refresh_token'] = $cred[2];
-      $login_array['refresh_token_expires'] = $cred[3];
+      if ( $username && $password ) {
+        $login_array['refresh_token'] = $cred[2];
+        $login_array['refresh_token_expires'] = $cred[3];
+      }
     }
 
     if ( ZM_OPT_USE_LEGACY_API_AUTH ) {
       $cred_depr = $this->_getCredentialsDeprecated();
-      $login_array['credentials'] = $cred_depr[0];
-      $login_array['append_password'] = $cred_depr[1];
+      if ($cred_depr) {
+        $login_array['credentials'] = $cred_depr[0];
+        $login_array['append_password'] = $cred_depr[1];
+      }
     } else {
       ZM\Debug('Legacy Auth is disabled, not generating auth= credentials');
     }
 
+    $ver = $this->_getVersion();
     $login_array['version'] = $ver[0];
     $login_array['apiversion'] = $ver[1];
 

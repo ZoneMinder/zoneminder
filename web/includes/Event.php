@@ -801,13 +801,13 @@ class Event extends ZM_Object {
 
       $width = $this->Width();
       $height = $this->Height();
-      $video_size = " ${width}x${height}";
+      $video_size = " {$width}x{$height}";
 
       if ( $scale ) {
         if ( $scale != 1.0 ) {
           $width = int($width*$scale);
           $height = int($height*$scale);
-          $video_size = " ${width}x${height}";
+          $video_size = " {$width}x{$height}";
         }
       } else if ( $size ) {
         $video_size = $size;
@@ -833,7 +833,7 @@ class Event extends ZM_Object {
       Info("Finished $video_file");
       return $video_file;
     } else {
-      Info("Video file $video_file already exists for event ${this['Id']}");
+      Info("Video file $video_file already exists for event {$this['Id']}");
       return $video_file;
     }
     return;

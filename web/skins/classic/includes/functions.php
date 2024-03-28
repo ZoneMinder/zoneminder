@@ -1031,7 +1031,8 @@ function xhtmlFooter() {
       $j('.chosen.chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, width: "auto"});
     }
     $j(document).ready(applyChosen);
-  </script>  </body>
+  </script>
+  </body>
 </html>
 <?php
 } // end xhtmlFooter

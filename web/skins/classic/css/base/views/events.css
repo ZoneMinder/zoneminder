@@ -84,10 +84,20 @@ body.sticky #eventTable thead {
   position: sticky;
   top: -1px;
 }
+
+.term {
+  display: flex;
+  flex-direction: column;
+}
+.term-value, .chosen-container{
+  width: 100% !important;
+  margin-left: 5px;
+}
+
 @media screen and (max-width:500px) {
   .term {
     width: 100%;
-    display: flex;
+    flex-direction: row;
   }
   .term-label-wrapper {
     text-wrap: nowrap;
@@ -96,10 +106,6 @@ body.sticky #eventTable thead {
   .term-value-wrapper {
     width: 100%;
     flex-grow: 1;
-  }
-  .term-value, .chosen-container{
-    width: 100% !important;
-    margin-left: 5px;
   }
   label {
     text-wrap: nowrap;

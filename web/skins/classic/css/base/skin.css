@@ -100,14 +100,14 @@ p {
     font-weight: normal;
 }
 
-th {
 /*
+th {
     padding: 3px;
     text-transform: uppercase;
     font-size: 0.8em;
     font-weight: 600;
-*/
 }
+*/
 
 .thead-highlight {
   background-color:#dfe4ea;
@@ -835,8 +835,6 @@ a.flip {
 #shutdownButton {
   padding: 4px 10px 4px 10px;
   color: white;
-}
-#shutdownButton i {
 }
 .imageFeed {
   margin: 0 auto;

@@ -2930,7 +2930,8 @@ bool Monitor::Decode() {
       int ret = packet->decode(camera->getVideoCodecContext());
       if (ret > 0 and !zm_terminate) {
         if (packet->in_frame and !packet->image) {
-          packet->image = new Image(camera_width, camera_height, camera->Colours(), camera->SubpixelOrder());
+          unsigned int subpix = packet->in_frame->format == AV_PIX_FMT_YUV420P ? ZM_SUBPIX_ORDER_YUV420P : camera->SubpixelOrder();
+          packet->image = new Image(camera_width, camera_height, ZM_COLOUR_RGB32, subpix);
 
           if (convert_context || this->setupConvertContext(packet->in_frame.get(), packet->image)) {
             if (!packet->image->Assign(packet->in_frame.get(), convert_context, dest_frame.get())) {

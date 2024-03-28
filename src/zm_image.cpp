@@ -1229,8 +1229,6 @@ bool Image::WriteJpeg(const std::string &filename,
       fclose(outfile);
       return false;
 #endif
-    } else if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
-      cinfo->in_color_space = JCS_YCbCr;
     } else {
       /* Assume RGB */
       /*
@@ -1244,6 +1242,13 @@ bool Image::WriteJpeg(const std::string &filename,
     }
     break;
   }  // end switch(colours)
+
+#ifdef JCS_EXTENSIONS
+  if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+    cinfo->input_components = 3;
+    cinfo->in_color_space = JCS_YCbCr;
+  }
+#endif
 
   jpeg_set_defaults(cinfo);
   jpeg_set_quality(cinfo, quality, FALSE);
@@ -5336,7 +5341,9 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
 }
 
 AVPixelFormat Image::AVPixFormat() const {
-  if ( colours == ZM_COLOUR_RGB32 ) {
+  if ( subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+    return AV_PIX_FMT_YUV420P;
+  } else if ( colours == ZM_COLOUR_RGB32 ) {
     return AV_PIX_FMT_RGBA;
   } else if ( colours == ZM_COLOUR_RGB24 ) {
     if ( subpixelorder == ZM_SUBPIX_ORDER_BGR) {

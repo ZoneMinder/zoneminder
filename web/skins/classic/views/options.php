@@ -280,7 +280,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                       $html_options[$option] = $option;
                     }
                   }
-                  $attributes = ['id'=>$name, 'class'=>'form-control-sm'.(count($html_options)>10?' chosen':'')];
+                  $attributes = ['id'=>$name, 'class'=>'form-control-sm chosen'];
                   if (!$optionCanEdit) $attributes['disabled']='disabled';
                   echo htmlSelect("newConfig[$name]", $html_options, $value['Value'], $attributes);
                 } else { 

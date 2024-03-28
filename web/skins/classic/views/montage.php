@@ -225,19 +225,19 @@ if (canView('System')) {
 
           <span id="widthControl">
             <label><?php echo translate('Width') ?></label>
-            <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change'=>'changeWidth')); ?>
+            <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change'=>'changeWidth', 'class'=>'chosen')); ?>
           </span>
           <span id="heightControl">
             <label><?php echo translate('Height') ?></label>
-            <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change'=>'changeHeight')); ?>
+            <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change'=>'changeHeight', 'class'=>'chosen')); ?>
           </span>
           <span id="scaleControl">
             <label><?php echo translate('Scale') ?></label>
-            <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale')); ?>
+            <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale', 'class'=>'chosen')); ?>
           </span> 
           <span id="layoutControl">
             <label for="layout"><?php echo translate('Layout') ?></label>
-            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout')); ?>
+            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
           </span>
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>

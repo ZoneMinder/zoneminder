@@ -257,15 +257,19 @@ class Event extends ZM_Object {
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {
 
-    $streamSrc = '';
     $Server = $this->Server();
 
     # If we are in a multi-port setup, then use the multiport, else by
     # passing null Server->Url will use the Port set in the Server setting
-    $streamSrc .= $Server->Url(
-      ZM_MIN_STREAMING_PORT ?
+    if ($args['mode'] == 'mp4') { #Downloading a video file. It is possible to reconsider the condition later. 
+                                  #If the port is different from 80, the browser will start watching the video instead of downloading.
+      $port = null;
+    } else {
+      $port = ZM_MIN_STREAMING_PORT ?
       ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
-      null);
+      null;      
+    }
+    $streamSrc = $Server->Url($port);
 
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc .= $Server->PathToIndex();

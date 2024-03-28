@@ -59,9 +59,6 @@ img.normal {
     border: #cccccc solid 1px;
 }
 
-hr {
-}
-
 ul.tabList li {
     color: #8f8fc2;
     border: #8f8fc2 solid 1px;
@@ -229,6 +226,7 @@ li.search-choice {
     background-color: #444444 !important;
     color: #eee !important;
     -webkit-box-shadow: none !important;
+    box-shadow: none !important;
     background-image: none !important;
 }
 
@@ -299,4 +297,3 @@ html, body, div, nav, .chosen-results {
   border-radius: 6px;
   border: 3px solid var(--scrollbarBG);
 }
-

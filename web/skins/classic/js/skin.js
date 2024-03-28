@@ -373,6 +373,8 @@ if ( currentView != 'none' && currentView != 'login' ) {
           .done(optionhelpModal)
           .fail(logAjaxFail);
     });
+
+    applyChosen();
   });
 
   // After retieving modal html via Ajax, this will insert it into the DOM
@@ -1098,6 +1100,15 @@ function isMobile() {
     result = true;
   }
   return result;
+}
+
+function applyChosen() {
+  const limit_search_threshold = 10;
+
+  $j('.chosen').chosen('destroy');
+  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold});
+  $j('.chosen.chosen-full-width').chosen({disable_search_threshold: limit_search_threshold, width: "100%"});
+  $j('.chosen.chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, width: "auto"});
 }
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});

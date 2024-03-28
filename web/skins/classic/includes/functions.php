@@ -1020,8 +1020,7 @@ function xhtmlFooter() {
   }
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
-  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen({disable_search_threshold: 10});</script>
+  <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
   </body>
 </html>
 <?php

@@ -738,7 +738,7 @@ ul.nav.nav-pills.flex-column {
 
 .chosen-container {
 text-align: left;
-min-width: 11em;
+/*min-width: 11em;*/ /* Why ???*/
 }
 
 .chosen-container-active .chosen-choices {

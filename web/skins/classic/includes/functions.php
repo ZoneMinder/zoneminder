@@ -1020,18 +1020,7 @@ function xhtmlFooter() {
   }
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
-  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">
-    function applyChosen() {
-      const limit_search_threshold = 10;
-
-      $j('.chosen').chosen('destroy');
-      $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold});
-      $j('.chosen.chosen-full-width').chosen({disable_search_threshold: limit_search_threshold, width: "100%"});
-      $j('.chosen.chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, width: "auto"});
-    }
-    $j(document).ready(applyChosen);
-  </script>
+  <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
   </body>
 </html>
 <?php

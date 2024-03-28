@@ -274,7 +274,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Update update reminders when the user makes a selection from the dropdown
     reminderClickFunction();
     // Manage the widget bar minimize chevron
-    $j("#flip").click(function() {
+    $j("#flip").click(navbarTwoFlip);
+    $j("#flipNarrow").click(navbarTwoFlip);
+
+    function navbarTwoFlip() {
       $j("#navbar-two").slideToggle("slow");
       const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
@@ -284,7 +287,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         flip.html('keyboard_arrow_up');
         setCookie('zmHeaderFlip', 'up');
       }
-    });
+    }
 
     // Manage visible object & control button (when pressing a button)
     $j("[data-flip-сontrol-object]").click(function() {
@@ -370,6 +373,8 @@ if ( currentView != 'none' && currentView != 'login' ) {
           .done(optionhelpModal)
           .fail(logAjaxFail);
     });
+
+    applyChosen();
   });
 
   // After retieving modal html via Ajax, this will insert it into the DOM
@@ -667,12 +672,12 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     newHeight = newWidth / ratio;
   }
   console.log("newWidth = " + newWidth);
-  var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
-  var scales = $j('#scale option').map(function() {
+  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
+  const scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
   scales.shift(); // pop off Scale To Fit
-  var closest = null;
+  let closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
@@ -682,6 +687,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     console.log("Setting to closest: " + closest + " instead of " + autoScale);
     autoScale = closest;
   }
+  if (autoScale < 10) autoScale = 10;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
@@ -1094,6 +1100,15 @@ function isMobile() {
     result = true;
   }
   return result;
+}
+
+function applyChosen() {
+  const limit_search_threshold = 10;
+
+  $j('.chosen').chosen('destroy');
+  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold});
+  $j('.chosen.chosen-full-width').chosen({disable_search_threshold: limit_search_threshold, width: "100%"});
+  $j('.chosen.chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, width: "auto"});
 }
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});

@@ -144,9 +144,9 @@ class SockAddrInet : public SockAddr {
  public:
   SockAddrInet() : SockAddr((sockaddr *) &mAddrIn) {}
   explicit SockAddrInet(const SockAddrInet &addr)
-      : SockAddr((const sockaddr *) &mAddrIn), mAddrIn(addr.mAddrIn) {}
+    : SockAddr((const sockaddr *) &mAddrIn), mAddrIn(addr.mAddrIn) {}
   explicit SockAddrInet(const sockaddr_in *addr)
-      : SockAddr((const sockaddr *) &mAddrIn), mAddrIn(*addr) {}
+    : SockAddr((const sockaddr *) &mAddrIn), mAddrIn(*addr) {}
 
   bool resolve(const char *host, const char *serv, const char *proto);
   bool resolve(const char *host, int port, const char *proto);
@@ -167,9 +167,9 @@ class SockAddrUnix : public SockAddr {
  public:
   SockAddrUnix() : SockAddr((sockaddr *) &mAddrUn) {}
   SockAddrUnix(const SockAddrUnix &addr)
-      : SockAddr((const sockaddr *) &mAddrUn), mAddrUn(addr.mAddrUn) {}
+    : SockAddr((const sockaddr *) &mAddrUn), mAddrUn(addr.mAddrUn) {}
   explicit SockAddrUnix(const sockaddr_un *addr)
-      : SockAddr((const sockaddr *) &mAddrUn), mAddrUn(*addr) {}
+    : SockAddr((const sockaddr *) &mAddrUn), mAddrUn(*addr) {}
 
   bool resolve(const char *path, const char *proto);
 
@@ -188,15 +188,15 @@ class Socket : public CommsBase {
   enum State { CLOSED, DISCONNECTED, LISTENING, CONNECTED };
 
   Socket() : CommsBase(mSd, mSd),
-             mSd(-1),
-             mState(CLOSED),
-             mLocalAddr(nullptr),
-             mRemoteAddr(nullptr) {}
+    mSd(-1),
+    mState(CLOSED),
+    mLocalAddr(nullptr),
+    mRemoteAddr(nullptr) {}
   Socket(const Socket &socket, int newSd) : CommsBase(mSd, mSd),
-                                            mSd(newSd),
-                                            mState(CONNECTED),
-                                            mLocalAddr(nullptr),
-                                            mRemoteAddr(nullptr) {
+    mSd(newSd),
+    mState(CONNECTED),
+    mLocalAddr(nullptr),
+    mRemoteAddr(nullptr) {
     if (socket.mLocalAddr)
       mLocalAddr = SockAddr::newSockAddr(mLocalAddr);
     if (socket.mRemoteAddr)
@@ -511,14 +511,14 @@ class TcpInetSocket : virtual public TcpSocket, virtual public InetSocket {
  public:
   TcpInetSocket() = default;
   TcpInetSocket(const TcpInetSocket &socket, int newSd)
-      : TcpSocket(socket, newSd) {}
+    : TcpSocket(socket, newSd) {}
 };
 
 class TcpUnixSocket : virtual public TcpSocket, virtual public UnixSocket {
  public:
   TcpUnixSocket() = default;
   TcpUnixSocket(const TcpUnixSocket &socket, int newSd)
-      : TcpSocket(socket, newSd) {}
+    : TcpSocket(socket, newSd) {}
 };
 
 class TcpInetClient : public TcpInetSocket {

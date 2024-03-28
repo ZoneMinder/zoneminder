@@ -1,21 +1,21 @@
 //
 // ZoneMinder RTSP Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_rtsp.h"
 
@@ -129,15 +129,15 @@ void RtspThread::releasePorts(int port) {
 }
 
 RtspThread::RtspThread(
-    int id,
-    RtspMethod method,
-    const std::string &protocol,
-    const std::string &host,
-    const std::string &port,
-    const std::string &path,
-    const std::string &user,
-    const std::string &pass,
-    bool rtsp_describe) :
+  int id,
+  RtspMethod method,
+  const std::string &protocol,
+  const std::string &host,
+  const std::string &port,
+  const std::string &path,
+  const std::string &user,
+  const std::string &pass,
+  bool rtsp_describe) :
   mId(id),
   mMethod(method),
   mProtocol(protocol),
@@ -152,8 +152,7 @@ RtspThread::RtspThread(
   mSsrc(0),
   mDist(UNDEFINED),
   mRtpTime(0),
-  mTerminate(false)
-{
+  mTerminate(false) {
   mUrl = mProtocol+"://"+mHost+":"+mPort;
   if ( !mPath.empty() ) {
     if ( mPath[0] == '/' )
@@ -168,7 +167,7 @@ RtspThread::RtspThread(
 
   if ( mMethod == RTP_RTSP_HTTP )
     mHttpSession = stringtf("%d", rand());
-  
+
   mNeedAuth = false;
   if ( user.length() > 0 && pass.length() > 0 ) {
     Debug(2, "# of auth parts 2");
@@ -213,11 +212,11 @@ void RtspThread::Run() {
   //select.addReader( &mRtspSocket );
   //while ( select.wait() )
   //{
-    //mRtspSocket.recv( response );
-    //Debug( 4, "Drained %d bytes from RTSP socket", response.size() );
+  //mRtspSocket.recv( response );
+  //Debug( 4, "Drained %d bytes from RTSP socket", response.size() );
   //}
-  
-  bool authTried = false; 
+
+  bool authTried = false;
   if ( mMethod == RTP_RTSP_HTTP ) {
     if ( !mRtspSocket2.connect(mHost.c_str(), mPort.c_str()) )
       Fatal("Unable to connect auxiliary RTSP/HTTP socket");
@@ -225,11 +224,11 @@ void RtspThread::Run() {
     //select.addReader( &mRtspSocket2 );
     //while ( select.wait() )
     //{
-      //mRtspSocket2.recv( response );
-      //Debug( 4, "Drained %d bytes from HTTP socket", response.size() );
+    //mRtspSocket2.recv( response );
+    //Debug( 4, "Drained %d bytes from HTTP socket", response.size() );
     //}
-    
-    //possibly retry sending the message for authentication 
+
+    //possibly retry sending the message for authentication
     int respCode = -1;
     char respText[256];
     do {
@@ -249,7 +248,7 @@ void RtspThread::Run() {
         Error("Recv failed; %s", strerror(errno));
         return;
       }
-    
+
       Debug(2, "Received HTTP response: %s (%zd bytes)", response.c_str(), response.size());
       float respVer = 0;
       respCode = -1;
@@ -274,9 +273,9 @@ void RtspThread::Run() {
           Fatal("Unable to reconnect RTSP socket");
         Debug(2, "connection should be reopened now");
       }
-      
-    } while (respCode == 401 && !authTried);  
-    
+
+    } while (respCode == 401 && !authTried);
+
     if ( respCode != 200 ) {
       Error("Unexpected response code %d, text is '%s'", respCode, respText);
       return;
@@ -381,8 +380,7 @@ void RtspThread::Run() {
   if ( !mAuth.empty() )
     authUrl.insert( authUrl.find( "://" )+3, mAuth+"@" );
 
-  if ( av_open_input_file( &mFormatContext, authUrl.c_str(), nullptr, 0, nullptr ) != 0 )
-  {
+  if ( av_open_input_file( &mFormatContext, authUrl.c_str(), nullptr, 0, nullptr ) != 0 ) {
     Error( "Unable to open input '%s'", authUrl.c_str() );
     return( -1 );
   }
@@ -391,9 +389,9 @@ void RtspThread::Run() {
   uint32_t rtpClock = 0;
   std::string trackUrl = mUrl;
   std::string controlUrl;
-  
+
   _AVCODECID codecId = AV_CODEC_ID_NONE;
-  
+
   if ( mFormatContext->nb_streams >= 1 ) {
     for ( unsigned int i = 0; i < mFormatContext->nb_streams; i++ ) {
       SessionDescriptor::MediaDescriptor *mediaDesc = mSessDesc->getStream(i);
@@ -415,23 +413,23 @@ void RtspThread::Run() {
   }  // end if have stream
 
   switch ( mMethod ) {
-    case RTP_UNICAST :
-      localPorts[0] = requestPorts();
-      localPorts[1] = localPorts[0]+1;
+  case RTP_UNICAST :
+    localPorts[0] = requestPorts();
+    localPorts[1] = localPorts[0]+1;
 
-      message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;unicast;client_port="
-        +stringtf("%d", localPorts[0] )+"-"+stringtf( "%d", localPorts[1])+"\r\n";
-      break;
-    case RTP_MULTICAST :
-      message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;multicast\r\n";
-      break;
-    case RTP_RTSP :
-    case RTP_RTSP_HTTP :
-      message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP/TCP;unicast\r\n";
-      break;
-    default:
-      Panic("Got unexpected method %d", mMethod);
-      break;
+    message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;unicast;client_port="
+              +stringtf("%d", localPorts[0] )+"-"+stringtf( "%d", localPorts[1])+"\r\n";
+    break;
+  case RTP_MULTICAST :
+    message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP;multicast\r\n";
+    break;
+  case RTP_RTSP :
+  case RTP_RTSP_HTTP :
+    message = "SETUP "+trackUrl+" RTSP/1.0\r\nTransport: RTP/AVP/TCP;unicast\r\n";
+    break;
+  default:
+    Panic("Got unexpected method %d", mMethod);
+    break;
   }
 
   if ( !sendCommand(message) )
@@ -448,7 +446,7 @@ void RtspThread::Run() {
     if ( ( lines[i].size() > 8 ) && ( lines[i].substr(0, 8) == "Session:" ) ) {
       StringVector sessionLine = Split(lines[i].substr(9), ";");
       session = TrimSpaces(sessionLine[0]);
-      if ( sessionLine.size() == 2 ){
+      if ( sessionLine.size() == 2 ) {
         int32 timeout_val = 0;
         sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout_val);
         timeout = Seconds(timeout_val);
@@ -527,7 +525,7 @@ void RtspThread::Run() {
     // Check for a timeout again. Some rtsp devices don't send a timeout until after the PLAY command is sent
     if ((lines[i].size() > 8) && (lines[i].substr(0, 8) == "Session:") && (timeout == Seconds(0))) {
       StringVector sessionLine = Split(lines[i].substr(9), ";");
-      if ( sessionLine.size() == 2 ){
+      if ( sessionLine.size() == 2 ) {
         int32 timeout_val = 0;
         sscanf(TrimSpaces(sessionLine[1]).c_str(), "timeout=%d", &timeout_val);
         timeout = Seconds(timeout_val);
@@ -563,7 +561,7 @@ void RtspThread::Run() {
             rtpTime = strtol( subparts[1].c_str(), nullptr, 10 );
           }
         }
-      break;
+        break;
       }
     }
   }
@@ -576,218 +574,215 @@ void RtspThread::Run() {
   message = "GET_PARAMETER "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
 
   switch( mMethod ) {
-    case RTP_UNICAST :
-    {
-      RtpSource *source = new RtpSource( mId, "", localPorts[0], mHost, remotePorts[0], ssrc, seq, rtpClock, rtpTime, codecId );
-      mSources[ssrc] = source;
-      RtpDataThread rtpDataThread( *this, *source );
-      RtpCtrlThread rtpCtrlThread( *this, *source );
+  case RTP_UNICAST : {
+    RtpSource *source = new RtpSource( mId, "", localPorts[0], mHost, remotePorts[0], ssrc, seq, rtpClock, rtpTime, codecId );
+    mSources[ssrc] = source;
+    RtpDataThread rtpDataThread( *this, *source );
+    RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      while (!mTerminate) {
-        now = std::chrono::steady_clock::now();
-        // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        Debug(5, "sendkeepalive %d, timeout %" PRIi64 " s, now: %" PRIi64 " s last: %" PRIi64 " s since: %" PRIi64 "s ",
-              sendKeepalive,
-              static_cast<int64>(Seconds(timeout).count()),
-              static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
-              static_cast<int64>(std::chrono::duration_cast<Seconds>(lastKeepalive.time_since_epoch()).count()),
-              static_cast<int64>(std::chrono::duration_cast<Seconds>((now - lastKeepalive)).count()));
+    while (!mTerminate) {
+      now = std::chrono::steady_clock::now();
+      // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
+      Debug(5, "sendkeepalive %d, timeout %" PRIi64 " s, now: %" PRIi64 " s last: %" PRIi64 " s since: %" PRIi64 "s ",
+            sendKeepalive,
+            static_cast<int64>(Seconds(timeout).count()),
+            static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
+            static_cast<int64>(std::chrono::duration_cast<Seconds>(lastKeepalive.time_since_epoch()).count()),
+            static_cast<int64>(std::chrono::duration_cast<Seconds>((now - lastKeepalive)).count()));
 
-        if (sendKeepalive && (timeout > Seconds(0)) && ((now - lastKeepalive) > (timeout - Seconds(5)))) {
-          if (!sendCommand(message))
-            return;
-          lastKeepalive = now;
-        }
-        std::this_thread::sleep_for(Microseconds(100));
+      if (sendKeepalive && (timeout > Seconds(0)) && ((now - lastKeepalive) > (timeout - Seconds(5)))) {
+        if (!sendCommand(message))
+          return;
+        lastKeepalive = now;
       }
+      std::this_thread::sleep_for(Microseconds(100));
+    }
 #if 0
-      message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
-      if ( !sendCommand( message ) )
-        return( -1 );
-      if ( !recvResponse( response ) )
-        return( -1 );
+    message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
+    if ( !sendCommand( message ) )
+      return( -1 );
+    if ( !recvResponse( response ) )
+      return( -1 );
 #endif
 
-      message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
-      if ( !sendCommand( message ) )
-        return;
-      if ( !recvResponse( response ) )
-        return;
+    message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
+    if ( !sendCommand( message ) )
+      return;
+    if ( !recvResponse( response ) )
+      return;
 
-      rtpDataThread.Stop();
-      rtpCtrlThread.Stop();
+    rtpDataThread.Stop();
+    rtpCtrlThread.Stop();
 
-      //rtpDataThread.kill( SIGTERM );
-      //rtpCtrlThread.kill( SIGTERM );
+    //rtpDataThread.kill( SIGTERM );
+    //rtpCtrlThread.kill( SIGTERM );
 
-      delete mSources[ssrc];
-      mSources.clear();
+    delete mSources[ssrc];
+    mSources.clear();
 
-      releasePorts( localPorts[0] );
+    releasePorts( localPorts[0] );
 
-      break;
-    }
-    case RTP_RTSP :
-    case RTP_RTSP_HTTP :
-    {
-      RtpSource *source = new RtpSource( mId, "", remoteChannels[0], mHost, remoteChannels[0], ssrc, seq, rtpClock, rtpTime, codecId );
-      mSources[ssrc] = source;
-      // These never actually run
-      RtpDataThread rtpDataThread( *this, *source );
-      RtpCtrlThread rtpCtrlThread( *this, *source );
+    break;
+  }
+  case RTP_RTSP :
+  case RTP_RTSP_HTTP : {
+    RtpSource *source = new RtpSource( mId, "", remoteChannels[0], mHost, remoteChannels[0], ssrc, seq, rtpClock, rtpTime, codecId );
+    mSources[ssrc] = source;
+    // These never actually run
+    RtpDataThread rtpDataThread( *this, *source );
+    RtpCtrlThread rtpCtrlThread( *this, *source );
 
-      zm::Select select(Milliseconds(config.http_timeout));
-      select.addReader( &mRtspSocket );
+    zm::Select select(Milliseconds(config.http_timeout));
+    select.addReader( &mRtspSocket );
 
-      Buffer buffer( ZM_NETWORK_BUFSIZ );
-      std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
-      std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
-      while (!mTerminate && select.wait() >= 0) {
-        zm::Select::CommsList readable = select.getReadable();
-        if ( readable.size() == 0 ) {
-          Error( "RTSP timed out" );
-          break;
-        }
+    Buffer buffer( ZM_NETWORK_BUFSIZ );
+    std::string keepaliveMessage = "OPTIONS "+mUrl+" RTSP/1.0\r\n";
+    std::string keepaliveResponse = "RTSP/1.0 200 OK\r\n";
+    while (!mTerminate && select.wait() >= 0) {
+      zm::Select::CommsList readable = select.getReadable();
+      if ( readable.size() == 0 ) {
+        Error( "RTSP timed out" );
+        break;
+      }
 
-        static char tempBuffer[ZM_NETWORK_BUFSIZ];
-        ssize_t nBytes = mRtspSocket.recv( tempBuffer, sizeof(tempBuffer) );
-        buffer.append( tempBuffer, nBytes );
-        Debug( 4, "Read %zd bytes on sd %d, %d total", nBytes, mRtspSocket.getReadDesc(), buffer.size() );
+      static char tempBuffer[ZM_NETWORK_BUFSIZ];
+      ssize_t nBytes = mRtspSocket.recv( tempBuffer, sizeof(tempBuffer) );
+      buffer.append( tempBuffer, nBytes );
+      Debug( 4, "Read %zd bytes on sd %d, %d total", nBytes, mRtspSocket.getReadDesc(), buffer.size() );
 
-        while( buffer.size() > 0 ) {
-          if ( buffer[0] == '$' ) {
-            if ( buffer.size() < 4 )
-              break;
-            unsigned char channel = buffer[1];
-            unsigned short len = ntohs( *((unsigned short *)(buffer+2)) );
+      while( buffer.size() > 0 ) {
+        if ( buffer[0] == '$' ) {
+          if ( buffer.size() < 4 )
+            break;
+          unsigned char channel = buffer[1];
+          unsigned short len = ntohs( *((unsigned short *)(buffer+2)) );
 
-            Debug( 4, "Got %d bytes left, expecting %d byte packet on channel %d", buffer.size(), len, channel );
-            if ( (unsigned short)buffer.size() < (len+4) ) {
-              Debug( 4, "Missing %d bytes, rereading", (len+4)-buffer.size() );
-              break;
-            }
-            if ( channel == remoteChannels[0] ) {
-              Debug(4, "Got %d bytes on data channel %d, packet length is %d", buffer.size(), channel, len);
-              Hexdump(4, (char *)buffer, 16);
-              rtpDataThread.recvPacket(buffer+4, len);
-            } else if ( channel == remoteChannels[1] ) {
+          Debug( 4, "Got %d bytes left, expecting %d byte packet on channel %d", buffer.size(), len, channel );
+          if ( (unsigned short)buffer.size() < (len+4) ) {
+            Debug( 4, "Missing %d bytes, rereading", (len+4)-buffer.size() );
+            break;
+          }
+          if ( channel == remoteChannels[0] ) {
+            Debug(4, "Got %d bytes on data channel %d, packet length is %d", buffer.size(), channel, len);
+            Hexdump(4, (char *)buffer, 16);
+            rtpDataThread.recvPacket(buffer+4, len);
+          } else if ( channel == remoteChannels[1] ) {
 //              len = ntohs( *((unsigned short *)(buffer+2)) );
 //              Debug( 4, "Got %d bytes on control channel %d", nBytes, channel );
-              Debug(4, "Got %d bytes on control channel %d, packet length is %d", buffer.size(), channel, len);
-              Hexdump(4, (char *)buffer, 16);
-              rtpCtrlThread.recvPackets(buffer+4, len);
-            } else {
-              Error("Unexpected channel selector %d in RTSP interleaved data", buffer[1]);
-              buffer.clear();
-              break;
-            }
-            buffer.consume(len+4);
-            nBytes -= len+4;
+            Debug(4, "Got %d bytes on control channel %d, packet length is %d", buffer.size(), channel, len);
+            Hexdump(4, (char *)buffer, 16);
+            rtpCtrlThread.recvPackets(buffer+4, len);
           } else {
-            if ( keepaliveResponse.compare( 0, keepaliveResponse.size(), (char *)buffer, keepaliveResponse.size() ) == 0 ) {
-              Debug( 4, "Got keepalive response '%s'", (char *)buffer );
-              //buffer.consume( keepaliveResponse.size() );
-              if ( const char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
-                int discardBytes = charPtr-(char *)buffer;
-                buffer -= discardBytes;
-              } else {
-                buffer.clear();
-              }
+            Error("Unexpected channel selector %d in RTSP interleaved data", buffer[1]);
+            buffer.clear();
+            break;
+          }
+          buffer.consume(len+4);
+          nBytes -= len+4;
+        } else {
+          if ( keepaliveResponse.compare( 0, keepaliveResponse.size(), (char *)buffer, keepaliveResponse.size() ) == 0 ) {
+            Debug( 4, "Got keepalive response '%s'", (char *)buffer );
+            //buffer.consume( keepaliveResponse.size() );
+            if ( const char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
+              int discardBytes = charPtr-(char *)buffer;
+              buffer -= discardBytes;
             } else {
-              if ( const char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
-                int discardBytes = charPtr-(char *)buffer;
-                Warning( "Unexpected format RTSP interleaved data, resyncing by %d bytes", discardBytes );
-                Hexdump( -1, (char *)buffer, discardBytes );
-                buffer -= discardBytes;
-              } else {
-                Warning( "Unexpected format RTSP interleaved data, dumping %d bytes", buffer.size() );
-                Hexdump( -1, (char *)buffer, 32 );
-                buffer.clear();
-              }
+              buffer.clear();
+            }
+          } else {
+            if ( const char *charPtr = (char *)memchr( (char *)buffer, '$', buffer.size() ) ) {
+              int discardBytes = charPtr-(char *)buffer;
+              Warning( "Unexpected format RTSP interleaved data, resyncing by %d bytes", discardBytes );
+              Hexdump( -1, (char *)buffer, discardBytes );
+              buffer -= discardBytes;
+            } else {
+              Warning( "Unexpected format RTSP interleaved data, dumping %d bytes", buffer.size() );
+              Hexdump( -1, (char *)buffer, 32 );
+              buffer.clear();
             }
           }
         }
-        // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        // FIXME: Is this really necessary when using tcp ?
-        now = std::chrono::steady_clock::now();
-        // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        Debug(5, "sendkeepalive %d, timeout %" PRIi64 " s, now: %" PRIi64 " s last: %" PRIi64 " s since: %" PRIi64 " s",
-              sendKeepalive,
-              static_cast<int64>(Seconds(timeout).count()),
-              static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
-              static_cast<int64>(std::chrono::duration_cast<Seconds>(lastKeepalive.time_since_epoch()).count()),
-              static_cast<int64>(std::chrono::duration_cast<Seconds>((now - lastKeepalive)).count()));
-
-        if (sendKeepalive && (timeout > Seconds(0)) && ((now - lastKeepalive) > (timeout - Seconds(5)))) {
-          if (!sendCommand(message)) {
-            return;
-          }
-
-          lastKeepalive = now;
-        }
-        buffer.tidy(true);
       }
-#if 0
-      message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
-      if ( !sendCommand( message ) )
-        return( -1 );
-      if ( !recvResponse( response ) )
-        return( -1 );
-#endif
-      // Send a teardown message but don't expect a response as this may not be implemented on the server when using TCP
-      message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
-      if ( !sendCommand( message ) )
-        return;
+      // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
+      // FIXME: Is this really necessary when using tcp ?
+      now = std::chrono::steady_clock::now();
+      // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
+      Debug(5, "sendkeepalive %d, timeout %" PRIi64 " s, now: %" PRIi64 " s last: %" PRIi64 " s since: %" PRIi64 " s",
+            sendKeepalive,
+            static_cast<int64>(Seconds(timeout).count()),
+            static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count()),
+            static_cast<int64>(std::chrono::duration_cast<Seconds>(lastKeepalive.time_since_epoch()).count()),
+            static_cast<int64>(std::chrono::duration_cast<Seconds>((now - lastKeepalive)).count()));
 
-      delete mSources[ssrc];
-      mSources.clear();
-
-      break;
-    }
-    case RTP_MULTICAST :
-    {
-      RtpSource *source = new RtpSource( mId, localHost, localPorts[0], mHost, remotePorts[0], ssrc, seq, rtpClock, rtpTime, codecId );
-      mSources[ssrc] = source;
-      RtpDataThread rtpDataThread( *this, *source );
-      RtpCtrlThread rtpCtrlThread( *this, *source );
-
-
-      while (!mTerminate) {
-        // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
-        if (sendKeepalive && (timeout > Seconds(0))
-            && ((std::chrono::steady_clock::now() - lastKeepalive) > (timeout - Seconds(5)))) {
-          if (!sendCommand(message)) {
-            return;
-          }
-          lastKeepalive = std::chrono::steady_clock::now();
+      if (sendKeepalive && (timeout > Seconds(0)) && ((now - lastKeepalive) > (timeout - Seconds(5)))) {
+        if (!sendCommand(message)) {
+          return;
         }
-        std::this_thread::sleep_for(Microseconds(100));
+
+        lastKeepalive = now;
       }
-#if 0
-      message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
-      if ( !sendCommand( message ) )
-        return( -1 );
-      if ( !recvResponse( response ) )
-        return( -1 );
-#endif
-      message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
-      if ( !sendCommand(message) )
-        return;
-      if ( !recvResponse(response) )
-        return;
-
-      rtpDataThread.Stop();
-      rtpCtrlThread.Stop();
-     
-      delete mSources[ssrc];
-      mSources.clear();
-
-      releasePorts( localPorts[0] );
-      break;
+      buffer.tidy(true);
     }
-    default:
-      Panic("Got unexpected method %d", mMethod);
-      break;
+#if 0
+    message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
+    if ( !sendCommand( message ) )
+      return( -1 );
+    if ( !recvResponse( response ) )
+      return( -1 );
+#endif
+    // Send a teardown message but don't expect a response as this may not be implemented on the server when using TCP
+    message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
+    if ( !sendCommand( message ) )
+      return;
+
+    delete mSources[ssrc];
+    mSources.clear();
+
+    break;
+  }
+  case RTP_MULTICAST : {
+    RtpSource *source = new RtpSource( mId, localHost, localPorts[0], mHost, remotePorts[0], ssrc, seq, rtpClock, rtpTime, codecId );
+    mSources[ssrc] = source;
+    RtpDataThread rtpDataThread( *this, *source );
+    RtpCtrlThread rtpCtrlThread( *this, *source );
+
+
+    while (!mTerminate) {
+      // Send a keepalive message if the server supports this feature and we are close to the timeout expiration
+      if (sendKeepalive && (timeout > Seconds(0))
+          && ((std::chrono::steady_clock::now() - lastKeepalive) > (timeout - Seconds(5)))) {
+        if (!sendCommand(message)) {
+          return;
+        }
+        lastKeepalive = std::chrono::steady_clock::now();
+      }
+      std::this_thread::sleep_for(Microseconds(100));
+    }
+#if 0
+    message = "PAUSE "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
+    if ( !sendCommand( message ) )
+      return( -1 );
+    if ( !recvResponse( response ) )
+      return( -1 );
+#endif
+    message = "TEARDOWN "+mUrl+" RTSP/1.0\r\nSession: "+session+"\r\n";
+    if ( !sendCommand(message) )
+      return;
+    if ( !recvResponse(response) )
+      return;
+
+    rtpDataThread.Stop();
+    rtpCtrlThread.Stop();
+
+    delete mSources[ssrc];
+    mSources.clear();
+
+    releasePorts( localPorts[0] );
+    break;
+  }
+  default:
+    Panic("Got unexpected method %d", mMethod);
+    break;
   }
 
   return;

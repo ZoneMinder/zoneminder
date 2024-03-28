@@ -1,21 +1,21 @@
 //
 // ZoneMinder RGB Interface, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_RGB_H
 #define ZM_RGB_H
@@ -120,31 +120,31 @@ constexpr Rgb kRGBTransparent = 0x01000000;
 /* Convert RGB colour value into BGR\ARGB\ABGR */
 inline Rgb rgb_convert(Rgb p_col, int p_subpixorder) {
   Rgb result = 0;
-  
+
   switch (p_subpixorder) {
-    case ZM_SUBPIX_ORDER_BGR:
-    case ZM_SUBPIX_ORDER_BGRA:
-      BLUE_PTR_BGRA(&result) = BLUE_VAL_RGBA(p_col);
-      GREEN_PTR_BGRA(&result) = GREEN_VAL_RGBA(p_col);
-      RED_PTR_BGRA(&result) = RED_VAL_RGBA(p_col);
-      break;
-    case ZM_SUBPIX_ORDER_ARGB:
-      BLUE_PTR_ARGB(&result) = BLUE_VAL_RGBA(p_col);
-      GREEN_PTR_ARGB(&result) = GREEN_VAL_RGBA(p_col);
-      RED_PTR_ARGB(&result) = RED_VAL_RGBA(p_col);
-      break;
-    case ZM_SUBPIX_ORDER_ABGR:
-      BLUE_PTR_ABGR(&result) = BLUE_VAL_RGBA(p_col);
-      GREEN_PTR_ABGR(&result) = GREEN_VAL_RGBA(p_col);
-      RED_PTR_ABGR(&result) = RED_VAL_RGBA(p_col);
-      break;
-      /* Grayscale */
-    case ZM_SUBPIX_ORDER_NONE:
-      result = p_col & 0xff;
-      break;
-    default:
-      result = p_col;
-      break;
+  case ZM_SUBPIX_ORDER_BGR:
+  case ZM_SUBPIX_ORDER_BGRA:
+    BLUE_PTR_BGRA(&result) = BLUE_VAL_RGBA(p_col);
+    GREEN_PTR_BGRA(&result) = GREEN_VAL_RGBA(p_col);
+    RED_PTR_BGRA(&result) = RED_VAL_RGBA(p_col);
+    break;
+  case ZM_SUBPIX_ORDER_ARGB:
+    BLUE_PTR_ARGB(&result) = BLUE_VAL_RGBA(p_col);
+    GREEN_PTR_ARGB(&result) = GREEN_VAL_RGBA(p_col);
+    RED_PTR_ARGB(&result) = RED_VAL_RGBA(p_col);
+    break;
+  case ZM_SUBPIX_ORDER_ABGR:
+    BLUE_PTR_ABGR(&result) = BLUE_VAL_RGBA(p_col);
+    GREEN_PTR_ABGR(&result) = GREEN_VAL_RGBA(p_col);
+    RED_PTR_ABGR(&result) = RED_VAL_RGBA(p_col);
+    break;
+  /* Grayscale */
+  case ZM_SUBPIX_ORDER_NONE:
+    result = p_col & 0xff;
+    break;
+  default:
+    result = p_col;
+    break;
   }
 
   return result;

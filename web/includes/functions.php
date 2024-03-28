@@ -2430,7 +2430,7 @@ function output_file($path, $chunkSize=1024) {
   if (isset($_SERVER['HTTP_RANGE'])) {
     list($a, $range) = explode('=', $_SERVER['HTTP_RANGE']);
     str_replace($range, '-', $range);
-    $range = int($range); #fseek etc require integers not strings
+    $range = (int)$range; #fseek etc require integers not strings
     $size2 = $size - 1;
     $new_length = $size - $range;
     header('HTTP/1.1 206 Partial Content');

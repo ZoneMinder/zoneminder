@@ -659,21 +659,6 @@ function updatePresetLabels() {
   $j('#newLabel').val(labels[lblNdx]);
 }
 
-function getCtrlPresetModal() {
-  $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId)
-      .done(function(data) {
-        insertModalHtml('ctrlPresetModal', data.html);
-        updatePresetLabels();
-        // Manage the Preset Select box
-        $j('#preset').change(updatePresetLabels);
-        // Manage the Save button
-        $j('#cPresetSubmitModal').click(function(evt) {
-          evt.preventDefault();
-          $j('#ctrlPresetForm').submit();
-        });
-      })
-      .fail(logAjaxFail);
-}
 
 function changeControl(e) {
   const input = e.target;
@@ -762,10 +747,34 @@ function refresh_events_table() {
   table.bootstrapTable('refresh');
 }
 
+function controlSetClicked() {
+  console.log("Clicked");
+  const modal = $j('#ctrlPresetModal');
+  if (!modal.lenth) {
+    console.log('loading');
+    // Load the PTZ Preset modal into the DOM
+    $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId+'&'+auth_relay)
+      .done(function(data) {
+        insertModalHtml('ctrlPresetModal', data.html);
+        updatePresetLabels();
+        // Manage the Preset Select box
+        $j('#preset').change(updatePresetLabels);
+        // Manage the Save button
+        $j('#cPresetSubmitModal').click(function(evt) {
+          evt.preventDefault();
+          $j('#ctrlPresetForm').submit();
+        });
+        $j('#ctrlPresetModal').modal('show');
+      })
+      .fail(logAjaxFail);
+  } else {
+    console.log('not loading');
+    modal.modal('show');
+  }
+}
+
 function initPage() {
   if (canView.Control) {
-    // Load the PTZ Preset modal into the DOM
-    if (monitorControllable) getCtrlPresetModal();
     // Load the settings modal into the DOM
     if (monitorType == 'Local') getSettingsModal();
   }

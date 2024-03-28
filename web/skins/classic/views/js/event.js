@@ -1367,8 +1367,10 @@ function initPage() {
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
     const mapDiv = document.getElementById('LocationMap');
-    mapDiv.style('width: 450px');
-    mapDiv.style('height: 450px');
+    if (mapDiv) {
+      mapDiv.style.width='450px';
+      mapDiv.style.height='450px';
+    }
     if ( window.L ) {
       map = L.map('LocationMap', {
         center: L.latLng(eventData.Latitude, eventData.Longitude),

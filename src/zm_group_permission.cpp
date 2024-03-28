@@ -57,7 +57,7 @@ Group_Permission::Permission Group_Permission::getPermission(int monitor_id) {
   }
 
   for (auto i = monitor_ids.begin();
-      i != monitor_ids.end(); ++i ) {
+       i != monitor_ids.end(); ++i ) {
     if ( *i == monitor_id ) {
       return permission;
     }

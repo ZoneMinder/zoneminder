@@ -21,6 +21,11 @@
  * Primary look and feel styles
  */
 
+:root {
+  --scrollbarBG: #CFD8DC;
+  --sliderBG: #95AFC0;
+}
+
 body {
     color: #dddddd;
     background-color: #222222;
@@ -155,6 +160,7 @@ fieldset {
 
 input, textarea, select, button, .btn-primary {
   background-color: rgb(68,68,68);
+  border-color: var(--gray);
   color: #dddddd;
 }
 /* PP - make it easy to identify disabled buttons */
@@ -184,6 +190,10 @@ input[type=submit]:disabled,
   width: 100%;
   margin-bottom: 1rem;
   color: #eeeeee;
+}
+
+.table td, .table th, .table thead th {
+  border-color: var(--gray);
 }
 
 .table-striped > tbody > tr:nth-of-type(2n+1) {
@@ -221,6 +231,24 @@ li.search-choice {
     -webkit-box-shadow: none !important;
     background-image: none !important;
 }
+
+.chosen-container-multi .chosen-choices {
+  border-color: var(--gray);
+}
+
+.chosen-container-active .chosen-choices {
+  border-color: var(--gray);
+}
+
+.chosen-container .chosen-results li.highlighted {
+  background-color: #222222;
+  background-image: none;
+  color: #fff;
+}
+
+.chosen-container-active .chosen-choices li.search-field input[type=text] {
+  color: inherit !important;
+}
 /* end chosen override */
 
 .modal-content {
@@ -250,3 +278,25 @@ ul.nav.nav-pills.flex-column {
 .hlight{
   background:#444444;
 }
+
+/* Change scrollbar style */
+::-webkit-scrollbar, div::-webkit-scrollbar, nav::-webkit-scrollbar, .chosen-results::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+html, body, div, nav, .chosen-results {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sliderBG) var(--scrollbarBG);
+}
+
+::-webkit-scrollbar-track, div::-webkit-scrollbar-track, nav::-webkit-scrollbar-track, .chosen-results::-webkit-scrollbar-track {
+  background: var(--scrollbarBG);
+}
+
+::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scrollbar-thumb, .chosen-results::-webkit-scrollbar-thumb {
+  background-color: var(--sliderBG);
+  border-radius: 6px;
+  border: 3px solid var(--scrollbarBG);
+}
+

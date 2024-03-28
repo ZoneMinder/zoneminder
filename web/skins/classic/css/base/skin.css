@@ -68,7 +68,6 @@ body.sticky {
   display: flex;
   flex-flow: column nowrap;
   flex-direction: column;
-  height: 100%;
 }
 
 h1 {
@@ -739,7 +738,11 @@ ul.nav.nav-pills.flex-column {
 
 .chosen-container {
 text-align: left;
-min-width: 11em;
+/*min-width: 11em;*/ /* Why ???*/
+}
+
+.chosen-container-active .chosen-choices {
+    border-color:rgb(200,200,200);
 }
 
 .chosen-single,
@@ -750,10 +753,9 @@ min-width: 11em;
 .chosen-drop,
 .chosen-choices,
 li.search-choice {
-    font-size: inherit !important;
+    font-size: inherit;
     border-radius:4px;
-    border-color:rgb(200,200,200) !important ;
-	
+    border-color:rgb(200,200,200);
 }
 
 .reduced-text { 
@@ -996,4 +998,8 @@ button .material-icons {
 .tag-input:focus + .tag-dropdown-content,
 .tag-input + .tag-dropdown-content:active {
   display: block;
+}
+
+input.hasDatepicker {
+  max-width:140px;
 }

@@ -239,7 +239,7 @@ function parseRows(rows) {
         archiveSelect.append('<option value="' + i + '">' + archiveTypes[i] + '</option>');
       }
       var archiveVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(archiveSelect).children().val(archiveVal).addClass('chosen chosen-full-width'); 
+      inputTds.eq(4).html(archiveSelect).children().val(archiveVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'AlarmedZoneId' ) {
       var zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for ( monitor_id in monitors ) {

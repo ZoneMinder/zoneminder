@@ -174,7 +174,6 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   if (!initialised)
     Initialise();
   pixels = width * height;
-  linesize = p_width * p_colours;
 
   if (!subpixelorder and (colours>1)) {
     // Default to RGBA when no subpixelorder is specified.
@@ -182,15 +181,14 @@ Image::Image(int p_width, int p_height, int p_colours, int p_subpixelorder, uint
   }
 
   imagePixFormat = AVPixFormat();
+  linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
+  size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
 
   if (p_buffer) {
-    size = linesize * height + padding;
     allocation = size;
     buffertype = ZM_BUFTYPE_DONTFREE;
     buffer = p_buffer;
   } else {
-    size = av_image_get_buffer_size(imagePixFormat, width, height, 32);
-    linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
 
     Debug(4, "line size: %d =? %d width %d Size %d ?= %d", linesize,
           av_image_get_linesize(imagePixFormat, width, 0),
@@ -233,10 +231,10 @@ Image::Image(int p_width, int p_linesize, int p_height, int p_colours, int p_sub
 }
 
 Image::Image(const AVFrame *frame, int p_width, int p_height) :
-  colours(ZM_COLOUR_RGB32),
+  colours(ZM_COLOUR_RGB24),
   padding(0),
-  subpixelorder(ZM_SUBPIX_ORDER_RGBA),
-  imagePixFormat(AV_PIX_FMT_RGBA),
+  subpixelorder(ZM_SUBPIX_ORDER_YUV420P),
+  imagePixFormat(AV_PIX_FMT_YUVJ420P),
   buffer(0),
   holdbuffer(0) {
   width = (p_width == -1 ? frame->width : p_width);
@@ -247,9 +245,9 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
   // FIXME
   //(AVPixelFormat)frame->format;
 
-  size = av_image_get_buffer_size(AV_PIX_FMT_RGBA, width, height, 32);
+  size = av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32);
   // av_image_get_linesize isn't aligned, so we have to do that.
-  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_RGBA, width, 0), 32);
+  linesize = FFALIGN(av_image_get_linesize(AV_PIX_FMT_YUVJ420P, width, 0), 32);
 
   AllocImgBuffer(size);
   this->Assign(frame);
@@ -676,7 +674,7 @@ void Image::AssignDirect(
     return;
   }
 
-  size_t new_buffer_size = static_cast<size_t>(p_width) * p_height * p_colours;
+  size_t new_buffer_size = static_cast<size_t>(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32)); // hardcoded hack
 
   if ( buffer_size < new_buffer_size ) {
     Error("Attempt to directly assign buffer from an undersized buffer of size: %zu, needed %dx%d*%d colours = %zu",
@@ -707,8 +705,9 @@ void Image::AssignDirect(
   width = p_width;
   height = p_height;
   colours = p_colours;
-  linesize = width * colours;
   subpixelorder = p_subpixelorder;
+  imagePixFormat = AVPixFormat();
+  linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
   pixels = width * height;
   size = new_buffer_size;
   update_function_pointers();
@@ -727,7 +726,7 @@ void Image::Assign(
     return;
   }
 
-  unsigned int new_size = p_width * p_height * p_colours;
+  unsigned int new_size = av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32); // hardcoded hack
   if ( buffer_size < new_size ) {
     Error("Attempt to assign buffer from an undersized buffer of size: %zu", buffer_size);
     return;
@@ -762,6 +761,8 @@ void Image::Assign(
     pixels = width*height;
     colours = p_colours;
     subpixelorder = p_subpixelorder;
+    imagePixFormat = AVPixFormat();
+    linesize = FFALIGN(av_image_get_linesize(imagePixFormat, width, 0), 32);
     size = new_size;
   }
 
@@ -771,7 +772,7 @@ void Image::Assign(
 }
 
 void Image::Assign(const Image &image) {
-  unsigned int new_size = image.height * image.linesize;
+  unsigned int new_size = av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32); // hardcoded hack
 
   if ( image.buffer == nullptr ) {
     Error("Attempt to assign image with an empty buffer");
@@ -809,26 +810,14 @@ void Image::Assign(const Image &image) {
     pixels = width*height;
     colours = image.colours;
     subpixelorder = image.subpixelorder;
+    imagePixFormat = image.imagePixFormat;
     size = new_size;
     linesize = image.linesize;
     update_function_pointers();
   }
 
-  if ( image.buffer != buffer ) {
-    if (image.linesize > linesize) {
-      Debug(1, "Must copy line by line due to different line size %d != %d", image.linesize, linesize);
-      uint8_t *src_ptr = image.buffer;
-      uint8_t *dst_ptr = buffer;
-      for (unsigned int i=0; i< image.height; i++) {
-        (*fptr_imgbufcpy)(dst_ptr, src_ptr, image.linesize);
-        src_ptr += image.linesize;
-        dst_ptr += linesize;
-      }
-    } else {
-      Debug(4, "Doing full copy line size %d != %d", image.linesize, linesize);
-      (*fptr_imgbufcpy)(buffer, image.buffer, size);
-    }
-  }
+  if ( image.buffer != buffer )
+    (*fptr_imgbufcpy)(buffer, image.buffer, size);
 }
 
 Image *Image::HighlightEdges(
@@ -1637,6 +1626,12 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p
     av_frame_unref(temp_frame.get());
   } else {
     PopulateFrame(frame.get());
+  }
+
+  if (frame.get()->format != AV_PIX_FMT_YUV420P) {
+    Error("Jpeg frame format incorrect, got %d", frame.get()->format);
+    av_frame_unref(frame.get());
+    return false;
   }
 
   pkt = av_packet_alloc();
@@ -5460,7 +5455,9 @@ __attribute__((noinline)) void std_deinterlace_4field_abgr(uint8_t* col1, uint8_
 }
 
 AVPixelFormat Image::AVPixFormat() const {
-  if ( colours == ZM_COLOUR_RGB32 ) {
+  if ( subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+    return AV_PIX_FMT_YUV420P;
+  } else if ( colours == ZM_COLOUR_RGB32 ) {
     return AV_PIX_FMT_RGBA;
   } else if ( colours == ZM_COLOUR_RGB24 ) {
     if ( subpixelorder == ZM_SUBPIX_ORDER_BGR) {

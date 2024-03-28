@@ -91,7 +91,7 @@ body.sticky #eventTable thead {
 }
 .term-value, .chosen-container{
   width: 100% !important;
-  margin-left: 5px;
+  /* margin-left: 5px; */
 }
 
 @media screen and (max-width:500px) {

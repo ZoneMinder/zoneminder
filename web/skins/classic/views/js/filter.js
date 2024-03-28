@@ -200,7 +200,7 @@ function parseRows(rows) {
       var cnjVal = inputTds.eq(0).children().val();
       var conjSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cnj]').attr('id', queryPrefix + rowNum + '][cnj]');
       $j.each(conjTypes, function(i) {
-        conjSelect.append('<option value="' + i + '" >' + i + '</option>');
+        conjSelect.addClass('chosen chosen-full-width').append('<option value="' + i + '" >' + i + '</option>');
       });
       inputTds.eq(0).html(conjSelect).children().val(cnjVal === undefined ? 'and' : cnjVal);
     }
@@ -209,8 +209,8 @@ function parseRows(rows) {
     if ( brackets > 0 ) { // add bracket select to all rows
       var obrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][obr]').attr('id', queryPrefix + rowNum + '][obr]');
       var cbrSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][cbr]').attr('id', queryPrefix + rowNum + '][cbr]');
-      obrSelect.append('<option value="0"</option>');
-      cbrSelect.append('<option value="0"</option>');
+      obrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"</option>');
+      cbrSelect.addClass('chosen').attr('data-placeholder', ' ').append('<option value="0"</option>');
       for ( var i = 1; i <= brackets; i++ ) { // build bracket options
         obrSelect.append('<option value="' + i + '">' + '('.repeat(i) + '</option>');
         cbrSelect.append('<option value="' + i + '">' + ')'.repeat(i) + '</option>');
@@ -239,7 +239,7 @@ function parseRows(rows) {
         archiveSelect.append('<option value="' + i + '">' + archiveTypes[i] + '</option>');
       }
       var archiveVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(archiveSelect).children().val(archiveVal).chosen({width: "101%"});
+      inputTds.eq(4).html(archiveSelect).children().val(archiveVal).addClass('chosen chosen-full-width'); 
     } else if ( attr == 'AlarmedZoneId' ) {
       var zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for ( monitor_id in monitors ) {
@@ -251,58 +251,58 @@ function parseRows(rows) {
         } // end foreach zone
       } // end foreach monitor
       var zoneVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(zoneSelect).children().val(zoneVal).chosen({width: "101%"});
+      inputTds.eq(4).html(zoneSelect).children().val(zoneVal).addClass('chosen chosen-full-width');
     } else if ( attr.indexOf('Weekday') >= 0 ) { //Weekday selection
       var weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var i = 0; i < weekdays.length; i++) {
         weekdaySelect.append('<option value="' + i + '">' + weekdays[i] + '</option>');
       }
       var weekdayVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(weekdaySelect).children().val(weekdayVal).chosen({width: "101%"});
+      inputTds.eq(4).html(weekdaySelect).children().val(weekdayVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'StateId' ) { //Run state
       var stateSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var key in states) {
         stateSelect.append('<option value="' + key + '">' + states[key] + '</option>');
       }
       var stateVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(stateSelect).children().val(stateVal).chosen({width: "101%"});
+      inputTds.eq(4).html(stateSelect).children().val(stateVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'ServerId' || attr == 'MonitorServerId' || attr == 'StorageServerId' || attr == 'FilterServerId' ) { //Select Server
       var serverSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var key in servers) {
         serverSelect.append('<option value="' + key + '">' + servers[key] + '</option>');
       }
       var serverVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(serverSelect).children().val(serverVal).chosen({width: "101%"});
+      inputTds.eq(4).html(serverSelect).children().val(serverVal).addClass('chosen chosen-full-width');
     } else if ( (attr == 'StorageId') || (attr == 'SecondaryStorageId') ) { //Choose by storagearea
       var storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for ( key in storageareas ) {
         storageSelect.append('<option value="' + key + '">' + storageareas[key].Name + '</option>');
       }
       var storageVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(storageSelect).children().val(storageVal).chosen({width: "101%"});
+      inputTds.eq(4).html(storageSelect).children().val(storageVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'Monitor' ) {
       const monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       sorted_monitor_ids.forEach(function(monitor_id) {
         monitorSelect.append('<option value="' + monitor_id + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
       });
       const monitorVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(monitorSelect).children().val(monitorVal).chosen({width: '101%'});
+      inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'MonitorName' ) { //Monitor names
       var monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       sorted_monitor_ids.forEach(function(monitor_id) {
         monitorSelect.append('<option value="' + monitors[monitor_id].Name + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
       });
       var monitorVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(monitorSelect).children().val(monitorVal).chosen({width: '101%'});
+      inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'Tags' ) { // Tags
       var tagSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (var key in availableTags) {
         tagSelect.append('<option value="' + key + '">' + escapeHTML(availableTags[key]) + '</option>');
       };
       var tagVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(tagSelect).children().val(tagVal).chosen({width: '101%'});
+      inputTds.eq(4).html(tagSelect).children().val(tagVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'ExistsInFileSystem' ) {
-      var select = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      var select = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]').addClass('chosen');
       for ( var booleanVal in booleanValues ) {
         select.append('<option value="' + booleanVal + '">' + escapeHTML(booleanValues[booleanVal]) + '</option>');
       }
@@ -348,7 +348,7 @@ function parseRows(rows) {
         opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
       }
     }
-    inputTds.eq(3).html(opSelect).children().val(opVal).chosen({width: "101%"});
+    inputTds.eq(3).html(opSelect).children().val(opVal).addClass('chosen chosen-full-width');
     if ( attr.endsWith('DateTime') ) { //Start/End DateTime
       inputTds.eq(4).children().datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
     } else if ( attr.endsWith('Date') ) { //Start/End Date
@@ -367,6 +367,7 @@ function parseRows(rows) {
   } //End for each term/row
   // ICON This populates the url bar with contents of the form.  I'm not sure why
   // history.replaceState(null, null, '?view=filter&' + $j('#contentForm').serialize());
+  applyChosen();
 } // parseRows
 
 function stringFilter(term) {
@@ -381,10 +382,9 @@ function addTerm( element ) {
   var row = $j(element).closest('tr');
   row.find('select').chosen('destroy');
   var newRow = row.clone().insertAfter(row);
-  row.find('select').chosen({width: '101%'});
   newRow.find('select').each( function() { //reset new row to default
     this[0].selected = 'selected';
-  }).chosen({width: '101%'});
+  });
   newRow.find('input[type="text"]').val('');
   newRow[0].querySelectorAll("button[data-on-click-this]").forEach(function(el) {
     var fnName = el.getAttribute("data-on-click-this");
@@ -432,9 +432,6 @@ function manageModalBtns(id) {
 
 function initPage() {
   updateButtons($j('#executeButton')[0]);
-  $j('#Id').chosen();
-  $j('#fieldsTable select').not("[name$='br\\]'], [name$='cnj\\]']").chosen({width: '101%'}); //Every select except brackets/and
-  $j("#sortTable [name$='sort_field\\]']").chosen();
   parseRows($j('#fieldsTable tbody').children());
 }
 

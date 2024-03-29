@@ -52,7 +52,6 @@ input[type="number"].form-control {
 #toolbar,
 .filterTable > span{
   padding-bottom: 5px;
-  padding-right: 15px;
 }
 
 #events {
@@ -88,6 +87,7 @@ body.sticky #eventTable thead {
 .term {
   display: flex;
   flex-direction: column;
+  margin-right: 15px;
 }
 .term-value, .chosen-container{
   width: 100% !important;
@@ -97,10 +97,12 @@ body.sticky #eventTable thead {
   .term {
     width: 100%;
     flex-direction: row;
+    margin-right: 0px;
   }
   .term-label-wrapper {
     text-wrap: nowrap;
     margin-top: 7px;
+    margin-right: 5px;
   }
   .term-value-wrapper {
     width: 100%;

@@ -156,7 +156,7 @@ button.btn {
   line-height: 1;
   font-size: 18px;
 }
-input,textarea,select,button,.btn-primary {
+input, textarea, select, button, .btn-primary {
     border: 1px #ccc solid;
     padding: 5px;
     border-radius: 1px;
@@ -167,7 +167,6 @@ input,textarea,select,button,.btn-primary {
     background-color: #f8f8f8;
     text-align: left;
     border-radius:4px;
-    margin: 1px 0;
 }
 
 input.noborder {
@@ -743,7 +742,7 @@ ul.nav.nav-pills.flex-column {
 
 .chosen-container {
 text-align: left;
-/*min-width: 11em;*/ /* Why ???*/
+min-width: 11em; /* Makes a nice uniform display */
 }
 
 .chosen-container-active .chosen-choices {
@@ -896,13 +895,14 @@ a.flip {
 .controlHeader {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
+  justify-content: center;
 }
 /* to match chosen text input height */
 .controlHeader input[type="text"] {
   height: 29px;
   padding: 2px 5px 4px 5px;
   margin-top:0;
+  width: 100%;
 }
 @media screen and (max-width:767px) {
   .controlHeader {

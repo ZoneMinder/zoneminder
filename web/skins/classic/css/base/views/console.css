@@ -159,3 +159,18 @@ body.sticky #monitorList thead {
     font-size: 16px;
   }
 }
+
+.term {
+  display: flex;
+  flex-direction: column;
+  margin-left: 15px;
+}
+
+@media screen and (max-width:500px) {
+  .term {
+    width: 100%;
+    flex-direction: row;
+    margin-top: 5px;
+    margin-right: 15px;
+  }
+}

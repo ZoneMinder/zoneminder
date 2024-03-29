@@ -598,8 +598,8 @@ function handleClick(event) {
   const width = target.width();
   const height = target.height();
 
-  const scaleX = parseInt(monitorWidth / width);
-  const scaleY = parseInt(monitorHeight / height);
+  const scaleX = parseFloat(monitorWidth / width);
+  const scaleY = parseFloat(monitorHeight / height);
   const pos = target.offset();
   const x = parseInt((event.pageX - pos.left) * scaleX);
   const y = parseInt((event.pageY - pos.top) * scaleY);

@@ -59,9 +59,6 @@ img.normal {
     border: #cccccc solid 1px;
 }
 
-hr {
-}
-
 ul.tabList li {
     color: #8f8fc2;
     border: #8f8fc2 solid 1px;
@@ -205,6 +202,18 @@ input[type=submit]:disabled,
   background-color: #444444;
 }
 
+.bootstrap-table .fixed-table-container .table thead th .both {
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAQAAADYWf5HAAAAkElEQVQoz7X QMQ5AQBCF4dWQSJxC5wwax1Cq1e7BAdxD5SL+Tq/QCM1oNiJidwox0355mXnG/DrEtIQ6azioNZQxI0ykPhTQIwhCR+BmBYtlK7kLJYwWCcJA9M4qdrZrd8pPjZWPtOqdRQy320YSV17OatFC4euts6z39GYMKRPCTKY9UnPQ6P+GtMRfGtPnBCiqhAeJPmkqAAAAAElFTkSuQmCC")
+}
+
+.bootstrap-table .fixed-table-container .table thead th .asc {
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAYAAAByUDbMAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAACQSURBVHja7NKhDcJQFIXhVwNJE6bAMUNN3VkBiUazRxkAdZZAdYrfVeIRGFLMw7RJ02D6gIDoTX5zxadOiDGGTxW+jg0PK8eqsBbDfyp2wHpg7d/CsDZYF6yI1WCtkzCsDOvUQX1HrCwFK7GuI+yGVUzCsFZY9QjqO2Mtp2A7rBbr/qIWa/ubnc3YjP0z9hwA30ri1Ip5X+oAAAAASUVORK5CYII=")
+}
+
+.bootstrap-table .fixed-table-container .table thead th .desc {
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABMAAAATCAYAAAByUDbMAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAACUSURBVHja7NIhDsJAFIThqWkTEk5Rxxlq6uYKSHQ194ADoOYSKE4xDolH1JBiFrNNSFPRbSoIqfjNvORTDyEELBVWbMX+ArO4t9hZfI3UWTykYIXFq8Uw0s3idjIGABYri+0AelqsASAVyyyeB9jFYpaMRbC0eI/Qw+KuvyVjEWwsvi0ev/e5WG7xZHEzC/uJp/0MAFmI4tSJnjqtAAAAAElFTkSuQmCC")
+}
+
 .nav-pills>li.active>a, .nav-pills>li.active>a:focus, .nav-pills>li.active>a:hover {
   color: #ffa801;
   background-color: #333333;
@@ -229,6 +238,7 @@ li.search-choice {
     background-color: #444444 !important;
     color: #eee !important;
     -webkit-box-shadow: none !important;
+    box-shadow: none !important;
     background-image: none !important;
 }
 
@@ -299,4 +309,3 @@ html, body, div, nav, .chosen-results {
   border-radius: 6px;
   border: 3px solid var(--scrollbarBG);
 }
-

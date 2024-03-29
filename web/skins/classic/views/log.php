@@ -46,7 +46,7 @@ $components = dbFetchAll('SELECT DISTINCT Component FROM Logs ORDER BY Component
 ZM\Debug(print_r($components, true));
 $options = [''=>translate('All')] + array_combine($components, $components);
 ZM\Debug(print_r($options, true));
-echo htmlSelect('filterComponent', $options, '', array('id'=>'filterComponent'));
+echo htmlSelect('filterComponent', $options, '', array('id'=>'filterComponent', 'class'=>'chosen'));
 ?>
       </span>
 <?php if (count($Servers)>1) { ?>
@@ -54,7 +54,7 @@ echo htmlSelect('filterComponent', $options, '', array('id'=>'filterComponent'))
         <label><?php echo translate('Server') ?></label>
 <?php
 $ServersById = array(''=>translate('All')) + array_to_hash_by_key('Id', $Servers);
-echo htmlSelect('filterServerId', $ServersById, '', array('id'=>'filterServerId'));
+echo htmlSelect('filterServerId', $ServersById, '', array('id'=>'filterServerId', 'class'=>'chosen'));
 ?>
       </span>
 <?php } ?>
@@ -67,7 +67,7 @@ foreach (array_values(ZM\Logger::$codes) as $level) {
 }
 echo htmlSelect('filterLevel', $levels,
     (isset($_SESSION['ZM_LOG_FILTER_LEVEL']) ? $_SESSION['ZM_LOG_FILTER_LEVEL'] : ''),
-    array('data-on-change'=>'filterLog', 'id'=>'filterLevel'));
+    array('data-on-change'=>'filterLog', 'id'=>'filterLevel', 'class'=>'chosen'));
     #array('class'=>'form-control chosen', 'data-on-change'=>'filterLog'));
 ?>
       </span>

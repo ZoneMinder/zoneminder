@@ -740,6 +740,7 @@ ul.nav.nav-pills.flex-column {
 }
 
 .controlHeader .chosen-container,
+#header .chosen-container,
 #fbpanel .chosen-container,
 #toolbar .chosen-container {
   text-align: left;

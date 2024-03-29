@@ -754,19 +754,19 @@ function controlSetClicked() {
     console.log('loading');
     // Load the PTZ Preset modal into the DOM
     $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId+'&'+auth_relay)
-      .done(function(data) {
-        insertModalHtml('ctrlPresetModal', data.html);
-        updatePresetLabels();
-        // Manage the Preset Select box
-        $j('#preset').change(updatePresetLabels);
-        // Manage the Save button
-        $j('#cPresetSubmitModal').click(function(evt) {
-          evt.preventDefault();
-          $j('#ctrlPresetForm').submit();
-        });
-        $j('#ctrlPresetModal').modal('show');
-      })
-      .fail(logAjaxFail);
+        .done(function(data) {
+          insertModalHtml('ctrlPresetModal', data.html);
+          updatePresetLabels();
+          // Manage the Preset Select box
+          $j('#preset').change(updatePresetLabels);
+          // Manage the Save button
+          $j('#cPresetSubmitModal').click(function(evt) {
+            evt.preventDefault();
+            $j('#ctrlPresetForm').submit();
+          });
+          $j('#ctrlPresetModal').modal('show');
+        })
+        .fail(logAjaxFail);
   } else {
     console.log('not loading');
     modal.modal('show');

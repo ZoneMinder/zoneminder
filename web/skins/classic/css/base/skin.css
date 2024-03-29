@@ -21,6 +21,11 @@
  * Primary look and feel styles
  */
 
+:root {
+  --scrollbarBG: #F1F1F1;
+  --sliderBG: #C1C1C1;
+}
+
 @font-face {
   font-family: "Material Icons";
   font-style: normal;
@@ -1000,4 +1005,25 @@ button .material-icons {
 
 input.hasDatepicker {
   max-width:140px;
+}
+
+/* Change scrollbar style */
+div::-webkit-scrollbar, nav::-webkit-scrollbar, .chosen-results::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+div, nav, .chosen-results {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sliderBG) var(--scrollbarBG);
+}
+
+div::-webkit-scrollbar-track, nav::-webkit-scrollbar-track, .chosen-results::-webkit-scrollbar-track {
+  background: var(--scrollbarBG);
+}
+
+div::-webkit-scrollbar-thumb, nav::-webkit-scrollbar-thumb, .chosen-results::-webkit-scrollbar-thumb {
+  background-color: var(--sliderBG);
+  border-radius: 6px;
+  border: 3px solid var(--scrollbarBG);
 }

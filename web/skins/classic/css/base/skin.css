@@ -739,7 +739,9 @@ ul.nav.nav-pills.flex-column {
   background-color: #f5f5f5; 
 }
 
-#fbpanel .chosen-container, #toolbar .chosen-container {
+.controlHeader .chosen-container,
+#fbpanel .chosen-container,
+#toolbar .chosen-container {
   text-align: left;
   min-width: 11em; /* Makes a nice uniform display */
 }

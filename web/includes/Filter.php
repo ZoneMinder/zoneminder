@@ -1245,7 +1245,7 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val'],
             ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
-              $html .= '</span>';
+          $html .= '</span>';
         } else if ( $term['attr'] == 'AlarmedZoneId' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val'],

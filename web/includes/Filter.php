@@ -1151,7 +1151,8 @@ class Filter extends ZM_Object {
 
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
-          $html .= '<span class="term-value-wrapper"><input type="text" class="term-value datetimepicker" name="filter[Query][terms]['.$i.'][val]"';
+          $html .= '<span class="term-value-wrapper">';
+          $html .= '<input type="text" class="term-value datetimepicker" name="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['id'])) {
             $html .= ' id="'.$term['id'].'"';
           } else {
@@ -1164,9 +1165,11 @@ class Filter extends ZM_Object {
           $html .= ' value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"';
 
           if (!isset($term['placeholder'])) $term['placeholder'] = translate('Attr'.$term['attr']);
-          $html .= ' placeholder="'.$term['placeholder'].'"/></span>'.PHP_EOL;
+          $html .= ' placeholder="'.$term['placeholder'].'"/>'.PHP_EOL;
+          $html .= '</span>';
         } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
-          $html .= '<span class="term-value-wrapper"><input type="text" class="term-value datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]"';
+          $html .= '<span class="term-value-wrapper">';
+          $html .= '<input type="text" class="term-value datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['cookie'])) {
             if (!$term['val'] and isset($_COOKIE[$term['cookie']])) $term['val'] = $_COOKIE[$term['cookie']];
             $html .= ' data-cookie="'.$term['cookie'].'"';
@@ -1174,7 +1177,9 @@ class Filter extends ZM_Object {
           $html .= ' value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'" placeholder="'.translate('Attr'.$term['attr']).'"';
           $html .= '/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
-          $html .= '<span class="term-value-wrapper"><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></span>'.PHP_EOL;
+          $html .= '<span class="term-value-wrapper">';
+          $html .= '<input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/>'.PHP_EOL;
+          $html .= '</span>';
         } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val'], ['class'=>'chosen chosen-auto-width']).PHP_EOL;
@@ -1186,7 +1191,7 @@ class Filter extends ZM_Object {
             ['class'=>'term-value chosen chosen-auto-width',
             'multiple'=>'multiple', 
             'data-placeholder'=>translate('All Groups')]).PHP_EOL;
-            $html .= '</span>';
+          $html .= '</span>';
         } else if ( $term['attr'] == 'StateId' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $states, $term['val'], ['class'=>'chosen chosen-auto-width']).PHP_EOL;
@@ -1231,7 +1236,7 @@ class Filter extends ZM_Object {
         } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val'],
-          ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
+            ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
           $html .= '</span>';
         } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
           if (!$storageareas) {
@@ -1239,12 +1244,12 @@ class Filter extends ZM_Object {
           }
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val'],
-              ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
+            ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
               $html .= '</span>';
         } else if ( $term['attr'] == 'AlarmedZoneId' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val'],
-              ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
+            ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Notes' ) {
           $attrs = ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('Event Type')];
@@ -1273,7 +1278,9 @@ class Filter extends ZM_Object {
           $html .= '</span>';
         } else {
           #$html .= $term['attr'];
-          $html .= '<span class="term-value-wrapper"><input  class="term-value"type="text" name="filter[Query][terms]['.$i.'][val]" value="'.validHtmlStr($term['val']).'"/></span>'.PHP_EOL;
+          $html .= '<span class="term-value-wrapper">';
+          $html .= '<input  class="term-value"type="text" name="filter[Query][terms]['.$i.'][val]" value="'.validHtmlStr($term['val']).'"/>'.PHP_EOL;
+          $html .= '</span>';
         }
       } else { # no attr ?
         $html .= '<span class="term-value-wrapper">';

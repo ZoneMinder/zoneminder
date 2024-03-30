@@ -153,8 +153,8 @@ if ( count($StorageById) > 1 ) {
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
     ) );
-    $html .= '</span>';
-    $html .= '</span>';
+  $html .= '</span>';
+  $html .= '</span>';
 } # end if have Storage Areas
 
 $html .= '<span class="term StatusFilter"><label>'.translate('Status').'</label>';

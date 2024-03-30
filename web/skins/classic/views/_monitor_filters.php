@@ -61,13 +61,14 @@ if (canView('Groups')) {
   }
 
   if (count($GroupsById)) {
-    $html .= '<span id="groupControl"><label>'. translate('Group') .'</label>';
+    $html .= '<span class="term" id="groupControl"><label>'. translate('Group') .'</label>';
+    $html .= '<span class="term-value-wrapper">';
     # This will end up with the group_id of the deepest selection
     $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
     $html .= ZM\Group::get_group_dropdown();
     $groupSql = ZM\Group::get_group_sql($group_id);
-    $html .= '</span>
-  ';
+    $html .= '</span>';
+    $html .= '</span>';
   }
 }
 
@@ -99,12 +100,14 @@ if (count($user->unviewableMonitorIds()) ) {
   $values = array_merge($values, $ids);
 }
 
-$html .= '<span class="MonitorNameFilter"><label>'.translate('Name').'</label>';
-$html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="text or regular expression"/>';
+$html .= '<span class="term MonitorNameFilter"><label>'.translate('Name').'</label>';
+$html .= '<span class="term-value-wrapper">';
+$html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="text or regular expression"/></span>';
 $html .= '</span>'.PHP_EOL;
 
 function addFilterSelect($name, $options) {
-  $html = '<span class="'.$name.'Filter"><label>'.translate($name).'</label>';
+  $html = '<span class="term '.$name.'Filter"><label>'.translate($name).'</label>';
+  $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect($name.'[]', $options,
     (isset($_SESSION[$name])?$_SESSION[$name]:''),
       array(
@@ -113,7 +116,8 @@ function addFilterSelect($name, $options) {
         'multiple'=>'multiple',
         'data-placeholder'=>'All',
       )
-   );
+    );
+  $html .= '</span>';
   $html .= '</span>'.PHP_EOL;
   return $html;
 }
@@ -123,7 +127,8 @@ $html .= addFilterSelect('Analysing', array('None'=>translate('None'), 'Always'=
 $html .= addFilterSelect('Recording', array('None'=>translate('None'), 'OnMotion'=>translate('On Motion'),'Always'=>translate('Always')));
 
 if ( count($ServersById) > 1 ) {
-  $html .= '<span class="ServerFilter"><label>'. translate('Server').'</label>';
+  $html .= '<span class="term ServerFilter"><label>'. translate('Server').'</label>';
+  $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect('ServerId[]', $ServersById,
     (isset($_SESSION['ServerId'])?$_SESSION['ServerId']:''),
     array(
@@ -133,12 +138,13 @@ if ( count($ServersById) > 1 ) {
       'data-placeholder'=>'All',
     )
   );
-  $html .= '</span>
-';
+  $html .= '</span>';
+  $html .= '</span>';
 } # end if have Servers
 
 if ( count($StorageById) > 1 ) {
-  $html .= '<span class="StorageFilter"><label>'.translate('Storage').'</label>';
+  $html .= '<span class="term StorageFilter"><label>'.translate('Storage').'</label>';
+  $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect('StorageId[]', $StorageById,
     (isset($_SESSION['StorageId'])?$_SESSION['StorageId']:''),
     array(
@@ -147,18 +153,19 @@ if ( count($StorageById) > 1 ) {
       'multiple'=>'multiple',
       'data-placeholder'=>'All',
     ) );
-  $html .= '</span>
-';
+  $html .= '</span>';
+  $html .= '</span>';
 } # end if have Storage Areas
 
-$html .= '<span class="StatusFilter"><label>'.translate('Status').'</label>';
+$html .= '<span class="term StatusFilter"><label>'.translate('Status').'</label>';
 $status_options = array(
     'Unknown' => translate('StatusUnknown'),
     'NotRunning' => translate('StatusNotRunning'),
     'Running' => translate('StatusRunning'),
     'Connected' => translate('StatusConnected'),
     );
-$html .= htmlSelect( 'Status[]', $status_options,
+    $html .= '<span class="term-value-wrapper">';
+    $html .= htmlSelect( 'Status[]', $status_options,
   ( isset($_SESSION['Status']) ? $_SESSION['Status'] : '' ),
   array(
     'data-on-change'=>'submitThisForm',
@@ -166,13 +173,14 @@ $html .= htmlSelect( 'Status[]', $status_options,
     'multiple'=>'multiple',
     'data-placeholder'=>'All'
   ) );
-$html .= '</span>
-';
+  $html .= '</span>';
+  $html .= '</span>';
 
-  $html .= '<span class="SourceFilter"><label>'.translate('Source').'</label>';
+  $html .= '<span class="term SourceFilter"><label>'.translate('Source').'</label>';
+  $html .= '<span class="term-value-wrapper">';
   $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?validHtmlStr($_SESSION['Source']):'').'" placeholder="text or regular expression"/>';
-  $html .= '</span>
-';
+  $html .= '</span>';
+  $html .= '</span>';
 
   $sqlAll = 'SELECT M.*, S.*, E.*
   FROM Monitors AS M
@@ -262,7 +270,8 @@ $html .= '</span>
     }
     $displayMonitors[] = $monitors[$i];
   } # end foreach monitor
-  $html .= '<span class="MonitorFilter"><label>'.translate('Monitor').'</label>';
+  $html .= '<span class="term MonitorFilter"><label>'.translate('Monitor').'</label>';
+  $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect('MonitorId[]', $monitors_dropdown, $selected_monitor_ids,
     array(
       'data-on-change'=>'submitThisForm',
@@ -272,8 +281,8 @@ $html .= '</span>
     ) );
   # Repurpose this variable to be the list of MonitorIds as a result of all the filtering
   $display_monitor_ids = array_map(function($monitor_row){return $monitor_row['Id'];}, $displayMonitors);
-  $html .= '</span>
-';
+  $html .= '</span>';
+  $html .= '</span>';
   echo $html;
 ?>
 </div>

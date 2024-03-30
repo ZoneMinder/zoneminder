@@ -156,7 +156,7 @@ button.btn {
   line-height: 1;
   font-size: 18px;
 }
-input,textarea,select,button,.btn-primary {
+input, textarea, select, button, .btn-primary {
     border: 1px #ccc solid;
     padding: 5px;
     border-radius: 1px;
@@ -167,7 +167,6 @@ input,textarea,select,button,.btn-primary {
     background-color: #f8f8f8;
     text-align: left;
     border-radius:4px;
-    margin: 1px 0;
 }
 
 input.noborder {
@@ -510,7 +509,6 @@ body.sticky #page {
 
 #header {
     width: 100%;
-    text-align: left;
     background-color: #34495e;
     padding: 5px 0px;
     margin: 0 auto 4px auto;
@@ -741,9 +739,12 @@ ul.nav.nav-pills.flex-column {
   background-color: #f5f5f5; 
 }
 
-.chosen-container {
-text-align: left;
-/*min-width: 11em;*/ /* Why ???*/
+.controlHeader .chosen-container,
+#header .chosen-container,
+#fbpanel .chosen-container,
+#toolbar .chosen-container {
+  text-align: left;
+  min-width: 11em; /* Makes a nice uniform display */
 }
 
 .chosen-container-active .chosen-choices {
@@ -893,16 +894,17 @@ a.flip {
   border-radius: 0;
   border: none;
 }
-.controlHeader {
+.controlHeader, #fieldsTable {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
+  justify-content: center;
 }
 /* to match chosen text input height */
 .controlHeader input[type="text"] {
   height: 29px;
   padding: 2px 5px 4px 5px;
   margin-top:0;
+  width: 100%;
 }
 @media screen and (max-width:767px) {
   .controlHeader {
@@ -1003,10 +1005,6 @@ button .material-icons {
   display: block;
 }
 
-input.hasDatepicker {
-  max-width:140px;
-}
-
 /* Change scrollbar style */
 div::-webkit-scrollbar, nav::-webkit-scrollbar, .chosen-results::-webkit-scrollbar {
   width: 11px;
@@ -1026,4 +1024,38 @@ div::-webkit-scrollbar-thumb, nav::-webkit-scrollbar-thumb, .chosen-results::-we
   background-color: var(--sliderBG);
   border-radius: 6px;
   border: 3px solid var(--scrollbarBG);
+}
+
+.term {
+  display: flex;
+  flex-direction: column;
+  margin-left: 15px;
+}
+
+@media screen and (max-width:500px) {
+  .term {
+    width: 100% !important;
+    flex-direction: row;
+    margin-right: 15px;
+    margin-bottom: 5px;
+  }
+  .term-label-wrapper {
+    text-wrap: nowrap;
+    margin-top: 7px;
+    margin-right: 5px;
+  }
+  .term-value-wrapper {
+    width: 100%;
+    flex-grow: 1;
+  }
+  .term-value-wrapper .chosen-container {
+    width: 100% !important;
+  }
+  label {
+    text-wrap: nowrap;
+  }
+  input.hasDatepicker {
+    max-width: 100%;
+    width: 100%;
+  }
 }

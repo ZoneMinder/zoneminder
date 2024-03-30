@@ -49,12 +49,6 @@ input[type="number"].form-control {
   flex-wrap: wrap;
 }
 
-#toolbar,
-.filterTable > span{
-  padding-bottom: 5px;
-  padding-right: 15px;
-}
-
 #events {
   height: 100%;
   overflow: visible;
@@ -85,31 +79,6 @@ body.sticky #eventTable thead {
   top: -1px;
 }
 
-.term {
-  display: flex;
-  flex-direction: column;
-}
 .term-value, .chosen-container{
   width: 100% !important;
-}
-
-@media screen and (max-width:500px) {
-  .term {
-    width: 100%;
-    flex-direction: row;
-  }
-  .term-label-wrapper {
-    text-wrap: nowrap;
-    margin-top: 7px;
-  }
-  .term-value-wrapper {
-    width: 100%;
-    flex-grow: 1;
-  }
-  label {
-    text-wrap: nowrap;
-  }
-  input.hasDatepicker {
-    max-width: 100%;
-  }
 }

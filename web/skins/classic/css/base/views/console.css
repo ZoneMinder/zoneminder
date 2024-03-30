@@ -103,13 +103,13 @@
   margin-bottom: 2rem;
 }
 
-.MonitorNameFilter,
+/* .MonitorNameFilter,
 .FunctionFilter,
 .StatusFilter,
 .SourceFilter,
 .MonitorFilter {
   display: inline-block;
-}
+} */
 form[name="monitorForm"] {
   display: flex;
   flex-flow: column nowrap;

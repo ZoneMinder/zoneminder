@@ -48,4 +48,8 @@ module.exports = {
     "php/remove-empty-line": false,
     "php/remove-php-lint": false
   },
+    "parserOptions": {
+        "sourceType": "module"
+    }
+
 };

@@ -125,7 +125,8 @@ body.sticky #monitorList {
 }
 body.sticky #monitorList thead {
   position: sticky;
-  top: -1px;
+  top: 0;
+  box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
 }
 #toolbar,
 #contentButtons {

@@ -648,7 +648,7 @@ function updateCoordinateMouse(x, y) { //We fix the coordinates when pressing th
   coordinateMouse.start_y = y;
 }
 
-function updatePrevCoordinatFrame(x, y) { //Update the Frame's current coordinates 
+function updatePrevCoordinatFrame(x, y) { //Update the Frame's current coordinates
   PrevCoordinatFrame.x = x;
   PrevCoordinatFrame.y = y;
 }
@@ -664,7 +664,6 @@ function getCoordinateMouse(event) { //We get the current cursor coordinates tak
 }
 
 function handleMove(event) {
-  
   if (event.ctrlKey && event.shiftKey) {
     document.ondragstart = function() {return false}; //Allow drag and drop
   } else {
@@ -676,8 +675,8 @@ function handleMove(event) {
     var {x, y} = getCoordinateMouse(event);
     const k = Math.log(2.72) / Math.log(parseFloat($j('#zoomValue'+monitorId).html())) - 0.3; //Necessary for correctly shifting the image in accordance with the scaling proportions
 
-    coordinateMouse.shiftMouse_x =  parseInt((x - coordinateMouse.start_x) * k);
-    coordinateMouse.shiftMouse_y =  parseInt((y - coordinateMouse.start_y) * k);
+    coordinateMouse.shiftMouse_x = parseInt((x - coordinateMouse.start_x) * k);
+    coordinateMouse.shiftMouse_y = parseInt((y - coordinateMouse.start_y) * k);
 
     coordinateMouse.shiftMouseForTrigger_x = Math.abs(parseInt(x - coordinateMouse.start_x));
     coordinateMouse.shiftMouseForTrigger_y = Math.abs(parseInt(y - coordinateMouse.start_y));
@@ -692,11 +691,10 @@ function handleMove(event) {
     leftBtnStatus.UpAfterDown = true;
   }
 
-  if ((leftBtnStatus.UpAfterDown) //The left button was raised or the cursor was moved more than 30 pixels relative to the actual size of the image
-    || ((coordinateMouse.shiftMouseForTrigger_x > 30) && leftBtnStatus.Down)
-    || ((coordinateMouse.shiftMouseForTrigger_y > 30) && leftBtnStatus.Down)
-     )
-  {
+  if ((leftBtnStatus.UpAfterDown) || //The left button was raised or the cursor was moved more than 30 pixels relative to the actual size of the image
+    ((coordinateMouse.shiftMouseForTrigger_x > 30) && leftBtnStatus.Down) ||
+    ((coordinateMouse.shiftMouseForTrigger_y > 30) && leftBtnStatus.Down)) {
+
     //We perform frame shift
     shiftImgFrame();
     updateCoordinateMouse(x, y);
@@ -841,19 +839,19 @@ function controlSetClicked() {
     console.log('loading');
     // Load the PTZ Preset modal into the DOM
     $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId+'&'+auth_relay)
-        .done(function(data) {
-          insertModalHtml('ctrlPresetModal', data.html);
-          updatePresetLabels();
-          // Manage the Preset Select box
-          $j('#preset').change(updatePresetLabels);
-          // Manage the Save button
-          $j('#cPresetSubmitModal').click(function(evt) {
-            evt.preventDefault();
-            $j('#ctrlPresetForm').submit();
-          });
-          $j('#ctrlPresetModal').modal('show');
-        })
-        .fail(logAjaxFail);
+      .done(function(data) {
+        insertModalHtml('ctrlPresetModal', data.html);
+        updatePresetLabels();
+        // Manage the Preset Select box
+        $j('#preset').change(updatePresetLabels);
+        // Manage the Save button
+        $j('#cPresetSubmitModal').click(function(evt) {
+          evt.preventDefault();
+          $j('#ctrlPresetForm').submit();
+        });
+        $j('#ctrlPresetModal').modal('show');
+      })
+      .fail(logAjaxFail);
   } else {
     console.log('not loading');
     modal.modal('show');

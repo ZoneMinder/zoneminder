@@ -420,7 +420,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
           data-show-refresh="true"
           class="table-sm table-borderless"
         >
-          <thead>
+          <thead class="thead-highlight">
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
               <th data-sortable="false" data-field="Delete"><?php echo translate('Delete') ?></th>

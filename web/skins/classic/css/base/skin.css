@@ -160,6 +160,7 @@ button.btn {
 #toolbar .btn-normal {
   margin-right: 3px;
 }
+#rightButtons .btn-normal,
 #leftButtons .btn-normal {
   margin-right: 0px;
 }

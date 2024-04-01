@@ -16,6 +16,14 @@ var classMonitorW_SB_L = 'col-sm-9'; /* id="wrapperMonitor" ONLY WITH LEFT */
 var classMonitorW_SB_R = 'col-sm-10'; /* id="wrapperMonitor" ONLY WITH RIGHT */
 var classMonitorWO_SB = 'col-sm-12'; /* id="wrapperMonitor" MAXIMUM width */
 
+var PrevCoordinatFrame = {x: null, y: null};
+var coordinateMouse = {
+  start_x: null, start_y: null,
+  shiftMouse_x: null, shiftMouse_y: null,
+  shiftMouseForTrigger_x: null, shiftMouseForTrigger_y: null
+};
+var leftBtnStatus = {Down: false, UpAfterDown: false};
+
 /*
 This is the format of the json object sent by bootstrap-table
 
@@ -593,27 +601,106 @@ function fetchImage(streamImage) {
 }
 
 function handleClick(event) {
+  if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
   // target should be the img tag
-  const target = $j(event.target);
-  const width = target.width();
-  const height = target.height();
+    const target = $j(event.target);
+    const width = target.width();
+    const height = target.height();
 
-  const scaleX = parseFloat(monitorWidth / width);
-  const scaleY = parseFloat(monitorHeight / height);
-  const pos = target.offset();
-  const x = parseInt((event.pageX - pos.left) * scaleX);
-  const y = parseInt((event.pageY - pos.top) * scaleY);
+    const scaleX = parseFloat(monitorWidth / width);
+    const scaleY = parseFloat(monitorHeight / height);
+    const pos = target.offset();
+    const x = parseInt((event.pageX - pos.left) * scaleX);
+    const y = parseInt((event.pageY - pos.top) * scaleY);
 
-  if (showMode == 'events' || !imageControlMode) {
-    if ( event.shift || event.shiftKey ) {
-      streamCmdPan(x, y);
-    } else if (event.ctrlKey) {
-      streamCmdZoomOut();
+    updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
+
+    if (showMode == 'events' || !imageControlMode) {
+      if (event.shift || event.shiftKey) {
+        streamCmdPan(x, y);
+      } else if (event.ctrlKey) {
+        streamCmdZoomOut();
+      } else {
+        streamCmdZoomIn(x, y);
+      }
     } else {
-      streamCmdZoomIn(x, y);
+      controlCmdImage(x, y);
     }
+  }
+}
+
+function shiftImgFrame() { //We calculate the coordinates of the image displacement and shift the image
+  let newPosX = parseInt((PrevCoordinatFrame.x - coordinateMouse.shiftMouse_x) * 1);
+  let newPosY = parseInt((PrevCoordinatFrame.y - coordinateMouse.shiftMouse_y) * 1);
+
+  if (newPosX < 0) newPosX = 0;
+  if (newPosX > monitorWidth) newPosX = monitorWidth;
+  if (newPosY < 0) newPosY = 0;
+  if (newPosY > monitorHeight) newPosY = monitorHeight;
+
+  streamCmdPan(newPosX, newPosY);
+  updatePrevCoordinatFrame(newPosX, newPosY);
+  coordinateMouse.shiftMouseForTrigger_x = coordinateMouse.shiftMouseForTrigger_y = 0;
+}
+
+function updateCoordinateMouse(x, y) { //We fix the coordinates when pressing the left mouse button
+  coordinateMouse.start_x = x;
+  coordinateMouse.start_y = y;
+}
+
+function updatePrevCoordinatFrame(x, y) { //Update the Frame's current coordinates 
+  PrevCoordinatFrame.x = x;
+  PrevCoordinatFrame.y = y;
+}
+
+function getCoordinateMouse(event) { //We get the current cursor coordinates taking into account the scale relative to the frame size.
+  const target = $j(event.target);
+
+  const scaleX = parseFloat(monitorWidth / target.width());
+  const scaleY = parseFloat(monitorHeight / target.height());
+  const pos = target.offset();
+
+  return {x: parseInt((event.pageX - pos.left) * scaleX), y: parseInt((event.pageY - pos.top) * scaleY)}; //The point of the mouse click relative to the dimensions of the real frame.
+}
+
+function handleMove(event) {
+  
+  if (event.ctrlKey && event.shiftKey) {
+    document.ondragstart = function() {return false}; //Allow drag and drop
   } else {
-    controlCmdImage(x, y);
+    document.ondragstart = function() {}; //Prevent drag and drop
+    return false;
+  }
+
+  if (leftBtnStatus.Down) { //The left button was previously pressed and is now being held. Processing movement with a pressed button.
+    var {x, y} = getCoordinateMouse(event);
+    const k = Math.log(2.72) / Math.log(parseFloat($j('#zoomValue'+monitorId).html())) - 0.3; //Necessary for correctly shifting the image in accordance with the scaling proportions
+
+    coordinateMouse.shiftMouse_x =  parseInt((x - coordinateMouse.start_x) * k);
+    coordinateMouse.shiftMouse_y =  parseInt((y - coordinateMouse.start_y) * k);
+
+    coordinateMouse.shiftMouseForTrigger_x = Math.abs(parseInt(x - coordinateMouse.start_x));
+    coordinateMouse.shiftMouseForTrigger_y = Math.abs(parseInt(y - coordinateMouse.start_y));
+  }
+  if (event.buttons == 1 && leftBtnStatus.Down != true) { //Start of pressing left button
+    const {x, y} = getCoordinateMouse(event);
+
+    updateCoordinateMouse(x, y);
+    leftBtnStatus.Down = true;
+  } else if (event.buttons == 0 && leftBtnStatus.Down == true) { //Up left button after pressed
+    leftBtnStatus.Down = false;
+    leftBtnStatus.UpAfterDown = true;
+  }
+
+  if ((leftBtnStatus.UpAfterDown) //The left button was raised or the cursor was moved more than 30 pixels relative to the actual size of the image
+    || ((coordinateMouse.shiftMouseForTrigger_x > 30) && leftBtnStatus.Down)
+    || ((coordinateMouse.shiftMouseForTrigger_y > 30) && leftBtnStatus.Down)
+     )
+  {
+    //We perform frame shift
+    shiftImgFrame();
+    updateCoordinateMouse(x, y);
+    leftBtnStatus.UpAfterDown = false;
   }
 }
 
@@ -754,19 +841,19 @@ function controlSetClicked() {
     console.log('loading');
     // Load the PTZ Preset modal into the DOM
     $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId+'&'+auth_relay)
-        .done(function(data) {
-          insertModalHtml('ctrlPresetModal', data.html);
-          updatePresetLabels();
-          // Manage the Preset Select box
-          $j('#preset').change(updatePresetLabels);
-          // Manage the Save button
-          $j('#cPresetSubmitModal').click(function(evt) {
-            evt.preventDefault();
-            $j('#ctrlPresetForm').submit();
-          });
-          $j('#ctrlPresetModal').modal('show');
-        })
-        .fail(logAjaxFail);
+      .done(function(data) {
+        insertModalHtml('ctrlPresetModal', data.html);
+        updatePresetLabels();
+        // Manage the Preset Select box
+        $j('#preset').change(updatePresetLabels);
+        // Manage the Save button
+        $j('#cPresetSubmitModal').click(function(evt) {
+          evt.preventDefault();
+          $j('#ctrlPresetForm').submit();
+        });
+        $j('#ctrlPresetModal').modal('show');
+      })
+      .fail(logAjaxFail);
   } else {
     console.log('not loading');
     modal.modal('show');
@@ -800,6 +887,7 @@ function initPage() {
       monitorStream.setup_onclick(fetchImage);
     } else {
       monitorStream.setup_onclick(handleClick);
+      monitorStream.setup_onmove(handleMove);
     }
     monitorStream.setup_onpause(onPause);
     monitorStream.setup_onplay(onPlay);

@@ -696,7 +696,6 @@ function handleMove(event) {
   if ((leftBtnStatus.UpAfterDown) || //The left button was raised or the cursor was moved more than 30 pixels relative to the actual size of the image
     ((coordinateMouse.shiftMouseForTrigger_x > 30) && leftBtnStatus.Down) ||
     ((coordinateMouse.shiftMouseForTrigger_y > 30) && leftBtnStatus.Down)) {
-
     //We perform frame shift
     shiftImgFrame();
     updateCoordinateMouse(x, y);

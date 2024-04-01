@@ -262,9 +262,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   $j(document).ready(function() {
     // List of functions that are allowed to be called via the value of an object's DOM attribute.
-    let safeFunc = {
-       drawGraph: function() {drawGraph()},
-       refreshWindow: function() {refreshWindow()}
+    const safeFunc = {
+      drawGraph: function() {
+        drawGraph();
+      },
+      refreshWindow: function() {
+        refreshWindow();
+      }
     }
 
     // Load the Logout and State modals into the dom
@@ -321,11 +325,11 @@ if ( currentView != 'none' && currentView != 'login' ) {
       const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
       const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
 
-      if (nameFuncBefore){
+      if (nameFuncBefore) {
         if (typeof safeFunc[nameFuncBefore] === 'function') safeFunc[nameFuncBefore]();
       }
       obj.slideToggle("fast");
-      if (nameFuncAfter){
+      if (nameFuncAfter) {
         if (typeof safeFunc[nameFuncAfter] === 'function') safeFunc[nameFuncAfter]();
       }
     });

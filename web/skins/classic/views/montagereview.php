@@ -324,6 +324,9 @@ if (count($filter->terms())) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
+          <button type="button" id="collapse" data-flip-сontrol-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph"> <!-- OR run redrawScreen? -->
+            <i class="material-icons" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
+          </button>
         </div>
         <div id="timelinediv">
           <canvas id="timeline"></canvas>

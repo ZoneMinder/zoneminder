@@ -157,9 +157,11 @@ button.btn {
   font-size: 18px;
   margin-bottom: 3px;
 }
-#toolbar .btn-normal,
-#leftButtons .btn-normal {
+#toolbar .btn-normal {
   margin-right: 3px;
+}
+#leftButtons .btn-normal {
+  margin-right: 0px;
 }
 input, textarea, select, button, .btn-primary {
     border: 1px #ccc solid;

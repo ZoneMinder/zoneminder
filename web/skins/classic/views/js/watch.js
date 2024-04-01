@@ -630,8 +630,8 @@ function handleClick(event) {
 }
 
 function shiftImgFrame() { //We calculate the coordinates of the image displacement and shift the image
-  let newPosX = parseInt((PrevCoordinatFrame.x - coordinateMouse.shiftMouse_x) * 1);
-  let newPosY = parseInt((PrevCoordinatFrame.y - coordinateMouse.shiftMouse_y) * 1);
+  let newPosX = parseInt(PrevCoordinatFrame.x - coordinateMouse.shiftMouse_x);
+  let newPosY = parseInt(PrevCoordinatFrame.y - coordinateMouse.shiftMouse_y);
 
   if (newPosX < 0) newPosX = 0;
   if (newPosX > monitorWidth) newPosX = monitorWidth;

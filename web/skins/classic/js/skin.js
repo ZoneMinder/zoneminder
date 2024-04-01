@@ -269,7 +269,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       refreshWindow: function() {
         refreshWindow();
       }
-    }
+    };
 
     // Load the Logout and State modals into the dom
     $j('#logoutButton').click(clickLogout);

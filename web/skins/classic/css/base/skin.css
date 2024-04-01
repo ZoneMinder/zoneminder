@@ -157,6 +157,10 @@ button.btn {
   font-size: 18px;
   margin-bottom: 3px;
 }
+#toolbar .btn-normal,
+#leftButtons .btn-normal {
+  margin-right: 3px;
+}
 input, textarea, select, button, .btn-primary {
     border: 1px #ccc solid;
     padding: 5px;
@@ -738,6 +742,12 @@ margin-left: 0;
 
 ul.nav.nav-pills.flex-column {
   background-color: #f5f5f5; 
+}
+
+#toolbar,
+.filterTable {
+  display:flex;
+  flex-wrap: wrap;
 }
 
 .controlHeader .chosen-container,

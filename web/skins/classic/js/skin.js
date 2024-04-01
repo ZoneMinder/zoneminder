@@ -261,6 +261,12 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
+    // List of functions that are allowed to be called via the value of an object's DOM attribute.
+    let safeFunc = {
+       drawGraph: function() {drawGraph()},
+       refreshWindow: function() {refreshWindow()}
+    }
+
     // Load the Logout and State modals into the dom
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
@@ -312,7 +318,16 @@ if ( currentView != 'none' && currentView != 'login' ) {
         setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
       }
 
+      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
+
+      if (nameFuncBefore){
+        if (typeof safeFunc[nameFuncBefore] === 'function') safeFunc[nameFuncBefore]();
+      }
       obj.slideToggle("fast");
+      if (nameFuncAfter){
+        if (typeof safeFunc[nameFuncAfter] === 'function') safeFunc[nameFuncAfter]();
+      }
     });
 
     // Manage visible filter bar & control button (after document ready)
@@ -346,7 +361,8 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Manage the web console filter bar minimize chevron
     $j("#mfbflip").click(function() {
       $j("#mfbpanel").slideToggle("slow", function() {
-        changeScale();
+        //changeScale(); //This function disappeared somewhere... It needs to be restored. Function call appeared Aug 10, 2023 https://github.com/ZoneMinder/zoneminder/commit/b8982dce53137d86d33d2d6d79104d4a25673ef7
+        redrawScreen(); //Temporarily use changeScale() instead. You can try using refreshWindow()
       });
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {

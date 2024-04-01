@@ -1106,9 +1106,9 @@ function applyChosen() {
   const limit_search_threshold = 10;
 
   $j('.chosen').chosen('destroy');
-  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold});
-  $j('.chosen.chosen-full-width').chosen({disable_search_threshold: limit_search_threshold, width: "100%"});
-  $j('.chosen.chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, width: "auto"});
+  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, search_contains: true});
+  $j('.chosen.chosen-full-width').chosen({disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  $j('.chosen.chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
 }
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});

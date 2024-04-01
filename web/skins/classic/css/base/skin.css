@@ -155,6 +155,7 @@ a.btn,
 button.btn {
   line-height: 1;
   font-size: 18px;
+  margin-bottom: 3px;
 }
 input, textarea, select, button, .btn-primary {
     border: 1px #ccc solid;

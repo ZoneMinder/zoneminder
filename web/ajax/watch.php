@@ -65,7 +65,7 @@ if ( $sort != 'Id' ) {
 }
 $where = 'WHERE MonitorId = '.$mid;
 
-$col_str = ' E.*, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tag ';
+$col_str = ' E.*, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags ';
 
 $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E
 LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId

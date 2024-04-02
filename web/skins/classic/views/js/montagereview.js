@@ -1,4 +1,3 @@
-
 function evaluateLoadTimes() {
   if (liveMode != 1 && currentSpeed == 0) return; // don't evaluate when we are not moving as we can do nothing really fast.
 
@@ -46,13 +45,13 @@ function evaluateLoadTimes() {
   $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
-function findEventByTime(arr, time) {
+function findEventByTime(arr, time, debug) {
   let start = 0;
   let end = arr.length-1; // -1 because 0 based indexing
 
   //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
   // Iterate while start not meets end
-  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (arr[end].EndTimeSecs >= time)) {
+  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (!arr[end].EndTimeSecs || (arr[end].EndTimeSecs >= time))) {
     //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
     // Find the middle index
     const middle = Math.floor((start + end)/2);
@@ -60,25 +59,25 @@ function findEventByTime(arr, time) {
 
     // If element is present at mid, return True
     //console.log(middle, zm_event, time);
-    if ((zm_event.StartTimeSecs <= time) && (zm_event.EndTimeSecs >= time)) {
+    if ((zm_event.StartTimeSecs <= time) && (!zm_event.EndTimeSecs || (zm_event.EndTimeSecs >= time))) {
       //console.log("Found it at ", zm_event);
       return zm_event;
-    } else {
-      //console.log("Didn't find it looking for "+time+" Start: " + zm_event.StartTimeSecs + ' End: ' + zm_event.EndTimeSecs);
-      // Else look in left or right half accordingly
-      if (zm_event.StartTimeSecs < time) {
-        start = middle + 1;
-      } else if (zm_event.EndTimeSecs > time) {
-        end = middle - 1;
-      } else {
-        break;
-      }
     }
-  }
-  return false;
-}
 
-function findFrameByTime(arr, time) {
+    //console.log("Didn't find it looking for "+time+" Start: " + zm_event.StartTimeSecs + ' End: ' + zm_event.EndTimeSecs);
+    // Else look in left or right half accordingly
+    if (zm_event.StartTimeSecs < time) {
+      start = middle + 1;
+    } else if (zm_event.EndTimeSecs > time) {
+      end = middle - 1;
+    } else {
+      break;
+    }
+  } // end while
+  return false;
+} // end function findEventByTime
+
+function findFrameByTime(arr, time, debug) {
   if (!arr) {
     console.log("No array in findFrameByTime");
     return false;
@@ -90,7 +89,7 @@ function findFrameByTime(arr, time) {
   //console.log(keys);
   //console.log(keys[start]);
   // Iterate while start not meets end
-  //console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
+  if (debug) console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
   while ((start <= end)) {
     if ((arr[keys[start]].TimeStampSecs > time) || (arr[keys[end]].NextTimeStampSecs < time)) {
       console.log(time + " not found in array of frames.", arr[keys[start]], arr[keys[end]]);
@@ -99,37 +98,65 @@ function findFrameByTime(arr, time) {
     // Find the mid index
     const middle = Math.floor((start + end)/2);
     const frame = arr[keys[middle]];
-    //console.log("Looking for ", time, "frame", frame, 'middle '+middle+ ' start '+ start + ' end ' +end);
+    if (debug) {
+      console.log("Looking for ", time, secs2inputstr(time), "frame", frame, 'middle '+middle+ ' start '+ start + ' end ' +end);
+      console.log(secs2inputstr(frame.TimeStampSecs));
+    }
 
     // If element is present at mid, return True
     if ((frame.TimeStampSecs == time) ||
         (frame.TimeStampSecs < time) &&
         (
-          (!frame.NextTimeStampSecs) || // only if event.EndTime is null
-          (frame.NextTimeStampSecs > time)
+          (frame.NextTimeStampSecs > time) ||
+          (!frame.NextTimeStampSecs) // only if event.EndTime is null
         )
     ) {
-      //console.log("Found it at ", frame);
-      return frame;
+      if (debug) console.log("Found it at ", frame);
+      const e = events[frame.EventId];
+      if (!e) {
+        console.log("No event for ", frame.EventId);
+        return frame;
+      }
 
-    // Else look in left or right half accordingly
+      if (frame.NextFrameId && e.FramesById) {
+        var NextFrame = e.FramesById[frame.NextFrameId];
+        if (!NextFrame) {
+          console.log("No nextframe for ", frame.NextFrameId);
+          return frame;
+        }
+        //console.log(NextFrame);
+
+        if (frame.Type == 'Bulk' || NextFrame.Type == 'Bulk') {
+          // There is time between this frame and a bulk frame
+          var duration = frame.NextTimeStampSecs - frame.TimeStampSecs;
+          frame.FrameId = parseInt(frame.FrameId) + parseInt( (NextFrame.FrameId-frame.FrameId) * ( time-frame.TimeStampSecs )/duration );
+          //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame.FrameId + " from " + NextFrame.FrameId + ' - ' + frame.FrameId + " time: " + (time-frame.TimeStampSecs)  );
+        } else if (debug) {
+          console.log("Bulk: " + "frame_id = " + frame.FrameId + " time: " + (time-frame.TimeStampSecs), (NextFrame.Type == 'Bulk'));
+        }
+      } else if (debug) {
+        console.log('No nextframeId');
+      }
+
+      return frame;
+      // Else look in left or right half accordingly
     } else if (frame.TimeStampSecs < time) {
       start = middle + 1;
     } else if (frame.TimeStampSecs > time) {
       end = middle - 1;
     } else {
-      console.log("Error");
+      console.log('Error');
       break;
     }
   } // end while
-  //console.log("Didn't find it");
+  if (debug) console.log("Didn't find it");
   return false;
-}
-
+} // end function findFrameByTime(arr, time, debug=false)
 
 function getFrame(monId, time, last_Frame) {
   if (last_Frame) {
     if (
+      (last_Frame.MonitorId == monId) &&
       (last_Frame.TimeStampSecs <= time) &&
       (last_Frame.EndTimeStampSecs >= time)
     ) {
@@ -137,12 +164,13 @@ function getFrame(monId, time, last_Frame) {
     }
   }
 
-  if (!events_by_monitor_id[monId]) {
+  if (!events_by_monitor_id[monId] || !events_by_monitor_id[monId].length) {
     // Need to load them?
+    console.log("No events_by_monitor_id for " + monId);
     return;
   }
 
-  if (!events_for_monitor[monId]) {
+  if (!events_for_monitor[monId] || !events_for_monitor[monId].length) {
     events_for_monitor[monId] = events_by_monitor_id[monId].map((x)=>events[x]);
     if (!events_for_monitor[monId].length) {
       //console.log("No events for monitor " + monId);
@@ -150,7 +178,7 @@ function getFrame(monId, time, last_Frame) {
     }
   }
 
-  let Event = findEventByTime(events_for_monitor[monId], time);
+  let Event = findEventByTime(events_for_monitor[monId], time, false);
   if (Event === false) {
     // This might be better with a binary search
     for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
@@ -172,6 +200,7 @@ function getFrame(monId, time, last_Frame) {
         const e = events[event_id];
         if ((e.StartTimeSecs <= time) && (e.EndTimeSecs >= time)) {
           console.log("Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+          break;
         } else {
           console.log("Not Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
         }
@@ -182,7 +211,6 @@ function getFrame(monId, time, last_Frame) {
 
   if (!Event.FramesById) {
     console.log('No FramesById for event ', Event.Id);
-    event_id = Event.Id;
     load_Frames({event_id: Event}).then(function() {
       if (!Event.FramesById) {
         console.log("No FramesById after load_Frames!", Event);
@@ -243,8 +271,17 @@ function getImageSource(monId, time) {
   const Frame = getFrame(monId, time);
   if (Frame) {
     const e = events[Frame.EventId];
+    if (!e) {
+      console.log('No event found for ' + Frame.EventId, Frame);
+      return '';
+    }
+
     // Adjust for bulk frames
     if (Frame.NextFrameId) {
+      if (!e.FramesById) {
+        console.log("No FramesById in event ", e, e.FramesById);
+        return '';
+      }
       const NextFrame = e.FramesById[Frame.NextFrameId];
       if (!NextFrame) {
         console.log("No next frame for " + Frame.NextFrameId);
@@ -260,10 +297,31 @@ function getImageSource(monId, time) {
       frame_id = Frame.FrameId;
     }
 
+    if (!parseInt(frame_id)) {
+      console.log("No frame_id from ", Frame);
+      return;
+    }
+
+    let scale = parseInt(100*monitorCanvasObj[monId].width / monitorWidth[monId]);
+    if (scale > 100) {
+      scale = 100;
+    } else {
+      scale = 10 * parseInt(scale/10);
+    }
+
+
     // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
+    return server.PathToZMS + '?mode=jpeg&event=' + Frame.EventId + '&frame='+frame_id +
+      //"&width=" + monitorCanvasObj[monId].width +
+      //"&height=" + monitorCanvasObj[monId].height +
+      "&scale=" + scale +
+      "&frames=1" +
+      "&rate=" + 100*speeds[speedIndex] +
+      '&' + auth_relay;
+
     return server.PathToIndex +
       '?view=image&eid=' + Frame.EventId + '&fid='+frame_id +
       "&width=" + monitorCanvasObj[monId].width +
@@ -275,11 +333,11 @@ function getImageSource(monId, time) {
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
   if ( success ) {
-    var canvasCtx = monitorCanvasCtx[monId];
-    var canvasObj = monitorCanvasObj[monId];
+    const canvasCtx = monitorCanvasCtx[monId];
+    const canvasObj = monitorCanvasObj[monId];
 
     canvasCtx.drawImage( monitorImageObject[monId], 0, 0, canvasObj.width, canvasObj.height );
-    var iconSize=(Math.max(canvasObj.width, canvasObj.height) * 0.10);
+    const iconSize=(Math.max(canvasObj.width, canvasObj.height) * 0.10);
     canvasCtx.font = "600 " + iconSize.toString() + "px Arial";
     canvasCtx.fillStyle = "white";
     canvasCtx.globalCompositeOperation = "difference";
@@ -631,21 +689,19 @@ function outputUpdate(time) {
   currentTimeSecs = time;
 }
 
-/// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
+// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
 function relMouseCoords(event) {
-  var totalOffsetX = 0;
-  var totalOffsetY = 0;
-  var canvasX = 0;
-  var canvasY = 0;
-  var currentElement = this;
+  let totalOffsetX = 0;
+  let totalOffsetY = 0;
+  let currentElement = event.target;
 
   do {
     totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
     totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
   } while (currentElement = currentElement.offsetParent);
 
-  canvasX = event.pageX - totalOffsetX;
-  canvasY = event.pageY - totalOffsetY;
+  const canvasX = event.pageX - totalOffsetX;
+  const canvasY = event.pageY - totalOffsetY;
 
   return {x: canvasX, y: canvasY};
 }
@@ -848,15 +904,35 @@ function click_panright() {
 }
 // Manage the DOWNLOAD VIDEO button
 function click_download() {
-  $j.getJSON(thisUrl + '?request=modal&modal=download')
+  const form = $j('#montagereview_form');
+
+  const data = form.serializeArray();
+  data[data.length] = {name: 'mergeevents', value: true};
+  data[data.length] = {name: 'minTime', value: minTime};
+  data[data.length] = {name: 'maxTime', value: maxTime};
+  data[data.length] = {name: 'minTimeSecs', value: minTimeSecs};
+  data[data.length] = {name: 'maxTimeSecs', value: maxTimeSecs};
+  console.log(data);
+  $j.ajax({
+    url: thisUrl+'?request=modal&modal=download'+(auth_relay?'&'+auth_relay:''),
+    data: data
+  })
       .done(function(data) {
         insertModalHtml('downloadModal', data.html);
         $j('#downloadModal').modal('show');
+        $j('#downloadModal').on('keyup keypress', function(e) {
+          var keyCode = e.keyCode || e.which;
+          if (keyCode === 13) {
+            e.preventDefault();
+            return false;
+          }
+        });
         // Manage the GENERATE DOWNLOAD button
         $j('#exportButton').click(exportEvent);
       })
       .fail(logAjaxFail);
-}
+} // end function click_download
+
 function click_all_events() {
   clicknav(0, 0, 0);
 }
@@ -967,15 +1043,15 @@ function initPage() {
     drawGraph();
   }
 
-  for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
-    var monId = monitorPtr[i];
-    if ( !monId ) continue;
+  for ( let i = 0, len = monitorPtr.length; i < len; i += 1 ) {
+    const monId = monitorPtr[i];
+    if (!monId) continue;
     monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
     if ( !monitorCanvasObj[monId] ) {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
     } else {
       monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
-      var imageObject = monitorImageObject[monId] = new Image();
+      const imageObject = monitorImageObject[monId] = new Image();
       imageObject.monId = monId;
       imageObject.onload = function() {
         imagedone(this, this.monId, true);
@@ -1040,13 +1116,13 @@ function initPage() {
     this.form.submit();
   });
   $j('#fieldsTable input, #fieldsTable select').each(function(index) {
-    el = $j(this);
-    el.on('change', changeDateTime);
+    const el = $j(this);
     if (el.hasClass('datetimepicker')) {
-      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
-    }
-    if (el.hasClass('datepicker')) {
-      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false});
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+    } else if (el.hasClass('datepicker')) {
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+    } else {
+      el.on('change', changeDateTime);
     }
   });
 }

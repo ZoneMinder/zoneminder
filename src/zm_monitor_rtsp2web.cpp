@@ -30,8 +30,7 @@ std::string escape_json_string(std::string input);
 
 Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
   parent(parent_),
-  RTSP2Web_Healthy(false)
-{
+  RTSP2Web_Healthy(false) {
   Use_RTSP_Restream = false;
   if ((config.rtsp2web_path != nullptr) && (config.rtsp2web_path[0] != '\0')) {
     RTSP2Web_endpoint = config.rtsp2web_path;
@@ -136,11 +135,16 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
   Debug(1, "Adding stream response: %s", remove_newlines(response).c_str());
   //scan for missing session or handle id "No such session" "no such handle"
   if (response.find("\"status\": 1") == std::string::npos) {
+    if (response == "{ \"status\": 0, \"payload\": \"stream already exists\"}") {
+      Debug(1, "RTSP2Web failed adding stream, response: %s", response.c_str());
+    } else {
       Warning("RTSP2Web failed adding stream, response: %s", response.c_str());
       return -2;
+    }
+  } else {
+    Debug(1, "Added stream to RTSP2Web: %s", response.c_str());
   }
 
-  Debug(1, "Added stream to RTSP2Web: %s", response.c_str());
   return 0;
 }
 

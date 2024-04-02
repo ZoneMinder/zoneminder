@@ -8,7 +8,7 @@ if ( !isset($_REQUEST['id']) ) {
 $result = '';
 $checked = ' checked="checked"';
 $null = '';
-$sid = $_REQUEST['id'];
+$sid = validCardinal($_REQUEST['id']);
 
 if ( !canEdit('System') ) return;
 
@@ -32,36 +32,36 @@ if ( $sid and ! $Server->Id() ) return;
           echo getCSRFinputHTML();
           ?>
           <input type="hidden" name="object" value="server"/>
-          <input type="hidden" name="id" value="<?php echo validHtmlStr($_REQUEST['id']) ?>"/>
+          <input type="hidden" name="id" value="<?php echo $sid ?>"/>
           <table class="table-sm">
             <tbody>
               <tr class="Name">
                 <th scope="row"><?php echo translate('Name') ?></th>
-                <td><input type="text" name="newServer[Name]" value="<?php echo $Server->Name() ?>"/></td>
+                <td><input type="text" name="newServer[Name]" value="<?php echo validHtmlStr($Server->Name()) ?>"/></td>
               </tr>
               <tr class="Protocol">
                 <th scope="row"><?php echo translate('Protocol') ?></th>
-                <td><input type="text" name="newServer[Protocol]" value="<?php echo $Server->Protocol() ?>"/></td>
+                <td><input type="text" name="newServer[Protocol]" value="<?php echo validHtmlStr($Server->Protocol()) ?>"/></td>
               </tr>
               <tr class="Hostname">
                 <th scope="row"><?php echo translate('Hostname') ?></th>
-                <td><input type="text" name="newServer[Hostname]" value="<?php echo $Server->Hostname() ?>"/></td>
+                <td><input type="text" name="newServer[Hostname]" value="<?php echo validHtmlStr($Server->Hostname()) ?>"/></td>
               </tr>
               <tr class="Port">
                 <th scope="row"><?php echo translate('Port') ?></th>
-                <td><input type="number" name="newServer[Port]" value="<?php echo $Server->Port() ?>"/></td>
+                <td><input type="number" name="newServer[Port]" value="<?php echo validCardinal($Server->Port()) ?>" step="1" min="1" max="65536"/></td>
               </tr>
               <tr class="PathToIndex">
                 <th scope="row"><?php echo translate('PathToIndex') ?></th>
-                <td><input type="text" name="newServer[PathToIndex]" value="<?php echo $Server->PathToIndex() ?>"/></td>
+                <td><input type="text" name="newServer[PathToIndex]" value="<?php echo validHtmlStr($Server->PathToIndex()) ?>"/></td>
               </tr>
               <tr class="PathToZMS">
                 <th scope="row"><?php echo translate('PathToZMS') ?></th>
-                <td><input type="text" name="newServer[PathToZMS]" value="<?php echo $Server->PathToZMS() ?>"/></td>
+                <td><input type="text" name="newServer[PathToZMS]" value="<?php echo validHtmlStr($Server->PathToZMS()) ?>"/></td>
               </tr>
               <tr class="PathToApi">
                 <th scope="row"><?php echo translate('PathToApi') ?></th>
-                <td><input type="text" name="newServer[PathToApi]" value="<?php echo $Server->PathToApi() ?>"/></td>
+                <td><input type="text" name="newServer[PathToApi]" value="<?php echo validHtmlStr($Server->PathToApi()) ?>"/></td>
               </tr>
               <tr class="RunStats">
                 <th scope="row"><?php echo translate('RunStats') ?></th>

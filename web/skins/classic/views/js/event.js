@@ -1,4 +1,8 @@
-var table = $j('#eventStatsTable');
+var eventStats = $j('#eventStats');
+var eventVideo = $j('#eventVideo');
+var wrapperEventVideo = $j('#wrapperEventVideo');
+var videoFeed = $j('#videoFeed');
+var eventStatsTable = $j('#eventStatsTable');
 var backBtn = $j('#backBtn');
 var renameBtn = $j('#renameBtn');
 var archiveBtn = $j('#archiveBtn');
@@ -271,7 +275,7 @@ function changeScale() {
   const bottomEl = $j('#replayStatus');
 
   if (!scale) {
-    const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl);
+    const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     scale = newSize.autoScale;
@@ -288,7 +292,7 @@ function changeScale() {
   }
   if (cueFrames) {
     //just re-render alarmCues.  skip ajax call
-    alarmCue.html(renderAlarmCues(eventViewer));
+    alarmCue.html(renderAlarmCues(videoFeed));
   }
 
   // After a resize, check if we still have room to display the event stats table
@@ -805,6 +809,18 @@ function videoEvent() {
   window.location.assign('?view=video&eid='+eventData.Id);
 }
 
+function eventLive() {
+  window.location.assign("?view=watch&mid="+eventData.MonitorId);
+}
+
+function eventEdit() {
+  window.location.assign("?view=monitor&mid="+eventData.MonitorId);
+}
+
+function viewAllEvents() {
+  window.location.assign("?view=events&page=1&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Battr%5D=Monitor&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bop%5D=%3D&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bval%5D="+eventData.MonitorId+"&filter%5BQuery%5D%5Bsort_asc%5D=1&filter%5BQuery%5D%5Bsort_field%5D=StartDateTime&filter%5BQuery%5D%5Bskip_locked%5D=&filter%5BQuery%5D%5Blimit%5D=0");
+}
+
 // Called on each event load because each event can be a different width
 function drawProgressBar() {
   var barWidth = $j('#evtStream').width();
@@ -942,9 +958,10 @@ function getEvtStatsCookie() {
 }
 
 function getStat() {
-  table.empty().append('<tbody>');
+  eventStatsTable.empty().append('<tbody>');
   $j.each(eventDataStrings, function(key) {
-    var th = $j('<th>').addClass('text-right').text(eventDataStrings[key]);
+    if (key == 'MonitorId') return true; // Not show ID string
+    var th = $j('<th class="label">').addClass('text-right').text(eventDataStrings[key]);
     var tdString;
 
     //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
@@ -958,16 +975,21 @@ function getStat() {
       case 'Location':
         tdString = eventData.Latitude + ', ' + eventData.Longitude;
         break;
-      case 'MonitorId':
-        if (canView["Monitors"]) {
-          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
-        } else {
-          tdString = eventData[key];
-        }
-        break;
+      //case 'MonitorId':
+      //  if (canView["Monitors"]) {
+      //    tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorId+'</a>';
+      //  } else {
+      //    tdString = eventData[key];
+      //  }
+      //  break;
       case 'MonitorName':
         if (canView["Monitors"]) {
-          tdString = '<a href="?view=monitor&amp;mid='+eventData.MonitorId+'">'+eventData.MonitorName+'</a>';
+          tdString = '('+ eventData.MonitorId +') '+ eventData.MonitorName+ '&nbsp';
+          tdString += '<div style="display:inline-block">';
+          tdString += '<button id="eventLiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Live"]+'" ><i class="fa fa-television"></i></button>';
+          tdString += '<button id="eventEditBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["Edit"]+'" ><i class="fa fa-edit"></i></button>';
+          tdString += '<button id="eventAllEvents" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'+translate["All Events"]+'" ><i class="fa fa-film"></i></button>';
+          tdString += '</div>';
         } else {
           tdString = eventData[key];
         }
@@ -1004,9 +1026,10 @@ function getStat() {
   });
 }
 
+
 function onStatsResize(vidWidth) {
   if (!vidWidth) return;
-  var minWidth = 300; // An arbitrary value in pixels used to hide the stats table
+  var minWidth = 200; // An arbitrary value in pixels used to hide the stats table
   var scale = $j('#scale').val();
 
   if (parseInt(scale)) {
@@ -1019,16 +1042,18 @@ function onStatsResize(vidWidth) {
   // Hide the stats table if we have run out of room to show it properly
   if (width < minWidth) {
     statsBtn.prop('disabled', true);
-    if (table.is(':visible')) {
-      table.toggle(false);
+    if (eventStats.is(':visible')) {
+      eventStats.toggle(false);
       wasHidden = true;
+      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
     }
   // Show the stats table if we hid it previously and sufficient room becomes available
   } else if (width >= minWidth) {
     statsBtn.prop('disabled', false);
-    if ( !table.is(':visible') && wasHidden ) {
-      table.toggle(true);
+    if ( !eventStats.is(':visible') && wasHidden ) {
+      eventStats.toggle(true);
       wasHidden = false;
+      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
     }
   }
 }
@@ -1041,9 +1066,11 @@ function initPage() {
   getStat();
 
   if (getEvtStatsCookie() != 'on') {
-    table.toggle(false);
+    eventStats.toggle(false);
+    wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
   } else {
     onStatsResize(eventData.Width);
+    wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
   }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
@@ -1186,19 +1213,39 @@ function initPage() {
     videoEvent();
   });
 
+  // Manage the generate Live button
+  bindButton('#eventLiveBtn', 'click', null, function onLiveClick(evt) {
+    evt.preventDefault();
+    eventLive();
+  });
+
+  // Manage the generate Edit button
+  bindButton('#eventEditBtn', 'click', null, function onEditClick(evt) {
+    evt.preventDefault();
+    eventEdit();
+  });
+
+  // Manage the generate All Events button
+  bindButton('#eventAllEvents', 'click', null, function onAllEventsClick(evt) {
+    evt.preventDefault();
+    viewAllEvents();
+  });
   // Manage the Event STATISTICS Button
   bindButton('#statsBtn', 'click', null, function onStatsClick(evt) {
     evt.preventDefault();
     var cookie = 'zmEventStats';
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
-    if (table.is(':visible')) {
+    if (eventStats.is(':visible')) {
       setCookie(cookie, 'off');
-      table.toggle(false);
+      eventStats.toggle(false);
+      wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
     } else {
       setCookie(cookie, 'on');
-      table.toggle(true);
+      eventStats.toggle(true);
+      wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
     }
+    changeScale();
   });
 
   // Manage the FRAMES Button
@@ -1319,6 +1366,11 @@ function initPage() {
   streamPlay();
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
+    const mapDiv = document.getElementById('LocationMap');
+    if (mapDiv) {
+      mapDiv.style.width='450px';
+      mapDiv.style.height='450px';
+    }
     if ( window.L ) {
       map = L.map('LocationMap', {
         center: L.latLng(eventData.Latitude, eventData.Longitude),
@@ -1515,4 +1567,4 @@ function fullscreenClicked() {
 }
 
 // Kick everything off
-$j(document).ready(initPage);
+$j( window ).on("load", initPage);

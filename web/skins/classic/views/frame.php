@@ -57,7 +57,7 @@ if (isset($_REQUEST['scale'])) {
 } else if (isset($_COOKIE['zmWatchScale'])) {
   $scale = validNum($_COOKIE['zmWatchScale']);
 } else {
-  $scale = $Monitor->DefaultScale();
+  $scale = validNum($Monitor->DefaultScale());
 }
 $scale = $scale ? $scale : 0;
 
@@ -85,9 +85,9 @@ $rImagePath = sprintf('%s/%0'.ZM_EVENT_IMAGE_DIGITS.'d-diag-r.jpg', $eventPath, 
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Frame').' - '.$Event->Id().' - '.$Frame->FrameId());
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
-  <?php echo getNavBarHTML() ?>
   <div id="page p-0">
     <div class="d-flex flex-row justify-content-between px-3 pt-1">
       <div id="toolbar" >

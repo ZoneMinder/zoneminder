@@ -234,7 +234,7 @@ function calculateAuthHash($remoteAddr='') {
 function generateAuthHash($useRemoteAddr, $force=false) {
   global $user;
   if (!isset($_SESSION['remoteAddr'])) $_SESSION['remoteAddr'] = '';
-  if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and $user and $user->Username() and $user->Password()) {
+  if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and $user and $user->Username()) {
     if (!isset($_SESSION)) {
       # Appending the remoteAddr prevents us from using an auth hash generated for a different ip
       #$auth = calculateAuthHash($useRemoteAddr?$_SESSION['remoteAddr']:'');
@@ -302,8 +302,9 @@ function visibleMonitor($mid) {
 
 function canView($area, $mid=false) {
   global $user;
-
-  return ( $user && $user->$area() && ($user->$area() != 'None') && ( !$mid || visibleMonitor($mid) ) );
+  if (!$user) return false;
+  if ($mid) return visibleMonitor($mid);
+  return ($user->$area() && ($user->$area() != 'None'));
 }
 
 function editableMonitor($mid) {
@@ -332,9 +333,10 @@ function editableMonitor($mid) {
 
   # If denied view in any group, then can't view it.
   foreach ($group_permissions as $permission) {
-    if (!$permission->canEditMonitor($mid)) {
-      ZM\Debug("Have group permission");
-      return false;
+    $perm_value = $permission->MonitorPermission($mid);
+    ZM\Debug("Have group permission $perm_value");
+    if ($perm_value == 'Edit') {
+      return true;
     }
   }
 
@@ -345,7 +347,9 @@ function editableMonitor($mid) {
 function canEdit($area, $mid=false) {
   global $user;
 
-  return ( $user && ($user->$area() == 'Edit' or $user->$area() == 'Create') && ( !$mid || visibleMonitor($mid) ));
+  if (!$user) return false;
+  if ($mid) return editableMonitor($mid);
+  return ($user->$area() == 'Edit' or $user->$area() == 'Create');
 }
 
 function canCreate($area) {

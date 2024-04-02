@@ -17,22 +17,21 @@
 
 #if HAVE_RTSP_SERVER
 ZoneMinderDeviceSource::ZoneMinderDeviceSource(
-    UsageEnvironment& env,
-    std::shared_ptr<Monitor> monitor,
-    AVStream *stream,
-    unsigned int queueSize
-    ) :
+  UsageEnvironment& env,
+  std::shared_ptr<Monitor> monitor,
+  AVStream *stream,
+  unsigned int queueSize
+) :
   FramedSource(env),
-	m_eventTriggerId(envir().taskScheduler().createEventTrigger(ZoneMinderDeviceSource::deliverFrameStub)),
-	m_stream(stream),
-	m_monitor(std::move(monitor)),
+  m_eventTriggerId(envir().taskScheduler().createEventTrigger(ZoneMinderDeviceSource::deliverFrameStub)),
+  m_stream(stream),
+  m_monitor(std::move(monitor)),
   m_packetqueue(nullptr),
   m_packetqueue_it(nullptr),
-	m_queueSize(queueSize)
-{
-	memset(&m_thid, 0, sizeof(m_thid));
-	memset(&m_mutex, 0, sizeof(m_mutex));
-	if ( m_monitor ) {
+  m_queueSize(queueSize) {
+  memset(&m_thid, 0, sizeof(m_thid));
+  memset(&m_mutex, 0, sizeof(m_mutex));
+  if ( m_monitor ) {
     m_packetqueue = m_monitor->GetPacketQueue();
     if ( !m_packetqueue ) {
       Fatal("No packetqueue");
@@ -41,50 +40,50 @@ ZoneMinderDeviceSource::ZoneMinderDeviceSource(
     pthread_create(&m_thid, nullptr, threadStub, this);
   } else {
     Error("No monitor in ZoneMinderDeviceSource");
-	}
+  }
 }
 
 ZoneMinderDeviceSource::~ZoneMinderDeviceSource() {
   stop = 1;
-	envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
-	pthread_join(m_thid, nullptr);
+  envir().taskScheduler().deleteEventTrigger(m_eventTriggerId);
+  pthread_join(m_thid, nullptr);
   while ( m_captureQueue.size() ) {
     NAL_Frame * f = m_captureQueue.front();
     m_captureQueue.pop_front();
     delete f;
   }
 
-	pthread_mutex_destroy(&m_mutex);
+  pthread_mutex_destroy(&m_mutex);
 }
 
 // thread mainloop
 void* ZoneMinderDeviceSource::thread() {
-	stop = 0;
+  stop = 0;
 
-	while ( !stop ) {
-		getNextFrame();
-	}
-	return nullptr;
+  while ( !stop ) {
+    getNextFrame();
+  }
+  return nullptr;
 }
 
 // getting FrameSource callback
 void ZoneMinderDeviceSource::doGetNextFrame() {
-	deliverFrame();
+  deliverFrame();
 }
 
 // stopping FrameSource callback
 void ZoneMinderDeviceSource::doStopGettingFrames() {
   stop = 1;
-	Debug(1, "ZoneMinderDeviceSource::doStopGettingFrames");
-	FramedSource::doStopGettingFrames();
+  Debug(1, "ZoneMinderDeviceSource::doStopGettingFrames");
+  FramedSource::doStopGettingFrames();
 }
 
 // deliver frame to the sink
 void ZoneMinderDeviceSource::deliverFrame() {
-	if ( !isCurrentlyAwaitingData() ) {
+  if ( !isCurrentlyAwaitingData() ) {
     Debug(4, "not awaiting data");
     return;
-  } 
+  }
 
   pthread_mutex_lock(&m_mutex);
   if ( m_captureQueue.empty() ) {
@@ -109,11 +108,11 @@ void ZoneMinderDeviceSource::deliverFrame() {
     fFrameSize = nal_size;
   }
   Debug(2, "deliverFrame stream: %d timestamp: %ld.%06ld size: %d queuesize: %d",
-      m_stream->index,
-      frame->m_timestamp.tv_sec, frame->m_timestamp.tv_usec,
-      fFrameSize, 
-      m_captureQueue.size()
-      );
+        m_stream->index,
+        frame->m_timestamp.tv_sec, frame->m_timestamp.tv_usec,
+        fFrameSize,
+        m_captureQueue.size()
+       );
 
   fPresentationTime = frame->m_timestamp;
   memcpy(fTo, frame->buffer(), fFrameSize);
@@ -127,16 +126,16 @@ void ZoneMinderDeviceSource::deliverFrame() {
 
 // FrameSource callback on read event
 void ZoneMinderDeviceSource::incomingPacketHandler() {
-	if ( this->getNextFrame() <= 0 ) {
-		handleClosure(this);
-	}
+  if ( this->getNextFrame() <= 0 ) {
+    handleClosure(this);
+  }
 }
 
 // read from monitor
 int ZoneMinderDeviceSource::getNextFrame() {
   if ( zm_terminate )
     return -1;
-  
+
   if ( !m_packetqueue_it ) {
     m_packetqueue_it = m_packetqueue->get_video_it(true);
   }
@@ -201,11 +200,11 @@ int ZoneMinderDeviceSource::getNextFrame() {
 
 // split packet in frames
 std::list< std::pair<unsigned char*,size_t> > ZoneMinderDeviceSource::splitFrames(unsigned char* frame, unsigned frameSize) {
-	std::list< std::pair<unsigned char*,size_t> > frameList;
-	if ( frame != nullptr ) {
-		frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
-	}
-	return frameList;
+  std::list< std::pair<unsigned char*,size_t> > frameList;
+  if ( frame != nullptr ) {
+    frameList.push_back(std::pair<unsigned char*,size_t>(frame, frameSize));
+  }
+  return frameList;
 }
 
 // extract a frame

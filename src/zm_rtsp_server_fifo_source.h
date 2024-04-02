@@ -1,8 +1,8 @@
 /* ---------------------------------------------------------------------------
 **
 ** FifoSource.h
-** 
-**  live555 source 
+**
+**  live555 source
 **
 ** -------------------------------------------------------------------------*/
 
@@ -23,50 +23,50 @@
 #include "xop/RtspServer.h"
 
 class ZoneMinderFifoSource {
-		
-	public:
 
-    void Stop() {
-      stop_ = true;
-      condition_.notify_all();
-    };
+ public:
 
-    ZoneMinderFifoSource(
-        std::shared_ptr<xop::RtspServer>& rtspServer,
-        xop::MediaSessionId sessionId,
-        xop::MediaChannelId channelId,
-        const std::string &fifo
-        );
-		virtual ~ZoneMinderFifoSource();
+  void Stop() {
+    stop_ = true;
+    condition_.notify_all();
+  };
 
-	protected:	
-		void ReadRun();
-		void WriteRun();
+  ZoneMinderFifoSource(
+    std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    const std::string &fifo
+  );
+  virtual ~ZoneMinderFifoSource();
 
-		int getNextFrame();
-    virtual void PushFrame(const uint8_t *data, size_t size, int64_t pts) = 0;
-     // split packet in frames
-    virtual std::list< std::pair<unsigned char*, size_t> > splitFrames(unsigned char* frame, size_t &frameSize);
-    virtual unsigned char *extractFrame(unsigned char *data, size_t& size, size_t& outsize);
+ protected:
+  void ReadRun();
+  void WriteRun();
 
-	protected:
+  int getNextFrame();
+  virtual void PushFrame(const uint8_t *data, size_t size, int64_t pts) = 0;
+  // split packet in frames
+  virtual std::list< std::pair<unsigned char*, size_t> > splitFrames(unsigned char* frame, size_t &frameSize);
+  virtual unsigned char *extractFrame(unsigned char *data, size_t& size, size_t& outsize);
 
-    std::mutex  mutex_;
-    std::condition_variable condition_;
+ protected:
 
-    std::thread read_thread_;
-    std::thread write_thread_;
-    std::atomic<bool> stop_;
+  std::mutex  mutex_;
+  std::condition_variable condition_;
 
-    std::shared_ptr<xop::RtspServer>& m_rtspServer;
-    xop::MediaSessionId m_sessionId;
-    xop::MediaChannelId m_channelId;
-    std::string m_fifo;
-    int m_fd;
-    Buffer  m_buffer;
-    AVRational m_timeBase;
-    std::queue<NAL_Frame *> m_nalQueue;
-    int m_hType;
+  std::thread read_thread_;
+  std::thread write_thread_;
+  std::atomic<bool> stop_;
+
+  std::shared_ptr<xop::RtspServer>& m_rtspServer;
+  xop::MediaSessionId m_sessionId;
+  xop::MediaChannelId m_channelId;
+  std::string m_fifo;
+  int m_fd;
+  Buffer  m_buffer;
+  AVRational m_timeBase;
+  std::queue<NAL_Frame *> m_nalQueue;
+  int m_hType;
 };
 #endif // HAVE_RTSP_SERVER
 

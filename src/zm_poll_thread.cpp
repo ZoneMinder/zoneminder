@@ -5,7 +5,7 @@
 #include "zm_time.h"
 
 PollThread::PollThread(Monitor *monitor) :
-    monitor_(monitor), terminate_(false) {
+  monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&PollThread::Run, this);
 }
 

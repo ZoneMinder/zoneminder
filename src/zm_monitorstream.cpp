@@ -84,153 +84,152 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   Debug(2, "Got message, type %d, msg %d", msg->msg_type, msg->msg_data[0]);
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
-    case CMD_PAUSE :
-      Debug(1, "Got PAUSE command");
-      paused = true;
-      delayed = true;
-      last_frame_sent = now;
-      break;
-    case CMD_PLAY :
-      Debug(1, "Got PLAY command");
-      if (paused) {
-        paused = false;
-        delayed = true;
-      }
-      replay_rate = ZM_RATE_BASE;
-      break;
-    case CMD_VARPLAY :
-      Debug(1, "Got VARPLAY command");
-      if (paused) {
-        paused = false;
-        delayed = true;
-      }
-      replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
-      break;
-    case CMD_STOP :
-      Debug(1, "Got STOP command");
+  case CMD_PAUSE :
+    Debug(1, "Got PAUSE command");
+    paused = true;
+    delayed = true;
+    last_frame_sent = now;
+    break;
+  case CMD_PLAY :
+    Debug(1, "Got PLAY command");
+    if (paused) {
       paused = false;
-      delayed = false;
-      break;
-    case CMD_FASTFWD :
-      Debug(1, "Got FAST FWD command");
-      if (paused) {
-        paused = false;
-        delayed = true;
-      }
-      // Set play rate
-      switch (replay_rate) {
-        case 2 * ZM_RATE_BASE :
-          replay_rate = 5 * ZM_RATE_BASE;
-          break;
-        case 5 * ZM_RATE_BASE :
-          replay_rate = 10 * ZM_RATE_BASE;
-          break;
-        case 10 * ZM_RATE_BASE :
-          replay_rate = 25 * ZM_RATE_BASE;
-          break;
-        case 25 * ZM_RATE_BASE :
-        case 50 * ZM_RATE_BASE :
-          replay_rate = 50 * ZM_RATE_BASE;
-          break;
-        default :
-          replay_rate = 2 * ZM_RATE_BASE;
-          break;
-      }
-      break;
-    case CMD_MAXFPS :
-      {
-        double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
-          | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
-        double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
-          | ((unsigned char) msg->msg_data[7] << 8) | (unsigned char) msg->msg_data[8];
-
-        maxfps = (int_part + dec_part / 1000000.0);
-
-        Debug(1, "Got MAXFPS %f", maxfps);
-        break;
-      }
-    case CMD_SLOWFWD :
-      Debug(1, "Got SLOW FWD command");
-      paused = true;
       delayed = true;
-      replay_rate = ZM_RATE_BASE;
-      step = 1;
-      break;
-    case CMD_SLOWREV :
-      Debug(1, "Got SLOW REV command");
-      paused = true;
+    }
+    replay_rate = ZM_RATE_BASE;
+    break;
+  case CMD_VARPLAY :
+    Debug(1, "Got VARPLAY command");
+    if (paused) {
+      paused = false;
       delayed = true;
-      replay_rate = ZM_RATE_BASE;
-      step = -1;
+    }
+    replay_rate = ntohs(((unsigned char)msg->msg_data[2]<<8)|(unsigned char)msg->msg_data[1])-32768;
+    break;
+  case CMD_STOP :
+    Debug(1, "Got STOP command");
+    paused = false;
+    delayed = false;
+    break;
+  case CMD_FASTFWD :
+    Debug(1, "Got FAST FWD command");
+    if (paused) {
+      paused = false;
+      delayed = true;
+    }
+    // Set play rate
+    switch (replay_rate) {
+    case 2 * ZM_RATE_BASE :
+      replay_rate = 5 * ZM_RATE_BASE;
       break;
-    case CMD_FASTREV :
-      Debug(1, "Got FAST REV command");
-      if (paused) {
-        paused = false;
-        delayed = true;
-      }
-      // Set play rate
-      switch (replay_rate) {
-        case -2 * ZM_RATE_BASE :
-          replay_rate = -5 * ZM_RATE_BASE;
-          break;
-        case -5 * ZM_RATE_BASE :
-          replay_rate = -10 * ZM_RATE_BASE;
-          break;
-        case -10 * ZM_RATE_BASE :
-          replay_rate = -25 * ZM_RATE_BASE;
-          break;
-        case -25 * ZM_RATE_BASE :
-        case -50 * ZM_RATE_BASE :
-          replay_rate = -50 * ZM_RATE_BASE;
-          break;
-        default :
-          replay_rate = -2 * ZM_RATE_BASE;
-          break;
-      }
+    case 5 * ZM_RATE_BASE :
+      replay_rate = 10 * ZM_RATE_BASE;
       break;
-    case CMD_ZOOMIN :
-      x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-      y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-      zoom += 10;
-      Debug(1, "Got ZOOM IN command, to %d,%d zoom value %d%%", x, y, zoom);
+    case 10 * ZM_RATE_BASE :
+      replay_rate = 25 * ZM_RATE_BASE;
       break;
-    case CMD_ZOOMOUT :
-      zoom -= 10;
-      if (zoom < 100) zoom = 100;
-      Debug(1, "Got ZOOM OUT command resulting zoom %d%%", zoom);
-      break;
-    case CMD_ZOOMSTOP :
-      zoom = 100;
-      Debug(1, "Got ZOOM OUT FULL command resulting zoom %d%%", zoom);
-      break;
-    case CMD_PAN :
-      x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-      y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-      Debug(1, "Got PAN command, to %d,%d", x, y);
-      break;
-    case CMD_SCALE :
-      scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-      Debug(1, "Got SCALE command, to %d", scale);
-      break;
-    case CMD_QUIT :
-      Info("User initiated exit - CMD_QUIT");
-      zm_terminate = true;
-      break;
-    case CMD_ANALYZE_ON : 
-      frame_type = FRAME_ANALYSIS;
-      Debug(1, "ANALYSIS on");
-      break;
-    case CMD_ANALYZE_OFF : 
-      frame_type = FRAME_NORMAL;
-      Debug(1, "ANALYSIS off");
-      break;
-    case CMD_QUERY :
-      Debug(1, "Got QUERY command, sending STATUS");
+    case 25 * ZM_RATE_BASE :
+    case 50 * ZM_RATE_BASE :
+      replay_rate = 50 * ZM_RATE_BASE;
       break;
     default :
-      Error("Got unexpected command %d", msg->msg_data[0]);
+      replay_rate = 2 * ZM_RATE_BASE;
       break;
+    }
+    break;
+  case CMD_MAXFPS : {
+    double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
+                      | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
+    double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
+                      | ((unsigned char) msg->msg_data[7] << 8) | (unsigned char) msg->msg_data[8];
+
+    maxfps = (int_part + dec_part / 1000000.0);
+
+    Debug(1, "Got MAXFPS %f", maxfps);
+    break;
+  }
+  case CMD_SLOWFWD :
+    Debug(1, "Got SLOW FWD command");
+    paused = true;
+    delayed = true;
+    replay_rate = ZM_RATE_BASE;
+    step = 1;
+    break;
+  case CMD_SLOWREV :
+    Debug(1, "Got SLOW REV command");
+    paused = true;
+    delayed = true;
+    replay_rate = ZM_RATE_BASE;
+    step = -1;
+    break;
+  case CMD_FASTREV :
+    Debug(1, "Got FAST REV command");
+    if (paused) {
+      paused = false;
+      delayed = true;
+    }
+    // Set play rate
+    switch (replay_rate) {
+    case -2 * ZM_RATE_BASE :
+      replay_rate = -5 * ZM_RATE_BASE;
+      break;
+    case -5 * ZM_RATE_BASE :
+      replay_rate = -10 * ZM_RATE_BASE;
+      break;
+    case -10 * ZM_RATE_BASE :
+      replay_rate = -25 * ZM_RATE_BASE;
+      break;
+    case -25 * ZM_RATE_BASE :
+    case -50 * ZM_RATE_BASE :
+      replay_rate = -50 * ZM_RATE_BASE;
+      break;
+    default :
+      replay_rate = -2 * ZM_RATE_BASE;
+      break;
+    }
+    break;
+  case CMD_ZOOMIN :
+    x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+    y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+    zoom += 10;
+    Debug(1, "Got ZOOM IN command, to %d,%d zoom value %d%%", x, y, zoom);
+    break;
+  case CMD_ZOOMOUT :
+    zoom -= 10;
+    if (zoom < 100) zoom = 100;
+    Debug(1, "Got ZOOM OUT command resulting zoom %d%%", zoom);
+    break;
+  case CMD_ZOOMSTOP :
+    zoom = 100;
+    Debug(1, "Got ZOOM OUT FULL command resulting zoom %d%%", zoom);
+    break;
+  case CMD_PAN :
+    x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+    y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
+    Debug(1, "Got PAN command, to %d,%d", x, y);
+    break;
+  case CMD_SCALE :
+    scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+    Debug(1, "Got SCALE command, to %d", scale);
+    break;
+  case CMD_QUIT :
+    Info("User initiated exit - CMD_QUIT");
+    zm_terminate = true;
+    break;
+  case CMD_ANALYZE_ON :
+    frame_type = FRAME_ANALYSIS;
+    Debug(1, "ANALYSIS on");
+    break;
+  case CMD_ANALYZE_OFF :
+    frame_type = FRAME_NORMAL;
+    Debug(1, "ANALYSIS off");
+    break;
+  case CMD_QUERY :
+    Debug(1, "Got QUERY command, sending STATUS");
+    break;
+  default :
+    Error("Got unexpected command %d", msg->msg_data[0]);
+    break;
   } // end switch command
 
   struct {
@@ -262,7 +261,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     status_data.buffer_level = 0;
   } else {
     FPSeconds elapsed = now - last_fps_update;
-    if (elapsed.count()) { 
+    if (elapsed.count()) {
       actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
       last_frame_count = frame_count;
       last_fps_update = now;
@@ -287,18 +286,18 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.zoom = zoom;
   status_data.scale = scale;
   Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
-      status_data.fps,
-      status_data.capture_fps,
-      status_data.analysis_fps,
-      status_data.buffer_level,
-      status_data.delayed,
-      status_data.paused,
-      status_data.rate,
-      status_data.delay,
-      status_data.zoom,
-      status_data.enabled,
-      status_data.forced
-      );
+        status_data.fps,
+        status_data.capture_fps,
+        status_data.analysis_fps,
+        status_data.buffer_level,
+        status_data.delayed,
+        status_data.paused,
+        status_data.rate,
+        status_data.delay,
+        status_data.zoom,
+        status_data.enabled,
+        status_data.forced
+       );
 
   DataMsg status_msg;
   status_msg.msg_type = MSG_DATA_WATCH;
@@ -314,10 +313,10 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
   bool send_raw = ((scale>=ZM_SCALE_BASE)&&(zoom==ZM_SCALE_BASE));
 
   if (
-      (type != STREAM_JPEG)
-      ||
-      (!config.timestamp_on_capture)
-     )
+    (type != STREAM_JPEG)
+    ||
+    (!config.timestamp_on_capture)
+  )
     send_raw = false;
 
   if (!send_raw) {
@@ -339,11 +338,11 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     TimePoint send_start_time = std::chrono::steady_clock::now();
 
     if (
-        (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
-                     img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
-        ||
-        (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
-       ) {
+      (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
+                   img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
+      ||
+      (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
+    ) {
       if (!zm_terminate)
         Warning("Unable to send stream frame: %s", strerror(errno));
       return false;
@@ -357,8 +356,8 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
 
       if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
         Info("Frame send time %" PRIi64 " ms too slow, throttling maxfps to %.2f",
-            static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
-            maxfps);
+             static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
+             maxfps);
       }
     }
 
@@ -400,36 +399,36 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     unsigned char *img_buffer = temp_img_buffer;
 
     switch (type) {
-      case STREAM_JPEG :
-        send_image->EncodeJpeg(img_buffer, &img_buffer_size);
-        fputs("Content-Type: image/jpeg\r\n", stdout);
-        break;
-      case STREAM_RAW :
-        fputs("Content-Type: image/x-rgb\r\n", stdout);
-        img_buffer = send_image->Buffer();
-        img_buffer_size = send_image->Size();
-        break;
-      case STREAM_ZIP :
+    case STREAM_JPEG :
+      send_image->EncodeJpeg(img_buffer, &img_buffer_size);
+      fputs("Content-Type: image/jpeg\r\n", stdout);
+      break;
+    case STREAM_RAW :
+      fputs("Content-Type: image/x-rgb\r\n", stdout);
+      img_buffer = send_image->Buffer();
+      img_buffer_size = send_image->Size();
+      break;
+    case STREAM_ZIP :
 #if HAVE_ZLIB_H
-        fputs("Content-Type: image/x-rgbz\r\n", stdout);
-        unsigned long zip_buffer_size;
-        send_image->Zip(img_buffer, &zip_buffer_size);
-        img_buffer_size = zip_buffer_size;
+      fputs("Content-Type: image/x-rgbz\r\n", stdout);
+      unsigned long zip_buffer_size;
+      send_image->Zip(img_buffer, &zip_buffer_size);
+      img_buffer_size = zip_buffer_size;
 #else
-        Error("zlib is required for zipped images. Falling back to raw image");
-        type = STREAM_RAW;
+      Error("zlib is required for zipped images. Falling back to raw image");
+      type = STREAM_RAW;
 #endif // HAVE_ZLIB_H
-        break;
-      default :
-        Error("Unexpected frame type %d", type);
-        return false;
+      break;
+    default :
+      Error("Unexpected frame type %d", type);
+      return false;
     }
     if (
-        (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
-                     img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
-        ||
-        (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
-       ) {
+      (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
+                   img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
+      ||
+      (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
+    ) {
       // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
       Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate);
       return false;
@@ -447,9 +446,9 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     if (frame_send_time > maxfps_milliseconds) {
       //maxfps /= 1.5;
       Debug(1, "Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", %.3f",
-          static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
-          static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
-          maxfps);
+            static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
+            static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
+            maxfps);
     }
   }
   return true;
@@ -467,13 +466,16 @@ void MonitorStream::runStream() {
         // Notify capture that we might want to view
         monitor->setLastViewed();
         sendTextFrame("Waiting for capture");
+      } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
+        sendTextFrame("Monitor has Decoding==None. We will not be able to provide live stream.");
       } else {
         sendTextFrame("Unable to stream");
       }
     } else {
-    // Not yet migrated over to stream class
+      // Not yet migrated over to stream class
       SingleImage(scale);
     }
+    zm_terminate = true;
     return;
   }
 
@@ -544,7 +546,7 @@ void MonitorStream::runStream() {
   } else {
     Debug(2, "Not using playback_buffer");
   } // end if connkey && playback_buffer
-    
+
   std::thread command_processor;
   if (connkey) {
     command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
@@ -553,9 +555,11 @@ void MonitorStream::runStream() {
   while (!zm_terminate) {
     if (feof(stdout)) {
       Debug(2, "feof stdout");
+      zm_terminate = true;
       break;
     } else if (ferror(stdout)) {
       Debug(2, "ferror stdout");
+      zm_terminate = true;
       break;
     }
 
@@ -563,24 +567,24 @@ void MonitorStream::runStream() {
 
     bool was_paused = paused;
     if (!checkInitialised()) {
+      int rc = -1;
       if (!loadMonitor(monitor_id)) {
-        if (!sendTextFrame("Not connected")) {
-          Debug(1, "Failed Send not connected");
-          continue;
-        }
+        rc = sendTextFrame("Not connected");
       } else if (monitor->Deleted()) {
-        sendTextFrame("Monitor has been deleted");
+        rc = sendTextFrame("Monitor has been deleted");
         zm_terminate = true;
-        continue;
       } else if (monitor->Capturing() == Monitor::CAPTURING_ONDEMAND) {
         monitor->setLastViewed();
-        if (!sendTextFrame("Waiting for capture")) return;
+        rc= sendTextFrame("Waiting for capture");
+      } else if (monitor->Decoding() == Monitor::DECODING_NONE) {
+        rc = sendTextFrame("Monitor has Decoding==None. We will not be able to provide a live image");
       } else {
-        if (!sendTextFrame("Unable to stream")) {
-          Debug(1, "Failed Send unable to stream");
-          zm_terminate = true;
-          continue;
-        }
+        rc = sendTextFrame("Unable to stream");
+      }
+      if (!rc) {
+        Debug(1, "Failed Send unable to stream");
+        zm_terminate = true;
+        continue;
       }
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
@@ -644,7 +648,7 @@ void MonitorStream::runStream() {
           if (!sendFrame(
                 temp_image_buffer[temp_read_index].file_name,
                 temp_image_buffer[temp_read_index].timestamp)
-              ) {
+             ) {
             zm_terminate = true;
           }
           frame_count++;
@@ -688,16 +692,16 @@ void MonitorStream::runStream() {
         if (!paused && !delayed) {
           last_read_index = monitor->shared_data->last_write_index;
           Debug(2, "Sending frame index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
-              index, frame_mod, frame_count, paused, delayed);
+                index, frame_mod, frame_count, paused, delayed);
           // Send the next frame
           //
-          // Perhaps we should use NOW instead. 
+          // Perhaps we should use NOW instead.
           last_frame_timestamp =
-              SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
+            SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
 
           Image *send_image = nullptr;
           /*
-          if ((frame_type == FRAME_ANALYSIS) && 
+          if ((frame_type == FRAME_ANALYSIS) &&
               (monitor->Analysing() != Monitor::ANALYSING_NONE)) {
               Debug(1, "Sending analysis image");
             send_image = monitor->GetAlarmImage();
@@ -758,7 +762,7 @@ void MonitorStream::runStream() {
             }  // end if actual_delta_time > 5
           }  // end if change in zoom
         }  // end if paused or not
-      //} else {
+        //} else {
         //frame_count++;
       }  // end if should send frame now > when_to_send_next_frame
 
@@ -773,7 +777,7 @@ void MonitorStream::runStream() {
             }
 
             temp_image_buffer[temp_index].timestamp =
-                SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
+              SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
             monitor->image_buffer[index]->WriteJpeg(temp_image_buffer[temp_index].file_name, config.jpeg_file_quality);
             temp_write_index = MOD_ADD(temp_write_index, 1, temp_image_buffer_count);
             if (temp_write_index == temp_read_index) {
@@ -792,8 +796,8 @@ void MonitorStream::runStream() {
       } // end if buffered playback
     } else {
       Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
-          monitor->shared_data->last_write_index,
-          last_read_index);
+            monitor->shared_data->last_write_index,
+            last_read_index);
 
       if (now - last_frame_sent > Seconds(5)) {
         if (last_read_index == monitor->GetImageBufferCount()) {
@@ -811,7 +815,7 @@ void MonitorStream::runStream() {
       double capture_fps = monitor->GetFPS();
       double fps = ((maxfps > 0.0) && (capture_fps > maxfps)) ? maxfps : capture_fps;
       double sleep_time_seconds = (1 / ((fps ? fps : 1)))    // 1 second / fps
-        * (replay_rate ? abs(replay_rate)/ZM_RATE_BASE : 1); // replay_rate is 100 for 1x
+                                  * (replay_rate ? abs(replay_rate)/ZM_RATE_BASE : 1); // replay_rate is 100 for 1x
       Debug(3, "Using %f for maxfps.  capture_fps: %f maxfps %f * replay_rate: %d = %f", fps, capture_fps, maxfps, replay_rate, sleep_time_seconds);
 
       sleep_time = FPSeconds(sleep_time_seconds);
@@ -884,6 +888,7 @@ void MonitorStream::runStream() {
       }
     } // end if checking for swap_path
   } // end if buffered_playback
+
   if (zm_terminate)
     Debug(1, "zm_terminate");
 
@@ -906,7 +911,7 @@ void MonitorStream::SingleImage(int scale) {
   int count = 10; // Give it 1 second to connect or else send text frame.
   while (count and (monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
     Debug(1, "Waiting for capture to begin. last write index %d >=? %d",
-        monitor->shared_data->last_write_index, monitor->image_buffer_count);
+          monitor->shared_data->last_write_index, monitor->image_buffer_count);
     std::this_thread::sleep_for(Milliseconds(100));
     count--;
   }
@@ -932,9 +937,9 @@ void MonitorStream::SingleImage(int scale) {
   snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
 
   fprintf(stdout,
-      "Content-Length: %d\r\n"
-      "Content-Type: image/jpeg\r\n\r\n",
-      img_buffer_size);
+          "Content-Length: %d\r\n"
+          "Content-Type: image/jpeg\r\n\r\n",
+          img_buffer_size);
   fwrite(img_buffer, img_buffer_size, 1, stdout);
 }  // end void MonitorStream::SingleImage(int scale)
 
@@ -953,9 +958,9 @@ void MonitorStream::SingleImageRaw(int scale) {
   }
 
   fprintf(stdout,
-      "Content-Length: %u\r\n"
-      "Content-Type: image/x-rgb\r\n\r\n",
-      snap_image->Size());
+          "Content-Length: %u\r\n"
+          "Content-Type: image/x-rgb\r\n\r\n",
+          snap_image->Size());
   fwrite(snap_image->Buffer(), snap_image->Size(), 1, stdout);
 }  // end void MonitorStream::SingleImageRaw(int scale)
 
@@ -979,9 +984,9 @@ void MonitorStream::SingleImageZip(int scale) {
   snap_image->Zip(img_buffer, &img_buffer_size);
 
   fprintf(stdout,
-      "Content-Length: %lu\r\n"
-      "Content-Type: image/x-rgbz\r\n\r\n",
-      img_buffer_size);
+          "Content-Length: %lu\r\n"
+          "Content-Type: image/x-rgbz\r\n\r\n",
+          img_buffer_size);
   fwrite(img_buffer, img_buffer_size, 1, stdout);
 }  // end void MonitorStream::SingleImageZip(int scale)
 #endif // HAVE_ZLIB_H

@@ -629,7 +629,7 @@ sub uploadArchFile {
         or Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
     }
     unlink($archLocPath);
-    dbDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
+    zmDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
   }
   return 1;
 } # end sub uploadArchFile
@@ -679,7 +679,6 @@ sub substituteTags {
       }
       $rows ++;
     }
-    Debug("Frames: rows: $rows first alarm frame: $$first_alarm_frame{FrameId} max_alarm_frame: $$max_alarm_frame{FrameId}, score: $max_alarm_score");
   }
 
   my $url = $Config{ZM_URL};

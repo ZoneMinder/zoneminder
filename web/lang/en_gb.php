@@ -139,10 +139,10 @@ $SLANG = array(
     'BadNameChars'          => 'Names may only contain alphanumeric characters plus spaces, hyphen and underscore',
     'BadPalette'            => 'Palette must be set to a valid value',
     'BadColours'            => 'Target colour must be set to a valid value',
-    'BadPassthrough'        => 'Passthrough only works with ffmpeg type monitors.',
-    'BadPath'               => 'Path must be set to a valid value',
-    'BadPathNotEncoded'     => 'Path must be set to a valid value. We have detected invalid characters !*\'()$ ,#[] that may need to be url percent encoded.',
-    'BadPort'               => 'Port must be set to a valid number',
+    'BadPassthrough'        => 'Recording -> Passthrough only works with ffmpeg type monitors.',
+    'BadPath'               => 'Source -> Path must be set to a valid value',
+    'BadPathNotEncoded'     => 'Source -> Path must be set to a valid value. We have detected invalid characters !*\'()$ ,#[] that may need to be url percent encoded.',
+    'BadPort'               => 'Source -> Port must be set to a valid number',
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
     'BadRefBlendPerc'       => 'Reference blend percentage must be a positive integer',
@@ -651,6 +651,31 @@ $SLANG = array(
     'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
     'ZoomIn'                => 'Zoom In',
     'ZoomOut'               => 'Zoom Out',
+// language names translation
+    'es_la' => 'Spanish Latam',
+    'es_CR' => 'Spanish Costa Rica',
+    'es_ar' => 'Spanish Argentina',
+    'es_es' => 'Spanish Spain',
+    'en_gb' => 'British English',
+    'en_us' => 'Us English',
+    'fr_fr' => 'French',
+    'cs_cz' => 'Czech',
+    'zh_cn' => 'Simplified Chinese',
+    'zh_tw' => 'Traditional Chinese',
+    'de_de' => 'German',
+    'it_it' => 'Italian',
+    'ja_jp' => 'Japanese',
+    'hu_hu' => 'Hungarian',
+    'pl_pl' => 'Polish',
+    'pt_br' => 'Portuguese Brazil',
+    'ru_ru' => 'Russian',
+    'nl_nl' => 'Dutch',
+    'se_se' => 'Sami',
+    'et_ee' => 'Estonian',
+    'he_il' => 'Hebrew',
+    'dk_dk' => 'Danish',
+    'ro_ro' => 'Romanian',
+
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf
@@ -954,6 +979,14 @@ None: No frames will be decoded, live view and thumbnails will not be available~
     You will get errors in your logs about this. So make sure your keyframe interval is low or you have enough ram.
   '
   ),
+// Help for soap_wsa issue with chinesse cameras
+   'OPTIONS_SOAP_wsa' => array(
+    'Help' => '
+     Disable it if you receive an error ~~~ Couldnt do Renew Error 12 ActionNotSupported
+     <env:Text>The device do NOT support this feature</env:Text> ~~~ when trying to enable/use ONVIF ~~it may
+     help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
+    '
+   ),
 
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",

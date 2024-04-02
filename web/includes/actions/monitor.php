@@ -19,10 +19,6 @@
 //
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
-if (!canEdit('Monitors')) {
-  ZM\Warning('Monitor actions require Monitors Edit Permissions');
-  return;
-}
 
 require_once('includes/Monitor.php');
 require_once('includes/Zone.php');
@@ -111,7 +107,8 @@ if ($action == 'save') {
       'LinkedMonitors'  => array(),
       'MQTT_Enabled'  =>  0,
       'RTSPServer' => 0,
-      'SectionLengthWarn' => 0
+      'SectionLengthWarn' => 0,
+      'SOAP_wsa_compl' => 0 
       );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
@@ -143,6 +140,11 @@ if ($action == 'save') {
   if (count($changes)) {
     // monitor->Id() has a value when the db record exists
     if ($monitor->Id()) {
+      if ($monitor->Deleted() and ! isset($_REQUEST['newMonitor[Deleted]'])) {
+        # We are saving a new monitor with a specified Id and the Id is used in a deleted record.
+        # Undelete it so that it is visible.
+        $monitor->Deleted(false);
+      }
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
       if ($monitor->Type() != 'WebSite') {

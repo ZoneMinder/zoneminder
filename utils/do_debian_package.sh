@@ -369,12 +369,12 @@ EOF
     if [ "$INTERACTIVE" != "no" ]; then
       read -p "Ready to dput $SC to $PPA ? Y/n...";
       if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
-        dput $PPA $SC
+        dput -d $PPA $SC
       fi;
     else
       if [ "$DPUT" != "no" ]; then
         echo "dputting to $PPA";
-        dput $PPA $SC
+        dput -d $PPA $SC
       fi;
     fi;
   fi;

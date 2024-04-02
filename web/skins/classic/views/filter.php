@@ -121,21 +121,22 @@ foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Servers` ORDER BY lower(`Name`) 
 }
 $monitors = array();
 $monitor_names = array();
-foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `Monitors` ORDER BY lower(`Name`) ASC') as $monitor ) {
-  if ( visibleMonitor($monitor['Id']) ) {
-    $monitors[$monitor['Id']] = new ZM\Monitor($monitor);
-		$monitor_names[] = validHtmlStr($monitor['Name']);
+foreach ( ZM\Monitor::find(['Deleted'=>0], ['order'=>'lower(`Name`) ASC']) as $monitor) {
+  if ($monitor->canView()) {
+    $monitors[$monitor->Id()] = $monitor;
+		$monitor_names[] = validHtmlStr($monitor->Name());
   }
 }
 $zones = array();
-foreach ( dbFetchAll('SELECT Id, Name, MonitorId FROM Zones ORDER BY lower(`Name`) ASC') as $zone ) {
-  if ( visibleMonitor($zone['MonitorId']) ) {
-    if ( isset($monitors[$zone['MonitorId']]) ) {
-      $zone['Name'] = validHtmlStr($monitors[$zone['MonitorId']]->Name().': '.$zone['Name']);
-      $zones[$zone['Id']] = new ZM\Zone($zone);
-    }
+foreach (ZM\Zone::find([], ['order'=>'lower(`Name`) ASC']) as $zone ) {
+  if (isset($monitors[$zone->MonitorId()])) {
+    $zone->Name(validHtmlStr($monitors[$zone->MonitorId()]->Name().': '.$zone->Name()));
+    $zones[$zone->Id()] = $zone;
+  } else {
+    ZM\Debug('Zone '.$zone->Monitor()->Name().' '.$zone->Name().' is not visible');
   }
 }
+
 $availableTags = array();
 foreach ( dbFetchAll('SELECT Id, Name FROM Tags ORDER BY LastAssignedDate DESC') AS $tag ) {
   $availableTags[$tag['Id']] = validHtmlStr($tag['Name']);
@@ -152,7 +153,7 @@ echo $navbar = getNavBarHTML();
         <div id="filterSelector"><label for="Id"><?php echo translate('UseFilter') ?></label>
           <?php
 if ( count($filterNames) > 1 ) {
-   echo htmlSelect('Id', $filterNames, $filter->Id(), ['id'=>'Id', 'data-on-change-this'=>'selectFilter']);
+   echo htmlSelect('Id', $filterNames, $filter->Id(), ['id'=>'Id', 'data-on-change-this'=>'selectFilter', 'class'=>'chosen']);
 } else {
 ?><select id="Id" disabled="disabled"><option><?php echo translate('NoSavedFilters') ?></option></select>
 <?php
@@ -182,7 +183,7 @@ if (ZM_OPT_USE_AUTH) {
   echo htmlSelect('filter[UserId]',
     ZM\User::Indexed_By_Id(),
     $filter->UserId() ? $filter->UserId() : $user->Id(),
-  ['Id'=>'filter[UserId]']
+  ['Id'=>'filter[UserId]', 'class'=>'chosen']
   );
   echo '</p>'.PHP_EOL;
 }
@@ -213,12 +214,12 @@ $sort_fields = array(
     'AvgScore'      => translate('AttrAvgScore'),
     'MaxScore'      => translate('AttrMaxScore'),
     );
-echo htmlSelect('filter[Query][sort_field]', $sort_fields, $filter->sort_field(), ['Id'=>'filter[Query][sort_field]']);
+echo htmlSelect('filter[Query][sort_field]', $sort_fields, $filter->sort_field(), ['Id'=>'filter[Query][sort_field]', 'class'=>'chosen']);
 $sort_dirns = array(
   '1' => translate('SortAsc'),
   '0'  => translate('SortDesc')
 );
-echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc());
+echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc(), ['class'=>'chosen']);
 ?>
               </td>
               <td>
@@ -227,7 +228,7 @@ echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc());
 echo htmlSelect('filter[Query][skip_locked]',
   array('0'=>translate('No'), '1'=>translate('Yes')),
   $filter->skip_locked(),
-  ( db_supports_feature('skip_locks') ? ['Id'=>'filter[Query][skip_locked]']: ['Id'=>'filter[Query][skip_locked]', 'disabled'=>'disabled', 'title'=>'Database does not support the skip locked feature.',])
+  ( db_supports_feature('skip_locks') ? ['Id'=>'filter[Query][skip_locked]', 'class'=>'chosen']: ['Id'=>'filter[Query][skip_locked]', 'disabled'=>'disabled', 'title'=>'Database does not support the skip locked feature.', 'class'=>'chosen'])
 );
 
 ?>

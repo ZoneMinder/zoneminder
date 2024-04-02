@@ -3,8 +3,18 @@ var settingsBtn = $j('#settingsBtn');
 var enableAlmBtn = $j('#enableAlmBtn');
 var forceAlmBtn = $j('#forceAlmBtn');
 var table = $j('#eventList');
+var sidebarView = $j('#sidebar');
+var sidebarControls = $j('#ptzControls');
+var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 var idle = 0;
+
+var classSidebarL = 'col-sm-3'; /* id="sidebar" */
+var classSidebarR = 'col-sm-2'; /* id="ptzControls" */
+var classMonitorW_SB_LR = 'col-sm-7'; /* id="wrapperMonitor" MINIMUM width */
+var classMonitorW_SB_L = 'col-sm-9'; /* id="wrapperMonitor" ONLY WITH LEFT */
+var classMonitorW_SB_R = 'col-sm-10'; /* id="wrapperMonitor" ONLY WITH RIGHT */
+var classMonitorWO_SB = 'col-sm-12'; /* id="wrapperMonitor" MAXIMUM width */
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -69,9 +79,14 @@ function processRows(rows) {
     }
     if (ZM_DATETIME_FORMAT_PATTERN) {
       if (window.DateTime) {
-        row.StartDateTime = DateTime.fromSQL(row.StartDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
-        if (row.EndDateTime)
-          row.EndDateTime = DateTime.fromSQL(row.EndDateTime).setZone(ZM_TIMEZONE).toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        row.StartDateTime = DateTime.fromSQL(row.StartDateTime)
+        //.setZone(ZM_TIMEZONE)
+            .toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        if (row.EndDateTime) {
+          row.EndDateTime = DateTime.fromSQL(row.EndDateTime)
+          //.setZone(ZM_TIMEZONE)
+              .toFormat(ZM_DATETIME_FORMAT_PATTERN);
+        }
       } else {
         console.log("DateTime is not defined");
       }
@@ -113,6 +128,8 @@ function changeSize() {
 
   monitorStream.setScale('0', width, height);
   $j('#scale').val('0');
+  $j('#sidebar ul').height($j('#wrapperMonitor').height()-$j('#cycleButtons').height());
+
   setCookie('zmWatchScale', '0');
   setCookie('zmWatchWidth', width);
   setCookie('zmWatchHeight', height);
@@ -138,6 +155,7 @@ function setScale() {
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
   if (scale == '0') {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
+    changeSize();
   }
 } // end function changeScale
 
@@ -580,14 +598,14 @@ function handleClick(event) {
   const width = target.width();
   const height = target.height();
 
-  const scaleX = parseInt(monitorWidth / width);
-  const scaleY = parseInt(monitorHeight / height);
+  const scaleX = parseFloat(monitorWidth / width);
+  const scaleY = parseFloat(monitorHeight / height);
   const pos = target.offset();
   const x = parseInt((event.pageX - pos.left) * scaleX);
   const y = parseInt((event.pageY - pos.top) * scaleY);
 
   if (showMode == 'events' || !imageControlMode) {
-    if ( event.shift ) {
+    if ( event.shift || event.shiftKey ) {
       streamCmdPan(x, y);
     } else if (event.ctrlKey) {
       streamCmdZoomOut();
@@ -641,21 +659,6 @@ function updatePresetLabels() {
   $j('#newLabel').val(labels[lblNdx]);
 }
 
-function getCtrlPresetModal() {
-  $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId)
-      .done(function(data) {
-        insertModalHtml('ctrlPresetModal', data.html);
-        updatePresetLabels();
-        // Manage the Preset Select box
-        $j('#preset').change(updatePresetLabels);
-        // Manage the Save button
-        $j('#cPresetSubmitModal').click(function(evt) {
-          evt.preventDefault();
-          $j('#ctrlPresetForm').submit();
-        });
-      })
-      .fail(logAjaxFail);
-}
 
 function changeControl(e) {
   const input = e.target;
@@ -744,10 +747,34 @@ function refresh_events_table() {
   table.bootstrapTable('refresh');
 }
 
+function controlSetClicked() {
+  console.log("Clicked");
+  const modal = $j('#ctrlPresetModal');
+  if (!modal.lenth) {
+    console.log('loading');
+    // Load the PTZ Preset modal into the DOM
+    $j.getJSON(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId+'&'+auth_relay)
+        .done(function(data) {
+          insertModalHtml('ctrlPresetModal', data.html);
+          updatePresetLabels();
+          // Manage the Preset Select box
+          $j('#preset').change(updatePresetLabels);
+          // Manage the Save button
+          $j('#cPresetSubmitModal').click(function(evt) {
+            evt.preventDefault();
+            $j('#ctrlPresetForm').submit();
+          });
+          $j('#ctrlPresetModal').modal('show');
+        })
+        .fail(logAjaxFail);
+  } else {
+    console.log('not loading');
+    modal.modal('show');
+  }
+}
+
 function initPage() {
   if (canView.Control) {
-    // Load the PTZ Preset modal into the DOM
-    if (monitorControllable) getCtrlPresetModal();
     // Load the settings modal into the DOM
     if (monitorType == 'Local') getSettingsModal();
   }
@@ -881,6 +908,12 @@ function initPage() {
     $j('#settingsModal').modal('show');
   });
 
+  // Manage the generate Edit button
+  bindButton('#editBtn', 'click', null, function onEditClick(evt) {
+    evt.preventDefault();
+    window.location.assign("?view=monitor&mid="+monitorId);
+  });
+
   bindButton('#cyclePlayBtn', 'click', null, cycleStart);
   bindButton('#cyclePauseBtn', 'click', null, cyclePause);
   bindButton('#cycleNextBtn', 'click', null, cycleNext);
@@ -921,6 +954,8 @@ function initPage() {
       }
     }, 10*1000);
   }
+  changeObjectClass();
+  changeSize();
 } // initPage
 
 function watchFullscreen() {
@@ -935,6 +970,10 @@ function watchFullscreen() {
     btn.firstElementChild.innerHTML='fullscreen';
     btn.setAttribute('title', translate["Fullscreen"]);
   }
+}
+
+function watchAllEvents() {
+  window.location.replace(document.getElementById('allEventsBtn').getAttribute('data-url'));
 }
 
 var intervalId;
@@ -994,31 +1033,33 @@ function cyclePeriodChange() {
   setCookie('zmCyclePeriod', cyclePeriodSelect.val());
 }
 function cycleToggle(e) {
-  const sidebar = $j('#sidebar');
   const button = $j('#cycleToggle');
-  if (sidebar.is(":visible")) {
-    sidebar.hide();
+  if (sidebarView.is(":visible")) {
+    sidebarView.hide();
     setCookie('zmCycleShow', false);
   } else {
-    sidebar.show();
+    sidebarView.show();
     setCookie('zmCycleShow', true);
   }
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
+  changeObjectClass();
+  changeSize();
 }
 
 function ptzToggle(e) {
-  const controls = $j('#ptzControls');
   const button = $j('#ptzToggle');
-  if (controls.is(":visible")) {
-    controls.hide();
+  if (sidebarControls.is(":visible")) {
+    sidebarControls.hide();
     setCookie('ptzShow', false);
   } else {
-    controls.show();
+    sidebarControls.show();
     setCookie('ptzShow', true);
   }
   button.toggleClass('btn-secondary');
   button.toggleClass('btn-primary');
+  changeObjectClass();
+  changeSize();
 }
 
 function changeRate(e) {
@@ -1052,5 +1093,25 @@ function getObjdetectModal(eid) {
       });
 }
 
+function changeObjectClass() {
+  if (sidebarView.is(":visible") && sidebarControls.is(":visible")) { //LEFT + RIGHT
+    sidebarView.removeClass(classSidebarL).addClass(classSidebarL);
+    sidebarControls.removeClass(classSidebarR).addClass(classSidebarR);
+    wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorW_SB_LR);
+  } else if (sidebarView.is(":visible") && !sidebarControls.is(":visible")) { //LEFT
+    sidebarView.removeClass(classSidebarL).addClass(classSidebarL);
+    sidebarControls.removeClass(classSidebarR);
+    wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorW_SB_L);
+  } else if (!sidebarView.is(":visible") && sidebarControls.is(":visible")) { //RIGHT
+    sidebarView.removeClass(classSidebarL);
+    sidebarControls.removeClass(classSidebarR).addClass(classSidebarR);
+    wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorW_SB_R);
+  } else if (!sidebarView.is(":visible") && !sidebarControls.is(":visible")) { //NOT
+    sidebarView.removeClass(classSidebarL);
+    sidebarControls.removeClass(classSidebarR);
+    wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorWO_SB);
+  }
+}
+
 // Kick everything off
-$j(document).ready(initPage);
+$j( window ).on("load", initPage);

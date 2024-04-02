@@ -40,15 +40,15 @@ getBodyTopHTML();
   <?php 
   $manufacturers = array_to_hash_by_key('Name', ZM\Manufacturer::find());
   echo htmlSelect('probe_Manufacturer', [''=>translate('All Manufacturers')]+$manufacturers, 
-    (isset($_COOKIE['addMonitorsprobe_Manufacturer']) ? $_COOKIE['addMonitorsprobe_Manufacturer'] : ''), [
+    (isset($_COOKIE['addMonitorsprobe_Manufacturer']) ? validCardinal($_COOKIE['addMonitorsprobe_Manufacturer']) : ''), [
     #'multiple'=>'multiple',
           'class'=>'chosen']);
   ?>
               <input type="text" id="ip" name="ip" placeholder="Camera IP Address"/>
               <input type="text" id="probe_username" name="probe_username" placeholder="Camera Username"
-                value="<?php echo isset($_COOKIE['addMonitorsprobe_username']) ? $_COOKIE['addMonitorsprobe_username'] : '' ?>"/>
+                value="<?php echo isset($_COOKIE['addMonitorsprobe_username']) ? validHtmlStr($_COOKIE['addMonitorsprobe_username']) : '' ?>"/>
               <input type="text" id="probe_password" name="probe_password" placeholder="Camera Password"
-                value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? $_COOKIE['addMonitorsprobe_password'] : '' ?>"/>
+                value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? validHtmlStr($_COOKIE['addMonitorsprobe_password']) : '' ?>"/>
             </div>
             <div id="contentButtons">
 <?php 

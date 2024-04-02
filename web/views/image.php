@@ -86,7 +86,6 @@ if (!empty($_REQUEST['proxy'])) {
 
   /* Sends an http request with additional headers shown above */
   $fp = @fopen($url, 'r', false, $context);
-  $r = '';
   if ($fp) {
     $meta_data = stream_get_meta_data($fp);
     ZM\Debug(print_r($meta_data, true));
@@ -99,13 +98,12 @@ if (!empty($_REQUEST['proxy'])) {
         $auth_header_array = explode(',', $auth_header);
         $parsed = array();
 
-
         foreach ($auth_header_array as $pair) {
           preg_match('/^\s*(\w+)="?(.+)"?\s*$/', $pair, $vals);
           if (!empty($vals)) {
             $parsed[$vals[1]] = trim($vals[2], '"');
           } else {
-            ZM\Debug("DIdn't match preg $pair");
+            ZM\Debug("Didn't match preg $pair");
           }
         }
         ZM\Debug(print_r($parsed, true));
@@ -145,6 +143,8 @@ if (!empty($_REQUEST['proxy'])) {
       } # end if have auth
     } # end foreach header
 
+    # Read in until we either stop reading or have a second Content-Length
+    $r = '';
     while (substr_count($r, 'Content-Length') != 2) {
       $new = fread($fp, 512);
       if (!$new) break;
@@ -159,9 +159,15 @@ if (!empty($_REQUEST['proxy'])) {
       if ($end > $start) {
         $frame = substr($r, $start, $end - $start);
         ZM\Debug("Start $start end $end");
-        echo $frame;
+        if (imagecreatefromstring($frame)) {
+          echo $frame;
+        }
       } else {
-        echo $r;
+        # This is possibly an XSS but I don't see how to get around it other than actually trying to parse it as a valid image first.
+        # So we only output it if imagecreatefromdata succeeds
+        if (imagecreatefromstring($r)) {
+          echo $r;
+        }
       }
     } else {
       $img = imagecreate(320, 240);
@@ -289,7 +295,7 @@ if ( empty($_REQUEST['path']) ) {
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           header('HTTP/1.0 404 Not Found');
-          ZM\Error('No alarm jpg found for event '.$_REQUEST['eid'].' at '.$path);
+          ZM\Debug('No alarm jpg found for event '.$_REQUEST['eid'].' at '.$path);
           return;
         }
       } else {

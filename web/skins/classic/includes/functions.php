@@ -109,13 +109,21 @@ echo output_cache_busted_stylesheet_links(array(
 ));
 
 echo output_link_if_exists(array(
-  'css/base/skin.css',
-  'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.21.1/bootstrap-table.min.css',
-  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
+  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
 ), true);
+?>
+  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
+  <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
+  <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
+<?php
+echo output_link_if_exists(array(
+  'css/base/skin.css',
+  'css/base/views/'.$basename.'.css',
+), true);
+
 if ( $css != 'base' )
   echo output_link_if_exists(array(
     'css/'.$css.'/skin.css',
@@ -123,9 +131,6 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 ?>
-  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
-  <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
-  <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ( $basename == 'watch' ) {
     echo output_link_if_exists(array('/css/base/views/control.css'));
@@ -216,10 +221,10 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           <i class="material-icons md-20">menu</i>
         </span>
       </button>
-      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
+      <button id="flipNarrow" type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
         <span class="sr-only">Toggle guages</span>
         <span class="navbar-toggler-icon">
-          <i class="material-icons md-20">monitoring</i>
+          <i class="material-icons md-20">monitor</i>
         </span>
       </button>
 <!--
@@ -272,6 +277,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
         <ul class="navbar-nav list-inline justify-content-center">
           <?php
           echo getSysLoadHTML();
+          echo getCpuUsageHTML();
           echo getDbConHTML();
           echo getStorageHTML();
           echo getRamHTML();
@@ -323,6 +329,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
           <ul class="nav navbar-nav list-group">
             <?php
             echo getSysLoadHTML();
+            echo getCpuUsageHTML();
             echo getDbConHTML();
             echo getStorageHTML();
             echo getRamHTML();
@@ -383,16 +390,30 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
   <?php
 } // End function getCollapsedNavBarHTML
 
+// Returns the html representing the current cpu Usage Percent
+function getCpuUsageHTML() {
+  $result = '';
+  if ( !canView('System') ) return $result;
+  global $thisServer;
+  if ($thisServer and $thisServer->Id()) {
+    $result .= '<li id="getCpuUsagesHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
+    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent(), 1, '.', '').'%'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  }
+  return $result;
+}
+
 // Returns the html representing the current unix style system load
 function getSysLoadHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
-
-  $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
-  $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
-  $result .= '&nbsp;'.translate('Load').': '.number_format(getLoad(), 2, '.', '').PHP_EOL;
-  $result .= '</li>'.PHP_EOL;
-  
+  global $thisServer;
+  if ($thisServer) {
+    $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
+    $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
+    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad(), 2, '.', '').PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  } 
   return $result;
 }
 
@@ -627,9 +648,10 @@ function getNavBrandHTML() {
 
 // Returns the html representing the Console menu item
 function getConsoleHTML() {
+  global $user;
   $result = '';
   
-  if ( canView('Monitors') ) {
+  if (count($user->viewableMonitorIds())) {
     $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
   
@@ -726,9 +748,10 @@ function getCycleHTML($view) {
 
 // Returns the html representing the Montage menu item
 function getMontageHTML($view) {
+  global $user;
   $result = '';
   
-  if ( canView('Stream') ) {
+  if (canView('Stream') and count($user->viewableMonitorIds())) {
     $class = $view == 'montage' ? ' selected' : '';
     $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
@@ -960,13 +983,13 @@ function xhtmlFooter() {
 <?php echo output_script_if_exists(array(
   'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
-  'js/bootstrap-table-1.21.1/bootstrap-table.min.js',
-  'js/bootstrap-table-1.21.1/extensions/locale/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-1.21.1/extensions/export/bootstrap-table-export.min.js',
-  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-1.21.1/extensions/cookie/bootstrap-table-cookie.js',
-  'js/bootstrap-table-1.21.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-1.21.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.22.3/bootstrap-table.min.js',
+  'js/bootstrap-table-1.22.3/extensions/locale/bootstrap-table-locale-all.min.js',
+  'js/bootstrap-table-1.22.3/extensions/export/bootstrap-table-export.min.js',
+  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-1.22.3/extensions/cookie/bootstrap-table-cookie.js',
+  'js/bootstrap-table-1.22.3/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-1.22.3/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
   'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',
@@ -997,8 +1020,7 @@ function xhtmlFooter() {
   }
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
-  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
+  <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
   </body>
 </html>
 <?php

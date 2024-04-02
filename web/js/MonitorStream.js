@@ -112,7 +112,7 @@ function MonitorStream(monitorData) {
         width = monitor_frame.css('width');
         height = Math.round(parseInt(this.height) * newscale / 100)+'px';
       } else {
-        const newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
+        const newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement), $j('#wrapperMonitor'));
         width = newSize.width+'px';
         height = newSize.height+'px';
         newscale = parseInt(newSize.autoScale);

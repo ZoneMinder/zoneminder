@@ -22,12 +22,6 @@
 # This module contains the common definitions and functions used by the rest
 # of the ZoneMinder scripts
 #
-
-sub array_diff(\@\@) {
-  my %e = map { $_ => undef } @{$_[1]};
-  return @{[ ( grep { (exists $e{$_}) ? ( delete $e{$_} ) : ( 1 ) } @{ $_[0] } ), keys %e ] };
-}
-
 package ZoneMinder::Object;
 
 use 5.006;
@@ -37,6 +31,7 @@ use Time::HiRes qw{ gettimeofday tv_interval };
 use Carp qw( cluck );
 
 require ZoneMinder::Base;
+require ZoneMinder::Object_Type;
 
 our @ISA = qw(ZoneMinder::Base);
 
@@ -366,7 +361,7 @@ sub set {
 
   if ( $params ) {
     foreach my $field ( keys %{$params} ) {
-      $log->debug("field: $field, ".def_or_undef($$self{$field}).' =? param: '.def_or_undef($$params{$field})) if $debug;
+      $log->debug("field: $field, ".def_or_undef($$self{$field}).' =? param: '.def_or_undef($$params{$field})) if $debug or DEBUG_ALL;
       if ( ( ! defined $$self{$field} ) or ($$self{$field} ne $params->{$field}) ) {
         # Only make changes to fields that have changed
         if ( defined $fields{$field} ) {
@@ -843,6 +838,11 @@ sub find_sql {
   return \%sql;
 } # end sub find_sql
 
+sub array_diff(\@\@) {
+  my %e = map { $_ => undef } @{$_[1]};
+  return @{[ ( grep { (exists $e{$_}) ? ( delete $e{$_} ) : ( 1 ) } @{ $_[0] } ), keys %e ] };
+}
+
 sub changes {
   my ( $self, $params ) = @_;
 
@@ -885,6 +885,62 @@ sub clone {
   @$new{keys %{$_[0]}} = values %{$_[0]};
   return $new;
 } # end sub clone
+
+sub Object_Type {
+  if ( $_[0]{object_type_id} ) {
+    $_[0]{Object_Type} = new ZoneMinder::Object_Type( $_[0]{object_type_id} );
+  } else {
+    $_[0]{Object_Type} = ZoneMinder::Object_Type->find_one( name=>ref $_[0] );
+    $_[0]{Object_Type} = new ZoneMinder::Object_Type() if ! $_[0]{Object_Type};
+  } # end if
+  return $_[0]{Object_Type};
+} # end sub Object_Type
+
+sub object_type {
+  if ( @_ > 1 ) {
+    my $Type = ZoneMinder::Object_Type->find_one( name => $_[1] );
+    if ( ! $Type ) {
+      $Type = new ZoneMinder::Object_Type();
+      $Type->save({ Name=>$_[1], Human=>$_[1] });
+    } # end if
+    $_[0]{object_type} = $Type->Name();
+    $_[0]{object_type_id} = $Type->Id();
+  } # end if
+  if ( ! $_[0]{object_type} ) {
+    $_[0]{object_type} = new ZoneMinder::Object_Type( $_[0]{object_type_id} )->Name();
+  } # end if
+  return $_[0]{object_type};
+} # end sub object_type
+
+sub Object {
+  my $self = shift;
+  if ( @_ ) {
+    $self->object_type( ref $_[0] );
+    $$self{object_id} = $_[0]{id};
+    $$self{Object} = $_[0];
+  } # end if
+  my $type =  $self->object_type();
+  if ( !$type ) {
+    Error('No type in Object::Object'. $self->to_string()) if ref $self ne 'ZoneMinder::Log';
+    return undef;
+  } # end if
+  my ( $module ) = $type =~ /ZoneMinder::(.*)/;
+  if ( $module ) {
+    eval {
+      require "ZoneMinder/$module.pm";
+    };
+    if ( ! $$self{Object} ) {
+      $_ = $type->new($$self{object_id});
+      Debug( 'Returning object of type ' . ref $_ ) if $debug;
+      $$self{Object} = $_;
+    }
+    return $$self{Object};
+  } else {
+    Error("Unvalid object $type");
+    return new ZoneMinder::Object();
+  }
+} # end sub Object
+
 
 sub AUTOLOAD {
   my $type = ref($_[0]);

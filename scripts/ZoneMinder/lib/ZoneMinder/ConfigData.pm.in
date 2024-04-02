@@ -1806,7 +1806,7 @@ our @options = (
   },
   {
     name        => 'ZM_WEB_ALARM_SOUND',
-    default     => '',
+    default     => 'snap.ogg',
     description => 'The sound to play on alarm, put this in the sounds directory',
     help        => q`
       You can specify a sound file to play if an alarm occurs whilst
@@ -2505,14 +2505,20 @@ our @options = (
     description => 'When continuous events are closed.',
     help        => q`
       When a monitor is running in a continuous recording mode
-      (Record or Mocord) events are usually closed after a fixed
-      period of time (the section length). However in Mocord mode it
-      is possible that motion detection may occur near the end of a
-      section. This option controls what happens when an alarm occurs
-      in Mocord mode.~~
+      (Recording=Always) events are usually closed after a fixed
+      period of time (the section length). However when doing motion
+      detection it is possible that an alarm may occur near the end of a
+      section. This option controls what happens in this situation.~~
       ~~
       The 'time' setting means that the event will be
-      closed at the end of the section regardless of alarm activity.~~
+      closed when the time is an even multiple of the section length 
+      regardless of alarm activity. So if the section length is 600 (10 minutes)
+      and the time is 12:05, then the event will be closed at 12:10~~
+      ~~
+      The 'duration' setting means that the event will be
+      closed when the event has reached its section length, regardless of the
+      current time or alarm activity. If the section length is 600 (10 minutes)
+      and the event started at 12:03, then the event will end at 12:13.
       ~~
       The 'idle' setting means that the event will be closed at the
       end of the section if there is no alarm activity occurring at
@@ -2528,15 +2534,10 @@ our @options = (
       the events may be shorter than the section length if an alarm
       has occurred.
       `,
-    type        => $types{boolean},
     type        => {
       db_type     =>'string',
-      hint        =>'time|idle|alarm',
-      pattern     =>qr|^([tia])|i,
-      format      =>q( ($1 =~ /^t/)
-          ? 'time'
-          : ($1 =~ /^i/ ? 'idle' : 'time' )
-          )
+      hint        =>'time|duration|idle|alarm',
+      pattern     =>qr/^(time|duration|idle|alarm)/,
     },
     category    => 'config',
   },

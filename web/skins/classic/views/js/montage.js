@@ -204,7 +204,7 @@ function save_layout(button) {
     if ( name=='Freeform' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' ) {
       alert('You cannot edit the built in layouts.  Please give the layout a new name.');
       return;
-    } else if (user.Id && (layout.UserId != user.Id) && !canEdit('System') && (name != layout.Name)) {
+    } else if (user.Id && (layout.UserId != user.Id) && !canEdit['System'] && (name != layout.Name)) {
       alert('You cannot edit someone else\'s layouts.  Please give the layout a new name.');
       return;
     }
@@ -257,7 +257,7 @@ function takeSnapshot() {
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i].kill();
   }
-  monitor_ids = monitorData.map((monitor)=>{
+  const monitor_ids = monitorData.map((monitor)=>{
     return monitor.id;
   });
   post('?view=snapshot', {'action': 'create', 'monitor_ids[]': monitor_ids});
@@ -294,6 +294,7 @@ function initPage() {
     monitors[i] = new MonitorStream(monitorData[i]);
   }
 
+  $j(window).on('resize', selectLayout);
   selectLayout();
   for (let i = 0, length = monitorData.length; i < length; i++) {
     // Start the fps and status updates. give a random delay so that we don't assault the server

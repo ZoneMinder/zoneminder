@@ -10,6 +10,7 @@ global $OLANG;
 $result = '';
 $optionHelpIndex = $_REQUEST['ohndx'];
 $ZMoptionHelpIndex = 'ZM_'.$optionHelpIndex;
+$shortName = preg_replace( '/^ZM_/', '', $optionHelpIndex );
  
 if ( !empty($OLANG[$optionHelpIndex]) ) {
   $optionHelpText = $OLANG[$optionHelpIndex]['Help'];
@@ -31,7 +32,7 @@ $optionHelpText = preg_replace('/\[(.+)\]\((.+)\)/', '<a href="$2" target="_blan
         </button>
       </div>
       <div class="modal-body">
-        <h3><?php echo validHtmlStr($optionHelpIndex) ?></h3>
+        <h3><?php echo validHtmlStr($shortName) ?></h3>
         <p class="textblock"><?php echo $optionHelpText ?></p>
       </div>
       <div class="modal-footer">

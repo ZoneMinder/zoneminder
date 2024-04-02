@@ -151,16 +151,21 @@ $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFo
 require_once('database.php');
 require_once('logger.php');
 loadConfig();
-if (ZM_LOCALE_DEFAULT) {
+$locale = ZM_LOCALE_DEFAULT;
+if (!$locale) {
+  $locale = locale_get_default();
+}
+
+if ($locale) {
   try {
     if (ZM_TIMEZONE) {
-      $dateFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::NONE, ZM_TIMEZONE);
-      $dateTimeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::LONG, ZM_TIMEZONE);
-      $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG, ZM_TIMEZONE);
+      $dateFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::NONE, ZM_TIMEZONE);
+      $dateTimeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::LONG, ZM_TIMEZONE);
+      $timeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::NONE, IntlDateFormatter::LONG, ZM_TIMEZONE);
     } else {
-      $dateFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
-      $dateTimeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
-      $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
+      $dateFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+      $dateTimeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+      $timeFormatter = new IntlDateFormatter($locale, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
     }
   } catch(Exception $e) {
     error_log($e->getMessage());
@@ -168,6 +173,8 @@ if (ZM_LOCALE_DEFAULT) {
     $dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
     $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
   }
+} else {
+  Z\Debug("NO locale set");
 }
 if (ZM_DATE_FORMAT_PATTERN) {
   $dateFormatter->setPattern(ZM_DATE_FORMAT_PATTERN);
@@ -225,7 +232,7 @@ function loadConfig( $defineConsts=true ) {
 
 require_once('Server.php');
 $Servers = ZM\Server::find([], ['order'=>'lower(Name)']);
-$thisServer = null;
+$thisServer = new ZM\Server();
 
 // For Human-readability, use ZM_SERVER_HOST or ZM_SERVER_NAME in zm.conf, and convert it here to a ZM_SERVER_ID
 if (!defined('ZM_SERVER_ID')) {

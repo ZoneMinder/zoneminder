@@ -19,10 +19,10 @@ function editClicked() {
 }
 
 function saveSort() {
-  var monitor_ids = [];
-  $j('#monitors .monitor').each(function(index) {
-      monitor_ids[monitor_ids.length] = this.getAttribute('data-id');
-      });
+  const monitor_ids = [];
+  $j('#monitors .monitor').each(function(index, element) {
+    monitor_ids[monitor_ids.length] = element.getAttribute('data-id');
+  });
 
   const selectedGroups = $j('[name="GroupId\\[\\]"]');
   if (!selectedGroups.length) {
@@ -92,8 +92,7 @@ function maxfit2(divW, divH) {
       function doesItFit(x, y, w, h, d) { // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
         if ((x+w>=divW) || (y+h>=divH)) return 0;
         for (let i=0; i <= d; i++) {
-          if ( !( thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y ) )
-            return 0;
+          if (!(thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y)) return 0;
         }
         return 1; // it's OK
       }

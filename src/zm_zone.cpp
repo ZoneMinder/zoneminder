@@ -1,21 +1,21 @@
 //
 // ZoneMinder Zone Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_zone.h"
 
@@ -62,7 +62,7 @@ void Zone::Setup(
 
 #if 0
   Debug( 1, "Initialised zone %d/%s - %d - %dx%d - Rgb:%06x, CM:%d, MnAT:%d, MxAT:%d, MnAP:%d, MxAP:%d, FB:%dx%d, MnFP:%d, MxFP:%d, MnBS:%d, MxBS:%d, MnB:%d, MxB:%d, OF: %d, AF: %d",
-      id, label.c_str(), type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames, extend_alarm_frames );
+         id, label.c_str(), type, polygon.Width(), polygon.Height(), alarm_rgb, check_method, min_pixel_threshold, max_pixel_threshold, min_alarm_pixels, max_alarm_pixels, filter_box.X(), filter_box.Y(), min_filter_pixels, max_filter_pixels, min_blob_pixels, max_blob_pixels, min_blobs, max_blobs, overload_frames, extend_alarm_frames );
 #endif
 
   ResetStats();
@@ -97,12 +97,12 @@ void Zone::Setup(
   if (config.record_diag_images) {
     if (config.record_diag_images_fifo) {
       diag_path = stringtf("%s/diagpipe-%d-poly.jpg",
-          staticConfig.PATH_SOCKS.c_str(), id);
+                           staticConfig.PATH_SOCKS.c_str(), id);
 
       Fifo::fifo_create_if_missing(diag_path);
     } else {
       diag_path = stringtf("%s/diag-%d-poly.jpg",
-          monitor->getStorage()->Path(), id);
+                           monitor->getStorage()->Path(), id);
     }
 
     pg_image->WriteJpeg(diag_path, config.record_diag_images_fifo);
@@ -118,24 +118,24 @@ Zone::~Zone() {
 
 void Zone::RecordStats(const Event *event) {
   std::string sql = stringtf(
-      "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, "
-      "PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, "
-      "Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, "
-      "MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
-      monitor->Id(), id, event->Id(), event->Frames(),
-      stats.pixel_diff_,
-      stats.alarm_pixels_,
-      stats.alarm_filter_pixels_,
-      stats.alarm_blob_pixels_,
-      stats.alarm_blobs_,
-      stats.min_blob_size_,
-      stats.max_blob_size_,
-      stats.alarm_box_.Lo().x_,
-      stats.alarm_box_.Lo().y_,
-      stats.alarm_box_.Hi().x_,
-      stats.alarm_box_.Hi().y_,
-      stats.score_
-      );
+                      "INSERT INTO Stats SET MonitorId=%d, ZoneId=%d, EventId=%" PRIu64 ", FrameId=%d, "
+                      "PixelDiff=%d, AlarmPixels=%d, FilterPixels=%d, BlobPixels=%d, "
+                      "Blobs=%d, MinBlobSize=%d, MaxBlobSize=%d, "
+                      "MinX=%d, MinY=%d, MaxX=%d, MaxY=%d, Score=%d",
+                      monitor->Id(), id, event->Id(), event->Frames(),
+                      stats.pixel_diff_,
+                      stats.alarm_pixels_,
+                      stats.alarm_filter_pixels_,
+                      stats.alarm_blob_pixels_,
+                      stats.alarm_blobs_,
+                      stats.min_blob_size_,
+                      stats.max_blob_size_,
+                      stats.alarm_box_.Lo().x_,
+                      stats.alarm_box_.Lo().y_,
+                      stats.alarm_box_.Hi().x_,
+                      stats.alarm_box_.Hi().y_,
+                      stats.score_
+                    );
   zmDbDo(sql);
 }  // end void Zone::RecordStats( const Event *event )
 
@@ -346,9 +346,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     }
 
     if (max_filter_pixels != 0)
-       stats.score_ = (100*stats.alarm_filter_pixels_)/max_filter_pixels;
+      stats.score_ = (100*stats.alarm_filter_pixels_)/max_filter_pixels;
     else
-       stats.score_ = (100*stats.alarm_filter_pixels_)/polygon.Area();
+      stats.score_ = (100*stats.alarm_filter_pixels_)/polygon.Area();
 
     if (stats.score_ < 1)
       stats.score_ = 1; /* Fix for score of 0 when frame meets thresholds but alarmed area is not big enough */
@@ -399,13 +399,13 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   bss = bsm==bsx?bsy:bsx;
 
                   Debug(9,
-                      "Different neighbours, setting pixels of %d to %d\n"
-                      "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n"
-                      "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n",
-                      bss->tag, bsm->tag,
-                      bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y,
-                      bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y
-                      );
+                        "Different neighbours, setting pixels of %d to %d\n"
+                        "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n"
+                        "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n",
+                        bss->tag, bsm->tag,
+                        bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y,
+                        bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y
+                       );
                   // Now change all those pixels to the other setting
                   int changed = 0;
                   for (int sy = bss->lo_y; sy <= bss->hi_y; sy++) {
@@ -413,9 +413,9 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                     int hi_sx = bss->hi_x<=ranges[sy].hi_x?bss->hi_x:ranges[sy].hi_x;
 
                     Debug(9,
-                        "Changing %d, %d->%d Range %d->%d",
-                        sy, lo_sx, hi_sx, ranges[sy].lo_x, ranges[sy].hi_x
-                        );
+                          "Changing %d, %d->%d Range %d->%d",
+                          sy, lo_sx, hi_sx, ranges[sy].lo_x, ranges[sy].hi_x
+                         );
                     spdiff = diff_buff + ((diff_width * sy) + lo_sx);
                     for (int sx = lo_sx; sx <= hi_sx; sx++, spdiff++) {
                       Debug(9, "Pixel at %d,%d (%p) is %d", sx, sy, spdiff, *spdiff);
@@ -430,11 +430,11 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   stats.alarm_blob_pixels_++;
                   if (!changed) {
                     Info(
-                        "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n"
-                        "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d",
-                        bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y,
-                        bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y
-                        );
+                      "Master blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d\n"
+                      "Slave blob t:%d, c:%d, lx:%d, hx:%d, ly:%d, hy:%d",
+                      bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y,
+                      bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y
+                    );
                     Error("No pixels changed, exiting");
                     exit(-1);
                   }
@@ -451,7 +451,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   stats.alarm_blobs_--;
 
                   Debug(6, "Merging blob %d with %d at %d,%d, %d current blobs",
-                      bss->tag, bsm->tag, x, y, stats.alarm_blobs_);
+                        bss->tag, bsm->tag, x, y, stats.alarm_blobs_);
 
                   // Clear out the old blob
                   bss->tag = 0;
@@ -463,7 +463,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                 }
               } else {
                 Debug(9, "Setting to left neighbour %d", last_x);
-                // Add to the blob from the x side 
+                // Add to the blob from the x side
                 *pdiff = last_x;
                 stats.alarm_blob_pixels_++;
                 bsx->count++;
@@ -490,10 +490,10 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                   // See if we can recycle one first, only if it's at least two rows up
                   if (bs->count && bs->hi_y < (int)(y-1)) {
                     if (
-                        (min_blob_pixels && bs->count < min_blob_pixels)
-                        ||
-                        (max_blob_pixels && bs->count > max_blob_pixels)
-                       ) {
+                      (min_blob_pixels && bs->count < min_blob_pixels)
+                      ||
+                      (max_blob_pixels && bs->count > max_blob_pixels)
+                    ) {
                       if (( monitor->GetOptSaveJPEGs() > 1 ) || config.record_diag_images) {
                         for (int sy = bs->lo_y; sy <= bs->hi_y; sy++) {
                           spdiff = diff_buff + ((diff_width * sy) + bs->lo_x);
@@ -508,7 +508,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                       stats.alarm_blob_pixels_ -= bs->count;
 
                       Debug(6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-                          i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
+                            i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
 
                       bs->tag = 0;
                       bs->count = 0;
@@ -579,7 +579,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             stats.alarm_blob_pixels_ -= bs->count;
 
             Debug(6, "Eliminated blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-                i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
+                  i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
 
             bs->tag = 0;
             bs->count = 0;
@@ -589,7 +589,7 @@ bool Zone::CheckAlarms(const Image *delta_image) {
             bs->hi_y = 0;
           } else {
             Debug(6, "Preserved blob %d, %d pixels (%d,%d - %d,%d), %d current blobs",
-                i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
+                  i, bs->count, bs->lo_x, bs->lo_y, bs->hi_x, bs->hi_y, stats.alarm_blobs_);
             if (!stats.min_blob_size_ || bs->count < stats.min_blob_size_) stats.min_blob_size_ = bs->count;
             if (!stats.max_blob_size_ || bs->count > stats.max_blob_size_) stats.max_blob_size_ = bs->count;
           }
@@ -826,8 +826,6 @@ bool Zone::ParseZoneString(const char *zone_string, unsigned int &zone_id, int &
 }  // end bool Zone::ParseZoneString(const char *zone_string, int &zone_id, int &colour, Polygon &polygon)
 
 std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
-  std::vector<Zone> zones;
-
   std::string sql = stringtf("SELECT Id,Name,Type+0,Units,Coords,AlarmRGB,CheckMethod+0,"
                              "MinPixelThreshold,MaxPixelThreshold,MinAlarmPixels,MaxAlarmPixels,"
                              "FilterX,FilterY,MinFilterPixels,MaxFilterPixels,"
@@ -843,7 +841,9 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
   uint32 n_zones = mysql_num_rows(result);
   Debug(1, "Got %d zones for monitor %s", n_zones, monitor->Name());
 
+  std::vector<Zone> zones;
   zones.reserve(n_zones);
+
   for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
     int col = 0;
 
@@ -852,22 +852,37 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
     ZoneType Type = static_cast<ZoneType>(atoi(dbrow[col++]));
     const char *Units = dbrow[col++];
     const char *Coords = dbrow[col++];
-    int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0; col++;
+    int AlarmRGB = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
     Zone::CheckMethod CheckMethod = static_cast<Zone::CheckMethod>(atoi(dbrow[col++]));
-    int MinPixelThreshold = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxPixelThreshold = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MinAlarmPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxAlarmPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int FilterX = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int FilterY = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MinFilterPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxFilterPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MinBlobPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxBlobPixels = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MinBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int MaxBlobs = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int OverloadFrames = dbrow[col]?atoi(dbrow[col]):0; col++;
-    int ExtendAlarmFrames = dbrow[col]?atoi(dbrow[col]):0; col++;
+    int MinPixelThreshold = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int MaxPixelThreshold = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int MinAlarmPixels = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int MaxAlarmPixels = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int FilterX = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int FilterY = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int MinFilterPixels = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int MaxFilterPixels = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int MinBlobPixels = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int MaxBlobPixels = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int MinBlobs = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int MaxBlobs = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int OverloadFrames = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
+    int ExtendAlarmFrames = dbrow[col]?atoi(dbrow[col]):0;
+    col++;
 
     /* HTML colour code is actually BGR in memory, we want RGB */
     AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
@@ -899,9 +914,9 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
 
       auto n_coords = polygon.GetVertices().size();
       polygon.Clip(Box(
-          {0, 0},
-          {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
-      ));
+      {0, 0},
+      {static_cast<int32>(monitor->Width()), static_cast<int32>(monitor->Height())}
+                   ));
       if (polygon.GetVertices().size() != n_coords) {
         Error("Cropping altered the number of vertices! From %zu to %zu", n_coords, polygon.GetVertices().size());
       }
@@ -922,12 +937,12 @@ std::vector<Zone> Zone::Load(const std::shared_ptr<Monitor> &monitor) {
       zones.emplace_back(monitor, Id, Name, Type, polygon);
     } else {
       zones.emplace_back(
-          monitor, Id, Name, Type, polygon, AlarmRGB,
-          CheckMethod, MinPixelThreshold, MaxPixelThreshold,
-          MinAlarmPixels, MaxAlarmPixels, Vector2(FilterX, FilterY),
-          MinFilterPixels, MaxFilterPixels,
-          MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs,
-          OverloadFrames, ExtendAlarmFrames);
+        monitor, Id, Name, Type, polygon, AlarmRGB,
+        CheckMethod, MinPixelThreshold, MaxPixelThreshold,
+        MinAlarmPixels, MaxAlarmPixels, Vector2(FilterX, FilterY),
+        MinFilterPixels, MaxFilterPixels,
+        MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs,
+        OverloadFrames, ExtendAlarmFrames);
     }
   } // end foreach row
   mysql_free_result(result);
@@ -940,23 +955,23 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
   sprintf(output+strlen(output), "  Id : %u\n", id );
   sprintf(output+strlen(output), "  Label : %s\n", label.c_str() );
   sprintf(output+strlen(output), "  Type: %d - %s\n", type,
-      type==ACTIVE?"Active":(
-        type==INCLUSIVE?"Inclusive":(
-          type==EXCLUSIVE?"Exclusive":(
-            type==PRECLUSIVE?"Preclusive":(
-              type==INACTIVE?"Inactive":(
-                type==PRIVACY?"Privacy":"Unknown"
-                ))))));
+          type==ACTIVE?"Active":(
+            type==INCLUSIVE?"Inclusive":(
+              type==EXCLUSIVE?"Exclusive":(
+                type==PRECLUSIVE?"Preclusive":(
+                  type==INACTIVE?"Inactive":(
+                    type==PRIVACY?"Privacy":"Unknown"
+                  ))))));
   sprintf( output+strlen(output), "  Shape : %zu points\n", polygon.GetVertices().size() );
   for (size_t i = 0; i < polygon.GetVertices().size(); i++) {
     sprintf(output + strlen(output), "  %zu: %d,%d\n", i, polygon.GetVertices()[i].x_, polygon.GetVertices()[i].y_);
   }
   sprintf( output+strlen(output), "  Alarm RGB : %06x\n", alarm_rgb );
   sprintf( output+strlen(output), "  Check Method: %d - %s\n", check_method,
-      check_method==ALARMED_PIXELS?"Alarmed Pixels":(
-        check_method==FILTERED_PIXELS?"FilteredPixels":(
-          check_method==BLOBS?"Blobs":"Unknown"
-          )));
+           check_method==ALARMED_PIXELS?"Alarmed Pixels":(
+             check_method==FILTERED_PIXELS?"FilteredPixels":(
+               check_method==BLOBS?"Blobs":"Unknown"
+             )));
   sprintf( output+strlen(output), "  Min Pixel Threshold : %d\n", min_pixel_threshold );
   sprintf( output+strlen(output), "  Max Pixel Threshold : %d\n", max_pixel_threshold );
   sprintf( output+strlen(output), "  Min Alarm Pixels : %d\n", min_alarm_pixels );
@@ -972,10 +987,10 @@ bool Zone::DumpSettings(char *output, bool /*verbose*/) const {
 }
 
 void Zone::std_alarmedpixels(
-    Image* pdiff_image,
-    const Image* ppoly_image,
-    unsigned int* pixel_count,
-    unsigned int* pixel_sum) {
+  Image* pdiff_image,
+  const Image* ppoly_image,
+  unsigned int* pixel_count,
+  unsigned int* pixel_sum) {
   uint32_t pixelsalarmed = 0;
   uint32_t pixelsdifference = 0;
   uint8_t calc_max_pixel_threshold = 255;
@@ -1013,33 +1028,32 @@ void Zone::std_alarmedpixels(
 }  // end void Zone::std_alarmedpixels(Image* pdiff_image, const Image* ppoly_image, unsigned int* pixel_count, unsigned int* pixel_sum)
 
 Zone::Zone(const Zone &z) :
-    monitor(z.monitor),
-    id(z.id),
-    label(z.label),
-    type(z.type),
-    polygon(z.polygon),
-    alarm_rgb(z.alarm_rgb),
-    check_method(z.check_method),
-    min_pixel_threshold(z.min_pixel_threshold),
-    max_pixel_threshold(z.max_pixel_threshold),
-    min_alarm_pixels(z.min_alarm_pixels),
-    max_alarm_pixels(z.max_alarm_pixels),
-    filter_box(z.filter_box),
-    min_filter_pixels(z.min_filter_pixels),
-    max_filter_pixels(z.max_filter_pixels),
-    min_blob_pixels(z.min_blob_pixels),
-    max_blob_pixels(z.max_blob_pixels),
-    min_blobs(z.min_blobs),
-    max_blobs(z.max_blobs),
-    overload_frames(z.overload_frames),
-    extend_alarm_frames(z.extend_alarm_frames),
-    alarmed(z.alarmed),
-    was_alarmed(z.was_alarmed),
-    stats(z.stats),
-    overload_count(z.overload_count),
-    extend_alarm_count(z.extend_alarm_count),
-    diag_path(z.diag_path)
-{
+  monitor(z.monitor),
+  id(z.id),
+  label(z.label),
+  type(z.type),
+  polygon(z.polygon),
+  alarm_rgb(z.alarm_rgb),
+  check_method(z.check_method),
+  min_pixel_threshold(z.min_pixel_threshold),
+  max_pixel_threshold(z.max_pixel_threshold),
+  min_alarm_pixels(z.min_alarm_pixels),
+  max_alarm_pixels(z.max_alarm_pixels),
+  filter_box(z.filter_box),
+  min_filter_pixels(z.min_filter_pixels),
+  max_filter_pixels(z.max_filter_pixels),
+  min_blob_pixels(z.min_blob_pixels),
+  max_blob_pixels(z.max_blob_pixels),
+  min_blobs(z.min_blobs),
+  max_blobs(z.max_blobs),
+  overload_frames(z.overload_frames),
+  extend_alarm_frames(z.extend_alarm_frames),
+  alarmed(z.alarmed),
+  was_alarmed(z.was_alarmed),
+  stats(z.stats),
+  overload_count(z.overload_count),
+  extend_alarm_count(z.extend_alarm_count),
+  diag_path(z.diag_path) {
   std::copy(z.blob_stats, z.blob_stats+256, blob_stats);
   pg_image = z.pg_image ? new Image(*z.pg_image) : nullptr;
   ranges = new Range[monitor->Height()];

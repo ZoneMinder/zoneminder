@@ -274,7 +274,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Update update reminders when the user makes a selection from the dropdown
     reminderClickFunction();
     // Manage the widget bar minimize chevron
-    $j("#flip").click(function() {
+    $j("#flip").click(navbarTwoFlip);
+    $j("#flipNarrow").click(navbarTwoFlip);
+
+    function navbarTwoFlip() {
       $j("#navbar-two").slideToggle("slow");
       const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
@@ -284,19 +287,59 @@ if ( currentView != 'none' && currentView != 'login' ) {
         flip.html('keyboard_arrow_up');
         setCookie('zmHeaderFlip', 'up');
       }
+    }
+
+    // Manage visible object & control button (when pressing a button)
+    $j("[data-flip-сontrol-object]").click(function() {
+      const _this_ = $j(this);
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      obj.removeClass('hidden');
+      if ( obj.is(":visible") ) {
+        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'hidden');
+      } else { //hidden
+        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
+        }
+        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
+      }
+
+      obj.slideToggle("fast");
     });
-    // Manage the web console filter bar minimize chevron
-    $j("#fbflip").click(function() {
-      $j("#fbpanel").slideToggle("slow");
-      var fbflip = $j("#fbflip");
-      if ( fbflip.html() == 'keyboard_arrow_up' ) {
-        fbflip.html('keyboard_arrow_down');
-        setCookie('zmFilterBarFlip', 'down');
-      } else {
-        fbflip.html('keyboard_arrow_up');
-        setCookie('zmFilterBarFlip', 'up');
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
+
+    // Manage visible filter bar & control button (after document ready)
+    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects and set icons
+      const _this_ = $j(this);
+      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      if (obj.parent().css('display') != 'block') {
+        obj.wrap('<div style="display: block"></div>');
+      }
+
+      if (сookie == 'hidden') {
+        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        obj.css({'display': 'none'});
+      } else { //no cookies or opened.
+        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+        }
+        obj.css({'display': 'block'});
       }
     });
 
@@ -330,6 +373,8 @@ if ( currentView != 'none' && currentView != 'login' ) {
           .done(optionhelpModal)
           .fail(logAjaxFail);
     });
+
+    applyChosen();
   });
 
   // After retieving modal html via Ajax, this will insert it into the DOM
@@ -594,10 +639,10 @@ function endOfResize(e) {
  * figures out where bottomEl is in the viewport
  * does calculations
  * */
-function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
+function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   const ratio = baseWidth / baseHeight;
-  const container = $j('#content');
+  if (!container) container = $j('#content');
   if (!container) {
     console.error("No container found");
     return;
@@ -608,28 +653,31 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   }
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
-  var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+  const bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
   console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
-  var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
+  let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
-  var newWidth = ratio * newHeight;
-  console.log("newWidth = " + newWidth);
+  let newWidth = ratio * newHeight;
 
-  if (newHeight < 0) {
+  // Let's recalculate everything and reduce the height a little. Necessary if "padding" is specified for "wrapperEventVideo"
+  padding = parseInt(container.css("padding-left")) + parseInt(container.css("padding-right"));
+  newWidth -= padding;
+  newHeight = newWidth / ratio;
+
+  console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
+
+  if (newHeight < 0 || newWidth > container.innerWidth()-padding) {
     // Doesn't fit on screen anyways?
-    newWidth = container.innerWidth();
-    newHeight = newWidth / ratio;
-  } else if (newWidth > container.innerWidth()) {
-    newWidth = container.innerWidth();
+    newWidth = container.innerWidth()-padding;
     newHeight = newWidth / ratio;
   }
   console.log("newWidth = " + newWidth);
-  var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
-  var scales = $j('#scale option').map(function() {
+  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
+  const scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
   scales.shift(); // pop off Scale To Fit
-  var closest = null;
+  let closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
@@ -639,6 +687,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
     console.log("Setting to closest: " + closest + " instead of " + autoScale);
     autoScale = closest;
   }
+  if (autoScale < 10) autoScale = 10;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
@@ -1051,6 +1100,15 @@ function isMobile() {
     result = true;
   }
   return result;
+}
+
+function applyChosen() {
+  const limit_search_threshold = 10;
+
+  $j('.chosen').chosen('destroy');
+  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, search_contains: true});
+  $j('.chosen.chosen-full-width').chosen({disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  $j('.chosen.chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
 }
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});

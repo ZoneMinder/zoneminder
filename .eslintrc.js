@@ -47,5 +47,5 @@ module.exports = {
     "php/remove-whitespace": false,
     "php/remove-empty-line": false,
     "php/remove-php-lint": false
-  },
+  }
 };

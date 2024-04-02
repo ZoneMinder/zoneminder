@@ -613,15 +613,15 @@ function handleClick(event) {
     const x = parseInt((event.pageX - pos.left) * scaleX);
     const y = parseInt((event.pageY - pos.top) * scaleY);
 
-    updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
-
     if (showMode == 'events' || !imageControlMode) {
       if (event.shift || event.shiftKey) {
         streamCmdPan(x, y);
+        updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
       } else if (event.ctrlKey) {
         streamCmdZoomOut();
       } else {
         streamCmdZoomIn(x, y);
+        updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
       }
     } else {
       controlCmdImage(x, y);

@@ -365,8 +365,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Manage the web console filter bar minimize chevron
     $j("#mfbflip").click(function() {
       $j("#mfbpanel").slideToggle("slow", function() {
-        //changeScale(); //This function disappeared somewhere... It needs to be restored. Function call appeared Aug 10, 2023 https://github.com/ZoneMinder/zoneminder/commit/b8982dce53137d86d33d2d6d79104d4a25673ef7
-        redrawScreen(); //Temporarily use changeScale() instead. You can try using refreshWindow()
+        if ($j.isFunction('changeScale')) {
+          changeScale();
+        }
       });
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {

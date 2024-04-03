@@ -121,6 +121,7 @@ class Event extends ZM_Object {
   public function StartDateTimeSecs() {
     return strtotime($this->{'StartDateTime'});
   }
+
   public function EndDateTimeSecs() {
     return strtotime($this->{'EndDateTime'});
   }
@@ -256,7 +257,6 @@ class Event extends ZM_Object {
   }
 
   public function getStreamSrc( $args=array(), $querySep='&' ) {
-
     $Server = $this->Server();
 
     # If we are in a multi-port setup, then use the multiport, else by
@@ -321,8 +321,8 @@ class Event extends ZM_Object {
   }
 
   function createListThumbnail( $overwrite=false ) {
-	# The idea here is that we don't really want to use the analysis jpeg as the thumbnail.  
-	# The snapshot image will be generated during capturing
+    # The idea here is that we don't really want to use the analysis jpeg as the thumbnail.  
+    # The snapshot image will be generated during capturing
     if ( file_exists($this->Path().'/snapshot.jpg') ) {
       Debug("snapshot exists");
       $frame = null;
@@ -384,7 +384,7 @@ class Event extends ZM_Object {
 
   function getThumbnailSrc( $args=array(), $querySep='&' ) {
     # The thumbnail is theoretically the image with the most motion.
-# We always store at least 1 image when capturing
+    # We always store at least 1 image when capturing
 
     $streamSrc = '';
     $Server = $this->Server();
@@ -529,7 +529,7 @@ class Event extends ZM_Object {
         'imageClass' => $alarmFrame?'alarm':'normal',
         'isAnalysisImage' => $isAnalysisImage,
         'hasAnalysisImage' => $hasAnalysisImage,
-        'FrameId'		=>	$frame['FrameId'],
+        'FrameId' => $frame['FrameId'],
         );
 
     return $imageData;
@@ -681,6 +681,7 @@ class Event extends ZM_Object {
     }
     return false;
   }
+
   function canEdit($u=null) {
     global $user;
     if (!$u) $u=$user;
@@ -844,5 +845,4 @@ class Event extends ZM_Object {
   } # end sub GenerateVideo
 
 } # end class
-
 ?>

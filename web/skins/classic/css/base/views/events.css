@@ -43,12 +43,6 @@ input[type="number"].form-control {
   padding: 5px;
 }
 
-#toolbar,
-.filterTable {
-  display:flex;
-  flex-wrap: wrap;
-}
-
 #events {
   height: 100%;
   overflow: visible;

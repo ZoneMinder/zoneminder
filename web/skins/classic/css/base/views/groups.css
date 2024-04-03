@@ -35,7 +35,7 @@ body.sticky #options {
   padding-top: 15px;
 }
 
-.wrapper-scroll-table {
+body.sticky .wrapper-scroll-table {
   position: absolute;
   margin-right: calc(var(--indent-bootstrap-row) * -1);
   margin-left: calc(var(--indent-bootstrap-row) * -1);

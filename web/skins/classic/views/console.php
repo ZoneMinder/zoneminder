@@ -410,7 +410,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
       echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
     }
     if ($monitor['Recording'] != 'None') {
-      echo translate('Recording'). ': '.translate($monitor['Recording']).'<br/>';
+      echo translate('Recording') . ': '.translate($monitor['Recording']) . ($monitor['ONVIF_Event_Listener'] ? ' Use ONVIF' : "") . '<br/>';
     }
  ?><br/>
               <div class="small text-nowrap text-muted">

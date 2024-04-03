@@ -761,6 +761,11 @@ ul.nav.nav-pills.flex-column {
   min-width: 11em; /* Makes a nice uniform display */
 }
 
+#mfbpanel {
+  width: calc(100% - 25px);
+  float: left;  
+}
+
 .chosen-container-active .chosen-choices {
     border-color:rgb(200,200,200);
 }

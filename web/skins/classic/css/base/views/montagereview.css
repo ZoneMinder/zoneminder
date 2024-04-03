@@ -57,8 +57,3 @@ input[type=range]::-ms-tooltip {
 #minTime, #maxTime {
 margin: 0 4px;
 }
-
-#mfbpanel {
-  width: calc(100% - 25px);
-  float: left;  
-}

@@ -342,7 +342,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
           $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
             if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
           });
-      }
+        }
       });
       if (nameFuncAfter) {
         $j.each(nameFuncAfter.split(' '), function(i, nameFunc) {
@@ -380,7 +380,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     });
 
     // Manage the web console filter bar minimize chevron
-/*    $j("#mfbflip").click(function() {
+    /*$j("#mfbflip").click(function() {
       $j("#mfbpanel").slideToggle("slow", function() {
         if ($j.isFunction('changeScale')) {
           changeScale();

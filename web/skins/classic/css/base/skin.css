@@ -456,6 +456,10 @@ body.sticky #content {
     display: none;
 }
 
+.hidden-shift {
+  position: absolute !important; left: -999em !important;
+}
+
 .invisible {
     visibility: hidden;
 }

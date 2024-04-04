@@ -165,7 +165,7 @@ echo $navbar ?>
   <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
 
-    <div id="fbpanel" class="filterBar hidden">
+    <div id="fbpanel" class="filterBar hidden-shift">
       <?php echo $filterbar ?>
     </div>
 

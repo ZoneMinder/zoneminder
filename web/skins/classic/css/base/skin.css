@@ -836,6 +836,7 @@ li.search-choice {
 
 a.flip {
   float: right;
+  padding-right: 5px;
 }
 
 #content table.major .colDiskSpace {

@@ -1295,15 +1295,14 @@ bool Image::WriteJpeg(const std::string &filename,
     std::vector<uint8_t> tmprowbuf(width * 3);
     JSAMPROW row_pointer = &tmprowbuf[0];  /* pointer to a single row */
     while (cinfo->next_scanline < cinfo->image_height) {
-      unsigned i, j;
-      unsigned offset = cinfo->next_scanline * cinfo->image_width * 2; //offset to the correct row
-      for (i = 0, j = 0; i < cinfo->image_width * 2; i += 4, j += 6) { //input strides by 4 bytes, output strides by 6 (2 pixels)
-        tmprowbuf[j + 0] = buffer[offset + i + 0]; // Y (unique to this pixel)
-        tmprowbuf[j + 1] = buffer[offset + i + 1]; // U (shared between pixels)
-        tmprowbuf[j + 2] = buffer[offset + i + 3]; // V (shared between pixels)
-        tmprowbuf[j + 3] = buffer[offset + i + 2]; // Y (unique to this pixel)
-        tmprowbuf[j + 4] = buffer[offset + i + 1]; // U (shared between pixels)
-        tmprowbuf[j + 5] = buffer[offset + i + 3]; // V (shared between pixels)
+      unsigned offset = cinfo->next_scanline * cinfo->image_width * 2;
+      for (int i = 0; i < cinfo->image_width; i += 2) {
+        tmprowbuf[i*3]   = buffer[offset + i*2];
+        tmprowbuf[i*3+1] = buffer[offset + i*2+1];
+        tmprowbuf[i*3+2] = buffer[offset + i*2+3];
+        tmprowbuf[i*3+3] = buffer[offset + i*2+2];
+        tmprowbuf[i*3+4] = buffer[offset + i*2+1];
+        tmprowbuf[i*3+5] = buffer[offset + i*2+3];
       }
       jpeg_write_scanlines(cinfo, &row_pointer, 1);
     }
@@ -1517,16 +1516,40 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_overr
     break;
   } // end switch
 
+#ifdef JCS_EXTENSIONS
+  if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+    cinfo->input_components = 3;
+    cinfo->in_color_space = JCS_YCbCr;
+  }
+#endif
+
   jpeg_set_defaults(cinfo);
   jpeg_set_quality(cinfo, quality, FALSE);
   cinfo->dct_method = JDCT_FASTEST;
 
   jpeg_start_compress(cinfo, TRUE);
 
-  JSAMPROW row_pointer = buffer;
-  while ( cinfo->next_scanline < cinfo->image_height ) {
-    jpeg_write_scanlines(cinfo, &row_pointer, 1);
-    row_pointer += linesize;
+  if (subpixelorder == ZM_SUBPIX_ORDER_YUV420P) {
+    std::vector<uint8_t> tmprowbuf(width * 3);
+    JSAMPROW row_pointer = &tmprowbuf[0];  /* pointer to a single row */
+    while (cinfo->next_scanline < cinfo->image_height) {
+      unsigned offset = cinfo->next_scanline * cinfo->image_width * 2;
+      for (int i = 0; i < cinfo->image_width; i += 2) {
+        tmprowbuf[i*3]   = buffer[offset + i*2];
+        tmprowbuf[i*3+1] = buffer[offset + i*2+1];
+        tmprowbuf[i*3+2] = buffer[offset + i*2+3];
+        tmprowbuf[i*3+3] = buffer[offset + i*2+2];
+        tmprowbuf[i*3+4] = buffer[offset + i*2+1];
+        tmprowbuf[i*3+5] = buffer[offset + i*2+3];
+      }
+      jpeg_write_scanlines(cinfo, &row_pointer, 1);
+    }
+  } else {
+    JSAMPROW row_pointer = buffer;
+    while ( cinfo->next_scanline < cinfo->image_height ) {
+      jpeg_write_scanlines(cinfo, &row_pointer, 1);
+      row_pointer += linesize;
+    }
   }
 
   jpeg_finish_compress(cinfo);

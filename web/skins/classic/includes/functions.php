@@ -651,7 +651,7 @@ function getConsoleHTML() {
   global $user;
   $result = '';
   
-  if (count($user->viewableMonitorIds())) {
+  if (count($user->viewableMonitorIds()) or !ZM\Monitor::find_one()) {
     $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
   

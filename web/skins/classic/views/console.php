@@ -165,7 +165,7 @@ echo $navbar ?>
   <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
 
-    <div id="fbpanel" class="filterBar hidden">
+    <div id="fbpanel" class="filterBar hidden-shift">
       <?php echo $filterbar ?>
     </div>
 
@@ -351,10 +351,10 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   if (ZM_WEB_LIST_THUMBS && ($monitor['Capturing'] != 'None') && canView('Stream')) {
     $options = array();
 
-    $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
+    $ratio_factor = $Monitor->ViewWidth() ? $Monitor->ViewHeight() / $Monitor->ViewWidth() : 1;
     $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
     $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
-    $options['scale'] = intval(100*ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth());
+    $options['scale'] = $Monitor->ViewWidth() ? intval(100*ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100;
     $options['mode'] = 'jpeg';
     $options['frames'] = 1;
 
@@ -410,7 +410,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
       echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
     }
     if ($monitor['Recording'] != 'None') {
-      echo translate('Recording'). ': '.translate($monitor['Recording']).'<br/>';
+      echo translate('Recording') . ': '.translate($monitor['Recording']) . ($monitor['ONVIF_Event_Listener'] ? ' Use ONVIF' : "") . '<br/>';
     }
  ?><br/>
               <div class="small text-nowrap text-muted">

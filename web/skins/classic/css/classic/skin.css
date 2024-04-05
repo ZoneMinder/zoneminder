@@ -380,7 +380,6 @@ th.table-th-sort-rev span.table-th-sort-span {
 }
 
 #content {
-    width: 96%;
     margin: 0 auto 8px auto;
     line-height: 130%;
     text-align: center;
@@ -398,14 +397,6 @@ th.table-th-sort-rev span.table-th-sort-span {
 #content p.textblock br {
     margin-bottom: 8px;
 }
-
-/*
-#contentDiv {
-    margin: 0 auto 8px;
-    line-height: 140%;
-    text-align: center;
-}
-*/
 
 #content > input[type=submit],
 #content > input[type=button],

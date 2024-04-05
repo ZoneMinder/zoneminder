@@ -140,6 +140,11 @@ if ($action == 'save') {
   if (count($changes)) {
     // monitor->Id() has a value when the db record exists
     if ($monitor->Id()) {
+      if ($monitor->Deleted() and ! isset($_REQUEST['newMonitor[Deleted]'])) {
+        # We are saving a new monitor with a specified Id and the Id is used in a deleted record.
+        # Undelete it so that it is visible.
+        $monitor->Deleted(false);
+      }
 
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
       if ($monitor->Type() != 'WebSite') {

@@ -21,6 +21,11 @@
  * Primary look and feel styles
  */
 
+:root {
+  --scrollbarBG: #F1F1F1;
+  --sliderBG: #C1C1C1;
+}
+
 @font-face {
   font-family: "Material Icons";
   font-style: normal;
@@ -100,14 +105,14 @@ p {
     font-weight: normal;
 }
 
-th {
 /*
+th {
     padding: 3px;
     text-transform: uppercase;
     font-size: 0.8em;
     font-weight: 600;
-*/
 }
+*/
 
 .thead-highlight {
   background-color:#dfe4ea;
@@ -150,8 +155,16 @@ a.btn,
 button.btn {
   line-height: 1;
   font-size: 18px;
+  margin-bottom: 3px;
 }
-input,textarea,select,button,.btn-primary {
+#toolbar .btn-normal {
+  margin-right: 3px;
+}
+#rightButtons .btn-normal,
+#leftButtons .btn-normal {
+  margin-right: 0px;
+}
+input, textarea, select, button, .btn-primary {
     border: 1px #ccc solid;
     padding: 5px;
     border-radius: 1px;
@@ -162,7 +175,6 @@ input,textarea,select,button,.btn-primary {
     background-color: #f8f8f8;
     text-align: left;
     border-radius:4px;
-    margin: 1px 0;
 }
 
 input.noborder {
@@ -444,6 +456,10 @@ body.sticky #content {
     display: none;
 }
 
+.hidden-shift {
+  position: absolute !important; left: -999em !important;
+}
+
 .invisible {
     visibility: hidden;
 }
@@ -505,7 +521,6 @@ body.sticky #page {
 
 #header {
     width: 100%;
-    text-align: left;
     background-color: #34495e;
     padding: 5px 0px;
     margin: 0 auto 4px auto;
@@ -736,9 +751,23 @@ ul.nav.nav-pills.flex-column {
   background-color: #f5f5f5; 
 }
 
-.chosen-container {
-text-align: left;
-/*min-width: 11em;*/ /* Why ???*/
+#toolbar,
+.filterTable {
+  display:flex;
+  flex-wrap: wrap;
+}
+
+.controlHeader .chosen-container,
+#header .chosen-container,
+#fbpanel .chosen-container,
+#toolbar .chosen-container {
+  text-align: left;
+  min-width: 11em; /* Makes a nice uniform display */
+}
+
+#mfbpanel {
+  width: calc(100% - 25px);
+  float: left;  
 }
 
 .chosen-container-active .chosen-choices {
@@ -799,14 +828,19 @@ li.search-choice {
 
 .zoom,
 .zoom-console {
-  transform-origin: 0% 50%;
+  transform-origin: 0% 00%;
   transform: scale(5); /* (arbitray zoom value - Note if the zoom is too large, it will go outside of the viewport) */
   position: sticky;
   z-index: 1001;
 }
 
+#framesTable .zoom {
+  transform-origin: 100% 0%;
+}
+
 a.flip {
   float: right;
+  padding-right: 5px;
 }
 
 #content table.major .colDiskSpace {
@@ -835,8 +869,6 @@ a.flip {
 #shutdownButton {
   padding: 4px 10px 4px 10px;
   color: white;
-}
-#shutdownButton i {
 }
 .imageFeed {
   margin: 0 auto;
@@ -890,16 +922,17 @@ a.flip {
   border-radius: 0;
   border: none;
 }
-.controlHeader {
+.controlHeader, #fieldsTable {
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
+  justify-content: center;
 }
 /* to match chosen text input height */
 .controlHeader input[type="text"] {
   height: 29px;
   padding: 2px 5px 4px 5px;
   margin-top:0;
+  width: 100%;
 }
 @media screen and (max-width:767px) {
   .controlHeader {
@@ -1000,6 +1033,57 @@ button .material-icons {
   display: block;
 }
 
-input.hasDatepicker {
-  max-width:140px;
+/* Change scrollbar style */
+div::-webkit-scrollbar, nav::-webkit-scrollbar, .chosen-results::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+div, nav, .chosen-results {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sliderBG) var(--scrollbarBG);
+}
+
+div::-webkit-scrollbar-track, nav::-webkit-scrollbar-track, .chosen-results::-webkit-scrollbar-track {
+  background: var(--scrollbarBG);
+}
+
+div::-webkit-scrollbar-thumb, nav::-webkit-scrollbar-thumb, .chosen-results::-webkit-scrollbar-thumb {
+  background-color: var(--sliderBG);
+  border-radius: 6px;
+  border: 3px solid var(--scrollbarBG);
+}
+
+.term {
+  display: flex;
+  flex-direction: column;
+  margin-left: 15px;
+}
+
+@media screen and (max-width:500px) {
+  .term {
+    width: 100% !important;
+    flex-direction: row;
+    margin-right: 15px;
+    margin-bottom: 5px;
+  }
+  .term-label-wrapper {
+    text-wrap: nowrap;
+    margin-top: 7px;
+    margin-right: 5px;
+  }
+  .term-value-wrapper {
+    width: 100%;
+    flex-grow: 1;
+  }
+  .term-value-wrapper .chosen-container {
+    width: 100% !important;
+  }
+  label {
+    text-wrap: nowrap;
+  }
+  input.hasDatepicker {
+    max-width: 100%;
+    width: 100%;
+  }
 }

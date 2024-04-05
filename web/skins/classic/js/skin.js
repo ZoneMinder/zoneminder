@@ -261,6 +261,22 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
+    // List of functions that are allowed to be called via the value of an object's DOM attribute.
+    const safeFunc = {
+      drawGraph: function() {
+        if (typeof drawGraph !== 'undefined' && $j.isFunction(drawGraph)) drawGraph();
+      },
+      refreshWindow: function() {
+        if (typeof refreshWindow !== 'undefined' && $j.isFunction(refreshWindow)) refreshWindow();
+      },
+      changeScale: function() {
+        if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) changeScale();
+      },
+      applyChosen: function() {
+        if (typeof applyChosen !== 'undefined' && $j.isFunction(applyChosen)) applyChosen();
+      }
+    };
+
     // Load the Logout and State modals into the dom
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
@@ -295,24 +311,44 @@ if ( currentView != 'none' && currentView != 'login' ) {
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
-      obj.removeClass('hidden');
-      if ( obj.is(":visible") ) {
-        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+      if ( obj.is(":visible") && !obj.hasClass("hidden-shift")) {
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
-        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
           objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
         }
         setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'hidden');
       } else { //hidden
-        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+        obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-visible'));
-        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
           objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
         }
         setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
       }
 
-      obj.slideToggle("fast");
+      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
+      const nameFuncAfterComplet = _this_.attr('data-flip-сontrol-run-after-complet-func') ? _this_.attr('data-flip-сontrol-run-after-complet-func') : null;
+
+      if (nameFuncBefore) {
+        $j.each(nameFuncBefore.split(' '), function(i, nameFunc) {
+          if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+        });
+      }
+      obj.slideToggle("fast", function() {
+        if (nameFuncAfterComplet) {
+          $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
+            if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+          });
+        }
+      });
+      if (nameFuncAfter) {
+        $j.each(nameFuncAfter.split(' '), function(i, nameFunc) {
+          if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+        });
+      }
     });
 
     // Manage visible filter bar & control button (after document ready)
@@ -327,26 +363,28 @@ if ( currentView != 'none' && currentView != 'login' ) {
       }
 
       if (сookie == 'hidden') {
-        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
-        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
           objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
         }
-        obj.css({'display': 'none'});
+        obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
       } else { //no cookies or opened.
-        if (objIconButton.is('[class="material-icons"]')) { // use material-icons
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
           objIconButton.html(objIconButton.attr('data-icon-visible'));
-        } else if (objIconButton.is('[class^="fa-"]')) { //use Font Awesome
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
           objIconButton.addClass(objIconButton.attr('data-icon-visible'));
         }
-        obj.css({'display': 'block'});
+        obj.removeClass('hidden-shift');
       }
     });
 
     // Manage the web console filter bar minimize chevron
-    $j("#mfbflip").click(function() {
+    /*$j("#mfbflip").click(function() {
       $j("#mfbpanel").slideToggle("slow", function() {
-        changeScale();
+        if ($j.isFunction('changeScale')) {
+          changeScale();
+        }
       });
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
@@ -358,7 +396,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
-    });
+    });*/
     // Autoclose the hamburger button if the end user clicks outside the button
     $j(document).click(function(event) {
       var target = $j(event.target);
@@ -1106,9 +1144,9 @@ function applyChosen() {
   const limit_search_threshold = 10;
 
   $j('.chosen').chosen('destroy');
-  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold});
-  $j('.chosen.chosen-full-width').chosen({disable_search_threshold: limit_search_threshold, width: "100%"});
-  $j('.chosen.chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, width: "auto"});
+  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, search_contains: true});
+  $j('.chosen.chosen-full-width').chosen({disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  $j('.chosen.chosen-auto-width').chosen({disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
 }
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});

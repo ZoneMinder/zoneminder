@@ -3,7 +3,7 @@
 }
 
 tr.alarm {
-  background-color: #fa8072;
+  background-color: var(--alarmBG);
 }
 
 tr.bulk {

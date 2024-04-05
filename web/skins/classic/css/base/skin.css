@@ -456,6 +456,10 @@ body.sticky #content {
     display: none;
 }
 
+.hidden-shift {
+  position: absolute !important; left: -999em !important;
+}
+
 .invisible {
     visibility: hidden;
 }
@@ -761,6 +765,11 @@ ul.nav.nav-pills.flex-column {
   min-width: 11em; /* Makes a nice uniform display */
 }
 
+#mfbpanel {
+  width: calc(100% - 25px);
+  float: left;  
+}
+
 .chosen-container-active .chosen-choices {
     border-color:rgb(200,200,200);
 }
@@ -831,6 +840,7 @@ li.search-choice {
 
 a.flip {
   float: right;
+  padding-right: 5px;
 }
 
 #content table.major .colDiskSpace {

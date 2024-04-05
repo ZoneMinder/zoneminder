@@ -93,7 +93,7 @@ function selectLayout(new_layout_id) {
       console.log("No default styles to apply" + layout.Positions);
     } // end if default styles
 
-    if (layout.Positions['mId'+monitor.id]) {
+    if (layout.Positions['mId'+monitor.id] && mode != EDITING) {
       const styles = layout.Positions['mId'+monitor.id];
       for (const style in styles) {
         monitor_frame.css(style, styles[style]);
@@ -183,6 +183,7 @@ function edit_layout(button) {
     cursor: 'crosshair',
     //revert: 'invalid'
   });
+  $j('#monitors .monitor').resizable();
   $j('#SaveLayout').show();
   $j('#EditLayout').hide();
 

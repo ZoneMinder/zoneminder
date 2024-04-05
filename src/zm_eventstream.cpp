@@ -528,10 +528,20 @@ void EventStream::processCommand(const CmdMsg *msg) {
     x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
     y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
     Debug(1, "Got PAN command, to %d,%d", x, y);
+    send_frame = true;
+    if (paused) {
+      step = 1;
+      send_twice = true;
+    }
     break;
   case CMD_SCALE :
     scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
     Debug(1, "Got SCALE command, to %d", scale);
+    send_frame = true;
+    if (paused) {
+      step = 1;
+      send_twice = true;
+    }
     break;
   case CMD_PREV :
     Debug(1, "Got PREV command");

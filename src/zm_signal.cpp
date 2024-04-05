@@ -85,6 +85,7 @@ RETSIGTYPE zm_die_handler(int signal)
     }
   }
 #endif				// ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
+#endif                          // (defined(__i386__) || defined(__x86_64__)
 
 
   // Print backtrace if enabled and available
@@ -128,7 +129,6 @@ RETSIGTYPE zm_die_handler(int signal)
     Error("%s", cmd);
   }
 #endif				// ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
-#endif                          // (defined(__i386__) || defined(__x86_64__)
   // Icon: Don't exit, setting zm_terminate should cause the exit to happen in a timely manner.
   // The main reason not to here is to make valgrind traces quieter because logger gets free while other threads
   // are still running and trying to log.

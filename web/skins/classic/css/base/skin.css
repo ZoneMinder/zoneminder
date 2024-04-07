@@ -770,6 +770,10 @@ ul.nav.nav-pills.flex-column {
   float: left;  
 }
 
+.chosen {
+  position: absolute !important; left: -999em !important;
+}
+
 .chosen-container-active .chosen-choices {
     border-color:rgb(200,200,200);
 }

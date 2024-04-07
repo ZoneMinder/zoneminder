@@ -791,6 +791,14 @@ li.search-choice {
     border-color:rgb(200,200,200);
 }
 
+.chosen-container-single .chosen-single-with-deselect span {
+  margin-right: 30px;
+}
+
+.chosen-container-single .chosen-single abbr {
+  right: 18px;
+}
+
 .reduced-text { 
    font-size:0.9em;
 }

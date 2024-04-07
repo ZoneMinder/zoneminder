@@ -249,7 +249,7 @@ if ( count($other_zones) ) {
                         array('data-on-change'=>'applyZoneUnits', 'id'=>'newZone[Units]')
                         );
                         # Used later for number inputs
-                        $step = $newZone['Units'] == 'Percent' ? ' step="any" max="100"' : '';
+                        $step = $newZone['Units'] == 'Percent' ? ' step="0.1" max="100"' : '';
 ?>
                   </td>
 								</tr>

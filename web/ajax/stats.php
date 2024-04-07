@@ -17,14 +17,14 @@ if ($raw) {
   foreach ($stats as $stat) {
     $stat['ZoneName'] = validHtmlStr($stat['ZoneName']);
     $stat['PixelDiff'] = validHtmlStr($stat['PixelDiff']);
-    $stat['AlarmPixels'] = sprintf('%d (%d%%)', $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']));
-    $stat['FilterPixels'] = sprintf('%d (%d%%)', $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']));
-    $stat['BlobPixels'] = sprintf('%d (%d%%)', $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']));
+    $stat['AlarmPixels'] = sprintf('%d (%.1f%%)', $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']));
+    $stat['FilterPixels'] = sprintf('%d (%.1f%%)', $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']));
+    $stat['BlobPixels'] = sprintf('%d (%.1f%%)', $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']));
     $stat['Blobs'] = validHtmlStr($stat['Blobs']);
     if ($stat['Blobs'] > 1) {
-      $stat['BlobSizes'] = sprintf('%d-%d (%d%%-%d%%)', $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']));
+      $stat['BlobSizes'] = sprintf('%d-%d (%.1f%%-%.1f%%)', $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']));
     } else {
-      $stat['BlobSizes'] = sprintf('%d (%d%%)', $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area']);
+      $stat['BlobSizes'] = sprintf('%d (%.1f%%)', $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area']);
     }
     $stat['AlarmLimits'] = validHtmlStr($stat['MinX'].','.$stat['MinY'].'-'.$stat['MaxX'].','.$stat['MaxY']);
     $data['raw'][] = $stat;

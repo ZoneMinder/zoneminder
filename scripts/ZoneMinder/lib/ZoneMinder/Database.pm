@@ -108,11 +108,11 @@ sub zmDbConnect {
 
     eval {
       $dbh = DBI->connect(
-        'DBI:mysql:database='.$ZoneMinder::Config::Config{ZM_DB_NAME}
+        'DBI:'.$ZoneMinder::Config::Config{ZM_DB_TYPE}.':database='.$ZoneMinder::Config::Config{ZM_DB_NAME}
         .$socket . $sslOptions . ($options?join(';', '', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
         , $ZoneMinder::Config::Config{ZM_DB_USER}
         , $ZoneMinder::Config::Config{ZM_DB_PASS}
-        , { mysql_enable_utf8mb4 => 1, }
+        , { ($ZoneMinder::Config::Config{ZM_DB_TYPE} eq 'mysql' ? (mysql_enable_utf8mb4 => 1) : ()) }
         );
     };
     if ( !$dbh or $@ ) {

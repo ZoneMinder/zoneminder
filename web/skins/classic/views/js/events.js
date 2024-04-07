@@ -180,6 +180,7 @@ function onDownloadClick(evt) {
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
+    document.getElementById('delConfirmBtn').disabled = true; // prevent double click
     if (!canEdit.Events) {
       enoperm();
       return;

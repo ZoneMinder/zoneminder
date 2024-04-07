@@ -258,8 +258,8 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       // 32-bit wrap around?
       Info("Suspected 32bit wraparound in input pts. %" PRId64, packet->pts);
       return -1;
-    } else if (packet->pts - lastPTS < -40*stream->time_base.den) {
-      // -40 is for 40 seconds. Avigilon cameras seem to jump around by about 36 constantly
+    } else if (packet->pts - lastPTS < -20*stream->time_base.den) {
+      // -20 is for 20 seconds. Avigilon cameras seem to jump around by about 36 constantly
       double pts_time = static_cast<double>(av_rescale_q(packet->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
       double last_pts_time = static_cast<double>(av_rescale_q(lastPTS, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE;
       logPrintf(Logger::WARNING + monitor->Importance(), "Stream pts jumped back in time too far. pts %.2f - last pts %.2f = %.2f > 40seconds",

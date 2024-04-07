@@ -770,6 +770,10 @@ ul.nav.nav-pills.flex-column {
   float: left;  
 }
 
+.chosen {
+  position: absolute !important; left: -999em !important;
+}
+
 .chosen-container-active .chosen-choices {
     border-color:rgb(200,200,200);
 }
@@ -785,6 +789,14 @@ li.search-choice {
     font-size: inherit;
     border-radius:4px;
     border-color:rgb(200,200,200);
+}
+
+.chosen-container-single .chosen-single-with-deselect span {
+  margin-right: 30px;
+}
+
+.chosen-container-single .chosen-single abbr {
+  right: 18px;
 }
 
 .reduced-text { 

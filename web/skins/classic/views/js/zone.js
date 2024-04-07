@@ -204,7 +204,7 @@ function toPercent(field, maxValue) {
       field.value = 100;
     }
   }
-  field.setAttribute('step', 'any');
+  field.setAttribute('step', '0.1');
   field.setAttribute('max', 100);
 }
 

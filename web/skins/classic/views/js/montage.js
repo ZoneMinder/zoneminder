@@ -82,9 +82,10 @@ function selectLayout(new_layout_id) {
       console.log('Error finding frame for ' + monitor.id);
       continue;
     }
-    
-    if (mode != EDITING)
+
+    if (mode != EDITING) {
       monitor_frame.removeAttr("style"); // It is necessary to clear all styles, because... custom layers could have their own settings!!!
+		}
 
     // Apply default layout options, like float left
     if (layout.Positions['default']) {
@@ -176,7 +177,7 @@ function toGrid(value) {
 function edit_layout(button) {
   mode = EDITING;
   $j(monitors_ul).addClass('modeEditingMonitor');
-  
+
   // Turn off the onclick on the image.
   for ( let i = 0, length = monitors.length; i < length; i++ ) {
     const monitor = monitors[i];

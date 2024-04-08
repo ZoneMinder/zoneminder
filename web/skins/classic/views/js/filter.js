@@ -383,7 +383,7 @@ function addTerm( element ) {
   row.find('select').chosen('destroy');
   var newRow = row.clone().insertAfter(row);
   newRow.find('select').each( function() { //reset new row to default
-		if ($j(this).find('option').length > 0 )
+    if ($j(this).find('option').length > 0 )
       this[0].selected = 'selected';
   });
   newRow.find('input[type="text"]').val('');

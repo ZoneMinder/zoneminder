@@ -383,7 +383,8 @@ function addTerm( element ) {
   row.find('select').chosen('destroy');
   var newRow = row.clone().insertAfter(row);
   newRow.find('select').each( function() { //reset new row to default
-    this[0].selected = 'selected';
+		if ($j(this).find('option').length > 0 )
+      this[0].selected = 'selected';
   });
   newRow.find('input[type="text"]').val('');
   newRow[0].querySelectorAll("button[data-on-click-this]").forEach(function(el) {

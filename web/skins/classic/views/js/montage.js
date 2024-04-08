@@ -82,6 +82,9 @@ function selectLayout(new_layout_id) {
       console.log('Error finding frame for ' + monitor.id);
       continue;
     }
+    
+    if (mode != EDITING)
+      monitor_frame.removeAttr("style"); // It is necessary to clear all styles, because... custom layers could have their own settings!!!
 
     // Apply default layout options, like float left
     if (layout.Positions['default']) {
@@ -172,18 +175,21 @@ function toGrid(value) {
 // Makes monitors draggable.
 function edit_layout(button) {
   mode = EDITING;
-
+  $j(monitors_ul).addClass('modeEditingMonitor');
+  
   // Turn off the onclick on the image.
   for ( let i = 0, length = monitors.length; i < length; i++ ) {
     const monitor = monitors[i];
     monitor.disable_onclick();
   };
 
-  $j('#monitors .monitor').draggable({
+  $j(monitors_ul).find('.monitor').draggable({
     cursor: 'crosshair',
+    grid: [2, 2]
     //revert: 'invalid'
+  }).resizable({
+    grid: [2, 2]
   });
-  $j('#monitors .monitor').resizable();
   $j('#SaveLayout').show();
   $j('#EditLayout').hide();
 
@@ -195,6 +201,7 @@ function edit_layout(button) {
 
 function save_layout(button) {
   mode = VIEWING;
+  $j(monitors_ul).removeClass('modeEditingMonitor');
 
   const form = button.form;
   let name = form.elements['Name'].value;
@@ -238,6 +245,8 @@ function save_layout(button) {
 
 function cancel_layout(button) {
   mode = VIEWING;
+  $j(monitors_ul).removeClass('modeEditingMonitor');
+
   $j('#SaveLayout').hide();
   $j('#EditLayout').show();
   for ( let i = 0, length = monitors.length; i < length; i++ ) {

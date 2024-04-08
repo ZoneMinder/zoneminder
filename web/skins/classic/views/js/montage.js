@@ -85,7 +85,7 @@ function selectLayout(new_layout_id) {
 
     if (mode != EDITING) {
       monitor_frame.removeAttr("style"); // It is necessary to clear all styles, because... custom layers could have their own settings!!!
-		}
+    }
 
     // Apply default layout options, like float left
     if (layout.Positions['default']) {

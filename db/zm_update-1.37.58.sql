@@ -39,7 +39,7 @@ SET @s = (SELECT IF(
     ) > 0,
 "SELECT 'Object_Types table exists'",
 "CREATE TABLE Object_Types (
-  Id  INTEGER NOT NULL AUTO_INCREMENT
+  Id  INTEGER NOT NULL AUTO_INCREMENT,
   Name  TEXT UNIQUE,
   Human TEXT,
   PRIMARY KEY (Id)

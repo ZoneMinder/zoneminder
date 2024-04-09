@@ -426,6 +426,8 @@ CREATE TABLE `Logs` (
 
 CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
 CREATE INDEX `Logs_Level_idx` ON `Logs` (`Level`);
+CREATE INDEX `Logs_Component_idx` ON `Logs` (`Component`);
+
 --
 -- Table structure for table `Manufacturers`
 --

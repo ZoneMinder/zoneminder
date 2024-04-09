@@ -128,14 +128,16 @@ set(ZM_CONTENTDIR "/var/lib/zoneminder" CACHE PATH
 set(ZM_FONTDIR "${CMAKE_INSTALL_FULL_DATADIR}/zoneminder/fonts" CACHE PATH
   "Location of the font files used for timestamping, default: <prefix>/${CMAKE_INSTALL_DATADIR}/zoneminder/fonts")
 
+set(ZM_DB_TYPE "mysql" CACHE STRING
+  "Type of database where the ZoneMinder database located, default: mysql")
 set(ZM_DB_HOST "localhost" CACHE STRING
-  "Hostname where ZoneMinder database located, default: localhost")
+  "Hostname where the ZoneMinder database located, default: localhost")
 set(ZM_DB_NAME "zm" CACHE STRING
-  "Name of ZoneMinder database, default: zm")
+  "Name of the ZoneMinder database, default: zm")
 set(ZM_DB_USER "zmuser" CACHE STRING
-  "Name of ZoneMinder database user, default: zmuser")
+  "Name of the ZoneMinder database user, default: zmuser")
 set(ZM_DB_PASS "zmpass" CACHE STRING
-  "Password of ZoneMinder database user, default: zmpass")
+  "Password of the ZoneMinder database user, default: zmpass")
 set(ZM_WEB_USER "" CACHE STRING
   "The user apache or the local web server runs on. Leave empty for automatic detection.
      If that fails, you can use this variable to force")
@@ -745,7 +747,6 @@ set(WEB_PREFIX "${ZM_WEBDIR}")
 set(CGI_PREFIX "${ZM_CGIDIR}")
 set(WEB_USER "${ZM_WEB_USER}")
 set(WEB_GROUP "${ZM_WEB_GROUP}")
-set(ZM_DB_TYPE "mysql")
 if(ZM_PERL_SEARCH_PATH)
   set(EXTRA_PERL_LIB "use lib '${ZM_PERL_SEARCH_PATH}'; # Include custom perl install path")
 else()

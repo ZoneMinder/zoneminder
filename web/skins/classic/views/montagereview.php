@@ -144,7 +144,7 @@ if (isset($_REQUEST['filter'])) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
     if (count($selected_monitor_ids)) {
       $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
-    } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
+    } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
       # this should be redundant
       for ( $i = 0; $i < count($displayMonitors); $i++ ) {
         if ( $i == '0' ) {
@@ -170,7 +170,7 @@ if (!$liveMode) {
   }
   if (!$filter->has_term('Tags')) {
     $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
-      'val' => $num_terms ? '' : (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
+      'val' => (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
       'cnj' => 'and', 'cookie'=>'eventsTags'));
   }
   if (!$filter->has_term('Notes')) {

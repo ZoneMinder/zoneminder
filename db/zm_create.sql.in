@@ -1218,13 +1218,13 @@ CREATE TABLE Snapshots (
   PRIMARY KEY(Id)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
-CREATE TABLE Snapshot_Events (
+CREATE TABLE Snapshots_Events (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `SnapshotId` int(10) unsigned NOT NULL,
   FOREIGN KEY (`SnapshotId`) REFERENCES `Snapshots` (`Id`) ON DELETE CASCADE,
   `EventId`    bigint unsigned NOT NULL,
   FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
-  KEY `Snapshot_Events_SnapshotId_idx` (`SnapshotId`),
+  KEY `Snapshots_Events_SnapshotId_idx` (`SnapshotId`),
   PRIMARY KEY(Id)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 

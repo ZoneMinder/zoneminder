@@ -85,24 +85,25 @@ function selectLayout(new_layout_id) {
 
     if (mode != EDITING) {
       monitor_frame.removeAttr("style"); // It is necessary to clear all styles, because... custom layers could have their own settings!!!
+
+      // Apply default layout options, like float left
+      if (layout.Positions['default']) {
+        const styles = layout.Positions['default'];
+        for (const style in styles) {
+          monitor_frame.css(style, styles[style]);
+        }
+      } else {
+        console.log("No default styles to apply" + layout.Positions);
+      } // end if default styles
+
+      if (layout.Positions['mId'+monitor.id]) {
+        const styles = layout.Positions['mId'+monitor.id];
+        for (const style in styles) {
+          monitor_frame.css(style, styles[style]);
+        }
+      } // end if specific monitor style
     }
 
-    // Apply default layout options, like float left
-    if (layout.Positions['default']) {
-      const styles = layout.Positions['default'];
-      for (const style in styles) {
-        monitor_frame.css(style, styles[style]);
-      }
-    } else {
-      console.log("No default styles to apply" + layout.Positions);
-    } // end if default styles
-
-    if (layout.Positions['mId'+monitor.id] && mode != EDITING) {
-      const styles = layout.Positions['mId'+monitor.id];
-      for (const style in styles) {
-        monitor_frame.css(style, styles[style]);
-      }
-    } // end if specific monitor style
   } // end foreach monitor
   setCookie('zmMontageLayout', layout_id);
   if (layouts[layout_id].Name != 'Freeform') { // 'montage_freeform.css' ) {
@@ -124,8 +125,8 @@ function changeHeight() {
   var height = $j('#height').val();
   setCookie('zmMontageHeight', height);
   for (var i = 0, length = monitors.length; i < length; i++) {
-    var monitor = monitors[i];
-    monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
+    const monitor = monitors[i];
+    let monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
     monitor_frame.css('height', height);
   }
 }

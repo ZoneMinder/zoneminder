@@ -103,7 +103,6 @@ function selectLayout(new_layout_id) {
         }
       } // end if specific monitor style
     }
-
   } // end foreach monitor
   setCookie('zmMontageLayout', layout_id);
   if (layouts[layout_id].Name != 'Freeform') { // 'montage_freeform.css' ) {
@@ -126,7 +125,7 @@ function changeHeight() {
   setCookie('zmMontageHeight', height);
   for (var i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
-    let monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
+    const monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
     monitor_frame.css('height', height);
   }
 }

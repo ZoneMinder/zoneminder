@@ -205,7 +205,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $values = array();
   $likes = array();
-  // Error($filter->sql());
+  ZM\Error($filter->sql());
   $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
   $has_post_sql_conditions = count($filter->post_sql_conditions());
 

@@ -139,6 +139,46 @@ Event::Event(
     id = zmDbDoInsert(sql);
   } while (!id and !zm_terminate);
 
+  const AVCodec* mJpegCodec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
+  if (!mJpegCodec) {
+    Error("MJPEG codec not found");
+    return;
+  }
+
+  mJpegCodecContext = avcodec_alloc_context3(mJpegCodec);
+  if (!mJpegCodecContext) {
+    Error("Could not allocate jpeg codec context");
+    return;
+  }
+
+  mJpegCodecContext->bit_rate = 400000;
+  mJpegCodecContext->width = monitor->Width();
+  mJpegCodecContext->height = monitor->Height();
+  mJpegCodecContext->time_base= (AVRational) {1,25};
+  mJpegCodecContext->pix_fmt = AV_PIX_FMT_YUVJ420P;
+
+  if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
+    Error("Could not open mjpeg codec");
+    return;
+  }
+
+  AVPixelFormat format;
+  switch (monitor->Colours()) {
+    case ZM_COLOUR_RGB24:
+      format = (monitor->SubpixelOrder() == ZM_SUBPIX_ORDER_BGR ? AV_PIX_FMT_BGR24 : AV_PIX_FMT_RGB24);
+      break;
+    case ZM_COLOUR_GRAY8:
+      format = AV_PIX_FMT_GRAY8;
+      break;
+    default:
+      format = AV_PIX_FMT_RGBA;
+      break;
+  };
+  mJpegSwsContext = sws_getContext(
+                      mJpegCodecContext->width, mJpegCodecContext->height, format,
+                      mJpegCodecContext->width, mJpegCodecContext->height, AV_PIX_FMT_YUV420P,
+                      SWS_BICUBIC, nullptr, nullptr, nullptr);
+
   thread_ = std::thread(&Event::Run, this);
 }
 
@@ -212,6 +252,16 @@ Event::~Event() {
         id);
     zmDbDoUpdate(sql);
   }  // end if no changed rows due to Name change during recording
+
+  if (mJpegCodecContext) {
+    avcodec_close(mJpegCodecContext);
+    avcodec_free_context(&mJpegCodecContext);
+    mJpegCodecContext = nullptr;
+  }
+
+  if (mJpegSwsContext) {
+    sws_freeContext(mJpegSwsContext);
+  }
 }  // Event::~Event()
 
 void Event::createNotes(std::string &notes) {
@@ -233,23 +283,17 @@ void Event::addNote(const char *cause, const std::string &note) {
 }
 
 bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame) const {
-  int thisquality =
-    (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
-    config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
-
   bool rc;
-
-  SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
 
   if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write
     Image *ts_image = new Image(*image);
     monitor->TimestampImage(ts_image, timestamp);
-    rc = ts_image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
+    rc = ts_image->WriteJpeg(event_file, mJpegCodecContext, mJpegSwsContext);
     delete ts_image;
   } else {
-    rc = image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
+    rc = image->WriteJpeg(event_file, mJpegCodecContext, mJpegSwsContext);
   }
 
   return rc;

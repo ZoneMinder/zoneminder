@@ -92,6 +92,9 @@ class Event {
   std::string alarm_file;
   VideoStore *videoStore;
 
+  AVCodecContext      *mJpegCodecContext;
+  SwsContext          *mJpegSwsContext;
+
   std::string container;
   std::string codec;
   std::string video_file;

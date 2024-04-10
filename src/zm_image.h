@@ -207,7 +207,7 @@ class Image {
     const size_t buffer_size,
     const int p_buffertype);
 
-  int PopulateFrame(AVFrame *frame);
+  int PopulateFrame(AVFrame *frame) const;
 
   inline void CopyBuffer(const Image &image) {
     Assign(image);
@@ -235,6 +235,9 @@ class Image {
                  const int &quality_override,
                  SystemTimePoint timestamp,
                  bool on_blocking_abort) const;
+  bool WriteJpeg(const std::string &filename,
+                 AVCodecContext *p_jpegcodeccontext,
+                 SwsContext *p_jpegswscontext) const;
 
   bool DecodeJpeg(const JOCTET *inbuffer, int inbuffer_size, unsigned int p_colours, unsigned int p_subpixelorder);
   bool EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_override=0) const;

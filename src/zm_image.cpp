@@ -258,7 +258,7 @@ Image::Image(const AVFrame *frame, int p_width, int p_height) :
 static void dont_free(void *opaque, uint8_t *data) {
 }
 
-int Image::PopulateFrame(AVFrame *frame) {
+int Image::PopulateFrame(AVFrame *frame) const {
   Debug(1, "PopulateFrame: width %d height %d linesize %d colours %d imagesize %d %s",
         width, height, linesize, colours, size,
         av_get_pix_fmt_name(imagePixFormat)
@@ -1310,6 +1310,77 @@ bool Image::WriteJpeg(const std::string &filename,
     }
   }
   jpeg_finish_compress(cinfo);
+
+  fl.l_type = F_UNLCK;  /* set to unlock same region */
+  if (fcntl(raw_fd, F_SETLK, &fl) == -1) {
+    Error("Failed to unlock %s", filename.c_str());
+  }
+
+  fclose(outfile);
+
+  return true;
+}
+
+bool Image::WriteJpeg(const std::string &filename,
+                      AVCodecContext *p_jpegcodeccontext,
+                      SwsContext *p_jpegswscontext) const {
+
+  if (config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8)) {
+    Image temp_image(*this);
+    temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    return temp_image.WriteJpeg(filename, p_jpegcodeccontext, p_jpegswscontext);
+  }
+
+  if (p_jpegcodeccontext == NULL) {
+    Error("Jpeg codec context is not initialized");
+    return false;
+  }
+
+  FILE *outfile = nullptr;
+  int raw_fd = 0;
+  av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
+  AVPacket *pkt;
+
+  raw_fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+  if (raw_fd < 0)
+    return false;
+  outfile = fdopen(raw_fd, "wb");
+  if (outfile == nullptr) {
+    close(raw_fd);
+    return false;
+  }
+
+  struct flock fl = { F_WRLCK, SEEK_SET, 0,       0,     0 };
+  if (fcntl(raw_fd, F_SETLKW, &fl) == -1) {
+    Error("Couldn't get lock on %s, continuing", filename.c_str());
+  }
+
+  if ( p_jpegswscontext ) {
+    av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
+    PopulateFrame(temp_frame.get());
+
+    frame.get()->width  = width;
+    frame.get()->height = height;
+    frame.get()->format = AV_PIX_FMT_YUV420P;
+    av_image_fill_linesizes(frame.get()->linesize, AV_PIX_FMT_YUV420P, width);
+    av_frame_get_buffer(frame.get(), 32);
+
+    sws_scale(p_jpegswscontext, temp_frame.get()->data, temp_frame.get()->linesize, 0, height, frame.get()->data, frame.get()->linesize);
+
+    av_frame_unref(temp_frame.get());
+  } else {
+    PopulateFrame(frame.get());
+  }
+
+  pkt = av_packet_alloc();
+
+  avcodec_send_frame(p_jpegcodeccontext, frame.get());
+  if (avcodec_receive_packet(p_jpegcodeccontext, pkt) == 0) {
+    fwrite(pkt->data, 1, pkt->size, outfile);
+    av_packet_free(&pkt);
+  }
+
+  av_frame_unref(frame.get());
 
   fl.l_type = F_UNLCK;  /* set to unlock same region */
   if (fcntl(raw_fd, F_SETLK, &fl) == -1) {

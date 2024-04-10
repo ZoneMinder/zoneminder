@@ -238,7 +238,7 @@ if(NOT ZM_JWT_BACKEND IN_LIST ZM_JWT_BACKEND_OPTIONS)
 endif()
 
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
-  set(ZM_RUNDIR "/var/run/zoneminder")
+  set(ZM_RUNDIR "/run/zoneminder")
   set(ZM_SOCKDIR "/var/lib/zoneminder/sock")
   set(ZM_TMPDIR "/var/lib/zoneminder/temp")
   set(ZM_LOGDIR "/var/log/zoneminder")

@@ -118,12 +118,12 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
 <?php
 } else if ($tab == 'control') {
   if (canView('Control')) {
-    $redirect = '?view=controlcaps';
+    include('_options_controlcaps.php');
   } else {
     $redirect = '?view=error';
+    // Have to do this 
+    header('Location: '.$redirect);
   }
-  // Have to do this 
-  header('Location: '.$redirect);
 } else if ($tab == 'privacy') {
   if (canView('System')) {
     $redirect = '?view=privacy';

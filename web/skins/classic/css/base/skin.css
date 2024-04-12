@@ -615,6 +615,10 @@ body.sticky #page {
     margin-bottom: 4px;
 }
 
+#contentButtons a.btn, #contentButtons button.btn {
+    margin-bottom: 0;
+}
+
 #footer {
     width: 96%;
     margin: 8px auto;

@@ -15,6 +15,7 @@
   flex-wrap: wrap;
   justify-content: center;
   align-content: baseline;
+  position: relative;
 }
 #monitors:after {
   content: ".";
@@ -32,14 +33,27 @@
   padding: 0;
   border-radius: 0;
   position: relative;
+  height: max-content;
 }
 
-#monitors.modeEditingMonitor .monitor {
-  border: solid red;
+#monitors .imageFeed img ,
+#monitors .imageFeed svg {
+  display: inline-block;
+}
+
+#monitors.modeEditingMonitor .monitor img{
+  border-right: solid red;
+}
+
+/* Vertical stretch doesn't work right now */
+#monitors.modeEditingMonitor .monitor .ui-resizable-s, #monitors.modeEditingMonitor .monitor .ui-resizable-se {
+  position: absolute;
+  left: -10000px;
 }
 
 .monitorStream {
   position: relative;
+  overflow: auto;
 }
 
 #monitors .monitorStatus {
@@ -49,6 +63,7 @@
   padding: 0;
   min-height: 16px;
 }
+
 #monitors .alert .monitorStatus {
   border: 0;
 }
@@ -56,18 +71,22 @@
 .zones polygon {
   fill-opacity: 0.25;
 }
+
 .Active {
   stroke: #ff0000;
   fill: #ff0000;
 }
+
 .Inclusive {
   stroke: #FFA500;
   fill: #FFA500;
 }
+
 .Exclusive {
   stroke: #800080;
   fill: #800080;
 }
+
 .Preclusive {
   stroke: #0000FF;
   fill: #0000FF;

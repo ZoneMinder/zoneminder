@@ -147,6 +147,10 @@ a:hover {
     border-radius:4px;
 }
 
+a:not([href]):hover {
+    color: #212529;
+}
+
 label {
     margin: 0 4px;
 }

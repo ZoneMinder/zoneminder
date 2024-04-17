@@ -157,7 +157,8 @@ button.btn {
   font-size: 18px;
   margin-bottom: 3px;
 }
-#toolbar .btn-normal {
+#toolbar .btn-normal,
+#toolbar .btn-danger {
   margin-right: 3px;
 }
 #rightButtons .btn-normal,

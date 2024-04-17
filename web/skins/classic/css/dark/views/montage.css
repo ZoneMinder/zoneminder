@@ -1,8 +1,6 @@
-
 #monitors .imageFeed img ,
 #monitors .imageFeed svg {
     border: 2px solid #999999;
-    display: block;
 }
 
 #monitors .imageFeed img.idle {
@@ -21,16 +19,18 @@
   stroke: #ff0000;
   fill: #ff0000;
 }
+
 .Inclusive {
   stroke: #FFA500;
   fill: #FFA500;
 }
+
 .Exclusive {
   stroke: #800080;
   fill: #800080;
 }
+
 .Preclusive {
   stroke: #0000FF;
   fill: #0000FF;
 }
-

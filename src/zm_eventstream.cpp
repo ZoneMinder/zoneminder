@@ -870,14 +870,19 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       }
 
       Image *send_image = prepareImage(image);
-      reserveTempImgBuffer(send_image->Size());
+      int l_width  = floor(send_image->Width()  * scale / ZM_SCALE_BASE);
+      int l_height = floor(send_image->Height() * scale / ZM_SCALE_BASE);
+      reserveTempImgBuffer(av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, l_width, l_height, 32));
       int img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
       fprintf(stdout, "--" BOUNDARY "\r\n");
       switch ( type ) {
       case STREAM_JPEG :
-        send_image->EncodeJpeg(img_buffer, &img_buffer_size);
+        if (mJpegCodecContext->width != l_width || mJpegCodecContext->height != l_height) {
+          initContexts(l_width, l_height);
+        }
+        send_image->EncodeJpeg(img_buffer, &img_buffer_size, mJpegCodecContext, mJpegSwsContext);
         fputs("Content-Type: image/jpeg\r\n", stdout);
         break;
       case STREAM_ZIP :

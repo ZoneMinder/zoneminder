@@ -1600,6 +1600,59 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, int quality_overr
   return true;
 }
 
+bool Image::EncodeJpeg(JOCTET *outbuffer, int *outbuffer_size, AVCodecContext *p_jpegcodeccontext, SwsContext *p_jpegswscontext) const {
+  if ( config.colour_jpeg_files && (colours == ZM_COLOUR_GRAY8) ) {
+    Image temp_image(*this);
+    temp_image.Colourise(ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    return temp_image.EncodeJpeg(outbuffer, outbuffer_size, p_jpegcodeccontext, p_jpegswscontext);
+  }
+
+  if (p_jpegcodeccontext == NULL) {
+    Error("Jpeg codec context is not initialized");
+    return false;
+  }
+
+  std::unique_lock<std::mutex> lck(jpeg_mutex);
+
+  av_frame_ptr frame = av_frame_ptr{zm_av_frame_alloc()};
+  AVPacket *pkt;
+
+  if (av_image_get_buffer_size(AV_PIX_FMT_YUVJ420P, width, height, 32) > static_cast<int>(Size())) {
+    Error("Output buffer not large enough");
+    return false;
+  }
+
+  if ( p_jpegswscontext ) {
+    av_frame_ptr temp_frame = av_frame_ptr{zm_av_frame_alloc()};
+    PopulateFrame(temp_frame.get());
+
+    frame.get()->width  = width;
+    frame.get()->height = height;
+    frame.get()->format = AV_PIX_FMT_YUV420P;
+    av_image_fill_linesizes(frame.get()->linesize, AV_PIX_FMT_YUV420P, width);
+    av_frame_get_buffer(frame.get(), 32);
+
+    sws_scale(p_jpegswscontext, temp_frame.get()->data, temp_frame.get()->linesize, 0, height, frame.get()->data, frame.get()->linesize);
+
+    av_frame_unref(temp_frame.get());
+  } else {
+    PopulateFrame(frame.get());
+  }
+
+  pkt = av_packet_alloc();
+
+  avcodec_send_frame(p_jpegcodeccontext, frame.get());
+  if (avcodec_receive_packet(p_jpegcodeccontext, pkt) == 0) {
+    memcpy(outbuffer, pkt->data, pkt->size);
+    *outbuffer_size = pkt->size;
+  }
+
+  av_packet_free(&pkt);
+  av_frame_unref(frame.get());
+
+  return true;
+}
+
 #if HAVE_ZLIB_H
 bool Image::Unzip( const Bytef *inbuffer, unsigned long inbuffer_size ) {
   unsigned long zip_size = size;

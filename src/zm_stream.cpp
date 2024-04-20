@@ -36,6 +36,61 @@ StreamBase::~StreamBase() {
   delete vid_stream;
   delete[] temp_img_buffer;
   closeComms();
+
+  if (mJpegCodecContext) {
+    avcodec_free_context(&mJpegCodecContext);
+  }
+
+  if (mJpegSwsContext) {
+    sws_freeContext(mJpegSwsContext);
+  }
+}
+
+bool StreamBase::initContexts(int p_width, int p_height) {
+  if (mJpegCodecContext) avcodec_free_context(&mJpegCodecContext);
+  if (mJpegSwsContext) sws_freeContext(mJpegSwsContext);
+
+  const AVCodec* mJpegCodec = avcodec_find_encoder(AV_CODEC_ID_MJPEG);
+  if (!mJpegCodec) {
+    Error("MJPEG codec not found");
+    return false;
+  }
+
+  mJpegCodecContext = avcodec_alloc_context3(mJpegCodec);
+  if (!mJpegCodecContext) {
+    Error("Could not allocate jpeg codec context");
+    return false;
+  }
+
+  mJpegCodecContext->bit_rate = 400000;
+  mJpegCodecContext->width = p_width;
+  mJpegCodecContext->height = p_height;
+  mJpegCodecContext->time_base= (AVRational) {1,25};
+  mJpegCodecContext->pix_fmt = AV_PIX_FMT_YUVJ420P;
+
+  if (avcodec_open2(mJpegCodecContext, mJpegCodec, NULL) < 0) {
+    Error("Could not open mjpeg codec");
+    return false;
+  }
+
+  AVPixelFormat format;
+  switch (monitor->Colours()) {
+    case ZM_COLOUR_RGB24:
+      format = (monitor->SubpixelOrder() == ZM_SUBPIX_ORDER_BGR ? AV_PIX_FMT_BGR24 : AV_PIX_FMT_RGB24);
+      break;
+    case ZM_COLOUR_GRAY8:
+      format = AV_PIX_FMT_GRAY8;
+      break;
+    default:
+      format = AV_PIX_FMT_RGBA;
+      break;
+  };
+  mJpegSwsContext = sws_getContext(
+                      monitor->Width(), monitor->Height(), format,
+                      p_width, p_height, AV_PIX_FMT_YUV420P,
+                      SWS_BICUBIC, nullptr, nullptr, nullptr);
+
+  return true;
 }
 
 bool StreamBase::loadMonitor(int p_monitor_id) {
@@ -64,7 +119,9 @@ bool StreamBase::loadMonitor(int p_monitor_id) {
     return false;
   }
 
-  return true;
+  mJpegCodecContext = nullptr;
+  mJpegSwsContext = nullptr;
+  return initContexts(monitor->Width(), monitor->Height());
 }
 
 bool StreamBase::checkInitialised() {
@@ -150,9 +207,7 @@ Image *StreamBase::prepareImage(Image *image) {
 
   if (zoom != 100) {
     int base_image_width = image->Width(),
-        base_image_height = image->Height(),
-        disp_image_width = image->Width() * scale/ZM_SCALE_BASE,
-        disp_image_height = image->Height() * scale / ZM_SCALE_BASE;
+        base_image_height = image->Height();
     /* x and y are scaled by web UI to base dimensions units.
      * When zooming, we blow up the image by the amount 150 for first zoom, right? 150%, then cut out a base sized chunk
      * However if we have zoomed before, then we are zooming into the previous cutout
@@ -229,14 +284,6 @@ Image *StreamBase::prepareImage(Image *image) {
       image_copied = true;
     }
     image->Crop(last_crop);
-    image->Scale(disp_image_width, disp_image_height);
-  } else if (scale != ZM_SCALE_BASE) {
-    Debug(3, "scaling by %d from %dx%d", scale, image->Width(), image->Height());
-    static Image copy_image;
-    copy_image.Assign(*image);
-    image = &copy_image;
-    image_copied = true;
-    image->Scale(scale);
   }
   Debug(3, "Sending %dx%d", image->Width(), image->Height());
 

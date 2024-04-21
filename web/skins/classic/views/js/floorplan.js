@@ -92,7 +92,8 @@ fpmap.on('draw:created', function (e) {
         // set monitorId label as tooltip to marker
 //        var wlink = 'http://10.0.3.220/zm/index.php?view=watch&mid='+layer.mid;
 //        layer.bindPopup(layer.mid+' '+'<a href="'+wlink+'" target="_blank">open</a>');
-        layer.bindPopup(layer.mId+' '+'<a href="'+monurl(layer.mId)+'" target="_blank">open</a>', {permanent:true, direction:'top'});
+//        layer.bindPopup(layer.mId+' '+'<a href="'+monurl(layer.mId)+'" target="_blank">open</a>', {permanent:true, direction:'top'});
+        layer.bindPopup(props.mId+' '+'<a href="'+monurl(props.mId)+'" target="_blank">open</a>', {permanent:true, direction:'top'});
 
 
 /*        layer.bindTooltip(layer.mid, {permanent:true, direction:'top'})

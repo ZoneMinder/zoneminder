@@ -1,0 +1,2485 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet Draw Documentation</title>
+    <meta charset="utf-8">
+
+    <link rel="stylesheet" href="./css/normalize.css"/>
+    <link rel="stylesheet" href="./css/main.css"/>
+    <script src="./highlight/highlight.pack.js"></script>
+    <link rel="stylesheet" href="./highlight/styles/github-gist.css"/>
+
+    <script src="./examples/libs/leaflet-src.js"></script>
+    <link rel="stylesheet" href="./examples/libs/leaflet.css"/>
+
+    <script src="../src/leaflet.draw.js"></script>
+    <link rel="stylesheet" href="../src/leaflet.draw.css"/>
+</head>
+<body class='api-page'>
+<div class='container'>
+
+    <h2>Leaflet Draw API reference</h2>
+    <div id="toc" class="clearfix">
+        <div class="toc-col map-col">
+            <h4>Draw</h4>
+            <ul>
+                <li><a href="#l-draw">Usage example</a></li>
+                <li><a href="#l-drawlocal">Local Options</a></li>
+                <li><a href="#options">Options</a></li>
+                <li><a href="#l-draw-event">Events</a></li>
+            </ul>
+        </div>
+        <div class="toc-col">
+            <h4>Controls</h4>
+            <ul>
+                <li><a href="#l-draw-toolbar">Draw.Toolbar</a></li>
+            </ul>
+            <h4>Examples</h4>
+            <ul>
+                <li><a href="#leaflet-1-0-examples">Leaflet 1.0.x</a></li>
+                <li><a href="#leaflet-0-7-examples">Leaflet 0.7.x</a></li>
+            </ul>
+        </div>
+        <div class="toc-col">
+            <h4>Draw Handlers</h4>
+            <ul>
+                <li><a href="#l-draw-feature">Draw.Feature</a></li>
+                <li><a href="#l-draw-simpleshape">Draw.SimpleShape</a></li>
+                <li><a href="#l-draw-marker">Draw.Marker</a></li>
+                <li><a href="#l-draw-circle">Draw.Circle</a></li>
+                <li><a href="#l-draw-polyline">Draw.Polyline</a></li>
+                <li><a href="#l-draw-rectangle">Draw.Rectangle</a></li>
+                <li><a href="#l-draw-polygon">Draw.Polygon</a></li>
+            </ul>
+        </div>
+        <div class="toc-col">
+            <h4>Edit Handler</h4>
+            <ul>
+                <li><a href="#l-edit-simpleshape">Edit.SimpleShape</a></li>
+                <li><a href="#l-edit-marker">Edit.Marker</a></li>
+                <li><a href="#l-edit-circle">Edit.Circle</a></li>
+                <li><a href="#l-edit-poly">Edit.Poly</a></li>
+                <li><a href="#l-edit-rectangle">Edit.Rectangle</a></li>
+                <li><a href="#l-edittoolbar-edit">EditToolbar.Edit</a></li>
+                <li><a href="#l-edittoolbar-delete">EditToolbar.Delete</a></li>
+            </ul>
+        </div>
+        <div class="toc-col last-col">
+            <h4>Utility</h4>
+            <ul>
+                <li><a href="#l-geometryutil">GeometryUtil</a></li>
+                <li><a href="#l-latlngutil">LatLngUtil</a></li>
+                <li><a href="#l-lineutil">LineUtil</a></li>
+                <li><a href="#l-polygon">Polygon</a></li>
+                <li><a href="#l-polyline">Polyline</a></li>
+                <li><a href="#l-map-touchextend">TouchExtend</a></li>
+            </ul>
+        </div>
+    </div>
+    <div>
+        <p> This documentation is has been transcribed from the original README.MD to jsdoc's or natural docs style for
+            use with <a href="https://github.com/Leaflet/Leafdoc">Leafdoc</a>. If you identify a typo or have a
+            suggestion for this documentation, please feel free toedit the js comment blocks in the src directory,
+            build with 'jake docs' and submit a pull request.</p>
+
+        <a anchor="leaflet-1-0-examples"></a>
+        <h2 id="leaflet-1-0-examples">Leaflet 1.0+ Examples</h2>
+        <ul>
+            <li><a href="./examples/full.html">Full Demo</a></li>
+            <li><a href="./examples/popup.html">Popup</a></li>
+            <li><a href="./examples/snapping.html">Snapping</a></li>
+            <li><a href="./examples/edithandlers.html">Edit Handlers</a></li>
+        </ul>
+        <a anchor="leaflet-0-7-examples"></a>
+        <h2 id="leaflet-0-7-examples">Leaflet 0.7+ Examples</h2>
+        <ul>
+            </li>
+            <li><a href="./examples-0.7.x/full.html">Full Demo</a></li>
+            <li><a href="./examples-0.7.x/popup.html">Popup</a></li>
+            <li><a href="./examples-0.7.x/snapping.html">Snapping</a></li>
+            <li><a href="./examples-0.7.x/edithandlers.html">Edit Handlers</a></li>
+        </ul>
+    </div>
+
+    <h2 id='l-draw'>L.Draw</h2><p>To add the draw toolbar set the option drawControl: true in the map options.</p>
+
+<section>
+<h3 id='l-draw-example'>Usage example</h3>
+
+<section >
+
+
+
+
+
+<pre><code class="lang-js">     var map = L.map(&#39;map&#39;, {drawControl: true}).setView([51.505, -0.09], 13);
+     L.tileLayer(&#39;http://{s}.tile.osm.org/{z}/{x}/{y}.png&#39;, {
+         attribution: &#39;&amp;copy; &lt;a href=&quot;http://osm.org/copyright&quot;&gt;OpenStreetMap&lt;/a&gt; contributors&#39;
+     }).addTo(map);
+</code></pre>
+<h3 id="adding-the-edit-toolbar">Adding the edit toolbar</h3>
+<p>To use the edit toolbar you must initialise the Leaflet.draw control and manually add it to the map.</p>
+<pre><code class="lang-js">     var map = L.map(&#39;map&#39;).setView([51.505, -0.09], 13);
+     L.tileLayer(&#39;http://{s}.tile.osm.org/{z}/{x}/{y}.png&#39;, {
+         attribution: &#39;&amp;copy; &lt;a href=&quot;http://osm.org/copyright&quot;&gt;OpenStreetMap&lt;/a&gt; contributors&#39;
+     }).addTo(map);
+     // FeatureGroup is to store editable layers
+     var drawnItems = new L.FeatureGroup();
+     map.addLayer(drawnItems);
+     var drawControl = new L.Control.Draw({
+         edit: {
+             featureGroup: drawnItems
+         }
+     });
+     map.addControl(drawControl);
+</code></pre>
+<p>The key here is the featureGroup option. This tells the plugin which FeatureGroup contains the layers that
+should be editable. The featureGroup can contain 0 or more features with geometry types Point, LineString, and Polygon.
+Leaflet.draw does not work with multigeometry features such as MultiPoint, MultiLineString, MultiPolygon,
+or GeometryCollection. If you need to add multigeometry features to the draw plugin, convert them to a
+FeatureCollection of non-multigeometries (Points, LineStrings, or Polygons).</p>
+
+
+
+</section>
+
+
+</section><h2 id='l-drawlocal'>L.drawLocal</h2><p>The core toolbar class of the API — it is used to create the toolbar ui</p>
+
+<section>
+<h3 id='l-drawlocal-example'>Usage example</h3>
+
+<section >
+
+
+
+
+
+<pre><code class="lang-js">     var modifiedDraw = L.drawLocal.extend({
+         draw: {
+             toolbar: {
+                 buttons: {
+                     polygon: &#39;Draw an awesome polygon&#39;
+                 }
+             }
+         }
+     });
+</code></pre>
+<p>The default state for the control is the draw toolbar just below the zoom control.
+ This will allow map users to draw vectors and markers.
+ <strong>Please note the edit toolbar is not enabled by default.</strong></p>
+
+
+
+</section>
+
+
+</section><h2 id='l-draw-toolbar'>L.Draw.Toolbar</h2><p>The toolbar class of the API — it is used to create the ui
+This will be depreciated</p>
+
+<section>
+<h3 id='l-draw-toolbar-example'>Usage example</h3>
+
+<section >
+
+
+
+
+
+<pre><code class="lang-js">   var toolbar = L.Toolbar();
+   toolbar.addToolbar(map);
+</code></pre>
+<h3 id="disabling-a-toolbar">Disabling a toolbar</h3>
+<p>If you do not want a particular toolbar in your app you can turn it off by setting the toolbar to false.</p>
+<pre><code class="lang-js">     var drawControl = new L.Control.Draw({
+         draw: false,
+         edit: {
+             featureGroup: editableLayers
+         }
+     });
+</code></pre>
+<h3 id="disabling-a-toolbar-item">Disabling a toolbar item</h3>
+<p>If you want to turn off a particular toolbar item, set it to false. The following disables drawing polygons and
+markers. It also turns off the ability to edit layers.</p>
+<pre><code class="lang-js">     var drawControl = new L.Control.Draw({
+         draw: {
+             polygon: false,
+             marker: false
+         },
+         edit: {
+             featureGroup: editableLayers,
+             edit: false
+         }
+     });
+</code></pre>
+
+
+
+</section>
+
+
+</section><section>
+<h3 id='l-draw-toolbar-method'>Methods</h3>
+
+<section class='collapsable'>
+
+<h4 id='l-draw-toolbar-methods-for-modifying-the-toolbar'>Methods for modifying the toolbar</h4>
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-toolbar-initialize'>
+		<td><code><b>initialize</b>(<i>options</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Toolbar constructor</p>
+</td>
+	</tr>
+	<tr id='l-draw-toolbar-enabled'>
+		<td><code><b>enabled</b>()</nobr></code></td>
+		<td><code>boolean</code></td>
+		<td><p>Gets a true/false of whether the toolbar is enabled</p>
+</td>
+	</tr>
+	<tr id='l-draw-toolbar-disable'>
+		<td><code><b>disable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Disables the toolbar</p>
+</td>
+	</tr>
+	<tr id='l-draw-toolbar-addtoolbar'>
+		<td><code><b>addToolbar</b>(<i>map</i>)</nobr></code></td>
+		<td><code>L.DomUtil</code></td>
+		<td><p>Adds the toolbar to the map and returns the toolbar dom element</p>
+</td>
+	</tr>
+	<tr id='l-draw-toolbar-removetoolbar'>
+		<td><code><b>removeToolbar</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Removes the toolbar and drops the handler event listeners</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-draw-event'>L.Draw.Event</h2><p>Use <code>L.Draw.Event.EVENTNAME</code> constants to ensure events are correct.</p>
+
+<section>
+<h3 id='l-draw-event-example'>Usage example</h3>
+
+<section >
+
+
+
+
+
+<pre><code class="lang-js">map.on(L.Draw.Event.CREATED; function (e) {
+   var type = e.layerType;
+       layer = e.layer;
+   if (type === &#39;marker&#39;) {
+       // Do marker specific actions
+   }
+   // Do whatever else you need to. (save to db; add to map etc)
+   map.addLayer(layer);
+});
+</code></pre>
+<pre><code class="lang-js">     map.on(&#39;draw:edited&#39;; function (e) {
+         var layers = e.layers;
+         layers.eachLayer(function (layer) {
+             //do whatever you want; most likely save back to db
+         });
+     });
+</code></pre>
+
+
+
+</section>
+
+
+</section><section>
+<h3 id='l-draw-event-event'>Events</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Event</th>
+		<th>Data</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-event-draw:created'>
+		<td><code><b>draw:created</b>
+		<td><code>PolyLine</code></td>
+		<td>Polygon; Rectangle; Circle; Marker | String
+Layer that was just created.
+The type of layer this is. One of: <code>polyline</code>; <code>polygon</code>; <code>rectangle</code>; <code>circle</code>; <code>marker</code>
+Triggered when a new vector or marker has been created.</td>
+	</tr>
+	<tr id='l-draw-event-draw:edited'>
+		<td><code><b>draw:edited</b>
+		<td><code>LayerGroup</code></td>
+		<td>List of all layers just edited on the map.
+Triggered when layers in the FeatureGroup; initialised with the plugin; have been edited and saved.</td>
+	</tr>
+	<tr id='l-draw-event-draw:deleted'>
+		<td><code><b>draw:deleted</b>
+		<td><code>LayerGroup</code></td>
+		<td>List of all layers just removed from the map.
+Triggered when layers have been removed (and saved) from the FeatureGroup.</td>
+	</tr>
+	<tr id='l-draw-event-draw:drawstart'>
+		<td><code><b>draw:drawstart</b>
+		<td><code>String</code></td>
+		<td>The type of layer this is. One of:<code>polyline</code>; <code>polygon</code>; <code>rectangle</code>; <code>circle</code>; <code>marker</code>
+Triggered when the user has chosen to draw a particular vector or marker.</td>
+	</tr>
+	<tr id='l-draw-event-draw:drawstop'>
+		<td><code><b>draw:drawstop</b>
+		<td><code>String</code></td>
+		<td>The type of layer this is. One of: <code>polyline</code>; <code>polygon</code>; <code>rectangle</code>; <code>circle</code>; <code>marker</code>
+Triggered when the user has finished a particular vector or marker.</td>
+	</tr>
+	<tr id='l-draw-event-draw:drawvertex'>
+		<td><code><b>draw:drawvertex</b>
+		<td><code>LayerGroup</code></td>
+		<td>List of all layers just being added from the map.
+Triggered when a vertex is created on a polyline or polygon.</td>
+	</tr>
+	<tr id='l-draw-event-draw:editstart'>
+		<td><code><b>draw:editstart</b>
+		<td><code>String</code></td>
+		<td>The type of edit this is. One of: <code>edit</code>
+Triggered when the user starts edit mode by clicking the edit tool button.</td>
+	</tr>
+	<tr id='l-draw-event-draw:editmove'>
+		<td><code><b>draw:editmove</b>
+		<td><code>ILayer</code></td>
+		<td>Layer that was just moved.
+Triggered as the user moves a rectangle; circle or marker.</td>
+	</tr>
+	<tr id='l-draw-event-draw:editresize'>
+		<td><code><b>draw:editresize</b>
+		<td><code>ILayer</code></td>
+		<td>Layer that was just moved.
+Triggered as the user resizes a rectangle or circle.</td>
+	</tr>
+	<tr id='l-draw-event-draw:editvertex'>
+		<td><code><b>draw:editvertex</b>
+		<td><code>LayerGroup</code></td>
+		<td>List of all layers just being edited from the map.
+Triggered when a vertex is edited on a polyline or polygon.</td>
+	</tr>
+	<tr id='l-draw-event-draw:editstop'>
+		<td><code><b>draw:editstop</b>
+		<td><code>String</code></td>
+		<td>The type of edit this is. One of: <code>edit</code>
+Triggered when the user has finshed editing (edit mode) and saves edits.</td>
+	</tr>
+	<tr id='l-draw-event-draw:deletestart'>
+		<td><code><b>draw:deletestart</b>
+		<td><code>String</code></td>
+		<td>The type of edit this is. One of: <code>remove</code>
+Triggered when the user starts remove mode by clicking the remove tool button.</td>
+	</tr>
+	<tr id='l-draw-event-draw:deletestop'>
+		<td><code><b>draw:deletestop</b>
+		<td><code>String</code></td>
+		<td>The type of edit this is. One of: <code>remove</code>
+Triggered when the user has finished removing shapes (remove mode) and saves.</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-draw-feature'>L.Draw.Feature</h2>
+<section>
+<h3 id='l-draw-feature-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-feature-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-draw-feature-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enables this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-feature-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add&#39;s event listeners to this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-feature-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Removes event listeners from this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-feature-setoptions'>
+		<td><code><b>setOptions</b>(<i>object</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets new options to this handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-draw-simpleshape'>L.Draw.SimpleShape</h2>
+<section>
+<h3 id='l-draw-simpleshape-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-simpleshape-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-draw-simpleshape-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler.</p>
+</td>
+	</tr>
+	<tr id='l-draw-simpleshape-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler.</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-feature'>L.Draw.Feature</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-simpleshape-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enables this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-simpleshape-setoptions'>
+		<td><code><b>setOptions</b>(<i>object</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets new options to this handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-draw-marker'>L.Draw.Marker</h2>
+<section>
+<h3 id='l-draw-marker-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-marker-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-draw-marker-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler.</p>
+</td>
+	</tr>
+	<tr id='l-draw-marker-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler.</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-feature'>L.Draw.Feature</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-marker-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enables this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-marker-setoptions'>
+		<td><code><b>setOptions</b>(<i>object</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets new options to this handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-draw-circlemarker'>L.Draw.CircleMarker</h2>
+<section>
+<h3 id='l-draw-circlemarker-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-circlemarker-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-marker'>L.Draw.Marker</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-circlemarker-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler.</p>
+</td>
+	</tr>
+	<tr id='l-draw-circlemarker-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler.</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-feature'>L.Draw.Feature</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-circlemarker-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enables this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-circlemarker-setoptions'>
+		<td><code><b>setOptions</b>(<i>object</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets new options to this handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-draw-circle'>L.Draw.Circle</h2>
+<section>
+<h3 id='l-draw-circle-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-circle-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-simpleshape'>L.Draw.SimpleShape</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-circle-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler.</p>
+</td>
+	</tr>
+	<tr id='l-draw-circle-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler.</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-feature'>L.Draw.Feature</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-circle-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enables this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-circle-setoptions'>
+		<td><code><b>setOptions</b>(<i>object</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets new options to this handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-draw-polyline'>L.Draw.Polyline</h2>
+<section>
+<h3 id='l-draw-polyline-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-polyline-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-draw-polyline-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-polyline-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler.</p>
+</td>
+	</tr>
+	<tr id='l-draw-polyline-deletelastvertex'>
+		<td><code><b>deleteLastVertex</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove the last vertex from the polyline, removes polyline from map if only one point exists.</p>
+</td>
+	</tr>
+	<tr id='l-draw-polyline-addvertex'>
+		<td><code><b>addVertex</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add a vertex to the end of the polyline</p>
+</td>
+	</tr>
+	<tr id='l-draw-polyline-completeshape'>
+		<td><code><b>completeShape</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Closes the polyline between the first and last points</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-feature'>L.Draw.Feature</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-polyline-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enables this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-polyline-setoptions'>
+		<td><code><b>setOptions</b>(<i>object</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets new options to this handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-draw-rectangle'>L.Draw.Rectangle</h2>
+<section>
+<h3 id='l-draw-rectangle-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-rectangle-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-simpleshape'>L.Draw.SimpleShape</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-rectangle-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler.</p>
+</td>
+	</tr>
+	<tr id='l-draw-rectangle-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler.</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-feature'>L.Draw.Feature</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-rectangle-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enables this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-rectangle-setoptions'>
+		<td><code><b>setOptions</b>(<i>object</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets new options to this handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-draw-polygon'>L.Draw.Polygon</h2>
+<section>
+<h3 id='l-draw-polygon-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-polygon-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-polyline'>L.Draw.Polyline</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-polygon-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-polygon-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler.</p>
+</td>
+	</tr>
+	<tr id='l-draw-polygon-deletelastvertex'>
+		<td><code><b>deleteLastVertex</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove the last vertex from the polyline, removes polyline from map if only one point exists.</p>
+</td>
+	</tr>
+	<tr id='l-draw-polygon-addvertex'>
+		<td><code><b>addVertex</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add a vertex to the end of the polyline</p>
+</td>
+	</tr>
+	<tr id='l-draw-polygon-completeshape'>
+		<td><code><b>completeShape</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Closes the polyline between the first and last points</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-draw-feature'>L.Draw.Feature</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-polygon-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enables this handler</p>
+</td>
+	</tr>
+	<tr id='l-draw-polygon-setoptions'>
+		<td><code><b>setOptions</b>(<i>object</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets new options to this handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-edit-simpleshape'>L.Edit.SimpleShape</h2>
+<section>
+<h3 id='l-edit-simpleshape-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edit-simpleshape-intialize'>
+		<td><code><b>intialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edit-simpleshape-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-simpleshape-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-simpleshape-updatemarkers'>
+		<td><code><b>updateMarkers</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove the edit markers from this layer</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-edit-marker'>L.Edit.Marker</h2>
+<section>
+<h3 id='l-edit-marker-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edit-marker-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edit-marker-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-marker-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-edit-circlemarker'>L.Edit.CircleMarker</h2>
+<section>
+<h3 id=''>Methods</h3>
+
+
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-edit-simpleshape'>L.Edit.SimpleShape</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edit-circlemarker-intialize'>
+		<td><code><b>intialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edit-circlemarker-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-circlemarker-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-circlemarker-updatemarkers'>
+		<td><code><b>updateMarkers</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove the edit markers from this layer</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-edit-circle'>L.Edit.Circle</h2>
+<section>
+<h3 id=''>Methods</h3>
+
+
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-edit-simpleshape'>L.Edit.SimpleShape</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edit-circle-intialize'>
+		<td><code><b>intialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edit-circle-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-circle-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-circle-updatemarkers'>
+		<td><code><b>updateMarkers</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove the edit markers from this layer</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-edit-polyline'>L.Edit.Polyline</h2>
+<section>
+<h3 id='l-edit-polyline-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edit-polyline-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edit-polyline-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-polyline-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-polyline-updatemarkers'>
+		<td><code><b>updateMarkers</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Fire an update for each vertex handler</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-edit-rectangle'>L.Edit.Rectangle</h2>
+<section>
+<h3 id=''>Methods</h3>
+
+
+
+
+<div class='accordion'>
+	<label><span class='expander'>▶</span> Methods inherited from <a href='#l-edit-simpleshape'>L.Edit.SimpleShape</a></label>
+	<div class='accordion-overflow'>
+		<div class='accordion-content'><section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edit-rectangle-intialize'>
+		<td><code><b>intialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edit-rectangle-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-rectangle-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler</p>
+</td>
+	</tr>
+	<tr id='l-edit-rectangle-updatemarkers'>
+		<td><code><b>updateMarkers</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove the edit markers from this layer</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section></div>
+	</div>
+</div>
+
+</section><h2 id='l-edittoolbar-edit'>L.EditToolbar.Edit</h2>
+<section>
+<h3 id='l-edittoolbar-edit-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edittoolbar-edit-intialize'>
+		<td><code><b>intialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edittoolbar-edit-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enable the edit toolbar</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-edit-disable'>
+		<td><code><b>disable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Disable the edit toolbar</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-edit-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks for this handler</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-edit-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks for this handler</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-edit-revertlayers'>
+		<td><code><b>revertLayers</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Revert each layer&#39;s geometry changes</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-edit-save'>
+		<td><code><b>save</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Save the layer geometries</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-edittoolbar-delete'>L.EditToolbar.Delete</h2>
+<section>
+<h3 id='l-edittoolbar-delete-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edittoolbar-delete-intialize'>
+		<td><code><b>intialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edittoolbar-delete-enable'>
+		<td><code><b>enable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Enable the delete toolbar</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-delete-disable'>
+		<td><code><b>disable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Disable the delete toolbar</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-delete-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-delete-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-delete-revertlayers'>
+		<td><code><b>revertLayers</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Revert the deleted layers back to their prior state.</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-delete-save'>
+		<td><code><b>save</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Save deleted layers</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-delete-removealllayers'>
+		<td><code><b>removeAllLayers</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove all delateable layers</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-geometryutil'>L.GeometryUtil</h2>
+<section>
+<h3 id='l-geometryutil-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-geometryutil-geodesicarea'>
+		<td><code><b>geodesicArea</b>()</nobr></code></td>
+		<td><code>number</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-geometryutil-formattednumber'>
+		<td><code><b>formattedNumber</b>(<i>n</i>, <i>precision</i>)</nobr></code></td>
+		<td><code>string</code></td>
+		<td><p>Returns n in specified number format (if defined) and precision</p>
+</td>
+	</tr>
+	<tr id='l-geometryutil-readablearea'>
+		<td><code><b>readableArea</b>(<i>area</i>, <i>isMetric</i>)</nobr></code></td>
+		<td><code>string</code></td>
+		<td><p>Returns a readable area string in yards or metric</p>
+</td>
+	</tr>
+	<tr id='l-geometryutil-readabledistance'>
+		<td><code><b>readableDistance</b>(<i>distance</i>, <i>units</i>)</nobr></code></td>
+		<td><code>string</code></td>
+		<td><p>Converts a metric distance to one of [ feet, nauticalMile, metric or yards ] string</p>
+</td>
+	</tr>
+	<tr id='l-geometryutil-readabledistance'>
+		<td><code><b>readableDistance</b>(<i>distance</i>, <i>isMetric</i>, <i>useFeet</i>, <i>isNauticalMile</i>)</nobr></code></td>
+		<td><code>string</code></td>
+		<td><p>Converts metric distance to distance string.</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-latlngutil'>L.LatLngUtil</h2>
+<section>
+<h3 id='l-latlngutil-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-latlngutil-clonelatlngs'>
+		<td><code><b>cloneLatLngs</b>()</nobr></code></td>
+		<td><code>L.LatLngs[]</code></td>
+		<td><p>Clone the latLng point or points or nested points and return an array with those points</p>
+</td>
+	</tr>
+	<tr id='l-latlngutil-clonelatlng'>
+		<td><code><b>cloneLatLng</b>(<i>LatLng</i>)</nobr></code></td>
+		<td><code>L.LatLng</code></td>
+		<td><p>Clone the latLng and return a new LatLng object.</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-lineutil'>L.LineUtil</h2>
+<section>
+<h3 id='l-lineutil-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-lineutil-segmentsintersect'>
+		<td><code><b>segmentsIntersect</b>()</nobr></code></td>
+		<td><code>boolean</code></td>
+		<td><p>Checks to see if two line segments intersect. Does not handle degenerate cases.
+<a href="http://compgeom.cs.uiuc.edu/~jeffe/teaching/373/notes/x06-sweepline.pdf">http://compgeom.cs.uiuc.edu/~jeffe/teaching/373/notes/x06-sweepline.pdf</a></p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-polygon'>L.Polygon</h2>
+<section>
+<h3 id='l-polygon-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-polygon-intersects'>
+		<td><code><b>intersects</b>()</nobr></code></td>
+		<td><code>boolean</code></td>
+		<td><p>Checks a polygon for any intersecting line segments. Ignores holes.</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-polyline'>L.Polyline</h2>
+<section>
+<h3 id='l-polyline-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-polyline-intersects'>
+		<td><code><b>intersects</b>()</nobr></code></td>
+		<td><code>boolean</code></td>
+		<td><p>Check to see if this polyline has any linesegments that intersect.
+NOTE: does not support detecting intersection for degenerate cases.</p>
+</td>
+	</tr>
+	<tr id='l-polyline-newlatlngintersects'>
+		<td><code><b>newLatLngIntersects</b>()</nobr></code></td>
+		<td><code>boolean</code></td>
+		<td><p>Check for intersection if new latlng was added to this polyline.
+NOTE: does not support detecting intersection for degenerate cases.</p>
+</td>
+	</tr>
+	<tr id='l-polyline-newpointintersects'>
+		<td><code><b>newPointIntersects</b>()</nobr></code></td>
+		<td><code>boolean</code></td>
+		<td><p>Check for intersection if new point was added to this polyline.
+newPoint must be a layer point.
+NOTE: does not support detecting intersection for degenerate cases.</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-map-touchextend'>L.Map.TouchExtend</h2>
+<section>
+<h3 id='l-map-touchextend-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-map-touchextend-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets TouchExtend private accessor variables</p>
+</td>
+	</tr>
+	<tr id='l-map-touchextend-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Adds dom listener events to the map container</p>
+</td>
+	</tr>
+	<tr id='l-map-touchextend-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Removes dom listener events from the map container</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-control-draw'>L.Control.Draw</h2>
+<section>
+<h3 id='l-control-draw-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-control-draw-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Initializes draw control, toolbars from the options</p>
+</td>
+	</tr>
+	<tr id='l-control-draw-onadd'>
+		<td><code><b>onAdd</b>()</nobr></code></td>
+		<td><code>container</code></td>
+		<td><p>Adds the toolbar container to the map</p>
+</td>
+	</tr>
+	<tr id='l-control-draw-onremove'>
+		<td><code><b>onRemove</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Removes the toolbars from the map toolbar container</p>
+</td>
+	</tr>
+	<tr id='l-control-draw-setdrawingoptions'>
+		<td><code><b>setDrawingOptions</b>(<i>options</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets options to all toolbar instances</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-draw-tooltip'>L.Draw.Tooltip</h2><p>The tooltip class — it is used to display the tooltip while drawing
+This will be depreciated</p>
+
+<section>
+<h3 id='l-draw-tooltip-example'>Usage example</h3>
+
+<section >
+
+
+
+
+
+<pre><code class="lang-js">   var tooltip = L.Draw.Tooltip();
+</code></pre>
+
+
+
+</section>
+
+
+</section><section>
+<h3 id='l-draw-tooltip-method'>Methods</h3>
+
+<section class='collapsable'>
+
+<h4 id='l-draw-tooltip-methods-for-modifying-draw-state'>Methods for modifying draw state</h4>
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-draw-tooltip-initialize'>
+		<td><code><b>initialize</b>(<i>map</i>)</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Tooltip constructor</p>
+</td>
+	</tr>
+	<tr id='l-draw-tooltip-dispose'>
+		<td><code><b>dispose</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove Tooltip DOM and unbind events</p>
+</td>
+	</tr>
+	<tr id='l-draw-tooltip-updatecontent'>
+		<td><code><b>updateContent</b>(<i>labelText</i>)</nobr></code></td>
+		<td><code>this</code></td>
+		<td><p>Changes the tooltip text to string in function call</p>
+</td>
+	</tr>
+	<tr id='l-draw-tooltip-updateposition'>
+		<td><code><b>updatePosition</b>(<i>latlng</i>)</nobr></code></td>
+		<td><code>this</code></td>
+		<td><p>Changes the location of the tooltip</p>
+</td>
+	</tr>
+	<tr id='l-draw-tooltip-showaserror'>
+		<td><code><b>showAsError</b>()</nobr></code></td>
+		<td><code>this</code></td>
+		<td><p>Applies error class to tooltip</p>
+</td>
+	</tr>
+	<tr id='l-draw-tooltip-removeerror'>
+		<td><code><b>removeError</b>()</nobr></code></td>
+		<td><code>this</code></td>
+		<td><p>Removes the error class from the tooltip</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-drawtoolbar'>L.DrawToolbar</h2>
+<section>
+<h3 id='l-drawtoolbar-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-drawtoolbar-initialize'>
+		<td><code><b>initialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-drawtoolbar-getmodehandlers'>
+		<td><code><b>getModeHandlers</b>()</nobr></code></td>
+		<td><code>object</code></td>
+		<td><p>Get mode handlers information</p>
+</td>
+	</tr>
+	<tr id='l-drawtoolbar-getactions'>
+		<td><code><b>getActions</b>()</nobr></code></td>
+		<td><code>object</code></td>
+		<td><p>Get action information</p>
+</td>
+	</tr>
+	<tr id='l-drawtoolbar-setoptions'>
+		<td><code><b>setOptions</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Sets the options to the toolbar</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-edittoolbar'>L.EditToolbar</h2>
+<section>
+<h3 id='l-edittoolbar-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edittoolbar-intialize'>
+		<td><code><b>intialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edittoolbar-getmodehandlers'>
+		<td><code><b>getModeHandlers</b>()</nobr></code></td>
+		<td><code>object</code></td>
+		<td><p>Get mode handlers information</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-getactions'>
+		<td><code><b>getActions</b>()</nobr></code></td>
+		<td><code>object</code></td>
+		<td><p>Get actions information</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-addtoolbar'>
+		<td><code><b>addToolbar</b>(<i>map</i>)</nobr></code></td>
+		<td><code>L.DomUtil</code></td>
+		<td><p>Adds the toolbar to the map</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-removetoolbar'>
+		<td><code><b>removeToolbar</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Removes the toolbar from the map</p>
+</td>
+	</tr>
+	<tr id='l-edittoolbar-disable'>
+		<td><code><b>disable</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Disables the toolbar</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-edit-polyverticesedit'>L.Edit.PolyVerticesEdit</h2>
+<section>
+<h3 id='l-edit-polyverticesedit-method'>Methods</h3>
+
+<section >
+
+
+
+
+<table><thead>
+	<tr>
+		<th>Method</th>
+		<th>Returns</th>
+		<th>Description</th>
+	</tr>
+	</thead><tbody>
+	<tr id='l-edit-polyverticesedit-intialize'>
+		<td><code><b>intialize</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td></td>
+	</tr>
+	<tr id='l-edit-polyverticesedit-addhooks'>
+		<td><code><b>addHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Add listener hooks to this handler.</p>
+</td>
+	</tr>
+	<tr id='l-edit-polyverticesedit-removehooks'>
+		<td><code><b>removeHooks</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Remove listener hooks from this handler.</p>
+</td>
+	</tr>
+	<tr id='l-edit-polyverticesedit-updatemarkers'>
+		<td><code><b>updateMarkers</b>()</nobr></code></td>
+		<td><code>void</code></td>
+		<td><p>Clear markers and update their location</p>
+</td>
+	</tr>
+</tbody></table>
+
+</section>
+
+
+</section><h2 id='l-marker-touch'>L.Marker.Touch</h2><p>This isn&#39;t full Touch support. This is just to get markers to also support dom touch events after creation</p>
+<p>#TODO: find a better way of getting markers to support touch.</p>
+
+<h2 id='install'>Install</h2><p>You have four methods of installing Leaflet.Draw, copy the leaflet.draw.js, css, and images from dist and embed directly
+into your application.</p>
+<h3 id="npm">npm</h3>
+<p>To install the plugin run <code>npm install leaflet-draw</code> via command line in your project.
+You must also require this in your project like so: <code>var leafletDraw = require(&#39;leaflet-draw&#39;);</code></p>
+<h3 id="bower">bower</h3>
+<p>To install the plugin run <code>bower install leaflet-draw</code>.</p>
+<h3 id="builder">Builder</h3>
+<p>There is a custom builder at <a href="../build/build.html">../build/build.html</a> to help make a custom package of Leaflet.Draw
+with the command line.</p>
+
+<h2 id='cdn&#x27;s'>CDN&#x27;s</h2><pre><code class="lang-html">&lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.2/leaflet.draw.css&quot;/&gt;
+&lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.2/leaflet.draw.js&quot;&gt;&lt;/script&gt;
+</code></pre>
+
+<h2 id='options'>Options</h2><p>You can configure the plugin by using the different options listed here. If you identify a typo or have a suggestion
+for this section of the documentation, please edit docs-misc.leafdoc in the build directory.</p>
+
+<h2 id='control-draw'>Control.Draw</h2><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>position</td>
+<td>String</td>
+<td><code>&#39;topleft&#39;</code></td>
+<td>The initial position of the control (one of the map corners). See <a href="http://leafletjs.com/reference.html#control-positions">control positions</a>.</td>
+</tr>
+<tr>
+<td>draw</td>
+<td><a href="#drawoptions">DrawOptions</a></td>
+<td><code>{}</code></td>
+<td>The options used to configure the draw toolbar.</td>
+</tr>
+<tr>
+<td>edit</td>
+<td><a href="#editpolyoptions">EditPolyOptions</a></td>
+<td><code>false</code></td>
+<td>The options used to configure the edit toolbar.</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id='drawoptions'>DrawOptions</h2><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>polyline</td>
+<td><a href="#polylineoptions">PolylineOptions</a></td>
+<td><code>{ }</code></td>
+<td>Polyline draw handler options. Set to <code>false</code> to disable handler.</td>
+</tr>
+<tr>
+<td>polygon</td>
+<td><a href="#polygonoptions">PolygonOptions</a></td>
+<td><code>{ }</code></td>
+<td>Polygon draw handler options. Set to <code>false</code> to disable handler.</td>
+</tr>
+<tr>
+<td>rectangle</td>
+<td><a href="#rectangleoptions">RectangleOptions</a></td>
+<td><code>{ }</code></td>
+<td>Rectangle draw handler options. Set to <code>false</code> to disable handler.</td>
+</tr>
+<tr>
+<td>circle</td>
+<td><a href="#circleoptions">CircleOptions</a></td>
+<td><code>{ }</code></td>
+<td>Circle draw handler options. Set to <code>false</code> to disable handler.</td>
+</tr>
+<tr>
+<td>marker</td>
+<td><a href="#markeroptions">MarkerOptions</a></td>
+<td><code>{ }</code></td>
+<td>Marker draw handler options. Set to <code>false</code> to disable handler.</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id='polylineoptions'>PolylineOptions</h2><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>allowIntersection</td>
+<td>Bool</td>
+<td><code>true</code></td>
+<td>Determines if line segments can cross.</td>
+</tr>
+<tr>
+<td>drawError</td>
+<td>Object</td>
+<td><a href="https://github.com/Leaflet/Leaflet.draw/blob/master/src/draw/handler/Draw.Polyline.js#L10">See code</a></td>
+<td>Configuration options for the error that displays if an intersection is detected.</td>
+</tr>
+<tr>
+<td>guidelineDistance</td>
+<td>Number</td>
+<td><code>20</code></td>
+<td>Distance in pixels between each guide dash.</td>
+</tr>
+<tr>
+<td>shapeOptions</td>
+<td><a href="http://leafletjs.com/reference.html#polyline-options">Leaflet Polyline options</a></td>
+<td><a href="https://github.com/Leaflet/Leaflet.draw/blob/master/src/draw/handler/Draw.Polyline.js#L20">See code</a></td>
+<td>The options used when drawing the polyline/polygon on the map.</td>
+</tr>
+<tr>
+<td>metric</td>
+<td>Bool</td>
+<td><code>true</code></td>
+<td>Determines which measurement system (metric or imperial) is used.</td>
+</tr>
+<tr>
+<td>zIndexOffset</td>
+<td>Number</td>
+<td><code>2000</code></td>
+<td>This should be a high number to ensure that you can draw over all other layers on the map.</td>
+</tr>
+<tr>
+<td>repeatMode</td>
+<td>Bool</td>
+<td><code>false</code></td>
+<td>Determines if the draw tool remains enabled after drawing a shape.</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id='polygonoptions'>PolygonOptions</h2><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>showArea</td>
+<td>Bool</td>
+<td><code>false</code></td>
+<td>Show the area of the drawn polygon in m², ha or km². <strong>The area is only approximate and become less accurate the larger the polygon is.</strong></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id='rectangleoptions'>RectangleOptions</h2><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>shapeOptions</td>
+<td><a href="http://leafletjs.com/reference.html#path-options">Leaflet Path options</a></td>
+<td><a href="https://github.com/Leaflet/Leaflet.draw/blob/master/src/draw/handler/Draw.Rectangle.js#L7">See code</a></td>
+<td>The options used when drawing the rectangle on the map.</td>
+</tr>
+<tr>
+<td>repeatMode</td>
+<td>Bool</td>
+<td><code>false</code></td>
+<td>Determines if the draw tool remains enabled after drawing a shape.</td>
+</tr>
+<tr>
+<td>showRadius</td>
+<td>Bool</td>
+<td><code>true</code></td>
+<td>Show the area of the drawn circle in m², ha or km². <strong>The area is only approximate and become less accurate the larger the circle is.</strong></td>
+</tr>
+</tbody>
+</table>
+
+<h2 id='circleoptions'>CircleOptions</h2><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>shapeOptions</td>
+<td><a href="http://leafletjs.com/reference.html#path-options">Leaflet Path options</a></td>
+<td><a href="https://github.com/Leaflet/Leaflet.draw/blob/master/src/draw/handler/Draw.Circle.js#L7">See code</a></td>
+<td>The options used when drawing the circle on the map.</td>
+</tr>
+<tr>
+<td>repeatMode</td>
+<td>Bool</td>
+<td><code>false</code></td>
+<td>Determines if the draw tool remains enabled after drawing a shape.</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id='markeroptions'>MarkerOptions</h2><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>icon</td>
+<td><a href="http://leafletjs.com/reference.html#icon">Leaflet Icon</a></td>
+<td><code>L.Icon.Default()</code></td>
+<td>The icon displayed when drawing a marker.</td>
+</tr>
+<tr>
+<td>zIndexOffset</td>
+<td>Number</td>
+<td><code>2000</code></td>
+<td>This should be a high number to ensure that you can draw over all other layers on the map.</td>
+</tr>
+<tr>
+<td>repeatMode</td>
+<td>Bool</td>
+<td><code>false</code></td>
+<td>Determines if the draw tool remains enabled after drawing a shape.</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id='editpolyoptions'>EditPolyOptions</h2><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>featureGroup</td>
+<td><a href="http://leafletjs.com/reference.html#featuregroup">Leaflet FeatureGroup</a></td>
+<td><code>null</code></td>
+<td>This is the FeatureGroup that stores all editable shapes. <strong>THIS IS REQUIRED FOR THE EDIT TOOLBAR TO WORK</strong></td>
+</tr>
+<tr>
+<td>edit</td>
+<td><a href="#edithandleroptions">EditHandlerOptions</a></td>
+<td><code>{ }</code></td>
+<td>Edit handler options. Set to <code>false</code> to disable handler.</td>
+</tr>
+<tr>
+<td>remove</td>
+<td><a href="#deletehandleroptions">DeleteHandlerOptions</a></td>
+<td><code>{ }</code></td>
+<td>Delete handler options. Set to <code>false</code> to disable handler.</td>
+</tr>
+<tr>
+<td>poly</td>
+<td><a href="#editpoly">EditPolyOptions</a></td>
+<td><code>{ }</code></td>
+<td>Set polygon editing options</td>
+</tr>
+<tr>
+<td>allowIntersection</td>
+<td>Bool</td>
+<td><code>true</code></td>
+<td>Determines if line segments can cross.</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id='edithandleroptions'>EditHandlerOptions</h2><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>selectedPathOptions</td>
+<td><a href="http://leafletjs.com/reference.html#path-options">Leaflet Path options</a></td>
+<td><a href="https://github.com/Leaflet/Leaflet.draw/blob/master/src/edit/handler/EditToolbar.Edit.js#L9">See code</a></td>
+<td>The path options for how the layers will look while in edit mode. If this is set to null the editable path options will not be set.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> To maintain the original layer color of the layer use <code>maintainColor: true</code> within <code>selectedPathOptions</code>.
+E.g. The edit options below will maintain the layer color and set the edit opacity to 0.3.</p>
+<pre><code class="lang-js">{
+    selectedPathOptions: {
+        maintainColor: true,
+        opacity: 0.3
+    }
+}
+</code></pre>
+
+<h2 id='version'>version</h2><p>A constant that represents the Leaflet.Draw version in use.</p>
+<pre><code class="lang-js">    L.drawVersion; // contains &quot;0.4.2&quot; (or whatever version is currently in use)
+</code></pre>
+
+
+
+    <div class="footer">
+        <p>© 2012 - 2017 <a href="http://leafletjs.com/">Leaflet</a> and <a href="https://github.com/Leaflet">Leaflet
+            Organization</a></br>
+            Thanks to all our <a
+                    href="https://github.com/Leaflet/Leaflet.draw/graphs/contributors">Contributors</a></br>
+            Documentation generated with <a href="https://github.com/Leaflet/Leafdoc">Leafdoc</a></p>
+    </div>
+
+</div>
+
+<script src="./js/docs.js"></script>
+<script>
+    hljs.configure({tabReplace: '    '});
+    hljs.initHighlightingOnLoad();
+
+    var elems = document.querySelectorAll('h2, h3, h4, tr');
+
+    for (var i = 0, len = elems.length; i < len; i++) {
+        var el = elems[i];
+
+        if (el.id) {
+            var anchor = document.createElement('a');
+            anchor.setAttribute('anchor', el.id);
+            if (!el.children.length) {
+                // For headers, insert the anchor before.
+                el.parentNode.insertBefore(anchor, el);
+            } else {
+                // For table rows, insert the anchor inside the first <td>
+                el.querySelector('td').appendChild(anchor);
+
+                // Clicking on the row (meaning "the link icon on the ::before)
+                // jumps to the item
+                el.parentNode.onclick = function (hash) {
+                    return function (ev) {
+                        if (ev.offsetX < 0) {
+                            window.location.hash = '#' + ev.target.parentNode.id;
+                        }
+                    };
+                }(el.id);
+            }
+        }
+    }
+
+    elems = document.querySelectorAll('div.accordion');
+    for (var i = 0, len = elems.length; i < len; i++) {
+        var el = elems[i];
+
+        el.querySelector('label').addEventListener('click', function (c) {
+            return function () {
+                if (c.className === 'accordion expanded') {
+                    c.className = 'accordion collapsed';
+                } else {
+                    c.className = 'accordion expanded';
+                }
+            };
+        }(el));
+
+// 		el.className = 'accordion collapsed';
+// 		el.querySelector('.accordion-content').style.display = 'none';
+    }
+
+</script>
+<style>
+
+    h2 {
+        margin-top: 2em;
+    }
+
+    h3 {
+        margin-top: 1em;
+        margin-bottom: .5em;
+    }
+
+    div.accordion {
+        width: 100%;
+        /* 		overflow: hidden; */
+    }
+
+    div.accordion-overflow {
+        width: 100%;
+        overflow: hidden;
+    }
+
+    label,
+    section > h4 {
+        display: block;
+        font-weight: 500;
+        margin: 1em 0 0.25em;
+    }
+
+    label {
+        cursor: pointer;
+    }
+
+    div.accordion > div.accordion-overflow > div.accordion-content {
+        max-height: 0;
+        display: none;
+    }
+
+    div.accordion.collapsed > div.accordion-overflow > div.accordion-content {
+        animation-duration: 0.4s;
+        animation-name: collapse;
+        /* 		height: 0; */
+        max-height: 0;
+        display: block;
+        overflow: hidden;
+    }
+
+    div.accordion.expanded > div.accordion-overflow > div.accordion-content {
+        animation-duration: 0.4s;
+        animation-name: expand;
+        /* 		height: auto; */
+        max-height: none;
+        display: block;
+    }
+
+    @keyframes collapse {
+        0% {
+            max-height: 100vh;
+        }
+        100% {
+            max-height: 0;
+        }
+    }
+
+    @keyframes expand {
+        0% {
+            max-height: 0;
+        }
+        100% {
+            max-height: 100vh;
+        }
+    }
+
+    /*	div.accordion > div.accordion-content {
+            transition: max-height 0.4s ease-out 0s;
+        }*/
+
+    div.accordion.expanded > label > span.expander {
+        transform: rotate(90deg);
+    }
+
+    div.accordion > label > span.expander {
+        transition: transform 0.4s ease-out 0s;
+        display: inline-block;
+        font-size: 12px;
+    }
+
+    table {
+        margin-bottom: 0;
+    }
+
+    /* 	Markdown renders some spurious <p>s inside the table cells */
+    td > p {
+        margin: 0;
+    }
+
+    /* 	This just looks bad (with the current grey headers for sections which Vlad doesn't really like, so might have to change this) */
+    section.collapsable > div.section-comments > p {
+        margin: 0;
+    }
+
+    div.section-comments {
+        margin-bottom: 0.25em;
+    }
+
+    /*	section.collapsable div.section-comments {
+            margin: 1em;
+            font-size: 12px;
+        }*/
+
+    section.collapsable pre {
+        margin: 0;
+    }
+
+    section {
+        margin-left: 0.5em;
+    }
+
+    section h4, section.collapsable h4 {
+        margin-left: -0.5em;
+    }
+
+
+</style>
+</body>
+</html>

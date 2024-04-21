@@ -248,6 +248,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           echo getReportsHTML($view);
           echo getRprtEvntAuditHTML($view);
           echo getMapHTML($view);
+          echo getfloorplanHTML($view);
           echo getHeaderFlipHTML();
           echo '</ul></div><div id="accountstatus">
 ';
@@ -378,6 +379,7 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
             echo getReportsHTML($view);
             echo getRprtEvntAuditHTML($view);
             echo getMapHTML($view);
+            echo getfloorplanHTML($view);
           echo '</ul>';
       }
       ?>
@@ -832,6 +834,18 @@ function getMapHTML($view) {
 
   return $result;
 }
+
+// Returns the html representing the Audit Events Report menu item
+function getfloorplanHTML($view) {
+  $result = '';
+
+  if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
+    $class = $view == 'floorplan' ? ' selected' : '';
+    $result .= '<li id="getfloorplanHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=floorplan">'.translate('floorplan').'</a></li>'.PHP_EOL;
+  }
+  return $result;
+}
+
 
 // Returns the html representing the header collapse toggle menu item
 function getHeaderFlipHTML() {

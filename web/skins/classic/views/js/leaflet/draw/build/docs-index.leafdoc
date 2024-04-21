@@ -1,0 +1,31 @@
+This file just defines the order of the classes in the docs.
+
+@class L.Draw
+@class L.drawLocal
+@class L.Draw.Toolbar
+@class L.Draw.Event
+
+@class L.Draw.Feature
+@class L.Draw.SimpleShape
+@class L.Draw.Marker
+@class L.Draw.CircleMarker
+@class L.Draw.Circle
+@class L.Draw.Polyline
+@class L.Draw.Rectangle
+@class L.Draw.Polygon
+
+@class L.Edit.SimpleShape
+@class L.Edit.Marker
+@class L.Edit.CircleMarker
+@class L.Edit.Circle
+@class L.Edit.Polyline
+@class L.Edit.Rectangle
+@class L.EditToolbar.Edit
+@class L.EditToolbar.Delete
+
+@class L.GeometryUtil
+@class L.LatLngUtil
+@class L.LineUtil
+@class L.Polygon
+@class L.Polyline
+@class L.Map.TouchExtend

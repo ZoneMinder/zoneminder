@@ -1,0 +1,140 @@
+Miscellaneous bits of documentation that don't really fit anywhere else
+
+@namespace Install
+You have four methods of installing Leaflet.Draw, copy the leaflet.draw.js, css, and images from dist and embed directly
+into your application.
+
+### npm
+To install the plugin run `npm install leaflet-draw` via command line in your project.
+You must also require this in your project like so: `var leafletDraw = require('leaflet-draw');`
+
+### bower
+To install the plugin run `bower install leaflet-draw`.
+
+### Builder
+There is a custom builder at [../build/build.html](../build/build.html) to help make a custom package of Leaflet.Draw
+with the command line.
+
+@namespace CDN's
+
+```html
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.2/leaflet.draw.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.2/leaflet.draw.js"></script>
+```
+
+@namespace Options
+
+You can configure the plugin by using the different options listed here. If you identify a typo or have a suggestion
+for this section of the documentation, please edit docs-misc.leafdoc in the build directory.
+
+@namespace Control.Draw
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| position | String | `'topleft'` | The initial position of the control (one of the map corners). See [control positions](http://leafletjs.com/reference.html#control-positions). |
+| draw | [DrawOptions](#drawoptions) | `{}` | The options used to configure the draw toolbar. |
+| edit | [EditPolyOptions](#editpolyoptions) | `false` | The options used to configure the edit toolbar. |
+
+
+@namespace DrawOptions
+
+| Option    | Type  | Default   | Description   |
+| --------- | ----- | --------- | ------------- |
+| polyline     | [PolylineOptions](#polylineoptions)         | `{ }` | Polyline draw handler options. Set to `false` to disable handler.      |
+| polygon      | [PolygonOptions](#polygonoptions)           | `{ }` | Polygon draw handler options. Set to `false` to disable handler.       |
+| rectangle    | [RectangleOptions](#rectangleoptions)       | `{ }` | Rectangle draw handler options. Set to `false` to disable handler.     |
+| circle       | [CircleOptions](#circleoptions)             | `{ }` | Circle draw handler options. Set to `false` to disable handler.        |
+| marker       | [MarkerOptions](#markeroptions)             | `{ }` | Marker draw handler options. Set to `false` to disable handler.        |
+| circlemarker | [CircleMarkerOptions](#circlemarkeroptions) | `{ }` | Circle marker draw handler options. Set to `false` to disable handler. |
+
+@namespace PolylineOptions
+
+| Option | Type | Default | Description
+| --- | --- | --- | ---
+| allowIntersection | Bool | `true` | Determines if line segments can cross.
+| drawError | Object | [See code](https://github.com/Leaflet/Leaflet.draw/blob/master/src/draw/handler/Draw.Polyline.js#L10) | Configuration options for the error that displays if an intersection is detected.
+| guidelineDistance | Number | `20` | Distance in pixels between each guide dash.
+| shapeOptions | [Leaflet Polyline options](http://leafletjs.com/reference.html#polyline-options) | [See code](https://github.com/Leaflet/Leaflet.draw/blob/master/src/draw/handler/Draw.Polyline.js#L20) | The options used when drawing the polyline/polygon on the map.
+| showLength | Bool | `true` | Show the length of the drawn line. **The area is only approximate and become less accurate the larger the polygon is.**
+| metric | Bool | `true` | Use the metric measurement system.
+| feet | Bool | `true` | Use feet instead of yards and miles, when not using the metric measurement system.
+| nautic | Bool | `false` | Use nautic miles instead of yards and miles, when not using the metric measurement system nor feet.
+| zIndexOffset | Number | `2000` | This should be a high number to ensure that you can draw over all other layers on the map.
+| repeatMode | Bool | `false` | Determines if the draw tool remains enabled after drawing a shape.
+
+
+@namespace PolygonOptions
+
+| Option | Type | Default | Description
+| --- | --- | --- | ---
+| showArea | Bool | `false` | Show the area of the drawn polygon in m², ha or km². **The area is only approximate and become less accurate the larger the polygon is.**
+| showLength | Bool | `false` | Show the length of the drawn line. **The area is only approximate and become less accurate the larger the polygon is.**
+| metric | Object | `true` | Use the metric measurement system. Can be a boolean value, but can also be an array to specify which units to use. Possible units are `km` (kilometers), `ha` (hectares), `m` (metres). So a value of `['km', 'm']` means that the length will be shown in metres and, when more than a 1000 metres, in kilometers, and the area will be shown in m² or km² and acres will not be used.
+| feet | Bool | `true` | Use feet instead of yards and miles, when not using the metric measurement system.
+| nautic | Bool | `false` | Use nautic miles instead of yards and miles, when not using the metric measurement system nor feet.
+| precision | Object | `{km: 2, ha: 2, m: 0, mi: 2, ac: 2, yd: 0, ft: 0, nm: 2}` | Defines the precision to use for numbers of each type of unit. Possible units are `km` (kilometers), `ha` (hectares), `m` (metres), `mi` (miles), `ac` (acres), `ya` (yards), `ft` (feet), `nm` (nautical miles). For example `{km: 1}` changes the default precision for km and km² to one which gives values like `1.5 km` and `15.0 km²` in stead of `1.53 km` and `15.01 km²`.
+
+
+@namespace RectangleOptions
+
+| Option | Type | Default | Description
+| --- | --- | --- | ---
+| shapeOptions | [Leaflet Path options](http://leafletjs.com/reference.html#path-options) | [See code](https://github.com/Leaflet/Leaflet.draw/blob/master/src/draw/handler/Draw.Rectangle.js#L7) | The options used when drawing the rectangle on the map.
+| repeatMode | Bool | `false` | Determines if the draw tool remains enabled after drawing a shape.
+| showRadius | Bool | `true` | Show the area of the drawn circle in m², ha or km². **The area is only approximate and become less accurate the larger the circle is.**
+
+@namespace CircleOptions
+
+| Option | Type | Default | Description
+| --- | --- | --- | ---
+| shapeOptions | [Leaflet Path options](http://leafletjs.com/reference.html#path-options) | [See code](https://github.com/Leaflet/Leaflet.draw/blob/master/src/draw/handler/Draw.Circle.js#L7) | The options used when drawing the circle on the map.
+| repeatMode | Bool | `false` | Determines if the draw tool remains enabled after drawing a shape.
+
+
+@namespace MarkerOptions
+
+| Option | Type | Default | Description
+| --- | --- | --- | ---
+| icon | [Leaflet Icon](http://leafletjs.com/reference.html#icon) | `L.Icon.Default()` | The icon displayed when drawing a marker.
+| zIndexOffset | Number | `2000` | This should be a high number to ensure that you can draw over all other layers on the map.
+| repeatMode | Bool | `false` | Determines if the draw tool remains enabled after drawing a shape.
+
+
+@namespace EditPolyOptions
+
+| Option | Type | Default | Description
+| --- | --- | --- | ---
+| featureGroup | [Leaflet FeatureGroup](http://leafletjs.com/reference.html#featuregroup) | `null` | This is the FeatureGroup that stores all editable shapes. **THIS IS REQUIRED FOR THE EDIT TOOLBAR TO WORK**
+| edit | [EditHandlerOptions](#edithandleroptions) | `{ }` | Edit handler options. Set to `false` to disable handler.
+| remove | [DeleteHandlerOptions](#deletehandleroptions) | `{ }` | Delete handler options. Set to `false` to disable handler.
+| poly | [EditPolyOptions](#editpoly) |  `{ }` | Set polygon editing options
+| allowIntersection | Bool | `true` |  Determines if line segments can cross.
+
+@namespace EditHandlerOptions
+
+| Option | Type | Default | Description
+| --- | --- | --- | ---
+| selectedPathOptions | [Leaflet Path options](http://leafletjs.com/reference.html#path-options) | [See code](https://github.com/Leaflet/Leaflet.draw/blob/master/src/edit/handler/EditToolbar.Edit.js#L9) | The path options for how the layers will look while in edit mode. If this is set to null the editable path options will not be set.
+
+**Note:** To maintain the original layer color of the layer use `maintainColor: true` within `selectedPathOptions`.
+
+E.g. The edit options below will maintain the layer color and set the edit opacity to 0.3.
+
+````js
+{
+	selectedPathOptions: {
+		maintainColor: true,
+		opacity: 0.3
+	}
+}
+````
+
+@namespace version
+
+A constant that represents the Leaflet.Draw version in use.
+
+```js
+    L.drawVersion; // contains "0.4.2" (or whatever version is currently in use)
+```
+
+

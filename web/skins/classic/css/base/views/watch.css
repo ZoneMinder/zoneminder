@@ -173,3 +173,7 @@ span.alert {
 body.sticky #content {
   overflow-y: auto;
 }
+
+.zoom {
+  transform-origin: 100% 00%;
+}

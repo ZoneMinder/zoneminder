@@ -76,8 +76,7 @@ class FilterTerm {
       $this->chosen = isset($term['chosen']) ? $term['chosen'] : '';
 
     } else {
-      Warning("No term in FilterTerm constructor");
-      #Warning(print_r(debug_backtrace(), true));
+      Warning("No term in FilterTerm constructor".print_r(debug_backtrace(), true));
     }
   } # end function __construct
 

@@ -281,7 +281,6 @@ function MonitorStream(monitorData) {
     }
     if (stream.src != src) {
       console.log("Setting to streaming: " + src);
-      stream.src = '';
       stream.src = src;
     }
     stream.onerror = this.img_onerror.bind(this);

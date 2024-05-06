@@ -76,7 +76,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
-        ,libjwt-gnutls0|libjwt0
+        ,libjwt2|libjwt-gnutls2|libjwt-gnutls0|libjwt0
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

@@ -267,7 +267,7 @@ ul.tabList li.active a {
 
 #content {
   width: 100%;
-  overflow: auto;
+  overflow: hidden auto;
   margin: 0 auto 0 auto;
   line-height: 130%;
   text-align: center;

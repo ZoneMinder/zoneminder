@@ -236,6 +236,19 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput">
         <div class="tag-dropdown-content"></div>
       </div>
+      <button type="button" id="tagPrevBtn" title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
+        <i class="material-icons md-18" 
+          style="-moz-transform: scaleX(-1);
+            -o-transform: scaleX(-1);
+            -webkit-transform: scaleX(-1);
+            transform: scaleX(-1);
+            filter: FlipH;
+            -ms-filter: 'FlipH';">
+            label</i>
+      </button>
+      <button type="button" id="tagNextBtn" title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
+        <i class="material-icons md-18">label</i>
+      </button>
     </div>
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="inner-content">

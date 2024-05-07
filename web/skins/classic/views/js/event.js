@@ -614,6 +614,16 @@ function streamNext(action) {
   }
 } // end function streamNext(action)
 
+function tagAndNext(action) {
+  addTag(availableTags[0]);
+  streamNext(action);
+}
+
+function tagAndPrev(action) {
+  addTag(availableTags[0]);
+  streamPrev(action);
+}
+
 function vjsPanZoom(action, x, y) { //Pan and zoom with centering where the click occurs
   var outer = $j('#videoobj');
   var video = outer.children().first();

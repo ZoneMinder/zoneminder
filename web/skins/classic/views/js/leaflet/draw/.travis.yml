@@ -1,0 +1,43 @@
+language: node_js
+node_js:
+  - "6.1"
+  - "6.0"
+  - "5.11"
+  - "5.10"
+  - "5.9"
+  - "5.8"
+  - "5.7"
+  - "5.6"
+  - "5.5"
+  - "5.4"
+  - "5.3"
+  - "5.2"
+  - "5.1"
+  - "5.0"
+  - "4.4"
+  - "4.3"
+  - "4.2"
+  - "4.1"
+  - "4.0"
+  - "0.12"
+  - "0.11"
+  - "0.10"
+  - "0.8"
+  - "0.6"
+  - "iojs"
+  - "iojs-v1.0.4"
+
+matrix:
+  allow_failures:
+    - node_js: "0.8"
+    - node_js: "0.6"
+    - node_js: "0.12"
+    - node_js: "0.11"
+    - node_js: "0.10"
+    - node_js: "0.8"
+    - node_js: "0.6"
+    - node_js: "iojs"
+    - node_js: "iojs-v1.0.4"
+
+before_script:
+  - npm install -g jake

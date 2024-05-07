@@ -1,0 +1,17 @@
+node_modules
+.DS_Store
+tmp/**/*
+.idea
+*.iml
+_site
+*.sublime-*
+dist/*.js
+dist/*.css
+dist/*.map
+coverage/
+*.js.html
+.mailmap
+bower.json
+component.json
+debug/local/
+Gemfile.lock

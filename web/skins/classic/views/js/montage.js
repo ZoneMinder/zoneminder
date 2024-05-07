@@ -210,6 +210,7 @@ function edit_layout(button) {
 //  objGridStack.float(true);
  
   $j('.btn-view-watch').addClass('hidden'); 
+  $j('.btn-edit-monitor').addClass('hidden'); 
  
   // Turn off the onclick & disable panzoom on the image.
   for ( let i = 0, length = monitors.length; i < length; i++ ) {
@@ -263,6 +264,7 @@ function cancel_layout(button) {
   $j('.grid-stack-item-content').removeClass('modeEditingMonitor');
   objGridStack.disable(); //Disable move
   $j('.btn-view-watch').removeClass('hidden'); 
+  $j('.btn-edit-monitor').removeClass('hidden'); 
 
   if (panZoomEnabled) {
     $j('.zoompan').each( function() {
@@ -295,18 +297,14 @@ function takeSnapshot() {
 
 function handleClick(evt) {
   evt.preventDefault();
-console.log('evt', evt);
 
-  if (evt.target.id) { //Ищем объект с ID, т.к. в кнопке может быть еще элемент.
+  if (evt.target.id) { //We are looking for an object with an ID, because there may be another element in the button.
     var obj = evt.target;
   } else {
     var obj = evt.target.parentElement;
   }
   
-//  if (mode == EDITING || evt.target.id == 'btn-zoom-out' || evt.target.id == 'btn-zoom-in') return;
   if (mode == EDITING || obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
-//console.log('evt', evt);
-//return;
   if (obj.className.includes('btn-view-watch')) {
     const el = evt.currentTarget;
     const id = el.getAttribute("data-monitor-id");
@@ -332,25 +330,12 @@ function startMonitors() {
   for (let i = 0, length = monitorData.length; i < length; i++) {
     // Start the fps and status updates. give a random delay so that we don't assault the server
     const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-console.log("MONITOR PRE START=>", monitors[i]);
     monitors[i].start(delay);
-
-//    monitors[i].setStreamScale();
-
-//      monitors[i].streamCommand({command: CMD_MAXFPS, maxfps: 2});
-
-	
-console.log("MONITOR POST START=>", monitors[i]);
-//console.log("MONITOR element=>", monitors[i].getElement());
-//console.log("MONITOR element onload=>", monitors[i].getElement().onload);
     if ((monitors[i].type == 'WebSite') && (monitors[i].refresh > 0)) {
       setInterval(reloadWebSite, monitors.refresh*1000, i);
     }
     monitors[i].setup_onclick(handleClick);
   }
-  
-  //        startGrid();
-
 }
 
 function stopMonitors() { //Not working yet.

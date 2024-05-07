@@ -267,7 +267,8 @@ ul.tabList li.active a {
 
 #content {
   width: 100%;
-  margin: 0 auto 8px auto;
+  overflow: auto;
+  margin: 0 auto 0 auto;
   line-height: 130%;
   text-align: center;
   clear: both;
@@ -280,8 +281,7 @@ body.sticky #content {
   flex: 1 1 auto;
   display: flex;
   flex-flow: column;
-*/
-  overflow: hidden;
+  overflow: hidden;*/
   height: 100%;
 }
 

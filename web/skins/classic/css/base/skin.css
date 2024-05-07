@@ -54,7 +54,17 @@
 }
 
 .material-icons.md-18 { font-size: 18px; }
+.material-icons.md-20 { font-size: 20px; }
+.material-icons.md-22 { font-size: 22px; }
+.material-icons.md-24 { font-size: 24px; }
+.material-icons.md-26 { font-size: 26px; }
+.material-icons.md-28 { font-size: 28px; }
+.material-icons.md-30 { font-size: 30px; }
+.material-icons.md-32 { font-size: 32px; }
+.material-icons.md-34 { font-size: 34px; }
 .material-icons.md-36 { font-size: 36px; }
+.material-icons.md-38 { font-size: 38px; }
+.material-icons.md-40 { font-size: 40px; }
 
 html,
 body {
@@ -147,6 +157,10 @@ a:hover {
     border-radius:4px;
 }
 
+a:not([href]):hover {
+    color: #212529;
+}
+
 label {
     margin: 0 4px;
 }
@@ -157,7 +171,8 @@ button.btn {
   font-size: 18px;
   margin-bottom: 3px;
 }
-#toolbar .btn-normal {
+#toolbar .btn-normal,
+#toolbar .btn-danger {
   margin-right: 3px;
 }
 #rightButtons .btn-normal,
@@ -613,6 +628,10 @@ body.sticky #page {
 #contentButtons input {
     margin-left: 8px;
     margin-bottom: 4px;
+}
+
+#contentButtons a.btn, #contentButtons button.btn {
+    margin-bottom: 0;
 }
 
 #footer {

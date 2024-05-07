@@ -83,22 +83,26 @@ function selectLayout(new_layout_id) {
       continue;
     }
 
-    // Apply default layout options, like float left
-    if (layout.Positions['default']) {
-      const styles = layout.Positions['default'];
-      for (const style in styles) {
-        monitor_frame.css(style, styles[style]);
-      }
-    } else {
-      console.log("No default styles to apply" + layout.Positions);
-    } // end if default styles
+    if (mode != EDITING) {
+      monitor_frame.removeAttr("style"); // It is necessary to clear all styles, because... custom layers could have their own settings!!!
 
-    if (layout.Positions['mId'+monitor.id]) {
-      const styles = layout.Positions['mId'+monitor.id];
-      for (const style in styles) {
-        monitor_frame.css(style, styles[style]);
-      }
-    } // end if specific monitor style
+      // Apply default layout options, like float left
+      if (layout.Positions['default']) {
+        const styles = layout.Positions['default'];
+        for (const style in styles) {
+          monitor_frame.css(style, styles[style]);
+        }
+      } else {
+        console.log("No default styles to apply" + layout.Positions);
+      } // end if default styles
+
+      if (layout.Positions['mId'+monitor.id]) {
+        const styles = layout.Positions['mId'+monitor.id];
+        for (const style in styles) {
+          monitor_frame.css(style, styles[style]);
+        }
+      } // end if specific monitor style
+    }
   } // end foreach monitor
   setCookie('zmMontageLayout', layout_id);
   if (layouts[layout_id].Name != 'Freeform') { // 'montage_freeform.css' ) {
@@ -120,8 +124,8 @@ function changeHeight() {
   var height = $j('#height').val();
   setCookie('zmMontageHeight', height);
   for (var i = 0, length = monitors.length; i < length; i++) {
-    var monitor = monitors[i];
-    monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
+    const monitor = monitors[i];
+    const monitor_frame = $j('#monitor'+monitor.id + " .monitorStream");
     monitor_frame.css('height', height);
   }
 }
@@ -172,6 +176,7 @@ function toGrid(value) {
 // Makes monitors draggable.
 function edit_layout(button) {
   mode = EDITING;
+  $j(monitors_ul).addClass('modeEditingMonitor');
 
   // Turn off the onclick on the image.
   for ( let i = 0, length = monitors.length; i < length; i++ ) {
@@ -179,9 +184,12 @@ function edit_layout(button) {
     monitor.disable_onclick();
   };
 
-  $j('#monitors .monitor').draggable({
+  $j(monitors_ul).find('.monitor').draggable({
     cursor: 'crosshair',
+    grid: [2, 2]
     //revert: 'invalid'
+  }).resizable({
+    grid: [2, 2]
   });
   $j('#SaveLayout').show();
   $j('#EditLayout').hide();
@@ -194,6 +202,7 @@ function edit_layout(button) {
 
 function save_layout(button) {
   mode = VIEWING;
+  $j(monitors_ul).removeClass('modeEditingMonitor');
 
   const form = button.form;
   let name = form.elements['Name'].value;
@@ -237,6 +246,8 @@ function save_layout(button) {
 
 function cancel_layout(button) {
   mode = VIEWING;
+  $j(monitors_ul).removeClass('modeEditingMonitor');
+
   $j('#SaveLayout').hide();
   $j('#EditLayout').show();
   for ( let i = 0, length = monitors.length; i < length; i++ ) {

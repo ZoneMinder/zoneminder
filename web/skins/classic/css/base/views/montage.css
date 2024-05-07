@@ -2,10 +2,6 @@
   margin-right: 10px;
 }
 
-body.sticky #content {
-  overflow-y: auto;
-}
-
 #monitors {
   height: 100%;
 }

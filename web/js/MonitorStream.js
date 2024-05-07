@@ -127,7 +127,7 @@ function MonitorStream(monitorData) {
         } else { // %
           // Set it, then get the calculated width
           if (resize) {
-          monitor_frame.css('width', width);
+            monitor_frame.css('width', width);
           }
           newscale = parseInt(100*parseInt(monitor_frame.width())/this.width);
         }
@@ -142,12 +142,12 @@ function MonitorStream(monitorData) {
     }
     if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
       if (resize) {
-      monitor_frame.css('width', parseInt(width));
-    }
+        monitor_frame.css('width', parseInt(width));
+      }
     }
     if (resize) {
-    if (img.style.width) img.style.width = '100%';
-    if (height && height != '0px') img.style.height = height;
+      if (img.style.width) img.style.width = '100%';
+      if (height && height != '0px') img.style.height = height;
     } else { //This code will not be needed when using GridStack & PanZoom on Montage page. Only required when trying to use "scaleControl"
       if (newscaleSelect != 0) {
         img.style.width = 'auto';
@@ -158,8 +158,7 @@ function MonitorStream(monitorData) {
         const realHeight = monitor_stream.attr('data-height');
         const ratio = realWidth / realHeight;
         const imgWidth = $j(img)[0].offsetWidth + 4; // including border
-        const monitorStreamHeight = imgWidth / ratio;
-        img.style.width = '100%'; 
+        img.style.width = '100%';
         $j(img).closest('.monitorStream')[0].style.overflow = 'hidden';
       }
     }

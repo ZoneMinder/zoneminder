@@ -20,8 +20,8 @@ function stringToNumber(str) {
   return parseInt(str.replace(/\D/g, ''));
 }
 
-function isPresetLayout (name) {
-  return (( name=='Freeform' || name=='1 Wide' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' || name=='6 Wide' || name=='7 Wide' || name=='8 Wide' || name=='9 Wide' || name=='10 Wide' || name=='11 Wide' || name=='12 Wide' || name=='16 Wide' ) ? true : false)
+function isPresetLayout(name) {
+  return (( name=='Freeform' || name=='1 Wide' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' || name=='6 Wide' || name=='7 Wide' || name=='8 Wide' || name=='9 Wide' || name=='10 Wide' || name=='11 Wide' || name=='12 Wide' || name=='16 Wide' ) ? true : false);
 }
 
 function getCurentNameLayout() {
@@ -98,10 +98,11 @@ function selectLayout(new_layout_id) {
 
   const widthFrame = layoutColumns / stringToNumber(nameLayout);
 
-  if (objGridStack)
+  if (objGridStack) {
     objGridStack.destroy(false);
+  }
 
-  if (isPresetLayout(nameLayout)) { //PRESET 
+  if (isPresetLayout(nameLayout)) { //PRESET
     for (let i = 0, length = monitors.length; i < length; i++) {
       const monitor = monitors[i];
       // Need to clear the current positioning, and apply the new
@@ -116,9 +117,9 @@ function selectLayout(new_layout_id) {
         monitor_wrapper.attr('gs-w', 6).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
       } else {
         monitor_wrapper.attr('gs-w', widthFrame).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
-      }  
+      }
     }
-    initGridStack();  
+    initGridStack();
   } else { //CUSTOM
     for (let i = 0, length = monitors.length; i < length; i++) {
       const monitor = monitors[i];
@@ -131,13 +132,13 @@ function selectLayout(new_layout_id) {
     }
 
     if (layout.Positions.gridStack) {
-      initGridStack(layout.Positions.gridStack);  
+      initGridStack(layout.Positions.gridStack);
     } else { //Probably the layout was saved in the old (until May 2024) version of ZM
-      initGridStack();  
+      initGridStack();
       $j('#messageModal').modal('show');
     }
   }
-  
+
   changeMonitorStatusPositon(); //!!! After loading the saved layer, you must execute.
   monitorsSetScale();
   setCookie('zmMontageLayout', layout_id);
@@ -186,7 +187,7 @@ function changeScale() { //Not used
   } else {
     elementResize();
   }
- 
+
   //selectLayout(freeform_layout_id); // Will also clear width and height IgorA100 ВАЖНО ! Пока мешает нам
   $j('#scale').val(scale);
   setCookie('zmMontageScale', scale);
@@ -207,11 +208,11 @@ function edit_layout(button) {
   mode = EDITING;
   $j('.grid-stack-item-content').addClass('modeEditingMonitor');
   objGridStack.enable(); //Enable move
-//  objGridStack.float(true);
- 
-  $j('.btn-view-watch').addClass('hidden'); 
-  $j('.btn-edit-monitor').addClass('hidden'); 
- 
+  // objGridStack.float(true);
+
+  $j('.btn-view-watch').addClass('hidden');
+  $j('.btn-edit-monitor').addClass('hidden');
+
   // Turn off the onclick & disable panzoom on the image.
   for ( let i = 0, length = monitors.length; i < length; i++ ) {
     const monitor = monitors[i];
@@ -220,7 +221,7 @@ function edit_layout(button) {
       panZoomAction('disable', {id: monitors[i].id}); //Disable zoom and pan
     }
   };
-  
+
   $j('#SaveLayout').show();
   $j('#EditLayout').hide();
 
@@ -263,8 +264,8 @@ function cancel_layout(button) {
   //$j(monitors_ul).removeClass('modeEditingMonitor');
   $j('.grid-stack-item-content').removeClass('modeEditingMonitor');
   objGridStack.disable(); //Disable move
-  $j('.btn-view-watch').removeClass('hidden'); 
-  $j('.btn-edit-monitor').removeClass('hidden'); 
+  $j('.btn-view-watch').removeClass('hidden');
+  $j('.btn-edit-monitor').removeClass('hidden');
 
   if (panZoomEnabled) {
     $j('.zoompan').each( function() {
@@ -303,7 +304,7 @@ function handleClick(evt) {
   } else {
     var obj = evt.target.parentElement;
   }
-  
+
   if (mode == EDITING || obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
   if (obj.className.includes('btn-view-watch')) {
     const el = evt.currentTarget;
@@ -399,15 +400,16 @@ function initPage() {
     $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
   }
 
-  $j(".imageFeed").hover( //Displaying "Scale" and other buttons at the top of the monitor image
-    function() {
-      const id = stringToNumber(this.closest('.imageFeed').id);
-      $j('#button_zoom' + id).stop(true, true).slideDown('fast');
-    },
-    function() {
-      const id = stringToNumber(this.closest('.imageFeed').id);
-      $j('#button_zoom' + id).stop(true, true).slideUp('fast');
-    }
+  $j(".imageFeed").hover(
+      //Displaying "Scale" and other buttons at the top of the monitor image
+      function() {
+        const id = stringToNumber(this.closest('.imageFeed').id);
+        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+      },
+      function() {
+        const id = stringToNumber(this.closest('.imageFeed').id);
+        $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+      }
   );
 
   for (let i = 0, length = monitorData.length; i < length; i++) {
@@ -456,30 +458,30 @@ function initPage() {
       }
     }, 10*1000);
   }
-  
+
   setInterval(() => { //Updating GridStack resizeToContent
     if (changedMonitors.length > 0) {
       changedMonitors.forEach(function(item, index, object) {
         if (document.getElementById('liveStream'+item).offsetHeight > 20 && objGridStack) {
           objGridStack.resizeToContent(document.getElementById('m'+item));
-          changedMonitors.splice(index, 1); 
+          changedMonitors.splice(index, 1);
         }
       });
     }
   }, 200);
-  
+
   setTimeout(() => {
-      $j('#monitors').removeClass('hidden-shift');
-      selectLayout();
+    $j('#monitors').removeClass('hidden-shift');
+    selectLayout();
   }, 50); //No matter what flickers. But perhaps this will not be necessary in the future...
   changeMonitorStatusPositon();
-  
+
   if (panZoomEnabled) {
     $j('.zoompan').each( function() {
       panZoomAction('enable', {obj: this});
     });
   }
-  
+
   // Creating a ResizeObserver Instance
   const observer = new ResizeObserver((objResizes) => {
     objResizes.forEach((obj) => {
@@ -491,9 +493,9 @@ function initPage() {
   });
 
   // Registering an observer on an element
-  $j('[id ^= "liveStream"]').each(function(){
+  $j('[id ^= "liveStream"]').each(function() {
     observer.observe(this);
-  })
+  });
 } // end initPage
 
 function formSubmit(form) {
@@ -512,11 +514,11 @@ function watchFullscreen() {
 }
 
 function initGridStack(grid=null) {
-  let opts = {
+  const opts = {
     margin: 0,
     cellHeight: '1px',
     sizeToContent: true, // default to make them all fit
-    resizable: { handles: 'all'}, // do all sides
+    resizable: {handles: 'all'}, // do all sides
     float: false,
     disableDrag: true,
     disableResize: true,
@@ -524,7 +526,8 @@ function initGridStack(grid=null) {
   };
 
   if (grid) {
-    objGridStack = GridStack.init({...opts}).load(grid, false); //When loading, we leave all monitors (according to the filters), and not just those that were saved!  } else {
+    objGridStack = GridStack.init({...opts}).load(grid, false);
+    // When loading, we leave all monitors (according to the filters), and not just those that were saved!
   } else {
     objGridStack = GridStack.init({...opts});
   }
@@ -534,104 +537,112 @@ function initGridStack(grid=null) {
 };
 
 function addEvents(grid, id) {
-  let g = (id !== undefined ? 'grid' + id + ' ' : '');
-  grid.on('change', function(event, items) { /*Occurs when widgets change their position/size due to constrain or direct changes*/
-    items.forEach(function(item) { 
-      const curentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
-      const curentMonitor = monitors.find((o) => { return parseInt(o["id"]) === curentMonitorId });
-      monitorsSetScale(curentMonitorId);
+  //let g = (id !== undefined ? 'grid' + id + ' ' : '');
+  grid.on('change', function(event, items) {
+    /* Occurs when widgets change their position/size due to constrain or direct changes */
+    items.forEach(function(item) {
+      const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
+      /* not used?
+      const curentMonitor = monitors.find((o) => {
+        return parseInt(o["id"]) === curentMonitorId;
+      });
+      */
+      monitorsSetScale(currentMonitorId);
     });
 
     elementResize();
   })
-  .on('added removed', function(event) {
-    //let str = '';
-    //items.forEach(function(item) { str += ' (' + item.x + ',' + item.y + ' ' + item.w + 'x' + item.h + ')'; });
-    //console.log("INFO==>", g + event.type + ' ' + items.length + ' items (x,y w h):' + str );
-  })
-  .on('enable', function(event) {
-    //let grid = event.target;
-    //console.log("INFO==>", g + 'enable');
-  })
-  .on('disable', function(event) {
-    //let grid = event.target;
-    //console.log("INFO==>", g + 'disable');
-  })
-  .on('dragstart', function(event, el) {
-    //let node = el.gridstackNode;
-    //let x = el.getAttribute('gs-x'); // verify node (easiest) and attr are the same
-    //let y = el.getAttribute('gs-y');
-    //let grid = event.target;
-    //objGridStack.float('false');
-  })
-  .on('drag', function(event, el) {
-    //let node = el.gridstackNode;
-    //let x = el.getAttribute('gs-x'); // verify node (easiest) and attr are the same
-    //let y = el.getAttribute('gs-y');
-    //console.log("INFO==>", g + 'drag ' + (node.content || '') + ' pos: (' + node.x + ',' + node.y + ') = (' + x + ',' + y + ')');
-  })
-  .on('dragstop', function(event, el) { /*After the object has been moved*/
-    //let node = el.gridstackNode;
-    //let x = parseInt(el.getAttribute('gs-x')) || 0; // verify node (easiest) and attr are the same
-    //let y = parseInt(el.getAttribute('gs-y')) || 0;
-    // or all values...
-    //let GridStackNode = el.gridstackNode; // {x, y, width, height, id, ....}
-    //console.log("INFO==>", g + 'dragstop ' + (node.content || '') + ' pos: (' + node.x + ',' + node.y + ') = (' + x + ',' + y + ')');
-  })
-  .on('dropped', function(event, previousNode, newNode) {
-    //if (previousNode) {
-    //  console.log("INFO==>", g + 'dropped - Removed widget from grid:', previousNode);
-    //}
-    //if (newNode) {
-    //  console.log("INFO==>", g + 'dropped - Added widget in grid:', newNode);
-    //}
-  })
-  .on('resizestart', function(event, el) {
-    elementResize(true); //Clear. Only used when trying to apply "changeScale". It will be deleted in the future.
-    //let node = el.gridstackNode;
-    //let rec = el.getBoundingClientRect();
-    //console.log("INFO==>", `${g} resizestart ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
-    //let grid = event.target;
-    //objGridStack.float('false');
-  })
-  .on('resize', function(event, el) {
-    //let node = el.gridstackNode;
-    //let rec = el.getBoundingClientRect();
-    //console.log("INFO==>", `${g} resize ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
-  })
-  .on('resizestop', function(event, el) {
-    //const width = parseInt(el.getAttribute('gs-w')) || 0;
-    // or all values...
-    let node = el.gridstackNode; // {x, y, width, height, id, ....}
-    //let rec = el.getBoundingClientRect();
-    //console.log("INFO==>", `${g} resizestop ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
+      .on('added removed', function(event) {
+        //let str = '';
+        //items.forEach(function(item) { str += ' (' + item.x + ',' + item.y + ' ' + item.w + 'x' + item.h + ')'; });
+        //console.log("INFO==>", g + event.type + ' ' + items.length + ' items (x,y w h):' + str );
+      })
+      .on('enable', function(event) {
+        //let grid = event.target;
+        //console.log("INFO==>", g + 'enable');
+      })
+      .on('disable', function(event) {
+        //let grid = event.target;
+        //console.log("INFO==>", g + 'disable');
+      })
+      .on('dragstart', function(event, el) {
+        //let node = el.gridstackNode;
+        //let x = el.getAttribute('gs-x'); // verify node (easiest) and attr are the same
+        //let y = el.getAttribute('gs-y');
+        //let grid = event.target;
+        //objGridStack.float('false');
+      })
+      .on('drag', function(event, el) {
+        //let node = el.gridstackNode;
+        //let x = el.getAttribute('gs-x'); // verify node (easiest) and attr are the same
+        //let y = el.getAttribute('gs-y');
+        //console.log("INFO==>", g + 'drag ' + (node.content || '') + ' pos: (' + node.x + ',' + node.y + ') = (' + x + ',' + y + ')');
+      })
+      .on('dragstop', function(event, el) {
+        /*After the object has been moved*/
+        //let node = el.gridstackNode;
+        //let x = parseInt(el.getAttribute('gs-x')) || 0; // verify node (easiest) and attr are the same
+        //let y = parseInt(el.getAttribute('gs-y')) || 0;
+        // or all values...
+        //let GridStackNode = el.gridstackNode; // {x, y, width, height, id, ....}
+        //console.log("INFO==>", g + 'dragstop ' + (node.content || '') + ' pos: (' + node.x + ',' + node.y + ') = (' + x + ',' + y + ')');
+      })
+      .on('dropped', function(event, previousNode, newNode) {
+        //if (previousNode) {
+        //  console.log("INFO==>", g + 'dropped - Removed widget from grid:', previousNode);
+        //}
+        //if (newNode) {
+        //  console.log("INFO==>", g + 'dropped - Added widget in grid:', newNode);
+        //}
+      })
+      .on('resizestart', function(event, el) {
+        elementResize(true); //Clear. Only used when trying to apply "changeScale". It will be deleted in the future.
+        //let node = el.gridstackNode;
+        //let rec = el.getBoundingClientRect();
+        //console.log("INFO==>", `${g} resizestart ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
+        //let grid = event.target;
+        //objGridStack.float('false');
+      })
+      .on('resize', function(event, el) {
+        //let node = el.gridstackNode;
+        //let rec = el.getBoundingClientRect();
+        //console.log("INFO==>", `${g} resize ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
+      })
+      .on('resizestop', function(event, el) {
+        //const width = parseInt(el.getAttribute('gs-w')) || 0;
+        // or all values...
+        const node = el.gridstackNode; // {x, y, width, height, id, ....}
+        //let rec = el.getBoundingClientRect();
+        //console.log("INFO==>", `${g} resizestop ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
 
-    const curentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
-    const curentMonitor = monitors.find((o) => { return parseInt(o["id"]) === curentMonitorId });
-    curentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
-  });
+        const curentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
+        const curentMonitor = monitors.find((o) => {
+          return parseInt(o["id"]) === curentMonitorId;
+        });
+        curentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
+      });
 }
 
 /*
 param = param['obj'] : DOM object
 param = param['id'] : monitor id
 */
-function panZoomAction (action, param) {
+function panZoomAction(action, param) {
   if (action == "enable") { //Enable all object
     const i = stringToNumber($j(param['obj']).children('[id ^= "liveStream"]')[0].id);
-    $j('.btn-zoom-in').removeClass('hidden'); 
-    $j('.btn-zoom-out').removeClass('hidden'); 
+    $j('.btn-zoom-in').removeClass('hidden');
+    $j('.btn-zoom-out').removeClass('hidden');
     panZoom[i] = Panzoom(param['obj'], {
       minScale: 1,
       maxScale: 20,
       contain: 'outside',
       cursor: 'auto',
-    })
-    panZoom[i].pan(10, 10)
-    panZoom[i].zoom(1, { animate: true })
+    });
+    panZoom[i].pan(10, 10);
+    panZoom[i].zoom(1, {animate: true});
   } else if (action == "disable") { //Disable a specific object
-    $j('.btn-zoom-in').addClass('hidden'); 
-    $j('.btn-zoom-out').addClass('hidden'); 
+    $j('.btn-zoom-in').addClass('hidden');
+    $j('.btn-zoom-out').addClass('hidden');
     panZoom[param['id']].reset();
     panZoom[param['id']].resetStyle();
     panZoom[param['id']].setOptions({disablePan: true, disableZoom: true});
@@ -639,7 +650,7 @@ function panZoomAction (action, param) {
   }
 }
 
-function panZoomIn (el) {
+function panZoomIn(el) {
   if (el.target.id) {
     var id = stringToNumber(el.target.id);
   } else { //There may be an element without ID inside the button
@@ -652,10 +663,10 @@ function panZoomIn (el) {
     el.closest('.zoompan').style['cursor'] = 'move';
   } else {
     el.closest('.zoompan').style['cursor'] = 'auto';
-  }  
+  }
 }
 
-function panZoomOut (el) {
+function panZoomOut(el) {
   if (el.target.id) {
     var id = stringToNumber(el.target.id);
   } else {
@@ -673,7 +684,9 @@ function panZoomOut (el) {
 
 function monitorsSetScale(id=null) {
   if (id) {
-    const curentMonitor = monitors.find((o) => { return parseInt(o["id"]) === id });
+    const curentMonitor = monitors.find((o) => {
+      return parseInt(o["id"]) === id;
+    });
     const el = document.getElementById('liveStream'+id);
     if (panZoomEnabled) {
       var panZoomScale = panZoom[id].getScale();
@@ -697,7 +710,7 @@ function monitorsSetScale(id=null) {
 
 function changeMonitorStatusPositon() {
   const monitorStatusPositon = $j('#monitorStatusPositon').val();
-  $j('.monitorStatus').each(function() {
+  $j('.monitorStatus').each(function updateStatusPosition() {
     if (monitorStatusPositon == 'insideImgBottom') {
       $j(this).addClass('bottom');
       $j(this).removeClass('hidden');
@@ -707,12 +720,12 @@ function changeMonitorStatusPositon() {
     } else if (monitorStatusPositon == 'hidden') {
       $j(this).addClass('hidden');
     }
-    var id = stringToNumber(this.id);
-//    if (mode != EDITING && !changedMonitors.includes(id)) {
+    const id = stringToNumber(this.id);
+    // if (mode != EDITING && !changedMonitors.includes(id)) {
     if (!changedMonitors.includes(id)) {
       changedMonitors.push(id);
     }
-  })
+  });
 
   setCookie('zmMonitorStatusPositonSelected', monitorStatusPositon);
 }

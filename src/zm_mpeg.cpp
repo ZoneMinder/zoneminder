@@ -628,9 +628,13 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 		pkt->data = (uint8_t *)opicture_ptr;
     pkt->size = buffer_size;
     got_packet = 1;
-	} else {
-		opicture_ptr->pts = codec_context->frame_number;
-		opicture_ptr->quality = codec_context->global_quality;
+  } else {
+#if LIBAVCODEC_VERSION_CHECK(60, 2, 0, 2, 100)
+    opicture_ptr->pts = codec_context->frame_num;
+#else
+    opicture_ptr->pts = codec_context->frame_number;
+#endif
+    opicture_ptr->quality = codec_context->global_quality;
 
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
       avcodec_send_frame(codec_context, opicture_ptr);

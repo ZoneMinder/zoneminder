@@ -525,6 +525,7 @@ function initGridStack(grid=null) {
 
   if (grid) {
     objGridStack = GridStack.init({...opts}).load(grid, false); //When loading, we leave all monitors (according to the filters), and not just those that were saved!  } else {
+  } else {
     objGridStack = GridStack.init({...opts});
   }
   //grid.compact('list', false);

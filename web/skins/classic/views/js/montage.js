@@ -622,6 +622,7 @@ function panZoomAction (action, param) {
     $j('.btn-zoom-in').removeClass('hidden'); 
     $j('.btn-zoom-out').removeClass('hidden'); 
     panZoom[i] = Panzoom(param['obj'], {
+      minScale: 1,
       maxScale: 20,
       contain: 'outside',
       cursor: 'auto',

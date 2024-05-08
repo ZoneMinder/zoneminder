@@ -156,8 +156,8 @@ function MonitorStream(monitorData) {
         const monitor_stream = $j(img).closest('.monitorStream');
         const realWidth = monitor_stream.attr('data-width');
         const realHeight = monitor_stream.attr('data-height');
-        const ratio = realWidth / realHeight;
-        const imgWidth = $j(img)[0].offsetWidth + 4; // including border
+        //const ratio = realWidth / realHeight;
+        //const imgWidth = $j(img)[0].offsetWidth + 4; // including border
         img.style.width = '100%';
         $j(img).closest('.monitorStream')[0].style.overflow = 'hidden';
       }

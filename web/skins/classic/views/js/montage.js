@@ -608,7 +608,7 @@ function addEvents(grid, id) {
 
     const curentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
     const curentMonitor = monitors.find((o) => { return parseInt(o["id"]) === curentMonitorId });
-    curentMonitor.setScale( $j('#scale').val(), node.el.offsetWidth + 'px', null, false);
+    curentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
   });
 }
 
@@ -680,7 +680,7 @@ function monitorsSetScale(id=null) {
     } else {
       var panZoomScale = 1;
     }
-    curentMonitor.setScale($j('#scale').val(), el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', false);
+    curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', false);
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
@@ -690,7 +690,7 @@ function monitorsSetScale(id=null) {
       } else {
         var panZoomScale = 1;
       }
-      monitors[i].setScale($j('#scale').val(), parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', false);
+      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', false);
     }
   }
 }

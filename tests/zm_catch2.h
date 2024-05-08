@@ -18,7 +18,7 @@
 #ifndef ZONEMINDER_TESTS_ZM_CATCH2_H_
 #define ZONEMINDER_TESTS_ZM_CATCH2_H_
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 
 #include "zm_vector2.h"
 

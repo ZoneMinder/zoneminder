@@ -90,9 +90,11 @@ function MonitorStream(monitorData) {
   /* scale should be '0' for auto, or an integer value
    * width should be auto, 100%, integer +px
    * height should be auto, 100%, integer +px
+   * resize should be boolean (added only for using GridStack & PanZoom on Montage page)
    * */
-  this.setScale = function(newscale, width, height) {
+  this.setScale = function(newscale, width, height, resize = true) {
     const img = this.getElement();
+    const newscaleSelect = newscale;
     if (!img) {
       console.log('No img in setScale');
       return;
@@ -124,7 +126,9 @@ function MonitorStream(monitorData) {
           newscale = parseInt(100*parseInt(width)/this.width);
         } else { // %
           // Set it, then get the calculated width
-          monitor_frame.css('width', width);
+          if (resize) {
+            monitor_frame.css('width', width);
+          }
           newscale = parseInt(100*parseInt(monitor_frame.width())/this.width);
         }
       } else if (height) {
@@ -137,11 +141,27 @@ function MonitorStream(monitorData) {
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
     if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
-      monitor_frame.css('width', parseInt(width));
+      if (resize) {
+        monitor_frame.css('width', parseInt(width));
+      }
     }
-    if (img.style.width) img.style.width = '100%';
-    if (height && height != '0px') img.style.height = height;
-
+    if (resize) {
+      if (img.style.width) img.style.width = '100%';
+      if (height && height != '0px') img.style.height = height;
+    } else { //This code will not be needed when using GridStack & PanZoom on Montage page. Only required when trying to use "scaleControl"
+      if (newscaleSelect != 0) {
+        img.style.width = 'auto';
+        $j(img).closest('.monitorStream')[0].style.overflow = 'auto';
+      } else {
+        const monitor_stream = $j(img).closest('.monitorStream');
+        const realWidth = monitor_stream.attr('data-width');
+        const realHeight = monitor_stream.attr('data-height');
+        const ratio = realWidth / realHeight;
+        const imgWidth = $j(img)[0].offsetWidth + 4; // including border
+        img.style.width = '100%';
+        $j(img).closest('.monitorStream')[0].style.overflow = 'hidden';
+      }
+    }
     this.setStreamScale(newscale);
   }; // setScale
 

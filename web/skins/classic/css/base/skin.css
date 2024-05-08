@@ -936,6 +936,10 @@ a.flip {
   clear: both;
 }
 
+.monitor .monitorStatus.bottom{
+  color: #dddddd;
+}
+
 .monitor.idle img {
   border: 2px solid #ffffff;
 }

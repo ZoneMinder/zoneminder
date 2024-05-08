@@ -277,8 +277,11 @@ if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   ob_start();
   CSPHeaders($view, $cspNonce);
   foreach ( $includeFiles as $includeFile ) {
-    if (!file_exists($includeFile))
-      ZM\Fatal("View '$view' does not exist");
+    if (!file_exists($includeFile)) {
+      ZM\Error("View '$view' does not exist, redirecting to console");
+      header('Location: ?view=console');
+      return;
+    }
     require_once $includeFile;
   }
   // If the view overrides $view to 'error', and the user is not logged in, then the

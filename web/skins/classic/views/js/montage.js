@@ -615,7 +615,7 @@ function addEvents(grid, id) {
           return parseInt(o["id"]) === currentMonitorId;
         });
         //currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
-        currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, { resizeImg:false });
+        currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, {resizeImg: false});
       });
 }
 
@@ -689,7 +689,7 @@ function monitorsSetScale(id=null) {
     } else {
       var panZoomScale = 1;
     }
-    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', { resizeImg:false });
+    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false});
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
@@ -699,7 +699,7 @@ function monitorsSetScale(id=null) {
       } else {
         var panZoomScale = 1;
       }
-      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', { resizeImg:false });
+      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false});
     }
   }
 }

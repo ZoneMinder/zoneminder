@@ -113,7 +113,7 @@ function MonitorStream(monitorData) {
         if (param.scaleImg) {
           newscale = Math.floor(100*monitor_frame.width() / this.width * param.scaleImg);
         } else {
-        newscale = Math.floor(100*monitor_frame.width() / this.width);
+          newscale = Math.floor(100*monitor_frame.width() / this.width);
         }
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
         width = monitor_frame.css('width');
@@ -125,7 +125,7 @@ function MonitorStream(monitorData) {
         if (param.scaleImg) {
           newscale = parseInt(newSize.autoScale * param.scaleImg);
         } else {
-        newscale = parseInt(newSize.autoScale);
+          newscale = parseInt(newSize.autoScale);
         }
         if (newscale < 25) newscale = 25; // Arbitrary.  4k shown on 1080p screen looks terrible
       }
@@ -162,9 +162,9 @@ function MonitorStream(monitorData) {
         img.style.width = 'auto';
         $j(img).closest('.monitorStream')[0].style.overflow = 'auto';
       } else {
-        const monitor_stream = $j(img).closest('.monitorStream');
-        const realWidth = monitor_stream.attr('data-width');
-        const realHeight = monitor_stream.attr('data-height');
+        //const monitor_stream = $j(img).closest('.monitorStream');
+        //const realWidth = monitor_stream.attr('data-width');
+        //const realHeight = monitor_stream.attr('data-height');
         //const ratio = realWidth / realHeight;
         //const imgWidth = $j(img)[0].offsetWidth + 4; // including border
         img.style.width = '100%';

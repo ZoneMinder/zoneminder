@@ -886,65 +886,65 @@ function controlSetClicked() {
 }
 
 function streamStart() {
-    monitorStream = new MonitorStream(monitorData[monIdx]);
-    monitorStream.setBottomElement(document.getElementById('dvrControls'));
+  monitorStream = new MonitorStream(monitorData[monIdx]);
+  monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
-    // Start the fps and status updates. give a random delay so that we don't assault the server
-    //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
-    monitorsSetScale(monitorId);
-    monitorStream.start();
-    if (streamMode == 'single') {
-      monitorStream.setup_onclick(fetchImage);
-    } else {
-      monitorStream.setup_onclick(handleClick);
-      monitorStream.setup_onmove(handleMove);
-    }
-    monitorStream.setup_onpause(onPause);
-    monitorStream.setup_onplay(onPlay);
-    monitorStream.setup_onalarm(refresh_events_table);
+  // Start the fps and status updates. give a random delay so that we don't assault the server
+  //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
+  monitorsSetScale(monitorId);
+  monitorStream.start();
+  if (streamMode == 'single') {
+    monitorStream.setup_onclick(fetchImage);
+  } else {
+    monitorStream.setup_onclick(handleClick);
+    monitorStream.setup_onmove(handleMove);
+  }
+  monitorStream.setup_onpause(onPause);
+  monitorStream.setup_onplay(onPlay);
+  monitorStream.setup_onalarm(refresh_events_table);
 
-    monitorStream.setButton('enableAlarmButton', enableAlmBtn);
-    monitorStream.setButton('forceAlarmButton', forceAlmBtn);
-    monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
-    if (canEdit.Monitors) {
-      // Will be enabled by streamStatus ajax
-      enableAlmBtn.on('click', cmdAlarm);
-      forceAlmBtn.on('click', cmdForce);
-    } else {
-      forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
-      enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
-    }
+  monitorStream.setButton('enableAlarmButton', enableAlmBtn);
+  monitorStream.setButton('forceAlarmButton', forceAlmBtn);
+  monitorStream.setButton('zoomOutButton', $j('zoomOutBtn'));
+  if (canEdit.Monitors) {
+    // Will be enabled by streamStatus ajax
+    enableAlmBtn.on('click', cmdAlarm);
+    forceAlmBtn.on('click', cmdForce);
+  } else {
+    forceAlmBtn.prop('title', forceAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
+    enableAlmBtn.prop('title', enableAlmBtn.prop('title') + ': disabled because cannot edit Monitors');
+  }
 
-    /*
-    if (streamMode == 'single') {
-      statusCmdTimer = setTimeout(statusCmdQuery, 200);
-      setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
+  /*
+  if (streamMode == 'single') {
+    statusCmdTimer = setTimeout(statusCmdQuery, 200);
+    setInterval(watchdogCheck, statusRefreshTimeout*2, 'status');
+  } else {
+    streamCmdTimer = setTimeout(streamCmdQuery, 200);
+    setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
+  }
+  if (canStream || (streamMode == 'single')) {
+    var streamImg = $j('#imageFeed img');
+    if (!streamImg) streamImg = $j('#imageFeed object');
+    if (!streamImg) {
+      console.error('No streamImg found for imageFeed');
     } else {
-      streamCmdTimer = setTimeout(streamCmdQuery, 200);
-      setInterval(watchdogCheck, statusRefreshTimeout*2, 'stream');
-    }
-    if (canStream || (streamMode == 'single')) {
-      var streamImg = $j('#imageFeed img');
-      if (!streamImg) streamImg = $j('#imageFeed object');
-      if (!streamImg) {
-        console.error('No streamImg found for imageFeed');
+      if (streamMode == 'single') {
+        streamImg.click(streamImg, fetchImage);
+        setInterval(fetchImage, imageRefreshTimeout, $j('#imageFeed img'));
       } else {
-        if (streamMode == 'single') {
-          streamImg.click(streamImg, fetchImage);
-          setInterval(fetchImage, imageRefreshTimeout, $j('#imageFeed img'));
-        } else {
-          streamImg.click(function(event) {
-            handleClick(event);
-          });
-          streamImg.on("error", function(thing) {
-            console.log("Error loading image");
-            console.log(thing);
-            setInterval(fetchImage, 100, $j('#imageFeed img'));
-          });
-        }
-      } // end if have streamImg
-    } // streamMode native or single
-    */
+        streamImg.click(function(event) {
+          handleClick(event);
+        });
+        streamImg.on("error", function(thing) {
+          console.log("Error loading image");
+          console.log(thing);
+          setInterval(fetchImage, 100, $j('#imageFeed img'));
+        });
+      }
+    } // end if have streamImg
+  } // streamMode native or single
+  */
 }
 
 function initPage() {

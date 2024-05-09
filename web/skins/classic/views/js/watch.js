@@ -24,6 +24,9 @@ var coordinateMouse = {
 };
 var leftBtnStatus = {Down: false, UpAfterDown: false};
 
+var panZoomEnabled = true; //Add it to settings in the future
+var panZoom = [];
+
 /*
 This is the format of the json object sent by bootstrap-table
 
@@ -134,7 +137,8 @@ function changeSize() {
   var width = $j('#width').val();
   var height = $j('#height').val();
 
-  monitorStream.setScale('0', width, height);
+  //monitorStream.setScale('0', width, height);
+  monitorsSetScale(monitorId);
   $j('#scale').val('0');
   $j('#sidebar ul').height($j('#wrapperMonitor').height()-$j('#cycleButtons').height());
 
@@ -157,7 +161,8 @@ function changeScale() {
 // Implement current scale, as opposed to changing it
 function setScale() {
   const scale = $j('#scale').val();
-  monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
+  //monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
+  monitorsSetScale(monitorId);
   // Always turn it off, we will re-add it below. I don't know if you can add a callback multiple
   // times and what the consequences would be
   $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
@@ -601,6 +606,24 @@ function fetchImage(streamImage) {
 }
 
 function handleClick(event) {
+  event.preventDefault();
+  if (event.target.id) {
+  //We are looking for an object with an ID, because there may be another element in the button.
+    var obj = event.target;
+  } else {
+    var obj = event.target.parentElement;
+  }
+  if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
+
+  if (obj.className.includes('btn-edit-monitor')) {
+    const url = '?view=monitor&mid='+monitorId;
+    if (event.ctrlKey) {
+      window.open(url, '_blank');
+    } else {
+      window.location.assign(url);
+    }
+  }
+/***
   if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
   // target should be the img tag
     const target = $j(event.target);
@@ -627,6 +650,7 @@ function handleClick(event) {
       controlCmdImage(x, y);
     }
   }
+***/
 }
 
 function shiftImgFrame() { //We calculate the coordinates of the image displacement and shift the image
@@ -664,6 +688,7 @@ function getCoordinateMouse(event) { //We get the current cursor coordinates tak
 }
 
 function handleMove(event) {
+/*
   if (event.ctrlKey && event.shiftKey) {
     document.ondragstart = function() {
       return false;
@@ -701,6 +726,7 @@ function handleMove(event) {
     updateCoordinateMouse(x, y);
     leftBtnStatus.UpAfterDown = false;
   }
+*/
 }
 
 function zoomOutClick(event) {
@@ -860,6 +886,12 @@ function controlSetClicked() {
 }
 
 function initPage() {
+  if (panZoomEnabled) {
+    $j('.zoompan').each( function() {
+      panZoomAction('enable', {obj: this});
+    });
+  }
+
   if (canView.Control) {
     // Load the settings modal into the DOM
     if (monitorType == 'Local') getSettingsModal();
@@ -880,7 +912,8 @@ function initPage() {
     monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
-    monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
+    //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
+    monitorsSetScale(monitorId);
     monitorStream.start();
     if (streamMode == 'single') {
       monitorStream.setup_onclick(fetchImage);
@@ -1041,6 +1074,18 @@ function initPage() {
       }
     }, 10*1000);
   }
+  $j(".imageFeed").hover(
+    //Displaying "Scale" and other buttons at the top of the monitor image
+    function() {
+      const id = stringToNumber(this.id);
+      $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+    },
+    function() {
+      const id = stringToNumber(this.id);
+      $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+    }
+  );
+
   changeObjectClass();
   changeSize();
 } // initPage
@@ -1198,6 +1243,114 @@ function changeObjectClass() {
     sidebarControls.removeClass(classSidebarR);
     wrapperMonitor.removeClass(classMonitorW_SB_LR).removeClass(classMonitorW_SB_L).removeClass(classMonitorW_SB_R).removeClass(classMonitorWO_SB).addClass(classMonitorWO_SB);
   }
+}
+
+/*
+param = param['obj'] : DOM object
+param = param['id'] : monitor id
+*/
+function panZoomAction (action, param) {
+  if (action == "enable") {
+    //Enable all object
+    const i = stringToNumber($j(param['obj']).children('[id ^= "liveStream"]')[0].id);
+    $j('.btn-zoom-in').removeClass('hidden'); 
+    $j('.btn-zoom-out').removeClass('hidden'); 
+    panZoom[i] = Panzoom(param['obj'], {
+      minScale: 1,
+      maxScale: 20,
+      contain: 'outside',
+      cursor: 'auto',
+    })
+    panZoom[i].pan(10, 10)
+    panZoom[i].zoom(1, { animate: true })
+  } else if (action == "disable") {
+    //Disable a specific object
+    $j('.btn-zoom-in').addClass('hidden'); 
+    $j('.btn-zoom-out').addClass('hidden'); 
+    panZoom[param['id']].reset();
+    panZoom[param['id']].resetStyle();
+    panZoom[param['id']].setOptions({disablePan: true, disableZoom: true});
+    panZoom[param['id']].destroy();
+  }
+}
+
+function panZoomIn (el) {
+  /*
+  if (el.target.id) {
+    //For Montage page
+    var id = stringToNumber(el.target.id);
+  } else { //There may be an element without ID inside the button
+    var id = stringToNumber(el.target.parentElement.id);
+  }
+  */
+  var id = monitorId; //For Watch page
+  
+  panZoom[id].zoomIn();
+  monitorsSetScale(id);
+  var el = document.getElementById('liveStream'+id);
+  if (panZoom[id].getScale().toFixed(1) != 1.0) {
+    el.closest('.zoompan').style['cursor'] = 'move';
+  } else {
+    el.closest('.zoompan').style['cursor'] = 'auto';
+  }  
+}
+
+function panZoomOut (el) {
+  /*
+  if (el.target.id) {
+    //For Montage page
+    var id = stringToNumber(el.target.id);
+  } else { //There may be an element without ID inside the button
+    var id = stringToNumber(el.target.parentElement.id);
+  }
+  */
+  var id = monitorId; //For Watch page
+  
+  panZoom[id].zoomOut();
+  monitorsSetScale(id);
+  var el = document.getElementById('liveStream'+id);
+  if (panZoom[id].getScale().toFixed(1) != 1.0) {
+    el.closest('.zoompan').style['cursor'] = 'move';
+  } else {
+    el.closest('.zoompan').style['cursor'] = 'auto';
+  }
+}
+
+function monitorsSetScale(id=null) {
+  //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
+  if (id || typeof monitorStream !== 'undefined') { 
+    //monitorStream used on Watch page.
+    if (monitorStream) {
+      var curentMonitor = monitorStream;
+    } else {
+      var curentMonitor = monitors.find((o) => { return parseInt(o["id"]) === id });
+    }
+    const el = document.getElementById('liveStream'+id);
+    if (panZoomEnabled) {
+      var panZoomScale = panZoom[id].getScale();
+    } else {
+      var panZoomScale = 1;
+    }
+    //curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg:true, scaleImg:panZoomScale});
+    curentMonitor.setScale(0, 'auto', 'auto', {resizeImg:true, scaleImg:panZoomScale});
+  } else {
+    for ( let i = 0, length = monitors.length; i < length; i++ ) {
+      const id = monitors[i].id;
+      const el = document.getElementById('liveStream'+id);
+      if (panZoomEnabled) {
+        var panZoomScale = panZoom[id].getScale();
+      } else {
+        var panZoomScale = 1;
+      }
+      //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
+      monitors[i].setScale(0, 'auto', 'auto', {resizeImg:true, scaleImg:panZoomScale});
+    }
+  }
+}
+
+function stringToNumber(str) {
+  //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
+  return parseInt(str.replace(/\D/g, ''));
 }
 
 // Kick everything off

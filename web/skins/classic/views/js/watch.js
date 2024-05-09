@@ -1249,24 +1249,24 @@ function changeObjectClass() {
 param = param['obj'] : DOM object
 param = param['id'] : monitor id
 */
-function panZoomAction (action, param) {
+function panZoomAction(action, param) {
   if (action == "enable") {
     //Enable all object
     const i = stringToNumber($j(param['obj']).children('[id ^= "liveStream"]')[0].id);
-    $j('.btn-zoom-in').removeClass('hidden'); 
-    $j('.btn-zoom-out').removeClass('hidden'); 
+    $j('.btn-zoom-in').removeClass('hidden');
+    $j('.btn-zoom-out').removeClass('hidden');
     panZoom[i] = Panzoom(param['obj'], {
       minScale: 1,
       maxScale: 20,
       contain: 'outside',
       cursor: 'auto',
-    })
-    panZoom[i].pan(10, 10)
-    panZoom[i].zoom(1, { animate: true })
+    });
+    panZoom[i].pan(10, 10);
+    panZoom[i].zoom(1, {animate: true});
   } else if (action == "disable") {
     //Disable a specific object
-    $j('.btn-zoom-in').addClass('hidden'); 
-    $j('.btn-zoom-out').addClass('hidden'); 
+    $j('.btn-zoom-in').addClass('hidden');
+    $j('.btn-zoom-out').addClass('hidden');
     panZoom[param['id']].reset();
     panZoom[param['id']].resetStyle();
     panZoom[param['id']].setOptions({disablePan: true, disableZoom: true});
@@ -1274,7 +1274,7 @@ function panZoomAction (action, param) {
   }
 }
 
-function panZoomIn (el) {
+function panZoomIn (el){
   /*
   if (el.target.id) {
     //For Montage page
@@ -1284,7 +1284,7 @@ function panZoomIn (el) {
   }
   */
   var id = monitorId; //For Watch page
-  
+
   panZoom[id].zoomIn();
   monitorsSetScale(id);
   var el = document.getElementById('liveStream'+id);
@@ -1292,10 +1292,10 @@ function panZoomIn (el) {
     el.closest('.zoompan').style['cursor'] = 'move';
   } else {
     el.closest('.zoompan').style['cursor'] = 'auto';
-  }  
+  }
 }
 
-function panZoomOut (el) {
+function panZoomOut (el){
   /*
   if (el.target.id) {
     //For Montage page
@@ -1305,7 +1305,7 @@ function panZoomOut (el) {
   }
   */
   var id = monitorId; //For Watch page
-  
+
   panZoom[id].zoomOut();
   monitorsSetScale(id);
   var el = document.getElementById('liveStream'+id);
@@ -1318,32 +1318,33 @@ function panZoomOut (el) {
 
 function monitorsSetScale(id=null) {
   //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  if (id || typeof monitorStream !== 'undefined') { 
+  if (id || typeof monitorStream !== 'undefined') {
     //monitorStream used on Watch page.
     if (monitorStream) {
       var curentMonitor = monitorStream;
     } else {
-      var curentMonitor = monitors.find((o) => { return parseInt(o["id"]) === id });
+      var curentMonitor = monitors.find((o) => {
+        return parseInt(o["id"]) === id });
     }
-    const el = document.getElementById('liveStream'+id);
+    //const el = document.getElementById('liveStream'+id);
     if (panZoomEnabled) {
       var panZoomScale = panZoom[id].getScale();
     } else {
       var panZoomScale = 1;
     }
     //curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg:true, scaleImg:panZoomScale});
-    curentMonitor.setScale(0, 'auto', 'auto', {resizeImg:true, scaleImg:panZoomScale});
+    curentMonitor.setScale(0, 'auto', 'auto', {resizeImg: true, scaleImg:panZoomScale});
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
-      const el = document.getElementById('liveStream'+id);
+      //const el = document.getElementById('liveStream'+id);
       if (panZoomEnabled) {
         var panZoomScale = panZoom[id].getScale();
       } else {
         var panZoomScale = 1;
       }
       //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
-      monitors[i].setScale(0, 'auto', 'auto', {resizeImg:true, scaleImg:panZoomScale});
+      monitors[i].setScale(0, 'auto', 'auto', {resizeImg: true, scaleImg: panZoomScale});
     }
   }
 }

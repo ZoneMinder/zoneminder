@@ -137,6 +137,9 @@ if ( $css != 'base' )
     if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
   }
+  if ( $basename == 'montage' ) {
+    echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
+  }
 ?>
   <style>
 <?php
@@ -980,7 +983,13 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
-<?php echo output_script_if_exists(array(
+<?php 
+  if ( $basename == 'montage' ) {
+    echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
+    echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+  }
+
+  echo output_script_if_exists(array(
   'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
   'js/bootstrap-table-1.22.3/bootstrap-table.min.js',

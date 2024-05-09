@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
 
       snprintf(sql, sizeof(sql), 
           "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"
-          " VALUES (%u, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0",
+          " VALUES (%u, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
           monitor->Id());
       zmDbDo(sql);
 
@@ -373,7 +373,7 @@ int main(int argc, char *argv[]) {
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf(sql, sizeof(sql),
-        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'", 
+        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0", 
         monitor->Id());
     zmDbDo(sql);
   }

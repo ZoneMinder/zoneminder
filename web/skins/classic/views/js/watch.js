@@ -885,29 +885,7 @@ function controlSetClicked() {
   }
 }
 
-function initPage() {
-  if (panZoomEnabled) {
-    $j('.zoompan').each( function() {
-      panZoomAction('enable', {obj: this});
-    });
-  }
-
-  if (canView.Control) {
-    // Load the settings modal into the DOM
-    if (monitorType == 'Local') getSettingsModal();
-  }
-  // Only enable the settings button for local cameras
-  if (!canView.Control) {
-    settingsBtn.prop('disabled', true);
-    settingsBtn.prop('title', 'Disbled due to lack of Control View permission.');
-  } else if (monitorType != 'Local') {
-    settingsBtn.prop('disabled', true);
-    settingsBtn.prop('title', 'Settings only available for Local monitors.');
-  } else {
-    settingsBtn.prop('disabled', false);
-  }
-
-  if ((monitorType != 'WebSite') && monitorData.length) {
+function streamStart() {
     monitorStream = new MonitorStream(monitorData[monIdx]);
     monitorStream.setBottomElement(document.getElementById('dvrControls'));
 
@@ -967,6 +945,32 @@ function initPage() {
       } // end if have streamImg
     } // streamMode native or single
     */
+}
+
+function initPage() {
+  if (panZoomEnabled) {
+    $j('.zoompan').each( function() {
+      panZoomAction('enable', {obj: this});
+    });
+  }
+
+  if (canView.Control) {
+    // Load the settings modal into the DOM
+    if (monitorType == 'Local') getSettingsModal();
+  }
+  // Only enable the settings button for local cameras
+  if (!canView.Control) {
+    settingsBtn.prop('disabled', true);
+    settingsBtn.prop('title', 'Disbled due to lack of Control View permission.');
+  } else if (monitorType != 'Local') {
+    settingsBtn.prop('disabled', true);
+    settingsBtn.prop('title', 'Settings only available for Local monitors.');
+  } else {
+    settingsBtn.prop('disabled', false);
+  }
+
+  if ((monitorType != 'WebSite') && monitorData.length) {
+    streamStart();
     if (window.history.length == 1) {
       $j('#closeControl').html('');
     }
@@ -1075,15 +1079,15 @@ function initPage() {
     }, 10*1000);
   }
   $j(".imageFeed").hover(
-    //Displaying "Scale" and other buttons at the top of the monitor image
-    function() {
-      const id = stringToNumber(this.id);
-      $j('#button_zoom' + id).stop(true, true).slideDown('fast');
-    },
-    function() {
-      const id = stringToNumber(this.id);
-      $j('#button_zoom' + id).stop(true, true).slideUp('fast');
-    }
+      //Displaying "Scale" and other buttons at the top of the monitor image
+      function() {
+        const id = stringToNumber(this.id);
+        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+      },
+      function() {
+        const id = stringToNumber(this.id);
+        $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+      }
   );
 
   changeObjectClass();
@@ -1274,7 +1278,7 @@ function panZoomAction(action, param) {
   }
 }
 
-function panZoomIn (el){
+function panZoomIn(el) {
   /*
   if (el.target.id) {
     //For Montage page
@@ -1295,7 +1299,7 @@ function panZoomIn (el){
   }
 }
 
-function panZoomOut (el){
+function panZoomOut(el) {
   /*
   if (el.target.id) {
     //For Montage page
@@ -1324,7 +1328,8 @@ function monitorsSetScale(id=null) {
       var curentMonitor = monitorStream;
     } else {
       var curentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === id });
+        return parseInt(o["id"]) === id;
+      });
     }
     //const el = document.getElementById('liveStream'+id);
     if (panZoomEnabled) {
@@ -1333,7 +1338,7 @@ function monitorsSetScale(id=null) {
       var panZoomScale = 1;
     }
     //curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg:true, scaleImg:panZoomScale});
-    curentMonitor.setScale(0, 'auto', 'auto', {resizeImg: true, scaleImg:panZoomScale});
+    curentMonitor.setScale(0, 'auto', 'auto', {resizeImg: true, scaleImg: panZoomScale});
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;

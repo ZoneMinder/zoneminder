@@ -384,7 +384,7 @@ int main(int argc, char *argv[]) {
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     std::string sql = stringtf(
-                        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'",
+                        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
                         monitor->Id());
     zmDbDo(sql);
   }

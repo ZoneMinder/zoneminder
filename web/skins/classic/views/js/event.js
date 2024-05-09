@@ -1030,7 +1030,13 @@ function manageDelConfirmModalBtns() {
       return;
     }
 
+    // Stop playing, this is mostly for video.js
     pauseClicked();
+    if (!vid) {
+      // zms is supposed to get SIGPIPE but might not if running under FPM
+      streamReq({command: CMD_QUIT});
+    }
+
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
         .done(function(data) {

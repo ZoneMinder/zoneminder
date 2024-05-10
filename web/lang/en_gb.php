@@ -221,6 +221,7 @@ $SLANG = array(
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
     'ConfirmDeleteTitle'    => 'Delete Confirmation',
     'ConfirmPassword'       => 'Confirm Password',
+    'ConfirmUnarchiveEvents'=> 'Are you sure you wish to unarchive the selected events?',
     'ConjAnd'               => 'and',
     'ConjOr'                => 'or',
     'ContactAdmin'          => 'Please contact your adminstrator for details.',

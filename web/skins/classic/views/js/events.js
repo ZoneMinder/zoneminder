@@ -185,6 +185,39 @@ function manageDelConfirmModalBtns() {
   });
 }
 
+function unarchiveEvents(event_ids) {
+  const ticker = document.getElementById('unarchiveProgressTicker');
+  const chunk = event_ids.splice(0, 10);
+  console.log('unarchive ' + chunk.length + ' selections. ' + event_ids.length);
+
+  $j.ajax({
+    method: 'get',
+    timeout: 0,
+    url: thisUrl + '?request=events&task=unarchive',
+    data: {'eids[]': chunk},
+    success: function(data) {
+      if (data.message) alert(data.message.join("\n"));
+
+      if (!event_ids.length) {
+        $j('#eventTable').bootstrapTable('refresh');
+        $j('#unarchiveConfirm').modal('hide');
+      } else {
+        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+          ticker.innerHTML = '.';
+        } else {
+          ticker.innerHTML = ticker.innerHTML + '.';
+        }
+        unarchiveEvents(event_ids);
+      }
+    },
+    fail: function(jqxhr) {
+      logAjaxFail(jqxhr);
+      $j('#eventTable').bootstrapTable('refresh');
+      $j('#unarchiveConfirm').modal('hide');
+    }
+  });
+}
+
 function deleteEvents(event_ids) {
   const ticker = document.getElementById('deleteProgressTicker');
   const chunk = event_ids.splice(0, 10);
@@ -358,19 +391,49 @@ function initPage() {
       return;
     }
 
-    const selections = getIdSelections();
+    if (evt.shiftKey) {
+      const selections = getIdSelections();
+      unarchiveEvents(selections);
+      return;
+    } 
 
-    evt.preventDefault();
-    $j.ajax({
-      method: 'POST',
-      timeout: 0,
-      url: thisUrl + '?request=events&task=unarchive',
-      data: {'eids[]': selections},
-      success: function(data) {
-        $j('#eventTable').bootstrapTable('refresh');
-      },
-      error: logAjaxFail
-    });
+    if (!document.getElementById('unarchiveConfirm')) {
+      // Load the unarchive confirmation modal into the DOM
+      $j.getJSON(thisUrl + '?request=modal&modal=eventunarchive')
+        .done(function(data) {
+          insertModalHtml('unarchiveConfirm', data.html);
+          document.getElementById('unarchiveConfirmBtn').addEventListener('click', function onUnarchiveConfirmClick(evt) {
+            if (!canEdit.Events) {
+              enoperm();
+              return;
+            }
+            evt.preventDefault();
+
+            const selections = getIdSelections();
+            if (!selections.length) {
+              alert('Please select events to Unarchive.');
+            } else {
+              document.getElementById('unarchiveConfirmBtn').disabled = true; // prevent double click
+              unarchiveEvents(selections);
+            }
+          });
+
+          // Manage the CANCEL modal button
+          document.getElementById('unarchiveCancelBtn').addEventListener('click', function onUnarchiveCancelClick(evt) {
+            $j('#unarchiveConfirm').modal('hide');
+          });
+
+          $j('#unarchiveConfirm').modal('show');
+        })
+          .fail(function(jqXHR) {
+            console.log('error getting unarchiveevent', jqXHR);
+            logAjaxFail(jqXHR);
+          });
+        return;
+      } else {
+        document.getElementById('unarchiveConfirmBtn').disabled = false; // re-enable the button
+        $j('#unarchiveConfirm').modal('show');
+      }
   });
 
   // Manage the EDIT button

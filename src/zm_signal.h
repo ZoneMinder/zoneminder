@@ -34,6 +34,7 @@ typedef RETSIGTYPE (SigHandler)( int );
 
 extern bool zm_reload;
 extern bool zm_terminate;
+extern bool zm_panic;     // Similar to zm_terminate except tells all destructors to ignore locking. Mostly for use after failed fork/exec.
 
 RETSIGTYPE zmc_hup_handler( int signal );
 RETSIGTYPE zmc_term_handler( int signal );

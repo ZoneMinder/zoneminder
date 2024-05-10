@@ -27,6 +27,7 @@
 
 bool zm_reload = false;
 bool zm_terminate = false;
+bool zm_panic = false;
 
 RETSIGTYPE zm_hup_handler(int signal) {
   // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.

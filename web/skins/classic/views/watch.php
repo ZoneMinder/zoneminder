@@ -253,18 +253,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         </span>
       </div>
       <div id="sizeControl">
-        <span id="widthControl">
-          <label><?php echo translate('Width') ?>:</label>
-          <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change-this'=>'changeSize') ); ?>
-        </span>
-        <span id="heightControl">
-          <label><?php echo translate('Height') ?>:</label>
-          <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change-this'=>'changeSize') ); ?>
-        </span>
-        <span id="scaleControl">
-          <label><?php echo translate('Scale') ?>:</label>
-          <?php echo htmlSelect('scale', $scales, $options['scale'], array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
-        </span>
+
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->
@@ -315,7 +304,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           </ul>
         </nav>
         <div id="wrapperMonitor" class="container-fluid col">
-          <div id="Monitor" class="Monitor"
+          <div id="monitor" class="monitor"
 <?php
 if ($streamMode == 'jpeg') {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';

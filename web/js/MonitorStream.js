@@ -90,9 +90,10 @@ function MonitorStream(monitorData) {
   /* scale should be '0' for auto, or an integer value
    * width should be auto, 100%, integer +px
    * height should be auto, 100%, integer +px
-   * resize should be boolean (added only for using GridStack & PanZoom on Montage page)
+   * param.resizeImg be boolean (added only for using GridStack & PanZoom on Montage page)
+   * param.scaleImg scaling 1=100% (added only for using PanZoom on Montage & Watch page)
    * */
-  this.setScale = function(newscale, width, height, resize = true) {
+  this.setScale = function(newscale, width, height, param = {}) {
     const img = this.getElement();
     const newscaleSelect = newscale;
     if (!img) {
@@ -109,7 +110,11 @@ function MonitorStream(monitorData) {
 
     if (((newscale == '0') || (newscale == 0) || (newscale=='auto')) && (width=='auto' || !width)) {
       if (!this.bottomElement) {
-        newscale = Math.floor(100*monitor_frame.width() / this.width);
+        if (param.scaleImg) {
+          newscale = Math.floor(100*monitor_frame.width() / this.width * param.scaleImg);
+        } else {
+          newscale = Math.floor(100*monitor_frame.width() / this.width);
+        }
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
         width = monitor_frame.css('width');
         height = Math.round(parseInt(this.height) * newscale / 100)+'px';
@@ -117,7 +122,11 @@ function MonitorStream(monitorData) {
         const newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement), $j('#wrapperMonitor'));
         width = newSize.width+'px';
         height = newSize.height+'px';
-        newscale = parseInt(newSize.autoScale);
+        if (param.scaleImg) {
+          newscale = parseInt(newSize.autoScale * param.scaleImg);
+        } else {
+          newscale = parseInt(newSize.autoScale);
+        }
         if (newscale < 25) newscale = 25; // Arbitrary.  4k shown on 1080p screen looks terrible
       }
     } else if (parseInt(width) || parseInt(height)) {
@@ -126,7 +135,7 @@ function MonitorStream(monitorData) {
           newscale = parseInt(100*parseInt(width)/this.width);
         } else { // %
           // Set it, then get the calculated width
-          if (resize) {
+          if (param.resizeImg) {
             monitor_frame.css('width', width);
           }
           newscale = parseInt(100*parseInt(monitor_frame.width())/this.width);
@@ -141,11 +150,11 @@ function MonitorStream(monitorData) {
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
     if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
-      if (resize) {
+      if (param.resizeImg) {
         monitor_frame.css('width', parseInt(width));
       }
     }
-    if (resize) {
+    if (param.resizeImg) {
       if (img.style.width) img.style.width = '100%';
       if (height && height != '0px') img.style.height = height;
     } else { //This code will not be needed when using GridStack & PanZoom on Montage page. Only required when trying to use "scaleControl"
@@ -153,9 +162,9 @@ function MonitorStream(monitorData) {
         img.style.width = 'auto';
         $j(img).closest('.monitorStream')[0].style.overflow = 'auto';
       } else {
-        const monitor_stream = $j(img).closest('.monitorStream');
-        const realWidth = monitor_stream.attr('data-width');
-        const realHeight = monitor_stream.attr('data-height');
+        //const monitor_stream = $j(img).closest('.monitorStream');
+        //const realWidth = monitor_stream.attr('data-width');
+        //const realHeight = monitor_stream.attr('data-height');
         //const ratio = realWidth / realHeight;
         //const imgWidth = $j(img)[0].offsetWidth + 4; // including border
         img.style.width = '100%';

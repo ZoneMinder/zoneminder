@@ -246,6 +246,7 @@ $SLANG = array(
     'ConfiguredFor'        => 'настроен на',
     'ConfirmDeleteEvents'  => 'Вы действительно хотите удалить выбранные события?',
     'ConfirmPassword'      => 'Подтвердите пароль',
+    'ConfirmUnarchiveEvents'=> 'Вы уверены, что хотите удалить из архива выбранные события?',
     'ConjAnd'              => 'и',
     'ConjOr'               => 'или',
     'Console'              => 'Сервер',

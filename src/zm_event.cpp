@@ -212,17 +212,6 @@ Event::~Event() {
         id);
     zmDbDoUpdate(sql);
   }  // end if no changed rows due to Name change during recording
-
-  sql = stringtf("UPDATE Event_Summaries SET "
-      "HourEventDiskSpace = COALESCE(HourEventDiskSpace,0)+%" PRIu64 ","
-      "DayEventDiskSpace = COALESCE(DayEventDiskSpace,0)+%" PRIu64 ","
-      "WeekEventDiskSpace = COALESCE(WeekEventDiskSpace,0)+%" PRIu64 ","
-      "MonthEventDiskSpace = COALESCE(MonthEventDiskSpace,0)+%" PRIu64 ","
-      "TotalEventDiskSpace = COALESCE(TotalEventDiskSpace,0)+%" PRIu64
-      " WHERE MonitorId=%d",
-      video_size, video_size, video_size, video_size, video_size,
-      monitor->Id());
-  zmDbDoUpdate(sql);
 }  // Event::~Event()
 
 void Event::createNotes(std::string &notes) {

@@ -24,7 +24,7 @@ function isPresetLayout(name) {
   return (( name=='Freeform' || name=='1 Wide' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' || name=='6 Wide' || name=='7 Wide' || name=='8 Wide' || name=='9 Wide' || name=='10 Wide' || name=='11 Wide' || name=='12 Wide' || name=='16 Wide' ) ? true : false);
 }
 
-function getCurentNameLayout() {
+function getCurrentNameLayout() {
   return layouts[parseInt($j('#zmMontageLayout').val())].Name;
 }
 
@@ -542,11 +542,6 @@ function addEvents(grid, id) {
     /* Occurs when widgets change their position/size due to constrain or direct changes */
     items.forEach(function(item) {
       const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
-      /* not used?
-      const curentMonitor = monitors.find((o) => {
-        return parseInt(o["id"]) === curentMonitorId;
-      });
-      */
       monitorsSetScale(currentMonitorId);
     });
 
@@ -615,11 +610,12 @@ function addEvents(grid, id) {
         //let rec = el.getBoundingClientRect();
         //console.log("INFO==>", `${g} resizestop ${node.content || ''} size: (${node.w}x${node.h}) = (${Math.round(rec.width)}x${Math.round(rec.height)})px`);
 
-        const curentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
-        const curentMonitor = monitors.find((o) => {
-          return parseInt(o["id"]) === curentMonitorId;
+        const currentMonitorId = stringToNumber(node.el.id); //We received the ID of the monitor whose size was changed
+        const currentMonitor = monitors.find((o) => {
+          return parseInt(o["id"]) === currentMonitorId;
         });
-        curentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
+        //currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, false);
+        currentMonitor.setScale(0, node.el.offsetWidth + 'px', null, {resizeImg: false});
       });
 }
 
@@ -684,7 +680,7 @@ function panZoomOut(el) {
 
 function monitorsSetScale(id=null) {
   if (id) {
-    const curentMonitor = monitors.find((o) => {
+    const currentMonitor = monitors.find((o) => {
       return parseInt(o["id"]) === id;
     });
     const el = document.getElementById('liveStream'+id);
@@ -693,7 +689,7 @@ function monitorsSetScale(id=null) {
     } else {
       var panZoomScale = 1;
     }
-    curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', false);
+    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false});
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
@@ -703,7 +699,7 @@ function monitorsSetScale(id=null) {
       } else {
         var panZoomScale = 1;
       }
-      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', false);
+      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false});
     }
   }
 }

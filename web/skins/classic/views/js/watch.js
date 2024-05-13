@@ -1022,12 +1022,12 @@ function initPage() {
   if (panZoomEnabled) {
     $j('.zoompan').each( function() {
       panZoomAction('enable', {obj: this});
-      $j(document).on('keyup keydown', function(e){
+      $j(document).on('keyup keydown', function(e) {
         shifted = e.shiftKey ? e.shiftKey : e.shift;
         ctrled = e.ctrlKey;
         manageCursor(monitorId);
       });
-      this.addEventListener('mousemove', function(e){ 
+      this.addEventListener('mousemove', function(e) {
         //Temporarily not use
       });
     });
@@ -1352,8 +1352,8 @@ function panZoomAction(action, param) {
       if (!shifted) {
         return;
       }
-      panZoom[i].zoomWithWheel(event)
-    })
+      panZoom[i].zoomWithWheel(event);
+    });
   } else if (action == "disable") {
     //Disable a specific object
     $j('.btn-zoom-in').addClass('hidden');

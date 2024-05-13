@@ -25,6 +25,8 @@ var coordinateMouse = {
 var leftBtnStatus = {Down: false, UpAfterDown: false};
 
 var panZoomEnabled = true; //Add it to settings in the future
+var panZoomMaxScale = 10;
+var panZoomStep = 0.3;
 var panZoom = [];
 
 /*
@@ -148,6 +150,8 @@ function changeSize() {
 } // end function changeSize()
 
 function changeScale() {
+  monitorsSetScale(monitorId);
+/*
   const scale = $j('#scale').val();
   setCookie('zmWatchScale'+monitorId, scale);
   $j('#width').val('auto');
@@ -157,9 +161,11 @@ function changeScale() {
   setCookie('zmWatchHeight', 'auto');
 
   setScale();
+*/
 }
 // Implement current scale, as opposed to changing it
 function setScale() {
+/*
   const scale = $j('#scale').val();
   //monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
   monitorsSetScale(monitorId);
@@ -170,6 +176,7 @@ function setScale() {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
     changeSize();
   }
+*/
 } // end function changeScale
 
 function getStreamCmdResponse(respObj, respText) {
@@ -606,6 +613,7 @@ function fetchImage(streamImage) {
 }
 
 function handleClick(event) {
+  if (panZoomEnabled) {
   event.preventDefault();
   if (event.target.id) {
   //We are looking for an object with an ID, because there may be another element in the button.
@@ -623,7 +631,8 @@ function handleClick(event) {
       window.location.assign(url);
     }
   }
-/***
+  } else {
+    // +++ Old ZoomPan algorithm.
   if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
   // target should be the img tag
     const target = $j(event.target);
@@ -650,7 +659,8 @@ function handleClick(event) {
       controlCmdImage(x, y);
     }
   }
-***/
+    // --- Old ZoomPan algorithm.
+  }
 }
 
 function shiftImgFrame() { //We calculate the coordinates of the image displacement and shift the image
@@ -688,7 +698,10 @@ function getCoordinateMouse(event) { //We get the current cursor coordinates tak
 }
 
 function handleMove(event) {
-/*
+  if (panZoomEnabled) {
+    return;
+  }
+  // +++ Old ZoomPan algorithm.
   if (event.ctrlKey && event.shiftKey) {
     document.ondragstart = function() {
       return false;
@@ -726,7 +739,7 @@ function handleMove(event) {
     updateCoordinateMouse(x, y);
     leftBtnStatus.UpAfterDown = false;
   }
-*/
+  // --- Old ZoomPan algorithm.
 }
 
 function zoomOutClick(event) {
@@ -948,6 +961,22 @@ function streamStart() {
 }
 
 function initPage() {
+// +++ Support of old ZoomPan algorithm
+  var useOldZoomPan = getCookie('zmUseOldZoomPan');
+  if (useOldZoomPan) {
+    panZoomEnabled = false;
+    document.getElementById('zoomOutBtn').classList.remove("hidden");
+  } else {
+    document.getElementById('zoomOutBtn').classList.add("hidden");
+  }
+  $j("#use-old-zoom-pan").click(function(){
+    useOldZoomPan = this.checked;
+    setCookie('zmUseOldZoomPan', this.checked);
+    location.reload();
+  });
+  document.getElementById('use-old-zoom-pan').checked = useOldZoomPan;
+// --- Support of old ZoomPan algorithm
+
   if (panZoomEnabled) {
     $j('.zoompan').each( function() {
       panZoomAction('enable', {obj: this});
@@ -1261,7 +1290,8 @@ function panZoomAction(action, param) {
     $j('.btn-zoom-out').removeClass('hidden');
     panZoom[i] = Panzoom(param['obj'], {
       minScale: 1,
-      maxScale: 20,
+      step: panZoomStep,
+      maxScale: panZoomMaxScale,
       contain: 'outside',
       cursor: 'auto',
     });
@@ -1288,8 +1318,12 @@ function panZoomIn(el) {
   }
   */
   var id = monitorId; //For Watch page
-
+  if (el.ctrlKey) {
+    // Double the zoom step.
+    panZoom[id].zoom(panZoom[id].getScale() * Math.exp(panZoomStep*2), {animate: true});
+  } else {
   panZoom[id].zoomIn();
+  }
   monitorsSetScale(id);
   var el = document.getElementById('liveStream'+id);
   if (panZoom[id].getScale().toFixed(1) != 1.0) {
@@ -1309,8 +1343,12 @@ function panZoomOut(el) {
   }
   */
   var id = monitorId; //For Watch page
-
+  if (el.ctrlKey) {
+    // Reset zoom
+    panZoom[id].zoom(1, {animate: true});
+  } else {
   panZoom[id].zoomOut();
+  }
   monitorsSetScale(id);
   var el = document.getElementById('liveStream'+id);
   if (panZoom[id].getScale().toFixed(1) != 1.0) {

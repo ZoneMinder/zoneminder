@@ -28,6 +28,8 @@ var panZoomEnabled = true; //Add it to settings in the future
 var panZoomMaxScale = 10;
 var panZoomStep = 0.3;
 var panZoom = [];
+var shifted;
+var ctrled;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -631,6 +633,19 @@ function handleClick(event) {
         window.location.assign(url);
       }
     }
+
+    if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
+      if (ctrled && shifted) {
+        return;
+      } else if (ctrled) {
+        panZoom[monitorId].zoom(1, {animate: true});
+      } else if (shifted) {
+        const scale = panZoom[monitorId].getScale() * Math.exp(panZoomStep);
+        const point = {clientX: event.clientX, clientY: event.clientY};
+        panZoom[monitorId].zoomToPoint(scale, point, {focal: {x: event.clientX, y: event.clientY}});
+      }
+      monitorsSetScale(monitorId);
+    }
   } else {
     // +++ Old ZoomPan algorithm.
     if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
@@ -960,6 +975,33 @@ function streamStart() {
   */
 }
 
+/*
+* Id - Monitor ID
+* The function will probably be moved to the main JS file
+*/
+function manageCursor(Id) {
+  const obj = document.getElementById('liveStream'+Id);
+  const currentScale = panZoom[Id].getScale().toFixed(1);
+
+  if (shifted && ctrled) {
+    obj.closest('.zoompan').style['cursor'] = 'not-allowed';
+  } else if (shifted) {
+    obj.closest('.zoompan').style['cursor'] = 'zoom-in';
+  } else if (ctrled) {
+    if (currentScale == 1.0) {
+      obj.closest('.zoompan').style['cursor'] = 'auto';
+    } else {
+      obj.closest('.zoompan').style['cursor'] = 'zoom-out';
+    }
+  } else {
+    if (currentScale == 1.0) {
+      obj.closest('.zoompan').style['cursor'] = 'auto';
+    } else {
+      obj.closest('.zoompan').style['cursor'] = 'move';
+    }
+  }
+}
+
 function initPage() {
 // +++ Support of old ZoomPan algorithm
   var useOldZoomPan = getCookie('zmUseOldZoomPan');
@@ -980,6 +1022,14 @@ function initPage() {
   if (panZoomEnabled) {
     $j('.zoompan').each( function() {
       panZoomAction('enable', {obj: this});
+      $j(document).on('keyup keydown', function(e){
+        shifted = e.shiftKey ? e.shiftKey : e.shift;
+        ctrled = e.ctrlKey;
+        manageCursor(monitorId);
+      });
+      this.addEventListener('mousemove', function(e){ 
+        //Temporarily not use
+      });
     });
   }
 
@@ -1295,8 +1345,15 @@ function panZoomAction(action, param) {
       contain: 'outside',
       cursor: 'auto',
     });
-    panZoom[i].pan(10, 10);
-    panZoom[i].zoom(1, {animate: true});
+    //panZoom[i].pan(10, 10);
+    //panZoom[i].zoom(1, {animate: true});
+    // Binds to shift + wheel
+    param['obj'].parentElement.addEventListener('wheel', function(event) {
+      if (!shifted) {
+        return;
+      }
+      panZoom[i].zoomWithWheel(event)
+    })
   } else if (action == "disable") {
     //Disable a specific object
     $j('.btn-zoom-in').addClass('hidden');
@@ -1325,12 +1382,7 @@ function panZoomIn(el) {
     panZoom[id].zoomIn();
   }
   monitorsSetScale(id);
-  var el = document.getElementById('liveStream'+id);
-  if (panZoom[id].getScale().toFixed(1) != 1.0) {
-    el.closest('.zoompan').style['cursor'] = 'move';
-  } else {
-    el.closest('.zoompan').style['cursor'] = 'auto';
-  }
+  manageCursor(id);
 }
 
 function panZoomOut(el) {
@@ -1350,12 +1402,7 @@ function panZoomOut(el) {
     panZoom[id].zoomOut();
   }
   monitorsSetScale(id);
-  var el = document.getElementById('liveStream'+id);
-  if (panZoom[id].getScale().toFixed(1) != 1.0) {
-    el.closest('.zoompan').style['cursor'] = 'move';
-  } else {
-    el.closest('.zoompan').style['cursor'] = 'auto';
-  }
+  manageCursor(id);
 }
 
 function monitorsSetScale(id=null) {

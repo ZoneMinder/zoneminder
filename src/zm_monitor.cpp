@@ -3180,7 +3180,7 @@ Event * Monitor::openEvent(
       Logger *log = Logger::fetch();
       log->databaseLevel(Logger::NOLOG);
       Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
-      exit(0);
+      std::quick_exit(0);
     }
   }
 
@@ -3232,7 +3232,7 @@ void Monitor::closeEvent() {
         Logger *log = Logger::fetch();
         log->databaseLevel(Logger::NOLOG);
         Error("Error execing %s: %s", command.c_str(), strerror(errno));
-        exit(0);
+        std::quick_exit(0);
       }
     }
   }, event, event_end_command);

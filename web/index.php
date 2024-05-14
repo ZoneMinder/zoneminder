@@ -253,7 +253,7 @@ if ( $includeFiles = getSkinIncludes('views/'.$view.'.php', true, true) ) {
   CSPHeaders($view, $cspNonce);
   foreach ( $includeFiles as $includeFile ) {
     if (!file_exists($includeFile)) {
-      ZM\Fatal("View '$view' does not exist, redirecting to console");
+      ZM\Error("View '$view' does not exist, redirecting to console");
       header('Location: ?view=console');
       return;
     }

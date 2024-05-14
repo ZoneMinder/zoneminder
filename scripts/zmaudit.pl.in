@@ -975,7 +975,7 @@ sub confirm {
     my $char = <>;
     chomp($char);
     if ( $char eq 'q' ) {
-      exit(0);
+      Term();
     }
     if ( !$char ) {
       $char = 'y';

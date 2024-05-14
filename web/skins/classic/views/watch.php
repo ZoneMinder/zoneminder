@@ -194,10 +194,13 @@ echo getNavBarHTML() ?>
 <div id="page">
   <div id="header">
 <?php
-    $html = '';
-    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'down')) ? 'up' : 'down';
-    $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
-    $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
+    $html = '<a class="flip" href="#" 
+             data-flip-сontrol-object="#mfbpanel" 
+             data-flip-сontrol-run-after-func="applyChosen" 
+             data-flip-сontrol-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>'.PHP_EOL;
+    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
     echo $html;
 ?>
     <div class="controlHeader">
@@ -249,19 +252,14 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
 ?>
         </span>
       </div>
+      <div class="form-check control-use-old-zoom-pan">
+        <input id="use-old-zoom-pan" class="form-check-input" type="checkbox" value="">
+        <label class="form-check-label" for="use-old-zoom-pan">
+          <?php echo translate('Use old ZoomPan') ?>
+        </label>
+      </div>
       <div id="sizeControl">
-        <span id="widthControl">
-          <label><?php echo translate('Width') ?>:</label>
-          <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change-this'=>'changeSize') ); ?>
-        </span>
-        <span id="heightControl">
-          <label><?php echo translate('Height') ?>:</label>
-          <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change-this'=>'changeSize') ); ?>
-        </span>
-        <span id="scaleControl">
-          <label><?php echo translate('Scale') ?>:</label>
-          <?php echo htmlSelect('scale', $scales, $options['scale'], array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
-        </span>
+
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->
@@ -312,7 +310,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           </ul>
         </nav>
         <div id="wrapperMonitor" class="container-fluid col">
-          <div id="Monitor" class="Monitor"
+          <div id="monitor" class="monitor"
 <?php
 if ($streamMode == 'jpeg') {
   echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';

@@ -333,7 +333,7 @@ function parseRows(rows) {
     } else if (attr == 'Tags') {
       if ( ! opVal ) {
         // Default to LIKE so that something gets selected
-        opVal = 'LIKE';
+        opVal = '=';
       }
       for ( var key in tags_opTypes ) {
         opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + tags_opTypes[key] + '</option>');
@@ -382,9 +382,10 @@ function addTerm( element ) {
   var row = $j(element).closest('tr');
   row.find('select').chosen('destroy');
   var newRow = row.clone().insertAfter(row);
-  newRow.find('select').each( function() { //reset new row to default
-    this[0].selected = 'selected';
-  });
+  //newRow.find('select').each( function() { //reset new row to default
+  //  if ($j(this).find('option').length > 0 )
+  //    this[0].selected = 'selected';
+  //});
   newRow.find('input[type="text"]').val('');
   newRow[0].querySelectorAll("button[data-on-click-this]").forEach(function(el) {
     var fnName = el.getAttribute("data-on-click-this");

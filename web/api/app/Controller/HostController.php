@@ -146,20 +146,18 @@ class HostController extends AppController {
   }
 
   private function _getCredentials($generate_refresh_token=false, $token='', $username='') {
-
-    if ( !ZM_OPT_USE_AUTH ) {
+    if (!ZM_OPT_USE_AUTH) {
       ZM\Debug('OPT_USE_AUTH is turned off. Tokens will be null');
       return;
     }
-      
 
-    if ( !ZM_AUTH_HASH_SECRET )
+    if (!ZM_AUTH_HASH_SECRET)
       throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));
 
     require_once __DIR__ .'/../../../includes/auth.php';
     require_once __DIR__.'/../../../vendor/autoload.php';
 
-    if ( $token ) {
+    if ($token) {
       // If we have a token, we need to derive username from there
       $ret = validateToken($token, 'refresh', true);
       $username = $ret[0]->Username();
@@ -178,12 +176,11 @@ class HostController extends AppController {
     }*/
 
     $access_issued_at = time();
-    $access_ttl = max(ZM_AUTH_HASH_TTL,1) * 3600;
+    $access_ttl = max(ZM_AUTH_HASH_TTL, 1) * 3600;
 
     // by default access token will expire in 2 hrs
-    // you can change it by changing the value of ZM_AUTH_HASH_TLL
+    // you can change it by changing the value of ZM_AUTH_HASH_TTL
     $access_expire_at     = $access_issued_at + $access_ttl;
-    //$access_expire_at = $access_issued_at + 60; // TEST, REMOVE
 
     $access_token = array(
         'iss' => 'ZoneMinder',
@@ -198,7 +195,7 @@ class HostController extends AppController {
     $jwt_refresh_token = '';
     $refresh_ttl = 0;
 
-    if ( $generate_refresh_token ) {
+    if ($generate_refresh_token) {
       $refresh_issued_at = time();
       $refresh_ttl = 24 * 3600; // 1 day
 

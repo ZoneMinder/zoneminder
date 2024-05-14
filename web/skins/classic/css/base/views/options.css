@@ -1,5 +1,5 @@
 :root {
-  --height-block-before-table: 62px; /* Distance from the top border of the block where the table is located to the top border of the table itself */
+  --height-block-before-table: 64px; /* Distance from the top border of the block where the table is located to the top border of the table itself */
   --indent-bootstrap-row: 15px; /* Adjusting bootstrap class "row" */
 }
 
@@ -31,8 +31,18 @@ input.large {
 #contentTable.userTable .colMonitor, #contentTable.userTable .colUsername {
   text-align: left;
 }
+
 #contentTable th {
   text-align: left;
+}
+
+#content table .colCanMove,
+#content table .colCanZoom,
+#content table .colCanFocus,
+#content table .colCanIris,
+#content table .colCanWhiteBal,
+#content table .colHasPresets {
+  text-align: center;
 }
 
 #sidebar {
@@ -163,7 +173,7 @@ textarea.form-control-sm {
   min-height: 3rem;
 }
 
-.wrapper-scroll-table {
+body.sticky .wrapper-scroll-table {
   position: absolute;
   margin-right: calc(var(--indent-bootstrap-row) * -1);
   margin-left: calc(var(--indent-bootstrap-row) * -1);

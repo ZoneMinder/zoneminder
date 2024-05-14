@@ -940,15 +940,15 @@ a.flip {
   color: #dddddd;
 }
 
-.monitor.idle img {
+.monitor.idle img, .monitor.idle .imageFeed {
   border: 2px solid #ffffff;
 }
 
-.monitor.alarm img {
+.monitor.alarm img, .monitor.alarm .imageFeed {
   border: 2px solid #ff0000;
 }
 
-.monitor.alert img {
+.monitor.alert img, .monitor.alert .imageFeed {
   border: 2px solid #ffa500;
 }
 .monitor.alert {

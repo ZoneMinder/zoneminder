@@ -25,7 +25,11 @@ var coordinateMouse = {
 var leftBtnStatus = {Down: false, UpAfterDown: false};
 
 var panZoomEnabled = true; //Add it to settings in the future
+var panZoomMaxScale = 10;
+var panZoomStep = 0.3;
 var panZoom = [];
+var shifted;
+var ctrled;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -148,6 +152,8 @@ function changeSize() {
 } // end function changeSize()
 
 function changeScale() {
+  monitorsSetScale(monitorId);
+/*
   const scale = $j('#scale').val();
   setCookie('zmWatchScale'+monitorId, scale);
   $j('#width').val('auto');
@@ -157,9 +163,11 @@ function changeScale() {
   setCookie('zmWatchHeight', 'auto');
 
   setScale();
+*/
 }
 // Implement current scale, as opposed to changing it
 function setScale() {
+/*
   const scale = $j('#scale').val();
   //monitorStream.setScale(scale, $j('#width').val(), $j('#height').val());
   monitorsSetScale(monitorId);
@@ -170,6 +178,7 @@ function setScale() {
     $j(window).on('resize', endOfResize); //remove resize handler when Scale to Fit is not active
     changeSize();
   }
+*/
 } // end function changeScale
 
 function getStreamCmdResponse(respObj, respText) {
@@ -606,51 +615,67 @@ function fetchImage(streamImage) {
 }
 
 function handleClick(event) {
-  event.preventDefault();
-  if (event.target.id) {
-  //We are looking for an object with an ID, because there may be another element in the button.
-    var obj = event.target;
-  } else {
-    var obj = event.target.parentElement;
-  }
-  if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
-
-  if (obj.className.includes('btn-edit-monitor')) {
-    const url = '?view=monitor&mid='+monitorId;
-    if (event.ctrlKey) {
-      window.open(url, '_blank');
+  if (panZoomEnabled) {
+    event.preventDefault();
+    if (event.target.id) {
+    //We are looking for an object with an ID, because there may be another element in the button.
+      var obj = event.target;
     } else {
-      window.location.assign(url);
+      var obj = event.target.parentElement;
     }
-  }
-/***
-  if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
-  // target should be the img tag
-    const target = $j(event.target);
-    const width = target.width();
-    const height = target.height();
+    if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
 
-    const scaleX = parseFloat(monitorWidth / width);
-    const scaleY = parseFloat(monitorHeight / height);
-    const pos = target.offset();
-    const x = parseInt((event.pageX - pos.left) * scaleX);
-    const y = parseInt((event.pageY - pos.top) * scaleY);
-
-    if (showMode == 'events' || !imageControlMode) {
-      if (event.shift || event.shiftKey) {
-        streamCmdPan(x, y);
-        updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
-      } else if (event.ctrlKey) {
-        streamCmdZoomOut();
+    if (obj.className.includes('btn-edit-monitor')) {
+      const url = '?view=monitor&mid='+monitorId;
+      if (event.ctrlKey) {
+        window.open(url, '_blank');
       } else {
-        streamCmdZoomIn(x, y);
-        updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
+        window.location.assign(url);
       }
-    } else {
-      controlCmdImage(x, y);
     }
+
+    if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
+      if (ctrled && shifted) {
+        return;
+      } else if (ctrled) {
+        panZoom[monitorId].zoom(1, {animate: true});
+      } else if (shifted) {
+        const scale = panZoom[monitorId].getScale() * Math.exp(panZoomStep);
+        const point = {clientX: event.clientX, clientY: event.clientY};
+        panZoom[monitorId].zoomToPoint(scale, point, {focal: {x: event.clientX, y: event.clientY}});
+      }
+      monitorsSetScale(monitorId);
+    }
+  } else {
+    // +++ Old ZoomPan algorithm.
+    if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
+    // target should be the img tag
+      const target = $j(event.target);
+      const width = target.width();
+      const height = target.height();
+
+      const scaleX = parseFloat(monitorWidth / width);
+      const scaleY = parseFloat(monitorHeight / height);
+      const pos = target.offset();
+      const x = parseInt((event.pageX - pos.left) * scaleX);
+      const y = parseInt((event.pageY - pos.top) * scaleY);
+
+      if (showMode == 'events' || !imageControlMode) {
+        if (event.shift || event.shiftKey) {
+          streamCmdPan(x, y);
+          updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
+        } else if (event.ctrlKey) {
+          streamCmdZoomOut();
+        } else {
+          streamCmdZoomIn(x, y);
+          updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
+        }
+      } else {
+        controlCmdImage(x, y);
+      }
+    }
+    // --- Old ZoomPan algorithm.
   }
-***/
 }
 
 function shiftImgFrame() { //We calculate the coordinates of the image displacement and shift the image
@@ -688,7 +713,10 @@ function getCoordinateMouse(event) { //We get the current cursor coordinates tak
 }
 
 function handleMove(event) {
-/*
+  if (panZoomEnabled) {
+    return;
+  }
+  // +++ Old ZoomPan algorithm.
   if (event.ctrlKey && event.shiftKey) {
     document.ondragstart = function() {
       return false;
@@ -726,7 +754,7 @@ function handleMove(event) {
     updateCoordinateMouse(x, y);
     leftBtnStatus.UpAfterDown = false;
   }
-*/
+  // --- Old ZoomPan algorithm.
 }
 
 function zoomOutClick(event) {
@@ -947,10 +975,66 @@ function streamStart() {
   */
 }
 
+/*
+* Id - Monitor ID
+* The function will probably be moved to the main JS file
+*/
+function manageCursor(Id) {
+  const obj = document.getElementById('liveStream'+Id);
+  const currentScale = panZoom[Id].getScale().toFixed(1);
+
+  if (shifted && ctrled) {
+    obj.closest('.zoompan').style['cursor'] = 'not-allowed';
+  } else if (shifted) {
+    obj.closest('.zoompan').style['cursor'] = 'zoom-in';
+  } else if (ctrled) {
+    if (currentScale == 1.0) {
+      obj.closest('.zoompan').style['cursor'] = 'auto';
+    } else {
+      obj.closest('.zoompan').style['cursor'] = 'zoom-out';
+    }
+  } else {
+    if (currentScale == 1.0) {
+      obj.closest('.zoompan').style['cursor'] = 'auto';
+    } else {
+      obj.closest('.zoompan').style['cursor'] = 'move';
+    }
+  }
+}
+
 function initPage() {
+// +++ Support of old ZoomPan algorithm
+  var useOldZoomPan = getCookie('zmUseOldZoomPan');
+  const btnZoomOutBtn = document.getElementById('zoomOutBtn'); //Zoom out button below Frame. She may not
+  if (useOldZoomPan) {
+    panZoomEnabled = false;
+    if (btnZoomOutBtn) {
+      btnZoomOutBtn.classList.remove("hidden");
+    }
+  } else {
+    if (btnZoomOutBtn) {
+      btnZoomOutBtn.classList.add("hidden");
+    }
+  }
+  $j("#use-old-zoom-pan").click(function() {
+    useOldZoomPan = this.checked;
+    setCookie('zmUseOldZoomPan', this.checked);
+    location.reload();
+  });
+  document.getElementById('use-old-zoom-pan').checked = useOldZoomPan;
+  // --- Support of old ZoomPan algorithm
+
   if (panZoomEnabled) {
     $j('.zoompan').each( function() {
       panZoomAction('enable', {obj: this});
+      $j(document).on('keyup keydown', function(e) {
+        shifted = e.shiftKey ? e.shiftKey : e.shift;
+        ctrled = e.ctrlKey;
+        manageCursor(monitorId);
+      });
+      this.addEventListener('mousemove', function(e) {
+        //Temporarily not use
+      });
     });
   }
 
@@ -1261,12 +1345,20 @@ function panZoomAction(action, param) {
     $j('.btn-zoom-out').removeClass('hidden');
     panZoom[i] = Panzoom(param['obj'], {
       minScale: 1,
-      maxScale: 20,
+      step: panZoomStep,
+      maxScale: panZoomMaxScale,
       contain: 'outside',
       cursor: 'auto',
     });
-    panZoom[i].pan(10, 10);
-    panZoom[i].zoom(1, {animate: true});
+    //panZoom[i].pan(10, 10);
+    //panZoom[i].zoom(1, {animate: true});
+    // Binds to shift + wheel
+    param['obj'].parentElement.addEventListener('wheel', function(event) {
+      if (!shifted) {
+        return;
+      }
+      panZoom[i].zoomWithWheel(event);
+    });
   } else if (action == "disable") {
     //Disable a specific object
     $j('.btn-zoom-in').addClass('hidden');
@@ -1288,15 +1380,14 @@ function panZoomIn(el) {
   }
   */
   var id = monitorId; //For Watch page
-
-  panZoom[id].zoomIn();
-  monitorsSetScale(id);
-  var el = document.getElementById('liveStream'+id);
-  if (panZoom[id].getScale().toFixed(1) != 1.0) {
-    el.closest('.zoompan').style['cursor'] = 'move';
+  if (el.ctrlKey) {
+    // Double the zoom step.
+    panZoom[id].zoom(panZoom[id].getScale() * Math.exp(panZoomStep*2), {animate: true});
   } else {
-    el.closest('.zoompan').style['cursor'] = 'auto';
+    panZoom[id].zoomIn();
   }
+  monitorsSetScale(id);
+  manageCursor(id);
 }
 
 function panZoomOut(el) {
@@ -1309,15 +1400,14 @@ function panZoomOut(el) {
   }
   */
   var id = monitorId; //For Watch page
-
-  panZoom[id].zoomOut();
-  monitorsSetScale(id);
-  var el = document.getElementById('liveStream'+id);
-  if (panZoom[id].getScale().toFixed(1) != 1.0) {
-    el.closest('.zoompan').style['cursor'] = 'move';
+  if (el.ctrlKey) {
+    // Reset zoom
+    panZoom[id].zoom(1, {animate: true});
   } else {
-    el.closest('.zoompan').style['cursor'] = 'auto';
+    panZoom[id].zoomOut();
   }
+  monitorsSetScale(id);
+  manageCursor(id);
 }
 
 function monitorsSetScale(id=null) {

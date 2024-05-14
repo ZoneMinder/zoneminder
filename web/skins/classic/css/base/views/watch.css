@@ -43,15 +43,15 @@
   margin: 0 auto;
 }
 
-#monitor .grid-stack-item .imageFeed ,
-#monitor .grid-stack-item .imageFeed ,
-#monitor .grid-stack-item .imageFeed {
+.monitor .imageFeed,
+.monitor .imageFeed,
+.monitor .imageFeed {
   border: 2px solid #999999;
 }
 
-#monitor .grid-stack-item .imageFeed img ,
-#monitor .grid-stack-item .imageFeed video ,
-#monitor .grid-stack-item .imageFeed svg {
+.monitor .imageFeed img,
+.monitor .imageFeed video,
+.monitor .imageFeed svg {
   border: none;
   display: inline-block;
   width: 100%;
@@ -232,7 +232,7 @@ button.btn.btn-edit-monitor {
     1px 1px 0 #575757;
 }
 
-button.btn.btn-view-watch {
+button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
   display: none;
 }
 
@@ -258,3 +258,12 @@ button.btn.btn-edit-monitor:hover,
 button.btn.btn-view-watch:hover {
   background-color: darkgrey;
 }
+
+/* +++ Support for old ZoomPan algorithm */
+.form-check.control-use-old-zoom-pan {
+  display: inline-block;
+}
+#headerButtons .form-check.control-use-old-zoom-pan input.form-check-input {
+  margin-left: -1.0rem;
+}
+/* --- Support for old ZoomPan algorithm */

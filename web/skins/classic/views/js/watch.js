@@ -1005,11 +1005,16 @@ function manageCursor(Id) {
 function initPage() {
 // +++ Support of old ZoomPan algorithm
   var useOldZoomPan = getCookie('zmUseOldZoomPan');
+  const btnZoomOutBtn = document.getElementById('zoomOutBtn'); //Zoom out button below Frame. She may not
   if (useOldZoomPan) {
     panZoomEnabled = false;
-    document.getElementById('zoomOutBtn').classList.remove("hidden");
+    if (btnZoomOutBtn) {
+      btnZoomOutBtn.classList.remove("hidden");
+    }
   } else {
-    document.getElementById('zoomOutBtn').classList.add("hidden");
+    if (btnZoomOutBtn) {
+      btnZoomOutBtn.classList.add("hidden");
+    }
   }
   $j("#use-old-zoom-pan").click(function() {
     useOldZoomPan = this.checked;

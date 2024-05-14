@@ -45,16 +45,17 @@ $scales = array(
   # We use 0 instead of words because we are saving this in the monitor
   # and use this array to populate the default scale option
     '0' => translate('Auto'),
-    '400' => '4x',
-    '300' => '3x',
-    '200' => '2x',
-    '150' => '1.5x',
-    '100' => translate('Actual'),
-    '75' => '3/4x',
-    '50' => '1/2x',
-    '33' => '1/3x',
-    '25' => '1/4x',
-    '12.5' => '1/8x',
+  #  '400' => '4x',
+  #  '300' => '3x',
+  #  '200' => '2x',
+  #  '150' => '1.5x',
+  #  '100' => translate('Actual'),
+  #  '75' => '3/4x',
+  #  '50' => '1/2x',
+  #  '33' => '1/3x',
+  #  '25' => '1/4x',
+  #  '12.5' => '1/8x',
+    'fit_to_width' => translate('Fit to width'),
 );
 
 if ( isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage') ) {

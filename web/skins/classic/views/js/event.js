@@ -33,6 +33,14 @@ var wasHidden = false;
 var availableTags = [];
 var selectedTags = [];
 
+var PrevCoordinatFrame = {x: null, y: null};
+var coordinateMouse = {
+  start_x: null, start_y: null,
+  shiftMouse_x: null, shiftMouse_y: null,
+  shiftMouseForTrigger_x: null, shiftMouseForTrigger_y: null
+};
+var leftBtnStatus = {Down: false, UpAfterDown: false};
+
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
   if (!$j(".tag-input").is(":focus")) {
@@ -71,6 +79,10 @@ $j(document).on("keydown", "", function(e) {
           $j("#tagInput").focus();
           showDropdown();
         }
+      } else if (e.ctrlKey && (e.shift || e.shiftKey)) {
+        //Panning (moving the enlarged frame)
+      } else if (e.shift || e.shiftKey) {
+        //Panning
       } else {
         console.log('Modal is not visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
       }
@@ -602,6 +614,16 @@ function streamNext(action) {
   }
 } // end function streamNext(action)
 
+function tagAndNext(action) {
+  addTag(availableTags[0]);
+  streamNext(action);
+}
+
+function tagAndPrev(action) {
+  addTag(availableTags[0]);
+  streamPrev(action);
+}
+
 function vjsPanZoom(action, x, y) { //Pan and zoom with centering where the click occurs
   var outer = $j('#videoobj');
   var video = outer.children().first();
@@ -902,23 +924,101 @@ function handleClick(event) {
     return; // ignore clicks on control bar
   }
   // target should be the img tag
+  if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
+    const target = $j(event.target);
+
+    const width = target.width();
+    const height = target.height();
+
+    const scaleX = parseFloat(eventData.Width / width);
+    const scaleY = parseFloat(eventData.Height / height);
+    const pos = target.offset();
+    const x = parseInt((event.pageX - pos.left) * scaleX);
+    const y = parseInt((event.pageY - pos.top) * scaleY);
+
+    if (event.shift || event.shiftKey) { // handle both jquery and mootools
+      streamPan(x, y);
+      updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
+    } else if (event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
+      streamZoomOut();
+    } else {
+      streamZoomIn(x, y);
+      updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
+    }
+  }
+}
+
+function shiftImgFrame() { //We calculate the coordinates of the image displacement and shift the image
+  let newPosX = parseInt(PrevCoordinatFrame.x - coordinateMouse.shiftMouse_x);
+  let newPosY = parseInt(PrevCoordinatFrame.y - coordinateMouse.shiftMouse_y);
+
+  if (newPosX < 0) newPosX = 0;
+  if (newPosX > eventData.Width) newPosX = eventData.Width;
+  if (newPosY < 0) newPosY = 0;
+  if (newPosY > eventData.Height) newPosY = eventData.Height;
+
+  streamPan(newPosX, newPosY);
+  updatePrevCoordinatFrame(newPosX, newPosY);
+  coordinateMouse.shiftMouseForTrigger_x = coordinateMouse.shiftMouseForTrigger_y = 0;
+}
+
+function updateCoordinateMouse(x, y) { //We fix the coordinates when pressing the left mouse button
+  coordinateMouse.start_x = x;
+  coordinateMouse.start_y = y;
+}
+
+function updatePrevCoordinatFrame(x, y) { //Update the Frame's current coordinates
+  PrevCoordinatFrame.x = x;
+  PrevCoordinatFrame.y = y;
+}
+
+function getCoordinateMouse(event) { //We get the current cursor coordinates taking into account the scale relative to the frame size.
   const target = $j(event.target);
 
-  const width = target.width();
-  const height = target.height();
-
-  const scaleX = parseInt(eventData.Width / width);
-  const scaleY = parseInt(eventData.Height / height);
+  const scaleX = parseFloat(eventData.Width / target.width());
+  const scaleY = parseFloat(eventData.Height / target.height());
   const pos = target.offset();
-  const x = parseInt((event.pageX - pos.left) * scaleX);
-  const y = parseInt((event.pageY - pos.top) * scaleY);
 
-  if (event.shift || event.shiftKey) { // handle both jquery and mootools
-    streamPan(x, y);
-  } else if (event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
-    streamZoomOut();
+  return {x: parseInt((event.pageX - pos.left) * scaleX), y: parseInt((event.pageY - pos.top) * scaleY)}; //The point of the mouse click relative to the dimensions of the real frame.
+}
+
+function handleMove(event) {
+  if (event.ctrlKey && (event.shift || event.shiftKey)) {
+    document.ondragstart = function() {
+      return false;
+    }; //Allow drag and drop
   } else {
-    streamZoomIn(x, y);
+    document.ondragstart = function() {}; //Prevent drag and drop
+    return false;
+  }
+
+  if (leftBtnStatus.Down) { //The left button was previously pressed and is now being held. Processing movement with a pressed button.
+    var {x, y} = getCoordinateMouse(event);
+    const k = Math.log(2.72) / Math.log(parseFloat($j('#zoomValue').html())) - 0.3; //Necessary for correctly shifting the image in accordance with the scaling proportions
+
+    coordinateMouse.shiftMouse_x = parseInt((x - coordinateMouse.start_x) * k);
+    coordinateMouse.shiftMouse_y = parseInt((y - coordinateMouse.start_y) * k);
+
+    coordinateMouse.shiftMouseForTrigger_x = Math.abs(parseInt(x - coordinateMouse.start_x));
+    coordinateMouse.shiftMouseForTrigger_y = Math.abs(parseInt(y - coordinateMouse.start_y));
+  }
+  if (event.buttons == 1 && leftBtnStatus.Down != true) { //Start of pressing left button
+    const {x, y} = getCoordinateMouse(event);
+
+    updateCoordinateMouse(x, y);
+    leftBtnStatus.Down = true;
+  } else if (event.buttons == 0 && leftBtnStatus.Down == true) { //Up left button after pressed
+    leftBtnStatus.Down = false;
+    leftBtnStatus.UpAfterDown = true;
+  }
+
+  if ((leftBtnStatus.UpAfterDown) || //The left button was raised or the cursor was moved more than 30 pixels relative to the actual size of the image
+    ((coordinateMouse.shiftMouseForTrigger_x > 30) && leftBtnStatus.Down) ||
+    ((coordinateMouse.shiftMouseForTrigger_y > 30) && leftBtnStatus.Down)) {
+    //We perform frame shift
+    shiftImgFrame();
+    updateCoordinateMouse(x, y);
+    leftBtnStatus.UpAfterDown = false;
   }
 }
 
@@ -930,7 +1030,13 @@ function manageDelConfirmModalBtns() {
       return;
     }
 
+    // Stop playing, this is mostly for video.js
     pauseClicked();
+    if (!vid) {
+      // zms is supposed to get SIGPIPE but might not if running under FPM
+      streamReq({command: CMD_QUIT});
+    }
+
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
         .done(function(data) {
@@ -1084,6 +1190,9 @@ function initPage() {
     vid.on('click', function(event) {
       handleClick(event);
     });
+    vid.on('mousemove', function(event) { // It is not clear whether it is necessary...
+      handleMove(event);
+    });
     vid.on('volumechange', function() {
       setCookie('volume', vid.volume());
     });
@@ -1117,6 +1226,9 @@ function initPage() {
         }
         $j(streamImg).click(function(event) {
           handleClick(event);
+        });
+        $j(streamImg).mousemove(function(event) {
+          handleMove(event);
         });
       }
     }
@@ -1367,8 +1479,10 @@ function initPage() {
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
     const mapDiv = document.getElementById('LocationMap');
-    mapDiv.style('width: 450px');
-    mapDiv.style('height: 450px');
+    if (mapDiv) {
+      mapDiv.style.width='450px';
+      mapDiv.style.height='450px';
+    }
     if ( window.L ) {
       map = L.map('LocationMap', {
         center: L.latLng(eventData.Latitude, eventData.Longitude),

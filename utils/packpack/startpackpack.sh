@@ -263,6 +263,18 @@ execpackpack () {
         parms=""
     fi
 
+    HOST_ARCH="$(uname -m)"
+    if [ "${ARCH}" != "${HOST_ARCH}" ] && [ "${HOST_ARCH}" == "x86_64" ]; then
+        case "${ARCH}" in
+            "armhf")
+                export PACKPACK_EXTRA_DOCKER_RUN_PARAMS="--platform=linux/arm"
+                ;;
+            "aarch64")
+                export PACKPACK_EXTRA_DOCKER_RUN_PARAMS="--platform=linux/arm64"
+                ;;
+        esac
+    fi
+
     if [ "${TRAVIS}" == "true"  ]; then
         # Travis will fail the build if the output gets too long
         # To mitigate that, use grep to filter out some of the noise

@@ -1,21 +1,21 @@
 /*
  * ZoneMinder Flexible Memory Interface, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/  
+*/
 
 #ifndef ZM_BUFFER_H
 #define ZM_BUFFER_H
@@ -87,7 +87,7 @@ class Buffer {
   unsigned int consume(unsigned int count) {
     if (count > mSize) {
       Warning("Attempt to consume %d bytes of buffer, size is only %d bytes",
-          count, mSize);
+              count, mSize);
       count = mSize;
     }
     mHead += count;
@@ -99,7 +99,7 @@ class Buffer {
   unsigned int shrink(unsigned int count) {
     if (count > mSize) {
       Warning("Attempt to shrink buffer by %d bytes, size is only %d bytes",
-          count, mSize);
+              count, mSize);
       count = mSize;
     }
     mSize -= count;
@@ -117,7 +117,7 @@ class Buffer {
   unsigned char *extract(unsigned int pSize) {
     if (pSize > mSize) {
       Warning("Attempt to extract %d bytes of buffer, size is only %d bytes",
-          pSize, mSize);
+              pSize, mSize);
       pSize = mSize;
     }
     unsigned char *oldHead = mHead;

@@ -118,12 +118,12 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
 <?php
 } else if ($tab == 'control') {
   if (canView('Control')) {
-    $redirect = '?view=controlcaps';
+    include('_options_controlcaps.php');
   } else {
     $redirect = '?view=error';
+    // Have to do this 
+    header('Location: '.$redirect);
   }
-  // Have to do this 
-  header('Location: '.$redirect);
 } else if ($tab == 'privacy') {
   if (canView('System')) {
     $redirect = '?view=privacy';
@@ -280,7 +280,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                       $html_options[$option] = $option;
                     }
                   }
-                  $attributes = ['id'=>$name, 'class'=>'form-control-sm'.(count($html_options)>10?' chosen':'')];
+                  $attributes = ['id'=>$name, 'class'=>'form-control-sm chosen'];
                   if (!$optionCanEdit) $attributes['disabled']='disabled';
                   echo htmlSelect("newConfig[$name]", $html_options, $value['Value'], $attributes);
                 } else { 

@@ -118,34 +118,34 @@ int main(int argc, char *argv[]) {
     }
 
     switch (c) {
-      case 'd':
-        device = optarg;
-        break;
-      case 'H':
-        host = optarg;
-        break;
-      case 'P':
-        port = optarg;
-        break;
-      case 'p':
-        path = optarg;
-        break;
-      case 'f':
-        file = optarg;
-        break;
-      case 'm':
-        monitor_id = atoi(optarg);
-        break;
-      case 'h':
-      case '?':
-        Usage();
-        break;
-      case 'v':
-        std::cout << ZM_VERSION << "\n";
-        exit(0);
-      default:
-        // fprintf(stderr, "?? getopt returned character code 0%o ??\n", c);
-        break;
+    case 'd':
+      device = optarg;
+      break;
+    case 'H':
+      host = optarg;
+      break;
+    case 'P':
+      port = optarg;
+      break;
+    case 'p':
+      path = optarg;
+      break;
+    case 'f':
+      file = optarg;
+      break;
+    case 'm':
+      monitor_id = atoi(optarg);
+      break;
+    case 'h':
+    case '?':
+      Usage();
+      break;
+    case 'v':
+      std::cout << ZM_VERSION << "\n";
+      exit(0);
+    default:
+      // fprintf(stderr, "?? getopt returned character code 0%o ??\n", c);
+      break;
     }
   }
 
@@ -198,18 +198,18 @@ int main(int argc, char *argv[]) {
     monitors = Monitor::LoadLocalMonitors(device, Monitor::CAPTURE);
   } else
 #endif  // ZM_HAS_V4L2
-  if ( host[0] ) {
-    if ( !port )
-      port = "80";
-    monitors = Monitor::LoadRemoteMonitors(protocol, host, port, path, Monitor::CAPTURE);
-  } else if ( file[0] ) {
-    monitors = Monitor::LoadFileMonitors(file, Monitor::CAPTURE);
-  } else {
-    std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, true, Monitor::CAPTURE);
-    if ( monitor ) {
-      monitors.push_back(monitor);
+    if ( host[0] ) {
+      if ( !port )
+        port = "80";
+      monitors = Monitor::LoadRemoteMonitors(protocol, host, port, path, Monitor::CAPTURE);
+    } else if ( file[0] ) {
+      monitors = Monitor::LoadFileMonitors(file, Monitor::CAPTURE);
+    } else {
+      std::shared_ptr<Monitor> monitor = Monitor::Load(monitor_id, true, Monitor::CAPTURE);
+      if ( monitor ) {
+        monitors.push_back(monitor);
+      }
     }
-  }
 
   if (monitors.empty()) {
     Error("No monitors found");
@@ -247,9 +247,9 @@ int main(int argc, char *argv[]) {
       monitor->SetStartupTime(now);
 
       std::string sql = stringtf(
-          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS,CaptureBandwidth)"
-          " VALUES (%u, 'Running',0,0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
-          monitor->Id());
+                          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS,CaptureBandwidth)"
+                          " VALUES (%u, 'Running',0,0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
+                          monitor->Id());
       zmDbDo(sql);
 
       if (monitor->StartupDelay() > 0) {
@@ -276,8 +276,8 @@ int main(int argc, char *argv[]) {
       if (zm_terminate) break;
 
       sql = stringtf(
-          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
-          monitor->Id());
+              "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
+              monitor->Id());
       zmDbDo(sql);
     }  // end foreach monitor
 
@@ -310,19 +310,19 @@ int main(int argc, char *argv[]) {
 
         if (monitors[i]->PreCapture() < 0) {
           Error("Failed to pre-capture monitor %d %s (%zu/%zu)",
-              monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           result = -1;
           break;
         }
         if (monitors[i]->Capture() < 0) {
-          Error("Failed to capture image from monitor %d %s (%zu/%zu)",
-              monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+          logPrintf(Logger::ERROR + monitors[i]->Importance(), "Failed to capture image from monitor %d %s (%zu/%zu)",
+                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           result = -1;
           break;
         }
         if (monitors[i]->PostCapture() < 0) {
           Error("Failed to post-capture monitor %d %s (%zu/%zu)",
-              monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
+                monitors[i]->Id(), monitors[i]->Name(), i + 1, monitors.size());
           result = -1;
           break;
         }
@@ -334,7 +334,7 @@ int main(int argc, char *argv[]) {
 
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()
-                                                                         : monitors[i]->GetCaptureDelay();
+                             : monitors[i]->GetCaptureDelay();
         if (delay != Seconds(0)) {
           if (last_capture_times[i].time_since_epoch() != Seconds(0)) {
             Microseconds delta_time = std::chrono::duration_cast<Microseconds>(now - last_capture_times[i]);
@@ -384,8 +384,8 @@ int main(int argc, char *argv[]) {
 
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     std::string sql = stringtf(
-        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning'",
-        monitor->Id());
+                        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
+                        monitor->Id());
     zmDbDo(sql);
   }
   monitors.clear();

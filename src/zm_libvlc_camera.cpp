@@ -1,17 +1,17 @@
 /*
  * ZoneMinder Libvlc Camera Class Implementation, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -27,24 +27,24 @@
 static void *libvlc_lib = nullptr;
 static void (*libvlc_media_player_release_f)(libvlc_media_player_t* ) = nullptr;
 static void (*libvlc_media_release_f)(libvlc_media_t* ) = nullptr;
-static void (*libvlc_release_f)(libvlc_instance_t* )	= nullptr;	
+static void (*libvlc_release_f)(libvlc_instance_t* )	= nullptr;
 static void (*libvlc_media_player_stop_f)(libvlc_media_player_t* ) = nullptr;
 static libvlc_instance_t* (*libvlc_new_f)(int, const char* const *) = nullptr;
 static void (*libvlc_log_set_f)(libvlc_instance_t*, libvlc_log_cb, void *) = nullptr;
 static libvlc_media_t* (*libvlc_media_new_location_f)(libvlc_instance_t*, const char*) = nullptr;
 static libvlc_media_player_t* (*libvlc_media_player_new_from_media_f)(libvlc_media_t*) = nullptr;
-static void (*libvlc_video_set_format_f)(libvlc_media_player_t*, const char*, unsigned, unsigned, unsigned) = nullptr;		
+static void (*libvlc_video_set_format_f)(libvlc_media_player_t*, const char*, unsigned, unsigned, unsigned) = nullptr;
 static void (*libvlc_video_set_callbacks_f)(libvlc_media_player_t*, libvlc_video_lock_cb, libvlc_video_unlock_cb, libvlc_video_display_cb, void*) = nullptr;
 static int (*libvlc_media_player_play_f)(libvlc_media_player_t *) = nullptr;
 static const char* (*libvlc_errmsg_f)(void) = nullptr;
-static const char* (*libvlc_get_version_f)(void) = nullptr;	
+static const char* (*libvlc_get_version_f)(void) = nullptr;
 
 void bind_libvlc_symbols() {
   if(libvlc_lib != nullptr) // Safe-check
     return;
-  
+
   libvlc_lib = dlopen("libvlc.so", RTLD_LAZY | RTLD_GLOBAL);
-  if(!libvlc_lib){
+  if(!libvlc_lib) {
     Error("Error loading libvlc: %s", dlerror());
     return;
   }
@@ -63,7 +63,7 @@ void bind_libvlc_symbols() {
   *(void**) (&libvlc_errmsg_f) = dlsym(libvlc_lib, "libvlc_errmsg");
   *(void**) (&libvlc_get_version_f) = dlsym(libvlc_lib, "libvlc_get_version");
 }
-// Do all the buffer checking work here to avoid unnecessary locking 
+// Do all the buffer checking work here to avoid unnecessary locking
 void* LibvlcLockBuffer(void* opaque, void** planes) {
   LibvlcPrivateData* data = reinterpret_cast<LibvlcPrivateData*>(opaque);
   data->mutex.lock();
@@ -102,42 +102,41 @@ void LibvlcUnlockBuffer(void* opaque, void* picture, void *const *planes) {
 }
 
 LibvlcCamera::LibvlcCamera(
-    const Monitor *monitor,
-    const std::string &p_path,
-    const std::string &p_user,
-    const std::string &p_pass,
-    const std::string &p_method,
-    const std::string &p_options,
-    int p_width,
-    int p_height,
-    int p_colours,
-    int p_brightness,
-    int p_contrast,
-    int p_hue,
-    int p_colour,
-    bool p_capture,
-    bool p_record_audio
-    ) :
+  const Monitor *monitor,
+  const std::string &p_path,
+  const std::string &p_user,
+  const std::string &p_pass,
+  const std::string &p_method,
+  const std::string &p_options,
+  int p_width,
+  int p_height,
+  int p_colours,
+  int p_brightness,
+  int p_contrast,
+  int p_hue,
+  int p_colour,
+  bool p_capture,
+  bool p_record_audio
+) :
   Camera(
-      monitor,
-      LIBVLC_SRC,
-      p_width,
-      p_height,
-      p_colours,
-      ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours),
-      p_brightness,
-      p_contrast,
-      p_hue,
-      p_colour,
-      p_capture,
-      p_record_audio
-      ),
+    monitor,
+    LIBVLC_SRC,
+    p_width,
+    p_height,
+    p_colours,
+    ZM_SUBPIX_ORDER_DEFAULT_FOR_COLOUR(p_colours),
+    p_brightness,
+    p_contrast,
+    p_hue,
+    p_colour,
+    p_capture,
+    p_record_audio
+  ),
   mPath(p_path),
   mUser(UriEncode(p_user)),
   mPass(UriEncode(p_pass)),
   mMethod(p_method),
-  mOptions(p_options)
-{  
+  mOptions(p_options) {
   mLibvlcInstance = nullptr;
   mLibvlcMedia = nullptr;
   mLibvlcMediaPlayer = nullptr;
@@ -206,7 +205,7 @@ void LibvlcCamera::Terminate() {
     zm_freealigned(mLibvlcData.buffer);
     mLibvlcData.buffer = nullptr;
   }
-  
+
   if ( mLibvlcData.prevBuffer ) {
     zm_freealigned(mLibvlcData.prevBuffer);
     mLibvlcData.prevBuffer = nullptr;
@@ -287,16 +286,16 @@ int LibvlcCamera::PrimeCapture() {
 }
 
 
-int LibvlcCamera::PreCapture() {    
+int LibvlcCamera::PreCapture() {
   return 0;
 }
 
 // Should not return -1 as cancels capture. Always wait for image if available.
-int LibvlcCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {   
+int LibvlcCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   // newImage is a mutex/condition based flag to tell us when there is an image available
   {
     std::unique_lock<std::mutex> lck(mLibvlcData.newImageMutex);
-    mLibvlcData.newImageCv.wait(lck, [&]{ return mLibvlcData.newImage || zm_terminate; });
+    mLibvlcData.newImageCv.wait(lck, [&] { return mLibvlcData.newImage || zm_terminate; });
     mLibvlcData.newImage = false;
   }
 

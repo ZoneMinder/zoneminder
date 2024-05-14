@@ -21,35 +21,35 @@
 // ---------------------------------
 
 class ZoneMinderFifoAudioSource : public ZoneMinderFifoSource {
-  public:
-		ZoneMinderFifoAudioSource(
-        std::shared_ptr<xop::RtspServer>& rtspServer,
-        xop::MediaSessionId sessionId,
-        xop::MediaChannelId channelId,
-        const std::string &fifo
-        );
+ public:
+  ZoneMinderFifoAudioSource(
+    std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    const std::string &fifo
+  );
 
-		virtual ~ZoneMinderFifoAudioSource() {}
+  virtual ~ZoneMinderFifoAudioSource() {}
 
-    void setFrequency(int p_frequency) {
-      frequency = p_frequency;
-      samplingFrequencyIndex = getFrequencyIndex();
-      m_timeBase = {1, frequency};
-    };
-    int getFrequency() { return frequency; };
-    int getFrequencyIndex();
-    const char *configStr() const { return config.c_str(); };
-    void setChannels(int p_channels) { channels = p_channels; };
-    int getChannels() const { return channels; };
+  void setFrequency(int p_frequency) {
+    frequency = p_frequency;
+    samplingFrequencyIndex = getFrequencyIndex();
+    m_timeBase = {1, frequency};
+  };
+  int getFrequency() { return frequency; };
+  int getFrequencyIndex();
+  const char *configStr() const { return config.c_str(); };
+  void setChannels(int p_channels) { channels = p_channels; };
+  int getChannels() const { return channels; };
 
-  protected:
-    void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
+ protected:
+  void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
 
-	protected:
-    std::string config;
-    int samplingFrequencyIndex;
-    int frequency;
-    int channels;
+ protected:
+  std::string config;
+  int samplingFrequencyIndex;
+  int frequency;
+  int channels;
 };
 #endif // HAVE_RTSP_SERVER
 

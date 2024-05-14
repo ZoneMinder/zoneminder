@@ -30,8 +30,7 @@ std::string escape_json_string(std::string input);
 
 Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
   parent(parent_),
-  RTSP2Web_Healthy(false)
-{
+  RTSP2Web_Healthy(false) {
   Use_RTSP_Restream = false;
   if ((config.rtsp2web_path != nullptr) && (config.rtsp2web_path[0] != '\0')) {
     RTSP2Web_endpoint = config.rtsp2web_path;

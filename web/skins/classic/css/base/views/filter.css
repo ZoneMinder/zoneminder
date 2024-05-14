@@ -41,6 +41,9 @@ select {
     text-align: center;
 }
 
+#sortTable {
+  justify-content: center;
+}
 #sortTable input[type=text] {
     margin-right: 4px;
 }

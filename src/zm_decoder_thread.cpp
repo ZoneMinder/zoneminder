@@ -4,7 +4,7 @@
 #include "zm_signal.h"
 
 DecoderThread::DecoderThread(Monitor *monitor) :
-    monitor_(monitor), terminate_(false) {
+  monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&DecoderThread::Run, this);
 }
 

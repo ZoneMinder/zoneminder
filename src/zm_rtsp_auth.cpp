@@ -1,16 +1,16 @@
 //
 // ZoneMinder RTSP Authentication Class Implementation, $Date$, $Revision$
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -27,20 +27,20 @@
 namespace zm {
 
 Authenticator::Authenticator(const std::string &username, const std::string &password)
-    : fAuthMethod(AUTH_UNDEFINED),
-      fCnonce("0a4f113b"),
-      fUsername(std::move(username)),
-      fPassword(std::move(password)),
-      nc(1) {}
+  : fAuthMethod(AUTH_UNDEFINED),
+    fCnonce("0a4f113b"),
+    fUsername(std::move(username)),
+    fPassword(std::move(password)),
+    nc(1) {}
 
 Authenticator::~Authenticator() {
   reset();
 }
 
 void Authenticator::reset() {
-  fRealm.clear(); 
+  fRealm.clear();
   fNonce.clear();
-  fUsername.clear(); 
+  fUsername.clear();
   fPassword.clear();
   fAuthMethod = AUTH_UNDEFINED;
 }
@@ -49,12 +49,12 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
   const char* basic_match = "Basic ";
   const char* digest_match = "Digest ";
   size_t digest_match_len = strlen(digest_match);
-  
+
   // Check if basic auth
   if ( strncasecmp(headerData.c_str(), basic_match, strlen(basic_match)) == 0 ) {
     fAuthMethod = AUTH_BASIC;
     Debug(2, "Set authMethod to Basic");
-  } 
+  }
   // Check if digest auth
   else if ( strncasecmp(headerData.c_str(), digest_match, digest_match_len) == 0) {
     fAuthMethod = AUTH_DIGEST;
@@ -78,7 +78,7 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
       }
     }
     Debug(2, "Auth data completed. User: %s, realm: %s, nonce: %s, qop: %s",
-				username().c_str(), fRealm.c_str(), fNonce.c_str(), fQop.c_str());
+          username().c_str(), fRealm.c_str(), fNonce.c_str(), fQop.c_str());
   }
 }  // end void Authenticator::authHandleHeader(std::string headerData)
 
@@ -91,9 +91,9 @@ std::string Authenticator::getAuthHeader(const std::string &method, const std::s
   if ( fAuthMethod == AUTH_BASIC ) {
     result += "Basic " + Base64Encode(username() + ":" + password());
   } else if ( fAuthMethod == AUTH_DIGEST ) {
-    result += std::string("Digest ") + 
-          "username=\"" + quote(username()) + "\", realm=\"" + quote(realm()) + "\", " +
-          "nonce=\"" + quote(nonce()) + "\", uri=\"" + quote(uri) + "\"";
+    result += std::string("Digest ") +
+              "username=\"" + quote(username()) + "\", realm=\"" + quote(realm()) + "\", " +
+              "nonce=\"" + quote(nonce()) + "\", uri=\"" + quote(uri) + "\"";
     if ( !fQop.empty() ) {
       result += ", qop=" + fQop;
       result += ", nc=" + stringtf("%08x",nc);
@@ -101,7 +101,7 @@ std::string Authenticator::getAuthHeader(const std::string &method, const std::s
     }
     result += ", response=\"" + computeDigestResponse(method, uri) + "\"";
     result += ", algorithm=\"MD5\"";
-          
+
     //Authorization: Digest username="zm",
     //            realm="NC-336PW-HD-1080P",
     //            nonce="de8859d97609a6fcc16eaba490dcfd80",
@@ -112,7 +112,7 @@ std::string Authenticator::getAuthHeader(const std::string &method, const std::s
     //            qop="auth",
     //            cnonce="c8051140765877dc",
     //            nc=00000001
-    
+
   }
   result += "\r\n";
   return result;

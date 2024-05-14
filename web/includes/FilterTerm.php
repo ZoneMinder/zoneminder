@@ -76,8 +76,7 @@ class FilterTerm {
       $this->chosen = isset($term['chosen']) ? $term['chosen'] : '';
 
     } else {
-      Warning("No term in FilterTerm constructor");
-      #Warning(print_r(debug_backtrace(), true));
+      Warning("No term in FilterTerm constructor".print_r(debug_backtrace(), true));
     }
   } # end function __construct
 
@@ -387,9 +386,9 @@ class FilterTerm {
   } # end public function hiddens_fields
 
   public function test($event=null) {
+    Debug("Testing " . $this->attr);
     if ( !isset($event) ) {
       # Is a Pre Condition
-      Debug("Testing " . $this->attr);
       if ( $this->attr == 'DiskPercent' ) {
         $storage_areas = $this->filter->get_StorageAreas();
         # The logic on this when there are multiple storage areas breaks.  We will just use the first.
@@ -428,9 +427,9 @@ class FilterTerm {
       # Is a Post Condition 
       if ( $this->attr == 'ExistsInFileSystem' ) {
         if ( 
-          ($this->op == 'IS' and $this->val == 'True')
+          ($this->op == 'IS' and $this->val == 'true')
           or
-          ($this->op == 'IS NOT' and $this->val == 'False')
+          ($this->op == 'IS NOT' and $this->val == 'false')
         ) {
           return file_exists($event->Path());
         } else {

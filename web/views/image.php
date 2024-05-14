@@ -81,7 +81,7 @@ if (!empty($_REQUEST['proxy'])) {
 
   // set no time limit and disable compression:
   set_time_limit(5);
-  @apache_setenv('no-gzip', 1);
+  if (function_exists('apache_setenv')) @apache_setenv('no-gzip', 1);
   @ini_set('zlib.output_compression', 0);
 
   /* Sends an http request with additional headers shown above */

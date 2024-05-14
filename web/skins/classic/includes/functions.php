@@ -114,6 +114,10 @@ echo output_link_if_exists(array(
   'js/bootstrap-table-1.21.1/bootstrap-table.min.css',
   'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
 ), true);
+
+if ( $basename == 'montage' ) {
+  echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
+}
 ?>
   <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
@@ -221,7 +225,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           <i class="material-icons md-20">menu</i>
         </span>
       </button>
-      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
+      <button id="flipNarrow" type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
         <span class="sr-only">Toggle guages</span>
         <span class="navbar-toggler-icon">
           <i class="material-icons md-20">monitor</i>
@@ -651,7 +655,7 @@ function getConsoleHTML() {
   global $user;
   $result = '';
   
-  if (count($user->viewableMonitorIds())) {
+  if (count($user->viewableMonitorIds()) or !ZM\Monitor::find_one()) {
     $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
   
@@ -980,7 +984,16 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
-<?php echo output_script_if_exists(array(
+<?php 
+  if ( $basename == 'montage' ) {
+    echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
+    echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+  }
+  if ( $basename == 'watch' ) {
+    echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+  }
+
+  echo output_script_if_exists(array(
   'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
   'js/bootstrap-table-1.22.3/bootstrap-table.min.js',
@@ -1020,8 +1033,7 @@ function xhtmlFooter() {
   }
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
-  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen({disable_search_threshold: 10});</script>
+  <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
   </body>
 </html>
 <?php

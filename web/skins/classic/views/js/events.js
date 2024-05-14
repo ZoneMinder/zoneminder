@@ -155,26 +155,10 @@ function onDeleteClick(evt) {
           });
       return;
     } else {
+      document.getElementById('delConfirmBtn').disabled = false; // re-enable the button
       $j('#deleteConfirm').modal('show');
     }
   } // Shift
-}
-
-function onDownloadClick(evt) {
-  evt.preventDefault();
-  $j.ajax({
-    method: 'POST',
-    timeout: 0,
-    url: thisUrl + '?request=modal&modal=download',
-    data: {'eids[]': getIdSelections()},
-    success: function(data) {
-      insertModalHtml('downloadModal', data.html);
-      $j('#downloadModal').modal('show');
-      // Manage the GENERATE DOWNLOAD button
-      $j('#exportButton').click(exportEvent);
-    },
-    error: logAjaxFail,
-  });
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -184,6 +168,7 @@ function manageDelConfirmModalBtns() {
       enoperm();
       return;
     }
+    document.getElementById('delConfirmBtn').disabled = true; // prevent double click
     evt.preventDefault();
 
     const selections = getIdSelections();
@@ -197,6 +182,39 @@ function manageDelConfirmModalBtns() {
   // Manage the CANCEL modal button
   document.getElementById('delCancelBtn').addEventListener('click', function onDelCancelClick(evt) {
     $j('#deleteConfirm').modal('hide');
+  });
+}
+
+function unarchiveEvents(event_ids) {
+  const ticker = document.getElementById('unarchiveProgressTicker');
+  const chunk = event_ids.splice(0, 10);
+  console.log('unarchive ' + chunk.length + ' selections. ' + event_ids.length);
+
+  $j.ajax({
+    method: 'get',
+    timeout: 0,
+    url: thisUrl + '?request=events&task=unarchive',
+    data: {'eids[]': chunk},
+    success: function(data) {
+      if (data.message) alert(data.message.join("\n"));
+
+      if (!event_ids.length) {
+        $j('#eventTable').bootstrapTable('refresh');
+        $j('#unarchiveConfirm').modal('hide');
+      } else {
+        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+          ticker.innerHTML = '.';
+        } else {
+          ticker.innerHTML = ticker.innerHTML + '.';
+        }
+        unarchiveEvents(event_ids);
+      }
+    },
+    fail: function(jqxhr) {
+      logAjaxFail(jqxhr);
+      $j('#eventTable').bootstrapTable('refresh');
+      $j('#unarchiveConfirm').modal('hide');
+    }
   });
 }
 
@@ -230,6 +248,23 @@ function deleteEvents(event_ids) {
       $j('#eventTable').bootstrapTable('refresh');
       $j('#deleteConfirm').modal('hide');
     }
+  });
+}
+
+function onDownloadClick(evt) {
+  evt.preventDefault();
+  $j.ajax({
+    method: 'POST',
+    timeout: 0,
+    url: thisUrl + '?request=modal&modal=download',
+    data: {'eids[]': getIdSelections()},
+    success: function(data) {
+      insertModalHtml('downloadModal', data.html);
+      $j('#downloadModal').modal('show');
+      // Manage the GENERATE DOWNLOAD button
+      $j('#exportButton').click(exportEvent);
+    },
+    error: logAjaxFail,
   });
 }
 
@@ -356,19 +391,49 @@ function initPage() {
       return;
     }
 
-    const selections = getIdSelections();
+    if (evt.shiftKey) {
+      const selections = getIdSelections();
+      unarchiveEvents(selections);
+      return;
+    }
 
-    evt.preventDefault();
-    $j.ajax({
-      method: 'POST',
-      timeout: 0,
-      url: thisUrl + '?request=events&task=unarchive',
-      data: {'eids[]': selections},
-      success: function(data) {
-        $j('#eventTable').bootstrapTable('refresh');
-      },
-      error: logAjaxFail
-    });
+    if (!document.getElementById('unarchiveConfirm')) {
+      // Load the unarchive confirmation modal into the DOM
+      $j.getJSON(thisUrl + '?request=modal&modal=eventunarchive')
+          .done(function(data) {
+            insertModalHtml('unarchiveConfirm', data.html);
+            document.getElementById('unarchiveConfirmBtn').addEventListener('click', function onUnarchiveConfirmClick(evt) {
+              if (!canEdit.Events) {
+                enoperm();
+                return;
+              }
+              evt.preventDefault();
+
+              const selections = getIdSelections();
+              if (!selections.length) {
+                alert('Please select events to Unarchive.');
+              } else {
+                document.getElementById('unarchiveConfirmBtn').disabled = true; // prevent double click
+                unarchiveEvents(selections);
+              }
+            });
+
+            // Manage the CANCEL modal button
+            document.getElementById('unarchiveCancelBtn').addEventListener('click', function onUnarchiveCancelClick(evt) {
+              $j('#unarchiveConfirm').modal('hide');
+            });
+
+            $j('#unarchiveConfirm').modal('show');
+          })
+          .fail(function(jqXHR) {
+            console.log('error getting unarchiveevent', jqXHR);
+            logAjaxFail(jqXHR);
+          });
+      return;
+    } else {
+      document.getElementById('unarchiveConfirmBtn').disabled = false; // re-enable the button
+      $j('#unarchiveConfirm').modal('show');
+    }
   });
 
   // Manage the EDIT button
@@ -426,7 +491,7 @@ function initPage() {
       getEventDetailModal($j(this).data('eid'));
     });
 
-    var thumb_ndx = $j('#eventTable tr th').filter(function() {
+    const thumb_ndx = $j('#eventTable tr th').filter(function() {
       return $j(this).text().trim() == 'Thumbnail';
     }).index();
     table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
@@ -457,15 +522,12 @@ function filterEvents() {
   filterQuery = '';
   $j('#fieldsTable input').each(function(index) {
     const el = $j(this);
-    console.log('input index: '+index+'  this: '+encodeURIComponent(el.val()));
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
   $j('#fieldsTable select').each(function(index) {
     const el = $j(this);
-    console.log('select index: '+index+'  this: '+encodeURIComponent(el.val()));
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
-  console.log(filterQuery);
   table.bootstrapTable('refresh');
 }
 

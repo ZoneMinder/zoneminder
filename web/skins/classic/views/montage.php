@@ -51,6 +51,20 @@ $heights = array(
   '1080px' => '1080px',
 );
 
+$monitorStatusPositon = array( 
+  'insideImgBottom'  => translate('Inside bottom'),
+  'outsideImgBottom' => translate('Outside bottom'),
+  'hidden' => translate('Hidden'),
+);
+
+$monitorStatusPositonSelected = 'outsideImgBottom';
+
+if (isset($_REQUEST['monitorStatusPositonSelected'])) {
+  $monitorStatusPositonSelected = $_REQUEST['monitorStatusPositonSelected'];
+} else if (isset($_COOKIE['zmMonitorStatusPositonSelected'])) {
+  $monitorStatusPositonSelected = $_COOKIE['zmMonitorStatusPositonSelected'];
+}
+
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
 $FreeFormLayoutId = 0;
@@ -117,7 +131,10 @@ if (isset($_REQUEST['scale'])) {
 }
 if ($scale != 'fixed' and $scale != 'auto') {
   $scale = validNum($scale);
+/* So far so, otherwise when opening with scalex2, etc. The image is larger than the screen and everything slows down...
+scaleControl is no longer used!
   $options['scale'] = $scale;
+*/
 }
 
 session_write_close();
@@ -190,10 +207,13 @@ echo getNavBarHTML();
   <div id="page">
     <div id="header">
 <?php
-    $html = '';
-    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'down')) ? 'up' : 'down';
-    $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
-    $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
+    $html = '<a class="flip" href="#" 
+             data-flip-сontrol-object="#mfbpanel" 
+             data-flip-сontrol-run-after-func="applyChosen" 
+             data-flip-сontrol-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>'.PHP_EOL;
+    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
     echo $html;
 ?>
       <div id="headerButtons">
@@ -223,21 +243,25 @@ if (canView('System')) {
           <input type="hidden" name="object" value="MontageLayout"/>
           <input type="hidden" name="action" value="Save"/>
 
-          <span id="widthControl">
+          <span id="monitorStatusPositonControl">
+            <label><?php echo translate('Monitor status position') ?></label>
+            <?php echo htmlSelect('monitorStatusPositon', $monitorStatusPositon, $monitorStatusPositonSelected, array('id'=>'monitorStatusPositon', 'data-on-change'=>'changeMonitorStatusPositon', 'class'=>'chosen')); ?>
+          </span>
+          <span id="widthControl" class="hidden">
             <label><?php echo translate('Width') ?></label>
-            <?php echo htmlSelect('width', $widths, $options['width'], array('id'=>'width', 'data-on-change'=>'changeWidth')); ?>
+            <?php echo htmlSelect('width', $widths, 'auto'/*$options['width']*/, array('id'=>'width', 'data-on-change'=>'changeWidth', 'class'=>'chosen')); ?>
           </span>
-          <span id="heightControl">
+          <span id="heightControl" class="hidden">
             <label><?php echo translate('Height') ?></label>
-            <?php echo htmlSelect('height', $heights, $options['height'], array('id'=>'height', 'data-on-change'=>'changeHeight')); ?>
+            <?php echo htmlSelect('height', $heights, 'auto'/*$options['height']*/, array('id'=>'height', 'data-on-change'=>'changeHeight', 'class'=>'chosen')); ?>
           </span>
-          <span id="scaleControl">
+          <span id="scaleControl" class="hidden">
             <label><?php echo translate('Scale') ?></label>
-            <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale')); ?>
+            <?php echo htmlSelect('scale', $scales, '0'/*$scale*/, array('id'=>'scale', 'data-on-change-this'=>'changeScale', 'class'=>'chosen')); ?>
           </span> 
           <span id="layoutControl">
             <label for="layout"><?php echo translate('Layout') ?></label>
-            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout')); ?>
+            <?php echo htmlSelect('zmMontageLayout', $layoutsById, $layout_id, array('id'=>'zmMontageLayout', 'data-on-change'=>'selectLayout', 'class'=>'chosen')); ?>
           </span>
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
@@ -261,7 +285,7 @@ if (canView('System')) {
     </div>
   </div>
   <div id="content">
-    <div id="monitors">
+    <div id="monitors" class="grid-stack hidden-shift">
 <?php
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
@@ -295,3 +319,23 @@ foreach ($monitors as $monitor) {
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>
+
+<!-- In May 2024, IgorA100 globally changed grid layout -->
+<div id="messageModal" class="modal fade" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><?php echo translate('Error reading Layout')?></h5>
+      </div>
+      <div class="modal-body">
+        <span id="message-error"></span>
+        <span><?php echo translate('This Layout was saved in previous version of ZoneMinder!')?></span>
+        <br>
+        <span><?php echo translate('It is necessary to place monitors again and resave the Layout.')?></span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Close') ?></button>
+      </div>
+    </div>
+  </div>
+</div>

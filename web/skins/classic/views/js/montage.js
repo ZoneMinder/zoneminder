@@ -560,7 +560,7 @@ function calculateAverageMonitorsRatio(arrRatioMonitors) {
   for (var i = 0; i < arrRatioMonitors.length; i++) {
     total += arrRatioMonitors[i];
   }
-  const avg = total / arrRatioMonitors.length;  
+  const avg = total / arrRatioMonitors.length;
 
   // We create an array of aspect ratios from the basic set of objects and find the closest avg Ratio value in it
   const arr = [];

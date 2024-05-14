@@ -141,7 +141,7 @@ function initPage() {
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
-    el.oninput = window['update_estimated_ram_use'].bind(el);
+    el.oninput = window['buffer_setting_oninput'].bind(el);
   });
   update_estimated_ram_use();
 
@@ -311,17 +311,31 @@ function random_WebColour() {
   );
 }
 
+function buffer_setting_oninput(e) {
+  const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
+  const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
+  console.log(pre_event_count.value ,'>', max_image_buffer_count.value, this);
+  if (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value)) {
+    if (this.id=='newMonitor[PreEventCount]') {
+      max_image_buffer_count.value=pre_event_count.value;
+    } else {
+      pre_event_count.value = max_image_buffer_count.value;
+    }
+  }
+      
+  update_estimated_ram_use();
+}
 function update_estimated_ram_use() {
-  var width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
-  var height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
-  var colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
+  const width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
+  const height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
+  const colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
 
-  var min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
-  min_buffer_count += parseInt(document.querySelectorAll('input[name="newMonitor[PreEventCount]"]')[0].value);
-  var min_buffer_size = min_buffer_count * width * height * colours;
+  let min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
+  min_buffer_count += parseInt(document.getElementById('newMonitor[PreEventCount]').value);
+  const min_buffer_size = min_buffer_count * width * height * colours;
   document.getElementById('estimated_ram_use').innerHTML = 'Min: ' + human_filesize(min_buffer_size);
 
-  var max_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]')[0].value);
+  const max_buffer_count = parseInt(document.getElementById('newMonitor[MaxImageBufferCount]').value);
   if (max_buffer_count) {
     var max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
     document.getElementById('estimated_ram_use').innerHTML += ' Max: ' + human_filesize(max_buffer_size);

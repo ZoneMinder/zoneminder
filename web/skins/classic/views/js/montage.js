@@ -267,7 +267,7 @@ function setSelected(objSel, value) {
       option.selected = true;
       $j(objSel).trigger("chosen:updated");
       return;
-    } 
+    }
   }
 }
 
@@ -280,8 +280,8 @@ function cancelSelected(objSel) {
 }
 
 function setSelectedRatioForAllMonitors(value) {
-  $j('.select-ratio').each(function f(){
-    setSelected (this, value);
+  $j('.select-ratio').each(function f() {
+    setSelected(this, value);
   });
 }
 
@@ -306,7 +306,6 @@ function changeRatio(el) {
 
   checkRatioForAllMonitors();
   setTriggerChangedMonitors(stringToNumber(objSelect.id));
-
 }
 
 /*
@@ -323,7 +322,7 @@ function checkRatioForAllMonitors() {
     allRatiosSame = defaultPresetRatio;
   }
 
-  $j('.select-ratio').each(function(){
+  $j('.select-ratio').each(function() {
     const curr_value = getSelected(this);
     if (prev_value == '') {
       prev_value = curr_value;
@@ -398,8 +397,8 @@ function save_layout(button) {
   var Positions = {};
   Positions['gridStack'] = objGridStack.save(false, false);
   Positions['monitorStatusPositon'] = $j('#monitorStatusPositon').val(); //Not yet used when reading Layout
-  Positions['monitorRatio'] = new Object();
-  $j('.select-ratio').each(function f(){
+  Positions['monitorRatio'] = {};
+  $j('.select-ratio').each(function f() {
     Positions['monitorRatio'][stringToNumber(this.id)] = getSelected(this);
   });
   form.Positions.value = JSON.stringify(Positions, null, '  ');
@@ -534,7 +533,7 @@ function windowResize() { //Only used when trying to apply "changeScale". It wil
 }
 
 function buildRatioSelect(objSelect) {
-  presetRatio.forEach(function(value,key) {
+  presetRatio.forEach(function(value, key) {
     if (key == "auto") {
       objSelect.options[objSelect.options.length] = new Option("Auto", key);
     } else if (key == "real") {
@@ -558,14 +557,14 @@ function fullscreenchanged(event) {
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
   //Let's calculate the average Ratio value for the displayed monitors
   let total = 0;
-  for(var i = 0; i < arrRatioMonitors.length; i++) {
+  for (var i = 0; i < arrRatioMonitors.length; i++) {
     total += arrRatioMonitors[i];
   }
-  let avg = total / arrRatioMonitors.length;  
+  const avg = total / arrRatioMonitors.length;  
 
   // We create an array of aspect ratios from the basic set of objects and find the closest avg Ratio value in it
-  let arr = [];
-  presetRatio.forEach(function(value,key) {
+  const arr = [];
+  presetRatio.forEach(function(value, key) {
     arr.push(value);
   });
   averageMonitorsRatio = arr.reduce(function(prev, curr) {
@@ -576,7 +575,7 @@ function calculateAverageMonitorsRatio(arrRatioMonitors) {
 function initPage() {
   monitors_ul = $j('#monitors');
 
-  //For select in header 
+  //For select in header
   buildRatioSelect(document.getElementById("ratio"));
 
   //For select in each monitor
@@ -618,7 +617,7 @@ function initPage() {
       }
   );
 
-  let arrRatioMonitors = [];
+  const arrRatioMonitors = [];
   for (let i = 0, length = monitorData.length; i < length; i++) {
     monitors[i] = new MonitorStream(monitorData[i]);
     //Create a Ratio array for each monitor
@@ -675,7 +674,7 @@ function initPage() {
     if (changedMonitors.length > 0) {
       changedMonitors.forEach(function(item, index, object) {
         const value = getSelected(document.getElementById("ratio"+item));
-        let img = document.getElementById('liveStream'+item);
+        const img = document.getElementById('liveStream'+item);
         const currentMonitor = monitors.find((o) => {
           return parseInt(o["id"]) === item;
         });
@@ -684,7 +683,7 @@ function initPage() {
         } else {
           const partsRatio = value.split(':');
           const monitorRatioSel = partsRatio[0]/partsRatio[1];
-          let ratio = (value == 'auto') ? averageMonitorsRatio : monitorRatioSel;
+          const ratio = (value == 'auto') ? averageMonitorsRatio : monitorRatioSel;
 
           if (currentMonitor.width / currentMonitor.height > 1) { //landscape
             img.style['height'] = img.clientWidth / ratio + 'px';
@@ -918,7 +917,9 @@ function monitorsSetScale(id=null) {
     if (typeof monitorStream !== 'undefined') {
       var currentMonitor = monitorStream;
     } else {
-      var currentMonitor = monitors.find((o) => { return parseInt(o["id"]) === id });
+      var currentMonitor = monitors.find((o) => {
+        return parseInt(o["id"]) === id;
+      });
     }
     const el = document.getElementById('liveStream'+id);
     if (panZoomEnabled) {
@@ -950,7 +951,7 @@ function setTriggerChangedMonitors(id=null) {
       changedMonitors.push(id);
     }
   } else {
-    $j('[id ^= "liveStream"]').each(function f(){
+    $j('[id ^= "liveStream"]').each(function f() {
       const i = stringToNumber(this.id);
       if (!changedMonitors.includes(i)) {
         changedMonitors.push(i);

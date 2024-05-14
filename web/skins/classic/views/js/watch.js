@@ -1431,15 +1431,33 @@ function monitorsSetScale(id=null) {
       var panZoomScale = 1;
     }
 
-    const resize = (parseInt($j('#scale').val()) == 0) ? true : false;
+    const scale = $j('#scale').val();
+    let resize;
+    if (scale == '0') {
+      //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
+      resize = true;
+    } else if (scale == '100') {
+      //Actual, 100% of original size
+      resize = false;
+    } else if (scale == 'fit_to_width') {
+      //Fit to screen width
+      resize = false;
+    }
+
+    //const resize = (parseInt($j('#scale').val()) == 0) ? true : false;
     if (resize) {
      document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
     }
     //curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg:true, scaleImg:panZoomScale});
     curentMonitor.setScale(0, 'auto', 'auto', {resizeImg: resize, scaleImg: panZoomScale});
     if (!resize) {
-      document.getElementById('monitor'+id).style.width = '';
-      document.getElementById('liveStream'+id).style.height = '';
+     document.getElementById('liveStream'+id).style.height = '';
+     if (scale == 'fit_to_width') {
+        document.getElementById('monitor'+id).style.width = '';
+      } else if (scale == '100') {
+        document.getElementById('monitor'+id).style.width = 'max-content';
+        document.getElementById('liveStream'+id).style.width = 'auto';
+      }
     }
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
@@ -1451,15 +1469,32 @@ function monitorsSetScale(id=null) {
         var panZoomScale = 1;
       }
 
-      const resize = (parseInt($j('#scale').val()) == 0) ? true : false;
+      const scale = $j('#scale').val();
+      let resize;
+      if (scale == '0') {
+        //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
+        resize = true;
+      } else if (scale == '100') {
+       //Actual, 100% of original size
+        resize = false;
+      } else if (scale == 'fit_to_width') {
+        //Fit to screen width
+        resize = false;
+      }
+
       if (resize) {
        document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
       }
       //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
       monitors[i].setScale(0, 'auto', 'auto', {resizeImg: resize, scaleImg: panZoomScale});
       if (!resize) {
-        document.getElementById('monitor'+id).style.width = '';
-        document.getElementById('liveStream'+id).style.height = '';
+       document.getElementById('liveStream'+id).style.height = '';
+       if (scale == 'fit_to_width') {
+          document.getElementById('monitor'+id).style.width = '';
+        } else if (scale == '100') {
+          document.getElementById('monitor'+id).style.width = 'max-content';
+          document.getElementById('liveStream'+id).style.width = 'auto';
+        }
       }
     }
   }

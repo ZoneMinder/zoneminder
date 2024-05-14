@@ -680,16 +680,14 @@ function initPage() {
         });
         if (value == 'real') {
           img.style['height'] = 'auto';
+          img.parentNode.style['height'] = 'auto';
         } else {
           const partsRatio = value.split(':');
           const monitorRatioSel = partsRatio[0]/partsRatio[1];
           const ratio = (value == 'auto') ? averageMonitorsRatio : monitorRatioSel;
-
-          if (currentMonitor.width / currentMonitor.height > 1) { //landscape
-            img.style['height'] = img.clientWidth / ratio + 'px';
-          } else { //portret
-            img.style['height'] = img.clientWidth * ratio + 'px';
-          }
+          const h = (currentMonitor.width / currentMonitor.height > 1) ? (img.clientWidth / ratio + 'px') /*landscape*/ : (img.clientWidth * ratio + 'px');
+          img.style['height'] = h;
+          img.parentNode.style['height'] = h;
         }
 
         if (img.offsetHeight > 20 && objGridStack) { //Required for initial page loading

@@ -252,6 +252,12 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
 ?>
         </span>
       </div>
+      <div class="form-check control-use-old-zoom-pan">
+        <input id="use-old-zoom-pan" class="form-check-input" type="checkbox" value="">
+        <label class="form-check-label" for="use-old-zoom-pan">
+          <?php echo translate('Use old ZoomPan') ?>
+        </label>
+      </div>
       <div id="sizeControl">
 
       </div><!--sizeControl-->

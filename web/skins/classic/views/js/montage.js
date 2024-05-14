@@ -472,7 +472,11 @@ function handleClick(evt) {
       window.location.assign(url);
     }
   } else if (obj.className.includes('btn-fullscreen')) {
-    openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+    if (document.fullscreenElement) {
+      closeFullscreen();
+    } else {
+      openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+    }
   }
 }
 
@@ -546,9 +550,18 @@ function buildRatioSelect(objSelect) {
 }
 
 function fullscreenchanged(event) {
+  const objBtn = $j('.btn-fullscreen');
   if (document.fullscreenElement) {
     //console.log(`Element: ${document.fullscreenElement.id} entered fullscreen mode.`);
+    if (objBtn) {
+      objBtn.attr('title', 'Close full screen');
+      objBtn.children('.material-icons').html('fullscreen_exit');
+    }
   } else {
+    if (objBtn) {
+      objBtn.attr('title', 'Open full screen');
+      objBtn.children('.material-icons').html('fullscreen');
+    }
     //Sometimes the positioning is not correct, so it is better to reset Pan & Zoom
     panZoom[stringToNumber(event.target.id)].reset();
   }

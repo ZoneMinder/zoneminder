@@ -368,17 +368,17 @@ if ($streamMode == 'jpeg') {
               <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="zoomOutClick">
               <i class="material-icons md-18">zoom_out</i>
               </button>
-              <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
-              <i class="material-icons md-18">fullscreen</i>
-              </button>
 <?php
 } // end if streamMode==jpeg
 ?>
           </div><!--dvrControls-->
 <?php } // end if $monitor->Type() != 'WebSite' ?>
           <div class="buttons" id="extButton"> 
-              <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents" data-url="?view=events&page=1&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Battr%5D=Monitor&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bop%5D=%3D&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bval%5D=<?php echo $monitor->Id()?>&filter%5BQuery%5D%5Bsort_asc%5D=1&filter%5BQuery%5D%5Bsort_field%5D=StartDateTime&filter%5BQuery%5D%5Bskip_locked%5D=&filter%5BQuery%5D%5Blimit%5D=0"><?php echo translate('All Events') ?> 
-              </button>
+            <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
+            <i class="material-icons md-18">fullscreen</i>
+            </button>
+            <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents" data-url="?view=events&page=1&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Battr%5D=Monitor&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bop%5D=%3D&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bval%5D=<?php echo $monitor->Id()?>&filter%5BQuery%5D%5Bsort_asc%5D=1&filter%5BQuery%5D%5Bsort_field%5D=StartDateTime&filter%5BQuery%5D%5Bskip_locked%5D=&filter%5BQuery%5D%5Blimit%5D=0"><?php echo translate('All Events') ?> 
+            </button>
           </div>
         </div><!-- id="wrapperMonitor" -->
 

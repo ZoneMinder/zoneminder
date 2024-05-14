@@ -143,15 +143,18 @@ function changeSize() {
 
   //monitorStream.setScale('0', width, height);
   monitorsSetScale(monitorId);
-  $j('#scale').val('0');
+  //$j('#scale').val('0');
   $j('#sidebar ul').height($j('#wrapperMonitor').height()-$j('#cycleButtons').height());
 
-  setCookie('zmWatchScale', '0');
+  //setCookie('zmWatchScale', '0');
   setCookie('zmWatchWidth', width);
   setCookie('zmWatchHeight', height);
 } // end function changeSize()
 
 function changeScale() {
+  const scale = $j('#scale').val();
+  setCookie('zmWatchScaleNew'+monitorId, scale);
+  setCookie('zmCycleScale', scale);
   monitorsSetScale(monitorId);
 /*
   const scale = $j('#scale').val();
@@ -1427,8 +1430,17 @@ function monitorsSetScale(id=null) {
     } else {
       var panZoomScale = 1;
     }
+
+    const resize = (parseInt($j('#scale').val()) == 0) ? true : false;
+    if (resize) {
+     document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
+    }
     //curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg:true, scaleImg:panZoomScale});
-    curentMonitor.setScale(0, 'auto', 'auto', {resizeImg: true, scaleImg: panZoomScale});
+    curentMonitor.setScale(0, 'auto', 'auto', {resizeImg: resize, scaleImg: panZoomScale});
+    if (!resize) {
+      document.getElementById('monitor'+id).style.width = '';
+      document.getElementById('liveStream'+id).style.height = '';
+    }
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
@@ -1438,8 +1450,17 @@ function monitorsSetScale(id=null) {
       } else {
         var panZoomScale = 1;
       }
+
+      const resize = (parseInt($j('#scale').val()) == 0) ? true : false;
+      if (resize) {
+       document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
+      }
       //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
-      monitors[i].setScale(0, 'auto', 'auto', {resizeImg: true, scaleImg: panZoomScale});
+      monitors[i].setScale(0, 'auto', 'auto', {resizeImg: resize, scaleImg: panZoomScale});
+      if (!resize) {
+        document.getElementById('monitor'+id).style.width = '';
+        document.getElementById('liveStream'+id).style.height = '';
+      }
     }
   }
 }

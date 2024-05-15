@@ -14,7 +14,11 @@ var layoutColumns = 48; //Maximum number of columns (items per row) for GridStac
 var changedMonitors = []; //Monitor IDs that were changed in the DOM
 
 var panZoomEnabled = true; //Add it to settings in the future
+var panZoomMaxScale = 10;
+var panZoomStep = 0.3;
 var panZoom = [];
+var shifted;
+var ctrled;
 
 const presetRatio = new Map([
   ['auto', ''],
@@ -49,7 +53,7 @@ function stringToNumber(str) {
 }
 
 function isPresetLayout(name) {
-  return (( name=='Freeform' || name=='1 Wide' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='5 Wide' || name=='6 Wide' || name=='7 Wide' || name=='8 Wide' || name=='9 Wide' || name=='10 Wide' || name=='11 Wide' || name=='12 Wide' || name=='16 Wide' ) ? true : false);
+  return (( name=='Freeform' || name=='1 Wide' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='6 Wide' || name=='8 Wide' name=='12 Wide' || name=='16 Wide' ) ? true : false);
 }
 
 function getCurrentNameLayout() {
@@ -445,6 +449,7 @@ function takeSnapshot() {
 
 function handleClick(evt) {
   evt.preventDefault();
+  var id;
 
   if (evt.target.id) { //We are looking for an object with an ID, because there may be another element in the button.
     var obj = evt.target;
@@ -455,7 +460,7 @@ function handleClick(evt) {
   if (mode == EDITING || obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
   if (obj.className.includes('btn-view-watch')) {
     const el = evt.currentTarget;
-    const id = el.getAttribute("data-monitor-id");
+    id = el.getAttribute("data-monitor-id");
     const url = '?view=watch&mid='+id;
     if (evt.ctrlKey) {
       window.open(url, '_blank');
@@ -464,7 +469,7 @@ function handleClick(evt) {
     }
   } else if (obj.className.includes('btn-edit-monitor')) {
     const el = evt.currentTarget;
-    const id = el.getAttribute("data-monitor-id");
+    id = el.getAttribute("data-monitor-id");
     const url = '?view=monitor&mid='+id;
     if (evt.ctrlKey) {
       window.open(url, '_blank');
@@ -477,6 +482,21 @@ function handleClick(evt) {
     } else {
       openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
     }
+  }
+
+  if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
+    id = stringToNumber(obj.getAttribute('id'));
+
+    if (ctrled && shifted) {
+      return;
+    } else if (ctrled) {
+      panZoom[id].zoom(1, {animate: true});
+    } else if (shifted) {
+      const scale = panZoom[id].getScale() * Math.exp(panZoomStep);
+      const point = {clientX: event.clientX, clientY: event.clientY};
+      panZoom[id].zoomToPoint(scale, point, {focal: {x: event.clientX, y: event.clientY}});
+    }
+    //updateScale = true;
   }
 }
 
@@ -585,6 +605,33 @@ function calculateAverageMonitorsRatio(arrRatioMonitors) {
   });
 }
 
+/*
+* Id - Monitor ID
+* The function will probably be moved to the main JS file
+*/
+function manageCursor(Id) {
+  const obj = document.getElementById('liveStream'+Id);
+  const currentScale = panZoom[Id].getScale().toFixed(1);
+
+  if (shifted && ctrled) {
+    obj.closest('.zoompan').style['cursor'] = 'not-allowed';
+  } else if (shifted) {
+    obj.closest('.zoompan').style['cursor'] = 'zoom-in';
+  } else if (ctrled) {
+    if (currentScale == 1.0) {
+      obj.closest('.zoompan').style['cursor'] = 'auto';
+    } else {
+      obj.closest('.zoompan').style['cursor'] = 'zoom-out';
+    }
+  } else {
+    if (currentScale == 1.0) {
+      obj.closest('.zoompan').style['cursor'] = 'auto';
+    } else {
+      obj.closest('.zoompan').style['cursor'] = 'move';
+    }
+  }
+}
+
 function initPage() {
   monitors_ul = $j('#monitors');
 
@@ -683,7 +730,7 @@ function initPage() {
     }, 10*1000);
   }
 
-  setInterval(() => { //Updating GridStack resizeToContent & Ratio
+  setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.forEach(function(item, index, object) {
         const value = getSelected(document.getElementById("ratio"+item));
@@ -707,6 +754,7 @@ function initPage() {
           objGridStack.resizeToContent(document.getElementById('m'+item));
           changedMonitors.splice(index, 1);
         }
+        monitorsSetScale(item);
       });
     }
   }, 200);
@@ -720,6 +768,15 @@ function initPage() {
   if (panZoomEnabled) {
     $j('.zoompan').each( function() {
       panZoomAction('enable', {obj: this});
+      const id = stringToNumber(this.querySelector("[id^='liveStream']").id);
+      $j(document).on('keyup keydown', function(e) {
+        shifted = e.shiftKey ? e.shiftKey : e.shift;
+        ctrled = e.ctrlKey;
+        manageCursor(id);
+      });
+      this.addEventListener('mousemove', function(e) {
+        //Temporarily not use
+      });
     });
   }
 
@@ -784,7 +841,8 @@ function addEvents(grid, id) {
     items.forEach(function(item) {
       const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
       //setTriggerChangedMonitors(currentMonitorId);
-      monitorsSetScale(currentMonitorId);
+      //monitorsSetScale(currentMonitorId);
+      setTriggerChangedMonitors(currentMonitorId);
     });
 
     elementResize();
@@ -873,12 +931,21 @@ function panZoomAction(action, param) {
     $j('.btn-zoom-out').removeClass('hidden');
     panZoom[i] = Panzoom(param['obj'], {
       minScale: 1,
-      maxScale: 20,
+      step: panZoomStep,
+      maxScale: panZoomMaxScale,
       contain: 'outside',
       cursor: 'auto',
     });
-    panZoom[i].pan(10, 10);
-    panZoom[i].zoom(1, {animate: true});
+    //panZoom[i].pan(10, 10);
+    //panZoom[i].zoom(1, {animate: true});
+    // Binds to shift + wheel
+    param['obj'].parentElement.addEventListener('wheel', function(event) {
+      if (!shifted) {
+        return;
+      }
+      panZoom[i].zoomWithWheel(event);
+      setTriggerChangedMonitors(i);
+    });
   } else if (action == "disable") { //Disable a specific object
     $j('.btn-zoom-in').addClass('hidden');
     $j('.btn-zoom-out').addClass('hidden');
@@ -895,14 +962,14 @@ function panZoomIn(el) {
   } else { //There may be an element without ID inside the button
     var id = stringToNumber(el.target.parentElement.id);
   }
-  panZoom[id].zoomIn();
-  monitorsSetScale(id);
-  var el = document.getElementById('liveStream'+id);
-  if (panZoom[id].getScale().toFixed(1) != 1.0) {
-    el.closest('.zoompan').style['cursor'] = 'move';
+  if (el.ctrlKey) {
+    // Double the zoom step.
+    panZoom[id].zoom(panZoom[id].getScale() * Math.exp(panZoomStep*2), {animate: true});
   } else {
-    el.closest('.zoompan').style['cursor'] = 'auto';
+    panZoom[id].zoomIn();
   }
+  setTriggerChangedMonitors(id);
+  manageCursor(id);
 }
 
 function panZoomOut(el) {
@@ -911,14 +978,14 @@ function panZoomOut(el) {
   } else {
     var id = stringToNumber(el.target.parentElement.id);
   }
-  panZoom[id].zoomOut();
-  monitorsSetScale(id);
-  var el = document.getElementById('liveStream'+id);
-  if (panZoom[id].getScale().toFixed(1) != 1.0) {
-    el.closest('.zoompan').style['cursor'] = 'move';
+  if (el.ctrlKey) {
+    // Reset zoom
+    panZoom[id].zoom(1, {animate: true});
   } else {
-    el.closest('.zoompan').style['cursor'] = 'auto';
+    panZoom[id].zoomOut();
   }
+  setTriggerChangedMonitors(id);
+  manageCursor(id);
 }
 
 function monitorsSetScale(id=null) {

@@ -55,6 +55,7 @@ $monitorStatusPositon = array(
   'insideImgBottom'  => translate('Inside bottom'),
   'outsideImgBottom' => translate('Outside bottom'),
   'hidden' => translate('Hidden'),
+  'showOnHover' => translate('Show on hover'),
 );
 
 $monitorStatusPositonSelected = 'outsideImgBottom';
@@ -246,6 +247,10 @@ if (canView('System')) {
           <span id="monitorStatusPositonControl">
             <label><?php echo translate('Monitor status position') ?></label>
             <?php echo htmlSelect('monitorStatusPositon', $monitorStatusPositon, $monitorStatusPositonSelected, array('id'=>'monitorStatusPositon', 'data-on-change'=>'changeMonitorStatusPositon', 'class'=>'chosen')); ?>
+          </span>
+          <span id="ratioControl">
+            <label><?php echo translate('Ratio') ?></label>
+            <?php echo htmlSelect('ratio', '', '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
           </span>
           <span id="widthControl" class="hidden">
             <label><?php echo translate('Width') ?></label>

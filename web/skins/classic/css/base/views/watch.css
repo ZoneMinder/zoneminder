@@ -1,10 +1,20 @@
 #header {
 }
 
+#header form{
+  width: 100%;
+}
+
 .container-fluid {
 /*  padding-left: 0;
   padding-right: 0;*/
 }
+
+#wrapperMonitor {
+  width: 100%;
+  overflow-x: auto;
+}
+
 #wrapperMonitor .buttons {
   display: inline-block;
 }
@@ -162,4 +172,8 @@ span.alert {
 
 body.sticky #content {
   overflow-y: auto;
+}
+
+.zoom {
+  transform-origin: 100% 00%;
 }

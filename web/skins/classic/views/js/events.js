@@ -155,26 +155,10 @@ function onDeleteClick(evt) {
           });
       return;
     } else {
+      document.getElementById('delConfirmBtn').disabled = false; // re-enable the button
       $j('#deleteConfirm').modal('show');
     }
   } // Shift
-}
-
-function onDownloadClick(evt) {
-  evt.preventDefault();
-  $j.ajax({
-    method: 'POST',
-    timeout: 0,
-    url: thisUrl + '?request=modal&modal=download',
-    data: {'eids[]': getIdSelections()},
-    success: function(data) {
-      insertModalHtml('downloadModal', data.html);
-      $j('#downloadModal').modal('show');
-      // Manage the GENERATE DOWNLOAD button
-      $j('#exportButton').click(exportEvent);
-    },
-    error: logAjaxFail,
-  });
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -184,6 +168,7 @@ function manageDelConfirmModalBtns() {
       enoperm();
       return;
     }
+    document.getElementById('delConfirmBtn').disabled = true; // prevent double click
     evt.preventDefault();
 
     const selections = getIdSelections();
@@ -230,6 +215,23 @@ function deleteEvents(event_ids) {
       $j('#eventTable').bootstrapTable('refresh');
       $j('#deleteConfirm').modal('hide');
     }
+  });
+}
+
+function onDownloadClick(evt) {
+  evt.preventDefault();
+  $j.ajax({
+    method: 'POST',
+    timeout: 0,
+    url: thisUrl + '?request=modal&modal=download',
+    data: {'eids[]': getIdSelections()},
+    success: function(data) {
+      insertModalHtml('downloadModal', data.html);
+      $j('#downloadModal').modal('show');
+      // Manage the GENERATE DOWNLOAD button
+      $j('#exportButton').click(exportEvent);
+    },
+    error: logAjaxFail,
   });
 }
 
@@ -426,7 +428,7 @@ function initPage() {
       getEventDetailModal($j(this).data('eid'));
     });
 
-    var thumb_ndx = $j('#eventTable tr th').filter(function() {
+    const thumb_ndx = $j('#eventTable tr th').filter(function() {
       return $j(this).text().trim() == 'Thumbnail';
     }).index();
     table.find('tr td:nth-child(' + (thumb_ndx+1) + ')').addClass('colThumbnail');
@@ -457,15 +459,12 @@ function filterEvents() {
   filterQuery = '';
   $j('#fieldsTable input').each(function(index) {
     const el = $j(this);
-    console.log('input index: '+index+'  this: '+encodeURIComponent(el.val()));
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
   $j('#fieldsTable select').each(function(index) {
     const el = $j(this);
-    console.log('select index: '+index+'  this: '+encodeURIComponent(el.val()));
     filterQuery += '&'+encodeURIComponent(el.attr('name'))+'='+encodeURIComponent(el.val());
   });
-  console.log(filterQuery);
   table.bootstrapTable('refresh');
 }
 

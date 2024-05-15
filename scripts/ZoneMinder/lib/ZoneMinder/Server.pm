@@ -33,9 +33,8 @@ require ZoneMinder::Object;
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial @identified_by %defaults $debug/;
-my $prev_stat;
 
-$debug = 0;
+$debug = 1;
 $table = 'Servers';
 @identified_by = ('Id');
 $serial = $primary_key = 'Id';
@@ -72,12 +71,9 @@ sub CpuLoad {
   my $output = qx(uptime);
   my @sysloads = split ', ', (split ': ', $output)[-1];
   # returned value is 1min, 5min, 15min load
+  tr/,/./ foreach @sysloads;
 
-  if (join(', ',@sysloads) =~ /(\d+(\.|\,)\d+)\s*,\s+(\d+(\.|\,)\d+)\s*,\s+(\d+(\.|\,)\d+)\s*$/) {
-    if (@_) {
-      my $self = shift;
-      $$self{CpuLoad} = tr/,/./ for $sysloads[0];
-    }
+  if (join(', ', @sysloads) =~ /(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*,\s+(\d+\.\d+)\s*$/) {
     return @sysloads;
   }
 
@@ -85,13 +81,20 @@ sub CpuLoad {
 } # end sub CpuLoad
 
 sub CpuUsage {
-  use vars qw($prev_stat);
+
   my $fileNameCurStat = '/proc/stat';
   # If we fail, fall through to using top
   if (-e $fileNameCurStat and open(STAT, $fileNameCurStat)) {
-    #my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = ReadStat();
-    my ($prev_user, $prev_nice, $prev_sys, $prev_idle, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle) = 0;
-    my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent) = 0;
+    my ($self, $prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total, $cpu_user, $cpu_nice, $cpu_sys, $cpu_idle);
+    my ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent);
+
+    if (@_==1) {
+      $self = shift;
+      ($prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total) = @$self{'prev_user','prev_nice','prev_sys','prev_idle','prev_total'};
+    } elsif (@_>1) {
+      $self = {};
+      ($prev_user, $prev_nice, $prev_sys, $prev_idle, $prev_total) = @_;
+    }
     while (<STAT>) {
       # Individual core lines will start with cpu\d+.  We want all cpus, which tends to be the first line, sans digit.
       if (/^cpu\s+[0-9]+/) {
@@ -101,10 +104,10 @@ sub CpuUsage {
     }
     close STAT;
 
-    my $diff_user = $cpu_user - ($$prev_stat{prev_user} // 0);
-    my $diff_nice = $cpu_nice - ($$prev_stat{prev_nice} // 0);
-    my $diff_sys = $cpu_sys - ($$prev_stat{prev_sys} // 0);
-    my $diff_idle = $cpu_idle - ($$prev_stat{prev_idle} // 0);
+    my $diff_user = $cpu_user - ($prev_user // 0);
+    my $diff_nice = $cpu_nice - ($prev_nice // 0);
+    my $diff_sys = $cpu_sys - ($prev_sys // 0);
+    my $diff_idle = $cpu_idle - ($prev_idle // 0);
     my $diff_total = $diff_user + $diff_nice + $diff_sys + $diff_idle;
 
     if ($diff_total != 0){
@@ -115,22 +118,10 @@ sub CpuUsage {
       $usage_percent = 100 * ($diff_total - $diff_idle) / $diff_total;
     }
 
-    $$prev_stat{prev_user} = $cpu_user;
-    $$prev_stat{prev_nice} = $cpu_nice;
-    $$prev_stat{prev_sys} = $cpu_sys;
-    $$prev_stat{prev_idle} = $cpu_idle;
-
-my $filename = '/tmp/OLD.txt';
-open(my $fh, '>', $filename) or die "Не могу открыть '$filename' $!";
-print $fh $$prev_stat{prev_user};
-print $fh "\n";
-print $fh $$prev_stat{prev_nice};
-print $fh "\n";
-print $fh $$prev_stat{prev_sys};
-print $fh "\n";
-print $fh $$prev_stat{prev_idle};
-close $fh;
-
+    $$self{prev_user} = $cpu_user;
+    $$self{prev_nice} = $cpu_nice;
+    $$self{prev_sys} = $cpu_sys;
+    $$self{prev_idle} = $cpu_idle;
 
     return ($user_percent, $nice_percent, $sys_percent, $idle_percent, $usage_percent);
 
@@ -143,11 +134,11 @@ close $fh;
     $nice =~ s/[^\d\.]//g;
     $idle =~ s/[^\d\.]//g;
     if (!$user) {
-      Warning("Failed getting user_utilization from $top_output");
+      ZoneMinder::Logger::Warning("Failed getting user_utilization from $top_output");
       $user = 0;
     }
     if (!$system) {
-      Warning("Failed getting user_utilization from $top_output");
+      ZoneMinder::Logger::Warning("Failed getting system_utilization from $top_output");
       $system = 0;
     }
     return ($user, $nice, $system, $idle, $user + $system);

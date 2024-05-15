@@ -261,6 +261,22 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
+    // List of functions that are allowed to be called via the value of an object's DOM attribute.
+    const safeFunc = {
+      drawGraph: function() {
+        if (typeof drawGraph !== 'undefined' && $j.isFunction(drawGraph)) drawGraph();
+      },
+      refreshWindow: function() {
+        if (typeof refreshWindow !== 'undefined' && $j.isFunction(refreshWindow)) refreshWindow();
+      },
+      changeScale: function() {
+        if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) changeScale();
+      },
+      applyChosen: function() {
+        if (typeof applyChosen !== 'undefined' && $j.isFunction(applyChosen)) applyChosen();
+      }
+    };
+
     // Load the Logout and State modals into the dom
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
@@ -274,7 +290,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Update update reminders when the user makes a selection from the dropdown
     reminderClickFunction();
     // Manage the widget bar minimize chevron
-    $j("#flip").click(function() {
+    $j("#flip").click(navbarTwoFlip);
+    $j("#flipNarrow").click(navbarTwoFlip);
+
+    function navbarTwoFlip() {
       $j("#navbar-two").slideToggle("slow");
       const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
@@ -284,26 +303,88 @@ if ( currentView != 'none' && currentView != 'login' ) {
         flip.html('keyboard_arrow_up');
         setCookie('zmHeaderFlip', 'up');
       }
+    }
+
+    // Manage visible object & control button (when pressing a button)
+    $j("[data-flip-сontrol-object]").click(function() {
+      const _this_ = $j(this);
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      if ( obj.is(":visible") && !obj.hasClass("hidden-shift")) {
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'hidden');
+      } else { //hidden
+        obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
+        }
+        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
+      }
+
+      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
+      const nameFuncAfterComplet = _this_.attr('data-flip-сontrol-run-after-complet-func') ? _this_.attr('data-flip-сontrol-run-after-complet-func') : null;
+
+      if (nameFuncBefore) {
+        $j.each(nameFuncBefore.split(' '), function(i, nameFunc) {
+          if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+        });
+      }
+      obj.slideToggle("fast", function() {
+        if (nameFuncAfterComplet) {
+          $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
+            if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+          });
+        }
+      });
+      if (nameFuncAfter) {
+        $j.each(nameFuncAfter.split(' '), function(i, nameFunc) {
+          if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+        });
+      }
     });
-    // Manage the web console filter bar minimize chevron
-    $j("#fbflip").click(function() {
-      $j("#fbpanel").slideToggle("slow");
-      var fbflip = $j("#fbflip");
-      if ( fbflip.html() == 'keyboard_arrow_up' ) {
-        fbflip.html('keyboard_arrow_down');
-        setCookie('zmFilterBarFlip', 'down');
-      } else {
-        fbflip.html('keyboard_arrow_up');
-        setCookie('zmFilterBarFlip', 'up');
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
+
+    // Manage visible filter bar & control button (after document ready)
+    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects and set icons
+      const _this_ = $j(this);
+      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      if (obj.parent().css('display') != 'block') {
+        obj.wrap('<div style="display: block"></div>');
+      }
+
+      if (сookie == 'hidden') {
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+      } else { //no cookies or opened.
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+        }
+        obj.removeClass('hidden-shift');
       }
     });
 
     // Manage the web console filter bar minimize chevron
-    $j("#mfbflip").click(function() {
+    /*$j("#mfbflip").click(function() {
       $j("#mfbpanel").slideToggle("slow", function() {
-        changeScale();
+        if ($j.isFunction('changeScale')) {
+          changeScale();
+        }
       });
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
@@ -315,7 +396,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
-    });
+    });*/
     // Autoclose the hamburger button if the end user clicks outside the button
     $j(document).click(function(event) {
       var target = $j(event.target);
@@ -330,6 +411,8 @@ if ( currentView != 'none' && currentView != 'login' ) {
           .done(optionhelpModal)
           .fail(logAjaxFail);
     });
+
+    applyChosen();
   });
 
   // After retieving modal html via Ajax, this will insert it into the DOM
@@ -627,12 +710,12 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     newHeight = newWidth / ratio;
   }
   console.log("newWidth = " + newWidth);
-  var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
-  var scales = $j('#scale option').map(function() {
+  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
+  const scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
   scales.shift(); // pop off Scale To Fit
-  var closest = null;
+  let closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
@@ -642,6 +725,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     console.log("Setting to closest: " + closest + " instead of " + autoScale);
     autoScale = closest;
   }
+  if (autoScale < 10) autoScale = 10;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
@@ -1054,6 +1138,15 @@ function isMobile() {
     result = true;
   }
   return result;
+}
+
+function applyChosen() {
+  const limit_search_threshold = 10;
+
+  $j('.chosen').chosen('destroy');
+  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
+  $j('.chosen.chosen-full-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
 }
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});

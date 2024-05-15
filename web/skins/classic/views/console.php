@@ -165,11 +165,11 @@ echo $navbar ?>
   <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
 
-    <div class="filterBar" id="fbpanel"<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down' ) ? ' style="display:none;"' : '' ?>>
+    <div id="fbpanel" class="filterBar hidden-shift">
       <?php echo $filterbar ?>
     </div>
 
-    <div id="toolbar" class="container-fluid pt-2">
+    <div id="toolbar" class="container-fluid pt-2 pb-2">
       <div class="statusBreakdown">
 <?php
   $html = '';
@@ -225,73 +225,53 @@ echo $navbar ?>
         </button>
       </div>
         
-        &nbsp;<a href="#"><i id="fbflip" class="material-icons">keyboard_arrow_<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down') ? 'down' : 'up' ?></i></a>
+        &nbsp;<a href="#" data-flip-сontrol-object="#fbpanel"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
     
     </div><!-- contentButtons -->
 <?php
 ob_start();
 ?>
-    <div id="monitorList" class="container-fluid table-responsive">
-      <table id="consoleTable" class="table table-striped table-hover table-condensed consoleTable"
-        style="display:none;"
-        data-toolbar="#toolbar"
-        data-checkbox="false"
-        data-checkbox-enabled="false"
-        data-uncheckAll="false"
-        data-click-to-select="false"
-        data-check-on-init="true"
-        data-mobile-responsive="true"
-        data-min-width="562"
-        data-show-export="true"
-        data-pagination="true"
-        data-show-pagination-switch="true"
-        data-page-list="[5, 10, 25, 50, 100, 200, 500, 1000, All]"
-        data-search="true"
-        data-cookie="true"
-        data-cookie-same-site="Strict"
-        data-cookie-id-table="zmEventsTable"
-        data-cookie-expire="2y"
-        data-remember-order="false"
-        data-show-columns="true"
-
-      >
+    <div id="monitorList" class="container-fluid table-responsive-sm">
+      <table class="table table-striped table-hover table-condensed consoleTable">
         <thead class="thead-highlight">
           <tr>
 <?php if ($canEditMonitors) { ?>
             <th class="colMark"><input type="checkbox" name="toggleCheck" value="1" data-checkbox-name="markMids[]" data-on-click-this="updateFormCheckboxesByName"/></th>
 <?php } ?>
 <?php if ( ZM_WEB_ID_ON_CONSOLE ) { ?>
-            <th data-sortable="true" data-field="Id" class="colId"><?php echo translate('Id') ?></th>
+            <th class="colId"><?php echo translate('Id') ?></th>
 <?php } ?>
-            <th data-sortable="true" data-field="Name" class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
-            <th data-sortable="true" data-field="Function" class="colFunction"><?php echo translate('Function') ?></th>
+            <th class="colName"><i class="material-icons">videocam</i>&nbsp;<?php echo translate('Name') ?></th>
+            <th class="colFunction"><?php echo translate('Function') ?></th>
 <?php if ( count($Servers) ) { ?>
-            <th data-sortable="true" data-field="Server" class="colServer"><?php echo translate('Server') ?></th>
+            <th class="colServer"><?php echo translate('Server') ?></th>
 <?php } ?>
-            <th data-sortable="true" data-field="Source" class="colSource"><i class="material-icons">settings</i>&nbsp;<?php echo translate('Source') ?></th>
+            <th class="colSource"><i class="material-icons">settings</i>&nbsp;<?php echo translate('Source') ?></th>
 <?php if ( $show_storage_areas ) { ?>
-            <th data-sortable="true" data-field="Storage" class="colStorage"><?php echo translate('Storage') ?></th>
+            <th class="colStorage"><?php echo translate('Storage') ?></th>
 <?php }
 
   foreach ( array_keys($eventCounts) as $i ) {
-    $filter = addFilterTerm(
-      $eventCounts[$i]['filter'],
-      count($eventCounts[$i]['filter']['Query']['terms']),
-      array(
-        'cnj'=>'and',
-        'attr'=>'Monitor',
-        'op'=>'IN',
-        'val'=>implode(',', $displayMonitorIds)
-        )
-    );
+      $filter = addFilterTerm(
+        $eventCounts[$i]['filter'],
+        count($eventCounts[$i]['filter']['Query']['terms']),
+        count($displayMonitorIds) != $colAllAvailableMonitors #Add monitors to the filter only if the filter limit is set
+          ? array(
+            'cnj'=>'and',
+            'attr'=>'Monitor',
+            'op'=>'IN',
+            'val'=>implode(',', $displayMonitorIds)
+            )
+          : ['cnj'=>'and', 'attr'=>'Monitor']
+      );
     parseFilter($filter);
-    echo '<th data-sortable="true" data-field="Events'.$eventCounts[$i]['title'].'" class="colEvents"><a '
+    echo '<th class="colEvents"><a '
       .(canView('Events') ? 'href="?view='.ZM_WEB_EVENTS_VIEW.'&amp;page=1'.$filter['querystring'].'">' : '')
       .$eventCounts[$i]['title']
       .'</a></th>'.PHP_EOL;
   } // end foreach eventCounts
 ?>
-            <th data-sortable="true" data-field="Zones" class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
+            <th class="colZones"><a href="?view=zones"><?php echo translate('Zones') ?></a></th>
           </tr>
         </thead>
         <tbody id="consoleTableBody">
@@ -371,10 +351,10 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
   if (ZM_WEB_LIST_THUMBS && ($monitor['Capturing'] != 'None') && canView('Stream')) {
     $options = array();
 
-    $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
+    $ratio_factor = $Monitor->ViewWidth() ? $Monitor->ViewHeight() / $Monitor->ViewWidth() : 1;
     $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
     $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
-    $options['scale'] = intval(100*ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth());
+    $options['scale'] = $Monitor->ViewWidth() ? intval(100*ZM_WEB_LIST_THUMB_WIDTH / $Monitor->ViewWidth()) : 100;
     $options['mode'] = 'jpeg';
     $options['frames'] = 1;
 
@@ -430,7 +410,7 @@ for ($monitor_i = 0; $monitor_i < count($displayMonitors); $monitor_i += 1) {
       echo translate('Analysing') . ': '.translate($monitor['Analysing']).'<br/>';
     }
     if ($monitor['Recording'] != 'None') {
-      echo translate('Recording'). ': '.translate($monitor['Recording']).'<br/>';
+      echo translate('Recording') . ': '.translate($monitor['Recording']) . ($monitor['ONVIF_Event_Listener'] ? ' Use ONVIF' : "") . '<br/>';
     }
  ?><br/>
               <div class="small text-nowrap text-muted">

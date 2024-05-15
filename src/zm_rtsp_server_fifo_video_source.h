@@ -1,8 +1,8 @@
 /* ---------------------------------------------------------------------------
 **
 ** FifoSource.h
-** 
-**  live555 source 
+**
+**  live555 source
 **
 ** -------------------------------------------------------------------------*/
 
@@ -14,25 +14,25 @@
 #if HAVE_RTSP_SERVER
 
 class ZoneMinderFifoVideoSource: public ZoneMinderFifoSource {
-		
-  public:
-		int getWidth() { return m_width; };	
-		int getHeight() { return m_height; };	
-		int setWidth(int width) { return m_width=width; };	
-		int setHeight(int height) { return m_height=height; };	
 
-		ZoneMinderFifoVideoSource(
-        std::shared_ptr<xop::RtspServer>& rtspServer,
-        xop::MediaSessionId sessionId,
-        xop::MediaChannelId channelId,
-        const std::string &fifo
-        );
-  protected:
-    void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
+ public:
+  int getWidth() { return m_width; };
+  int getHeight() { return m_height; };
+  int setWidth(int width) { return m_width=width; };
+  int setHeight(int height) { return m_height=height; };
 
-	protected:
-    int m_width;
-    int m_height;
+  ZoneMinderFifoVideoSource(
+    std::shared_ptr<xop::RtspServer>& rtspServer,
+    xop::MediaSessionId sessionId,
+    xop::MediaChannelId channelId,
+    const std::string &fifo
+  );
+ protected:
+  void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
+
+ protected:
+  int m_width;
+  int m_height;
 };
 #endif // HAVE_RTSP_SERVER
 

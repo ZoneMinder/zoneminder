@@ -41,7 +41,7 @@ bool FifoStream::sendRAWFrames() {
       return false;
     }
     if ( fwrite(buffer, bytes_read, 1, stdout) != 1 ) {
-      if ( !zm_terminate ) 
+      if ( !zm_terminate )
         Error("Problem during writing: %s", strerror(errno));
       close(fd);
       return false;
@@ -61,8 +61,8 @@ bool FifoStream::sendMJEGFrames() {
   }
   total_read = 0;
   while (
-      (bytes_read = read(fd, buffer+total_read, ZM_MAX_IMAGE_SIZE-total_read))
-      ) {
+    (bytes_read = read(fd, buffer+total_read, ZM_MAX_IMAGE_SIZE-total_read))
+  ) {
     if ( bytes_read < 0 ) {
       Error("Problem during reading: %s", strerror(errno));
       close(fd);
@@ -76,10 +76,10 @@ bool FifoStream::sendMJEGFrames() {
     return true;
 
   if ( fprintf(stdout,
-        "--" BOUNDARY "\r\n"
-      "Content-Type: image/jpeg\r\n"
-      "Content-Length: %d\r\n\r\n",
-      total_read) < 0 ) {
+               "--" BOUNDARY "\r\n"
+               "Content-Type: image/jpeg\r\n"
+               "Content-Length: %d\r\n\r\n",
+               total_read) < 0 ) {
     Error("Problem during writing: %s", strerror(errno));
     return false;
   }

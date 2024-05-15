@@ -60,13 +60,13 @@ int zmFifoDbgInit(Monitor *monitor) {
 }
 
 void zmFifoDbgOutput(
-    int hex,
-    const char * const file,
-    const int line,
-    const int level,
-    const char *fstring,
-    ...
-    ) {
+  int hex,
+  const char * const file,
+  const int line,
+  const int level,
+  const char *fstring,
+  ...
+) {
   char dbg_string[8192];
   int str_size = sizeof(dbg_string);
 

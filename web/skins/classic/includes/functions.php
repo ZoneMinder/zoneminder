@@ -221,10 +221,10 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
           <i class="material-icons md-20">menu</i>
         </span>
       </button>
-      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
+      <button id="flipNarrow" type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
         <span class="sr-only">Toggle guages</span>
         <span class="navbar-toggler-icon">
-          <i class="material-icons md-20">monitoring</i>
+          <i class="material-icons md-20">monitor</i>
         </span>
       </button>
 <!--
@@ -655,7 +655,7 @@ function getConsoleHTML() {
   global $user;
   $result = '';
   
-  if (count($user->viewableMonitorIds())) {
+  if (count($user->viewableMonitorIds()) or !ZM\Monitor::find_one()) {
     $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
   
@@ -1024,8 +1024,7 @@ function xhtmlFooter() {
   }
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
-  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen({disable_search_threshold: 10});</script>
+  <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
   </body>
 </html>
 <?php

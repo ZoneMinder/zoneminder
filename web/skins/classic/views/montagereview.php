@@ -144,7 +144,7 @@ if (isset($_REQUEST['filter'])) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
     if (count($selected_monitor_ids)) {
       $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
-    } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
+    } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
       # this should be redundant
       for ( $i = 0; $i < count($displayMonitors); $i++ ) {
         if ( $i == '0' ) {
@@ -167,6 +167,14 @@ if (!$liveMode) {
   }
   if (!$filter->has_term('StartDateTime', '<=')) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and'));
+  }
+  if (!$filter->has_term('Tags')) {
+    $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
+      'val' => (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
+      'cnj' => 'and', 'cookie'=>'eventsTags'));
+  }
+  if (!$filter->has_term('Notes')) {
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
   }
 }
 if (count($filter->terms()) ) {
@@ -263,10 +271,13 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-    $html = '';
-    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'down')) ? 'up' : 'down';
-    $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
-    $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
+    $html = '<a class="flip" href="#" 
+             data-flip-сontrol-object="#mfbpanel" 
+             data-flip-сontrol-run-after-func="applyChosen drawGraph" 
+             data-flip-сontrol-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>'.PHP_EOL;
+    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
     echo $html;
 ?>
         <?php echo $filter_bar ?>
@@ -316,8 +327,11 @@ if (count($filter->terms())) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
+          <button type="button" id="collapse" data-flip-сontrol-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph"> <!-- OR run redrawScreen? -->
+            <i class="material-icons" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
+          </button>
         </div>
-        <div id="timelinediv">
+        <div id="timelinediv" class="hidden-shift">
           <canvas id="timeline"></canvas>
           <span id="scrubleft"></span>
           <span id="scrubright"></span>

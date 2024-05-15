@@ -112,4 +112,5 @@ var translate = {
   "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
   "Live": "<?php echo translate('Live') ?>",
   "Edit": "<?php echo translate('Edit') ?>",
+  "All Events": "<?php echo translate('All Events') ?>",
 };

@@ -32,7 +32,7 @@ bool zmDbConnected = false;
 
 bool zmDbConnect() {
   // For some reason having these lines causes memory corruption and crashing on newer debian/ubuntu
-	// But they really need to be here in order to prevent a double open of mysql
+  // But they really need to be here in order to prevent a double open of mysql
   if (zmDbConnected)  {
     //Warning("Calling zmDbConnect when already connected");
     return true;
@@ -52,11 +52,11 @@ bool zmDbConnect() {
   std::string::size_type colonIndex = staticConfig.DB_HOST.find(":");
   if ( colonIndex == std::string::npos ) {
     if ( !mysql_real_connect(
-          &dbconn,
-          staticConfig.DB_HOST.c_str(),
-          staticConfig.DB_USER.c_str(),
-          staticConfig.DB_PASS.c_str(),
-          nullptr, 0, nullptr, 0) ) {
+           &dbconn,
+           staticConfig.DB_HOST.c_str(),
+           staticConfig.DB_USER.c_str(),
+           staticConfig.DB_PASS.c_str(),
+           nullptr, 0, nullptr, 0) ) {
       Error("Can't connect to server: %s", mysql_error(&dbconn));
       mysql_close(&dbconn);
       return false;
@@ -66,24 +66,24 @@ bool zmDbConnect() {
     std::string dbPortOrSocket = staticConfig.DB_HOST.substr(colonIndex+1);
     if ( dbPortOrSocket[0] == '/' ) {
       if ( !mysql_real_connect(
-            &dbconn,
-            nullptr,
-            staticConfig.DB_USER.c_str(),
-            staticConfig.DB_PASS.c_str(),
-            nullptr, 0, dbPortOrSocket.c_str(), 0) ) {
+             &dbconn,
+             nullptr,
+             staticConfig.DB_USER.c_str(),
+             staticConfig.DB_PASS.c_str(),
+             nullptr, 0, dbPortOrSocket.c_str(), 0) ) {
         Error("Can't connect to server: %s", mysql_error(&dbconn));
         mysql_close(&dbconn);
         return false;
       }
     } else {
       if ( !mysql_real_connect(
-            &dbconn,
-            dbHost.c_str(),
-            staticConfig.DB_USER.c_str(),
-            staticConfig.DB_PASS.c_str(),
-            nullptr,
-            atoi(dbPortOrSocket.c_str()),
-            nullptr, 0) ) {
+             &dbconn,
+             dbHost.c_str(),
+             staticConfig.DB_USER.c_str(),
+             staticConfig.DB_PASS.c_str(),
+             nullptr,
+             atoi(dbPortOrSocket.c_str()),
+             nullptr, 0) ) {
         Error("Can't connect to server: %s", mysql_error(&dbconn));
         mysql_close(&dbconn);
         return false;
@@ -272,8 +272,7 @@ zmDbRow::~zmDbRow() {
 }
 
 zmDbQueue::zmDbQueue() :
-  mTerminate(false)
-{
+  mTerminate(false) {
   mThread = std::thread(&zmDbQueue::process, this);
 }
 

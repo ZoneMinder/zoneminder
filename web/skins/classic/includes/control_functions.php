@@ -181,7 +181,7 @@ function controlPresets($monitor, $cmds) {
   }
   if ( canEdit('Monitors') && $control->CanSetPresets() ) {
 ?>
-    <button type="button" class="ptzTextBtn" value="Set" data-toggle="modal" data-target="#ctrlPresetModal"><?php echo translate('Set') ?></button>
+    <button type="button" class="ptzTextBtn" value="Set" data-on-click="controlSetClicked"><?php echo translate('Set') ?></button>
 <?php
   }
 ?>

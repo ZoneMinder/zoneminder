@@ -81,7 +81,7 @@ if (!empty($_REQUEST['proxy'])) {
 
   // set no time limit and disable compression:
   set_time_limit(5);
-  @apache_setenv('no-gzip', 1);
+  if (function_exists('apache_setenv')) @apache_setenv('no-gzip', 1);
   @ini_set('zlib.output_compression', 0);
 
   /* Sends an http request with additional headers shown above */
@@ -295,7 +295,7 @@ if ( empty($_REQUEST['path']) ) {
           $path = $Event->Path().'/'.sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d', $Frame->FrameId()).'-'.$show.'.jpg';
         } else {
           header('HTTP/1.0 404 Not Found');
-          ZM\Error('No alarm jpg found for event '.$_REQUEST['eid'].' at '.$path);
+          ZM\Debug('No alarm jpg found for event '.$_REQUEST['eid'].' at '.$path);
           return;
         }
       } else {

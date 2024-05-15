@@ -14,6 +14,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-content: baseline;
 }
 #monitors:after {
   content: ".";
@@ -31,6 +32,10 @@
   padding: 0;
   border-radius: 0;
   position: relative;
+}
+
+#monitors.modeEditingMonitor .monitor {
+  border: solid red;
 }
 
 .monitorStream {
@@ -66,9 +71,4 @@
 .Preclusive {
   stroke: #0000FF;
   fill: #0000FF;
-}
-
-#mfbpanel {
-  padding-right: 5px;
-  padding-left: 5px;
 }

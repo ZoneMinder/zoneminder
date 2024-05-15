@@ -1,21 +1,21 @@
 //
 // ZoneMinder Benchmark, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include <algorithm>
 #include <cassert>
@@ -43,7 +43,7 @@ class TimingsTable {
 
   //
   // Add a row to the end of the table.
-  // 
+  //
   // Args:
   //  label: The name of the row (printed in the first column).
   //  timings: The values for all the other columns in this row.
@@ -55,12 +55,12 @@ class TimingsTable {
     rows_.push_back(row);
   }
 
-  // 
+  //
   // Print out the table.
-  // 
+  //
   // Args:
   //  columnPad: # characters between table columns
-  //  
+  //
   void Print(const int column_pad = 5) {
     // Figure out column widths.
     std::vector<size_t> widths(columns_.size() + 1);
@@ -68,9 +68,9 @@ class TimingsTable {
     // The first width is the max of the row labels.
     auto result = std::max_element(rows_.begin(),
                                    rows_.end(),
-                                   [](const Row &a, const Row &b) -> bool {
-                                     return a.label.length() < b.label.length();
-                                   });
+    [](const Row &a, const Row &b) -> bool {
+      return a.label.length() < b.label.length();
+    });
     widths[0] = result->label.length() + column_pad;
 
     // Calculate the rest of the column widths.
@@ -122,20 +122,20 @@ class TimingsTable {
 // Zone::CheckAlarms. This first creates a black image, and then it fills
 // a box of a certain size inside the image with random data. This is to simulate
 // a typical scene where most of the scene doesn't change except a specific region.
-// 
+//
 // Args:
 //  changeBoxPercent: 0-100 value telling how large the box with random data should be.
 //    Set to 0 to leave the whole thing black.
 //  width: The width of the new image.
 //  height: The height of the new image.
-//   
+//
 //  Return:
 //    An image with all pixels initialized to values in the [minVal,maxVal] range.
 //
 std::shared_ptr<Image> GenerateRandomImage(
-    const int change_box_percent,
-    const int width = 3840,
-    const int height = 2160) {
+  const int change_box_percent,
+  const int width = 3840,
+  const int height = 2160) {
   // Create the image.
   Image *image = new Image(width, height, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
 
@@ -176,10 +176,10 @@ class TestMonitor : public Monitor {
 
   //
   // Add a new zone to this monitor.
-  // 
+  //
   // Args:
   //  checkMethod: This controls how this zone will actually do motion detection.
-  //  
+  //
   //  p_filter_box: The size of the filter to use.
   //
   void AddZone(Zone::CheckMethod checkMethod, const Vector2 &p_filter_box = Vector2(5, 5)) {
@@ -222,14 +222,14 @@ class TestMonitor : public Monitor {
 
 //
 // Run zone benchmarks on the given image.
-// 
+//
 // Args:
 //  label: A label to be printed before the output.
-//  
+//
 //  image: The image to run the tests on.
-//  
+//
 //  p_filter_box: The size of the filter to use for alarm detection.
-//  
+//
 // Return:
 //  The average time taken for each DetectMotion call.
 //
@@ -243,7 +243,7 @@ Microseconds RunDetectMotionBenchmark(const std::string &label,
 
   // Generate a black image to use as the reference image.
   std::shared_ptr<Image> blackImage = GenerateRandomImage(
-      0, image->Width(), image->Height());
+                                        0, image->Width(), image->Height());
   testMonitor.SetRefImage(blackImage.get());
 
   Microseconds totalTimeTaken(0);
@@ -266,35 +266,35 @@ Microseconds RunDetectMotionBenchmark(const std::string &label,
 
 //
 // This runs a set of Monitor::DetectMotion benchmarks, one for each of the
-// "delta box percents" that are passed in. This adds one row to the 
+// "delta box percents" that are passed in. This adds one row to the
 // TimingsTable specified.
-// 
+//
 // Args:
 //  table: The table to add timings into.
-//  
+//
 //  deltaBoxPercents: Each of these defines a box size in the delta images
 //    passed to DetectMotion (larger boxes make it slower, sometimes significantly so).
-//    
+//
 //  p_filter_box: Defines the filter size used in DetectMotion.
 //
 void RunDetectMotionBenchmarks(
-    TimingsTable &table,
-    const std::vector<int> &delta_box_percents,
-    const Vector2 &p_filter_box) {
+  TimingsTable &table,
+  const std::vector<int> &delta_box_percents,
+  const Vector2 &p_filter_box) {
   std::vector<Microseconds> timings;
 
   for (int percent : delta_box_percents) {
     Microseconds timing = RunDetectMotionBenchmark(
-        std::string("DetectMotion: ") + std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_)
-            + " box, " + std::to_string(percent) + "% delta",
-        GenerateRandomImage(percent),
-        p_filter_box);
+                            std::string("DetectMotion: ") + std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_)
+                            + " box, " + std::to_string(percent) + "% delta",
+                            GenerateRandomImage(percent),
+                            p_filter_box);
     timings.push_back(timing);
   }
 
   table.AddRow(
-      std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_) + " filter",
-      timings);
+    std::to_string(p_filter_box.x_) + "x" + std::to_string(p_filter_box.y_) + " filter",
+    timings);
 }
 
 int main(int argc, char *argv[]) {
@@ -312,7 +312,7 @@ int main(int argc, char *argv[]) {
   const std::vector<int> percents = {0, 10, 50, 100};
   std::vector<std::string> columns(percents.size());
   std::transform(percents.begin(), percents.end(), columns.begin(),
-                 [](const int percent) { return std::to_string(percent) + "% delta (ms)"; });
+  [](const int percent) { return std::to_string(percent) + "% delta (ms)"; });
   TimingsTable table(columns);
 
   std::vector<Vector2> filterSizes = {Vector2(3, 3), Vector2(5, 5), Vector2(13, 13)};

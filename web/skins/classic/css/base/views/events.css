@@ -43,18 +43,6 @@ input[type="number"].form-control {
   padding: 5px;
 }
 
-#toolbar,
-.filterTable {
-  display:flex;
-  flex-wrap: wrap;
-}
-
-#toolbar,
-.filterTable > span{
-  padding-bottom: 5px;
-  padding-right: 15px;
-}
-
 #events {
   height: 100%;
   overflow: visible;
@@ -82,5 +70,10 @@ body.sticky .fixed-table-container {
 
 body.sticky #eventTable thead {
   position: sticky;
-  top: -1px;
+  top: 0;
+  box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
+}
+
+.term-value, .chosen-container{
+  width: 100% !important;
 }

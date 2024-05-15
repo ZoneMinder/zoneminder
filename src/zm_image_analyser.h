@@ -21,8 +21,8 @@ using namespace std;
 
 //! Class for handling image detection.
 class ImageAnalyser {
-  public:
-  
+ public:
+
   //!Default constructor.
   ImageAnalyser() {};
 
@@ -35,7 +35,7 @@ class ImageAnalyser {
   //! Overloaded operator=.
   ImageAnalyser& operator=(const ImageAnalyser& source);
 
-private: 
+ private:
 
 };
 

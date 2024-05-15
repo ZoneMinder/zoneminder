@@ -139,7 +139,7 @@ function MonitorStream(monitorData) {
     if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
       monitor_frame.css('width', parseInt(width));
     }
-    if (img.style.width) img.style.width = 'auto';
+    if (img.style.width) img.style.width = '100%';
     if (height && height != '0px') img.style.height = height;
 
     this.setStreamScale(newscale);
@@ -339,6 +339,10 @@ function MonitorStream(monitorData) {
     console.log('onclick');
   };
 
+  this.onmove = function(evt) {
+    console.log('onmove');
+  };
+
   this.setup_onclick = function(func) {
     if (func) {
       this.onclick = func;
@@ -347,6 +351,17 @@ function MonitorStream(monitorData) {
       const el = this.getFrame();
       if (!el) return;
       el.addEventListener('click', this.onclick, false);
+    }
+  };
+
+  this.setup_onmove = function(func) {
+    if (func) {
+      this.onmove = func;
+    }
+    if (this.onmove) {
+      const el = this.getFrame();
+      if (!el) return;
+      el.addEventListener('mousemove', this.onmove, false);
     }
   };
 

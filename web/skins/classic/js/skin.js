@@ -711,6 +711,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
   }
   console.log("newWidth = " + newWidth);
   let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
+  /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
   const scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
@@ -725,6 +726,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     console.log("Setting to closest: " + closest + " instead of " + autoScale);
     autoScale = closest;
   }
+  */
   if (autoScale < 10) autoScale = 10;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }

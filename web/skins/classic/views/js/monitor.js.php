@@ -143,7 +143,7 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadPostEventCount') ?>";
     if ( !form.elements['newMonitor[StreamReplayBuffer]'].value || !(parseInt(form.elements['newMonitor[StreamReplayBuffer]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadStreamReplayBuffer') ?>";
-    if (form.elements['newMonitor[PreEventCount]'].value > form.elements['newMonitor[MaxImageBufferCount]'].value)
+    if (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[MaxImageBufferCount]'].value))
       errors[errors.length] = "<?php echo translate('BadPreEventCountMaxImageBufferCount') ?>";
 
     if ( !form.elements['newMonitor[AlarmFrameCount]'].value || !(parseInt(form.elements['newMonitor[AlarmFrameCount]'].value) > 0 ) )

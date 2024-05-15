@@ -140,7 +140,7 @@ if (isset($_REQUEST['period'])) {
 } else if (isset($_COOKIE['zmCyclePeriod'])) {
   $period = validInt($_COOKIE['zmCyclePeriod']);
 }
-
+/*
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
@@ -148,12 +148,22 @@ if (isset($_REQUEST['scale'])) {
 } else {
   $scale = validInt($monitor->DefaultScale());
 }
+*/
+
+if (isset($_REQUEST['scale'])) {
+  $scale = $_REQUEST['scale'];
+} else if ( isset($_COOKIE['zmWatchScaleNew'.$mid]) ) {
+  $scale = $_COOKIE['zmWatchScaleNew'.$mid];
+} else {
+  $scale = $monitor->DefaultScale();
+}
+
 if ( !isset($scales[$scale])) {
   ZM\Info("Invalid scale found in cookie: $scale, defaulting to auto");
-  zm_setcookie('zmWatchScale'.$mid, 0);
+  zm_setcookie('zmWatchScaleNew'.$mid, 0);
   $scale = 0;
 }
-$options['scale'] = $scale;
+$options['scale'] = 0; //Somewhere something is spoiled because of this...
 
 if (isset($_REQUEST['width'])) {
   $options['width'] = validInt($_REQUEST['width']); 
@@ -259,7 +269,10 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         </label>
       </div>
       <div id="sizeControl">
-
+        <span id="scaleControl">
+          <label><?php echo translate('Scale') ?>:</label>
+          <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
+        </span>
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->

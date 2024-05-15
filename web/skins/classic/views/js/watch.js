@@ -31,6 +31,8 @@ var panZoom = [];
 var shifted;
 var ctrled;
 
+var updateScale = false; //Требуется обновить Scale
+
 /*
 This is the format of the json object sent by bootstrap-table
 
@@ -647,7 +649,7 @@ function handleClick(event) {
         const point = {clientX: event.clientX, clientY: event.clientY};
         panZoom[monitorId].zoomToPoint(scale, point, {focal: {x: event.clientX, y: event.clientY}});
       }
-      monitorsSetScale(monitorId);
+      updateScale = true;
     }
   } else {
     // +++ Old ZoomPan algorithm.
@@ -1177,6 +1179,14 @@ function initPage() {
       }
   );
 
+  setInterval(() => {
+    //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
+    if (updateScale) {
+      monitorsSetScale(monitorId);
+      updateScale = false;
+    }
+  }, 500);
+
   changeObjectClass();
   changeSize();
 } // initPage
@@ -1361,6 +1371,7 @@ function panZoomAction(action, param) {
         return;
       }
       panZoom[i].zoomWithWheel(event);
+      updateScale = true;
     });
   } else if (action == "disable") {
     //Disable a specific object
@@ -1389,7 +1400,7 @@ function panZoomIn(el) {
   } else {
     panZoom[id].zoomIn();
   }
-  monitorsSetScale(id);
+  updateScale = true;
   manageCursor(id);
 }
 
@@ -1409,7 +1420,7 @@ function panZoomOut(el) {
   } else {
     panZoom[id].zoomOut();
   }
-  monitorsSetScale(id);
+  updateScale = true;
   manageCursor(id);
 }
 

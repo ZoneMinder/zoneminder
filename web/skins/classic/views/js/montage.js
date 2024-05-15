@@ -782,9 +782,9 @@ function addEvents(grid, id) {
   grid.on('change', function(event, items) {
     /* Occurs when widgets change their position/size due to constrain or direct changes */
     items.forEach(function(item) {
-      //const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
+      const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
       //setTriggerChangedMonitors(currentMonitorId);
-      //monitorsSetScale(currentMonitorId);
+      monitorsSetScale(currentMonitorId);
     });
 
     elementResize();

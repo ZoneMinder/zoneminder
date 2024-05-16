@@ -442,7 +442,7 @@ function streamPause() {
 }
 
 function playClicked( ) {
-  var rate_select = $j('select[name="rate"]');
+  const rate_select = $j('select[name="rate"]');
 
   if (!rate_select.val()) {
     $j('select[name="rate"]').val(100);
@@ -454,7 +454,16 @@ function playClicked( ) {
       vjsPlay(); //handles fast forward and rewind
     }
   } else {
-    streamReq({command: CMD_PLAY});
+    if (zmsBroke) {
+      // The assumption is that the command failed because zms exited, so restart the stream.
+      const img = document.getElementById('evtStream');
+      const src = img.src;
+      img.src = '';
+      img.src = src;
+      zmsBroke = false;
+    } else {
+      streamReq({command: CMD_PLAY});
+    }
   }
   streamPlay();
 }

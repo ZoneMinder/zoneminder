@@ -31,7 +31,7 @@ var panZoom = [];
 var shifted;
 var ctrled;
 
-var updateScale = false; //Требуется обновить Scale
+var updateScale = false; //Scale needs to be updated
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -1030,13 +1030,13 @@ function initPage() {
   // --- Support of old ZoomPan algorithm
 
   if (panZoomEnabled) {
+    $j(document).on('keyup keydown', function(e) {
+      shifted = e.shiftKey ? e.shiftKey : e.shift;
+      ctrled = e.ctrlKey;
+      manageCursor(monitorId);
+    });
     $j('.zoompan').each( function() {
       panZoomAction('enable', {obj: this});
-      $j(document).on('keyup keydown', function(e) {
-        shifted = e.shiftKey ? e.shiftKey : e.shift;
-        ctrled = e.ctrlKey;
-        manageCursor(monitorId);
-      });
       this.addEventListener('mousemove', function(e) {
         //Temporarily not use
       });

@@ -50,7 +50,7 @@ my ( $controlUri, $scheme );
 # - Control Type: ONVIF
 # - Control Device: prof0 - this is dependant on camera. It maybe required to sniff the traffic using Wireshark to find this out. If left empty value of "000" will be used.
 # - Control Address: <scheme>://[<user>:<password>@]<ip_or_host_of_onvif_enabled_camera>[:port][control_uri]
-# - Auto Stop Timeout: 1.00 - how long shold the camera move for when move command is issued. Value of 1.00 means 1s.
+# - Auto Stop Timeout: 1.00 - how long should the camera move for when move command is issued. Value of 1.00 means 1s.
 # - Track Motion: NOT IMPLEMENTED - this suppose to be a feature for automatic camera scrolling (moving).
 # - Track Delay: NOT IMPLEMENTED
 # - Return Location: Home|Preset 1 - NOT IMPLEMENTED

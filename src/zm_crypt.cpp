@@ -33,15 +33,15 @@ std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_s
     Error("Error setting Algorithm for JWT decode");
     return std::make_pair("", 0);
   }
-  
+
   err = jwt_decode(&jwt, jwt_token_str.c_str(),
-      reinterpret_cast<const unsigned char *>(key.c_str()), key.length());
+                   reinterpret_cast<const unsigned char *>(key.c_str()), key.length());
   if (err) {
     jwt_free(jwt);
     Error("Could not decode JWT");
     return std::make_pair("", 0);
   }
-  
+
   const char *c_type = jwt_get_grant(jwt, (const char*)"type");
   if (!c_type) {
     jwt_free(jwt);
@@ -62,14 +62,14 @@ std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_s
 
   username = std::string(c_username);
   Debug(1, "Got %s as user claim from token", username.c_str());
-  
+
   token_issued_at = (unsigned int)jwt_get_grant_int(jwt, "iat");
   if (errno == ENOENT) {
     jwt_free(jwt);
     Error("IAT not found in claim. This should not happen");
     return std::make_pair("", 0);
   }
-  
+
   Debug(1, "Got IAT token=%u", token_issued_at);
   jwt_free(jwt);
   return std::make_pair(username, token_issued_at);
@@ -82,9 +82,9 @@ std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_s
     // is it decodable?
     auto decoded = jwt::decode(jwt_token_str);
     auto verifier = jwt::verify()
-                        .allow_algorithm(jwt::algorithm::hs256{ key })
-                        .with_issuer("ZoneMinder");
-  
+                    .allow_algorithm(jwt::algorithm::hs256{ key })
+                    .with_issuer("ZoneMinder");
+
     // signature verified?
     verifier.verify(decoded);
 
@@ -110,7 +110,7 @@ std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_s
     }
 
     if (decoded.has_payload_claim("iat")) {
-      token_issued_at = (unsigned int) (decoded.get_payload_claim("iat").as_int());
+      token_issued_at = (unsigned int) (decoded.get_payload_claim("iat").as_integer());
       Debug(1, "Got IAT token=%u", token_issued_at);
     } else {
       Error("IAT not found in claim. This should not happen");
@@ -120,8 +120,7 @@ std::pair <std::string, unsigned int> verifyToken(const std::string &jwt_token_s
   catch (const std::exception &e) {
     Error("Unable to verify token: %s", e.what());
     return std::make_pair("", 0);
-  }
-  catch (...) {
+  } catch (...) {
     Error("unknown exception");
     return std::make_pair("", 0);
   }
@@ -134,7 +133,7 @@ bool verifyPassword(const char *username, const char *input_password, const char
 
   bool password_correct = false;
   if ( strlen(db_password_hash) < 4 ) {
-    // actually, shoud be more, but this is min. for next code
+    // actually, should be more, but this is min. for next code
     Error("DB Password is too short or invalid to check");
     return false;
   }
@@ -148,13 +147,13 @@ bool verifyPassword(const char *username, const char *input_password, const char
     Debug(1, "Computed password_hash: %s, stored password_hash: %s", hex_digest.c_str(), db_password_hash);
     password_correct = (strcmp(db_password_hash, hex_digest.c_str()) == 0);
   } else if (
-      (db_password_hash[0] == '$')
-      &&
-      (db_password_hash[1] == '2')
-      &&
-      (db_password_hash[3] == '$')
-      ) {
-    // BCRYPT 
+    (db_password_hash[0] == '$')
+    &&
+    (db_password_hash[1] == '2')
+    &&
+    (db_password_hash[3] == '$')
+  ) {
+    // BCRYPT
     Debug(1, "%s is using a bcrypt encoded password", username);
     BCrypt bcrypt;
     password_correct = bcrypt.validatePassword(std::string(input_password), std::string(db_password_hash));
@@ -164,23 +163,23 @@ bool verifyPassword(const char *username, const char *input_password, const char
   } else {
     Warning("%s is using a plain text (not recommended) or scheme not understood", username);
     password_correct = (strcmp(input_password, db_password_hash) == 0);
-  } 
-  
+  }
+
   return password_correct;
 }
 
 std::string generateKey(const int length) {
 
-    const std::string lookup = "0123456789ABCDEF";
+  const std::string lookup = "0123456789ABCDEF";
 
-    std::random_device rnd;
-    std::mt19937 rng(rnd());
-    std::uniform_int_distribution<> genDigit(0,15);
-    std::string keyBuffer (length, '0');
-    for ( int i = 0; i < length; i++ ) {
-        keyBuffer[i] = lookup[genDigit(rng)];
-    }
-    return keyBuffer;
+  std::random_device rnd;
+  std::mt19937 rng(rnd());
+  std::uniform_int_distribution<> genDigit(0,15);
+  std::string keyBuffer (length, '0');
+  for ( int i = 0; i < length; i++ ) {
+    keyBuffer[i] = lookup[genDigit(rng)];
+  }
+  return keyBuffer;
 
 
 }

@@ -1,21 +1,21 @@
 /*
  * ZoneMinder FFMPEG implementation, $Date$, $Revision$
  * Copyright (C) 2001-2008 Philip Coombes
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-*/ 
+*/
 
 #include "zm_ffmpeg.h"
 
@@ -79,7 +79,7 @@ void FFMPEGInit() {
   if (!bInit) {
     if (logDebugging() && config.log_ffmpeg) {
       av_log_set_level(AV_LOG_DEBUG);
-      av_log_set_callback(log_libav_callback); 
+      av_log_set_callback(log_libav_callback);
       Info("Enabling ffmpeg logs, as LOG_DEBUG+LOG_FFMPEG are enabled in options");
     } else {
       Debug(1,"Not enabling ffmpeg logs, as LOG_FFMPEG and/or LOG_DEBUG is disabled in options, or this monitor is not part of your debug targets");
@@ -104,44 +104,44 @@ enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subp
   Debug(8,"Colours: %d SubpixelOrder: %d",p_colours,p_subpixelorder);
 
   switch (p_colours) {
-    case ZM_COLOUR_RGB24:
-        if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
-          /* BGR subpixel order */
-          pf = AV_PIX_FMT_BGR24;
-        } else {
-          /* Assume RGB subpixel order */
-          pf = AV_PIX_FMT_RGB24;
-        }
-        break;
-    case ZM_COLOUR_RGB32:
-        if (p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
-          /* ARGB subpixel order */
-          pf = AV_PIX_FMT_ARGB;
-        } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
-          /* ABGR subpixel order */
-          pf = AV_PIX_FMT_ABGR;
-        } else if (p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
-          /* BGRA subpixel order */
-          pf = AV_PIX_FMT_BGRA;
-        } else {
-          /* Assume RGBA subpixel order */
-          pf = AV_PIX_FMT_RGBA;
-        }
-        break;
-    case ZM_COLOUR_GRAY8:
-      pf = AV_PIX_FMT_GRAY8;
-      break;
-    default:
-      Panic("Unexpected colours: %d", p_colours);
-      pf = AV_PIX_FMT_GRAY8; /* Just to shush gcc variable may be unused warning */
-      break;
+  case ZM_COLOUR_RGB24:
+    if(p_subpixelorder == ZM_SUBPIX_ORDER_BGR) {
+      /* BGR subpixel order */
+      pf = AV_PIX_FMT_BGR24;
+    } else {
+      /* Assume RGB subpixel order */
+      pf = AV_PIX_FMT_RGB24;
+    }
+    break;
+  case ZM_COLOUR_RGB32:
+    if (p_subpixelorder == ZM_SUBPIX_ORDER_ARGB) {
+      /* ARGB subpixel order */
+      pf = AV_PIX_FMT_ARGB;
+    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_ABGR) {
+      /* ABGR subpixel order */
+      pf = AV_PIX_FMT_ABGR;
+    } else if (p_subpixelorder == ZM_SUBPIX_ORDER_BGRA) {
+      /* BGRA subpixel order */
+      pf = AV_PIX_FMT_BGRA;
+    } else {
+      /* Assume RGBA subpixel order */
+      pf = AV_PIX_FMT_RGBA;
+    }
+    break;
+  case ZM_COLOUR_GRAY8:
+    pf = AV_PIX_FMT_GRAY8;
+    break;
+  default:
+    Panic("Unexpected colours: %d", p_colours);
+    pf = AV_PIX_FMT_GRAY8; /* Just to shush gcc variable may be unused warning */
+    break;
   }
 
   return pf;
 }
 
 #if LIBAVUTIL_VERSION_CHECK(56, 0, 0, 17, 100)
-int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb){
+int64_t av_rescale_delta(AVRational in_tb, int64_t in_ts,  AVRational fs_tb, int duration, int64_t *last, AVRational out_tb) {
   int64_t a, b, this_thing;
 
   av_assert0(in_ts != AV_NOPTS_VALUE);
@@ -180,65 +180,65 @@ static void zm_log_fps(double d, const char *postfix) {
 
 void zm_dump_codecpar(const AVCodecParameters *par) {
   Debug(1, "Dumping codecpar codec_type %d %s codec_id %d %s codec_tag %" PRIu32
-      " width %d height %d bit_rate%" PRIu64 " bpcs %d bprs %d format%d %s"
-      " extradata:%d:%s profile %d level %d field order %d color_range %d"
-      " color_primaries %d color_trc %d color_space %d location %d video_delay %d",
-      static_cast<int>(par->codec_type),
-      av_get_media_type_string(par->codec_type),
-      static_cast<int>(par->codec_id),
-      avcodec_get_name(par->codec_id),
-      par->codec_tag,
-      par->width,
-      par->height,
-      par->bit_rate,
-      par->bits_per_coded_sample,
-      par->bits_per_raw_sample,
-      par->format,
-      (((AVPixelFormat)par->format == AV_PIX_FMT_NONE) ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format)),
-      par->extradata_size, ByteArrayToHexString(nonstd::span<const uint8>{
-        par->extradata,
-        static_cast<nonstd::span_lite::span<const unsigned char>::size_type>(par->extradata_size)
-        }).c_str(),
-      par->profile,
-      par->level,
-      static_cast<int>(par->field_order),
-      static_cast<int>(par->color_range),
-      static_cast<int>(par->color_primaries),
-      static_cast<int>(par->color_trc),
-      static_cast<int>(par->color_space),
-      static_cast<int>(par->chroma_location),
-      static_cast<int>(par->video_delay)
-      ); 
+        " width %d height %d bit_rate%" PRIu64 " bpcs %d bprs %d format%d %s"
+        " extradata:%d:%s profile %d level %d field order %d color_range %d"
+        " color_primaries %d color_trc %d color_space %d location %d video_delay %d",
+        static_cast<int>(par->codec_type),
+        av_get_media_type_string(par->codec_type),
+        static_cast<int>(par->codec_id),
+        avcodec_get_name(par->codec_id),
+        par->codec_tag,
+        par->width,
+        par->height,
+        par->bit_rate,
+        par->bits_per_coded_sample,
+        par->bits_per_raw_sample,
+        par->format,
+        (((AVPixelFormat)par->format == AV_PIX_FMT_NONE) ? "none" : av_get_pix_fmt_name((AVPixelFormat)par->format)),
+  par->extradata_size, ByteArrayToHexString(nonstd::span<const uint8> {
+    par->extradata,
+    static_cast<nonstd::span_lite::span<const unsigned char>::size_type>(par->extradata_size)
+  }).c_str(),
+  par->profile,
+  par->level,
+  static_cast<int>(par->field_order),
+  static_cast<int>(par->color_range),
+  static_cast<int>(par->color_primaries),
+  static_cast<int>(par->color_trc),
+  static_cast<int>(par->color_space),
+  static_cast<int>(par->chroma_location),
+  static_cast<int>(par->video_delay)
+       );
 }
 
 void zm_dump_codec(const AVCodecContext *codec) {
   Debug(1, "Dumping codec_context codec_type %d %s codec_id %d %s width %d height %d timebase %d/%d format %s profile %d level %d "
-      "gop_size %d has_b_frames %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d bit_rate %" PRId64 " extradata:%d:%s",
-    codec->codec_type,
-    av_get_media_type_string(codec->codec_type),
-    codec->codec_id,
-    avcodec_get_name(codec->codec_id),
-    codec->width,
-    codec->height,
-    codec->time_base.num,
-    codec->time_base.den,
-    (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt)),
-    codec->profile,
-    codec->level,
-    codec->gop_size,
-    codec->has_b_frames,
-    codec->max_b_frames,
-    codec->me_cmp,
-    codec->me_range,
-    codec->qmin,
-    codec->qmax,
-    codec->bit_rate,
-    codec->extradata_size,
-    ByteArrayToHexString(nonstd::span<const uint8>{
-        codec->extradata,
-        static_cast<nonstd::span_lite::span<const unsigned char>::size_type>(codec->extradata_size)
-        }).c_str()
-    );
+        "gop_size %d has_b_frames %d max_b_frames %d me_cmp %d me_range %d qmin %d qmax %d bit_rate %" PRId64 " extradata:%d:%s",
+        codec->codec_type,
+        av_get_media_type_string(codec->codec_type),
+        codec->codec_id,
+        avcodec_get_name(codec->codec_id),
+        codec->width,
+        codec->height,
+        codec->time_base.num,
+        codec->time_base.den,
+        (codec->pix_fmt == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(codec->pix_fmt)),
+        codec->profile,
+        codec->level,
+        codec->gop_size,
+        codec->has_b_frames,
+        codec->max_b_frames,
+        codec->me_cmp,
+        codec->me_range,
+        codec->qmin,
+        codec->qmax,
+        codec->bit_rate,
+        codec->extradata_size,
+  ByteArrayToHexString(nonstd::span<const uint8> {
+    codec->extradata,
+    static_cast<nonstd::span_lite::span<const unsigned char>::size_type>(codec->extradata_size)
+  }).c_str()
+       );
 }
 
 /* "user interface" functions */
@@ -258,30 +258,30 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
   if (lang)
     Debug(1, "language (%s)", lang->value);
   Debug(1, "frame_size:%d stream timebase: %d/%d",
-      codec->frame_size,
-      st->time_base.num, st->time_base.den
-      );
+        codec->frame_size,
+        st->time_base.num, st->time_base.den
+       );
 
   Debug(1, "codec: %s %s",
-      avcodec_get_name(st->codecpar->codec_id),
-      av_get_media_type_string(st->codecpar->codec_type)
-      );
+        avcodec_get_name(st->codecpar->codec_id),
+        av_get_media_type_string(st->codecpar->codec_type)
+       );
 
   if (st->sample_aspect_ratio.num && // default
       av_cmp_q(st->sample_aspect_ratio, codec->sample_aspect_ratio)
-      ) {
+     ) {
     AVRational display_aspect_ratio;
     av_reduce(&display_aspect_ratio.num,
-        &display_aspect_ratio.den,
-        codec->width  * (int64_t)st->sample_aspect_ratio.num,
-        codec->height * (int64_t)st->sample_aspect_ratio.den,
-        1024 * 1024);
+              &display_aspect_ratio.den,
+              codec->width  * (int64_t)st->sample_aspect_ratio.num,
+              codec->height * (int64_t)st->sample_aspect_ratio.den,
+              1024 * 1024);
     Debug(1, ", SAR %d:%d DAR %d:%d",
-        st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
-        display_aspect_ratio.num, display_aspect_ratio.den);
+          st->sample_aspect_ratio.num, st->sample_aspect_ratio.den,
+          display_aspect_ratio.num, display_aspect_ratio.den);
   } else {
     Debug(1, ", SAR %d:%d ",
-        st->sample_aspect_ratio.num, st->sample_aspect_ratio.den);
+          st->sample_aspect_ratio.num, st->sample_aspect_ratio.den);
   }
 
   if (codec->codec_type == AVMEDIA_TYPE_VIDEO) {
@@ -293,8 +293,13 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
     if (tbn)
       zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
   } else if (codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
     Debug(1, "profile %d channels %d sample_rate %d",
-        codec->profile, codec->channels, codec->sample_rate);
+          codec->profile, codec->ch_layout.nb_channels, codec->sample_rate);
+#else
+    Debug(1, "profile %d channels %d sample_rate %d",
+          codec->profile, codec->channels, codec->sample_rate);
+#endif
   } else {
     Debug(1, "Unknown codec type %d", codec->codec_type);
   }
@@ -340,17 +345,17 @@ int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt) {
 enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
   // Fix deprecated formats
   switch ( fmt ) {
-    case AV_PIX_FMT_YUVJ422P  :
-      return AV_PIX_FMT_YUV422P;
-    case AV_PIX_FMT_YUVJ444P   :
-      return AV_PIX_FMT_YUV444P;
-    case AV_PIX_FMT_YUVJ440P :
-      return AV_PIX_FMT_YUV440P;
-    case AV_PIX_FMT_NONE :
-    case AV_PIX_FMT_YUVJ420P :
-      return AV_PIX_FMT_YUV420P;
-    default:
-      return fmt;
+  case AV_PIX_FMT_YUVJ422P  :
+        return AV_PIX_FMT_YUV422P;
+  case AV_PIX_FMT_YUVJ444P   :
+    return AV_PIX_FMT_YUV444P;
+  case AV_PIX_FMT_YUVJ440P :
+    return AV_PIX_FMT_YUV440P;
+  case AV_PIX_FMT_NONE :
+  case AV_PIX_FMT_YUVJ420P :
+    return AV_PIX_FMT_YUV420P;
+  default:
+    return fmt;
   }
 }
 
@@ -384,49 +389,51 @@ int zm_receive_packet(AVCodecContext *context, AVPacket &packet) {
 }  // end int zm_receive_packet(AVCodecContext *context, AVPacket &packet)
 
 int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet) {
-  int ret;
-  if ((ret = avcodec_send_packet(context, &packet)) < 0) {
-    Error("Unable to send packet %s, continuing",
-       av_make_error_string(ret).c_str());
-    return ret;
+  int pkt_ret, frm_ret;
+
+  pkt_ret = avcodec_send_packet(context, &packet);
+  frm_ret = avcodec_receive_frame(context, frame);
+
+  if (pkt_ret == 0 && frm_ret == 0) {
+    // In this api the packet is always consumed, so return packet.bytes
+    return packet.size;
+  } else if (pkt_ret != 0 && pkt_ret != AVERROR(EAGAIN)) {
+    Error("Could not send packet (error %d = %s)", pkt_ret,
+          av_make_error_string(pkt_ret).c_str());
+    return pkt_ret;
+  } else if (frm_ret != 0 && frm_ret != AVERROR(EAGAIN)) {
+    Error("Could not receive frame (error %d = %s)", frm_ret,
+          av_make_error_string(frm_ret).c_str());
+    return frm_ret;
   }
 
-  if ((ret = avcodec_receive_frame(context, frame)) < 0) {
-    if (AVERROR(EAGAIN) == ret) {
-      // The codec may need more samples than it has, perfectly valid
-      Debug(2, "Codec not ready to give us a frame");
-    } else {
-      Error("Could not recieve frame (error %d = '%s')", ret,
-          av_make_error_string(ret).c_str());
-    }
-    return ret;
-  }
-  // In this api the packet is always consumed, so return packet.bytes
-  return packet.size;
+  return 0;
 }  // end int zm_send_packet_receive_frame(AVCodecContext *context, AVFrame *frame, AVPacket &packet)
 
 /* Returns < 0 on error, 0 if codec not ready, 1 on success
  */
 int zm_send_frame_receive_packet(AVCodecContext *ctx, AVFrame *frame, AVPacket &packet) {
-  int ret;
-  if (((ret = avcodec_send_frame(ctx, frame)) < 0) and frame) {
-    Error("Could not send frame (error '%s')",
-          av_make_error_string(ret).c_str());
-    return ret;
-  }
+  int frm_ret, pkt_ret;
 
-  if ((ret = avcodec_receive_packet(ctx, &packet)) < 0) {
-    if (AVERROR(EAGAIN) == ret) {
+  frm_ret = avcodec_send_frame(ctx, frame);
+  pkt_ret = avcodec_receive_packet(ctx, &packet);
+
+  if (frm_ret != 0 && frame) {
+    Error("Could not send frame (error '%s')",
+          av_make_error_string(frm_ret).c_str());
+    return frm_ret;
+  } else if (pkt_ret != 0) {
+    if (pkt_ret == AVERROR(EAGAIN)) {
       // The codec may need more samples than it has, perfectly valid
       Debug(2, "Codec not ready to give us a packet");
       return 0;
     } else if (frame) {
       // May get EOF if frame is NULL because it signals flushing
-      Error("Could not recieve packet (error %d = '%s')", ret,
-            av_make_error_string(ret).c_str());
+      Error("Could not receive packet (error %d = '%s')", pkt_ret,
+            av_make_error_string(pkt_ret).c_str());
     }
     zm_av_packet_unref(&packet);
-    return ret;
+    return pkt_ret;
   }
   return 1;
 }  // end int zm_send_frame_receive_packet
@@ -452,14 +459,14 @@ int zm_resample_audio(SwrContext *resample_ctx, AVFrame *in_frame, AVFrame *out_
     // Resample the in_frame into the audioSampleBuffer until we process the whole
     // decoded data. Note: pts does not survive resampling or converting
     Debug(2, "Converting %d to %d samples using swresample",
-        in_frame->nb_samples, out_frame->nb_samples);
+          in_frame->nb_samples, out_frame->nb_samples);
   } else {
     Debug(2, "Sending NULL frame to flush resampler");
   }
   int ret = swr_convert_frame(resample_ctx, out_frame, in_frame);
   if (ret < 0) {
     Error("Could not resample frame (error '%s')",
-        av_make_error_string(ret).c_str());
+          av_make_error_string(ret).c_str());
     return 0;
   }
   Debug(3, "swr_get_delay %" PRIi64, swr_get_delay(resample_ctx, out_frame->sample_rate));
@@ -475,14 +482,14 @@ int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame) {
   int ret = av_audio_fifo_realloc(fifo, av_audio_fifo_size(fifo) + frame->nb_samples);
   if (ret < 0) {
     Error("Could not reallocate FIFO to %d samples",
-        av_audio_fifo_size(fifo) + frame->nb_samples);
+          av_audio_fifo_size(fifo) + frame->nb_samples);
     return 0;
   }
   /** Store the new samples in the FIFO buffer. */
   ret = av_audio_fifo_write(fifo, (void **)frame->data, frame->nb_samples);
   if (ret < frame->nb_samples) {
     Error("Could not write data to FIFO. %d written, expecting %d. Reason %s",
-        ret, frame->nb_samples, av_make_error_string(ret).c_str());
+          ret, frame->nb_samples, av_make_error_string(ret).c_str());
     return 0;
   }
   return 1;
@@ -492,7 +499,7 @@ int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame) {
   // AAC requires 1024 samples per encode.  Our input tends to be something else, so need to buffer them.
   if (frame->nb_samples > av_audio_fifo_size(fifo)) {
     Debug(1, "Not enough samples in fifo for AAC codec frame_size %d > fifo size %d",
-         frame->nb_samples, av_audio_fifo_size(fifo));
+          frame->nb_samples, av_audio_fifo_size(fifo));
     return 0;
   }
 

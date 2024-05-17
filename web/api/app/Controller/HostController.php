@@ -7,6 +7,7 @@ class HostController extends AppController {
 
   public function daemonCheck($daemon=false, $args=false) {
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
+    $count = 0;
     $safe_daemon = $daemon ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count) : false;
     if ($count) Error("Invalid characters found in daemon string ($daemon). Potential attack?");
     $safe_args = $args ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $args, -1, $count) : false;
@@ -78,9 +79,8 @@ class HostController extends AppController {
       throw new UnauthorizedException(__('No identity provided'));
     }
 
-    $ver = $this->_getVersion();
+    $login_array = [];
     $cred = [];
-    $cred_depr = [];
 
     if ( $username && $password ) {
       ZM\Debug('Username and password provided, generating access and refresh tokens');
@@ -89,25 +89,27 @@ class HostController extends AppController {
       ZM\Debug('Only generating access token');
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
     }
+    if ($cred) {
+      $login_array['access_token'] = $cred[0];
+      $login_array['access_token_expires'] = $cred[1];
 
-    $login_array = array (
-      'access_token'          => $cred[0],
-      'access_token_expires'  => $cred[1]
-    );
-
-    if ( $username && $password ) {
-      $login_array['refresh_token'] = $cred[2];
-      $login_array['refresh_token_expires'] = $cred[3];
+      if ( $username && $password ) {
+        $login_array['refresh_token'] = $cred[2];
+        $login_array['refresh_token_expires'] = $cred[3];
+      }
     }
 
     if ( ZM_OPT_USE_LEGACY_API_AUTH ) {
       $cred_depr = $this->_getCredentialsDeprecated();
-      $login_array['credentials'] = $cred_depr[0];
-      $login_array['append_password'] = $cred_depr[1];
+      if ($cred_depr) {
+        $login_array['credentials'] = $cred_depr[0];
+        $login_array['append_password'] = $cred_depr[1];
+      }
     } else {
       ZM\Debug('Legacy Auth is disabled, not generating auth= credentials');
     }
 
+    $ver = $this->_getVersion();
     $login_array['version'] = $ver[0];
     $login_array['apiversion'] = $ver[1];
 
@@ -139,31 +141,29 @@ class HostController extends AppController {
         $credentials = 'user='.$_SESSION['Username'].'&pass=';
         $appendPassword = 1;
       }
-      return array($credentials, $appendPassword);
     }
+    return array($credentials, $appendPassword);
   }
 
   private function _getCredentials($generate_refresh_token=false, $token='', $username='') {
-
-    if ( !ZM_OPT_USE_AUTH ) {
+    if (!ZM_OPT_USE_AUTH) {
       ZM\Debug('OPT_USE_AUTH is turned off. Tokens will be null');
       return;
     }
-      
 
-    if ( !ZM_AUTH_HASH_SECRET )
+    if (!ZM_AUTH_HASH_SECRET)
       throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));
 
     require_once __DIR__ .'/../../../includes/auth.php';
     require_once __DIR__.'/../../../vendor/autoload.php';
 
-    if ( $token ) {
+    if ($token) {
       // If we have a token, we need to derive username from there
       $ret = validateToken($token, 'refresh', true);
       $username = $ret[0]->Username();
     }
 
-    ZM\Info("Creating token for \"$username\"");
+    ZM\Debug("Creating token for \"$username\"");
 
     /* we won't support AUTH_HASH_IPS in token mode
       reasons:
@@ -176,12 +176,11 @@ class HostController extends AppController {
     }*/
 
     $access_issued_at = time();
-    $access_ttl = max(ZM_AUTH_HASH_TTL,1) * 3600;
+    $access_ttl = max(ZM_AUTH_HASH_TTL, 1) * 3600;
 
     // by default access token will expire in 2 hrs
-    // you can change it by changing the value of ZM_AUTH_HASH_TLL
+    // you can change it by changing the value of ZM_AUTH_HASH_TTL
     $access_expire_at     = $access_issued_at + $access_ttl;
-    //$access_expire_at = $access_issued_at + 60; // TEST, REMOVE
 
     $access_token = array(
         'iss' => 'ZoneMinder',
@@ -196,7 +195,7 @@ class HostController extends AppController {
     $jwt_refresh_token = '';
     $refresh_ttl = 0;
 
-    if ( $generate_refresh_token ) {
+    if ($generate_refresh_token) {
       $refresh_issued_at = time();
       $refresh_ttl = 24 * 3600; // 1 day
 

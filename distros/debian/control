@@ -5,15 +5,15 @@ Maintainer: Isaac Connor <iconnor@connortechnology.com>
 Build-Depends: debhelper (>= 9), cmake
     , libphp-serialization-perl
     , libgnutls28-dev | libgnutls-dev
-    , libmysqlclient-dev | libmariadbclient-dev
+    , libmysqlclient-dev | libmariadbclient-dev | default-libmysqlclient-dev
     , libjpeg8-dev | libjpeg-dev
-    , libpcre3-dev
+    , libpcre2-dev
     , libavcodec-dev, libavformat-dev (>= 3:0.svn20090204), libswscale-dev (>= 3:0.svn20090204), libavutil-dev
     , libv4l-dev (>= 0.8.3)
     , libbz2-dev
     , ffmpeg | libav-tools
     , net-tools
-    , libnetpbm10-dev
+    , libnetpbm10-dev | libnetpbm-dev
     , libvlccore-dev, libvlc-dev
     , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
     , libpolkit-gobject-1-dev
@@ -45,7 +45,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libdata-uuid-perl
     ,libnumber-bytes-human-perl
     ,libfile-slurp-perl
-    , libpcre3
+    , libpcre2
     , ffmpeg | libav-tools
     , rsyslog | system-log-daemon
     , netpbm

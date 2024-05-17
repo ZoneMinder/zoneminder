@@ -109,13 +109,25 @@ echo output_cache_busted_stylesheet_links(array(
 ));
 
 echo output_link_if_exists(array(
-  'css/base/skin.css',
-  'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
   'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.21.1/bootstrap-table.min.css',
-  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
+  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
+  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
 ), true);
+
+if ( $basename == 'montage' ) {
+  echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
+}
+?>
+  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
+  <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
+  <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
+<?php
+echo output_link_if_exists(array(
+  'css/base/skin.css',
+  'css/base/views/'.$basename.'.css',
+), true);
+
 if ( $css != 'base' )
   echo output_link_if_exists(array(
     'css/'.$css.'/skin.css',
@@ -123,9 +135,6 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 ?>
-  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
-  <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
-  <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
   if ( $basename == 'watch' ) {
     echo output_link_if_exists(array('/css/base/views/control.css'));
@@ -198,10 +207,11 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   $status = runtimeStatus($running);
 ?>
 <div class="container-fluid" id="navbar-container">
-  <nav class="navbar navbar-expand-md justify-content-center flex-row" id="navbar-one">
-    <div class="navbar-brand justify-content-start align-self-start">
-      <?php echo getNavBrandHTML() ?>
-    </div>
+  <div class="navbar-brand">
+    <?php echo getNavBrandHTML() ?>
+  </div>
+  <div class="navbars">
+    <nav class="navbar navbar-expand-md flex-row" id="navbar-one">
     <!-- the Navigation Bar Hamburger Button   -->
 <!--
     <div class="nav justify-content-end flex-grow-1">
@@ -212,14 +222,14 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon">
-					<i class="material-icons md-20">menu</i>
-				</span>
+          <i class="material-icons md-20">menu</i>
+        </span>
       </button>
-      <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
+      <button id="flipNarrow" type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-two" aria-expanded="true">
         <span class="sr-only">Toggle guages</span>
         <span class="navbar-toggler-icon">
-					<i class="material-icons md-20">monitoring</i>
-				</span>
+          <i class="material-icons md-20">monitor</i>
+        </span>
       </button>
 <!--
    </div>
@@ -258,7 +268,7 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   <nav class="navbar navbar-expand-md justify-content-center" id="navbar-two"
 <?php echo ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down' ) ? 'style="display:none;"' : '' ?>
 >
-    <div class="container-fluid" id="panel" >
+    <div class="container-fluid" id="panel">
 <?php
 
 // *** Build the statistics shown on the navigation bar ***
@@ -271,11 +281,10 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
         <ul class="navbar-nav list-inline justify-content-center">
           <?php
           echo getSysLoadHTML();
+          echo getCpuUsageHTML();
           echo getDbConHTML();
           echo getStorageHTML();
           echo getRamHTML();
-          #echo getShmHTML();
-          #echo getLogIconHTML();
           ?>
         </ul>
 
@@ -290,12 +299,10 @@ function getNormalNavBarHTML($running, $user, $bandwidth_options, $view, $skin) 
   
 <?php
   } // end if (!ZM_OPT_USE_AUTH) or $user )
-  $banner_html = getConsoleBannerHTML();
-  if ($banner_html) {
-    echo '<nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">'.$banner_html.'</nav>';
-  }
+  echo getConsoleBannerHTML();
 ?>
-</div>
+  </div><!--navbars-->
+</div><!--navbar continaer-->
 <?php
 } // end function getNormalNavBarHTML()
 
@@ -306,26 +313,27 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
   $status = runtimeStatus($running);
   ?>
   <div class="container-fluid" id="navbar-container">
-    <nav class="navbar px-1 flex-nowrap">
-      <div class="navbar-brand align-self-start px-0">
+    <nav class="navbar flex-nowrap">
+      <div class="navbar-brand">
         <?php echo getNavBrandHTML() ?>
       </div>
-      <nav class="navbar navbar-expand-md align-self-start px-0">
+      <nav class="navbar navbar-expand-md">
 <?php
   // *** Build the statistics shown on the navigation bar ***
   if ( (!ZM_OPT_USE_AUTH) or $user ) {
 ?>
-        <div id="reload" class="collapse navbar-collapse px-0">
-          <ul id="Version" class="pr-2 navbar-nav">
+        <div id="reload" class="collapse navbar-collapse">
+          <ul id="Version" class="navbar-nav">
             <?php echo getZMVersionHTML() ?>
           </ul>
-          <ul id="Bandwidth" class="px-2 navbar-nav">
+          <ul id="Bandwidth" class="navbar-nav">
             <?php echo getBandwidthHTML($bandwidth_options, $user) ?>
           </ul>
 
-          <ul class="nav navbar-nav list-group px-0">
+          <ul class="nav navbar-nav list-group">
             <?php
             echo getSysLoadHTML();
+            echo getCpuUsageHTML();
             echo getDbConHTML();
             echo getStorageHTML();
             echo getRamHTML();
@@ -352,8 +360,8 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
       <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#main-header-nav" aria-haspopup="true" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="navbar-toggler-icon">
-					<i class="material-icons md-20">menu</i>
-				</span>
+          <i class="material-icons md-20">menu</i>
+        </span>
       </button>
     <?php } ?>
 
@@ -380,25 +388,40 @@ function getCollapsedNavBarHTML($running, $user, $bandwidth_options, $view, $ski
       </div>
 
     </nav><!-- End First Navbar -->
-
-    <nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">
-      <?php echo getConsoleBannerHTML() ?>
-    </nav><!-- End Second Navbar -->
+    <?php echo getConsoleBannerHTML() ?>
   </div>
   
   <?php
 } // End function getCollapsedNavBarHTML
 
+// Returns the html representing the current cpu Usage Percent
+function getCpuUsageHTML() {
+  $result = '';
+  if ( !canView('System') ) return $result;
+  global $thisServer;
+  if ($thisServer) {
+    $thisServer->ReadStats();
+
+    $result .= '<li id="getCpuUsageHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
+    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent, 1, '.', '').'%'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  }
+  return $result;
+}
+
 // Returns the html representing the current unix style system load
 function getSysLoadHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
+  global $thisServer;
+  if ($thisServer) {
+    $thisServer->ReadStats();
 
-  $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">'.PHP_EOL;
-  $result .= '<i class="material-icons md-18">trending_up</i>'.PHP_EOL;
-  $result .= '&nbsp;'.translate('Load').': '.number_format(getLoad(), 2, '.', '').PHP_EOL;
-  $result .= '</li>'.PHP_EOL;
-  
+    $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">';
+    $result .= '<i class="material-icons md-18" style="display: inline-block;">trending_up</i>';
+    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad, 2, '.', '');
+    $result .= '</li>'.PHP_EOL;
+  } 
   return $result;
 }
 
@@ -412,7 +435,7 @@ function getDbConHTML() {
   $class = ( $percent_used > 90 ) ? ' text-warning' : '';
 
   $result .= '<li id="getDbConHTML" class="nav-item dropdown mx-2' .$class. '">'.PHP_EOL;
-  $result .= '<i class="material-icons md-18 mr-1">storage</i>'.PHP_EOL;
+  $result .= '<i class="material-icons md-18 mr-1" style="display: inline-block;">storage</i>'.PHP_EOL;
   $result .= translate('DB'). ': ' .$connections. '/' .$max_connections.PHP_EOL;   
   $result .= '</li>'.PHP_EOL;
   
@@ -426,9 +449,9 @@ function getStorageHTML() {
 
   $func = function($S, $class='') {
     if ( $S->disk_usage_percent() > 98 ) {
-      $class = 'text-danger';
-    } else if ( $S->disk_usage_percent() > 90 ) {
-      $class = 'text-warning';
+      $class .= 'text-danger';
+    } else if ( $S->disk_usage_percent() > 95 ) {
+      $class .= 'text-warning';
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
@@ -442,7 +465,7 @@ function getStorageHTML() {
   $full_error = 0;
   foreach ( $storage_areas as $area ) {  
     if ( $area->disk_usage_percent() > 98 ) { $full_error++; continue; }
-    if ( $area->disk_usage_percent() > 90 ) $full_warning++;    
+    if ( $area->disk_usage_percent() > 95 ) $full_warning++;
   } 
   
   $class = '';
@@ -460,7 +483,7 @@ function getStorageHTML() {
     $result .= '</li>'.PHP_EOL;
   } else {
     $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1" style="display: inline-block;">folder_shared</i>Storage</a>'.PHP_EOL;
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
     
     foreach ( $storage_areas as $area ) {  
@@ -476,32 +499,34 @@ function getStorageHTML() {
 function getRamHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
-  $contents = file_get_contents('/proc/meminfo');
-  preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
-  $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
-  $mem_used = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
-  $mem_used_percent = (int)(100*$mem_used/$meminfo['MemTotal']);
-  $used_class = '';
-  if ($mem_used_percent > 95) {
-    $used_class = 'text-danger';
-  } else if ($mem_used_percent > 90) {
-    $used_class = 'text-warning';
-  }
-  $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
-    '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> ';
-
-  if ($meminfo['SwapTotal']) {
-    $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
-    $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
-    $swap_class = '';
-    if ($swap_used_percent > 95) {
-      $swap_class = 'text-danger';
-    } else if ($swap_used_percent > 90) {
-      $swap_class = 'text-warning';
+  if (file_exists('/proc')) {
+    $contents = file_get_contents('/proc/meminfo');
+    preg_match_all('/(\w+):\s+(\d+)\s/', $contents, $matches);
+    $meminfo = array_combine($matches[1], array_map(function($v){return 1024*$v;}, $matches[2]));
+    $mem_used = $meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Buffers'] - $meminfo['Cached'];
+    $mem_used_percent = (int)(100*$mem_used/$meminfo['MemTotal']);
+    $used_class = '';
+    if ($mem_used_percent > 95) {
+      $used_class = 'text-danger';
+    } else if ($mem_used_percent > 90) {
+      $used_class = 'text-warning';
     }
-    $result .= '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> ';
-  } # end if SwapTotal
-  $result .= '</li>'.PHP_EOL;
+    $result .= ' <li id="getRamHTML" class="nav-item dropdown mx-2">'.
+      '<span class="'.$used_class.'" title="' .human_filesize($mem_used). ' of ' .human_filesize($meminfo['MemTotal']). '">'.translate('Memory').': '.$mem_used_percent.'%</span> ';
+
+    if ($meminfo['SwapTotal']) {
+      $swap_used = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
+      $swap_used_percent = (int)(100*$swap_used/$meminfo['SwapTotal']);
+      $swap_class = '';
+      if ($swap_used_percent > 95) {
+        $swap_class = 'text-danger';
+      } else if ($swap_used_percent > 90) {
+        $swap_class = 'text-warning';
+      }
+      $result .= '<span class="'.$swap_class.'" title="' .human_filesize($swap_used). ' of ' .human_filesize($meminfo['SwapTotal']). '">'.translate('Swap').': '.$swap_used_percent.'%</span> ';
+    } # end if SwapTotal
+    $result .= '</li>'.PHP_EOL;
+  }
   
   return $result;
 }
@@ -531,7 +556,9 @@ function getConsoleBannerHTML() {
   $result = '';
 
   if ( defined('ZM_WEB_CONSOLE_BANNER') and ZM_WEB_CONSOLE_BANNER != '' ) {
+    $result .= '<nav class="navbar navbar-expand-md justify-content-center" id="navbar-three">';
     $result .= '<h2 id="getConsoleBannerHTML">'.validHtmlStr(ZM_WEB_CONSOLE_BANNER).'</h2>';
+    $result .= '</nav>';
   }
   return $result;
 }
@@ -552,7 +579,7 @@ function getBandwidthHTML($bandwidth_options, $user) {
   $result = '';
   if (count($bandwidth_options) > 1) {
     $result .= '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1" style="display: inline-block;">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
 
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
     if ( isset($bandwidth_options['high']) )
@@ -629,9 +656,10 @@ function getNavBrandHTML() {
 
 // Returns the html representing the Console menu item
 function getConsoleHTML() {
+  global $user;
   $result = '';
   
-  if ( canView('Monitors') ) {
+  if (count($user->viewableMonitorIds()) or !ZM\Monitor::find_one()) {
     $result .= '<li id="getConsoleHTML" class="nav-item"><a class="nav-link" href="?view=console">'.translate('Console').'</a></li>'.PHP_EOL;
   }
   
@@ -671,9 +699,9 @@ function getLogIconHTML() {
   if ( canView('System') ) {
     if ( ZM\logToDatabase() > ZM\Logger::NOLOG ) { 
       $logstate = logState();
-      $class = ( $logstate == 'alert' ) ? 'text-warning' : (( $logstate == 'alarm' ) ? 'text-danger' : '');
+      $class = ($logstate == 'ok') ? 'text-success' : ($logstate == 'alert' ? 'text-warning' : (($logstate == 'alarm' ? 'text-danger' : '')));
       $result .= '<li id="getLogIconHTML" class="nav-item">'.
-        makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18">report</i>'.translate('Log').'</span>').
+        makeLink('?view=log', '<span class="mx-1 ' .$class. '"><i class="material-icons md-18" style="display: inline-block;">report</i>'.translate('Log').'</span>').
         '</li>'.PHP_EOL;
     }
   }
@@ -728,9 +756,10 @@ function getCycleHTML($view) {
 
 // Returns the html representing the Montage menu item
 function getMontageHTML($view) {
+  global $user;
   $result = '';
   
-  if ( canView('Stream') ) {
+  if (canView('Stream') and count($user->viewableMonitorIds())) {
     $class = $view == 'montage' ? ' selected' : '';
     $result .= '<li id="getMontageHTML" class="nav-item"><a class="nav-link'.$class.'" href="?view=montage">' .translate('Montage'). '</a></li>'.PHP_EOL;
   }
@@ -817,7 +846,7 @@ function getHeaderFlipHTML() {
   $result = '';
   
   $header = ( isset($_COOKIE['zmHeaderFlip']) and $_COOKIE['zmHeaderFlip'] == 'down') ? 'down' : 'up';
-  $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
+  $result .= '<li id="getHeaderFlipHTML" class="nav-item dropdown"><a class="nav-link" href="#"><i id="flip" class="material-icons md-18" style="display: inline-block;">keyboard_arrow_' .$header. '</i></a></li>'.PHP_EOL;
   
   return $result;
 }
@@ -846,8 +875,8 @@ function getStatusBtnHTML($status) {
     $result .= '</li>'.PHP_EOL;
 
     if (ZM_SYSTEM_SHUTDOWN) {
-      $result .= '<li class="pr-2">'.PHP_EOL;
-      $result .= '<button id="shutdownButton" class="btn btn-default navbar-btn" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate('Shutdown'). '"><i class="material-icons md-18">power_settings_new</i></button>'.PHP_EOL;
+      $result .= '<li class="shutdown">'.PHP_EOL;
+      $result .= '<button id="shutdownButton" class="btn btn-default navbar-btn" data-on-click="getShutdownModal" data-toggle="tooltip" data-placement="top" title="' .translate('Shutdown'). '"><i class="material-icons md-18" style="display: inline-block;">power_settings_new</i></button>'.PHP_EOL;
       $result .= '</li>'.PHP_EOL;
      } 
 
@@ -959,26 +988,37 @@ function xhtmlFooter() {
   <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
   <script src="skins/<?php echo $skin; ?>/js/bootstrap-4.5.0.min.js"></script>
-<?php echo output_script_if_exists(array(
+<?php 
+  if ( $basename == 'montage' ) {
+    echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
+    echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+  }
+  if ( $basename == 'watch' ) {
+    echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+  }
+
+  echo output_script_if_exists(array(
   'js/fontfaceobserver.standalone.js',
   'js/tableExport.min.js',
-  'js/bootstrap-table-1.21.1/bootstrap-table.min.js',
-  'js/bootstrap-table-1.21.1/extensions/locale/bootstrap-table-locale-all.min.js',
-  'js/bootstrap-table-1.21.1/extensions/export/bootstrap-table-export.min.js',
-  'js/bootstrap-table-1.21.1/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
-  'js/bootstrap-table-1.21.1/extensions/cookie/bootstrap-table-cookie.js',
-  'js/bootstrap-table-1.21.1/extensions/toolbar/bootstrap-table-toolbar.min.js',
-  'js/bootstrap-table-1.21.1/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.22.3/bootstrap-table.min.js',
+  'js/bootstrap-table-1.22.3/extensions/locale/bootstrap-table-locale-all.min.js',
+  'js/bootstrap-table-1.22.3/extensions/export/bootstrap-table-export.min.js',
+  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.js',
+  'js/bootstrap-table-1.22.3/extensions/cookie/bootstrap-table-cookie.js',
+  'js/bootstrap-table-1.22.3/extensions/toolbar/bootstrap-table-toolbar.min.js',
+  'js/bootstrap-table-1.22.3/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
   'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',
 ), true );
 ?>
   <script src="skins/<?php echo $skin ?>/js/moment.min.js"></script>
+  <script src="skins/<?php echo $skin ?>/js/luxon-3.4.4.min.js"></script>
 <?php
 ?>
   <script nonce="<?php echo $cspNonce; ?>">
     var $j = jQuery.noConflict();
+    var DateTime = luxon.DateTime;
 <?php
   if ( $skinJsPhpFile ) {
     require_once( $skinJsPhpFile );
@@ -997,8 +1037,7 @@ function xhtmlFooter() {
   }
   $skinJsFile = getSkinFile('js/skin.js');
 ?>
-  <script src="<?php echo cache_bust($skinJsFile) ?>"></script>
-  <script nonce="<?php echo $cspNonce; ?>">$j('.chosen').chosen();</script>
+  <script nonce="<?php echo $cspNonce; ?>" src="<?php echo cache_bust($skinJsFile) ?>"></script>
   </body>
 </html>
 <?php

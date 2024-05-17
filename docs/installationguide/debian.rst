@@ -70,7 +70,7 @@ To install the version in bookworm stable, just run the following command.
 
 If instead you prefer to install the newer version using backports, run the following commands.
 The first line will add this bookworm-backports repository.
-The backports repository is deactivated by default, so with the second line we explicityly state we want the backported version of zoneminder.
+The backports repository is deactivated by default, so with the second line we explicitly state we want the backported version of zoneminder.
 
 ::
 
@@ -98,6 +98,7 @@ To make sure zoneminder can read the configuration file, run the following comma
 ::
 
     sudo a2enconf zoneminder
+    sudo a2enmod cgi
     sudo systemctl reload apache2.service
     sudo systemctl restart zoneminder.service
     sudo systemctl status zoneminder.service
@@ -171,7 +172,7 @@ To install the version in bullseye stable, just run the following command.
 
 If instead you prefer to install the newer version using backports, run the following commands.
 The first line will add bullseye-backports repository.
-The backports repository is deactivated by default, so with the second line we explicityly state we want the backported version of zoneminder.
+The backports repository is deactivated by default, so with the second line we explicitly state we want the backported version of zoneminder.
 
 ::
 

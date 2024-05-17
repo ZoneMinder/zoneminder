@@ -26,6 +26,7 @@ var eventData = {
     MonitorId: '<?php echo $Event->MonitorId() ?>',
     MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
     Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
+    <!-- Tags: '<?php echo validHtmlStr(implode(', ', array_map(function($t){return $t->Name();}, $Event->Tags()))); ?>', -->
     Notes: `<?php echo $Event->Notes()?>`,
     Width: '<?php echo $Event->Width() ?>',
     Height: '<?php echo $Event->Height() ?>',
@@ -45,6 +46,9 @@ var eventData = {
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>,
     DefaultVideo: '<?php echo $Event->DefaultVideo() ?>',
     Path: '<?php echo $Event->Path() ?>'
+    Path: '<?php echo $Event->Path() ?>',
+    Latitude: '<?php echo $Event->Latitude() ?>',
+    Longitude: '<?php echo $Event->Longitude() ?>'
 <?php } ?>
 };
 
@@ -53,10 +57,12 @@ var noStr = '<?php echo translate('No') ?>';
 
 var eventDataStrings = {
     Id: '<?php echo translate('EventId') ?>',
-    Name: '<?php echo translate('EventName') ?>',
+    Name: '<?php echo translate('Name') ?>',
     MonitorId: '<?php echo translate('AttrMonitorId') ?>',
-    MonitorName: '<?php echo translate('AttrMonitorName') ?>',
+    MonitorName: '<?php echo translate('Monitor') ?>',
     Cause: '<?php echo translate('Cause') ?>',
+    <!-- Tags is not necessary since tags are displayed above -->
+    <!-- Tags: '<?php echo translate('Tags') ?>', -->  
     Notes: '<?php echo translate('Notes') ?>',
     StartDateTimeFormatted: '<?php echo translate('AttrStartTime') ?>',
     EndDateTimeFormatted: '<?php echo translate('AttrEndTime') ?>',
@@ -73,6 +79,9 @@ var eventDataStrings = {
     Archived: '<?php echo translate('Archived') ?>',
     Emailed: '<?php echo translate('Emailed') ?>'
 };
+if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
+  eventDataStrings.Location = '<?php echo translate('Location') ?>';
+}
 
 var monitorUrl = '<?php echo $Event->Storage()->Server()->UrlToIndex(); ?>';
 var videoUrl = '<?php echo $Event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264'),'&'); ?>';
@@ -106,4 +115,7 @@ var translate = {
   "seconds": "<?php echo translate('seconds') ?>",
   "Fullscreen": "<?php echo translate('Fullscreen') ?>",
   "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
+  "Live": "<?php echo translate('Live') ?>",
+  "Edit": "<?php echo translate('Edit') ?>",
+  "All Events": "<?php echo translate('All Events') ?>",
 };

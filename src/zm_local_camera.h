@@ -1,21 +1,21 @@
 //
 // ZoneMinder Local Camera Class Interface, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_LOCAL_CAMERA_H
 #define ZM_LOCAL_CAMERA_H
@@ -32,22 +32,22 @@
 // via a video interface.
 //
 class LocalCamera : public Camera {
-protected:
-    struct V4L2MappedBuffer {
-        void    *start;
-        size_t  length;
-    };
+ protected:
+  struct V4L2MappedBuffer {
+    void    *start;
+    size_t  length;
+  };
 
-    struct V4L2Data {
-        v4l2_cropcap        cropcap;
-        v4l2_crop           crop;
-        v4l2_format         fmt;
-        v4l2_requestbuffers reqbufs;
-        V4L2MappedBuffer    *buffers;
-        v4l2_buffer         *bufptr;
-    };
+  struct V4L2Data {
+    v4l2_cropcap        cropcap;
+    v4l2_crop           crop;
+    v4l2_format         fmt;
+    v4l2_requestbuffers reqbufs;
+    V4L2MappedBuffer    *buffers;
+    v4l2_buffer         *bufptr;
+  };
 
-protected:
+ protected:
   std::string device;
   int channel;
   int standard;
@@ -56,10 +56,10 @@ protected:
   bool channel_prime;
   int channel_index;
   unsigned int extras;
-  
+
   unsigned int conversion_type; /* 0 = no conversion needed, 1 = use libswscale, 2 = zm internal conversion, 3 = jpeg decoding */
   convert_fptr_t conversion_fptr; /* Pointer to conversion function used */
-  
+
   uint32_t AutoSelectFormat(int p_colours);
 
   static int camera_count;
@@ -81,7 +81,7 @@ protected:
 
   static LocalCamera      *last_camera;
 
-public:
+ public:
   LocalCamera(
     const Monitor *monitor,
     const std::string &device,

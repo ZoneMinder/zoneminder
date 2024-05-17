@@ -1,21 +1,21 @@
 //
 // ZoneMinder General Utility Functions, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_utils.h"
 
@@ -254,17 +254,17 @@ void HwCapsDetect() {
 #elif defined(__arm__)
   // ARM processor in 32bit mode
   // To see if it supports NEON, we need to get that information from the kernel
-  #ifdef __linux__
+#ifdef __linux__
   unsigned long auxval = getauxval(AT_HWCAP);
   if (auxval & HWCAP_ARM_NEON) {
-  #elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__)
   unsigned long auxval = 0;
   elf_aux_info(AT_HWCAP, &auxval, sizeof(auxval));
   if (auxval & HWCAP_NEON) {
-  #else
+#else
   {
-  #error Unsupported OS.
-  #endif
+#error Unsupported OS.
+#endif
     Debug(1,"Detected ARM (AArch32) processor with Neon");
     neonversion = 1;
   } else {
@@ -293,35 +293,35 @@ void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes) {
     const uint8_t *lastsrc = (uint8_t *) src + (bytes - remainder);
 
     __asm__ __volatile__(
-    "sse2_copy_iter:\n\t"
-    "movdqa (%0),%%xmm0\n\t"
-    "movdqa 0x10(%0),%%xmm1\n\t"
-    "movdqa 0x20(%0),%%xmm2\n\t"
-    "movdqa 0x30(%0),%%xmm3\n\t"
-    "movdqa 0x40(%0),%%xmm4\n\t"
-    "movdqa 0x50(%0),%%xmm5\n\t"
-    "movdqa 0x60(%0),%%xmm6\n\t"
-    "movdqa 0x70(%0),%%xmm7\n\t"
-    "movntdq %%xmm0,(%1)\n\t"
-    "movntdq %%xmm1,0x10(%1)\n\t"
-    "movntdq %%xmm2,0x20(%1)\n\t"
-    "movntdq %%xmm3,0x30(%1)\n\t"
-    "movntdq %%xmm4,0x40(%1)\n\t"
-    "movntdq %%xmm5,0x50(%1)\n\t"
-    "movntdq %%xmm6,0x60(%1)\n\t"
-    "movntdq %%xmm7,0x70(%1)\n\t"
-    "add $0x80, %0\n\t"
-    "add $0x80, %1\n\t"
-    "cmp %2, %0\n\t"
-    "jb sse2_copy_iter\n\t"
-    "test %3, %3\n\t"
-    "jz sse2_copy_finish\n\t"
-    "cld\n\t"
-    "rep movsb\n\t"
-    "sse2_copy_finish:\n\t"
-    :
-    : "S" (src), "D" (dest), "r" (lastsrc), "c" (remainder)
-    : "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
+      "sse2_copy_iter:\n\t"
+      "movdqa (%0),%%xmm0\n\t"
+      "movdqa 0x10(%0),%%xmm1\n\t"
+      "movdqa 0x20(%0),%%xmm2\n\t"
+      "movdqa 0x30(%0),%%xmm3\n\t"
+      "movdqa 0x40(%0),%%xmm4\n\t"
+      "movdqa 0x50(%0),%%xmm5\n\t"
+      "movdqa 0x60(%0),%%xmm6\n\t"
+      "movdqa 0x70(%0),%%xmm7\n\t"
+      "movntdq %%xmm0,(%1)\n\t"
+      "movntdq %%xmm1,0x10(%1)\n\t"
+      "movntdq %%xmm2,0x20(%1)\n\t"
+      "movntdq %%xmm3,0x30(%1)\n\t"
+      "movntdq %%xmm4,0x40(%1)\n\t"
+      "movntdq %%xmm5,0x50(%1)\n\t"
+      "movntdq %%xmm6,0x60(%1)\n\t"
+      "movntdq %%xmm7,0x70(%1)\n\t"
+      "add $0x80, %0\n\t"
+      "add $0x80, %1\n\t"
+      "cmp %2, %0\n\t"
+      "jb sse2_copy_iter\n\t"
+      "test %3, %3\n\t"
+      "jz sse2_copy_finish\n\t"
+      "cld\n\t"
+      "rep movsb\n\t"
+      "sse2_copy_finish:\n\t"
+      :
+      : "S" (src), "D" (dest), "r" (lastsrc), "c" (remainder)
+      : "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory"
     );
 
   } else {
@@ -474,7 +474,7 @@ std::string mask_authentication(const std::string &url) {
   std::size_t password_at = masked_url.rfind(":", at_at);
 
   if (password_at == std::string::npos) {
-    // no : means no http:// either so something liek username@192.168.1.1
+    // no : means no http:// either so something like username@192.168.1.1
     masked_url.replace(0, at_at, at_at, '*');
   } else if (masked_url[password_at+1] == '/') {
     // no password, something like http://username@192.168.1.1

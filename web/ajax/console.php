@@ -4,7 +4,7 @@ if ( canEdit('Monitors') ) {
   case 'sort' :
   {
     $monitor_ids = $_POST['monitor_ids'];
-    # Two concurrent sorts could generate odd sortings... so lock the table.
+    # Two concurrent sorts could generate odd sorting... so lock the table.
     global $dbConn;
     $dbConn->beginTransaction();
     $dbConn->exec('LOCK TABLES Monitors WRITE');

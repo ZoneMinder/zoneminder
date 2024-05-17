@@ -1,6 +1,6 @@
 # ==========================================================================
 #
-# ZoneMinder Database Module, $Date$, $Revision$
+# ZoneMinder Database Module
 # Copyright (C) 2001-2008  Philip Coombes
 #
 # This program is free software; you can redistribute it and/or
@@ -27,6 +27,7 @@ package ZoneMinder::Database;
 use 5.006;
 use strict;
 use warnings;
+use version;
 
 require Exporter;
 require ZoneMinder::Base;
@@ -48,8 +49,10 @@ our %EXPORT_TAGS = (
       zmDbGetMonitor
       zmDbGetMonitorAndControl
       zmDbDo
+      zmDbExecute
       zmSQLExecute
       zmDbFetchOne
+      zmDbSupportsFeature
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -105,22 +108,19 @@ sub zmDbConnect {
 
     eval {
       $dbh = DBI->connect(
-        'DBI:mysql:database='.$ZoneMinder::Config::Config{ZM_DB_NAME}
+        'DBI:'.$ZoneMinder::Config::Config{ZM_DB_TYPE}.':database='.$ZoneMinder::Config::Config{ZM_DB_NAME}
         .$socket . $sslOptions . ($options?join(';', '', map { $_.'='.$$options{$_} } keys %{$options} ) : '')
         , $ZoneMinder::Config::Config{ZM_DB_USER}
         , $ZoneMinder::Config::Config{ZM_DB_PASS}
-        , { mysql_enable_utf8mb4 => 1, }
+        , { ($ZoneMinder::Config::Config{ZM_DB_TYPE} eq 'mysql' ? (mysql_enable_utf8mb4 => 1) : ()) }
         );
     };
     if ( !$dbh or $@ ) {
       Error("Error reconnecting to db: errstr:$DBI::errstr error val:$@");
     } else {
       $dbh->{AutoCommit} = 1;
-      Fatal('Can\'t set AutoCommit on in database connection')
+      Error('Can\'t set AutoCommit on in database connection')
         unless $dbh->{AutoCommit};
-      $dbh->{mysql_auto_reconnect} = 1;
-      Fatal('Can\'t set mysql_auto_reconnect on in database connection')
-        unless $dbh->{mysql_auto_reconnect};
       $dbh->trace( 0 );
     } # end if success connecting
   } # end if ! connected
@@ -180,20 +180,27 @@ sub zmDbGetMonitors {
 }
 
 sub zmSQLExecute {
+  Warning("zmSQLExecute is deprecated. Please update to use zmDbExecute");
+  return zmDbExecute(@_) ? 1 : undef;
+}
+
+sub zmDbExecute {
   my $sql = shift;
 
-  my $sth = $dbh->prepare_cached( $sql );
-  if ( ! $sth ) {
+  my $sth = $dbh->prepare_cached($sql);
+  if (!$sth) {
     Error("Can't prepare '$sql': ".$dbh->errstr());
     return undef;
   }
-  my $res = $sth->execute( @_ );
-  if ( ! $res ) {
-    Error("Can't execute '$sql': ".$sth->errstr());
+  my $res = $sth->execute(@_);
+  if (!$res) {
+    my ( $caller, undef, $line ) = caller;
+    Error("Can't execute '$sql' from $caller:$line: ".$sth->errstr());
     return undef;
   }
-  return 1;
-}
+  return ($sth, $res) if wantarray();
+  return $res;
+} 
 
 sub zmDbGetMonitor {
   zmDbConnect();
@@ -274,6 +281,21 @@ sub zmDbFetchOne {
   my $row = $sth->fetchrow_hashref();
   $sth->finish();
   return $row;
+}
+
+sub zmDbSupportsFeature {
+  my $feature = shift;
+  my $row = zmDbFetchOne('SELECT VERSION()');
+  my ($version) = $$row{'VERSION()'} =~ /(^[0-9\.]+)/;
+  if ($feature eq 'skip_locked') {
+    if ($$row{'VERSION()'} =~ /MariaDB/) {
+      return version->parse($version) >= version->parse('10.6');
+    } else {
+      return version->parse($version) >= version->parse('8.0.1');
+    }
+  } else {
+    Warning("Unknown feature requested $feature");
+  }
 }
 
 1;

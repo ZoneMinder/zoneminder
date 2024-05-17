@@ -2,7 +2,7 @@
 namespace ZM;
 require_once('database.php');
 require_once('Object.php');
-
+require_once('Monitor.php');
 
 class Zone extends ZM_Object {
   protected static $table = 'Zones';
@@ -35,14 +35,15 @@ class Zone extends ZM_Object {
 			);
 
   public static function find( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
+
   public function Monitor() {
-    if ( isset($this->{'MonitorId'}) ) {
+    if (isset($this->{'MonitorId'})) {
       $Monitor = Monitor::find_one(array('Id'=>$this->{'MonitorId'}));
       if ( $Monitor )
         return $Monitor;

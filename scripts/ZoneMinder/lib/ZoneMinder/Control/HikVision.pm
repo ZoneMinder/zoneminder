@@ -123,7 +123,7 @@ Debug("Have " . $+{PASSWORD});
   # Save the base url
   $self->{BaseURL} = "http://$host:$port";
 
-  $ChannelID = $self->{Monitor}{ControlDevice};
+  $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice};
   $realm = '';
 
   if (defined($user)) {
@@ -194,7 +194,7 @@ sub PutCmd {
     Error("No cmd specified in PutCmd");
     return;
   }
-  Debug("Put: $cmd to ".$self->{BaseURL});
+  Debug("Put: $cmd to ".$self->{BaseURL}.(defined($content)?' content:'.$content:''));
   my $req = HTTP::Request->new(PUT => $self->{BaseURL}.'/'.$cmd);
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
@@ -226,18 +226,17 @@ sub PutCmd {
           foreach (split(/\s*,\s*/, $auth)) {
             if ( $_ =~ /^realm\s*=\s*"([^"]+)"/i ) {
               if ($realm ne $1) {
-                Warning("Control Device appears to be incorrect.
-                  Control Device should be set to \"$1\".
-                  Control Device currently set to \"$self->{Monitor}{ControlDevice}\".");
                 $realm = $1;
                 $self->{UA}->credentials("$host:$port", $realm, $user, $pass);
                 return PutCmd($self, $cmd, $content);
               }
+            } else {
+              Debug('Not realm: '.$_);
             }
           } # end foreach auth token
         } # end foreach auth token
       } else {
-        Debug("No authenticate header");
+        Debug('No authenticate header');
       }
       #
       # Check for username/password
@@ -255,6 +254,8 @@ sub PutCmd {
     } else {
       Error($res->status_line);
     }
+  } else {
+    Debug('Success: ' . $res->content);
   } # end unless res->is_success
 } # end sub putCmd
 
@@ -270,15 +271,17 @@ sub moveVector {
   my $command;                    # The ISAPI/PTZ command
 
   # Calculate autostop time
-  my $duration = $self->getParam( $params, 'autostop', 0 ) * $self->{Monitor}{AutoStopTimeout};
-  # Change from microseconds to milliseconds
-  $duration = int($duration/1000);
+  my $autostop = $self->getParam($params, 'autostop', 0);
+
+  my $duration = $autostop * $self->{Monitor}{AutoStopTimeout};
+  $duration = ($duration < 1000) ? $duration * 1000 : int($duration/1000);
+  # Change from microseconds to milliseconds or seconds to milliseconds
+  Debug("Calculate duration $duration from autostop($autostop) and AutoStopTimeout ".$self->{Monitor}{AutoStopTimeout});
   my $momentxml;
-  if( $duration ) {
+  if ($duration) {
     $momentxml = "<Momentary><duration>$duration</duration></Momentary>";
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/momentary";
-  }
-  else {
+  } else {
     $momentxml = '';
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/continuous";
   }

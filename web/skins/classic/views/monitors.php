@@ -28,12 +28,12 @@ $monitor = $monitors[0];
 $servers = ZM\Server::find();
 $ServersById = array();
 foreach ( $servers as $S ) {
-  $ServersById[$S->Id()] = $S;
+  $ServersById[validCardinal($S->Id())] = $S;
 }
 $storage_areas = ZM\Storage::find();
 $StorageById = array();
 foreach ( $storage_areas as $S ) {
-  $StorageById[$S->Id()] = $S;
+  $StorageById[validCardinal($S->Id())] = $S;
 }
 
 $focusWindow = true;
@@ -49,7 +49,7 @@ echo getNavBarHTML();
       <div class="Monitors">
         <div class="Instructions">
           The following monitors will have these settings updated when you click Save:<br/><br/>
-          <?php echo implode(', ', array_map(function($m){return '<a href="?view=monitor&mid='.$m->Id().'">'.$m->Id().' ' .$m->Name().'</a>';}, $monitors)); ?>
+          <?php echo implode(', ', array_map(function($m){return '<a href="?view=monitor&mid='.validCardinal($m->Id()).'">'.htmlspecialchars($m->Id().' ' .$m->Name()).'</a>';}, $monitors)); ?>
         </div>
         <div class="Settings">
 
@@ -61,7 +61,7 @@ echo getNavBarHTML();
   echo implode(
     "\n",
     array_map(function($m){
-      return '<input type="hidden" name="mids[]" value="'.$m->Id().'"/>';
+      return '<input type="hidden" name="mids[]" value="'.validCardinal($m->Id()).'"/>';
     }, $monitors)
   );
   if ( count($ServersById) > 0 ) { ?>

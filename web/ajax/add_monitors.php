@@ -122,7 +122,6 @@ if (canEdit('Monitors')) {
   switch ($_REQUEST['action']) {
   case 'probe' :
   {
-    ZM\Debug('probe');
     $available_streams = array();
     $url = isset($_REQUEST['url']) ? $_REQUEST['url'] : '';
     $url_bits = null;

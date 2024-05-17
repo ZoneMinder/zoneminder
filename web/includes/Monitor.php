@@ -145,6 +145,8 @@ public static function getStatuses() {
     'AnalysisImage' => 'FullColour',
     'Enabled'   => array('type'=>'boolean','default'=>1),
     'Decoding'  => 'Always',
+    'RTSP2WebEnabled'   => array('type'=>'integer','default'=>0),
+    'RTSP2WebType'   => 'HLS',
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',
@@ -156,10 +158,11 @@ public static function getStatuses() {
     'EventStartCommand' => '',
     'EventEndCommand' => '',
     'ONVIF_URL' =>  '',
+    'ONVIF_Events_Path' =>  '/Events',
     'ONVIF_Username'  =>  '',
     'ONVIF_Password'  =>  '',
     'ONVIF_Options'   =>  '',
-    'ONVIF_Alarm_Text'   =>  '',
+    'ONVIF_Alarm_Text'   =>  'MotionAlarm',
     'ONVIF_Event_Listener'  =>  '0',
     'use_Amcrest_API'  =>  '0',
     'Device'  =>  '',
@@ -189,7 +192,7 @@ public static function getStatuses() {
     'DecoderHWAccelDevice'  =>  null,
     'SaveJPEGs' =>  0,
     'VideoWriter' =>  '2',
-    'OutputCodec' =>  null,
+    'OutputCodec' =>  '0',
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
     'EncoderParameters' => '',
@@ -215,6 +218,7 @@ public static function getStatuses() {
     'SectionLength'       =>  600,
     'SectionLengthWarn'   =>  true,
     'MinSectionLength'    =>  10,
+    'EventCloseMode'    => 'system',
     'FrameSkip'           =>  0,
     'MotionFrameSkip'     =>  0,
     'AnalysisFPSLimit'  =>  2,
@@ -249,9 +253,11 @@ public static function getStatuses() {
     'Longitude' =>  null,
     'RTSPServer' => array('type'=>'boolean', 'default'=>0),
     'RTSPStreamName'  => '',
+    'SOAP_wsa_compl' => array('type'=>'boolean', 'default'=>0), 
     'Importance'      =>  'Normal',
     'MQTT_Enabled'   => array('type'=>'boolean','default'=>0),
     'MQTT_Subscriptions'  =>  '',
+    'StartupDelay' => 0,
   );
   private $status_fields = array(
     'Status'  =>  null,
@@ -273,6 +279,8 @@ public static function getStatuses() {
     'ArchivedEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
     'ArchivedEventDiskSpace' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
   );
+
+  protected $Id;
 
   public function save($data = null) {
     if ($data) $this->set($data);
@@ -410,17 +418,19 @@ public static function getStatuses() {
       }
       return $this->defaults[$fn];
     } else if (array_key_exists($fn, $this->status_fields)) {
-      $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
-      $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
-      if (!$row) {
-        Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
-        return null;
-      } else {
-        foreach ($row as $k => $v) {
-          $this->{$k} = $v;
+      if ($this->Id()) {
+        $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
+        $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
+        if (!$row) {
+          Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
+        } else {
+          foreach ($row as $k => $v) {
+            $this->{$k} = $v;
+          }
+          return $this->{$fn};
         }
-      }
-      return $this->{$fn};
+      } # end if this->Id
+      return null;
     } else if (array_key_exists($fn, $this->summary_fields)) {
       $sql = 'SELECT * FROM `Event_Summaries` WHERE `MonitorId`=?';
       $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
@@ -452,6 +462,8 @@ public static function getStatuses() {
     if (ZM_OPT_USE_AUTH) {
       if (ZM_AUTH_RELAY == 'hashed') {
         $args['auth'] = generateAuthHash(ZM_AUTH_HASH_IPS);
+        # Include user so that db lookups can be more efficient
+        $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
       } elseif ( ZM_AUTH_RELAY == 'plain' ) {
         $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
         $args['pass'] = isset($_SESSION['password']) ? $_SESSION['password'] : '';
@@ -526,11 +538,11 @@ public static function getStatuses() {
   } // end function SignalCheckColour
 
   public static function find($parameters = array(), $options = array()) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one($parameters = array(), $options = array()) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
   function zmcControl($mode=false) {
@@ -574,8 +586,8 @@ public static function getStatuses() {
     }
 
     if (!property_exists($this, 'GroupIds')) {
-      if (property_exists($this, 'Id') and $this->{'Id'}) {
-        $this->{'GroupIds'} = dbFetchAll('SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=?', 'GroupId', array($this->{'Id'}));
+      if ($this->Id()) {
+        $this->{'GroupIds'} = dbFetchAll('SELECT `GroupId` FROM `Groups_Monitors` WHERE `MonitorId`=?', 'GroupId', [$this->Id()]);
         if (!$this->{'GroupIds'})
           $this->{'GroupIds'} = array();
       } else {
@@ -586,15 +598,23 @@ public static function getStatuses() {
   }
 
   public function delete() {
+    if ($this->Type() != 'WebSite') {
+      $this->zmcControl('stop');
+      if ($this->Controllable()) {
+        $this->sendControlCommand('stop');
+      }
+    }
     $this->save(['Deleted'=>true]);
   }
   public function destroy() {
-    $this->zmcControl('stop');
     if (!$this->{'Id'}) {
       Warning('Attempt to destroy a monitor without id.');
       return;
     }
     $this->zmcControl('stop');
+    if ($this->Controllable()) {
+      $this->sendControlCommand('stop');
+    }
 
     // If fast deletes are on, then zmaudit will clean everything else up later
     // If fast deletes are off and there are lots of events then this step may
@@ -778,14 +798,14 @@ public static function getStatuses() {
     if ($u===null or $u->Id() == $user->Id())
       return editableMonitor($this->{'Id'});
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u->Id(), 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = $u->Monitor_Permission($this->{'Id'});
     if ($monitor_permission and
       ($monitor_permission->Permission() == 'None' or $monitor_permission->Permission() == 'View')) {
       Debug("Can't edit monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user->Id()));
+    $group_permissions = $u->Group_Permissions();
 
     # If denied view in any group, then can't view it.
     foreach ($group_permissions as $permission) {
@@ -802,20 +822,20 @@ public static function getStatuses() {
     if (($u === null) or ($u->Id() == $user->Id()))
       return visibleMonitor($this->Id());
 
-    $monitor_permission = Monitor_Permission::find_one(array('UserId'=>$u->Id(), 'MonitorId'=>$this->{'Id'}));
+    $monitor_permission = $u->Monitor_Permission($this->{'Id'});
     if ($monitor_permission and ($monitor_permission->Permission() == 'None')) {
-      Debug("Can't view monitor ".$this->{'Id'}." because of monitor permission ".$monitor_permission->Permission());
+      Debug('Can\'t view monitor '.$this->{'Id'}.' because of monitor permission '.$monitor_permission->Permission());
       return false;
     }
 
-    $group_permissions = Group_Permission::find(array('UserId'=>$user->Id()));
+    $group_permissions = $u->Group_Permissions();
 
     # If denied view in any group, then can't view it.
     $group_permission_value = 'Inherit';
     foreach ($group_permissions as $permission) {
       $value = $permission->MonitorPermission($this->Id());
       if ($value == 'None') {
-        Debug("Can't view monitor ".$this->{'Id'}." because of group ".$permission->Group()->Name().' '.$permission->Permission());
+        Debug('Can\'t view monitor '.$this->{'Id'}.' because of group '.$permission->Group()->Name().' '.$permission->Permission());
         return false;
       }
       if ($value == 'Edit' or $value == 'View') {
@@ -880,10 +900,10 @@ public static function getStatuses() {
         $model->set(['Name'=>$new, 'ManufacturerId'=>$this->ManufacturerId()]);
         $this->Model = $model;
         if ($this->ModelId) $this->ModelId = null;
-        Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId);
+        Debug("model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId());
       } else {
         $this->ModelId = $model->Id();
-        Debug("Foud model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId);
+        Debug("Foud model: " . $model->Name() . ' ' . $model->Id() . ' ' . $this->ModelId());
       }
     }
     if (!property_exists($this, 'Model')) {
@@ -1002,6 +1022,10 @@ public static function getStatuses() {
       $options['buffer'] = $this->StreamReplayBuffer();
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
     $html = '
+      <div id="m'. $this->Id() . '" class="grid-monitor grid-stack-item" gs-id="'. $this->Id() . '" gs-w="12" gs-auto-position="true">
+        <div id="ratioControl'.$this->Id().'" class="ratioControl hidden"><select name="ratio'.$this->Id().'" id="ratio'.$this->Id().'" class="select-ratio chosen" data-on-change="changeRatio">
+</select></div>
+        <div class="grid-stack-item-content">
           <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
             <div
               id="imageFeed'. $this->Id() .'"
@@ -1012,6 +1036,17 @@ public static function getStatuses() {
 #(($options['width'] and ($options['width'] != '0px')) ? 'width: '.$options['width'].';' : '').
 #(($options['height'] and ($options['height'] != '0px')) ? 'height: '.$options['height'].';' : '').
             '">';
+              $html .= '
+                <div id="button_zoom'.$this->Id().'" class="button_zoom hidden">
+                  <button id="btn-zoom-in'.$this->Id().'" class="btn btn-zoom-in hidden" data-on-click="panZoomIn" title="'.translate('Zoom IN').'"><span class="material-icons md-36">add</span></button>
+                  <button id="btn-zoom-out'.$this->Id().'" class="btn btn-zoom-out hidden" data-on-click="panZoomOut" title="'.translate('Zoom OUT').'"><span class="material-icons md-36">remove</span></button>
+                  <div class="block-button-center">
+                    <button id="btn-fullscreen'.$this->Id().'" class="btn btn-fullscreen" title="'.translate('Open full screen').'"><span class="material-icons md-30">fullscreen</span></button>
+                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>
+                    <button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>
+                  </div>
+                </div>
+                <div class="zoompan">';
 
     if ($this->Type() == 'WebSite') {
       $html .= getWebSiteUrl(
@@ -1030,7 +1065,7 @@ public static function getStatuses() {
         'format' => ZM_MPEG_LIVE_FORMAT
       ) );
       $html .= getVideoStreamHTML( 'liveStream'.$this->Id(), $streamSrc, $options['width'], $options['height'], ZM_MPEG_LIVE_FORMAT, $this->Name() );
-    } else if ( $this->JanusEnabled() ) {
+    } else if ($this->JanusEnabled() or ($this->RTSP2WebEnabled() and ZM_RTSP2WEB_PATH)) {
       $html .= '<video id="liveStream'.$this->Id().'" '.
         ((isset($options['width']) and $options['width'] and $options['width'] != '0')?'width="'.$options['width'].'"':'').
         ' autoplay muted controls playsinline=""></video>';
@@ -1063,12 +1098,12 @@ public static function getStatuses() {
 </svg>
 ';
     } # end if showZones
-    $html .= PHP_EOL.'</div><!--monitorStream-->'.PHP_EOL;
+    $html .= PHP_EOL.'</div><!--.zoompan--></div><!--monitorStream-->'.PHP_EOL;
     if (isset($options['state']) and $options['state']) {
     //if ((!ZM_WEB_COMPACT_MONTAGE) && ($this->Type() != 'WebSite')) {
       $html .= $this->getMonitorStateHTML();
     }
-    $html .= PHP_EOL.'</div>'.PHP_EOL;
+    $html .= PHP_EOL.'</div></div><!--.grid-stack-item-content--></div><!--.grid-stack-item-->'.PHP_EOL;
     return $html;
   } // end getStreamHTML
  

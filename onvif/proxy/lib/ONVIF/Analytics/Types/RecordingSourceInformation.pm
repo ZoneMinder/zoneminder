@@ -82,7 +82,7 @@ ONVIF::Analytics::Types::RecordingSourceInformation
 Perl data type class for the XML Schema defined complexType
 RecordingSourceInformation from the namespace http://www.onvif.org/ver10/schema.
 
-A set of informative desciptions of a data source. The Search searvice allows a client to filter on recordings based on information in this structure. 
+A set of informative descriptions of a data source. The Search searvice allows a client to filter on recordings based on information in this structure. 
 
 
 

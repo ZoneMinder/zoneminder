@@ -414,7 +414,7 @@ This returns number of events per monitor that were recorded in the last one hou
 
   curl "http://server/zm/api/events/consoleEvents/1%20hour.json"
 
-This returns number of events per monitor that were recorded in the last day where there were atleast 10 frames that were alarms"
+This returns number of events per monitor that were recorded in the last day where there were at least 10 frames that were alarms"
 
 ::
 
@@ -645,7 +645,7 @@ will display a live feed from monitor id 1, scaled down by 50% in quality and re
 
 PTZ on live streams
 -------------------
-PTZ commands are pretty cryptic in ZoneMinder. This is not meant to be an exhaustive guide, but just something to whet your appetite:
+PTZ commands are pretty cryptic in ZoneMinder. This is not meant to be an exhaustive guide, but just something to wet your appetite:
 
 
 Lets assume you have a monitor, with ID=6. Let's further assume you want to pan it left.

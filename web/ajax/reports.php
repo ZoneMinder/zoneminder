@@ -38,6 +38,7 @@ $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
 // Bootstrap table sends json_ecoded array, which we must decode
 $advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
 
+$order = 'ASC';
 // Order specifies the sort direction, either asc or desc
 if (isset($_REQUEST['order'])) {
   if (strtolower($_REQUEST['order']) == 'asc') {

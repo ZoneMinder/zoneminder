@@ -29,7 +29,6 @@ use strict;
 use warnings;
 
 require ZoneMinder::Base;
-require Date::Manip;
 require POSIX;
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
@@ -143,8 +142,8 @@ sub Sql {
     }
 
     my $filter_expr = ZoneMinder::General::jsonDecode($self->{Query_json});
-    my $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time
-         FROM Events as E';
+    my $fields = 'E.*, unix_timestamp(E.StartDateTime) AS Time';
+    my $from = 'Events AS E';
 
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
@@ -162,24 +161,29 @@ sub Sql {
           next;
         }
 
-        my $value = $term->{val};
-        my @value_list;
-
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
+        } elsif ( $term->{attr} eq 'Tags' ) {
+          $fields .= ', (SELECT Name FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
+          $self->{Sql} .= 'T.Id';
+          $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
-          $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
-          FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          if (!($fields =~ /MonitorName/)) {
+            $fields .= ', M.Name as MonitorName';
+            $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          }
           my ( $temp_attr_name ) = $term->{attr} =~ /^Monitor(.+)$/;
           $self->{Sql} .= 'M.'.($temp_attr_name ? $temp_attr_name : 'Id');
         } elsif ( $term->{attr} eq 'ServerId' or $term->{attr} eq 'MonitorServerId' ) {
-          $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
-          FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          if (!($fields =~ /MonitorName/)) {
+            $fields .= ', M.Name as MonitorName';
+            $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          }
           $self->{Sql} .= 'M.ServerId';
         } elsif ( $term->{attr} eq 'StorageServerId' ) {
           $self->{Sql} .= '(SELECT Storage.ServerId FROM Storage WHERE Storage.Id=E.StorageId)';
         } elsif ( $term->{attr} eq 'FilterServerId' ) {
-          $self->{Sql} .= $Config{ZM_SERVER_ID};
+          $self->{Sql} .= (defined($Config{ZM_SERVER_ID}) ? $Config{ZM_SERVER_ID}: '0').' /* ZM_SERVER_ID */';
           # StartTime options
         } elsif ( $term->{attr} eq 'DateTime' ) {
           $self->{Sql} .= 'E.StartDateTime';
@@ -192,7 +196,7 @@ sub Sql {
         } elsif ( $term->{attr} eq 'Weekday' or $term->{attr} eq 'StartWeekday' ) {
           $self->{Sql} .= 'weekday( E.StartDateTime )';
 
-          # EndTIme options
+          # EndTime options
         } elsif ( $term->{attr} eq 'EndDateTime' ) {
           $self->{Sql} .= 'E.EndDateTime';
         } elsif ( $term->{attr} eq 'EndDate' ) {
@@ -217,18 +221,26 @@ sub Sql {
           $self->{Sql} .= 'E.'.$term->{attr};
         }
 
+        my $value = defined($term->{val}) ? $term->{val} : '';
+        my @value_list;
+
         if ( $term->{attr} eq 'ExistsInFileSystem' ) {
           # PostCondition, so no further SQL
         } else {
-          ( my $stripped_value = $value ) =~ s/^["\']+?(.+)["\']+?$/$1/;
+          my $stripped_value = $value;
+          $stripped_value =~ s/^["\']+?(.+)["\']+?$/$1/ if $stripped_value;
+
           # Empty value will result in () from split
           foreach my $temp_value ( $stripped_value ne '' ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
               $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.$value.')';
             } elsif ( $term->{attr} =~ /^MonitorName/ ) {
               $value = "'$temp_value'";
-            } elsif ( $term->{attr} =~ /ServerId/) {
-              Debug("ServerId, temp_value is ($temp_value) ($ZoneMinder::Config::Config{ZM_SERVER_ID})");
+            } elsif (
+              $term->{attr} eq 'ServerId' or
+              $term->{attr} eq 'MonitorServerId' or
+              $term->{attr} eq 'StorageServerId' or
+              $term->{attr} eq 'FilterServerId' ) {
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what
@@ -330,6 +342,7 @@ sub Sql {
       } # end foreach term
     } # end if terms
 
+    my $sql = ' SELECT '.$fields. ' FROM ' . $from;
     if ( $self->{Sql} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
@@ -364,39 +377,49 @@ sub Sql {
     }
 
     my $sort_column = '';
-    if ( $filter_expr->{sort_field} eq 'Id' ) {
-      $sort_column = 'E.Id';
-    } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
-            $sql = 'SELECT E.*, unix_timestamp(E.StartDateTime) as Time, M.Name as MonitorName
-         FROM Events as E INNER JOIN Monitors as M on M.Id = E.MonitorId';
-      $sort_column = 'M.Name';
-    } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
-      $sort_column = 'E.Name';
-    } elsif ( $filter_expr->{sort_field} eq 'StartDateTime' ) {
-      $sort_column = 'E.StartDateTime';
-    } elsif ( $filter_expr->{sort_field} eq 'StartTime' ) {
-      $sort_column = 'E.StartDateTime';
-    } elsif ( $filter_expr->{sort_field} eq 'EndTime' ) {
-      $sort_column = 'E.EndDateTime';
-    } elsif ( $filter_expr->{sort_field} eq 'EndDateTime' ) {
-      $sort_column = 'E.EndDateTime';
-    } elsif ( $filter_expr->{sort_field} eq 'Secs' ) {
-      $sort_column = 'E.Length';
-    } elsif ( $filter_expr->{sort_field} eq 'Frames' ) {
-      $sort_column = 'E.Frames';
-    } elsif ( $filter_expr->{sort_field} eq 'AlarmFrames' ) {
-      $sort_column = 'E.AlarmFrames';
-    } elsif ( $filter_expr->{sort_field} eq 'TotScore' ) {
-      $sort_column = 'E.TotScore';
-    } elsif ( $filter_expr->{sort_field} eq 'AvgScore' ) {
-      $sort_column = 'E.AvgScore';
-    } elsif ( $filter_expr->{sort_field} eq 'MaxScore' ) {
-      $sort_column = 'E.MaxScore';
-    } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
-      $sort_column = 'E.DiskSpace';
-    } elsif ( $filter_expr->{sort_field} ne '' ) {
-      $sort_column = 'E.'.$filter_expr->{sort_field};
+    if ($filter_expr->{sort_field}) {
+      if ( $filter_expr->{sort_field} eq 'Id' ) {
+        $sort_column = 'E.Id';
+      } elsif ( $filter_expr->{sort_field} eq 'Tag' ) {
+        $sort_column = 'T.Name';
+      } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
+        if (!($fields =~ /MonitorName/)) {
+          $fields .= ', M.Name as MonitorName';
+          $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
+          $sql = ' SELECT '.$fields. ' FROM ' . $from;
+          $sql .= ' WHERE ( '.$self->{Sql}.' )' if $self->{Sql};
+          $sql .= ' AND ( '.join(' or ', @auto_terms).' )' if @auto_terms;
+        }
+        $sort_column = 'M.Name';
+      } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
+        $sort_column = 'E.Name';
+      } elsif ( $filter_expr->{sort_field} eq 'StartDateTime' ) {
+        $sort_column = 'E.StartDateTime';
+      } elsif ( $filter_expr->{sort_field} eq 'StartTime' ) {
+        $sort_column = 'E.StartDateTime';
+      } elsif ( $filter_expr->{sort_field} eq 'EndTime' ) {
+        $sort_column = 'E.EndDateTime';
+      } elsif ( $filter_expr->{sort_field} eq 'EndDateTime' ) {
+        $sort_column = 'E.EndDateTime';
+      } elsif ( $filter_expr->{sort_field} eq 'Secs' ) {
+        $sort_column = 'E.Length';
+      } elsif ( $filter_expr->{sort_field} eq 'Frames' ) {
+        $sort_column = 'E.Frames';
+      } elsif ( $filter_expr->{sort_field} eq 'AlarmFrames' ) {
+        $sort_column = 'E.AlarmFrames';
+      } elsif ( $filter_expr->{sort_field} eq 'TotScore' ) {
+        $sort_column = 'E.TotScore';
+      } elsif ( $filter_expr->{sort_field} eq 'AvgScore' ) {
+        $sort_column = 'E.AvgScore';
+      } elsif ( $filter_expr->{sort_field} eq 'MaxScore' ) {
+        $sort_column = 'E.MaxScore';
+      } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
+        $sort_column = 'E.DiskSpace';
+      } elsif ( $filter_expr->{sort_field} ne '' ) {
+        $sort_column = 'E.'.$filter_expr->{sort_field};
+      }
     }
+    #$sql .= ' GROUP BY E.Id ';
     if ( $sort_column ne '' ) {
       $sql .= ' ORDER BY '.$sort_column.' '.($filter_expr->{sort_asc} ? 'ASC' : 'DESC');
     }
@@ -450,6 +473,7 @@ sub getLoad {
 #
 sub strtotime {
   my $dt_str = shift;
+  require Date::Manip;
   return Date::Manip::UnixDate($dt_str, '%s');
 }
 

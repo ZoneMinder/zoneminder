@@ -56,14 +56,32 @@ if ( !canView('Events') ) {
   return;
 }
 
+require_once('includes/Filter.php');
 ob_start();
 include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
-$liveMode = 1; // default to live
-if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
-  $liveMode = 0;
+$preference = ZM\User_Preference::find_one([
+    'UserId'=>$user->Id(),
+    'Name'=>'MontageSort'.(isset($_SESSION['GroupId']) ? implode(',', $_SESSION['GroupId']) : '')
+]);
+if ($preference) {
+  $monitors_by_id = array_to_hash_by_key('Id', $displayMonitors);
+  $sorted_monitors = [];
+  foreach (explode(',', $preference->Value()) as $id) {
+    if (isset($monitors_by_id[$id])) {
+      $sorted_monitors[] = $monitors_by_id[$id];
+    } else {
+      ZM\Debug("Ordered monitor not found in monitorsById $id");
+    }
+  }
+  if (count($sorted_monitors)) $displayMonitors = $sorted_monitors;
+}
+
+$liveMode = 0; // default to live
+if ( isset($_REQUEST['live']) && ($_REQUEST['live'] != '0') )
+  $liveMode = 1;
 
 // Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
 // Live overrides all the min/max stuff but it is still processed
@@ -103,25 +121,30 @@ if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
 $filter = null;
 if (isset($_REQUEST['filter'])) {
   $filter = ZM\Filter::parse($_REQUEST['filter']);
+  $terms = $filter->terms();
 
 	# Try to guess min/max time from filter
-	foreach ($filter->terms() as $term) {
-		if ( $term['attr'] == 'StartDateTime' ) {
-			if ( $term['op'] == '<=' or $term['op'] == '<' ) {
+	foreach ($terms as &$term) {
+    if ($term['attr'] == 'Notes') {
+      $term['cookie'] = 'Notes';
+      if (empty($term['val']) and isset($_COOKIE['Notes'])) $term['val'] = $_COOKIE['Notes'];
+    } else if ($term['attr'] == 'StartDateTime') {
+			if ($term['op'] == '<=' or $term['op'] == '<') {
 				$maxTime = $term['val'];
 			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
 				$minTime = $term['val'];
 			}
-		}
-	}
+    }
+  } # end foreach term
+  $filter->terms($terms);
 } else {
   $filter = new ZM\Filter();
-  if ( isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0) ) {
+  if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'));
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
     if (count($selected_monitor_ids)) {
       $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
-    } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
+    } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
       # this should be redundant
       for ( $i = 0; $i < count($displayMonitors); $i++ ) {
         if ( $i == '0' ) {
@@ -145,9 +168,16 @@ if (!$liveMode) {
   if (!$filter->has_term('StartDateTime', '<=')) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and'));
   }
+  if (!$filter->has_term('Tags')) {
+    $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
+      'val' => (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
+      'cnj' => 'and', 'cookie'=>'eventsTags'));
+  }
+  if (!$filter->has_term('Notes')) {
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
+  }
 }
 if (count($filter->terms()) ) {
-  #parseFilter($filter);
   # This is to enable the download button
   zm_session_start();
   $_SESSION['montageReviewFilter'] = $filter;
@@ -161,7 +191,7 @@ if (count($filter->terms()) ) {
 $eventsSql = 'SELECT
   E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
     CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
-    UNIX_TIMESTAMP(EndDateTime) AS EndTimeSecs,
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
     M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
   WHERE 1 > 0 
 ';
@@ -178,20 +208,23 @@ if ( count($selected_monitor_ids) ) {
 }
 
 $fitMode = 1;
-if ( isset($_REQUEST['fit']) && ($_REQUEST['fit'] == '0') )
-  $fitMode = 0;
+if (isset($_REQUEST['fit']))
+  $fitMode = validCardinal($_REQUEST['fit']);
 
-if ( isset($_REQUEST['scale']) )
+if (isset($_REQUEST['scale']))
   $defaultScale = validHtmlStr($_REQUEST['scale']);
 else
   $defaultScale = 1;
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
-if ( isset($_REQUEST['speed']) )
-  $defaultSpeed = validHtmlStr($_REQUEST['speed']);
-else
+if (isset($_REQUEST['speed'])) {
+  $defaultSpeed = validNum($_REQUEST['speed']);
+} else if (isset($_COOKIE['speed'])) {
+  $defaultSpeed = validNum($_COOKIE['speed']);
+} else {
   $defaultSpeed = 1;
+}
 
 $speedIndex = 5; // default to 1x
 for ( $i = 0; $i < count($speeds); $i++ ) {
@@ -238,10 +271,13 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-    $html = '';
-    $flip = ( (!isset($_COOKIE['zmMonitorFilterBarFlip'])) or ($_COOKIE['zmMonitorFilterBarFlip'] == 'down')) ? 'up' : 'down';
-    $html .= '<a class="flip" href="#"><i id="mfbflip" class="material-icons md-18">keyboard_arrow_' .$flip. '</i></a>'.PHP_EOL;
-    $html .= '<div class="container-fluid" id="mfbpanel"'.( ( $flip == 'down' ) ? ' style="display:none;"' : '' ) .'>'.PHP_EOL;
+    $html = '<a class="flip" href="#" 
+             data-flip-сontrol-object="#mfbpanel" 
+             data-flip-сontrol-run-after-func="applyChosen drawGraph" 
+             data-flip-сontrol-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>'.PHP_EOL;
+    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
     echo $html;
 ?>
         <?php echo $filter_bar ?>
@@ -291,8 +327,11 @@ if (count($filter->terms())) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
+          <button type="button" id="collapse" data-flip-сontrol-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph"> <!-- OR run redrawScreen? -->
+            <i class="material-icons" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
+          </button>
         </div>
-        <div id="timelinediv">
+        <div id="timelinediv" class="hidden-shift">
           <canvas id="timeline"></canvas>
           <span id="scrubleft"></span>
           <span id="scrubright"></span>
@@ -316,4 +355,5 @@ if (count($filter->terms())) {
   </div><!--content-->
 </div><!--page-->
 <script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
+<script src="<?php echo cache_bust('skins/classic/js/montage_common.js') ?>"></script>
 <?php xhtmlFooter() ?>

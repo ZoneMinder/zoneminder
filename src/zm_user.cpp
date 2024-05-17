@@ -83,21 +83,21 @@ bool User::canAccess(int monitor_id) {
   if (it != monitor_permissions.end()) {
     auto permission = it->second.getPermission();
     switch (permission) {
-      case Monitor_Permission::PERM_NONE :
-        Debug(1, "Returning None from monitor_permission");
-        return false;
-      case Monitor_Permission::PERM_VIEW :
-        Debug(1, "Returning true because VIEW from monitor_permission");
-        return true;
-      case Monitor_Permission::PERM_EDIT :
-        Debug(1, "Returning true because EDIT from monitor_permission");
-        return true;
-      case Monitor_Permission::PERM_INHERIT :
-        Debug(1, "INHERIT from monitor_permission");
-        break;
-      default:
-        Warning("UNKNOWN permission %d from monitor_permission", permission);
-        break;
+    case Monitor_Permission::PERM_NONE :
+      Debug(1, "Returning None from monitor_permission");
+      return false;
+    case Monitor_Permission::PERM_VIEW :
+      Debug(1, "Returning true because VIEW from monitor_permission");
+      return true;
+    case Monitor_Permission::PERM_EDIT :
+      Debug(1, "Returning true because EDIT from monitor_permission");
+      return true;
+    case Monitor_Permission::PERM_INHERIT :
+      Debug(1, "INHERIT from monitor_permission");
+      break;
+    default:
+      Warning("UNKNOWN permission %d from monitor_permission", permission);
+      break;
     }
   }
 
@@ -106,21 +106,21 @@ bool User::canAccess(int monitor_id) {
   for (Group_Permission &gp : group_permissions) {
     auto permission = gp.getPermission(monitor_id);
     switch (permission) {
-      case Group_Permission::PERM_NONE :
-        Debug(1, "Returning None from group_permission");
-        return false;
-      case Group_Permission::PERM_VIEW :
-        Debug(1, "Returning true because VIEW from group_permission");
-        return true;
-      case Group_Permission::PERM_EDIT :
-        Debug(1, "Returning true because EDIT from group_permission");
-        return true;
-      case Group_Permission::PERM_INHERIT :
-        Debug(1, "INHERIT from group_permission %d", gp.GroupId());
-        break;
-      default :
-        Warning("UNKNOWN permission %d from group_permission %d", permission, gp.GroupId());
-        break;
+    case Group_Permission::PERM_NONE :
+      Debug(1, "Returning None from group_permission");
+      return false;
+    case Group_Permission::PERM_VIEW :
+      Debug(1, "Returning true because VIEW from group_permission");
+      return true;
+    case Group_Permission::PERM_EDIT :
+      Debug(1, "Returning true because EDIT from group_permission");
+      return true;
+    case Group_Permission::PERM_INHERIT :
+      Debug(1, "INHERIT from group_permission %d", gp.GroupId());
+      break;
+    default :
+      Warning("UNKNOWN permission %d from group_permission %d", permission, gp.GroupId());
+      break;
     }
   }  // end foreach Group_Permission
 
@@ -129,7 +129,7 @@ bool User::canAccess(int monitor_id) {
 
 // Function to load a user from username and password
 // Please note that in auth relay mode = none, password is NULL
-User *zmLoadUser(const char *username, const char *password) {
+User *zmLoadUser(const std::string &username, const std::string &password) {
   std::string escaped_username = zmDbEscapeString(username);
 
   std::string sql = stringtf("SELECT `Id`, `Username`, `Password`, `Enabled`,"
@@ -145,18 +145,19 @@ User *zmLoadUser(const char *username, const char *password) {
     MYSQL_ROW dbrow = mysql_fetch_row(result);
     User *user = new User(dbrow);
 
-    if ( 
-        (! password )  // relay type must be none
-        ||
-        verifyPassword(username, password, user->getPassword()) ) {
+    if (
+      (password.empty() and (!strcmp(config.auth_relay, "none")))  // relay type must be none
+      ||
+      verifyPassword(username.c_str(), password.c_str(), user->getPassword()) ) {
       mysql_free_result(result);
-      Info("Authenticated user '%s'", user->getUsername());
+      Debug(1, "Authenticated user '%s'", user->getUsername());
       return user;
-    } 
+    }
+    delete user;
   }  // end if 1 result from db
   mysql_free_result(result);
 
-  Warning("Unable to authenticate user %s", username);
+  Warning("Unable to authenticate user %s", username.c_str());
   return nullptr;
 }  // end User *zmLoadUser(const char *username, const char *password)
 
@@ -205,18 +206,19 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
 
   if ( stored_iat > iat ) { // admin revoked tokens
     mysql_free_result(result);
+    delete user;
     Error("Token was revoked for '%s'", username.c_str());
     return nullptr;
   }
 
   Debug(1, "Authenticated user '%s' via token with last revoke time: %u",
-      username.c_str(), stored_iat);
+        username.c_str(), stored_iat);
   mysql_free_result(result);
   return user;
 }  // User *zmLoadTokenUser(std::string jwt_token_str, bool use_remote_addr)
- 
+
 // Function to validate an authentication string
-User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
+User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr) {
   const char *remote_addr = "";
   if (use_remote_addr) {
     remote_addr = getenv("REMOTE_ADDR");
@@ -226,10 +228,14 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
     }
   }
 
-  Debug(1, "Attempting to authenticate user from auth string '%s', remote addr(%s)", auth, remote_addr);
+  Debug(1, "Attempting to authenticate user %s from auth string '%s', remote addr(%s)",
+        username.c_str(), auth.c_str(), remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0"
                     " FROM `Users` WHERE `Enabled` = 1";
+  if (!username.empty()) {
+    sql += " AND `Username`='"+zmDbEscapeString(username)+"'";
+  }
 
   MYSQL_RES *result = zmDbFetch(sql);
   if (!result)
@@ -255,8 +261,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
   }
 
   while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
-    const char *username = dbrow[1];
-    const char *password = dbrow[2];
+    const char *db_username = dbrow[1];
+    const char *db_password = dbrow[2];
 
     SystemTimePoint our_now = now;
     tm now_tm = {};
@@ -266,8 +272,8 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
 
       std::string auth_key = stringtf("%s%s%s%s%d%d%d%d",
                                       config.auth_hash_secret,
-                                      username,
-                                      password,
+                                      db_username,
+                                      db_password,
                                       remote_addr,
                                       now_tm.tm_hour,
                                       now_tm.tm_mday,
@@ -277,40 +283,40 @@ User *zmLoadAuthUser(const char *auth, bool use_remote_addr) {
       zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
       std::string auth_md5 = ByteArrayToHexString(md5_digest);
 
-      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5.c_str(), auth);
+      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5.c_str(), auth.c_str());
 
-      if (!strcmp(auth, auth_md5.c_str())) {
+      if (auth == auth_md5) {
         // We have a match
         User *user = new User(dbrow);
         Debug(1, "Authenticated user '%s'", user->getUsername());
         mysql_free_result(result);
         return user;
       } else {
-        Debug(1, "No match for %s", auth);
+        Debug(1, "No match for %s", auth.c_str());
       }
     }  // end foreach hour
   }  // end foreach user
   mysql_free_result(result);
 
-  Debug(1, "No user found for auth_key %s", auth);
+  Debug(1, "No user found for auth_key %s", auth.c_str());
   return nullptr;
-}  // end User *zmLoadAuthUser( const char *auth, bool use_remote_addr )
+}  // end User *zmLoadAuthUser( const std::string &auth, const std::string &username, bool use_remote_addr )
 
 // Function to check Username length
-bool checkUser(const char *username) {
-  if ( !username )
+bool checkUser(const std::string &username) {
+  if (username.empty())
     return false;
-  if ( strlen(username) > 32 )
+  if (username.length() > 32)
     return false;
 
   return true;
 }
 
 // Function to check password length
-bool checkPass(const char *password) {
-  if ( !password )
+bool checkPass(const std::string &password) {
+  if (password.empty())
     return false;
-  if ( strlen(password) > 64 )
+  if (password.length() > 64)
     return false;
 
   return true;

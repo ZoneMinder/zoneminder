@@ -34,6 +34,7 @@ misc/zoneminder-tmpfiles.conf
 misc/zoneminder.service
 missing
 mkinstalldirs
+node_modules/
 onvif/CMakeFiles/
 onvif/cmake_install.cmake
 onvif/modules/CMakeFiles/
@@ -52,6 +53,8 @@ onvif/proxy/output/
 onvif/proxy/pm_to_blib
 onvif/scripts/CMakeFiles/
 onvif/scripts/cmake_install.cmake
+package.json
+package-lock.json
 scripts/CMakeFiles/
 scripts/ZoneMinder/CMakeFiles/
 scripts/ZoneMinder/MYMETA.json

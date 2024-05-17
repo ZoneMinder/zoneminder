@@ -1,17 +1,17 @@
 //
 // ZoneMinder Configuration Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -27,8 +27,8 @@
 #include <dirent.h>
 #include <glob.h>
 
-// Note that Error and Debug calls won't actually go anywhere unless you 
-// set the relevant ENV vars because the logger gets it's setting from the 
+// Note that Error and Debug calls won't actually go anywhere unless you
+// set the relevant ENV vars because the logger gets it's setting from the
 // config.
 
 void zmLoadStaticConfig() {
@@ -348,6 +348,14 @@ void Config::Load() {
     exit(-1);
   }
 
+  if (items) {
+    for ( int i = 0; i < n_items; i++ ) {
+      delete items[i];
+      items[i] = nullptr;
+    }
+    delete[] items;
+    items = nullptr;
+  }
   items = new ConfigItem *[n_items];
   for ( int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++ ) {
     items[i] = new ConfigItem(dbrow[0], dbrow[1], dbrow[2]);
@@ -356,7 +364,7 @@ void Config::Load() {
 }
 
 void Config::Assign() {
-ZM_CFG_ASSIGN_LIST
+  ZM_CFG_ASSIGN_LIST
 }
 
 const ConfigItem &Config::Item(int id) {
@@ -371,12 +379,12 @@ const ConfigItem &Config::Item(int id) {
   }
 
   ConfigItem *item = items[id];
-  
+
   if ( !item ) {
     Error("Can't find config item %d", id);
     exit(-1);
   }
-    
+
   return *item;
 }
 

@@ -11,7 +11,6 @@ set(ZM_BIN_SRC_FILES
   zm_camera.cpp
   zm_comms.cpp
   zm_config.cpp
-  zm_curl_camera.cpp
   zm_crypt.cpp
   zm.cpp
   zm_db.cpp
@@ -36,6 +35,7 @@ set(ZM_BIN_SRC_FILES
   zm_local_camera.cpp
   zm_monitor.cpp
   zm_monitor_monitorlink.cpp
+  zm_monitor_rtsp2web.cpp
   zm_monitor_janus.cpp
   zm_monitor_amcrest.cpp
   zm_monitorlink_expression.cpp
@@ -71,6 +71,7 @@ set(ZM_BIN_SRC_FILES
   zm_stream.cpp
   zm_swscale.cpp
   zm_time.cpp
+  zm_uri.cpp
   zm_user.cpp
   zm_utils.cpp
   zm_videostore.cpp
@@ -113,7 +114,7 @@ if(GSOAP_FOUND)
     #COMMAND ${GSOAP_WSDL2H} -d -P -O2 -o ${CMAKE_BINARY_DIR}/generated/bindings.h http://www.onvif.org/onvif/ver10/events/wsdl/event.wsdl
     #COMMAND echo '\#import \"wsse.h\"' >> ${CMAKE_BINARY_DIR}/generated/bindings.h
     #COMMAND echo '\#import \"struct_timeval.h\"' >> ${CMAKE_BINARY_DIR}/generated/bindings.h
-    COMMAND ${GSOAP_SOAPCPP2} -n -2 -C -I ${GSOAP_PLUGIN_DIR}/.. -I ${GSOAP_PLUGIN_DIR}/../import/ -I ${GSOAP_PLUGIN_DIR}/../custom/ -d ${CMAKE_BINARY_DIR}/generated -j -x ${CMAKE_CURRENT_SOURCE_DIR}/bindings.h
+    COMMAND ${GSOAP_SOAPCPP2} -a -n -2 -C -I ${GSOAP_PLUGIN_DIR}/.. -I ${GSOAP_PLUGIN_DIR}/../import/ -I ${GSOAP_PLUGIN_DIR}/../custom/ -d ${CMAKE_BINARY_DIR}/generated -j -x ${CMAKE_CURRENT_SOURCE_DIR}/bindings.h
     COMMENT "CREATING STUBS AND GLUE CODE"
   )
 

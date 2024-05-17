@@ -38,8 +38,17 @@ class ServerStatsController extends AppController {
   public function index() {
     $this->ServerStat->recursive = 0;
     
-    $options = '';
-    $stats = $this->ServerStat->find('all', $options);
+    $named_params = $this->request->params['named'];
+    if ( $named_params ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($named_params);
+    } else {
+      $conditions = array();
+    }
+
+    $stats = $this->ServerStat->find('all', ['conditions'=>$conditions,
+      'order' => array('TimeStamp ASC'),
+    ]);
 		$this->set(array(
 					'serverstats' => $stats,
 					'_serialize' => array('serverstats')

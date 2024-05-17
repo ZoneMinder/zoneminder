@@ -121,7 +121,7 @@ if ( $numSockets === false ) {
   if ($semaphore) sem_release($semaphore);
   ajaxError("Socket closed $remSockFile");
 } else if ( $numSockets == 0 ) {
-  ZM\Error("Timed out waiting for msg $remSockFile after waiting $timeout seconds");
+  ZM\Error("Timed out waiting for msg $remSockFile after waiting $timeout milliseconds");
   socket_set_nonblock($socket);
   #ajaxError("Timed out waiting for msg $remSockFile");
 } else if ( $numSockets > 0 ) {
@@ -166,7 +166,7 @@ case MSG_DATA_WATCH :
         $data['auth'] = $auth_hash;
         ZM\Debug('including new auth hash '.$data['auth'].'because doesnt match request auth hash '.$_REQUEST['auth']);
       } else {
-        ZM\Debug('Not including new auth hash becase it hasn\'t changed '.$auth_hash);
+        ZM\Debug('Not including new auth hash because it hasn\'t changed '.$auth_hash);
       }
     }
     $data['auth_relay'] = get_auth_relay();

@@ -25,6 +25,9 @@ class FilterTerm {
   public $cookie;
   public $placeholder;
   public $collate;
+  public $multiple;
+  public $chosen;
+  public $tablename;
 
   public function __construct($filter = null, $term = null, $index=0) {
     $this->cnj = '';
@@ -35,7 +38,7 @@ class FilterTerm {
     if ($term) {
       $this->attr = isset($term['attr']) ? $term['attr'] : '';
       $this->attr = preg_replace('/[^A-Za-z0-9\.]/', '', $this->attr, -1, $count);
-      if ($count) Error("Invalid characters removed from filter attr ${term['attr']}, possible hacking attempt.");
+      if ($count) Error("Invalid characters removed from filter attr {$term['attr']}, possible hacking attempt.");
       $this->op = isset($term['op']) ? $term['op'] : '=';
       $this->val = isset($term['val']) ? $term['val'] : '';
       if (is_array($this->val)) $this->val = implode(',', $this->val);
@@ -69,10 +72,11 @@ class FilterTerm {
       $this->cookie = isset($term['cookie']) ? $term['cookie'] : '';
       $this->placeholder = isset($term['placeholder']) ? $term['placeholder'] : null;
       $this->collate = isset($term['collate']) ? $term['collate'] : '';
+      $this->multiple = isset($term['multiple']) ? $term['multiple'] : '';
+      $this->chosen = isset($term['chosen']) ? $term['chosen'] : '';
 
     } else {
-      Warning("No term in FilterTerm constructor");
-      #Warning(print_r(debug_backtrace(), true));
+      Warning("No term in FilterTerm constructor".print_r(debug_backtrace(), true));
     }
   } # end function __construct
 
@@ -101,6 +105,7 @@ class FilterTerm {
       case 'DiskPercent':
         $value = '';
         break;
+      case 'Tags':
       case 'MonitorName':
       case 'Name':
       case 'Cause':
@@ -115,7 +120,7 @@ class FilterTerm {
       case 'StorageServerId':
       case 'ServerId':
         if ( $value == 'ZM_SERVER_ID' ) {
-          $value = ZM_SERVER_ID;
+          $value = defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0;
         } else if ( $value_upper == 'NULL' ) {
 
         } else {
@@ -238,7 +243,7 @@ class FilterTerm {
     case 'StorageServerId':
       return 'S.ServerId';
     case 'FilterServerId':
-      return ZM_SERVER_ID;
+      return 'ZM_SERVER_ID:'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
       # Unspecified start or end, so assume start, this is to support legacy filters
     case 'DateTime':
       return 'E.StartDateTime';
@@ -293,6 +298,8 @@ class FilterTerm {
     case 'StateId':
     case 'Archived':
       return $this->tablename.'.'.$this->attr;
+    case 'Tags':
+      return 'T.Id';
     default :
       return $this->tablename.'.'.$this->attr;
     }
@@ -379,21 +386,27 @@ class FilterTerm {
   } # end public function hiddens_fields
 
   public function test($event=null) {
+    Debug("Testing " . $this->attr);
     if ( !isset($event) ) {
       # Is a Pre Condition
-      Debug("Testing " . $this->attr);
       if ( $this->attr == 'DiskPercent' ) {
-        # The logic on this is really ugly.  We are going to treat it as an OR
-        foreach ( $this->filter->get_StorageAreas() as $storage ) {
-          $string_to_eval = 'return $storage->disk_usage_percent() '.$this->op.' '.$this->val.';';
-          try {
-            $ret = eval($string_to_eval);
-            Debug("Evalled $string_to_eval = $ret");
-            if ( $ret )
-              return true;
-          } catch ( Throwable $t ) {
-            Error('Failed evaluating '.$string_to_eval);
-            return false;
+        $storage_areas = $this->filter->get_StorageAreas();
+        # The logic on this when there are multiple storage areas breaks.  We will just use the first.
+        foreach ( $storage_areas as $storage ) {
+          Debug($storage->disk_usage_percent(). ' '.$this->op.'? '.$this->val);
+          switch ($this->op) {
+          case '=':
+            return ($storage->disk_usage_percent() == $this->val);
+          case '>':
+            return ($storage->disk_usage_percent() > $this->val);
+          case '<':
+            return ($storage->disk_usage_percent() < $this->val);
+          case '<=':
+            return ($storage->disk_usage_percent() <= $this->val);
+          case '>=':
+            return ($storage->disk_usage_percent() >= $this->val);
+          default:
+            Warning('Invalid op '.$this->op .' for DiskPercent.');
           }
         } # end foreach Storage Area
       } else if ( $this->attr == 'SystemLoad' ) {
@@ -414,9 +427,9 @@ class FilterTerm {
       # Is a Post Condition 
       if ( $this->attr == 'ExistsInFileSystem' ) {
         if ( 
-          ($this->op == 'IS' and $this->val == 'True')
+          ($this->op == 'IS' and $this->val == 'true')
           or
-          ($this->op == 'IS NOT' and $this->val == 'False')
+          ($this->op == 'IS NOT' and $this->val == 'false')
         ) {
           return file_exists($event->Path());
         } else {
@@ -444,6 +457,11 @@ class FilterTerm {
           Error('Failed evaluating '.$string_to_eval);
           return false;
         }
+      } else if ( $this->attr == 'Tags' ) {
+        // Debug('TODO: Complete this post_sql_condition for Tags  val: ' . $this->val . '  op: ' . $this->op . '  id: ' . $this->id);
+        // Debug(print_r($this, true));
+        // Debug(print_r($event, true));
+        return true;
       } else {
         Error('testing unsupported post term ' . $this->attr);
       }
@@ -460,7 +478,7 @@ class FilterTerm {
   }
 
   public function is_post_sql() {
-    if ( $this->attr == 'ExistsInFileSystem' ) {
+    if ( $this->attr == 'ExistsInFileSystem' || $this->attr == 'Tags') {
         return true;
     }
     return false;
@@ -515,6 +533,7 @@ class FilterTerm {
       'Notes',
       'StateId',
       'Archived',
+      'Tags',
       # The following are for snapshots
       'CreatedOn', 
       'Description'
@@ -536,6 +555,7 @@ class FilterTerm {
         return false;
       break;
     case 'Archived' :
+    case 'Tags' :
     case 'Monitor' :
     case 'MonitorId' :
     case 'ServerId' :

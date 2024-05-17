@@ -12,11 +12,11 @@ class Group extends ZM_Object {
   protected static $monitor_ids_cache = array();
 
   public static function find( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
   public function delete() {
@@ -48,9 +48,15 @@ class Group extends ZM_Object {
   } // end public function depth
 
   public function MonitorIds( ) {
-    if ( ! property_exists($this, 'MonitorIds') ) {
+    if (!property_exists($this, 'MonitorIds')) {
       if (!isset($monitor_ids_cache[$this->{'Id'}])) {
         $monitor_ids_cache[$this->{'Id'}] = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($this->{'Id'}));
+        if (count($this->Children())) {
+          foreach ($this->Children() as $g) {
+            $child_monitor_ids = $g->MonitorIds();
+            $monitor_ids_cache[$this->{'Id'}] = array_values(array_unique(array_merge($monitor_ids_cache[$this->{'Id'}], $child_monitor_ids)));
+          }
+        }
       }
       $this->{'MonitorIds'} = &$monitor_ids_cache[$this->{'Id'}];
     }
@@ -200,6 +206,10 @@ class Group extends ZM_Object {
       } else {
         $this->{'Monitors'} = array();
       }
+    }
+    if (count($this->Children())) {
+      foreach ($this->Children() as $g)
+        $this->{'Monitors'} += $g->Monitors();
     }
     return $this->{'Monitors'};
   }

@@ -153,13 +153,13 @@ function initPage() {
   });
   document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
     el.onchange = function() {
-      var form = document.getElementById('contentForm');
+      const form = document.getElementById('contentForm');
       form.tab.value = 'general';
       form.submit();
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
-    el.oninput = window['update_estimated_ram_use'].bind(el);
+    el.oninput = window['buffer_setting_oninput'].bind(el);
   });
   update_estimated_ram_use();
 
@@ -270,10 +270,13 @@ function initPage() {
     window.location.assign('?view=console');
   });
 
+  const form = document.getElementById('contentForm');
+
   //manage the Janus settings div
 
-  if (document.getElementsByName("newMonitor[JanusEnabled]")) {
-    if (document.getElementsByName("newMonitor[JanusEnabled]")[0].checked) {
+  const janusEnabled = form.elements['newMonitor[JanusEnabled]'];
+  if (janusEnabled) {
+    if (janusEnabled.checked) {
       document.getElementById("FunctionJanusAudioEnabled").hidden = false;
       document.getElementById("FunctionJanusProfileOverride").hidden = false;
       document.getElementById("FunctionJanusUseRTSPRestream").hidden = false;
@@ -285,7 +288,7 @@ function initPage() {
       document.getElementById("FunctionJanusRTSPSessionTimeout").hidden = true;
     }
 
-    document.getElementsByName("newMonitor[JanusEnabled]")[0].addEventListener('change', function() {
+    janusEnabled.addEventListener('change', function() {
       if (this.checked) {
         document.getElementById("FunctionJanusAudioEnabled").hidden = false;
         document.getElementById("FunctionJanusProfileOverride").hidden = false;
@@ -299,7 +302,7 @@ function initPage() {
       }
     });
 
-    const Janus_Use_RTSP_Restream = document.getElementsByName('newMonitor[Janus_Use_RTSP_Restream]');
+    const Janus_Use_RTSP_Restream = form.elements['newMonitor[Janus_Use_RTSP_Restream]'];
     if (Janus_Use_RTSP_Restream.length) {
       Janus_Use_RTSP_Restream[0].onclick = Janus_Use_RTSP_Restream_onclick;
       console.log("Setup Janus_RTSP_Restream.onclick");
@@ -309,39 +312,45 @@ function initPage() {
   }
 
   // Amcrest API controller
-  if (document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[0].checked) {
-    document.getElementById("function_use_Amcrest_API").hidden = false;
-  } else {
-    document.getElementById("function_use_Amcrest_API").hidden = true;
-  }
-  document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[0].addEventListener('change', function() {
-    if (this.checked) {
+  const ONVIF_Event_Listener = form.elements['newMonitor[ONVIF_Event_Listener]'];
+  if (ONVIF_Event_Listener) {
+    if (ONVIF_Event_Listener[0].checked) {
       document.getElementById("function_use_Amcrest_API").hidden = false;
-    }
-  });
-  document.getElementsByName("newMonitor[ONVIF_Event_Listener]")[1].addEventListener('change', function() {
-    if (this.checked) {
+    } else {
       document.getElementById("function_use_Amcrest_API").hidden = true;
     }
-  });
+    ONVIF_Event_Listener[0].addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById("function_use_Amcrest_API").hidden = false;
+      }
+    });
+    ONVIF_Event_Listener[1].addEventListener('change', function() {
+      if (this.checked) {
+        document.getElementById("function_use_Amcrest_API").hidden = true;
+      }
+    });
+  }
 
   const monitorPath = document.getElementsByName("newMonitor[Path]")[0];
-  monitorPath.addEventListener('keyup', change_Path); // on edit sync path -> user & pass
-  monitorPath.addEventListener('blur', change_Path); // remove fields from path if user & pass equal on end of edit
+  if (monitorPath) {
+    monitorPath.addEventListener('keyup', change_Path); // on edit sync path -> user & pass
+    monitorPath.addEventListener('blur', change_Path); // remove fields from path if user & pass equal on end of edit
 
-  const monitorUser = document.getElementsByName("newMonitor[User]");
-  if ( monitorUser.length > 0 ) {
-    monitorUser[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
+    const monitorUser = document.getElementsByName("newMonitor[User]");
+    if ( monitorUser.length > 0 ) {
+      monitorUser[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
+    }
+
+    const monitorPass = document.getElementsByName("newMonitor[Pass]");
+    if ( monitorPass.length > 0 ) {
+      monitorPass[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
+    }
   }
 
-  const monitorPass = document.getElementsByName("newMonitor[Pass]");
-  if ( monitorPass.length > 0 ) {
-    monitorPass[0].addEventListener('blur', change_Path); // remove fields from path if user & pass equal
-  }
+  if (form.elements['newMonitor[Type]'].value == 'WebSite') return;
 
-  if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
-    if ( window.L ) {
-      const form = document.getElementById('contentForm');
+  if (parseInt(ZM_OPT_USE_GEOLOCATION)) {
+    if (window.L) {
       const latitude = form.elements['newMonitor[Latitude]'].value;
       const longitude = form.elements['newMonitor[Longitude]'].value;
       map = L.map('LocationMap', {
@@ -366,7 +375,9 @@ function initPage() {
         const position = marker.getLatLng();
         const form = document.getElementById('contentForm');
         form.elements['newMonitor[Latitude]'].value = position.lat;
+        ll2dms(form.elements['newMonitor[Latitude]']);
         form.elements['newMonitor[Longitude]'].value = position.lng;
+        ll2dms(form.elements['newMonitor[Longitude]']);
       });
       map.invalidateSize();
       $j("a[href='#pills-location']").on('shown.bs.tab', function(e) {
@@ -375,10 +386,51 @@ function initPage() {
     } else {
       console.log('Location turned on but leaflet not installed.');
     }
+    ll2dms(form.elements['newMonitor[Latitude]']);
+    ll2dms(form.elements['newMonitor[Longitude]']);
   } // end if ZM_OPT_USE_GEOLOCATION
 
   updateLinkedMonitorsUI();
 } // end function initPage()
+
+function ll2dms(input) {
+  const latitude = document.getElementById('newMonitor[Latitude]');
+  if (latitude.value === '') return;
+  if (latitude.value < -90) latitude.value=-90;
+  if (latitude.value > 90) latitude.value=90;
+
+  const longitude = document.getElementById('newMonitor[Longitude]');
+  if (longitude.value === '') return;
+  if (longitude.value < -180) longitude.value=-180;
+  if (longitude.value > 180) longitude.value=180;
+  const dmsCoords = new DmsCoordinates(parseFloat(latitude.value), parseFloat(longitude.value));
+
+  if (input.id == 'newMonitor[Latitude]') {
+    const dms = document.getElementById('LatitudeDMS');
+    dms.value = dmsCoords.latitude.toString(2);
+  } else if (input.id == 'newMonitor[Longitude]') {
+    const dms = document.getElementById('LongitudeDMS');
+    dms.value = dmsCoords.longitude.toString(2);
+  } else {
+    console.log("Unknown input in ll2dms");
+  }
+  updateMarker();
+}
+
+function dms2ll(input) {
+  const latitude = document.getElementById('newMonitor[Latitude]');
+  const longitude = document.getElementById('newMonitor[Longitude]');
+  const dms = parseDms(input.value);
+
+  if (input.id == 'LatitudeDMS') {
+    latitude.value = dms.toFixed(8);
+  } else if (input.id == 'LongitudeDMS') {
+    longitude.value = dms.toFixed(8);
+  } else {
+    console.log('Unknown input in dms2ll');
+  }
+  updateMarker();
+}
 
 function change_Path(event) {
   const pathInput = document.getElementsByName("newMonitor[Path]")[0];
@@ -455,35 +507,57 @@ function random_WebColour() {
   );
 }
 
+function buffer_setting_oninput(e) {
+  const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
+  const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
+  if (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value)) {
+    if (this.id=='newMonitor[PreEventCount]') {
+      max_image_buffer_count.value=pre_event_count.value;
+    } else {
+      pre_event_count.value = max_image_buffer_count.value;
+    }
+  }
+  update_estimated_ram_use();
+}
 function update_estimated_ram_use() {
-  var width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
-  var height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
-  var colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
+  const form = document.getElementById('contentForm');
+  if (form.elements['newMonitor[Type]'].value == 'WebSite') return;
 
-  var min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
-  min_buffer_count += parseInt(document.querySelectorAll('input[name="newMonitor[PreEventCount]"]')[0].value);
-  var min_buffer_size = min_buffer_count * width * height * colours;
+  const width = document.querySelectorAll('input[name="newMonitor[Width]"]')[0].value;
+  const height = document.querySelectorAll('input[name="newMonitor[Height]"]')[0].value;
+  const colours = document.querySelectorAll('select[name="newMonitor[Colours]"]')[0].value;
+
+  let min_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"]')[0].value);
+  min_buffer_count += parseInt(document.getElementById('newMonitor[PreEventCount]').value);
+  const min_buffer_size = min_buffer_count * width * height * colours;
   document.getElementById('estimated_ram_use').innerHTML = 'Min: ' + human_filesize(min_buffer_size);
 
-  var max_buffer_count = parseInt(document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]')[0].value);
+  const max_buffer_count = parseInt(document.getElementById('newMonitor[MaxImageBufferCount]').value);
   if (max_buffer_count) {
-    var max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
+    const max_buffer_size = (min_buffer_count + max_buffer_count) * width * height * colours;
     document.getElementById('estimated_ram_use').innerHTML += ' Max: ' + human_filesize(max_buffer_size);
   } else {
     document.getElementById('estimated_ram_use').innerHTML += ' Max: Unlimited';
   }
 }
 
-function updateLatitudeAndLongitude(latitude, longitude) {
-  var form = document.getElementById('contentForm');
-  form.elements['newMonitor[Latitude]'].value = latitude;
-  form.elements['newMonitor[Longitude]'].value = longitude;
+function updateMarker() {
+  const latitude = document.getElementById('newMonitor[Latitude]').value;
+  const longitude = document.getElementById('newMonitor[Longitude]').value;
+  console.log("Updating marker at ", latitude, longitude);
   const latlng = new L.LatLng(latitude, longitude);
   marker.setLatLng(latlng);
   map.setView(latlng, 8, {animation: true});
   setTimeout(function() {
     map.invalidateSize(true);
   }, 100);
+}
+
+function updateLatitudeAndLongitude(latitude, longitude) {
+  var form = document.getElementById('contentForm');
+  form.elements['newMonitor[Latitude]'].value = latitude;
+  form.elements['newMonitor[Longitude]'].value = longitude;
+  updateMarker(latitude, longitude);
 }
 
 function getLocation() {

@@ -12,8 +12,7 @@
 MQTT::MQTT(Monitor *monitor) :
   mosquittopp("ZoneMinder"),
   monitor_(monitor),
-  connected_(false)
-{
+  connected_(false) {
   mosqpp::lib_init();
   connect();
 }
@@ -52,7 +51,7 @@ void MQTT::on_connect(int rc) {
 }
 
 void MQTT::on_message(const struct mosquitto_message *message) {
-Debug(1, "MQTT: Have message %s: %s", message->topic, message->payload);
+  Debug(1, "MQTT: Have message %s: %s", message->topic, message->payload);
 }
 
 void MQTT::on_subscribe(int mid, int qos_count, const int *granted_qos) {
@@ -96,14 +95,14 @@ void MQTT::addValue(std::string name, double value) {
   sensorListIterator = sensorList.find(name);
   Debug(1, "found sensor: %s", sensorListIterator->first.c_str());
   //    if(it == sensorList.end()) {
-  //        clog<<__FUNCTION__<<" Could not find coresponding sensor name"<<endl;
+  //        clog<<__FUNCTION__<<" Could not find corresponding sensor name"<<endl;
   //    } else {
   //
   //    }
   // valuesList.insert ( std::pair<std::string,double>(name, value));
   std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >(
-      std::chrono::high_resolution_clock::now().time_since_epoch()
-      );
+                                   std::chrono::high_resolution_clock::now().time_since_epoch()
+                                 );
   sensorListIterator->second.insert(std::pair<std::chrono::milliseconds, double>(ms, value));
 }
 

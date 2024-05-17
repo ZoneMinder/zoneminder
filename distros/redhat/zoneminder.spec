@@ -17,15 +17,9 @@
 # This will tell zoneminder's cmake process we are building against a known distro
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
-# Newer php's keep json functions in a subpackage
-%if 0%{?fedora} || 0%{?rhel} >= 8
-%global with_gsoap 1
-%global with_php_json 1
-%endif
-
 Name: zoneminder
-Version: 1.37.40
-Release: 1%{?dist}
+Version: 1.37.60
+Release: 2%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
 # jQuery is under the MIT license: https://jquery.org/license/
@@ -46,7 +40,7 @@ Source3: https://github.com/ZoneMinder/RtspServer/archive/%{rtspserver_commit}.t
 
 %{?rhel:BuildRequires: epel-rpm-macros}
 BuildRequires: systemd-devel
-BuildRequires: mariadb-devel
+BuildRequires: mariadb-connector-c-devel
 BuildRequires: perl-podlators
 BuildRequires: polkit-devel
 BuildRequires: cmake
@@ -81,7 +75,7 @@ BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
 BuildRequires: gzip
 BuildRequires: zlib-devel
-%{?with_gsoap:BuildRequires: gsoap-devel}
+BuildRequires: gsoap-devel
 
 # ZoneMinder looks for and records the location of the ffmpeg binary during build
 BuildRequires: ffmpeg
@@ -111,7 +105,7 @@ Requires: php-common
 Requires: php-gd
 Requires: php-intl
 Requires: php-process
-%{?with_php_json:Requires: php-json}
+Requires: php-json
 Requires: php-pecl-apcu
 Requires: net-tools
 Requires: psmisc
@@ -131,7 +125,7 @@ Requires: perl(LWP::Protocol::https)
 Requires: perl(Module::Load::Conditional)
 Requires: ca-certificates
 Requires: zip
-%{?with_gsoap:Requires: gsoap}
+Requires: gsoap
 %{?systemd_requires}
 
 Requires(post): %{_bindir}/gpasswd
@@ -229,6 +223,8 @@ desktop-file-install					\
 
 # Remove unwanted files and folders
 find %{buildroot} \( -name .htaccess -or -name .editorconfig -or -name .packlist -or -name .git -or -name .gitignore -or -name .gitattributes -or -name .travis.yml \) -type f -delete > /dev/null 2>&1 || :
+rm -rf %{buildroot}/usr/include
+rm -rf %{buildroot}/usr/cmake
 
 # Recursively change shebang in all relevant scripts and set execute permission
 find %{buildroot}%{_datadir}/zoneminder/www/api \( -name cake -or -name cake.php \) -type f -exec sed -i 's\^#!/usr/bin/env bash$\#!%{_buildshell}\' {} \; -exec %{__chmod} 755 {} \;
@@ -421,6 +417,13 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 %dir %attr(755,nginx,nginx) %{_localstatedir}/log/zoneminder
 
 %changelog
+* Sun Nov 12 2023 Jonathan Bennett <JBennett@IncomSystems.biz> - 1.37.47
+- Specify folders to remove before packaging
+
+* Thu Sep 28 2023  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.45-2
+- buildrequire mariadb-connector-c-devel
+- conditionals around gsoap and php-json packages no longer needed
+
 * Mon Jul 05 2021  Andrew Bauer <zonexpertconsulting@outlook.com> - 1.37.1-1
 - 1.37.x development build
 
@@ -621,7 +624,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 - New contact email
 
 * Thu Mar 3 2016 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.30.0-1 
-- Bump version fo 1.30.0 release.
+- Bump version for 1.30.0 release.
 
 * Sat Nov 21 2015 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.29.0-1 
 - Bump version for 1.29.0 release on Fedora 23.
@@ -639,7 +642,7 @@ ln -sf %{_sysconfdir}/zm/www/zoneminder.nginx.conf %{_sysconfdir}/zm/www/zonemin
 - Add zmcamtool.pl. Bump version for 1.27 release. 
 
 * Mon Dec 16 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.5-1
-- This is a bug fixe release
+- This is a bug fix release
 - RTSP fixes, cmake enhancements, couple other misc fixes
 
 * Mon Oct 07 2013 Andrew Bauer <knnniggett@users.sourceforge.net> - 1.26.4-1

@@ -1,9 +1,22 @@
 #header {
 }
 
+#header form{
+  width: 100%;
+}
+
 .container-fluid {
-  padding-left: 0;
-  padding-right: 0;
+/*  padding-left: 0;
+  padding-right: 0;*/
+}
+
+#wrapperMonitor {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#wrapperMonitor .buttons {
+  display: inline-block;
 }
 
 #sidebar {
@@ -13,6 +26,8 @@
 
 #sidebar .nav {
   flex-wrap: nowrap;
+  text-align: left;
+  overflow: auto;
 }
 
 #menuControls {
@@ -27,6 +42,21 @@
 .monitor {
   margin: 0 auto;
 }
+
+.monitor .imageFeed,
+.monitor .imageFeed,
+.monitor .imageFeed {
+  border: 2px solid #999999;
+}
+
+.monitor .imageFeed img,
+.monitor .imageFeed video,
+.monitor .imageFeed svg {
+  border: none;
+  display: inline-block;
+  width: 100%;
+}
+
 .monitorStream {
   text-align: center;
   margin: 0 auto;
@@ -158,3 +188,82 @@ span.alert {
 body.sticky #content {
   overflow-y: auto;
 }
+
+.zoom {
+  transform-origin: 100% 00%;
+}
+
+button.btn.btn-zoom-out {
+  padding: 0;
+  background-color: rgba(150,150,150,0.5);
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  z-index: 10;
+  text-shadow:
+    -1px -1px 0 #575757,
+    1px -1px 0 #575757,
+    -1px 1px 0 #575757,
+    1px 1px 0 #575757;
+}
+
+button.btn.btn-zoom-in {
+  padding: 0;
+  background-color: rgba(150,150,150,0.5);
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  z-index: 10;
+  text-shadow:
+    -1px -1px 0 #575757,
+    1px -1px 0 #575757,
+    -1px 1px 0 #575757,
+    1px 1px 0 #575757;
+}
+
+button.btn.btn-edit-monitor {
+  padding: 0;
+  background-color: rgba(150,150,150,0.5);
+  z-index: 10;
+  text-shadow:
+    -1px -1px 0 #575757,
+    1px -1px 0 #575757,
+    -1px 1px 0 #575757,
+    1px 1px 0 #575757;
+}
+
+button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
+  display: none;
+}
+
+.block-button-center {
+  position: absolute;
+  left: 35%;
+  right: 35%;
+  top: 2px;
+  z-index: 10;
+}
+
+button.btn.btn-zoom-out:focus,
+button.btn.btn-zoom-in:focus,
+button.btn.btn-view-watch:focus,
+button.btn.btn-edit-monitor:focus {
+  outline: 0;
+  box-shadow: none;
+}
+
+button.btn.btn-zoom-out:hover,
+button.btn.btn-zoom-in:hover,
+button.btn.btn-edit-monitor:hover,
+button.btn.btn-view-watch:hover {
+  background-color: darkgrey;
+}
+
+/* +++ Support for old ZoomPan algorithm */
+.form-check.control-use-old-zoom-pan {
+  display: inline-block;
+}
+#headerButtons .form-check.control-use-old-zoom-pan input.form-check-input {
+  margin-left: -1.0rem;
+}
+/* --- Support for old ZoomPan algorithm */

@@ -154,13 +154,13 @@ sub delete_path {
 
   my $deleted = 0;
   
-  Debug("Delete $path");
-  if ($$self{Type} and ( $$self{Type} eq 's3fs' )) {
+  if ($$self{Type} and ($$self{Type} eq 's3fs')) {
+    Debug("Delete $path");
     my $s3 = $self->s3();
     my $bucket = $self->bucket();
     if ($s3 and $bucket) {
       eval {
-        if ( $bucket->delete_key($$self{aws_subpath}.$path) ) {
+        if ($bucket->delete_key($$self{aws_subpath}.$path)) {
           $deleted = 1;
         } else {
           Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
@@ -170,13 +170,13 @@ sub delete_path {
     } # end if s3
   } # end if s3fs
 
-  if ( !$deleted ) {
+  if (!$deleted) {
     my $storage_path = $self->Path();
-    ( $storage_path ) = ( $storage_path =~ /^(.*)$/ ); # De-taint
-    ( $path ) = ( $path =~ /^(.*)$/ ); # De-taint
-    my $command = "/bin/rm -rf $storage_path/$path 2>&1";
+    ($storage_path) = ($storage_path =~ /^(.*)$/); # De-taint
+    ($path) = ($path =~ /^(.*)$/); # De-taint
+    my $command = "$Config{ZM_PATH_RM} -rf $storage_path/$path 2>&1";
     if (ZoneMinder::General::executeShellCommand($command)) {
-      Error("Error deleting event directory at $storage_path/$path");
+      Error("Error deleting event directory at $storage_path/$path using $command");
     }
   }
 } # end sub delete_path

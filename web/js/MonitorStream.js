@@ -10,6 +10,11 @@ function MonitorStream(monitorData) {
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
   this.height = monitorData.height;
+  this.RTSP2WebEnabled = monitorData.RTSP2WebEnabled;
+  this.RTSP2WebType = monitorData.RTSP2WebType;
+  this.mseStreamingStarted = false;
+  this.mseQueue = [];
+  this.mseSourceBuffer = null;
   this.janusEnabled = monitorData.janusEnabled;
   this.janusPin = monitorData.janus_pin;
   this.server_id = monitorData.server_id;
@@ -47,12 +52,13 @@ function MonitorStream(monitorData) {
 
   this.img_onerror = function() {
     console.log('Image stream has been stoppd! stopping streamCmd');
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
   this.img_onload = function() {
     if (!this.streamCmdTimer) {
       console.log('Image stream has loaded! starting streamCmd for '+this.connKey+' in '+statusRefreshTimeout + 'ms');
-      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+      this.streamCmdQuery.bind(this);
+      this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
     }
   };
 
@@ -85,9 +91,12 @@ function MonitorStream(monitorData) {
   /* scale should be '0' for auto, or an integer value
    * width should be auto, 100%, integer +px
    * height should be auto, 100%, integer +px
+   * param.resizeImg be boolean (added only for using GridStack & PanZoom on Montage page)
+   * param.scaleImg scaling 1=100% (added only for using PanZoom on Montage & Watch page)
    * */
-  this.setScale = function(newscale, width, height) {
+  this.setScale = function(newscale, width, height, param = {}) {
     const img = this.getElement();
+    const newscaleSelect = newscale;
     if (!img) {
       console.log('No img in setScale');
       return;
@@ -102,15 +111,23 @@ function MonitorStream(monitorData) {
 
     if (((newscale == '0') || (newscale == 0) || (newscale=='auto')) && (width=='auto' || !width)) {
       if (!this.bottomElement) {
-        newscale = Math.floor(100*monitor_frame.width() / this.width);
+        if (param.scaleImg) {
+          newscale = Math.floor(100*monitor_frame.width() / this.width * param.scaleImg);
+        } else {
+          newscale = Math.floor(100*monitor_frame.width() / this.width);
+        }
         // We don't want to change the existing css, cuz it might be 59% or 123px or auto;
         width = monitor_frame.css('width');
         height = Math.round(parseInt(this.height) * newscale / 100)+'px';
       } else {
-        const newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement));
+        const newSize = scaleToFit(this.width, this.height, $j(img), $j(this.bottomElement), $j('#wrapperMonitor'));
         width = newSize.width+'px';
         height = newSize.height+'px';
-        newscale = parseInt(newSize.autoScale);
+        if (param.scaleImg) {
+          newscale = parseInt(newSize.autoScale * param.scaleImg);
+        } else {
+          newscale = parseInt(newSize.autoScale);
+        }
         if (newscale < 25) newscale = 25; // Arbitrary.  4k shown on 1080p screen looks terrible
       }
     } else if (parseInt(width) || parseInt(height)) {
@@ -119,7 +136,9 @@ function MonitorStream(monitorData) {
           newscale = parseInt(100*parseInt(width)/this.width);
         } else { // %
           // Set it, then get the calculated width
-          monitor_frame.css('width', width);
+          if (param.resizeImg) {
+            monitor_frame.css('width', width);
+          }
           newscale = parseInt(100*parseInt(monitor_frame.width())/this.width);
         }
       } else if (height) {
@@ -132,10 +151,27 @@ function MonitorStream(monitorData) {
       height = Math.round(parseInt(this.height) * newscale / 100)+'px';
     }
     if (width && (width != '0px') && (img.style.width.search('%') == -1)) {
-      monitor_frame.css('width', parseInt(width));
+      if (param.resizeImg) {
+        monitor_frame.css('width', parseInt(width));
+      }
     }
-    if (height && height != '0px') img.style.height = height;
-
+    if (param.resizeImg) {
+      if (img.style.width) img.style.width = '100%';
+      if (height && height != '0px') img.style.height = height;
+    } else { //This code will not be needed when using GridStack & PanZoom on Montage page. Only required when trying to use "scaleControl"
+      if (newscaleSelect != 0) {
+        img.style.width = 'auto';
+        $j(img).closest('.monitorStream')[0].style.overflow = 'auto';
+      } else {
+        //const monitor_stream = $j(img).closest('.monitorStream');
+        //const realWidth = monitor_stream.attr('data-width');
+        //const realHeight = monitor_stream.attr('data-height');
+        //const ratio = realWidth / realHeight;
+        //const imgWidth = $j(img)[0].offsetWidth + 4; // including border
+        img.style.width = '100%';
+        $j(img).closest('.monitorStream')[0].style.overflow = 'hidden';
+      }
+    }
     this.setStreamScale(newscale);
   }; // setScale
 
@@ -174,13 +210,13 @@ function MonitorStream(monitorData) {
           console.log("Changing src from " + img.src + " to " + newSrc + 'refresh timeout:' + statusRefreshTimeout);
           img.src = '';
           img.src = newSrc;
-          this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
+          this.streamCmdTimer = setInterval(this.streamCmdQuery.bind(this), statusRefreshTimeout);
         }
       }
     }
   }; // setStreamScale
 
-  this.start = function(delay) {
+  this.start = function(delay=500) {
     if (this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {
@@ -200,8 +236,59 @@ function MonitorStream(monitorData) {
         }});
       }
       attachVideo(parseInt(this.id), this.janusPin);
-      this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), delay);
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
       return;
+    }
+    if (this.RTSP2WebEnabled) {
+      if (ZM_RTSP2WEB_PATH) {
+        videoEl = document.getElementById("liveStream" + this.id);
+        const url = new URL(ZM_RTSP2WEB_PATH);
+        const useSSL = (url.protocol == 'https');
+
+        rtsp2webModUrl = url;
+        rtsp2webModUrl.username = '';
+        rtsp2webModUrl.password = '';
+        //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
+        if (this.RTSP2WebType == 'HLS') {
+          hlsUrl = rtsp2webModUrl;
+          hlsUrl.pathname = "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+          /*
+          if (useSSL) {
+            hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+          } else {
+            hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+          }
+          */
+          if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(hlsUrl.href);
+            hls.attachMedia(videoEl);
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            videoEl.src = hlsUrl.href;
+          }
+        } else if (this.RTSP2WebType == 'MSE') {
+          videoEl.addEventListener('pause', () => {
+            if (videoEl.currentTime > videoEl.buffered.end(videoEl.buffered.length - 1)) {
+              videoEl.currentTime = videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1;
+              videoEl.play();
+            }
+          });
+          mseUrl = rtsp2webModUrl;
+          mseUrl.protocol = useSSL ? 'wss' : 'ws';
+          mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+          console.log(mseUrl.href);
+          startMsePlay(this, videoEl, mseUrl.href);
+        } else if (this.RTSP2WebType == 'WebRTC') {
+          webrtcUrl = rtsp2webModUrl;
+          webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
+          console.log(webrtcUrl.href);
+          startRTSP2WebPlay(videoEl, webrtcUrl.href);
+        }
+        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
+        return;
+      } else {
+        console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
+      }
     }
 
     // zms stream
@@ -237,15 +324,15 @@ function MonitorStream(monitorData) {
       if (!stream) return;
       src = stream.src.replace(/mode=jpeg/i, 'mode=single');
       if (stream.src != src) {
-        console.log("Setting to stopped");
         stream.src = '';
         stream.src = src;
       }
     }
     this.streamCommand(CMD_STOP);
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
+
   this.kill = function() {
     if (janus) {
       if (streaming[this.id]) {
@@ -263,9 +350,10 @@ function MonitorStream(monitorData) {
       // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
-    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
+
   this.pause = function() {
     this.streamCommand(CMD_PAUSE);
   };
@@ -281,6 +369,10 @@ function MonitorStream(monitorData) {
     console.log('onclick');
   };
 
+  this.onmove = function(evt) {
+    console.log('onmove');
+  };
+
   this.setup_onclick = function(func) {
     if (func) {
       this.onclick = func;
@@ -289,6 +381,17 @@ function MonitorStream(monitorData) {
       const el = this.getFrame();
       if (!el) return;
       el.addEventListener('click', this.onclick, false);
+    }
+  };
+
+  this.setup_onmove = function(func) {
+    if (func) {
+      this.onmove = func;
+    }
+    if (this.onmove) {
+      const el = this.getFrame();
+      if (!el) return;
+      el.addEventListener('mousemove', this.onmove, false);
     }
   };
 
@@ -385,8 +488,6 @@ function MonitorStream(monitorData) {
     } else if (error == 'Unauthorized') {
       window.location.reload();
     } else {
-      console.log("Queuing up a new query after a pause");
-      this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), 10*statusRefreshTimeout);
       logAjaxFail(jqxhr, textStatus, error);
     }
   };
@@ -558,16 +659,15 @@ function MonitorStream(monitorData) {
   /* getStatusCmd is used when not streaming, since there is no persistent zms */
   this.getStatusCmdResponse=function(respObj, respText) {
     //watchdogOk('status');
-    this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
-
-
     if (respObj.result == 'Ok') {
       const monitorStatus = respObj.monitor.Status;
       const captureFPSValue = $j('#captureFPSValue'+this.id);
       const analysisFPSValue = $j('#analysisFPSValue'+this.id);
+      const viewingFPSValue = $j('#viewingFPSValue'+this.id);
+      const monitor = respObj.monitor;
 
-      if (respObj.monitor.FrameRate) {
-        const fpses = respObj.monitor.FrameRate.split(",");
+      if (monitor.FrameRate) {
+        const fpses = monitor.FrameRate.split(",");
         fpses.forEach(function(fps) {
           const name_values = fps.split(':');
           const name = name_values[0].trim();
@@ -586,6 +686,16 @@ function MonitorStream(monitorData) {
             console.log("Unknown fps name " + name);
           }
         });
+      } else {
+        if (analysisFPSValue.length && (analysisFPSValue.text() != monitor.AnalysisFPS)) {
+          analysisFPSValue.text(monitor.AnalysisFPS);
+        }
+        if (captureFPSValue.length && (captureFPSValue.text() != monitor.CaptureFPS)) {
+          captureFPSValue.text(monitor.CaptureFPS);
+        }
+        if (viewingFPSValue.length && viewingFPSValue.text() == '') {
+          $j('#viewingFPS'+this.id).hide();
+        }
       }
 
       if (canEdit.Monitors) {
@@ -628,21 +738,16 @@ function MonitorStream(monitorData) {
     } else {
       checkStreamForErrors('getStatusCmdResponse', respObj);
     }
-
-    this.statusCmdTimer = setTimeout(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-  };
+  }; // this.getStatusCmdResponse
 
   this.statusCmdQuery=function() {
-    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=FrameRate&id='+this.id+'&'+this.auth_relay)
+    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+this.auth_relay)
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
-
-    this.statusCmdTimer = null;
   };
 
   this.statusQuery = function() {
     this.streamCommand(CMD_QUERY);
-    this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCmdQuery = function(resent) {
@@ -653,8 +758,6 @@ function MonitorStream(monitorData) {
       this.streamCmdParms.command = CMD_QUERY;
       this.streamCmdReq(this.streamCmdParms);
     }
-    // Queue up another query
-    this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCommand = function(command) {
@@ -664,9 +767,11 @@ function MonitorStream(monitorData) {
     } else {
       params.command = command;
     }
+    /*
     if (this.ajaxQueue) {
       this.ajaxQueue.abort();
     }
+    */
     this.streamCmdReq(params);
   };
 
@@ -819,3 +924,110 @@ const waitUntil = (condition) => {
     }, 100);
   });
 };
+
+function startRTSP2WebPlay(videoEl, url) {
+  const webrtc = new RTCPeerConnection({
+    iceServers: [{
+      urls: ['stun:stun.l.google.com:19302']
+    }],
+    sdpSemantics: 'unified-plan'
+  });
+  webrtc.ontrack = function(event) {
+    console.log(event.streams.length + ' track is delivered');
+    videoEl.srcObject = event.streams[0];
+    videoEl.play();
+  };
+  webrtc.addTransceiver('video', {direction: 'sendrecv'});
+  webrtc.onnegotiationneeded = async function handleNegotiationNeeded() {
+    const offer = await webrtc.createOffer();
+
+    await webrtc.setLocalDescription(offer);
+
+    fetch(url, {
+      method: 'POST',
+      body: new URLSearchParams({data: btoa(webrtc.localDescription.sdp)})
+    })
+        .catch((rejected) => {
+          console.log(rejected);
+        })
+        .then((response) => response.text())
+        .then((data) => {
+          try {
+            webrtc.setRemoteDescription(
+                new RTCSessionDescription({type: 'answer', sdp: atob(data)})
+            );
+          } catch (e) {
+            console.warn(e);
+          }
+        });
+  };
+
+  const webrtcSendChannel = webrtc.createDataChannel('rtsptowebSendChannel');
+  webrtcSendChannel.onopen = (event) => {
+    console.log(`${webrtcSendChannel.label} has opened`);
+    webrtcSendChannel.send('ping');
+  };
+  webrtcSendChannel.onclose = (_event) => {
+    console.log(`${webrtcSendChannel.label} has closed`);
+    startRTSP2WebPlay(videoEl, url);
+  };
+  webrtcSendChannel.onmessage = (event) => console.log(event.data);
+}
+
+function startMsePlay(context, videoEl, url) {
+  const mse = new MediaSource();
+  mse.addEventListener('sourceopen', function() {
+    const ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+    ws.onopen = function(event) {
+      console.log('Connect to ws');
+    };
+    ws.onmessage = function(event) {
+      const data = new Uint8Array(event.data);
+      if (data[0] === 9) {
+        let mimeCodec;
+        const decodedArr = data.slice(1);
+        if (window.TextDecoder) {
+          mimeCodec = new TextDecoder('utf-8').decode(decodedArr);
+        } else {
+          console.log("Browser too old. Doesn't support TextDecoder");
+        }
+        context.mseSourceBuffer = mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
+        context.mseSourceBuffer.mode = 'segments';
+        context.mseSourceBuffer.addEventListener('updateend', pushMsePacket, videoEl, context);
+      } else {
+        readMsePacket(event.data, videoEl, context);
+      }
+    };
+  }, false);
+  videoEl.src = window.URL.createObjectURL(mse);
+}
+
+function pushMsePacket(videoEl, context) {
+  if (context != undefined && !context.mseSourceBuffer.updating) {
+    if (context.mseQueue.length > 0) {
+      const packet = context.mseQueue.shift();
+      context.mseSourceBuffer.appendBuffer(packet);
+    } else {
+      context.mseStreamingStarted = false;
+    }
+  }
+  if (videoEl.buffered != undefined && videoEl.buffered.length > 0) {
+    if (typeof document.hidden !== 'undefined' && document.hidden) {
+    // no sound, browser paused video without sound in background
+      videoEl.currentTime = videoEl.buffered.end((videoEl.buffered.length - 1)) - 0.5;
+    }
+  }
+}
+
+function readMsePacket(packet, videoEl, context) {
+  if (!context.mseStreamingStarted) {
+    context.mseSourceBuffer.appendBuffer(packet);
+    context.mseStreamingStarted = true;
+    return;
+  }
+  context.mseQueue.push(packet);
+  if (!context.mseSourceBuffer.updating) {
+    pushMsePacket(videoEl, context);
+  }
+}

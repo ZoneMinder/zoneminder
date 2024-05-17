@@ -18,6 +18,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+$RTSP2WebTypes = array(
+  'HLS' => 'HLS',
+  'MSE' => 'MSE',
+  'WebRTC' => 'WebRTC',
+);
 $rates = array(
   -1600 => '-16x',
   -1000 => '-10x',
@@ -40,16 +45,17 @@ $scales = array(
   # We use 0 instead of words because we are saving this in the monitor
   # and use this array to populate the default scale option
     '0' => translate('Auto'),
-    '400' => '4x',
-    '300' => '3x',
-    '200' => '2x',
-    '150' => '1.5x',
+  #  '400' => '4x',
+  #  '300' => '3x',
+  #  '200' => '2x',
+  #  '150' => '1.5x',
     '100' => translate('Actual'),
-    '75' => '3/4x',
-    '50' => '1/2x',
-    '33' => '1/3x',
-    '25' => '1/4x',
-    '12.5' => '1/8x',
+  #  '75' => '3/4x',
+  #  '50' => '1/2x',
+  #  '33' => '1/3x',
+  #  '25' => '1/4x',
+  #  '12.5' => '1/8x',
+    'fit_to_width' => translate('Fit to width'),
 );
 
 if ( isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage') ) {
@@ -80,6 +86,7 @@ switch ( $_COOKIE['zmBandwidth'] ) {
         define( 'ZM_WEB_EVENTS_VIEW', ZM_WEB_H_EVENTS_VIEW );           // What the default view of multiple events should be.
         define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_H_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
         define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_H_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
+        define( 'ZM_WEB_VIEWING_TIMEOUT', defined('ZM_WEB_H_VIEWING_TIMEOUT') ? ZM_WEB_H_VIEWING_TIMEOUT : 0 );
         break;
     } case 'medium' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_M_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
@@ -98,6 +105,7 @@ switch ( $_COOKIE['zmBandwidth'] ) {
         define( 'ZM_WEB_EVENTS_VIEW', ZM_WEB_M_EVENTS_VIEW );           // What the default view of multiple events should be.
         define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_M_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
         define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_M_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
+        define( 'ZM_WEB_VIEWING_TIMEOUT', defined('ZM_WEB_M_VIEWING_TIMEOUT') ? ZM_WEB_M_VIEWING_TIMEOUT : 0 );
         break;
     } case 'low' : {
         define( 'ZM_WEB_REFRESH_MAIN', ZM_WEB_L_REFRESH_MAIN );         // How often (in seconds) the main console window refreshes
@@ -116,6 +124,7 @@ switch ( $_COOKIE['zmBandwidth'] ) {
         define( 'ZM_WEB_EVENTS_VIEW', ZM_WEB_L_EVENTS_VIEW );           // What the default view of multiple events should be.
         define( 'ZM_WEB_SHOW_PROGRESS', ZM_WEB_L_SHOW_PROGRESS );       // Whether to show the progress of replay in event view.
         define( 'ZM_WEB_AJAX_TIMEOUT', ZM_WEB_L_AJAX_TIMEOUT );         // Timeout to use for Ajax requests, no timeout used if unset
+        define( 'ZM_WEB_VIEWING_TIMEOUT', defined('ZM_WEB_L_VIEWING_TIMEOUT') ? ZM_WEB_L_VIEWING_TIMEOUT : 0 );
         break;
     }
 }

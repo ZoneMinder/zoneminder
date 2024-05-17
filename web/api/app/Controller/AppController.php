@@ -82,7 +82,7 @@ class AppController extends Controller {
             throw new UnauthorizedException(__($retstatus));
             return;
           } 
-          ZM\Info("Login successful for user \"$username\"");
+          ZM\Debug("Login successful for user \"$username\"");
         }
       }
 
@@ -92,12 +92,14 @@ class AppController extends Controller {
         if ( $stateful ) {
           zm_session_start();
           $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-          $_SESSION['username'] = $user->Username();
-          if ( ZM_AUTH_RELAY == 'plain' ) {
-            // Need to save this in session, can't use the value in User because it is hashed
-            $_SESSION['password'] = $_REQUEST['password'];
+          if ($user) {
+            $_SESSION['username'] = $user->Username();
+            if ( ZM_AUTH_RELAY == 'plain' ) {
+              // Need to save this in session, can't use the value in User because it is hashed
+              $_SESSION['password'] = $_REQUEST['password'];
+            }
+            generateAuthHash(ZM_AUTH_HASH_IPS);
           }
-          generateAuthHash(ZM_AUTH_HASH_IPS);
           session_write_close();
         } else if ( isset($_COOKIE['ZMSESSID']) and !$user ) {
           # Have a cookie set, try to load user by session
@@ -154,7 +156,7 @@ class AppController extends Controller {
     // make sure populated user object has APIs enabled
 
     if (isset($_SERVER['HTTP_ORIGIN'])) {
-      $Servers = ZM\Server::find();
+      global $Servers;
       if ( sizeof($Servers) < 1 ) {
         # Only need CORSHeaders in the event that there are multiple servers in use.
         # ICON: Might not be true. multi-port?

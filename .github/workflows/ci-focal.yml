@@ -1,0 +1,54 @@
+name: CI Ubuntu Focal (20.04)
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      matrix:
+        crypto_backend: [ openssl ]
+        jwt_backend: [ libjwt, jwt_cpp ]
+        include:
+          - crypto_backend: openssl
+            crypto_package: libssl-dev
+            jwt_package: libjwt-dev
+    runs-on: ubuntu-latest
+    container: ubuntu:focal
+
+    steps:
+      - name: Update packages
+        run: apt-get -qq update && apt-get -qq upgrade && apt-get -qq install software-properties-common
+      - name: Install git
+        run: |
+          add-apt-repository ppa:git-core/ppa
+          apt-get -qq update
+          apt-get -qq install git
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: >
+          apt-get -qq install make cmake g++
+          default-libmysqlclient-dev
+          libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev libavdevice-dev
+          libcurl4-gnutls-dev libvlc-dev libvncserver-dev
+          libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libwww-perl
+          libpolkit-gobject-1-dev
+          ${{ matrix.crypto_package }} ${{ matrix.jwt_package }}
+      - name: Prepare
+        run: mkdir build
+      - name: Configure
+        run: cd build && cmake --version && cmake .. -DBUILD_MAN=0 -DENABLE_WERROR=1 -DZM_CRYPTO_BACKEND=${{ matrix.crypto_backend }} -DZM_JWT_BACKEND=${{ matrix.jwt_backend }}
+      - name: Build
+        run: cd build && make -j3 | grep --line-buffered -Ev '^(cp lib\/|Installing.+\.pm)' && (exit ${PIPESTATUS[0]})

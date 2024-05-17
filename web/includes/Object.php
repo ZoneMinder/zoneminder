@@ -4,6 +4,12 @@ require_once('database.php');
 
 $object_cache = array();
 
+/**
+ * Use the fully-qualified AllowDynamicProperties, otherwise the #[AllowDynamicProperties] attribute on "MyClass" WILL NOT WORK.
+ */
+use \AllowDynamicProperties;
+
+#[AllowDynamicProperties]
 class ZM_Object {
   protected $_last_error;
 
@@ -26,12 +32,12 @@ class ZM_Object {
       }
 
       if ( $row ) {
-        if (!isset($row['Id'])) {
-          Error("No Id in " . print_r($row, true));
-          return;
-        }
         foreach ($row as $k => $v) {
-          $this->{$k} = $v;
+          $this->$k = $v;
+        }
+        if (!isset($row['Id'])) {
+          Debug("No Id in " . print_r($row, true));
+          return;
         }
         global $object_cache;
         if (!isset($object_cache[$class])) {
@@ -121,7 +127,7 @@ class ZM_Object {
           $sql .= ' LIMIT '.$options['limit'];
         } else {
           $backTrace = debug_backtrace();
-          Error('Invalid value for limit('.$options['limit'].') passed to '.get_class()."::find from ".print_r($backTrace,true));
+          Error('Invalid value for limit('.$options['limit'].') passed to '.self::class."::find from ".print_r($backTrace,true));
           return array();
         }
       }
@@ -197,27 +203,27 @@ class ZM_Object {
           $this->{$field} = implode(',', $value);
         } else if (is_string($value)) {
           if (array_key_exists($field, $this->defaults)) {
-						# Need filtering
-						if (is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
-							if (is_array($this->defaults[$field]['filter_regexp'])) {
-								foreach ($this->defaults[$field]['filter_regexp'] as $regexp) {
-									$this->{$field} = preg_replace($regexp, '', trim($value));
-								}
-							} else {
-								$this->{$field} = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
-							}
-						} else if ($value == '') {
-							if (is_array($this->defaults[$field])) {
-								$this->{$field} = $this->defaults[$field]['default'];
-							} else if (is_string($this->defaults[$field])) {
-# if the default is a string, don't set it. Having a default for empty string is to set null for numbers.
-								$this->{$field} = $value;
-							} else {
-								$this->{$field} = $this->defaults[$field];
-							}
-						} else {
-							$this->{$field} = $value;
-						}  # need a default
+            # Need filtering
+            if (is_array($this->defaults[$field]) && isset($this->defaults[$field]['filter_regexp'])) {
+              if (is_array($this->defaults[$field]['filter_regexp'])) {
+                foreach ($this->defaults[$field]['filter_regexp'] as $regexp) {
+                  $this->{$field} = preg_replace($regexp, '', trim($value));
+                }
+              } else {
+                $this->{$field} = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
+              }
+            } else if ($value == '') {
+              if (is_array($this->defaults[$field])) {
+                $this->{$field} = $this->defaults[$field]['default'];
+              } else if (is_string($this->defaults[$field])) {
+                # if the default is a string, don't set it. Having a default for empty string is to set null for numbers.
+                $this->{$field} = $value;
+              } else {
+                $this->{$field} = $this->defaults[$field];
+              }
+            } else {
+              $this->{$field} = $value;
+            } # need a default
           } else {
             $this->{$field} = $value;
           }
@@ -331,16 +337,11 @@ class ZM_Object {
     # because for example if we want to clear TimestampFormat, we clear it, but the default is a string value
     foreach ( $this->defaults as $field => $default ) {
       if (!property_exists($this, $field)) {
+        Debug("Empty $field defaults:".print_r($default, true));
         if (is_array($default)) {
-          $this->{$field} = $default['default'];
+          $this->$field = $default['default'];
         } else {
-          $this->{$field} = $default;
-        }
-      } else if ($this->{$field} === '') {
-        if (is_array($default)) {
-          $this->{$field} = $default['default'];
-        } else if ($default == null) {
-          $this->{$field} = $default;
+          $this->$field = $default;
         }
       }
     } # end foreach default
@@ -459,7 +460,7 @@ class ZM_Object {
     }
   }
   public function remove_from_cache() {
-    return ZM_Object::_remove_from_cache(get_class(), $this);
+    return ZM_Object::_remove_from_cache(self::class, $this);
   }
   public function get_last_error() {
     return $this->_last_error;

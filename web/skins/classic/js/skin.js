@@ -261,6 +261,22 @@ if ( currentView != 'none' && currentView != 'login' ) {
   $j.ajaxSetup({timeout: AJAX_TIMEOUT}); //sets timeout for all getJSON.
 
   $j(document).ready(function() {
+    // List of functions that are allowed to be called via the value of an object's DOM attribute.
+    const safeFunc = {
+      drawGraph: function() {
+        if (typeof drawGraph !== 'undefined' && $j.isFunction(drawGraph)) drawGraph();
+      },
+      refreshWindow: function() {
+        if (typeof refreshWindow !== 'undefined' && $j.isFunction(refreshWindow)) refreshWindow();
+      },
+      changeScale: function() {
+        if (typeof changeScale !== 'undefined' && $j.isFunction(changeScale)) changeScale();
+      },
+      applyChosen: function() {
+        if (typeof applyChosen !== 'undefined' && $j.isFunction(applyChosen)) applyChosen();
+      }
+    };
+
     // Load the Logout and State modals into the dom
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
@@ -274,46 +290,113 @@ if ( currentView != 'none' && currentView != 'login' ) {
     // Update update reminders when the user makes a selection from the dropdown
     reminderClickFunction();
     // Manage the widget bar minimize chevron
-    $j("#flip").click(function() {
+    $j("#flip").click(navbarTwoFlip);
+    $j("#flipNarrow").click(navbarTwoFlip);
+
+    function navbarTwoFlip() {
       $j("#navbar-two").slideToggle("slow");
       const flip = $j("#flip");
       if ( flip.html() == 'keyboard_arrow_up' ) {
         flip.html('keyboard_arrow_down');
-        setCookie('zmHeaderFlip', 'down', 3600);
+        setCookie('zmHeaderFlip', 'down');
       } else {
         flip.html('keyboard_arrow_up');
-        setCookie('zmHeaderFlip', 'up', 3600);
+        setCookie('zmHeaderFlip', 'up');
+      }
+    }
+
+    // Manage visible object & control button (when pressing a button)
+    $j("[data-flip-сontrol-object]").click(function() {
+      const _this_ = $j(this);
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      if ( obj.is(":visible") && !obj.hasClass("hidden-shift")) {
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'hidden');
+      } else { //hidden
+        obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+          objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
+        }
+        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
+      }
+
+      const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
+      const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
+      const nameFuncAfterComplet = _this_.attr('data-flip-сontrol-run-after-complet-func') ? _this_.attr('data-flip-сontrol-run-after-complet-func') : null;
+
+      if (nameFuncBefore) {
+        $j.each(nameFuncBefore.split(' '), function(i, nameFunc) {
+          if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+        });
+      }
+      obj.slideToggle("fast", function() {
+        if (nameFuncAfterComplet) {
+          $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
+            if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+          });
+        }
+      });
+      if (nameFuncAfter) {
+        $j.each(nameFuncAfter.split(' '), function(i, nameFunc) {
+          if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+        });
       }
     });
-    // Manage the web console filter bar minimize chevron
-    $j("#fbflip").click(function() {
-      $j("#fbpanel").slideToggle("slow");
-      var fbflip = $j("#fbflip");
-      if ( fbflip.html() == 'keyboard_arrow_up' ) {
-        fbflip.html('keyboard_arrow_down');
-        setCookie('zmFilterBarFlip', 'down', 3600);
-      } else {
-        fbflip.html('keyboard_arrow_up');
-        setCookie('zmFilterBarFlip', 'up', 3600);
-        $j('.chosen').chosen("destroy");
-        $j('.chosen').chosen();
+
+    // Manage visible filter bar & control button (after document ready)
+    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects and set icons
+      const _this_ = $j(this);
+      const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const objIconButton = _this_.find("i");
+      const obj = $j(_this_.attr('data-flip-сontrol-object'));
+
+      if (obj.parent().css('display') != 'block') {
+        obj.wrap('<div style="display: block"></div>');
+      }
+
+      if (сookie == 'hidden') {
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-hidden'));
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
+        }
+        obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+      } else { //no cookies or opened.
+        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          objIconButton.html(objIconButton.attr('data-icon-visible'));
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+        }
+        obj.removeClass('hidden-shift');
       }
     });
 
     // Manage the web console filter bar minimize chevron
-    $j("#mfbflip").click(function() {
-      $j("#mfbpanel").slideToggle("slow");
+    /*$j("#mfbflip").click(function() {
+      $j("#mfbpanel").slideToggle("slow", function() {
+        if ($j.isFunction('changeScale')) {
+          changeScale();
+        }
+      });
       var mfbflip = $j("#mfbflip");
       if ( mfbflip.html() == 'keyboard_arrow_up' ) {
         mfbflip.html('keyboard_arrow_down');
-        setCookie('zmMonitorFilterBarFlip', 'up', 3600);
+        setCookie('zmMonitorFilterBarFlip', 'up');
       } else {
         mfbflip.html('keyboard_arrow_up');
-        setCookie('zmMonitorFilterBarFlip', 'down', 3600);
+        setCookie('zmMonitorFilterBarFlip', 'down');
         $j('.chosen').chosen("destroy");
         $j('.chosen').chosen();
       }
-    });
+    });*/
     // Autoclose the hamburger button if the end user clicks outside the button
     $j(document).click(function(event) {
       var target = $j(event.target);
@@ -328,17 +411,21 @@ if ( currentView != 'none' && currentView != 'login' ) {
           .done(optionhelpModal)
           .fail(logAjaxFail);
     });
+
+    applyChosen();
   });
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {
-    var modal = $j('#' + name);
+    let modal = $j('#' + name);
 
     if (modal.length) {
       modal.replaceWith(html);
     } else {
-      $j("body").append(html);
+      $j('body').append(html);
+      modal = $j('#' + name);
     }
+    return modal;
   }
 
   // Manage the modal html we received after user clicks help link
@@ -491,7 +578,9 @@ function configureDeleteButton( element ) {
       }
     }
   }
-  form.deleteBtn.disabled = !checked;
+  let btn = form.deleteBtn;
+  if (!btn) btn = document.getElementById('deleteBtn');
+  if (btn) btn.disabled = !checked;
 }
 
 function confirmDelete( message ) {
@@ -588,10 +677,10 @@ function endOfResize(e) {
  * figures out where bottomEl is in the viewport
  * does calculations
  * */
-function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
+function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   const ratio = baseWidth / baseHeight;
-  const container = $j('#content');
+  if (!container) container = $j('#content');
   if (!container) {
     console.error("No container found");
     return;
@@ -602,28 +691,32 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
   }
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
-  var bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+  const bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
   console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
-  var newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
+  let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
-  var newWidth = ratio * newHeight;
-  console.log("newWidth = " + newWidth);
+  let newWidth = ratio * newHeight;
 
-  if (newHeight < 0) {
+  // Let's recalculate everything and reduce the height a little. Necessary if "padding" is specified for "wrapperEventVideo"
+  padding = parseInt(container.css("padding-left")) + parseInt(container.css("padding-right"));
+  newWidth -= padding;
+  newHeight = newWidth / ratio;
+
+  console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
+
+  if (newHeight < 0 || newWidth > container.innerWidth()-padding) {
     // Doesn't fit on screen anyways?
-    newWidth = container.innerWidth();
-    newHeight = newWidth / ratio;
-  } else if (newWidth > container.innerWidth()) {
-    newWidth = container.innerWidth();
+    newWidth = container.innerWidth()-padding;
     newHeight = newWidth / ratio;
   }
   console.log("newWidth = " + newWidth);
-  var autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
-  var scales = $j('#scale option').map(function() {
+  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
+  /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
+  const scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
   scales.shift(); // pop off Scale To Fit
-  var closest = null;
+  let closest = null;
   $j(scales).each(function() { //Set zms scale to nearest regular scale.  Zoom does not like arbitrary scale values.
     if (closest == null || Math.abs(this - autoScale) < Math.abs(closest - autoScale)) {
       closest = this.valueOf();
@@ -633,6 +726,8 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl) {
     console.log("Setting to closest: " + closest + " instead of " + autoScale);
     autoScale = closest;
   }
+  */
+  if (autoScale < 10) autoScale = 10;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
@@ -656,6 +751,9 @@ function setCookie(name, value, seconds) {
     const date = new Date();
     date.setTime(date.getTime() + (seconds*1000));
     expires = "; expires=" + date.toUTCString();
+  } else {
+    // 2147483647 is 2^31 - 1 which is January of 2038 to avoid the 32bit integer overflow bug.
+    expires = "; max-age=2147483647";
   }
   document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
 }
@@ -678,7 +776,7 @@ function delCookie(name) {
 function bwClickFunction() {
   $j('.bwselect').click(function() {
     var bwval = $j(this).data('pdsa-dropdown-val');
-    setCookie("zmBandwidth", bwval, 3600);
+    setCookie("zmBandwidth", bwval);
     getNavBar();
   });
 }
@@ -710,9 +808,14 @@ function enoperm() {
 function getLogoutModal() {
   $j.getJSON(thisUrl + '?request=modal&modal=logout')
       .done(function(data) {
-        insertModalHtml('modalLogout', data.html);
-        manageModalBtns('modalLogout');
-        clickLogout();
+        if (data['result'] != 'Ok') {
+          alert('Failed to load logout modal. See javascript console for details.');
+          console.log(data);
+        } else {
+          insertModalHtml('modalLogout', data.html);
+          manageModalBtns('modalLogout');
+          clickLogout();
+        }
       })
       .fail(logAjaxFail);
 }
@@ -918,13 +1021,13 @@ function manageShutdownBtns(element) {
 var thumbnail_timeout;
 var thumbnail_timeout;
 function thumbnail_onmouseover(event) {
+  const img = event.target;
+  const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
+  const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
+  img.src = img.getAttribute(imgAttr);
   thumbnail_timeout = setTimeout(function() {
-    const img = event.target;
-    const imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
-    const imgAttr = ( currentView == 'frames' ) ? 'full_img_src' : 'stream_src';
     img.classList.add(imgClass);
-    img.src = img.getAttribute(imgAttr);
-  }, 150);
+  }, 250);
 }
 
 function thumbnail_onmouseout(event) {
@@ -932,7 +1035,6 @@ function thumbnail_onmouseout(event) {
   var img = event.target;
   var imgClass = ( currentView == 'console' ) ? 'zoom-console' : 'zoom';
   var imgAttr = ( currentView == 'frames' ) ? 'img_src' : 'still_src';
-  img.src = '';
   img.src = img.getAttribute(imgAttr);
   img.classList.remove(imgClass);
 }
@@ -1029,6 +1131,24 @@ function post(path, params, method='post') {
   }
   document.body.appendChild(form);
   form.submit();
+}
+
+function isMobile() {
+  var result = false;
+  // device detection
+  if (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|ipad|iris|kindle|Android|Silk|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(navigator.userAgent) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(navigator.userAgent.substring(0, 4))) {
+    result = true;
+  }
+  return result;
+}
+
+function applyChosen() {
+  const limit_search_threshold = 10;
+
+  $j('.chosen').chosen('destroy');
+  $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
+  $j('.chosen.chosen-full-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
+  $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
 }
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});

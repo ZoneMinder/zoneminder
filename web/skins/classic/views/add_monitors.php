@@ -22,6 +22,7 @@ if (!canEdit('Monitors')) {
   $view = 'error';
   return;
 }
+$canCreateMonitors = canCreate('Monitors');
 
 $focusWindow = true;
 
@@ -39,17 +40,20 @@ getBodyTopHTML();
   <?php 
   $manufacturers = array_to_hash_by_key('Name', ZM\Manufacturer::find());
   echo htmlSelect('probe_Manufacturer', [''=>translate('All Manufacturers')]+$manufacturers, 
-    (isset($_COOKIE['addMonitorsprobe_Manufacturer']) ? $_COOKIE['addMonitorsprobe_Manufacturer'] : ''), [
+    (isset($_COOKIE['addMonitorsprobe_Manufacturer']) ? validCardinal($_COOKIE['addMonitorsprobe_Manufacturer']) : ''), [
     #'multiple'=>'multiple',
           'class'=>'chosen']);
   ?>
               <input type="text" id="ip" name="ip" placeholder="Camera IP Address"/>
               <input type="text" id="probe_username" name="probe_username" placeholder="Camera Username"
-                value="<?php echo isset($_COOKIE['addMonitorsprobe_username']) ? $_COOKIE['addMonitorsprobe_username'] : '' ?>"/>
+                value="<?php echo isset($_COOKIE['addMonitorsprobe_username']) ? validHtmlStr($_COOKIE['addMonitorsprobe_username']) : '' ?>"/>
               <input type="text" id="probe_password" name="probe_password" placeholder="Camera Password"
-                value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? $_COOKIE['addMonitorsprobe_password'] : '' ?>"/>
+                value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? validHtmlStr($_COOKIE['addMonitorsprobe_password']) : '' ?>"/>
             </div>
             <div id="contentButtons">
+<?php 
+  if ($canCreateMonitors) {
+?>
               <button type="button" name="addBtn" data-on-click-this="addMonitor" title="<?php echo translate('Add New Monitor') ?>">
                 <i class="material-icons md-18">add_circle</i>
                 <span class="text"><?php echo translate('AddNewMonitor') ?></span>
@@ -58,6 +62,9 @@ getBodyTopHTML();
                 <i class="material-icons md-18">upload</i>
                 <span class="text"><?php echo translate('Import CSV') ?></span>
               </button>
+<?php 
+  }
+?>
             </div>
           </div><!--toolbar-->
 
@@ -104,7 +111,7 @@ getBodyTopHTML();
         data-search="true"
         data-cookie="true"
         data-cookie-id-table="AddMonitorsTable"
-        data-cookie-expire="86400s"
+        data-cookie-expire="2y"
         data-click-to-select="true"
         data-remember-order="false"
         data-show-columns="true"
@@ -130,6 +137,7 @@ data-min-width="562"
             <!-- Row styling is handled by bootstrap-tables -->
             <tr>
               <th data-sortable="true" data-field="camera.Name" class="CameraName"><?php echo translate('Name') ?></th>
+              <th data-sortable="true" data-field="mac" class="CameraMAC"><?php echo translate('MAC Address') ?></th>
               <th data-sortable="true" data-field="camera.ip" class="CameraIP"><?php echo translate('IP Address') ?></th>
               <th data-sortable="true" data-field="url" class="Url"><?php echo translate('URL') ?></th>
               <th data-sortable="true" data-field="camera.Manufacturer" class="Manufacturer"><?php echo translate('Manufacturer') ?></th>

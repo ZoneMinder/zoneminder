@@ -43,6 +43,7 @@
 #ifdef WITH_GSOAP
 #include "soapPullPointSubscriptionBindingProxy.h"
 #include "plugin/wsseapi.h"
+#include "plugin/wsaapi.h"
 #include <openssl/err.h>
 #endif
 
@@ -62,7 +63,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
   friend class MonitorLinkExpression;
 
-public:
+ public:
   typedef enum {
     QUERY=0,
     CAPTURE,
@@ -111,6 +112,12 @@ public:
   } DecodingOption;
 
   typedef enum {
+    HLS,
+    MSE,
+    WEBRTC
+  } RTSP2WebOption;
+
+  typedef enum {
     LOCAL=1,
     REMOTE,
     FILE,
@@ -147,12 +154,11 @@ public:
   } Deinterlace;
 
   typedef enum {
-    UNKNOWN,
+    UNKNOWN = 0,
     IDLE,
     PREALARM,
     ALARM,
-    ALERT,
-    TAPE
+    ALERT
   } State;
 
   typedef enum {
@@ -161,12 +167,12 @@ public:
     PASSTHROUGH,
   } VideoWriter;
 
-protected:
+ protected:
   typedef std::set<Zone *> ZoneSet;
 
   typedef enum { GET_SETTINGS=0x1, SET_SETTINGS=0x2, RELOAD=0x4, SUSPEND=0x10, RESUME=0x20 } Action;
 
-  typedef enum { CLOSE_TIME, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
+  typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_DURATION, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
   /* sizeof(SharedData) expected to be 472 bytes on 32bit and 64bit */
   typedef struct {
@@ -176,6 +182,8 @@ protected:
     uint32_t state;             /* +12   */
     double      capture_fps;       // Current capturing fps
     double      analysis_fps;      // Current analysis fps
+    double      latitude;
+    double      longitude;
     uint64_t last_event_id;     /* +16   */
     uint32_t action;            /* +24   */
     int32_t brightness;         /* +28   */
@@ -197,7 +205,7 @@ protected:
     uint32_t audio_frequency;   /* +68   */
     uint32_t audio_channels;    /* +72   */
     uint32_t reserved3;         /* +76   */
-    /* 
+    /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
@@ -257,9 +265,9 @@ protected:
     timeval recording;      // used as both bool and a pointer to the timestamp when recording should begin
   } VideoStoreData;
 
-public:
+ public:
   class MonitorLink {
-  protected:
+   protected:
     std::shared_ptr<Monitor>  monitor;
     unsigned int zone_id;
     const Zone    *zone;
@@ -288,39 +296,39 @@ public:
     uint64_t   last_event_id;
     std::vector<Zone> zones;
 
-    public:
-      MonitorLink(std::shared_ptr<Monitor> p_monitor, unsigned int p_zone_id);
-      ~MonitorLink();
+   public:
+    MonitorLink(std::shared_ptr<Monitor> p_monitor, unsigned int p_zone_id);
+    ~MonitorLink();
 
-      inline unsigned int Id() const { return monitor->Id(); }
-      inline const char *Name() const { return name.c_str(); }
+    inline unsigned int Id() const { return monitor->Id(); }
+    inline const char *Name() const { return name.c_str(); }
 
-      inline bool isConnected() const { return connected && shared_data->valid; }
-      inline time_t getLastConnectTime() const { return last_connect_time; }
+    inline bool isConnected() const { return connected && shared_data->valid; }
+    inline time_t getLastConnectTime() const { return last_connect_time; }
 
-      inline uint32_t lastFrameScore() {
-        return shared_data->last_frame_score;
-      }
+    inline uint32_t lastFrameScore() {
+      return shared_data->last_frame_score;
+    }
 
-      bool connect();
-      bool disconnect();
+    bool connect();
+    bool disconnect();
 
-      bool isAlarmed();
-      bool inAlarm();
-      bool hasAlarmed();
-      int score();
+    bool isAlarmed();
+    bool inAlarm();
+    bool hasAlarmed();
+    int score();
   };
-protected:
+ protected:
 
   class AmcrestAPI {
-  protected:
+   protected:
     Monitor *parent;
     std::string amcrest_response;
     CURLM *curl_multi = nullptr;
     CURL *Amcrest_handle = nullptr;
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
-  public:
+   public:
     explicit AmcrestAPI(Monitor *parent_);
     ~AmcrestAPI();
     int API_Connect();
@@ -329,8 +337,30 @@ protected:
     int start_Amcrest();
   };
 
+  class RTSP2WebManager {
+   protected:
+    Monitor *parent;
+    CURL *curl = nullptr;
+    //helper class for CURL
+    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+    bool RTSP2Web_Healthy;
+    bool Use_RTSP_Restream;
+    std::string RTSP2Web_endpoint;
+    std::string rtsp_username;
+    std::string rtsp_password;
+    std::string rtsp_path;
+
+   public:
+    explicit RTSP2WebManager(Monitor *parent_);
+    ~RTSP2WebManager();
+    void load_from_monitor();
+    int add_to_RTSP2Web();
+    int check_RTSP2Web();
+    int remove_from_RTSP2Web();
+  };
+
   class JanusManager {
-  protected:
+   protected:
     Monitor *parent;
     CURL *curl = nullptr;
     //helper class for CURL
@@ -348,7 +378,7 @@ protected:
     std::string profile_override;
     std::uint32_t rtsp_session_timeout;
 
-  public:
+   public:
     explicit JanusManager(Monitor *parent_);
     ~JanusManager();
     void load_from_monitor();
@@ -376,6 +406,8 @@ protected:
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
+  bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
+  int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
@@ -395,6 +427,7 @@ protected:
   std::string second_path;
 
   std::string onvif_url;
+  std::string onvif_events_path;
   std::string onvif_username;
   std::string onvif_password;
   std::string onvif_options;
@@ -406,8 +439,8 @@ protected:
   int             channel;
   int             format;
 
-  unsigned int    camera_width;
-  unsigned int    camera_height;
+  int    camera_width;
+  int    camera_height;
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
   bool            v4l_multi_buffer;
@@ -451,6 +484,7 @@ protected:
   Seconds    section_length;      // How long events should last in continuous modes
   bool        section_length_warn;  // Whether to log a warning when a motion event exceeds desired section_length
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
+  bool       startstop_on_section_length; // Whether to start/stop events on time % section_length
   bool       adaptive_skip;        // Whether to use the newer adaptive algorithm for this monitor
   int        frame_skip;        // How many frames to skip in continuous modes
   int        motion_frame_skip;      // How many frames to skip in motion detection
@@ -464,14 +498,18 @@ protected:
   int        fps_report_interval;  // How many images should be captured/processed between reporting the current FPS
   int        ref_blend_perc;      // Percentage of new image going into reference image.
   int        alarm_ref_blend_perc;      // Percentage of new image going into reference image during alarm.
-  bool       track_motion;      // Whether this monitor tries to track detected motion 
+  bool       track_motion;      // Whether this monitor tries to track detected motion
   int         signal_check_points;  // Number of points in the image to check for signal
   Rgb         signal_check_colour;  // The colour that the camera will emit when no video signal detected
   bool        embed_exif; // Whether to embed Exif data into each image frame or not
+  double      latitude;
+  double      longitude;
   bool        rtsp_server; // Whether to include this monitor as an rtsp server stream
   std::string rtsp_streamname;      // path in the rtsp url for this monitor
+  bool        soap_wsa_compl; // Whether the camera supports soap_wsa or not.
   std::string onvif_alarm_txt;     // def onvif_alarm_txt
   int         importance;           // Importance of this monitor, affects Connection logging errors.
+  int         startup_delay;        // Seconds to sleep before connecting to camera
   unsigned int         zone_count;
 
   int capture_max_fps;
@@ -481,8 +519,9 @@ protected:
 
   int        event_count;
   int        image_count;
-  int         last_capture_image_count; // last value of image_count when calculating capture fps
+  int        last_capture_image_count; // last value of image_count when calculating capture fps
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
+  int        decoding_image_count;    // How many frames have been processed by analysis thread.
   int        motion_frame_count;      // How many frames have had motion detection performed on them.
   int         last_motion_frame_count; // last value of motion_frame_count when calculating fps
   int        ready_count;
@@ -515,13 +554,14 @@ protected:
   struct timeval *shared_timestamps;
   unsigned char *shared_images;
   std::vector<Image *> image_buffer;
+  AVPixelFormat *image_pixelformats;
 
   int video_stream_id; // will be filled in PrimeCapture
   int audio_stream_id; // will be filled in PrimeCapture
   Fifo *video_fifo;
   Fifo *audio_fifo;
 
-  std::unique_ptr<Camera> camera;
+  std::shared_ptr<Camera> camera;
   Event       *event;
   std::mutex   event_mutex;
   Storage     *storage;
@@ -569,6 +609,7 @@ protected:
   bool Event_Poller_Healthy;
   bool Event_Poller_Closes_Event;
 
+  RTSP2WebManager *RTSP2Web_Manager;
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
 
@@ -578,6 +619,8 @@ protected:
   _tev__CreatePullPointSubscriptionResponse response;
   _tev__PullMessages tev__PullMessages;
   _tev__PullMessagesResponse tev__PullMessagesResponse;
+  _wsnt__Renew wsnt__Renew;
+  _wsnt__RenewResponse wsnt__RenewResponse;
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
 #endif
@@ -591,7 +634,7 @@ protected:
   Rgb colour_val; /* RGB32 color */
   int usedsubpixorder;
 
-public:
+ public:
   explicit Monitor();
 
   ~Monitor();
@@ -599,6 +642,7 @@ public:
   void AddPrivacyBitmask();
 
   void LoadCamera();
+  const std::shared_ptr<Camera> getCamera() { return camera; }
   bool connect();
   bool disconnect();
   inline bool isConnected() const { return mem_ptr != nullptr; }
@@ -630,7 +674,7 @@ public:
     return storage;
   }
   inline CameraType GetType() const { return type; }
-  
+
   CapturingOption Capturing() const { return capturing; }
   AnalysingOption Analysing() const { return analysing; }
   RecordingOption Recording() const { return recording; }
@@ -653,6 +697,9 @@ public:
     return shared_data->janus_pin;
   }
 
+  inline bool has_out_of_order_packets() const { return packetqueue.has_out_of_order_packets(); };
+  int get_max_keyframe_interval() const { return packetqueue.get_max_keyframe_interval(); };
+
   bool OnvifEnabled() {
     return onvif_event_listener;
   }
@@ -662,10 +709,15 @@ public:
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
-    if (image_count >= ready_count) {
+    if (!packetqueue.get_max_keyframe_interval()) {
+      Debug(4, "No keyframe interval.");
+      return false;
+    }
+    if (decoding_image_count >= ready_count) {
+      Debug(4, "Ready because image_count(%d) >= ready_count(%d)", decoding_image_count, ready_count);
       return true;
     }
-    Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count);
+    Debug(4, "Not ready because decoding_image_count(%d) <= ready_count(%d)", decoding_image_count, ready_count);
     return false;
   }
   inline bool Active() const {
@@ -681,27 +733,29 @@ public:
   }
   void setLastViewed(SystemTimePoint new_time) {
     if (shared_data && shared_data->valid)
-      shared_data->last_viewed_time = 
+      shared_data->last_viewed_time =
         static_cast<int64>(std::chrono::duration_cast<Seconds>(new_time.time_since_epoch()).count());
   }
   bool hasViewers() {
     if (shared_data && shared_data->valid) {
       SystemTimePoint now = std::chrono::system_clock::now();
-      Debug(1, "Last viewed %" PRId64 " seconds ago", 
-          static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
-          -
-          shared_data->last_viewed_time
-          );
+      Debug(3, "Last viewed %" PRId64 " seconds ago",
+            static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
+            -
+            shared_data->last_viewed_time
+           );
       return (
-          (
-           static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
-           - 
-           shared_data->last_viewed_time
-          ) > 1 ? false : true);
+               (
+                 static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
+                 -
+                 shared_data->last_viewed_time
+               ) > 1 ? false : true);
     }
     return false;
   }
   inline bool Exif() const { return embed_exif; }
+  inline double Latitude() const { return shared_data ? shared_data->latitude : latitude; }
+  inline double Longitude() const { return shared_data ? shared_data->longitude : longitude; }
   inline bool RTSPServer() const { return rtsp_server; }
   inline bool RecordAudio() const { return record_audio; }
 
@@ -803,13 +857,15 @@ public:
   int PreCapture() const;
   int Capture();
   int PostCapture() const;
+  int Pause();
+  int Play();
   int Close();
 
   void CheckAction();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
-   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
-   //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
+  // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.
+  //unsigned int DetectBlack( const Image &comp_image, Event::StringSet &zoneSet );
   bool CheckSignal( const Image *image );
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
@@ -819,9 +875,9 @@ public:
   std::string Substitute(const std::string &format, SystemTimePoint ts_time) const;
   void TimestampImage(Image *ts_image, SystemTimePoint ts_time) const;
   Event *openEvent(
-      const std::shared_ptr<ZMPacket> &snap,
-      const std::string &cause,
-      const Event::StringSetMap &noteSetMap);
+    const std::shared_ptr<ZMPacket> &snap,
+    const std::string &cause,
+    const Event::StringSetMap &noteSetMap);
   void closeEvent();
 
   void Reload();
@@ -854,6 +910,7 @@ public:
     return shared_data ? shared_data->analysis_fps : 0.0;
   }
   int Importance() const { return importance; }
+  int StartupDelay() const { return startup_delay; }
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

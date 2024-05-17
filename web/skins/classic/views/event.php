@@ -55,9 +55,9 @@ if ($rate > 1600) {
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if (isset($_COOKIE['zmEventScale'.$Event->MonitorId()])) {
-  $scale = $_COOKIE['zmEventScale'.$Event->MonitorId()];
+  $scale = validInt($_COOKIE['zmEventScale'.$Event->MonitorId()]);
 } else {
-  $scale = $monitor->DefaultScale();
+  $scale = validInt($monitor->DefaultScale());
 }
 if (!validInt($scale) and $scale != '0') {
   $scale = '0';
@@ -73,6 +73,11 @@ if (isset($_REQUEST['showZones'])) {
   $showZones = $_SESSION['zmEventShowZones'.$monitor->Id()];
 }
 
+$codecs = array(
+  'auto'  => translate('Auto'),
+  'MP4'   => translate('MP4'),
+  'MJPEG' => translate('MJPEG'),
+);
 $codec = 'auto';
 if (isset($_REQUEST['codec'])) {
   $codec = $_REQUEST['codec'];
@@ -81,6 +86,11 @@ if (isset($_REQUEST['codec'])) {
   $codec = $_SESSION['zmEventCodec'.$Event->MonitorId()];
 } else {
   $codec = $monitor->DefaultCodec();
+}
+if (!isset($codecs[$codec])) {
+  ZM\Warning("Invalid value for Codec: $codec, reverting to auto");
+  $codec = 'auto';
+  unset($_SESSION['zmEventCodec'.$Event->MonitorId()]);
 }
 session_write_close();
 
@@ -109,10 +119,29 @@ else
   $streamMode = 'video';
 
 $replayMode = '';
-if (isset($_REQUEST['replayMode']))
-  $replayMode = validHtmlStr($_REQUEST['replayMode']);
-if (isset($_COOKIE['replayMode']) && preg_match('#^[a-z]+$#', $_COOKIE['replayMode']))
-  $replayMode = validHtmlStr($_COOKIE['replayMode']);
+if (isset($_REQUEST['replayMode'])) {
+  if (isset($replayModes[$_REQUEST['replayMode']])) {
+    $replayMode = $_REQUEST['replayMode'];
+  } else {
+    ZM\Warning('Invalid value for replayMode in request.');
+  }
+} else if (isset($_COOKIE['replayMode'])) {
+  if (isset($replayModes[$_COOKIE['replayMode']])) {
+    $replayMode = $_COOKIE['replayMode'];
+  } else {
+    ZM\Warning('Invalid value for replayMode in cookies. Removing.');
+    zm_setcookie('replayMode', '', time()-86400);
+  }
+} else {
+  $preference = $user->Preference('replayMode');
+  if ($preference->Value()) {
+    if (isset($replayModes[$preference->Value()])) {
+      $replayMode = $preference->Value();
+    } else {
+      ZM\Warning('Invalid value '.$preference->Value().' for replayMode in user preferences for user '.$user->Username());
+    }
+  }
+}
 
 if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
@@ -125,12 +154,13 @@ if ($Event->DefaultVideo()) {
   } else if ($codec == 'auto' or $codec == 'h265web.js') {
     if ($need_h265webjs and $has_h265webjs) {
       $player = 'h265web.js';
-    } else {
+    } else if (false !== strpos($Event->DefaultVideo(), 'h264')) {
       $player = 'video.js';
     }
   }
 }
 ZM\Debug("Codec: $codec");
+
 // videojs zoomrotate only when direct recording
 $Zoom = 1;
 $Rotation = 0;
@@ -180,7 +210,6 @@ if ( !$Event->Id() ) {
         <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
 <?php if ($Event->Id()) { ?>
-        <button id="renameBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Rename') ?>" disabled><i class="fa fa-font"></i></button>
         <button id="archiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Archive') ?>" disabled><i class="fa fa-archive"></i></button>
         <button id="unarchiveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Unarchive') ?>" disabled><i class="fa fa-file-archive-o"></i></button>
         <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
@@ -222,16 +251,45 @@ if ( !$Event->Id() ) {
       </div>
     </div>
 <?php if ($Event->Id()) { ?>
+    <div class="tags-container">
+      <div class="tag-dropdown">
+        <!-- input type has to be "search" (not "text") so that the Enter button (not Next) works on mobile Chrome browser. -->
+        <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput">
+        <div class="tag-dropdown-content"></div>
+      </div>
+      <button type="button" id="tagPrevBtn" title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
+        <i class="material-icons md-18" 
+          style="-moz-transform: scaleX(-1);
+            -o-transform: scaleX(-1);
+            -webkit-transform: scaleX(-1);
+            transform: scaleX(-1);
+            filter: FlipH;
+            -ms-filter: 'FlipH';">
+            label</i>
+      </button>
+      <button type="button" id="tagNextBtn" title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
+        <i class="material-icons md-18">label</i>
+      </button>
+    </div>
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="inner-content">
-      <div class="d-flex flex-row">
-        <div class="eventStats">
-          <!-- VIDEO STATISTICS TABLE -->
-          <table id="eventStatsTable" class="table-sm table-borderless">
-            <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
-          </table>
+      <div class="d-flex flex-row px-3">
+        <div class="container-fluid">
+          <div class="row row-cols-1 row-cols-sm-2">
+            <div id = "eventStats" class="col col-sm-4 eventStats">
+              <!-- VIDEO STATISTICS TABLE -->
+              <table id="eventStatsTable" class="table-sm table-borderless">
+                <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
+              </table>
+<?php
+if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
+?>
+              <div id="LocationMap"></div>
+<?php
+}
+?>
 
-      <div id="frames">
+              <div id="frames">
 <?php 
 if (file_exists($Event->Path().'/alarm.jpg')) {
   echo '
@@ -255,11 +313,12 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 ';
 }
 ?>
-      </div>
-        </div>
-        <div id="eventVideo">
-        <!-- VIDEO CONTENT -->
-          <div id="videoFeed">
+              </div><!-- id="frames" -->
+            </div><!-- id="eventStats" -->
+            <div id="wrapperEventVideo" class="col col-sm-8 pl-0 pr-0">
+              <div id="eventVideo">
+              <!-- VIDEO CONTENT -->
+                <div id="videoFeed">
 <?php
 if ($player == 'video.js') {
 ?>
@@ -291,10 +350,10 @@ if ($player == 'video.js') {
       <div id="imageFeed">
 <?php
 if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
-  $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>$scale, 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
+  $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
   outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
 } else {
-  $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>$scale, 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
+  $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
   if (!canStreamNative()) {
     echo '<div class="warning">We have detected an inability to stream natively.  Unfortunately we no longer support really ancient browsers.  Trying anyways.</div>';
   }
@@ -304,11 +363,11 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
     validHtmlStr($Event->Name()));
 } // end if stream method
 ?>
-        <div id="progressBar" style="width: 100%;">
-          <div id="alarmCues" style="width: 100%;"></div>
-          <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
-          <div id="indicator" style="display: none;"></div>
-        </div><!--progressBar-->
+                  <div id="progressBar" style="width: 100%;">
+                    <div id="alarmCues" style="width: 100%;"></div>
+                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+                    <div id="indicator" style="display: none;"></div>
+                  </div><!--progressBar-->
 <?php
 } else if ($player == 'h265web.js') {
 ?>
@@ -324,7 +383,7 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
 <?php
 } /*end if player */
 ?>
-<svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
+                  <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
 <?php
     foreach (ZM\Zone::find(array('MonitorId'=>$monitor->Id()), array('order'=>'Area DESC')) as $zone) {
       echo $zone->svg_polygon();
@@ -333,6 +392,9 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   Sorry, your browser does not support inline SVG
 </svg>
         </div><!--videoFeed-->
+                <div class="monitorStatus">
+                  <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                </div>
         <div id="dvrControls">
           <span id="showLabel" class="showLabel"></span>
           <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">
@@ -386,23 +448,26 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
   #rates are defined in skins/classic/includes/config.php
   echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
-          <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
-          <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
-        </div>
-      </div><!--eventVideo-->
-      <div id="EventData" class="EventData">
-      <?php
-        $data = ZM\Event_Data::find(['EventId'=>$Event->Id()]);
-        if (count($data)) {
-          echo '<table class="table table-striped table-hover table-condensed"><thead><tr><th>'.translate('Timestamp').'</th><th>'.translate('Data').'</th></tr></thead><tbody>'.PHP_EOL;
-          foreach ($data as $d) {
-            echo '<tr><td class="Timestamp">'.$d->Timestamp().'</td><td class="Data">'.strip_tags($d->Data()).'</td></tr>'.PHP_EOL;
+                  <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+                  <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
+                </div>
+              </div><!--eventVideo-->
+            </div><!--wrapperEventVideo-->
+          </div><!-- class="row" -->
+        </div><!-- class="container-fluid" -->
+        <div id="EventData" class="EventData">
+        <?php
+          $data = ZM\Event_Data::find(['EventId'=>$Event->Id()]);
+          if (count($data)) {
+            echo '<table class="table table-striped table-hover table-condensed"><thead><tr><th>'.translate('Timestamp').'</th><th>'.translate('Data').'</th></tr></thead><tbody>'.PHP_EOL;
+            foreach ($data as $d) {
+              echo '<tr><td class="Timestamp">'.$d->Timestamp().'</td><td class="Data">'.strip_tags($d->Data()).'</td></tr>'.PHP_EOL;
+            }
+            echo '</tbody></table>';
           }
-          echo '</tbody></table>';
-        }
-      ?>
-      </div><!--EventData-->
-</div>
+        ?>
+        </div><!--EventData-->
+      </div>
 <?php
 } // end if Event exists
 ?>
@@ -426,5 +491,7 @@ if ($player == 'video.js') {
 <?php
 }
   echo output_link_if_exists(array('css/base/zones.css'));
+  echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);
+  echo output_link_if_exists(array('js/leaflet/leaflet.css'), false);
   xhtmlFooter();
 ?>

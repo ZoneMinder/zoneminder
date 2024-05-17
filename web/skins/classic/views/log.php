@@ -39,43 +39,58 @@ getBodyTopHTML();
     <div id="toolbar">
       <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
       <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-
-<!--
-      <span class="ComponentFilter">
+      <div class="controlHeader">
+      <span class="term ComponentFilter">
         <label><?php echo translate('Component') ?></label>
-        <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
+<?php
+$components = dbFetchAll('SELECT DISTINCT Component FROM Logs ORDER BY Component', 'Component');
+ZM\Debug(print_r($components, true));
+$options = [''=>translate('All')] + array_combine($components, $components);
+ZM\Debug(print_r($options, true));
+echo '<span class="term-value-wrapper">';
+echo htmlSelect('filterComponent', $options, '', array('id'=>'filterComponent', 'class'=>'chosen'));
+echo '</span>';
+?>
       </span>
--->
 <?php if (count($Servers)>1) { ?>
-      <span class="ServerFilter">
+      <span class="term ServerFilter">
         <label><?php echo translate('Server') ?></label>
 <?php
 $ServersById = array(''=>translate('All')) + array_to_hash_by_key('Id', $Servers);
-echo htmlSelect('filterServerId', $ServersById, '', array('id'=>'filterServerId'));
+echo '<span class="term-value-wrapper">';
+echo htmlSelect('filterServerId', $ServersById, '', array('id'=>'filterServerId', 'class'=>'chosen'));
+echo '</span>';
 ?>
       </span>
 <?php } ?>
-      <span class="LevelFilter">
+      <span class="term LevelFilter">
         <label><?php echo translate('Level') ?></label>
 <?php
 $levels = array(''=>translate('All'));
 foreach (array_values(ZM\Logger::$codes) as $level) {
   $levels[$level] = $level;
 }
+echo '<span class="term-value-wrapper">';
 echo htmlSelect('filterLevel', $levels,
     (isset($_SESSION['ZM_LOG_FILTER_LEVEL']) ? $_SESSION['ZM_LOG_FILTER_LEVEL'] : ''),
-    array('data-on-change'=>'filterLog', 'id'=>'filterLevel'));
+    array('data-on-change'=>'filterLog', 'id'=>'filterLevel', 'class'=>'chosen'));
     #array('class'=>'form-control chosen', 'data-on-change'=>'filterLog'));
+echo '</span>';
 ?>
       </span>
-      <span class="StartDateTimeFilter">
+      <span class="term StartDateTimeFilter">
         <label><?php echo translate('Start Date/Time') ?></label>
-        <input type="text" name="filterStartDateTime" id="filterStartDateTime" value=""/>
+        <span class="term-value-wrapper">
+          <input type="text" name="filterStartDateTime" id="filterStartDateTime" value=""/>
+        </span>
       </span>
-      <span class="EndDateTimeFilter">
+      <span class="term EndDateTimeFilter">
         <label><?php echo translate('End Date/Time') ?></label>
-        <input type="text" name="filterEndDateTime" id="filterEndDateTime" value=""/>
+        <span class="term-value-wrapper">
+          <input type="text" name="filterEndDateTime" id="filterEndDateTime" value=""/>
+        </span>
       </span>
+      </div>
     </div><!--toolbar-->
 
     <table

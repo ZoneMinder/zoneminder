@@ -426,6 +426,8 @@ CREATE TABLE `Logs` (
 
 CREATE INDEX `Logs_TimeKey_idx` ON `Logs` (`TimeKey`);
 CREATE INDEX `Logs_Level_idx` ON `Logs` (`Level`);
+CREATE INDEX `Logs_Component_idx` ON `Logs` (`Component`);
+
 --
 -- Table structure for table `Manufacturers`
 --
@@ -507,6 +509,8 @@ CREATE TABLE `Monitors` (
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `DecodingEnabled` tinyint(3) unsigned NOT NULL default '1',
   `Decoding` enum('None','Ondemand','KeyFrames','KeyFrames+Ondemand', 'Always') NOT NULL default 'Always',
+  `RTSP2WebEnabled` BOOLEAN NOT NULL default false,
+  `RTSP2WebType` enum('HLS','MSE','WebRTC') NOT NULL default 'WebRTC',
   `JanusEnabled` BOOLEAN NOT NULL default false,
   `JanusAudioEnabled` BOOLEAN NOT NULL default false,
   `Janus_Profile_Override` VARCHAR(30) NOT NULL DEFAULT '',
@@ -518,6 +522,7 @@ CREATE TABLE `Monitors` (
   `EventStartCommand` VARCHAR(255) NOT NULL DEFAULT '',
   `EventEndCommand` VARCHAR(255) NOT NULL DEFAULT '',
   `ONVIF_URL` VARCHAR(255) NOT NULL DEFAULT '',
+  `ONVIF_Events_Path` varchar(20) DEFAULT '/Events' NOT NULL,
   `ONVIF_Username` VARCHAR(64) NOT NULL DEFAULT '',
   `ONVIF_Password` VARCHAR(64) NOT NULL DEFAULT '',
   `ONVIF_Options` VARCHAR(64) NOT NULL DEFAULT '',
@@ -575,6 +580,7 @@ CREATE TABLE `Monitors` (
   `AlarmFrameCount` smallint(5) unsigned NOT NULL default '1',
   `SectionLength` int(10) unsigned NOT NULL default '600',
   `SectionLengthWarn` boolean NOT NULL default true,
+  `EventCloseMode`  enum('system','time', 'duration', 'idle', 'alarm') NOT NULL DEFAULT 'system',
   `MinSectionLength` int(10) unsigned NOT NULL default '10',
   `FrameSkip` smallint(5) unsigned NOT NULL default '0',
   `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',
@@ -609,9 +615,11 @@ CREATE TABLE `Monitors` (
   `Longitude`  DECIMAL(11,8),
   `RTSPServer`  BOOLEAN NOT NULL DEFAULT FALSE,
   `RTSPStreamName`  varchar(255) NOT NULL default '',
+  `SOAP_wsa_compl` BOOLEAN NOT NULL default TRUE,
   `Importance`  enum('Normal','Less','Not') NOT NULL default 'Normal',
   `MQTT_Enabled`  BOOLEAN NOT NULL DEFAULT false,
   `MQTT_Subscriptions`  varchar(255) default '',
+  `StartupDelay`  INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`Id`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -680,6 +688,11 @@ CREATE TABLE `Servers` (
   `State_Id`	int(10) unsigned,
   `Status` enum('Unknown','NotRunning','Running') NOT NULL default 'Unknown',
   `CpuLoad` DECIMAL(5,1) default NULL,
+  `CpuUserPercent` DECIMAL(5,1) default NULL,
+  `CpuNicePercent` DECIMAL(5,1) default NULL,
+  `CpuSystemPercent` DECIMAL(5,1) default NULL,
+  `CpuIdlePercent` DECIMAL(5,1) default NULL,
+  `CpuUsagePercent` DECIMAL(5,1) default NULL,
   `TotalMem` bigint unsigned default null,
   `FreeMem` bigint unsigned default null,
   `TotalSwap` bigint  unsigned default null,
@@ -702,7 +715,10 @@ CREATE TABLE `Server_Stats` (
   `TimeStamp` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `CpuLoad` DECIMAL(5,1) default NULL,
   `CpuUserPercent` DECIMAL(5,1) default NULL,
+  `CpuNicePercent` DECIMAL(5,1) default NULL,
   `CpuSystemPercent` DECIMAL(5,1) default NULL,
+  `CpuIdlePercent` DECIMAL(5,1) default NULL,
+  `CpuUsagePercent` DECIMAL(5,1) default NULL,
   `TotalMem` bigint unsigned default null,
   `FreeMem` bigint unsigned default null,
   `TotalSwap` bigint  unsigned default null,
@@ -768,13 +784,13 @@ CREATE TABLE `Users` (
   `Password` varchar(64) NOT NULL default '',
   `Name`     varchar(64) NOT NULL default '',
   `Email`    varchar(64) NOT NULL default '',
-  `Phone`    varchar(16) NOT NULL default '',/* Space for 2 numbers, country codes, etc */
+  `Phone`    varchar(64) NOT NULL default '',/* Space for 2 numbers, country codes, etc */
   `Language` varchar(8),
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `Stream` enum('None','View') NOT NULL default 'None',
   `Events` enum('None','View','Edit') NOT NULL default 'None',
   `Control` enum('None','View','Edit') NOT NULL default 'None',
-  `Monitors` enum('None','View','Edit') NOT NULL default 'None',
+  `Monitors` enum('None','View','Edit','Create') NOT NULL default 'None',
   `Groups` enum('None','View','Edit') NOT NULL default 'None',
   `Devices` enum('None','View','Edit') NOT NULL default 'None',
   `Snapshots` enum('None','View','Edit') NOT NULL default 'None',
@@ -912,7 +928,7 @@ INSERT INTO `Users` (
     'View' /* Stream */,
     'Edit' /* Events */,
     'Edit' /* Control */,
-    'Edit' /* Monitors */,
+    'Create' /* Monitors */,
     'Edit' /* Groups */,
     'Edit' /* Devices */,
     'Edit' /* Snapshots */,
@@ -1180,6 +1196,11 @@ INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('2 Wide', '{ "default":{
 INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('3 Wide', '{ "default":{"float":"left", "width":"33%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
 INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('4 Wide', '{ "default":{"float":"left", "width":"25%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
 INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('5 Wide', '{ "default":{"float":"left", "width":"20%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('6 Wide', '{ "default":{"float":"left", "width":"16.6%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('7 Wide', '{ "default":{"float":"left", "width":"14.2%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('8 Wide', '{ "default":{"float":"left", "width":"12.5%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('9 Wide', '{ "default":{"float":"left", "width":"11.1%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
+INSERT INTO MontageLayouts (`Name`,`Positions`) VALUES ('10 Wide', '{ "default":{"float":"left", "width":"10%","left":"0px","right":"0px","top":"0px","bottom":"0px"} }' );
 
 CREATE TABLE Sessions (
   id char(32) not null,
@@ -1197,13 +1218,13 @@ CREATE TABLE Snapshots (
   PRIMARY KEY(Id)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
-CREATE TABLE Snapshot_Events (
+CREATE TABLE Snapshots_Events (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `SnapshotId` int(10) unsigned NOT NULL,
   FOREIGN KEY (`SnapshotId`) REFERENCES `Snapshots` (`Id`) ON DELETE CASCADE,
   `EventId`    bigint unsigned NOT NULL,
   FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE,
-  KEY `Snapshot_Events_SnapshotId_idx` (`SnapshotId`),
+  KEY `Snapshots_Events_SnapshotId_idx` (`SnapshotId`),
   PRIMARY KEY(Id)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
@@ -1217,6 +1238,27 @@ CREATE TABLE Reports (
   PRIMARY KEY(Id)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
 
+CREATE TABLE `Tags` (
+  `Id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `Name` varchar(64) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL DEFAULT '',
+  `CreateDate` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `CreatedBy` int(10) unsigned,
+  `LastAssignedDate` dateTime,
+  PRIMARY KEY (`Id`),
+  UNIQUE(`Name`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+CREATE TABLE `Events_Tags` (
+  `TagId` bigint(20) unsigned NOT NULL,
+  `EventId` bigint(20) unsigned NOT NULL,
+  `AssignedDate` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `AssignedBy` int(10) unsigned,
+  PRIMARY KEY (`TagId`, `EventId`),
+  CONSTRAINT `Events_Tags_ibfk_1` FOREIGN KEY (`TagId`) REFERENCES `Tags` (`Id`) ON DELETE CASCADE,
+  CONSTRAINT `Events_Tags_ibfk_2` FOREIGN KEY (`EventId`) REFERENCES `Events` (`Id`) ON DELETE CASCADE
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
+source @PKGDATADIR@/db/Object_Types.sql
 -- We generally don't alter triggers, we drop and re-create them, so let's keep them in a separate file that we can just source in update scripts.
 source @PKGDATADIR@/db/triggers.sql
 

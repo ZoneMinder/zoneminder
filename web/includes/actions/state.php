@@ -44,5 +44,5 @@ if ($action == 'state') {
   if (isset($_REQUEST['runState']))
     dbQuery('DELETE FROM `States` WHERE `Name`=?', array($_REQUEST['runState']));
 }
-$redirect = '?view='.getHomeViewW();
+$redirect = '?view='.getHomeView();
 ?>

@@ -18,4 +18,5 @@
 #video {
   overflow-y: auto;
   height: 100%;
+  align-items: flex-start;
 }

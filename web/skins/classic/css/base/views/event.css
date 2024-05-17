@@ -1,3 +1,8 @@
+#content {
+  display: flex;
+  flex-direction: column;
+}
+
 #content .vjsMessage {
     width: 100%;
     position: absolute;
@@ -26,6 +31,7 @@
   z-index: 10;
   border: none;
   border-right: 1px solid black;
+  cursor: pointer;
 }
 
 #alarmCues span {
@@ -96,12 +102,13 @@ margin: auto 5px;
 height: 100%;
 }
 
+#eventStatsTable {
+}
 #eventVideo {
-    display: inline-block;
-    position: relative;
+  /* width: 100%; *//* flex will make it fill the available space */
 }
 .eventStats {
-  margin-right: 5px;
+  /* margin-right: 5px; */
 }
 
 #videoFeed {
@@ -186,6 +193,7 @@ height: 100%;
    */
   margin: 0;
   z-index: 5;
+  overflow-x: clip;
 }
 
 #progressBar .progressBox {
@@ -331,7 +339,7 @@ svg.zones {
 #indicator {
   height: 2.75em;
   position: absolute;
-  border-left: 1px solid blue;
+  border-left: 2px solid blue;
   margin-top: -1.25em;
 }
 

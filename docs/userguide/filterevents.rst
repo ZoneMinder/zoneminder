@@ -34,7 +34,7 @@ Here is what the filter window looks like
   * Update used disk space: calculates how much disk space is currently taken by the event and updates the db record.
   * Create video for all matches: creates a video file of all the events that match 
   * Create video for all matches: ffmpeg will be used to create a video file (mp4) out of all the stored jpgs if using jpeg storage.
-	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguents to the command, the last argument will be the absolute path to the event, preceded by replacement arguents. eg: /usr/bin/script.sh %MN% will execute as /usr/bin/script.sh MonitorName /path/to/event. Please note that urls may contain characters like & that need quoting. So you may need to put quotes around them like /usr/bin/scrupt.sh "%MN%".
+	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguments to the command, the last argument will be the absolute path to the event, preceded by replacement arguments. eg: /usr/bin/script.sh %MN% will execute as /usr/bin/script.sh MonitorName /path/to/event. Please note that urls may contain characters like & that need quoting. So you may need to put quotes around them like /usr/bin/scrupt.sh "%MN%".
 	* Delete all matches: Deletes all the matched events.
 	* Email details of all matches: Sends an email to the configured address with details about the event. 
   * Copy all matches: copies the event files to another location, specified in the Copy To dropdown.  The other location must be setup in the Storage Tab under options.
@@ -81,12 +81,14 @@ Here is what the filter window looks like
     *    %EPIM%     Path to the (first) event image with the highest score, suitable for use in img tags
     *    %EPIMOD%   Path to image containing object detection, suitable for use in img tags
     *    %EPIMODG%  Path to image containing object detection animated gif version, suitable for use in img tags
+    *    %EPISNAP%  Path to the snapshot image, which should be the frame with the most motion
     *    %EI1%      Attach first alarmed event image
     *    %EI1A%     Attach first alarmed event analysis image
     *    %EIM%      Attach (first) event image with the highest score
     *    %EIMA%     Attach (first) event analysis image with the highest score
     *    %EIMOD%    Attach image containing object detection
     *    %EIMODG%   Attach image containing object detection animated gif version
+    *    %EISNAP%   Attach the snapshot image, which should be the frame with the most motion
     *    %EV%       Attach event mpeg video
     *    %EVM%      Attach event mpeg video in phone format
     *    %MID%      Monitor Id
@@ -100,6 +102,7 @@ Here is what the filter window looks like
     *    %MP%       Path to the monitor window
     *    %MPS%      Path to the monitor stream
     *    %MPI%      Path to the monitor recent image
+    *    %FID%      Id of the current filter that matched
     *    %FN%       Name of the current filter that matched
     *    %FP%       Path to the current filter that matched
     *    %ZP%       Path to your ZoneMinder console

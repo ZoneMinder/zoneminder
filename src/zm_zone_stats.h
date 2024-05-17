@@ -1,21 +1,21 @@
 //
 // ZoneMinder Zone Stats Class Interfaces, $Date$, $Revision$
 // Copyright (C) 2021 Isaac Connor
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_ZONE_STATS_H
 #define ZM_ZONE_STATS_H
@@ -27,15 +27,15 @@
 class ZoneStats {
  public:
   explicit ZoneStats(int zone_id) :
-      zone_id_(zone_id),
-      pixel_diff_(0),
-      alarm_pixels_(0),
-      alarm_filter_pixels_(0),
-      alarm_blob_pixels_(0),
-      alarm_blobs_(0),
-      min_blob_size_(0),
-      max_blob_size_(0),
-      score_(0) {};
+    zone_id_(zone_id),
+    pixel_diff_(0),
+    alarm_pixels_(0),
+    alarm_filter_pixels_(0),
+    alarm_blob_pixels_(0),
+    alarm_blobs_(0),
+    min_blob_size_(0),
+    max_blob_size_(0),
+    score_(0) {};
 
   void Reset() {
     pixel_diff_ = 0;
@@ -69,7 +69,7 @@ class ZoneStats {
           alarm_centre_.x_,
           alarm_centre_.y_,
           score_
-    );
+         );
   }
 
  public:

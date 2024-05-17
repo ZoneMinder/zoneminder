@@ -43,8 +43,8 @@ problems.
 General options:
   -v, --verbose                           - Produce more verbose output
   -l, --list                              - List the current status of active (or all with -v) monitors
-  -h, --help                               - Display usage information
-  -v, --version                            - Print the installed version of ZoneMinder
+  -h, --help                              - Display usage information
+  -v, --version                           - Print the installed version of ZoneMinder
 
 Options for use with devices:
   -d, --device [device_path]              - Get the current video device settings for [device_path] or all devices
@@ -54,8 +54,8 @@ Options for use with devices:
 Options for use with monitors:
   -m, --monitor <monitor_id>              - Specify which monitor to address, default 1 if absent
   -q, --query                             - Query the current settings for the monitor
-  -s, --state                             - Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,
-                                            3 = alert, 4 = tape
+  -s, --state                             - Output the current monitor state, 0 = unknown, 1 = idle, 2 = prealarm,
+                                            3 = alarm, 4 = alert, 5 = tape
   -B, --brightness [value]                - Output the current brightness, set to value if given
   -C, --contrast [value]                  - Output the current contrast, set to value if given
   -H, --hue [value]                       - Output the current hue, set to value if given
@@ -81,7 +81,7 @@ Options for use with monitors:
   -U, --username <username>               - When running in authenticated mode the username and
   -P, --password <password>               - password combination of the given user
   -A, --auth <authentication>             - Pass authentication hash string instead of user details
-  -x, --xtrigger                          - Output the current monitor trigger state, 0 = not triggered, 1 = triggered 
+  -x, --xtrigger                          - Output the current monitor trigger state, 0 = not triggered, 1 = triggered
 =cut
 
 */
@@ -97,81 +97,81 @@ Options for use with monitors:
 
 void Usage(int status=-1) {
   fputs(
-			"zmu <-d device_path> [-v] [function] [-U<username> -P<password>]\n"
-			"zmu <-m monitor_id> [-v] [function] [-U<username> -P<password>]\n"
-			"General options:\n"
-			"  -h, --help           : This screen\n"
-			"  -v, --verbose          : Produce more verbose output\n"
-			"  -l, --list           : List the current status of active (or all with -v) monitors\n"
-			"Options for use with devices:\n"
-			"  -d, --device [device_path]   : Get the current video device settings for [device_path] or all devices\n"
-			"  -V, --version <V4L version>  : Set the Video 4 Linux API version to use for the query, use 1 or 2\n"
-			"  -q, --query          : Query the current settings for the device\n"
-			"Options for use with monitors:\n"
-			"  -m, --monitor <monitor_id>   : Specify which monitor to address, default 1 if absent\n"
-			"  -q, --query          : Query the current settings for the monitor\n"
-			"  -s, --state          : Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,\n"
-			"                   3 = alert, 4 = tape\n"
-			"  -j, --janus-pin     : Output the pin, if set, used to secure Janus for this monitor \n"
-			"  -B, --brightness [value]     : Output the current brightness, set to value if given \n"
-			"  -C, --contrast [value]     : Output the current contrast, set to value if given \n"
-			"  -H, --hue [value]        : Output the current hue, set to value if given \n"
-			"  -O, --colour [value]       : Output the current colour, set to value if given \n"
-			"  -i, --image [image_index]    : Write captured image to disk as <monitor_name>.jpg, last image captured\n"
-			"                   or specified ring buffer index if given.\n"
-			"  -S, --scale <scale_%%ge>    : With --image specify any scaling (in %%) to be applied to the image\n"
-			"  -t, --timestamp [image_index]  : Output captured image timestamp, last image captured or specified\n"
-			"                   ring buffer index if given\n"
-			"  -R, --read_index         : Output ring buffer read index\n"
-			"  -W, --write_index        : Output ring buffer write index\n"
-			"  -e, --event          : Output last event index\n"
-			"  -f, --fps            : Output last Frames Per Second captured reading\n"
-			"  -z, --zones          : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n"
-			"  -a, --alarm          : Force alarm in monitor, this will trigger recording until cancelled with -c\n"
-			"  -n, --noalarm          : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n"
-			"  -c, --cancel           : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n"
-			"  -L, --reload           : Signal monitor to reload settings\n"
-			"  -E, --enable           : Enable capture, wake monitor up\n"
-			"  -D, --disable          : Disable capture, put monitor to sleep\n"
-			"  -u, --suspend          : Suspend motion detection, useful to prevent bogus alarms when panning etc\n"
-			"  -r, --resume           : Resume motion detection after a suspend\n"
-			"  -U, --username <username>    : When running in authenticated mode the username and\n"
-			"  -P, --password <password>    : password combination of the given user\n"
-			"  -A, --auth <authentication>  : Pass authentication hash string instead of user details\n"
-                        "  -T, --token <token>  : Pass JWT token string instead of user details\n"
-                        "  -x, --xtrigger       : Output the current monitor trigger state, 0 = not triggered, 1 = triggered\n"
+    "zmu <-d device_path> [-v] [function] [-U<username> -P<password>]\n"
+    "zmu <-m monitor_id> [-v] [function] [-U<username> -P<password>]\n"
+    "General options:\n"
+    "  -h, --help           : This screen\n"
+    "  -v, --verbose          : Produce more verbose output\n"
+    "  -l, --list           : List the current status of active (or all with -v) monitors\n"
+    "Options for use with devices:\n"
+    "  -d, --device [device_path]   : Get the current video device settings for [device_path] or all devices\n"
+    "  -V, --version <V4L version>  : Set the Video 4 Linux API version to use for the query, use 1 or 2\n"
+    "  -q, --query          : Query the current settings for the device\n"
+    "Options for use with monitors:\n"
+    "  -m, --monitor <monitor_id>   : Specify which monitor to address, default 1 if absent\n"
+    "  -q, --query          : Query the current settings for the monitor\n"
+    "  -s, --state          : Output the current monitor state, 0 = idle, 1 = prealarm, 2 = alarm,\n"
+    "                   3 = alert, 4 = tape\n"
+    "  -j, --janus-pin     : Output the pin, if set, used to secure Janus for this monitor \n"
+    "  -B, --brightness [value]     : Output the current brightness, set to value if given \n"
+    "  -C, --contrast [value]     : Output the current contrast, set to value if given \n"
+    "  -H, --hue [value]        : Output the current hue, set to value if given \n"
+    "  -O, --colour [value]       : Output the current colour, set to value if given \n"
+    "  -i, --image [image_index]    : Write captured image to disk as <monitor_name>.jpg, last image captured\n"
+    "                   or specified ring buffer index if given.\n"
+    "  -S, --scale <scale_%%ge>    : With --image specify any scaling (in %%) to be applied to the image\n"
+    "  -t, --timestamp [image_index]  : Output captured image timestamp, last image captured or specified\n"
+    "                   ring buffer index if given\n"
+    "  -R, --read_index         : Output ring buffer read index\n"
+    "  -W, --write_index        : Output ring buffer write index\n"
+    "  -e, --event          : Output last event index\n"
+    "  -f, --fps            : Output last Frames Per Second captured reading\n"
+    "  -z, --zones          : Write last captured image overlaid with zones to <monitor_name>-Zones.jpg\n"
+    "  -a, --alarm          : Force alarm in monitor, this will trigger recording until cancelled with -c\n"
+    "  -n, --noalarm          : Force no alarms in monitor, this will prevent alarms until cancelled with -c\n"
+    "  -c, --cancel           : Cancel a forced alarm/noalarm in monitor, required after being enabled with -a or -n\n"
+    "  -L, --reload           : Signal monitor to reload settings\n"
+    "  -E, --enable           : Enable capture, wake monitor up\n"
+    "  -D, --disable          : Disable capture, put monitor to sleep\n"
+    "  -u, --suspend          : Suspend motion detection, useful to prevent bogus alarms when panning etc\n"
+    "  -r, --resume           : Resume motion detection after a suspend\n"
+    "  -U, --username <username>    : When running in authenticated mode the username and\n"
+    "  -P, --password <password>    : password combination of the given user\n"
+    "  -A, --auth <authentication>  : Pass authentication hash string instead of user details\n"
+    "  -T, --token <token>  : Pass JWT token string instead of user details\n"
+    "  -x, --xtrigger       : Output the current monitor trigger state, 0 = not triggered, 1 = triggered\n"
 
-	 "", stderr );
+    "", stderr );
 
   exit(status);
 }
 
 typedef enum {
-	ZMU_BOGUS      = 0x00000000,
-	ZMU_STATE      = 0x00000001,
-	ZMU_IMAGE      = 0x00000002,
-	ZMU_TIME       = 0x00000004,
-	ZMU_READ_IDX   = 0x00000008,
-	ZMU_WRITE_IDX  = 0x00000010,
-	ZMU_EVENT      = 0x00000020,
-	ZMU_FPS        = 0x00000040,
-	ZMU_ZONES      = 0x00000080,
-	ZMU_ALARM      = 0x00000100,
-	ZMU_NOALARM    = 0x00000200,
-	ZMU_CANCEL     = 0x00000400,
-	ZMU_QUERY      = 0x00000800,
-	ZMU_BRIGHTNESS = 0x00001000,
-	ZMU_CONTRAST   = 0x00002000,
-	ZMU_HUE        = 0x00004000,
-	ZMU_COLOUR     = 0x00008000,
-	ZMU_RELOAD     = 0x00010000,
-	ZMU_ENABLE     = 0x00100000,
-	ZMU_DISABLE    = 0x00200000,
-	ZMU_SUSPEND    = 0x00400000,
-	ZMU_RESUME     = 0x00800000,
-	ZMU_LIST       = 0x10000000,
-        ZMU_TRIGGER    = 0x20000000,
-        ZMU_JANUS      = 0x40000000,
+  ZMU_BOGUS      = 0x00000000,
+  ZMU_STATE      = 0x00000001,
+  ZMU_IMAGE      = 0x00000002,
+  ZMU_TIME       = 0x00000004,
+  ZMU_READ_IDX   = 0x00000008,
+  ZMU_WRITE_IDX  = 0x00000010,
+  ZMU_EVENT      = 0x00000020,
+  ZMU_FPS        = 0x00000040,
+  ZMU_ZONES      = 0x00000080,
+  ZMU_ALARM      = 0x00000100,
+  ZMU_NOALARM    = 0x00000200,
+  ZMU_CANCEL     = 0x00000400,
+  ZMU_QUERY      = 0x00000800,
+  ZMU_BRIGHTNESS = 0x00001000,
+  ZMU_CONTRAST   = 0x00002000,
+  ZMU_HUE        = 0x00004000,
+  ZMU_COLOUR     = 0x00008000,
+  ZMU_RELOAD     = 0x00010000,
+  ZMU_ENABLE     = 0x00100000,
+  ZMU_DISABLE    = 0x00200000,
+  ZMU_SUSPEND    = 0x00400000,
+  ZMU_RESUME     = 0x00800000,
+  ZMU_LIST       = 0x10000000,
+  ZMU_TRIGGER    = 0x20000000,
+  ZMU_JANUS      = 0x40000000,
 } Function;
 
 bool ValidateAccess(User *user, int mon_id, int function) {
@@ -275,12 +275,12 @@ int main(int argc, char *argv[]) {
   bool have_colour = false;
 
   char *zoneString = nullptr;
-  char *username = nullptr;
-  char *password = nullptr;
+  std::string username;
+  std::string password;
   char *auth = nullptr;
   std::string jwt_token_str = "";
 #if ZM_HAS_V4L2
-    int v4lVersion = 2;
+  int v4lVersion = 2;
 #endif // ZM_HAS_V4L2
   while (1) {
     int option_index = 0;
@@ -291,137 +291,137 @@ int main(int argc, char *argv[]) {
     }
 
     switch (c) {
-      case 'd':
-        if (optarg)
-          device = optarg;
-        break;
-      case 'm':
-        mon_id = atoi(optarg);
-        break;
-      case 'v':
-        verbose = true;
-        break;
-      case 's':
-        function |= ZMU_STATE;
-        break;
-      case 'j':
-        function |= ZMU_JANUS;
-        break;
-      case 'x':
-        function |= ZMU_TRIGGER;
-        break;
-      case 'i':
-        function |= ZMU_IMAGE;
-        if (optarg)
-          image_idx = atoi(optarg);
-        break;
-      case 'S':
-        scale = atoi(optarg);
-        break;
-      case 't':
-        function |= ZMU_TIME;
-        if (optarg)
-          image_idx = atoi(optarg);
-        break;
-      case 'R':
-        function |= ZMU_READ_IDX;
-        break;
-      case 'W':
-        function |= ZMU_WRITE_IDX;
-        break;
-      case 'e':
-        function |= ZMU_EVENT;
-        break;
-      case 'f':
-        function |= ZMU_FPS;
-        break;
-      case 'z':
-        function |= ZMU_ZONES;
-        if (optarg)
-          zoneString = optarg;
-        break;
-      case 'a':
-        function |= ZMU_ALARM;
-        break;
-      case 'n':
-        function |= ZMU_NOALARM;
-        break;
-      case 'c':
-        function |= ZMU_CANCEL;
-        break;
-      case 'L':
-        function |= ZMU_RELOAD;
-        break;
-      case 'E':
-        function |= ZMU_ENABLE;
-        break;
-      case 'D':
-        function |= ZMU_DISABLE;
-        break;
-      case 'u':
-        function |= ZMU_SUSPEND;
-        break;
-      case 'r':
-        function |= ZMU_RESUME;
-        break;
-      case 'q':
-        function |= ZMU_QUERY;
-        break;
-      case 'B':
-        function |= ZMU_BRIGHTNESS;
-        if (optarg) {
-          have_brightness = true;
-          brightness = atoi(optarg);
-        }
-        break;
-      case 'C':
-        function |= ZMU_CONTRAST;
-        if (optarg) {
-          have_contrast = true;
-          contrast = atoi(optarg);
-        }
-        break;
-      case 'H':
-        function |= ZMU_HUE;
-        if (optarg) {
-          have_hue = true;
-          hue = atoi(optarg);
-        }
-        break;
-      case 'O':
-        function |= ZMU_COLOUR;
-        if (optarg) {
-          have_colour = true;
-          colour = atoi(optarg);
-        }
-        break;
-      case 'U':
-        username = optarg;
-        break;
-      case 'P':
-        password = optarg;
-        break;
-      case 'A':
-        auth = optarg;
-        break;
-      case 'T':
-        jwt_token_str = std::string(optarg);
-        break;
+    case 'd':
+      if (optarg)
+        device = optarg;
+      break;
+    case 'm':
+      mon_id = atoi(optarg);
+      break;
+    case 'v':
+      verbose = true;
+      break;
+    case 's':
+      function |= ZMU_STATE;
+      break;
+    case 'j':
+      function |= ZMU_JANUS;
+      break;
+    case 'x':
+      function |= ZMU_TRIGGER;
+      break;
+    case 'i':
+      function |= ZMU_IMAGE;
+      if (optarg)
+        image_idx = atoi(optarg);
+      break;
+    case 'S':
+      scale = atoi(optarg);
+      break;
+    case 't':
+      function |= ZMU_TIME;
+      if (optarg)
+        image_idx = atoi(optarg);
+      break;
+    case 'R':
+      function |= ZMU_READ_IDX;
+      break;
+    case 'W':
+      function |= ZMU_WRITE_IDX;
+      break;
+    case 'e':
+      function |= ZMU_EVENT;
+      break;
+    case 'f':
+      function |= ZMU_FPS;
+      break;
+    case 'z':
+      function |= ZMU_ZONES;
+      if (optarg)
+        zoneString = optarg;
+      break;
+    case 'a':
+      function |= ZMU_ALARM;
+      break;
+    case 'n':
+      function |= ZMU_NOALARM;
+      break;
+    case 'c':
+      function |= ZMU_CANCEL;
+      break;
+    case 'L':
+      function |= ZMU_RELOAD;
+      break;
+    case 'E':
+      function |= ZMU_ENABLE;
+      break;
+    case 'D':
+      function |= ZMU_DISABLE;
+      break;
+    case 'u':
+      function |= ZMU_SUSPEND;
+      break;
+    case 'r':
+      function |= ZMU_RESUME;
+      break;
+    case 'q':
+      function |= ZMU_QUERY;
+      break;
+    case 'B':
+      function |= ZMU_BRIGHTNESS;
+      if (optarg) {
+        have_brightness = true;
+        brightness = atoi(optarg);
+      }
+      break;
+    case 'C':
+      function |= ZMU_CONTRAST;
+      if (optarg) {
+        have_contrast = true;
+        contrast = atoi(optarg);
+      }
+      break;
+    case 'H':
+      function |= ZMU_HUE;
+      if (optarg) {
+        have_hue = true;
+        hue = atoi(optarg);
+      }
+      break;
+    case 'O':
+      function |= ZMU_COLOUR;
+      if (optarg) {
+        have_colour = true;
+        colour = atoi(optarg);
+      }
+      break;
+    case 'U':
+      username = optarg;
+      break;
+    case 'P':
+      password = optarg;
+      break;
+    case 'A':
+      auth = optarg;
+      break;
+    case 'T':
+      jwt_token_str = std::string(optarg);
+      break;
 #if ZM_HAS_V4L2
-			case 'V':
-				v4lVersion = (atoi(optarg)==1)?1:2;
-				break;
+    case 'V':
+      v4lVersion = (atoi(optarg)==1)?1:2;
+      break;
 #endif // ZM_HAS_V4L2
-      case 'h':
-      case '?':
-        Usage(0);
-        break;
-      case 'l':
-        function |= ZMU_LIST;
-        break;
-      default:
-        //fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
-        break;
+    case 'h':
+    case '?':
+      Usage(0);
+      break;
+    case 'l':
+      function |= ZMU_LIST;
+      break;
+    default:
+      //fprintf( stderr, "?? getopt returned character code 0%o ??\n", c );
+      break;
     }
   } // end getopt loop
 
@@ -458,12 +458,12 @@ int main(int argc, char *argv[]) {
     if ( jwt_token_str != "" ) {
       user = zmLoadTokenUser(jwt_token_str, false);
     } else if ( strcmp(config.auth_relay, "none") == 0 ) {
-      if ( !username ) {
+      if (username.empty()) {
         Error("Username must be supplied");
         exit_zmu(-1);
       }
 
-      if ( !checkUser(username)) {
+      if (!checkUser(username)) {
         Error("Username greater than allowed 32 characters");
         exit_zmu(-1);
       }
@@ -471,14 +471,14 @@ int main(int argc, char *argv[]) {
       user = zmLoadUser(username);
     } else {
 
-      if ( !(username && password) && !auth ) {
+      if ( !(!username.empty() && !password.empty()) && !auth ) {
         Error("Username and password or auth/token string must be supplied");
         exit_zmu(-1);
       }
       if ( auth ) {
-        user = zmLoadAuthUser(auth, false);
+        user = zmLoadAuthUser(auth, username, false);
       }
-      if ( username && password ) {
+      if ( !username.empty() && !password.empty() ) {
         if ( !checkUser(username)) {
           Error("username greater than allowed 32 characters");
           exit_zmu(-1);
@@ -494,10 +494,10 @@ int main(int argc, char *argv[]) {
       Error("Unable to authenticate user");
       exit_zmu(-1);
     }
-		if ( !ValidateAccess(user, mon_id, function) ) {
-			Error("Insufficient privileges for user %s for requested function %x", username, function);
-			exit_zmu(-1);
-		}
+    if ( !ValidateAccess(user, mon_id, function) ) {
+      Error("Insufficient privileges for user %s for requested function %x", username.c_str(), function);
+      exit_zmu(-1);
+    }
   } // end if auth
 
   if ( mon_id > 0 ) {
@@ -528,8 +528,8 @@ int main(int argc, char *argv[]) {
     char separator = ' ';
     bool have_output = false;
     if ( function & ZMU_JANUS ) {
-        printf("%s", monitor->get_stream_key());
-        have_output = true;
+      printf("%s", monitor->get_stream_key());
+      have_output = true;
     }
     if ( function & ZMU_STATE ) {
       Monitor::State state = monitor->GetState();
@@ -562,8 +562,7 @@ int main(int argc, char *argv[]) {
         Microseconds ts_usec = std::chrono::duration_cast<Microseconds>(timestamp.time_since_epoch() - ts_sec);
         if (image_idx == -1) {
           printf("Time of last image capture: %s.%02d\n", timestamp_str, static_cast<int32>(ts_usec.count()));
-        }
-        else {
+        } else {
           printf("Time of image %d capture: %s.%02d\n", image_idx, timestamp_str, static_cast<int32>(ts_usec.count()));
         }
       } else {
@@ -604,7 +603,7 @@ int main(int argc, char *argv[]) {
     if ( function & ZMU_FPS ) {
       if ( verbose ) {
         printf("Current capture rate: %.2f frames per second, analysis rate: %.2f frames per second\n",
-            monitor->get_capture_fps(), monitor->get_analysis_fps());
+               monitor->get_capture_fps(), monitor->get_analysis_fps());
       } else {
         if ( have_output ) fputc(separator, stdout);
         printf("capture: %.2f, analysis: %.2f", monitor->get_capture_fps(), monitor->get_analysis_fps());
@@ -633,9 +632,9 @@ int main(int argc, char *argv[]) {
 
       if (verbose) {
         printf("Forcing alarm on current state: %s, event %" PRIu64 "\n",
-            state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"),
-            monitor->GetLastEventId()
-            );
+               state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"),
+               monitor->GetLastEventId()
+              );
       }
 
       // Ensure that we are not recording.  So the forced alarm is distinct from what was recording before
@@ -767,12 +766,12 @@ int main(int argc, char *argv[]) {
   } else { // non monitor functions
     if ( function & ZMU_QUERY ) {
 #if ZM_HAS_V4L2
-			char vidString[0x10000] = "";
-			bool ok = LocalCamera::GetCurrentSettings(device, vidString, v4lVersion, verbose);
-			printf("%s", vidString);
-			exit_zmu(ok ? 0 : -1);
+      char vidString[0x10000] = "";
+      bool ok = LocalCamera::GetCurrentSettings(device, vidString, v4lVersion, verbose);
+      printf("%s", vidString);
+      exit_zmu(ok ? 0 : -1);
 #else // ZM_HAS_V4L2
-			Error("Video4linux is required for device querying");
+      Error("Video4linux is required for device querying");
       exit_zmu(-1);
 #endif // ZM_HAS_V4L2
     }
@@ -792,8 +791,8 @@ int main(int argc, char *argv[]) {
     Debug(1, "Got %" PRIu64 " monitors", static_cast<uint64>(mysql_num_rows(result)));
 
     printf("%4s %9s %9s %9s %5s %8s %13s %5s %5s %9s %9s\n",
-        "Id", "Capturing", "Analysing", "Recording", "State", "TrgState",
-        "LastImageTime", "RdIdx", "WrIdx", "LastEvent", "FrameRate");
+           "Id", "Capturing", "Analysing", "Recording", "State", "TrgState",
+           "LastImageTime", "RdIdx", "WrIdx", "LastEvent", "FrameRate");
     for (int i=0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
       int monitor_id = atoi(dbrow[0]);
       if (mon_id and (monitor_id != mon_id)) continue;
@@ -805,31 +804,31 @@ int main(int argc, char *argv[]) {
             SystemTimePoint timestamp = monitor->GetTimestamp();
 
             printf("%4d %9d %9d %9d %5d %8d %13.2f %5d %5d %9" PRIu64 "%10.2f\n",
-                monitor->Id(),
-                monitor->Capturing(),
-                monitor->Analysing(),
-                monitor->Recording(),
-                monitor->GetState(),
-                monitor->GetTriggerState(),
-                FPSeconds(timestamp.time_since_epoch()).count(),
-                monitor->GetLastReadIndex(),
-                monitor->GetLastWriteIndex(),
-                monitor->GetLastEventId(),
-                monitor->GetFPS()
-                );
+                   monitor->Id(),
+                   monitor->Capturing(),
+                   monitor->Analysing(),
+                   monitor->Recording(),
+                   monitor->GetState(),
+                   monitor->GetTriggerState(),
+                   FPSeconds(timestamp.time_since_epoch()).count(),
+                   monitor->GetLastReadIndex(),
+                   monitor->GetLastWriteIndex(),
+                   monitor->GetLastEventId(),
+                   monitor->GetFPS()
+                  );
           }
         } else {
           printf("%4d%5d%6d%9d%11ld.%02ld%6d%6d%8d%8.2f\n",
-              monitor_id,
-              function,
-              0,
-              0,
-              0l, 0l,
-              0,
-              0,
-              0,
-              0.0
-              );
+                 monitor_id,
+                 function,
+                 0,
+                 0,
+                 0l, 0l,
+                 0,
+                 0,
+                 0,
+                 0.0
+                );
         } // end if function filter
       } // endif !user || canAccess(mon_id)
     } // end foreach row

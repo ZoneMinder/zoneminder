@@ -1013,13 +1013,15 @@ function handleClick(event) {
     }
 
     //if (obj.getAttribute('id').indexOf("liveStream") >= 0 || obj.getAttribute('id').indexOf("button_zoom") >= 0) { //Montage & Watch page
-    if (obj.getAttribute('id').indexOf("evtStream") >= 0 || obj.getAttribute('id').indexOf("button_zoom") >= 0) { //Event page
+    if (obj.getAttribute('id').indexOf("evtStream") >= 0 ||
+      obj.getAttribute('id').indexOf("button_zoom") >= 0 ||
+      obj.querySelector('video')) { //Event page
       //panZoom[monitorId].setOptions({disablePan: false});
-      if ((ctrled && shifted) || (!ctrled && !shifted)) {
-        return;
+      if (ctrled && shifted) {
+        panZoom[monitorId].zoom(1, {animate: true});
       } else if (ctrled) {
         //panZoom[monitorId].setOptions({disablePan: true});
-        panZoom[monitorId].zoom(1, {animate: true});
+        panZoom[monitorId].zoomOut();
       } else if (shifted) {
         const scalePanZoom = panZoom[monitorId].getScale() * Math.exp(panZoomStep);
         const point = {clientX: event.clientX, clientY: event.clientY};
@@ -1292,7 +1294,7 @@ function manageCursor(Id) {
   const currentScale = panZoom[Id].getScale().toFixed(1);
 
   if (shifted && ctrled) {
-    obj.style['cursor'] = 'not-allowed';
+    obj.style['cursor'] = 'zoom-out';
     //obj_btn.style['cursor'] = 'not-allowed';
   } else if (shifted) {
     obj.style['cursor'] = 'zoom-in';

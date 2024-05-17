@@ -523,8 +523,8 @@ function playClicked( ) {
       img.src = src;
       zmsBroke = false;
     } else {
-    streamReq({command: CMD_PLAY});
-  }
+      streamReq({command: CMD_PLAY});
+    }
   }
   streamPlay();
 }
@@ -1287,7 +1287,7 @@ function onStatsResize(vidWidth) {
 */
 function manageCursor(Id) {
   //const obj = document.getElementById('liveStream'+Id); //Montage & Watch page
-  let obj = document.getElementById('videoFeedStream'+Id); //Event page
+  const obj = document.getElementById('videoFeedStream'+Id); //Event page
   //const obj_btn = document.getElementById('button_zoom'+Id); //Change the cursor when you hover over the block of buttons at the top of the image. Not required on Event page
   const currentScale = panZoom[Id].getScale().toFixed(1);
 

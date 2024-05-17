@@ -1375,7 +1375,7 @@ $codecs = array(
 
                   echo htmlSelect('newMonitor[ControlId]', $controlTypes, $monitor->ControlId());
                   if ( canEdit('Control') ) {
-                    echo '&nbsp;'.makeLink('?view=controlcaps', translate('Edit'));
+                    echo '&nbsp;'.makeLink('?view=options&tab=control', translate('Edit'));
                   }
 ?>
             </li>

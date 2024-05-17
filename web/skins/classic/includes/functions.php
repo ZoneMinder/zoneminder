@@ -993,7 +993,7 @@ function xhtmlFooter() {
     echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
   }
-  if ( $basename == 'watch' ) {
+  if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
   }
 

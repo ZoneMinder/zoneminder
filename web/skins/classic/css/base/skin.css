@@ -24,6 +24,8 @@
 :root {
   --scrollbarBG: #F1F1F1;
   --sliderBG: #C1C1C1;
+  --alarmBG: #FFC0C0;
+  --alarmText: inherit;
 }
 
 @font-face {

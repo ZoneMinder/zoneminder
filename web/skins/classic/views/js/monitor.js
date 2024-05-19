@@ -82,14 +82,6 @@ function initPage() {
       $j('#WebSwatch').css('background-color', event.target.value);
     };
   });
-  $j('#contentForm').submit(function(event) {
-    if ( validateForm(this) ) {
-      $j('#contentButtons').hide();
-      return true;
-    } else {
-      return false;
-    };
-  });
 
   // Disable form submit on enter
   $j('#contentForm input').on('keyup keypress', function(e) {
@@ -135,7 +127,7 @@ function initPage() {
   });
   document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
     el.onchange = function() {
-      var form = document.getElementById('contentForm');
+      const form = document.getElementById('contentForm');
       form.tab.value = 'general';
       form.submit();
     };

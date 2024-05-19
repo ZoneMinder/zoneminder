@@ -220,6 +220,7 @@ $SLANG = array(
     'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
     'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
+    'ConfirmDeleteLayout'   => 'Are you sure you wish to delete current layout?',
     'ConfirmDeleteTitle'    => 'Delete Confirmation',
     'ConfirmPassword'       => 'Confirm Password',
     'ConfirmUnarchiveEvents'=> 'Are you sure you wish to unarchive the selected events?',

@@ -50,6 +50,8 @@ while (!$zm_terminate) {
       sleep($Config{ZM_STATS_UPDATE_INTERVAL});
     }
   }
+  # Clear out statuses for Monitors that aren't updating themselves.
+  zmDbDo('DELETE FROM Monitor_Status WHERE UpdatedOn < timestamp(DATE_SUB(NOW(), INTERVAL 1 MINUTE))?');
 
   $dbh->do('DELETE FROM Events_Hour WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 hour)') or Error($dbh->errstr());
   $dbh->do('DELETE FROM Events_Day WHERE StartDateTime < DATE_SUB(NOW(), INTERVAL 1 day)') or Error($dbh->errstr());

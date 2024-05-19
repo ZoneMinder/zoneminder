@@ -2144,27 +2144,29 @@ bool Monitor::Analyse() {
 
     if (event) {
       event->AddPacket(snap);
-    } else {
-      // In the case where people have pre-alarm frames, the web ui will generate the frame images
-      // from the mp4. So no one will notice anyways.
-      if (snap->image and (videowriter == PASSTHROUGH)) {
+    }
+
+    // In the case where people have pre-alarm frames, the web ui will generate the frame images
+    // from the mp4. So no one will notice anyways.
+    if (snap->image) {
+      if (videowriter == PASSTHROUGH) {
         if (!savejpegs) {
           Debug(1, "Deleting image data for %d", snap->image_index);
           // Don't need raw images anymore
           delete snap->image;
           snap->image = nullptr;
         }
-        if (snap->analysis_image and !(savejpegs & 2)) {
-          Debug(1, "Deleting analysis image data for %d", snap->image_index);
-          delete snap->analysis_image;
-          snap->analysis_image = nullptr;
-        }
       }
-      // Free up the decoded frame as well, we won't be using it for anything at this time.
-      if (snap->out_frame) av_frame_free(&snap->out_frame);
-      if (snap->buffer) av_freep(&snap->buffer);
-
+      if (snap->analysis_image and !(savejpegs & 2)) {
+        Debug(1, "Deleting analysis image data for %d", snap->image_index);
+        delete snap->analysis_image;
+        snap->analysis_image = nullptr;
+      }
     }
+    // Free up the decoded frame as well, we won't be using it for anything at this time.
+    if (snap->out_frame) av_frame_free(&snap->out_frame);
+    if (snap->buffer) av_freep(&snap->buffer);
+
     delete packet_lock;
   } // end scope for event_lock
 

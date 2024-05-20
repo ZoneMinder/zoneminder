@@ -110,6 +110,9 @@ function playClicked() {
  * @param {*} new_layout_id - the id of a layout to switch to
  */
 function selectLayout(new_layout_id) {
+  if (mode == EDITING) {
+    return;
+  }
   const ddm = $j('#zmMontageLayout');
   if (new_layout_id && (typeof(new_layout_id) != 'object')) {
     ddm.val(new_layout_id);

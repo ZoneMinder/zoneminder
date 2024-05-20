@@ -90,7 +90,7 @@ foreach ($layouts as $l) {
 
 /* Fill with preinstalled Layouts. They should always come first */
 foreach ($presetLayoutsNames as $name) {
-  if ($arrNameId[$name]) // Layout may be missing in BD (rare case during update process)
+  if (array_key_exists($name, $arrNameId)) // Layout may be missing in BD (rare case during update process)
     $layoutsById[$arrNameId[$name]] = $name; //We will only assign a name, which is necessary for the sorting order. We will replace it with an object in the next loop.
 }
 
@@ -266,7 +266,7 @@ if (canView('System')) {
           </span>
           <span id="ratioControl">
             <label><?php echo translate('Ratio') ?></label>
-            <?php echo htmlSelect('ratio', '', '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
+            <?php echo htmlSelect('ratio', [], '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
           </span>
           <span id="widthControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Width') ?></label>

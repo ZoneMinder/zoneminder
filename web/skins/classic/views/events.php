@@ -39,6 +39,10 @@ if ( isset($_REQUEST['filter'])) {
   $filter->set($_REQUEST['filter']);
 }
 
+if (!isset($_COOKIES['zmEventsTable.bs.table.pageList'])) {
+  zm_setcookie('zmEventsTable.bs.table.pageList', ZM_WEB_EVENTS_PER_PAGE);
+}
+
 parseSort();
 
 $filterQuery = $filter->querystring();

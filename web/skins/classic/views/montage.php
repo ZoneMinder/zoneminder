@@ -80,7 +80,7 @@ if (isset($_REQUEST['monitorStatusPositonSelected'])) {
 
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
-$FreeFormLayoutId = 0;
+$AutoLayoutName = '';
 
 /* Create an array "Name"=>"Id" to make it easier to find IDs by name*/
 $arrNameId = array();
@@ -101,10 +101,13 @@ uasort($layouts, function($a, $b) {
 
 /* Add custom Layouts & assign objects instead of names for preset Layouts */
 foreach ( $layouts as $l ) {
+  $nameLayout = $l->Name();
   if ( $l->Name() == 'Freeform' ) {
-    $FreeFormLayoutId = $l->Id();
+    $AutoLayoutName = $l->Id(); //Temporarily assign ID instead of Name to simplify the comparison code
+    $nameLayout = "Auto";
   }
-  $layoutsById[$l->Id()] = $l;
+  //$layoutsById[$l->Id()] = $l;
+  $layoutsById[$l->Id()] = $nameLayout;
 }
 
 zm_session_start();
@@ -199,16 +202,20 @@ foreach ($displayMonitors as &$row) {
   }
 } # end foreach Monitor
 
-if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id])) {
+if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id]) || $layout_id == $AutoLayoutName) {
   $default_layout = '';
-  if (count($monitors) > 6) {
+  if (count($monitors) >= 6) {
     $default_layout = '6 Wide';
-  } else if (count($monitors) > 4) {
+  } else if (count($monitors) >= 4) {
     $default_layout = '4 Wide';
   } else {
     $default_layout = '2 Wide';
   }
-  $layout_id = $arrNameId[$default_layout];
+  if ($layout_id != $AutoLayoutName) {
+    $layout_id = $arrNameId[$default_layout];
+  } else {
+    $AutoLayoutName = $default_layout;
+  }
 }
 
 if ( $layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id]) ) {

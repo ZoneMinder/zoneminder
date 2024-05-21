@@ -47,6 +47,6 @@ layouts[<?php echo $layout->Id() ?>] = {
   "Positions":<?php echo json_decode($layout->Positions())?$layout->Positions():'{}' ?>};
 <?php
 } // end foreach layout
-global $FreeFormLayoutId;
-echo 'freeform_layout_id='.$FreeFormLayoutId.';'
+global $AutoLayoutName;
+echo 'freeform_layout_id="'.$AutoLayoutName.'";'
 ?>

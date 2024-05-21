@@ -48,10 +48,6 @@ var defaultPresetRatio = 'auto';
 
 var averageMonitorsRatio;
 
-function stringToNumber(str) {
-  return parseInt(str.replace(/\D/g, ''));
-}
-
 function isPresetLayout(name) {
   return ((ZM_PRESET_LAYOUT_NAMES.indexOf(name) != -1) ? true : false);
 }
@@ -155,7 +151,8 @@ function selectLayout(new_layout_id) {
       const monitor_wrapper = monitor_frame.closest('[gs-id="' + monitor.id + '"]');
 
       if (nameLayout == "Freeform") {
-        monitor_wrapper.attr('gs-w', 12).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
+        monitor_wrapper.attr('gs-w', layoutColumns / stringToNumber(freeform_layout_id)).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
+        //monitor_wrapper.attr('gs-w', 12).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
       } else {
         monitor_wrapper.attr('gs-w', widthFrame).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
       }
@@ -449,7 +446,7 @@ function delete_layout(button) {
   }
   if (!document.getElementById('deleteConfirm')) {
     // Load the delete confirmation modal into the DOM
-//    $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+    // $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
     $j.getJSON(thisUrl + '?request=modal&modal=delconfirm', {
       key: 'ConfirmDeleteLayout',
     })
@@ -552,6 +549,7 @@ function handleClick(evt) {
       const point = {clientX: event.clientX, clientY: event.clientY};
       panZoom[id].zoomToPoint(scale, point, {focal: {x: event.clientX, y: event.clientY}});
     }
+    setTriggerChangedMonitors(id);
     //updateScale = true;
   }
 }
@@ -709,9 +707,9 @@ function initPage() {
     $j("#flipMontageHeader").slideToggle("fast");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
-//  if (getCookie('zmMontageLayout')) { //This is implemented in montage.php And the cookies may contain the number of a non-existent Layouts!!!
-//    $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
-//  }
+  //if (getCookie('zmMontageLayout')) { //This is implemented in montage.php And the cookies may contain the number of a non-existent Layouts!!!
+  //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
+  //}
 
   $j(".grid-monitor").hover(
       //Displaying "Scale" and other buttons at the top of the monitor image

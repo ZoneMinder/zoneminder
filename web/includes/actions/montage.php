@@ -29,7 +29,7 @@ if ( isset($_REQUEST['object']) ) {
         $Layout = new ZM\MontageLayout();
         $Layout->Name($_REQUEST['Name']);
       } else {
-        $Layout = new ZM\MontageLayout($_REQUEST['zmMontageLayout']);
+        $Layout = new ZM\MontageLayout(validCardinal($_REQUEST['zmMontageLayout']));
       }
       if (canEdit('System') or !$Layout->Id() or ($user->Id() == $Layout->UserId())) {
         $Layout->UserId($user->Id());

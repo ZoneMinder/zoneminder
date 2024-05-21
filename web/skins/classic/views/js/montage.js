@@ -549,6 +549,7 @@ function handleClick(evt) {
       const point = {clientX: event.clientX, clientY: event.clientY};
       panZoom[id].zoomToPoint(scale, point, {focal: {x: event.clientX, y: event.clientY}});
     }
+    setTriggerChangedMonitors(id);
     //updateScale = true;
   }
 }

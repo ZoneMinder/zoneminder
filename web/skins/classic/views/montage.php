@@ -199,7 +199,7 @@ foreach ($displayMonitors as &$row) {
   }
 } # end foreach Monitor
 
-if (!$layout_id) {
+if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id])) {
   $default_layout = '';
   if (count($monitors) > 6) {
     $default_layout = '6 Wide';

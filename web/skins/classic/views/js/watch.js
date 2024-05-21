@@ -1512,10 +1512,5 @@ function monitorsSetScale(id=null) {
   }
 }
 
-function stringToNumber(str) {
-  //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  return parseInt(str.replace(/\D/g, ''));
-}
-
 // Kick everything off
 $j( window ).on("load", initPage);

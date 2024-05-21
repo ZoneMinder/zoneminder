@@ -48,10 +48,6 @@ var defaultPresetRatio = 'auto';
 
 var averageMonitorsRatio;
 
-function stringToNumber(str) {
-  return parseInt(str.replace(/\D/g, ''));
-}
-
 function isPresetLayout(name) {
   return ((ZM_PRESET_LAYOUT_NAMES.indexOf(name) != -1) ? true : false);
 }
@@ -449,7 +445,7 @@ function delete_layout(button) {
   }
   if (!document.getElementById('deleteConfirm')) {
     // Load the delete confirmation modal into the DOM
-//    $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+    // $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
     $j.getJSON(thisUrl + '?request=modal&modal=delconfirm', {
       key: 'ConfirmDeleteLayout',
     })
@@ -709,9 +705,9 @@ function initPage() {
     $j("#flipMontageHeader").slideToggle("fast");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
-//  if (getCookie('zmMontageLayout')) { //This is implemented in montage.php And the cookies may contain the number of a non-existent Layouts!!!
-//    $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
-//  }
+  //if (getCookie('zmMontageLayout')) { //This is implemented in montage.php And the cookies may contain the number of a non-existent Layouts!!!
+  //  $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
+  //}
 
   $j(".grid-monitor").hover(
       //Displaying "Scale" and other buttons at the top of the monitor image

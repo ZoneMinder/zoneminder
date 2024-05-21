@@ -1154,6 +1154,10 @@ function applyChosen() {
   $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
 }
 
+function stringToNumber(str) {
+  return parseInt(str.replace(/\D/g, ''));
+}
+
 const font = new FontFaceObserver('Material Icons', {weight: 400});
 font.load().then(function() {
   $j('.material-icons').css('display', 'inline-block');

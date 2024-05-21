@@ -255,7 +255,9 @@ $maxfps_options = array(''=>translate('Unlimited'),
   '1' => '1 '.translate('FPS'),
   '2' => '2 '.translate('FPS'),
   '5' => '5 '.translate('FPS'),
+  '8' => '8 '.translate('FPS'),
   '10' => '10 '.translate('FPS'),
+  '15' => '15 '.translate('FPS'),
   '20' => '20 '.translate('FPS'),
 );
 echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);

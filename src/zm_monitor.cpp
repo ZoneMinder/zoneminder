@@ -2555,12 +2555,14 @@ bool Monitor::Analyse() {
     } else {
       // In the case where people have pre-alarm frames, the web ui will generate the frame images
       // from the mp4. So no one will notice anyways.
-      if (snap->image and ((videowriter == PASSTHROUGH) || shared_data->recording == RECORDING_NONE)) {
-        if (!savejpegs) {
-          Debug(1, "Deleting image data for %d", snap->image_index);
-          // Don't need raw images anymore
-          delete snap->image;
-          snap->image = nullptr;
+      if (snap->image) {
+        if ((videowriter == PASSTHROUGH) || shared_data->recording == RECORDING_NONE) {
+          if (!savejpegs) {
+            Debug(1, "Deleting image data for %d", snap->image_index);
+            // Don't need raw images anymore
+            delete snap->image;
+            snap->image = nullptr;
+          }
         }
         if (snap->analysis_image and !(savejpegs & 2)) {
           Debug(1, "Deleting analysis image data for %d", snap->image_index);

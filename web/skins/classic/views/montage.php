@@ -218,12 +218,6 @@ if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id]) |
 }
 $AutoLayoutName = $default_layout;
 
-if ( $layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id]) ) {
-
-} else {
-  ZM\Debug('Layout not found');
-}
-
 xhtmlHeaders(__FILE__, translate('Montage'));
 getBodyTopHTML();
 echo getNavBarHTML();

@@ -53,7 +53,7 @@ function stringToNumber(str) {
 }
 
 function isPresetLayout(name) {
-  return (( name=='Freeform' || name=='1 Wide' || name=='2 Wide' || name=='3 Wide' || name=='4 Wide' || name=='6 Wide' || name=='8 Wide' || name=='12 Wide' || name=='16 Wide' ) ? true : false);
+  return ((ZM_PRESET_LAYOUT_NAMES.indexOf(name) != -1) ? true : false);
 }
 
 function getCurrentNameLayout() {

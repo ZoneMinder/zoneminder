@@ -226,6 +226,7 @@ $SLANG = array(
     'Config'               => 'Config',
     'ConfiguredFor'        => 'Configuré pour',
     'ConfirmDeleteEvents'  => 'Etes-vous sûr de vouloir effacer le(s) événement(s) sélectionné(s)?',
+    'ConfirmDeleteLayout'  => 'Êtes-vous sûr de vouloir supprimer la mise en page actuelle ?',
     'ConfirmPassword'      => 'Répéter mot de passe',
     'ConjAnd'              => 'et',
     'ConjOr'               => 'ou',

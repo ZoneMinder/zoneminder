@@ -60,6 +60,18 @@ $monitorStatusPositon = array(
 
 $monitorStatusPositonSelected = 'outsideImgBottom';
 
+$presetLayoutsNames = array( //Order matters!
+  'Freeform',
+  '1 Wide',
+  '2 Wide',
+  '3 Wide',
+  '4 Wide',
+  '6 Wide',
+  '8 Wide',
+  '12 Wide',
+  '16 Wide'
+);
+
 if (isset($_REQUEST['monitorStatusPositonSelected'])) {
   $monitorStatusPositonSelected = $_REQUEST['monitorStatusPositonSelected'];
 } else if (isset($_COOKIE['zmMonitorStatusPositonSelected'])) {
@@ -69,16 +81,30 @@ if (isset($_REQUEST['monitorStatusPositonSelected'])) {
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 $layoutsById = array();
 $FreeFormLayoutId = 0;
+
+/* Create an array "Name"=>"Id" to make it easier to find IDs by name*/
+$arrNameId = array();
+foreach ($layouts as $l) {
+  $arrNameId[$l->Name()] = $l->Id();
+}
+
+/* Fill with preinstalled Layouts. They should always come first */
+foreach ($presetLayoutsNames as $name) {
+  if (array_key_exists($name, $arrNameId)) // Layout may be missing in BD (rare case during update process)
+    $layoutsById[$arrNameId[$name]] = $name; //We will only assign a name, which is necessary for the sorting order. We will replace it with an object in the next loop.
+}
+
+/* For some reason $layouts is already sorted by ID and requires analysis. But just in case, we will sort by ID */
+uasort($layouts, function($a, $b) {
+  return $a->Id <=> $b->Id;
+});
+
+/* Add custom Layouts & assign objects instead of names for preset Layouts */
 foreach ( $layouts as $l ) {
   if ( $l->Name() == 'Freeform' ) {
     $FreeFormLayoutId = $l->Id();
-    $layoutsById[$l->Id()] = $l;
-    break;
   }
-}
-foreach ( $layouts as $l ) {
-  if ( $l->Name() != 'Freeform' )
-    $layoutsById[$l->Id()] = $l;
+  $layoutsById[$l->Id()] = $l;
 }
 
 zm_session_start();
@@ -173,30 +199,20 @@ foreach ($displayMonitors as &$row) {
   }
 } # end foreach Monitor
 
-if (!$layout_id) {
+if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id])) {
   $default_layout = '';
-  if (!$default_layout) {
-    if ((count($monitors) > 5) and (count($monitors)%5 == 0)) {
-      $default_layout = '5 Wide';
-    } else if ((count($monitors) > 4) and (count($monitors)%4 == 0)) {
-      $default_layout = '4 Wide';
-    } else if (count($monitors)%3 == 0) {
-      $default_layout = '3 Wide';
-    } else {
-      $default_layout = '2 Wide';
-    }
+  if (count($monitors) > 6) {
+    $default_layout = '6 Wide';
+  } else if (count($monitors) > 4) {
+    $default_layout = '4 Wide';
+  } else {
+    $default_layout = '2 Wide';
   }
-  foreach ($layouts as $l) {
-    if ($l->Name() == $default_layout) {
-      $layout_id = $l->Id();
-    }
-  }
+  $layout_id = $arrNameId[$default_layout];
 }
-$Layout = '';
-$Positions = '';
+
 if ( $layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id]) ) {
-  $Layout = $layoutsById[$layout_id];
-  $Positions = json_decode($Layout->Positions(), true);
+
 } else {
   ZM\Debug('Layout not found');
 }
@@ -242,7 +258,7 @@ if (canView('System')) {
       <div id="sizeControl">
         <form action="?view=montage" method="post">
           <input type="hidden" name="object" value="MontageLayout"/>
-          <input type="hidden" name="action" value="Save"/>
+          <input id="action" type="hidden" name="action" value=""/> <?php // "value" is generated in montage.js depending on the action "Save" or "Delete"?>
 
           <span id="monitorStatusPositonControl">
             <label><?php echo translate('Monitor status position') ?></label>
@@ -250,17 +266,17 @@ if (canView('System')) {
           </span>
           <span id="ratioControl">
             <label><?php echo translate('Ratio') ?></label>
-            <?php echo htmlSelect('ratio', '', '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
+            <?php echo htmlSelect('ratio', [], '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
           </span>
-          <span id="widthControl" class="hidden">
+          <span id="widthControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Width') ?></label>
             <?php echo htmlSelect('width', $widths, 'auto'/*$options['width']*/, array('id'=>'width', 'data-on-change'=>'changeWidth', 'class'=>'chosen')); ?>
           </span>
-          <span id="heightControl" class="hidden">
+          <span id="heightControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Height') ?></label>
             <?php echo htmlSelect('height', $heights, 'auto'/*$options['height']*/, array('id'=>'height', 'data-on-change'=>'changeHeight', 'class'=>'chosen')); ?>
           </span>
-          <span id="scaleControl" class="hidden">
+          <span id="scaleControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Scale') ?></label>
             <?php echo htmlSelect('scale', $scales, '0'/*$scale*/, array('id'=>'scale', 'data-on-change-this'=>'changeScale', 'class'=>'chosen')); ?>
           </span> 
@@ -270,6 +286,7 @@ if (canView('System')) {
           </span>
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
+          <button type="button" id="btnDeleteLayout" class="btn btn-danger" value="Delete" data-on-click-this="delete_layout" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete layout') ?>" disabled><i class="material-icons md-18">delete</i></button>
           <span id="SaveLayout" style="display:none;">
             <input type="text" name="Name" placeholder="Enter new name for layout if desired" autocomplete="off"/>
             <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>
@@ -324,6 +341,8 @@ foreach ($monitors as $monitor) {
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
 <?php xhtmlFooter() ?>
+
+<?php echo '<script nonce="'.$cspNonce.'"> const ZM_PRESET_LAYOUT_NAMES = '.json_encode($presetLayoutsNames).' </script>'.PHP_EOL;?>
 
 <!-- In May 2024, IgorA100 globally changed grid layout -->
 <div id="messageModal" class="modal fade" tabindex="-1">

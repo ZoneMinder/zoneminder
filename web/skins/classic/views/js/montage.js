@@ -383,8 +383,6 @@ function edit_layout(button) {
 } // end function edit_layout
 
 function save_layout(button) {
-  mode = VIEWING;
-
   const form = button.form;
   let name = form.elements['Name'].value;
   const layout = layouts[form.zmMontageLayout.value];
@@ -402,6 +400,8 @@ function save_layout(button) {
     alert('You cannot use that name. It conflicts with the built in layouts.  Please give the layout a new name.');
     return;
   }
+
+  mode = VIEWING;
 
   var Positions = {};
   Positions['gridStack'] = objGridStack.save(false, false);

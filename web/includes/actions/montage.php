@@ -46,7 +46,7 @@ if ( isset($_REQUEST['object']) ) {
       } 
     } else if ($action == 'Delete') { // end if save
       if ( isset($_REQUEST['zmMontageLayout']) ) {
-        $Layout = new ZM\MontageLayout($_REQUEST['zmMontageLayout']);
+        $Layout = new ZM\MontageLayout(validCardinal($_REQUEST['zmMontageLayout']));
       } else {
         ZM\Warning('Name of layout to be deleted is not specified');
         return;

@@ -155,7 +155,8 @@ function selectLayout(new_layout_id) {
       const monitor_wrapper = monitor_frame.closest('[gs-id="' + monitor.id + '"]');
 
       if (nameLayout == "Freeform") {
-        monitor_wrapper.attr('gs-w', 12).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
+        monitor_wrapper.attr('gs-w', layoutColumns / stringToNumber(freeform_layout_id)).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
+        //monitor_wrapper.attr('gs-w', 12).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
       } else {
         monitor_wrapper.attr('gs-w', widthFrame).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
       }

@@ -137,6 +137,7 @@ function selectLayout(new_layout_id) {
   }
 
   if (isPresetLayout(nameLayout)) { //PRESET
+    document.getElementById("btnDeleteLayout").setAttribute('disabled', '');
     setSelected(document.getElementById("ratio"), getCookie('zmMontageRatioForAll'));
     changeRatioForAll();
 
@@ -158,6 +159,7 @@ function selectLayout(new_layout_id) {
     }
     initGridStack();
   } else { //CUSTOM
+    document.getElementById("btnDeleteLayout").removeAttribute('disabled');
     for (let i = 0, length = monitors.length; i < length; i++) {
       const monitor = monitors[i];
       // Need to clear the current positioning, and apply the new
@@ -409,6 +411,7 @@ function save_layout(button) {
     Positions['monitorRatio'][stringToNumber(this.id)] = getSelected(this);
   });
   form.Positions.value = JSON.stringify(Positions, null, '  ');
+  $j('#action').attr('value', 'Save');
   form.submit();
 } // end function save_layout
 
@@ -434,6 +437,53 @@ function cancel_layout(button) {
     monitor.setup_onclick(handleClick);
   };
   selectLayout();
+}
+
+function delete_layout(button) {
+  if (!canEdit.System) {
+    enoperm();
+    return;
+  }
+  if (!document.getElementById('deleteConfirm')) {
+    // Load the delete confirmation modal into the DOM
+//    $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+    $j.getJSON(thisUrl + '?request=modal&modal=delconfirm', {
+      key: 'ConfirmDeleteLayout',
+    })
+        .done(function(data) {
+          insertModalHtml('deleteConfirm', data.html);
+          manageDelConfirmModalBtns();
+          $j('#deleteConfirm').modal('show');
+        })
+        .fail(function(jqXHR) {
+          console.log('error getting delconfirm', jqXHR);
+          logAjaxFail(jqXHR);
+        });
+    return;
+  } else {
+    $j('#deleteConfirm').modal('show');
+  }
+} // end function delete_layout
+
+// Manage the DELETE CONFIRMATION modal button
+function manageDelConfirmModalBtns() {
+  document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
+    document.getElementById('delConfirmBtn').disabled = true; // prevent double click
+    if (!canEdit.Monitors) {
+      enoperm();
+      return;
+    }
+    evt.preventDefault();
+
+    const form = $j('#btnDeleteLayout')[0].form;
+    $j('#action').attr('value', 'Delete');
+    form.submit();
+  });
+
+  // Manage the CANCEL modal button
+  document.getElementById('delCancelBtn').addEventListener('click', function onDelCancelClick(evt) {
+    $j('#deleteConfirm').modal('hide');
+  });
 }
 
 function reloadWebSite(ndx) {
@@ -656,9 +706,9 @@ function initPage() {
     $j("#flipMontageHeader").slideToggle("fast");
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
   }
-  if (getCookie('zmMontageLayout')) {
-    $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
-  }
+//  if (getCookie('zmMontageLayout')) { //This is implemented in montage.php And the cookies may contain the number of a non-existent Layouts!!!
+//    $j('#zmMontageLayout').val(getCookie('zmMontageLayout'));
+//  }
 
   $j(".grid-monitor").hover(
       //Displaying "Scale" and other buttons at the top of the monitor image

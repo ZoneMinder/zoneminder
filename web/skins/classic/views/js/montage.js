@@ -111,6 +111,7 @@ function playClicked() {
  */
 function selectLayout(new_layout_id) {
   if (mode == EDITING) {
+    changedMonitors.length = 0;
     return;
   }
   const ddm = $j('#zmMontageLayout');
@@ -120,12 +121,14 @@ function selectLayout(new_layout_id) {
   const layout_id = parseInt(ddm.val());
   if (!layout_id) {
     console.log("No layout_id?!");
+    changedMonitors.length = 0;
     return;
   }
 
   const layout = layouts[layout_id];
   if (!layout) {
     console.log("No layout found for " + layout_id);
+    changedMonitors.length = 0;
     return;
   }
 

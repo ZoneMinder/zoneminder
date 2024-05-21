@@ -48,10 +48,6 @@ var defaultPresetRatio = 'auto';
 
 var averageMonitorsRatio;
 
-function stringToNumber(str) {
-  return parseInt(str.replace(/\D/g, ''));
-}
-
 function isPresetLayout(name) {
   return ((ZM_PRESET_LAYOUT_NAMES.indexOf(name) != -1) ? true : false);
 }

@@ -242,7 +242,7 @@ if (canView('System')) {
       <div id="sizeControl">
         <form action="?view=montage" method="post">
           <input type="hidden" name="object" value="MontageLayout"/>
-          <input type="hidden" name="action" value="Save"/>
+          <input id="action" type="hidden" name="action" value=""/> <?php // "value" is generated in montage.js depending on the action "Save" or "Delete"?>
 
           <span id="monitorStatusPositonControl">
             <label><?php echo translate('Monitor status position') ?></label>
@@ -270,6 +270,7 @@ if (canView('System')) {
           </span>
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
+          <button type="button" id="btnDeleteLayout" class="btn btn-danger" value="Delete" data-on-click-this="delete_layout" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete layout') ?>" disabled><i class="material-icons md-18">delete</i></button>
           <span id="SaveLayout" style="display:none;">
             <input type="text" name="Name" placeholder="Enter new name for layout if desired" autocomplete="off"/>
             <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>

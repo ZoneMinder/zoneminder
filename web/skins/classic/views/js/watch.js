@@ -621,7 +621,7 @@ function fetchImage(streamImage) {
 
 function handleClick(event) {
   if (panZoomEnabled) {
-    event.preventDefault();
+    //event.preventDefault();
     if (event.target.id) {
     //We are looking for an object with an ID, because there may be another element in the button.
       var obj = event.target;
@@ -640,7 +640,7 @@ function handleClick(event) {
     }
 
     if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
-      if (ctrled && shifted) {
+      if ((ctrled && shifted) || (!ctrled && !shifted)) {
         return;
       } else if (ctrled) {
         panZoom[monitorId].zoom(1, {animate: true});
@@ -1381,6 +1381,7 @@ function panZoomAction(action, param) {
     panZoom[param['id']].resetStyle();
     panZoom[param['id']].setOptions({disablePan: true, disableZoom: true});
     panZoom[param['id']].destroy();
+    updateScale = true;
   }
 }
 

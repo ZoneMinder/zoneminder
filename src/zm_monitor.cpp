@@ -371,7 +371,7 @@ Monitor::Monitor()
   purpose(QUERY),
   last_camera_bytes(0),
   event_count(0),
-  image_count(0),
+  //image_count(0),
   last_capture_image_count(0),
   analysis_image_count(0),
   motion_frame_count(0),
@@ -1535,7 +1535,7 @@ void Monitor::DumpZoneImage(const char *zone_string) {
 } // end void Monitor::DumpZoneImage(const char *zone_string)
 
 void Monitor::DumpImage(Image *dump_image) const {
-  if ( image_count && !(image_count%10) ) {
+  if (shared_data->image_count && !(shared_data->image_count % 10)) {
     static char filename[PATH_MAX];
     static char new_filename[PATH_MAX];
     snprintf(filename, sizeof(filename), "Monitor%u.jpg", id);
@@ -1608,18 +1608,17 @@ void Monitor::CheckAction() {
 
   if ( shared_data->action ) {
     // Can there be more than 1 bit set in the action?  Shouldn't these be elseifs?
-    if ( shared_data->action & RELOAD ) {
-      Info("Received reload indication at count %d", image_count);
+    if (shared_data->action & RELOAD) {
+      Info("Received reload indication at count %d", shared_data->image_count);
       shared_data->action &= ~RELOAD;
       Reload();
     }
-    if ( shared_data->action & SUSPEND ) {
-      if ( Active() ) {
-        Info("Received suspend indication at count %d", image_count);
+    if (shared_data->action & SUSPEND) {
+      if (Active()) {
+        Info("Received suspend indication at count %d", shared_data->image_count);
         shared_data->active = false;
-        //closeEvent();
       } else {
-        Info("Received suspend indication at count %d, but wasn't active", image_count);
+        Info("Received suspend indication at count %d, but wasn't active", shared_data->image_count);
       }
       if ( config.max_suspend_time ) {
         auto_resume_time = now.tv_sec + config.max_suspend_time;
@@ -1627,7 +1626,7 @@ void Monitor::CheckAction() {
       shared_data->action &= ~SUSPEND;
     } else if ( shared_data->action & RESUME ) {
       if ( Enabled() && !Active() ) {
-        Info("Received resume indication at count %d", image_count);
+        Info("Received resume indication at count %d", shared_data->image_count);
         shared_data->active = true;
         ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
         shared_data->alarm_x = shared_data->alarm_y = -1;
@@ -1637,7 +1636,7 @@ void Monitor::CheckAction() {
   } // end if shared_data->action
 
   if ( auto_resume_time && (now.tv_sec >= auto_resume_time) ) {
-    Info("Auto resuming at count %d", image_count);
+    Info("Auto resuming at count %d", shared_data->image_count);
     shared_data->active = true;
     ref_image.DumpImgBuffer(); // Will get re-assigned by analysis thread
     auto_resume_time = 0;
@@ -1646,11 +1645,11 @@ void Monitor::CheckAction() {
 
 void Monitor::UpdateFPS() {
   if ( fps_report_interval and
-      (
-       !(image_count%fps_report_interval)
-      or 
-     ( (image_count < fps_report_interval) and !(image_count%10) )
-     )
+       (
+         !(shared_data->image_count%fps_report_interval)
+         or
+         ( (shared_data->image_count < fps_report_interval) and !(shared_data->image_count%10) )
+       )
      ) {
     struct timeval now;
     gettimeofday(&now, nullptr);
@@ -1661,16 +1660,16 @@ void Monitor::UpdateFPS() {
     // Also only do the update at most 1/sec
     if ( elapsed > 1.0 ) {
       // # of images per interval / the amount of time it took
-      double new_capture_fps = (image_count - last_capture_image_count) / elapsed;
+      double new_capture_fps = (shared_data->image_count - last_capture_image_count) / elapsed;
       uint32 new_camera_bytes = camera->Bytes();
       uint32 new_capture_bandwidth =
           static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed);
       double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed;
 
       Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
-            image_count,
+            shared_data->image_count,
             last_capture_image_count,
-            image_count - last_capture_image_count,
+            shared_data->image_count - last_capture_image_count,
             now_double,
             last_fps_time,
             elapsed,
@@ -1678,11 +1677,11 @@ void Monitor::UpdateFPS() {
             new_analysis_fps);
 
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
-          name.c_str(), image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
+          name.c_str(), shared_data->image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
 
       shared_data->capture_fps = new_capture_fps;
       last_fps_time = now_double;
-      last_capture_image_count = image_count;
+      last_capture_image_count = shared_data->image_count;
       shared_data->analysis_fps = new_analysis_fps;
       last_motion_frame_count = motion_frame_count;
       last_camera_bytes = new_camera_bytes;
@@ -1906,7 +1905,7 @@ bool Monitor::Analyse() {
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
                     name.c_str(),
-                    image_count,
+                    shared_data->image_count,
                     event->Id(),
                     static_cast<int64>(timestamp->tv_sec),
                     static_cast<int64>(video_store_data->recording.tv_sec),
@@ -1950,7 +1949,7 @@ bool Monitor::Analyse() {
                   && ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
-                    name.c_str(), image_count, event->Id());
+                    name.c_str(), shared_data->image_count, event->Id());
                 closeEvent();
               } else if (event) {
                 // This is so if we need more than 1 alarm frame before going into alarm, so it is basically if we have enough alarm frames
@@ -1974,7 +1973,7 @@ bool Monitor::Analyse() {
                 alarm_cause = cause + alarm_cause;
                 strncpy(shared_data->alarm_cause, alarm_cause.c_str(), sizeof(shared_data->alarm_cause)-1);
                 Info("%s: %03d - Gone into alarm state PreAlarmCount: %u > AlarmFrameCount:%u Cause:%s",
-                    name.c_str(), image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
+                    name.c_str(), shared_data->image_count, Event::PreAlarmCount(), alarm_frame_count, shared_data->alarm_cause);
 
                 if (!event) {
                   if ((event = openEvent(snap, cause, noteSetMap)) != nullptr) {
@@ -2183,7 +2182,7 @@ void Monitor::Reload() {
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {
-      Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), image_count, event->Id());
+      Info("%s: %03d - Closing event %" PRIu64 ", reloading", name.c_str(), shared_data->image_count, event->Id());
       closeEvent();
     }
   }
@@ -2373,18 +2372,18 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadFfmpegMonitors(const char *fi
  * Returns -1 on failure.
  */
 int Monitor::Capture() {
-  unsigned int index = image_count % image_buffer_count;
+  unsigned int index = shared_data->image_count % image_buffer_count;
   if (image_buffer.empty() or (index >= image_buffer.size())) {
     Error("Image Buffer is invalid. Check ImageBufferCount. size is %zu", image_buffer.size());
     return -1;
   }
 
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
-  packet->image_index = image_count;
+  packet->image_index = shared_data->image_count;
   gettimeofday(&(packet->timestamp), nullptr);
   shared_data->zmc_heartbeat_time = packet->timestamp.tv_sec;
   int captureResult = camera->Capture(packet);
-  Debug(4, "Back from capture result=%d image count %d", captureResult, image_count);
+  Debug(4, "Back from capture result=%d image count %d", captureResult, shared_data->image_count);
 
   if (captureResult < 0) {
     // Unable to capture image
@@ -2401,7 +2400,7 @@ int Monitor::Capture() {
     image_buffer[index]->Assign(*capture_image);
     shared_timestamps[index] = packet->timestamp;
     delete capture_image;
-    image_count++;
+    shared_data->image_count++;
     // What about timestamping it?
     // Don't want to do analysis on it, but we won't due to signal
     return -1;
@@ -2413,7 +2412,7 @@ int Monitor::Capture() {
       shared_data->last_write_time = packet->timestamp.tv_sec;
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
-        packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), image_count);
+        packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);
 
     if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
       packet->packet.stream_index = video_stream_id; // Convert to packetQueue's index
@@ -2452,7 +2451,7 @@ int Monitor::Capture() {
       return 1;
     } // end if audio
 
-    image_count++;
+    shared_data->image_count++;
 
     // Will only be queued if there are iterators allocated in the queue.
     packetqueue.queuePacket(packet);
@@ -2542,7 +2541,7 @@ bool Monitor::Decode() {
   }  // end if need_decoding
 
   Image* capture_image = nullptr;
-  unsigned int index = image_count % image_buffer_count;
+  unsigned int index = shared_data->image_count % image_buffer_count;
 
   if (packet->image) {
     capture_image = packet->image;
@@ -3042,7 +3041,7 @@ int Monitor::Close() {
   {
     std::lock_guard<std::mutex> lck(event_mutex);
     if (event) {
-      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), image_count, event->Id());
+      Info("%s: image_count:%d - Closing event %" PRIu64 ", shutting down", name.c_str(), shared_data->image_count, event->Id());
       closeEvent();
       close_event_thread.join();
     }

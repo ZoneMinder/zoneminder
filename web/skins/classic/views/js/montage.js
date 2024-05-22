@@ -883,7 +883,7 @@ function initGridStack(grid=null) {
   } else {
     objGridStack = GridStack.init({...opts});
   }
-  objGridStack.compact('list', true);
+  //objGridStack.compact('list', true); //When reading a saved custom Layout, the monitors are not always positioned as before saving. The problem is in GridStack. Let's disable this option for now.
 
   addEvents(objGridStack);
 };

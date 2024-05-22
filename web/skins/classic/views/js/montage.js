@@ -158,7 +158,9 @@ function selectLayout(new_layout_id) {
         monitor_wrapper.attr('gs-w', widthFrame).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
       }
     }
-    initGridStack();
+    setTimeout(() => {
+      initGridStack();
+    }, 500);
   } else { //CUSTOM
     document.getElementById("btnDeleteLayout").removeAttribute('disabled');
     for (let i = 0, length = monitors.length; i < length; i++) {

@@ -882,8 +882,8 @@ function initGridStack(grid=null) {
     // When loading, we leave all monitors (according to the filters), and not just those that were saved!
   } else {
     objGridStack = GridStack.init({...opts});
+    objGridStack.compact('list', true); //When reading a saved custom Layout, the monitors are not always positioned as before saving. The problem is in GridStack. Let's leave the option only for preset layout. Without this option, there may be problems with sorting monitors.
   }
-  //objGridStack.compact('list', true); //When reading a saved custom Layout, the monitors are not always positioned as before saving. The problem is in GridStack. Let's disable this option for now.
 
   addEvents(objGridStack);
 };

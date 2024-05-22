@@ -841,6 +841,7 @@ function initPage() {
     const blockContent = document.getElementById('content');
     const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
     if (currentScrollBbarExists != scrollBbarExists) {
+      scrollBbarExists = currentScrollBbarExists;
       return;
     }
     objResizes.forEach((obj) => {

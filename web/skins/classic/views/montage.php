@@ -203,14 +203,22 @@ foreach ($displayMonitors as &$row) {
 } # end foreach Monitor
 
 $default_layout = '';
-if (count($monitors) > 12) {
-  $default_layout = '6 Wide';
-} else if (count($monitors) >= 4) {
-  $default_layout = '4 Wide';
-} else {
+
+$monitorCount = count($monitors);
+if ($monitorCount <= 3) {
+  $default_layout = $monitorCount . ' Wide';
+} else if ($monitorCount <= 4) {
   $default_layout = '2 Wide';
+} else if ($monitorCount <= 6) {
+  $default_layout = '3 Wide';
+} else if ($monitorCount%4 == 0) {
+  $default_layout = '4 Wide';
+} else if ($monitorCount%6 == 0) {
+  $default_layout = '6 Wide';
+} else {
+  $default_layout = '4 Wide';
 }
-  
+
 if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id]) || $layout_id == $AutoLayoutName) {
   $layout_id = $arrNameId["Freeform"];
 } else if ($layout_id == $AutoLayoutName) {

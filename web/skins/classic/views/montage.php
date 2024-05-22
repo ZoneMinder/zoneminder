@@ -203,7 +203,7 @@ foreach ($displayMonitors as &$row) {
 } # end foreach Monitor
 
 $default_layout = '';
-if (count($monitors) >= 6) {
+if (count($monitors) > 12) {
   $default_layout = '6 Wide';
 } else if (count($monitors) >= 4) {
   $default_layout = '4 Wide';

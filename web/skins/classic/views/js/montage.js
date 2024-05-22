@@ -12,7 +12,7 @@ var objGridStack;
 
 var layoutColumns = 48; //Maximum number of columns (items per row) for GridStack
 var changedMonitors = []; //Monitor IDs that were changed in the DOM
-var scrollBbarExists = false;
+var scrollBbarExists = null;
 
 var panZoomEnabled = true; //Add it to settings in the future
 var panZoomMaxScale = 10;

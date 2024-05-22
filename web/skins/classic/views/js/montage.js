@@ -815,9 +815,9 @@ function initPage() {
   }, 200);
 
   setTimeout(() => {
-    $j('#monitors').removeClass('hidden-shift');
     selectLayout();
-  }, 50); //No matter what flickers. But perhaps this will not be necessary in the future...
+    $j('#monitors').removeClass('hidden-shift');
+	}, 50); //No matter what flickers. But perhaps this will not be necessary in the future...
   changeMonitorStatusPositon();
 
   if (panZoomEnabled) {

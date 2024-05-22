@@ -12,6 +12,7 @@ var objGridStack;
 
 var layoutColumns = 48; //Maximum number of columns (items per row) for GridStack
 var changedMonitors = []; //Monitor IDs that were changed in the DOM
+var scrollBbarExists = false;
 
 var panZoomEnabled = true; //Add it to settings in the future
 var panZoomMaxScale = 10;
@@ -837,6 +838,11 @@ function initPage() {
 
   // Creating a ResizeObserver Instance
   const observer = new ResizeObserver((objResizes) => {
+    const blockContent = document.getElementById('content');
+    const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
+    if (currentScrollBbarExists != scrollBbarExists) {
+      return;
+    }
     objResizes.forEach((obj) => {
       const id = stringToNumber(obj.target.id);
       if (mode != EDITING && !changedMonitors.includes(id)) {

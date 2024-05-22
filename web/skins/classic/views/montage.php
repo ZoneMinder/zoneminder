@@ -202,27 +202,21 @@ foreach ($displayMonitors as &$row) {
   }
 } # end foreach Monitor
 
-if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id]) || $layout_id == $AutoLayoutName) {
-  $default_layout = '';
-  if (count($monitors) >= 6) {
-    $default_layout = '6 Wide';
-  } else if (count($monitors) >= 4) {
-    $default_layout = '4 Wide';
-  } else {
-    $default_layout = '2 Wide';
-  }
-  if ($layout_id != $AutoLayoutName) {
-    $layout_id = $arrNameId[$default_layout];
-  } else {
-    $AutoLayoutName = $default_layout;
-  }
-}
-
-if ( $layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id]) ) {
-
+$default_layout = '';
+if (count($monitors) >= 6) {
+  $default_layout = '6 Wide';
+} else if (count($monitors) >= 4) {
+  $default_layout = '4 Wide';
 } else {
-  ZM\Debug('Layout not found');
+  $default_layout = '2 Wide';
 }
+  
+if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id]) || $layout_id == $AutoLayoutName) {
+  $layout_id = $arrNameId["Freeform"];
+} else if ($layout_id == $AutoLayoutName) {
+  $layout_id = $arrNameId[$default_layout];
+}
+$AutoLayoutName = $default_layout;
 
 xhtmlHeaders(__FILE__, translate('Montage'));
 getBodyTopHTML();

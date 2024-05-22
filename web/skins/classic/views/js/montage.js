@@ -49,6 +49,7 @@ var defaultPresetRatio = 'auto';
 var averageMonitorsRatio;
 
 function isPresetLayout(name) {
+  name = (name == "Auto") ? "Freeform" : name;
   return ((ZM_PRESET_LAYOUT_NAMES.indexOf(name) != -1) ? true : false);
 }
 

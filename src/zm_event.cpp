@@ -710,6 +710,22 @@ void Event::Run() {
     if (packet) {
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);
+
+      if (packet->image) {
+        if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
+          if (!save_jpegs) {
+            Debug(1, "Deleting image data for %d", packet->image_index);
+            // Don't need raw images anymore
+            delete packet->image;
+            packet->image = nullptr;
+          }
+        }
+        if (packet->analysis_image and !(save_jpegs & 2)) {
+          Debug(1, "Deleting analysis image data for %d", packet->image_index);
+          delete packet->analysis_image;
+          packet->analysis_image = nullptr;
+        }
+      } // end if packet->image
     }
   }  // end while
 }  // end Run()

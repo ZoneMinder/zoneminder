@@ -41,7 +41,7 @@ my $OPTIONS = 'v';
 
 sub HELP_MESSAGE {
   my ($fh, $pkg, $ver, $opts) = @_;
-  print $fh "Usage: " . __FILE__ . " [-v] probe <soap version> <network interface>\n";
+  print $fh "Usage: " . __FILE__ . " [-v] probe <soap versions> <network interface>\n";
   print $fh "       " . __FILE__ . " [-v] <command> <device URI> <soap version> <user> <password>\n";
   print $fh  <<EOF
   Commands are:
@@ -53,7 +53,7 @@ sub HELP_MESSAGE {
     -v        - increase verbosity
   Device access parameters (for all commands but 'probe'):
     device URL    - the ONVIF Device service URL
-    soap version  - SOAP version (1.1 or 1.2)
+    soap versions - SOAP versions (1.1 or 1.2 or 1.1,1.2)
     user          - username of a user with access to the device
     password      - password for the user
 EOF
@@ -69,7 +69,7 @@ if ( !getopts($OPTIONS) ) {
 
 my $action = shift;
 
-if ( ! defined $action ) {
+if ( !defined $action ) {
   HELP_MESSAGE(\*STDOUT);
   exit(1);
 }
@@ -94,6 +94,7 @@ if ( $action eq 'probe' ) {
   my $password = @ARGV ? shift @ARGV: '';
 
   my $client = ONVIF::Client->new( { 
+      verbose =>  $ZoneMinder::ONVIF::verbose,
       url_svc_device => $url_svc_device, 
       soap_version => $soap_version } );
 
@@ -102,17 +103,43 @@ if ( $action eq 'probe' ) {
   $client->create_services();
 
   if ( $action eq 'profiles' ) {
-    ZoneMinder::ONVIF::profiles($client);
-  } elsif( $action eq 'move' ) {
+    my @profiles = ZoneMinder::ONVIF::profiles($client);
+    foreach my $profile ( @profiles ) {
+        my ( $token, $name, $encoding, $width, $height, $frame_rate_limit, $stream_type, $uri ) = @{$profile};
+        print join(', ', $token,
+          $name,
+          $encoding,
+          $width,
+          $height,
+          $frame_rate_limit,
+          $stream_type,
+          $uri,
+        ) . "\n";
+
+    } # end foreach profile
+  } elsif ( $action eq 'move' ) {
     my $dir = shift;
     ZoneMinder::ONVIF::move($client, $dir);
   } elsif ( $action eq 'metadata' ) {
     ZoneMinder::ONVIF::metadata($client);
   } else {
-    print("Error: Unknown command \"$action\"");
-    exit(1);
+    my $media = $client->get_endpoint('media');
+    if ( ! $media ) {
+      print "No media endpoint for client.\n";
+      return;
+    }
+
+    my $result = $media->$action( { } ,, );
+    if ( $result ) {
+      use XML::LibXML;
+      my $dom = XML::LibXML->load_xml(string=>$result);
+      print "Received message:\n" . $dom->toString(1) . "\n";
+    } else {
+      print("Error: Unknown command \"$action\"");
+      exit(1);
+    }
   }
-}
+} # end if probe or other
 
 1;
 __END__
@@ -131,6 +158,8 @@ zmonvif-probe.pl - ZoneMinder ONVIF probing tool
     profiles  - print the device's supported stream configurations
     metadata  - print some of the device's configuration settings
     move      - move the device (only ptz cameras)
+    other     - Any command supported by the ONVIF Media element.
+
   Common parameters:
     -v        - increase verbosity
   Device access parameters (for all commands but 'probe'):

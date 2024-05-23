@@ -76,39 +76,42 @@ BEGIN {
 require ZoneMinder::Database;
 
   # Process name, value pairs from the main config file first
-  my $config_file = ZM_CONFIG;
-  process_configfile($config_file);
+  process_configfile(ZM_CONFIG);
 
   # Search for user created config files. If one or more are found then
   # update the Config hash with those values
   if ( ZM_CONFIG_SUBDIR and -d ZM_CONFIG_SUBDIR ) {
     if ( -R ZM_CONFIG_SUBDIR ) {
-      foreach my $filename ( glob ZM_CONFIG_SUBDIR.'/*.conf' ) {
+      foreach my $filename (glob ZM_CONFIG_SUBDIR.'/*.conf' ) {
         process_configfile($filename);
       }
     } else {
-      print( STDERR 'WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.ZM_CONFIG_SUBDIR.".\n" );
+      print(STDERR 'WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.ZM_CONFIG_SUBDIR.".\n");
     }
   }
 
 	my $dbh = ZoneMinder::Database::zmDbConnect();
+  die "Unable to connect to DB. ZM Cannot continue.\n" if !$dbh;
+
   my $sql = 'SELECT Name,Value FROM Config';
   my $sth = $dbh->prepare_cached($sql) or croak("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute() or croak("Can't execute: ".$sth->errstr());
-  while( my $config = $sth->fetchrow_hashref() ) {
+  while ( my $config = $sth->fetchrow_hashref() ) {
+    # If already defined skip it because we want the values in /etc/zm.conf to override the values in Config Table
+    next if exists $Config{$config->{Name}};
     $Config{$config->{Name}} = $config->{Value};
   }
   $sth->finish();
   
-  if ( ! $Config{ZM_SERVER_ID} ) {
+  if ( !$Config{ZM_SERVER_ID} ) {
     $Config{ZM_SERVER_ID} = undef;
-    $sth = $dbh->prepare_cached( 'SELECT * FROM Servers WHERE Name=?' );
+    $sth = $dbh->prepare_cached('SELECT * FROM Servers WHERE Name=?');
     if ( $Config{ZM_SERVER_NAME} ) {
-      $res = $sth->execute( $Config{ZM_SERVER_NAME} );
+      $res = $sth->execute($Config{ZM_SERVER_NAME});
       my $result = $sth->fetchrow_hashref();
       $Config{ZM_SERVER_ID} = $$result{Id};
     } elsif ( $Config{ZM_SERVER_HOST} ) {
-      $res = $sth->execute( $Config{ZM_SERVER_HOST} );
+      $res = $sth->execute($Config{ZM_SERVER_HOST});
       my $result = $sth->fetchrow_hashref();
       $Config{ZM_SERVER_ID} = $$result{Id};
     }
@@ -126,20 +129,20 @@ require ZoneMinder::Database;
     open( my $CONFIG, '<', $config_file )
       or croak("Can't open config file '$config_file': $!");
     foreach my $str ( <$CONFIG> ) {
-		  next if ( $str =~ /^\s*$/ );
+      next if ( $str =~ /^\s*$/ );
       next if ( $str =~ /^\s*#/ );
       my ( $name, $value ) = $str =~ /^\s*([^=\s]+)\s*=\s*[\'"]*(.*?)[\'"]*\s*$/;
       if ( !$name ) {
         print(STDERR "Warning, bad line in $config_file: $str\n");
         next;
       } # end if
-      $name =~ tr/a-z/A-Z/;
+      $name = uc $name;
       #if ( !$ZoneMinder::ConfigData::options_hash{$name} ) {
-				#print(STDERR "Warning, unknown config option name $name in $config_file\n");
-#} else {
-				#print(STDERR "Warning, known config option name $name in $config_file\n");
-			#}
-			$Config{$name} = $value;
+      #print(STDERR "Warning, unknown config option name $name in $config_file\n");
+      #} else {
+      #print(STDERR "Warning, known config option name $name in $config_file\n");
+      #}
+      $Config{$name} = $value;
     } # end foreach config line
     close($CONFIG);
   } # end sub process_configfile
@@ -147,27 +150,25 @@ require ZoneMinder::Database;
 } # end BEGIN
 
 sub loadConfigFromDB {
-  print( 'Loading config from DB' );
+  print('Loading config from DB');
   my $dbh = ZoneMinder::Database::zmDbConnect();
   if ( !$dbh ) {
-    print( "Error: unable to load options from database: $DBI::errstr\n" );
-    return( 0 );
+    print("Error: unable to load options from database: $DBI::errstr\n");
+    return(0);
   }
-  my $sql = "select * from Config";
+  my $sql = 'SELECT * FROM Config';
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute()
     or croak( "Can't execute: ".$sth->errstr() );
   my $option_count = 0;
-  while( my $config = $sth->fetchrow_hashref() ) {
+  while ( my $config = $sth->fetchrow_hashref() ) {
     my ( $name, $value ) = ( $config->{Name}, $config->{Value} );
-#print( "Name = '$name'\n" );
-    my $option = $options_hash{$name};
+    my $option = $ZoneMinder::ConfigData::options_hash{$name};
     if ( !$option ) {
       warn( "No option '$name' found, removing.\n" );
       next;
     }
-#next if ( $option->{category} eq 'hidden' );
     if ( defined($value) ) {
       if ( $option->{type} == $types{boolean} ) {
         $option->{value} = $value?'yes':'no';
@@ -175,11 +176,11 @@ sub loadConfigFromDB {
         $option->{value} = $value;
       }
     }
-    $option_count++;;
+    $option_count++;
   }
   $sth->finish();
   print( " $option_count entries\n" );
-  return( $option_count );
+  return $option_count;
 } # end sub loadConfigFromDB
 
 sub saveConfigToDB {
@@ -200,12 +201,12 @@ sub saveConfigToDB {
   my $res = $dbh->do( $sql )
     or croak( "Can't do '$sql': ".$dbh->errstr() );
 
-  $sql = "replace into Config set Id = ?, Name = ?, Value = ?, Type = ?, DefaultValue = ?, Hint = ?, Pattern = ?, Format = ?, Prompt = ?, Help = ?, Category = ?, Readonly = ?, Requires = ?";
+  $sql = 'REPLACE INTO Config SET Id=?, Name=?, Value=?, Type=?, DefaultValue=?, Hint=?, Pattern=?, Format=?, Prompt=?, Help=?, Category=?, Readonly=?, Private=?, `System`=?, Requires=?';
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   foreach my $option ( @options ) {
-#next if ( $option->{category} eq 'hidden' );
-#print( $option->{name}."\n" ) if ( !$option->{category} );
+    #next if ( $option->{category} eq 'hidden' );
+    #print( $option->{name}."\n" ) if ( !$option->{category} );
     $option->{db_type} = $option->{type}->{db_type};
     $option->{db_hint} = $option->{type}->{hint};
     $option->{db_pattern} = $option->{type}->{pattern};
@@ -237,6 +238,8 @@ sub saveConfigToDB {
         $option->{help},
         $option->{category},
         $option->{readonly} ? 1 : 0,
+        $option->{private} ? 1 : 0,
+        $option->{system} ? 1 : 0,
         $option->{db_requires}
         ) or croak("Can't execute when updating config entry $$option{name}: ".$sth->errstr() );
   } # end foreach option

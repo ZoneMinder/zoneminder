@@ -19,33 +19,36 @@
 //
 
 // Monitor edit actions, monitor id derived, require edit permissions for that monitor
-if ( ! canEdit('Monitors') ) {
+if (!canEdit('Monitors')) {
   ZM\Warning("Monitor actions require Monitors Permissions");
   return;
 }
 
-if ( $action == 'save' ) {
-  foreach ( $_REQUEST['mids'] as $mid ) {
+if ($action == 'save') {
+  global $error_message;
+  foreach ($_REQUEST['mids'] as $mid) {
     $mid = ValidInt($mid);
-    if ( ! canEdit('Monitors', $mid) ) {
-      ZM\Warning("Cannot edit monitor $mid");
+    if (!canEdit('Monitors', $mid)) {
+      ZM\Warning('Cannot edit monitor '.$mid);
       continue;
     }
     $Monitor = new ZM\Monitor($mid);
-    if ( $Monitor->Type() != 'WebSite' ) {
-      $Monitor->zmaControl('stop');
+    if ($Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('stop');
     }
-    $Monitor->save($_REQUEST['newMonitor']);
-    if ( $Monitor->Function() != 'None' && $Monitor->Type() != 'WebSite' ) {
+    if (!$Monitor->save($_REQUEST['newMonitor'])) {
+      $error_message .= 'Error saving monitor: ' . $Monitor->get_last_error().'<br/>';
+    }
+    if ($Monitor->Capturing() != 'None' && $Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('start');
-      if ( $Monitor->Enabled() ) {
-        $Monitor->zmaControl('start');
-      }
     }
   } // end foreach mid
-  $refreshParent = true;
-  $view = 'none';
+
+  if ($error_message) {
+    $view = 'console';
+  } else {
+    $redirect = '?view=console';
+  }
 } else {
   ZM\Warning("Unknown action $action in Monitor");
 } // end if action == Delete

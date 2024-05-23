@@ -4,7 +4,7 @@ Filtering Events
 Filters allow you to define complex conditions with associated actions in ZoneMinder. Examples could include:
 
 * Send an email each time a new event occurs for a specific monitor
-* Delete events  that are more than 10 days old
+* Delete events that are more than 10 days old
 
 And many more.
 
@@ -29,14 +29,17 @@ Here is what the filter window looks like
 	  events later and also make sure archived events don't get deleted, for example
   
     .. todo ::
-      fill in what update used disk space, copy all matches, move all matches do. For the "create video" filter, put in more details on how it works, any dependencies etc.
+      For the "create video" filter, put in more details on how it works, any dependencies etc.
 
-  * Update used disk space:
+  * Update used disk space: calculates how much disk space is currently taken by the event and updates the db record.
   * Create video for all matches: creates a video file of all the events that match 
-  * Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguents to the command, the last argument will be the absolute path to the event, preceeded by replacement arguents. eg: /usr/bin/script.sh %MN% will excecute as /usr/bin/script.sh MonitorName /path/to/event.
+  * Create video for all matches: ffmpeg will be used to create a video file (mp4) out of all the stored jpgs if using jpeg storage.
+	* Execute command on all matches: Allows you to execute any arbitrary command on the matched events. You can use replacement tokens as subsequent arguments to the command, the last argument will be the absolute path to the event, preceded by replacement arguments. eg: /usr/bin/script.sh %MN% will execute as /usr/bin/script.sh MonitorName /path/to/event. Please note that urls may contain characters like & that need quoting. So you may need to put quotes around them like /usr/bin/scrupt.sh "%MN%".
 	* Delete all matches: Deletes all the matched events.
-  * Copy all matches:
-  * Move all matches:
+	* Email details of all matches: Sends an email to the configured address with details about the event. 
+  * Copy all matches: copies the event files to another location, specified in the Copy To dropdown.  The other location must be setup in the Storage Tab under options.
+  * Message details of all matches: Uses an email to SMS gateway to send an SMS message for each match.
+  * Move all matches: copies the event files to another location, specified in the Move To dropdown.  The other location must be setup in the Storage Tab under options. The files will be delete from the original location.
   * Run filter in background:  When checked, ZoneMinder will make sure the filter is checked regularly. For example, if you want to be notified of new events by email, you should make sure this is checked. Filters that are configured to run in the background have a “*” next to it.
   * Run filter concurrently: Allows this filter to run in its own thread thereby letting other filters run in parallel.
 
@@ -56,6 +59,7 @@ Here is what the filter window looks like
 	If you do this then the subsequent dialog will also allow you specify whether you want this filter automatically applied in order to delete events or upload events via ftp to another server and mail notifications of events to one or more email accounts. Emails and messages (essentially small emails intended for mobile phones or pagers) have a format defined in the Options screen, and may include a variety of tokens that can be substituted for various details of the event that caused them. This includes links to the event view or the filter as well as the option of attaching images or videos to the email itself. Be aware that tokens that represent links may require you to log in to access the actual page, and sometimes may function differently when viewed outside of the general ZoneMinder context. The tokens you can use are as follows.
 
     *    %EI%       Id of the event
+    *    %EID%      Id of the event
     *    %EN%       Name of the event
     *    %EC%       Cause of the event
     *    %ED%       Event description
@@ -70,14 +74,24 @@ Here is what the filter window looks like
     *    %EPS%      Path to the event stream
     *    %EPF1%     Path to the frame view for the first alarmed event image
     *    %EPFM%     Path to the frame view for the (first) event image with the highest score
-    *    %EFMOD%    Path to image containing object detection, in frame view
+    *    %EPFMOD%   Path to image containing object detection, in frame view
+    *    %EPFMODG%  Path to image containing object detection animated gif version, in frame view
     *    %EPI%      Path to the event images
     *    %EPI1%     Path to the first alarmed event image, suitable for use in img tags
     *    %EPIM%     Path to the (first) event image with the highest score, suitable for use in img tags
-    *    %EIMOD%    Path to image containing object detection, suitable for use in img tags
+    *    %EPIMOD%   Path to image containing object detection, suitable for use in img tags
+    *    %EPIMODG%  Path to image containing object detection animated gif version, suitable for use in img tags
+    *    %EPISNAP%  Path to the snapshot image, which should be the frame with the most motion
     *    %EI1%      Attach first alarmed event image
+    *    %EI1A%     Attach first alarmed event analysis image
     *    %EIM%      Attach (first) event image with the highest score
+    *    %EIMA%     Attach (first) event analysis image with the highest score
+    *    %EIMOD%    Attach image containing object detection
+    *    %EIMODG%   Attach image containing object detection animated gif version
+    *    %EISNAP%   Attach the snapshot image, which should be the frame with the most motion
     *    %EV%       Attach event mpeg video
+    *    %EVM%      Attach event mpeg video in phone format
+    *    %MID%      Monitor Id
     *    %MN%       Name of the monitor
     *    %MET%      Total number of events for the monitor
     *    %MEH%      Number of events for the monitor in the last hour
@@ -88,6 +102,7 @@ Here is what the filter window looks like
     *    %MP%       Path to the monitor window
     *    %MPS%      Path to the monitor stream
     *    %MPI%      Path to the monitor recent image
+    *    %FID%      Id of the current filter that matched
     *    %FN%       Name of the current filter that matched
     *    %FP%       Path to the current filter that matched
     *    %ZP%       Path to your ZoneMinder console
@@ -107,12 +122,11 @@ How filters actually work
 --------------------------
 It is useful to know how filters actually work behind the scenes in ZoneMinder, in the event you find your filter not functioning as intended:
 
-* the primary filter processing process in ZoneMinder is a perl file called ``zmfilter.pl`` which retrieves filters from the Filters database table
+* Each filter set to run in the background will be run in it's own process called ``zmfilter.pl`` which retrieves filters from the Filters database table
 * zmfilter.pl runs every FILTER_EXECUTE_INTERVAL seconds (default is 20s, can be changed in Options->System)
-* in each run, it goes through all the filters which are marked as "Run in Background" and if the conditions match performs the specified action
-* zmfilter.pl also reloads all the filters every FILTER_RELOAD_DELAY seconds (default is 300s/5mins, can be changed in Options->System)
-	* So if you have just created a new filter, zmfilter will not see it till the next FILTER_RELOAD_DELAY cycle
-	* This is also important if you are using "relative times" like 'now' - see :ref:`relative_caveat`
+* after each interval the filter will query the database and apply the action to each matching event.
+* zmfilter.pl also reloads the filter every FILTER_RELOAD_DELAY seconds (default is 300s/5mins, can be changed in Options->System)
+* In previous versions of ZoneMinder filter changes would not take immediate effect, but now the web ui will start/stop/restart filters as appropriate upon editing a filter.
 
 
 Relative items in date strings

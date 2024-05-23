@@ -1,457 +1,204 @@
 <?php
+$data = array();
+$message = '';
 
-# Moved up here because it is used in several spots.
-# These are the valid columns that you can filter on.
-$filterFields = array( 'Component', 'ServerId', 'Pid', 'Level', 'File', 'Line' );
+//
+// INITIALIZE AND CHECK SANITY
+//
 
-function buildLogQuery($action) {
-  global $filterFields;
+// task must be set
+if (!isset($_REQUEST['task'])) {
+  $message = 'This request requires a task to be set';
+} else if ($_REQUEST['task'] == 'query') {
+  if (!canView('System')) {
+    $message = 'Insufficient permissions to view log entries for user '.$user->Username();
+  } else {
+    $data = queryRequest();
+  }
+} else if ($_REQUEST['task'] == 'create' ) {
+  global $user;
+  if (!$user or (!canEdit('System') and !ZM_LOG_INJECT)) {
+    $message = 'Insufficient permissions to create log entries for user '.$user->Username();
+  } else {
+    createRequest();
+  }
+} else {
+  // Only the query and create tasks are supported at the moment
+  $message = 'Unrecognised task '.$_REQUEST['task'];
+}
 
-  $minTime = isset($_REQUEST['minTime'])?$_REQUEST['minTime']:NULL;
-  $maxTime = isset($_REQUEST['maxTime'])?$_REQUEST['maxTime']:NULL;
+if ($message) {
+  ajaxError($message);
+  return;
+}
+ajaxResponse($data);
 
+//
+// FUNCTION DEFINITIONS
+//
+
+function createRequest() {
+  if (!empty($_POST['level']) && !empty($_POST['message'])) {
+    ZM\logInit(array('id'=>'web_js'));
+
+    $file = !empty($_POST['file']) ? preg_replace('/\w+:\/\/[\w.:]+\//', '', $_POST['file']) : '';
+    $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
+
+    $levels = array_flip(ZM\Logger::$codes);
+    if (!isset($levels[$_POST['level']])) {
+      ZM\Error('Unexpected logger level '.$_POST['level']);
+      $_POST['level'] = 'ERR';
+    }
+    $level = $levels[$_POST['level']];
+    ZM\Logger::fetch()->logPrint($level, $_POST['message'], $file, $line);
+  } else {
+    ZM\Error('Invalid log create: '.print_r($_POST, true));
+  }
+}
+
+function queryRequest() {
+  // Offset specifies the starting row to return, used for pagination
+  $offset = 0;
+  if (isset($_REQUEST['offset'])) {
+    if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
+      ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+    } else {
+      $offset = $_REQUEST['offset'];
+    }
+  }
+
+  // Limit specifies the number of rows to return
   $limit = 100;
-  if ( isset($_REQUEST['limit']) ) {
-    if ( ( !is_integer($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
-      ZM\Error('Invalid value for limit ' . $_REQUEST['limit']);
+  if (isset($_REQUEST['limit'])) {
+    if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
+      ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
     } else {
       $limit = $_REQUEST['limit'];
     }
   }
-  $sortField = 'TimeKey';
-  if ( isset($_REQUEST['sortField']) ) {
-    if ( !in_array($_REQUEST['sortField'], $filterFields) and ( $_REQUEST['sortField'] != 'TimeKey' ) ) {
-      ZM\Error('Invalid sort field ' . $_REQUEST['sortField']);
+  // The table we want our data from
+  $table = 'Logs';
+
+  // The names of the dB columns in the log table we are interested in
+  $columns = array('TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
+
+  // The names of columns shown in the log view that are NOT dB columns in the database
+  $col_alt = array('DateTime', 'Server');
+
+  $sort = 'TimeKey';
+  if (isset($_REQUEST['sort'])) {
+    $sort = $_REQUEST['sort'];
+    if ($sort == 'DateTime') $sort = 'TimeKey';
+  }
+  if (!in_array($sort, array_merge($columns, $col_alt))) {
+    ZM\Error('Invalid sort field: ' . $sort);
+    return;
+  }
+
+  // Order specifies the sort direction, either asc or desc
+  $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+
+  $col_str = implode(', ', $columns);
+  $data = array();
+  $query = array();
+  $query['values'] = array();
+  $likes = array();
+  $where = '';
+   // There are two search bars in the log view, normal and advanced
+  // Making an exuctive decision to ignore the normal search, when advanced search is in use
+  // Alternatively we could try to do both
+  //
+  // Advanced search contains an array of "column name" => "search text" pairs
+  // Bootstrap table sends json_ecoded array, which we must decode
+  $advsearch = isset($_REQUEST['filter']) ? json_decode($_REQUEST['filter'], JSON_OBJECT_AS_ARRAY) : array();
+  // Search contains a user entered string to search on
+  $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+  if (count($advsearch)) {
+    foreach ($advsearch as $col=>$text) {
+      if (!in_array($col, array_merge($columns, $col_alt))) {
+        ZM\Error("'$col' is not a searchable column name");
+        continue;
+      }
+      // Don't use wildcards on advanced search
+      //$text = '%' .$text. '%';
+      array_push($likes, $col.' LIKE ?');
+      array_push($query['values'], $text);
+    }
+    $where = '(' .implode(' OR ', $likes). ')';
+
+  } else if ($search != '') {
+    $search = '%' .$search. '%';
+    foreach ( $columns as $col ) {
+      array_push($likes, $col.' LIKE ?');
+      array_push($query['values'], $search);
+    }
+    $where = '(' .implode(' OR ', $likes). ')';
+  }
+
+  if (!empty($_REQUEST['Component'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'Component = ?';
+    $query['values'][] = $_REQUEST['Component'];
+  }
+  if (!empty($_REQUEST['ServerId'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'ServerId = ?';
+    $query['values'][] = $_REQUEST['ServerId'];
+  }
+  if (!empty($_REQUEST['level'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'Code = ?';
+    $query['values'][] = $_REQUEST['level'];
+  }
+  if (!empty($_REQUEST['StartDateTime'])) {
+    $start_time = strtotime($_REQUEST['StartDateTime']);
+    if ($start_time) {
+      if ($where) $where .= ' AND ';
+      $where .= 'TimeKey >= ?';
+      $query['values'][] = $start_time;
     } else {
-      $sortField = $_REQUEST['sortField'];
+      ZM\Warning("Unable to parse StartDateTime ".$_REQUEST['StartDateTime']. " into a timestamp");
     }
   }
-  $sortOrder = (isset($_REQUEST['sortOrder']) and ($_REQUEST['sortOrder'] == 'asc')) ? 'asc' : 'desc';
-  $filter = isset($_REQUEST['filter']) ? $_REQUEST['filter'] : array();
-
-  $sql = $action.' FROM Logs';
-  $where = array();
-  $values = array();
-  if ( $minTime ) {
-    $where[] = 'TimeKey > ?';
-    $values[] = $minTime;
-  } elseif ( $maxTime ) {
-    $where[] = 'TimeKey < ?';
-    $values[] = $maxTime;
-  }
-
-  foreach ( $filter as $field=>$value ) {
-    if ( !in_array($field, $filterFields) ) {
-      ZM\Error("'$field' is not in valid filter fields " . print_r($filterField,true));
-      continue;
-    }
-    if ( $field == 'Level' ){
-      $where[] = $field.' <= ?';
-      $values[] = $value;
+  if (!empty($_REQUEST['EndDateTime'])) {
+    $end_time = strtotime($_REQUEST['EndDateTime']);
+    if ($end_time) {
+      if ($where) $where .= ' AND ';
+      $where .= 'TimeKey <= ?';
+      $query['values'][] = $end_time;
     } else {
-      $where[] = $field.' = ?';
-      $values[] = $value;
+      ZM\Warning("Unable to parse EndDateTime ".$_REQUEST['EndDateTime']. " into a timestamp");
     }
   }
-  if ( count($where) )
-    $sql.= ' WHERE '.join(' AND ', $where);
-  $sql .= ' ORDER BY '.$sortField.' '.$sortOrder.' LIMIT '.$limit;
+  if ($where) $where = ' WHERE '.$where;
 
-  return array('sql'=>$sql, 'values'=>$values);
-} # function buildLogQuery($action)
-
-switch ( $_REQUEST['task'] ) {
-  case 'create' :
-  {
-    // Silently ignore bogus requests
-    if ( !empty($_POST['level']) && !empty($_POST['message']) ) {
-      ZM\logInit(array('id'=>'web_js'));
-
-      $string = $_POST['message'];
-
-      $file = !empty($_POST['file']) ? preg_replace( '/\w+:\/\/[\w.:]+\//', '', $_POST['file'] ) : '';
-      if ( !empty( $_POST['line'] ) ) {
-        $line = validInt($_POST['line']);
-      } else {
-        $line = NULL;
-      }
-
-      $levels = array_flip(ZM\Logger::$codes);
-      if ( !isset($levels[$_POST['level']]) ) {
-        ZM\Panic('Unexpected logger level '.$_POST['level']);
-      }
-      $level = $levels[$_POST['level']];
-      ZM\Logger::fetch()->logPrint($level, $string, $file, $line);
-    }
-    ajaxResponse();
-    break;
+  $data['totalNotFiltered'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table, 'Total');
+  if ( $search != '' || count($advsearch) ) {
+    $data['total'] = dbFetchOne('SELECT count(*) AS Total FROM ' .$table.$where , 'Total', $query['values']);
+  } else {
+    $data['total'] = $data['totalNotFiltered'];
   }
-  case 'delete' :
-  {
-    if ( !canEdit('System') )
-      ajaxError('Insufficient permissions to delete log entries');
 
-    $query = buildLogQuery('DELETE');
-    $result = dbQuery($query['sql'], $query['values']);
-    ajaxResponse( array(
-      'result'=>'Ok',
-      'deleted'=>$result->rowCount(),
-    ) );
+  $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+  array_push($query['values'], $offset, $limit);
 
+  $rows = array();
+  $results = dbFetchAll($query['sql'], NULL, $query['values']);
 
+  global $dateTimeFormatter;
+  foreach ($results as $row) {
+    $row['DateTime'] = empty($row['TimeKey']) ? '' : $dateTimeFormatter->format(intval($row['TimeKey']));
+    $Server = $row['ServerId'] ? ZM\Server::find_one(array('Id'=>$row['ServerId'])) : null;
+
+    $row['Server'] = $Server ? $Server->Name() : '';
+    // Strip out all characters that are not ASCII 32-126 (yes, 126)
+    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', $row['Message']);
+    $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));
+    $rows[] = $row;
   }
-  case 'query' :
-  {
-    if ( !canView('System') )
-      ajaxError('Insufficient permissions to view log entries');
-    $total = dbFetchOne('SELECT count(*) AS Total FROM Logs', 'Total');
-    $query = buildLogQuery('SELECT *');
+  $data['rows'] = $rows;
+  $data['logstate'] = logState();
+  $data['updated'] = $dateTimeFormatter->format(time());
 
-    $servers = ZM\Server::find();
-    $servers_by_Id = array();
-    # There is probably a better way to do this.
-    foreach ( $servers as $server ) {
-      $servers_by_Id[$server->Id()] = $server;
-    }
-
-    $logs = array();
-    $options = array();
-
-    foreach ( dbFetchAll($query['sql'], NULL, $query['values']) as $log ) {
-
-      $log['DateTime'] = strftime('%Y-%m-%d %H:%M:%S', intval($log['TimeKey']));
-      #Warning("TimeKey: " . $log['TimeKey'] . 'Intval:'.intval($log['TimeKey']).' DateTime:'.$log['DateTime']);
-      #$log['DateTime'] = preg_replace('/^\d+/', strftime('%Y-%m-%d %H:%M:%S', intval($log['TimeKey'])), $log['TimeKey']);
-      $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
-      $log['Message'] = preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $log['Message']);
-      foreach( $filterFields as $field ) {
-        if ( !isset($options[$field]) ) 
-          $options[$field] = array();
-        $value = $log[$field];
-
-        if ( $field == 'Level' ) {
-          if ( $value <= ZM\Logger::INFO )
-            $options[$field][$value] = ZM\Logger::$codes[$value];
-          else
-            $options[$field][$value] = 'DB'.$value;
-        } else if ( $field == 'ServerId' ) {
-            $options['ServerId'][$value] = ( $value and isset($servers_by_Id[$value]) ) ? $servers_by_Id[$value]->Name() : '';
-        } else if ( isset($log[$field]) ) {
-          $options[$field][$log[$field]] = $value;
-        }
-      }
-      $logs[] = $log;
-    }
-
-    foreach ( $options as $field => $values ) {
-      asort($options[$field]);
-    }
-
-    $available = count($logs);
-    ajaxResponse( array(
-      'updated' => preg_match('/%/', DATE_FMT_CONSOLE_LONG)?strftime(DATE_FMT_CONSOLE_LONG):date(DATE_FMT_CONSOLE_LONG), 
-      'total' => $total,
-      'available' => isset($available) ? $available : $total,
-      'logs' => $logs,
-      'state' => logState(),
-      'options' => $options,
-    ) );
-    break;
-  }
-  case 'export' :
-  {
-    if ( !canView('System') )
-      ajaxError('Insufficient permissions to export logs');
-
-    $minTime = isset($_POST['minTime'])?$_POST['minTime']:NULL;
-    $maxTime = isset($_POST['maxTime'])?$_POST['maxTime']:NULL;
-    if ( !is_null($minTime) && !is_null($maxTime) && $minTime > $maxTime ) {
-      $tempTime = $minTime;
-      $minTime = $maxTime;
-      $maxTime = $tempTime;
-    }
-    //$limit = isset($_POST['limit'])?$_POST['limit']:1000;
-    $filter = isset($_POST['filter'])?$_POST['filter']:array();
-    $sortField = 'TimeKey';
-    if ( isset($_POST['sortField']) ) {
-      if ( ! in_array( $_POST['sortField'], $filterFields ) and ( $_POST['sortField'] != 'TimeKey' ) ) {
-        ZM\Error("Invalid sort field " . $_POST['sortField'] );
-      } else {
-        $sortField = $_POST['sortField'];
-      }
-    }
-    $sortOrder = (isset($_POST['sortOrder']) and $_POST['sortOrder']) == 'asc' ? 'asc':'desc';
-
-    $servers = ZM\Server::find();
-    $servers_by_Id = array();
-    # There is probably a better way to do this.
-    foreach ( $servers as $server ) {
-      $servers_by_Id[$server->Id()] = $server;
-    }
-
-    $sql = 'SELECT * FROM Logs';
-    $where = array();
-    $values = array();
-    if ( $minTime ) {
-      ZM\Logger::Debug("MinTime: $minTime");
-      if ( preg_match('/(.+)(\.\d+)/', $minTime, $matches) ) {
-        # This handles sub second precision
-        $minTime = strtotime($matches[1]).$matches[2];
-        ZM\Logger::Debug("MinTime: $minTime");
-      } else {
-        $minTime = strtotime($minTime);
-      }
-      $where[] = 'TimeKey >= ?';
-      $values[] = $minTime;
-    }
-    if ( $maxTime ) {
-      if ( preg_match('/(.+)(\.\d+)/', $maxTime, $matches) ) {
-        $maxTime = strtotime($matches[1]).$matches[2];
-      } else {
-        $maxTime = strtotime($maxTime);
-      }
-      $where[] = 'TimeKey <= ?';
-      $values[] = $maxTime;
-    }
-    foreach ( $filter as $field=>$value ) {
-      if ( $value != '' ) {
-        if ( $field == 'Level' ) {
-          $where[] = $field.' <= ?';
-          $values[] = $value;
-        } else {
-          $where[] = $field.' = ?';
-          $values[] = $value;
-        }
-      }
-    }
-    if ( count($where) )
-      $sql.= ' WHERE '.join( ' AND ', $where );
-    $sql .= ' ORDER BY '.$sortField.' '.$sortOrder;
-    //$sql .= " limit ".dbEscape($limit);
-    $format = isset($_POST['format'])?$_POST['format']:'text';
-    switch( $format ) {
-      case 'text' :
-        $exportExt = 'txt';
-        break;
-      case 'tsv' :
-        $exportExt = 'tsv';
-        break;
-      case 'html' :
-        $exportExt = 'html';
-        break;
-      case 'xml' :
-        $exportExt = 'xml';
-        break;
-      default :
-        ZM\Fatal("Unrecognised log export format '$format'");
-    }
-    $exportKey = substr(md5(rand()),0,8);
-    $exportFile = "zm-log.$exportExt";
-    if ( ! file_exists(ZM_DIR_EXPORTS) ) {
-      ZM\Logger::Debug('Creating ' . ZM_DIR_EXPORTS);
-      if ( ! mkdir(ZM_DIR_EXPORTS) ) {
-        ZM\Fatal("Can't create exports dir at '".ZM_DIR_EXPORTS."'");
-      }
-    }
-    $exportPath = ZM_DIR_EXPORTS."/zm-log-$exportKey.$exportExt";
-    ZM\Logger::Debug("Exporting to $exportPath");
-    if ( !($exportFP = fopen($exportPath, 'w')) )
-      ZM\Fatal("Unable to open log export file $exportPath");
-    $logs = array();
-    foreach ( dbFetchAll($sql, NULL, $values) as $log ) {
-      $log['DateTime'] = preg_replace('/^\d+/', strftime( "%Y-%m-%d %H:%M:%S", intval($log['TimeKey']) ), $log['TimeKey']);
-      $log['Server'] = ( $log['ServerId'] and isset($servers_by_Id[$log['ServerId']]) ) ? $servers_by_Id[$log['ServerId']]->Name() : '';
-      $logs[] = $log;
-    }
-    ZM\Logger::Debug(count($logs)." lines being exported by $sql " . implode(',',$values));
-
-  switch( $format ) {
-    case 'text' :
-    {
-      foreach ( $logs as $log ) {
-        if ( $log['Line'] )
-          fprintf( $exportFP, "%s %s[%d].%s-%s/%d [%s]\n",
-            $log['DateTime'], $log['Component'], $log['Pid'], $log['Code'], $log['File'], $log['Line'], $log['Message'] );
-        else
-          fprintf( $exportFP, "%s %s[%d].%s-%s [%s]\n",
-            $log['DateTime'], $log['Component'], $log['Pid'], $log['Code'], $log['File'], $log['Message'] );
-      }
-      break;
-    }
-    case 'tsv' :
-    {
-      # This line doesn't need fprintf, it could use fwrite
-      fprintf( $exportFP, join( "\t",
-        translate('DateTime'),
-        translate('Component'),
-        translate('Server'),
-        translate('Pid'),
-        translate('Level'),
-        translate('Message'),
-        translate('File'),
-        translate('Line')
-      )."\n" );
-      foreach ( $logs as $log ) {
-        fprintf( $exportFP, "%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n", $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
-      }
-      break;
-    }
-    case 'html' :
-    {
-    fwrite( $exportFP,
-      '
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-  <html xmlns="http://www.w3.org/1999/xhtml">
-    <head>
-      <title>'.translate('ZoneMinderLog').'</title>
-      <style type="text/css">
-      body, h3, p, table, td {
-      font-family: Verdana, Arial, Helvetica, sans-serif;
-      font-size: 11px;
-  }
-  table {
-  border-collapse: collapse;
-  width: 100%;
-  }
-  th {
-  font-weight: bold;
-  }
-  th, td {
-  border: 1px solid #888888;
-  padding: 1px 2px;
-  }
-  tr.log-fat td {
-  background-color:#ffcccc;
-  font-weight: bold;
-  font-style: italic;
-  }
-  tr.log-err td {
-  background-color:#ffcccc;
-  }
-  tr.log-war td {
-  background-color: #ffe4b5;
-  }
-  tr.log-dbg td {
-  color: #666666;
-  font-style: italic;
-  }
-  </style>
-    </head>
-    <body>
-    <h3>'.translate('ZoneMinderLog').'</h3>
-    <p>'.htmlspecialchars(preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG )).'</p>
-    <p>'.count($logs).' '.translate('Logs').'</p>
-    <table>
-    <tbody>
-    <tr><th>'.translate('DateTime').'</th><th>'.translate('Component').'</th><th>'.translate('Server').'</th><th>'.translate('Pid').'</th><th>'.translate('Level').'</th><th>'.translate('Message').'</th><th>'.translate('File').'</th><th>'.translate('Line').'</th></tr>
-    ' );
-    foreach ( $logs as $log ) {
-      $classLevel = $log['Level'];
-      if ( $classLevel < ZM\Logger::FATAL )
-        $classLevel = ZM\Logger::FATAL;
-      elseif ( $classLevel > ZM\Logger::DEBUG )
-        $classLevel = ZM\Logger::DEBUG;
-      $logClass = 'log-'.strtolower(ZM\Logger::$codes[$classLevel]);
-      fprintf( $exportFP, "        <tr class=\"%s\"><td>%s</td><td>%s</td><td>%s</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $logClass, $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], $log['Message'], $log['File'], $log['Line'] );
-    }
-    fwrite( $exportFP, 
-      '      </tbody>
-      </table>
-      </body>
-      </html>' );
-      break;
-    }
-    case 'xml' :
-    {
-        fwrite( $exportFP,
-          '<?xml version="1.0" encoding="utf-8"?>
-          <logexport title="'.translate('ZoneMinderLog').'" date="'.htmlspecialchars(preg_match( '/%/', DATE_FMT_CONSOLE_LONG )?strftime( DATE_FMT_CONSOLE_LONG ):date( DATE_FMT_CONSOLE_LONG )).'">
-          <selector>'.$_POST['selector'].'</selector>' );
-        foreach ( $filter as $field=>$value )
-          if ( $value != '' )
-            fwrite( $exportFP, 
-            '  <filter>
-            <'.strtolower($field).'>'.htmlspecialchars($value).'</'.strtolower($field).'>
-            </filter>' );
-        fwrite( $exportFP, 
-          '  <columns>
-          <column field="datetime">'.translate('DateTime').'</column><column field="component">'.translate('Component').'</column><column field="'.translate('Server').'</column><column field="pid">'.translate('Pid').'</column><column field="level">'.translate('Level').'</column><column field="message">'.translate('Message').'</column><column field="file">'.translate('File').'</column><column field="line">'.translate('Line').'</column>
-          </columns>
-          <logs count="'.count($logs).'">
-          ' );
-      foreach ( $logs as $log ) {
-        fprintf( $exportFP, 
-          "    <log>
-          <datetime>%s</datetime>
-          <component>%s</component>
-          <server>%s</server>
-          <pid>%d</pid>
-          <level>%s</level>
-          <message><![CDATA[%s]]></message>
-          <file>%s</file>
-          <line>%d</line>
-          </log>\n", $log['DateTime'], $log['Component'], $log['Server'], $log['Pid'], $log['Code'], utf8_decode( $log['Message'] ), $log['File'], $log['Line'] );
-      }
-      fwrite( $exportFP, 
-        '  </logs>
-        </logexport>' );
-      break;
-    }
-    $exportExt = 'xml';
-    break;
-    }
-    fclose( $exportFP );
-    ajaxResponse( array(
-      'key' => $exportKey,
-      'format' => $format,
-    ) );
-    break;
-  }
-  case 'download' :
-  {
-    if ( !canView('System') )
-      ajaxError('Insufficient permissions to download logs');
-
-    if ( empty($_REQUEST['key']) )
-      ZM\Fatal('No log export key given');
-    $exportKey = $_REQUEST['key'];
-    if ( empty($_REQUEST['format']) )
-      ZM\Fatal('No log export format given');
-    $format = $_REQUEST['format'];
-
-    switch( $format ) {
-    case 'text' :
-      $exportExt = 'txt';
-      break;
-    case 'tsv' :
-      $exportExt = 'tsv';
-      break;
-    case 'html' :
-      $exportExt = 'html';
-      break;
-    case 'xml' :
-      $exportExt = 'xml';
-      break;
-    default :
-      ZM\Fatal("Unrecognised log export format '$format'");
-    }
-
-    $exportFile = "zm-log.$exportExt";
-    $exportPath = ZM_DIR_EXPORTS."/zm-log-$exportKey.$exportExt";
-
-    header('Pragma: public');
-    header('Expires: 0');
-    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-    header('Cache-Control: private', false ); // required by certain browsers
-    header('Content-Description: File Transfer');
-    header('Content-Disposition: attachment; filename="'.$exportFile.'"' );
-    header('Content-Transfer-Encoding: binary');
-    header('Content-Type: application/force-download');
-    header('Content-Length: '.filesize($exportPath));
-    readfile($exportPath);
-    exit(0);
-    break;
-  }
+  return $data;
 }
-ajaxError('Unrecognised action or insufficient permissions');
-?>

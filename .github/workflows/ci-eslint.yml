@@ -1,0 +1,24 @@
+name: CI ESLint
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  eslint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install ESLint
+        run: npm install eslint@8.7.0 eslint-config-google@0.14.0 eslint-plugin-html@6.2.0 eslint-plugin-php-markup@6.0.0
+      - name: Run ESLint
+        run: npx eslint --ext .js.php,.js .

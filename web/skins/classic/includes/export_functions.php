@@ -27,13 +27,14 @@ function exportHeader($title) {
     <title><?php echo $title ?></title>
     <style>
 <?php 
+  global $css;
   include(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/css/base/export.css');
   if ( $css != 'base' ) {
     include(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/css/'.$css.'/export.css');
   }
 ?>
     </style>
-    <script src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>jquery.js"></script>
+    <script src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>jquery.min.js"></script>
     <!--<script type="text/javascript" src="<?php echo ($title == translate('Images').' Master' ? '' : '../') ?>video.js"></script>-->
     <script>
 
@@ -71,6 +72,7 @@ function exportEventDetail($event, $exportFrames, $exportImages) {
 	if ( $exportFrames ) $otherlinks .= ' <a href="zmEventFrames.html">'.translate('Frames').'</a>,';
 	if ( $exportImages ) $otherlinks .= ' <a href="zmEventImages.html">'.translate('Images').'</a>,';
 	$otherlinks = substr($otherlinks, 0, -1);
+  global $dateTimeFormatter;
 ?>
 <body>
   <div id="page">
@@ -82,7 +84,7 @@ function exportEventDetail($event, $exportFrames, $exportImages) {
         <tr><th scope="row"><?php echo translate('Monitor') ?></th><td><?php echo validHtmlStr($event->Monitor()->Name()) ?> (<?php echo $event->MonitorId() ?>)</td></tr>
         <tr><th scope="row"><?php echo translate('Cause') ?></th><td><?php echo validHtmlStr($event->Cause()) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Notes') ?></th><td><?php echo validHtmlStr($event->Notes()) ?></td></tr>
-        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) ?></td></tr>
+        <tr><th scope="row"><?php echo translate('Time') ?></th><td><?php echo $dateTimeFormatter->format(strtotime($event->StartDateTime())) ?></td></tr>
         <tr><th scope="row"><?php echo translate('Duration') ?></th><td><?php echo $event->Length() ?></td></tr>
         <tr><th scope="row"><?php echo translate('Frames') ?></th><td><?php echo $event->Frames() ?></td></tr>
         <tr><th scope="row"><?php echo translate('AttrAlarmFrames') ?></th><td><?php echo $event->AlarmFrames() ?></td></tr>
@@ -142,17 +144,18 @@ function exportEventFrames($event, $exportDetail, $exportImages) {
         }
 
         $class = strtolower($frame['Type']);
+        global $timeFormatter;
 ?>
         <tr class="<?php echo $class ?>">
           <td><?php echo $frame['FrameId'] ?></td>
           <td><?php echo $frame['Type'] ?></td>
-          <td><?php echo strftime(STRF_FMT_TIME, $frame['UnixTimeStamp']) ?></td>
+          <td><?php echo $timeFormatter->format($frame['UnixTimeStamp']) ?></td>
           <td><?php echo number_format($frame['Delta'], 2) ?></td>
           <td><?php echo $frame['Score'] ?></td>
 <?php
         if ( $exportImages ) {
 ?>
-          <td><a href="<?php echo $imageFile ?>" target="zmExportImage"><img src="<?php echo $imageFile ?>" class="thumb" alt="Frame <?php echo $frame['FrameId'] ?>"/></a></td>
+          <td><a href="<?php echo $imageFile ?>" target="zmExportImage"><img src="<?php echo $imageFile ?>" class="thumb" alt="Frame <?php echo $frame['FrameId'] ?>" loading="lazy" /></a></td>
 <?php
         }
 ?>
@@ -224,15 +227,15 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
 <h2><?php echo translate('Images').': '.validHtmlStr($event->Name()).( (!empty($otherlinks)) ? ' ('.$otherlinks.') ' : '' ) ?></h2>
 
 <?php
-  if ( $event->DefaultVideo() ) {
+  if ($event->DefaultVideo()) {
     // videojs zoomrotate only when direct recording
     $Zoom = 1;
     $Rotation = 0;
     $Monitor = $event->Monitor();
-    if ( $Monitor->VideoWriter() == '2' ) {
+    if ($Monitor->VideoWriter() == '2') {
       # Passthrough
       $Rotation = $event->Orientation();
-      if ( in_array($event->Orientation(), array('ROTATE_90','ROTATE_270')) )
+      if (in_array($event->Orientation(), array('ROTATE_90','ROTATE_270')))
         $Zoom = $event->Height()/$event->Width();
     } # end if passthrough
 ?>
@@ -241,7 +244,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
         width="<?php echo $event->Width() ?>"
         height="<?php echo $event->Height() ?>"
         data-setup='{ "controls": true, "autoplay": true, "preload": "auto", "plugins": { "zoomrotate": { "zoom": "<?php echo $Zoom ?>"}}}'>
-        <source src="<?php echo $event->getStreamSrc(array('mode'=>'mpeg','format'=>'h264')); ?>" type="video/mp4">
+        <source src="<?php echo $event->DefaultVideo(); ?>" type="video/mp4">
         <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default>
         Your browser does not support the video tag.
       </video>
@@ -249,7 +252,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
 <?php
 	} else { // end if DefaultVideo
 ?>
-<ilayer id="slidensmain" width=&{slidewidth}; height=&{slideheight}; bgColor=&{slidebgcolor}; visibility=hide>
+<ilayer id="slidensmain" width="&{slidewidth};" height="&{slideheight};" bgColor="&{slidebgcolor};" visibility="hide">
   <layer id="slidenssub" width="&{slidewidth};" left="auto" top="auto"></layer>
 </ilayer>
 <div id="imagevideo" align="center"></div>
@@ -569,30 +572,24 @@ else if (document.layers) window.onload=start_slider;
   return ob_get_clean();
 } # end function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist)
 
-function eventlist_html($Event, $exportDetail, $exportFrames) {
-  $html = '<div class="event">
-';
-	if ( $Event->SaveJPEGs() ) {
+function eventlist_html($Event, $exportDetail, $exportFrames, $exportStructure) {
+  $html = '';
+	if ($Event->SaveJPEGs()) {
     $html .= '<a href="#" onclick="switchevent(\''.$Event->Id().'/zmEventImages.html\');return false;">
 ';
     if ( ZM_WEB_LIST_THUMBS ) {
-      $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().'/snapshot.jpg" alt="'.$Event->Id().'"/>
+      $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().($exportStructure=='flat'?'_':'/').'snapshot.jpg" alt="'.$Event->Id().'" loading="lazy" />
 ';
-    } else {
-      $html .= $Event->Id();
     }
     $html .= '</a><br/>
 ';
 	} # end if has jpegs
-	if ( $Event->DefaultVideo() ) {
-		if ( ZM_WEB_LIST_THUMBS ) {
-      $html .= '<a href="'.$Event->Id().'/'.$Event->DefaultVideo() .'">';
-      $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().'/snapshot.jpg" alt="'.$Event->Id().'"/>';
-      $html .= '</a><br/>
-        ';
-		}
+	if ($Event->DefaultVideo()) {
+    $html .= '<a href="'.$Event->Id().($exportStructure == 'flat'?'_':'/').$Event->DefaultVideo() .'">';
+    $html .= '<img width="'.ZM_WEB_LIST_THUMB_WIDTH.'" src="'. $Event->Id().($exportStructure=='flat'?'_':'/').'snapshot.jpg" alt="'.$Event->Id().'" loading="lazy" />';
+    $html .= '</a><br/>'.PHP_EOL;
 	}
-  if ( $exportDetail ) {
+  if ($exportDetail) {
     $html .= '<a href="#" onclick="switchevent(\''.$Event->Id().'/zmEventDetail.html\');return false;">Detail</a>
 ';
   }
@@ -600,12 +597,12 @@ function eventlist_html($Event, $exportDetail, $exportFrames) {
     $html .= '<a href="#" onclick="switchevent(\''.$Event->Id().'/zmEventFrames.html\');return false;">Frames</a>
 ';
   }
-  $html .= '</div><!--event-->
-';
+  if (!$html) $html = $Event->Id();
+  $html = '<div class="event">'.PHP_EOL.$html.PHP_EOL.'</div><!--event-->'.PHP_EOL;
   return $html;
 } // end function eventlist_html
 
-function exportEventImagesMaster($eids, $exportDetail, $exportFrames) {
+function exportEventImagesMaster($eids, $exportDetail, $exportFrames, $exportStructure) {
   ob_start();
   exportHeader(translate('Images').' Master');
 ?>
@@ -614,7 +611,7 @@ function exportEventImagesMaster($eids, $exportDetail, $exportFrames) {
 <?php
   $events = ZM\Event::find(array('Id'=>$eids));
 
-	foreach ( $events as $event ) {
+	foreach ($events as $event) {
 		//get monitor id and event id
 		$eventMonitorId[$event->Id()] = $event->MonitorId();
 		$eventPath[$event->Id()] = $event->Relative_Path();
@@ -624,7 +621,7 @@ function exportEventImagesMaster($eids, $exportDetail, $exportFrames) {
 	$monitorNames = array();
 	
 	//*
-	if ( !empty($monitors) ) {
+	if (!empty($monitors)) {
 		$tmp = dbFetchAll('SELECT Id, Name FROM Monitors WHERE Id IN ('.implode(',', $monitors).') ');
 		foreach ( $tmp as $row ) { $monitorNames[$row['Id']] = $row['Name']; }
 	}
@@ -640,31 +637,31 @@ function exportEventImagesMaster($eids, $exportDetail, $exportFrames) {
 		?>
 	</ul>
 </div>
-<table>
+<table style="width: 100%;">
   <tr>
     <td valign="top" bgcolor="#dddddd" style="padding:10px;">
       <div class="tab_content" id="all">
         <h2> All </h2>
 <?php
-	foreach($events as $event) {
-		echo eventlist_html($event, $exportDetail, $exportFrames);
+	foreach ($events as $event) {
+		echo eventlist_html($event, $exportDetail, $exportFrames, $exportStructure);
 	} # end foreach event
 ?>
 	    </div>
 <?php
-  foreach ( $monitors as $monitor_id ) {
+  foreach ($monitors as $monitor_id) {
 		echo '<div class="tab_content" id="tab'.$monitor_id.'">';
 		echo '<h2>Monitor: '.$monitorNames[$monitor_id].'</h2>';
-		foreach ( $events as $event ) {
-			if ( $event->MonitorId() == $monitor_id ) {
-		    echo eventlist_html($event, $exportDetail, $exportFrames);
+		foreach ($events as $event) {
+			if ($event->MonitorId() == $monitor_id) {
+		    echo eventlist_html($event, $exportDetail, $exportFrames, $exportStructure);
 			} # end if its the right monitor
 		} # end foreach event
 		echo '</div>';
 	} # end foreach monitor
 ?>
 
-</td><td valign="top">
+</td><td valign="top" style="height: 100%;">
       <iframe id="myframe" onload="resizeCaller();" name="myframe" src="about:blank"
         scrolling="no" marginwidth="0" marginheight="0" frameborder="0"
         vspace="0" hspace="0" style="overflow:visible; width:100%; display:none">
@@ -771,53 +768,64 @@ function exportFileList(
   $exportVideo,
   $exportMisc
 ) {
-
-  if ( !canView('Events') or !$event ) {
+  if (!$event) {
+    ZM\Error("Empty event passed to exportFileList");
+    return;
+  }
+  if (!$event->canView()) {
+    ZM\Error('Can\'t view event '.$event->Id());
     return;
   }
 
   $eventPath = $event->Path();
   $eventRelativePath = $event->Relative_Path();
   $files = array();
-  if ( $dir = opendir($eventPath) ) {
-    while ( ($file = readdir($dir)) !== false ) {
-      if ( is_file($eventPath.'/'.$file) ) {
+  if ($dir = opendir($eventPath)) {
+    while (($file = readdir($dir)) !== false) {
+      if (is_file($eventPath.'/'.$file)) {
         $files[$file] = $file;
       }
     }
     closedir($dir);
   }
+  ZM\Debug('All available files: '.print_r($files, true));
 
   $exportFileList = array();
 
-  if ( $exportDetail ) {
+  if ($exportDetail) {
     $file = 'zmEventDetail.html';
-    if ( $fp = fopen($eventPath.'/'.$file, 'w') ) {
+    if ($fp = fopen($eventPath.'/'.$file, 'w')) {
       fwrite($fp, exportEventDetail($event, $exportFrames, $exportImages));
       fclose($fp);
       $exportFileList[$file] = $file;
     } else {
-      ZM\Error("Can't open event detail export file '$file'");
+      ZM\Error("Can't open event detail export file '$eventPath/$file'");
     }
+  } else {
+    ZM\Debug('Not including detail');
   }
 
-  if ( $exportFrames ) {
+  if ($exportFrames) {
     $file = 'zmEventFrames.html';
-    if ( $fp = fopen($eventPath.'/'.$file, 'w') ) {
+    if ($fp = fopen($eventPath.'/'.$file, 'w')) {
       fwrite($fp, exportEventFrames($event, $exportDetail, $exportImages));
       fclose($fp);
       $exportFileList[$file] = $file;
     } else {
-      ZM\Error("Can't open event frames export file '$file'");
+      ZM\Error("Can't open event frames export file '$eventPath/$file' is writable? ".is_writable($eventPath));
     }
+  } else {
+    ZM\Debug('Not including frames');
   }
 
-  if ( $exportImages ) {
+  if ($exportImages) {
     $filesLeft = array();
     $myfilelist = array();
-    foreach ( $files as $file ) {
-      if ( preg_match('/-(?:capture|analyse).jpg$/', $file) ) {
+    foreach ($files as $file) {
+      if (preg_match('/-(?:capture|analyse).jpg$/', $file)) {
         $myfilelist[$file] = $exportFileList[$file] = $file;
+      } else if ($exportVideo and preg_match('/\.(?:mpg|mpeg|mov|swf|mp4|mkv|avi|asf|3gp)$/', $file)) {
+        $exportFileList[$file] = $file;
       } else {
         $filesLeft[$file] = $file;
       }
@@ -825,36 +833,39 @@ function exportFileList(
     $files = $filesLeft;
 
     // create an image slider
-    if ( !empty($myfilelist) ) {
-      $file = 'zmEventImages.html';
-      if ( $fp = fopen($eventPath.'/'.$file, 'w') ) {
-        fwrite($fp, exportEventImages($event, $exportDetail, $exportFrames, $myfilelist));
-        fclose($fp);
-        $exportFileList[$file] = $file;
-      } else {
-        ZM\Error("Can't open event images export file '$file'");
-      }
+    $file = 'zmEventImages.html';
+    if ($fp = fopen($eventPath.'/'.$file, 'w')) {
+      fwrite($fp, exportEventImages($event, $exportDetail, $exportFrames, $myfilelist));
+      fclose($fp);
+      $exportFileList[$file] = $file;
+    } else {
+      ZM\Error("Can't open event images export file '$file'");
     }
+  } else {
+    ZM\Debug('Not including frame images');
   } # end if exportImages
 
-  if ( $exportVideo ) {
+  if ($exportVideo) {
     $filesLeft = array();
-    foreach ( $files as $file ) {
-      if ( preg_match('/\.(?:mpg|mpeg|mov|swf|mp4|mkv|avi|asf|3gp)$/', $file) ) {
+    foreach ($files as $file) {
+      if (preg_match('/\.(?:mpg|mpeg|mov|swf|mp4|mkv|avi|asf|3gp)$/', $file)) {
         $exportFileList[$file] = $file;
       } else {
         $filesLeft[$file] = $file;
       }
     }
     $files = $filesLeft;
-  } # end if exportVideo
+  }
 
-  if ( $exportMisc ) {
-    foreach ( $files as $file ) {
+  if ($exportMisc) {
+    foreach ($files as $file) {
       $exportFileList[$file] = $file;
     }
     $files = array();
+  } else {
+    ZM\Debug('Not including misc');
   }
+  ZM\Debug(print_r($exportFileList, true));
   return array_values($exportFileList);
 } # end exportFileList()
 
@@ -868,135 +879,162 @@ function exportEvents(
   $exportMisc,
   $exportFormat,
   $exportCompressed,
-  $exportStructure = false
+  $exportStructure = false,
+  $export_root = 'zmExport'
 ) {
 
-  if ( !canView('Events') ) {
+  if (!(canView('Events') or canView('Snapshots'))) {
     ZM\Error('You do not have permission to view events.');
     return false;
-  } else if ( empty($eids) ) {
+  } else if (empty($eids)) {
     ZM\Error('Attempt to export an empty list of events.');
     return false;
   }
 
-  if ( !($exportFormat == 'tar' or $exportFormat == 'zip') ) {
+  if (!($exportFormat == 'tar' or $exportFormat == 'zip')) {
     ZM\Error("None or invalid exportFormat specified $exportFormat.");
     return false;
   }
 
   # Ensure that we are going to be able to do this.
-  if ( ! ( mkdir(ZM_DIR_EXPORTS) or file_exists(ZM_DIR_EXPORTS) ) ) {
+  if (!(@mkdir(ZM_DIR_EXPORTS) or file_exists(ZM_DIR_EXPORTS))) {
     ZM\Fatal('Can\'t create exports dir at \''.ZM_DIR_EXPORTS.'\'');
   }
   chmod(ZM_DIR_EXPORTS, 0700);
-  $export_dir = ZM_DIR_EXPORTS.'/zmExport_'.$connkey;
+  $export_dir = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'');
 
   # Ensure that we are going to be able to do this.
-  if ( ! ( mkdir($export_dir) or file_exists($export_dir) ) ) {
+  if (!(@mkdir($export_dir) or file_exists($export_dir))) {
     ZM\Error("Can't create exports dir at '$export_dir'");
     return false;
   }
-  ZM\Logger::Debug("Successfully created dir '$export_dir'");
   chmod($export_dir, 0700);
-  if ( !chdir($export_dir) ) {
+  if (!chdir($export_dir)) {
     ZM\Error("Can't chdir to $export_dir");
     return;
   }
 
-  $export_root = 'zmExport';
   $export_listFile = 'zmFileList.txt';
   $exportFileList = array();
   $html_eventMaster = '';
 
-  if ( !is_array($eids) ) {
+  if (!is_array($eids)) {
     $eids = array($eids);
   }
-  foreach ( $eids as $eid ) {
+  foreach ($eids as $eid) {
     $event = new ZM\Event($eid);
+    if (!$event->canView()) {
+      global $user;
+      ZM\Warning('User '.($user?$user->Username():'').' cannot view event '.$event->Id());
+      continue;
+    }
     $event_dir = $export_dir.'/'.$event->Id();
-    if ( !(mkdir($event_dir) or file_exists($event_dir)) ) {
+    if (!(@mkdir($event_dir) or file_exists($event_dir))) {
       ZM\Error("Can't mkdir $event_dir");
     }
     $event_exportFileList = exportFileList($event, $exportDetail, $exportFrames, $exportImages, $exportVideo, $exportMisc);
-    $exportFileList = array_merge($exportFileList, $event_exportFileList);
-    foreach ( $event_exportFileList as $file ) {
+    #$exportFileList = array_merge($exportFileList, $event_exportFileList);
+    foreach ($event_exportFileList as $file) {
      #if ( preg_match('/\.html$/', $file) )
         #continue;
-      $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
+      if ($exportStructure == 'flat') {
+        if (false !== strpos($file, strval($event->Id()))) {
+          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$file. ' 2>&1';
+          $exportFileList[] = $file;
+        } else {
+          $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'_'.$file. ' 2>&1';
+          $exportFileList[] = $event->Id().'_'.$file;
+        }
+      } else {
+        $cmd = 'cp -as '.$event->Path().'/'.$file.' '.$export_dir.'/'.$event->Id().'/'.$file. ' 2>&1';
+        $exportFileList[] = $event->Id().'/'.$file;
+      }
       exec($cmd, $output, $return);
-      ZM\Logger::Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
+      ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
     } # end foreach event_exportFile
   } # end foreach event
 
-  if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.js', $export_dir.'/jquery.js') )
-    ZM\Error('Failed linking jquery.js');
+  if (!(
+    @symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.min.js', $export_dir.'/jquery.min.js')
+    or
+    file_exists($export_dir.'/jquery.min.js')
+  )) {
+    ZM\Error('Failed linking '.ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.min.js to '.$export_dir.'/jquery.min.js');
+  }
   //if ( !symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/video.js', $export_dir.'/video.js') )
     //Error("Failed linking video.js");
+  //
+  if (!($exportDetail or $exportFrames or $exportImages or $exportVideo or $exportMisc)) {
+    $html_eventMaster_file = 'zmEventImagesMaster.html';
+    $html_eventMaster_path = $export_dir.'/'.$html_eventMaster_file;
 
-  $html_eventMaster_file = 'zmEventImagesMaster.html';
-  $html_eventMaster_path = $export_dir.'/'.$html_eventMaster_file;
-
-  if ( ($fp = fopen($html_eventMaster_path, 'w')) ) {
-    fwrite($fp, exportEventImagesMaster($eids, $exportDetail, $exportFrames));
-    fclose($fp);
-    $exportFileList[] = $html_eventMaster_file;
-  } else {
-    ZM\Error("Can't open event images export file '$html_eventMaster_path'");
+    if (($fp = fopen($html_eventMaster_path, 'w'))) {
+      fwrite($fp, exportEventImagesMaster($eids, $exportDetail, $exportFrames, $exportStructure));
+      fclose($fp);
+      $exportFileList[] = $html_eventMaster_file;
+    } else {
+      ZM\Error("Can't open event images export file '$html_eventMaster_path'");
+    }
   }
 
   $listFile = $export_dir.'/'.$export_listFile;
-  if ( !($fp = fopen($listFile, 'w')) ) {
-    ZM\Fatal("Can't open event export list file '$listFile'");
+  if (!($fp = fopen($listFile, 'w'))) {
+    ZM\Error("Can't open event export list file '$listFile'");
+    return false;
   }
-  foreach ( $exportFileList as $exportFile ) {
-    $exportFile = 'zmExport'.$connkey.'/'.$exportFile;
-    fwrite($fp, "$exportFile\n");
+  foreach ($exportFileList as $exportFile) {
+    $exportFile = $export_root.$connkey.'/'.$exportFile;
+    fwrite($fp, $exportFile.PHP_EOL);
   }
-  fwrite($fp, "$listFile\n");
+  fwrite($fp, $listFile.PHP_EOL);
   fclose($fp);
 
   chdir(ZM_DIR_EXPORTS);
   $archive = '';
-  if ( $exportFormat == 'tar' ) {
-    $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.tar';
-    $version = shell_exec('tar -v');
+  if ($exportFormat == 'tar') {
+    $archive = $export_root.($connkey?'_'.$connkey:'').'.tar';
+    $version = @shell_exec('tar --version');
+    ZM\Debug("Version $version");
 
     $command = 'tar --create --dereference';
-    if ( $exportCompressed ) {
+    if ($exportCompressed) {
       $archive .= '.gz';
       $command .= ' --gzip';
       $exportFormat .= '.gz';
     }
-    if ( $exportStructure == 'flat' ) {
-      if ( preg_match('/BSD/i', $version) ) {
+    if ($exportStructure == 'flat') {
+      if (preg_match('/BSD/i', $version)) {
         $command .= ' -s \'#^.*/##\'';
       } else {
         $command .= ' --xform=\'s#^.+/##x\'';
       }
     }
-    $command .= ' --file='.escapeshellarg($archive);
-  } elseif ( $exportFormat == 'zip' ) {
-    $archive = ZM_DIR_EXPORTS.'/'.$export_root.($connkey?'_'.$connkey:'').'.zip';
-    $command = 'zip ';
-    $command .= ($exportStructure == 'flat' ? ' -j ' : ' -r ' ).escapeshellarg($archive);
+    $archive_path = ZM_DIR_EXPORTS.'/'.$archive;
+    $command .= ' --file='.escapeshellarg($archive_path);
+  } else if ($exportFormat == 'zip') {
+    $archive = $export_root.($connkey?'_'.$connkey:'').'.zip';
+    $archive_path = ZM_DIR_EXPORTS.'/'.$archive;
+    $command = 'zip -r ';
+    $command .= ($exportStructure == 'flat' ? ' -j ' : '').escapeshellarg($archive_path);
     $command .= $exportCompressed ? ' -9' : ' -0';
   } // if $exportFormat
 
-  @unlink($archive);
-  $command .= ' zmExport_' . $connkey.'/';
+  @unlink($archive_path);
+  $command .= ' '.$export_root.($connkey?'_'.$connkey:'').'/';
+  ZM\Debug($command);
   exec($command, $output, $status);
-  if ( $status ) {
+  if ($status) {
     ZM\Error("Command '$command' returned with status $status");
-    if ( isset($output[0]) ) {
+    if (isset($output[0])) {
       ZM\Error('First line of output is \''.$output[0].'\'');
     }
     return false;
   }
 
   // clean up temporary files
-  if ( !empty($html_eventMaster) ) {
+  if (!empty($html_eventMaster)) {
     unlink($monitorPath.'/'.$html_eventMaster);
   }
 
-  return '?view=archive%26type='.$exportFormat.'%26connkey='.$connkey;
+  return '?view=archive&type='.$exportFormat.'&connkey='.$connkey.'&file='.$archive;
 } // end function exportEvents

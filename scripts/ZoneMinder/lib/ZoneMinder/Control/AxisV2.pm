@@ -45,18 +45,27 @@ use ZoneMinder::Config qw(:all);
 use Time::HiRes qw( usleep );
 use URI;
 
-our $ADDRESS;
+our $uri;
 
 sub open {
   my $self = shift;
 
   $self->loadMonitor();
-	if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
-		# Has no scheme at the beginning, so won't parse as a URI
-		$self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
-	}
-  my $uri = URI->new($self->{Monitor}->{ControlAddress});
-  $ADDRESS = $uri->scheme.'://'.$uri->authority().$uri->path().($uri->port()?':'.$uri->port():'');
+
+  if ($self->{Monitor}->{ControlAddress} and ($self->{Monitor}->{ControlAddress} ne 'user:pass@ip')) {
+    Debug("Getting connection details from Control Address " . $self->{Monitor}->{ControlAddress});
+    if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
+      # Has no scheme at the beginning, so won't parse as a URI
+      $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
+    }
+    $uri = URI->new($self->{Monitor}->{ControlAddress});
+  } elsif ($self->{Monitor}->{Path}) {
+    Debug("Getting connection details from Path " . $self->{Monitor}->{Path});
+    $uri = URI->new($self->{Monitor}->{Path});
+    $uri->scheme('http');
+    $uri->port(80);
+    $uri->path('');
+  }
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
@@ -65,52 +74,64 @@ sub open {
   $self->{state} = 'closed';
 
   my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
+  Debug("Have username: $username password: $password host: $host from authority:" . $uri->authority());
+  
+  $uri->userinfo(undef);
+
   my $realm = $self->{Monitor}->{ControlDevice};
 
-  $self->{ua}->credentials($ADDRESS, $realm, $username, $password);
+  $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+  my $url = '/axis-cgi/param.cgi?action=list&group=Properties.PTZ.PTZ';
 
   # test auth
-  my $res = $self->{ua}->get($ADDRESS.'/cgi/ptdc.cgi');
+  my $res = $self->{ua}->get($uri->canonical().$url);
 
-  if ( $res->is_success ) {
+  if ($res->is_success) {
+    if ($res->content() ne "Properties.PTZ.PTZ=yes\n") {
+      Warning('Response suggests that camera doesn\'t support PTZ. Content:('.$res->content().')');
+    }
     $self->{state} = 'open';
     return;
   }
+  if ($res->status_line() eq '404 Not Found') {
+    #older style
+    $url = 'axis-cgi/com/ptz.cgi';
+    $res = $self->{ua}->get($uri->canonical().$url);
+    Debug("Result from getting ".$uri->canonical().$url . ':' . $res->status_line());
+  }
 
-  if ( $res->status_line() eq '401 Unauthorized' ) {
-
+  if ($res->status_line() eq '401 Unauthorized') {
     my $headers = $res->headers();
     foreach my $k ( keys %$headers ) {
       Debug("Initial Header $k => $$headers{$k}");
     }
 
     if ( $$headers{'www-authenticate'} ) {
-      Debug('Authenticating');
-      my ( $auth, $tokens ) = $$headers{'www-authenticate'} =~ /^(\w+)\s+(.*)$/;
-      if ( $tokens =~ /\w+="([^"]+)"/i ) {
-        if ( $realm ne $1 ) {
-          $realm = $1;
-          Debug("Changing REALM to $realm");
-          $self->{ua}->credentials($host, $realm, $username, $password);
-          $res = $self->{ua}->get($ADDRESS);
-          if ( $res->is_success() ) {
-            $self->{state} = 'open';
-            return;
+      foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
+        my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
+        if ( $tokens =~ /\w+="([^"]+)"/i ) {
+          if ( $realm ne $1 ) {
+            $realm = $1;
+            $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
+            $res = $self->{ua}->get($uri->canonical().$url);
+            if ( $res->is_success() ) {
+              Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");
+              $self->{state} = 'open';
+              return;
+            }
+            Error('Authentication still failed after updating REALM status: '.$res->status_line);
+          } else {
+            Error('Authentication failed, not a REALM problem');
           }
-          Error('Authentication still failed after updating REALM'.$res->status_line);
-          $headers = $res->headers();
-          foreach my $k ( keys %$headers ) {
-            Debug("Initial Header $k => $$headers{$k}");
-          }  # end foreach
         } else {
-          Error('Authentication failed, not a REALM problem');
-        }
-      } else {
-        Error('Failed to match realm in tokens');
-      } # end if
+          Error('Failed to match realm in tokens');
+        } # end if
+      } # end foreach auth header
     } else {
       Debug('No headers line');
     } # end if headers
+  } else {
+    Debug('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
   } # end if $res->status_line() eq '401 Unauthorized'
 } # end sub open
 
@@ -120,11 +141,11 @@ sub sendCmd {
 
   $self->printMsg($cmd, 'Tx');
 
-  my $url = $ADDRESS.$cmd;
+  my $url = $uri->canonical().$cmd;
   my $res = $self->{ua}->get($url);
 
   if ( $res->is_success ) {
-    Debug('sndCmd command: ' . $url . ' content: '.$res->content);
+    Debug('sndCmd command: '.$url.' content: '.$res->content);
     return !undef;
   }
 
@@ -142,57 +163,81 @@ sub cameraReset {
 
 sub moveConUp {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = 0; # purely moving vertically
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 );
   Debug('Move Up');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=up';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConDown {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = 0; # purely moving vertically
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 ) * -1 ;
   Debug('Move Down');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=down';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConLeft {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 ) * -1 ;
+  my $tiltspeed = 0; # purely moving horizontally
   Debug('Move Left');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=left';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConRight {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 );
+  my $tiltspeed = 0; # purely moving horizontally
   Debug('Move Right');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=right';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConUpRight {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 );
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 );
   Debug('Move Up/Right');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=upright';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConUpLeft {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 ) * -1;
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 );
   Debug('Move Up/Left');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=upleft';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
 sub moveConDownRight {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 );
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 ) * -1;
   Debug('Move Down/Right');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=downright';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd( $cmd );
 }
 
 sub moveConDownLeft {
   my $self = shift;
+  my $params = shift;
+  my $panspeed = $self->getParam( $params, 'panspeed', 30 ) * -1;
+  my $tiltspeed = $self->getParam( $params, 'tiltspeed', 30 ) * -1;
   Debug('Move Down/Left');
-  my $cmd = '/axis-cgi/com/ptz.cgi?move=downleft';
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$panspeed,$tiltspeed";
   $self->sendCmd($cmd);
 }
 
@@ -227,7 +272,7 @@ sub moveRelDown {
 sub moveRelLeft {
   my $self = shift;
   my $params = shift;
-  my $step = $self->getParam($params, 'panstep');
+  my $step = abs($self->getParam($params, 'panstep'));
   Debug("Step Left $step");
   my $cmd = '/axis-cgi/com/ptz.cgi?rpan=-'.$step;
   $self->sendCmd($cmd);
@@ -255,8 +300,8 @@ sub moveRelUpRight {
 sub moveRelUpLeft {
   my $self = shift;
   my $params = shift;
-  my $panstep = $self->getParam($params, 'panstep');
-  my $tiltstep = $self->getParam($params, 'tiltstep');
+  my $panstep = abs($self->getParam($params, 'panstep'));
+  my $tiltstep = abs($self->getParam($params, 'tiltstep'));
   Debug("Step Up/Left $tiltstep/$panstep");
   my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$panstep&rtilt=$tiltstep";
   $self->sendCmd($cmd);
@@ -281,6 +326,47 @@ sub moveRelDownLeft {
   my $cmd = "/axis-cgi/com/ptz.cgi?rpan=-$panstep&rtilt=-$tiltstep";
   $self->sendCmd($cmd);
 }
+
+sub zoomConTele {
+  my $self = shift;
+  my $params = shift;
+  my $speed = 20;
+  Debug('Zoom ConTele');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
+sub zoomConWide {
+  my $self = shift;
+  my $params = shift;
+  #my $step = $self->getParam($params, 'step');
+  my $speed = -20;
+  Debug('Zoom ConWide');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
+sub zoomStop {
+  my $self = shift;
+  my $params = shift;
+  my $speed = 0;
+  Debug('Zoom Stop');
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
+sub moveStop {
+  my $self = shift;
+  my $params = shift;
+  my $speed = 0;
+  Debug('Move Stop');
+  # we have to stop both pans and zooms
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouspantiltmove=$speed,$speed";
+  $self->sendCmd($cmd);
+  my $cmd = "/axis-cgi/com/ptz.cgi?continuouszoommove=$speed";
+  $self->sendCmd($cmd);
+}
+
 
 sub zoomRelTele {
   my $self = shift;
@@ -404,20 +490,15 @@ __END__
 
 =head1 NAME
 
-ZoneMinder::Database - Perl extension for blah blah blah
+ZoneMinder::Control::Axis - Zoneminder control for Axis Cameras using the V2 API
 
 =head1 SYNOPSIS
 
-  use ZoneMinder::Database;
-  blah blah blah
+  use ZoneMinder::Control::AxisV2 ; place this in /usr/share/perl5/ZoneMinder/Control
 
 =head1 DESCRIPTION
 
-Stub documentation for ZoneMinder, created by h2xs. It looks like the
-author of the extension was negligent enough to leave the stub
-unedited.
-
-Blah blah blah.
+This module is an implementation of the Axis V2 API 
 
 =head2 EXPORT
 
@@ -427,14 +508,8 @@ None by default.
 
 =head1 SEE ALSO
 
-Mention other useful documentation such as the documentation of
-related modules or operating system documentation (such as man pages
-in UNIX), or any relevant external documentation such as RFCs or
-standards.
-
-If you have a mailing list set up for your module, mention it here.
-
-If you have a web site set up for your module, mention it here.
+AXIS VAPIX Library Documentation; e.g.:
+https://www.axis.com/vapix-library/subjects/t10175981/section/t10036011/display 
 
 =head1 AUTHOR
 

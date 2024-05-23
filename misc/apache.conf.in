@@ -29,6 +29,7 @@
     <Directory "@WEB_PREFIX@">
         Options -Indexes +FollowSymLinks
         AllowOverride All
+        Require all granted
         <IfModule mod_authz_core.c>
            # Apache 2.4
            Require all granted
@@ -40,6 +41,7 @@
         </IfModule>
     </Directory>
 
+    # Remember to enable cgi mod (i.e. "a2enmod cgi").
     ScriptAlias /cgi-bin "@CGI_PREFIX@"
     <Directory "@CGI_PREFIX@">
         Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch

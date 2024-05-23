@@ -205,7 +205,7 @@ MAIN: while( $loop ) {
   my $monitorSelectSth = $dbh->prepare_cached( $monitorSelectSql )
     or Fatal( "Can't prepare '$monitorSelectSql': ".$dbh->errstr() );
 
-  my $eventSelectSql = 'SELECT `Id`, (unix_timestamp() - unix_timestamp(`StartTime`)) AS Age
+  my $eventSelectSql = 'SELECT `Id`, (unix_timestamp() - unix_timestamp(`StartDateTime`)) AS Age
     FROM `Events` WHERE `MonitorId` = ?'.(@Storage_Areas ? ' AND `StorageId` IN ('.join(',',map { '?'} @Storage_Areas).')' : '' ). ' ORDER BY `Id`';
   my $eventSelectSth = $dbh->prepare_cached( $eventSelectSql )
     or Fatal( "Can't prepare '$eventSelectSql': ".$dbh->errstr() );
@@ -308,7 +308,7 @@ MAIN: while( $loop ) {
 							} else {
 								my $full_path = join('/', $Storage->Path(), $day_dir, $event_path);
 # Check storage id
-								if ( !$Event->Storage()->Id() ) {
+								if ( $Storage->Id() and !$Event->Storage()->Id() ) {
 									Info("Correcting StorageId for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
 									$Event->save({ StorageId=>$Storage->Id() });
 									$Event->Path(undef);
@@ -317,7 +317,7 @@ MAIN: while( $loop ) {
 									if ( $Event->Path() ne $full_path ) {
 										if ( ! (-e $Event->Path()) ) {
 											if ( $Event->StorageId() != $Storage->Id() ) {
-												Info("Correcting Storge Id for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
+												Info("Correcting Storage Id for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
 												$Event->save({ StorageId=>$Storage->Id() });
 												$Event->Path(undef);
 											}
@@ -397,18 +397,18 @@ MAIN: while( $loop ) {
               my ( undef, $year, $month, $day ) = split('/', $day_dir);
               $year += 2000;
               my ( $hour, $minute, $second ) = split('/', $event_dir);
-              my $StartTime =sprintf('%.4d-%.2d-%.2d %.2d:%.2d:%.2d', $year, $month, $day, $hour, $minute, $second);
+              my $StartDateTime =sprintf('%.4d-%.2d-%.2d %.2d:%.2d:%.2d', $year, $month, $day, $hour, $minute, $second);
               my $Event = ZoneMinder::Event->find_one(
                 MonitorId=>$monitor_dir,
-                StartTime=>$StartTime,
+                StartDateTime=>$StartDateTime,
               );
               if ( $Event ) {
-                Debug("Found event matching starttime on monitor $monitor_dir at $StartTime: " . $Event->to_string());
+                Debug("Found event matching StartDateTime on monitor $monitor_dir at $StartDateTime: " . $Event->to_string());
                 next;
               }
               aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
               if ( confirm() ) {
-                executeShellCommand("rm -rf $event_dir");
+                executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$event_dir);
                 $cleaned = 1;
               }
             } # end if able to find id
@@ -440,12 +440,12 @@ MAIN: while( $loop ) {
           $Event->Path();
           $Event->age();
           Debug("Have event $$Event{Id} at $$Event{Path}");
-          $Event->StartTime(POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path()))));
+          $Event->StartDateTime(POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path()))));
         } # end foreach event
-      }
+      } # end scope for medium
 
-      if ( ! $$Storage{Scheme} ) {
-        Error("Storage Scheme not set on $$Storage{Name}");
+      Debug("Checking for Medium Scheme Events under $$Storage{Path}/$monitor_dir");
+      {
         if ( ! chdir($monitor_dir) ) {
           Error("Can't chdir directory '$$Storage{Path}/$monitor_dir': $!");
           next;
@@ -460,13 +460,14 @@ MAIN: while( $loop ) {
         foreach my $event ( @temp_events ) {
           my $Event = $fs_events->{$event} = new ZoneMinder::Event();
           $$Event{Id} = $event;
-          #$$Event{Path} = $event_path;
           $$Event{Scheme} = 'Shallow';
           $Event->MonitorId( $monitor_dir );
           $Event->StorageId( $Storage->Id() );
+          $Event->Path();
+          $Event->age();
         } # end foreach event
         chdir( $Storage->Path() );
-      } # if USE_DEEP_STORAGE
+      }
       Debug('Got '.int(keys(%$fs_events)).' filesystem events for monitor '.$monitor_dir);
 
       delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
@@ -514,7 +515,7 @@ MAIN: while( $loop ) {
         aud_print("Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database");
 
         if ( confirm() ) {
-          executeShellCommand("rm -rf $monitor_id");
+          executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$monitor_id);
           $cleaned = 1;
         }
       }
@@ -528,7 +529,7 @@ MAIN: while( $loop ) {
       aud_print("Filesystem monitor link '$link' does not point to valid monitor directory");
       if ( confirm() ) {
         ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
-        executeShellCommand(qq`rm "$link"`);
+        executeShellCommand($Config{ZM_PATH_RM}.qq` "$link"`);
         $cleaned = 1;
       }
     } # end foreach monitor link
@@ -592,7 +593,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
           Warning("Event $$Event{Id} is Archived. Taking no further action on it.");
           next;
         }
-        if ( !$Event->StartTime() ) {
+        if ( !$Event->StartDateTime() ) {
           aud_print("Event $$Event{Id} has no start time.");
           if ( confirm() ) {
             $Event->delete();
@@ -600,7 +601,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
           }
           next;
         } 
-        if ( ! $Event->EndTime() ) {
+        if ( ! $Event->EndDateTime() ) {
           if ( $age > $Config{ZM_AUDIT_MIN_AGE} ) {
             aud_print("Event $$Event{Id} has no end time and is $age seconds old. Deleting it.");
             if ( confirm() ) {
@@ -639,9 +640,9 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
             Info("Updating storage area on event $$Event{Id} from $$Event{StorageId} to $$fs_events{$db_event}{StorageId}");
             $Event->StorageId($$fs_events{$db_event}->StorageId());
           }
-          if ( ! $Event->StartTime() ) {
-            Info("Updating StartTime on event $$Event{Id} from $$Event{StartTime} to $$fs_events{$db_event}{StartTime}");
-            $Event->StartTime($$fs_events{$db_event}->StartTime());
+          if ( ! $Event->StartDateTime() ) {
+            Info("Updating StartDateTime on event $$Event{Id} from $$Event{StartDateTime} to $$fs_events{$db_event}{StartDateTime}");
+            $Event->StartDateTime($$fs_events{$db_event}->StartDateTime());
           }
 
           $Event->save();
@@ -683,12 +684,16 @@ if ( $level > 1 ) {
 # Remove empty events (with no frames)
   $cleaned = 0;
   Debug("Checking for Events with no Frames");
-  my $selectEmptyEventsSql = 'SELECT `E`.`Id` AS `Id`, `E`.`StartTime`, `F`.`EventId` FROM `Events` AS E LEFT JOIN `Frames` AS F ON (`E`.`Id` = `F`.`EventId`)
-    WHERE isnull(`F`.`EventId`) AND now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second > `E`.`StartTime`';
+  my $selectEmptyEventsSql = 'SELECT `E`.`Id` AS `Id`, `E`.`StartDateTime`, `F`.`EventId` FROM `Events` AS E LEFT JOIN `Frames` AS F ON (`E`.`Id` = `F`.`EventId`)
+    WHERE isnull(`F`.`EventId`) AND now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second > `E`.`StartDateTime`';
   if ( my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql ) ) {
     if ( $res = $selectEmptyEventsSth->execute() ) {
       while( my $event = $selectEmptyEventsSth->fetchrow_hashref() ) {
-        aud_print("Found empty event with no frame records '$event->{Id}' at $$event{StartTime}");
+        aud_print("Found empty event with no frame records '$event->{Id}' at $$event{StartDateTime}");
+        if ($$event{Archived}) {
+          aud_print("Not deleting because it is archived.");
+          next;
+        }
         if ( confirm() ) {
           if ( $res = $deleteEventSth->execute($event->{Id}) ) {
             $cleaned = 1;
@@ -750,7 +755,7 @@ if ( $level > 1 ) {
 #"SELECT E.Id, ANY_VALUE(E.MonitorId),
 #
 #max(F.TimeStamp) as EndTime,
-#unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartTime) as Length,
+#unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartDateTime) as Length,
 #max(F.FrameId) as Frames,
 #count(if(F.Score>0,1,NULL)) as AlarmFrames,
 #sum(F.Score) as TotScore,
@@ -760,11 +765,11 @@ if ( $level > 1 ) {
 #WHERE isnull(E.Frames) or isnull(E.EndTime)
 #GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}.' second)'
 #;
-    'SELECT *, unix_timestamp(`StartTime`) AS `TimeStamp` FROM `Events` WHERE `EndTime` IS NULL AND `StartTime` < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)'.($monitor_id?' AND MonitorId=?':'');
+    'SELECT *, unix_timestamp(`StartDateTime`) AS `TimeStamp` FROM `Events` WHERE `EndDateTime` IS NULL AND `StartDateTime` < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)'.($monitor_id?' AND MonitorId=?':'');
 
   my $selectFrameDataSql = '
 SELECT
-  max(`TimeStamp`) AS `EndTime`,
+  max(`TimeStamp`) AS `EndDateTime`,
   unix_timestamp(max(`TimeStamp`)) AS `EndTimeStamp`,
   max(`FrameId`) AS `Frames`,
   count(if(`Score`>0,1,NULL)) AS `AlarmFrames`,
@@ -779,7 +784,7 @@ FROM `Frames` WHERE `EventId`=?';
   my $updateUnclosedEventsSql =
     "UPDATE low_priority `Events`
     SET `Name` = ?,
-        `EndTime` = ?,
+        `EndDateTime` = ?,
         `Length` = ?,
         `Frames` = ?,
         `AlarmFrames` = ?,
@@ -794,7 +799,7 @@ FROM `Frames` WHERE `EventId`=?';
   $res = $selectUnclosedEventsSth->execute($monitor_id?$monitor_id:())
     or Fatal("Can't execute: ".$selectUnclosedEventsSth->errstr());
   while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() ) {
-    aud_print("Found open event '$event->{Id}' on Monitor $event->{MonitorId} at $$event{StartTime}");
+    aud_print("Found open event '$event->{Id}' on Monitor $event->{MonitorId} at $$event{StartDateTime}");
     if ( confirm('close', 'closing') ) {
       if ( ! ( $res = $selectFrameDataSth->execute($event->{Id}) ) ) {
         Error("Can't execute: $selectFrameDataSql:".$selectFrameDataSth->errstr());
@@ -808,7 +813,7 @@ FROM `Frames` WHERE `EventId`=?';
              $event->{Id},
              RECOVER_TAG
              ),
-           $frame->{EndTime},
+           $frame->{EndDateTime},
            $frame->{EndTimeStamp} - $event->{TimeStamp},
            $frame->{Frames},
            $frame->{AlarmFrames},
@@ -830,7 +835,7 @@ FROM `Frames` WHERE `EventId`=?';
 
 # Now delete any old image files
   if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> ) {
-    aud_print('Deleting '.int(@old_files)." old images\n");
+    aud_print('Deleting '.int(@old_files).' old images');
     my $untainted_old_files = join( ';', @old_files );
     ( $untainted_old_files ) = ( $untainted_old_files =~ /^(.*)$/ );
     unlink( split( /;/, $untainted_old_files ) );
@@ -858,7 +863,7 @@ FROM `Frames` WHERE `EventId`=?';
         $res = $deleteLogByRowsSth->execute( $logRows - $Config{ZM_LOG_DATABASE_LIMIT} )
           or Fatal("Can't execute: ".$deleteLogByRowsSth->errstr());
         if ( $deleteLogByRowsSth->rows() ) {
-          aud_print('Deleted '.$deleteLogByRowsSth->rows() ." log table entries by count\n");
+          aud_print('Deleted '.$deleteLogByRowsSth->rows().' log table entries by count');
         }
       }
     } else {
@@ -878,71 +883,70 @@ FROM `Frames` WHERE `EventId`=?';
         $res = $deleteLogByTimeSth->execute()
           or Fatal("Can't execute: ".$deleteLogByTimeSth->errstr());
         $deleted_rows = $deleteLogByTimeSth->rows();
-        aud_print("Deleted $deleted_rows log table entries by time\n");
+        aud_print("Deleted $deleted_rows log table entries by time");
       } while ( $deleted_rows );
     }
   } # end if ZM_LOG_DATABASE_LIMIT
   $loop = $continuous;
 
   my $eventcounts_sql = '
-  UPDATE `Monitors` SET
-  `TotalEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id`),
-  `TotalEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id` AND `DiskSpace` IS NOT NULL),
-  `ArchivedEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id` AND `Archived`=1),
-  `ArchivedEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Monitors`.`Id` AND `Archived`=1 AND `DiskSpace` IS NOT NULL)
+  UPDATE `Event_Summaries` SET
+  `TotalEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId`),
+  `TotalEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `DiskSpace` IS NOT NULL),
+  `ArchivedEvents`=(SELECT COUNT(`Id`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `Archived`=1),
+  `ArchivedEventDiskSpace`=(SELECT SUM(`DiskSpace`) FROM `Events` WHERE `MonitorId`=`Event_Summaries`.`MonitorId` AND `Archived`=1 AND `DiskSpace` IS NOT NULL)
   ';
 
-  my $eventcounts_sth = $dbh->prepare_cached( $eventcounts_sql );
-  $eventcounts_sth->execute();
-  $eventcounts_sth->finish();
+  ZoneMinder::Database::zmDbDo($eventcounts_sql);
+  aud_print('Finished updating TotalEvents, ArchivedEvents');
 
   my $eventcounts_hour_sql = '
-  UPDATE `Monitors` INNER JOIN (
+  UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `HourEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `HourEventDiskSpace`
   FROM `Events_Hour` GROUP BY `MonitorId`
-  ) AS `E` ON `E`.`MonitorId`=`Monitors`.`Id` SET
-  `Monitors`.`HourEvents` = `E`.`HourEvents`,
-  `Monitors`.`HourEventDiskSpace` = `E`.`HourEventDiskSpace`
+  ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
+  `Event_Summaries`.`HourEvents` = `E`.`HourEvents`,
+  `Event_Summaries`.`HourEventDiskSpace` = `E`.`HourEventDiskSpace`
   ';
+  ZoneMinder::Database::zmDbDo($eventcounts_hour_sql);
+  aud_print("Finished updating HourEvents");
 
 
   my $eventcounts_day_sql = '
-  UPDATE `Monitors` INNER JOIN (
+  UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `DayEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `DayEventDiskSpace`
   FROM `Events_Day` GROUP BY `MonitorId`
-  ) AS `E` ON `E`.`MonitorId`=`Monitors`.`Id` SET
-  `Monitors`.`DayEvents` = `E`.`DayEvents`,
-  `Monitors`.`DayEventDiskSpace` = `E`.`DayEventDiskSpace`
+  ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
+  `Event_Summaries`.`DayEvents` = `E`.`DayEvents`,
+  `Event_Summaries`.`DayEventDiskSpace` = `E`.`DayEventDiskSpace`
   ';
+  ZoneMinder::Database::zmDbDo($eventcounts_day_sql);
+  aud_print("Finished updating DayEvents");
 
   my $eventcounts_week_sql = '
-  UPDATE `Monitors` INNER JOIN (
+  UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `WeekEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `WeekEventDiskSpace`
   FROM `Events_Week` GROUP BY `MonitorId`
-  ) AS `E` ON `E`.`MonitorId`=`Monitors`.`Id` SET
-  `Monitors`.`WeekEvents` = `E`.`WeekEvents`,
-  `Monitors`.`WeekEventDiskSpace` = `E`.`WeekEventDiskSpace`
+  ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
+  `Event_Summaries`.`WeekEvents` = `E`.`WeekEvents`,
+  `Event_Summaries`.`WeekEventDiskSpace` = `E`.`WeekEventDiskSpace`
   ';
+  ZoneMinder::Database::zmDbDo($eventcounts_week_sql);
+  aud_print("Finished updating WeekEvents");
 
   my $eventcounts_month_sql = '
-  UPDATE `Monitors` INNER JOIN (
+  UPDATE `Event_Summaries` INNER JOIN (
   SELECT  `MonitorId`, COUNT(*) AS `MonthEvents`, SUM(COALESCE(`DiskSpace`,0)) AS `MonthEventDiskSpace`
   FROM `Events_Month` GROUP BY `MonitorId`
-  ) AS `E` ON `E`.`MonitorId`=`Monitors`.`Id` SET
-  `Monitors`.`MonthEvents` = `E`.`MonthEvents`,
-  `Monitors`.`MonthEventDiskSpace` = `E`.`MonthEventDiskSpace`
+  ) AS `E` ON `E`.`MonitorId`=`Event_Summaries`.`MonitorId` SET
+  `Event_Summaries`.`MonthEvents` = `E`.`MonthEvents`,
+  `Event_Summaries`.`MonthEventDiskSpace` = `E`.`MonthEventDiskSpace`
   ';
-  my $eventcounts_hour_sth = $dbh->prepare_cached($eventcounts_hour_sql);
-  my $eventcounts_day_sth = $dbh->prepare_cached($eventcounts_day_sql);
-  my $eventcounts_week_sth = $dbh->prepare_cached($eventcounts_week_sql);
-  my $eventcounts_month_sth = $dbh->prepare_cached($eventcounts_month_sql);
-  $eventcounts_hour_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
-  $eventcounts_day_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
-  $eventcounts_week_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
-  $eventcounts_month_sth->execute() or Error("Can't execute: ".$eventcounts_sth->errstr());
+  ZoneMinder::Database::zmDbDo($eventcounts_month_sql);
+  aud_print("Finished updating MonthEvents");
 
-  my $storage_diskspace_sth = $dbh->prepare_cached('UPDATE Storage SET DiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=Storage.Id)');
-  $storage_diskspace_sth->execute() or Error("Can't execute: ".$storage_diskspace_sth->errstr());
+  ZoneMinder::Database::zmDbDo('UPDATE Storage SET DiskSpace=(SELECT SUM(DiskSpace) FROM Events WHERE StorageId=Storage.Id)');
+  aud_print("Finished updating Storage DiskSpace");
 
   sleep($Config{ZM_AUDIT_CHECK_INTERVAL}) if $continuous;
 };
@@ -953,6 +957,7 @@ sub aud_print {
   my $string = shift;
   if ( !$continuous ) {
     print($string);
+    print "\n";
   } else {
     Info($string);
   }
@@ -970,7 +975,7 @@ sub confirm {
     my $char = <>;
     chomp($char);
     if ( $char eq 'q' ) {
-      exit(0);
+      Term();
     }
     if ( !$char ) {
       $char = 'y';
@@ -1059,6 +1064,7 @@ sub delete_empty_directories {
   } 
 } # end sub delete_empty_directories
 
+# The idea is that the youngest file in the event directory gives us the event starttime
 sub time_of_youngest_file {
   my $dir = shift;
 
@@ -1067,14 +1073,15 @@ sub time_of_youngest_file {
     return;
   }
   my $youngest = (stat($dir))[9];
-  Debug("stat of $dir is $youngest");
+  Debug("stat of dir $dir is $youngest");
   foreach my $file ( readdir( DIR ) ) {
     next if $file =~ /^\./;
     $_ = (stat($dir))[9];
-    $youngest = $_ if $_ and ( $_ < $youngest );
-    #Debug("stat of $dir is $_ < $youngest");
+    if ($_ and ($_ < $youngest)) {
+      $youngest = $_;
+      Debug("Found younger file $file at $youngest");
+    }
   }
-  Debug("stat of $dir is $youngest");
   return $youngest;
 } # end sub time_of_youngest_file
 

@@ -357,41 +357,6 @@ class MysqlTest extends CakeTestCase {
 	}
 
 /**
- * testBuildColumn method
- *
- * @return void
- */
-	public function testBuildColumn() {
-		$restore = $this->Dbo->columns;
-		$this->Dbo->columns = array('varchar(255)' => 1);
-		$data = array(
-			'name' => 'testName',
-			'type' => 'varchar(255)',
-			'default',
-			'null' => true,
-			'key',
-			'comment' => 'test'
-		);
-		$result = $this->Dbo->buildColumn($data);
-		$expected = '`testName`  DEFAULT NULL COMMENT \'test\'';
-		$this->assertEquals($expected, $result);
-
-		$data = array(
-			'name' => 'testName',
-			'type' => 'varchar(255)',
-			'default',
-			'null' => true,
-			'key',
-			'charset' => 'utf8',
-			'collate' => 'utf8_unicode_ci'
-		);
-		$result = $this->Dbo->buildColumn($data);
-		$expected = '`testName`  CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL';
-		$this->assertEquals($expected, $result);
-		$this->Dbo->columns = $restore;
-	}
-
-/**
  * MySQL 4.x returns index data in a different format,
  * Using a mock ensure that MySQL 4.x output is properly parsed.
  *
@@ -3080,14 +3045,6 @@ SQL;
 		$expected = '5,2';
 		$this->assertSame($expected, $result);
 
-		$result = $this->Dbo->length("enum('test','me','now')");
-		$expected = 4;
-		$this->assertSame($expected, $result);
-
-		$result = $this->Dbo->length("set('a','b','cd')");
-		$expected = 2;
-		$this->assertSame($expected, $result);
-
 		$result = $this->Dbo->length(false);
 		$this->assertNull($result);
 
@@ -3098,6 +3055,26 @@ SQL;
 		$result = $this->Dbo->length('text');
 		$expected = null;
 		$this->assertSame($expected, $result);
+	}
+
+/**
+ * Tests the length of enum column.
+ *
+ * @return void
+ */
+	public function testLengthEnum() {
+		$result = $this->Dbo->length("enum('test','me','now')");
+		$this->assertNull($result);
+	}
+
+/**
+ * Tests the length of set column.
+ *
+ * @return void
+ */
+	public function testLengthSet() {
+		$result = $this->Dbo->length("set('a','b','cd')");
+		$this->assertNull($result);
 	}
 
 /**
@@ -3154,7 +3131,7 @@ SQL;
  *
  * @return void
  */
-	public function testBuildColumn2() {
+	public function testBuildColumn() {
 		$data = array(
 			'name' => 'testName',
 			'type' => 'string',

@@ -1,114 +1,121 @@
 //
 // ZoneMinder Polygon Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
-#include "zm.h"
 #include "zm_poly.h"
 
-#ifndef SOLARIS
-#include <math.h>
-#else
+#include "zm_line.h"
 #include <cmath>
-#endif
 
-void Polygon::calcArea() {
-  double float_area = 0.0L;
-  for ( int i = 0, j = n_coords-1; i < n_coords; j = i++ ) {
-    double trap_area = ((coords[i].X()-coords[j].X())*((coords[i].Y()+coords[j].Y())))/2.0L;
+Polygon::Polygon(std::vector<Vector2> vertices) : vertices_(std::move(vertices)), area(0) {
+  UpdateExtent();
+  UpdateArea();
+  UpdateCentre();
+}
+
+void Polygon::UpdateExtent() {
+  if (vertices_.empty())
+    return;
+
+  int min_x = vertices_[0].x_;
+  int max_x = 0;
+  int min_y = vertices_[0].y_;
+  int max_y = 0;
+  for (const Vector2 &vertex : vertices_) {
+    min_x = std::min(min_x, vertex.x_);
+    max_x = std::max(max_x, vertex.x_);
+    min_y = std::min(min_y, vertex.y_);
+    max_y = std::max(max_y, vertex.y_);
+  }
+
+  extent = Box({min_x, min_y}, {max_x, max_y});
+}
+
+void Polygon::UpdateArea() {
+  double float_area = 0.0;
+  for (size_t i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
+    double trap_area = ((vertices_[i].x_ - vertices_[j].x_) * ((vertices_[i].y_ + vertices_[j].y_))) / 2.0;
     float_area += trap_area;
-    //printf( "%.2f (%.2f)\n", float_area, trap_area );
   }
-  area = (int)round(fabs(float_area));
+
+  area = static_cast<int32>(std::lround(std::fabs(float_area)));
 }
 
-void Polygon::calcCentre() {
-  if ( !area && n_coords )
-    calcArea();
-  double float_x = 0.0L, float_y = 0.0L;
-  for ( int i = 0, j = n_coords-1; i < n_coords; j = i++ ) {
-    float_x += ((coords[i].Y()-coords[j].Y())*((coords[i].X()*2)+(coords[i].X()*coords[j].X())+(coords[j].X()*2)));
-    float_y += ((coords[j].X()-coords[i].X())*((coords[i].Y()*2)+(coords[i].Y()*coords[j].Y())+(coords[j].Y()*2)));
+void Polygon::UpdateCentre() {
+  if (!area && !vertices_.empty())
+    UpdateArea();
+
+  double float_x = 0.0;
+  double float_y = 0.0;
+  for (size_t i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
+    float_x += ((vertices_[i].y_ - vertices_[j].y_)
+                * ((vertices_[i].x_ * 2) + (vertices_[i].x_ * vertices_[j].x_) + (vertices_[j].x_ * 2)));
+    float_y += ((vertices_[j].x_ - vertices_[i].x_)
+                * ((vertices_[i].y_ * 2) + (vertices_[i].y_ * vertices_[j].y_) + (vertices_[j].y_ * 2)));
   }
-  float_x /= (6*area);
-  float_y /= (6*area);
-  //printf( "%.2f,%.2f\n", float_x, float_y );
-  centre = Coord( (int)round(float_x), (int)round(float_y) );
+  float_x /= (6 * area);
+  float_y /= (6 * area);
+
+  centre = Vector2(static_cast<int32>(std::lround(float_x)), static_cast<int32>(std::lround(float_y)));
 }
 
-Polygon::Polygon(int p_n_coords, const Coord *p_coords) : n_coords( p_n_coords ) {
-  coords = new Coord[n_coords];
-
-  int min_x = -1;
-  int max_x = -1;
-  int min_y = -1;
-  int max_y = -1;
-  for ( int i = 0; i < n_coords; i++ ) {
-    coords[i] = p_coords[i];
-    if ( min_x == -1 || coords[i].X() < min_x )
-      min_x = coords[i].X();
-    if ( max_x == -1 || coords[i].X() > max_x )
-      max_x = coords[i].X();
-    if ( min_y == -1 || coords[i].Y() < min_y )
-      min_y = coords[i].Y();
-    if ( max_y == -1 || coords[i].Y() > max_y )
-      max_y = coords[i].Y();
-  }
-  extent = Box( min_x, min_y, max_x, max_y );
-  calcArea();
-  calcCentre();
-}
-
-Polygon::Polygon( const Polygon &p_polygon ) :
-  n_coords(p_polygon.n_coords),
-  extent(p_polygon.extent),
-  area(p_polygon.area),
-  centre(p_polygon.centre)
-{
-  coords = new Coord[n_coords];
-  for( int i = 0; i < n_coords; i++ ) {
-    coords[i] = p_polygon.coords[i];
-  }
-}
-
-Polygon &Polygon::operator=( const Polygon &p_polygon ) {
-  if ( n_coords < p_polygon.n_coords ) {
-    delete[] coords;
-    coords = new Coord[p_polygon.n_coords];
-  }
-  n_coords = p_polygon.n_coords;
-  for ( int i = 0; i < n_coords; i++ ) {
-    coords[i] = p_polygon.coords[i];
-  }
-  extent = p_polygon.extent;
-  area = p_polygon.area;
-  centre = p_polygon.centre;
-  return *this ;
-}
-
-bool Polygon::isInside( const Coord &coord ) const {
+bool Polygon::Contains(const Vector2 &coord) const {
   bool inside = false;
-  for ( int i = 0, j = n_coords-1; i < n_coords; j = i++ ) {
-    if ( (((coords[i].Y() <= coord.Y()) && (coord.Y() < coords[j].Y()) )
-    || ((coords[j].Y() <= coord.Y()) && (coord.Y() < coords[i].Y())))
-    && (coord.X() < (coords[j].X() - coords[i].X()) * (coord.Y() - coords[i].Y()) / (coords[j].Y() - coords[i].Y()) + coords[i].X()))
-    {
+  for (size_t i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
+    if ((((vertices_[i].y_ <= coord.y_) && (coord.y_ < vertices_[j].y_)) || ((vertices_[j].y_ <= coord.y_) && (coord.y_ < vertices_[i].y_)))
+        && (coord.x_ < (vertices_[j].x_ - vertices_[i].x_) * (coord.y_ - vertices_[i].y_) / (vertices_[j].y_ - vertices_[i].y_) + vertices_[i].x_)) {
       inside = !inside;
     }
   }
   return inside;
+}
+
+// Clip the polygon to a rectangular boundary box using the Sutherland-Hodgman algorithm
+void Polygon::Clip(const Box &boundary) {
+  std::vector<Vector2> clipped_vertices = vertices_;
+
+  for (LineSegment const &clip_edge : boundary.Edges()) {
+    // convert our line segment to an infinite line
+    Line clip_line = Line(clip_edge);
+
+    std::vector<Vector2> to_clip = clipped_vertices;
+    clipped_vertices.clear();
+
+    for (size_t i = 0; i < to_clip.size(); ++i) {
+      Vector2 vert1 = to_clip[i];
+      Vector2 vert2 = to_clip[(i + 1) % to_clip.size()];
+
+      bool vert1_left = clip_line.IsPointLeftOfOrColinear(vert1);
+      bool vert2_left = clip_line.IsPointLeftOfOrColinear(vert2);
+
+      if (vert2_left) {
+        if (!vert1_left) {
+          clipped_vertices.push_back(Line(vert1, vert2).Intersection(clip_line));
+        }
+        clipped_vertices.push_back(vert2);
+      } else if (vert1_left) {
+        clipped_vertices.push_back(Line(vert1, vert2).Intersection(clip_line));
+      }
+    }
+  }
+
+  vertices_ = clipped_vertices;
+  UpdateExtent();
+  UpdateArea();
+  UpdateCentre();
 }

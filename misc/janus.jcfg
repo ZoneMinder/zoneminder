@@ -1,0 +1,50 @@
+general: {
+	configs_folder = "/usr/local/etc/janus"			# Configuration files folder
+	plugins_folder = "/usr/local/lib/janus/plugins"			# Plugins folder
+	transports_folder = "/usr/local/lib/janus/transports"	# Transports folder
+	events_folder = "/usr/local/lib/janus/events"			# Event handlers folder
+	loggers_folder = "/usr/local/lib/janus/loggers"			# External loggers folder
+	debug_level = 4							# Debug/logging level, valid values are 0-7
+	admin_secret = "janusoverlord"	# String that all Janus requests must contain
+	protected_folders = [
+		"/bin",
+		"/boot",
+		"/dev",
+		"/etc",
+		"/initrd",
+		"/lib",
+		"/lib32",
+		"/lib64",
+		"/proc",
+		"/sbin",
+		"/sys",
+		"/usr",
+		"/var",
+		"/opt/janus/bin",
+		"/opt/janus/etc",
+		"/opt/janus/include",
+		"/opt/janus/lib",
+		"/opt/janus/lib32",
+		"/opt/janus/lib64",
+		"/opt/janus/sbin"
+	]
+}
+media: {
+	#ipv6 = true
+	#ipv6_linklocal = true
+	rtp_port_range = "20000-40000"
+}
+nat: {
+	nice_debug = false
+	ignore_mdns = true
+	keep_private_host = true
+	ice_ignore_list = "vmnet"
+}
+
+plugins: {
+	disable = "libjanus_audiobridge.so,libjanus_echotest.so,libjanus_recordplay.so,libjanus_sip.so,libjanus_textroom.so,libjanus_videocall.so,libjanus_videoroom.so,libjanus_voicemail.so,
+        libjanus_nosip.so"
+}
+transports: {
+	disable = "libjanus_rabbitmq.so, libjanus_pfunix.so,libjanus_websockets.so"
+}

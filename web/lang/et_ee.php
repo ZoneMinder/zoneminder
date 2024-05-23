@@ -158,7 +158,7 @@ $SLANG = array(
     'BadFrameSkip'          => 'Kaadri vahelejätmise hulk peab olema integer, null või rohkem',
     'BadHeight'             => 'Kõrguseks peab olema valitud õige väärtus',
     'BadHost'               => 'Host ipeab olema õige. Ip aadress või hostinimi, ei tohi sisaldada http://',
-    'BadImageBufferCount'   => 'Pildi puhvri suurus peab olema integer, 10 või rohkem',
+    'BadImageBufferCount'   => 'Pildi puhvri suurus peab olema integer, 2 või rohkem',
     'BadLabelX'             => 'Label X co-ordinate must be set to an integer of zero or more',
     'BadLabelY'             => 'Label Y co-ordinate must be set to an integer of zero or more',
     'BadMaxFPS'             => 'Maximum FPS must be a positive integer or floating point value',
@@ -953,7 +953,7 @@ $OLANG = array(
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

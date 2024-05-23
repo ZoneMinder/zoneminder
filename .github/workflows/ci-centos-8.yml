@@ -1,0 +1,44 @@
+name: CI CentOS 8
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        crypto_backend: [ gnutls, openssl ]
+        jwt_backend: [ libjwt, jwt_cpp ]
+        exclude:
+          - crypto_backend: gnutls
+            jwt_backend: jwt_cpp
+          - crypto_backend: gnutls
+            jwt_backend: libjwt
+    runs-on: ubuntu-latest
+    container: rockylinux:8
+
+    steps:
+      - name: Enable RPMFusion, EPEL and PowerTools
+        run: yum -y install "dnf-command(config-manager)" https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && yum config-manager --set-enabled powertools
+      - name: Install git
+        run: yum -y install git
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: yum -y update && yum -y install make cmake gcc-c++ catch-devel mariadb-devel ffmpeg-devel libcurl-devel vlc-devel libvncserver-devel libjpeg-turbo-devel "perl(Date::Manip)" "perl(DBD::mysql)" "perl(ExtUtils::MakeMaker)" "perl(Sys::Mmap)" "perl(Sys::Syslog)" "perl(LWP::UserAgent)" polkit-devel libjwt-devel
+      - name: Prepare
+        run: mkdir build
+      - name: Configure
+        run: cd build && cmake --version && cmake .. -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=1  -DZM_CRYPTO_BACKEND=${{ matrix.crypto_backend }} -DZM_JWT_BACKEND=${{ matrix.jwt_backend }}
+      - name: Build
+        run: cd build && make -j3 | grep --line-buffered -Ev '^(cp lib\/|Installing.+\.pm)' && (exit ${PIPESTATUS[0]})
+      - name: Run tests
+        run: cd build/tests && ./tests "~[notCI]"

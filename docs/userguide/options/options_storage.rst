@@ -5,7 +5,7 @@ Options - Storage
 
 Storage tab is used to setup storage areas for recorded Events. To add a new area use the Add New Storage button.
 
-By default storage on local drive is automatically set up on installion. When no area is specified events will be 
+By default storage on local drive is automatically set up on installation. When no area is specified events will be 
 stored to a default built-in location, which for example on Ubuntu is /var/cache/zoneminder/events.
 
 Name: Storage names - can be anything
@@ -27,6 +27,7 @@ S3 storage setup
 
 You must use s3fs to mount the S3 bucket in your fs tree.  Telling ZoneMinder that the location is S3 will let it use
 more efficient code to send and delete the event data.  
+The Do Deletes option tells ZoneMinder whether to actually perform delete operations when deleting events.  S3fs systems often do deletes in a cron job or other background task and doing the deletes can overload an S3 system.
 
 Refer to this guide for installation and configuration of s3fs - https://github.com/s3fs-fuse/s3fs-fuse
 

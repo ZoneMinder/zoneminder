@@ -11,6 +11,7 @@ User Guide
    viewmonitors
    filterevents
    viewevents
+   tags
    options
    cameracontrol
    mobile

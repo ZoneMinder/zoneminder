@@ -245,7 +245,7 @@ class HtmlHelper extends AppHelper {
  * - `block` Choose a custom block to append the meta tag to. Using this option
  *   will override the inline option.
  *
- * @param string $type The title of the external resource
+ * @param string|array $type The title of the external resource
  * @param string|array $url The address of the external resource or string for content attribute
  * @param array $options Other attributes for the generated tag. If the type attribute is html,
  *    rss, atom, or icon, the mime-type is returned.
@@ -341,7 +341,7 @@ class HtmlHelper extends AppHelper {
  * @param string $title The content to be wrapped by `<a>` tags.
  * @param string|array $url Cake-relative URL or array of URL parameters, or external URL (starts with http://)
  * @param array $options Array of options and HTML attributes.
- * @param string $confirmMessage JavaScript confirmation message. This
+ * @param string|bool $confirmMessage JavaScript confirmation message. This
  *   argument is deprecated as of 2.6. Use `confirm` key in $options instead.
  * @return string An `<a />` element.
  * @link https://book.cakephp.org/2.0/en/core-libraries/helpers/html.html#HtmlHelper::link

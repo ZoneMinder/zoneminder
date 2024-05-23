@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder web video view file, $Date: 2008-09-29 14:15:13 +0100 (Mon, 29 Sep 2008) $, $Revision: 2640 $
+// ZoneMinder web video view file
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -30,6 +30,8 @@ if ( !canView('Events') ) {
   return;
 }
 
+# in index.php we do ob_end_start but there can be no output before view_video and we often don't have enough ram to buffer the content.
+ob_end_clean();
 require_once('includes/Event.php');
 
 $errorText = false;
@@ -40,11 +42,13 @@ $Event = null;
 if ( ! empty($_REQUEST['eid']) ) {
   $Event = new ZM\Event($_REQUEST['eid']);
   $path = $Event->Path().'/'.$Event->DefaultVideo();
-	ZM\Logger::Debug("Path: $path");
 } else if ( ! empty($_REQUEST['event_id']) ) {
   $Event = new ZM\Event($_REQUEST['event_id']);
-  $path = $Event->Path().'/'.$Event->DefaultVideo();
-	ZM\Logger::Debug("Path: $path");
+  if (!empty($_REQUEST['file'])) {
+    $path = $Event->Path().'/'.preg_replace('/\//', '', $_REQUEST['file']);
+  } else {
+    $path = $Event->Path().'/'.$Event->DefaultVideo();
+  }
 } else {
   $errorText = 'No video path';
 }
@@ -55,27 +59,26 @@ if ( $errorText ) {
   die();
 } 
 
-$size = filesize($path);
-
-$fh = @fopen($path,'rb');
-if ( ! $fh ) {
+if ( ! ($fh = @fopen($path, 'rb') ) ) {
+  ZM\Error('Can\'t open video at '.$path);
   header('HTTP/1.0 404 Not Found');
   die();
 }
 
+$size = filesize($path);
 $begin = 0;
 $end = $size-1;
 $length = $size;
 
 if ( isset($_SERVER['HTTP_RANGE']) ) {
-  ZM\Logger::Debug('Using Range ' . $_SERVER['HTTP_RANGE']);
+  ZM\Debug('Using Range '.$_SERVER['HTTP_RANGE']);
   if ( preg_match('/bytes=\h*(\d+)-(\d*)[\D.*]?/i', $_SERVER['HTTP_RANGE'], $matches) ) {
     $begin = intval($matches[1]);
-    if ( ! empty($matches[2]) ) {
+    if ( !empty($matches[2]) ) {
       $end = intval($matches[2]);
     }
     $length = $end - $begin + 1;
-    ZM\Logger::Debug("Using Range $begin $end size: $size, length: $length");
+    ZM\Debug("Using Range $begin $end size: $size, length: $length");
   }
 } # end if HTTP_RANGE
 
@@ -99,17 +102,12 @@ if ( $begin > 0 || $end < $size-1 ) {
 
 // Apparently without these we get a few extra bytes of output at the end...
 flush();
-
-$cur = $begin;
 fseek($fh, $begin, 0);
 
-while( $length && ( !feof($fh) ) && ( connection_status() == 0 ) ) {
+while ($length && (!feof($fh)) && (connection_status() == 0)) {
   $amount = min(1024*16, $length);
-
-  print fread( $fh, $amount );
+  echo fread($fh, $amount);
   $length -= $amount;
-  # Why introduce a speed limit?
-  #usleep(100);
   flush();
 }
 

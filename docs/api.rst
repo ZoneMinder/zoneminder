@@ -241,11 +241,11 @@ Retrieve monitor 1
 Change State of Monitor 1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This API changes monitor 1 to Modect and Enabled
+This API changes monitor 1 to enable motion detection and recording on motion detection (similar to old Modect function)
 
 ::
 
-  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]=1"
+  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Analysing]=Always&Monitor[Recording]=OnMotion"
   
 Get Daemon Status of Monitor 1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -262,7 +262,9 @@ This command will add a new http monitor.
 ::
 
   curl -XPOST http://server/zm/api/monitors.json -d "Monitor[Name]=Cliff-Burton\
-  &Monitor[Function]=Modect\
+  &Monitor[Capturing]=Always\
+  &Monitor[Analysing]=Always\
+  &Monitor[Recording]=Always\
   &Monitor[Protocol]=http\
   &Monitor[Method]=simple\
   &Monitor[Host]=usr:pass@192.168.11.20\
@@ -412,7 +414,7 @@ This returns number of events per monitor that were recorded in the last one hou
 
   curl "http://server/zm/api/events/consoleEvents/1%20hour.json"
 
-This returns number of events per monitor that were recorded in the last day where there were atleast 10 frames that were alarms"
+This returns number of events per monitor that were recorded in the last day where there were at least 10 frames that were alarms"
 
 ::
 
@@ -643,7 +645,7 @@ will display a live feed from monitor id 1, scaled down by 50% in quality and re
 
 PTZ on live streams
 -------------------
-PTZ commands are pretty cryptic in ZoneMinder. This is not meant to be an exhaustive guide, but just something to whet your appetite:
+PTZ commands are pretty cryptic in ZoneMinder. This is not meant to be an exhaustive guide, but just something to wet your appetite:
 
 
 Lets assume you have a monitor, with ID=6. Let's further assume you want to pan it left.

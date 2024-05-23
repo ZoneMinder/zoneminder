@@ -101,6 +101,6 @@ FROM_EMAIL - The emails or messages that will be sent to you informing you of ev
 
 URL - The emails or messages that will be sent to you informing you of events can include a link to the events themselves for easy viewing. If you intend to use this feature then set this option to the url of your installation as it would appear from where you read your email, e.g. ``http://host.your.domain/zm/index.php``.
 
-SSMTP_MAIL - SSMTP is a lightweight and efficient method to send email. The SSMTP application is not installed by default. NEW_MAIL_MODULES must also be enabled. Please visit the ZoneMinder `SSMTP Wiki page <http://www.zoneminder.com/wiki/index.php/How_to_get_ssmtp_working_with_Zoneminder>`__ for setup and configuration help. 
+SSMTP_MAIL - SSMTP is a lightweight and efficient method to send email. The SSMTP application is not installed by default. NEW_MAIL_MODULES must also be enabled. Please visit the ZoneMinder `SSMTP Wiki page <https://wiki.zoneminder.com/How_to_get_ssmtp_working_with_Zoneminder>`__ for setup and configuration help. 
 
 SSMTP_PATH - The path to the SSMTP application. If path is not defined. Zoneminder will try to determine the path via shell command. Example path: /usr/sbin/ssmtp.

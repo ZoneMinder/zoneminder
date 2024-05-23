@@ -36,6 +36,6 @@ if ( $action == 'control' ) {
 
   $ctrlCommand = buildControlCommand($monitor);
   $monitor->sendControlCommand($ctrlCommand);
-  $view = 'none';
+  $redirect = $_SERVER['HTTP_REFERER'];
 }
 ?>

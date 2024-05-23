@@ -23,127 +23,123 @@ if ( !canView('System') ) {
   return;
 }
 
-$focusWindow = true;
+xhtmlHeaders(__FILE__, translate('SystemLog'));
+getBodyTopHTML();
+  echo getNavBarHTML() ?>
+  <div id="content" class="px-3 table-responsive-sm">
 
-xhtmlHeaders(__FILE__, translate('SystemLog') );
+    <div id="logSummary" class="text-center">
+      <?php echo translate('State') ?>:&nbsp;<span id="logState"></span>&nbsp;-&nbsp;
+      <?php echo translate('Total') ?>:&nbsp;<span id="totalLogs"></span>&nbsp;-&nbsp;
+      <?php echo translate('Available') ?>:&nbsp;<span id="availLogs"></span>&nbsp;-&nbsp;
+      <?php echo translate('Displaying') ?>:&nbsp;<span id="displayLogs"></span>&nbsp;-&nbsp;
+      <?php echo translate('Updated') ?>:&nbsp;<span id="lastUpdate"></span>
+    </div>
+    <div id="logsTable">
+    <div id="toolbar">
+      <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+      <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+      <div class="controlHeader">
+      <span class="term ComponentFilter">
+        <label><?php echo translate('Component') ?></label>
+<?php
+$components = dbFetchAll('SELECT DISTINCT Component FROM Logs ORDER BY Component', 'Component');
+ZM\Debug(print_r($components, true));
+$options = [''=>translate('All')] + array_combine($components, $components);
+ZM\Debug(print_r($options, true));
+echo '<span class="term-value-wrapper">';
+echo htmlSelect('filterComponent', $options, '', array('id'=>'filterComponent', 'class'=>'chosen'));
+echo '</span>';
 ?>
-<body>
-  <div id="page">
-    <div id="header">
-      <table class="table">
-     	  <tr class="row">
-          <td class="col text-center">
-		        <div id="logSummary">
-            <?php echo translate('State') ?>: <span id="logState"></span>/
-            <?php echo translate('Total') ?>: <span id="totalLogs"></span>/
-            <?php echo translate('Available') ?>: <span id="availLogs"></span>/
-            <?php echo translate('Displaying') ?>: <span id="displayLogs"></span>/
-            <?php echo translate('Updated') ?>: <span id="lastUpdate"></span>
-            </div>
-          </td>
-        </tr>
-        <tr class="row">
-	        <td class="col text-center">
-            <div class="btn-group">
-              <button type="button" data-on-click="expandLog"><?php echo translate('More') ?></button>
-              <button type="button" data-on-click="clearLog"><?php echo translate('Clear') ?></button>
-              <button type="button" data-on-click="refreshLog"><?php echo translate('Refresh') ?></button>
-              <button type="button" data-on-click="exportLog"><?php echo translate('Export') ?></button>
-              <button type="button" data-on-click="closeWindow"><?php echo translate('Close') ?></button>
-            </div> <!--btn-->
-          </td>
-        </tr>
-      </table>
-    </div> <!--header-->
-  <div id="content">
-    <form id="logForm" name="logForm" method="post" action="?">
-    <div id="filters">
+      </span>
+<?php if (count($Servers)>1) { ?>
+      <span class="term ServerFilter">
+        <label><?php echo translate('Server') ?></label>
+<?php
+$ServersById = array(''=>translate('All')) + array_to_hash_by_key('Id', $Servers);
+echo '<span class="term-value-wrapper">';
+echo htmlSelect('filterServerId', $ServersById, '', array('id'=>'filterServerId', 'class'=>'chosen'));
+echo '</span>';
+?>
+      </span>
+<?php } ?>
+      <span class="term LevelFilter">
+        <label><?php echo translate('Level') ?></label>
+<?php
+$levels = array(''=>translate('All'));
+foreach (array_values(ZM\Logger::$codes) as $level) {
+  $levels[$level] = $level;
+}
+echo '<span class="term-value-wrapper">';
+echo htmlSelect('filterLevel', $levels,
+    (isset($_SESSION['ZM_LOG_FILTER_LEVEL']) ? $_SESSION['ZM_LOG_FILTER_LEVEL'] : ''),
+    array('data-on-change'=>'filterLog', 'id'=>'filterLevel', 'class'=>'chosen'));
+    #array('class'=>'form-control chosen', 'data-on-change'=>'filterLog'));
+echo '</span>';
+?>
+      </span>
+      <span class="term StartDateTimeFilter">
+        <label><?php echo translate('Start Date/Time') ?></label>
+        <span class="term-value-wrapper">
+          <input type="text" name="filterStartDateTime" id="filterStartDateTime" value=""/>
+        </span>
+      </span>
+      <span class="term EndDateTimeFilter">
+        <label><?php echo translate('End Date/Time') ?></label>
+        <span class="term-value-wrapper">
+          <input type="text" name="filterEndDateTime" id="filterEndDateTime" value=""/>
+        </span>
+      </span>
+      </div>
+    </div><!--toolbar-->
 
-      <table class="table-condensed">
-        <tr class="row">
-          <td class="col">
-            <label><?php echo translate('Component') ?></label>
-            <select class="form-control chosen" id="filter[Component]" data-on-change="filterLog"><option value="">-----</option></select>
-          </td>
-          <td class="col">
-            <label><?php echo translate('Server') ?></label>
-            <select class="form-control chosen" id="filter[ServerId]" data-on-change="filterLog"><option value="">-----</option></select>
-          </td>
-          <td class="col">
-            <label><?php echo translate('Pid') ?></label>
-            <select class="form-control chosen" id="filter[Pid]" data-on-change="filterLog"><option value="">-----</option></select>
-          </td>
+    <table
+      id="logTable"
+      data-locale="<?php echo i18n() ?>"
+      class="table-sm table-borderless"
+      data-side-pagination="server"
+      data-ajax="ajaxRequest"
+      data-pagination="true"
+      data-page-list="[10, 25, 50, 100, 200, 300, 400, 500]"
+      data-search="true"
+      data-advanced-search="true"
+      data-id-table="advancedTable"
+      data-cookie="true"
+      data-cookie-id-table="zmLogsTable"
+      data-cookie-expire="2y"
+      data-remember-order="true"
+      data-show-columns="true"
+      data-show-export="true"
+      data-toolbar="#toolbar"
+      data-show-fullscreen="true"
+      data-maintain-meta-data="true"
+      data-buttons-class="btn btn-normal"
+      data-show-jump-to="true"
+      data-auto-refresh="true"
+      data-auto-refresh-silent="true"
+      data-show-refresh="true"
+      data-auto-refresh-interval="30"
+    >
+      <thead class="thead-highlight">
+        <tr>
+          <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
+          <th data-sortable="true" data-field="Component"><?php echo translate('Component') ?></th>
+<?php if (count($Servers)>1) { ?>
+          <th data-sortable="false" data-field="Server"><?php echo translate('Server') ?></th>
+<?php } ?>
+          <th data-sortable="true" data-field="Pid"><?php echo translate('Pid') ?></th>
+          <th data-sortable="true" data-field="Code"><?php echo translate('Level') ?></th>
+          <th data-sortable="true" data-field="Message"><?php echo translate('Message') ?></th>
+          <th data-sortable="true" data-field="File"><?php echo translate('File') ?></th>
+          <th data-sortable="true" data-field="Line"><?php echo translate('Line') ?></th>
         </tr>
-        <tr class="row">
-          <td class="col">
-            <label><?php echo translate('Level') ?></label>
-            <select class="form-control chosen" id="filter[Level]" data-on-change="filterLog"><option value="">---</option></select>
-          </td>
-          <td class="col">
-            <label><?php echo translate('File') ?></label>
-            <select class="form-control chosen" id="filter[File]" data-on-change="filterLog"><option value="">------</option></select>
-          </td>
-          <td  class="col">
-            <label><?php echo translate('Line') ?></label>
-            <select class="form-control chosen" id="filter[Line]" data-on-change="filterLog"><option value="">----</option></select>
-          </td>
-        </tr>
-      </table>
-      <button type="reset" data-on-click="resetLog"><?php echo translate('Reset') ?></button>
-    </div>
-      <input type="hidden" name="view" value="<?php echo $view ?>"/>
-      <table id="logTable" class="major">
-        <thead class="thead-highlight">
-          <tr>
-            <th><?php echo translate('DateTime') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Component') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Server') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Pid') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Level') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Message') ?></th>
-            <th class="table-th-nosort"><?php echo translate('File') ?></th>
-            <th class="table-th-nosort"><?php echo translate('Line') ?></th>
-          </tr>
-        </thead>
-        <tbody>
-        </tbody>
-      </table>
-      <div id="contentButtons">
-      </div>
-    </form>
-  </div>
-</div>
-  <div id="exportLog" class="overlay">
-    <div class="overlayHeader">
-      <div class="overlayTitle"><?php echo translate('ExportLog') ?></div>
-    </div>
-    <div class="overlayBody">
-      <div class="overlayContent">
-        <form id="exportForm" action="" method="post">
-          <fieldset>
-            <legend><?php echo translate('SelectLog') ?></legend>
-            <label for="selectorAll"><?php echo translate('All') ?></label>
-            <input type="radio" id="selectorAll" name="selector" value="all"/>
-            <label for="selectorFilter"><?php echo translate('Filter') ?></label>
-            <input type="radio" id="selectorFilter" name="selector" value="filter"/>
-            <label for="selectorCurrent"><?php echo translate('Current') ?></label>
-            <input type="radio" id="selectorCurrent" name="selector" value="current" title="<?php echo translate('ChooseLogSelection') ?>" data-validators="validate-one-required"/>
-          </fieldset>
-          <fieldset>
-            <legend><?php echo translate('SelectFormat') ?></legend>
-            <label for="formatText">TXT</label><input type="radio" id="formatText" name="format" value="text"/>
-            <label for="formatTSV">TSV</label><input type="radio" id="formatTSV" name="format" value="tsv"/>
-            <label for="formatXML">HTML</label><input type="radio" id="formatHTML" name="format" value="html"/>
-            <label for="formatXML">XML</label><input type="radio" id="formatXML" name="format" value="xml" title="<?php echo translate('ChooseLogFormat') ?>" class="validate-one-required"/>
-          </fieldset>
-          <div id="exportError">
-            <?php echo translate('ExportFailed') ?>: <span id="exportErrorText"></span>
-          </div>
-          <button type="button" id="exportButton" value="Export" data-on-click="exportRequest"><?php echo translate('Export') ?></button>
-          <button type="button" value="Cancel" class="overlayCloser"><?php echo translate('Cancel') ?></button>
-        </form>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
+      </thead>
+
+      <tbody>
+      <!-- Row data populated via Ajax -->
+      </tbody>
+
+    </table>
+  </div><!--logstable-->
+</div><!--content-->
+<?php xhtmlFooter() ?>

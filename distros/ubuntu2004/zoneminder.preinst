@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+
+## Remove obsolete symlink which is in the way of dh_apache2:
+ol="/etc/apache2/conf-available/zoneminder.conf"
+if [ -h "${ol}" ]; then
+    [ "$(readlink ${ol})" = "/etc/zm/apache.conf" ] && rm -f "${ol}"
+fi
+
+#DEBHELPER#

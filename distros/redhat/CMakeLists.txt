@@ -7,12 +7,12 @@
 
 # Display a message to show the RHEL build options are being processed.
 if(ZM_TARGET_DISTRO MATCHES "^el")
-    message([STATUS] "Starting RHEL Build Options" ...)
+  message([STATUS] "Starting RHEL Build Options" ...)
 elseif(ZM_TARGET_DISTRO MATCHES "^fc")
-    message([STATUS] "Starting Fedora Build Options" ...)
-else(ZM_TARGET_DISTRO MATCHES "^el")
-    message([WARNING] "Unknown Build Option Detected" ...)
-endif(ZM_TARGET_DISTRO MATCHES "^el")
+  message([STATUS] "Starting Fedora Build Options" ...)
+else()
+  message([WARNING] "Unknown Build Option Detected" ...)
+endif()
 
 #
 # CONFIGURE STAGE
@@ -21,7 +21,7 @@ endif(ZM_TARGET_DISTRO MATCHES "^el")
 # Configure the common zoneminder files
 configure_file(common/zoneminder.logrotate.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.logrotate @ONLY)
 configure_file(common/zoneminder.service.in ${CMAKE_CURRENT_SOURCE_DIR}/zoneminder.service @ONLY)
-file(MAKE_DIRECTORY sock swap zoneminder zoneminder-upload events temp)
+file(MAKE_DIRECTORY sock swap zoneminder events temp)
 
 # Configure the Apache zoneminder files
 configure_file(httpd/zm-httpd.conf.in ${CMAKE_CURRENT_SOURCE_DIR}/zm-httpd.conf @ONLY)
@@ -51,7 +51,6 @@ install(DIRECTORY sock swap DESTINATION /var/lib/zoneminder DIRECTORY_PERMISSION
 install(DIRECTORY zoneminder DESTINATION /var/log DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY zoneminder DESTINATION /var/run DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY zoneminder DESTINATION /var/cache DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(DIRECTORY zoneminder-upload DESTINATION /var/spool DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY events temp DESTINATION /var/lib/zoneminder DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 # Install the Apache zoneminder files
@@ -73,9 +72,6 @@ install(FILES zoneminder.php-fpm.conf DESTINATION /etc/php-fpm.d PERMISSIONS OWN
 
 # Symlink the cake php temp folder to the ZoneMinder temp folder
 install(CODE "execute_process(COMMAND ln -sf ../../../../../../var/lib/zoneminder/temp \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/api/app/tmp\")")
-
-# Link to Cambozola
-install(CODE "execute_process(COMMAND ln -sf ../../java/cambozola.jar \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/cambozola.jar\")")
 
 # Install auxiliary files
 install(FILES common/redalert.wav DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/zoneminder/www/sounds PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

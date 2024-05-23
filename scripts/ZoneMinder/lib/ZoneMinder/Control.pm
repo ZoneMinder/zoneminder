@@ -29,35 +29,229 @@ use strict;
 use warnings;
 
 require ZoneMinder::Base;
+require ZoneMinder::Object;
+require ZoneMinder::Monitor;
 
 our $VERSION = $ZoneMinder::Base::VERSION;
 
 # ==========================================================================
 #
-# Base connection class
+# Base control class
 #
 # ==========================================================================
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
+use parent qw(ZoneMinder::Object);
+
+use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
+$table = 'Controls';
+$serial = $primary_key = 'Id';
+%fields = map { $_ => $_ } qw(
+  Id
+  Name
+  Type
+  Protocol
+  CanWake
+  CanSleep
+  CanReset
+  CanReboot
+  CanZoom
+  CanAutoZoom
+  CanZoomAbs
+  CanZoomRel
+  CanZoomCon
+  MinZoomRange
+  MaxZoomRange
+  MinZoomStep
+  MaxZoomStep
+  HasZoomSpeed
+  MinZoomSpeed
+  MaxZoomSpeed
+  CanFocus
+  CanAutoFocus
+  CanFocusAbs
+  CanFocusRel
+  CanFocusCon
+  MinFocusRange
+  MaxFocusRange
+  MinFocusStep
+  MaxFocusStep
+  HasFocusSpeed
+  MinFocusSpeed
+  MaxFocusSpeed
+  CanIris
+  CanAutoIris
+  CanIrisAbs
+  CanIrisRel
+  CanIrisCon
+  MinIrisRange
+  MaxIrisRange
+  MinIrisStep
+  MaxIrisStep
+  HasIrisSpeed
+  MinIrisSpeed
+  MaxIrisSpeed
+  CanGain
+  CanAutoGain
+  CanGainAbs
+  CanGainRel
+  CanGainCon
+  MinGainRange
+  MaxGainRange
+  MinGainStep
+  MaxGainStep
+  HasGainSpeed
+  MinGainSpeed
+  MaxGainSpeed
+  CanWhite
+  CanAutoWhite
+  CanWhiteAbs
+  CanWhiteRel
+  CanWhiteCon
+  MinWhiteRange
+  MaxWhiteRange
+  MinWhiteStep
+  MaxWhiteStep
+  HasWhiteSpeed
+  MinWhiteSpeed
+  MaxWhiteSpeed
+  HasPresets
+  NumPresets
+  HasHomePreset
+  CanSetPresets
+  CanMove
+  CanMoveDiag
+  CanMoveMap
+  CanMoveAbs
+  CanMoveRel
+  CanMoveCon
+  CanPan
+  MinPanRange
+  MaxPanRange
+  MinPanStep
+  MaxPanStep
+  HasPanSpeed
+  MinPanSpeed
+  MaxPanSpeed
+  HasTurboPan
+  TurboPanSpeed
+  CanTilt
+  MinTiltRange
+  MaxTiltRange
+  MinTiltStep
+  MaxTiltStep
+  HasTiltSpeed
+  MinTiltSpeed
+  MaxTiltSpeed
+  HasTurboTilt
+  TurboTiltSpeed
+  CanAutoScan
+  NumScanPaths
+  );
+%defaults = (
+	Name => '',
+    Type => q`'Ffmpeg'`,
+    CanWake => '0',
+    CanSleep => '0',
+    CanReset => '0',
+    CanReboot => '0',
+    CanZoom => '0',
+    CanAutoZoom => '0',
+    CanZoomAbs => '0',
+    CanZoomRel =>'0',
+    CanZoomCon => '0',
+    MinZoomRange  => undef,
+    MaxZoomRange  => undef,
+    MinZoomStep   => undef,
+    MaxZoomStep => undef,
+    HasZoomSpeed  => 0,
+    MinZoomSpeed  => 0,
+    MaxZoomSpeed => 0,
+    CanFocus  => 0,
+    CanAutoFocus  => 0,
+    CanFocusAbs => 0,
+    CanFocusRel => 0,
+    CanFocusCon   => 0,
+    MinFocusRange => undef,
+    MaxFocusRange => undef,
+    MinFocusStep  => undef,
+    MaxFocusStep => undef,
+    HasFocusSpeed => 0,
+    MinFocusSpeed => undef,
+    MaxFocusSpeed => undef,
+    CanIris => 0,
+    CanAutoIris => 0,
+    CanIrisAbs=> 0,
+    CanIrisRel => 0,
+    CanIrisCon => 0,
+    MinIrisRange => undef,
+    MaxIrisRange => undef,
+    MinIrisStep => undef,
+    MaxIrisStep => undef,
+    HasIrisSpeed => 0,
+    MinIrisSpeed => undef,
+    MaxIrisSpeed => undef,
+    CanGain => 0,
+    CanAutoGain => 0,
+    CanGainAbs => 0,
+    CanGainRel => 0,
+    CanGainCon => 0,
+    MinGainRange  => undef,
+    MaxGainRange  => undef,
+    MinGainStep => undef,
+    MaxGainStep => undef,
+    HasGainSpeed => 0,
+    MinGainSpeed => undef,
+    MaxGainSpeed => undef,
+    CanWhite => 0,
+    CanAutoWhite => 0,
+    CanWhiteAbs => 0,
+    CanWhiteRel => 0,
+    CanWhiteCon => 0,
+    MinWhiteRange => undef,
+    MaxWhiteRange => undef,
+    MinWhiteStep => undef,
+    MaxWhiteStep => undef,
+    HasWhiteSpeed => 0,
+    MinWhiteSpeed => undef,
+    MaxWhiteSpeed => undef,
+    HasPresets => 0,
+    NumPresets => 0,
+    HasHomePreset => 0,
+    CanSetPresets => 0,
+    CanMove => 0,
+    CanMoveDiag => 0,
+    CanMoveMap => 0,
+    CanMoveAbs => 0,
+    CanMoveRel => 0,
+    CanMoveCon => 0,
+    CanPan => 0,
+    MinPanRange => undef,
+    MaxPanRange => undef,
+    MinPanStep => undef,
+    MaxPanStep => undef,
+    HasPanSpeed => 0,
+    MinPanSpeed => undef,
+    MaxPanSpeed => undef,
+    HasTurboPan => 0,
+    TurboPanSpeed => undef,
+    CanTilt => 0,
+    MinTiltRange => undef,
+    MaxTiltRange => undef,
+    MinTiltStep => undef,
+    MaxTiltStep => undef,
+    HasTiltSpeed => 0,
+    MinTiltSpeed => undef,
+    MaxTiltSpeed => undef,
+    HasTurboTilt => 0,
+    TurboTiltSpeed => undef,
+    CanAutoScan => 0,
+    NumScanPaths => 0,
+    );
+
 our $AUTOLOAD;
-
-sub new {
-  my $class = shift;
-  my $id = shift;
-  if ( !defined($id) ) {
-    Fatal('No monitor defined when invoking protocol '.$class);
-  }
-  my $self = {};
-  $self->{name} = $class;
-  $self->{id} = $id;
-  bless($self, $class);
-  return $self;
-}
-
-sub DESTROY {
-}
 
 sub AUTOLOAD {
   my $self = shift;
@@ -78,25 +272,25 @@ sub AUTOLOAD {
 
 sub getKey {
   my $self = shift;
-  return $self->{id};
+  return $self->{Id};
 }
 
 sub open {
   my $self = shift;
-  Fatal('No open method defined for protocol '.$self->{name});
+  Fatal('No open method defined for protocol '.$self->{Protocol});
 }
 
 sub close {
   my $self = shift;
   $self->{state} = 'closed';
-  Debug('No close method defined for protocol '.$self->{name});
+  Debug('No close method defined for protocol '.$self->{Protocol});
 }
 
 sub loadMonitor {
   my $self = shift;
   if ( !$self->{Monitor} ) {
-    if ( !($self->{Monitor} = zmDbGetMonitor($self->{id})) ) {
-      Fatal('Monitor id '.$self->{id}.' not found or not controllable');
+    if ( !($self->{Monitor} = ZoneMinder::Monitor->find_one(Id=>$self->{MonitorId})) ) {
+      Fatal('Monitor id '.$self->{id}.' not found');
     }
     if ( defined($self->{Monitor}->{AutoStopTimeout}) ) {
 # Convert to microseconds.
@@ -116,7 +310,7 @@ sub getParam {
   } elsif ( defined($default) ) {
     return $default;
   }
-  Fatal("Missing mandatory parameter '$name'");
+  Error("Missing mandatory parameter '$name'");
 }
 
 sub executeCommand {

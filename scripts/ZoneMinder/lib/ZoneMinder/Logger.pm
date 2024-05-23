@@ -42,6 +42,15 @@ our @ISA = qw(Exporter ZoneMinder::Base);
 # will save memory.
 our %EXPORT_TAGS = (
     constants => [ qw(
+      DEBUG9
+      DEBUG8
+      DEBUG7
+      DEBUG6
+      DEBUG5
+      DEBUG4
+      DEBUG3
+      DEBUG2
+      DEBUG1
       DEBUG
       INFO
       WARNING
@@ -98,6 +107,15 @@ use Time::HiRes qw/gettimeofday/;
 use Sys::Syslog;
 
 use constant {
+  DEBUG9 => 9,
+  DEBUG8 => 8,
+  DEBUG7 => 7,
+  DEBUG6 => 6,
+  DEBUG5 => 5,
+  DEBUG4 => 4,
+  DEBUG3 => 3,
+  DEBUG2 => 2,
+  DEBUG1 => 1,
   DEBUG => 1,
   INFO => 0,
   WARNING => -1,
@@ -108,7 +126,16 @@ use constant {
 };
 
 our %codes = (
-    &DEBUG => 'DBG',
+    &DEBUG9 => 'DB9',
+    &DEBUG8 => 'DB8',
+    &DEBUG7 => 'DB7',
+    &DEBUG6 => 'DB6',
+    &DEBUG5 => 'DB5',
+    &DEBUG4 => 'DB4',
+    &DEBUG3 => 'DB3',
+    &DEBUG2 => 'DB2',
+    &DEBUG1 => 'DB1',
+    &DEBUG => 'DB1',
     &INFO => 'INF',
     &WARNING => 'WAR',
     &ERROR => 'ERR',
@@ -159,7 +186,7 @@ sub new {
   ( $this->{fileName} = $0 ) =~ s|^.*/||;
   $this->{logPath} = $ZoneMinder::Config::Config{ZM_PATH_LOGS};
   $this->{logFile} = $this->{logPath}.'/'.$this->{id}.'.log';
-  ($this->{logFile}) = $this->{logFile} =~ /^([\w\.\/]+)$/;
+  ($this->{logFile}) = $this->{logFile} =~ /^([_\-\w\.\/]+)$/;
 
   $this->{trace} = 0;
 
@@ -210,7 +237,7 @@ sub initialise( @ ) {
   if ( my $logFile = $this->getTargettedEnv('LOG_FILE') ) {
     $tempLogFile = $logFile;
   }
-  ($tempLogFile) = $tempLogFile =~ /^([\w\.\/]+)$/;
+  ($tempLogFile) = $tempLogFile =~ /^([_\-\w\.\/]+)$/;
 
   my $tempLevel = INFO;
   my $tempTermLevel = $this->{termLevel};
@@ -332,9 +359,9 @@ sub reinitialise {
 sub limit {
   my $this = shift;
   my $level = shift;
-  return(DEBUG) if $level > DEBUG;
-  return(NOLOG) if $level < NOLOG;
-  return($level);
+  return DEBUG9 if $level > DEBUG9;
+  return NOLOG if $level < NOLOG;
+  return $level;
 }
 
 sub getTargettedEnv {
@@ -424,12 +451,8 @@ sub termLevel {
   my $this = shift;
   my $termLevel = shift;
   if ( defined($termLevel) ) {
-    # What is the point of this next lint if we are just going to overwrite it with the next line? I propose we move it down one line or remove it altogether
-    $termLevel = NOLOG if !$this->{hasTerm};
     $termLevel = $this->limit($termLevel);
-    if ( $this->{termLevel} != $termLevel ) {
-      $this->{termLevel} = $termLevel;
-    }
+    $this->{termLevel} = $termLevel;
   }
   return $this->{termLevel};
 }
@@ -456,9 +479,9 @@ sub fileLevel {
   if ( defined($fileLevel) ) {
     $fileLevel = $this->limit($fileLevel);
     # The filename might have changed, so always close and re-open
-    $this->closeFile() if ( $this->{fileLevel} > NOLOG );
+    $this->closeFile() if $this->{fileLevel} > NOLOG;
     $this->{fileLevel} = $fileLevel;
-    $this->openFile() if ( $this->{fileLevel} > NOLOG );
+    $this->openFile() if $this->{fileLevel} > NOLOG;
   }
   return $this->{fileLevel};
 }
@@ -490,7 +513,7 @@ sub closeSyslog {
 sub logFile {
   my $this = shift;
   my $logFile = shift;
-  if ( $logFile =~ /^(.+)\+$/ ) {
+  if ( $logFile and ( $logFile =~ /^(.+)\+$/ ) ) {
     $this->{logFile} = $1.'.'.$$;
   } else {
     $this->{logFile} = $logFile;
@@ -499,13 +522,14 @@ sub logFile {
 
 sub openFile {
   my $this = shift;
+	
   if ( open($LOGFILE, '>>', $this->{logFile}) ) {
     $LOGFILE->autoflush() if $this->{autoFlush};
 
     my $webUid = (getpwnam($ZoneMinder::Config::Config{ZM_WEB_USER}))[2];
-    Error("Can't get uid for $ZoneMinder::Config::Config{ZM_WEB_USER}") if ! defined $webUid;
+    Error('Can\'t get uid for '.$ZoneMinder::Config::Config{ZM_WEB_USER}) if ! defined $webUid;
     my $webGid = (getgrnam($ZoneMinder::Config::Config{ZM_WEB_GROUP}))[2];
-    Error("Can't get gid for $ZoneMinder::Config::Config{ZM_WEB_USER}") if ! defined $webGid;
+    Error('Can\'t get gid for '.$ZoneMinder::Config::Config{ZM_WEB_USER}) if ! defined $webGid;
     if ( $> == 0 ) {
       # If we are root, we want to make sure that www-data or whatever owns the file
       chown($webUid, $webGid, $this->{logFile} ) or
@@ -519,7 +543,6 @@ sub openFile {
 }
 
 sub closeFile {
-  #my $this = shift;
   close($LOGFILE) if fileno($LOGFILE);
 }
 
@@ -610,6 +633,8 @@ sub logInit( ;@ ) {
   my %options = @_ ? @_ : ();
   $logger = ZoneMinder::Logger->new() if !$logger;
   $logger->initialise(%options);
+  logSetSignal();
+  return $logger;
 }
 
 sub logReinit {
@@ -626,12 +651,26 @@ sub logHupHandler {
   $do_log_rotate = 1;
 }
 
+sub logUSR1Handler {
+  $logger->level($logger->level()+1);
+  Info('Logger - Level changed to '. $logger->level() . '=>'.$codes{$logger->level()});
+}
+
+sub logUSR2Handler {
+  $logger->level($logger->level()-1);
+  Info('Logger - Level changed to '. $logger->level() . '=>'.$codes{$logger->level()});
+}
+
 sub logSetSignal {
   $SIG{HUP} = \&logHupHandler;
+  $SIG{USR1} = \&logUSR1Handler;
+  $SIG{USR2} = \&logUSR2Handler;
 }
 
 sub logClearSignal {
   $SIG{HUP} = 'DEFAULT';
+  $SIG{USR1} = 'DEFAULT';
+  $SIG{USR2} = 'DEFAULT';
 }
 
 sub logLevel {
@@ -674,38 +713,34 @@ sub Dump {
 
 sub debug {
   my $log = shift;
-  $log->logPrint(DEBUG, @_, caller);
+  $log->logPrint(DEBUG1, @_, caller);
 }
 
-sub Debug( @ ) {
-  fetch()->logPrint(DEBUG, @_, caller);
+sub Debug {
+  fetch()->logPrint(
+    (@_ == 1 ? (DEBUG1, @_) : @_),
+    caller);
 }
 
-sub Info( @ ) {
-  fetch()->logPrint(INFO, @_, caller);
-}
+sub Info { fetch()->logPrint(INFO, @_, caller); }
 sub info {
   my $log = shift;
   $log->logPrint(INFO, @_, caller);
 }
 
-sub Warning( @ ) {
-  fetch()->logPrint(WARNING, @_, caller);
-}
+sub Warning { fetch()->logPrint(WARNING, @_, caller); }
 sub warn {
   my $log = shift;
   $log->logPrint(WARNING, @_, caller);
 }
 
-sub Error( @ ) {
-  fetch()->logPrint(ERROR, @_, caller);
-}
+sub Error { fetch()->logPrint(ERROR, @_, caller); }
 sub error {
   my $log = shift;
   $log->logPrint(ERROR, @_, caller);
 }
 
-sub Fatal( @ ) {
+sub Fatal {
   my $this = fetch();
   $this->logPrint(FATAL, @_, caller);
   if ( $SIG{TERM} and ( $SIG{TERM} ne 'DEFAULT' ) ) {
@@ -720,7 +755,7 @@ sub Fatal( @ ) {
   exit(-1);
 }
 
-sub Panic( @ ) {
+sub Panic {
   fetch()->logPrint(PANIC, @_, caller);
   confess($_[0]);
 }
@@ -795,8 +830,6 @@ Used to end the debug session and close any logs etc. Not usually necessary.
 =item $level         = logLevel ( [$level] );
 
 =item $trace         = logTrace ( [$trace] );
-
-=item $level         = logLevel ( [$level] );
 
 =item $termLevel     = logTermLevel ( [$termLevel] );
 

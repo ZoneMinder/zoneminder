@@ -3,6 +3,7 @@
 module.exports = {
   "env": {
     "browser": true,
+    "es2021": true,
   },
   "extends": ["google"],
   "overrides": [{
@@ -19,12 +20,13 @@ module.exports = {
     "php-markup",
   ],
   "rules": {
+    "no-invalid-this": "off",
     "camelcase": "off",
     "comma-dangle": "off",
     "guard-for-in": "off",
     "max-len": "off",
     "new-cap": ["error", {
-      capIsNewExceptions: ["Error", "Warning", "Debug", "Polygon_calcArea", "Play", "Stop"],
+      capIsNewExceptions: ["Error", "Warning", "Debug", "Polygon_calcArea", "Play", "Stop", "Panzoom"],
       newIsCapExceptionPattern: "^Asset\.."
     }],
     "no-array-constructor": "off",
@@ -46,5 +48,5 @@ module.exports = {
     "php/remove-whitespace": false,
     "php/remove-empty-line": false,
     "php/remove-php-lint": false
-  },
+  }
 };

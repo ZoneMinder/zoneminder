@@ -1,5 +1,15 @@
+var pauseBtn = $j('#pauseBtn');
+var playBtn = $j('#playBtn');
+var saveBtn = $j('#saveBtn');
+var cancelBtn = $j('#cancelBtn');
+var backBtn = $j('#backBtn');
+var refreshBtn = $j('#refreshBtn');
+var analyseBtn = $j('#analyseBtn');
+var monitors = [];
+var analyse_frames = true;
+
 function validateForm( form ) {
-  var errors = new Array();
+  var errors = [];
   if ( selfIntersecting ) {
     errors[errors.length] = selfIntersectingString;
   }
@@ -148,7 +158,7 @@ function applyCheckMethod() {
 
 function applyPreset() {
   var form = document.zoneForm;
-  var presetId = $('presetSelector').get('value');
+  var presetId = $j('#presetSelector').val();
 
   if ( presets[presetId] ) {
     var preset = presets[presetId];
@@ -178,13 +188,24 @@ function applyPreset() {
 function toPixels(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((field.value*maxValue)/100);
+    if ( field.value > maxValue ) {
+      field.value = maxValue;
+    }
   }
+  field.setAttribute('step', 1);
+  field.setAttribute('max', maxValue);
 }
 
+// maxValue is the max Pixels value which is normally the max area
 function toPercent(field, maxValue) {
   if ( field.value != '' ) {
     field.value = Math.round((100*100*field.value)/maxValue)/100;
+    if ( field.value > 100 ) {
+      field.value = 100;
+    }
   }
+  field.setAttribute('step', 'any');
+  field.setAttribute('max', 100);
 }
 
 function applyZoneUnits() {
@@ -213,7 +234,7 @@ function applyZoneUnits() {
 function limitRange(field, minValue, maxValue) {
   if ( field.value != '' ) {
     field.value = constrainValue(
-        parseInt(field.value),
+        parseFloat(field.value),
         parseInt(minValue),
         parseInt(maxValue)
     );
@@ -241,28 +262,33 @@ function limitArea(field) {
 }
 
 function highlightOn(index) {
-  $('row'+index).addClass('highlight');
-  $('point'+index).addClass('highlight');
+  $j('#row'+index).addClass('highlight');
+  $j('#point'+index).addClass('highlight');
 }
 
 function highlightOff(index) {
-  $('row'+index).removeClass('highlight');
-  $('point'+index).removeClass('highlight');
+  row = $j('#row'+index);
+  if ( row.length ) {
+    row.removeClass('highlight');
+  } else {
+    console.log("No row for index " + index);
+  }
+  $j('#point'+index).removeClass('highlight');
 }
 
 function setActivePoint(index) {
   highlightOff(index);
-  $('row'+index).addClass('active');
-  $('point'+index).addClass('active');
+  $j('#row'+index).addClass('active');
+  $j('#point'+index).addClass('active');
 }
 
 function unsetActivePoint(index) {
-  $('row'+index).removeClass('active');
-  $('point'+index).removeClass('active');
+  $j('#row'+index).removeClass('active');
+  $j('#point'+index).removeClass('active');
 }
 
 function getCoordString() {
-  var coords = new Array();
+  var coords = [];
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     coords[coords.length] = zone['Points'][i].x+','+zone['Points'][i].y;
   }
@@ -270,8 +296,8 @@ function getCoordString() {
 }
 
 function updateZoneImage() {
-  var SVG = $('zoneSVG');
-  var Poly = $('zonePoly');
+  var SVG = document.getElementById('zoneSVG');
+  var Poly = document.getElementById('zonePoly');
   Poly.points.clear();
   for ( var i = 0; i < zone['Points'].length; i++ ) {
     var Point = SVG.createSVGPoint();
@@ -298,36 +324,50 @@ function constrainValue(value, loVal, hiVal) {
 }
 
 function updateActivePoint(index) {
-  var point = $('point'+index);
-  var x = constrainValue(point.getStyle('left').toInt(), 0, maxX);
-  var y = constrainValue(point.getStyle('top').toInt(), 0, maxY);
+  const point = $j('#point'+index);
+  const imageFrame = document.getElementById('imageFrame');
+  const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  const padding_left = parseInt(style.paddingLeft);
+  const padding_top = parseInt(style.paddingTop);
+  const padding_right = parseInt(style.paddingRight);
+  const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
-  $('newZone[Points]['+index+'][x]').value = x;
-  $('newZone[Points]['+index+'][y]').value = y;
-  zone['Points'][index].x = x;
-  zone['Points'][index].y = y;
-  var Point = $('zonePoly').points.getItem(index);
-  Point.x =x;
-  Point.y =y;
+  let point_left = parseInt(point.css('left'), 10);
+  if ( point_left < padding_left ) {
+    point.css('left', style.paddingLeft);
+    point_left = parseInt(padding_left);
+  }
+  let point_top = parseInt(point.css('top'));
+  if ( point_top < padding_top ) {
+    point.css('top', style.paddingTop);
+    point_top = parseInt(padding_top);
+  }
+
+  var x = constrainValue(Math.ceil(point_left / scale)-Math.ceil(padding_left/scale), 0, maxX);
+  var y = constrainValue(Math.ceil(point_top / scale)-Math.ceil(padding_top/scale), 0, maxY);
+
+  zone['Points'][index].x = document.getElementById('newZone[Points]['+index+'][x]').value = x;
+  zone['Points'][index].y = document.getElementById('newZone[Points]['+index+'][y]').value = y;
+  var Point = document.getElementById('zonePoly').points.getItem(index);
+  Point.x = x;
+  Point.y = y;
   updateArea();
-}
+} // end function updateActivePoint(index)
 
 function addPoint(index) {
   var nextIndex = index+1;
   if ( index >= (zone['Points'].length-1) ) {
     nextIndex = 0;
   }
+
   var newX = parseInt(Math.round((zone['Points'][index]['x']+zone['Points'][nextIndex]['x'])/2));
   var newY = parseInt(Math.round((zone['Points'][index]['y']+zone['Points'][nextIndex]['y'])/2));
   if ( nextIndex == 0 ) {
     zone['Points'][zone['Points'].length] = {'x': newX, 'y': newY};
   } else {
-    zone['Points'].splice( nextIndex, 0, {'x': newX, 'y': newY} );
+    zone['Points'].splice(nextIndex, 0, {'x': newX, 'y': newY});
   }
   drawZonePoints();
-  // drawZonePoints calls updateZoneImage
-  //updateZoneImage();
-  //setActivePoint( nextIndex );
 }
 
 function delPoint(index) {
@@ -340,41 +380,56 @@ function limitPointValue(point, loVal, hiVal) {
 }
 
 function updateArea( ) {
-  area = Polygon_calcArea(zone['Points']);
+  const area = Polygon_calcArea(zone['Points']);
   zone.Area = area;
-  var form = $('zoneForm');
+  const form = document.getElementById('zoneForm');
   form.elements['newZone[Area]'].value = area;
   if ( form.elements['newZone[Units]'].value == 'Percent' ) {
     form.elements['newZone[TempArea]'].value = Math.round( area/monitorArea*100 );
   } else if ( form.elements['newZone[Units]'].value == 'Pixels' ) {
     form.elements['newZone[TempArea]'].value = area;
   } else {
-    alert("Unknown units: " + form.elements['newZone[Units]'].value);
+    alert('Unknown units: ' + form.elements['newZone[Units]'].value);
   }
 }
 
-function updateX(index) {
-  limitPointValue($('newZone[Points]['+index+'][x]'), 0, maxX);
+/* Updates the drawn point based on input from the coordinates text inputs */
+function updateX(input) {
+  const index = input.getAttribute('data-point-index');
 
-  var point = $('point'+index);
-  var x = $('newZone[Points]['+index+'][x]').get('value');
+  limitPointValue(input, 0, maxX);
 
-  point.setStyle('left', x+'px');
+  const point = $j('#point'+index);
+  const x = input.value;
+  const imageFrame = document.getElementById('imageFrame');
+  const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  const padding_left = parseInt(style.paddingLeft);
+  const padding_right = parseInt(style.paddingRight);
+  const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
+
+  point.css('left', parseInt(x*scale)+'px');
   zone['Points'][index].x = x;
-  var Point = $('zonePoly').points.getItem(index);
+  const Point = document.getElementById('zonePoly').points.getItem(index);
   Point.x = x;
   updateArea();
 }
 
-function updateY(index) {
-  limitPointValue($('newZone[Points]['+index+'][y]'), 0, maxY);
+/* Updates the drawn point based on input from the coordinates text inputs */
+function updateY(input) {
+  const index = input.getAttribute('data-point-index');
+  limitPointValue(input, 0, maxY);
 
-  var point = $('point'+index);
-  var y = $('newZone[Points]['+index+'][y]').get('value');
+  const point = $j('#point'+index);
+  const y = input.value;
+  const imageFrame = document.getElementById('imageFrame');
+  const style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  const padding_left = parseInt(style.paddingLeft);
+  const padding_right = parseInt(style.paddingRight);
+  const scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
 
-  point.setStyle('top', y+'px');
+  point.css('top', parseInt(y*scale)+'px');
   zone['Points'][index].y = y;
-  var Point = $('zonePoly').points.getItem(index);
+  const Point = document.getElementById('zonePoly').points.getItem(index);
   Point.y = y;
   updateArea();
 }
@@ -384,7 +439,10 @@ function saveChanges(element) {
   if ( validateForm(form) ) {
     submitForm(form);
     if ( form.elements['newZone[Type]'].value == 'Privacy' ) {
-      alert( 'Capture process for this monitor will be restarted for the Privacy zone changes to take effect.' );
+      alert('Capture process for this monitor will be restarted for the Privacy zone changes to take effect.');
+    }
+    for (var i = 0, length = monitors.length; i < length; i++) {
+      monitors[i].stop();
     }
     return true;
   }
@@ -392,299 +450,129 @@ function saveChanges(element) {
 }
 
 function drawZonePoints() {
-  $('imageFrame').getElements('div.zonePoint').each(
-      function(element) {
-        element.destroy();
-      });
-  for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var div = new Element('div', {
+  var imageFrame = document.getElementById('imageFrame');
+  $j('.zonePoint').remove();
+  var style = imageFrame.currentStyle || window.getComputedStyle(imageFrame);
+  var padding_left = parseInt(style.paddingLeft);
+  var padding_right = parseInt(style.paddingRight);
+  var padding_top = parseInt(style.paddingTop);
+  var scale = (imageFrame.clientWidth - ( padding_left + padding_right )) / maxX;
+
+  $j.each( zone['Points'], function(i, coord) {
+    var div = $j('<div>');
+    div.attr({
       'id': 'point'+i,
+      'data-point-index': i,
       'class': 'zonePoint',
-      'title': 'Point '+(i+1),
-      'styles': {
-        'left': zone['Points'][i].x,
-        'top': zone['Points'][i].y
-      }
+      'title': 'Point '+(i+1)
     });
-    div.addEvent('mouseover', highlightOn.pass(i));
-    div.addEvent('mouseout', highlightOff.pass(i));
-    div.inject($('imageFrame'));
-    div.makeDraggable( {
-      'container': $('imageFrame'),
-      'onStart': setActivePoint.pass(i),
-      'onComplete': fixActivePoint.pass(i),
-      'onDrag': updateActivePoint.pass(i)
-    } );
-  }
+    div.css({
+      left: (Math.round(coord.x * scale) + padding_left)+"px",
+      top: ((parseInt(coord.y * scale)) + padding_top) +"px"
+    });
 
-  var tables = $('zonePoints').getElement('table').getElements('table');
-  tables.each( function(table) {
-    table.getElement('tbody').empty();
-  } );
+    div.mouseover(highlightOn.bind(i, i));
+    div.mouseout(highlightOff.bind(i, i));
+
+    $j('#imageFrame').append(div);
+
+    div.draggable({
+      'containment': document.getElementById('imageFeed'+zone.MonitorId),
+      'start': setActivePoint.bind(i, i),
+      'stop': fixActivePoint.bind(i, i),
+      'drag': updateActivePoint.bind(i, i)
+    });
+  }); // end $j.each point
+
+  var tables = $j('#zonePoints table table');
+  tables.find('tbody').empty();
 
   for ( var i = 0; i < zone['Points'].length; i++ ) {
-    var row;
-    row = new Element('tr', {'id': 'row'+i});
-    row.addEvents({'mouseover': highlightOn.pass(i), 'mouseout': highlightOff.pass(i)});
-    var cell = new Element('td');
-    cell.set('text', i+1);
-    cell.inject(row);
+    var row = document.createElement('tr');
+    row.id = 'row'+i;
+    $j(row).mouseover(highlightOn.bind(i, i));
+    $j(row).mouseout(highlightOff.bind(i, i));
 
-    cell = new Element('td');
-    var input = new Element('input', {
+    var cell = document.createElement('td');
+    $j(cell).text(i+1).appendTo(row);
+
+    cell = document.createElement('td');
+    var input = document.createElement('input');
+    $j(input).attr({
       'id': 'newZone[Points]['+i+'][x]',
       'name': 'newZone[Points]['+i+'][x]',
       'value': zone['Points'][i].x,
-      'size': 5
+      'type': 'number',
+      'class': 'ZonePoint',
+      'min': '0',
+      'max': maxX,
+      'data-point-index': i
     });
-    input.addEvent('input', updateX.pass(i));
-    input.inject(cell);
-    cell.inject(row);
+    input.oninput = window['updateX'].bind(input, input);
+    $j(input).appendTo(cell);
+    $j(cell).appendTo(row);
 
-    cell = new Element('td');
-    input = new Element('input', {
+    cell = document.createElement('td');
+    input = document.createElement('input');
+    $j(input).attr({
       'id': 'newZone[Points]['+i+'][y]',
       'name': 'newZone[Points]['+i+'][y]',
       'value': zone['Points'][i].y,
-      'size': 5
-    } );
-    input.addEvent('input', updateY.pass(i));
-    input.inject(cell);
-    cell.inject(row);
+      'type': 'number',
+      'class': 'ZonePoint',
+      'min': '0',
+      'max': maxY,
+      'data-point-index': i
+    });
+    input.oninput = window['updateY'].bind(input, input);
+    $j(input).appendTo(cell);
+    $j(cell).appendTo(row);
 
-    cell = new Element('td');
-    new Element('button', {
-      'type': 'button',
-      'events': {'click': addPoint.pass(i)}
-    }).set('text', '+').inject(cell);
+    cell = document.createElement('td');
+    var pbtn = document.createElement('button');
+    $j(pbtn)
+        .attr('type', 'button')
+        .text('+')
+        .click(addPoint.bind(i, i))
+        .appendTo(cell);
+
     if ( zone['Points'].length > 3 ) {
-      cell.appendText(' ');
-      new Element('button', {
-        'id': 'delete'+i,
-        'type': 'button',
-        'events': {'click': delPoint.pass(i)}
-      }).set('text', '-').inject(cell);
+      var mbtn = document.createElement('button');
+      $j(mbtn)
+          .attr('id', 'delete'+i)
+          .attr('type', 'button')
+          .addClass('ml-1')
+          .text('-')
+          .click(delPoint.bind(i, i))
+          .appendTo(cell);
     }
-    cell.inject(row);
+    $j(cell).appendTo(row);
 
-    row.inject(tables[i%tables.length].getElement('tbody'));
-  }
+    $j(row).appendTo(tables.eq((i%tables.length)).find('tbody'));
+  } // end foreach point
   // Sets up the SVG polygon
   updateZoneImage();
+} // end drawZonePoints()
+
+function streamCmdPause() {
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+    monitors[i].pause();
+  }
+  pauseBtn.hide();
+  playBtn.show();
 }
 
-//
-// Imported from watch.js and modified for new zone edit view
-//
-
-var alarmState = STATE_IDLE;
-var lastAlarmState = STATE_IDLE;
-
-function setAlarmState( currentAlarmState ) {
-  alarmState = currentAlarmState;
-
-  var stateClass = '';
-  if ( alarmState == STATE_ALARM ) {
-    stateClass = 'alarm';
-  } else if ( alarmState == STATE_ALERT ) {
-    stateClass = 'alert';
+function streamCmdPlay() {
+  for ( var i = 0, length = monitors.length; i < length; i++ ) {
+    monitors[i].play();
   }
-  $('stateValue').set('text', stateStrings[alarmState]);
-  if ( stateClass ) {
-    $('stateValue').setProperty('class', stateClass);
-  } else {
-    $('stateValue').removeProperty('class');
-  }
-
-  var isAlarmed = ( alarmState == STATE_ALARM || alarmState == STATE_ALERT );
-  var wasAlarmed = ( lastAlarmState == STATE_ALARM || lastAlarmState == STATE_ALERT );
-
-  var newAlarm = ( isAlarmed && !wasAlarmed );
-  var oldAlarm = ( !isAlarmed && wasAlarmed );
-
-  if ( newAlarm ) {
-    if ( SOUND_ON_ALARM ) {
-      // Enable the alarm sound
-      if ( !canPlayPauseAudio ) {
-        $('alarmSound').removeClass('hidden');
-      } else {
-        $('MediaPlayer').Play();
-      }
-    }
-  }
-  if ( SOUND_ON_ALARM ) {
-    if ( oldAlarm ) {
-      // Disable alarm sound
-      if ( !canPlayPauseAudio ) {
-        $('alarmSound').addClass('hidden');
-      } else {
-        $('MediaPlayer').Stop();
-      }
-    }
-  }
-  lastAlarmState = alarmState;
+  pauseBtn.show();
+  playBtn.hide();
 }
-
-var streamCmdParms = "view=request&request=stream&connkey="+connKey;
-if ( auth_hash ) {
-  streamCmdParms += '&auth='+auth_hash;
-}
-var streamCmdReq = new Request.JSON( {
-  url: monitorUrl,
-  method: 'get',
-  timeout: AJAX_TIMEOUT,
-  link: 'cancel',
-  onSuccess: getStreamCmdResponse
-} );
-var streamCmdTimer = null;
-
-var streamStatus;
-
-function getStreamCmdResponse(respObj, respText) {
-  watchdogOk("stream");
-  if ( streamCmdTimer ) {
-    streamCmdTimer = clearTimeout(streamCmdTimer);
-  }
-
-  if ( respObj.result == 'Ok' ) {
-    streamStatus = respObj.status;
-    $('fpsValue').set('text', streamStatus.fps);
-
-    setAlarmState(streamStatus.state);
-
-    if ( streamStatus.paused == true ) {
-      streamCmdPause(false);
-    } else if ( streamStatus.delayed == true && streamStatus.rate == 1 ) {
-      streamCmdPlay(false);
-    }
-  } else {
-    checkStreamForErrors('getStreamCmdResponse', respObj);//log them
-    if ( ! streamPause ) {
-      // Try to reload the image stream.
-      var streamImg = $('liveStream'+monitorId);
-      if ( streamImg ) {
-        streamImg.src = streamImg.src.replace(/rand=\d+/i, 'rand='+Math.floor(Math.random() * 1000000));
-      }
-    }
-  }
-
-  if ( !streamPause ) {
-    var streamCmdTimeout = statusRefreshTimeout;
-    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
-      streamCmdTimeout = streamCmdTimeout/5;
-    }
-    streamCmdTimer = streamCmdQuery.delay(streamCmdTimeout);
-  }
-}
-
-var streamPause = false;
-
-function streamCmdPauseToggle() {
-  if ( streamPause == true ) {
-    streamCmdPlay(true);
-    streamPause = false;
-    document.getElementById('pauseBtn').innerHTML = pauseString;
-  } else {
-    streamCmdPause(true);
-    streamPause = true;
-    document.getElementById('pauseBtn').innerHTML = playString;
-  }
-}
-
-function streamCmdPause(action) {
-  if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_PAUSE);
-  }
-}
-
-function streamCmdPlay(action) {
-  if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_PLAY);
-  }
-}
-
-function streamCmdStop(action) {
-  if ( action ) {
-    streamCmdReq.send(streamCmdParms+"&command="+CMD_STOP);
-  }
-}
-
-function streamCmdQuery() {
-  streamCmdReq.send(streamCmdParms+"&command="+CMD_QUERY);
-}
-
-var statusCmdParms = "view=request&request=status&entity=monitor&id="+monitorId+"&element[]=Status&element[]=FrameRate";
-if ( auth_hash ) {
-  statusCmdParms += '&auth='+auth_hash;
-}
-var statusCmdReq = new Request.JSON( {
-  url: monitorUrl,
-  method: 'get',
-  data: statusCmdParms,
-  timeout: AJAX_TIMEOUT,
-  link: 'cancel',
-  onSuccess: getStatusCmdResponse
-} );
-var statusCmdTimer = null;
-
-function getStatusCmdResponse(respObj, respText) {
-  watchdogOk("status");
-  if ( statusCmdTimer ) {
-    statusCmdTimer = clearTimeout(statusCmdTimer);
-  }
-
-  if ( respObj.result == 'Ok' ) {
-    $('fpsValue').set('text', respObj.monitor.FrameRate);
-    setAlarmState(respObj.monitor.Status);
-  } else {
-    checkStreamForErrors("getStatusCmdResponse", respObj);
-  }
-
-  if ( ! streamPause ) {
-    var statusCmdTimeout = statusRefreshTimeout;
-    if ( alarmState == STATE_ALARM || alarmState == STATE_ALERT ) {
-      statusCmdTimeout = statusCmdTimeout/5;
-    }
-    statusCmdTimer = statusCmdQuery.delay(statusCmdTimeout);
-  }
-}
-
-function statusCmdQuery() {
-  statusCmdReq.send();
-}
-
-function fetchImage( streamImage ) {
-  streamImage.src = streamImage.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-}
-
-function appletRefresh() {
-  if ( streamStatus && (!streamStatus.paused && !streamStatus.delayed) ) {
-    var streamImg = $('liveStream');
-    var parent = streamImg.getParent();
-    streamImg.dispose();
-    streamImg.inject( parent );
-    if ( appletRefreshTime ) {
-      appletRefresh.delay( appletRefreshTime*1000 );
-    }
-  } else {
-    appletRefresh.delay( 15*1000 ); //if we are paused or delayed check every 15 seconds if we are live yet...
-  }
-}
-
-var watchdogInactive = {
-  'stream': false,
-  'status': false
-};
-
-var watchdogFunctions = {
-  'stream': streamCmdQuery,
-  'status': statusCmdQuery
-};
 
 //Make sure the various refreshes are still taking effect
 function watchdogCheck(type) {
   if ( watchdogInactive[type] ) {
-    console.log("Detected streamWatch of type: " + type + " stopped, restarting");
     watchdogFunctions[type]();
     watchdogInactive[type] = false;
   } else {
@@ -696,12 +584,17 @@ function watchdogOk(type) {
   watchdogInactive[type] = false;
 }
 
+function presetSelectorBlur() {
+  this.selectedIndex = 0;
+}
+
 function initPage() {
   var form = document.zoneForm;
 
   //form.elements['newZone[Name]'].disabled = true;
   //form.elements['newZone[Type]'].disabled = true;
   form.presetSelector.disabled = true;
+  form.presetSelector.onblur = window['presetSelectorBlur'].bind(form.presetSelector, form.presetSelector);
   //form.elements['newZone[Units]'].disabled = true;
   if ( CheckMethod = form.elements['newZone[CheckMethod]'] ) {
     CheckMethod.disabled = true;
@@ -767,49 +660,83 @@ function initPage() {
   }
 
   applyCheckMethod();
-  drawZonePoints();
 
-  $('pauseBtn').onclick = function() {
-    streamCmdPauseToggle();
-  };
-  if ( el = $('saveBtn') ) {
+  pauseBtn.click(streamCmdPause);
+  playBtn.click(streamCmdPlay);
+  playBtn.hide(); // hide pause initially
+
+  if ( el = saveBtn[0] ) {
     el.onclick = window['saveChanges'].bind(el, el);
   }
-  if ( el = $('cancelBtn') ) {
+  if ( el = cancelBtn[0] ) {
     el.onclick = function() {
-      refreshParentWindow();
-      closeWindow();
+      for (var i = 0, length = monitors.length; i < length; i++) {
+        monitors[i].stop();
+      }
+      window.history.back();
     };
   }
 
-  //
-  // Imported from watch.js and modified for new zone edit view
-  //
-
-  var delay = (Math.random()+0.1) * statusRefreshTimeout;
-  //console.log("Delay for status updates is: " + delay );
-  if ( streamMode == 'single' ) {
-    statusCmdTimer = statusCmdQuery.delay(delay);
-    watchdogCheck.pass('status').periodical(statusRefreshTimeout*2);
+  if ( el = analyseBtn[0] ) {
+    el.onclick = function() {
+      analyse_frames = !analyse_frames;
+      if (analyse_frames) {
+        analyseBtn.addClass('btn-primary');
+        analyseBtn.removeClass('btn-secondary');
+        analyseBtn.attr('title', translate['Showing Analysis']);
+      } else {
+        analyseBtn.removeClass('btn-primaryary');
+        analyseBtn.addClass('btn-secondary');
+        analyseBtn.attr('title', translate['Not Showing Analysis']);
+      }
+      for ( var i = 0, length = monitors.length; i < length; i++ ) {
+        monitors[i].show_analyse_frames(analyse_frames);
+      }
+    };
   } else {
-    streamCmdTimer = streamCmdQuery.delay(delay);
-    watchdogCheck.pass('stream').periodical(statusRefreshTimeout*2);
+    console.log('Analyse button not found');
   }
 
-  if ( canStreamNative || (streamMode == 'single') ) {
-    var streamImg = $('imageFrame').getElement('img');
-    if ( !streamImg ) {
-      streamImg = $('imageFrame').getElement('object');
-    }
-    if ( streamMode == 'single' ) {
-      streamImg.addEvent('click', fetchImage.pass(streamImg));
-      fetchImage.pass(streamImg).periodical(imageRefreshTimeout);
-    }
+  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
+    monitors[i] = new MonitorStream(monitorData[i]);
+
+    // Start the fps and status updates. give a random delay so that we don't assault the server
+    var delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+    monitors[i].setStreamScale();
+    monitors[i].show_analyse_frames(analyse_frames);
+    monitors[i].start(delay);
   }
 
-  if ( refreshApplet && appletRefreshTime ) {
-    appletRefresh.delay(appletRefreshTime*1000);
-  }
+  document.querySelectorAll('#imageFrame img').forEach(function(el) {
+    el.addEventListener("load", imageLoadEvent, {passive: true});
+  });
+  window.addEventListener("resize", drawZonePoints, {passive: true});
+  // if the image link is broken for some reason we won't draw the points, so do it manually
+  drawZonePoints();
+
+  // Manage the BACK button
+  document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
+    evt.preventDefault();
+    window.history.back();
+  });
+
+  // Disable the back button if there is nothing to go back to
+  backBtn.prop('disabled', !document.referrer.length);
+
+  // Manage the REFRESH Button
+  document.getElementById("refreshBtn").addEventListener("click", function onRefreshClick(evt) {
+    evt.preventDefault();
+    window.location.reload(true);
+  });
+} // initPage
+
+function imageLoadEvent() {
+  // We only need this event on the first image load to set dimensions.
+  // Turn it off after it has been called.
+  document.querySelectorAll('#imageFrame img').forEach(function(el) {
+    el.removeEventListener("load", imageLoadEvent, {passive: true});
+  });
+  drawZonePoints();
 }
 
 function Polygon_calcArea(coords) {

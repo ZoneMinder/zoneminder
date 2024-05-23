@@ -1,31 +1,31 @@
-
 function evaluateLoadTimes() {
+  if (liveMode != 1 && currentSpeed == 0) return; // don't evaluate when we are not moving as we can do nothing really fast.
+
   // Only consider it a completed event if we load ALL monitors, then zero all and start again
-  var start=0;
-  var end=0;
-  if ( liveMode != 1 && currentSpeed == 0 ) return; // don't evaluate when we are not moving as we can do nothing really fast.
-  for ( var i = 0; i < monitorIndex.length; i++ ) {
-    if ( monitorName[i] > "" ) {
+  let start=0;
+  let end=0;
+  for (let i = 0; i < monitorIndex.length; i++) {
+    if (monitorName[i] > '') {
       if ( monitorLoadEndTimems[i] == 0 ) return; // if we have a monitor with no time yet just wait
       if ( start == 0 || start > monitorLoadStartTimems[i] ) start = monitorLoadStartTimems[i];
       if ( end == 0 || end < monitorLoadEndTimems[i] ) end = monitorLoadEndTimems[i];
     }
   }
   if ( start == 0 || end == 0 ) return; // we really should not get here
-  for ( var i=0; i < numMonitors; i++ ) {
-    var monId = monitorPtr[i];
+  for (let i=0; i < numMonitors; i++) {
+    const monId = monitorPtr[i];
     monitorLoadStartTimems[monId] = 0;
     monitorLoadEndTimems[monId] = 0;
   }
 
   freeTimeLastIntervals[imageLoadTimesEvaluated++] = 1 - ((end - start)/currentDisplayInterval);
-  if ( imageLoadTimesEvaluated < imageLoadTimesNeeded ) return;
-  var avgFrac=0;
-  for ( var i=0; i < imageLoadTimesEvaluated; i++ ) {
+  if (imageLoadTimesEvaluated < imageLoadTimesNeeded) return;
+  let avgFrac=0;
+  for (let i=0; i < imageLoadTimesEvaluated; i++) {
     avgFrac += freeTimeLastIntervals[i];
   }
   avgFrac = avgFrac / imageLoadTimesEvaluated;
-  // The larger this is(positive) the faster we can go
+  // The larger this is (positive) the faster we can go
   if (avgFrac >= 0.9) currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1); // we can go much faster
   else if (avgFrac >= 0.8) currentDisplayInterval = (currentDisplayInterval * 0.55).toFixed(1);
   else if (avgFrac >= 0.7) currentDisplayInterval = (currentDisplayInterval * 0.60).toFixed(1);
@@ -42,152 +42,302 @@ function evaluateLoadTimes() {
   currentDisplayInterval = Math.min(Math.max(currentDisplayInterval, 40), 10000);
   imageLoadTimesEvaluated=0;
   setSpeed(speedIndex);
-  $('fps').innerHTML="Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".";
+  $j('#fps').text("Display refresh rate is " + (1000 / currentDisplayInterval).toFixed(1) + " per second, avgFrac=" + avgFrac.toFixed(3) + ".");
 } // end evaluateLoadTimes()
 
+function findEventByTime(arr, time, debug) {
+  let start = 0;
+  let end = arr.length-1; // -1 because 0 based indexing
+
+  //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
+  // Iterate while start not meets end
+  while ((start <= end) && (arr[start].StartTimeSecs <= time) && (!arr[end].EndTimeSecs || (arr[end].EndTimeSecs >= time))) {
+    //console.log("looking for "+time+" Start: " + arr[start].StartTimeSecs + ' End: ' + arr[end].EndTimeSecs);
+    // Find the middle index
+    const middle = Math.floor((start + end)/2);
+    const zm_event = arr[middle];
+
+    // If element is present at mid, return True
+    //console.log(middle, zm_event, time);
+    if ((zm_event.StartTimeSecs <= time) && (!zm_event.EndTimeSecs || (zm_event.EndTimeSecs >= time))) {
+      //console.log("Found it at ", zm_event);
+      return zm_event;
+    }
+
+    //console.log("Didn't find it looking for "+time+" Start: " + zm_event.StartTimeSecs + ' End: ' + zm_event.EndTimeSecs);
+    // Else look in left or right half accordingly
+    if (zm_event.StartTimeSecs < time) {
+      start = middle + 1;
+    } else if (zm_event.EndTimeSecs > time) {
+      end = middle - 1;
+    } else {
+      break;
+    }
+  } // end while
+  return false;
+} // end function findEventByTime
+
+function findFrameByTime(arr, time, debug) {
+  if (!arr) {
+    console.log("No array in findFrameByTime");
+    return false;
+  }
+  const keys = Object.keys(arr);
+  let start=0;
+  let end=keys.length-1;
+
+  //console.log(keys);
+  //console.log(keys[start]);
+  // Iterate while start not meets end
+  if (debug) console.log("Looking for "+ time+ "start: " + start + ' end ' + end, arr[keys[start]]);
+  while ((start <= end)) {
+    if ((arr[keys[start]].TimeStampSecs > time) || (arr[keys[end]].NextTimeStampSecs < time)) {
+      console.log(time + " not found in array of frames.", arr[keys[start]], arr[keys[end]]);
+      return false;
+    }
+    // Find the mid index
+    const middle = Math.floor((start + end)/2);
+    const frame = arr[keys[middle]];
+    if (debug) {
+      console.log("Looking for ", time, secs2inputstr(time), "frame", frame, 'middle '+middle+ ' start '+ start + ' end ' +end);
+      console.log(secs2inputstr(frame.TimeStampSecs));
+    }
+
+    // If element is present at mid, return True
+    if ((frame.TimeStampSecs == time) ||
+        (frame.TimeStampSecs < time) &&
+        (
+          (frame.NextTimeStampSecs > time) ||
+          (!frame.NextTimeStampSecs) // only if event.EndTime is null
+        )
+    ) {
+      if (debug) console.log("Found it at ", frame);
+      const e = events[frame.EventId];
+      if (!e) {
+        console.log("No event for ", frame.EventId);
+        return frame;
+      }
+
+      if (frame.NextFrameId && e.FramesById) {
+        var NextFrame = e.FramesById[frame.NextFrameId];
+        if (!NextFrame) {
+          console.log("No nextframe for ", frame.NextFrameId);
+          return frame;
+        }
+        //console.log(NextFrame);
+
+        if (frame.Type == 'Bulk' || NextFrame.Type == 'Bulk') {
+          // There is time between this frame and a bulk frame
+          var duration = frame.NextTimeStampSecs - frame.TimeStampSecs;
+          frame.FrameId = parseInt(frame.FrameId) + parseInt( (NextFrame.FrameId-frame.FrameId) * ( time-frame.TimeStampSecs )/duration );
+          //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame.FrameId + " from " + NextFrame.FrameId + ' - ' + frame.FrameId + " time: " + (time-frame.TimeStampSecs)  );
+        } else if (debug) {
+          console.log("Bulk: " + "frame_id = " + frame.FrameId + " time: " + (time-frame.TimeStampSecs), (NextFrame.Type == 'Bulk'));
+        }
+      } else if (debug) {
+        console.log('No nextframeId');
+      }
+
+      return frame;
+      // Else look in left or right half accordingly
+    } else if (frame.TimeStampSecs < time) {
+      start = middle + 1;
+    } else if (frame.TimeStampSecs > time) {
+      end = middle - 1;
+    } else {
+      console.log('Error');
+      break;
+    }
+  } // end while
+  if (debug) console.log("Didn't find it");
+  return false;
+} // end function findFrameByTime(arr, time, debug=false)
+
 function getFrame(monId, time, last_Frame) {
-  if ( last_Frame ) {
+  if (last_Frame) {
     if (
-      (last_Frame.TimeStampSecs <= time)
-      &&
+      (last_Frame.MonitorId == monId) &&
+      (last_Frame.TimeStampSecs <= time) &&
       (last_Frame.EndTimeStampSecs >= time)
     ) {
       return last_Frame;
     }
   }
 
-  var events_for_monitor = events_by_monitor_id[monId];
-  if ( !events_for_monitor ) {
-    console.log("No events for monitor " + monId);
+  if (!events_by_monitor_id[monId] || !events_by_monitor_id[monId].length) {
+    // Need to load them?
+    console.log("No events_by_monitor_id for " + monId);
     return;
   }
 
-  var Frame = null;
-  for ( var i = 0; i < events_for_monitor.length; i++ ) {
-  //for ( var event_id_idx in events_for_monitor ) {
-    var event_id = events_for_monitor[i];
-    // Search for the event matching this time. Would be more efficient if we had events indexed by monitor
-    e = events[event_id];
-    if ( !e ) {
-      console.log("No event found for " + event_id);
-      break;
-    }
-    if ( e.MonitorId != monId || e.StartTimeSecs > time || e.EndTimeSecs < time ) {
-      //console.log("Event not for " + time);
-      continue;
-    }
-
-    if ( !e.FramesById ) {
-      console.log("No FramesById for event " + event_id);
+  if (!events_for_monitor[monId] || !events_for_monitor[monId].length) {
+    events_for_monitor[monId] = events_by_monitor_id[monId].map((x)=>events[x]);
+    if (!events_for_monitor[monId].length) {
+      //console.log("No events for monitor " + monId);
       return;
     }
-    var duration = e.EndTimeSecs - e.StartTimeSecs;
+  }
 
-    // I think this is an estimate to jump near the desired frame.
-    var frame = parseInt((time - e.StartTimeSecs)/(duration)*Object.keys(e.FramesById).length)+1;
-    //console.log("frame_id for " + time + " is " + frame);
-
-    // Need to get frame by time, not some fun calc that assumes frames have the same length.
-    // Frames are sorted in descreasing order (or not sorted).
-    // This is likely not efficient.  Would be better to start at the last frame viewed, see if it is still relevant
-    // Then move forward or backwards as appropriate
-
-    for ( var frame_id in e.FramesById ) {
-      if ( 0 ) {
-        if ( frame == 0 ) {
-          console.log("Found frame for time " + time);
-          console.log(Frame);
-          Frame = e.FramesById[frame_id];
-          break;
-        }
-        frame --;
-        continue;
+  let Event = findEventByTime(events_for_monitor[monId], time, false);
+  if (Event === false) {
+    // This might be better with a binary search
+    for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
+      const event_id = events_for_monitor[monId][i].Id;
+      const e = events[event_id];
+      if (!e) {
+        console.error('No event found for ', event_id);
+        break;
       }
+      if (e.StartTimeSecs <= time && e.EndTimeSecs >= time) {
+        Event = e;
+        break;
+      }
+    }
+    if (Event) {
+      console.log("Failed to find event for ", time, " but found it using linear search");
+      for (let i=0, len=events_for_monitor[monId].length; i<len; i++) {
+        const event_id = events_for_monitor[monId][i].Id;
+        const e = events[event_id];
+        if ((e.StartTimeSecs <= time) && (e.EndTimeSecs >= time)) {
+          console.log("Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+          break;
+        } else {
+          console.log("Not Found at " + e.Id + ' start: ' + e.StartTimeSecs + ' end: ' + e.EndTimeSecs);
+        }
+      }
+    }
+  }
+  if (!Event) return;
+
+  if (!Event.FramesById) {
+    console.log('No FramesById for event ', Event.Id);
+    load_Frames({event_id: Event}).then(function() {
+      if (!Event.FramesById) {
+        console.log("No FramesById after load_Frames!", Event);
+      }
+      return findFrameByTime(Event.FramesById, time);
+    }, function(Error) {
+      console.log(Error);
+    });
+    return;
+  }
+
+  // Need to get frame by time, not some fun calc that assumes frames have the same length.
+  // Frames are sorted in descreasing order (or not sorted).
+  // This is likely not efficient.  Would be better to start at the last frame viewed, see if it is still relevant
+  // Then move forward or backwards as appropriate
+  let Frame = findFrameByTime(Event.FramesById, time);
+  if (!Frame) {
+    console.log("Didn't find frame by binary search");
+    for (const frame_id in Event.FramesById) {
+      // Again need binary search
       if (
-        e.FramesById[frame_id].TimeStampSecs == time
-          || (
-            e.FramesById[frame_id].TimeStampSecs < time
-            && (
-              (!e.FramesById[frame_id].NextTimeStampSecs) // only if event.EndTime is null
-             ||
-             (e.FramesById[frame_id].NextTimeStampSecs > time)
-            )
+        Event.FramesById[frame_id].TimeStampSecs == time ||
+        (
+          Event.FramesById[frame_id].TimeStampSecs < time &&
+          (
+            (!Event.FramesById[frame_id].NextTimeStampSecs) || // only if event.EndTime is null
+            (Event.FramesById[frame_id].NextTimeStampSecs > time)
           )
+        )
       ) {
-        Frame = e.FramesById[frame_id];
+        Frame = Event.FramesById[frame_id];
         break;
       }
     } // end foreach frame in the event.
-    if ( !Frame ) {
-      console.log("Didn't find frame for " + time);
-      return null;
-    }
-  } // end foreach event
+  }
+
+  if (!Frame) {
+    console.log("Didn't find frame for " + time);
+  }
   return Frame;
 }
 
 // time is seconds since epoch
 function getImageSource(monId, time) {
-  if ( liveMode == 1 ) {
-    var new_url = monitorImageObject[monId].src.replace(
+  if (liveMode == 1) {
+    let new_url = monitorImageObject[monId].src.replace(
         /rand=\d+/i,
         'rand='+Math.floor(Math.random() * 1000000)
     );
-    if ( auth_hash ) {
+    if (auth_hash) {
       // update auth hash
       new_url = new_url.replace(/auth=[a-z0-9]+/i, 'auth='+auth_hash);
     }
     return new_url;
   }
-  var frame_id;
+  let frame_id;
 
-  var Frame = getFrame(monId, time);
-  if ( Frame ) {
+  const Frame = getFrame(monId, time);
+  if (Frame) {
+    const e = events[Frame.EventId];
+    if (!e) {
+      console.log('No event found for ' + Frame.EventId, Frame);
+      return '';
+    }
+
     // Adjust for bulk frames
-    if ( Frame.NextFrameId ) {
-      var e = events[Frame.EventId];
-      var NextFrame = e.FramesById[Frame.NextFrameId];
-      if ( !NextFrame ) {
+    if (Frame.NextFrameId) {
+      if (!e.FramesById) {
+        console.log("No FramesById in event ", e, e.FramesById);
+        return '';
+      }
+      const NextFrame = e.FramesById[Frame.NextFrameId];
+      if (!NextFrame) {
         console.log("No next frame for " + Frame.NextFrameId);
-      } else if ( NextFrame.Type == 'Bulk' ) {
+      } else if (NextFrame.Type == 'Bulk') {
         // There is time between this frame and a bulk frame
-        var duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
-        frame_id = Frame.FrameId + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
+        const duration = Frame.NextTimeStampSecs - Frame.TimeStampSecs;
+        frame_id = parseInt(Frame.FrameId) + parseInt( (NextFrame.FrameId-Frame.FrameId) * ( time-Frame.TimeStampSecs )/duration );
         //console.log("Have NextFrame: duration: " + duration + " frame_id = " + frame_id + " from " + NextFrame.FrameId + ' - ' + Frame.FrameId + " time: " + (time-Frame.TimeStampSecs)  );
       } else {
         frame_id = Frame.FrameId;
       }
     } else {
       frame_id = Frame.FrameId;
-      console.log("No NextFrame");
     }
-    Event = events[Frame.EventId];
 
-    var storage = Storage[Event.StorageId];
-    if ( !storage ) {
-      // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
-      console.log("No storage area for id " + Event.StorageId);
-      storage = Storage[0];
+    if (!parseInt(frame_id)) {
+      console.log("No frame_id from ", Frame);
+      return;
     }
+
+    let scale = parseInt(100*monitorCanvasObj[monId].width / monitorWidth[monId]);
+    if (scale > 100) {
+      scale = 100;
+    } else {
+      scale = 10 * parseInt(scale/10);
+    }
+
+
+    // Storage[0] is guaranteed to exist as we make sure it is there in montagereview.js.php
+    const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
-    var server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
+    const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
+    return server.PathToZMS + '?mode=jpeg&frames=1&event=' + Frame.EventId + '&frame='+frame_id +
+      //"&width=" + monitorCanvasObj[monId].width +
+      //"&height=" + monitorCanvasObj[monId].height +
+      "&scale=" + scale +
+      "&frames=1" +
+      "&rate=" + 100*speeds[speedIndex] +
+      '&' + auth_relay;
+
     return server.PathToIndex +
       '?view=image&eid=' + Frame.EventId + '&fid='+frame_id +
       "&width=" + monitorCanvasObj[monId].width +
       "&height=" + monitorCanvasObj[monId].height;
   } // end found Frame
   return '';
-  //return "no data";
-}
+} // end function getImageSource
 
 // callback when loading an image. Will load itself to the canvas, or draw no data
 function imagedone( obj, monId, success ) {
   if ( success ) {
-    var canvasCtx = monitorCanvasCtx[monId];
-    var canvasObj = monitorCanvasObj[monId];
+    const canvasCtx = monitorCanvasCtx[monId];
+    const canvasObj = monitorCanvasObj[monId];
 
     canvasCtx.drawImage( monitorImageObject[monId], 0, 0, canvasObj.width, canvasObj.height );
-    var iconSize=(Math.max(canvasObj.width, canvasObj.height) * 0.10);
+    const iconSize=(Math.max(canvasObj.width, canvasObj.height) * 0.10);
     canvasCtx.font = "600 " + iconSize.toString() + "px Arial";
     canvasCtx.fillStyle = "white";
     canvasCtx.globalCompositeOperation = "difference";
@@ -204,7 +354,7 @@ function imagedone( obj, monId, success ) {
     if ( liveMode ) {
       writeText( monId, "Camera Offline" );
     } else {
-      writeText( monId, "No Data" );
+      writeText( monId, "No event" );
     }
   } else {
     if ( monitorLoadingStageURL[monId] == "" ) {
@@ -226,7 +376,7 @@ function loadNoData( monId ) {
     canvasCtx.fillStyle="white";
     canvasCtx.fillRect(0, 0, canvasObj.width, canvasObj.height);
     var textSize=canvasObj.width * 0.15;
-    var text="No Data";
+    var text="No Event";
     canvasCtx.font = "600 " + textSize.toString() + "px Arial";
     canvasCtx.fillStyle="black";
     var textWidth = canvasCtx.measureText(text).width;
@@ -260,7 +410,7 @@ function loadImage2Monitor( monId, url ) {
   } else {
     if ( monitorImageObject[monId].src == url ) return; // do nothing if it's the same
     if ( url == 'no data' ) {
-      writeText(monId, 'No Data');
+      writeText(monId, 'No Event');
     } else {
       //writeText(monId, 'Loading...');
       monitorLoading[monId] = true;
@@ -277,20 +427,19 @@ function timerFire() {
     clearInterval(timerObj);
     timerObj = null;
     timerInterval = currentDisplayInterval;
-    console.log("Turn off nterrupts timerInterfave" + timerInterval);
+    console.log("Turn off interrupts timerInterfave" + timerInterval);
   }
 
   if ( (currentSpeed > 0 || liveMode != 0) && ! timerObj ) {
     timerObj = setInterval(timerFire, timerInterval); // don't fire out of live mode if speed is zero
   }
 
-  if ( liveMode ) {
-    console.log("liveMode");
+  if (liveMode) {
     outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
-  } else if ( currentTimeSecs + playSecsPerInterval >= maxTimeSecs ) {
+  } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
     console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
-    setSpeed(0);
+    if (speedIndex) setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else {
     //console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval);
@@ -334,18 +483,18 @@ function drawSliderOnGraph(val) {
       underSlider = ctx.getImageData(sliderX, 0, sliderWidth, sliderHeight);
       // And add in the slider'
       ctx.lineWidth = sliderLineWidth;
-      ctx.strokeStyle = 'black';
+      ctx.strokeStyle = 'yellow';
       // looks like strokes are on the outside (or could be) so shrink it by the line width so we replace all the pixels
       ctx.strokeRect(sliderX+sliderLineWidth, sliderLineWidth, sliderWidth - 2*sliderLineWidth, sliderHeight - 2*sliderLineWidth);
       underSliderX = sliderX;
     }
-    var o = $('scruboutput');
+    var o = document.getElementById('scruboutput');
     if ( liveMode == 1 ) {
       o.innerHTML = "Live Feed @ " + (1000 / currentDisplayInterval).toFixed(1) + " fps";
       o.style.color = "red";
     } else {
       o.innerHTML = secs2dbstr(val);
-      o.style.color = "blue";
+      o.style.color = 'white';
     }
     o.style.position = "absolute";
     o.style.bottom = labbottom;
@@ -365,41 +514,41 @@ function drawSliderOnGraph(val) {
   // Because these change widths if the slider is too close, use the slider width as an estimate for the left/right label length (i.e. don't recalculate len from above)
   // If this starts to collide increase some of the extra space
 
-  var o = $('scrubleft');
-  o.innerHTML=secs2dbstr(minTimeSecs);
-  o.style.position="absolute";
-  o.style.bottom=labbottom;
-  o.style.font=labfont;
-  o.style.left="5px";
+  var o = document.getElementById('scrubleft');
+  o.innerHTML = secs2dbstr(minTimeSecs);
+  o.style.position = "absolute";
+  o.style.bottom = labbottom;
+  o.style.font = labfont;
+  o.style.left = "5px";
   if ( numMonitors == 0 ) { // we need a len calculation if we skipped the slider
     len = o.offsetWidth;
   }
   // If the slider will overlay part of this suppress (this is the left side)
   if ( len + 10 > sliderX || cWidth < len * 4 ) {
     // that last check is for very narrow browsers
-    o.style.display="none";
+    o.style.display = "none";
   } else {
-    o.style.display="inline";
-    o.style.display="inline-flex"; // safari won't take this but will just ignore
+    o.style.display = "inline";
+    o.style.display = "inline-flex"; // safari won't take this but will just ignore
   }
 
-  var o = $('scrubright');
-  o.innerHTML=secs2dbstr(maxTimeSecs);
-  o.style.position="absolute";
-  o.style.bottom=labbottom;
-  o.style.font=labfont;
+  var o = document.getElementById('scrubright');
+  o.innerHTML = secs2dbstr(maxTimeSecs);
+  o.style.position = "absolute";
+  o.style.bottom = labbottom;
+  o.style.font = labfont;
   // If the slider will overlay part of this suppress (this is the right side)
   o.style.left=(cWidth - len - 15).toString() + "px";
   if ( sliderX > cWidth - len - 20 || cWidth < len * 4 ) {
-    o.style.display="none";
+    o.style.display = "none";
   } else {
-    o.style.display="inline";
-    o.style.display="inline-flex";
+    o.style.display = "inline";
+    o.style.display = "inline-flex";
   }
 }
 
 function drawGraph() {
-  var divWidth = $('timelinediv').clientWidth;
+  var divWidth = document.getElementById('timelinediv').clientWidth;
   canvas.width = cWidth = divWidth; // Let it float and determine width (it should be sized a bit smaller percentage of window)
   cHeight = parseInt(window.innerHeight * 0.10);
   if ( cHeight < numMonitors * 20 ) {
@@ -443,7 +592,7 @@ function drawGraph() {
       var x1=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth); // round low end down
       var x2=parseInt( (Frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
       if (x2-x1 < 2) x2=x1+2; // So it is visible make them all at least this number of seconds wide
-      ctx.fillStyle=monitorColour[Event.MonitorId];
+      //ctx.fillStyle=monitorColour[Event.MonitorId];
       ctx.globalAlpha = 0.4 + 0.6 * (1 - Frame.Score/maxScore); // Background is scaled but even lowest is twice as dark as the background
       ctx.fillRect(x1, monitorIndex[Event.MonitorId]*rowHeight, x2-x1, rowHeight);
     } // end foreach frame
@@ -463,63 +612,72 @@ function drawGraph() {
 } // end function drawGraph
 
 function redrawScreen() {
+  var dateTimeDiv = $j('#DateTimeDiv');
+  var speedDiv = $j('#SpeedDiv');
+  var timeLineDiv = $j('#timelinediv');
+  var liveButton = $j('#liveButton');
+  var zoomIn = $j('#zoomin');
+  var zoomOut = $j('#zoomout');
+  var panLeft = $j('#panleft');
+  var panRight = $j('#panright');
+  var downloadVideo = $j('#downloadVideo');
+  var scaleDiv = $j('#ScaleDiv');
+  var fit = $j('#fit');
+
   if ( liveMode == 1 ) {
     // if we are not in live view switch to history -- this has to come before fit in case we re-establish the timeline
-    $('DateTimeDiv').style.display="none";
-    $('SpeedDiv').style.display="none";
-    var timelinediv= $('timelinediv');
-    if ( timelinediv ) timelinediv.style.display="none";
-    $('liveButton').innerHTML="History";
-    $('zoomin').style.display="none";
-    $('zoomout').style.display="none";
-    $('panleft').style.display="none";
-    $('panright').style.display="none";
-    if ($('downloadVideo')) $('downloadVideo').style.display="none";
+    dateTimeDiv.hide();
+    speedDiv.hide();
+    timeLineDiv.hide();
+    liveButton.text('History');
+    zoomIn.hide();
+    zoomOut.hide();
+    panLeft.hide();
+    panRight.hide();
+    downloadVideo.hide();
   } else {
     // switch out of liveview mode
-    $('DateTimeDiv').style.display="inline";
-    $('DateTimeDiv').style.display="inline-flex";
-    $('SpeedDiv').style.display="inline";
-    $('SpeedDiv').style.display="inline-flex";
-    $('timelinediv').style.display=null;
-    $('liveButton').innerHTML="Live";
-    $('zoomin').style.display="inline";
-    $('zoomin').style.display="inline-flex";
-    $('zoomout').style.display="inline";
-    $('zoomout').style.display="inline-flex";
-    $('panleft').style.display="inline";
-    $('panleft').style.display="inline-flex";
-    $('panright').style.display="inline";
-    $('panright').style.display="inline-flex";
-    if ($('downloadVideo')) $('downloadVideo').style.display="inline";
+    dateTimeDiv.show();
+    speedDiv.show();
+    timeLineDiv.show();
+    liveButton.text('Live');
+    zoomIn.show();
+    zoomOut.show();
+    panLeft.show();
+    panRight.show();
+    downloadVideo.show();
+
     drawGraph();
   }
 
+  var monitors = $j('#monitors');
   if ( fitMode == 1 ) {
-    $('ScaleDiv').style.display="none";
-    $('fit').innerHTML="Scale";
-    var vh=window.innerHeight;
-    var pos=$('monitors').getPosition();
-    var mh=(vh - pos.y - $('fps').getSize().y);
-    $('monitors').setStyle('height', mh.toString() + "px"); // leave a small gap at bottom
-    if (maxfit2($('monitors').getSize().x, $('monitors').getSize().y) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+    var fps = $j('#fps');
+    var vh = window.innerHeight;
+    var mh = (vh - monitors.position().top - fps.outerHeight());
+
+    scaleDiv.hide();
+    fit.text('Scale');
+    monitors.height(mh.toString() + 'px'); // leave a small gap at bottom
+
+    if (maxfit2(monitors.outerWidth(), monitors.outerHeight()) == 0) { /// if we fail to fix we back out of fit mode -- ??? This may need some better handling
+      console.log("Failed to fit, dropping back to scaled mode");
       fitMode=1-fitMode;
     }
   } else {
     // switch out of fit mode
     // if we fit, then monitors were absolutely positioned already (or will be) otherwise release them to float
-    for ( var i=0; i<numMonitors; i++ ) {
-      monitorCanvasObj[monitorPtr[i]].style.position="";
+    for (let i=0; i<numMonitors; i++) {
+      monitorCanvasObj[monitorPtr[i]].style.position = '';
     }
-    $('monitors').setStyle('height', "auto");
-    $('ScaleDiv').style.display="inline";
-    $('ScaleDiv').style.display="inline-flex";
-    $('fit').innerHTML="Fit";
+    monitors.height('');
+    scaleDiv.show();
+    fit.text('fit');
     setScale(currentScale);
   }
   outputUpdate(currentTimeSecs);
   timerFire(); // force a fire in case it's not timing
-}
+} // end function redrawScreen
 
 function outputUpdate(time) {
   drawSliderOnGraph(time);
@@ -531,21 +689,19 @@ function outputUpdate(time) {
   currentTimeSecs = time;
 }
 
-/// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
+// Found this here: http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element
 function relMouseCoords(event) {
-  var totalOffsetX = 0;
-  var totalOffsetY = 0;
-  var canvasX = 0;
-  var canvasY = 0;
-  var currentElement = this;
+  let totalOffsetX = 0;
+  let totalOffsetY = 0;
+  let currentElement = event.target;
 
   do {
     totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
     totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
   } while (currentElement = currentElement.offsetParent);
 
-  canvasX = event.pageX - totalOffsetX;
-  canvasY = event.pageY - totalOffsetY;
+  const canvasX = event.pageX - totalOffsetX;
+  const canvasY = event.pageY - totalOffsetY;
 
   return {x: canvasX, y: canvasY};
 }
@@ -611,7 +767,7 @@ function setFit(value) {
 
 function showScale(newscale) {
   // updates slider only
-  $('scaleslideroutput').innerHTML = parseFloat(newscale).toFixed(2).toString() + " x";
+  $j('#scaleslideroutput').text(parseFloat(newscale).toFixed(2).toString() + " x");
   return;
 }
 
@@ -627,11 +783,11 @@ function setScale(newscale) {
 
 function showSpeed(val) {
   // updates slider only
-  $('speedslideroutput').innerHTML = parseFloat(speeds[val]).toFixed(2).toString() + " x";
+  $j('#speedslideroutput').text(parseFloat(speeds[val]).toFixed(2).toString() + " x");
 }
 
 function setSpeed(speed_index) {
-  if ( liveMode == 1 ) {
+  if (liveMode == 1) {
     console.log("setSpeed in liveMode?");
     return; // we shouldn't actually get here but just in case
   }
@@ -643,8 +799,11 @@ function setSpeed(speed_index) {
 }
 
 function setLive(value) {
+  // When we submit the context etc goes away but we may still be trying to update
+  // So kill the timer.
+  clearInterval(timerObj);
   liveMode = value;
-  var form = $j('#montagereview_form')[0];
+  var form = document.getElementById('montagereview_form');
   form.elements['live'].value = value;
   form.submit();
   return false;
@@ -668,10 +827,10 @@ function clicknav(minSecs, maxSecs, live) {// we use the current time if we can
       maxSecs = parseInt(now);
     }
     maxStr = "&maxTime=" + secs2inputstr(maxSecs);
-    $('maxTime').value = secs2inputstr(maxSecs);
+    $j('#maxTime').val(secs2inputstr(maxSecs));
   }
   if ( minSecs > 0 ) {
-    $('minTime').value = secs2inputstr(minSecs);
+    $j('#minTime').val(secs2inputstr(minSecs));
     minStr = "&minTime=" + secs2inputstr(minSecs);
   }
   if ( maxSecs == 0 && minSecs == 0 ) {
@@ -714,6 +873,12 @@ function click_lastEight() {
   now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
   clicknav(now - 3600*8 + 1, now, 0);
 }
+function click_last24() {
+  var date = new Date();
+  var now = Math.floor( date.getTime() / 1000 );
+  now -= -1 * date.getTimezoneOffset() * 60 - server_utc_offset;
+  clicknav(now - 3600*24 + 1, now, 0);
+}
 function click_zoomin() {
   rangeTimeSecs = parseInt(rangeTimeSecs / 2);
   minTimeSecs = parseInt(currentTimeSecs - rangeTimeSecs/2); // this is the slider current time, we center on that
@@ -737,151 +902,66 @@ function click_panright() {
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
   clicknav(minTimeSecs, maxTimeSecs, 0);
 }
+// Manage the DOWNLOAD VIDEO button
 function click_download() {
-  createPopup('?view=download', 'zmDownload', 'download');
-}
+  const form = $j('#montagereview_form');
+
+  const data = form.serializeArray();
+  data[data.length] = {name: 'mergeevents', value: true};
+  data[data.length] = {name: 'minTime', value: minTime};
+  data[data.length] = {name: 'maxTime', value: maxTime};
+  data[data.length] = {name: 'minTimeSecs', value: minTimeSecs};
+  data[data.length] = {name: 'maxTimeSecs', value: maxTimeSecs};
+  console.log(data);
+  $j.ajax({
+    url: thisUrl+'?request=modal&modal=download'+(auth_relay?'&'+auth_relay:''),
+    data: data
+  })
+      .done(function(data) {
+        insertModalHtml('downloadModal', data.html);
+        $j('#downloadModal').modal('show');
+        $j('#downloadModal').on('keyup keypress', function(e) {
+          var keyCode = e.keyCode || e.which;
+          if (keyCode === 13) {
+            e.preventDefault();
+            return false;
+          }
+        });
+        // Manage the GENERATE DOWNLOAD button
+        $j('#exportButton').click(exportEvent);
+      })
+      .fail(logAjaxFail);
+} // end function click_download
+
 function click_all_events() {
   clicknav(0, 0, 0);
 }
 function allnon() {
   clicknav(0, 0, 0);
 }
-/// >>>>>>>>>>>>>>>>> handles packing different size/aspect monitors on screen    <<<<<<<<<<<<<<<<<<<<<<<<
-
-function compSize(a, b) { // sort array by some size parameter  - height seems to work best.  A semi-greedy algorithm
-  var a_value = monitorHeight[a] * monitorWidth[a] * monitorNormalizeScale[a] * monitorZoomScale[a] * monitorNormalizeScale[a] * monitorZoomScale[a];
-  var b_value = monitorHeight[b] * monitorWidth[b] * monitorNormalizeScale[b] * monitorZoomScale[b] * monitorNormalizeScale[b] * monitorZoomScale[b];
-
-  if ( a_value > b_value ) return -1;
-  else if ( a_value == b_value ) return 0;
-  else return 1;
-}
-
-function maxfit2(divW, divH) {
-  var bestFitX=[]; // how we arranged the so-far best match
-  var bestFitX2=[];
-  var bestFitY=[];
-  var bestFitY2=[];
-
-  var minScale=0.05;
-  var maxScale=5.00;
-  var bestFitArea=0;
-
-  var borders=-1;
-
-  //monitorPtr.sort(compSize); //Sorts monitors by size in viewport.  If enabled makes captions not line up with graphs.
-
-  while (1) {
-    if ( maxScale - minScale < 0.01 ) break;
-    var thisScale = (maxScale + minScale) / 2;
-    var allFit=1;
-    var thisArea=0;
-    var thisX=[]; // top left
-    var thisY=[];
-    var thisX2=[]; // bottom right
-    var thisY2=[];
-
-    for ( var m = 0; m < numMonitors; m++ ) {
-      // this loop places each monitor (if it can)
-      var monId = monitorPtr[m];
-
-      function doesItFit(x, y, w, h, d) { // does block (w,h) fit at position (x,y) relative to edge and other nodes already done (0..d)
-        if (x+w>=divW) return 0;
-        if (y+h>=divH) return 0;
-        for ( var i=0; i <= d; i++ ) {
-          if ( !( thisX[i]>x+w-1 || thisX2[i] < x || thisY[i] > y+h-1 || thisY2[i] < y ) ) return 0;
-        }
-        return 1; // it's OK
-      }
-
-      if ( borders <= 0 ) {
-        borders=$("Monitor"+monId).getStyle("border").toInt() * 2;
-      } // assume fixed size border, and added to both sides and top/bottom
-      // try fitting over first, then down.  Each new one must land at either upper right or lower left corner of last (try in that order)
-      // Pick the one with the smallest Y, then smallest X if Y equal
-      var fitX = 999999999;
-      var fitY = 999999999;
-      for ( adjacent = 0; adjacent < m; adjacent ++ ) {
-        // try top right of adjacent
-        if ( doesItFit(thisX2[adjacent]+1, thisY[adjacent], monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, m-1) == 1 ) {
-          if ( thisY[adjacent]<fitY || ( thisY[adjacent] == fitY && thisX2[adjacent]+1 < fitX ) ) {
-            fitX = thisX2[adjacent] + 1;
-            fitY = thisY[adjacent];
-          }
-        }
-        // try bottom left
-        if ( doesItFit(thisX[adjacent], thisY2[adjacent]+1, monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, m-1) == 1 ) {
-          if ( thisY2[adjacent]+1 < fitY || ( thisY2[adjacent]+1 == fitY && thisX[adjacent] < fitX ) ) {
-            fitX = thisX[adjacent];
-            fitY = thisY2[adjacent] + 1;
-          }
-        }
-      }
-      if ( m == 0 ) { // note for the very first one there were no adjacents so the above loop didn't run
-        if ( doesItFit(0, 0, monitorWidth[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, monitorHeight[monId] * thisScale * monitorNormalizeScale[monId] * monitorZoomScale[monId] + borders, -1) == 1 ) {
-          fitX = 0;
-          fitY = 0;
-        }
-      }
-      if ( fitX == 999999999 ) {
-        allFit = 0;
-        break; // break out of monitor loop flagging we didn't fit
-      }
-      thisX[m] =fitX;
-      thisX2[m]=fitX + monitorWidth[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
-      thisY[m] =fitY;
-      thisY2[m]=fitY + monitorHeight[monitorPtr[m]] * thisScale * monitorNormalizeScale[monitorPtr[m]] * monitorZoomScale[monitorPtr[m]] + borders;
-      thisArea += (thisX2[m] - thisX[m])*(thisY2[m] - thisY[m]);
-    }
-    if ( allFit == 1 ) {
-      minScale=thisScale;
-      if (bestFitArea<thisArea) {
-        bestFitArea=thisArea;
-        bestFitX=thisX;
-        bestFitY=thisY;
-        bestFitX2=thisX2;
-        bestFitY2=thisY2;
-        bestFitScale=thisScale;
-      }
-    } else {
-      // didn't fit
-      maxScale=thisScale;
-    }
-  }
-  if ( bestFitArea > 0 ) { // only rearrange if we could fit -- otherwise just do nothing, let them start coming out, whatever
-    for ( m = 0; m < numMonitors; m++ ) {
-      c = $("Monitor" + monitorPtr[m]);
-      c.style.position="absolute";
-      c.style.left=bestFitX[m].toString() + "px";
-      c.style.top=bestFitY[m].toString() + "px";
-      c.width = bestFitX2[m] - bestFitX[m] + 1 - borders;
-      c.height= bestFitY2[m] - bestFitY[m] + 1 - borders;
-    }
-    return 1;
-  } else {
-    return 0;
-  }
-}
 
 // >>>>>>>>>>>>>>>> Handles individual monitor clicks and navigation to the standard event/watch display
 
-function showOneMonitor(monId) {
+function showOneMonitor(monId, event) {
   // link out to the normal view of one event's data
   // We know the monitor, need to determine the event based on current time
-  var url;
+  let url = '';
   if ( liveMode != 0 ) {
     url = '?view=watch&mid=' + monId.toString();
-    createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId]);
   } else {
-    var Frame = getFrame(monId, currentTimeSecs);
+    const Frame = getFrame(monId, currentTimeSecs);
     if ( Frame ) {
       url = '?view=event&eid=' + Frame.EventId + '&fid=' + Frame.FrameId;
-      createPopup(url, 'zmEvent', 'event', monitorWidth[monId], monitorHeight[monId]);
     } else {
       url = '?view=watch&mid=' + monId.toString();
-      createPopup(url, 'zmWatch', 'watch', monitorWidth[monId], monitorHeight[monId]);
     }
   } // end if live/events
+
+  if (event.ctrlKey) {
+    window.open(url, '_blank');
+  } else {
+    window.location.assign(url);
+  }
 }
 
 function zoom(monId, scale) {
@@ -896,7 +976,7 @@ function zoom(monId, scale) {
 
 function clickMonitor(event) {
   var element = event.target;
-  //var monitor_element = $("Monitor"+monId.toString());
+  //var monitor_element = document.getElementById('Monitor'+monId.toString());
   var monId = element.getAttribute('monitor_id');
   var pos_x = event.offsetX ? (event.offsetX) : event.pageX - element.offsetLeft;
   var pos_y = event.offsetY ? (event.offsetY) : event.pageY - element.offsetTop;
@@ -905,12 +985,13 @@ function clickMonitor(event) {
   } else if ( pos_x > element.width * 3/4 && pos_y < element.height/4 ) {
     zoom(monId, 1/1.15);
   } else {
-    showOneMonitor(monId);
+    showOneMonitor(monId, event);
   }
   return;
 }
 
 function changeDateTime(e) {
+/*
   var minTime_element = $j('#minTime');
   var maxTime_element = $j('#maxTime');
 
@@ -925,9 +1006,7 @@ function changeDateTime(e) {
 
   var minStr = "&minTime="+($j('#minTime')[0].value);
   var maxStr = "&maxTime="+($j('#maxTime')[0].value);
-
-  var liveStr="&live="+(liveMode?"1":"0");
-  var fitStr ="&fit="+(fitMode?"1":"0");
+*/
 
   var zoomStr="";
   for ( var i=0; i < numMonitors; i++ ) {
@@ -939,30 +1018,40 @@ function changeDateTime(e) {
   // Reloading can take a while, so stop interrupts to reduce load
   clearInterval(timerObj);
   timerObj = null;
+  const form = $j('#montagereview_form');
+  console.log(form.serialize());
 
-  var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
+  var uri = "?" + form.serialize() + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
+  //var uri = "?view=" + currentView + fitStr + minStr + maxStr + liveStr + zoomStr + "&scale=" + $j("#scaleslider")[0].value + "&speed=" + speeds[$j("#speedslider")[0].value];
   window.location = uri;
 }
 
 // >>>>>>>>> Initialization that runs on window load by being at the bottom
 
 function initPage() {
-  jQuery(document).ready(function() {
-    jQuery("#hdrbutton").click(function() {
-      jQuery("#flipMontageHeader").slideToggle("slow");
-      jQuery("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
-    });
-  });
+  if (!liveMode) {
+    load_Frames(events);
+    canvas = document.getElementById('timeline');
 
-  for ( var i = 0, len = monitorPtr.length; i < len; i += 1 ) {
-    var monId = monitorPtr[i];
-    if ( !monId ) continue;
-    monitorCanvasObj[monId] = $('Monitor'+monId);
+    canvas.addEventListener('mousemove', mmove, false);
+    canvas.addEventListener('touchmove', tmove, false);
+    canvas.addEventListener('mousedown', mdown, false);
+    canvas.addEventListener('mouseup', mup, false);
+    canvas.addEventListener('mouseout', mout, false);
+
+    ctx = canvas.getContext('2d', {willReadFrequently: true});
+    drawGraph();
+  }
+
+  for ( let i = 0, len = monitorPtr.length; i < len; i += 1 ) {
+    const monId = monitorPtr[i];
+    if (!monId) continue;
+    monitorCanvasObj[monId] = document.getElementById('Monitor'+monId);
     if ( !monitorCanvasObj[monId] ) {
       alert("Couldn't find DOM element for Monitor" + monId + "monitorPtr.length=" + len);
     } else {
       monitorCanvasCtx[monId] = monitorCanvasObj[monId].getContext('2d');
-      var imageObject = monitorImageObject[monId] = new Image();
+      const imageObject = monitorImageObject[monId] = new Image();
       imageObject.monId = monId;
       imageObject.onload = function() {
         imagedone(this, this.monId, true);
@@ -975,22 +1064,11 @@ function initPage() {
     }
   } // end foreach monitor
 
-  if ( !liveMode ) {
-    canvas = $("timeline");
-
-    canvas.addEventListener('mousemove', mmove, false);
-    canvas.addEventListener('touchmove', tmove, false);
-    canvas.addEventListener('mousedown', mdown, false);
-    canvas.addEventListener('mouseup', mup, false);
-    canvas.addEventListener('mouseout', mout, false);
-
-    ctx = canvas.getContext('2d');
-    drawGraph();
-  }
   setSpeed(speedIndex);
   //setFit(fitMode);  // will redraw
   //setLive(liveMode);  // will redraw
   redrawScreen();
+  /*
   $j('#minTime').datetimepicker({
     timeFormat: "HH:mm:ss",
     dateFormat: "yy-mm-dd",
@@ -1014,6 +1092,7 @@ function initPage() {
       }
     }
   });
+  */
   $j('#scaleslider').bind('change', function() {
     setScale(this.value);
   });
@@ -1036,7 +1115,107 @@ function initPage() {
   $j('#archive_status').bind('change', function() {
     this.form.submit();
   });
+  $j('#fieldsTable input, #fieldsTable select').each(function(index) {
+    const el = $j(this);
+    if (el.hasClass('datetimepicker')) {
+      el.datetimepicker({timeFormat: "HH:mm:ss", dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+    } else if (el.hasClass('datepicker')) {
+      el.datepicker({dateFormat: "yy-mm-dd", maxDate: 0, constrainInput: false, onClose: changeDateTime});
+    } else {
+      el.on('change', changeDateTime);
+    }
+  });
 }
+
+function takeSnapshot() {
+  monitor_ids = [];
+  for (const key in monitorIndex) {
+    monitor_ids[monitor_ids.length] = key;
+  }
+  post('?view=snapshot', {'action': 'create', 'monitor_ids[]': monitor_ids});
+
+  /*
+   * Alternate implementation using the API
+  server = new Server(Servers[serverId]);
+  $j.ajax({
+    method: 'POST',
+    url: server.urlToApi()+'/snapshots.json' + (auth_relay ? '?' + auth_relay : ''),
+    data: { 'monitor_ids[]': monitorIndex.keys()},
+    success: function(response) {
+      console.log(response);
+    }
+  });
+  //console.log(monitor_ids);
+  //window.location = '?view=snapshot&action=create&'+monitor_ids.join('&');
+*/
+}
+
 window.addEventListener("resize", redrawScreen, {passive: true});
 // Kick everything off
 window.addEventListener('DOMContentLoaded', initPage);
+
+/* Expects and Object, not an array, of EventId=>Event mappings. */
+function load_Frames(zm_events) {
+  console.log("Loading frames", zm_events);
+  return new Promise(function(resolve, reject) {
+    const url = Servers[serverId].urlToApi()+'/frames/index';
+
+    let query = '';
+    const ids = Object.keys(zm_events);
+
+    while (ids.length) {
+      const event_id = ids.shift();
+      const zm_event = zm_events[event_id];
+      if (zm_events.FramesById) continue;
+
+      query += '/EventId:'+zm_event.Id;
+      if ((!ids.length) || (query.length > 1000)) {
+        $j.ajax(url+query+'.json?'+auth_relay, {
+          timeout: 0,
+          success: function(data) {
+            if (data && data.frames && data.frames.length) {
+              zm_event.FramesById = [];
+              let last_frame = null;
+
+              for (let i=0, len=data.frames.length; i<len; i++) {
+                const frame = data.frames[i].Frame;
+                const zm_event = events[frame.EventId];
+                if (!zm_event) {
+                  console.error("No event object found for " + data.frames[0].Frame.EventId);
+                  continue;
+                }
+                if (last_frame && (frame.EventId != last_frame.EventId)) {
+                  last_frame = null;
+                }
+                //console.log(date, frame.TimeStamp, frame.Delta, frame.TimeStampSecs);
+                if (last_frame) {
+                  frame.PrevFrameId = last_frame.Id;
+                  last_frame.NextFrameId = frame.Id;
+                  if (frame.TimeStampSecs >= last_frame.TimeStampSecs) {
+                    last_frame.NextTimeStampSecs = frame.TimeStampSecs;
+                  } else {
+                    console.log("Out of order timestamps?", last_frame, frame);
+                  }
+                }
+                last_frame = frame;
+
+                if (!zm_event.FramesById) zm_event.FramesById = [];
+                zm_event.FramesById[frame.Id] = frame;
+              } // end foreach frame
+            } else {
+              console.log("No frames in data", data);
+            } // end if there are frames
+            drawGraph();
+            resolve();
+          },
+          error: function() {
+            logAjaxFail;
+            reject(Error("There was an error"));
+          }
+        }); // end ajax
+        query = '';
+      } // end if query string is too long
+    } // end while zm_events.legtnh
+  } // end Promise
+  );
+} // end function load_Frames(Event)

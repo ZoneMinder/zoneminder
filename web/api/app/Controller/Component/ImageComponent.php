@@ -89,11 +89,11 @@ class ImageComponent extends Component {
 
 	}
 
-	// Take the StartTime of an Event and return
+	// Take the StartDateTime of an Event and return
 	// the path to its location on the filesystem
 	public function getEventPath( $event ) {
     if ( $config['ZM_USE_DEEP_STORAGE'] == 1 )
-      return $event['Event']['MonitorId'].'/'.strftime( "%y/%m/%d/%H/%M/%S", strtotime($event['Event']['StartTime']) );
+      return $event['Event']['MonitorId'].'/'.strftime( '%y/%m/%d/%H/%M/%S', strtotime($event['Event']['StartDateTime']) );
     else
       return $event['Event']['MonitorId'].'/'.$event['Event']['Id'];
   }

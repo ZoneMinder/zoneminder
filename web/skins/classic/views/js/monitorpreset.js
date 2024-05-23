@@ -1,12 +1,10 @@
-function submitPreset( element ) {
-  var form = element.form;
-  form.target = opener.name;
-  form.view.value = 'monitor';
-  form.submit();
-  closeWindow.delay( 250 );
-}
-
-function configureButtons( element ) {
-  var form = element.form;
+function configureButtons() {
+  const form = document.getElementById('monitorPresetForm');
   form.saveBtn.disabled = (form.preset.selectedIndex==0);
 }
+
+function initPage() {
+  $j('#preset').change(configureButtons);
+}
+
+$j(document).ready(initPage);

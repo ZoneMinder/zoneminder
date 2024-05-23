@@ -41,29 +41,67 @@ select {
     text-align: center;
 }
 
+#sortTable {
+  justify-content: center;
+}
 #sortTable input[type=text] {
     margin-right: 4px;
 }
 
 #actionsTable input[type=text] {
     margin-left: 4px;
+    width: 60%;
 }
-
-#actionsTable p {
+#actionsTable, #optionsTable {
+  float: left;
+  width: 50%;
+  min-width: 300px;
+}
+#actionsTable p, #optionsTable p {
   text-align: left;
 }
-#actionsTable label {
-  width: 300px;
+#actionsTable label, #optionsTable label {
+  width: 320px;
   text-align: right;
+}
+@media screen and (max-width:767px) {
+  #actionsTable label,
+  #optionsTable label {
+    width: 220px;
+    text-align: right;
+  }
 }
 input[name="filter[EmailSubject]"],
 input[name="filter[EmailTo]"],
 textarea[name="filter[EmailBody]"] {
-width: 500px;
+width: 60%;
 }
 select#Id {
 min-width: 500px;
 }
 .Name input {
 min-width: 500px;
+}
+form {
+  border-bottom: 1px solid #3498db;
+}
+#ActionsAndOptions {
+  padding-top: 5px;
+  border-top: 1px solid #3498db;
+  border-bottom: 1px solid #3498db;
+}
+#ActionsAndOptions fieldset {
+  border: none;
+}
+#ActionsAndOptions:after {
+  content: ".";
+  display: block;
+  height: 0;
+  font-size: 0;
+  clear: both;
+  visibility: hidden;
+}
+body.sticky #content {
+  overflow-y: auto;
+  overflow-x: auto;
 }

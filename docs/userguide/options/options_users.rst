@@ -30,7 +30,7 @@ This screen allows you to configure various permissions on a per user basis. The
   .. note:: if you are using zmNinja, users are required to have 'View' access to system because multi-server information is only available as part of this permission
 
 - Bandwidth
-  - Specifies the maximum bandwith that this user can configure (Low, Medium or High)
+  - Specifies the maximum bandwidth that this user can configure (Low, Medium or High)
 
 - API enabled 
   - Specifies if the ZoneMinder API is enabled for this user (needs to be on, if you are using a mobile app such as zmNinja)
@@ -42,4 +42,4 @@ Here is an example of a restricted user, for example:
 
 .. image:: images/Options_Users_Example.png
 
-This user "home" is enabled, can view live streams and events, but only from "DoorBell" and "DeckCamera". This user also cannot control PTZ. 
+This user "home" is enabled, can view live streams and events, but only from "DoorBell" and "DeckCamera". This user also cannot control PTZ.

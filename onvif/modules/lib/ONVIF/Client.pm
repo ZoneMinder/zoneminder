@@ -44,6 +44,10 @@ require ONVIF::Deserializer::XSD;
 require ONVIF::Device::Interfaces::Device::DevicePort;
 require ONVIF::Media::Interfaces::Media::MediaPort;
 require ONVIF::PTZ::Interfaces::PTZ::PTZPort;
+require ONVIF::Analytics::Interfaces::Analytics::AnalyticsEnginePort;
+require ONVIF::Analytics::Interfaces::Analytics::RuleEnginePort;
+
+require WSNotification::Interfaces::WSBaseNotificationSender::NotificationProducerPort;
 
 use Data::Dump qw(dump);
 
@@ -70,6 +74,7 @@ my %services_of      :ATTR(:default<{}>);
 
 my %serializer_of    :ATTR();
 my %soap_version_of  :ATTR(:default<('1.1')>);
+my $verbose;
 
 # =========================================================================
 # private methods
@@ -117,25 +122,32 @@ sub get_service_urls {
     }
   );
   if ( $result ) {
-    foreach my $svc ( @{ $result->get_Service() } ) {
-      my $short_name = $namespace_map{$svc->get_Namespace()};    
-      my $url_svc = $svc->get_XAddr()->get_value();
-      if ( defined $short_name && defined $url_svc ) {
-        #print "Got $short_name service\n";
-        $self->set_service($short_name, 'url', $url_svc);
-      }
-    }
-    #} else {
-    #print "No results from GetServices: $result\n";
+    print "Have results from GetServices\n" if $verbose;
+    my $services = $result->get_Service();
+    if ( $services ) {
+      foreach my $svc ( @{ $services } ) {
+        my $short_name = $namespace_map{$svc->get_Namespace()};    
+        my $url_svc = $svc->get_XAddr()->get_value();
+        if ( defined $short_name && defined $url_svc ) {
+          print "Got $short_name service $url_svc\n" if $verbose;
+          $self->set_service($short_name, 'url', $url_svc);
+        }
+      } # end foreach service
+    } else {
+      print "No services from GetServices\n" if $verbose;
+    } # end if services
+  } else {
+    print "No results from GetServices\n" if $verbose;
   }
 
   # Some devices do not support getServices, so we have to try getCapabilities
 
   $result = $self->service('device', 'ep')->GetCapabilities( {}, , );
   if ( !$result ) {
-    print "No results from GetCapabilities: $result\n";
+    print "No results from GetCapabilities: $result\n" if $verbose;
     return;
   }
+  print "Have results from GetCapabilities: $result\n" if $verbose;
   # Result is a GetCapabilitiesResponse
   foreach my $capabilities ( @{ $result->get_Capabilities() } ) {
     foreach my $capability ( 'PTZ', 'Media', 'Imaging', 'Events', 'Device' ) {
@@ -156,7 +168,6 @@ sub get_service_urls {
         }
       } else {
         print "No $capability function\n";
-
       } # end if has a get_ function
     } # end foreach capability
   } # end foreach capabilities
@@ -185,9 +196,10 @@ sub http_digest {
 sub BUILD {
   my ($self,  $ident, $args_ref) = @_;
   
-  my $url_svc_device = $args_ref->{'url_svc_device'};
-  my $soap_version = $args_ref->{'soap_version'};
-  if(! $soap_version) {
+  $verbose = $args_ref->{verbose};
+  my $url_svc_device = $args_ref->{url_svc_device};
+  my $soap_version = $args_ref->{soap_version};
+  if ( !$soap_version ) {
     $soap_version = '1.1';
   }
   $self->set_soap_version($soap_version);
@@ -238,9 +250,9 @@ sub create_user {
 sub set_credentials {
   my ($self, $username, $password, $create_if_not_exists) = @_;
 
-#  TODO: snyc device and client time  
+#  TODO: sync device and client time  
 
-  if ($create_if_not_exists) {
+  if ( $create_if_not_exists ) {
 #  If GetUsers() is ok but empty then CreateUsers()
 #    if(not get_users()) {
 #      create_user($username, $password);
@@ -276,7 +288,26 @@ sub create_services {
 #      transport => $transport
     }));
   }
-}
+  if ( defined $self->service('events', 'url') ) {
+    $self->set_service('events', 'ep', WSNotification::Interfaces::WSBaseNotificationSender::NotificationProducerPort->new({
+      proxy => $self->service('events', 'url'),
+      serializer => $self->serializer(),
+#      transport => $transport
+    }));
+  }
+  if ( defined $self->service('analytics', 'url') ) {
+    $self->set_service('analytics', 'ep', ONVIF::Analytics::Interfaces::Analytics::AnalyticsEnginePort->new({
+      proxy => $self->service('analytics', 'url'),
+      serializer => $self->serializer(),
+#      transport => $transport
+    }));
+    $self->set_service('rules', 'ep', ONVIF::Analytics::Interfaces::Analytics::RuleEnginePort->new({
+      proxy => $self->service('analytics', 'url'),
+      serializer => $self->serializer(),
+#      transport => $transport
+    }));
+  }
+} # end sub create_services
 
 sub get_endpoint {
   my ($self, $serviceType) = @_;

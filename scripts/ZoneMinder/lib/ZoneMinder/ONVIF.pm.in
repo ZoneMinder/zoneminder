@@ -39,11 +39,9 @@ our %EXPORT_TAGS = (
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
 
-our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
+our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
 our @EXPORT = qw();
-
-our $VERSION = $ZoneMinder::Base::VERSION;
 
 use Data::UUID;
 
@@ -60,13 +58,16 @@ require WSDiscovery::TransportUDP;
 
 sub deserialize_message {
   my ($wsdl_client, $response) = @_;
+  if ( ! $response ) {
+    return;
+  }
 
 # copied and adapted from SOAP::WSDL::Client
 
 # get deserializer 
   my $deserializer = $wsdl_client->get_deserializer();
   
-  if(! $deserializer) {
+  if ( !$deserializer ) {
     $deserializer = SOAP::WSDL::Factory::Deserializer->get_deserializer({
         soap_version => $wsdl_client->get_soap_version(),
         %{ $wsdl_client->get_deserializer_args() },
@@ -74,22 +75,18 @@ sub deserialize_message {
   }
 # set class resolver if serializer supports it
   $deserializer->set_class_resolver( $wsdl_client->get_class_resolver() )
-    if ( $deserializer->can('set_class_resolver') );
+    if $deserializer->can('set_class_resolver');
 
 # Try deserializing response - there may be some,
-# even if transport did not succeed (got a 500 response)
-  if ( ! $response ) {
-    return;
-  }
-
+# even if transport did not succeed (got a 500 response) 
 # as our faults are false, returning a success marker is the only
 # reliable way of determining whether the deserializer succeeded.
 # Custom deserializers may return an empty list, or undef,
 # and $@ is not guaranteed to be undefined.
   my ($success, $result_body, $result_header) = eval {
-    (1, $deserializer->deserialize( $response ));
+    (1, $deserializer->deserialize($response));
   }; 
-  if (defined $success) {
+  if ( defined $success ) {
     return wantarray
     ? ($result_body, $result_header)
     : $result_body;
@@ -97,7 +94,6 @@ sub deserialize_message {
     return $@;
   } 
 
-  #else
   return $deserializer->generate_fault({
       code => 'soap:Server',
       role => 'urn:localhost',
@@ -107,14 +103,11 @@ sub deserialize_message {
 } # end sub deserialize_message
 
 sub interpret_messages {
-  my ($svc_discover, $services, @responses ) = @_;
+  my ( $svc_discover, $services, @responses ) = @_;
 
   my @results;
   foreach my $response ( @responses ) {
-
-    if ( $verbose ) {
-      print "Received message:\n" . $response . "\n";
-    }
+		print "Received message:\n" . $response . "\n" if $verbose;
 
     my $result = deserialize_message($svc_discover, $response);
     if ( not $result ) {
@@ -143,28 +136,26 @@ sub interpret_messages {
     next if defined $services->{$xaddr};
     $services->{$xaddr} = 1;
 
-    print "$xaddr, " . $svc_discover->get_soap_version() . ", ";
+    print $xaddr.', '.$svc_discover->get_soap_version().', ';
 
-    print "(";
+    print '(';
     my $scopes = $result->get_ProbeMatch()->get_Scopes();
     my $count = 0;
     my %scopes;
-    foreach my $scope(split ' ', $scopes) {
-      if($scope =~ m|onvif://www\.onvif\.org/(.+)/(.*)|) {
+    foreach my $scope (split ' ', $scopes) {
+      if ( $scope =~ m|onvif://www\.onvif\.org/(.+)/(.*)| ) {
         my ($attr, $value) = ($1,$2);
-        if( 0 < $count ++) {
-          print ", ";
-        }
-        print $attr . "=\'" . $value . "\'";
+			print ', ' if 0 < $count ++;
+        print $attr . '=\'' . $value . '\'';
         $scopes{$attr} = $value;
       }
     }
     print ")\n";
-    push @results, { xaddr=>$xaddr,
+    push @results, {
+			xaddr					=> $xaddr,
       soap_version  => $svc_discover->get_soap_version(),
-      scopes  =>  \%scopes,
+      scopes 				=> \%scopes,
     };
-
   }
   return @results;
 } # end sub interpret_messages
@@ -172,7 +163,7 @@ sub interpret_messages {
 # functions
 
 sub discover {
-  my ( $soap_version, $net_interface ) = @_;
+  my ($soap_versions, $net_interface) = @_;
   my @results;
 
 ## collect all responses
@@ -185,23 +176,19 @@ sub discover {
     push @responses, $response;
   };
 
-## try both soap versions
-
   my $uuid_gen = Data::UUID->new();
 
-  if ( ( ! $soap_version ) or ( $soap_version eq '1.1' ) ) {
+  foreach my $version ( $soap_versions ? ( split(',',$soap_versions) ) : ( '1.1', '1.2') ) {
 		my %services;
 
-    if ( $verbose ) {
-      print "Probing for SOAP 1.1\n";
-    }
+    print "Probing for SOAP $version\n" if $verbose;
     my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
 #    no_dispatch => '1',
         });
-    $svc_discover->set_soap_version('1.1');
+    $svc_discover->set_soap_version($version);
 		if ( $net_interface ) {
 			my $transport = $svc_discover->get_transport();
-			print "Setting net interface for $transport to $net_interface\n";
+			print "Setting net interface for $transport to $net_interface\n" if $verbose;
 			$transport->set_net_interface($net_interface);
 		}
 
@@ -209,7 +196,15 @@ sub discover {
 
     my $result = $svc_discover->ProbeOp(
 				{ # WSDiscovery::Types::ProbeType
-				Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
+				(
+				 ($version eq '1.1') ?
+				   (
+						 Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
+					 ) : (
+						 xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl', },
+					 )
+				),
+						 Types => 'dn:NetworkVideoTransmitter', # QNameListType
 				Scopes =>  { value => '' },
         },
         WSDiscovery10::Elements::Header->new({
@@ -218,78 +213,49 @@ sub discover {
           To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
           })
         );
-    print $result . "\n" if $verbose;
+    print $result."\n" if $verbose;
 
     push @results, interpret_messages($svc_discover, \%services, @responses);
-    @responses = ();
-  } # end if doing soap 1.1
+		@responses = ();
+  } # end foreach version
 
-  if ( ( ! $soap_version ) or ( $soap_version eq '1.2' ) ) {
-		my %services;
-    if ( $verbose ) {
-      print "Probing for SOAP 1.2\n";
-    }
-    my $svc_discover = WSDiscovery10::Interfaces::WSDiscovery::WSDiscoveryPort->new({
-#    no_dispatch => '1',
-        });
-    $svc_discover->set_soap_version('1.2');
-		if ( $net_interface ) {
-			my $transport = $svc_discover->get_transport();
-			print "Setting net interface for $transport to $net_interface\n";
-			$transport->set_net_interface($net_interface);
-		}
-
-# copies of the same Probe message must have the same MessageID. 
-# This is not a copy. So we generate a new uuid.
-    my $uuid = $uuid_gen->create_str();
-
-# Everyone else, like the nodejs onvif code and odm only ask for NetworkVideoTransmitter
-    my $result = $svc_discover->ProbeOp(
-        { # WSDiscovery::Types::ProbeType
-        xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl', },
-        Types => 'dn:NetworkVideoTransmitter', # QNameListType
-        Scopes =>  { value => '' },
-        },
-        WSDiscovery10::Elements::Header->new({
-          Action => { value => 'http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe' },
-          MessageID => { value => "urn:uuid:$uuid" },
-          To => { value => 'urn:schemas-xmlsoap-org:ws:2005:04:discovery' },
-          })
-        );
-    print $result . "\n" if $verbose;
-    push @results, interpret_messages($svc_discover, \%services, @responses);
-  } # end if doing soap 1.2
   return @results;
 } # end sub discover
 
 sub profiles {
-  my ( $client ) = @_;
+  my ($client) = @_;
 
   my $media = $client->get_endpoint('media');
-  if ( ! $media ) {
+  if ( !$media ) {
     print "No media endpoint for client.\n";
     return;
   }
 
   my $result = $media->GetProfiles( { } ,, );
-  if ( ! $result ) {
+  if ( !$result ) {
     print "No result from GetProfiles.\n";
     return;
   }
   if ( $verbose ) {
-    print "Received message:\n" . $result . "\n";
+    use XML::LibXML;
+    my $dom = XML::LibXML->load_xml(string=>$result);
+    print "Received message:\n" . $dom->toString(1) . "\n";
   }
+  my @Profiles = @{ $result->get_Profiles() };
+  if ( !@Profiles ) {
+    print "No profiles returned from get_Profiles\n";
+    return;
+  }
+  print 'Number of profiles found: ' .(scalar @Profiles)."\n" if $verbose;
+  my @profiles;
 
-  my $profiles = $result->get_Profiles();
-
-  foreach my $profile ( @{ $profiles } ) {
-
+  foreach my $profile ( @Profiles ) {
     my $token = $profile->attr()->get_token() ;
     my $Name = $profile->get_Name();
 
     my $VideoEncoderConfiguration = $profile->get_VideoEncoderConfiguration();
     if ( ! $VideoEncoderConfiguration ) {
-      print "Unknown profile $token $Name.\n";
+      print "No VideoEncoderConfiguration in profile $token $Name.\n";
       next;
     }
 
@@ -304,21 +270,58 @@ sub profiles {
             },
           },
           ProfileToken => $token, # ReferenceToken
-          } );
-        next if ! ( $StreamUri and $StreamUri->can('get_MediaUri') );
-        my $MediaUri = $StreamUri->get_MediaUri();
-        next if ! $MediaUri;
-        my $Uri = $MediaUri->get_Uri();
-        next if ! $Uri;
+        } );
+      if ( ! ( $StreamUri and $StreamUri->can('get_MediaUri') ) ) {
+        print "No StreamUri or no MediaUri on profile $Name of type $streamtype\n" if $verbose;
+        next;
+      }
+      if ( $verbose ) {
+        eval {
+          use XML::LibXML;
+          my $dom = XML::LibXML->load_xml(string=>$StreamUri);
+          print "Received message:\n" . $dom->toString(1) . "\n";
+        };
+      }
+      my $MediaUri = $StreamUri->get_MediaUri();
+      if ( !$MediaUri ) {
+        print "No MediaUri in profile $Name of type $streamtype\n";
+        next;
+      }
+      if ( $verbose ) {
+        eval {
+          use XML::LibXML;
+          my $dom = XML::LibXML->load_xml(string=>$MediaUri);
+          print "Received message:\n" . $dom->toString(1) . "\n";
+        };
+      }
+      my $Uri = $MediaUri->get_Uri();
+      if ( ! $Uri ) {
+        print "No Uri in profile $Name of type $streamtype\n";
+        next;
+      }
+      if ( $verbose ) {
+        eval {
+          use XML::LibXML;
+          my $dom = XML::LibXML->load_xml(string=>$Uri);
+          print "Received message:\n" . $dom->toString(1) . "\n";
+        };
+      }
+      my $Resolution = $VideoEncoderConfiguration->get_Resolution();
+      my $Width = $Resolution ? $Resolution->get_Width() : 0;
+      my $Height = $Resolution ? $Resolution->get_Height() : 0;
+      my $RateControl = $VideoEncoderConfiguration->get_RateControl();
+      my $FrameRateLimit = $RateControl ? $RateControl->get_FrameRateLimit() : 0;
 
-        print join(', ', $token,
-          $Name,
-          $VideoEncoderConfiguration->get_Encoding(),
-          $VideoEncoderConfiguration->get_Resolution()->get_Width(),
-          $VideoEncoderConfiguration->get_Resolution()->get_Height(),
-          $VideoEncoderConfiguration->get_RateControl()->get_FrameRateLimit(),
-          $Uri,
-        ) . "\n";
+      push @profiles, [
+        $token,
+        $Name,
+        $VideoEncoderConfiguration->get_Encoding(),
+        $Width,
+        $Height,
+        $FrameRateLimit,
+        $streamtype,
+        $Uri,
+      ];
     } # end foreach streamtype
 
   } # end foreach profile
@@ -326,6 +329,7 @@ sub profiles {
 #
 # use message parser without schema validation ???
 #
+  return @profiles;
 
 } # end sub profiles
 
@@ -339,12 +343,12 @@ sub move {
 } # end sub move
 
 sub metadata {
-  my ( $client ) = @_;
+  my ($client) = @_;
   my $media = $client->get_endpoint('media');
   die 'No media endpoint.' if !$media;
 
   my $result = $media->GetMetadataConfigurations( { } ,, );
-  if ( ! $result ) {
+  if ( !$result ) {
     print "No MetaDataConfigurations\n" if $verbose;
   } else {
     print $result . "\n";
@@ -362,8 +366,6 @@ sub metadata {
 #  print $result . "\n";
 
 }
-
-
 
 1;
 __END__

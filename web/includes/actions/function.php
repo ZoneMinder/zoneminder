@@ -30,31 +30,31 @@ if ( !canEdit('Monitors', $mid) ) {
   return;
 }
 
-if ( $action == 'function' ) {
-  $monitor = dbFetchOne('SELECT * FROM Monitors WHERE Id=?', NULL, array($mid));
+if ($action == 'save') {
+  $monitor = new ZM\Monitor($mid);
+  if ( !$monitor->Id() ) {
+    ZM\Error("Monitor not found with Id=$mid");
+    return;
+  }
 
   $newFunction = validStr($_REQUEST['newFunction']);
   # Because we use a checkbox, it won't get passed in the request. So not being in _REQUEST means 0
   $newEnabled = ( !isset($_REQUEST['newEnabled']) or $_REQUEST['newEnabled'] != '1' ) ? '0' : '1';
-  $oldFunction = $monitor['Function'];
-  $oldEnabled = $monitor['Enabled'];
-  if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled ) {
-    dbQuery('UPDATE Monitors SET `Function`=?, `Enabled`=? WHERE `Id`=?',
-      array($newFunction, $newEnabled, $mid));
+  $newDecodingEnabled = ( !isset($_REQUEST['newDecodingEnabled']) or $_REQUEST['newDecodingEnabled'] != '1' ) ? '0' : '1';
+  $oldFunction = $monitor->Function();
+  $oldEnabled = $monitor->Enabled();
+  $oldDecodingEnabled = $monitor->DecodingEnabled();
+  if ( $newFunction != $oldFunction || $newEnabled != $oldEnabled || $newDecodingEnabled != $oldDecodingEnabled ) {
+    $monitor->save(array('Function'=>$newFunction, 'Enabled'=>$newEnabled, 'DecodingEnabled'=>$newDecodingEnabled));
 
-    $monitor['Function'] = $newFunction;
-    $monitor['Enabled'] = $newEnabled;
-    if ( daemonCheck() && ($monitor['Type'] != 'WebSite') ) {
-      zmaControl($monitor, 'stop');
-      zmcControl($monitor, ($newFunction != 'None') ? 'restart' : 'stop');
-			if ( $newFunction != 'None' && $newFunction != 'NoDect' )
-        zmaControl($monitor, 'start');
+    if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
+      $monitor->zmcControl(($newFunction != 'None') ? 'restart' : 'stop');
     }
-    $refreshParent = true;
   } else {
-    ZM\Logger::Debug('No change to function, not doing anything.');
+    ZM\Debug('No change to function, not doing anything.');
   }
+} else {
+  ZM\Error("Unsupported action $action on view=function.");
 } // end if action 
-$view = 'none';
-$closePopup = true;
+$redirect = '?view=console';
 ?>

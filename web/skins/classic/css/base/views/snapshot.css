@@ -1,0 +1,22 @@
+#content {
+}
+
+.Name {
+  width: 600px;
+}
+.Name input {
+  width: 100%;
+}
+
+.Description {
+  width: 600px;
+}
+.Description textarea {
+  width: 100%;
+}
+
+#video {
+  overflow-y: auto;
+  height: 100%;
+  align-items: flex-start;
+}

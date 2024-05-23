@@ -1,0 +1,149 @@
+#!@PERL_EXECUTABLE@ -wT
+#
+# ==========================================================================
+#
+# ZoneMinder Event Tool
+# Copyright (C) 2022 ZoneMinder Inc
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# ==========================================================================
+
+=head1 NAME
+
+zmeventtool.pl - ZoneMinder tool to perform various actions on events
+
+=head1 SYNOPSIS
+
+ zmeventtool.pl [--user=<dbuser> --pass=<dbpass>] command [list of event ids]
+
+=head1 DESCRIPTION
+
+This script performs various actions on an event. It is primarily meant to 
+be run from a filter but could be run manually.
+
+=head1 OPTIONS
+
+ close               - Update event record after a crash
+ deletejpegs         - Deletes all jpegs from the event directory
+ deleteanalysisjpegs - Deletes the analysis jpegs from the event directory
+
+ --help              - Print usage information.
+ --user=<dbuser>     - Alternate dB user with privileges to alter dB.
+ --pass=<dbpass>     - Password of alternate dB user with privileges to alter dB.
+ --version           - Print version.
+
+=cut
+use strict;
+use warnings;
+use bytes;
+
+@EXTRA_PERL_LIB@
+use ZoneMinder::Config qw(:all);
+use ZoneMinder::Logger qw(:all);
+use ZoneMinder::Database qw(:all);
+use ZoneMinder::Event;
+use DBI;
+use Getopt::Long;
+use autouse 'Pod::Usage'=>qw(pod2usage);
+
+$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
+delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
+
+my $web_uid = (getpwnam( $Config{ZM_WEB_USER} ))[2];
+my $use_log = (($> == 0) || ($> == $web_uid));
+
+logInit( toFile=>$use_log?DEBUG:NOLOG );
+logSetSignal();
+
+my $help = 0;
+my $dbUser = $Config{ZM_DB_USER};
+my $dbPass = $Config{ZM_DB_PASS};
+my $version = 0;
+
+GetOptions(
+    'help'          =>\$help,
+    'user:s'        =>\$dbUser,
+    'pass:s'        =>\$dbPass,
+    'version'       =>\$version
+) or pod2usage(-exitstatus => -1);
+
+$Config{ZM_DB_USER} = $dbUser;
+$Config{ZM_DB_PASS} = $dbPass;
+
+if ( $version ) {
+  print( ZoneMinder::Base::ZM_VERSION . "\n");
+  exit(0);
+}
+
+# Call the appropriate subroutine based on the params given on the commandline
+if ($help or (@ARGV < 2) ) {
+  pod2usage(-exitstatus => -1);
+}
+
+my $dbh = zmDbConnect();
+
+my $command = shift @ARGV;
+foreach my $event_id (@ARGV) {
+  if ( $event_id =~ /\D/ ) {
+    # Assume path to event, strip it
+    $event_id =~ s/.*\/(\d+)/$1/; 
+  }
+  my $event = ZoneMinder::Event->find_one(Id=>$event_id);
+  if (!$event) {
+    Warning("Event not found for $event_id");
+    next;
+  }
+
+  if ($command eq 'close') {
+    if (!$event->EndDateTime()) {
+      Debug("Closing $event_id");
+      $_ = $event->Close();
+      Warning($_) if $_;
+    } else {
+      Warning("Event $event_id already closed!");
+    }
+  } elsif ($command eq 'deleteanalysisjpegs') {
+    $event->delete_analysis_jpegs();
+  } elsif ($command eq 'renumber') {
+    my $old_path = $event->Path();
+    if (! -e $old_path) {
+      Warning("Event $event_id does not exist at $old_path. Skipping renumbering.");
+      continue;
+    }
+
+    my $new_event = $event->clone();
+    $new_event->Id(undef);
+    $new_event->save();
+    my $new_id = $new_event->Id();
+    die "No new id returned!\n" if ! $new_id;
+    Debug("Renumbering event $event_id to $new_id");
+    $new_event->RelativePath(undef);
+    my $new_path = $new_event->Path(undef);
+    die "New path same as old path $old_path == $new_path!\n" if $old_path eq $new_path;
+    Debug("Renaming event from $old_path to $new_path");
+    rename($old_path, $new_path) or die "Failed to rename $old_path to $new_path\n";
+    zmDbDo('UPDATE Frames SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    zmDbDo('UPDATE Stats SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    zmDbDo('UPDATE Event_Data SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    $event->delete();
+  }
+}
+
+zmDbDisconnect();
+
+1;
+__END__

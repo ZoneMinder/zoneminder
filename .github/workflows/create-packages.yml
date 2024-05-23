@@ -1,0 +1,68 @@
+name: Create packages
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        os_dist:
+          - os: debian
+            dist: bullseye
+            arch: x86_64
+          - os: ubuntu
+            dist: focal
+            arch: x86_64
+          - os: ubuntu
+            dist: jammy
+            arch: x86_64
+          - os: debian
+            dist: bookworm
+            arch: x86_64
+          - os: debian
+            dist: bullseye
+            arch: aarch64
+          - os: ubuntu
+            dist: focal
+            arch: aarch64
+          - os: ubuntu
+            dist: jammy
+            arch: aarch64
+          - os: debian
+            dist: bookworm
+            arch: aarch64
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+          submodules: recursive
+      - if: matrix.os_dist.arch == 'aarch64'
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - name: Run packpack
+        env:
+          SMPFLAGS: -j4
+          OS: ${{ matrix.os_dist.os }}
+          DIST: ${{ matrix.os_dist.dist }}
+          ARCH: ${{ matrix.os_dist.arch }}
+          DOCKER_REPO: packpack/packpack
+        run: utils/packpack/startpackpack.sh
+
+      - name: Publish
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
+          ARGS: "-rltgoDzvO"
+          SOURCE: build/
+          REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
+          REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
+          TARGET: debian/master/mini-dinstall/incoming/

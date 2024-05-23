@@ -59,20 +59,15 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
         dbQuery('INSERT INTO Zones SET MonitorId=?, '.implode(', ', $changes), array($mid));
       }
       if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {
-        if ( $_REQUEST['newZone']['Type'] == 'Privacy' ) {
-          $monitor->zmaControl('stop');
-          $monitor->zmcControl('restart');
-          $monitor->zmaControl('start');
-        } else {
-          $monitor->zmaControl('restart');
-        }
+        $monitor->zmcControl('reload');
       }
       if ( ($_REQUEST['newZone']['Type'] == 'Privacy') && $monitor->Controllable() ) {
         $monitor->sendControlCommand('quit');
       }
-      $refreshParent = true;
     } // end if changes
-    $view = 'none';
+    # HTTP_REFERER will typically be ?view=zone so no good.
+    # if a referer is passed in $_REQUEST then use it otherwise go to ?view=zones
+    $redirect = isset($_REQUEST['REFERER']) ? $_REQUEST['REFERER'] : '?view=zones';
   } // end if action 
 } // end if $mid and canEdit($mid)
 ?>

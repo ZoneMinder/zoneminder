@@ -1,6 +1,6 @@
 <?php
 //
-// ZoneMinder file view file, $Date: 2008-09-29 14:15:13 +0100 (Mon, 29 Sep 2008) $, $Revision: 2640 $
+// ZoneMinder file view file
 // Copyright (C) 2001-2008 Philip Coombes
 //
 // This program is free software; you can redistribute it and/or
@@ -18,16 +18,18 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Events') ) {
+if (!(canView('Events') or canView('Snapshots'))) {
   $view = 'error';
   return;
 }
 
-$archivetype = $_REQUEST['type'];
-$connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
+$archivetype = isset($_REQUEST['type']) ? $_REQUEST['type'] : '';
+if ( !$archivetype ) {
+  ZM\Error('No archive type given to archive.php. Please specify a tar or zip archive.');
+  return;
+}
 
-if ( $archivetype ) {
-  switch ($archivetype) {
+switch ($archivetype) {
   case 'tar.gz':
     $mimetype = 'gzip';
     $file_ext = 'tar.gz';
@@ -43,31 +45,31 @@ if ( $archivetype ) {
   default:
     $mimetype = NULL;
     $file_ext = NULL;
-  }
+}
 
-  if ( $mimetype ) {
-    $filename = "zmExport_$connkey.$file_ext";
-    $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
-    ZM\Logger::Debug("downloading archive from $filename_path");
-    if ( is_readable($filename_path) ) {
-      while (ob_get_level()) {
-        ZM\Logger::Debug('Clearing ob');
-        ob_end_clean();
-      }
-      header("Content-type: application/$mimetype" );
-      header("Content-Disposition: inline; filename=$filename");
-      header('Content-Length: '.filesize($filename_path));
-      set_time_limit(0);
-      if ( ! @readfile($filename_path) ) {
-        ZM\Error("Error sending $filename_path");
-      }
-    } else {
-      ZM\Error("$filename_path does not exist or is not readable.");
-    }
-  } else {
-    ZM\Error('Unsupported archive type specified. Supported archives are tar and zip');
+if ( !$mimetype ) {
+  ZM\Error('Unsupported archive type specified. Supported archives are tar and zip');
+  return;
+}
+
+$connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
+$filename = isset($_REQUEST['file'])?$_REQUEST['file']:"zmExport_$connkey.$file_ext";
+$filename = str_replace('/', '', $filename); # protect system files. must be a filename, not a path
+
+$filename_path = ZM_DIR_EXPORTS.'/'.$filename;
+ZM\Debug('downloading archive from '.$filename_path);
+if ( is_readable($filename_path) ) {
+  while (ob_get_level()) {
+    ob_end_clean();
+  }
+  header("Content-type: application/$mimetype");
+  header("Content-Disposition: inline; filename=$filename");
+  header('Content-Length: '.filesize($filename_path));
+  set_time_limit(0);
+  if ( !@readfile($filename_path) ) {
+    ZM\Error("Error sending $filename_path");
   }
 } else {
-  ZM\Error('No archive type given to archive.php. Please specify a tar or zip archive.');
+  ZM\Error($filename_path.' does not exist or is not readable.');
 }
 ?>

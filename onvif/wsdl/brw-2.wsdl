@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+OASIS takes no position regarding the validity or scope of any intellectual property or other rights that might be claimed to pertain to the implementation or use of the technology described in this document or the extent to which any license under such rights might or might not be available; neither does it represent that it has made any effort to identify any such rights. Information on OASIS's procedures with respect to rights in OASIS specifications can be found at the OASIS website. Copies of claims of rights made available for publication and any assurances of licenses to be made available, or the result of an attempt made to obtain a general license or permission for the use of such proprietary rights by implementors or users of this specification, can be obtained from the OASIS Executive Director.
+
+OASIS invites any interested party to bring to its attention any copyrights, patents or patent applications, or other proprietary rights which may cover technology that may be required to implement this specification. Please address the information to the OASIS Executive Director.
+
+Copyright (C) OASIS Open (2004-2006). All Rights Reserved.
+
+This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this paragraph are included on all such copies and derivative works. However, this document itself may not be modified in any way, such as by removing the copyright notice or references to OASIS, except as needed for the purpose of developing OASIS specifications, in which case the procedures for copyrights defined in the OASIS Intellectual Property Rights document must be followed, or as required to translate it into languages other than English. 
+
+The limited permissions granted above are perpetual and will not be revoked by OASIS or its successors or assigns. 
+
+This document and the information contained herein is provided on an "AS IS" basis and OASIS DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+-->
+
+<wsdl:definitions name="WS-BrokeredNotification"
+  xmlns="http://schemas.xmlsoap.org/wsdl/"
+  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:wsa="http://www.w3.org/2005/08/addressing"
+  xmlns:wsn-br="http://docs.oasis-open.org/wsn/br-2" 
+  xmlns:wsn-brw="http://docs.oasis-open.org/wsn/brw-2"
+  xmlns:wsn-b="http://docs.oasis-open.org/wsn/b-2"
+  xmlns:wsn-bw="http://docs.oasis-open.org/wsn/bw-2"
+  xmlns:wsrf-bf="http://docs.oasis-open.org/wsrf/bf-2"   
+  xmlns:wsrf-rw="http://docs.oasis-open.org/wsrf/rw-2" 
+  targetNamespace="http://docs.oasis-open.org/wsn/brw-2">
+
+<!-- ========================== Imports =========================== -->
+<wsdl:import namespace="http://docs.oasis-open.org/wsrf/rw-2" 
+       location="http://docs.oasis-open.org/wsrf/rw-2.wsdl"/>
+       
+   <wsdl:import namespace="http://docs.oasis-open.org/wsn/bw-2" 
+       location="http://docs.oasis-open.org/wsn/bw-2.wsdl"/>
+
+<!-- ===================== Types Definitions ====================== -->
+   <wsdl:types>
+     <xsd:schema>
+       <xsd:import
+         namespace="http://docs.oasis-open.org/wsn/br-2" 
+         schemaLocation="http://docs.oasis-open.org/wsn/br-2.xsd"/>
+     </xsd:schema>
+   </wsdl:types>
+
+<!-- ========== NotificationBroker::RegisterPublisher =============
+   RegisterPublisher(PublisherReference, TopicExpression* ,
+                     [Demand], [InitialTerminationTime])
+   returns: WS-Resource qualified EPR to a PublisherRegistration --> 
+   <wsdl:message name="RegisterPublisherRequest">
+      <wsdl:part name="RegisterPublisherRequest" 
+                 element="wsn-br:RegisterPublisher"/>
+   </wsdl:message>
+
+   <wsdl:message name="RegisterPublisherResponse">
+      <wsdl:part name="RegisterPublisherResponse" 
+                 element="wsn-br:RegisterPublisherResponse"/>
+   </wsdl:message>
+      
+   <wsdl:message name="PublisherRegistrationRejectedFault">
+      <wsdl:part name="PublisherRegistrationRejectedFault"             
+            element="wsn-br:PublisherRegistrationRejectedFault"/>
+   </wsdl:message> 
+
+   <wsdl:message name="PublisherRegistrationFailedFault">
+      <wsdl:part name="PublisherRegistrationFailedFault"
+            element="wsn-br:PublisherRegistrationFailedFault"/>
+   </wsdl:message> 
+
+   <wsdl:message name="DestroyRegistrationRequest">
+      <wsdl:part name="DestroyRegistrationRequest" 
+            element="wsn-br:DestroyRegistration"/>
+   </wsdl:message>
+
+   <wsdl:message name="DestroyRegistrationResponse">
+      <wsdl:part name="DestroyRegistrationResponse"
+            element="wsn-br:DestroyRegistrationResponse"/>
+   </wsdl:message>
+
+   <wsdl:message name="ResourceNotDestroyedFault">
+      <wsdl:part name="ResourceNotDestroyedFault"
+            element="wsn-br:ResourceNotDestroyedFault"/>
+   </wsdl:message> 
+
+<!-- =================== PortType Definitions ===================== -->
+
+<!-- ========== RegisterPublisher ============ -->
+<wsdl:portType name="RegisterPublisher">
+    <wsdl:operation name="RegisterPublisher">
+         <wsdl:input  message="wsn-brw:RegisterPublisherRequest"/>
+         <wsdl:output message="wsn-brw:RegisterPublisherResponse"/>
+         <wsdl:fault  name="ResourceUnknownFault"
+                      message="wsrf-rw:ResourceUnknownFault"/>
+         <wsdl:fault  name="InvalidTopicExpressionFault" 
+                      message="wsn-bw:InvalidTopicExpressionFault"/>
+         <wsdl:fault  name="TopicNotSupportedFault" 
+                      message="wsn-bw:TopicNotSupportedFault"/>
+         <wsdl:fault  name="PublisherRegistrationRejectedFault" 
+                 message="wsn-brw:PublisherRegistrationRejectedFault"/>
+	     <wsdl:fault  name="PublisherRegistrationFailedFault" 
+                 message="wsn-brw:PublisherRegistrationFailedFault"/>
+		<wsdl:fault  name="UnacceptableInitialTerminationTimeFault" 
+             message="wsn-bw:UnacceptableInitialTerminationTimeFault"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+<!-- ========== NotificationBroker PortType Definition ============ -->
+   <wsdl:portType name="NotificationBroker">
+      <!-- ============= extends NotificationConsumer ============= -->
+      <wsdl:operation name="Notify">
+         <wsdl:input message="wsn-bw:Notify" />
+      </wsdl:operation>
+      
+      <!-- ============= extends NotificationProducer ============= -->
+      <wsdl:operation name="Subscribe">
+         <wsdl:input  message="wsn-bw:SubscribeRequest" />
+         <wsdl:output message="wsn-bw:SubscribeResponse" />
+         <wsdl:fault  name="ResourceUnknownFault" 
+                      message="wsrf-rw:ResourceUnknownFault" />
+         <wsdl:fault  name="InvalidFilterFault" 
+                   message="wsn-bw:InvalidFilterFault"/>
+         <wsdl:fault  name="TopicExpressionDialectUnknownFault" 
+                   message="wsn-bw:TopicExpressionDialectUnknownFault"/>
+         <wsdl:fault  name="InvalidTopicExpressionFault" 
+                      message="wsn-bw:InvalidTopicExpressionFault" />
+         <wsdl:fault  name="TopicNotSupportedFault" 
+                      message="wsn-bw:TopicNotSupportedFault" />
+         <wsdl:fault  name="InvalidProducerPropertiesExpressionFault" 
+             message="wsn-bw:InvalidProducerPropertiesExpressionFault"/>
+         <wsdl:fault  name="InvalidMessageContentExpressionFault" 
+             message="wsn-bw:InvalidMessageContentExpressionFault"/>
+         <wsdl:fault  name="UnacceptableInitialTerminationTimeFault" 
+             message="wsn-bw:UnacceptableInitialTerminationTimeFault"/>
+	      <wsdl:fault  name="UnrecognizedPolicyRequestFault" 
+             message="wsn-bw:UnrecognizedPolicyRequestFault"/>
+         <wsdl:fault  name="UnsupportedPolicyRequestFault" 
+             message="wsn-bw:UnsupportedPolicyRequestFault"/>
+         <wsdl:fault  name="NotifyMessageNotSupportedFault" 
+             message="wsn-bw:NotifyMessageNotSupportedFault"/>
+         <wsdl:fault  name="SubscribeCreationFailedFault" 
+                      message="wsn-bw:SubscribeCreationFailedFault"/>
+      </wsdl:operation>
+      <wsdl:operation name="GetCurrentMessage">
+         <wsdl:input  message="wsn-bw:GetCurrentMessageRequest"/>
+         <wsdl:output message="wsn-bw:GetCurrentMessageResponse"/>
+         <wsdl:fault  name="ResourceUnknownFault" 
+                      message="wsrf-rw:ResourceUnknownFault"/>
+         <wsdl:fault  name="TopicExpressionDialectUnknownFault" 
+                  message="wsn-bw:TopicExpressionDialectUnknownFault"/>
+         <wsdl:fault  name="InvalidTopicExpressionFault" 
+                      message="wsn-bw:InvalidTopicExpressionFault"/>
+         <wsdl:fault  name="TopicNotSupportedFault" 
+                      message="wsn-bw:TopicNotSupportedFault"/>
+         <wsdl:fault  name="NoCurrentMessageOnTopicFault" 
+                      message="wsn-bw:NoCurrentMessageOnTopicFault"/>
+         <wsdl:fault  name="MultipleTopicsSpecifiedFault" 
+                      message="wsn-bw:MultipleTopicsSpecifiedFault"/>
+      </wsdl:operation>
+      
+      <!-- ========= extends RegisterPublisher ======= -->      
+      <wsdl:operation name="RegisterPublisher">
+         <wsdl:input  message="wsn-brw:RegisterPublisherRequest"/>
+         <wsdl:output message="wsn-brw:RegisterPublisherResponse"/>
+         <wsdl:fault  name="ResourceUnknownFault" 
+                      message="wsrf-rw:ResourceUnknownFault"/>
+         <wsdl:fault  name="InvalidTopicExpressionFault" 
+                      message="wsn-bw:InvalidTopicExpressionFault"/>
+         <wsdl:fault  name="TopicNotSupportedFault" 
+                      message="wsn-bw:TopicNotSupportedFault"/>
+         <wsdl:fault  name="PublisherRegistrationRejectedFault" 
+                 message="wsn-brw:PublisherRegistrationRejectedFault"/>
+         <wsdl:fault  name="PublisherRegistrationFailedFault" 
+                   message="wsn-brw:PublisherRegistrationFailedFault"/>
+         <wsdl:fault  name="UnacceptableInitialTerminationTimeFault" 
+             message="wsn-bw:UnacceptableInitialTerminationTimeFault"/>
+      </wsdl:operation>
+
+   </wsdl:portType>
+
+<!-- ===== PublisherRegistrationManager PortType Definition ====== -->
+   <wsdl:portType name="PublisherRegistrationManager">
+      
+   <!--===DestroyRegistration:ImmediateResourceTermination==========-->
+      <wsdl:operation name="DestroyRegistration">
+         <wsdl:input  name="DestroyRegistrationRequest" 
+                      message="wsn-brw:DestroyRegistrationRequest" />
+         <wsdl:output name="DestroyRegistrationResponse" 
+                      message="wsn-brw:DestroyRegistrationResponse" />
+      <wsdl:fault name="ResourceUnknownFault"
+                message="wsrf-rw:ResourceUnknownFault" />
+         <wsdl:fault  name="ResourceNotDestroyedFault" 
+                      message="wsn-brw:ResourceNotDestroyedFault" />
+      </wsdl:operation>
+   </wsdl:portType>
+</wsdl:definitions>

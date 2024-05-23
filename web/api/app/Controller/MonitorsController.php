@@ -21,13 +21,6 @@ class MonitorsController extends AppController {
 
   public function beforeFilter() {
     parent::beforeFilter();
-    global $user;
-    # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user['Monitors'] != 'None');
-    if ( !$canView ) {
-      throw new UnauthorizedException(__('Insufficient Privileges'));
-      return;
-    }
   }
 
 /**
@@ -38,16 +31,11 @@ class MonitorsController extends AppController {
   public function index() {
     $this->Monitor->recursive = 0;
 
-    if ( $this->request->params['named'] ) {
+    if ($this->request->params['named']) {
       $this->FilterComponent = $this->Components->load('Filter');
       $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
     } else {
       $conditions = array();
-    }
-    global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
-    if ( $allowedMonitors ) {
-      $conditions['Monitor.Id' ] = $allowedMonitors;
     }
 
     $find_array = array(
@@ -62,11 +50,18 @@ class MonitorsController extends AppController {
           ),
         ),
       ),
-      'group' => '`Monitor`.`Id`',
+      'group' => '`Monitor`.`Id`'
     );
-    $monitors = $this->Monitor->find('all',$find_array);
+    $monitors = $this->Monitor->find('all', $find_array);
+    $allowed_monitors = [];
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    foreach ($monitors as $m) {
+      $monitor = new ZM\Monitor($m['Monitor']);
+      if (!$monitor->canView()) continue;
+      array_push($allowed_monitors, $m);
+    }
     $this->set(array(
-          'monitors' => $monitors,
+          'monitors' => $allowed_monitors,
           '_serialize' => array('monitors')
           ));
   }
@@ -80,23 +75,22 @@ class MonitorsController extends AppController {
  */
   public function view($id = null) {
     $this->Monitor->recursive = 0;
-    if ( !$this->Monitor->exists($id) ) {
+    if (!$this->Monitor->exists($id)) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'], NULL, PREG_SPLIT_NO_EMPTY) : null;
-    if ( $allowedMonitors ) {
-      $restricted = array('Monitor.' . $this->Monitor->primaryKey => $allowedMonitors);
-    } else {
-      $restricted = '';
-    }
     
-    $options = array('conditions' => array( 
-          array('Monitor.' . $this->Monitor->primaryKey => $id),
-          $restricted
-          )
-        );
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $options = array('conditions' => array( array('Monitor.'.$this->Monitor->primaryKey => $id)));
     $monitor = $this->Monitor->find('first', $options);
+    $zm_monitor = new ZM\Monitor($monitor['Monitor']);
+    if (!$zm_monitor->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
+    if ($zm_monitor->JanusEnabled()) {
+      $monitor['Monitor']['Janus_Pin'] = $zm_monitor->Janus_Pin();
+    }
     $this->set(array(
       'monitor' => $monitor,
       '_serialize' => array('monitor')
@@ -112,7 +106,7 @@ class MonitorsController extends AppController {
     if ( $this->request->is('post') ) {
 
       global $user;
-      $canAdd = (!$user) || ($user['System'] == 'Edit' );
+      $canAdd = (!$user) || ($user->System() == 'Edit' || $user->Monitors() == 'Create' );
       if ( !$canAdd ) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
@@ -149,39 +143,28 @@ class MonitorsController extends AppController {
     if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
-    global $user;
-    $canEdit = (!$user) || ($user['Monitors'] == 'Edit');
-    if ( !$canEdit ) {
-      throw new UnauthorizedException(__('Insufficient privileges'));
+
+    $monitor = $this->Monitor->find('first', array(
+      'conditions' => array('Id' => $id)
+    ))['Monitor'];
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $zm_monitor = new ZM\Monitor($monitor);
+    if (!$zm_monitor->canEdit()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
 
     $message = '';
-    if ( $this->Monitor->save($this->request->data) ) {
+    if ($this->Monitor->save($this->request->data)) {
       $message = 'Saved';
-      $Monitor = $this->Monitor->find('first', array(
-        'fields' => array('Function','ServerId'),
+
+      // Stop the monitor. Should happen before saving
+      $this->Monitor->daemonControl($monitor, 'stop');
+      $monitor = $this->Monitor->find('first', array(
         'conditions' => array('Id' => $id)
       ))['Monitor'];
 
-      // - restart or stop this monitor after change
-      $func = $Monitor['Function'];
-      // We don't pass the request data as the monitor object because it may be a subset of the full monitor array
-      $this->daemonControl($this->Monitor->id, 'stop');
-      if (
-        ( $func != 'None' )
-        and
-        (
-          (!defined('ZM_SERVER_ID'))
-          or
-          ($Monitor['ServerId']==ZM_SERVER_ID)
-        )
-      ) {
-        if ( !defined('ZM_SERVER_ID')) {
-          ZM\Logger::Debug("Not defined ZM_SERVER_ID");
-        }
-        $this->daemonControl($this->Monitor->id, 'start');
-      }
+      $this->Monitor->daemonControl($monitor, 'start');
     } else {
       $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
     }
@@ -206,7 +189,7 @@ class MonitorsController extends AppController {
       throw new NotFoundException(__('Invalid monitor'));
     }
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -239,7 +222,7 @@ class MonitorsController extends AppController {
   // arm/disarm alarms
   // expected format: http(s):/portal-api-url/monitors/alarm/id:M/command:C.json
   // where M=monitorId
-  // where C=on|off|status
+  // where C=on|off|status|disable
   public function alarm() {
     $id = $this->request->params['named']['id'];
     if ( !$this->Monitor->exists($id) ) {
@@ -256,6 +239,10 @@ class MonitorsController extends AppController {
         $q = '-c';
         $verbose = '-v';
         break;
+      case 'disable':
+        $q = '-n';
+        $verbose = '-v';
+        break;
       case 'status':
         $verbose = ''; // zmu has a bug - gives incorrect verbose output in this case
         $q = '-s';
@@ -267,42 +254,60 @@ class MonitorsController extends AppController {
     // form auth key based on auth credentials
     $auth = '';
     
-    if ( ZM_OPT_USE_AUTH ) {
+    if (ZM_OPT_USE_AUTH) {
       global $user;
       $mToken = $this->request->query('token') ? $this->request->query('token') : $this->request->data('token');;
-      if ( $mToken ) {
+      if ($mToken) {
         $auth = ' -T '.$mToken;
-      } else if ( ZM_AUTH_RELAY == 'hashed' ) {
-        $auth = ' -A '.generateAuthHash(ZM_AUTH_HASH_IPS);
-      } else if ( ZM_AUTH_RELAY == 'plain' ) {
+      } else if (ZM_AUTH_RELAY == 'hashed') {
+        $auth = ' -A '.calculateAuthHash(''); # Can't do REMOTE_IP because zmu doesn't normally have access to it.
+      } else if (ZM_AUTH_RELAY == 'plain') {
         # Plain requires the plain text password which must either be in request or stored in session
         $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');;
-        if ( !$password ) 
+        if (!$password) 
           $password = $this->request->query('password') ? $this->request->query('password') : $this->request->data('password');
 
-        if ( ! $password ) {
+        if (!$password) {
           # during auth the session will have been populated with the plaintext password
           $stateful = $this->request->query('stateful') ? $this->request->query('stateful') : $this->request->data('stateful');
-          if ( $stateful ) {
+          if ($stateful) {
             $password = $_SESSION['password'];
           }
-        } else if ( $_COOKIE['ZMSESSID'] ) {
+        } else if ($_COOKIE['ZMSESSID']) {
           $password = $_SESSION['password'];
         }
 
-        $auth = ' -U ' .$user['Username'].' -P '.$password;
-      } else if ( ZM_AUTH_RELAY == 'none' ) {
-        $auth = ' -U ' .$user['Username'];
+        $auth = ' -U ' .$user->Username().' -P '.$password;
+      } else if (ZM_AUTH_RELAY == 'none') {
+        $auth = ' -U ' .$user->Username();
       }
     }
     
     $shellcmd = escapeshellcmd(ZM_PATH_BIN."/zmu $verbose -m$id $q $auth");
-    $status = exec ($shellcmd);
-
-    $this->set(array(
-      'status' => $status,
-      '_serialize' => array('status'),
-    ));
+    $status = exec($shellcmd, $output, $rc);
+    ZM\Debug("Command: $shellcmd output: ".implode(PHP_EOL, $output)." rc: $rc");
+    if ($rc) {
+      $this->set(array(
+        'status'=>'false',
+        'code' => $rc,
+        'error'=> implode(PHP_EOL, $output),
+        '_serialize' => array('status','code','error'),
+      ));
+    } else if ($cmd == 'status') {
+      // In 1.36.16 the values got shifted up so that we could index into an array of strings.
+      // So do a hack to restore the previous behavour
+      $this->set(array(
+        'status' => intval($status)-1,
+        'output' => intval($output[0])-1,
+        '_serialize' => array('status','output'),
+      ));
+    } else {
+      $this->set(array(
+        'status' => $status,
+        'output' => implode(PHP_EOL, $output),
+        '_serialize' => array('status','output'),
+      ));
+    }
   }
 
   // Check if a daemon is running for the monitor id
@@ -319,12 +324,20 @@ class MonitorsController extends AppController {
     }
 
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Id', 'Type', 'Device'),
+      'fields' => array('Id', 'Type', 'Device', 'Function'),
       'conditions' => array('Id' => $id)
     ));
 
     // Clean up the returned array
     $monitor = Set::extract('/Monitor/.', $monitor);
+    if ($monitor[0]['Function'] == 'None') {
+      $this->set(array(
+        'status' => false,
+        'statustext' => 'Monitor function is set to None',
+        '_serialize' => array('status','statustext'),
+      ));
+      return;
+    }
 
     // Pass -d for local, otherwise -m
     if ( $monitor[0]['Type'] == 'Local' ) {
@@ -334,9 +347,9 @@ class MonitorsController extends AppController {
     }
 
     // Build the command, and execute it
-    $zm_path_bin = Configure::read('ZM_PATH_BIN');
-    $command = escapeshellcmd("$zm_path_bin/zmdc.pl status $daemon $args");
+    $command = escapeshellcmd(ZM_PATH_BIN."/zmdc.pl status $daemon $args");
     $status = exec($command);
+    ZM\Debug("Command: $command output: $status");
 
     // If 'not' is present, the daemon is not running, so return false
     // https://github.com/ZoneMinder/ZoneMinder/issues/799#issuecomment-108996075
@@ -353,43 +366,15 @@ class MonitorsController extends AppController {
   }
 
   public function daemonControl($id, $command, $daemon=null) {
-
     // Need to see if it is local or remote
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Type', 'Function', 'Device'),
+      'fields' => array('Id', 'Type', 'Function', 'Device', 'ServerId'),
       'conditions' => array('Id' => $id)
     ));
     $monitor = $monitor['Monitor'];
 
-    $daemons = array();
-    if ( ! $daemon ) {
-      if ( $monitor['Function'] == 'Monitor' ) {
-        array_push($daemons, 'zmc');
-      } else {
-        array_push($daemons, 'zmc', 'zma');
-      }
-    } else {
-      array_push($daemons, $daemon);
-    }
-    
-    $zm_path_bin = Configure::read('ZM_PATH_BIN');
+    $status_text = $this->Monitor->daemonControl($monitor, $command, $daemon);
 
-    $status_text = '';
-    foreach ( $daemons as $daemon ) {
-      $args = '';
-      if ( $daemon == 'zmc' and $monitor['Type'] == 'Local' ) {
-        $args = '-d ' . $monitor['Device'];
-      } else if ( $daemon == 'zmcontrol.pl' ) {
-        $args = '--id '.$id;
-      } else {
-        $args = '-m ' . $id;
-      }
-
-      $shellcmd = escapeshellcmd("$zm_path_bin/zmdc.pl $command $daemon $args");
-      ZM\Logger::Debug("Command $shellcmd");
-      $status = exec($shellcmd);
-      $status_text .= $status."\n";
-    }
     $this->set(array(
       'status' => 'ok',
       'statustext' => $status_text,

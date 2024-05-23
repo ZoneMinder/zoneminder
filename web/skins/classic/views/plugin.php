@@ -84,8 +84,8 @@ foreach($pluginOptions as $name => $values)
 }
 
 $PLANG=array();
-if(file_exists($plugin_path."/lang/".$user['Language'].".php")) {
-   include_once($plugin_path."/lang/".$user['Language'].".php");
+if(file_exists($plugin_path."/lang/".$user->Language().".php")) {
+   include_once($plugin_path."/lang/".$user->Language().".php");
 }
 
 function pLang($name)
@@ -156,7 +156,7 @@ foreach($pluginOptions as $name => $popt) {
             </tbody>
           </table>
           <input type="submit" id="submitBtn" name="submitBtn" value="<?php echo translate('Save') ?>" <?php if (!canEdit( 'Monitors' ) || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>/>
-          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="closeWindow"/>
+          <input type="button" value="<?php echo translate('Cancel') ?>" data-on-click="backWindow"/>
         </div>
       </form>
     </div>

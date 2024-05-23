@@ -1,30 +1,30 @@
 //
 // ZoneMinder Remote Camera Class Implementation, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #include "zm_remote_camera_nvsocket.h"
 
-#include "zm_mem_utils.h"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <errno.h>
+#include "zm_monitor.h"
+#include "zm_packet.h"
 #include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef SOLARIS
 #include <sys/filio.h> // FIONREAD and friends
@@ -34,7 +34,7 @@
 #endif
 
 RemoteCameraNVSocket::RemoteCameraNVSocket(
-  unsigned int p_monitor_id,
+  const Monitor *monitor,
   const std::string &p_host,
   const std::string &p_port,
   const std::string &p_path,
@@ -48,11 +48,13 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
   bool p_capture,
   bool p_record_audio ) :
   RemoteCamera(
-    p_monitor_id,
+    monitor,
     "http",
     p_host,
     p_port,
     p_path,
+    "", /* username */
+    "", /* Password */
     p_width,
     p_height,
     p_colours,
@@ -61,13 +63,13 @@ RemoteCameraNVSocket::RemoteCameraNVSocket(
     p_hue,
     p_colour,
     p_capture,
-    p_record_audio )
-{
+    p_record_audio ) {
   sd = -1;
 
   timeout.tv_sec = 0;
   timeout.tv_usec = 0;
   subpixelorder = ZM_SUBPIX_ORDER_BGR;
+  mVideoStream = NULL;
 
   if ( capture ) {
     Initialise();
@@ -84,7 +86,7 @@ void RemoteCameraNVSocket::Initialise() {
   RemoteCamera::Initialise();
 
   if ( !timeout.tv_sec ) {
-    timeout.tv_sec = config.http_timeout/1000; 
+    timeout.tv_sec = config.http_timeout/1000;
     timeout.tv_usec = (config.http_timeout%1000)*1000;
   }
 
@@ -112,11 +114,11 @@ int RemoteCameraNVSocket::Connect() {
   }
 
   //if ( connect( sd, p->ai_addr, p->ai_addrlen ) < 0 ) {
-  if ( connect( sd, (struct sockaddr *)&servaddr , sizeof(servaddr) ) < 0 ) {
+  if ( connect( sd, (struct sockaddr *)&servaddr, sizeof(servaddr) ) < 0 ) {
     close(sd);
     sd = -1;
 
-    Warning("Can't connect to socket mid: %d : %s", monitor_id, strerror(errno) );
+    Warning("Can't connect to socket mid: %d : %s", monitor->Id(), strerror(errno));
     return -1;
   }
 
@@ -136,14 +138,14 @@ int RemoteCameraNVSocket::Disconnect() {
   return( 0 );
 }
 
-int RemoteCameraNVSocket::SendRequest( std::string request ) {
-  Debug( 4, "Sending request: %s", request.c_str() );
+int RemoteCameraNVSocket::SendRequest(const std::string &request) {
+  //Debug( 4, "Sending request: %s", request.c_str() );
   if ( write( sd, request.data(), request.length() ) < 0 ) {
     Error( "Can't write: %s", strerror(errno) );
     Disconnect();
     return( -1 );
   }
-  Debug( 4, "Request sent" );
+  //Debug( 4, "Request sent" );
   return( 0 );
 }
 
@@ -178,31 +180,33 @@ int RemoteCameraNVSocket::PrimeCapture() {
     Disconnect();
     return -1;
   }
+  mVideoStreamId=0;
 
   return 0;
 }
 
-int RemoteCameraNVSocket::Capture( Image &image ) {
-  if ( SendRequest("GetNextImage\n") < 0 ) {
-    Warning( "Unable to capture image, retrying" );
+int RemoteCameraNVSocket::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
+  if (SendRequest("GetNextImage\n") < 0) {
+    Warning("Unable to capture image, retrying");
     return 0;
   }
-	int bytes_read = Read(sd, buffer, imagesize);
+  int bytes_read = Read(sd, buffer, imagesize);
   if ( (bytes_read < 0) || ( (unsigned int)bytes_read < imagesize ) ) {
     Warning("Unable to capture image, retrying");
     return 0;
   }
   uint32_t end;
-  if ( Read(sd, (char *) &end , sizeof(end)) < 0 ) {
+  if (Read(sd, (char *) &end, sizeof(end)) < 0) {
     Warning("Unable to capture image, retrying");
     return 0;
   }
-  if ( end != 0xFFFFFFFF) {
+  if (end != 0xFFFFFFFF) {
     Warning("End Bytes Failed\n");
     return 0;
   }
 
-  image.Assign(width, height, colours, subpixelorder, buffer, imagesize);
+  zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
+  zm_packet->keyframe = 1;
   return 1;
 }
 

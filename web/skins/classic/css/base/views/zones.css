@@ -19,19 +19,34 @@
 	fill: #0000FF;
 }
 
-#zones, .ZonesImage {
+.zones, .monitor {
+  position: relative;
+  width: 50%;
+  min-width: 500px;
 	float: left;
 }
-#zones {
-  width: 500px;
+/*
+.ZonesImage svg {
+  width: 100%;
+  position:absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: none;
 }
-.ZonesImage img {
-top:0;
-left:0;
+*/
+
+#content {
+width: 97%;
 position: relative;
 }
 
-#content {
-width: 100%;
-position: relative;
+.monitor:after,
+.Monitor:after {
+  content: ".";
+  display: block;
+  height: 0;
+    font-size: 0;
+  clear: both;
+  visibility: hidden;
 }

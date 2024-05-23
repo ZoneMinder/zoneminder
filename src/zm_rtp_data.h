@@ -1,35 +1,33 @@
 //
 // ZoneMinder RTP Data Class Interface, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_RTP_DATA_H
 #define ZM_RTP_DATA_H
 
-#include "zm_thread.h"
-#include "zm_buffer.h"
-
-#include <stdint.h>
+#include "zm_define.h"
+#include <atomic>
+#include <thread>
 
 class RtspThread;
 class RtpSource;
 
-struct RtpDataHeader
-{
+struct RtpDataHeader {
   uint8_t cc:4;     // CSRC count
   uint8_t x:1;      // header extension flag
   uint8_t p:1;      // padding flag
@@ -42,26 +40,25 @@ struct RtpDataHeader
   uint32_t csrc[];    // optional CSRC list
 };
 
-class RtpDataThread : public Thread
-{
-friend class RtspThread;
+class RtpDataThread {
+  friend class RtspThread;
 
-private:
+ private:
   RtspThread &mRtspThread;
   RtpSource &mRtpSource;
-  bool mStop;
 
-private:
+  std::atomic<bool> mTerminate;
+  std::thread mThread;
+
+ private:
   bool recvPacket( const unsigned char *packet, size_t packetLen );
-  int run();
+  void Run();
 
-public:
+ public:
   RtpDataThread( RtspThread &rtspThread, RtpSource &rtpSource );
+  ~RtpDataThread();
 
-  void stop()
-  {
-    mStop = true;
-  }
+  void Stop() { mTerminate = true; }
 };
 
 #endif // ZM_RTP_DATA_H

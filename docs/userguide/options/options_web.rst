@@ -5,10 +5,7 @@ This screen lets you customize several aspects of the web interface of ZoneMinde
 .. image:: images/Options_web.png
 
 
-WEB_TITLE - 
-
-.. todo ::
-  not quite sure what this does. Seems to change the "target" name - not sure what effect it is supposed to have.
+WEB_TITLE - The actual text that is shown on the login screen. It is possible that it also appears in other areas.
 
 WEB_TITLE_PREFIX - If you have more than one installation of ZoneMinder it can be helpful to display different titles for each one. Changing this option allows you to customise the window titles to include further information to aid identification.
 

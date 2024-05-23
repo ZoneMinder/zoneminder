@@ -1,19 +1,3 @@
-#logSummary {
-   font-size:10px;
-}
-
-#logSummary tr {
-    margin: 0;
-    padding: 0;
-}
-
-#logSummary td {
-    border: 1px solid #7f7fb2;
-    padding: 0 6px;
-    font-size: 10px;
-    line-height: 15px;
-}
-
 tr.log-fat td {
     background-color:#ffcccc;
     font-weight: bold;
@@ -32,20 +16,43 @@ tr.log-dbg td {
     font-style: italic;
 }
 
-#exportLog label {
-    vertical-align: middle;
+th[data-field="DateTime"],
+th[data-field="Component"],
+th[data-field="Code"],
+th[data-field="Message"],
+th[data-field="File"],
+th[data-field="Server"],
+th[data-field="Line"] {
+  text-align: left;
+}
+th[data-field="DateTime"] {
+  min-width: 135px;
+}
+.search .form-control {
+    font-size: 100%;
+}
+#logsTable {
+  overflow-y: auto;
+  height: 100%;
 }
 
-#exportLog input[type=radio] {
-    margin-right: 4px;
-    vertical-align: middle;
+.sticky #logsTable .bootstrap-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: hidden;
 }
 
-#exportError {
-    display: none;
-    color: #dc143c;
-    margin-bottom: 8px;
+.sticky #logsTable .bootstrap-table .fixed-table-container {
+  overflow-y: auto;
 }
 
-#exportErrorText {
+.sticky #logsTable .bootstrap-table .fixed-table-container thead {
+  position: sticky;
+  top: -1px;
+}
+
+.bootstrap-table .fixed-table-container .table td,
+.bootstrap-table .fixed-table-container .table th {
+  vertical-align: top!important;
 }

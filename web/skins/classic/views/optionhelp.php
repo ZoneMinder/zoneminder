@@ -36,7 +36,7 @@ xhtmlHeaders(__FILE__, translate('OptionHelp'));
   <div id="page">
     <div id="header">
       <div id="headerButtons">
-        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
+        <a href="#" data-on-click="backWindow"><?php echo translate('Close') ?></a>
       </div>
       <h2><?php echo translate('OptionHelp') ?></h2>
     </div>

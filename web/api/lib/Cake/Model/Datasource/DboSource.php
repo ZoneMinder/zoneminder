@@ -109,7 +109,7 @@ class DboSource extends DataSource {
 /**
  * Result
  *
- * @var array
+ * @var array|PDOStatement
  */
 	protected $_result = null;
 
@@ -248,6 +248,13 @@ class DboSource extends DataSource {
 	protected $_methodCacheChange = false;
 
 /**
+ * Map of the columns contained in a result.
+ *
+ * @var array
+ */
+	public $map = array();
+
+/**
  * Constructor
  *
  * @param array $config Array of configuration information for the Datasource.
@@ -270,6 +277,16 @@ class DboSource extends DataSource {
 		if ($autoConnect) {
 			$this->connect();
 		}
+	}
+
+/**
+ * Connects to the database.
+ *
+ * @return bool
+ */
+	public function connect() {
+		// This method is implemented in subclasses
+		return $this->connected;
 	}
 
 /**
@@ -350,6 +367,18 @@ class DboSource extends DataSource {
 			$column = $this->introspectType($data);
 		}
 
+		$isStringEnum = false;
+		if (strpos($column, "enum") === 0) {
+			$firstValue = null;
+			if (preg_match("/(enum\()(.*)(\))/i", $column, $acceptingValues)) {
+				$values = explode(",", $acceptingValues[2]);
+				$firstValue = $values[0];
+			}
+			if (is_string($firstValue)) {
+				$isStringEnum = true;
+			}
+		}
+
 		switch ($column) {
 			case 'binary':
 				return $this->_connection->quote($data, PDO::PARAM_LOB);
@@ -365,11 +394,12 @@ class DboSource extends DataSource {
 				if (is_float($data)) {
 					return str_replace(',', '.', strval($data));
 				}
-				if ((is_int($data) || $data === '0') || (
+				if (((is_int($data) || $data === '0') || (
 					is_numeric($data) &&
 					strpos($data, ',') === false &&
 					$data[0] != '0' &&
 					strpos($data, 'e') === false)
+					) && !$isStringEnum
 				) {
 					return $data;
 				}
@@ -617,6 +647,16 @@ class DboSource extends DataSource {
 			}
 			return $this->fetchAll($args[0], $args[1], array('cache' => $cache));
 		}
+	}
+
+/**
+ * Builds a map of the columns contained in a result
+ *
+ * @param PDOStatement $results The results to format.
+ * @return void
+ */
+	public function resultSet($results) {
+		// This method is implemented in subclasses
 	}
 
 /**
@@ -913,7 +953,7 @@ class DboSource extends DataSource {
 				)
 			);
 		}
-		if (preg_match('/^[\w-_\s]*[\w-_]+/', $data)) {
+		if (preg_match('/^[\w\-_\s]*[\w\-_]+/', $data)) {
 			return $this->cacheMethod(__FUNCTION__, $cacheKey, $this->startQuote . $data . $this->endQuote);
 		}
 		return $this->cacheMethod(__FUNCTION__, $cacheKey, $data);
@@ -1076,7 +1116,7 @@ class DboSource extends DataSource {
 
 		for ($i = 0; $i < $count; $i++) {
 			$schema = $Model->schema();
-			$valueInsert[] = $this->value($values[$i], $Model->getColumnType($fields[$i]), isset($schema[$fields[$i]]) ? $schema[$fields[$i]]['null'] : true);
+			$valueInsert[] = $this->value($values[$i], $Model->getColumnType($fields[$i]), isset($schema[$fields[$i]]['null']) ? $schema[$fields[$i]]['null'] : true);
 			$fieldInsert[] = $this->name($fields[$i]);
 			if ($fields[$i] === $Model->primaryKey) {
 				$id = $values[$i];
@@ -1566,23 +1606,25 @@ class DboSource extends DataSource {
 		// Make one pass through children and collect by parent key
 		// Make second pass through parents and associate children
 		$mergedByFK = array();
-		foreach ($assocResultSet as $data) {
-			$fk = $data[$association][$foreignKey];
-			if (! array_key_exists($fk, $mergedByFK)) {
-				$mergedByFK[$fk] = array();
-			}
-			if (count($data) > 1) {
-				$data = array_merge($data[$association], $data);
-				unset($data[$association]);
-				foreach ($data as $key => $name) {
-					if (is_numeric($key)) {
-						$data[$association][] = $name;
-						unset($data[$key]);
-					}
+		if (is_array($assocResultSet)) {
+			foreach ($assocResultSet as $data) {
+				$fk = $data[$association][$foreignKey];
+				if (! array_key_exists($fk, $mergedByFK)) {
+					$mergedByFK[$fk] = array();
 				}
-				$mergedByFK[$fk][] = $data;
-			} else {
-				$mergedByFK[$fk][] = $data[$association];
+				if (count($data) > 1) {
+					$data = array_merge($data[$association], $data);
+					unset($data[$association]);
+					foreach ($data as $key => $name) {
+						if (is_numeric($key)) {
+							$data[$association][] = $name;
+							unset($data[$key]);
+						}
+					}
+					$mergedByFK[$fk][] = $data;
+				} else {
+					$mergedByFK[$fk][] = $data[$association];
+				}
 			}
 		}
 
@@ -2175,7 +2217,7 @@ class DboSource extends DataSource {
 			$update = $quoted . ' = ';
 
 			if ($quoteValues) {
-				$update .= $this->value($value, $Model->getColumnType($field), isset($schema[$field]) ? $schema[$field]['null'] : true);
+				$update .= $this->value($value, $Model->getColumnType($field), isset($schema[$field]['null']) ? $schema[$field]['null'] : true);
 			} elseif ($Model->getColumnType($field) === 'boolean' && (is_int($value) || is_bool($value))) {
 				$update .= $this->boolean($value, true);
 			} elseif (!$alias) {
@@ -2518,7 +2560,7 @@ class DboSource extends DataSource {
 		if (!empty($conditions)) {
 			return $conditions;
 		}
-		$exists = $Model->exists();
+		$exists = $Model->exists($Model->getID());
 		if (!$exists && ($conditions !== null || !empty($Model->__safeUpdateMode))) {
 			return false;
 		} elseif (!$exists) {
@@ -2576,7 +2618,12 @@ class DboSource extends DataSource {
 		$virtual = array();
 		foreach ($fields as $field) {
 			$virtualField = $this->name($alias . $this->virtualFieldSeparator . $field);
-			$expression = $this->_quoteFields($Model->getVirtualField($field));
+			$virtualFieldExpression = $Model->getVirtualField($field);
+			if (is_object($virtualFieldExpression) && $virtualFieldExpression->type == 'expression') {
+				$expression = $virtualFieldExpression->value;
+			} else {
+				$expression = $this->_quoteFields($virtualFieldExpression);
+			}
 			$virtual[] = '(' . $expression . ") {$this->alias} {$virtualField}";
 		}
 		return $virtual;
@@ -2885,7 +2932,12 @@ class DboSource extends DataSource {
 
 		if ($Model !== null) {
 			if ($Model->isVirtualField($key)) {
-				$key = $this->_quoteFields($Model->getVirtualField($key));
+				$virtualField = $Model->getVirtualField($key);
+				if (is_object($virtualField) && $virtualField->type == 'expression') {
+					$key = $virtualField->value;
+				} else {
+					$key = $this->_quoteFields($virtualField);
+				}
 				$virtual = true;
 			}
 
@@ -3034,12 +3086,12 @@ class DboSource extends DataSource {
 		if (!is_array($keys)) {
 			$keys = array($keys);
 		}
-
 		$keys = array_filter($keys);
 
 		$result = array();
 		while (!empty($keys)) {
-			list($key, $dir) = each($keys);
+			$key = key($keys);
+			$dir = current($keys);
 			array_shift($keys);
 
 			if (is_numeric($key)) {
@@ -3230,18 +3282,7 @@ class DboSource extends DataSource {
 			return (int)$length;
 		}
 		if (in_array($type, array('enum', 'set'))) {
-			$values = array_map(function ($value) {
-				return trim(trim($value), '\'"');
-			}, explode(',', $length));
-
-			$maxLength = 0;
-			foreach ($values as $key => $enumValue) {
-				$tmpLength = strlen($enumValue);
-				if ($tmpLength > $maxLength) {
-					$maxLength = $tmpLength;
-				}
-			}
-			return $maxLength;
+			return null;
 		}
 		return (int)$length;
 	}
@@ -3459,25 +3500,28 @@ class DboSource extends DataSource {
 			return null;
 		}
 
-		if (!isset($this->columns[$type])) {
+		if (!isset($this->columns[$type]) && substr($type, 0, 4) !== 'enum') {
 			trigger_error(__d('cake_dev', 'Column type %s does not exist', $type), E_USER_WARNING);
 			return null;
 		}
 
-		$real = $this->columns[$type];
-		$out = $this->name($name) . ' ' . $real['name'];
-
-		if (isset($column['length'])) {
-			$length = $column['length'];
-		} elseif (isset($column['limit'])) {
-			$length = $column['limit'];
-		} elseif (isset($real['length'])) {
-			$length = $real['length'];
-		} elseif (isset($real['limit'])) {
-			$length = $real['limit'];
-		}
-		if (isset($length)) {
-			$out .= '(' . $length . ')';
+		if (substr($type, 0, 4) === 'enum') {
+			$out = $this->name($name) . ' ' . $type;
+		} else {
+			$real = $this->columns[$type];
+			$out = $this->name($name) . ' ' . $real['name'];
+			if (isset($column['length'])) {
+				$length = $column['length'];
+			} elseif (isset($column['limit'])) {
+				$length = $column['limit'];
+			} elseif (isset($real['length'])) {
+				$length = $real['length'];
+			} elseif (isset($real['limit'])) {
+				$length = $real['limit'];
+			}
+			if (isset($length)) {
+				$out .= '(' . $length . ')';
+			}
 		}
 
 		if (($column['type'] === 'integer' || $column['type'] === 'float') && isset($column['default']) && $column['default'] === '') {
@@ -3500,7 +3544,7 @@ class DboSource extends DataSource {
 		} elseif (isset($column['null']) && $column['null'] === false) {
 			$out .= ' NOT NULL';
 		}
-		if ($type === 'timestamp' && isset($column['default']) && strtolower($column['default']) === 'current_timestamp') {
+		if (in_array($type, array('timestamp', 'datetime')) && isset($column['default']) && strtolower($column['default']) === 'current_timestamp') {
 			$out = str_replace(array("'CURRENT_TIMESTAMP'", "'current_timestamp'"), 'CURRENT_TIMESTAMP', $out);
 		}
 		return $this->_buildFieldParameters($out, $column, 'afterDefault');

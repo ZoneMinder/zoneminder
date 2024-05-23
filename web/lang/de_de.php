@@ -153,7 +153,7 @@ $SLANG = array(
     'BadFrameSkip'         => 'Der Auslasszähler für Frames muss ganzzahlig 0 oder größer sein',
     'BadHeight'            => 'Die Höhe muss auf einen gültigen Wert eingestellt sein',
     'BadHost'              => 'Der Host muss auf eine gültige IP-Adresse oder einen Hostnamen (ohne http://) eingestellt sein',
-    'BadImageBufferCount'  => 'Die Größe des Bildpuffers muss ganzzahlig 10 oder größer sein',
+    'BadImageBufferCount'  => 'Die Größe des Bildpuffers muss ganzzahlig 2 oder größer sein',
     'BadLabelX'            => 'Die x-Koordinate der Bezeichnung muss ganzzahlig 0 oder größer sein',
     'BadLabelY'            => 'Die y-Koordinate der Bezeichnung muss ganzzahlig 0 oder größer sein',
     'BadMaxFPS'            => 'Maximum-FPS muss eine positive Ganzzahl oder eine Gleitkommazahl sein',
@@ -949,7 +949,7 @@ $OLANG = array(
 	
 //    'LANG_DEFAULT' => array(
 //        'Prompt' => "This is a new prompt for this option",
-//        'Help' => "This is some new help for this option which will be displayed in the popup window when the ? is clicked"
+//        'Help' => "This is some new help for this option which will be displayed in the window when the ? is clicked"
 //    ),
 );
 

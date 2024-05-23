@@ -69,9 +69,9 @@ sub sendCmd {
 
   my $result = undef;
 
-  printMsg($cmd, 'Tx');
+  $self->printMsg($cmd, 'Tx');
 
-  my $req = HTTP::Request->new( POST=>"http://$self->{Monitor}->{ControlAddress}/$cgi.cgi" );
+  my $req = HTTP::Request->new(POST=>"http://$self->{Monitor}->{ControlAddress}/$cgi.cgi");
   $req->content($cmd);
   my $res = $self->{ua}->request($req);
 
@@ -283,7 +283,7 @@ None by default.
 =head1 SEE ALSO
 
 See if there are better instructions for the DCS-5020L at
-http://www.zoneminder.com/wiki/index.php/Dlink
+https://wiki.zoneminder.com/Dlink
 
 =head1 AUTHOR
 

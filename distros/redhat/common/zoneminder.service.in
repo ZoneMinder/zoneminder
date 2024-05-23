@@ -5,6 +5,7 @@
 Description=ZoneMinder CCTV recording and security system
 After=network.target mariadb.service
 Requires=mariadb.service
+BindsTo=mariadb.service
 
 [Service]
 Type=forking

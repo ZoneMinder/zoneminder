@@ -7,1997 +7,1965 @@ use base qw(SOAP::WSDL::Client::Base);
 
 # only load if it hasn't been loaded before
 require ONVIF::Media::Typemaps::Media
-    if not ONVIF::Media::Typemaps::Media->can('get_class');
+if not ONVIF::Media::Typemaps::Media->can('get_class');
 
 sub START {
-    $_[0]->set_proxy('http://www.examples.com/Media/') if not $_[2]->{proxy};
-    $_[0]->set_class_resolver('ONVIF::Media::Typemaps::Media')
-        if not $_[2]->{class_resolver};
+  $_[0]->set_proxy('http://www.examples.com/Media/') if not $_[2]->{proxy};
+  $_[0]->set_class_resolver('ONVIF::Media::Typemaps::Media')
+  if not $_[2]->{class_resolver};
 
-    $_[0]->set_prefix($_[2]->{use_prefix}) if exists $_[2]->{use_prefix};
+  $_[0]->set_prefix($_[2]->{use_prefix}) if exists $_[2]->{use_prefix};
 }
 
 sub GetServiceCapabilities {
-    my ($self, $body, $header) = @_;
-    die "GetServiceCapabilities must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetServiceCapabilities',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetServiceCapabilities',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetServiceCapabilities must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetServiceCapabilities',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetServiceCapabilities',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetServiceCapabilities )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetServiceCapabilities )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoSources {
-    my ($self, $body, $header) = @_;
-    die "GetVideoSources must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoSources',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdlGetVideoSources/',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoSources must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoSources',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdlGetVideoSources/',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoSources )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoSources )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioSources {
-    my ($self, $body, $header) = @_;
-    die "GetAudioSources must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioSources',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioSources',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioSources must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioSources',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioSources',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioSources )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioSources )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
-
 
 sub GetAudioOutputs {
-    my ($self, $body, $header) = @_;
-    die "GetAudioOutputs must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioOutputs',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioOutputs',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioOutputs must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioOutputs',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioOutputs',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioOutputs )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioOutputs )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
-
 sub CreateProfile {
-    my ($self, $body, $header) = @_;
-    die "CreateProfile must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'CreateProfile',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/CreateProfile',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "CreateProfile must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'CreateProfile',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/CreateProfile',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::CreateProfile )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::CreateProfile )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetProfile {
-    my ($self, $body, $header) = @_;
-    die "GetProfile must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetProfile',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdlGetProfile/',
-        style => 'document',
-        body => {
-            
-
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetProfile )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+  my ($self, $body, $header) = @_;
+  die "GetProfile must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetProfile',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdlGetProfile/',
+      style => 'document',
+      body => {
+        use             => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetProfile )],
+      },
+      header => {
+      },
+      headerfault => {
+      }
     }, $body, $header);
 }
 
-
 sub GetProfiles {
-    my ($self, $body, $header) = @_;
-    die "GetProfiles must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetProfiles',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetProfiles',
-        style => 'document',
-        body => {
-            
-
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetProfiles )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+  my ($self, $body, $header) = @_;
+  die "GetProfiles must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetProfiles',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetProfiles',
+      style => 'document',
+      body => {
+        use             => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetProfiles )],
+      },
+      header => {
+      },
+      headerfault => {
+      }
     }, $body, $header);
 }
 
 
 sub AddVideoEncoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "AddVideoEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'AddVideoEncoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddVideoEncoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "AddVideoEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'AddVideoEncoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddVideoEncoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::AddVideoEncoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::AddVideoEncoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub AddVideoSourceConfiguration {
-    my ($self, $body, $header) = @_;
-    die "AddVideoSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'AddVideoSourceConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddVideoSourceConfiguration',
-        style => 'document',
-        body => {
-            
-
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::AddVideoSourceConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+  my ($self, $body, $header) = @_;
+  die "AddVideoSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'AddVideoSourceConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddVideoSourceConfiguration',
+      style => 'document',
+      body => {
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::AddVideoSourceConfiguration )],
+      },
+      header => {
+      },
+      headerfault => {
+      }
     }, $body, $header);
 }
 
-
 sub AddAudioEncoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "AddAudioEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'AddAudioEncoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddAudioEncoderConfiguration',
-        style => 'document',
-        body => {
-            
-
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::AddAudioEncoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+  my ($self, $body, $header) = @_;
+  die "AddAudioEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'AddAudioEncoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddAudioEncoderConfiguration',
+      style => 'document',
+      body => {
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::AddAudioEncoderConfiguration )],
+      },
+      header => {
+      },
+      headerfault => {
+      }
     }, $body, $header);
 }
 
 
 sub AddAudioSourceConfiguration {
-    my ($self, $body, $header) = @_;
-    die "AddAudioSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'AddAudioSourceConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddAudioSourceConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "AddAudioSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'AddAudioSourceConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddAudioSourceConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::AddAudioSourceConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::AddAudioSourceConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub AddPTZConfiguration {
-    my ($self, $body, $header) = @_;
-    die "AddPTZConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'AddPTZConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddPTZConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "AddPTZConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'AddPTZConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddPTZConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::AddPTZConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::AddPTZConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub AddVideoAnalyticsConfiguration {
-    my ($self, $body, $header) = @_;
-    die "AddVideoAnalyticsConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'AddVideoAnalyticsConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddVideoAnalyticsConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "AddVideoAnalyticsConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'AddVideoAnalyticsConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddVideoAnalyticsConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::AddVideoAnalyticsConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::AddVideoAnalyticsConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub AddMetadataConfiguration {
-    my ($self, $body, $header) = @_;
-    die "AddMetadataConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'AddMetadataConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddMetadataConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "AddMetadataConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'AddMetadataConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddMetadataConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::AddMetadataConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::AddMetadataConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub AddAudioOutputConfiguration {
-    my ($self, $body, $header) = @_;
-    die "AddAudioOutputConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'AddAudioOutputConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddAudioOutputConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "AddAudioOutputConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'AddAudioOutputConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddAudioOutputConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::AddAudioOutputConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::AddAudioOutputConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub AddAudioDecoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "AddAudioDecoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'AddAudioDecoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddAudioDecoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "AddAudioDecoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'AddAudioDecoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/AddAudioDecoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::AddAudioDecoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::AddAudioDecoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub RemoveVideoEncoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "RemoveVideoEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'RemoveVideoEncoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveVideoEncoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "RemoveVideoEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'RemoveVideoEncoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveVideoEncoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::RemoveVideoEncoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::RemoveVideoEncoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub RemoveVideoSourceConfiguration {
-    my ($self, $body, $header) = @_;
-    die "RemoveVideoSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'RemoveVideoSourceConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveVideoSourceConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "RemoveVideoSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'RemoveVideoSourceConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveVideoSourceConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::RemoveVideoSourceConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::RemoveVideoSourceConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub RemoveAudioEncoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "RemoveAudioEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'RemoveAudioEncoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveAudioEncoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "RemoveAudioEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'RemoveAudioEncoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveAudioEncoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::RemoveAudioEncoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::RemoveAudioEncoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub RemoveAudioSourceConfiguration {
-    my ($self, $body, $header) = @_;
-    die "RemoveAudioSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'RemoveAudioSourceConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveAudioSourceConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "RemoveAudioSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'RemoveAudioSourceConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveAudioSourceConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::RemoveAudioSourceConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::RemoveAudioSourceConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub RemovePTZConfiguration {
-    my ($self, $body, $header) = @_;
-    die "RemovePTZConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'RemovePTZConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemovePTZConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "RemovePTZConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'RemovePTZConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemovePTZConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::RemovePTZConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::RemovePTZConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub RemoveVideoAnalyticsConfiguration {
-    my ($self, $body, $header) = @_;
-    die "RemoveVideoAnalyticsConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'RemoveVideoAnalyticsConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveVideoAnalyticsConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "RemoveVideoAnalyticsConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'RemoveVideoAnalyticsConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveVideoAnalyticsConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::RemoveVideoAnalyticsConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::RemoveVideoAnalyticsConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub RemoveMetadataConfiguration {
-    my ($self, $body, $header) = @_;
-    die "RemoveMetadataConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'RemoveMetadataConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveMetadataConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "RemoveMetadataConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'RemoveMetadataConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveMetadataConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::RemoveMetadataConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::RemoveMetadataConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub RemoveAudioOutputConfiguration {
-    my ($self, $body, $header) = @_;
-    die "RemoveAudioOutputConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'RemoveAudioOutputConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveAudioOutputConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "RemoveAudioOutputConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'RemoveAudioOutputConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveAudioOutputConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::RemoveAudioOutputConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::RemoveAudioOutputConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub RemoveAudioDecoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "RemoveAudioDecoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'RemoveAudioDecoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveAudioDecoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "RemoveAudioDecoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'RemoveAudioDecoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/RemoveAudioDecoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::RemoveAudioDecoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::RemoveAudioDecoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub DeleteProfile {
-    my ($self, $body, $header) = @_;
-    die "DeleteProfile must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'DeleteProfile',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/DeleteProfile',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "DeleteProfile must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'DeleteProfile',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/DeleteProfile',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::DeleteProfile )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::DeleteProfile )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoSourceConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetVideoSourceConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoSourceConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoSourceConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoSourceConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoSourceConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoSourceConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoSourceConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoSourceConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoEncoderConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetVideoEncoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoEncoderConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoEncoderConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoEncoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoEncoderConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoEncoderConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoEncoderConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoEncoderConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioSourceConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetAudioSourceConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioSourceConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdlGetAudioSourceConfigurations/',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioSourceConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioSourceConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdlGetAudioSourceConfigurations/',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioSourceConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioSourceConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioEncoderConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetAudioEncoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioEncoderConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioEncoderConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioEncoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioEncoderConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioEncoderConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioEncoderConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioEncoderConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoAnalyticsConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetVideoAnalyticsConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoAnalyticsConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoAnalyticsConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoAnalyticsConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoAnalyticsConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoAnalyticsConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoAnalyticsConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoAnalyticsConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetMetadataConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetMetadataConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetMetadataConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetMetadataConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetMetadataConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetMetadataConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetMetadataConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetMetadataConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetMetadataConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioOutputConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetAudioOutputConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioOutputConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioOutputConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioOutputConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioOutputConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioOutputConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioOutputConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioOutputConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioDecoderConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetAudioDecoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioDecoderConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioDecoderConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioDecoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioDecoderConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioDecoderConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioDecoderConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioDecoderConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoSourceConfiguration {
-    my ($self, $body, $header) = @_;
-    die "GetVideoSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoSourceConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoSourceConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoSourceConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoSourceConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoSourceConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoSourceConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoEncoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "GetVideoEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoEncoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoEncoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoEncoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoEncoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoEncoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoEncoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioSourceConfiguration {
-    my ($self, $body, $header) = @_;
-    die "GetAudioSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioSourceConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioSourceConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioSourceConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioSourceConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioSourceConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioSourceConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioEncoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "GetAudioEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioEncoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioEncoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioEncoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioEncoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioEncoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioEncoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoAnalyticsConfiguration {
-    my ($self, $body, $header) = @_;
-    die "GetVideoAnalyticsConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoAnalyticsConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoAnalyticsConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoAnalyticsConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoAnalyticsConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoAnalyticsConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoAnalyticsConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoAnalyticsConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetMetadataConfiguration {
-    my ($self, $body, $header) = @_;
-    die "GetMetadataConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetMetadataConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetMetadataConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetMetadataConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetMetadataConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetMetadataConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetMetadataConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetMetadataConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioOutputConfiguration {
-    my ($self, $body, $header) = @_;
-    die "GetAudioOutputConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioOutputConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioOutputConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioOutputConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioOutputConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioOutputConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioOutputConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioOutputConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioDecoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "GetAudioDecoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioDecoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioDecoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioDecoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioDecoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioDecoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioDecoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioDecoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetCompatibleVideoEncoderConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetCompatibleVideoEncoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetCompatibleVideoEncoderConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleVideoEncoderConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetCompatibleVideoEncoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetCompatibleVideoEncoderConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleVideoEncoderConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleVideoEncoderConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleVideoEncoderConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetCompatibleVideoSourceConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetCompatibleVideoSourceConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetCompatibleVideoSourceConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleVideoSourceConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetCompatibleVideoSourceConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetCompatibleVideoSourceConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleVideoSourceConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleVideoSourceConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleVideoSourceConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetCompatibleAudioEncoderConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetCompatibleAudioEncoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetCompatibleAudioEncoderConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleAudioEncoderConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetCompatibleAudioEncoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetCompatibleAudioEncoderConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleAudioEncoderConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleAudioEncoderConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleAudioEncoderConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetCompatibleAudioSourceConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetCompatibleAudioSourceConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetCompatibleAudioSourceConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleAudioSourceConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetCompatibleAudioSourceConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetCompatibleAudioSourceConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleAudioSourceConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleAudioSourceConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleAudioSourceConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetCompatibleVideoAnalyticsConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetCompatibleVideoAnalyticsConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetCompatibleVideoAnalyticsConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleVideoAnalyticsConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetCompatibleVideoAnalyticsConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetCompatibleVideoAnalyticsConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleVideoAnalyticsConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleVideoAnalyticsConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleVideoAnalyticsConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetCompatibleMetadataConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetCompatibleMetadataConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetCompatibleMetadataConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleMetadataConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetCompatibleMetadataConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetCompatibleMetadataConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleMetadataConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleMetadataConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleMetadataConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetCompatibleAudioOutputConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetCompatibleAudioOutputConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetCompatibleAudioOutputConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleAudioOutputConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetCompatibleAudioOutputConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetCompatibleAudioOutputConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleAudioOutputConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleAudioOutputConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleAudioOutputConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetCompatibleAudioDecoderConfigurations {
-    my ($self, $body, $header) = @_;
-    die "GetCompatibleAudioDecoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetCompatibleAudioDecoderConfigurations',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleAudioDecoderConfigurations',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetCompatibleAudioDecoderConfigurations must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetCompatibleAudioDecoderConfigurations',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetCompatibleAudioDecoderConfigurations',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleAudioDecoderConfigurations )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetCompatibleAudioDecoderConfigurations )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetVideoSourceConfiguration {
-    my ($self, $body, $header) = @_;
-    die "SetVideoSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetVideoSourceConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetVideoSourceConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetVideoSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetVideoSourceConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetVideoSourceConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetVideoSourceConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetVideoSourceConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetVideoEncoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "SetVideoEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetVideoEncoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetVideoEncoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetVideoEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetVideoEncoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetVideoEncoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetVideoEncoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetVideoEncoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetAudioSourceConfiguration {
-    my ($self, $body, $header) = @_;
-    die "SetAudioSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetAudioSourceConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetAudioSourceConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetAudioSourceConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetAudioSourceConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetAudioSourceConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetAudioSourceConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetAudioSourceConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetAudioEncoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "SetAudioEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetAudioEncoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetAudioEncoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetAudioEncoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetAudioEncoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetAudioEncoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetAudioEncoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetAudioEncoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetVideoAnalyticsConfiguration {
-    my ($self, $body, $header) = @_;
-    die "SetVideoAnalyticsConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetVideoAnalyticsConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetVideoAnalyticsConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetVideoAnalyticsConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetVideoAnalyticsConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetVideoAnalyticsConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetVideoAnalyticsConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetVideoAnalyticsConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetMetadataConfiguration {
-    my ($self, $body, $header) = @_;
-    die "SetMetadataConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetMetadataConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetMetadataConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetMetadataConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetMetadataConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetMetadataConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetMetadataConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetMetadataConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetAudioOutputConfiguration {
-    my ($self, $body, $header) = @_;
-    die "SetAudioOutputConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetAudioOutputConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetAudioOutputConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetAudioOutputConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetAudioOutputConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetAudioOutputConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetAudioOutputConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetAudioOutputConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetAudioDecoderConfiguration {
-    my ($self, $body, $header) = @_;
-    die "SetAudioDecoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetAudioDecoderConfiguration',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetAudioDecoderConfiguration',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetAudioDecoderConfiguration must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetAudioDecoderConfiguration',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetAudioDecoderConfiguration',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetAudioDecoderConfiguration )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetAudioDecoderConfiguration )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoSourceConfigurationOptions {
-    my ($self, $body, $header) = @_;
-    die "GetVideoSourceConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoSourceConfigurationOptions',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdlGetVideoSourceConfigurationOptions/',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoSourceConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoSourceConfigurationOptions',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdlGetVideoSourceConfigurationOptions/',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoSourceConfigurationOptions )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoSourceConfigurationOptions )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoEncoderConfigurationOptions {
-    my ($self, $body, $header) = @_;
-    die "GetVideoEncoderConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoEncoderConfigurationOptions',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoEncoderConfigurationOptions',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoEncoderConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoEncoderConfigurationOptions',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoEncoderConfigurationOptions',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoEncoderConfigurationOptions )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoEncoderConfigurationOptions )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioSourceConfigurationOptions {
-    my ($self, $body, $header) = @_;
-    die "GetAudioSourceConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioSourceConfigurationOptions',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioSourceConfigurationOptions',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioSourceConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioSourceConfigurationOptions',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioSourceConfigurationOptions',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioSourceConfigurationOptions )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioSourceConfigurationOptions )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioEncoderConfigurationOptions {
-    my ($self, $body, $header) = @_;
-    die "GetAudioEncoderConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioEncoderConfigurationOptions',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioEncoderConfigurationOptions',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioEncoderConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioEncoderConfigurationOptions',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioEncoderConfigurationOptions',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioEncoderConfigurationOptions )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioEncoderConfigurationOptions )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetMetadataConfigurationOptions {
-    my ($self, $body, $header) = @_;
-    die "GetMetadataConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetMetadataConfigurationOptions',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetMetadataConfigurationOptions',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetMetadataConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetMetadataConfigurationOptions',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetMetadataConfigurationOptions',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetMetadataConfigurationOptions )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetMetadataConfigurationOptions )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioOutputConfigurationOptions {
-    my ($self, $body, $header) = @_;
-    die "GetAudioOutputConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioOutputConfigurationOptions',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioOutputConfigurationOptions',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioOutputConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioOutputConfigurationOptions',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioOutputConfigurationOptions',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioOutputConfigurationOptions )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioOutputConfigurationOptions )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetAudioDecoderConfigurationOptions {
-    my ($self, $body, $header) = @_;
-    die "GetAudioDecoderConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetAudioDecoderConfigurationOptions',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioDecoderConfigurationOptions',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetAudioDecoderConfigurationOptions must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetAudioDecoderConfigurationOptions',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetAudioDecoderConfigurationOptions',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetAudioDecoderConfigurationOptions )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetAudioDecoderConfigurationOptions )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetGuaranteedNumberOfVideoEncoderInstances {
-    my ($self, $body, $header) = @_;
-    die "GetGuaranteedNumberOfVideoEncoderInstances must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetGuaranteedNumberOfVideoEncoderInstances',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetGuaranteedNumberOfVideoEncoderInstances',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetGuaranteedNumberOfVideoEncoderInstances must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetGuaranteedNumberOfVideoEncoderInstances',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetGuaranteedNumberOfVideoEncoderInstances',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetGuaranteedNumberOfVideoEncoderInstances )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetGuaranteedNumberOfVideoEncoderInstances )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetStreamUri {
-    my ($self, $body, $header) = @_;
-    die "GetStreamUri must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetStreamUri',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetStreamUri',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetStreamUri must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetStreamUri',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetStreamUri',
+      style => 'document',
+      body => {
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetStreamUri )],
+      },
+      header => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetStreamUri )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub StartMulticastStreaming {
-    my ($self, $body, $header) = @_;
-    die "StartMulticastStreaming must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'StartMulticastStreaming',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/StartMulticastStreaming',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "StartMulticastStreaming must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'StartMulticastStreaming',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/StartMulticastStreaming',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::StartMulticastStreaming )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::StartMulticastStreaming )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub StopMulticastStreaming {
-    my ($self, $body, $header) = @_;
-    die "StopMulticastStreaming must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'StopMulticastStreaming',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/StopMulticastStreaming',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "StopMulticastStreaming must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'StopMulticastStreaming',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/StopMulticastStreaming',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::StopMulticastStreaming )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::StopMulticastStreaming )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetSynchronizationPoint {
-    my ($self, $body, $header) = @_;
-    die "SetSynchronizationPoint must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetSynchronizationPoint',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetSynchronizationPoint',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetSynchronizationPoint must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetSynchronizationPoint',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetSynchronizationPoint',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetSynchronizationPoint )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetSynchronizationPoint )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetSnapshotUri {
-    my ($self, $body, $header) = @_;
-    die "GetSnapshotUri must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetSnapshotUri',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetSnapshotUri',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetSnapshotUri must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetSnapshotUri',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetSnapshotUri',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetSnapshotUri )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetSnapshotUri )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetVideoSourceModes {
-    my ($self, $body, $header) = @_;
-    die "GetVideoSourceModes must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetVideoSourceModes',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoSourceModes',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetVideoSourceModes must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetVideoSourceModes',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetVideoSourceModes',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetVideoSourceModes )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetVideoSourceModes )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetVideoSourceMode {
-    my ($self, $body, $header) = @_;
-    die "SetVideoSourceMode must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetVideoSourceMode',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetVideoSourceMode',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetVideoSourceMode must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetVideoSourceMode',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetVideoSourceMode',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetVideoSourceMode )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetVideoSourceMode )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetOSDs {
-    my ($self, $body, $header) = @_;
-    die "GetOSDs must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetOSDs',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetOSDs',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetOSDs must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetOSDs',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetOSDs',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetOSDs )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetOSDs )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetOSD {
-    my ($self, $body, $header) = @_;
-    die "GetOSD must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetOSD',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetOSD',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetOSD must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetOSD',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetOSD',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetOSD )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetOSD )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub GetOSDOptions {
-    my ($self, $body, $header) = @_;
-    die "GetOSDOptions must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'GetOSDOptions',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetOSDOptions',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "GetOSDOptions must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'GetOSDOptions',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/GetOSDOptions',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::GetOSDOptions )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::GetOSDOptions )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub SetOSD {
-    my ($self, $body, $header) = @_;
-    die "SetOSD must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'SetOSD',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetOSD',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "SetOSD must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'SetOSD',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/SetOSD',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::SetOSD )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::SetOSD )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub CreateOSD {
-    my ($self, $body, $header) = @_;
-    die "CreateOSD must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'CreateOSD',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/CreateOSD',
-        style => 'document',
-        body => {
-            
+  my ($self, $body, $header) = @_;
+  die "CreateOSD must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'CreateOSD',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/CreateOSD',
+      style => 'document',
+      body => {
 
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::CreateOSD )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::CreateOSD )],
+      },
+      header => {
+
+      },
+      headerfault => {
+
+      }
     }, $body, $header);
 }
 
 
 sub DeleteOSD {
-    my ($self, $body, $header) = @_;
-    die "DeleteOSD must be called as object method (\$self is <$self>)" if not blessed($self);
-    return $self->SUPER::call({
-        operation => 'DeleteOSD',
-        soap_action => 'http://www.onvif.org/ver10/media/wsdl/DeleteOSD',
-        style => 'document',
-        body => {
-            
-
-           'use'            => 'literal',
-            namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
-            encodingStyle   => '',
-            parts           =>  [qw( ONVIF::Media::Elements::DeleteOSD )],
-        },
-        header => {
-            
-        },
-        headerfault => {
-            
-        }
+  my ($self, $body, $header) = @_;
+  die "DeleteOSD must be called as object method (\$self is <$self>)" if not blessed($self);
+  return $self->SUPER::call({
+      operation => 'DeleteOSD',
+      soap_action => 'http://www.onvif.org/ver10/media/wsdl/DeleteOSD',
+      style => 'document',
+      body => {
+        use            => 'literal',
+        namespace       => 'http://schemas.xmlsoap.org/wsdl/soap/',
+        encodingStyle   => '',
+        parts           =>  [qw( ONVIF::Media::Elements::DeleteOSD )],
+      },
+      header => {
+      },
+      headerfault => {
+      }
     }, $body, $header);
 }
 
-
-
-
 1;
-
-
-
 __END__
 
 =pod
@@ -2179,7 +2147,7 @@ Returns a L<ONVIF::Media::Elements::GetAudioOutputsResponse|ONVIF::Media::Elemen
 
 =head3 CreateProfile
 
-This operation creates a new empty media profile. The media profile shall be created in the device and shall be persistent (remain after reboot). A created profile shall be deletable and a device shall set the “fixed” attribute to false in the returned Profile.
+This operation creates a new empty media profile. The media profile shall be created in the device and shall be persistent (remain after reboot). A created profile shall be deletable and a device shall set the "fixed" attribute to false in the returned Profile.
 
 Returns a L<ONVIF::Media::Elements::CreateProfileResponse|ONVIF::Media::Elements::CreateProfileResponse> object.
 

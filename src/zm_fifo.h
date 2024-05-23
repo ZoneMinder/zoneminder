@@ -1,5 +1,5 @@
 //
-// ZoneMinder Fifo Debug
+// ZoneMinder Fifo
 // Copyright (C) 2019 ZoneMinder LLC
 //
 // This program is free software; you can redistribute it and/or
@@ -19,68 +19,42 @@
 #ifndef ZM_FIFO_H
 #define ZM_FIFO_H
 
-#if 0
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <limits.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include "zm.h"
-#include "zm_image.h"
-#endif
-#include "zm_monitor.h"
 #include "zm_stream.h"
+#include "zm_packet.h"
 
-#define zmFifoDbgPrintf(level, params...) {\
-  zmFifoDbgOutput(0, __FILE__, __LINE__, level, ##params);\
-  }
+class Monitor;
 
-#ifndef ZM_DBG_OFF
-#define FifoDebug(level, params...) zmFifoDbgPrintf(level, ##params)
-#else
-#define FifoDebug(level, params...)
-#endif
-void zmFifoDbgOutput(
-    int hex,
-    const char * const file,
-    const int line,
-    const int level,
-    const char *fstring,
-    ...) __attribute__((format(printf, 5, 6)));
-int zmFifoDbgInit(Monitor * monitor);
-
-class FifoStream : public StreamBase {
+class Fifo {
  private:
-    char * stream_path;
-    int fd;
-    int total_read;
-    int bytes_read;
-    unsigned int frame_count;
-    static void file_create_if_missing(
-        const char * path,
-        bool is_fifo,
-        bool delete_fake_fifo = true
-        );
-
- protected:
-    typedef enum { MJPEG, RAW } StreamType;
-    StreamType  stream_type;
-    bool sendMJEGFrames();
-    bool sendRAWFrames();
-    void processCommand(const CmdMsg *msg) {}
+  std::string path;
+  bool on_blocking_abort;
+  FILE *outfile;
+  int raw_fd;
 
  public:
-    FifoStream() {}
-    static void fifo_create_if_missing(
-        const char * path,
-        bool delete_fake_fifo = true);
-    void setStreamStart(const char * path);
-    void setStreamStart(int monitor_id, const char * format);
-    void runStream();
+  static void file_create_if_missing(const std::string &path, bool is_fifo, bool delete_fake_fifo = true);
+  static void fifo_create_if_missing(const std::string &path, bool delete_fake_fifo = true);
+
+  Fifo() :
+    on_blocking_abort(true),
+    outfile(nullptr),
+    raw_fd(-1)
+  {}
+  Fifo(const char *p_path, bool p_on_blocking_abort) :
+    path(p_path),
+    on_blocking_abort(p_on_blocking_abort),
+    outfile(nullptr),
+    raw_fd(-1)
+  {}
+  ~Fifo();
+
+  static bool writePacket(const std::string &filename, const ZMPacket &packet);
+  static bool write(const std::string &filename, uint8_t *data, size_t size);
+
+  bool open();
+  bool close();
+
+  bool writePacket(const ZMPacket &packet);
+  bool write(uint8_t *data, size_t size, int64_t pts);
 };
 #endif  // ZM_FIFO_H

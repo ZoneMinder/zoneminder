@@ -21,28 +21,6 @@
 #
 # ==========================================================================
 
-=head1 NAME
-
-zmfilter.pl - ZoneMinder tool to filter events
-
-=head1 SYNOPSIS
-
-zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] | -v, --version
-
-=head1 DESCRIPTION
-
-This script continuously monitors the recorded events for the given
-monitor and applies any filters which would delete and/or upload
-matching events.
-
-=head1 OPTIONS
-
-
--f{filter name}, --filter={filter name}  - The name of a specific filter to run
---filter_id={filter id}                  - The id of a specific filter to run
--v, --version                            - Print ZoneMinder version
-
-=cut
 use strict;
 use bytes;
 
@@ -70,12 +48,16 @@ use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 use autouse 'Data::Dumper'=>qw(Dumper);
 use File::Path qw(make_path);
+use File::Basename;
+require MIME::QuotedPrint;
+require MIME::Base64;
 
 my $daemon = 0;
 my $filter_name = '';
 my $filter_id;
 my $version = 0;
 my $zm_terminate = 0;
+my $sleeping = 0;
 
 GetOptions(
   daemon        =>\$daemon,
@@ -98,6 +80,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ;
 
 logInit($filter_id?(id=>'zmfilter_'.$filter_id):());
+
 sub HupHandler {
   # This idea at this time is to just exit, freeing up the memory. 
   # zmfilter.pl will be respawned by zmdc.
@@ -111,6 +94,7 @@ sub HupHandler {
 sub TermHandler {
   Info('Received TERM, exiting');
   $zm_terminate = 1;
+  exit(0) if $sleeping;
 }
 sub Term {
   exit(0);
@@ -159,19 +143,19 @@ $ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
-my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
 my $event_id = 0;
 
-if ( ! EVENT_PATH ) {
-  Error("No event path defined. Config was $Config{ZM_DIR_EVENTS}");
+if (!EVENT_PATH) {
+  Error('No event path defined. Config was '.$Config{ZM_DIR_EVENTS});
   die;
 }
 
-# In future, should not be neccessary wrt StorageAreas
-chdir( EVENT_PATH );
+# In future, should not be necessary wrt StorageAreas
+chdir(EVENT_PATH);
 
-# Should not be neccessary... but nice to get a local var.  What if it fails?
+# Should not be necessary... but nice to get a local var.  What if it fails?
 my $dbh = zmDbConnect();
+$dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 
 if ( $filter_name ) {
   Info("Scanning for events using filter '$filter_name'");
@@ -187,37 +171,50 @@ if ( $filter_name ) {
 
 if ( ! ( $filter_name or $filter_id ) ) {
   Debug('Sleeping due to start delay: ' . START_DELAY . ' seconds...');
+  $sleeping = 1;
   sleep(START_DELAY);
+  $sleeping = 0;
 }
 
 my @filters;
 my $last_action = 0;
 
-while( !$zm_terminate ) {
+while (!$zm_terminate) {
+  my $delay = $Config{ZM_FILTER_EXECUTE_INTERVAL};
   my $now = time;
-  if ( ($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY} ) {
+  if (($now - $last_action) > $Config{ZM_FILTER_RELOAD_DELAY}) {
     Debug('Reloading filters');
     $last_action = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
 
-  foreach my $filter ( @filters ) {
+  foreach my $filter (@filters) {
     last if $zm_terminate;
-    if ( $$filter{Concurrent} and ! ( $filter_id or $filter_name ) ) {
+
+    my $elapsed = ($now - ($$filter{last_ran} ? $$filter{last_ran} : 0));
+    my $filter_delay = $$filter{ExecuteInterval} - $elapsed;
+    $delay = $filter_delay > 0 ? $filter_delay : 0;
+    Warn("Filter is taking $filter_delay seconds longer than execute interval.") if $delay < 0;
+    Debug("Setting delay to $delay because ExecuteInterval=$$filter{ExecuteInterval} and $elapsed have elapsed");
+
+    if ($$filter{Concurrent} and !($filter_id or $filter_name)) {
       my ( $proc ) = $0 =~ /(\S+)/;
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
       Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
 
-      system(qq`$proc --filter "$$filter{Name}" &`);
+      system(qq`$proc --filter_id $id &`);
     } else {
       checkFilter($filter);
+      $$filter{last_ran} = $now;
     }
-  }
+  } # end foreach filter
 
   last if (!$daemon and ($filter_name or $filter_id)) or $zm_terminate;
 
   Debug("Sleeping for $delay seconds");
+  $sleeping = 1;
   sleep($delay);
+  $sleeping = 0;
 }
 
 sub getFilters {
@@ -236,6 +233,7 @@ sub getFilters {
     $sql .= ' `Background` = 1 AND';
   }
   $sql .= '( `AutoArchive` = 1
+    or `AutoUnarchive` = 1
     or `AutoVideo` = 1
     or `AutoUpload` = 1
     or `AutoEmail` = 1
@@ -246,10 +244,7 @@ sub getFilters {
     or `AutoMove` = 1
     or `AutoCopy` = 1
     ) ORDER BY `Name`';
-  my $sth = $dbh->prepare_cached($sql)
-    or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-  my $res = $sth->execute(@sql_values)
-    or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+  my ($sth, $res) = zmDbExecute($sql, @sql_values) or Fatal("Unable to execute '$sql'");
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     my $filter = new ZoneMinder::Filter($$db_filter{Id}, $db_filter);
     Debug("Found filter '$db_filter->{Name}'");
@@ -262,8 +257,7 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
     }
     push @filters, $filter;
   }
-  $sth->finish();
-  if ( ! @filters ) {
+  if (!@filters) {
     Warning("No filter found for $sql with values(@sql_values)");
   } else {
     Debug("Got " . @filters . " filters");
@@ -275,6 +269,7 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
 sub checkFilter {
   my $filter = shift;
 
+  my $in_transaction = ZoneMinder::Database::start_transaction($dbh) if $$filter{LockRows}; 
   my @Events = $filter->Execute();
   Debug(
       join(' ',
@@ -282,6 +277,7 @@ sub checkFilter {
         join(', ', 
           ($filter->{AutoDelete}?'delete':()),
           ($filter->{AutoArchive}?'archive':()),
+          ($filter->{AutoUnarchive}?'unarchive':()),
           ($filter->{AutoVideo}?'video':()),
           ($filter->{AutoUpload}?'upload':()),
           ($filter->{AutoEmail}?'email':()),
@@ -299,24 +295,25 @@ sub checkFilter {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    Debug("Checking event $Event->{Id}");
+    Debug('Checking event '.$Event->{Id});
     my $delete_ok = !undef;
     $dbh->ping();
     if ( $filter->{AutoArchive} ) {
       Info("Archiving event $Event->{Id}");
       # Do it individually to avoid locking up the table for new events
-      my $sql = 'UPDATE `Events` SET `Archived` = 1 WHERE `Id` = ?';
-      my $sth = $dbh->prepare_cached($sql)
-        or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-      my $res = $sth->execute($Event->{Id})
-        or Error("Unable to execute '$sql': ".$dbh->errstr());
+      $Event->save({Archived=>1});
+    }
+    if ( $filter->{AutoUnarchive} ) {
+      Info("Unarchiving event $Event->{Id}");
+      # Do it individually to avoid locking up the table for new events
+      $Event->save({Archived=>0});
     }
     if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
       if ( !$Event->{Videoed} ) {
         $delete_ok = undef if !generateVideo($filter, $Event);
       }
     }
-    if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} ) {
+    if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} and $filter->{EmailFormat} eq 'Individual') {
       if ( !$Event->{Emailed} ) {
         $delete_ok = undef if !sendEmail($filter, $Event);
       }
@@ -339,13 +336,16 @@ sub checkFilter {
     if ( $filter->{AutoDelete} ) {
       if ( $delete_ok ) {
         $Event->delete();
+        next; # If someone has configured the filter to do something in addition to delete, errors will be logged.
       } else {
         Error("Unable to delete event $Event->{Id} as previous operations failed");
       }
     } # end if AutoDelete
 
+
     if ( $filter->{AutoMove} ) {
       my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
+      Info("Moving event $Event->{Id} from ".$Event->Storage(undef)->Path().' to '.$NewStorage->Path());
       $_ = $Event->MoveTo($NewStorage);
       Error($_) if $_;
     }
@@ -354,6 +354,7 @@ sub checkFilter {
       # So we still need to update the Event object with the new SecondaryStorageId
       my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
       if ( $NewStorage ) {
+        Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
         $_ = $Event->CopyTo($NewStorage);
         if ( $_ ) {
           $ZoneMinder::Database::dbh->commit();
@@ -368,22 +369,23 @@ sub checkFilter {
     } # end if AutoCopy
 
     if ( $filter->{UpdateDiskSpace} ) {
-      $ZoneMinder::Database::dbh->begin_work();
-      $Event->lock_and_load();
-
       my $old_diskspace = $$Event{DiskSpace};
 			my $new_diskspace = $Event->DiskSpace(undef);
 
       if (
 					( (!defined $old_diskspace) and defined $new_diskspace)
 					or
-					( (defined $old_diskspace) and (defined $new_diskspace) and ( $old_diskspace != $Event->DiskSpace(undef) ) )
+					( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
 					) {
         $Event->save();
       }
-      $ZoneMinder::Database::dbh->commit();
     } # end if UpdateDiskSpace
   } # end foreach event
+
+  if ($Config{ZM_OPT_EMAIL} and $filter->{AutoEmail} and ($filter->{EmailFormat} eq 'Summary') and @Events) {
+    sendSummaryEmail($filter, @Events);
+  }
+  ZoneMinder::Database::end_transaction($dbh, $in_transaction) if $$filter{LockRows}; 
 } # end sub checkFilter
 
 sub generateVideo {
@@ -391,8 +393,9 @@ sub generateVideo {
   my $Event = shift;
   my $phone = shift;
 
-  my $rate = $Event->{DefaultRate}/100;
-  my $scale = $Event->{DefaultScale}/100;
+  my $Monitor = $Event->Monitor();
+  my $rate = $$Monitor{DefaultRate}/100;
+  my $scale = $$Monitor{DefaultScale}/100;
   my $format;
 
   my @ffmpeg_formats = split(/\s+/, $Config{ZM_FFMPEG_FORMATS});
@@ -438,14 +441,8 @@ sub generateVideo {
     }
     return 0;
   } else {
-    my $sql = 'UPDATE `Events` SET `Videoed` = 1 WHERE `Id` = ?';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($Event->{Id})
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
-    if ( wantarray() ) {
-      return( $format, $output );
-    }
+    zmDbExecute('UPDATE `Events` SET `Videoed`=1 WHERE `Id`=?', $Event->{Id});
+    return ($format, $output) if wantarray();
   }
   return 1;
 }
@@ -462,28 +459,33 @@ sub generateImage {
   my $event_path = $Event->Path();
   my $capture_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg', $event_path, $frame->{FrameId});
   my $analyse_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-analyse.jpg', $event_path, $frame->{FrameId}) if $analyse;
-  my $video_path =  sprintf('%s/%d-video.mp4', $event_path, $Event->{Id});
+  my $video_path =  sprintf('%s/%s', $event_path, $Event->{DefaultVideo});
   my $image_path = '';
 
 # check if the image file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
   if ( $analyse && -r $analyse_image_path ) {
+    Debug("Using analysis and jpeg exists $analyse_image_path");
     $image_path = $analyse_image_path;
   } elsif ( -r $capture_image_path ) {
+    Debug("Using captures and jpeg exists $capture_image_path");
     $image_path = $capture_image_path;
   } elsif ( -r $video_path ) {
+    Debug("mp4 exists $video_path");
     my $command ="ffmpeg -nostdin -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
     #$command = "ffmpeg -y -v 0 -i $video_path -vf 'select=gte(n\\,$$frame{FrameId}),setpts=PTS-STARTPTS' -vframes 1 -f image2 $capture_image_path";
     my $output = qx($command);
     chomp($output);
     my $status = $? >> 8;
     if ( $status || logDebugging() ) {
-      Debug("Output: $output");
+      Debug("Output from $command\n: $output");
     }
     if ( $status ) {
       Error("Failed $command status $status");
     } else {
       $image_path = $capture_image_path;
     }
+  } else {
+    Debug("No files found at $analyse_image_path, $capture_image_path or $video_path");
   }
   return $image_path;
 }
@@ -507,7 +509,7 @@ sub uploadArchFile {
     return(0);
   }
 
-  my $archFile = $Event->{MonitorName}.'-'.$Event->{Id};
+  my $archFile = $Event->Monitor()->Name().'-'.$Event->{Id};
   my $archImagePath = $Event->Path()
     .'/'
     .(
@@ -528,6 +530,10 @@ sub uploadArchFile {
 
     my $status = &AZ_OK;
     foreach my $imageFile ( @archImageFiles ) {
+      if (! -e $imageFile) {
+        Debug("Not adding $imageFile because it doesn't exist");
+        next;
+      }
       Debug("Adding $imageFile");
       my $member = $zip->addFile($imageFile);
       if ( !$member ) {
@@ -623,41 +629,47 @@ sub uploadArchFile {
         or Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
     }
     unlink($archLocPath);
-    my $sql = 'UPDATE `Events` SET `Uploaded` = 1 WHERE `Id` = ?';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($Event->{Id})
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+    zmDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
   }
   return 1;
 } # end sub uploadArchFile
 
+sub is_in_attachments {
+  my $needle = shift;
+  my $attachments_ref = shift;
+  foreach my $attachment (@$attachments_ref) {
+    return 1 if $$attachment{path} eq $needle;
+  }
+  return 0;
+}
+
 sub substituteTags {
   my $text = shift;
   my $filter = shift;
-  my $Event = shift;
-  my $attachments_ref = shift;
+  my $Event = @_ ? shift : undef;
+  my $attachments_ref = shift if @_;
 
 # First we'd better check what we need to get
 # We have a filter and an event, do we need any more
 # monitor information?
-  my $need_monitor = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_monitor = $text =~ /%(?:MN|MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_summary = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
 
-  my $Monitor = $Event->Monitor() if $need_monitor;
+  my $Monitor = $Event->Monitor() if $Event and $need_monitor;
+  my $Summary = $Monitor->Event_Summary() if $Monitor and $need_summary;
 
+  my $html = ($text =~ /<html/ ? !undef : undef);
 # Do we need the image information too?
-  my $need_images = $text =~ /%(?:EPI1|EPIM|EI1|EIM|EI1A|EIMA|EIMOD)%/;
-  my $first_alarm_frame;
-  my $max_alarm_frame;
+  my $need_images = $text =~ /%(?:EPI1|EPIM|EPISNAP|EI1|EIM|EI1A|EIMA|EISNAP|EIMOD|EIMODG)%/;
+  my $first_alarm_frame = '';
+  my $max_alarm_frame = '';
   my $max_alarm_score = 0;
-  if ( $need_images ) {
+  if ($need_images) {
     my $sql = 'SELECT * FROM `Frames` WHERE `EventId`=? AND `Type`=? ORDER BY `FrameId`';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute($Event->{Id},'Alarm')
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+    my ($sth, $res) = zmDbExecute($sql, $Event->{Id}, 'Alarm') or return;
+
     my $rows = 0;
-    while( my $frame = $sth->fetchrow_hashref() ) {
+    while ( my $frame = $sth->fetchrow_hashref() ) {
       if ( !$first_alarm_frame ) {
         $first_alarm_frame = $frame;
       }
@@ -667,192 +679,359 @@ sub substituteTags {
       }
       $rows ++;
     }
-    Debug("Frames: rows: $rows first alarm frame: $first_alarm_frame max_alaarm_frame: $max_alarm_frame, score: $max_alarm_score");
-    $sth->finish();
   }
 
   my $url = $Config{ZM_URL};
   $text =~ s/%ZP%/$url/g;
-  $text =~ s/%MN%/$Event->{MonitorName}/g;
-  $text =~ s/%MET%/$Monitor->{TotalEvents}/g;
-  $text =~ s/%MEH%/$Monitor->{HourEvents}/g;
-  $text =~ s/%MED%/$Monitor->{DayEvents}/g;
-  $text =~ s/%MEW%/$Monitor->{WeekEvents}/g;
-  $text =~ s/%MEM%/$Monitor->{MonthEvents}/g;
-  $text =~ s/%MEA%/$Monitor->{ArchivedEvents}/g;
-  $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
-  $text =~ s/%MPS%/$url?view=watch&mid=$Event->{MonitorId}&mode=stream/g;
-  $text =~ s/%MPI%/$url?view=watch&mid=$Event->{MonitorId}&mode=still/g;
-  $text =~ s/%EP%/$url?view=event&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
-  $text =~ s/%EPS%/$url?view=event&mode=stream&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
-  $text =~ s/%EPI%/$url?view=event&mode=still&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
-  $text =~ s/%EI%/$Event->{Id}/g;
-  $text =~ s/%EN%/$Event->{Name}/g;
-  $text =~ s/%EC%/$Event->{Cause}/g;
-  $text =~ s/%ED%/$Event->{Notes}/g;
-  $text =~ s/%ET%/$Event->{StartTime}/g;
-  $text =~ s/%EL%/$Event->{Length}/g;
-  $text =~ s/%EF%/$Event->{Frames}/g;
-  $text =~ s/%EFA%/$Event->{AlarmFrames}/g;
-  $text =~ s/%EST%/$Event->{TotScore}/g;
-  $text =~ s/%ESA%/$Event->{AvgScore}/g;
-  $text =~ s/%ESM%/$Event->{MaxScore}/g;
+  $text =~ s/%MN%/$Monitor->{Name}/g if $Monitor;
+  if ($Summary) {
+    $text =~ s/%MET%/$Summary->{TotalEvents}/g;
+    $text =~ s/%MEH%/$Summary->{HourEvents}/g;
+    $text =~ s/%MED%/$Summary->{DayEvents}/g;
+    $text =~ s/%MEW%/$Summary->{WeekEvents}/g;
+    $text =~ s/%MEM%/$Summary->{MonthEvents}/g;
+    $text =~ s/%MEA%/$Summary->{ArchivedEvents}/g;
+  }
+  if ($Event) {
+    $text =~ s/%MID%/$Event->{MonitorId}/g;
+    $text =~ s/%MP%/$url?view=watch&mid=$Event->{MonitorId}/g;
+    $text =~ s/%MPS%/$url?view=watch&mid=$Event->{MonitorId}&mode=stream/g;
+    $text =~ s/%MPI%/$url?view=watch&mid=$Event->{MonitorId}&mode=still/g;
+    $text =~ s/%EP%/$url?view=event&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
+    $text =~ s/%EPS%/$url?view=event&mode=stream&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
+    $text =~ s/%EPI%/$url?view=event&mode=still&mid=$Event->{MonitorId}&eid=$Event->{Id}/g;
+    my $path = $Event->Path();
+    $text =~ s/%EPATH%/$path/g;
+    $text =~ s/%EI%/$Event->{Id}/g;
+    $text =~ s/%EID%/$Event->{Id}/g;
+    $text =~ s/%EN%/$Event->{Name}/g;
+    $text =~ s/%EC%/$Event->{Cause}/g;
+    $text =~ s/%ED%/$Event->{Notes}/g;
+    $text =~ s/%ET%/$Event->{StartDateTime}/g;
+    $text =~ s/%EVF%/$$Event{DefaultVideo}/g; # Event video filename
+    $text =~ s/%EL%/$Event->{Length}/g;
+    $text =~ s/%EF%/$Event->{Frames}/g;
+    $text =~ s/%EFA%/$Event->{AlarmFrames}/g;
+    $text =~ s/%EST%/$Event->{TotScore}/g;
+    $text =~ s/%ESA%/$Event->{AvgScore}/g;
+    $text =~ s/%ESM%/$Event->{MaxScore}/g;
 
-  if ( $first_alarm_frame ) {
-    $text =~ s/%EPF1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
-    $text =~ s/%EPFM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
-    $text =~ s/%EPI1%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
-    $text =~ s/%EPIM%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
-    if ( $attachments_ref ) {
-      if ( $text =~ s/%EI1%//g ) {
-        my $path = generateImage($Event, $first_alarm_frame);
-        if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+    if ($text =~ /%ETAGS%/) {
+      my $tags = join(', ', $Event->tags());
+      $text =~ s/%ETAGS%/$tags/g;
+    }
+
+    $text =~ s/%EPISNAP%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=snapshot/g;
+    $text =~ s/%EPFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
+    $text =~ s/%EPFMODG%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+    $text =~ s/%EPIMODG%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect_gif/g;
+    if ($attachments_ref) {
+      require URI::Encode;
+      if ($text =~ /%EISNAP%/g ) {
+        my $path = $Event->Path().'/snapshot.jpg';
+        if (-e $path) {
+          my $filename = $Event->Id().'_'.fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          if ($html) {
+            $text =~ s/%EISNAP%/<img src="cid:$$attachment{content_id}"\/>/g;
+          } else {
+            $text =~ s/%EISNAP%/$$attachment{content_id}/g;
+          }
         } else {
-          Warning("Path to first image does not exist at $path");
+          Debug(1, 'No image for SNAP at '.$path);
+          $text =~ s/%EISNAP%//g;
         }
       }
+      if ($text =~ /%EIMOD%/g ) {
+        my $path = $Event->Path().'/objdetect.jpg';
+        if (-e $path) {
+          my $filename = $Event->Id().'_'.fileparse($path);
+          my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          if ($html) {
+            $text =~ s/%EIMOD%/<img src="cid:$$attachment{content_id}"\/>/g;
+          } else {
+            $text =~ s/%EIMOD%/$$attachment{content_id}/g;
+          }
+        } else {
+          Debug(1, 'No image for MOD at '.$path);
+          $text =~ s/%EIMOD%//g;
+        }
+      }
+      if ($text =~ s/%EIMODG%//g) {
+        my $path = $Event->Path().'/objdetect.gif';
+        if (-e $path) {
+          my $filename = $Event->Id().'_'.fileparse($path);
+          my $attachment = { type=>'image/gif', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
+          push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+          if ($html) {
+            $text =~ s/%EIMODG%/<img src="cid:$$attachment{content_id}"\/>/g;
+          } else {
+            $text =~ s/%EIMODG%/$$attachment{content_id}/g;
+          }
+        } else {
+          Debug(1, 'No image for MODG at '.$path);
+          $text =~ s/%EIMODG%//g;
+        }
+      }
+    } # end if attachments_ref
 
-      if ( $text =~ s/%EIM%//g ) {
-        # Don't attach the same image twice
-        if ( !@$attachments_ref
-          || ( $first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId} )
-        ) {
+    if (!$first_alarm_frame) {
+      $text =~ s/%EPF1%//g; #Path to the frame view for the first alarmed event image
+      $text =~ s/%EPFM%//g; #Path to the frame view for the (first) event image with the highest score
+      $text =~ s/%EPI1%//g; #Path to the first alarmed event image, suitable for use in img tags
+      $text =~ s/%EPIM%//g; #Path to the (first) event image with the highest score, suitable for use in img tags
+      $text =~ s/%EI1%/There is no image for EI1/g;
+      $text =~ s/%EIM%/There is no image for EIM/g;
+      $text =~ s/%EI1A%/There is no image for EI1A/g;
+      $text =~ s/%EIMA%/There is no image for EIMA/g;
+    } else {
+      $text =~ s/%EPF1%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
+      $text =~ s/%EPFM%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+      $text =~ s/%EPI1%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$first_alarm_frame->{FrameId}/g;
+      $text =~ s/%EPIM%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=$max_alarm_frame->{FrameId}/g;
+
+      if ($attachments_ref) {
+        require URI::Encode;
+        if ($text =~ /%EI1%/g) {
+          my $path = generateImage($Event, $first_alarm_frame);
+          if (-e $path) {
+            my $filename = fileparse($path);
+            my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
+            push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+            if ($html) {
+              $text =~ s/%EI1%/<img src="cid:$$attachment{content_id}"\/>/g;
+            } else{
+              $text =~ s/%EI1%/$$attachment{content_id}/g;
+            }
+          } else {
+            Warning("Path to first image does not exist at $path for image $first_alarm_frame");
+            $text =~ s/%EI1%/No image found for EI1/g;
+          }
+        }
+
+        if ($text =~ /%EIM%/g) {
           my $path = generateImage($Event, $max_alarm_frame);
-          if ( -e $path ) {
-            push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+          if (-e $path) {
+            my $filename = fileparse($path);
+            my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
+            push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+            if ($html) {
+              $text =~ s/%EIM%/<img src="cid:$$attachment{content_id}"\/>/g;
+            } else {
+              $text =~ s/%EIM%/$$attachment{content_id}/g;
+            }
+
           } else {
             Warning("No image for EIM at $path");
+            $text =~ s/%EIM%/No image found for EIM/g;
           }
         }
-      }
 
-      if ( $text =~ s/%EI1A%//g ) {
-        my $path = generateImage($Event, $first_alarm_frame, 'analyse');
-        if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
-        } else {
-          Warning("No image for EI1A at $path");
-        }
-      }
-
-      if ( $text =~ s/%EIMA%//g ) {
-        # Don't attach the same image twice
-        if ( !@$attachments_ref
-          || ($first_alarm_frame->{FrameId} != $max_alarm_frame->{FrameId})
-        ) {
-          my $path = generateImage($Event, $max_alarm_frame, 'analyse');
-          if ( -e $path ) {
-            push @$attachments_ref, { type=>'image/jpeg', path=>$path };
+        if ($text =~ /%EI1A%/g) {
+          my $path = generateImage($Event, $first_alarm_frame, 'analyse');
+          if (-e $path) {
+            my $filename = fileparse($path);
+            my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
+            push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+            if ($html) {
+              $text =~ s/%EI1A%/<img src="cid:$$attachment{content_id}"\/>/g;
+            } else {
+              $text =~ s/%EI1A%/$$attachment{content_id}/g;
+            }
           } else {
-            Warning("No image for EIMA at $path");
+            Warning("No image for EI1A at $path");
+            $text =~ s/%EI1A%/No image found for EI1A/g;
           }
         }
-      }
 
-      if ( $text =~ s/%EIMOD%//g or $text =~ s/%EFMOD%//g ) {
-        $text =~ s/%EFMOD%/$url?view=frame&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
-        $text =~ s/%EIMOD%/$url?view=image&mid=$Event->{MonitorId}&eid=$Event->{Id}&fid=objdetect/g;
-        my $path = $Event->Path().'/objdetect.jpg';
-        if ( -e $path ) {
-          push @$attachments_ref, { type=>'image/jpeg', path=>$path };
-        } else {
-          Warning('No image for MOD at '.$path);
+        if ( $text =~ /%EIMA%/g ) {
+          # Don't attach the same image twice
+          my $path = generateImage($Event, $max_alarm_frame, 'analyse');
+          if (-e $path) {
+            my $filename = fileparse($path);
+            my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
+            push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
+            if ($html) {
+              $text =~ s/%EIMA%/<img src="cid:$$attachment{content_id}"\/>/g;
+            } else {
+              $text =~ s/%EIMA%/$$attachment{content_id}/g;
+            }
+          } else {
+            Debug(1, "No image for EIMA at $path");
+            $text =~ s/%EIMA%//g;
+          }
+        }
+      } # end if attachments_ref
+    } # end if $first_alarm_frame
+
+    if ( $attachments_ref ) {
+      if ( $text =~ s/%EV%//g ) {
+        if ( $$Event{DefaultVideo} ) {
+          push @$attachments_ref, { type=>'video/mp4', path=>join('/', $Event->Path(), $Event->DefaultVideo()) };
+        } elsif ( $Config{ZM_OPT_FFMPEG} ) {
+          my ( $format, $path ) = generateVideo($filter, $Event);
+          if ( !$format ) {
+            return undef;
+          }
+          push @$attachments_ref, { type=>"video/$format", path=>$path };
         }
       }
-
-    } # end if attachments_ref
-  } # end if $first_alarm_frame
-
-  if ( $attachments_ref ) {
-    if ( $text =~ s/%EV%//g ) {
-      if ( $$Event{DefaultVideo} ) {
-        push @$attachments_ref, { type=>'video/mp4', path=>join('/',$Event->Path(), $Event->DefaultVideo()) };
-      } elsif ( $Config{ZM_OPT_FFMPEG} ) {
-        my ( $format, $path ) = generateVideo($filter, $Event);
+      if ( $text =~ s/%EVM%//g ) {
+        my ( $format, $path ) = generateVideo($filter, $Event, 1);
         if ( !$format ) {
           return undef;
         }
         push @$attachments_ref, { type=>"video/$format", path=>$path };
       }
     }
-    if ( $text =~ s/%EVM%//g ) {
-      my ( $format, $path ) = generateVideo($filter, $Event, 1);
-      if ( !$format ) {
-        return undef;
-      }
-      push @$attachments_ref, { type=>"video/$format", path=>$path };
-    }
-  }
+  } # end if Event
+
+
+  $text =~ s/%FID%/$filter->{Id}/g;
   $text =~ s/%FN%/$filter->{Name}/g;
   ( my $filter_name = $filter->{Name} ) =~ s/ /+/g;
-  $text =~ s/%FP%/$url?view=filter&mid=$Event->{MonitorId}&filter_name=$filter_name/g;
+  $text =~ s/%FP%/$url?view=filter&filter_name=$filter_name/g;
 
   return $text;
-} # end subsitituteTags
+} # end substituteTags
 
-sub sendEmail {
+sub sendSummaryEmail {
   my $filter = shift;
-  my $Event = shift;
+  my @events = map { new ZoneMinder::Event($$_{Id}, $_) } @_;
 
-  if ( ! $Config{ZM_FROM_EMAIL} ) {
+  if (!$Config{ZM_FROM_EMAIL}) {
     Error('No from email address defined, not sending email');
     return 0;
   }
-  if ( ! $$filter{EmailTo} ) {
+  if (!$$filter{EmailTo}) {
+    Error('No email address defined, not sending email');
+    return 0;
+  }
+  my $subject = substituteTags($$filter{EmailSubject}, $filter);
+  return 0 if !$subject;
+
+  my ($body_head, $summary_part, $body_tail) = split(/%SUMMARY%/m, $$filter{EmailBody});
+  if (!$summary_part) {
+    Error('Failed finding summary part of email body');
+    return 0;
+  }
+  my @attachments;
+  my $body = substituteTags($body_head, $filter, undef, \@attachments);
+  foreach my $event (@events) {
+    $body .= substituteTags($summary_part, $filter, $event, \@attachments);
+  }
+  return 0 if !$body;
+  $body .= $body_tail;
+  Debug("Sending notification email '$subject'");
+  if (sendTheEmail($filter, $subject, $body, @attachments)) {
+    foreach my $event (@events) {
+      $event->save({Emailed=>1});
+    }
+    return 1;
+  }
+  return 0;
+} # end sub sendSummaryEmail
+
+sub sendEmail {
+  my $filter = shift;
+  my $event = shift;
+
+  if (!$Config{ZM_FROM_EMAIL}) {
+    Error('No from email address defined, not sending email');
+    return 0;
+  }
+  if (!$$filter{EmailTo}) {
     Error('No email address defined, not sending email');
     return 0;
   }
 
-  Info('Creating notification email');
-
-  my $subject = substituteTags($$filter{EmailSubject}, $filter, $Event);
+  my $subject = substituteTags($$filter{EmailSubject}, $filter, $event);
   return 0 if !$subject;
   my @attachments;
-  my $body = substituteTags($$filter{EmailBody}, $filter, $Event, \@attachments);
+  my $body = substituteTags($$filter{EmailBody}, $filter, $event, \@attachments);
   return 0 if !$body;
 
-  Info("Sending notification email '$subject'");
+  Debug("Sending notification email '$subject'");
+  if (sendTheEmail($filter, $subject, $body, @attachments)) {
+    $event->save({Emailed=>1});
+    return 1;
+  } else {
+    Warning("Failed to send the email");
+  }
+  return 0;
+}
+
+sub sendTheEmail {
+  my ($filter, $subject, $body, @attachments) = @_;
 
   eval {
-    if ( $Config{ZM_NEW_MAIL_MODULES} ) {
-### Create the multipart container
-      my $mail = MIME::Lite->new (
+    if ($Config{ZM_NEW_MAIL_MODULES}) {
+      my $total_size = 0;
+      # Create the multipart container
+      my $mail = MIME::Lite->new(
           From => $Config{ZM_FROM_EMAIL},
           To => $$filter{EmailTo},
           Subject => $subject,
           Type => 'multipart/mixed'
-          );
-### Add the text message part
-      $mail->attach (
+        );
+
+      my $related = MIME::Lite->new(Type=>'multipart/related');
+      $mail->attach($related);
+      if ($body =~ /<html/) {
+        my $alternative = MIME::Lite->new(
+          Type => 'multipart/alternative'
+        );
+        $related->attach($alternative);
+
+        # Create a text-only version, it has to go first
+        require HTML::FormatText;
+        $alternative->attach(
+          #'Content-Type' => 'text/html;charset="utf-8"',
           Type => 'TEXT',
-          Data => $body
-          );
-### Add the attachments
-      my $total_size = 0;
+          'Content-Transfer-Encoding' => 'quoted-printable',
+          Data => MIME::QuotedPrint::encode_qp(HTML::FormatText->format_string($body))
+        );
+        my $html = MIME::Lite->new(
+          'Content-Type' => 'text/html;charset="utf-8"',
+          'Content-Transfer-Encoding' => 'quoted-printable',
+          #Type => 'text/html',
+          Data => MIME::QuotedPrint::encode_qp($body),
+        );
+        $alternative->attach($html);
+      } else {
+        my $text = MIME::Lite->new(
+          'Content-Transfer-Encoding' => 'quoted-printable',
+          Type => 'TEXT', Data => $body
+        );
+        $related->attach($text);
+      } # end if html or not
+
       foreach my $attachment ( @attachments ) {
         my $size = -s $attachment->{path};
         $total_size += $size;
         Info("Attaching '$attachment->{path}' which is $size bytes");
-        $mail->attach(
-            Path => $attachment->{path},
-            Type => $attachment->{type},
-            Disposition => 'attachment'
-            );
-      }
-      if ( $total_size > 10*1024*1024 ) {
+        $related->attach(
+          Path => $attachment->{path},
+          Type => $attachment->{type},
+          ($attachment->{content_id} ? ('Id' => '<'.$attachment->{content_id}.'>') : () ),
+          Disposition => 'inline'
+          #Disposition => 'attachment'
+        );
+      } # end foreach attachment
+      if ($total_size > 10*1024*1024) {
         Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
 ### Send the Message
-      if ( $Config{ZM_SSMTP_MAIL} ) {
+      if ($Config{ZM_SSMTP_MAIL}) {
         my $ssmtp_location = $Config{ZM_SSMTP_PATH};
-        if ( !$ssmtp_location ) {
-          if ( logDebugging() ) {
-            Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
-          }
+        if (!$ssmtp_location) {
+          Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
           $ssmtp_location = qx('which ssmtp');
         }
-        if ( !$ssmtp_location ) {
+        if (!$ssmtp_location) {
           Warning('Unable to find ssmtp, trying MIME::Lite->send');
           MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
           $mail->send();
@@ -865,26 +1044,61 @@ sub sendEmail {
         $mail->send();
       }
     } else {
+      my $total_size = 0;
       my $mail = MIME::Entity->build(
         From => $Config{ZM_FROM_EMAIL},
         To => $$filter{EmailTo},
         Subject => $subject,
-        Type => (($body=~/<html/)?'text/html':'text/plain'),
-        Data => $body
+        Type => 'multipart/mixed'
       );
-
-      my $total_size = 0;
-      foreach my $attachment ( @attachments ) {
-        my $size = -s $attachment->{path};
-        $total_size += $size;
-        Info("Attaching '$attachment->{path}' which is $size bytes");
-
-        $mail->attach(
-          Path => $attachment->{path},
-          Type => $attachment->{type},
-          Encoding => 'base64'
+      if ($body =~ /<html/) {
+        my $related = MIME::Entity->build(Type => 'multipart/related');
+        $mail->add_part($related);
+        my $alternative = MIME::Entity->build(Type => 'multipart/alternative');
+        $related->add_part($alternative);
+        # Create a text-only version
+        require HTML::FormatText;
+        $alternative->attach(
+          Type => 'text/plain',
+          charset=>'utf-8',
+          Data => HTML::FormatText->format_string($body)
         );
-      } # end foreach attachment
+        $alternative->attach(
+          Type => 'text/html',
+          charset=>'utf-8',
+          Data => $body
+        );
+        foreach my $attachment ( @attachments ) {
+          my $size = -s $attachment->{path};
+          $total_size += $size;
+          Debug("Attaching '$attachment->{path}' which is $size bytes");
+
+          $related->attach(
+            Path => $attachment->{path},
+            Type => $attachment->{type},
+            ($attachment->{content_id} ? ('Content-Id' => '<'.$attachment->{content_id}.'>') : () ),
+            Encoding => 'base64'
+          );
+        } # end foreach attachment
+      } else {
+        $mail->attach(
+          Type => 'text/plain; charset="utf-8"',
+          Data => $body
+        );
+
+        foreach my $attachment ( @attachments ) {
+          my $size = -s $attachment->{path};
+          $total_size += $size;
+          Debug("Attaching '$attachment->{path}' which is $size bytes");
+
+          $mail->attach(
+            Path => $attachment->{path},
+            Type => $attachment->{type},
+            ($attachment->{content_id} ? ('Content-Id' => '<'.$attachment->{content_id}.'>') : () ),
+            Encoding => 'base64'
+          );
+        } # end foreach attachment
+      }
       if ( $total_size > 10*1024*1024 ) {
         Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
@@ -895,16 +1109,11 @@ sub sendEmail {
     Error("Unable to send email: $@");
     return 0;
   } else {
-    Info('Notification email sent');
+    Info("Notification email sent to $$filter{EmailTo}");
   }
-  my $sql = 'UPDATE `Events` SET `Emailed` = 1 WHERE `Id` = ?';
-  my $sth = $dbh->prepare_cached($sql)
-    or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-  my $res = $sth->execute($Event->{Id})
-    or Fatal("Unable to execute '$sql': ".$dbh->errstr());
 
   return 1;
-}
+} # end sub sendEmail
 
 sub sendMessage {
   my $filter = shift;
@@ -939,7 +1148,8 @@ sub sendMessage {
           Type => 'multipart/mixed'
           );
 ### Add the text message part
-      $mail->attach (
+      Debug("Body: $body");
+      $mail->attach(
           Type => 'TEXT',
           Data => $body
           );
@@ -963,15 +1173,15 @@ sub sendMessage {
         }
         if ( !$ssmtp_location ) {
           Debug('Unable to find ssmtp, trying MIME::Lite->send');
-          MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
-          $mail->send();
+          #MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
+          $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
         } else {
 ### Send using SSMTP
           $mail->send('sendmail', $ssmtp_location, $Config{ZM_MESSAGE_ADDRESS});
         }
       } else {
-        MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
-        $mail->send();
+        #MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
+        $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
       }
     } else {
       my $mail = MIME::Entity->build(
@@ -1015,28 +1225,53 @@ sub executeCommand {
   my $filter = shift;
   my $Event = shift;
 
-  my $event_path = $Event->Path();
-
   my $command = $filter->{AutoExecuteCmd};
-  $command .= " $event_path";
-  $command = substituteTags($command, $filter, $Event);
+  if ($command =~ /%\w+%/) {
+    $command = substituteTags($command, $filter, $Event);
+  } else {
+    $command .= ' '.$Event->Path();
+  }
 
   Info("Executing '$command'");
   my $output = qx($command);
   my $status = $? >> 8;
-  if ( $status || logDebugging() ) {
+  if ($status || logDebugging()) {
     chomp($output);
-    Debug("Output: $output");
+    Debug("Status: $status Output: $output");
   }
-  if ( $status ) {
+  if ($status) {
     Error("Command '$command' exited with status: $status");
     return 0;
   } else {
-    my $sql = 'UPDATE `Events` SET `Executed` = 1 WHERE `Id` = ?';
-    my $sth = $dbh->prepare_cached($sql)
-      or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
-    my $res = $sth->execute( $Event->{Id} )
-      or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+    $Event->load(); # the command may have altered the database
+    $_ = $Event->save({Executed=>1});
+    Error($_) if $_;
   }
-  return( 1 );
+  return 1;
 }
+
+1;
+__END__
+
+=head1 NAME
+
+zmfilter.pl - ZoneMinder tool to select events and perform actions on them
+
+=head1 SYNOPSIS
+
+zmfilter.pl [-f <filter name>,--filter=<filter name>] [--filter_id=<filter id>] [--daemon] | -v, --version
+
+=head1 DESCRIPTION
+
+This script performs a specified database query to select recorded events and performs specified actions on them
+such as email reporting, deleting, moving, etc.  If the --daemon option is given it will remain resident, repeating
+the query and applying actions.  This is normally managed by zmdc.pl however it can be used manually as well.
+
+=head1 OPTIONS
+
+  -f{filter name}, --filter={filter name}  - The name of a specific filter to run
+  --filter_id={filter id}                  - The id of a specific filter to run
+  --daemon                                 - Causes zmfilter.pl to stay running endlessly repeating the filter(s).
+  -v, --version                            - Print ZoneMinder version
+
+=cut

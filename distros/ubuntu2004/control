@@ -1,0 +1,170 @@
+Source: zoneminder
+Section: net
+Priority: optional
+Maintainer: Isaac Connor <isaac@zoneminder.com>
+Build-Depends: debhelper (>= 11), sphinx-doc, python3-sphinx, python3-sphinx-rtd-theme, dh-linktree, dh-apache2
+              ,cmake
+              ,libavcodec-dev
+              ,libavdevice-dev
+              ,libavformat-dev
+              ,libavutil-dev
+              ,libswresample-dev
+              ,libswscale-dev
+              ,ffmpeg
+              ,arp-scan
+              ,net-tools
+              ,libbz2-dev
+              ,libcurl4-gnutls-dev
+              ,libjpeg-turbo8-dev | libjpeg62-turbo-dev | libjpeg8-dev | libjpeg9-dev
+              ,libturbojpeg0-dev
+              ,default-libmysqlclient-dev | libmysqlclient-dev | libmariadbclient-dev-compat
+              ,libpolkit-gobject-1-dev
+              ,libv4l-dev [!hurd-any]
+              ,libvlc-dev
+              ,libdate-manip-perl
+              ,libdbd-mysql-perl
+              ,libphp-serialization-perl
+              ,libsys-mmap-perl [!hurd-any]
+              ,libwww-perl
+              ,libdata-uuid-perl
+              ,libssl-dev
+              ,libcrypt-eksblowfish-perl
+              ,libdata-entropy-perl
+              ,libvncserver-dev
+              ,libjwt-gnutls-dev|libjwt-dev
+              ,libgsoap-dev, gsoap
+              ,libmosquittopp-dev
+              ,nlohmann-json3-dev
+Standards-Version: 4.5.0
+Homepage: https://www.zoneminder.com/
+
+Package: zoneminder
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
+        ,sudo
+        ,javascript-common
+        ,libavdevice60|libavdevice59|libavdevice58|libavdevice57
+        ,libswscale7|libswscale6|libswscale5|libswscale4
+        ,libswresample4|libswresample3|libswresample2
+        ,ffmpeg
+        ,libcurl4, libcurl4-gnutls-dev
+        ,libdatetime-perl, libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
+        ,libdbd-mysql-perl
+        ,libphp-serialization-perl
+        ,libmodule-load-conditional-perl
+        ,libnet-sftp-foreign-perl
+        ,libarchive-zip-perl
+        ,libdbd-mysql-perl
+        ,libdevice-serialport-perl
+        ,libimage-info-perl
+        ,libio-interface-perl
+        ,libjson-maybexs-perl
+        ,libsys-mmap-perl [!hurd-any]
+        ,liburi-encode-perl
+        ,libwww-perl, liburi-perl
+        ,libdata-dump-perl
+        ,libdatetime-perl
+        ,libclass-std-fast-perl
+        ,libsoap-wsdl-perl
+        ,libio-socket-multicast-perl
+        ,libio-socket-ssl-perl
+        ,libdigest-sha-perl
+        ,libsys-cpu-perl, libsys-meminfo-perl
+        ,libdata-uuid-perl
+        ,libnumber-bytes-human-perl
+        ,libfile-slurp-perl
+        ,default-mysql-client | mariadb-client | virtual-mysql-client
+        ,php-mysql, php-gd, php-apcu, php-json, php-intl, php-xml, php-curl
+        ,policykit-1|pkexec
+        ,rsyslog | system-log-daemon
+        ,zip
+        ,arp-scan
+        ,libcrypt-eksblowfish-perl
+        ,libdata-entropy-perl
+        ,libvncclient1|libvncclient0
+        ,libjwt2|libjwt-gnutls2|libjwt-gnutls0|libjwt0
+        ,libgsoap-2.8.132t64|libgsoap-2.8.124|libgsoap-2.8.117|libgsoap-2.8.104|libgsoap-2.8.91|libgsoap-2.8.75|libgsoap-2.8.60|libgsoap10
+        ,libmosquittopp1
+Recommends: ${misc:Recommends}
+           ,libapache2-mod-php | php-fpm
+           ,default-mysql-server | mariadb-server | virtual-mysql-server
+           ,zoneminder-doc (>= ${source:Version})
+Suggests: fcgiwrap, logrotate
+Description: video camera security and surveillance solution
+ ZoneMinder is intended for use in single or multi-camera video security
+ applications, including commercial or home CCTV, theft prevention and child
+ or family member or home monitoring and other care scenarios. It
+ supports capture, analysis, recording, and monitoring of video data coming
+ from one or more video or network cameras attached to a Linux system.
+ ZoneMinder also support web and semi-automatic control of Pan/Tilt/Zoom
+ cameras using a variety of protocols. It is suitable for use as a home
+ video security system and for commercial or professional video security
+ and surveillance. It can also be integrated into a home automation system
+ via X.10 or other protocols.
+
+#Package: libzoneminder-perl
+#Section: perl
+#Architecture: all
+#Multi-Arch: foreign
+#Depends: ${misc:Depends}, ${perl:Depends}
+#        ,libarchive-zip-perl
+#        ,libdbd-mysql-perl
+#        ,libdevice-serialport-perl
+#        ,libimage-info-perl
+#        ,libjson-maybexs-perl
+#        ,libsys-mmap-perl [!hurd-any]
+#        ,liburi-encode-perl
+#        ,libwww-perl
+#Description: ZoneMinder Perl libraries
+# ZoneMinder is intended for use in single or multi-camera video security
+# applications, including commercial or home CCTV, theft prevention and child
+# or family member or home monitoring and other care scenarios. It
+# supports capture, analysis, recording, and monitoring of video data coming
+# from one or more video or network cameras attached to a Linux system.
+# ZoneMinder also support web and semi-automatic control of Pan/Tilt/Zoom
+# cameras using a variety of protocols. It is suitable for use as a home
+# video security system and for commercial or professional video security
+# and surveillance. It can also be integrated into a home automation system
+# via X.10 or other protocols.
+# .
+# This package provides ZoneMinder Perl libraries; it can be used to
+# write custom interfaces as well.
+
+Package: zoneminder-doc
+Section: doc
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${sphinxdoc:Depends}, python-sphinx-rtd-theme | python3-sphinx-rtd-theme
+Suggests: www-browser
+Description: ZoneMinder documentation
+ ZoneMinder is intended for use in single or multi-camera video security
+ applications, including commercial or home CCTV, theft prevention and child
+ or family member or home monitoring and other care scenarios. It
+ supports capture, analysis, recording, and monitoring of video data coming
+ from one or more video or network cameras attached to a Linux system.
+ ZoneMinder also support web and semi-automatic control of Pan/Tilt/Zoom
+ cameras using a variety of protocols. It is suitable for use as a home
+ video security system and for commercial or professional video security
+ and surveillance. It can also be integrated into a home automation system
+ via X.10 or other protocols.
+ .
+ This package provides ZoneMinder documentation in HTML format.
+
+Package: zoneminder-dbg
+Section: debug
+Priority: optional
+Architecture: any
+Depends: zoneminder (= ${binary:Version}), ${misc:Depends}
+Description: Zoneminder -- debugging symbols
+ ZoneMinder is intended for use in single or multi-camera video security
+ applications, including commercial or home CCTV, theft prevention and child
+ or family member or home monitoring and other care scenarios. It
+ supports capture, analysis, recording, and monitoring of video data coming
+ from one or more video or network cameras attached to a Linux system.
+ ZoneMinder also support web and semi-automatic control of Pan/Tilt/Zoom
+ cameras using a variety of protocols. It is suitable for use as a home
+ video security system and for commercial or professional video security
+ and surveillance. It can also be integrated into a home automation system
+ via X.10 or other protocols.
+ .
+ This package provides debugging symbols

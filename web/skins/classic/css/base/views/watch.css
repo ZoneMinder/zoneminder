@@ -1,35 +1,84 @@
 #header {
-    display: flex;
-    justify-content: space-between;
+}
+
+#header form{
+  width: 100%;
+}
+
+.container-fluid {
+/*  padding-left: 0;
+  padding-right: 0;*/
+}
+
+#wrapperMonitor {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#wrapperMonitor .buttons {
+  display: inline-block;
+}
+
+#sidebar {
+  min-width: 140px;
+  padding-right: 1px;
+}
+
+#sidebar .nav {
+  flex-wrap: nowrap;
+  text-align: left;
+  overflow: auto;
 }
 
 #menuControls {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
 
 #menuControls div {
-    margin: 0 0 0 1em;
+  margin: 0 0 0 1em;
 }
 
-#imageFeed{
-    text-align: center;
+.monitor {
+  margin: 0 auto;
+}
+
+.monitor .imageFeed,
+.monitor .imageFeed,
+.monitor .imageFeed {
+  border: 2px solid #999999;
+}
+
+.monitor .imageFeed img,
+.monitor .imageFeed video,
+.monitor .imageFeed svg {
+  border: none;
+  display: inline-block;
+  width: 100%;
+}
+
+.monitorStream {
+  text-align: center;
+  margin: 0 auto;
 }
 
 #monitorStatus {
-    margin: 4px auto;
-    text-align: center;
-}
-
-#monitorStatus #enableDisableAlarms {
-    float: left;
-}
-
-#monitorStatus #forceCancelAlarm {
-    float: right;
+  margin: 4px auto;
+  text-align: center;
+  display: inline-block;
 }
 
 #monitorStatus #monitorState {
+}
+
+#replayStatus {
+    margin: 3px 0 2px;
+    text-align: center;
+  display: inline-block;
+}
+
+#replayStatus > span {
+    padding: 0 4px;
 }
 
 #dvrControls {
@@ -67,15 +116,6 @@
     cursor: default;
 }
 
-#replayStatus {
-    margin: 3px 0 2px;
-    text-align: center;
-    clear: both;
-}
-
-#replayStatus > span {
-    padding: 0 4px;
-}
 
 #events {
     margin: 0 auto;
@@ -116,3 +156,114 @@ span.alert {
     background-color: #DCDCDC;
 }
 
+.controlHeader {
+  width: 100%;
+}
+
+#viewingFPS,
+#captureFPS,
+#analysisFPS
+{
+  display: inline-block;
+}
+#stateValue,
+#viewingFPSValue,
+#captureFPSValue,
+#analysisFPSValue
+{
+  display: inline-block;
+  min-width: 40px;
+  text-align: right;
+}
+.monitorStream img,
+.monitorStream video {
+  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+}
+.bootstrap-table {
+  width: 100%;
+}
+
+body.sticky #content {
+  overflow-y: auto;
+}
+
+.zoom {
+  transform-origin: 100% 00%;
+}
+
+button.btn.btn-zoom-out {
+  padding: 0;
+  background-color: rgba(150,150,150,0.5);
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  z-index: 10;
+  text-shadow:
+    -1px -1px 0 #575757,
+    1px -1px 0 #575757,
+    -1px 1px 0 #575757,
+    1px 1px 0 #575757;
+}
+
+button.btn.btn-zoom-in {
+  padding: 0;
+  background-color: rgba(150,150,150,0.5);
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  z-index: 10;
+  text-shadow:
+    -1px -1px 0 #575757,
+    1px -1px 0 #575757,
+    -1px 1px 0 #575757,
+    1px 1px 0 #575757;
+}
+
+button.btn.btn-edit-monitor {
+  padding: 0;
+  background-color: rgba(150,150,150,0.5);
+  z-index: 10;
+  text-shadow:
+    -1px -1px 0 #575757,
+    1px -1px 0 #575757,
+    -1px 1px 0 #575757,
+    1px 1px 0 #575757;
+}
+
+button.btn.btn-view-watch, button.btn.btn-fullscreen, .ratioControl {
+  display: none;
+}
+
+.block-button-center {
+  position: absolute;
+  left: 35%;
+  right: 35%;
+  top: 2px;
+  z-index: 10;
+}
+
+button.btn.btn-zoom-out:focus,
+button.btn.btn-zoom-in:focus,
+button.btn.btn-view-watch:focus,
+button.btn.btn-edit-monitor:focus {
+  outline: 0;
+  box-shadow: none;
+}
+
+button.btn.btn-zoom-out:hover,
+button.btn.btn-zoom-in:hover,
+button.btn.btn-edit-monitor:hover,
+button.btn.btn-view-watch:hover {
+  background-color: darkgrey;
+}
+
+/* +++ Support for old ZoomPan algorithm */
+.form-check.control-use-old-zoom-pan {
+  display: inline-block;
+}
+#headerButtons .form-check.control-use-old-zoom-pan input.form-check-input {
+  margin-left: -1.0rem;
+}
+/* --- Support for old ZoomPan algorithm */

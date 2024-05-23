@@ -11,23 +11,26 @@ How can I stop ZoneMinder filling up my disk?
 ---------------------------------------------
 
 Recent versions of ZoneMinder come with a filter you can use for this purpose already included. 
-The filter is called **PurgeWhenFull** and to find it, choose one of the event counts from the console page, for instance events in the last hour, for one of your monitors. **Note** that this filter is automatically enabled if you do a fresh install of ZoneMinder including creating a new database. If you already have an existing database and are upgrading ZoneMinder, it will retain the settings of the filter (which in earlier releases was disabled by default). So you may want to check if PurgeWhenFull is enabled and if not, enable it.
+The filter is called **PurgeWhenFull** and to find it, click on the word **Filters** in the header.
+**Note** that this filter is automatically enabled if you do a fresh install of ZoneMinder including creating a new database. If you already have an existing database and are upgrading ZoneMinder, it will retain the settings of the filter (which in earlier releases was disabled by default). So you may want to check if PurgeWhenFull is enabled and if not, enable it.
 
-To enable it, go to Web Console, click on any of your Events of any of your monitors.
-This will bring up an event listing and a filter window.
+To enable it, go to Web Console, click on the word **Filters** in the UI header.
 
-In the filter window there is a drop down select box labeled 'Use Filter', that lets your select a saved filter. Select 'PurgeWhenFull' and it will load that filter.
+In the filter window there is a drop down select box labeled 'Use Filter', that lets you select a saved filter. Select 'PurgeWhenFull' and it will load that filter.
 
 Make any modifications you might want, such as the percentage full you want it to kick in, or how many events to delete at a time (it will repeat the filter as many times as needed to clear the space, but will only delete this many events each time to get there).
 
-Then click on 'Save' which will bring up a new window. Make sure the 'Automatically delete' box is checked and press save to save your filter. This will then run in the background to keep your disk within those limits.
+Ensure that the Run filter in background checkbox is checked.
+Ensure that the Delete all matches checkbox is checked.
 
-After you've done that, you changes will automatically be loaded into zmfilter within a few minutes.
+Then click on 'Save'.  The filter will immediately begin executing in the background to keep your disk within those limits.
+
+Please note that that this filter will only affect the default storage location.  If you have added other storage areas, you must create a PurgeWhenFull filter for each one, and specify the Storage Area as one of the parameters in the filter. You can duplicate the existing PurgeWhenFull filter by using Save As instead of Save.
 
 Check the ``zmfilter.log`` file to make sure it is running as sometimes missing perl modules mean that it never runs but people don't always realize.
 
 **Purge By Age**
-To delete events that are older than 7 days, create a new filter with "Date" set to "less than" and a value of "-7 days", sort by "date/time" in "asc"ending order, then enable the checkbox "delete all matches". You can also use a value of week or week and days: "-2 week"  or "-2 week 4 day"
+To delete events that are older than 7 days, create a new filter with "End Date" set to "less than" and a value of "-7 days", sort by "date/time" in "asc"ending order, then enable the checkbox "delete all matches". You can also use a value of week or week and days: "-2 week"  or "-2 week 4 day"
 
 Save with 'Run Filter In Background' enabled to have it run automatically.
 Optional skip archived events:  click on the plus sign next to -7 days to add another condition.  "and" "archive status" equal to "unarchived only".
@@ -46,7 +49,7 @@ Normally an event created as the result of an alarm consists of entries in one o
 
 ZM_RUN_AUDIT:
 
-The zmaudit daemon exists to check that the saved information in the database and on the file system match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is recommended for most systems however if you have a very large number of events the process of scanning the database and file system may take a long time and impact performance. In this case you may prefer to not have zmaudit running unconditionally and schedule occasional checks at other, more convenient, times.
+The zmaudit daemon exists to check that the saved information in the database and on the file system match and are consistent with each other. If an error occurs or if you are using 'fast deletes' it may be that database records are deleted but files remain. In this case, and similar, zmaudit will remove redundant information to synchronize the two data stores. This option controls whether zmaudit is run in the background and performs these checks and fixes continuously. This is not recommended for most systems, as zmaudit.pl is very resource intensive.
 
 ZM_AUDIT_CHECK_INTERVAL:
 
@@ -112,7 +115,7 @@ A sample output on Ubuntu:
 	tmpfs                      2.6G  923M  1.7G  36% /run/shm
 
 
-The key item here is tmpfs --> the example above shows we have allocated 1.7G of mapped memory space of which 36% is used which is a healthy number. If you are seeing ``Use%`` going beyond 70% you should probaby increase the mapped memory.
+The key item here is tmpfs --> the example above shows we have allocated 1.7G of mapped memory space of which 36% is used which is a healthy number. If you are seeing ``Use%`` going beyond 70% you should probably increase the mapped memory.
 
 For example, if you want to increase this limit to 70% of your memory, add the following to ``/etc/fstab``
 ``tmpfs SHMPATH tmpfs defaults,noexec,nosuid,size=70% 0 0``
@@ -184,14 +187,27 @@ Once I did this, images started to stream for me.
 
 Lastly, please look for errors created by the zmc processes.  If zmc isn't running, then zms will not be able to get an image from it and will exit.
 
-I have several monitors configured but when I load the Montage view in FireFox why can I only see two? or, Why don't all my cameras display when I use the Montage view in FireFox?
+I have several monitors configured but when I load the Montage view why can I only see two? or, Why don't all my cameras display when I use the Montage view?
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-By default FireFox only supports a small number of simultaneous connections. Using the montage view usually requires one persistent connection for each camera plus intermittent connections for other information such as statuses.
+By default most browsers only support a small number of simultaneous connections to any given server. Using the montage view usually requires one persistent connection for each camera plus intermittent connections for other information such as statuses.
 
-You will need to increase the number of allowed connections to use the montage view with more than a small number of cameras.  Certain FireFox extensions such as FasterFox may also help to achieve the same result.
+In firefox you can increase the limit, but other browsers are not configurable in this way.
 
-To resolve this situation, follow the instructions below:
+A solution for all browsers is something we call multi-port.  We reconfigure apache to operate on ports other than the default of 80(http) or 443(https).  You need to pick a range, let's say 30000 to 30010 in order to support 10 cameras.  We add lines to your zoneminder apache config file as follows: 
+
+Listen 30000
+Listen 30001
+Listen 30002
+Listen 30003
+etc
+Listen 30010
+
+If you are using virtualhosts, you will have to add these to the VirtualHost directive as well.
+
+Then in ZoneMinder config, Go Options -> Network and set MIN_STREAMING_PORT to 30000.  Now when generating urls to stream images from ZoneMinder a port will be appended that is 30000 + MonitorId, so Monitor 1 will stream from 30001 and so on.  This will allow Montage to stream from all monitors.
+
+Alternatively if you are in fact using only Firefox, you can increase the limit as follows:
 
 Enter ``about:config`` in the address bar
 
@@ -209,7 +225,7 @@ change the 3 to a 1
 
 I can't see more than 6 monitors in montage on my browser
 ---------------------------------------------------------
-Browsers such a Chrome and Safari only support upto 6 streams from the same domain. To work around that, take a look at the multi-port configuration discussed in  the ``MIN_STREAMING_PORT`` configuration in :doc:`/userguide/options/options_network`
+Browsers such a Chrome and Safari only support up to 6 streams from the same domain. To work around that, take a look at the multi-port configuration discussed in  the ``MIN_STREAMING_PORT`` configuration in :doc:`/userguide/options/options_network`
 
 Why is ZoneMinder using so much CPU?
 ---------------------------------------
@@ -380,7 +396,7 @@ ZoneMinder provides a sample alarm script called `zmalarm.pl <https://github.com
 
 Trouble Shooting
 -------------------
-Here are some things that will help you track down whats wrong.
+Here are some things that will help you track down what's wrong.
 This is also how to obtain the info that we need to help you on the forums.
 
 What logs should I check for errors?
@@ -416,7 +432,7 @@ Here are some commands to get information about your hardware. Some commands are
 * ``[[zmu]]  -m 0 -q -v`` -- Returns various information regarding a monitor configuration.
 * ``[[ipcs]] ``  -- Provides information on the ipc facilities for which the calling process has read access.
 * ``[[ipcrm]] ``  -- The ipcrm command can be used to remove an IPC object from the kernel.
-* ``cat /proc/interrupts``  -- This will dispaly what interrupts your hardware is using.
+* ``cat /proc/interrupts``  -- This will display what interrupts your hardware is using.
 
 Why am I getting a 403 access error with my web browser when trying to access http //localhost/zm?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

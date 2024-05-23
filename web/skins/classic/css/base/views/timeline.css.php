@@ -1,5 +1,16 @@
+<?php
+  global $chart;
+  global $max_aspect_ratio;
+  global $monitors;
+  global $mode;
+  global $monEventSlots;
+?>
+
+
 .chartSize {
-    height: <?php echo $chart['height'] ?>px;
+/*
+    min-height: <?php echo $chart['height'] ?>px;
+*/
 }
 
 .graphSize {
@@ -19,8 +30,11 @@
 .imageHeight {
 <?php
 switch ( $max_aspect_ratio ) {
+  case null:
   case 1:
     echo 'padding-top: 100%;'; break;
+  case 1.22: // 704x576
+    echo 'padding-top: 82%;'; break;
   case 1.33: // 4:3
     echo 'padding-top: 75%;'; break;
   case 1.47:

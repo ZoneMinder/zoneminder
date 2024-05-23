@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" ?>
+
+<wsdl:definitions targetNamespace="http://127.0.0.1"
+                  xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" 
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+                  xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+                  xmlns:wsdd="http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01" 
+                  xmlns:local="http://127.0.0.1">
+  <wsdl:import namespace="http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01" 
+               location="http://docs.oasis-open.org/ws-dd/discovery/1.1/os/wsdd-discovery-1.1-wsdl-os.wsdl"/> 
+  <!--===============================-->
+	<wsdl:binding name="WSDiscoveryBinding" type="wsdd:DiscoveryProxy">
+		<soap:binding style="document" transport="http://docs.oasis-open.org/ws-dd/soapoverudp/1.1"/>
+   	<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+		<wsdl:operation name="ProbeOp">
+			<soap:operation soapAction="http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01/Probe"/>
+			<wsdl:input>
+<!-- <soap:header -->
+				<soap:body parts="parameters" use="literal"/>
+			</wsdl:input>
+			<wsdl:output>
+				<soap:body parts="parameters" use="literal"/>
+			</wsdl:output>
+		</wsdl:operation>
+  	<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+	</wsdl:binding>
+	<!--===============================-->
+  <wsdl:service name="WSDiscovery">
+    <wsdl:port name="WSDiscoveryPort" binding="local:WSDiscoveryBinding" >
+      <soap:address
+        location="soap.udp://239.255.255.250:3702/" />
+    </wsdl:port>
+  </wsdl:service>
+	<!--===============================-->
+</wsdl:definitions>

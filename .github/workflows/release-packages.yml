@@ -1,0 +1,42 @@
+name: Create Debian Release Packages
+
+on:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        os_dist:
+          - os: debian
+            dist: bullseye
+          - os: debian
+            dist: bookworm
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+          submodules: recursive
+      - name: Run packpack
+        env:
+          SMPFLAGS: -j4
+          OS: ${{ matrix.os_dist.os }}
+          DIST: ${{ matrix.os_dist.dist }}
+          DOCKER_REPO: iconzm/packpack
+        run: utils/packpack/startpackpack.sh
+
+      - name: Publish
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ZMREPO_SSH_KEY }}
+          ARGS: "-rltgoDzvO"
+          SOURCE: build/
+          REMOTE_HOST: ${{ secrets.ZMREPO_HOST }}
+          REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
+          TARGET: debian/release-1.36/mini-dinstall/incoming/

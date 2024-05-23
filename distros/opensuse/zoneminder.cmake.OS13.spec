@@ -27,7 +27,7 @@ Source: ZoneMinder-%{version}.tar.gz
 
 BuildRequires: cmake polkit-devel
 BuildRequires: perl-DBI perl-DBD-mysql perl-Date-Manip perl-Sys-Mmap 
-BuildRequires: libjpeg62 libjpeg62-devel libmysqld-devel libSDL-devel libgcrypt-devel libgnutls-devel
+BuildRequires: libjpeg62 libjpeg62-devel libmysqld-devel libSDL-devel libgnutls-devel
 BuildRequires: libffmpeg-devel x264
 BuildRequires: pcre-devel w32codec-all  
 

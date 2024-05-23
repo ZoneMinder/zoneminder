@@ -1,7 +1,7 @@
 <?php
 
 namespace ZM;
-require_once( 'config.php' );
+require_once('config.php');
 
 class Logger {
   private static $instance;
@@ -35,6 +35,10 @@ class Logger {
   private $logFile = '';
   private $logFd = NULL;
 
+  private $savedLogErrors = null;
+  private $savedErrorReporting = null;
+  private $savedDisplayErrors = null;
+
   public static $codes = array(
     self::DEBUG => 'DBG',
     self::INFO => 'INF',
@@ -63,14 +67,14 @@ class Logger {
 
   private function __construct() {
     $this->hasTerm = (php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']));
-    $this->logFile = $this->logPath.'/'.$this->id.'.log';
+    $this->logFile = $this->id.'.log';
   }
 
   public function __destruct() {
     $this->terminate();
   }
 
-  public function initialise( $options=array() ) {
+  public function initialise($options=array()) {
     if ( !empty($options['id']) )
       $this->id = $options['id'];
 
@@ -81,11 +85,11 @@ class Logger {
       $tempLogFile = $this->logPath.'/'.$this->id.'.log';
     }
     if ( isset($options['logFile']) )
-      $tempLogFile = $options['logFile'];
+      $tempLogFile = basename($options['logFile']);
     else
-      $tempLogFile = $this->logPath.'/'.$this->id.'.log';
+      $tempLogFile = $this->id.'.log';
     if ( !is_null($logFile = $this->getTargettedEnv('LOG_FILE')) )
-      $tempLogFile = $logFile;
+      $tempLogFile = basename($logFile);
 
     $tempLevel = self::INFO;
     $tempTermLevel = $this->termLevel;
@@ -100,14 +104,17 @@ class Logger {
       $tempDatabaseLevel = $options['databaseLevel'];
     else
       $tempDatabaseLevel = ZM_LOG_LEVEL_DATABASE;
+
     if ( isset($options['fileLevel']) )
       $tempFileLevel = $options['fileLevel'];
     else
       $tempFileLevel = ZM_LOG_LEVEL_FILE;
+
     if ( isset($options['weblogLevel']) )
       $tempWeblogLevel = $options['weblogLevel'];
     else
       $tempWeblogLevel = ZM_LOG_LEVEL_WEBLOG;
+
     if ( isset($options['syslogLevel']) )
       $tempSyslogLevel = $options['syslogLevel'];
     else
@@ -136,7 +143,7 @@ class Logger {
           if ( ZM_LOG_DEBUG_LEVEL > self::NOLOG ) {
             $tempLevel = $this->limit( ZM_LOG_DEBUG_LEVEL );
             if ( ZM_LOG_DEBUG_FILE != '' ) {
-              $tempLogFile = ZM_LOG_DEBUG_FILE;
+              $tempLogFile = basename(ZM_LOG_DEBUG_FILE);
               $tempFileLevel = $tempLevel;
             }
           }
@@ -155,7 +162,7 @@ class Logger {
 
     $this->initialised = true;
 
-    //Logger::Debug( "LogOpts: level=".self::$codes[$this->level]."/".self::$codes[$this->effectiveLevel].", screen=".self::$codes[$this->termLevel].", database=".self::$codes[$this->databaseLevel].", logfile=".self::$codes[$this->fileLevel]."->".$this->logFile.", weblog=".self::$codes[$this->weblogLevel].", syslog=".self::$codes[$this->syslogLevel] );
+    //Debug( "LogOpts: level=".self::$codes[$this->level]."/".self::$codes[$this->effectiveLevel].", screen=".self::$codes[$this->termLevel].", database=".self::$codes[$this->databaseLevel].", logfile=".self::$codes[$this->fileLevel]."->".$this->logFile.", weblog=".self::$codes[$this->weblogLevel].", syslog=".self::$codes[$this->syslogLevel] );
   }
 
   private function terminate() {
@@ -196,9 +203,6 @@ class Logger {
     return self::$instance;
   }
 
-  public static function Debug( $string ) {
-    Logger::fetch()->logPrint( Logger::DEBUG, $string );
-  }
 
   public function id( $id=NULL ) {
     if ( isset($id) && $this->id != $id ) {
@@ -215,7 +219,7 @@ class Logger {
         }
       }
     }
-    return( $this->id );
+    return $this->id;
   }
 
   public function level( $level ) {
@@ -237,31 +241,31 @@ class Logger {
         $this->effectiveLevel = $this->level;
       if ( !$this->hasTerm ) {
         if ( $lastLevel < self::DEBUG && $this->level >= self::DEBUG ) {
-          $this->savedErrorReporting = error_reporting( E_ALL );
-          $this->savedDisplayErrors = ini_set( 'display_errors', true );
+          $this->savedErrorReporting = error_reporting(E_ALL);
+          $this->savedDisplayErrors = ini_set('display_errors', false);
         } elseif ( $lastLevel >= self::DEBUG && $this->level < self::DEBUG ) {
-          error_reporting( $this->savedErrorReporting );
-          ini_set( 'display_errors', $this->savedDisplayErrors );
+          error_reporting($this->savedErrorReporting);
+          ini_set('display_errors', $this->savedDisplayErrors);
         }
       }
     }
-    return( $this->level );
+    return $this->level;
   }
 
   public function debugOn() {
     return( $this->effectiveLevel >= self::DEBUG );
   }
 
-  public function termLevel( $termLevel ) {
+  public function termLevel($termLevel) {
     if ( isset($termLevel) ) {
       $termLevel = $this->limit($termLevel);
       if ( $this->termLevel != $termLevel )
         $this->termLevel = $termLevel;
     }
-    return( $this->termLevel );
+    return $this->termLevel;
   }
 
-  public function databaseLevel( $databaseLevel=NULL ) {
+  public function databaseLevel($databaseLevel=NULL) {
     if ( !is_null($databaseLevel) ) {
       $databaseLevel = $this->limit($databaseLevel);
       if ( $this->databaseLevel != $databaseLevel ) {
@@ -269,7 +273,7 @@ class Logger {
         if ( $this->databaseLevel > self::NOLOG ) {
           if ( (include_once 'database.php') === FALSE ) {
             $this->databaseLevel = self::NOLOG;
-            Warning( 'Unable to write log entries to DB, database.php not found' );
+            Warning('Unable to write log entries to DB, database.php not found');
           }
         }
       }
@@ -277,7 +281,7 @@ class Logger {
     return $this->databaseLevel;
   }
 
-  public function fileLevel( $fileLevel ) {
+  public function fileLevel($fileLevel) {
     if ( isset($fileLevel) ) {
       $fileLevel = $this->limit($fileLevel);
       if ( $this->fileLevel != $fileLevel ) {
@@ -291,14 +295,14 @@ class Logger {
     return $this->fileLevel;
   }
 
-  public function weblogLevel( $weblogLevel ) {
+  public function weblogLevel($weblogLevel) {
     if ( isset($weblogLevel) ) {
       $weblogLevel = $this->limit($weblogLevel);
       if ( $this->weblogLevel != $weblogLevel ) {
         if ( $weblogLevel > self::NOLOG && $this->weblogLevel <= self::NOLOG ) {
-          $this->savedLogErrors = ini_set( 'log_errors', true );
+          $this->savedLogErrors = ini_set('log_errors', true);
         } elseif ( $weblogLevel <= self::NOLOG && $this->weblogLevel > self::NOLOG ) {
-          ini_set( 'log_errors', $this->savedLogErrors );
+          ini_set('log_errors', $this->savedLogErrors);
         }
         $this->weblogLevel = $weblogLevel;
       }
@@ -306,7 +310,7 @@ class Logger {
     return $this->weblogLevel;
   }
 
-  public function syslogLevel( $syslogLevel ) {
+  public function syslogLevel($syslogLevel) {
     if ( isset($syslogLevel) ) {
       $syslogLevel = $this->limit($syslogLevel);
       if ( $this->syslogLevel != $syslogLevel ) {
@@ -338,7 +342,7 @@ class Logger {
 
   private function openFile() {
     if ( !$this->useErrorLog ) {
-      if ( $this->logFd = fopen($this->logFile, 'a+') ) {
+      if ( $this->logFd = fopen($this->logPath.'/'.$this->logFile, 'a+') ) {
         if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
           $error = error_get_last();
           trigger_error("Can't open log file '$logFile': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
@@ -353,18 +357,20 @@ class Logger {
       fclose($this->logFd);
   }
 
-  public function logPrint( $level, $string, $file=NULL, $line=NULL ) {
+  public function logPrint($level, $string, $file=NULL, $line=NULL) {
     if ( $level > $this->effectiveLevel ) {
       return;
     }
 
     $string = preg_replace('/[\r\n]+$/', '', $string);
+    $string = substr($string, 0, 65535); # Message Column has max length
     $code = self::$codes[$level];
 
+    global $dateTimeFormatter;
     $time = gettimeofday();
     $message = sprintf('%s.%06d %s[%d].%s [%s] [%s]',
-      strftime('%x %H:%M:%S', $time['sec']), $time['usec'],
-      $this->id, getmypid(), $code, $_SERVER['REMOTE_ADDR'], $string);
+      $dateTimeFormatter->format($time['sec']), $time['usec'],
+      $this->id, getmypid(), $code, (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR']), $string);
 
     if ( is_null($file) ) {
       if ( $this->useErrorLog || ($this->databaseLevel > self::NOLOG) ) {
@@ -375,41 +381,48 @@ class Logger {
           $rootPath = getcwd();
         else
           $rootPath = $_SERVER['DOCUMENT_ROOT'];
-        $file = preg_replace('/^'.addcslashes($rootPath,'/').'\/?/', '', $file);
+        $file = preg_replace('/^'.addcslashes($rootPath, '/').'\/?/', '', $file);
       }
     }
 
     if ( $this->useErrorLog ) {
       $message .= ' at '.$file.' line '.$line;
-    } else {
-      $message = $message;
     }
 
     if ( $level <= $this->termLevel ) {
-      if ( $this->hasTerm )
+      if ( $this->hasTerm ) {
         print($message."\n");
-      else
-        print(preg_replace("/\n/", '<br/>', htmlspecialchars($message)).'<br/>');
+      } else {
+        // Didn't we already replace all newlines with spaces above?
+        print(preg_replace('/\n/', '<br/>', htmlspecialchars($message)).'<br/>');
+      }
     }
 
     if ( $level <= $this->fileLevel ) {
       if ( $this->useErrorLog ) {
-        if ( !error_log($message."\n", 3, $this->logFile) ) {
+        if ( !error_log($message."\n", 3, $this->logPath.'/'.$this->logFile) ) {
           if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
             $error = error_get_last();
-            trigger_error("Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
+            $this->fileLevel = self::NOLOG;
+            Error("Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
           }
         }
       } else if ( $this->logFd ) {
         fprintf($this->logFd, $message."\n");
+      } else {
+        $this->fileLevel = self::NOLOG;
+        Error('No logFd but have fileLevel logging!?');
       }
     }
 
-    $message = $code.' ['.$string.']';
     if ( $level <= $this->syslogLevel )
-      syslog( self::$syslogPriorities[$level], $message );
+      syslog(self::$syslogPriorities[$level], $message);
 
+    $message = $code.' ['.$string.']';
     if ( $level <= $this->databaseLevel ) {
+      if ( strlen($file) > 255 )
+        $file = substr($file, 0, 255);
+
       try {
         global $dbConn;
         $sql = 'INSERT INTO `Logs` ( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
@@ -451,6 +464,10 @@ function Dump( &$var, $label='VAR' ) {
   print( $label.' => ' );
   print_r( $var );
   Logger::fetch()->logPrint( Logger::DEBUG, ob_get_clean() );
+}
+
+function Debug( $string ) {
+  Logger::fetch()->logPrint( Logger::DEBUG, $string );
 }
 
 function Info( $string ) {

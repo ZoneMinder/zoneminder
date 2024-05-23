@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canView('Events') ) {
+if (!canView('Events')) {
   $view = 'error';
   return;
 }
@@ -29,7 +29,7 @@ $eid = validInt($_REQUEST['eid']);
 
 $event = new ZM\Event($eid);
 
-if ( ! canView('Monitors', $event->MonitorId() ) ) {
+if (!canView('Monitors', $event->MonitorId())) {
   $view = 'error';
   return;
 }
@@ -61,11 +61,11 @@ foreach ( $ffmpegFormats as $ffmpegFormat ) {
 }
 
 $videoFiles = array();
-if ( $dir = opendir($event_path) ) {
-  while ( ($file = readdir($dir)) !== false ) {
+if ($dir = opendir($event_path)) {
+  while (($file = readdir($dir)) !== false) {
     $file = $event_path.'/'.$file;
-    if ( is_file($file) ) {
-      if ( preg_match('/\.(?:'.join('|', $videoFormats).')$/', $file) ) {
+    if (is_file($file)) {
+      if (preg_match('/\.(?:'.join('|', $videoFormats).')$/', $file)) {
         $videoFiles[] = $file;
       }
     }
@@ -73,17 +73,15 @@ if ( $dir = opendir($event_path) ) {
   closedir($dir);
 }
 
-if ( isset($_REQUEST['deleteIndex']) ) {
+if (isset($_REQUEST['deleteIndex'])) {
   $deleteIndex = validInt($_REQUEST['deleteIndex']);
   unlink($videoFiles[$deleteIndex]);
   unset($videoFiles[$deleteIndex]);
-}
-
-if ( isset($_REQUEST['downloadIndex']) ) {
+} else if (isset($_REQUEST['downloadIndex'])) {
   // can't be output buffering, as this file might be large
   ob_end_clean();
   $downloadIndex = validInt($_REQUEST['downloadIndex']);
-  ZM\Error("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
+  ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
   header('Pragma: public');
   header('Expires: 0');
   header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
@@ -102,81 +100,92 @@ $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('Video'));
 ?>
 <body>
+  <?php echo getNavBarHTML() ?>
   <div id="page">
-    <div id="header">
-      <div id="headerButtons">
-        <a href="#" data-on-click="closeWindow"><?php echo translate('Close') ?></a>
+    <div class="w-100 py-1">
+      <div class="float-left pl-3">
+        <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+        <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        <button type="button" id="videoBtn" class="btn btn-normal" data-on-click="generateVideo" data-toggle="tooltip" data-placement="top" title="<?php echo translate('GenerateVideo') ?>" disabled><i class="fa fa-file-video-o"></i></button>
       </div>
-      <h2><?php echo translate('Video') ?></h2>
+      <div class="w-100 pt-2">
+        <h2><?php echo translate('Video') ?></h2>
+      </div>
     </div>
     <div id="content">
 <?php
-if ( isset($_REQUEST['showIndex']) ) {
+if (isset($_REQUEST['showIndex'])) {
   $showIndex = validInt($_REQUEST['showIndex']);
-  preg_match('/([^\/]+)\.([^.]+)$/', $videoFiles[$showIndex], $matches);
-  $name = $matches[1];
-  $videoFormat = $matches[2];
+  $path_parts = pathinfo($videoFiles[$showIndex]);
+
+  $width = $event->Width();
+  $height = $event->Height();
+
+  foreach (explode('-', $path_parts['filename']) as $option) {
+    if ( preg_match('/^s(.+)$/', $option, $temp_matches) ) {
+      $scale = (int)(preg_replace('/_/', '.', $temp_matches[1]) );
+      $width = $width * $scale;
+      $height = $height * $scale;
+    } elseif ( preg_match('/^S(\d+)x(\d+)$/', $option, $temp_matches) ) {
+      $width = $temp_matches[1];
+      $height = $temp_matches[2];
+    }
+  }
 ?>
-      <h3 id="videoFile"><?php echo substr($videoFiles[$showIndex], strlen(ZM_DIR_EVENTS)+1) ?></h3>
-      <div id="imageFeed"><?php outputVideoStream('videoStream', $videoFiles[$showIndex], validInt($_REQUEST['width']), validInt($_REQUEST['height']), $videoFormat, $name) ?></div>
+      <h3 id="videoFile"><?php echo $path_parts['basename'] ?></h3>
+      <div id="imageFeed"><?php outputVideoStream('videoStream',
+        '?view=view_video&event_id='.$eid.'&file='.urlencode($path_parts['basename']),
+      (isset($_REQUEST['width']) ? validInt($_REQUEST['width']) : $width),
+      (isset($_REQUEST['height']) ? validInt($_REQUEST['height']) : $height),
+      $path_parts['extension'], $path_parts['filename']) ?></div>
 <?php
-} else {
+}
 ?>
-      <form name="contentForm" id="contentForm" method="post" action="?">
+      <form name="contentForm" id="videoForm" method="post" action="?">
         <input type="hidden" name="id" value="<?php echo $event->Id() ?>"/>
         <table id="contentTable" class="minor">
           <tbody>
             <tr>
-              <th scope="row"><?php echo translate('VideoFormat') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('VideoFormat') ?></th>
               <td><?php echo buildSelect('videoFormat', $videoFormats) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('FrameRate') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('FrameRate') ?></th>
               <td><?php echo buildSelect('rate', $rates) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('VideoSize') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('VideoSize') ?></th>
               <td><?php echo buildSelect('scale', $scales) ?></td>
             </tr>
             <tr>
-              <th scope="row"><?php echo translate('OverwriteExisting') ?></th>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('Transform') ?></th>
+              <td>
+<?php 
+  $transforms = array(
+    ''=>translate('None'),
+    'hue=s=0'=>translate('Grayscale'),
+  );
+  echo buildSelect('transform', $transforms);
+?>
+              </td>
+            </tr>
+            <tr>
+              <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('OverwriteExisting') ?></th>
               <td><input type="checkbox" name="overwrite" value="1"<?php if ( !empty($_REQUEST['overwrite']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
           </tbody>
         </table>
-        <button type="button" data-on-click="generateVideo"<?php if ( !ZM_OPT_FFMPEG ) { ?> disabled="disabled"<?php } ?>>
-        <?php echo translate('GenerateVideo') ?>
-        </button>
       </form>
-<?php
-  if ( isset($_REQUEST['generated']) ) {
-?>
-      <h2 id="videoProgress" class="<?php echo $_REQUEST['generated']?'infoText':'errorText' ?>">
-        <span id="videoProgressText"><?php echo $_REQUEST['generated']?translate('VideoGenSucceeded'):translate('VideoGenFailed') ?></span>
-        <span id="videoProgressTicker"></span>
+      <h2 id="videoProgress" class="text-warning invisible"> 
+        <span class="spinner-grow" role="status" aria-hidden="true"></span> 
+        <?php echo translate('GeneratingVideo') ?>
       </h2>
-<?php
-  } else {
-?>
-      <h2 id="videoProgress" class="hidden warnText">
-        <span id="videoProgressText"><?php echo translate('GeneratingVideo') ?></span>
-        <span id="videoProgressTicker"></span>
-      </h2>
-<?php
-  }
-?>
       <h2 id="videoFilesHeader"><?php echo translate('VideoGenFiles') ?></h2>
-<?php
-  if ( count($videoFiles) == 0 ) {
-?>
-      <h3 id="videoNoFiles"><?php echo translate('VideoGenNoFiles') ?></h3>
-<?php
-  } else {
-?>
+
       <table id="videoTable" class="major">
         <thead>
           <tr>
-            <th scope="row"><?php echo translate('Format') ?></th>
+            <th scope="row"><?php echo translate('Filename') ?></th>
             <th scope="row"><?php echo translate('Size') ?></th>
             <th scope="row"><?php echo translate('Rate') ?></th>
             <th scope="row"><?php echo translate('Scale') ?></th>
@@ -185,51 +194,55 @@ if ( isset($_REQUEST['showIndex']) ) {
         </thead>
         <tbody>
 <?php
+
+  if ( count($videoFiles) == 0 ) {
+       ?>
+      <td>No Video Files Found</td>
+      <?php
+  } else {
     $index = 0;
     foreach ( $videoFiles as $file ) {
       if ( filesize($file) > 0 ) {
-        preg_match('/^(.+)-((?:r[_\d]+)|(?:F[_\d]+))-((?:s[_\d]+)|(?:S[0-9a-z]+))\.([^.]+)$/', $file, $matches);
-        if ( preg_match('/^r(.+)$/', $matches[2], $temp_matches) ) {
-          $rate = (int)(100 * preg_replace( '/_/', '.', $temp_matches[1] ) );
-          $rateText = isset($rates[$rate])?$rates[$rate]:($rate."x");
-        } elseif ( preg_match('/^F(.+)$/', $matches[2], $temp_matches) ) {
-          $rateText = $temp_matches[1].'fps';
-        }
-        if ( preg_match('/^s(.+)$/', $matches[3], $temp_matches) ) {
-          $scale = (int)(100 * preg_replace('/_/', '.', $temp_matches[1]) );
-          $scaleText = isset($scales[$scale])?$scales[$scale]:($scale.'x');
-        } elseif ( preg_match('/^S(.+)$/', $matches[3], $temp_matches) ) {
-          $scaleText = $temp_matches[1];
-        }
-        $width = $scale?reScale($event->Width(), $scale):$event->Width();
-        $height = $scale?reScale($event->Height(), $scale):$event->Height();
+        $path_parts = pathinfo($file);
+
+        foreach (explode('-', $path_parts['filename']) as $option) {
+          if ( preg_match('/^r(.+)$/', $option, $temp_matches) ) {
+            $rate = (int)(100 * preg_replace( '/_/', '.', $temp_matches[1] ) );
+            $rateText = isset($rates[$rate])?$rates[$rate]:($rate."x");
+          } elseif ( preg_match('/^F(.+)$/', $option, $temp_matches) ) {
+            $rateText = $temp_matches[1].'fps';
+          } else if ( preg_match('/^s(.+)$/', $option, $temp_matches) ) {
+            $scale = (int)(100 * preg_replace('/_/', '.', $temp_matches[1]) );
+            $scaleText = isset($scales[$scale])?$scales[$scale]:($scale.'x');
+          } elseif ( preg_match('/^S(.+)$/', $option, $temp_matches) ) {
+            $scaleText = $temp_matches[1];
+          }
+        } # end foreach option in filename
 ?>
         <tr>
-          <td><?php echo $matches[4] ?></td>
-          <td><?php echo filesize($file) ?></td>
+          <td>
+            <a href="?view=video&eid=<?php echo $event->Id() ?>&showIndex=<?php echo $index ?>"><?php echo $path_parts['basename'] ?></a></td>
+          <td><?php echo human_filesize(filesize($file)) ?></td>
           <td><?php echo $rateText ?></td>
           <td><?php echo $scaleText ?></td>
           <td>
-            <?php echo makePopupLink('?view='.$view.'&amp;eid='.$event->Id().'&amp;width='.$width.'&amp;height='.$height.'&amp;showIndex='.$index, 'zmVideo'.$event->Id().'-'.$scale, array('videoview', $width, $height), translate('View') ); ?>
-            &nbsp;/&nbsp;
-            <a href="#"
- data-on-click-this="downloadVideo" data-file-index="<?php echo $index ?>"><?php echo translate('Download') ?></a>
-            &nbsp;/&nbsp;
-            <a href="#" data-on-click-this="deleteVideo" data-file-index="<?php echo $index ?>"><?php echo translate('Delete') ?></a>
+            <a href="?view=video&eid=<?php echo $event->Id() ?>&downloadIndex=<?php echo $index ?>"><?php echo translate('Download') ?></a>
+               &nbsp;/&nbsp;
+            <a href="?view=video&eid=<?php echo $event->Id() ?>&deleteIndex=<?php echo $index ?>"><?php echo translate('Delete') ?></a>
           </td>
         </tr>
 <?php
         $index++;
       } # end if filesize
     } # end foreach videoFile
+  }
 ?>
         </tbody>
       </table>
-<?php
-  }
-}
-?>
     </div>
   </div>
-</body>
-</html>
+  <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
+  <link href="skins/<?php echo $skin ?>/js/video-js-skin.css" rel="stylesheet">
+  <script src="skins/<?php echo $skin ?>/js/video.js"></script>
+  <script src="./js/videojs.zoomrotate.js"></script>
+<?php xhtmlFooter() ?>

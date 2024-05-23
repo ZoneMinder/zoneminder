@@ -1,140 +1,130 @@
-var periodical_id;
+var server;
+var janus = null;
+var streaming2;
+var intervalId;
+const pauseBtn = $j('#pauseBtn');
+const playBtn = $j('#playBtn');
+var monitor;
 
 function nextCycleView() {
-  window.location.replace('?view=cycle&mid='+nextMid+'&mode='+mode, cycleRefreshTimeout);
+  window.location.replace('?view=cycle&mid='+nextMid+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
 }
 
 function cyclePause() {
-  $clear(periodical_id);
-  $('pauseBtn').disabled = true;
-  $('playBtn').disabled = false;
+  clearInterval(intervalId);
+  pauseBtn.prop('disabled', true);
+  playBtn.prop('disabled', false);
 }
+
 function cycleStart() {
-  periodical_id = nextCycleView.periodical(cycleRefreshTimeout);
-  $('pauseBtn').disabled = false;
-  $('playBtn').disabled = true;
+  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  pauseBtn.prop('disabled', false);
+  playBtn.prop('disabled', true);
 }
+
 function cycleNext() {
   monIdx ++;
   if ( monIdx >= monitorData.length ) {
     monIdx = 0;
   }
   if ( !monitorData[monIdx] ) {
-    console.log("No monitorData for " + monIdx);
+    console.log('No monitorData for ' + monIdx);
   }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
+  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
 }
+
 function cyclePrev() {
-  if (monIdx) {
-    monIdx -= 1;
-  } else {
+  monIdx --;
+  if ( monIdx < 0 ) {
     monIdx = monitorData.length - 1;
   }
+  if ( !monitorData[monIdx] ) {
+    console.log('No monitorData for ' + monIdx);
+  }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode, cycleRefreshTimeout);
+  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
 }
 
 function initCycle() {
-  periodical_id = nextCycleView.periodical(cycleRefreshTimeout);
+  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  monitor = new MonitorStream(monitorData[monIdx]);
+  monitor.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
+  monitor.start();
 }
 
 function changeSize() {
-  var width = $('width').get('value');
-  var height = $('height').get('value');
+  var width = $j('#width').val();
+  var height = $j('#height').val();
 
   // Scale the frame
-  monitor_frame = $j('#imageFeed');
+  monitor_frame = $j('#imageFeed'+monitor.id);
   if ( !monitor_frame ) {
     console.log('Error finding frame');
     return;
   }
-  if ( width ) {
-    monitor_frame.css('width', width);
+  let scale = 100;
+  if ( width != 'auto' && width != '100%') {
+    scale = parseInt(100*parseInt(width) / monitorData[monIdx].width);
   }
-  if ( height ) {
-    monitor_frame.css('height', height);
-  }
+  monitor_frame.css('width', width);
+  monitor_frame.css('height', height);
+  if (scale > 100) scale = 100;
+  if (scale <= 0) scale = 100;
 
-  /* Stream could be an applet so can't use moo tools */
-  var streamImg = $('liveStream'+monitorData[monIdx].id);
-  if ( streamImg ) {
-    if ( streamImg.nodeName == 'IMG' ) {
-      var src = streamImg.src;
-      streamImg.src = '';
-      console.log(parseInt(width));
-      src = src.replace(/width=[\.\d]+/i, 'width='+parseInt(width));
-      src = src.replace(/height=[\.\d]+/i, 'height='+parseInt(height));
-      src = src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-      streamImg.src = src;
-    }
-    streamImg.style.width = width ? width : null;
-    streamImg.style.height = height ? height : null;
-  } else {
-    console.log("Did not find liveStream"+monitorData[monIdx].id);
-  }
-  $('scale').set('value', '');
-  Cookie.write('zmCycleScale', '', {duration: 10*365});
-  Cookie.write('zmCycleWidth', width, {duration: 10*365});
-  Cookie.write('zmCycleHeight', height, {duration: 10*365});
+  $j('#scale').val('0');
+  setCookie('zmCycleScale', '0');
+  setCookie('zmCycleWidth', width);
+  setCookie('zmCycleHeight', height);
+  applyScale();
+  monitor.setStreamScale(scale);
 } // end function changeSize()
 
 function changeScale() {
-  var scale = $('scale').get('value');
-  $('width').set('value', 'auto');
-  $('height').set('value', 'auto');
-  Cookie.write('zmCycleScale', scale, {duration: 10*365});
-  Cookie.write('zmCycleWidth', 'auto', {duration: 10*365});
-  Cookie.write('zmCycleHeight', 'auto', {duration: 10*365});
-  var newWidth = ( monitorData[monIdx].width * scale ) / SCALE_BASE;
-  var newHeight = ( monitorData[monIdx].height * scale ) / SCALE_BASE;
+  var scale = $j('#scale').val();
+  $j('#width').val('auto');
+  $j('#height').val('auto');
+  setCookie('zmCycleScale', scale);
+  setCookie('zmCycleWidth', 'auto');
+  setCookie('zmCycleHeight', 'auto');
+  applyScale();
+} // end function changeScale()
+
+function applyScale() {
+  var scale = $j('#scale').val();
+  var width = $j('#width').val();
+  var height = $j('#height').val();
 
   // Scale the frame
-  monitor_frame = $j('#imageFeed');
+  monitor_frame = $j('#imageFeed'+monitor.id);
   if ( !monitor_frame ) {
     console.log('Error finding frame');
     return;
   }
 
-  if ( scale != '0' ) {
-    if ( newWidth ) {
-      monitor_frame.css('width', newWidth+'px');
-    }
-    if ( newHeight ) {
-      monitor_frame.css('height', newHeight+'px');
-    }
+  let newWidth;
+  let newHeight;
+  if ( scale != '0' && scale != '' && scale != 'auto' ) {
+    newWidth = (( monitorData[monIdx].width * scale ) / SCALE_BASE)+'px';
+    newHeight = (( monitorData[monIdx].height * scale ) / SCALE_BASE)+'px';
   } else {
-    monitor_frame.css('width', '100%');
-    monitor_frame.css('height', 'auto');
-  }
-  /*Stream could be an applet so can't use moo tools*/
-  var streamImg = $j('#liveStream'+monitorData[monIdx].id)[0];
-  if ( streamImg ) {
-    if ( streamImg.nodeName == 'IMG' ) {
-      var src = streamImg.src;
-      streamImg.src = '';
-
-      //src = src.replace(/rand=\d+/i,'rand='+Math.floor((Math.random() * 1000000) ));
-      src = src.replace(/scale=[\.\d]+/i, 'scale='+scale);
-      if ( scale != '0' ) {
-        src = src.replace(/width=[\.\d]+/i, 'width='+newWidth);
-        src = src.replace(/height=[\.\d]+/i, 'height='+newHeight);
-      } else {
-        src = src.replace(/width=[\.\d]+/i, 'width='+monitorData[monIdx].width);
-        src = src.replace(/height=[\.\d]+/i, 'height='+monitorData[monIdx].height);
-      }
-      streamImg.src = src;
-    }
-    if ( scale != '0' ) {
-      streamImg.style.width = newWidth+'px';
-      streamImg.style.height = newHeight+'px';
+    var newSize = scaleToFit(monitorData[monIdx].width, monitorData[monIdx].height, monitor_frame, $j('#buttons'));
+    if (width != 'auto' || height != 'auto') {
+      newWidth = width;
+      newHeight = height;
     } else {
-      streamImg.style.width = '100%';
-      streamImg.style.height = 'auto';
+      newWidth = newSize.width+'px';
+      newHeight = newSize.height+'px';
     }
-  } else {
-    console.log("Did not find liveStream"+monitorData[monIdx].id);
+    scale = newSize.autoScale;
   }
+  monitor_frame.width(newWidth);
+  monitor_frame.height(newHeight);
+  const monitor_image = $j('#imageFeed'+monitor.id + ' img');
+  monitor_image.width('100%');
+  monitor_image.height(height);
+
+  monitor.setStreamScale(scale);
 } // end function changeScale()
 
-window.addEventListener('DOMContentLoaded', initCycle);
+$j(document).ready(initCycle);

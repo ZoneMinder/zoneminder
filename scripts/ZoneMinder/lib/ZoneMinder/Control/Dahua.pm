@@ -78,12 +78,17 @@ sub open
         $ADDRESS = $self->{Monitor}->{ControlAddress};
     }
     if ( !($ADDRESS =~ /:/) ) {
-        Error('You generally need to also specify the port.  I will append :80');
         $ADDRESS .= ':80';
     }
 
     use LWP::UserAgent;
+    use IO::Socket::SSL;
     $self->{ua} = LWP::UserAgent->new(keep_alive => 1);
+    $self->{ua}->ssl_opts(
+      verify_hostname => 0,
+      SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
+      SSL_hostname => ''
+    );
     $self->{ua}->agent("ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION);
     $self->{state} = 'closed';
 #   credentials:  ("ip:port" (no prefix!), realm (string), username (string), password (string)
@@ -599,7 +604,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =head2 focusRel<range>
 
-    This set of methods invoke realtive focus in the range direction indicated by
+    This set of methods invoke relative focus in the range direction indicated by
     the <range> portion of their name. They accept no arguments.
 
     NOTE:
@@ -610,7 +615,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 =head2 irisRel<Large/Small>
 
-    This set of methods invoke realtive iris size in the direction indicated by
+    This set of methods invoke relative iris size in the direction indicated by
     the <Large/Small> portion of their name. They accept no arguments.
 
     NOTE:

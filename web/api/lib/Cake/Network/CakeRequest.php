@@ -25,6 +25,11 @@ App::uses('Hash', 'Utility');
  *
  * `$request['controller']` or `$request->controller`.
  *
+ * @property string $plugin     The plugin handling the request. Will be `null` when there is no plugin.
+ * @property string $controller The controller handling the current request.
+ * @property string $action     The action handling the current request.
+ * @property array $named       Array of named parameters parsed from the URL.
+ * @property array $pass        Array of passed arguments parsed from the URL.
  * @package       Cake.Network
  */
 class CakeRequest implements ArrayAccess {
@@ -241,6 +246,7 @@ class CakeRequest implements ArrayAccess {
  * @return string URI The CakePHP request path that is being accessed.
  */
 	protected function _url() {
+		$uri = '';
 		if (!empty($_SERVER['PATH_INFO'])) {
 			return $_SERVER['PATH_INFO'];
 		} elseif (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '://') === false) {
@@ -250,7 +256,10 @@ class CakeRequest implements ArrayAccess {
 			if ($qPosition !== false && strpos($_SERVER['REQUEST_URI'], '://') > $qPosition) {
 				$uri = $_SERVER['REQUEST_URI'];
 			} else {
-				$uri = substr($_SERVER['REQUEST_URI'], strlen(Configure::read('App.fullBaseUrl')));
+				$baseUrl = Configure::read('App.fullBaseUrl');
+				if (substr($_SERVER['REQUEST_URI'], 0, strlen($baseUrl)) === $baseUrl) {
+					$uri = substr($_SERVER['REQUEST_URI'], strlen($baseUrl));
+				}
 			}
 		} elseif (isset($_SERVER['PHP_SELF']) && isset($_SERVER['SCRIPT_NAME'])) {
 			$uri = str_replace($_SERVER['SCRIPT_NAME'], '', $_SERVER['PHP_SELF']);
@@ -303,7 +312,7 @@ class CakeRequest implements ArrayAccess {
 			return $this->base = $base;
 		}
 
-		if (!$baseUrl) {
+		if (empty($baseUrl)) {
 			$base = dirname(env('PHP_SELF'));
 			// Clean up additional / which cause following code to fail..
 			$base = preg_replace('#/+#', '/', $base);
@@ -502,14 +511,18 @@ class CakeRequest implements ArrayAccess {
  * defined with CakeRequest::addDetector(). Any detector can be called
  * as `is($type)` or `is$Type()`.
  *
- * @param string|array $type The type of request you want to check. If an array
+ * @param string|string[] $type The type of request you want to check. If an array
  *   this method will return true if the request matches any type.
  * @return bool Whether or not the request is the type you are checking.
  */
 	public function is($type) {
 		if (is_array($type)) {
-			$result = array_map(array($this, 'is'), $type);
-			return count(array_filter($result)) > 0;
+			foreach ($type as $_type) {
+				if ($this->is($_type)) {
+					return true;
+				}
+			}
+			return false;
 		}
 		$type = strtolower($type);
 		if (!isset($this->_detectors[$type])) {
@@ -637,8 +650,12 @@ class CakeRequest implements ArrayAccess {
  * @see CakeRequest::is()
  */
 	public function isAll(array $types) {
-		$result = array_filter(array_map(array($this, 'is'), $types));
-		return count($result) === count($types);
+		foreach ($types as $type) {
+			if (!$this->is($type)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 /**

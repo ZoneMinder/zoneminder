@@ -3,9 +3,14 @@ namespace ZM;
 require_once('Storage.php');
 require_once('functions.php');
 require_once('Object.php');
+require_once('Event_Tag.php');
+require_once('Tag.php');
 
 class Event extends ZM_Object {
   protected static $table = 'Events';
+
+  protected $Tags;
+  protected $Event_Tags;
 
   protected $defaults = array(
     'Id' => null,
@@ -14,8 +19,8 @@ class Event extends ZM_Object {
     'StorageId' => null,
     'SecondaryStorageId' => null,
     'Cause' => '',
-    'StartTime' => null,
-    'EndTime' => null,
+    'StartDateTime' => null,
+    'EndDateTime' => null,
     'Width' => null,
     'Height' => null,
     'Length' => null,
@@ -40,15 +45,18 @@ class Event extends ZM_Object {
     'Locked' => 0,
 );
   public static function find( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one( $parameters = array(), $options = array() ) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
   public static function clear_cache() {
-    return ZM_Object::_clear_cache(get_class());
+    return ZM_Object::_clear_cache(self::class);
+  }
+  public function remove_from_cache() {
+    return ZM_Object::_remove_from_cache(self::class, $this);
   }
 
   public function Storage( $new = null ) {
@@ -58,8 +66,10 @@ class Event extends ZM_Object {
     if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
       if ( isset($this->{'StorageId'}) and $this->{'StorageId'} )
         $this->{'Storage'} = Storage::find_one(array('Id'=>$this->{'StorageId'}));
-      if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) )
+      if ( ! ( property_exists($this, 'Storage') and $this->{'Storage'} ) ) {
         $this->{'Storage'} = new Storage(NULL);
+        $this->{'Storage'}->Scheme($this->Scheme());
+      }
     }
     return $this->{'Storage'};
   }
@@ -77,6 +87,21 @@ class Event extends ZM_Object {
     return $this->{'SecondaryStorage'};
   }
 
+  public function Length(){
+    if(! isset($this->{'Length'})){
+      //TODO: Do something when no Length found
+    }
+    return $this->{'Length'};
+    
+  }
+
+  public function Frames(){
+    if(! isset($this->{'Frames'})){
+      //TOOD: Do something when no Frames found
+    }
+    return $this->{'Frames'};
+  }
+  
   public function Monitor() {
     if ( isset($this->{'MonitorId'}) ) {
       $Monitor = Monitor::find_one(array('Id'=>$this->{'MonitorId'}));
@@ -88,9 +113,17 @@ class Event extends ZM_Object {
 
   public function Time() {
     if ( ! isset($this->{'Time'}) ) {
-      $this->{'Time'} = strtotime($this->{'StartTime'});
+      $this->{'Time'} = strtotime($this->{'StartDateTime'});
     }
     return $this->{'Time'};
+  }
+
+  public function StartDateTimeSecs() {
+    return strtotime($this->{'StartDateTime'});
+  }
+
+  public function EndDateTimeSecs() {
+    return strtotime($this->{'EndDateTime'});
   }
 
   public function Path() {
@@ -107,9 +140,9 @@ class Event extends ZM_Object {
     $event_path = '';
 
     if ( $this->{'Scheme'} == 'Deep' ) {
-      $event_path = $this->{'MonitorId'}.'/'.strftime('%y/%m/%d/%H/%M/%S', $this->Time());
+      $event_path = $this->{'MonitorId'}.'/'.date('y/m/d/H/i/s', $this->Time());
     } else if ( $this->{'Scheme'} == 'Medium' ) {
-      $event_path = $this->{'MonitorId'}.'/'.strftime('%Y-%m-%d', $this->Time()).'/'.$this->{'Id'};
+      $event_path = $this->{'MonitorId'}.'/'.date('Y-m-d', $this->Time()).'/'.$this->{'Id'};
     } else {
       $event_path = $this->{'MonitorId'}.'/'.$this->{'Id'};
     }
@@ -119,7 +152,7 @@ class Event extends ZM_Object {
 
   public function Link_Path() {
     if ( $this->{'Scheme'} == 'Deep' ) {
-      return $this->{'MonitorId'}.'/'.strftime('%y/%m/%d/.', $this->Time()).$this->{'Id'};
+      return $this->{'MonitorId'}.'/'.date('y/m/d/.', $this->Time()).$this->{'Id'};
     }
     Error('Calling Link_Path when not using deep storage');
     return '';
@@ -128,6 +161,10 @@ class Event extends ZM_Object {
   public function delete() {
     if ( ! $this->{'Id'} ) {
       Error('Event delete on event with empty Id');
+      return;
+    }
+    if ( $this->{'Archived'} ) {
+      Error('Cannot delete an Archived event.');
       return;
     }
     if ( ZM_OPT_FAST_DELETE ) {
@@ -144,9 +181,9 @@ class Event extends ZM_Object {
       if ( $this->{'Scheme'} == 'Deep' ) {
 
         # Assumption: All events have a start time
-        $start_date = date_parse($this->{'StartTime'});
+        $start_date = date_parse($this->{'StartDateTime'});
         if ( ! $start_date ) {
-          throw new Exception('Unable to parse start time for event ' . $this->{'Id'} . ' not deleting files.');
+          throw new Exception('Unable to parse start date time for event ' . $this->{'Id'} . ' not deleting files.');
         }
         $start_date['year'] = $start_date['year'] % 100;
 
@@ -205,29 +242,34 @@ class Event extends ZM_Object {
     }
   } # end Event->delete
 
-  public function getStreamSrc( $args=array(), $querySep='&' ) {
-
-    $streamSrc = '';
-    $Server = null;
+  public function Server() {
     if ( $this->Storage()->ServerId() ) {
       # The Event may have been moved to Storage on another server,
       # So prefer viewing the Event from the Server that is actually
       # storing the video
-      $Server = $this->Storage()->Server();
+      return $this->Storage()->Server();
     } else if ( $this->Monitor()->ServerId() ) {
       # Assume that the server that recorded it has it
-      $Server = $this->Monitor()->Server();
-    } else {
-      # A default Server will result in the use of ZM_DIR_EVENTS
-      $Server = new Server();
+      return $this->Monitor()->Server();
     }
+    # A default Server will result in the use of ZM_DIR_EVENTS
+    return new Server();
+  }
+
+  public function getStreamSrc( $args=array(), $querySep='&' ) {
+    $Server = $this->Server();
 
     # If we are in a multi-port setup, then use the multiport, else by
     # passing null Server->Url will use the Port set in the Server setting
-    $streamSrc .= $Server->Url(
-      ZM_MIN_STREAMING_PORT ?
+    if ($args['mode'] == 'mp4') { #Downloading a video file. It is possible to reconsider the condition later. 
+                                  #If the port is different from 80, the browser will start watching the video instead of downloading.
+      $port = null;
+    } else {
+      $port = ZM_MIN_STREAMING_PORT ?
       ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
-      null);
+      null;      
+    }
+    $streamSrc = $Server->Url($port);
 
     if ( $this->{'DefaultVideo'} and $args['mode'] != 'jpeg' ) {
       $streamSrc .= $Server->PathToIndex();
@@ -262,22 +304,27 @@ class Event extends ZM_Object {
     return $streamSrc;
   } // end function getStreamSrc
 
+  # The new='' is to so that if we pass null, we reset the value of DiskSpace.
+  # '' is not a valid DiskSpace so that tells us that nothing was passed whereas null (unknown) is.
   function DiskSpace( $new='' ) {
     if ( is_null($new) or ( $new != '' ) ) {
       $this->{'DiskSpace'} = $new;
     }
     if ( (!property_exists($this, 'DiskSpace')) or (null === $this->{'DiskSpace'}) ) {
       $this->{'DiskSpace'} = folder_size($this->Path());
-      dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
+      if ($this->{'EndDateTime'} and $this->{'DiskSpace'}) {
+        # Finished events shouldn't grow in size much so we can commit it to the db.
+        dbQuery('UPDATE Events SET DiskSpace=? WHERE Id=?', array($this->{'DiskSpace'}, $this->{'Id'}));
+      }
     }
     return $this->{'DiskSpace'};
   }
 
   function createListThumbnail( $overwrite=false ) {
-	# The idea here is that we don't really want to use the analysis jpeg as the thumbnail.  
-	# The snapshot image will be generated during capturing
+    # The idea here is that we don't really want to use the analysis jpeg as the thumbnail.  
+    # The snapshot image will be generated during capturing
     if ( file_exists($this->Path().'/snapshot.jpg') ) {
-      Logger::Debug("snapshot exists");
+      Debug("snapshot exists");
       $frame = null;
     } else {
       # Load the frame with the highest score to use as a thumbnail
@@ -337,25 +384,21 @@ class Event extends ZM_Object {
 
   function getThumbnailSrc( $args=array(), $querySep='&' ) {
     # The thumbnail is theoretically the image with the most motion.
-# We always store at least 1 image when capturing
+    # We always store at least 1 image when capturing
 
     $streamSrc = '';
-    $Server = null;
-    if ( $this->Storage()->ServerId() ) {
-      $Server = $this->Storage()->Server();
-    } else if ( $this->Monitor()->ServerId() ) {
-      # Assume that the server that recorded it has it
-      $Server = $this->Monitor()->Server();
-    } else {
-      $Server = new Server();
-    }
+    $Server = $this->Server();
     $streamSrc .= $Server->UrlToIndex(
       ZM_MIN_STREAMING_PORT ?
       ZM_MIN_STREAMING_PORT+$this->{'MonitorId'} :
       null);
 
     $args['eid'] = $this->{'Id'};
-    $args['fid'] = 'snapshot';
+    if (file_exists($this->Path().'/objdetect.jpg')) {
+      $args['fid'] = 'objdetect';
+    } else {
+      $args['fid'] = 'snapshot';
+    }
     $args['view'] = 'image';
     $args['width'] = $this->ThumbnailWidth();
     $args['height'] = $this->ThumbnailHeight();
@@ -380,60 +423,66 @@ class Event extends ZM_Object {
     $Event = $this;
     $eventPath = $Event->Path();
 
-    if ( $frame and ! is_array($frame) ) {
-      # Must be an Id
-      Logger::Debug("Assuming that $frame is an Id");
-      $frame = array( 'FrameId'=>$frame, 'Type'=>'', 'Delta'=>0 );
+    if ( $frame and !is_array($frame) ) {
+      Debug("Assuming that $frame is an Id");
+      $f = Frame::find_one(['Id'=>$frame]);
+      if ($f) {
+        $frame = (array)$f;
+      } else {
+        $frame = $this->find_virtual_frame($frame);
+        if (!$frame)
+          $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
+      }
     }
 
-    if ( ( ! $frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
+    if ( ( !$frame ) and file_exists($eventPath.'/snapshot.jpg') ) {
       # No frame specified, so look for a snapshot to use
-      $captImage = 'snapshot.jpg';
-      Logger::Debug("Frame not specified, using snapshot");
-      $frame = array('FrameId'=>'snapshot', 'Type'=>'','Delta'=>0);
+      $captureImage = 'snapshot.jpg';
+      Debug('Frame not specified, using snapshot');
+      $frame = array('FrameId'=>'snapshot', 'Type'=>'', 'Delta'=>0);
     } else {
-      $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId'] );
-      if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
-        $captImage = sprintf( '%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId'] );
-        if ( ! file_exists( $eventPath.'/'.$captImage ) ) {
+      $captureImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId']);
+      if ( ! file_exists( $eventPath.'/'.$captureImage ) ) {
+        $captureImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId']);
+        if ( !file_exists($eventPath.'/'.$captureImage) ) {
           # Generate the frame JPG
           if ( $Event->DefaultVideo() ) {
             $videoPath = $eventPath.'/'.$Event->DefaultVideo();
 
-            if ( ! file_exists( $videoPath ) ) {
-              Error("Event claims to have a video file, but it does not seem to exist at $videoPath" );
+            if ( !file_exists($videoPath) ) {
+              Error('Event claims to have a video file, but it does not seem to exist at '.$videoPath);
               return '';
             } 
               
-            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captImage;
-            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captImage;
-            Logger::Debug( "Running $command" );
+            #$command ='ffmpeg -v 0 -i '.$videoPath.' -vf "select=gte(n\\,'.$frame['FrameId'].'),setpts=PTS-STARTPTS" '.$eventPath.'/'.$captureImage;
+            $command ='ffmpeg -ss '. $frame['Delta'] .' -i '.$videoPath.' -frames:v 1 '.$eventPath.'/'.$captureImage;
+            Debug('Running '.$command);
             $output = array();
             $retval = 0;
-            exec( $command, $output, $retval );
-            Logger::Debug("Retval: $retval, output: " . implode("\n", $output));
+            exec($command, $output, $retval);
+            Debug("Retval: $retval, output: " . implode("\n", $output));
           } else {
-            Error("Can't create frame images from video because there is no video file for event ".$Event->Id().' at ' .$Event->Path() );
+            Error('Can\'t create frame images from video because there is no video file for event '.$Event->Id().' at ' .$Event->Path());
           }
         } // end if capture file exists
       } // end if analyze file exists
     } // end if frame or snapshot
 
-    $captPath = $eventPath.'/'.$captImage;
-    if ( ! file_exists($captPath) ) {
-      Error("Capture file does not exist at $captPath");
+    $capturePath = $eventPath.'/'.$captureImage;
+    if ( !file_exists($capturePath) ) {
+      Error('Capture file does not exist at '.$capturePath);
     }
     
-    $analImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
-    $analPath = $eventPath.'/'.$analImage;
+    $analysisImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
+    $analysisPath = $eventPath.'/'.$analysisImage;
 
-    $alarmFrame = $frame['Type']=='Alarm';
+    $alarmFrame = $frame['Type'] == 'Alarm';
 
-    $hasAnalImage = $alarmFrame && file_exists($analPath) && filesize($analPath);
-    $isAnalImage = $hasAnalImage && !$captureOnly;
+    $hasAnalysisImage = $alarmFrame && file_exists($analysisPath) && filesize($analysisPath);
+    $isAnalysisImage = $hasAnalysisImage && !$captureOnly;
 
-    if ( !ZM_WEB_SCALE_THUMBS || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
-      $imagePath = $thumbPath = $isAnalImage ? $analPath : $captPath;
+    if ( !ZM_WEB_SCALE_THUMBS || !$scale || ($scale >= SCALE_BASE) || !function_exists('imagecreatefromjpeg') ) {
+      $imagePath = $thumbPath = $isAnalysisImage ? $analysisPath : $capturePath;
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;
     } else {
@@ -443,21 +492,21 @@ class Event extends ZM_Object {
         $fraction = sprintf('%.3f', $scale/SCALE_BASE);
       $scale = (int)round($scale);
 
-      $thumbCaptPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $captPath );
-      $thumbAnalPath = preg_replace( '/\.jpg$/', "-$scale.jpg", $analPath );
+      $thumbCapturePath = preg_replace('/\.jpg$/', "-$scale.jpg", $capturePath);
+      $thumbAnalysisPath = preg_replace('/\.jpg$/', "-$scale.jpg", $analysisPath);
 
-      if ( $isAnalImage ) {
-        $imagePath = $analPath;
-        $thumbPath = $thumbAnalPath;
+      if ( $isAnalysisImage ) {
+        $imagePath = $analysisPath;
+        $thumbPath = $thumbAnalysisPath;
       } else {
-        $imagePath = $captPath;
-        $thumbPath = $thumbCaptPath;
+        $imagePath = $capturePath;
+        $thumbPath = $thumbCapturePath;
       }
 
       $thumbFile = $thumbPath;
       if ( $overwrite || ! file_exists($thumbFile) || ! filesize($thumbFile) ) {
         // Get new dimensions
-        list( $imageWidth, $imageHeight ) = getimagesize($imagePath);
+        list($imageWidth, $imageHeight) = getimagesize($imagePath);
         $thumbWidth = $imageWidth * $fraction;
         $thumbHeight = $imageHeight * $fraction;
 
@@ -478,13 +527,13 @@ class Event extends ZM_Object {
         'imageFile' => $imagePath,
         'thumbFile' => $thumbFile,
         'imageClass' => $alarmFrame?'alarm':'normal',
-        'isAnalImage' => $isAnalImage,
-        'hasAnalImage' => $hasAnalImage,
-        'FrameId'		=>	$frame['FrameId'],
+        'isAnalysisImage' => $isAnalysisImage,
+        'hasAnalysisImage' => $hasAnalysisImage,
+        'FrameId' => $frame['FrameId'],
         );
 
     return $imageData;
-  }
+  } # getImageSrc
 
   public function link_to($text=null) {
     if ( !$text )
@@ -500,7 +549,7 @@ class Event extends ZM_Object {
       return false;
     }
     $Storage= $this->Storage();
-    $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
+    $Server = $this->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi() . '/events/'.$this->{'Id'}.'.json';
@@ -515,7 +564,7 @@ class Event extends ZM_Object {
           return;
         }
       }
-      Logger::Debug("sending command to $url");
+      Debug("sending command to $url");
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
@@ -531,7 +580,7 @@ class Event extends ZM_Object {
           Error("Error restarting zmc using $url");
         }
         $event_data = json_decode($result,true);
-        Logger::Debug(print_r($event_data['event']['Event'],1));
+        Debug(print_r($event_data['event']['Event'],1));
         return $event_data['event']['Event']['fileExists'];
       } catch ( Exception $e ) {
         Error("Except $e thrown trying to get event data");
@@ -548,7 +597,7 @@ class Event extends ZM_Object {
       return false;
     }
     $Storage= $this->Storage();
-    $Server = $Storage->ServerId() ? $Storage->Server() : $this->Monitor()->Server();
+    $Server = $this->Server();
     if ( $Server->Id() != ZM_SERVER_ID ) {
 
       $url = $Server->UrlToApi().'/events/'.$this->{'Id'}.'.json';
@@ -563,7 +612,7 @@ class Event extends ZM_Object {
           return;
         }
       }
-      Logger::Debug("sending command to $url");
+      Debug("sending command to $url");
       // use key 'http' even if you send the request to https://...
       $options = array(
           'http' => array(
@@ -579,7 +628,7 @@ class Event extends ZM_Object {
           Error("Error restarting zmc using $url");
         }
         $event_data = json_decode($result,true);
-        Logger::Debug(print_r($event_data['event']['Event'], 1));
+        Debug(print_r($event_data['event']['Event'], 1));
         return $event_data['event']['Event']['fileSize'];
       } catch ( Exception $e ) {
         Error("Except $e thrown trying to get event data");
@@ -592,7 +641,7 @@ class Event extends ZM_Object {
     if ( $this->Archived() ) {
       return false;
     }
-    if ( !$this->EndTime() ) {
+    if ( !$this->EndDateTime() ) {
       return false;
     }
     if ( !canEdit('Events') ) {
@@ -605,7 +654,7 @@ class Event extends ZM_Object {
   public function cant_delete_reason() {
     if ( $this->Archived() ) {
       return 'You cannot delete an archived event. Unarchive it first.';
-    } else if ( ! $this->EndTime() ) {
+    } else if ( ! $this->EndDateTime() ) {
       return 'You cannot delete an event while it is being recorded. Wait for it to finish.';
     } else if ( ! canEdit('Events') ) {
       return 'You do not have rights to edit Events.';
@@ -613,6 +662,187 @@ class Event extends ZM_Object {
     return 'Unknown reason';
   }
 
-} # end class
+  function canView($u=null) {
+    global $user;
+    if (!$u) $u=$user;
+    if (!$u) {
+      # auth turned on and not logged in
+      return false;
+    }
+    if (!$this->Monitor()->canView($u)) return false;
 
+    if ($u->Events() != 'None') {
+      return true;
+    }
+    if ($u->Snapshots() != 'None') {
+      # If the event is contained in a snapshot, then we can still view it.
+      if (dbFetchOne('SELECT * FROM Snapshot_Events WHERE EventId=?', $this->Id()))
+        return true;
+    }
+    return false;
+  }
+
+  function canEdit($u=null) {
+    global $user;
+    if (!$u) $u=$user;
+    if (!$u) {
+      # auth turned on and not logged in
+      return false;
+    }
+    if (!$this->Monitor()->canView($u)) return false;
+    if ($u->Events() != 'Edit') {
+      return false;
+    }
+    return true;
+  }
+
+  function createVideo($format, $rate, $scale, $transform, $overwrite=false) {
+    $command = ZM_PATH_BIN.'/zmvideo.pl -e '.$this->{'Id'}.' -f '.$format.' -r '.sprintf('%.2F', ($rate/RATE_BASE));
+    if (preg_match('/\d+x\d+/', $scale)) {
+      $command .= ' -S '.$scale;
+    } else {
+      if ( version_compare(phpversion(), '4.3.10', '>=') )
+        $command .= ' -s '.sprintf('%.2F', ($scale/SCALE_BASE));
+      else
+        $command .= ' -s '.sprintf('%.2f', ($scale/SCALE_BASE));
+    }
+    if ($transform != '') {
+      $transform = preg_replace('/[^\w=]/', '', $transform);
+      $command .= ' -t '.$transform;
+    }
+    if ($overwrite)
+      $command .= ' -o';
+    $command = escapeshellcmd($command);
+    $result = exec($command, $output, $status);
+    Debug("generating Video $command: result($result outptu:(".implode("\n", $output )." status($status");
+    return $status ? '' : rtrim($result);
+  }
+
+  public function find_virtual_frame($fid) {
+    $frame = null;
+
+    $previousBulkFrame = dbFetchOne(
+      'SELECT * FROM Frames WHERE EventId=? AND FrameId < ? ORDER BY FrameID DESC LIMIT 1',
+      NULL, array($this->Id(), $fid)
+    );
+    $nextBulkFrame = dbFetchOne(
+      'SELECT * FROM Frames WHERE EventId=? AND FrameId > ? ORDER BY FrameID ASC LIMIT 1',
+      NULL, array($this->Id(), $fid)
+    );
+    if ($previousBulkFrame and $nextBulkFrame) {
+      $frame = new Frame($previousBulkFrame);
+      $frame->FrameId($fid);
+
+      $percentage = ($frame->FrameId() - $previousBulkFrame['FrameId']) / ($nextBulkFrame['FrameId'] - $previousBulkFrame['FrameId']);
+      $frame->Delta($previousBulkFrame['Delta'] + floor( 100* ( $nextBulkFrame['Delta'] - $previousBulkFrame['Delta'] ) * $percentage )/100);
+      Debug('Got virtual frame from Bulk Frames previous delta: ' . $previousBulkFrame['Delta'] . ' + nextdelta:' . $nextBulkFrame['Delta'] . ' - ' . $previousBulkFrame['Delta'] . ' * ' . $percentage );
+    } else if ($previousBulkFrame) {
+      //If no next Frame we have to pull data from the Event itself
+      $frame = new Frame($previousBulkFrame);
+      $frame->FrameId($_REQUEST['fid']);
+
+      $percentage = ($frame->FrameId()/$this->Frames());
+
+      $frame->Delta(floor($this->Length() * $percentage));
+    }
+    return $frame;
+  }
+
+  public function Event_Tags() {
+    if (!isset($this->Event_Tags)) {
+      $this->Event_Tags = $this->Id() ? Event_Tag::find(['EventId'=>$this->Id()]) : [];
+    }
+    return $this->Event_Tags;
+  }
+
+  public function Tags() {
+    if (!isset($this->Tags)) {
+      $this->Tags = array_map(function($t){return $t->Tag();}, $this->Event_Tags());
+    } else {
+      Debug("Have Tags");
+    }
+    return $this->Tags;
+  }
+
+  public function GenerateVideo($rate=0, $fps=0, $scale=0, $size=0, $overwrite=false, $format='mp4', $transforms='')  {
+    $event_path = $this->Path();
+    $video_name = preg_replace('/\s/', '_', $this->Name());
+
+    $file_parts = [$video_name];
+    if ( $rate ) {
+      $file_rate = str_replace('.', '_', $rate);
+      $file_rate = str_replace('_00', '', $file_rate);
+      $file_rate = preg_replace('/(_\d+)0+$/', '$1', $file_rate);
+      $file_parts[] = 'r'.$file_rate;
+    } else if ( $fps ) {
+      $file_fps = str_replace('.', '_', $fps);
+      $file_fps = str_replace('_00', '', $file_fps);
+      $file_fps = preg_replace('/(_\d+)0+$/', '$1', $file_rate);
+      $file_parts[] = 'R'.$file_fps;
+    }
+
+    if ( $scale ) {
+      $file_scale = str_replace('.', '_', $scale);
+      $file_scale = str_replace('/_00/', '', $file_scale);
+      $file_scale = preg_replace('/(_\d+)0+$/', '$1', $file_scale);
+      $file_parts[] = 's'.$file_scale;
+    } else if ( $size ) {
+      $file_size = 'S'.$size;
+      $file_parts[] = $file_size;
+    }
+    array_merge($file_parts, explode(',', $transforms));
+    $video_file = implode('-', $file_parts).'.'.$format;
+    if ( $overwrite || ! file_exists($video_file) ) {
+      Info("Creating video file $video_file for event ".$this->Id());
+
+      $frame_rate = sprintf('%.2f', $this->Frames()/$this->Length());
+      if ($rate) {
+        if ( $rate != 1.0 ) {
+          $frame_rate *= $rate;
+        }
+      } else if ( $fps ) {
+        $frame_rate = $fps;
+      }
+
+      $width = $this->Width();
+      $height = $this->Height();
+      $video_size = " {$width}x{$height}";
+
+      if ( $scale ) {
+        if ( $scale != 1.0 ) {
+          $width = int($width*$scale);
+          $height = int($height*$scale);
+          $video_size = " {$width}x{$height}";
+        }
+      } else if ( $size ) {
+        $video_size = $size;
+      }
+      $command = ZM_PATH_FFMPEG
+      ." -y -r $frame_rate "
+        .ZM_FFMPEG_INPUT_OPTIONS
+        .' -i ' . $event_path.'/'.( $this->DefaultVideo() ? $this->DefaultVideo() : '%0'.ZM_EVENT_IMAGE_DIGITS .'d-capture.jpg' )
+        #. " -f concat -i /tmp/event_files.txt"
+        #
+        .implode(' ', array_map(function($t){ return ' -vf '.$t; }, explode(',', $transforms)))
+      ." -s $video_size "
+
+        .ZM_FFMPEG_OUTPUT_OPTIONS
+        ." '$event_path/$video_file' > $event_path/ffmpeg.log 2>&1"
+        ;
+      Debug($command);
+      if(!exec(escapeshellcmd($command), $output, $rc)) {
+        Error("Unable to generate video, check $event_path/ffmpeg.log for details");
+        return;
+      }
+
+      Info("Finished $video_file");
+      return $video_file;
+    } else {
+      Info("Video file $video_file already exists for event {$this['Id']}");
+      return $video_file;
+    }
+    return;
+  } # end sub GenerateVideo
+
+} # end class
 ?>

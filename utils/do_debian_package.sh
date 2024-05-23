@@ -58,6 +58,14 @@ case $i in
     PACKAGE_VERSION="${i#*=}"
     shift
     ;;
+    -x=*|--debbuild-extra=*)
+    DEBBUILD_EXTRA="${i#*=}"
+    shift
+    ;;
+    --dput=*)
+    DPUT="${i#*=}"
+    shift
+    ;;
     --default)
     DEFAULT=YES
     shift # past argument with no value
@@ -79,11 +87,7 @@ else
 fi;
 
 if [ "$DISTROS" == "" ]; then
-  if [ "$RELEASE" != "" ]; then
-    DISTROS="xenial,bionic,disco,eoan,focal,trusty"
-  else
-    DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
-  fi;
+  DISTROS=`lsb_release -a 2>/dev/null | grep Codename | awk '{print $2}'`;
   echo "Defaulting to $DISTROS for distribution";
 else
   echo "Building for $DISTROS";
@@ -108,47 +112,6 @@ else
     echo "Defaulting to ZoneMinder upstream git"
     GITHUB_FORK="ZoneMinder"
   fi;
-  if [ "$SNAPSHOT" == "stable" ]; then
-    if [ "$BRANCH" == "" ]; then
-      #REV=$(git rev-list --tags --max-count=1)
-      BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
-      if [ "$BRANCH" == "" ]; then
-        echo "Unable to determine latest stable branch!"
-        exit 0;
-      fi
-      echo "Latest stable branch is $BRANCH";
-    fi;
-  else
-    if [ "$BRANCH" == "" ]; then
-      echo "Defaulting to master branch";
-      BRANCH="master";
-    fi;
-    if [ "$SNAPSHOT" == "NOW" ]; then
-      SNAPSHOT=`date +%Y%m%d%H%M%S`;
-    else
-      if [ "$SNAPSHOT" == "CURRENT" ]; then
-        SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
-      fi;
-    fi;
-  fi;
-fi
-
-IFS='.' read -r -a VERSION_PARTS <<< "$RELEASE"
-if [ "$PPA" == "" ]; then
-  if [ "$RELEASE" != "" ]; then
-    # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
-    if [ "${VERSION_PARTS[0]}.${VERSION_PARTS[1]}" == "1.30" ]; then
-      PPA="ppa:iconnor/zoneminder-stable"
-    else
-      PPA="ppa:iconnor/zoneminder-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}"
-    fi;
-  else
-    if [ "$BRANCH" == "" ]; then
-      PPA="ppa:iconnor/zoneminder-master";
-    else
-      PPA="ppa:iconnor/zoneminder-$BRANCH";
-    fi;
-  fi;
 fi;
 
 # Instead of cloning from github each time, if we have a fork lying around, update it and pull from there instead.
@@ -158,11 +121,8 @@ if [ ! -d "${GITHUB_FORK}_zoneminder_release" ]; then
     cd "${GITHUB_FORK}_ZoneMinder.git"
     echo "git pull..."
     git pull
-    echo "git checkout $BRANCH"
-    git checkout $BRANCH
-    echo "git pull..."
-    git pull
     cd ../
+
     echo "git clone ${GITHUB_FORK}_ZoneMinder.git ${GITHUB_FORK}_zoneminder_release"
     git clone "${GITHUB_FORK}_ZoneMinder.git" "${GITHUB_FORK}_zoneminder_release"
   else
@@ -175,14 +135,59 @@ else
 fi;
 
 cd "${GITHUB_FORK}_zoneminder_release"
-  git checkout $BRANCH
-cd ../
 
-VERSION=`cat ${GITHUB_FORK}_zoneminder_release/version`
+if [ "$SNAPSHOT" == "stable" ]; then
+  if [ "$BRANCH" == "" ]; then
+    #REV=$(git rev-list --tags --max-count=1)
+    BRANCH=`git describe --tags $(git rev-list --tags --max-count=1)`;
+    if [ -z "$BRANCH" ]; then
+      # This should only happen in CI environments where tag info isn't available
+      BRANCH=$(cat "$(find . -maxdepth 1 -name 'version' -o -name 'version.txt')")
+      echo "Building branch $BRANCH"
+    fi
+    if [ "$BRANCH" == "" ]; then
+      echo "Unable to determine latest stable branch!"
+      exit 0;
+    fi
+    echo "Latest stable branch is $BRANCH";
+  fi;
+else
+  if [ "$BRANCH" == "" ]; then
+    echo "Defaulting to master branch";
+    BRANCH="master";
+  fi;
+  if [ "$SNAPSHOT" == "NOW" ]; then
+    SNAPSHOT=`date +%Y%m%d%H%M%S`;
+  else
+    if [ "$SNAPSHOT" == "CURRENT" ]; then
+      # git the latest (short) commit hash of the version file
+      versionhash=$(git log -n1 --pretty=format:%h version.txt)
 
+      # Number of commits since the version file was last changed
+      numcommits=$(git rev-list ${versionhash}..HEAD --count)
+      SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+    fi;
+  fi;
+fi;
+
+
+echo "git checkout $BRANCH"
+git checkout $BRANCH
+if [ $? -ne 0 ]; then
+  echo "Failed to switch to branch."
+  exit 1;
+fi;
+echo "git pull..."
+git pull
+# Grab the ZoneMinder version from the contents of the version file
+VERSION=$(cat "$(find . -maxdepth 1 -name 'version' -o -name 'version.txt')")
 if [ -z "$VERSION" ]; then
   exit 1;
 fi;
+IFS='.' read -r -a VERSION_PARTS <<< "$VERSION"
+
+cd ../
+
 if [ "$SNAPSHOT" != "stable" ] && [ "$SNAPSHOT" != "" ]; then
   VERSION="$VERSION~$SNAPSHOT";
 fi;
@@ -212,7 +217,13 @@ rm -rf .git
 rm .gitignore
 cd ../
 
-if [ ! -e "$DIRECTORY.orig.tar.gz" ]; then
+
+if [ -e "$DIRECTORY.orig.tar.gz" ]; then
+  read -p "$DIRECTORY.orig.tar.gz exists, overwrite it? [Y/n]"
+  if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
+    tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
+  fi;
+else
   tar zcf $DIRECTORY.orig.tar.gz $DIRECTORY.orig
 fi;
 
@@ -224,15 +235,11 @@ IFS=',' ;for DISTRO in `echo "$DISTROS"`; do
     rm -rf debian
   fi;
 
-  # Generate Changlog
-  if [ "$DISTRO" == "trusty" ] || [ "$DISTRO" == "precise" ]; then 
-    cp -Rpd distros/ubuntu1204 debian
-  else 
-    if [ "$DISTRO" == "wheezy" ]; then 
-      cp -Rpd distros/debian debian
-    else 
-      cp -Rpd distros/ubuntu1604 debian
-    fi;
+  # Generate Changelog
+  if [ "$DISTRO" == "beowulf" ]; then
+    cp -Rpd distros/beowulf debian
+  else
+    cp -Rpd distros/ubuntu2004 debian
   fi;
 
   if [ "$DEBEMAIL" != "" ] && [ "$DEBFULLNAME" != "" ]; then
@@ -282,30 +289,37 @@ zoneminder ($VERSION-$DISTRO${PACKAGE_VERSION}) $DISTRO; urgency=$URGENCY
 EOF
   fi;
 
+  # Leave the .orig so that we don't pollute it when building deps
+  cd ..
   if [ $TYPE == "binary" ]; then
-    # Auto-install all ZoneMinder's depedencies using the Debian control file
-    sudo apt-get install devscripts equivs
-    sudo mk-build-deps -ir ./debian/control
-    echo "Status: $?"
-    DEBUILD=debuild
+	  # Auto-install all ZoneMinder's dependencies using the Debian control file
+	  sudo apt-get install devscripts equivs
+	  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
+	  echo "Status: $?"
+	  DEBUILD=debuild
   else
-    if [ $TYPE == "local" ]; then
-      # Auto-install all ZoneMinder's depedencies using the Debian control file
-      sudo apt-get install devscripts equivs
-      sudo mk-build-deps -ir ./debian/control
-      echo "Status: $?"
-      DEBUILD="debuild -i -us -uc -b"
-    else 
-      # Source build, don't need build depends.
-      DEBUILD="debuild -S -sa"
-    fi;
+	  if [ $TYPE == "local" ]; then
+		  # Auto-install all ZoneMinder's dependencies using the Debian control file
+		  sudo apt-get install devscripts equivs
+		  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
+		  echo "Status: $?"
+		  DEBUILD="debuild -i -us -uc -b"
+	  else 
+		  # Source build, don't need build depends.
+		  DEBUILD="debuild -S -sa"
+	  fi;
   fi;
+
+  cd $DIRECTORY.orig
+
   if [ "$DEBSIGN_KEYID" != "" ]; then
     DEBUILD="$DEBUILD -k$DEBSIGN_KEYID"
   fi
+  # Add any extra options specified on the CLI
+  DEBUILD="$DEBUILD $DEBBUILD_EXTRA"
   eval $DEBUILD
   if [ $? -ne 0 ]; then
-  echo "Error status code is: $?"
+    echo "Error status code is: $?"
     echo "Build failed.";
     exit $?;
   fi;
@@ -321,6 +335,7 @@ EOF
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
       if [[ $REPLY == [yY] ]]; then
         if [ "$RELEASE" != "" ]; then
+          echo "scp \"zoneminder_${VERSION}-${DISTRO}\"* \"zoneminder-doc_${VERSION}-${DISTRO}\"* \"zoneminder-dbg_${VERSION}-${DISTRO}\"* \"zoneminder_${VERSION}.orig.tar.gz\" \"zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
           scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
@@ -333,22 +348,40 @@ EOF
     fi;
   else
     SC="zoneminder_${VERSION}-${DISTRO}${PACKAGE_VERSION}_source.changes";
+    if [ "$PPA" == "" ]; then
+      if [ "$RELEASE" != "" ]; then
+        # We need to use our official tarball for the original source, so grab it and overwrite our generated one.
+        if [ "${VERSION_PARTS[0]}.${VERSION_PARTS[1]}" == "1.30" ]; then
+          PPA="ppa:iconnor/zoneminder-stable"
+        else
+          PPA="ppa:iconnor/zoneminder-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}"
+        fi;
+      else
+        if [ "$BRANCH" == "" ]; then
+          PPA="ppa:iconnor/zoneminder-master";
+        else
+          PPA="ppa:iconnor/zoneminder-$BRANCH";
+        fi;
+      fi;
+    fi;
 
     dput="Y";
     if [ "$INTERACTIVE" != "no" ]; then
-      read -p "Ready to dput $SC to $PPA ? Y/N...";
-      if [[ "$REPLY" == [yY] ]]; then
-        dput $PPA $SC
+      read -p "Ready to dput $SC to $PPA ? Y/n...";
+      if [[ "$REPLY" == "" || "$REPLY" == [yY] ]]; then
+        dput -d $PPA $SC
       fi;
     else
-      echo "dputting to $PPA";
-      dput $PPA $SC
+      if [ "$DPUT" != "no" ]; then
+        echo "dputting to $PPA";
+        dput -d $PPA $SC
+      fi;
     fi;
   fi;
 done; # foreach distro
 
 if [ "$INTERACTIVE" != "no" ]; then
-  read -p "Do you want to keep the checked out version of Zoneminder (incase you want to modify it later) [y/N]"
+  read -p "Do you want to keep the checked out version of Zoneminder (in case you want to modify it later) [y/N]"
   [[ $REPLY == [yY] ]] && { mv "$DIRECTORY.orig" zoneminder_release; echo "The checked out copy is preserved in zoneminder_release"; } || { rm -fr "$DIRECTORY.orig"; echo "The checked out copy has been deleted"; }
   echo "Done!"
 else 

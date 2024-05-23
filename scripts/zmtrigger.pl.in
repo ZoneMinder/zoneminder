@@ -42,6 +42,7 @@ use constant SELECT_TIMEOUT => 0.25;
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
+use ZoneMinder::Monitor;
 use ZoneMinder::Trigger::Channel::Inet;
 use ZoneMinder::Trigger::Channel::Unix;
 use ZoneMinder::Trigger::Channel::Serial;
@@ -87,6 +88,13 @@ delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 logInit();
 logSetSignal();
+my $zm_terminate = 0;
+sub TermHandler {
+  Info('Received TERM, exiting');
+  $zm_terminate = 1;
+}
+$SIG{TERM} = \&TermHandler;
+$SIG{INT} = \&TermHandler;
 
 Info('Trigger daemon starting');
 
@@ -118,7 +126,8 @@ my $win = $rin;
 my $ein = $win;
 my $timeout = SELECT_TIMEOUT;
 my %actions;
-while (1) {
+
+while (!$zm_terminate) {
   $rin = $base_rin;
 # Add the file descriptors of any spawned connections
   foreach my $fileno ( keys %spawned_connections ) {
@@ -131,52 +140,31 @@ while (1) {
     foreach my $connection ( @in_select_connections ) {
       if ( vec($rout, $connection->fileno(), 1) ) {
         Debug('Got input from connection '
-            .$connection->name()
-            .' ('
-            .$connection->fileno()
-            .')'
-            );
+            .$connection->name().' ('.$connection->fileno().')');
         if ( $connection->spawns() ) {
           my $new_connection = $connection->accept();
           $spawned_connections{$new_connection->fileno()} = $new_connection;
-          Debug('Added new spawned connection ('
-              .$new_connection->fileno()
-              .'), '
-              .int(keys(%spawned_connections))
-              .' spawned connections'
-              );
+          Debug('Added new spawned connection ('.$new_connection->fileno()
+              .'), '.int(keys(%spawned_connections)).' spawned connections');
         } else {
           my $messages = $connection->getMessages();
-          if ( defined($messages) ) {
-            foreach my $message ( @$messages ) {
-              handleMessage( $connection, $message );
-            }
-          }
+          next if ! defined($messages);
+          foreach (@$messages) { handleMessage($connection, $_); };
         } # end if connection->spawns
       } # end if vec
     } # end foreach connection
 
     foreach my $connection ( values(%spawned_connections) ) {
-      if ( vec($rout, $connection->fileno(), 1) ) {
+      if (vec($rout, $connection->fileno(), 1)) {
         Debug('Got input from spawned connection '
-            .$connection->name()
-            .' ('
-            .$connection->fileno()
-            .')'
-            );
+            .$connection->name().' ('.$connection->fileno().')');
         my $messages = $connection->getMessages();
-        if ( defined($messages) ) {
-          foreach my $message ( @$messages ) {
-            handleMessage($connection, $message);
-          }
+        if (defined($messages)) {
+          foreach (@$messages) { handleMessage($connection, $_) };
         } else {
           delete $spawned_connections{$connection->fileno()};
-          Debug('Removed spawned connection ('
-              .$connection->fileno()
-              .'), '
-              .int(keys(%spawned_connections))
-              .' spawned connections'
-              );
+          Debug('Removed spawned connection ('.$connection->fileno()
+              .'), '.int(keys(%spawned_connections)).' spawned connections');
           $connection->close();
         }
       }
@@ -187,42 +175,34 @@ while (1) {
     } else {
       Fatal("Can't select: $!");
     }
-  } # end if select returned activitiy
+  } # end if select returned activity
 
 # Check polled connections
-  foreach my $connection ( @in_poll_connections ) {
+  foreach my $connection (@in_poll_connections) {
     my $messages = $connection->getMessages();
-    if ( defined($messages) ) {
-      foreach my $message ( @$messages ) {
-        handleMessage($connection, $message);
-      }
+    if (defined($messages)) {
+      foreach my $message (@$messages) { handleMessage($connection, $message) };
     }
   }
 
   # Check for alarms that might have happened
   my @out_messages;
   foreach my $monitor ( values %monitors ) {
-
-    if ( ! zmMemVerify($monitor) ) {
+    if (!$monitor->connect()) {
       # Our attempt to verify the memory handle failed. We should reload the monitors.
       # Don't need to zmMemInvalidate because the monitor reload will do it.
+      Debug('Failed connect, putting on reloads');
       push @needsReload, $monitor;
       next;
     }
 
-    my ( $state, $last_event ) = zmMemRead( $monitor,
-        [
-        'shared_data:state',
-        'shared_data:last_event'
-        ]
-        );
+    my ($state, $last_event) = zmMemRead($monitor,
+      [ 'shared_data:state', 'shared_data:last_event' ]);
 
-#print( "$monitor->{Id}: S:$state, LE:$last_event" );
-#print( "$monitor->{Id}: mS:$monitor->{LastState}, mLE:$monitor->{LastEvent}" );
-    if ( $state == STATE_ALARM || $state == STATE_ALERT ) {
+    if ($state == STATE_ALARM or $state == STATE_ALERT) {
 # In alarm state
       if ( !defined($monitor->{LastEvent})
-          || ($last_event != $monitor->{LastEvent})
+          or ($last_event != $monitor->{LastEvent})
          ) {
 # A new event
         push @out_messages, $monitor->{Id}.'|on|'.time().'|'.$last_event;
@@ -231,9 +211,9 @@ while (1) {
 # Do nothing
       }
     } elsif ( 
-        ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE)
-        ||
-        ($state == STATE_TAPE && $monitor->{LastState} != STATE_TAPE)
+        (($state == STATE_IDLE) and ($monitor->{LastState} != STATE_IDLE))
+          or
+        (($state == STATE_TAPE) and ($monitor->{LastState} != STATE_TAPE))
         ) {
 # Out of alarm state
       push @out_messages, $monitor->{Id}.'|off|'.time().'|'.$last_event;
@@ -248,25 +228,18 @@ while (1) {
     }
     $monitor->{LastState} = $state;
     $monitor->{LastEvent} = $last_event;
+    $monitor->disconnect();
   } # end foreach monitor
 
-  foreach my $connection ( @out_connections ) {
-    if ( $connection->canWrite() ) {
-      $connection->putMessages(\@out_messages);
-    }
+  foreach my $connection ( @out_connections, (values %spawned_connections)) {
+    $connection->putMessages(\@out_messages) if $connection->canWrite();
   }
 
-  foreach my $connection ( values %spawned_connections ) {
-    if ( $connection->canWrite() ) {
-      $connection->putMessages(\@out_messages);
-    }
-  }
-
-  if ( my @action_times = keys(%actions) ) {
+  if (my @action_times = keys(%actions)) {
     Debug('Checking for timed actions');
     my $now = time();
     foreach my $action_time ( sort( grep { $_ < $now } @action_times ) ) {
-      Info("Found " . scalar @{$actions{$action_time}} . "actions expiring at $action_time");
+      Info('Found '.(scalar @{$actions{$action_time}}).'actions expiring at '.$action_time);
       foreach my $action ( @{$actions{$action_time}} ) {
         my $connection = $action->{connection};
         Info("Found action '$$action{message}'");
@@ -277,80 +250,55 @@ while (1) {
   } # end if have timed actions
 
 # Allow connections to do their own timed actions
-  foreach my $connection ( @connections ) {
+  foreach my $connection ( @connections, (values %spawned_connections)) {
     my $messages = $connection->timedActions();
-    if ( defined($messages) ) {
-      foreach my $message ( @$messages ) {
-        handleMessage($connection, $message);
-      }
-    }
-  }
-
-  foreach my $connection ( values %spawned_connections ) {
-    my $messages = $connection->timedActions();
-    if ( defined($messages) ) {
-      foreach my $message ( @$messages ) {
-        handleMessage($connection, $message);
-      }
-    }
+    next if ! defined($messages);
+    foreach my $message (@$messages) { handleMessage($connection, $message); }
   }
 
   # Reload all monitors from the dB every MONITOR_RELOAD_INTERVAL
-  if ( (time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL ) {
-    foreach my $monitor ( values(%monitors) ) {
-      zmMemInvalidate( $monitor ); # Free up any used memory handle
-    }
+  if ((time() - $monitor_reload_time) > MONITOR_RELOAD_INTERVAL) {
     loadMonitors();
     @needsReload = (); # We just reloaded all monitors so no need reload a specific monitor
   # If we have NOT just reloaded all monitors, reload a specific monitor if its shared mem changed
-  } elsif ( @needsReload ) { 
-    foreach my $monitor ( @needsReload ) {
-      loadMonitor($monitor);
-    }
+  } elsif (@needsReload) { 
+    foreach my $monitor (@needsReload) {
+      $monitor = $monitors{$monitor->Id()} = ZoneMinder::Monitor->find_one(Id=>$monitor->Id());
+      if ($$monitor{Capturing} eq 'None') {
+        delete $monitors{$monitor->Id()};
+      } elsif ($Config{ZM_SERVER_ID} and ($$monitor{ServerId} != $Config{ZM_SERVER_ID})) {
+        delete $monitors{$monitor->Id()};
+      } else {
+        if ($monitor->connect()) {
+          $monitor->{LastState} = zmGetMonitorState($monitor);
+          $monitor->{LastEvent} = zmGetLastEvent($monitor);
+        }
+      }
+    } # end foreach @needsREload
     @needsReload = ();
   }
 
-  # zmDbConnect will ping and reconnect if neccessary
+  # zmDbConnect will ping and reconnect if necessary
   $dbh = zmDbConnect();
-} # end while ( 1 )
+} # end while (!$zm_terminate)
 Info('Trigger daemon exiting');
 exit;
-
-sub loadMonitor {
-  my $monitor = shift;
-
-  Debug("Loading monitor $monitor");
-  zmMemInvalidate($monitor);
-
-  if ( zmMemVerify($monitor) ) { # This will re-init shared memory
-    $monitor->{LastState} = zmGetMonitorState($monitor);
-    $monitor->{LastEvent} = zmGetLastEvent($monitor);
-  }
-} # end sub loadMonitor
 
 sub loadMonitors {
   $monitor_reload_time = time();
 
-  my %new_monitors = ();
-
-  my $sql = 'SELECT * FROM `Monitors`
-    WHERE find_in_set( `Function`, \'Modect,Mocord,Nodect\' )'.
-    ( $Config{ZM_SERVER_ID} ? ' AND `ServerId`=?' : '' )
-    ;
-  my $sth = $dbh->prepare_cached( $sql )
-    or Fatal( "Can't prepare '$sql': ".$dbh->errstr() );
-  my $res = $sth->execute( $Config{ZM_SERVER_ID} ? $Config{ZM_SERVER_ID} : () )
-    or Fatal( "Can't execute: ".$sth->errstr() );
-
-  while ( my $monitor = $sth->fetchrow_hashref() ) {
-    if ( zmMemVerify($monitor) ) { # This will re-init shared memory
+  %monitors = ();
+  foreach my $monitor ( ZoneMinder::Monitor->find(
+    'Capturing !=' => 'None',
+    ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ()),
+    )) {
+    if ($monitor->connect()) { # This will re-init shared memory
       $monitor->{LastState} = zmGetMonitorState($monitor);
       $monitor->{LastEvent} = zmGetLastEvent($monitor);
     }
-    $new_monitors{$monitor->{Id}} = $monitor;
+    $monitors{$monitor->{Id}} = $monitor;
   } # end while fetchrow
-  %monitors = %new_monitors;
-}
+} # end sub loadMonitors
 
 sub handleMessage {
   my $connection = shift;
@@ -369,12 +317,17 @@ sub handleMessage {
 
   my $monitor = $monitors{$id};
   if ( !$monitor ) {
-    Warning("Can't find monitor '$id' for message '$message'");
+    loadMonitors();
+    $monitor = $monitors{$id};
+    if ( !$monitor ) {
+      Warning("Can't find monitor '$id' for message '$message'");
+      return;
+    }
+  }
+  if ( !zmMemVerify($monitor) ) {
+    Warning("Can't verify monitor '$id' for message '$message'");
     return;
   }
-  Debug("Found monitor for id '$id'");
-
-  next if !zmMemVerify($monitor);
 
   Debug("Handling action '$action'");
   if ( $action =~ /^(enable|disable)(?:[\+ ](\d+))?$/ ) {
@@ -387,21 +340,28 @@ sub handleMessage {
     }
 # Force a reload
     $monitor_reload_time = 0;
-    Info("Set monitor to $state");
+    Info('Set monitor to '.$state);
     if ( $delay ) {
-      my $action_text = $id.'|'.( ($state eq 'enable')
-          ? 'disable'
-          : 'enable'
-          );
+      my $action_text = $id.'|'.(($state eq 'enable') ? 'disable' : 'enable');
       handleDelay($delay, $connection, $action_text);
     }
   } elsif ( $action =~ /^(on|off)(?:[ \+](\d+))?$/ ) {
-    next if !$monitor->{Enabled};
+    if ( !$monitor->{Capturing} eq 'None' ) {
+      Warning('Capturing not enabled on monitor '.$id);
+      return;
+    }
+    if ( !$monitor->{Recording} eq 'None' ) {
+      Warning('Recording not enabled on monitor '.$id);
+    }
 
     my $trigger = $1;
     my $delay = $2;
     my $trigger_data;
     if ( $trigger eq 'on' ) {
+      if ( $score <= 0 ) {
+        Warning('Triggering on with invalid score will have no result.');
+        return;
+      }
       zmTriggerEventOn($monitor, $score, $cause, $text);
       zmTriggerShowtext($monitor, $showtext) if defined($showtext);
       Info("Trigger '$trigger' '$cause'");

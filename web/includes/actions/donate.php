@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit('System') ) {
+if (!canEdit('System')) {
   ZM\Warning('Need System permissions to update donation');
   return;
 }
@@ -30,13 +30,20 @@ if ( $action == 'donate' && isset($_REQUEST['option']) ) {
   switch ( $option ) {
     case 'go' :
       // Ignore this, the caller will open the page itself, use a return to shortut the view=none
+      $redirect = 'https://zoneminder.com/donate';
       return;
     case 'hour' :
       $nextReminder += 60*60;
+      dbQuery("UPDATE Config SET Value = '".$nextReminder."' WHERE Name = 'ZM_DYN_DONATE_REMINDER_TIME'");
+      break;
     case 'day' :
       $nextReminder += 24*60*60;
+      dbQuery("UPDATE Config SET Value = '".$nextReminder."' WHERE Name = 'ZM_DYN_DONATE_REMINDER_TIME'");
+      break;
     case 'week' :
       $nextReminder += 7*24*60*60;
+      dbQuery("UPDATE Config SET Value = '".$nextReminder."' WHERE Name = 'ZM_DYN_DONATE_REMINDER_TIME'");
+      break;
     case 'month' :
       $nextReminder += 30*24*60*60;
       dbQuery("UPDATE Config SET Value = '".$nextReminder."' WHERE Name = 'ZM_DYN_DONATE_REMINDER_TIME'");
@@ -49,6 +56,6 @@ if ( $action == 'donate' && isset($_REQUEST['option']) ) {
       Warning("Unknown value for option in donate: $option");
       break;
   } // end switch option
-  $view = 'none';
+  $redirect = '?view='.getHomeView();
 }
 ?>

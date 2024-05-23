@@ -1,50 +1,49 @@
 //
 // ZoneMinder Memory Utilities, $Date$, $Revision$
 // Copyright (C) 2001-2008 Philip Coombes
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
 // of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-// 
+//
 
 #ifndef ZM_MEM_UTILS_H
 #define ZM_MEM_UTILS_H
 
-#include <stdlib.h>
-#include "zm.h"
+#include <cstdlib>
 
 inline void* zm_mallocaligned(unsigned int reqalignment, size_t reqsize) {
   uint8_t* retptr;
 #if HAVE_POSIX_MEMALIGN
-  if ( posix_memalign((void**)&retptr,reqalignment,reqsize) != 0 )
-    return NULL;
-  
+  if ( posix_memalign((void**)&retptr, reqalignment, reqsize) != 0 )
+    return nullptr;
+
   return retptr;
 #else
   uint8_t* alloc;
   retptr = (uint8_t*)malloc(reqsize+reqalignment+sizeof(void*));
-  
-  if ( retptr == NULL )
-    return NULL;
-  
+
+  if ( retptr == nullptr )
+    return nullptr;
+
   alloc = retptr + sizeof(void*);
-  
-  if(((long)alloc % reqalignment) != 0)
+
+  if ( ((long)alloc % reqalignment) != 0 )
     alloc = alloc + (reqalignment - ((long)alloc % reqalignment));
-  
+
   /* Store a pointer before to the start of the block, just before returned aligned memory */
   *(void**)(alloc - sizeof(void*)) = retptr;
-  
+
   return alloc;
 #endif
 }
@@ -60,7 +59,7 @@ inline void zm_freealigned(void* ptr) {
 
 inline char *mempbrk(const char *s, const char *accept, size_t limit) {
   if ( limit == 0 || !s || !accept || !*accept )
-    return 0;
+    return nullptr;
 
   unsigned int i,j;
   size_t acc_len = strlen(accept);
@@ -72,12 +71,12 @@ inline char *mempbrk(const char *s, const char *accept, size_t limit) {
       }
     }
   }
-  return 0;
+  return nullptr;
 }
 
 inline char *memstr(const char *s, const char *n, size_t limit) {
   if ( limit == 0 || !s || !n )
-    return 0;
+    return nullptr;
 
   if ( !*n )
     return (char *)s;
@@ -97,7 +96,7 @@ inline char *memstr(const char *s, const char *n, size_t limit) {
         break;
     }
   }
-  return 0;
+  return nullptr;
 }
 
 inline size_t memspn(const char *s, const char *accept, size_t limit) {

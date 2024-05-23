@@ -18,7 +18,7 @@ class ZonesController extends AppController {
     parent::beforeFilter();
 
     global $user;
-    $canView = (!$user) || ($user['Monitors'] != 'None');
+    $canView = (!$user) || ($user->Monitors() != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -40,11 +40,12 @@ class ZonesController extends AppController {
       '_serialize' => array('zones')
     ));
   }
+
   public function index() {
     $this->Zone->recursive = -1;
 
     global $user;
-    $allowedMonitors = $user ? preg_split('@,@', $user['MonitorIds'],NULL, PREG_SPLIT_NO_EMPTY) : null;
+    $allowedMonitors = $user ? preg_split('@,@', $user->MonitorIds(),NULL, PREG_SPLIT_NO_EMPTY) : null;
     if ( $allowedMonitors ) {
       $mon_options = array('Zones.MonitorId' => $allowedMonitors);
     } else {
@@ -63,23 +64,43 @@ class ZonesController extends AppController {
    * @return void
    */
   public function add() {
-    if ( $this->request->is('post') ) {
 
-      global $user;
-      $canEdit = (!$user) || $user['Monitors'] == 'Edit';
-      if ( !$canEdit ) {
-        throw new UnauthorizedException(__('Insufficient Privileges'));
-        return;
-      }
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+      return;
+    }
 
-      $this->Zone->create();
-      if ( $this->Zone->save($this->request->data) ) {
-        return $this->flash(__('The zone has been saved.'), array('action' => 'index'));
+    global $user;
+    $canEdit = (!$user) || $user->Monitors() == 'Edit';
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
+    $zone = null;
+
+    $this->Zone->create();
+    $zone = $this->Zone->save($this->request->data);
+    if ( $zone ) {
+      require_once __DIR__ .'/../../../includes/Monitor.php';
+      $monitor = new ZM\Monitor($zone['Zone']['MonitorId']);
+      $monitor->zmcControl('restart');
+      $message = 'Saved';
+      //$zone = $this->Zone->find('first', array('conditions' => array( array('Zone.' . $this->Zone->primaryKey => $this->Zone),
+    } else {
+      $message = 'Error: ';
+      // if there is a validation message, use it
+      if ( !$this->Zone->validates() ) {
+        $message = $this->Zone->validationErrors;
       }
     }
-    $monitors = $this->Zone->Monitor->find('list');
-    $this->set(compact('monitors'));
-  }
+
+    $this->set(array(
+      'message' => $message,
+      'zone' => $zone,
+      '_serialize' => array('message','zone')
+    ));
+  } // end function add()
 
   /**
    * edit method
@@ -94,22 +115,24 @@ class ZonesController extends AppController {
     if ( !$this->Zone->exists($id) ) {
       throw new NotFoundException(__('Invalid zone'));
     }
+    $message = '';
     if ( $this->request->is(array('post', 'put')) ) {
       global $user;
-      $canEdit = (!$user) || $user['Monitors'] == 'Edit';
+      $canEdit = (!$user) || $user->Monitors() == 'Edit';
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
       if ( $this->Zone->save($this->request->data) ) {
-        return $this->flash(__('The zone has been saved.'), array('action' => 'index'));
+        $message = 'The zone has been saved.';
+      } else {
+        $message = 'Error ' . print_r($this->Zone->invalidFields());
       }
-    } else {
-      $options = array('conditions' => array('Zone.' . $this->Zone->primaryKey => $id));
-      $this->request->data = $this->Zone->find('first', $options);
     }
-    $monitors = $this->Zone->Monitor->find('list');
-    $this->set(compact('monitors'));
+    $this->set(array(
+      'message' => $message,
+      '_serialize' => array('message')
+    ));
   }
 
   /**
@@ -126,7 +149,7 @@ class ZonesController extends AppController {
     }
     $this->request->allowMethod('post', 'delete');
     global $user;
-    $canEdit = (!$user) || $user['Monitors'] == 'Edit';
+    $canEdit = (!$user) || $user->Monitors() == 'Edit';
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

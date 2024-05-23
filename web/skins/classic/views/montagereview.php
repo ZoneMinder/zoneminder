@@ -29,12 +29,14 @@
 // Valid query string:
 //
 //        &maxTime, minTime = string formats (locale) of starting and ending time for history (pass both or none), default = last hour
+//                            if not specified, but current is, then should center 1 hour on current
 //
 //        &current = string format of time, where the slider is positioned first in history mode (normally only used in reloads, default = half scale)
+//                   also used when jumping from event view to montagereview
 //
 //        &speed = one of the valid speeds below (see $speeds in php section, default = 1.0)
 //
-//        &scale = image sie scale (.1 to 1.0, or 1.1 = fit, default = fit)
+//        &scale = image size scale (.1 to 1.0, or 1.1 = fit, default = fit)
 //
 //        &live=1 whether to start in live mode, 1 = yes, 0 = no
 //
@@ -54,54 +56,128 @@ if ( !canView('Events') ) {
   return;
 }
 
+require_once('includes/Filter.php');
 ob_start();
 include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
-$filter = array();
-if ( isset($_REQUEST['filter']) ) {
-  $filter = $_REQUEST['filter'];
+$preference = ZM\User_Preference::find_one([
+    'UserId'=>$user->Id(),
+    'Name'=>'MontageSort'.(isset($_SESSION['GroupId']) ? implode(',', $_SESSION['GroupId']) : '')
+]);
+if ($preference) {
+  $monitors_by_id = array_to_hash_by_key('Id', $displayMonitors);
+  $sorted_monitors = [];
+  foreach (explode(',', $preference->Value()) as $id) {
+    if (isset($monitors_by_id[$id])) {
+      $sorted_monitors[] = $monitors_by_id[$id];
+    } else {
+      ZM\Debug("Ordered monitor not found in monitorsById $id");
+    }
+  }
+  if (count($sorted_monitors)) $displayMonitors = $sorted_monitors;
+}
+
+$liveMode = 0; // default to live
+if ( isset($_REQUEST['live']) && ($_REQUEST['live'] != '0') )
+  $liveMode = 1;
+
+// Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
+// Live overrides all the min/max stuff but it is still processed
+
+// The default (nothing at all specified) is for 1 hour so we do not read the whole database
+
+if (isset($_REQUEST['current'])) {
+  $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
+  $defaultCurrentTimeSecs = strtotime($defaultCurrentTime);
+}
+
+if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
+  if (isset($defaultCurrentTimeSecs)) {
+    $minTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs - 1800);
+    $maxTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs + 1800);
+  } else {
+    $time = time();
+    $maxTime = date('Y-m-d H:i:s', $time);
+    $minTime = date('Y-m-d H:i:s', $time - 3600);
+  }
+} else {
+  if (isset($_REQUEST['minTime']))
+    $minTime = validHtmlStr($_REQUEST['minTime']);
+
+  if (isset($_REQUEST['maxTime']))
+    $maxTime = validHtmlStr($_REQUEST['maxTime']);
+}
+
+// AS a special case a "all" is passed in as an extreme interval - if so, clear them here and let the database query find them
+
+if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
+  // test years
+  $minTime = null;
+  $maxTime = null;
+}
+
+$filter = null;
+if (isset($_REQUEST['filter'])) {
+  $filter = ZM\Filter::parse($_REQUEST['filter']);
+  $terms = $filter->terms();
 
 	# Try to guess min/max time from filter
-	foreach ( $filter['Query'] as $term ) {
-		if ( $term['attr'] == 'StartDateTime' ) {
-			if ( $term['op'] == '<=' or $term['op'] == '<' ) {
+	foreach ($terms as &$term) {
+    if ($term['attr'] == 'Notes') {
+      $term['cookie'] = 'Notes';
+      if (empty($term['val']) and isset($_COOKIE['Notes'])) $term['val'] = $_COOKIE['Notes'];
+    } else if ($term['attr'] == 'StartDateTime') {
+			if ($term['op'] == '<=' or $term['op'] == '<') {
 				$maxTime = $term['val'];
 			} else if ( $term['op'] == '>=' or $term['op'] == '>' ) {
 				$minTime = $term['val'];
 			}
-		}
-	}
+    }
+  } # end foreach term
+  $filter->terms($terms);
 } else {
-
-  if ( isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0) ) {
-    $filter = array(
-      'Query' => array(
-        'terms' => array(
-          array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'),
-          array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'),
-        )
-      ),
-    );
-    if ( count($selected_monitor_ids) ) {
-      $filter['Query']['terms'][] = (array('attr' => 'MonitorId', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
-    } else if ( ( $group_id != 0 || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) ) {
+  $filter = new ZM\Filter();
+  if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1'));
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1'));
+    if (count($selected_monitor_ids)) {
+      $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
+    } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
       # this should be redundant
       for ( $i = 0; $i < count($displayMonitors); $i++ ) {
         if ( $i == '0' ) {
-          $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1');
+          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1'));
         } else if ( $i == (count($displayMonitors)-1) ) {
-          $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1');
+          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1'));
         } else {
-          $filter['Query']['terms'][] = array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or');
+          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or'));
         }
       }
     }
   } # end if REQUEST[Filter]
 }
-if ( count($filter) ) {
-  parseFilter($filter);
+if (!$liveMode) {
+  if (!$filter->has_term('Archived')) {
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and'));
+  }
+  if (!$filter->has_term('StartDateTime', '>=')) {
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and'));
+  }
+  if (!$filter->has_term('StartDateTime', '<=')) {
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and'));
+  }
+  if (!$filter->has_term('Tags')) {
+    $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
+      'val' => (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
+      'cnj' => 'and', 'cookie'=>'eventsTags'));
+  }
+  if (!$filter->has_term('Notes')) {
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
+  }
+}
+if (count($filter->terms()) ) {
   # This is to enable the download button
   zm_session_start();
   $_SESSION['montageReviewFilter'] = $filter;
@@ -113,92 +189,42 @@ if ( count($filter) ) {
 // Note we round up just a bit on the end time as otherwise you get gaps, like 59.78 to 00 in the next second, which can give blank frames when moved through slowly.
 
 $eventsSql = 'SELECT
-    E.Id,E.Name,E.StorageId,
-    E.StartTime AS StartTime,UNIX_TIMESTAMP(E.StartTime) AS StartTimeSecs,
-    CASE WHEN E.EndTime IS NULL THEN (SELECT NOW()) ELSE E.EndTime END AS EndTime,
-    UNIX_TIMESTAMP(EndTime) AS EndTimeSecs,
-    E.Length, E.Frames, E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
-  FROM Events AS E
+  E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
+    CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(EndDateTime) END AS EndTimeSecs,
+    M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
   WHERE 1 > 0 
-';
-
-//    select E.Id,E.Name,UNIX_TIMESTAMP(E.StartTime) as StartTimeSecs,UNIX_TIMESTAMP(max(DATE_ADD(E.StartTime, Interval Delta+0.5 Second))) as CalcEndTimeSecs, E.Length,max(F.FrameId) as Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId
-//    from Events as E
-//    inner join Monitors as M on (E.MonitorId = M.Id)
-//    inner join Frames F on F.EventId=E.Id
-//    where not isnull(E.Frames) and not isnull(StartTime) ";
-
-// Note that the delta value seems more accurate than the time stamp for some reason.
-$framesSql = '
-    SELECT Id, FrameId, EventId, TimeStamp, UNIX_TIMESTAMP(TimeStamp) AS TimeStampSecs, Score, Delta, Type
-    FROM Frames 
-    WHERE EventId IN (SELECT E.Id FROM Events AS E WHERE 1>0
 ';
 
 // This program only calls itself with the time range involved -- it does all monitors (the user can see, in the called group) all the time
 
 $monitor_ids_sql = '';
-if ( !empty($user['MonitorIds']) ) {
-  $eventsSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
-  $framesSql .= ' AND E.MonitorId IN ('.$user['MonitorIds'].')';
+if (count($user->unviewableMonitorIds())) {
+  $eventsSql .= ' AND E.MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
 }
 if ( count($selected_monitor_ids) ) {
   $monitor_ids_sql = ' IN (' . implode(',',$selected_monitor_ids).')';
   $eventsSql .= ' AND E.MonitorId '.$monitor_ids_sql;
-  $framesSql .= ' AND E.MonitorId '.$monitor_ids_sql;
-}
-if ( isset($_REQUEST['archive_status']) ) {
-  $_SESSION['archive_status'] = $_REQUEST['archive_status'];
-}
-if ( isset($_SESSION['archive_status']) ) {
-  if ( $_SESSION['archive_status'] == 'Archived' ) {
-    $eventsSql .= ' AND E.Archived=1';
-    $framesSql .= ' AND E.Archived=1';
-  } else if ( $_SESSION['archive_status'] == 'Unarchived' ) {
-    $eventsSql .= ' AND E.Archived=0';
-    $framesSql .= ' AND E.Archived=0';
-  }
-}
-
-// Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
-// Live overrides all the min/max stuff but it is still processed
-
-// The default (nothing at all specified) is for 1 hour so we do not read the whole database
-
-if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
-  $time = time();
-  $maxTime = strftime('%FT%T',$time);
-  $minTime = strftime('%FT%T',$time - 3600);
-}
-if ( isset($_REQUEST['minTime']) )
-  $minTime = validHtmlStr($_REQUEST['minTime']);
-
-if ( isset($_REQUEST['maxTime']) )
-  $maxTime = validHtmlStr($_REQUEST['maxTime']);
-
-// AS a special case a "all" is passed in as an extreme interval - if so, clear them here and let the database query find them
-
-if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
-  // test years
-  $minTime = null;
-  $maxTime = null;
 }
 
 $fitMode = 1;
-if ( isset($_REQUEST['fit']) && ($_REQUEST['fit'] == '0') )
-  $fitMode = 0;
+if (isset($_REQUEST['fit']))
+  $fitMode = validCardinal($_REQUEST['fit']);
 
-if ( isset($_REQUEST['scale']) )
+if (isset($_REQUEST['scale']))
   $defaultScale = validHtmlStr($_REQUEST['scale']);
 else
   $defaultScale = 1;
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
-if ( isset($_REQUEST['speed']) )
-  $defaultSpeed = validHtmlStr($_REQUEST['speed']);
-else
+if (isset($_REQUEST['speed'])) {
+  $defaultSpeed = validNum($_REQUEST['speed']);
+} else if (isset($_COOKIE['speed'])) {
+  $defaultSpeed = validNum($_COOKIE['speed']);
+} else {
   $defaultSpeed = 1;
+}
 
 $speedIndex = 5; // default to 1x
 for ( $i = 0; $i < count($speeds); $i++ ) {
@@ -208,60 +234,65 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-if ( isset($_REQUEST['current']) )
-  $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
-
-$liveMode = 1; // default to live
-if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
-  $liveMode = 0;
-
 $initialDisplayInterval = 1000;
-if ( isset($_REQUEST['displayinterval']) )
+if (isset($_REQUEST['displayinterval']))
   $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
 
-#$eventsSql .= ' GROUP BY E.Id,E.Name,E.StartTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
-
 $minTimeSecs = $maxTimeSecs = 0;
-if ( isset($minTime) && isset($maxTime) ) {
+if (isset($minTime) && isset($maxTime)) {
+  if ($minTime >= $maxTime) {
+    $error_message .= 'Invalid minTime and maxTime specified.<br/>';
+    if ($minTime > $maxTime) {
+      $temp = $minTime;
+      $maxTime = $minTime;
+      $minTime = $temp;
+    }
+  }
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
-  $eventsSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
-  $framesSql .= " AND EndTime > '" . $minTime . "' AND StartTime < '" . $maxTime . "'";
-  $framesSql .= ") AND TimeStamp > '" . $minTime . "' AND TimeStamp < '" . $maxTime . "'";
-} else {
-  $framesSql .= ')';
 }
-#$framesSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
-#$framesSql .= ' GROUP BY E.Id, E.MonitorId, F.TimeStamp, F.Delta ORDER BY E.MonitorId, F.TimeStamp ASC';
-$eventsSql .= ' ORDER BY E.Id ASC';
-// DESC is intentional. We process them in reverse order so that we can point each frame to the next one in time.
-$framesSql .= ' ORDER BY Id DESC';
+$eventsSql .= ' AND '.$filter->sql();
+$eventsSql .= ' ORDER BY E.StartDateTime ASC';
 
 $monitors = array();
-foreach( $displayMonitors as $row ) {
-  if ( $row['Function'] == 'None' || $row['Type'] == 'WebSite' )
+foreach ($displayMonitors as $row) {
+  if ($row['Type'] == 'WebSite')
     continue;
-  $Monitor = new ZM\Monitor($row);
-  $monitors[] = $Monitor;
+  $monitors[] = new ZM\Monitor($row);
 }
-
-// These are zoom ranges per visible monitor
 
 xhtmlHeaders(__FILE__, translate('MontageReview') );
 getBodyTopHTML();
 ?>
 <div id="page">
   <?php echo getNavBarHTML() ?>
+  <div id="content">
   <form id="montagereview_form" action="?" method="get">
     <input type="hidden" name="view" value="montagereview"/>
-    <div id="header">&nbsp;&nbsp;
-      <a href="#"><span id="hdrbutton" class="glyphicon glyphicon-menu-up pull-right"></span></a>
-      <div id="flipMontageHeader">
+    <div id="header">
+<?php
+    $html = '<a class="flip" href="#" 
+             data-flip-сontrol-object="#mfbpanel" 
+             data-flip-сontrol-run-after-func="applyChosen drawGraph" 
+             data-flip-сontrol-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>'.PHP_EOL;
+    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+    echo $html;
+?>
         <?php echo $filter_bar ?>
+<?php
+if (count($filter->terms())) {
+  echo $filter->simple_widget();
+}
+?>
+
+<!--
         <div id="DateTimeDiv">
-          <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime ) ?>"/> to 
-          <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime ) ?>"/>
+          <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> to 
+          <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>"/>
         </div>
+-->
         <div id="ScaleDiv">
           <label for="scaleslider"><?php echo translate('Scale')?></label>
           <input id="scaleslider" type="range" min="0.1" max="1.0" value="<?php echo $defaultScale ?>" step="0.10"/>
@@ -276,6 +307,7 @@ getBodyTopHTML();
           <button type="button" id="panleft"   data-on-click="click_panleft"    >&lt; <?php echo translate('Pan') ?></button>
           <button type="button" id="zoomin"    data-on-click="click_zoomin"     ><?php echo translate('In +') ?></button>
           <button type="button" id="zoomout"   data-on-click="click_zoomout"    ><?php echo translate('Out -') ?></button>
+          <button type="button" id="lasteight" data-on-click="click_last24"     ><?php echo translate('24 Hour') ?></button>
           <button type="button" id="lasteight" data-on-click="click_lastEight"  ><?php echo translate('8 Hour') ?></button>
           <button type="button" id="lasthour"  data-on-click="click_lastHour"   ><?php echo translate('1 Hour') ?></button>
           <button type="button" id="allof"     data-on-click="click_all_events" ><?php echo translate('All Events') ?></button>
@@ -283,29 +315,23 @@ getBodyTopHTML();
           <button type="button" id="fit"       ><?php echo translate('Fit') ?></button>
           <button type="button" id="panright"  data-on-click="click_panright"   ><?php echo translate('Pan') ?> &gt;</button>
 <?php
-  if ( (!$liveMode) and (count($displayMonitors) != 0) ) {
+  if ($liveMode) {
+    if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS) { ?>
+          <button type="button" name="snapshotBtn" data-on-click-this="takeSnapshot">
+            <i class="material-icons md-18">camera_enhance</i>
+            &nbsp;<?php echo translate('Snapshot') ?>
+          </button>
+<?php
+    }
+  } else if (count($displayMonitors) != 0) {
 ?>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
-<?php
-  }
-?>
-        </div>
-<?php if ( !$liveMode ) { ?>
-        <div id="eventfilterdiv" class="input-group">
-          <label>Archive Status 
-  <?php echo htmlSelect(
-    'archive_status',
-    array(
-      '' => translate('All'),
-      'Archived' => translate('Archived'),
-      'Unarchived' => translate('UnArchived'),
-    ),
-    ( isset($_SESSION['archive_status']) ? $_SESSION['archive_status'] : '')
-  ); ?>
-          </label>
-        </div>
 <?php } // end if !live ?>
-        <div id="timelinediv">
+          <button type="button" id="collapse" data-flip-сontrol-object="#timelinediv" data-flip-сontrol-run-after-func="drawGraph"> <!-- OR run redrawScreen? -->
+            <i class="material-icons" data-icon-visible="history_toggle_off" data-icon-hidden="schedule"></i>
+          </button>
+        </div>
+        <div id="timelinediv" class="hidden-shift">
           <canvas id="timeline"></canvas>
           <span id="scrubleft"></span>
           <span id="scrubright"></span>
@@ -320,11 +346,14 @@ getBodyTopHTML();
 <?php
   // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
   foreach ( $monitors as $m ) {
-    echo '<canvas title="'.$m->Id().' ' .$m->Name().'" width="' . $m->Width() * $defaultScale . '" height="'  . $m->Height() * $defaultScale . '" id="Monitor' . $m->Id() . '" style="border:1px solid ' . $m->WebColour() . '" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>
+    echo '<canvas title="'.$m->Id().' '.validHtmlStr($m->Name()).'" width="'.($m->Width() * $defaultScale).'" height="'.($m->Height() * $defaultScale).'" id="Monitor'.$m->Id().'" style="border:1px solid '.$m->WebColour().'" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>
 ';
   }
 ?>
   </div>
   <p id="fps">evaluating fps</p>
-</div>
+  </div><!--content-->
+</div><!--page-->
+<script src="<?php echo cache_bust('skins/classic/js/export.js') ?>"></script>
+<script src="<?php echo cache_bust('skins/classic/js/montage_common.js') ?>"></script>
 <?php xhtmlFooter() ?>

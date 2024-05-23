@@ -416,8 +416,7 @@ sub loadTasks {
 
   my $sql = 'SELECT M.*,T.* FROM Monitors as M
   INNER JOIN TriggersX10 as T on (M.Id = T.MonitorId)
-  WHERE find_in_set(M.`Function`, \'Modect,Record,Mocord,Nodect\')
-  AND M.`Enabled` = 1
+  WHERE M.Capturing != \'None\'
   AND find_IN_set(\'X10\', M.Triggers)';
   my $sth = $dbh->prepare_cached( $sql )
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());

@@ -151,14 +151,14 @@ sub zmMemPut
 
 sub zmMemClean
 {
-    Debug( "Removing shared memory\n" );
+    Debug(2, 'Removing shared memory');
     # Find ZoneMinder shared memory
-    my $command = "ipcs -m | grep '^"
-                  .substr( sprintf( "0x%x", hex($Config{ZM_SHM_KEY}) ), 0, -2 )
-                  ."'"
+    my $command = 'ipcs -m | grep \'^'
+                  .substr( sprintf( '0x%x', hex($Config{ZM_SHM_KEY}) ), 0, -2 )
+                  .'\''
     ;
-    Debug( "Checking for shared memory with '$command'\n" );
-    open( my $CMD, '<', "$command |" )
+    Debug(2, 'Checking for shared memory with '.$command);
+    open( my $CMD, '<', $command.' |' )
         or Fatal( "Can't execute '$command': $!" );
     while( <$CMD> )
     {
@@ -167,8 +167,8 @@ sub zmMemClean
         if ( $id =~ /^(\d+)/ )
         {
             $id = $1;
-            $command = "ipcrm shm $id";
-            Debug( "Removing shared memory with '$command'\n" );
+            $command = 'ipcrm shm '.$id;
+            Debug(2, 'Removing shared memory with '.$command);
             qx( $command );
         }
     }

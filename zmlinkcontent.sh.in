@@ -11,7 +11,7 @@ ZM_LOGDIR="@ZM_LOGDIR@"
 # Set the zoneminder temp dir default to be the one supplied to cmake
 ZM_TMPDIR="@ZM_TMPDIR@"
 
-echo "*** This bash script creates the nessecary symlinks for the zoneminder content"
+echo "*** This bash script creates the necessary symlinks for the zoneminder content"
 echo "*** It can use an existing content folder or create a new one"
 echo "*** For usage: use -h"
 echo "*** The default content directory is: $ZM_PATH_CONTENT"
@@ -88,16 +88,19 @@ if [[ -n "$ZM_CONFIG" && ! -f "$ZM_CONFIG" ]]; then
 fi
 
 # Load zm.conf
-if [ -n "$ZM_CONFIG" ]; then
-	echo "Using custom zm.conf $ZM_CONFIG"
-	source "$ZM_CONFIG"
-elif [ -f "zm.conf" ]; then
-	echo "Using local zm.conf"
-	source "zm.conf"
-elif [ -f "/etc/zm.conf" ]; then
-	echo "Using system zm.conf"
-	source "/etc/zm.conf"
-else
+for zmconf in "$ZM_CONFIG" ./zm.conf /etc/zm.conf /etc/zoneminder/zm.conf; do
+	if [[ -f "$zmconf" ]]; then
+		echo "Using $zmconf"
+		source "$zmconf"
+		# remove filename from path
+		zmconf2="${zmconf%/*}"
+		# source conf.d
+		for i in $(find "${zmconf2}/conf.d" -name \*.conf |sort); do . "$i"; done;
+		break
+	fi
+done
+
+if [[ -z "$zmconf2" ]]; then
 	echo -e "Failed locating zoneminder configuration file (zm.conf)\nUse the -z option to specify the full path to the zoneminder configuration file"
 	exit 45
 fi

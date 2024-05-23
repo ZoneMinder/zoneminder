@@ -22,7 +22,7 @@ class ServersController extends AppController {
      * So it has been decided for now to just let everyone read it.
      
     global $user;
-    $canView = (!$user) || ($user['System'] != 'None');
+    $canView = (!$user) || ($user->System() != 'None');
     if ( !$canView ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -81,7 +81,7 @@ class ServersController extends AppController {
     if ( $this->request->is('post') ) {
 
       global $user;
-      $canEdit = (!$user) || ($user['System'] == 'Edit');
+      $canEdit = (!$user) || ($user->System() == 'Edit');
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient privileges'));
         return;
@@ -89,8 +89,6 @@ class ServersController extends AppController {
 
       $this->Server->create();
       if ( $this->Server->save($this->request->data) ) {
-				# Might be nice to send it a start request
-        #$this->daemonControl($this->Server->id, 'start', $this->request->data);
         return $this->flash(__('The server has been saved.'), array('action' => 'index'));
       }
     }
@@ -107,7 +105,7 @@ class ServersController extends AppController {
     $this->Server->id = $id;
 
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -126,8 +124,6 @@ class ServersController extends AppController {
       'message' => $message,
       '_serialize' => array('message')
     ));
-    // - restart this server after change
-    #$this->daemonControl($this->Server->id, 'restart', $this->request->data);
   }
 
 /**
@@ -139,7 +135,7 @@ class ServersController extends AppController {
  */
   public function delete($id = null) {
     global $user;
-    $canEdit = (!$user) || ($user['System'] == 'Edit');
+    $canEdit = (!$user) || ($user->System() == 'Edit');
     if ( !$canEdit ) {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
@@ -150,8 +146,6 @@ class ServersController extends AppController {
       throw new NotFoundException(__('Invalid server'));
     }
     $this->request->allowMethod('post', 'delete');
-
-    #$this->daemonControl($this->Server->id, 'stop');
 
     if ( $this->Server->delete() ) {
       return $this->flash(__('The server has been deleted.'), array('action' => 'index'));

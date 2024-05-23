@@ -5,18 +5,18 @@
  * This file is application-wide controller file. You can put all
  * application-wide controller-related methods here.
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @package       app.Controller
  * @since         CakePHP(tm) v 0.2.9
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://www.opensource.org/licenses/mit-license.php MIT License
  */
 App::uses('Controller', 'Controller');
 App::uses('CrudControllerTrait', 'Crud.Lib');
@@ -27,8 +27,8 @@ App::uses('CrudControllerTrait', 'Crud.Lib');
  * Add your application-wide methods in the class below, your controllers
  * will inherit them.
  *
- * @package   app.Controller
- * @link    http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
+ * @package           app.Controller
+ * @link              https://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  */
 class AppController extends Controller {
   use CrudControllerTrait;
@@ -66,11 +66,10 @@ class AppController extends Controller {
 
     # For use throughout the app. If not logged in, this will be null.
     global $user;
+    # This will auto-login if username=&password= are set, or auth=
+    require_once __DIR__ .'/../../../includes/auth.php';
    
     if ( ZM_OPT_USE_AUTH ) {
-      # This will auto-login if username=&password= are set, or auth=
-      require_once __DIR__ .'/../../../includes/auth.php';
-
       if ( ZM_OPT_USE_LEGACY_API_AUTH or !strcasecmp($this->params->action, 'login') ) {
         # This is here because historically we allowed user=&pass= in the api. web-ui auth uses username=&password=
         $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
@@ -83,7 +82,7 @@ class AppController extends Controller {
             throw new UnauthorizedException(__($retstatus));
             return;
           } 
-          ZM\Info("Login successful for user \"$username\"");
+          ZM\Debug("Login successful for user \"$username\"");
         }
       }
 
@@ -93,19 +92,21 @@ class AppController extends Controller {
         if ( $stateful ) {
           zm_session_start();
           $_SESSION['remoteAddr'] = $_SERVER['REMOTE_ADDR']; // To help prevent session hijacking
-          $_SESSION['username'] = $user['Username'];
-          if ( ZM_AUTH_RELAY == 'plain' ) {
-            // Need to save this in session, can't use the value in User because it is hashed
-            $_SESSION['password'] = $_REQUEST['password'];
+          if ($user) {
+            $_SESSION['username'] = $user->Username();
+            if ( ZM_AUTH_RELAY == 'plain' ) {
+              // Need to save this in session, can't use the value in User because it is hashed
+              $_SESSION['password'] = $_REQUEST['password'];
+            }
+            generateAuthHash(ZM_AUTH_HASH_IPS);
           }
-          generateAuthHash(ZM_AUTH_HASH_IPS);
           session_write_close();
-        } else if ( $_COOKIE['ZMSESSID'] and !$user ) {
+        } else if ( isset($_COOKIE['ZMSESSID']) and !$user ) {
           # Have a cookie set, try to load user by session
           if ( ! is_session_started() )
             zm_session_start();
 
-          ZM\Logger::Debug(print_r($_SESSION, true));
+          ZM\Debug(print_r($_SESSION, true));
           $user = userFromSession();
           session_write_close();
         }
@@ -133,19 +134,19 @@ class AppController extends Controller {
         } 
       } # end if token
 
-      if ( $user and ( $user['APIEnabled'] != 1 ) ) {
-        ZM\Error('API disabled for: '.$user['Username']);
-        throw new UnauthorizedException(__('API disabled for: '.$user['Username']));
+      if ( $user and ( $user->APIEnabled() != 1 ) ) {
+        ZM\Error('API disabled for: '.$user->Username());
+        throw new UnauthorizedException(__('API disabled for: '.$user->Username()));
         $user = null;
       }
 
       // We need to reject methods that are not authenticated
       // besides login and logout
       if ( strcasecmp($this->params->action, 'logout') ) {
-        if ( !( $user and $user['Username'] ) ) {
+        if ( !( $user and $user->Username() ) ) {
           throw new UnauthorizedException(__('Not Authenticated'));
           return;
-        } else if ( !( $user and $user['Enabled'] ) ) {
+        } else if ( !( $user and $user->Enabled() ) ) {
           throw new UnauthorizedException(__('User is not enabled'));
           return;
         }
@@ -153,5 +154,34 @@ class AppController extends Controller {
 
     } # end if ZM_OPT_AUTH
     // make sure populated user object has APIs enabled
+
+    if (isset($_SERVER['HTTP_ORIGIN'])) {
+      global $Servers;
+      if ( sizeof($Servers) < 1 ) {
+        # Only need CORSHeaders in the event that there are multiple servers in use.
+        # ICON: Might not be true. multi-port?
+        if ( ZM_MIN_STREAMING_PORT ) {
+          ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
+          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+          $this->response->header('Access-Control-Allow-Credentials: true');
+          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
+        }
+        return;
+      }
+      foreach ($Servers as $Server) {
+        if (
+          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Hostname(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
+          or
+          preg_match('/^(https?:\/\/)?'.preg_quote($Server->Name(),'/').'/i', $_SERVER['HTTP_ORIGIN'])
+        ) {
+          ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
+          $this->response->header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+          $this->response->header('Access-Control-Allow-Credentials: true');
+          $this->response->header('Access-Control-Allow-Headers: x-requested-with,x-request');
+          break;
+        }
+      }
+    }
+
   } # end function beforeFilter()
 }

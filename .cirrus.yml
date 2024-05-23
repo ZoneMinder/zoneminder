@@ -1,0 +1,28 @@
+task:
+  name: freebsd-build
+  freebsd_instance:
+    matrix:
+      - image_family: freebsd-14-0
+      - image_family: freebsd-13-2
+
+  prepare_script:
+    - pkg install -yq git cmake pkgconf jpeg-turbo mysql80-client ffmpeg libvncserver libjwt catch p5-DBI p5-DBD-mysql p5-Date-Manip p5-Test-LWP-UserAgent p5-Sys-Mmap v4l_compat
+
+  configure_script:
+    - git submodule update --init --recursive
+    - mkdir build
+    - cd build
+    - cmake --version
+    - cmake ../ -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=1 -DCMAKE_C_FLAGS="-Wno-deprecated-declarations" -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations"
+
+  build_script:
+    - cd build
+    - make -j3
+
+  install_script:
+    - cd build
+    - make install
+
+  test_script:
+    - cd build/tests
+    - ./tests "~[notCI]"

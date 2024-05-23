@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+OASIS takes no position regarding the validity or scope of any intellectual property or other rights that might be claimed to pertain to the implementation or use of the technology described in this document or the extent to which any license under such rights might or might not be available; neither does it represent that it has made any effort to identify any such rights. Information on OASIS's procedures with respect to rights in OASIS specifications can be found at the OASIS website. Copies of claims of rights made available for publication and any assurances of licenses to be made available, or the result of an attempt made to obtain a general license or permission for the use of such proprietary rights by implementors or users of this specification, can be obtained from the OASIS Executive Director.
+
+OASIS invites any interested party to bring to its attention any copyrights, patents or patent applications, or other proprietary rights which may cover technology that may be required to implement this specification. Please address the information to the OASIS Executive Director.
+
+Copyright (C) OASIS Open (2004-2006). All Rights Reserved.
+
+This document and translations of it may be copied and furnished to others, and derivative works that comment on or otherwise explain it or assist in its implementation may be prepared, copied, published and distributed, in whole or in part, without restriction of any kind, provided that the above copyright notice and this paragraph are included on all such copies and derivative works. However, this document itself may not be modified in any way, such as by removing the copyright notice or references to OASIS, except as needed for the purpose of developing OASIS specifications, in which case the procedures for copyrights defined in the OASIS Intellectual Property Rights document must be followed, or as required to translate it into languages other than English. 
+
+The limited permissions granted above are perpetual and will not be revoked by OASIS or its successors or assigns. 
+
+This document and the information contained herein is provided on an "AS IS" basis and OASIS DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+-->
+
+<xsd:schema 
+  xmlns="http://www.w3.org/2001/XMLSchema" 
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+  xmlns:wsa="http://www.w3.org/2005/08/addressing"
+  xmlns:wsn-br="http://docs.oasis-open.org/wsn/br-2"
+  xmlns:wsn-b="http://docs.oasis-open.org/wsn/b-2"
+  xmlns:wsrf-bf="http://docs.oasis-open.org/wsrf/bf-2"      
+  xmlns:wstop="http://docs.oasis-open.org/wsn/t-1"
+  targetNamespace="http://docs.oasis-open.org/wsn/br-2"   
+  elementFormDefault="qualified"  
+  attributeFormDefault="unqualified">
+
+<!-- ======================== Imports  ============================ -->
+  
+   <xsd:import namespace="http://www.w3.org/2005/08/addressing"
+              schemaLocation="http://www.w3.org/2005/08/addressing/ws-addr.xsd"/>
+
+   <xsd:import namespace="http://docs.oasis-open.org/wsrf/bf-2"
+              schemaLocation="http://docs.oasis-open.org/wsrf/bf-2.xsd"/>
+
+   <xsd:import namespace="http://docs.oasis-open.org/wsn/b-2"
+              schemaLocation="http://docs.oasis-open.org/wsn/b-2.xsd"/>
+
+   <xsd:import namespace="http://docs.oasis-open.org/wsn/t-1"
+              schemaLocation="http://docs.oasis-open.org/wsn/t-1.xsd"/>
+
+<!-- ======== Resource Properties for NotificationBroker ========== -->
+   <xsd:element name="RequiresRegistration" type="xsd:boolean"/>         
+
+<!-- ====== Resource Properties for PublisherRegistration ========= -->
+   <xsd:element name="PublisherReference" 
+                      type="wsa:EndpointReferenceType"/>
+   <xsd:element name="ConsumerReference" 
+                      type="wsa:EndpointReferenceType"/>
+   <xsd:element name="Topic"
+                      type="wsn-b:TopicExpressionType"/>
+   <xsd:element name="Demand" 
+                      type="xsd:boolean"/>
+   <xsd:element name="CreationTime" 
+                      type="xsd:dateTime"/>
+   <xsd:element name="NotificationBrokerRP">
+            <xsd:complexType>
+               <xsd:sequence>
+         <!-- From NotificationProducer -->
+                  <xsd:element ref="wsn-b:TopicExpression"        
+                     minOccurs="0" maxOccurs="unbounded" />
+        		  <xsd:element ref="wsn-b:FixedTopicSet"        
+                     minOccurs="0" maxOccurs="1" />
+        		  <xsd:element ref="wsn-b:TopicExpressionDialect"
+                     minOccurs="0" maxOccurs="unbounded" />
+                  <xsd:element ref="wstop:TopicSet"
+                     minOccurs="0" maxOccurs="1" />
+         <!-- NotificationBroker specific  -->
+                  <xsd:element ref="wsn-br:RequiresRegistration"        
+                               minOccurs="1" maxOccurs="1" />        
+               </xsd:sequence>
+            </xsd:complexType>
+   </xsd:element>
+ 
+<!-- ====== Resource Properties for PublisherRegistration ========= -->
+   <xsd:element name="PublisherRegistrationRP">
+            <xsd:complexType>
+               <xsd:sequence>
+                  <xsd:element ref="wsn-br:PublisherReference"        
+                               minOccurs="0" maxOccurs="1" />
+                  <xsd:element ref="wsn-br:Topic"        
+                               minOccurs="0" maxOccurs="unbounded" />
+                  <xsd:element ref="wsn-br:Demand"        
+                               minOccurs="1" maxOccurs="1" />
+                  <xsd:element ref="wsn-br:CreationTime"        
+                               minOccurs="0" maxOccurs="1" />
+               </xsd:sequence>
+            </xsd:complexType>
+   </xsd:element>
+
+<!-- ========== Message Types for NotificationBroker  ============ -->
+   <xsd:element name="RegisterPublisher">
+            <xsd:complexType>
+               <xsd:sequence>
+                  <xsd:element name="PublisherReference" 
+                               type="wsa:EndpointReferenceType" 
+                               minOccurs="0" maxOccurs="1" />
+                  <xsd:element name="Topic" 
+                               type="wsn-b:TopicExpressionType"
+                               minOccurs="0" maxOccurs="unbounded" />
+                  <xsd:element name="Demand" 
+                               type="xsd:boolean" default="false" 
+                               minOccurs="0" maxOccurs="1" />
+                  <xsd:element name="InitialTerminationTime" 
+                               type="xsd:dateTime"
+                               minOccurs="0" maxOccurs="1" />
+                  <xsd:any namespace="##other" processContents="lax"
+                       minOccurs="0" maxOccurs="unbounded"/>
+               </xsd:sequence>
+            </xsd:complexType>
+   </xsd:element>
+
+   <xsd:element name="RegisterPublisherResponse"> 
+            <xsd:complexType>
+               <xsd:sequence>
+                  <xsd:element name="PublisherRegistrationReference" 
+                               type="wsa:EndpointReferenceType"
+                               minOccurs="1" maxOccurs="1" />
+			  <xsd:element name="ConsumerReference" 
+                               type="wsa:EndpointReferenceType"
+                               minOccurs="0" maxOccurs="1" />
+
+               </xsd:sequence>
+            </xsd:complexType>
+   </xsd:element>
+     
+   <xsd:complexType name="PublisherRegistrationRejectedFaultType">
+            <xsd:complexContent>
+               <xsd:extension base="wsrf-bf:BaseFaultType"/>
+            </xsd:complexContent>
+         </xsd:complexType>
+   <xsd:element name="PublisherRegistrationRejectedFault" 
+                type="wsn-br:PublisherRegistrationRejectedFaultType"/>
+   
+   <xsd:complexType name="PublisherRegistrationFailedFaultType">
+            <xsd:complexContent>
+               <xsd:extension base="wsrf-bf:BaseFaultType"/>
+            </xsd:complexContent>
+         </xsd:complexType>
+   <xsd:element name="PublisherRegistrationFailedFault" 
+                type="wsn-br:PublisherRegistrationFailedFaultType"/>
+
+  
+
+   <xsd:element name="DestroyRegistration">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:any namespace="##other" processContents="lax"
+                 minOccurs="0" maxOccurs="unbounded"/>
+      </xsd:sequence>
+      <xsd:anyAttribute/>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:element name="DestroyRegistrationResponse">
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:any namespace="##other" processContents="lax"
+                 minOccurs="0" maxOccurs="unbounded"/>
+      </xsd:sequence>
+      <xsd:anyAttribute/>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:complexType name="ResourceNotDestroyedFaultType">
+    <xsd:complexContent>
+      <xsd:extension base="wsrf-bf:BaseFaultType"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <xsd:element name="ResourceNotDestroyedFault" 
+               type="wsn-br:ResourceNotDestroyedFaultType"/>
+
+ </xsd:schema>

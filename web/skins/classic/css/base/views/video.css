@@ -17,3 +17,11 @@
 #videoFile {
     margin-bottom: 6px;
 }
+
+video[poster]{
+    object-fit: fill;
+}
+
+#videoobj {
+  margin: 0 auto;
+}

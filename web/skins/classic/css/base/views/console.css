@@ -74,8 +74,8 @@
 }
 
 .consoleTable .colMark {
-    width: 52px;
-    text-align: left;
+    width: 32px;
+    text-align: center;
 }
 
 .consoleTable .colEvents {
@@ -98,4 +98,65 @@
 }
 .StatusFilter select {
   min-width: 130px;
+}
+#FunctionFunction {
+  margin-bottom: 2rem;
+}
+
+/* .MonitorNameFilter,
+.FunctionFilter,
+.StatusFilter,
+.SourceFilter,
+.MonitorFilter {
+  display: inline-block;
+} */
+form[name="monitorForm"] {
+  display: flex;
+  flex-flow: column nowrap;
+  height: 100%;
+  flex: 1 1 auto;
+}
+#monitorList {
+  flex: 1 1 auto;
+/*  overflow-y: scroll; */
+}
+body.sticky #monitorList {
+  overflow: auto; 
+}
+body.sticky #monitorList thead {
+  position: sticky;
+  top: 0;
+  box-shadow: 0 0px 0, 0 -3px 0 #dfe4ea;
+}
+#toolbar,
+#contentButtons {
+  float: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.rightButtons {
+  margin-left: auto;
+}
+.statusBreakdown {
+  margin-right: auto;
+}
+
+@media screen and (max-width:1280px) {
+}
+@media screen and (max-width:900px) {
+  #header {
+    flex-wrap: wrap;
+  }
+}
+@media screen and (max-width:564px) {
+  button .text {
+    display: none;
+  }
+  #contentButtons {
+    padding: 0;
+  }
+  button .material-icons {
+    font-size: 16px;
+  }
 }

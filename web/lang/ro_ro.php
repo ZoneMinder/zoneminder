@@ -122,7 +122,7 @@ $SLANG = array(
     'BadFrameSkip'         => 'Frame skip count must be an integer of zero or more',
     'BadHeight'            => 'Height must be set to a valid value',
     'BadHost'              => 'Host must be set to a valid ip address or hostname, do not include http://',
-    'BadImageBufferCount'  => 'Image buffer size must be an integer of 10 or more',
+    'BadImageBufferCount'  => 'Image buffer size must be an integer of 2 or more',
     'BadLabelX'            => 'Label X co-ordinate must be set to an integer of zero or more',
     'BadLabelY'            => 'Label Y co-ordinate must be set to an integer of zero or more',
     'BadMaxFPS'            => 'Maximum FPS must be a positive integer or floating point value',
@@ -864,10 +864,6 @@ $OLANG = array(
         'Prompt' => "&#206;nregistrare imagini intermediare de diagnosticare, foarte lent",
         'Help' => "Pe l&#226;ng&#259; faptul c&#259; se pot &#238;nregistra statisticile evenimentelor se pot deasemenea &#238;nregistra imagini intermediare de diagnosticare care afi&#351;eaz&#259; rezultatele diferitelor verific&#259;ri care au loc c&#226;nd se &#238;ncearc&#259; determinarea unei posibile alarme. Aceste imagini sunt generate pentru fiecare cadru, zon&#259; &#351;i alarm&#259;, deci impactul asupra performan&#355;ei va fi foarte mare. Activa&#355;i aceast&#259; op&#355;iune doar pentru depanare sau analiz&#259; &#351;i nu uita&#355;i s&#259; o dezactiva&#355;i."
     ),
-    'CREATE_ANALYSIS_IMAGES' => array(
-        'Prompt' => "Creaz&#259; imagini analizate cu marcaje ale mi&#351;c&#259;rii",
-        'Help' => "Implicit, &#238;n cazul unei alarme, ZoneMinder &#238;nregistreaz&#259; at&#226;t imaginile neprelucrate c&#226;t &#351;i cele ce au fost analizate &#351;i au zone marcate unde a fost detectat&#259; mi&#351;care. Acest lucru poate fi foarte folositor la configurarea zonelor sau &#238;n analiza evenimentelor. Acest parametru permite oprirea &#238;nregistr&#259;rii imaginilor cu zone de mi&#351;care marcate."
-    ),
     'OPT_CONTROL' => array(
         'Prompt' => "Suport camere controlabile (rotire/&#238;nclinare/zoom)",
         'Help' => "ZoneMinder include suport limitat pentru camere controlabile. Sunt incluse c&#226;teva protocoale mostr&#259; &#351;i pot fi ad&#259;ugate cu u&#351;urin&#355;&#259; &#351;i altele. Dac&#259; vre&#355;i s&#259; controla&#355;i camerele prin intermediul ZoneMinder selecta&#355;i aceast&#259; op&#355;iune."
@@ -1182,14 +1178,6 @@ $OLANG = array(
     'RAND_STREAM' => array(
         'Prompt' => "Adaug&#259;re string aleator pentru a preveni tamponarea fluxurilor",
         'Help' => "Unele browsere pot &#238;nregistra &#238;n memoria tampon fluxurile folosite de ZoneMinder. Pentru a preveni acest lucru se poate adaug&#259; un string aleator pentru a face fiecare invocare a fluxului aparent unic&#259;."
-    ),
-    'OPT_CAMBOZOLA' => array(
-        'Prompt' => "Este instalat(op&#355;ional) client-ul cambozola(recomandat)",
-        'Help' => "Cambozola este un Java applet care este folosit de ZoneMinder pentru a fluxurile de imagini &#238;ntr-un navigator ca Internet Explorer. Este recomandat s&#259; instala&#355;i cambozola de la http://www.charliemouse.com/code/cambozola/ Chiar dac&#259; nu e instalat ve&#355;i putea vizualiza imagini statice la o rat&#259; mic&#259; de actulizare."
-    ),
-    'PATH_CAMBOZOLA' => array(
-        'Prompt' => "Calea web la cambozola (recomandat)",
-        'Help' => "Cambozola este un Java applet care este folosit de ZoneMinder pentru a fluxurile de imagini &#238;ntr-un navigator ca Internet Explorer. Este recomandat s&#259; instala&#355;i cambozola de la http://www.charliemouse.com/code/cambozola/ Chiar dac&#259; nu e instalat ve&#355;i putea vizualiza imagini statice la o rat&#259; mic&#259; de actulizare. Seta&#355;i aceast&#259; op&#355;iune 'camboloza.jar' dac&#259; cambozola este instalat &#238;n acela&#351;i director cu fi&#351;ierele web ZoneMinder. "
     ),
     'OPT_MPEG' => array(
         'Prompt' => "Este instalat codor video mpeg (op&#355;ional)",

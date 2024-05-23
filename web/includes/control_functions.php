@@ -1,5 +1,7 @@
 <?php
 
+require_once('logger.php');
+
 function buildControlCommand($monitor) {
   $ctrlCommand = '';
   $control = $monitor->Control();
@@ -7,109 +9,94 @@ function buildControlCommand($monitor) {
   if ( isset($_REQUEST['xge']) || isset($_REQUEST['yge']) ) {
     $slow = 0.9; // Threshold for slow speed/timeouts
     $turbo = 0.9; // Threshold for turbo speed
+    $speed = 0;
+    $xFactor = empty($_REQUEST['xge'])?0:$_REQUEST['xge']/100;
+    $yFactor = empty($_REQUEST['yge'])?0:$_REQUEST['yge']/100;
 
     if ( preg_match('/^([a-z]+)([A-Z][a-z]+)([A-Za-z]+)+$/', $_REQUEST['control'], $matches) ) {
       $command = $matches[1];
       $mode = $matches[2];
       $dirn = $matches[3];
 
-      switch( $command ) {
+      switch ($command) {
       case 'focus' :
-      {
-        $factor = $_REQUEST['yge']/100;
-        if ( $control->HasFocusSpeed() ) {
-          $speed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$factor)));
+        if ($control->HasFocusSpeed()) {
+          $speed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$yFactor)));
           $ctrlCommand .= ' --speed='.$speed;
         }
-        switch( $mode ) {
-        case 'Abs' :
-        case 'Rel' :
-        {
-          $step = intval(round($control->MinFocusStep()+(($control->MaxFocusStep()-$control->MinFocusStep())*$factor)));
-          $ctrlCommand .= ' --step='.$step;
-          break;
-        }
-        case 'Con' :
-        {
-          if ( $monitor->AutoStopTimeout() ) {
-            $slowSpeed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$slow)));
-            if ( $speed < $slowSpeed ) {
-              $ctrlCommand .= ' --autostop';
+        switch ($mode) {
+          case 'Abs' :
+          case 'Rel' :
+            $step = intval(round($control->MinFocusStep()+(($control->MaxFocusStep()-$control->MinFocusStep())*$yFactor)));
+            $ctrlCommand .= ' --step='.$step;
+            break;
+          case 'Con' :
+            if ( $monitor->AutoStopTimeout() ) {
+              $slowSpeed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$slow)));
+              if ( $speed < $slowSpeed ) $ctrlCommand .= ' --autostop';
             }
-          }
-          break;
-        }
-        }
+            break;
+         }
         break;
-      }
       case 'zoom' :
-        $factor = $_REQUEST['yge']/100;
-        if ( $control->HasZoomSpeed() ) {
-          $speed = intval(round($control->MinZoomSpeed()+(($control->MaxZoomSpeed()-$control->MinZoomSpeed())*$factor)));
+        if ($control->HasZoomSpeed()) {
+          $speed = intval(round($control->MinZoomSpeed()+(($control->MaxZoomSpeed()-$control->MinZoomSpeed())*$yFactor)));
           $ctrlCommand .= ' --speed='.$speed;
         }
-        switch( $mode ) {
+        switch ($mode) {
         case 'Abs' :
         case 'Rel' :
-          $step = intval(round($control->MinZoomStep()+(($control->MaxZoomStep()-$control->MinZoomStep())*$factor)));
+          $step = intval(round($control->MinZoomStep()+(($control->MaxZoomStep()-$control->MinZoomStep())*$yFactor)));
           $ctrlCommand .= ' --step='.$step;
           break;
         case 'Con' :
           if ( $monitor->AutoStopTimeout() ) {
             $slowSpeed = intval(round($control->MinZoomSpeed()+(($control->MaxZoomSpeed()-$control->MinZoomSpeed())*$slow)));
-            if ( $speed < $slowSpeed ) {
-              $ctrlCommand .= ' --autostop';
-            }
+            if ($speed < $slowSpeed) $ctrlCommand .= ' --autostop';
           }
           break;
         }
         break;
       case 'iris' :
-        $factor = $_REQUEST['yge']/100;
-        if ( $control->HasIrisSpeed() ) {
-          $speed = intval(round($control->MinIrisSpeed()+(($control->MaxIrisSpeed()-$control->MinIrisSpeed())*$factor)));
+        if ($control->HasIrisSpeed()) {
+          $speed = intval(round($control->MinIrisSpeed()+(($control->MaxIrisSpeed()-$control->MinIrisSpeed())*$yFactor)));
           $ctrlCommand .= ' --speed='.$speed;
         }
-        switch( $mode ) {
+        switch ($mode) {
         case 'Abs' :
         case 'Rel' :
-          $step = intval(round($control->MinIrisStep()+(($control->MaxIrisStep()-$control->MinIrisStep())*$factor)));
+          $step = intval(round($control->MinIrisStep()+(($control->MaxIrisStep()-$control->MinIrisStep())*$yFactor)));
           $ctrlCommand .= ' --step='.$step;
           break;
         }
         break;
       case 'white' :
-        $factor = $_REQUEST['yge']/100;
-        if ( $control->HasWhiteSpeed() ) {
-          $speed = intval(round($control->MinWhiteSpeed()+(($control->MaxWhiteSpeed()-$control->MinWhiteSpeed())*$factor)));
+        if ($control->HasWhiteSpeed()) {
+          $speed = intval(round($control->MinWhiteSpeed()+(($control->MaxWhiteSpeed()-$control->MinWhiteSpeed())*$yFactor)));
           $ctrlCommand .= ' --speed='.$speed;
         }
-        switch( $mode ) {
+        switch ($mode) {
         case 'Abs' :
         case 'Rel' :
-          $step = intval(round($control->MinWhiteStep()+(($control->MaxWhiteStep()-$control->MinWhiteStep())*$factor)));
+          $step = intval(round($control->MinWhiteStep()+(($control->MaxWhiteStep()-$control->MinWhiteStep())*$yFactor)));
           $ctrlCommand .= ' --step='.$step;
           break;
         }
         break;
       case 'gain' :
-        $factor = $_REQUEST['yge']/100;
-        if ( $control->HasGainSpeed() ) {
-          $speed = intval(round($control->MinGainSpeed()+(($control->MaxGainSpeed()-$control->MinGainSpeed())*$factor)));
+        if ($control->HasGainSpeed()) {
+          $speed = intval(round($control->MinGainSpeed()+(($control->MaxGainSpeed()-$control->MinGainSpeed())*$yFactor)));
           $ctrlCommand .= ' --speed='.$speed;
         }
-        switch( $mode ) {
+        switch ($mode) {
         case 'Abs' :
         case 'Rel' :
-          $step = intval(round($control->MinGainStep()+(($control->MaxGainStep()-$control->MinGainStep())*$factor)));
+          $step = intval(round($control->MinGainStep()+(($control->MaxGainStep()-$control->MinGainStep())*$yFactor)));
           $ctrlCommand .= ' --step='.$step;
           break;
         }
         break;
       case 'move' :
-        $xFactor = empty($_REQUEST['xge'])?0:$_REQUEST['xge']/100;
-        $yFactor = empty($_REQUEST['yge'])?0:$_REQUEST['yge']/100;
-
         if ( $monitor->Orientation() != 'ROTATE_0' ) {
           $conversions = array(
             'ROTATE_90' => array(
@@ -218,7 +205,7 @@ function buildControlCommand($monitor) {
         }
       }
     } else {
-      Error('Invalid control parameter: ' . $_REQUEST['control'] );
+      ZM\Error('Invalid control parameter: ' . $_REQUEST['control'] );
     }
   } elseif ( isset($_REQUEST['x']) && isset($_REQUEST['y']) ) {
     if ( $_REQUEST['control'] == 'moveMap' ) {

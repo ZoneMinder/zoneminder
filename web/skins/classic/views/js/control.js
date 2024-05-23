@@ -1,43 +1,62 @@
-var controlParms = "view=request&request=control";
-var controlReq = new Request.JSON( {url: thisUrl, method: 'post', timeout: AJAX_TIMEOUT, onSuccess: getControlResponse} );
+var form = $j('#controlForm');
 
-function getControlResponse( respObj, respText ) {
+function controlReq(data) {
+  $j.getJSON(thisUrl + '?view=request&request=control&'+auth_relay, data)
+      .done(getControlResponse)
+      .fail(logAjaxFail);
+}
+
+function getControlResponse(respObj, respText) {
   if ( !respObj ) {
     return;
   }
   //console.log( respText );
   if ( respObj.result != 'Ok' ) {
-    alert( "Control response was status = "+respObj.status+"\nmessage = "+respObj.message );
+    alert("Control response was status = "+respObj.status+"\nmessage = "+respObj.message);
   }
 }
 
 function controlCmd( control, event, xtell, ytell ) {
-  var locParms = "&id="+$('mid').get('value');
-  if ( event && (xtell || ytell) ) {
-    var target = event.target;
-    var coords = $(target).getCoordinates();
+  var mid = $j('#mid').getAttribute('value');
 
-    var x = event.pageX - coords.left;
-    var y = event.pageY - coords.top;
+  if ( event && (xtell || ytell) ) {
+    var data = {};
+    var target = $j(event.target);
+    var offset = target.offset();
+    var width = target.width();
+    var height = target.height();
+
+    var x = event.pageX - offset.left;
+    var y = event.pageY - offset.top;
 
     if ( xtell ) {
-      var xge = parseInt( (x*100)/coords.width );
+      var xge = parseInt( (x*100)/width );
       if ( xtell == -1 ) {
         xge = 100 - xge;
       } else if ( xtell == 2 ) {
         xge = 2*(50 - xge);
       }
-      locParms += "&xge="+xge;
+      data.xge = xge;
     }
     if ( ytell ) {
-      var yge = parseInt( (y*100)/coords.height );
+      var yge = parseInt( (y*100)/height );
       if ( ytell == -1 ) {
         yge = 100 - yge;
       } else if ( ytell == 2 ) {
         yge = 2*(50 - yge);
       }
-      locParms += "&yge="+yge;
+      data.yge = yge;
     }
   }
-  controlReq.send( controlParms+"&control="+control+locParms );
+  data.id = mid;
+  data.control = control;
+  controlReq(data);
 }
+
+function initPage() {
+  $j('#mid').change(function() {
+    form.submit();
+  });
+}
+
+$j(document).ready(initPage);

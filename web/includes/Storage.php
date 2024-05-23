@@ -6,9 +6,21 @@ require_once('Object.php');
 
 class Storage extends ZM_Object {
   protected static $table = 'Storage';
+
+  public $Id;
+  public $Path;
+  public $Name;
+  public $Type = 'local';
+  public $Url;
+  public $DiskSpace;
+  public $Scheme = 'Medium';
+  public $ServerId;
+  public $DoDelete = 1;
+  public $Enabled = 1;
+
   protected $defaults = array(
     'Id'        => null,
-    'Path'      => '',
+    'Path'      => array('type'=>'text','filter_regexp'=>array('/[^\w\-\.\(\)\:\/ ]/','/\/$/'), 'default'=>''),
     'Name'      => '',
     'Type'      => 'local',
     'Url'       => '',
@@ -19,14 +31,15 @@ class Storage extends ZM_Object {
     'Enabled'   => 1,
   );
   public static function find($parameters = array(), $options = array()) {
-    return ZM_Object::_find(get_class(), $parameters, $options);
+    return ZM_Object::_find(self::class, $parameters, $options);
   }
 
   public static function find_one($parameters = array(), $options = array()) {
-    return ZM_Object::_find_one(get_class(), $parameters, $options);
+    return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
-  public function Path() {
+  public function Path($new=null) {
+    if ( $new ) $this->{'Path'} = $new;
     if ( isset($this->{'Path'}) and ( $this->{'Path'} != '' ) ) {
       return $this->{'Path'};
     } else if ( ! isset($this->{'Id'}) ) {
@@ -40,7 +53,9 @@ class Storage extends ZM_Object {
     }
     return $this->{'Name'};
   }
-  public function Name() {
+  public function Name($new=null) {
+    if ( $new )
+      $this->{'Name'} = $new;
     if ( isset($this->{'Name'}) and ( $this->{'Name'} != '' ) ) {
       return $this->{'Name'};
     } else if ( ! isset($this->{'Id'}) ) {
@@ -66,6 +81,14 @@ class Storage extends ZM_Object {
 		return $this->{'EventCount'};
 	}
 
+  public function disk_used_blocks() {
+    $df = shell_exec('df '.escapeshellarg($this->Path()));
+    $space = -1;
+    if ( preg_match('/\s(\d+)\s+\d+\s+\d+%/ms', $df, $matches) )
+      $space = $matches[1];
+    return $space;
+  }
+
   public function disk_usage_percent() {
     $path = $this->Path();
     if ( ! $path ) {
@@ -83,7 +106,7 @@ class Storage extends ZM_Object {
     }
     $used = $this->disk_used_space();
     $usage = round(($used / $total) * 100);
-    //Logger::Debug("Used $usage = round( ( $used / $total ) * 100 )");
+    //Debug("Used $usage = round( ( $used / $total ) * 100 )");
     return $usage;
   }
 
@@ -103,7 +126,7 @@ class Storage extends ZM_Object {
   public function disk_used_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
     if ( ( !property_exists($this, 'disk_used_space')) or !$this->{'disk_used_space'} ) {
-      if ( $this->{'Type'} == 's3fs' ) {
+      if ( $this->Type() == 's3fs' ) {
         $this->{'disk_used_space'} = $this->event_disk_space();
       } else { 
         $path = $this->Path();
@@ -120,20 +143,8 @@ class Storage extends ZM_Object {
 
   public function event_disk_space() {
     # This isn't a function like this in php, so we have to add up the space used in each event.
-    if ( (! property_exists($this, 'DiskSpace')) or (!$this->{'DiskSpace'}) ) {
-      $used = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
-
-      do {
-        # Do in batches of 1000 so as to not useup all ram, Event will do caching though...
-        $events = Event::find(array('StorageId'=>$this->Id(), 'DiskSpace'=>null), array('limit'=>1000));
-        foreach ( $events as $Event ) {
-          $Event->Storage($this); // Prevent further db hit
-          # DiskSpace will update the event
-          $used += $Event->DiskSpace();
-        } #end foreach
-        Event::clear_cache();
-      } while ( count($events) == 1000 );
-      $this->{'DiskSpace'} = $used;
+    if ( (! property_exists($this, 'DiskSpace')) or (!isset($this->{'DiskSpace'})) ) {
+      $this->{'DiskSpace'} = dbFetchOne('SELECT SUM(DiskSpace) AS DiskSpace FROM Events WHERE StorageId=? AND DiskSpace IS NOT NULL', 'DiskSpace', array($this->Id()));
     }
     return $this->{'DiskSpace'};
   } // end function event_disk_space

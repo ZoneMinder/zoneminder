@@ -21,33 +21,33 @@
 #define ZM_MPEG_H
 
 #include "zm_ffmpeg.h"
-
-#if HAVE_LIBAVCODEC
+#include <pthread.h>
+#include <array>
 
 class VideoStream {
-protected:
+ protected:
   struct MimeData {
     const char *format;
     const char *mime_type;
   };
 
-protected:
+ protected:
   static bool initialised;
   static struct MimeData mime_data[];
 
-protected:
+ protected:
   char *codec_and_format;
   const char *filename;
   const char *format;
   const char *codec_name;
   enum _AVPIXELFORMAT pf;
-  AVOutputFormat *of;
+  const AVOutputFormat *of;
   AVFormatContext *ofc;
   AVStream *ost;
   AVCodecContext *codec_context;
-  AVCodec *codec;
-  AVFrame *opicture;
-  AVFrame *tmp_opicture;
+  const AVCodec *codec;
+  av_frame_ptr opicture;
+  av_frame_ptr tmp_opicture;
   uint8_t *video_outbuf;
   int video_outbuf_size;
   double last_pts;
@@ -60,28 +60,26 @@ protected:
   pthread_mutex_t *buffer_copy_lock;
   int buffer_copy_size;
   int buffer_copy_used;
-  AVPacket** packet_buffers;
+  std::array<av_packet_ptr, 2> packet_buffers;
   int packet_index;
   int SendPacket(AVPacket *packet);
   static void* StreamingThreadCallback(void *ctx);
 
-protected:
+ protected:
   static void Initialise();
 
   void SetupFormat( );
-  void SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate );
+  int SetupCodec( int colours, int subpixelorder, int width, int height, int bitrate, double frame_rate );
   void SetParameters();
   void ActuallyOpenStream();
   double ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 
-public:
+ public:
   VideoStream( const char *filename, const char *format, int bitrate, double frame_rate, int colours, int subpixelorder, int width, int height );
   ~VideoStream();
   const char *MimeType() const;
   bool OpenStream();
   double EncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp=false, unsigned int timestamp=0 );
 };
-
-#endif // HAVE_LIBAVCODEC
 
 #endif // ZM_MPEG_H

@@ -8,15 +8,15 @@ Build-Depends: debhelper (>= 9), po-debconf (>= 1.0), autoconf, automake, libtoo
 , libdate-manip-perl, libwww-perl
 , libjpeg8-dev | libjpeg9-dev | libjpeg62-turbo-dev
 , libpcre3-dev
-, libavcodec-ffmpeg-dev, libavformat-ffmpeg-dev, libswscale-ffmpeg-dev, libavutil-ffmpeg-dev, libavdevice-ffmpeg-dev
+, libavcodec-ffmpeg-dev, libavformat-ffmpeg-dev, libswscale-ffmpeg-dev, libavutil-ffmpeg-dev
 , libv4l-dev (>= 0.8.3)
 , libbz2-dev
 , libsys-mmap-perl
 , libdevice-serialport-perl, libarchive-zip-perl, libmime-lite-perl
 , libvlccore-dev, libvlc-dev
 , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
-, libgcrypt11-dev | libgcrypt20-dev, libpolkit-gobject-1-dev
-, libdbi-perl, libnet-sftp-foreign-perl, libexpect-perl, libmime-tools-perl, libx264-dev, libmp4v2-dev
+, libpolkit-gobject-1-dev
+, libdbi-perl, libnet-sftp-foreign-perl, libexpect-perl, libmime-tools-perl
 Standards-Version: 3.9.6
 Homepage: http://www.zoneminder.com/
 
@@ -75,7 +75,7 @@ Depends: libzoneminder-perl (= ${source:Version}),
  libdbi-perl, libmodule-load-conditional-perl, libmime-lite-perl,
  libmime-tools-perl, libnet-sftp-foreign-perl, libphp-serialization-perl,
  debconf, ffmpeg | libav-tools, rsyslog | system-log-daemon, zip,
- policykit-1, apache2, libmp4v2-2, libpcre++0
+ policykit-1, apache2, libpcre++0
 , libsys-cpu-perl, libsys-meminfo-perl
 , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
 Description: Core binaries and perl scripts for ZoneMinder

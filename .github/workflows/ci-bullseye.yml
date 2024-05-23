@@ -1,0 +1,60 @@
+name: CI Debian Bullseye
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      matrix:
+        crypto_backend: [ gnutls, openssl ]
+        jwt_backend: [ libjwt, jwt_cpp ]
+        include:
+          - crypto_backend: gnutls
+            crypto_package: libgnutls28-dev
+            jwt_package: libjwt-gnutls-dev
+          - crypto_backend: openssl
+            crypto_package: libssl-dev
+            jwt_package: libjwt-dev
+        exclude:
+          - crypto_backend: gnutls
+            jwt_backend: jwt_cpp
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+
+    steps:
+      - name: Update packages
+        run: apt-get -qq update && apt-get -qq upgrade
+      - name: Install git
+        run: apt-get -qq install git
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: >
+          apt-get -qq install make cmake g++
+          default-libmysqlclient-dev
+          libavcodec-dev libavformat-dev libavutil-dev libswresample-dev libswscale-dev libavdevice-dev
+          libcurl4-gnutls-dev libvlc-dev libvncserver-dev
+          libdate-manip-perl libdbd-mysql-perl libsys-mmap-perl libwww-perl
+          libpolkit-gobject-1-dev
+          catch2
+          ${{ matrix.crypto_package }} ${{ matrix.jwt_package }}
+      - name: Prepare
+        run: mkdir build
+      - name: Configure
+        run: cd build && cmake --version && cmake .. -DBUILD_MAN=0 -DBUILD_TEST_SUITE=1 -DENABLE_WERROR=1 -DZM_CRYPTO_BACKEND=${{ matrix.crypto_backend }} -DZM_JWT_BACKEND=${{ matrix.jwt_backend }}
+      - name: Build
+        run: cd build && make -j3 | grep --line-buffered -Ev '^(cp lib\/|Installing.+\.pm)' && (exit ${PIPESTATUS[0]})
+      - name: Run tests
+        run: cd build/tests && ./tests "~[notCI]"

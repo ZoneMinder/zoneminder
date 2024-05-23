@@ -26,26 +26,24 @@ if ( !canEdit('Groups') ) {
   return;
 }
 
-if ( $action == 'Save' ) {
+if ( $action == 'save' ) {
   $group_id = null;
-  if ( !empty($_POST['gid']) )
-    $group_id = $_POST['gid'];
+  if ( !empty($_REQUEST['gid']) )
+    $group_id = $_REQUEST['gid'];
   $group = new ZM\Group($group_id);
   $group->save(
       array(
-      'Name'=>  $_POST['newGroup']['Name'],
-      'ParentId'=>( $_POST['newGroup']['ParentId'] == '' ? null : $_POST['newGroup']['ParentId'] ),
+      'Name'=>  $_REQUEST['newGroup']['Name'],
+      'ParentId'=>( $_REQUEST['newGroup']['ParentId'] == '' ? null : $_REQUEST['newGroup']['ParentId'] ),
       )
     );
   dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($group_id));
   $group_id = $group->Id();
-  if ( $group_id ) {
-    foreach ( $_POST['newGroup']['MonitorIds'] as $mid ) {
+  if ($group_id and isset($_REQUEST['newGroup']['MonitorIds'])) {
+    foreach ( $_REQUEST['newGroup']['MonitorIds'] as $mid ) {
       dbQuery('INSERT INTO `Groups_Monitors` (`GroupId`,`MonitorId`) VALUES (?,?)', array($group_id, $mid));
     }
   }
-  $view = 'none';
-  $refreshParent = true;
-  $closePopup = true;
+  $redirect = '?view=groups';
 }
 ?>

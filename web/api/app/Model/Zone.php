@@ -30,6 +30,28 @@ class Zone extends AppModel {
 
 	public $recursive = -1;
 
+  /**
+ * Validation rules
+ *
+ * @var array
+ */
+  public $validate = array(
+    'MonitorId' => array(
+      'rule' => 'checkMonitorId',
+      //array('naturalNumber'),
+      'message' => 'Zones must have a valid MonitorId',
+      'allowEmpty' => false,
+        //'last' => false, // Stop validation after this rule
+        //'on' => 'create', // Limit validation to 'create' or 'update' operations
+    ),
+    'Name' => array(
+       'required' => array(
+         'rule'       => 'notBlank',
+         'message'    => 'Zone Name must be specified for creation',
+       ),
+     )
+  );
+
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
@@ -41,9 +63,17 @@ class Zone extends AppModel {
 		'Monitor' => array(
 			'className' => 'Monitor',
 			'foreignKey' => 'MonitorId',
-			'conditions' => '',
-			'fields' => '',
-			'order' => ''
+			//'conditions' => '',
+			//'fields' => '',
+			//'order' => ''
 		)
 	);
+
+  public function checkMonitorId($data) {
+    if ( !$this->Monitor->find('first', array('conditions'=>array('Id'=>$data['MonitorId']))) ) {
+      //$this->invalidate('MonitorId', 'Invalid Monitor Id');
+      return false;
+    }
+    return true;
+  }
 }

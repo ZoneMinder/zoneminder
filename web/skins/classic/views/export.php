@@ -17,6 +17,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+global $sortQuery;
 
 if ( !canView('Events') ) {
   $view = 'error';
@@ -55,17 +56,22 @@ if (isset($_REQUEST['exportFormat'])) {
 }
 
 $focusWindow = true;
-$connkey = isset($_REQUEST['connkey']) ? $_REQUEST['connkey'] : generateConnKey();
+$connkey = isset($_REQUEST['connkey']) ? validInt($_REQUEST['connkey']) : generateConnKey();
 
 xhtmlHeaders(__FILE__, translate('Export'));
 ?>
 <body>
   <div id="page">
     <?php echo getNavBarHTML() ?>
-    <div id="header">
-      <h2><?php echo translate('ExportOptions') ?></h2>
-    </div>
-    <div id="content">
+      <div class="w-100 py-1">
+        <div class="float-left pl-3">
+          <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
+          <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
+        </div>
+        <div class="w-100 pt-2">
+          <h2><?php echo translate('ExportOptions') ?></h2>
+        </div>
+      </div>    <div id="content">
       <form name="contentForm" id="contentForm" method="post" action="?view=export">
         <input type="hidden" name="connkey" value="<?php echo $connkey; ?>"/>
 <?php
@@ -77,31 +83,29 @@ $sortColumn = '';
 $sortOrder = '';
 $limitQuery = '';
 
-if ( $user['MonitorIds'] ) {
-  $user_monitor_ids = ' M.Id in ('.$user['MonitorIds'].')';
+if (count($user->unviewableMonitorIds())) {
+  $user_monitor_ids = ' M.Id in ('.implode(',',$user->viewableMonitorIds()).')';
   $eventsSql .= $user_monitor_ids;
-} else {
+} else if ( !isset($_REQUEST['filter']) ) {
   $eventsSql .= ' 1';
 }
 
 if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
-  ZM\Logger::Debug('Loading events by single eid');
   $eventsSql .= ' AND E.Id=?';
   $eventsValues[] = $_REQUEST['eid'];
-} elseif ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
-  ZM\Logger::Debug('Loading events by eids');
+} else if ( isset($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
   $eventsSql .= ' AND E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
   $eventsValues += $_REQUEST['eids'];
 } else if ( isset($_REQUEST['filter']) ) {
   parseSort();
-  parseFilter($_REQUEST['filter']);
-  $filterQuery = $_REQUEST['filter']['query'];
+  $filter = ZM\Filter::parse($_REQUEST['filter']);
+  $filterQuery = $filter->querystring();
 
-  if ( $_REQUEST['filter']['sql'] ) {
-    $eventsSql .= $_REQUEST['filter']['sql'];
+  if ( $filter->sql() ) {
+    $eventsSql .= $filter->sql();
   }
   $eventsSql .= " ORDER BY $sortColumn $sortOrder";
-  if ( isset($_REQUEST['filter']['Query']['limit']) )
+  if ( isset($_REQUEST['filter']['Query']['limit']) and validInt($_REQUEST['filter']['Query']['limit']))
     $eventsSql .= ' LIMIT '.validInt($_REQUEST['filter']['Query']['limit']);
 } # end if filter
 
@@ -139,26 +143,25 @@ $event_count = 0;
 while ( $event_row = dbFetchNext($results) ) {
   $event = new ZM\Event($event_row);
   $scale = max(reScale(SCALE_BASE, $event->Monitor()->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
+  $event_link = '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1';
+  global $dateTimeFormatter;
 ?>
           <tr<?php echo $event->Archived() ? ' class="archived"' : '' ?>>
               <td class="colId">
                 <input type="hidden" name="eids[]" value="<?php echo $event->Id()?>"/>
-                <a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo $event->Id().($event->Archived()?'*':'') ?></a>
+                <a href="<?php echo $event_link ?>"><?php echo $event->Id().($event->Archived()?'*':'') ?></a>
               </td>
-              <td class="colName"><a href="?view=event&amp;eid=<?php echo $event->Id().$filterQuery.$sortQuery ?>&amp;page=1"><?php echo validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
-              <td class="colMonitorName"><?php echo makePopupLink( '?view=monitor&amp;mid='.$event->MonitorId(), 'zmMonitor'.$event->MonitorId(), 'monitor', $event->MonitorName(), canEdit( 'Monitors' ) ) ?></td>
-              <td class="colCause"><?php echo makePopupLink( '?view=eventdetail&amp;eid='.$event->Id(), 'zmEventDetail', 'eventdetail', validHtmlStr($event->Cause()), canEdit( 'Events' ), 'title="'.htmlspecialchars($event->Notes()).'"' ) ?></td>
-              <td class="colTime"><?php echo strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->StartTime())) .
-( $event->EndTime() ? ' until ' . strftime(STRF_FMT_DATETIME_SHORTER, strtotime($event->EndTime()) ) : '' ) ?>
-              </td>
-              <td class="colDuration"><?php echo gmdate("H:i:s", $event->Length() ) ?></td>
-              <td class="colFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->Frames() ) ?></td>
-              <td class="colAlarmFrames"><?php echo makePopupLink( '?view=frames&amp;eid='.$event->Id(), 'zmFrames', 'frames', $event->AlarmFrames() ) ?></td>
+              <td class="colName"><a href="<?php echo $event_link ?>"><?php echo validHtmlStr($event->Name()).($event->Archived()?'*':'') ?></a></td>
+              <td class="colMonitorName"><?php echo makeLink('?view=monitor&amp;mid='.$event->MonitorId(), $event->MonitorName(), canEdit('Monitors')) ?></td>
+              <td class="colCause"><?php echo makeLink($event_link, validHtmlStr($event->Cause()), canView('Events'), 'title="' .htmlspecialchars($event->Notes()). '" class="eDetailLink" data-eid="'.$event->Id().'"') ?></td>
+              <td class="colTime"><?php echo $dateTimeFormatter->format(strtotime($event->StartDateTime())) .
+( $event->EndDateTime() ? ' until ' . $dateTimeFormatter->format(strtotime($event->EndDateTime())) : '' ) ?></td>
+              <td class="colDuration"><?php echo gmdate('H:i:s', intval($event->Length())) ?></td>
+              <td class="colFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->Frames()) ?></td>
+              <td class="colAlarmFrames"><?php echo makeLink('?view=frames&amp;eid='.$event->Id(), $event->AlarmFrames()) ?></td>
               <td class="colTotScore"><?php echo $event->TotScore() ?></td>
               <td class="colAvgScore"><?php echo $event->AvgScore() ?></td>
-              <td class="colMaxScore"><?php echo
- $event->MaxScore();
- #makePopupLink('?view=frame&amp;eid='.$event->Id().'&amp;fid=0', 'zmImage', array('image', reScale($event->Width(), $scale), reScale($event->Height(), $scale)), $event->MaxScore()) ?></td>
+              <td class="colMaxScore"><?php echo $event->MaxScore() ?></td>
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
     $disk_space_total += $event->DiskSpace();
@@ -166,9 +169,7 @@ while ( $event_row = dbFetchNext($results) ) {
     echo '<td class="colDiskSpace">'.human_filesize($event->DiskSpace()).'</td>';
   }
   unset($event);
-  echo '
-</tr>
-';
+  echo PHP_EOL.'</tr>'.PHP_EOL;
 } # end foreach event
 ?>
         </tbody>
@@ -177,45 +178,43 @@ while ( $event_row = dbFetchNext($results) ) {
             <td colspan="11"><?php echo $event_count ?> events</td>
 <?php
   if ( ZM_WEB_EVENT_DISK_SPACE ) {
-?>
-            <td class="colDiskSpace"><?php echo human_filesize($disk_space_total);?></td>
-<?php
+    echo '<td class="colDiskSpace">'.human_filesize($disk_space_total).'</td>'.PHP_EOL;
   }
 ?>
           </tr>
 				</tfoot>
       </table>
-<div class="container-fluid">
+<div class="container-fluid export_options">
   <div class="row">
     <div class="col-md-3">
       <div class="form-group">
         <label for="exportDetail"><?php echo translate('ExportDetails') ?>
-          <input type="checkbox" name="exportDetail" value="1"<?php if ( !empty($_REQUEST['exportDetail']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+          <input type="checkbox" name="exportDetail" value="1"<?php if ( !empty($_REQUEST['exportDetail']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
         </label>
       </div>
       <div class="form-group">
         <label for="exportFrames"><?php echo translate('ExportFrames') ?>
-          <input type="checkbox" name="exportFrames" value="1"<?php if ( !empty($_REQUEST['exportFrames']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+          <input type="checkbox" name="exportFrames" value="1"<?php if ( !empty($_REQUEST['exportFrames']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
         </label>
       </div>
     </div>
     <div class="col-md-3">
       <div class="form-group">
         <label for="exportImages"><?php echo translate('ExportImageFiles') ?>
-          <input type="checkbox" name="exportImages" value="1"<?php if ( !empty($_REQUEST['exportImages']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+          <input type="checkbox" name="exportImages" value="1"<?php if ( !empty($_REQUEST['exportImages']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
 
         </label>
        </div>
        <div class="form-group">
          <label for="exportVideo"><?php echo translate('ExportVideoFiles') ?>
-         <input type="checkbox" name="exportVideo" value="1"<?php if ( !empty($_REQUEST['exportVideo']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+         <input type="checkbox" name="exportVideo" value="1"<?php if ( !empty($_REQUEST['exportVideo']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
          </label>
        </div>
     </div>
     <div class="col-md-3">
       <div class="form-group">
         <label for="exportMisc"><?php echo translate('ExportMiscFiles') ?>
-        <input type="checkbox" name="exportMisc" value="1"<?php if ( !empty($_REQUEST['exportMisc']) ) { ?> checked="checked"<?php } ?> data-on-click-this="configureExportButton"/>
+        <input type="checkbox" name="exportMisc" value="1"<?php if ( !empty($_REQUEST['exportMisc']) ) { ?> checked="checked"<?php } ?> data-on-click="configureExportButton"/>
         </label>
       </div>
     </div>
@@ -226,7 +225,7 @@ while ( $event_row = dbFetchNext($results) ) {
             array('tar'=>translate('ExportFormatTar'), 'zip' => translate('ExportFormatZip')),
             (isset($_REQUEST['exportFormat'])?$_REQUEST['exportFormat']:'zip'), # default to zip
             array(),
-            array('data-on-click-this'=>'configureExportButton')
+            array('data-on-click'=>'configureExportButton')
           ); ?>
         </label>
       </div>
@@ -236,7 +235,7 @@ while ( $event_row = dbFetchNext($results) ) {
             array('1'=>translate('Yes'), '0' => translate('No')),
             (isset($_REQUEST['exportCompress'])?$_REQUEST['exportCompress']:'0'), # default to no
             array(),
-            array('data-on-click-this'=>'configureExportButton')
+            array('data-on-click'=>'configureExportButton')
           ); ?>
         </label>
       </div>
@@ -271,5 +270,4 @@ while ( $event_row = dbFetchNext($results) ) {
         </form>
       </div>
     </div>
-  </body>
-</html>
+<?php xhtmlFooter() ?>

@@ -12,7 +12,8 @@ var objGridStack;
 
 var layoutColumns = 48; //Maximum number of columns (items per row) for GridStack
 var changedMonitors = []; //Monitor IDs that were changed in the DOM
-var scrollBbarExists = false;
+
+var scrollBbarExists = null;
 var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving))
 
 var panZoomEnabled = true; //Add it to settings in the future
@@ -850,6 +851,9 @@ function initPage() {
   const observer = new ResizeObserver((objResizes) => {
     const blockContent = document.getElementById('content');
     const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
+    if (scrollBbarExists === null) {
+      scrollBbarExists = currentScrollBbarExists;
+    }
     if (currentScrollBbarExists != scrollBbarExists) {
       scrollBbarExists = currentScrollBbarExists;
       return;
@@ -918,12 +922,12 @@ function addEvents(grid, id) {
   //let g = (id !== undefined ? 'grid' + id + ' ' : '');
   grid.on('change', function(event, items) {
     /* Occurs when widgets change their position/size due to constrain or direct changes */
-    items.forEach(function(item) {
-      const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
-      //setTriggerChangedMonitors(currentMonitorId);
-      //monitorsSetScale(currentMonitorId);
-      setTriggerChangedMonitors(currentMonitorId);
-    });
+    //items.forEach(function(item) {
+    //  const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
+    //  //setTriggerChangedMonitors(currentMonitorId);
+    //  //monitorsSetScale(currentMonitorId);
+    //  setTriggerChangedMonitors(currentMonitorId);
+    //});
 
     elementResize();
   })

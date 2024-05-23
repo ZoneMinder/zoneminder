@@ -560,10 +560,11 @@ function handleClick(evt) {
 function startMonitors() {
   for (let i = 0, length = monitorData.length; i < length; i++) {
     const obj = document.getElementById('liveStream'+monitors[i].id);
-    const url = new URL(obj.src);
-
-    url.searchParams.set('scale', parseInt(obj.clientWidth / monitors[i].width * 100));
-    obj.src = url;
+    if (obj.src) {
+      const url = new URL(obj.src);
+      url.searchParams.set('scale', parseInt(obj.clientWidth / monitors[i].width * 100));
+      obj.src = url;
+    }
 
     // Start the fps and status updates. give a random delay so that we don't assault the server
     const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );

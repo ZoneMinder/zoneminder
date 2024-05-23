@@ -341,9 +341,6 @@ foreach ($monitors as $monitor) {
   <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
-<?php xhtmlFooter() ?>
-
-<?php echo '<script nonce="'.$cspNonce.'"> const ZM_PRESET_LAYOUT_NAMES = '.json_encode($presetLayoutsNames).' </script>'.PHP_EOL;?>
 
 <!-- In May 2024, IgorA100 globally changed grid layout -->
 <div id="messageModal" class="modal fade" tabindex="-1">
@@ -364,3 +361,4 @@ foreach ($monitors as $monitor) {
     </div>
   </div>
 </div>
+<?php xhtmlFooter() ?>

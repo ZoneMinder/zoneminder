@@ -1,5 +1,4 @@
 function evaluateLoadTimes() {
-  return;
   if (liveMode != 1 && currentSpeed == 0) return; // don't evaluate when we are not moving as we can do nothing really fast.
 
   // Only consider it a completed event if we load ALL monitors, then zero all and start again

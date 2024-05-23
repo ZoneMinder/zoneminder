@@ -12,7 +12,9 @@ var objGridStack;
 
 var layoutColumns = 48; //Maximum number of columns (items per row) for GridStack
 var changedMonitors = []; //Monitor IDs that were changed in the DOM
-var scrollBbarExists = false;
+
+var scrollBbarExists = null;
+var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving))
 
 var panZoomEnabled = true; //Add it to settings in the future
 var panZoomMaxScale = 10;
@@ -558,6 +560,13 @@ function handleClick(evt) {
 
 function startMonitors() {
   for (let i = 0, length = monitorData.length; i < length; i++) {
+    const obj = document.getElementById('liveStream'+monitors[i].id);
+    if (obj.src) {
+      const url = new URL(obj.src);
+      url.searchParams.set('scale', parseInt(obj.clientWidth / monitors[i].width * 100));
+      obj.src = url;
+    }
+
     // Start the fps and status updates. give a random delay so that we don't assault the server
     const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
     monitors[i].start(delay);
@@ -739,10 +748,12 @@ function initPage() {
     //Create a Ratio array for each monitor
     const r = monitors[i].width / monitors[i].height;
     arrRatioMonitors.push(r > 1 ? r : 1/r); //landscape or portret orientation
+
+    //Prepare the array.
+    movableMonitorData[monitors[i].id] = {'width': 0, 'stop': false};
   }
 
   calculateAverageMonitorsRatio(arrRatioMonitors);
-  startMonitors();
 
   $j(window).on('resize', windowResize); //Only used when trying to apply "changeScale". It will be deleted in the future.
   document.addEventListener("fullscreenchange", fullscreenchanged);
@@ -840,6 +851,9 @@ function initPage() {
   const observer = new ResizeObserver((objResizes) => {
     const blockContent = document.getElementById('content');
     const currentScrollBbarExists = blockContent.scrollHeight > blockContent.clientHeight;
+    if (scrollBbarExists === null) {
+      scrollBbarExists = currentScrollBbarExists;
+    }
     if (currentScrollBbarExists != scrollBbarExists) {
       scrollBbarExists = currentScrollBbarExists;
       return;
@@ -856,6 +870,14 @@ function initPage() {
   $j('[id ^= "liveStream"]').each(function() {
     observer.observe(this);
   });
+
+  //Check if the monitor arrangement is complete
+  const intervalIdWidth = setInterval(() => {
+    if (checkEndMonitorsChange()) {
+      startMonitors();
+      clearInterval(intervalIdWidth);
+    }
+  }, 100);
 } // end initPage
 
 function formSubmit(form) {
@@ -900,12 +922,12 @@ function addEvents(grid, id) {
   //let g = (id !== undefined ? 'grid' + id + ' ' : '');
   grid.on('change', function(event, items) {
     /* Occurs when widgets change their position/size due to constrain or direct changes */
-    items.forEach(function(item) {
-      const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
-      //setTriggerChangedMonitors(currentMonitorId);
-      //monitorsSetScale(currentMonitorId);
-      setTriggerChangedMonitors(currentMonitorId);
-    });
+    //items.forEach(function(item) {
+    //  const currentMonitorId = stringToNumber(item.id); //We received the ID of the monitor whose size was changed
+    //  //setTriggerChangedMonitors(currentMonitorId);
+    //  //monitorsSetScale(currentMonitorId);
+    //  setTriggerChangedMonitors(currentMonitorId);
+    //});
 
     elementResize();
   })
@@ -1098,6 +1120,35 @@ function setTriggerChangedMonitors(id=null) {
       }
     });
   }
+}
+
+function checkEndMonitorsChange() {
+  for (let i = 0, length = monitorData.length; i < length; i++) {
+    const id = monitors[i].id;
+
+    if (!movableMonitorData[id].stop) {
+      //Monitor is still moving
+      const objWidth = document.getElementById('liveStream'+monitors[i].id).clientWidth;
+      if (objWidth == movableMonitorData[id].width && objWidth !=0 ) {
+        movableMonitorData[id].stop = true; //The size does not change, which means it’s already in its place!
+      } else {
+        movableMonitorData[id].width = objWidth;
+      }
+    }
+  }
+  //Check if all monitors are in their places
+  for (let i = 0, length = movableMonitorData.length; i < length; i++) {
+    var monitorsEndMoving = true;
+
+    if (movableMonitorData[i]) { //There may be empty elements
+      if (!movableMonitorData[i].stop) {
+        //Monitor is still moving
+        monitorsEndMoving = false;
+        return;
+      }
+    }
+  }
+  return monitorsEndMoving;
 }
 
 function changeMonitorStatusPositon() {

@@ -491,6 +491,9 @@ public static function getStatuses() {
     if (isset($args['height']))
       unset($args['height']);
 
+    unset($args['state']);
+    unset($args['zones']);
+
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
     return $streamSrc;

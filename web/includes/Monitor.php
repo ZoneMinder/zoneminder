@@ -491,7 +491,6 @@ public static function getStatuses() {
     if (isset($args['height']))
       unset($args['height']);
 
-    $args['scale'] = 25;
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
     return $streamSrc;

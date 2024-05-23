@@ -510,9 +510,11 @@ function random_WebColour() {
 function buffer_setting_oninput(e) {
   const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
   const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
-  if (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value)) {
-    if (this.id=='newMonitor[PreEventCount]') {
-      max_image_buffer_count.value=pre_event_count.value;
+  if (parseInt(max_image_buffer_count.value) &&
+    (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
+  ) {
+    if (this.id == 'newMonitor[PreEventCount]') {
+      max_image_buffer_count.value = pre_event_count.value;
     } else {
       pre_event_count.value = max_image_buffer_count.value;
     }

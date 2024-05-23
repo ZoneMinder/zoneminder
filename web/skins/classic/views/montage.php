@@ -199,15 +199,23 @@ foreach ($displayMonitors as &$row) {
   }
 } # end foreach Monitor
 $default_layout = '';
-if (count($monitors) >= 6) {
-  $default_layout = '6 Wide';
-} else if (count($monitors) >= 4) {
-  $default_layout = '4 Wide';
-} else {
-  $default_layout = '2 Wide';
-}
-  
 
+$monitorCount = count($monitors);
+if ($monitorCount <= 3) {
+  $default_layout = $monitorCount . ' Wide';
+} else if ($monitorCount <= 4) {
+  $default_layout = '2 Wide';
+} else if ($monitorCount <= 6) {
+  $default_layout = '3 Wide';
+} else if ($monitorCount%4 == 0) {
+  $default_layout = '4 Wide';
+} else if ($monitorCount%6 == 0) {
+  $default_layout = '6 Wide';
+} else {
+  $default_layout = '4 Wide';
+}
+
+$AutoLayoutName = $default_layout;
 
 xhtmlHeaders(__FILE__, translate('Montage'));
 getBodyTopHTML();

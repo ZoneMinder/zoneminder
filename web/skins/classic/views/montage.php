@@ -327,8 +327,10 @@ foreach ($monitors as $monitor) {
     $monitor_options['mode'] = 'paused';
     if (!$scale and $layout->Name() != 'Auto') {
       if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
-        if ($matches[1])
+        if ($matches[1]) {
           $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
+          if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+        }
       }
     }
     echo $monitor->getStreamHTML($monitor_options);

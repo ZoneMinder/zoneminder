@@ -212,7 +212,7 @@ if (count($monitors) >= 6) {
 }
   
 if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id]) || $layout_id == $AutoLayoutName) {
-  $layout_id = $arrNameId["Freeform"];
+  $layout_id = $arrNameId['Auto'];
 } else if ($layout_id == $AutoLayoutName) {
   $layout_id = $arrNameId[$default_layout];
 }
@@ -325,7 +325,7 @@ foreach ($monitors as $monitor) {
   } else {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
-    $monitor_options['mode'] = 'single';
+    $monitor_options['mode'] = 'paused';
     echo $monitor->getStreamHTML($monitor_options);
   }
 } # end foreach monitor

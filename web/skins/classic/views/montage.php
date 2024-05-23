@@ -59,9 +59,18 @@ $monitorStatusPositon = array(
 );
 
 $monitorStatusPositonSelected = 'outsideImgBottom';
+if (isset($_REQUEST['monitorStatusPositonSelected'])) {
+  $monitorStatusPositonSelected = $_REQUEST['monitorStatusPositonSelected'];
+} else if (isset($_COOKIE['zmMonitorStatusPositonSelected'])) {
+  $monitorStatusPositonSelected = $_COOKIE['zmMonitorStatusPositonSelected'];
+}
 
+$layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
+// layoutsById is used in the dropdown, so needs to be sorted
+$layoutsById = array();
+$AutoLayoutName = '';
 $presetLayoutsNames = array( //Order matters!
-  'Freeform',
+  'Auto',
   '1 Wide',
   '2 Wide',
   '3 Wide',
@@ -72,52 +81,40 @@ $presetLayoutsNames = array( //Order matters!
   '16 Wide'
 );
 
-if (isset($_REQUEST['monitorStatusPositonSelected'])) {
-  $monitorStatusPositonSelected = $_REQUEST['monitorStatusPositonSelected'];
-} else if (isset($_COOKIE['zmMonitorStatusPositonSelected'])) {
-  $monitorStatusPositonSelected = $_COOKIE['zmMonitorStatusPositonSelected'];
-}
-
-$layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
-$layoutsById = array();
-$AutoLayoutName = '';
-
-/* Create an array "Name"=>"Id" to make it easier to find IDs by name*/
-$arrNameId = array();
+/* Create an array "Name"=>layouts to make it easier to find IDs by name*/
+$layoutsByName = array();
 foreach ($layouts as $l) {
-  $arrNameId[$l->Name()] = $l->Id();
+  if ($l->Name() == 'Freeform') $l->Name('Auto');
+  $layoutsByName[$l->Name()] = $l;
 }
 
-/* Fill with preinstalled Layouts. They should always come first */
+/* Fill with preinstalled Layouts. They should always come first.
+ * Also sorting 1 Wide and 11 Wide fails... so need a smarter sort
+ */
 foreach ($presetLayoutsNames as $name) {
-  if (array_key_exists($name, $arrNameId)) // Layout may be missing in BD (rare case during update process)
-    $layoutsById[$arrNameId[$name]] = $name; //We will only assign a name, which is necessary for the sorting order. We will replace it with an object in the next loop.
+  if (array_key_exists($name, $layoutsByName)) // Layout may be missing in BD (rare case during update process)
+    $layoutsById[$layoutsByName[$name]->Id()] = $layoutsByName[$name];
 }
-
-/* For some reason $layouts is already sorted by ID and requires analysis. But just in case, we will sort by ID */
-uasort($layouts, function($a, $b) {
-  return $a->Id <=> $b->Id;
-});
 
 /* Add custom Layouts & assign objects instead of names for preset Layouts */
 foreach ( $layouts as $l ) {
-  $nameLayout = $l->Name();
-  if ( $l->Name() == 'Freeform' ) {
-    $AutoLayoutName = $l->Id(); //Temporarily assign ID instead of Name to simplify the comparison code
-    $nameLayout = "Auto";
-  }
-  //$layoutsById[$l->Id()] = $l;
-  $layoutsById[$l->Id()] = $nameLayout;
+  $layoutsById[$l->Id()] = $l;
 }
+ZM\Debug(print_r($layoutsById, true));
 
 zm_session_start();
 
-$layout_id = '';
+$layout_id = 0;
 if ( isset($_COOKIE['zmMontageLayout']) ) {
-  $layout_id = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
+  $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_COOKIE['zmMontageLayout']);
 } elseif ( isset($_SESSION['zmMontageLayout']) ) {
-  $layout_id = $_SESSION['zmMontageLayout'];
+  $layout_id = validCardinal($_SESSION['zmMontageLayout']);
 }
+if (!$layout_id || !isset($layoutsById[$layout_id])) {
+  $layout_id = $layoutsByName['Auto']->Id();
+}
+$layout = $layoutsById[$layout_id];
+
 
 $options = array();
 
@@ -201,7 +198,6 @@ foreach ($displayMonitors as &$row) {
     $need_janus = true;
   }
 } # end foreach Monitor
-
 $default_layout = '';
 if (count($monitors) >= 6) {
   $default_layout = '6 Wide';
@@ -211,12 +207,7 @@ if (count($monitors) >= 6) {
   $default_layout = '2 Wide';
 }
   
-if (!$layout_id || !is_numeric($layout_id) || !isset($layoutsById[$layout_id]) || $layout_id == $AutoLayoutName) {
-  $layout_id = $arrNameId['Auto'];
-} else if ($layout_id == $AutoLayoutName) {
-  $layout_id = $arrNameId[$default_layout];
-}
-$AutoLayoutName = $default_layout;
+
 
 xhtmlHeaders(__FILE__, translate('Montage'));
 getBodyTopHTML();
@@ -326,6 +317,12 @@ foreach ($monitors as $monitor) {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
     $monitor_options['mode'] = 'paused';
+    if (!$scale and $layout->Name() != 'Auto') {
+      if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
+        if ($matches[1])
+          $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
+      }
+    }
     echo $monitor->getStreamHTML($monitor_options);
   }
 } # end foreach monitor

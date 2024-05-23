@@ -13,6 +13,9 @@ const canStreamNative = <?php echo canStreamNative()?'true':'false' ?>;
 var monitorData = new Array();
 
 <?php
+global $presetLayoutsNames;
+echo 'const ZM_PRESET_LAYOUT_NAMES = '.json_encode($presetLayoutsNames).';'.PHP_EOL;
+
 global $monitors;
 foreach ( $monitors as $monitor ) {
 ?>

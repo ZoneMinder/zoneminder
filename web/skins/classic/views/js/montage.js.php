@@ -51,5 +51,5 @@ layouts[<?php echo $layout->Id() ?>] = {
 <?php
 } // end foreach layout
 global $AutoLayoutName;
-echo 'freeform_layout_id="'.$AutoLayoutName.'";'
+echo 'const autoLayoutName="'.$AutoLayoutName.'";'
 ?>

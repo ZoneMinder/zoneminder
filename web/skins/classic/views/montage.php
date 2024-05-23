@@ -68,7 +68,6 @@ if (isset($_REQUEST['monitorStatusPositonSelected'])) {
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
 // layoutsById is used in the dropdown, so needs to be sorted
 $layoutsById = array();
-$AutoLayoutName = '';
 $presetLayoutsNames = array( //Order matters!
   'Auto',
   '1 Wide',
@@ -198,6 +197,7 @@ foreach ($displayMonitors as &$row) {
     $need_janus = true;
   }
 } # end foreach Monitor
+
 $default_layout = '';
 
 $monitorCount = count($monitors);

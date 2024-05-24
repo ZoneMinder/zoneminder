@@ -2682,7 +2682,7 @@ std::vector<std::shared_ptr<Monitor>> Monitor::LoadMonitors(const std::string &w
   std::vector<std::shared_ptr<Monitor>> monitors;
   monitors.reserve(n_monitors);
 
-  for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+  while(MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     monitors.emplace_back(std::make_shared<Monitor>());
     monitors.back()->Load(dbrow, true, purpose);
   }

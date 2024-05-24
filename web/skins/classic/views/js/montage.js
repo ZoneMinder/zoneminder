@@ -798,7 +798,7 @@ function initPage() {
 
   setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
-      changedMonitors.forEach(function(item, index, object) {
+      changedMonitors.slice().reverse().forEach(function(item, index, object) {
         const value = getSelected(document.getElementById("ratio"+item));
         const img = document.getElementById('liveStream'+item);
         const currentMonitor = monitors.find((o) => {
@@ -818,7 +818,7 @@ function initPage() {
 
         if (img.offsetHeight > 20 && objGridStack) { //Required for initial page loading
           objGridStack.resizeToContent(document.getElementById('m'+item));
-          changedMonitors.splice(index, 1);
+          changedMonitors.splice(object.length - 1 - index, 1);
         }
         monitorsSetScale(item);
       });

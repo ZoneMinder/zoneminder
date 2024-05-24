@@ -386,7 +386,6 @@ class FilterTerm {
   } # end public function hiddens_fields
 
   public function test($event=null) {
-    Debug("Testing " . $this->attr);
     if ( !isset($event) ) {
       # Is a Pre Condition
       if ( $this->attr == 'DiskPercent' ) {

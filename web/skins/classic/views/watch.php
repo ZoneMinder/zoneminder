@@ -140,7 +140,7 @@ if (isset($_REQUEST['period'])) {
 } else if (isset($_COOKIE['zmCyclePeriod'])) {
   $period = validInt($_COOKIE['zmCyclePeriod']);
 }
-
+/*
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmWatchScale'.$mid]) ) {
@@ -148,12 +148,22 @@ if (isset($_REQUEST['scale'])) {
 } else {
   $scale = validInt($monitor->DefaultScale());
 }
+*/
+
+if (isset($_REQUEST['scale'])) {
+  $scale = $_REQUEST['scale'];
+} else if ( isset($_COOKIE['zmWatchScaleNew'.$mid]) ) {
+  $scale = $_COOKIE['zmWatchScaleNew'.$mid];
+} else {
+  $scale = $monitor->DefaultScale();
+}
+
 if ( !isset($scales[$scale])) {
   ZM\Info("Invalid scale found in cookie: $scale, defaulting to auto");
-  zm_setcookie('zmWatchScale'.$mid, 0);
+  zm_setcookie('zmWatchScaleNew'.$mid, 0);
   $scale = 0;
 }
-$options['scale'] = $scale;
+$options['scale'] = 0; //Somewhere something is spoiled because of this...
 
 if (isset($_REQUEST['width'])) {
   $options['width'] = validInt($_REQUEST['width']); 
@@ -245,7 +255,9 @@ $maxfps_options = array(''=>translate('Unlimited'),
   '1' => '1 '.translate('FPS'),
   '2' => '2 '.translate('FPS'),
   '5' => '5 '.translate('FPS'),
+  '8' => '8 '.translate('FPS'),
   '10' => '10 '.translate('FPS'),
+  '15' => '15 '.translate('FPS'),
   '20' => '20 '.translate('FPS'),
 );
 echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
@@ -259,7 +271,10 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
         </label>
       </div>
       <div id="sizeControl">
-
+        <span id="scaleControl">
+          <label><?php echo translate('Scale') ?>:</label>
+          <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
+        </span>
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->
@@ -368,17 +383,17 @@ if ($streamMode == 'jpeg') {
               <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="zoomOutClick">
               <i class="material-icons md-18">zoom_out</i>
               </button>
-              <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
-              <i class="material-icons md-18">fullscreen</i>
-              </button>
 <?php
 } // end if streamMode==jpeg
 ?>
           </div><!--dvrControls-->
 <?php } // end if $monitor->Type() != 'WebSite' ?>
           <div class="buttons" id="extButton"> 
-              <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents" data-url="?view=events&page=1&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Battr%5D=Monitor&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bop%5D=%3D&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bval%5D=<?php echo $monitor->Id()?>&filter%5BQuery%5D%5Bsort_asc%5D=1&filter%5BQuery%5D%5Bsort_field%5D=StartDateTime&filter%5BQuery%5D%5Bskip_locked%5D=&filter%5BQuery%5D%5Blimit%5D=0"><?php echo translate('All Events') ?> 
-              </button>
+            <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
+            <i class="material-icons md-18">fullscreen</i>
+            </button>
+            <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents" data-url="?view=events&page=1&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Battr%5D=Monitor&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bop%5D=%3D&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bval%5D=<?php echo $monitor->Id()?>&filter%5BQuery%5D%5Bsort_asc%5D=1&filter%5BQuery%5D%5Bsort_field%5D=StartDateTime&filter%5BQuery%5D%5Bskip_locked%5D=&filter%5BQuery%5D%5Blimit%5D=0"><?php echo translate('All Events') ?> 
+            </button>
           </div>
         </div><!-- id="wrapperMonitor" -->
 

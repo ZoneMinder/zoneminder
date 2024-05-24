@@ -491,6 +491,9 @@ public static function getStatuses() {
     if (isset($args['height']))
       unset($args['height']);
 
+    unset($args['state']);
+    unset($args['zones']);
+
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
     return $streamSrc;
@@ -972,6 +975,8 @@ public static function getStatuses() {
  * Same width height.  If both are set we should calculate the smaller resulting scale
  */
   function getStreamHTML($options) {
+    global $basename;
+
     if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
       if ($options['scale'] != 'auto' && $options['scale'] != '0') {
         $options['width'] = reScale($this->ViewWidth(), $options['scale']).'px';
@@ -1021,8 +1026,11 @@ public static function getStatuses() {
     if ($this->StreamReplayBuffer())
       $options['buffer'] = $this->StreamReplayBuffer();
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+    $blockRatioControl = ($basename == "montage") ? '<div id="ratioControl'.$this->Id().'" class="ratioControl hidden"><select name="ratio'.$this->Id().'" id="ratio'.$this->Id().'" class="select-ratio chosen" data-on-change="changeRatio">
+</select></div>' : '';
     $html = '
-      <div id="m'. $this->Id() . '" class="grid-stack-item" gs-id="'. $this->Id() . '" gs-w="6" gs-auto-position="true">
+      <div id="m'. $this->Id() . '" class="grid-monitor grid-stack-item" gs-id="'. $this->Id() . '" gs-w="12" gs-auto-position="true">
+        ' . $blockRatioControl . '
         <div class="grid-stack-item-content">
           <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
             <div
@@ -1039,8 +1047,9 @@ public static function getStatuses() {
                   <button id="btn-zoom-in'.$this->Id().'" class="btn btn-zoom-in hidden" data-on-click="panZoomIn" title="'.translate('Zoom IN').'"><span class="material-icons md-36">add</span></button>
                   <button id="btn-zoom-out'.$this->Id().'" class="btn btn-zoom-out hidden" data-on-click="panZoomOut" title="'.translate('Zoom OUT').'"><span class="material-icons md-36">remove</span></button>
                   <div class="block-button-center">
-                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-36">open_in_new</span></button>
-                    <button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-36">edit</span></button>
+                    <button id="btn-fullscreen'.$this->Id().'" class="btn btn-fullscreen" title="'.translate('Open full screen').'"><span class="material-icons md-30">fullscreen</span></button>
+                    <button id="btn-view-watch'.$this->Id().'" class="btn btn-view-watch" title="'.translate('Open watch page').'"><span class="material-icons md-30">open_in_new</span></button>
+                    <button id="btn-edit-monitor'.$this->Id().'" class="btn btn-edit-monitor" title="'.translate('Edit monitor').'"><span class="material-icons md-30">edit</span></button>
                   </div>
                 </div>
                 <div class="zoompan">';

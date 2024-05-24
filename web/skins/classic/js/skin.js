@@ -677,7 +677,7 @@ function endOfResize(e) {
  * figures out where bottomEl is in the viewport
  * does calculations
  * */
-function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
+function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
   const ratio = baseWidth / baseHeight;
   if (!container) container = $j('#content');
@@ -686,13 +686,16 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     return;
   }
 
-  if (!bottomEl || !bottomEl.length) {
-    bottomEl = $j(container[0].lastElementChild);
-  }
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
-  const bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
-  console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
+  var bottomLoc = 0;
+  if (bottomEl !== false) {
+    if (!bottomEl || !bottomEl.length) {
+      bottomEl = $j(container[0].lastElementChild);
+    }
+    bottomLoc = bottomEl.offset().top + (bottomEl.outerHeight(true) - bottomEl.outerHeight()) + bottomEl.outerHeight(true);
+    console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
+  }
   let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
   console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
   let newWidth = ratio * newHeight;
@@ -710,7 +713,8 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     newHeight = newWidth / ratio;
   }
   console.log("newWidth = " + newWidth);
-  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE);
+  let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE * panZoomScale);
+  /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
   const scales = $j('#scale option').map(function() {
     return parseInt($j(this).val());
   }).get();
@@ -725,6 +729,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container) {
     console.log("Setting to closest: " + closest + " instead of " + autoScale);
     autoScale = closest;
   }
+  */
   if (autoScale < 10) autoScale = 10;
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
@@ -1147,6 +1152,10 @@ function applyChosen() {
   $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
   $j('.chosen.chosen-full-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
   $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+}
+
+function stringToNumber(str) {
+  return parseInt(str.replace(/\D/g, ''));
 }
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});

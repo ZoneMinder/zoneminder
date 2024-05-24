@@ -823,7 +823,7 @@ function initPage() {
         monitorsSetScale(item);
       });
     }
-  }, 200);
+  }, 100);
 
   setTimeout(() => {
     selectLayout();
@@ -873,6 +873,7 @@ function initPage() {
   //Check if the monitor arrangement is complete
   const intervalIdWidth = setInterval(() => {
     if (checkEndMonitorsChange()) {
+      initGridStack();
       startMonitors();
       clearInterval(intervalIdWidth);
     }

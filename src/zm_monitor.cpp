@@ -603,7 +603,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   if (section_length < min_section_length) {
     section_length = min_section_length;
-    Warning("Section length %ld < Min Section Length %ld. This is invalid.",
+    Warning("Section length %jd < Min Section Length %jd. This is invalid.",
             Seconds(section_length).count(),
             Seconds(min_section_length).count()
            );
@@ -980,7 +980,7 @@ bool Monitor::connect() {
         "zone_count %d * sizeof int %zu "
         "VideoStoreData=%zu "
         "timestamps=%zu "
-        "images=%dx%" PRIi64 " = %" PRId64 " "
+        "images=%dx%zd = %zd "
         "analysis images=%dx%" PRIi64 " = %" PRId64 " "
         "image_format = %dx%" PRIi64 " = %" PRId64 " "
         "total=%jd",

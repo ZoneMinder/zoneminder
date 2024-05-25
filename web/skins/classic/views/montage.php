@@ -112,8 +112,7 @@ if (!$layout_id || !isset($layoutsById[$layout_id])) {
   $layout_id = $layoutsByName['Auto']->Id();
 }
 $layout = $layoutsById[$layout_id];
-$layout_is_preset = array_search($layout->Name(), $presetLayoutsNames);
-
+$layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false ? false : true;
 
 $options = array();
 
@@ -325,12 +324,19 @@ foreach ($monitors as $monitor) {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
     $monitor_options['mode'] = 'paused';
-    if (!$scale and ($layout->Name() != 'Auto') and (false !== $layout_is_preset)) {
-      if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
-        if ($matches[1]) {
-          $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
-          if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+    if (!$scale and ($layout->Name() != 'Auto')) {
+      if ($layout_is_preset) {
+        # We know the # of columns so can figure out a proper scale
+        if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
+          if ($matches[1]) {
+            $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
+            if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+          }
         }
+      } else {
+        # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
+        $monitor_options['scale'] = intval(100*((1920/4)/$monitor->Width()));
+        if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       }
     }
     echo $monitor->getStreamHTML($monitor_options);

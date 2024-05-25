@@ -80,7 +80,7 @@ $presetLayoutsNames = array( //Order matters!
   '16 Wide'
 );
 
-/* Create an array "Name"=>layouts to make it easier to find IDs by name*/
+/* Create an array "Name"=>layouts to make it easier to find IDs by name */
 $layoutsByName = array();
 foreach ($layouts as $l) {
   if ($l->Name() == 'Freeform') $l->Name('Auto');
@@ -91,15 +91,14 @@ foreach ($layouts as $l) {
  * Also sorting 1 Wide and 11 Wide fails... so need a smarter sort
  */
 foreach ($presetLayoutsNames as $name) {
-  if (array_key_exists($name, $layoutsByName)) // Layout may be missing in BD (rare case during update process)
+  if (array_key_exists($name, $layoutsByName)) // Layout may be missing in DB (rare case during update process)
     $layoutsById[$layoutsByName[$name]->Id()] = $layoutsByName[$name];
 }
 
 /* Add custom Layouts & assign objects instead of names for preset Layouts */
-foreach ( $layouts as $l ) {
+foreach ($layouts as $l) {
   $layoutsById[$l->Id()] = $l;
 }
-ZM\Debug(print_r($layoutsById, true));
 
 zm_session_start();
 
@@ -113,6 +112,7 @@ if (!$layout_id || !isset($layoutsById[$layout_id])) {
   $layout_id = $layoutsByName['Auto']->Id();
 }
 $layout = $layoutsById[$layout_id];
+$layout_is_preset = array_search($layout->Name(), $presetLayoutsNames);
 
 
 $options = array();
@@ -325,7 +325,7 @@ foreach ($monitors as $monitor) {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
     $monitor_options['mode'] = 'paused';
-    if (!$scale and $layout->Name() != 'Auto') {
+    if (!$scale and ($layout->Name() != 'Auto') and (false !== $layout_is_preset)) {
       if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
         if ($matches[1]) {
           $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));

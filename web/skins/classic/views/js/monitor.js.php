@@ -36,9 +36,10 @@ rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;
 } # end if query
 ?>
 
-function validateForm( form ) {
-  var errors = new Array();
-  var warnings = new Array();
+function validateForm() {
+  const form = document.getElementById('contentForm');
+  const errors = new Array();
+  const warnings = new Array();
   const elements = form.elements;
 
   // No monitor input should have whitespace at beginning or end, so strip them out first.
@@ -48,20 +49,41 @@ function validateForm( form ) {
     }
   }
 
-  if ( elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
+  if ( elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 ) {
     errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
-  else if ( monitorNames[form.elements['newMonitor[Name]'].value] )
+  } else if ( monitorNames[form.elements['newMonitor[Name]'].value] ) {
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
+  }
+  if ( form.elements['newMonitor[Type]'].value != 'WebSite' ) {
+    if ( form.elements['newMonitor[AnalysisFPSLimit]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPSLimit]'].value) > 0 ) )
+      errors[errors.length] = "<?php echo translate('BadAnalysisFPS') ?>";
+    if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
+      errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";
+    if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) > 0 ) )
+      errors[errors.length] = "<?php echo translate('BadAlarmMaxFPS') ?>";
+    if ( !form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) )
+      errors[errors.length] = "<?php echo translate('BadRefBlendPerc') ?>";
+  }
+  if (errors.length) {
+    $j('#general-tab').tab('show');
+    alert(errors.join("\n"));
+    return false;
+  }
 
   if ( form.elements['newMonitor[Type]'].value == 'Local' ) {
-    if ( !form.elements['newMonitor[Palette]'].value || !form.elements['newMonitor[Palette]'].value.match( /^\d+$/ ) )
+    if ( !form.elements['newMonitor[Palette]'].value || !form.elements['newMonitor[Palette]'].value.match( /^\d+$/ ) ) {
       errors[errors.length] = "<?php echo translate('BadPalette') ?>";
-    if ( !form.elements['newMonitor[Device]'].value )
+    }
+    if ( !form.elements['newMonitor[Device]'].value ) {
       errors[errors.length] = "<?php echo translate('BadDevice') ?>";
-    if ( !form.elements['newMonitor[Channel]'].value || !form.elements['newMonitor[Channel]'].value.match( /^\d+$/ ) )
+    }
+
+    if ( !form.elements['newMonitor[Channel]'].value || !form.elements['newMonitor[Channel]'].value.match( /^\d+$/ ) ) {
       errors[errors.length] = "<?php echo translate('BadChannel') ?>";
-    if ( !form.elements['newMonitor[Format]'].value || !form.elements['newMonitor[Format]'].value.match( /^\d+$/ ) )
+    }
+    if ( !form.elements['newMonitor[Format]'].value || !form.elements['newMonitor[Format]'].value.match( /^\d+$/ ) ) {
       errors[errors.length] = "<?php echo translate('BadFormat') ?>";
+    }
     if ( form.elements['newMonitor[VideoWriter]'].value == 2 /* Passthrough */ )
       errors[errors.length] = "<?php echo translate('BadPassthrough') ?>";
   } else if ( form.elements['newMonitor[Type]'].value == 'Remote' ) {
@@ -99,31 +121,23 @@ function validateForm( form ) {
     if ( form.elements['newMonitor[Path]'].value.search(/^https?:\/\//i) )
       errors[errors.length] = "<?php echo translate('BadWebSitePath') ?>";
   }
-
-  if (form.elements['newMonitor[VideoWriter]'].value == '1' /* Encode */) {
-    var parameters = form.elements['newMonitor[EncoderParameters]'].value.replace(/[^#a-zA-Z]/g, "");
-    if (parameters == '' || parameters == '#Linesbeginningwith#areacomment#Forchangingqualityusethecrfoption#isbestisworstquality#crf' ) {
-      warnings[warnings.length] = '<?php echo translate('BadEncoderParameters') ?>';
-    }
-  }
-
   if ( form.elements['newMonitor[Type]'].value != 'WebSite' ) {
-
-    if ( form.elements['newMonitor[AnalysisFPSLimit]'].value && !(parseFloat(form.elements['newMonitor[AnalysisFPSLimit]'].value) > 0 ) )
-      errors[errors.length] = "<?php echo translate('BadAnalysisFPS') ?>";
-    if ( form.elements['newMonitor[MaxFPS]'].value && !(parseFloat(form.elements['newMonitor[MaxFPS]'].value) > 0 ) )
-      errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";
-    if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) > 0 ) )
-      errors[errors.length] = "<?php echo translate('BadAlarmMaxFPS') ?>";
-    if ( !form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) )
-      errors[errors.length] = "<?php echo translate('BadRefBlendPerc') ?>";
-
     if ( !form.elements['newMonitor[Colours]'].value || (parseInt(form.elements['newMonitor[Colours]'].value) != 1 && parseInt(form.elements['newMonitor[Colours]'].value) != 3 && parseInt(form.elements['newMonitor[Colours]'].value) != 4 ) )
       errors[errors.length] = "<?php echo translate('BadColours') ?>";
     if ( !form.elements['newMonitor[Width]'].value || !(parseInt(form.elements['newMonitor[Width]'].value) > 0 ) )
       errors[errors.length] = "<?php echo translate('BadWidth') ?>";
     if ( !form.elements['newMonitor[Height]'].value || !(parseInt(form.elements['newMonitor[Height]'].value) > 0 ) )
       errors[errors.length] = "<?php echo translate('BadHeight') ?>";
+  }
+
+  if (errors.length) {
+    $j('#source-tab').tab('show');
+    alert(errors.join("\n"));
+    return false;
+  }
+
+  if ( form.elements['newMonitor[Type]'].value != 'WebSite' ) {
+
     if ( !form.elements['newMonitor[LabelX]'].value || !(parseInt(form.elements['newMonitor[LabelX]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadLabelX') ?>";
     if ( !form.elements['newMonitor[LabelY]'].value || !(parseInt(form.elements['newMonitor[LabelY]'].value) >= 0 ) )
@@ -142,7 +156,7 @@ function validateForm( form ) {
       errors[errors.length] = "<?php echo translate('BadPostEventCount') ?>";
     if ( !form.elements['newMonitor[StreamReplayBuffer]'].value || !(parseInt(form.elements['newMonitor[StreamReplayBuffer]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadStreamReplayBuffer') ?>";
-    if (form.elements['newMonitor[PreEventCount]'].value > form.elements['newMonitor[MaxImageBufferCount]'].value)
+    if (parseInt(form.elements['newMonitor[MaxImageBufferCount]'].value) && (parseInt(form.elements['newMonitor[PreEventCount]'].value) > parseInt(form.elements['newMonitor[MaxImageBufferCount]'].value)))
       errors[errors.length] = "<?php echo translate('BadPreEventCountMaxImageBufferCount') ?>";
 
     if ( !form.elements['newMonitor[AlarmFrameCount]'].value || !(parseInt(form.elements['newMonitor[AlarmFrameCount]'].value) > 0 ) )
@@ -175,6 +189,12 @@ function validateForm( form ) {
     return false;
   }
 
+  if (form.elements['newMonitor[VideoWriter]'].value == '1' /* Encode */) {
+    var parameters = form.elements['newMonitor[EncoderParameters]'].value.replace(/[^#a-zA-Z]/g, "");
+    if (parameters == '' || parameters == '#Linesbeginningwith#areacomment#Forchangingqualityusethecrfoption#isbestisworstquality#crf' ) {
+      warnings[warnings.length] = '<?php echo translate('BadEncoderParameters') ?>';
+    }
+  }
   if ( (form.elements['newMonitor[Function]'].value != 'Monitor') && (form.elements['newMonitor[Function]'].value != 'None') ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";
@@ -185,7 +205,8 @@ function validateForm( form ) {
       return false;
     }
   }
-
+  form.elements['action'].value='save';
+  form.submit();
   return true;
 }
 

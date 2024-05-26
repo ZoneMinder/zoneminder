@@ -301,20 +301,15 @@ function setSelectedRatioForAllMonitors(value) {
 function changeRatioForAll() {
   const value = getSelected(document.getElementById("ratio"));
 
-  //objGridStack.compact('list', true); //???
-  //selectLayout(); //???
-
   setCookie('zmMontageRatioForAll', value);
   setSelectedRatioForAllMonitors(value);
   setTriggerChangedMonitors();
+  waitingMonitorsPlaced ('changeRatio');
 }
 
 /*Called from a form*/
 function changeRatio(el) {
   const objSelect = el.target;
-
-  //objGridStack.compact('list', true); //???
-  //selectLayout(); //???
 
   checkRatioForAllMonitors();
   setTriggerChangedMonitors(stringToNumber(objSelect.id));
@@ -350,6 +345,27 @@ function checkRatioForAllMonitors() {
   } else {
     cancelSelected(document.getElementById("ratio"));
   }
+}
+
+function setRatioForMonitor(objLiveStream, id=null) {
+  if (!id) {
+    id = stringToNumber(objLiveStream.id);
+  }
+  const value = getSelected(document.getElementById("ratio"+id));
+  const currentMonitor = monitors.find((o) => {
+    return parseInt(o["id"]) === id;
+  });
+
+  var ratio;
+  if (value == 'real') {
+    ratio = (currentMonitor.width / currentMonitor.height > 1) ? currentMonitor.width / currentMonitor.height : currentMonitor.height / currentMonitor.width;
+  } else {
+    const partsRatio = value.split(':');
+    ratio = (value == 'auto') ? averageMonitorsRatio : partsRatio[0]/partsRatio[1];
+  }
+  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objLiveStream.clientWidth / ratio + 'px') /* landscape */ : (objLiveStream.clientWidth * ratio + 'px');
+  objLiveStream.style['height'] = height;
+  objLiveStream.parentNode.style['height'] = height;
 }
 
 function toGrid(value) { //Not used
@@ -799,24 +815,9 @@ function initPage() {
   setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        const value = getSelected(document.getElementById("ratio"+item));
         const img = document.getElementById('liveStream'+item);
-        const currentMonitor = monitors.find((o) => {
-          return parseInt(o["id"]) === item;
-        });
-        if (value == 'real') {
-          img.style['height'] = 'auto';
-          img.parentNode.style['height'] = 'auto';
-        } else {
-          const partsRatio = value.split(':');
-          const monitorRatioSel = partsRatio[0]/partsRatio[1];
-          const ratio = (value == 'auto') ? averageMonitorsRatio : monitorRatioSel;
-          const h = (currentMonitor.width / currentMonitor.height > 1) ? (img.clientWidth / ratio + 'px') /*landscape*/ : (img.clientWidth * ratio + 'px');
-          img.style['height'] = h;
-          img.parentNode.style['height'] = h;
-        }
-
         if (img.offsetHeight > 20 && objGridStack) { //Required for initial page loading
+          setRatioForMonitor(img, item);
           objGridStack.resizeToContent(document.getElementById('m'+item));
           changedMonitors.splice(object.length - 1 - index, 1);
         }
@@ -825,10 +826,8 @@ function initPage() {
     }
   }, 100);
 
-  setTimeout(() => {
-    selectLayout();
-    $j('#monitors').removeClass('hidden-shift');
-  }, 50); //No matter what flickers. But perhaps this will not be necessary in the future...
+  selectLayout();
+  $j('#monitors').removeClass('hidden-shift');
   changeMonitorStatusPositon();
 
   if (panZoomEnabled) {
@@ -870,14 +869,9 @@ function initPage() {
     observer.observe(this);
   });
 
+  //You can immediately call startMonitors() here, but in this case the height of the monitor will initially be minimal, and then become normal, but this is not pretty.
   //Check if the monitor arrangement is complete
-  const intervalIdWidth = setInterval(() => {
-    if (checkEndMonitorsChange()) {
-      initGridStack();
-      startMonitors();
-      clearInterval(intervalIdWidth);
-    }
-  }, 100);
+  waitingMonitorsPlaced ('startMonitors');
 } // end initPage
 
 function formSubmit(form) {
@@ -1110,7 +1104,7 @@ function setTriggerChangedMonitors(id=null) {
   }
 }
 
-function checkEndMonitorsChange() {
+function checkEndMonitorsPlaced() {
   for (let i = 0, length = monitorData.length; i < length; i++) {
     const id = monitors[i].id;
 
@@ -1136,7 +1130,49 @@ function checkEndMonitorsChange() {
       }
     }
   }
+  if (monitorsEndMoving) {
+    for (let i = 0, length = monitorData.length; i < length; i++) {
+      //Clean for later use
+      movableMonitorData[monitors[i].id] = {'width': 0, 'stop': false};
+    }
+  }
   return monitorsEndMoving;
+}
+
+function waitingMonitorsPlaced (action = null) {
+  const intervalWait = setInterval(() => {
+    if (checkEndMonitorsPlaced()) {
+      // This code may not be executed, because when opening the page we still end up in "action == 'changeRatio'"
+      //if (isPresetLayout(getCurrentNameLayout())) {
+      //  objGridStack.compact('list', true);
+      //}
+      if (action == 'startMonitors') {
+        startMonitors();
+      } else if (action == 'changeRatio') {
+        if (!isPresetLayout(getCurrentNameLayout())) {
+          return;
+        }
+        if (objGridStack) {
+          objGridStack.destroy(false);
+        }
+
+        for (let i = 0, length = monitors.length; i < length; i++) {
+          const monitor = monitors[i];
+          // Need to clear the current positioning "X". Otherwise, the order of the monitors will be disrupted
+          const monitor_frame = $j('#monitor'+monitor.id);
+          if (!monitor_frame) {
+            console.log('Error finding frame for ' + monitor.id);
+            continue;
+          }
+          //monitor_wrapper
+          monitor_frame.closest('[gs-id="' + monitor.id + '"]').removeAttr('gs-x');
+        }
+        initGridStack();
+        // You could use "objGridStack.compact('list', true)" instead of all this code, but that would mess up the monitor sorting. Because The "compact" algorithm in GridStack is not perfect.
+      }
+      clearInterval(intervalWait);
+    }
+  }, 100);
 }
 
 function changeMonitorStatusPositon() {

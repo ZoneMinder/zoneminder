@@ -304,7 +304,7 @@ function changeRatioForAll() {
   setCookie('zmMontageRatioForAll', value);
   setSelectedRatioForAllMonitors(value);
   setTriggerChangedMonitors();
-  waitingMonitorsPlaced ('changeRatio');
+  waitingMonitorsPlaced('changeRatio');
 }
 
 /*Called from a form*/
@@ -871,7 +871,7 @@ function initPage() {
 
   //You can immediately call startMonitors() here, but in this case the height of the monitor will initially be minimal, and then become normal, but this is not pretty.
   //Check if the monitor arrangement is complete
-  waitingMonitorsPlaced ('startMonitors');
+  waitingMonitorsPlaced('startMonitors');
 } // end initPage
 
 function formSubmit(form) {
@@ -1139,7 +1139,7 @@ function checkEndMonitorsPlaced() {
   return monitorsEndMoving;
 }
 
-function waitingMonitorsPlaced (action = null) {
+function waitingMonitorsPlaced(action = null) {
   const intervalWait = setInterval(() => {
     if (checkEndMonitorsPlaced()) {
       // This code may not be executed, because when opening the page we still end up in "action == 'changeRatio'"

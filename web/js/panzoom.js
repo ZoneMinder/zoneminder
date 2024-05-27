@@ -179,4 +179,4 @@ var zmPanZoom = {
       updateScale = true;
     }
   }
-}
+};

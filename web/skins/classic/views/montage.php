@@ -162,6 +162,14 @@ scaleControl is no longer used!
 */
 }
 
+if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+  $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
+} else if (isset($_COOKIE['zmMontageRate'])) {
+  $options['maxfps'] = validHtmlStr($_COOKIE['zmMontageRate']);
+} else {
+  $options['maxfps'] = ''; // unlimited
+}
+
 session_write_close();
 
 ob_start();
@@ -262,6 +270,20 @@ if (canView('System')) {
           <span id="monitorStatusPositonControl">
             <label><?php echo translate('Monitor status position') ?></label>
             <?php echo htmlSelect('monitorStatusPositon', $monitorStatusPositon, $monitorStatusPositonSelected, array('id'=>'monitorStatusPositon', 'data-on-change'=>'changeMonitorStatusPositon', 'class'=>'chosen')); ?>
+          </span>
+          <span id="rateControl">
+            <label for="changeRate"><?php echo translate('Rate') ?>:</label>
+            <?php
+$maxfps_options = array(''=>translate('Unlimited'),
+  '0' => translate('Stills'),
+  '1' => '1 '.translate('FPS'),
+  '2' => '2 '.translate('FPS'),
+  '5' => '5 '.translate('FPS'),
+  '10' => '10 '.translate('FPS'),
+  '20' => '20 '.translate('FPS'),
+);
+echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'changeRate', 'data-on-change'=>'changeMonitorRate', 'class'=>'chosen'));
+?>
           </span>
           <span id="ratioControl">
             <label><?php echo translate('Ratio') ?></label>

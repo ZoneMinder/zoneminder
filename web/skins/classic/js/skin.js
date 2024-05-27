@@ -1220,7 +1220,7 @@ var zmPanZoom = {
         step: this.panZoomStep,
         maxScale: this.panZoomMaxScale,
         contain: 'outside',
-        cursor: 'auto',
+        cursor: 'inherit',
       });
       //panZoom[id].pan(10, 10);
       //panZoom[id].zoom(1, {animate: true});
@@ -1281,7 +1281,7 @@ var zmPanZoom = {
     if (obj) { //Montage & Watch page
       obj_btn = document.getElementById('button_zoom'+id); //Change the cursor when you hover over the block of buttons at the top of the image. Not required on Event page
     } else { //Event page
-      obj = document.getElementById('evtStream');
+      obj = document.getElementById('videoFeedStream'+id);
     }
     const currentScale = this.panZoom[id].getScale().toFixed(1);
     if (this.shifted && this.ctrled) {

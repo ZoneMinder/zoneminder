@@ -1204,15 +1204,15 @@ var zmPanZoom = {
   param = param['id'] : monitor id
   */
   action: function(action, param) {
-   const _this = this;
-   if (action == "enable") {
+    const _this = this;
+    if (action == "enable") {
       var id;
       if ($j(param['obj']).children('[id ^= "liveStream"]')[0]) {
         id = stringToNumber($j(param['obj']).children('[id ^= "liveStream"]')[0].id); //Montage page
       } else {
         id = eventData.MonitorId; //Event page
       }
-      
+
       $j('.btn-zoom-in').removeClass('hidden');
       $j('.btn-zoom-out').removeClass('hidden');
       this.panZoom[id] = Panzoom(param['obj'], {
@@ -1321,7 +1321,7 @@ var zmPanZoom = {
     }
   },
 
-  click:  function(id) {
+  click: function(id) {
     if (this.ctrled && this.shifted) {
       this.panZoom[id].zoom(1, {animate: true});
     } else if (this.ctrled) {

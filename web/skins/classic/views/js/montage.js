@@ -16,13 +16,6 @@ var changedMonitors = []; //Monitor IDs that were changed in the DOM
 var scrollBbarExists = null;
 var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving))
 
-var panZoomEnabled = true; //Add it to settings in the future
-var panZoomMaxScale = 10;
-var panZoomStep = 0.3;
-var panZoom = [];
-var shifted;
-var ctrled;
-
 const presetRatio = new Map([
   ['auto', ''],
   ['real', ''],
@@ -388,7 +381,7 @@ function edit_layout(button) {
     const monitor = monitors[i];
     monitor.disable_onclick();
     if (panZoomEnabled) {
-      panZoomAction('disable', {id: monitors[i].id}); //Disable zoom and pan
+      zmPanZoom.action('disable', {id: monitors[i].id}); //Disable zoom and pan
     }
   };
 
@@ -445,7 +438,7 @@ function cancel_layout(button) {
 
   if (panZoomEnabled) {
     $j('.zoompan').each( function() {
-      panZoomAction('enable', {obj: this}); //Enable zoom and pan
+      zmPanZoom.action('enable', {obj: this}); //Enable zoom and pan
     });
   }
 
@@ -558,18 +551,7 @@ function handleClick(evt) {
 
   if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
     id = stringToNumber(obj.getAttribute('id'));
-
-    if (ctrled && shifted) {
-      return;
-    } else if (ctrled) {
-      panZoom[id].zoom(1, {animate: true});
-    } else if (shifted) {
-      const scale = panZoom[id].getScale() * Math.exp(panZoomStep);
-      const point = {clientX: event.clientX, clientY: event.clientY};
-      panZoom[id].zoomToPoint(scale, point, {focal: {x: event.clientX, y: event.clientY}});
-    }
-    setTriggerChangedMonitors(id);
-    //updateScale = true;
+    zmPanZoom.click(id);
   }
 }
 
@@ -829,21 +811,7 @@ function initPage() {
   selectLayout();
   $j('#monitors').removeClass('hidden-shift');
   changeMonitorStatusPositon();
-
-  if (panZoomEnabled) {
-    $j('.zoompan').each( function() {
-      panZoomAction('enable', {obj: this});
-      const id = stringToNumber(this.querySelector("[id^='liveStream']").id);
-      $j(document).on('keyup keydown', function(e) {
-        shifted = e.shiftKey ? e.shiftKey : e.shift;
-        ctrled = e.ctrlKey;
-        manageCursor(id);
-      });
-      this.addEventListener('mousemove', function(e) {
-        //Temporarily not use
-      });
-    });
-  }
+  zmPanZoom.init();
 
   // Creating a ResizeObserver Instance
   const observer = new ResizeObserver((objResizes) => {
@@ -998,68 +966,12 @@ function addEvents(grid, id) {
       });
 }
 
-/*
-param = param['obj'] : DOM object
-param = param['id'] : monitor id
-*/
-function panZoomAction(action, param) {
-  if (action == "enable") { //Enable all object
-    const i = stringToNumber($j(param['obj']).children('[id ^= "liveStream"]')[0].id);
-    $j('.btn-zoom-in').removeClass('hidden');
-    $j('.btn-zoom-out').removeClass('hidden');
-    panZoom[i] = Panzoom(param['obj'], {
-      minScale: 1,
-      step: panZoomStep,
-      maxScale: panZoomMaxScale,
-      contain: 'outside',
-      cursor: 'auto',
-    });
-    //panZoom[i].pan(10, 10);
-    //panZoom[i].zoom(1, {animate: true});
-    // Binds to shift + wheel
-    param['obj'].parentElement.addEventListener('wheel', function(event) {
-      if (!shifted) {
-        return;
-      }
-      panZoom[i].zoomWithWheel(event);
-      setTriggerChangedMonitors(i);
-    });
-  } else if (action == "disable") { //Disable a specific object
-    $j('.btn-zoom-in').addClass('hidden');
-    $j('.btn-zoom-out').addClass('hidden');
-    panZoom[param['id']].reset();
-    panZoom[param['id']].resetStyle();
-    panZoom[param['id']].setOptions({disablePan: true, disableZoom: true});
-    panZoom[param['id']].destroy();
-  }
-}
-
 function panZoomIn(el) {
-  if (el.target.id) {
-    var id = stringToNumber(el.target.id);
-  } else { //There may be an element without ID inside the button
-    var id = stringToNumber(el.target.parentElement.id);
-  }
-  if (el.ctrlKey) {
-    // Double the zoom step.
-    panZoom[id].zoom(panZoom[id].getScale() * Math.exp(panZoomStep*2), {animate: true});
-  } else {
-    panZoom[id].zoomIn();
-  }
-  setTriggerChangedMonitors(id);
-  manageCursor(id);
+  zmPanZoom.zoomIn(el);
 }
 
 function panZoomOut(el) {
-  const id = stringToNumber(el.target.id ? el.target.id : el.target.parentElement.id);
-  if (el.ctrlKey) {
-    // Reset zoom
-    panZoom[id].zoom(1, {animate: true});
-  } else {
-    panZoom[id].zoomOut();
-  }
-  setTriggerChangedMonitors(id);
-  manageCursor(id);
+  zmPanZoom.zoomOut(el);
 }
 
 function monitorsSetScale(id=null) {
@@ -1074,13 +986,13 @@ function monitorsSetScale(id=null) {
       });
     }
     const el = document.getElementById('liveStream'+id);
-    const panZoomScale = panZoomEnabled ? panZoom[id].getScale() : 1;
+    const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
     currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false});
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
       const el = document.getElementById('liveStream'+id);
-      const panZoomScale = panZoomEnabled ? panZoom[id].getScale() : 1;
+      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
       monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false});
     }
   }

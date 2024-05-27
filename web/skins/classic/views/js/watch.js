@@ -23,14 +23,6 @@ var coordinateMouse = {
   shiftMouseForTrigger_x: null, shiftMouseForTrigger_y: null
 };
 var leftBtnStatus = {Down: false, UpAfterDown: false};
-
-var panZoomEnabled = true; //Add it to settings in the future
-var panZoomMaxScale = 10;
-var panZoomStep = 0.3;
-var panZoom = [];
-var shifted;
-var ctrled;
-
 var updateScale = false; //Scale needs to be updated
 
 /*
@@ -640,16 +632,7 @@ function handleClick(event) {
     }
 
     if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
-      if ((ctrled && shifted) || (!ctrled && !shifted)) {
-        return;
-      } else if (ctrled) {
-        panZoom[monitorId].zoom(1, {animate: true});
-      } else if (shifted) {
-        const scale = panZoom[monitorId].getScale() * Math.exp(panZoomStep);
-        const point = {clientX: event.clientX, clientY: event.clientY};
-        panZoom[monitorId].zoomToPoint(scale, point, {focal: {x: event.clientX, y: event.clientY}});
-      }
-      updateScale = true;
+      zmPanZoom.click(monitorId);
     }
   } else {
     // +++ Old ZoomPan algorithm.
@@ -980,33 +963,6 @@ function streamStart() {
   */
 }
 
-/*
-* Id - Monitor ID
-* The function will probably be moved to the main JS file
-*/
-function manageCursor(Id) {
-  const obj = document.getElementById('liveStream'+Id);
-  const currentScale = panZoom[Id].getScale().toFixed(1);
-
-  if (shifted && ctrled) {
-    obj.closest('.zoompan').style['cursor'] = 'not-allowed';
-  } else if (shifted) {
-    obj.closest('.zoompan').style['cursor'] = 'zoom-in';
-  } else if (ctrled) {
-    if (currentScale == 1.0) {
-      obj.closest('.zoompan').style['cursor'] = 'auto';
-    } else {
-      obj.closest('.zoompan').style['cursor'] = 'zoom-out';
-    }
-  } else {
-    if (currentScale == 1.0) {
-      obj.closest('.zoompan').style['cursor'] = 'auto';
-    } else {
-      obj.closest('.zoompan').style['cursor'] = 'move';
-    }
-  }
-}
-
 function initPage() {
 // +++ Support of old ZoomPan algorithm
   var useOldZoomPan = getCookie('zmUseOldZoomPan');
@@ -1029,19 +985,7 @@ function initPage() {
   document.getElementById('use-old-zoom-pan').checked = useOldZoomPan;
   // --- Support of old ZoomPan algorithm
 
-  if (panZoomEnabled) {
-    $j(document).on('keyup keydown', function(e) {
-      shifted = e.shiftKey ? e.shiftKey : e.shift;
-      ctrled = e.ctrlKey;
-      manageCursor(monitorId);
-    });
-    $j('.zoompan').each( function() {
-      panZoomAction('enable', {obj: this});
-      this.addEventListener('mousemove', function(e) {
-        //Temporarily not use
-      });
-    });
-  }
+  zmPanZoom.init();
 
   if (canView.Control) {
     // Load the settings modal into the DOM
@@ -1346,83 +1290,12 @@ function changeObjectClass() {
   }
 }
 
-/*
-param = param['obj'] : DOM object
-param = param['id'] : monitor id
-*/
-function panZoomAction(action, param) {
-  if (action == "enable") {
-    //Enable all object
-    const i = stringToNumber($j(param['obj']).children('[id ^= "liveStream"]')[0].id);
-    $j('.btn-zoom-in').removeClass('hidden');
-    $j('.btn-zoom-out').removeClass('hidden');
-    panZoom[i] = Panzoom(param['obj'], {
-      minScale: 1,
-      step: panZoomStep,
-      maxScale: panZoomMaxScale,
-      contain: 'outside',
-      cursor: 'auto',
-    });
-    //panZoom[i].pan(10, 10);
-    //panZoom[i].zoom(1, {animate: true});
-    // Binds to shift + wheel
-    param['obj'].parentElement.addEventListener('wheel', function(event) {
-      if (!shifted) {
-        return;
-      }
-      panZoom[i].zoomWithWheel(event);
-      updateScale = true;
-    });
-  } else if (action == "disable") {
-    //Disable a specific object
-    $j('.btn-zoom-in').addClass('hidden');
-    $j('.btn-zoom-out').addClass('hidden');
-    panZoom[param['id']].reset();
-    panZoom[param['id']].resetStyle();
-    panZoom[param['id']].setOptions({disablePan: true, disableZoom: true});
-    panZoom[param['id']].destroy();
-    updateScale = true;
-  }
-}
-
 function panZoomIn(el) {
-  /*
-  if (el.target.id) {
-    //For Montage page
-    var id = stringToNumber(el.target.id);
-  } else { //There may be an element without ID inside the button
-    var id = stringToNumber(el.target.parentElement.id);
-  }
-  */
-  var id = monitorId; //For Watch page
-  if (el.ctrlKey) {
-    // Double the zoom step.
-    panZoom[id].zoom(panZoom[id].getScale() * Math.exp(panZoomStep*2), {animate: true});
-  } else {
-    panZoom[id].zoomIn();
-  }
-  updateScale = true;
-  manageCursor(id);
+  zmPanZoom.zoomIn(el);
 }
 
 function panZoomOut(el) {
-  /*
-  if (el.target.id) {
-    //For Montage page
-    var id = stringToNumber(el.target.id);
-  } else { //There may be an element without ID inside the button
-    var id = stringToNumber(el.target.parentElement.id);
-  }
-  */
-  var id = monitorId; //For Watch page
-  if (el.ctrlKey) {
-    // Reset zoom
-    panZoom[id].zoom(1, {animate: true});
-  } else {
-    panZoom[id].zoomOut();
-  }
-  updateScale = true;
-  manageCursor(id);
+  zmPanZoom.zoomOut(el);
 }
 
 function monitorsSetScale(id=null) {
@@ -1436,45 +1309,53 @@ function monitorsSetScale(id=null) {
         return parseInt(o["id"]) === id;
       });
     }
-    //const el = document.getElementById('liveStream'+id);
+    const el = document.getElementById('liveStream'+id);
     if (panZoomEnabled) {
-      var panZoomScale = panZoom[id].getScale();
+      var panZoomScale = zmPanZoom.panZoom[id].getScale();
     } else {
       var panZoomScale = 1;
     }
 
     const scale = $j('#scale').val();
     let resize;
+    let width;
+    let height;
+
     if (scale == '0') {
       //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
       resize = true;
+      width = 'auto';
+      height = 'auto';
     } else if (scale == '100') {
       //Actual, 100% of original size
       resize = false;
+      width = curentMonitor.width + 'px';
+      height = curentMonitor.height + 'px';
     } else if (scale == 'fit_to_width') {
       //Fit to screen width
       resize = false;
+      width = parseInt(window.innerWidth * panZoomScale) + 'px';
+      height = 'auto';
     }
 
-    //const resize = (parseInt($j('#scale').val()) == 0) ? true : false;
     if (resize) {
       document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
     }
     //curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg:true, scaleImg:panZoomScale});
-    curentMonitor.setScale(0, 'auto', 'auto', {resizeImg: resize, scaleImg: panZoomScale});
+    curentMonitor.setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
     if (!resize) {
       document.getElementById('liveStream'+id).style.height = '';
       if (scale == 'fit_to_width') {
         document.getElementById('monitor'+id).style.width = '';
       } else if (scale == '100') {
         document.getElementById('monitor'+id).style.width = 'max-content';
-        document.getElementById('liveStream'+id).style.width = 'auto';
+        document.getElementById('liveStream'+id).style.width = width;
       }
     }
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
-      //const el = document.getElementById('liveStream'+id);
+      const el = document.getElementById('liveStream'+id);
       if (panZoomEnabled) {
         var panZoomScale = panZoom[id].getScale();
       } else {
@@ -1483,29 +1364,38 @@ function monitorsSetScale(id=null) {
 
       const scale = $j('#scale').val();
       let resize;
+      let width;
+      let height;
+
       if (scale == '0') {
         //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
         resize = true;
+        width = 'auto';
+        height = 'auto';
       } else if (scale == '100') {
         //Actual, 100% of original size
         resize = false;
+        width = monitors[i].width + 'px';
+        height = monitors[i].height + 'px';
       } else if (scale == 'fit_to_width') {
         //Fit to screen width
         resize = false;
+        width = parseInt(window.innerWidth * panZoomScale) + 'px';
+        height = 'auto';
       }
 
       if (resize) {
         document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
       }
       //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
-      monitors[i].setScale(0, 'auto', 'auto', {resizeImg: resize, scaleImg: panZoomScale});
+      monitors[i].setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
       if (!resize) {
         document.getElementById('liveStream'+id).style.height = '';
         if (scale == 'fit_to_width') {
           document.getElementById('monitor'+id).style.width = '';
         } else if (scale == '100') {
           document.getElementById('monitor'+id).style.width = 'max-content';
-          document.getElementById('liveStream'+id).style.width = 'auto';
+          document.getElementById('liveStream'+id).style.width = width;
         }
       }
     }

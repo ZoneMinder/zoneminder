@@ -38,6 +38,8 @@ var icons = {
   detailClose: 'fa-minus'
 };
 
+var panZoomEnabled = true; //Add it to settings in the future
+
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {

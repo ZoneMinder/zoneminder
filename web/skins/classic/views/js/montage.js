@@ -982,10 +982,10 @@ function monitorsSetRate(fps, id=null) {
     var currentMonitor = monitors.find((o) => {
       return parseInt(o["id"]) === id;
     });
-    currentMonitor.streamCommand({command: CMD_MAXFPS, maxfps: fps});
+    currentMonitor.setMaxFPS(fps);
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
-      monitors[i].streamCommand({command: CMD_MAXFPS, maxfps: fps});
+			monitors[i].setMaxFPS(fps);
     }
   }
 }

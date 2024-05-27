@@ -985,7 +985,7 @@ function monitorsSetRate(fps, id=null) {
     currentMonitor.setMaxFPS(fps);
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
-			monitors[i].setMaxFPS(fps);
+      monitors[i].setMaxFPS(fps);
     }
   }
 }

@@ -992,8 +992,10 @@ function xhtmlFooter() {
   if ( $basename == 'montage' ) {
     echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+    echo output_script_if_exists(array('js/panzoom.js'));
   } else if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+    echo output_script_if_exists(array('js/panzoom.js'));
   }
 
   echo output_script_if_exists(array(

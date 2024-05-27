@@ -1334,7 +1334,7 @@ var zmPanZoom = {
     this.setTriggerChangedMonitors(id);
   },
 
-  setTriggerChangedMonitors:  function(id) {
+  setTriggerChangedMonitors: function(id) {
     if (typeof setTriggerChangedMonitors !== 'undefined' && $j.isFunction(setTriggerChangedMonitors)) {
       //Montage page
       setTriggerChangedMonitors(id);
@@ -1343,4 +1343,4 @@ var zmPanZoom = {
       updateScale = true;
     }
   }
-}
+};

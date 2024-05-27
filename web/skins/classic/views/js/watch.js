@@ -1388,7 +1388,7 @@ function monitorsSetScale(id=null) {
         document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
       }
       //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
-      monitors[i].setScale(0, 'auto', 'auto', {resizeImg: resize, scaleImg: panZoomScale});
+      monitors[i].setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
       if (!resize) {
         document.getElementById('liveStream'+id).style.height = '';
         if (scale == 'fit_to_width') {

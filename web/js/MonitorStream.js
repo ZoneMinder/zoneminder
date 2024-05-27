@@ -819,7 +819,7 @@ function MonitorStream(monitorData) {
 
   this.setMaxFPS = function(maxfps) {
     if (1) {
-      this.streamCommand({command: CMD_MAXFPS, maxfps: currentSpeed});
+      this.streamCommand({command: CMD_MAXFPS, maxfps: maxfps});
     } else {
       var streamImage = this.getElement();
       const oldsrc = streamImage.attr('src');

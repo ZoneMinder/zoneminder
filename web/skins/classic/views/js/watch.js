@@ -1309,7 +1309,7 @@ function monitorsSetScale(id=null) {
         return parseInt(o["id"]) === id;
       });
     }
-    //const el = document.getElementById('liveStream'+id);
+    const el = document.getElementById('liveStream'+id);
     if (panZoomEnabled) {
       var panZoomScale = zmPanZoom.panZoom[id].getScale();
     } else {
@@ -1318,36 +1318,44 @@ function monitorsSetScale(id=null) {
 
     const scale = $j('#scale').val();
     let resize;
+    let width;
+    let height;
+
     if (scale == '0') {
       //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
       resize = true;
+      width = 'auto';
+      height = 'auto';
     } else if (scale == '100') {
       //Actual, 100% of original size
       resize = false;
+      width = curentMonitor.width + 'px';
+      height = curentMonitor.height + 'px';
     } else if (scale == 'fit_to_width') {
       //Fit to screen width
       resize = false;
+      width = parseInt(el.clientWidth * panZoomScale) + 'px';
+      height = parseInt(el.clientHeight * panZoomScale) + 'px';
     }
 
-    //const resize = (parseInt($j('#scale').val()) == 0) ? true : false;
     if (resize) {
       document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
     }
     //curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg:true, scaleImg:panZoomScale});
-    curentMonitor.setScale(0, 'auto', 'auto', {resizeImg: resize, scaleImg: panZoomScale});
+    curentMonitor.setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
     if (!resize) {
       document.getElementById('liveStream'+id).style.height = '';
       if (scale == 'fit_to_width') {
         document.getElementById('monitor'+id).style.width = '';
       } else if (scale == '100') {
         document.getElementById('monitor'+id).style.width = 'max-content';
-        document.getElementById('liveStream'+id).style.width = 'auto';
+        document.getElementById('liveStream'+id).style.width = width;
       }
     }
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
-      //const el = document.getElementById('liveStream'+id);
+      const el = document.getElementById('liveStream'+id);
       if (panZoomEnabled) {
         var panZoomScale = panZoom[id].getScale();
       } else {
@@ -1356,15 +1364,24 @@ function monitorsSetScale(id=null) {
 
       const scale = $j('#scale').val();
       let resize;
+      let width;
+      let height;
+
       if (scale == '0') {
         //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
         resize = true;
+        width = 'auto';
+        height = 'auto';
       } else if (scale == '100') {
         //Actual, 100% of original size
         resize = false;
+        width = monitors[i].width + 'px';
+        height = monitors[i].height + 'px';
       } else if (scale == 'fit_to_width') {
         //Fit to screen width
         resize = false;
+        width = parseInt(el.clientWidth * panZoomScale) + 'px';
+        height = parseInt(el.clientHeight * panZoomScale) + 'px';
       }
 
       if (resize) {
@@ -1378,7 +1395,7 @@ function monitorsSetScale(id=null) {
           document.getElementById('monitor'+id).style.width = '';
         } else if (scale == '100') {
           document.getElementById('monitor'+id).style.width = 'max-content';
-          document.getElementById('liveStream'+id).style.width = 'auto';
+          document.getElementById('liveStream'+id).style.width = width;
         }
       }
     }

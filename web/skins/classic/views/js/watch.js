@@ -1334,8 +1334,8 @@ function monitorsSetScale(id=null) {
     } else if (scale == 'fit_to_width') {
       //Fit to screen width
       resize = false;
-      width = parseInt(el.clientWidth * panZoomScale) + 'px';
-      height = parseInt(el.clientHeight * panZoomScale) + 'px';
+      width = parseInt(window.innerWidth * panZoomScale) + 'px';
+      height = 'auto';
     }
 
     if (resize) {
@@ -1380,8 +1380,8 @@ function monitorsSetScale(id=null) {
       } else if (scale == 'fit_to_width') {
         //Fit to screen width
         resize = false;
-        width = parseInt(el.clientWidth * panZoomScale) + 'px';
-        height = parseInt(el.clientHeight * panZoomScale) + 'px';
+        width = parseInt(window.innerWidth * panZoomScale) + 'px';
+        height = 'auto';
       }
 
       if (resize) {

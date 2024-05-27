@@ -667,33 +667,6 @@ function calculateAverageMonitorsRatio(arrRatioMonitors) {
   });
 }
 
-/*
-* Id - Monitor ID
-* The function will probably be moved to the main JS file
-*/
-function manageCursor(Id) {
-  const obj = document.getElementById('liveStream'+Id);
-  const currentScale = panZoom[Id].getScale().toFixed(1);
-
-  if (shifted && ctrled) {
-    obj.closest('.zoompan').style['cursor'] = 'not-allowed';
-  } else if (shifted) {
-    obj.closest('.zoompan').style['cursor'] = 'zoom-in';
-  } else if (ctrled) {
-    if (currentScale == 1.0) {
-      obj.closest('.zoompan').style['cursor'] = 'auto';
-    } else {
-      obj.closest('.zoompan').style['cursor'] = 'zoom-out';
-    }
-  } else {
-    if (currentScale == 1.0) {
-      obj.closest('.zoompan').style['cursor'] = 'auto';
-    } else {
-      obj.closest('.zoompan').style['cursor'] = 'move';
-    }
-  }
-}
-
 function initPage() {
   monitors_ul = $j('#monitors');
 

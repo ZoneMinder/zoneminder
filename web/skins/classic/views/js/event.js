@@ -774,7 +774,11 @@ function streamPan(x, y) {
 }
 
 function streamSeek(offset) {
-  streamReq({command: CMD_SEEK, offset: offset});
+  if (vid) {
+    vid.currentTime(offset);
+  } else {
+    streamReq({command: CMD_SEEK, offset: offset});
+  }
 }
 
 function streamQuery() {
@@ -935,6 +939,7 @@ function updateProgressBar() {
 
 // Handles seeking when clicking on the progress bar.
 function progressBarNav() {
+  console.log('progress');
   $j('#progressBar').click(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
@@ -1316,7 +1321,6 @@ function initPage() {
       vid.playbackRate(rate/100);
     }
   } else {
-    progressBarNav();
     streamCmdTimer = setTimeout(streamQuery, 500);
     if (canStreamNative) {
       if (!$j('#videoFeed')) {
@@ -1336,6 +1340,7 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
+  progressBarNav();
   if (scale == '0') changeScale();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues

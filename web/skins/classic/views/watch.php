@@ -251,7 +251,8 @@ echo getNavBarHTML() ?>
           <label><?php echo translate('Rate') ?>:</label>
           <?php
 $maxfps_options = array(''=>translate('Unlimited'),
-  '0' => translate('Stills'),
+  '0.10' => '1/10 '.translate('FPS'),
+  '0.50' => '1/2 '.translate('FPS'),
   '1' => '1 '.translate('FPS'),
   '2' => '2 '.translate('FPS'),
   '5' => '5 '.translate('FPS'),
@@ -326,11 +327,6 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
         </nav>
         <div id="wrapperMonitor" class="container-fluid col">
           <div id="monitor" class="monitor"
-<?php
-if ($streamMode == 'jpeg') {
-  echo 'title="Click to zoom, shift click to pan, ctrl click to zoom out"';
-}
-?>
 >
 <?php 
 if ($monitor->Type() != 'WebSite') {

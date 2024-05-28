@@ -275,7 +275,8 @@ if (canView('System')) {
             <label for="changeRate"><?php echo translate('Rate') ?>:</label>
             <?php
 $maxfps_options = array(''=>translate('Unlimited'),
-  '0' => translate('Stills'),
+  '0.10' => '1/10' .translate('FPS'),
+  '0.50' => '1/2' .translate('FPS'),
   '1' => '1 '.translate('FPS'),
   '2' => '2 '.translate('FPS'),
   '5' => '5 '.translate('FPS'),

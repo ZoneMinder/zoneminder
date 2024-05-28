@@ -81,7 +81,8 @@ int Monitor::RTSP2WebManager::check_RTSP2Web() {
     return -1;
   }
 
-  Debug(1, "Queried for stream status: %s", remove_newlines(response).c_str());
+  response = remove_newlines(response);
+  Debug(1, "Queried for stream status: %s", response.c_str());
   if (response.find("\"status\": 0") != std::string::npos) {
     if (response.find("stream not found") != std::string::npos) {
       Debug(1, "Mountpoint Missing");
@@ -132,7 +133,8 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
     return -1;
   }
 
-  Debug(1, "Adding stream response: %s", remove_newlines(response).c_str());
+  response = remove_newlines(response);
+  Debug(1, "Adding stream response: %s", response.c_str());
   //scan for missing session or handle id "No such session" "no such handle"
   if (response.find("\"status\": 1") == std::string::npos) {
     if (response == "{ \"status\": 0, \"payload\": \"stream already exists\"}") {

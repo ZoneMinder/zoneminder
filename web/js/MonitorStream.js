@@ -508,7 +508,7 @@ function MonitorStream(monitorData) {
           const captureFPSValue = $j('#captureFPSValue'+this.id);
           const analysisFPSValue = $j('#analysisFPSValue'+this.id);
 
-          this.status.fps = this.status.fps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+          this.status.fps = this.status.fps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 2});
           if (viewingFPSValue.length && (viewingFPSValue.text != this.status.fps)) {
             viewingFPSValue.text(this.status.fps);
           }
@@ -667,11 +667,11 @@ function MonitorStream(monitorData) {
       const monitor = respObj.monitor;
 
       if (monitor.FrameRate) {
-        const fpses = monitor.FrameRate.split(",");
+        const fpses = monitor.FrameRate.split(',');
         fpses.forEach(function(fps) {
           const name_values = fps.split(':');
           const name = name_values[0].trim();
-          const value = name_values[1].trim().toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+          const value = name_values[1].trim().toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 2});
 
           if (name == 'analysis') {
             this.status.analysisfps = value;

@@ -488,6 +488,7 @@ void MonitorStream::runStream() {
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
   int32_t last_read_index = monitor->image_buffer_count;
+  int32_t last_image_count = 0;
 
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
@@ -684,15 +685,17 @@ void MonitorStream::runStream() {
       }
     }  // end if (buffered_playback && delayed)
 
-    if (last_read_index != monitor->shared_data->last_write_index) {
+    if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
       // have a new image to send
-      int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+      int last_write_index = monitor->shared_data->last_write_index;
+      int index = last_write_index % monitor->image_buffer_count;
       //if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
       if ( now >= when_to_send_next_frame ) {
         if (!paused && !delayed) {
-          last_read_index = monitor->shared_data->last_write_index;
-          Debug(2, "Sending frame index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
-                index, frame_mod, frame_count, paused, delayed);
+          Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->image_count, paused, delayed);
+          last_read_index = last_write_index;
+          last_image_count = monitor->shared_data->image_count;
           // Send the next frame
           //
           // Perhaps we should use NOW instead.
@@ -764,6 +767,8 @@ void MonitorStream::runStream() {
         }  // end if paused or not
         //} else {
         //frame_count++;
+      } else {
+        Debug(2, "Not time to send next frame.");
       }  // end if should send frame now > when_to_send_next_frame
 
       if (buffered_playback && !paused) {
@@ -819,17 +824,20 @@ void MonitorStream::runStream() {
       Debug(3, "Using %f for maxfps.  capture_fps: %f maxfps %f * replay_rate: %d = %f", fps, capture_fps, maxfps, replay_rate, sleep_time_seconds);
 
       sleep_time = FPSeconds(sleep_time_seconds);
-      if (when_to_send_next_frame > now)
-        sleep_time -= when_to_send_next_frame - now;
+      if (when_to_send_next_frame > now) {
+        sleep_time -= (when_to_send_next_frame - now);
+        Debug(2, "Adjusting sleep time for when_to_send_next_frame - now = %f", FPSeconds(when_to_send_next_frame - now).count());
+      }
 
-      when_to_send_next_frame = now + std::chrono::duration_cast<Microseconds>(sleep_time);
 
       if (last_frame_sent > now) {
         FPSeconds elapsed = last_frame_sent - now;
         if (sleep_time > elapsed) {
+          Debug(2, "Adjusting sleep time by %f elapsed", elapsed.count());
           sleep_time -= elapsed;
         }
       }
+      when_to_send_next_frame = now + std::chrono::duration_cast<Microseconds>(sleep_time);
     } else {
       sleep_time = when_to_send_next_frame - now;
     }

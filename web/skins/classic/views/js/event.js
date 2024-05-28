@@ -40,14 +40,6 @@ var coordinateMouse = {
   shiftMouseForTrigger_x: null, shiftMouseForTrigger_y: null
 };
 var leftBtnStatus = {Down: false, UpAfterDown: false};
-
-var panZoomEnabled = true; //Add it to settings in the future
-var panZoomMaxScale = 10;
-var panZoomStep = 0.3;
-var panZoom = [];
-var shifted;
-var ctrled;
-
 var updateScale = false; //Scale needs to be updated
 
 $j(document).on("keydown", "", function(e) {
@@ -1017,18 +1009,8 @@ function handleClick(event) {
       obj.getAttribute('id').indexOf("button_zoom") >= 0 ||
       obj.querySelector('video')) { //Event page
       //panZoom[monitorId].setOptions({disablePan: false});
-      if (ctrled && shifted) {
-        panZoom[monitorId].zoom(1, {animate: true});
-      } else if (ctrled) {
-        //panZoom[monitorId].setOptions({disablePan: true});
-        panZoom[monitorId].zoomOut();
-      } else if (shifted) {
-        const scalePanZoom = panZoom[monitorId].getScale() * Math.exp(panZoomStep);
-        const point = {clientX: event.clientX, clientY: event.clientY};
-        //panZoom[monitorId].setOptions({disablePan: true});
-        panZoom[monitorId].zoomToPoint(scalePanZoom, point, {focal: {x: event.clientX, y: event.clientY}});
-      }
-      updateScale = true;
+
+      zmPanZoom.click(monitorId);
     }
   } else {
     // +++ Old ZoomPan algorithm.
@@ -1283,61 +1265,13 @@ function onStatsResize(vidWidth) {
   }
 }
 
-/*
-* Id - Monitor ID
-* The function will probably be moved to the main JS file
-*/
-function manageCursor(Id) {
-  //const obj = document.getElementById('liveStream'+Id); //Montage & Watch page
-  const obj = document.getElementById('videoFeedStream'+Id); //Event page
-  //const obj_btn = document.getElementById('button_zoom'+Id); //Change the cursor when you hover over the block of buttons at the top of the image. Not required on Event page
-  const currentScale = panZoom[Id].getScale().toFixed(1);
-
-  if (shifted && ctrled) {
-    obj.style['cursor'] = 'zoom-out';
-    //obj_btn.style['cursor'] = 'not-allowed';
-  } else if (shifted) {
-    obj.style['cursor'] = 'zoom-in';
-    //obj_btn.style['cursor'] = 'zoom-in';
-  } else if (ctrled) {
-    if (currentScale == 1.0) {
-      obj.style['cursor'] = 'auto';
-      //obj_btn.style['cursor'] = 'auto';
-    } else {
-      obj.style['cursor'] = 'zoom-out';
-      //obj_btn.style['cursor'] = 'zoom-out';
-    }
-  } else {
-    if (currentScale == 1.0) {
-      obj.style['cursor'] = 'auto';
-      //obj_btn.style['cursor'] = 'auto';
-    } else {
-      obj.style['cursor'] = 'move';
-      //obj_btn.style['cursor'] = 'move';
-    }
-  }
-}
-
 function initPage() {
   getAvailableTags();
   getSelectedTags();
 
   // Load the event stats
   getStat();
-
-  if (panZoomEnabled) {
-    $j(document).on('keyup keydown', function(e) {
-      shifted = e.shiftKey ? e.shiftKey : e.shift;
-      ctrled = e.ctrlKey;
-      manageCursor(eventData.MonitorId);
-    });
-    $j('.zoompan').each( function() {
-      panZoomAction('enable', {obj: this});
-      this.addEventListener('mousemove', function(e) {
-        //Temporarily not use
-      });
-    });
-  }
+  zmPanZoom.init();
 
   if (getEvtStatsCookie() != 'on') {
     eventStats.toggle(false);
@@ -1694,7 +1628,7 @@ function initPage() {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
     if (updateScale) {
       const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
-      const panZoomScale = panZoomEnabled ? panZoom[eventData.MonitorId].getScale() : 1;
+      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[eventData.MonitorId].getScale() : 1;
       const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'), panZoomScale);
       scale = newSize.autoScale > 100 ? 100 : newSize.autoScale;
       //streamScale(scale);
@@ -1873,92 +1807,12 @@ function fullscreenClicked() {
   }
 }
 
-/*
-param = param['obj'] : DOM object
-param = param['id'] : monitor id
-*/
-function panZoomAction(action, param) {
-  if (action == "enable") {
-    //Enable all object
-    //const i = stringToNumber($j(param['obj']).children('[id ^= "liveStream"]')[0].id); //Montage & Watch page
-    const i = eventData.MonitorId; //Event page
-    $j('.btn-zoom-in').removeClass('hidden');
-    $j('.btn-zoom-out').removeClass('hidden');
-    panZoom[i] = Panzoom(param['obj'], {
-      minScale: 1,
-      step: panZoomStep,
-      maxScale: panZoomMaxScale,
-      panOnlyWhenZoomed: true,
-      contain: 'outside',
-      cursor: 'inherit',
-    });
-    //panZoom[i].pan(10, 10);
-    //panZoom[i].zoom(1, {animate: true});
-    // Binds to shift + wheel
-    param['obj'].parentElement.addEventListener('wheel', function(event) {
-      if (!shifted) {
-        return;
-      }
-      panZoom[i].zoomWithWheel(event);
-      updateScale = true;
-    });
-  } else if (action == "disable") {
-    //Disable a specific object
-    $j('.btn-zoom-in').addClass('hidden');
-    $j('.btn-zoom-out').addClass('hidden');
-    panZoom[param['id']].reset();
-    panZoom[param['id']].resetStyle();
-    panZoom[param['id']].setOptions({disablePan: true, disableZoom: true});
-    panZoom[param['id']].destroy();
-    updateScale = true;
-  }
-}
-
 function panZoomIn(el) {
-  /*
-  if (el.target.id) {
-    //For Montage page
-    var id = stringToNumber(el.target.id);
-  } else { //There may be an element without ID inside the button
-    var id = stringToNumber(el.target.parentElement.id);
-  }
-  */
-  //var id = monitorId; //For Watch page
-  var id = eventData.MonitorId; //For Evant page
-  if (el.ctrlKey) {
-    // Double the zoom step.
-    panZoom[id].zoom(panZoom[id].getScale() * Math.exp(panZoomStep*2), {animate: true});
-  } else {
-    panZoom[id].zoomIn();
-  }
-  updateScale = true;
-  manageCursor(id);
+  zmPanZoom.zoomIn(el);
 }
 
 function panZoomOut(el) {
-  /*
-  if (el.target.id) {
-    //For Montage page
-    var id = stringToNumber(el.target.id);
-  } else { //There may be an element without ID inside the button
-    var id = stringToNumber(el.target.parentElement.id);
-  }
-  */
-  //var id = monitorId; //For Watch page
-  var id = eventData.MonitorId; //For Evant page
-  if (el.ctrlKey) {
-    // Reset zoom
-    panZoom[id].zoom(1, {animate: true});
-  } else {
-    panZoom[id].zoomOut();
-  }
-  updateScale = true;
-  manageCursor(id);
-}
-
-function stringToNumber(str) {
-  //This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
-  return parseInt(str.replace(/\D/g, ''));
+  zmPanZoom.zoomOut(el);
 }
 
 // Kick everything off

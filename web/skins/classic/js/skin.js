@@ -38,6 +38,8 @@ var icons = {
   detailClose: 'fa-minus'
 };
 
+var panZoomEnabled = true; //Add it to settings in the future
+
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
@@ -1152,6 +1154,10 @@ function applyChosen() {
   $j('.chosen').not('.chosen-full-width, .chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true});
   $j('.chosen.chosen-full-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "100%"});
   $j('.chosen.chosen-auto-width').chosen({allow_single_deselect: true, disable_search_threshold: limit_search_threshold, search_contains: true, width: "auto"});
+}
+
+function stringToNumber(str) {
+  return parseInt(str.replace(/\D/g, ''));
 }
 
 const font = new FontFaceObserver('Material Icons', {weight: 400});

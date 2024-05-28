@@ -14,9 +14,7 @@
   overflow: hidden; /* When trying to use the NEW Scale algorithm */
 }
 
-#monitors .grid-stack-item .imageFeed ,
-#monitors .grid-stack-item .imageFeed ,
-#monitors .grid-stack-item .imageFeed {
+.monitor .imageFeed {
   border: 2px solid #999999;
 }
 

@@ -59,7 +59,6 @@ $monitorStatusPositon = array(
 );
 
 $monitorStatusPositonSelected = 'outsideImgBottom';
-
 if (isset($_REQUEST['monitorStatusPositonSelected'])) {
   $monitorStatusPositonSelected = $_REQUEST['monitorStatusPositonSelected'];
 } else if (isset($_COOKIE['zmMonitorStatusPositonSelected'])) {
@@ -67,28 +66,53 @@ if (isset($_REQUEST['monitorStatusPositonSelected'])) {
 }
 
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
+// layoutsById is used in the dropdown, so needs to be sorted
 $layoutsById = array();
-$FreeFormLayoutId = 0;
-foreach ( $layouts as $l ) {
-  if ( $l->Name() == 'Freeform' ) {
-    $FreeFormLayoutId = $l->Id();
-    $layoutsById[$l->Id()] = $l;
-    break;
-  }
+$presetLayoutsNames = array( //Order matters!
+  'Auto',
+  '1 Wide',
+  '2 Wide',
+  '3 Wide',
+  '4 Wide',
+  '6 Wide',
+  '8 Wide',
+  '12 Wide',
+  '16 Wide'
+);
+
+/* Create an array "Name"=>layouts to make it easier to find IDs by name */
+$layoutsByName = array();
+foreach ($layouts as $l) {
+  if ($l->Name() == 'Freeform') $l->Name('Auto');
+  $layoutsByName[$l->Name()] = $l;
 }
-foreach ( $layouts as $l ) {
-  if ( $l->Name() != 'Freeform' )
-    $layoutsById[$l->Id()] = $l;
+
+/* Fill with preinstalled Layouts. They should always come first.
+ * Also sorting 1 Wide and 11 Wide fails... so need a smarter sort
+ */
+foreach ($presetLayoutsNames as $name) {
+  if (array_key_exists($name, $layoutsByName)) // Layout may be missing in DB (rare case during update process)
+    $layoutsById[$layoutsByName[$name]->Id()] = $layoutsByName[$name];
+}
+
+/* Add custom Layouts & assign objects instead of names for preset Layouts */
+foreach ($layouts as $l) {
+  $layoutsById[$l->Id()] = $l;
 }
 
 zm_session_start();
 
-$layout_id = '';
+$layout_id = 0;
 if ( isset($_COOKIE['zmMontageLayout']) ) {
-  $layout_id = $_SESSION['zmMontageLayout'] = $_COOKIE['zmMontageLayout'];
+  $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_COOKIE['zmMontageLayout']);
 } elseif ( isset($_SESSION['zmMontageLayout']) ) {
-  $layout_id = $_SESSION['zmMontageLayout'];
+  $layout_id = validCardinal($_SESSION['zmMontageLayout']);
 }
+if (!$layout_id || !isset($layoutsById[$layout_id])) {
+  $layout_id = $layoutsByName['Auto']->Id();
+}
+$layout = $layoutsById[$layout_id];
+$layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false ? false : true;
 
 $options = array();
 
@@ -138,6 +162,14 @@ scaleControl is no longer used!
 */
 }
 
+if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+  $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
+} else if (isset($_COOKIE['zmMontageRate'])) {
+  $options['maxfps'] = validHtmlStr($_COOKIE['zmMontageRate']);
+} else {
+  $options['maxfps'] = ''; // unlimited
+}
+
 session_write_close();
 
 ob_start();
@@ -173,33 +205,24 @@ foreach ($displayMonitors as &$row) {
   }
 } # end foreach Monitor
 
-if (!$layout_id) {
-  $default_layout = '';
-  if (!$default_layout) {
-    if ((count($monitors) > 5) and (count($monitors)%5 == 0)) {
-      $default_layout = '5 Wide';
-    } else if ((count($monitors) > 4) and (count($monitors)%4 == 0)) {
-      $default_layout = '4 Wide';
-    } else if (count($monitors)%3 == 0) {
-      $default_layout = '3 Wide';
-    } else {
-      $default_layout = '2 Wide';
-    }
-  }
-  foreach ($layouts as $l) {
-    if ($l->Name() == $default_layout) {
-      $layout_id = $l->Id();
-    }
-  }
-}
-$Layout = '';
-$Positions = '';
-if ( $layout_id and is_numeric($layout_id) and isset($layoutsById[$layout_id]) ) {
-  $Layout = $layoutsById[$layout_id];
-  $Positions = json_decode($Layout->Positions(), true);
+$default_layout = '';
+
+$monitorCount = count($monitors);
+if ($monitorCount <= 3) {
+  $default_layout = $monitorCount . ' Wide';
+} else if ($monitorCount <= 4) {
+  $default_layout = '2 Wide';
+} else if ($monitorCount <= 6) {
+  $default_layout = '3 Wide';
+} else if ($monitorCount%4 == 0) {
+  $default_layout = '4 Wide';
+} else if ($monitorCount%6 == 0) {
+  $default_layout = '6 Wide';
 } else {
-  ZM\Debug('Layout not found');
+  $default_layout = '4 Wide';
 }
+
+$AutoLayoutName = $default_layout;
 
 xhtmlHeaders(__FILE__, translate('Montage'));
 getBodyTopHTML();
@@ -242,25 +265,39 @@ if (canView('System')) {
       <div id="sizeControl">
         <form action="?view=montage" method="post">
           <input type="hidden" name="object" value="MontageLayout"/>
-          <input type="hidden" name="action" value="Save"/>
+          <input id="action" type="hidden" name="action" value=""/> <?php // "value" is generated in montage.js depending on the action "Save" or "Delete"?>
 
           <span id="monitorStatusPositonControl">
             <label><?php echo translate('Monitor status position') ?></label>
             <?php echo htmlSelect('monitorStatusPositon', $monitorStatusPositon, $monitorStatusPositonSelected, array('id'=>'monitorStatusPositon', 'data-on-change'=>'changeMonitorStatusPositon', 'class'=>'chosen')); ?>
           </span>
+          <span id="rateControl">
+            <label for="changeRate"><?php echo translate('Rate') ?>:</label>
+            <?php
+$maxfps_options = array(''=>translate('Unlimited'),
+  '0' => translate('Stills'),
+  '1' => '1 '.translate('FPS'),
+  '2' => '2 '.translate('FPS'),
+  '5' => '5 '.translate('FPS'),
+  '10' => '10 '.translate('FPS'),
+  '20' => '20 '.translate('FPS'),
+);
+echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'changeRate', 'data-on-change'=>'changeMonitorRate', 'class'=>'chosen'));
+?>
+          </span>
           <span id="ratioControl">
             <label><?php echo translate('Ratio') ?></label>
-            <?php echo htmlSelect('ratio', '', '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
+            <?php echo htmlSelect('ratio', [], '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
           </span>
-          <span id="widthControl" class="hidden">
+          <span id="widthControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Width') ?></label>
             <?php echo htmlSelect('width', $widths, 'auto'/*$options['width']*/, array('id'=>'width', 'data-on-change'=>'changeWidth', 'class'=>'chosen')); ?>
           </span>
-          <span id="heightControl" class="hidden">
+          <span id="heightControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Height') ?></label>
             <?php echo htmlSelect('height', $heights, 'auto'/*$options['height']*/, array('id'=>'height', 'data-on-change'=>'changeHeight', 'class'=>'chosen')); ?>
           </span>
-          <span id="scaleControl" class="hidden">
+          <span id="scaleControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Scale') ?></label>
             <?php echo htmlSelect('scale', $scales, '0'/*$scale*/, array('id'=>'scale', 'data-on-change-this'=>'changeScale', 'class'=>'chosen')); ?>
           </span> 
@@ -270,6 +307,7 @@ if (canView('System')) {
           </span>
           <input type="hidden" name="Positions"/>
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
+          <button type="button" id="btnDeleteLayout" class="btn btn-danger" value="Delete" data-on-click-this="delete_layout" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete layout') ?>" disabled><i class="material-icons md-18">delete</i></button>
           <span id="SaveLayout" style="display:none;">
             <input type="text" name="Name" placeholder="Enter new name for layout if desired" autocomplete="off"/>
             <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>
@@ -307,7 +345,22 @@ foreach ($monitors as $monitor) {
   } else {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
-    $monitor_options['mode'] = 'single';
+    $monitor_options['mode'] = 'paused';
+    if (!$scale and ($layout->Name() != 'Auto')) {
+      if ($layout_is_preset) {
+        # We know the # of columns so can figure out a proper scale
+        if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
+          if ($matches[1]) {
+            $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
+            if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+          }
+        }
+      } else {
+        # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
+        $monitor_options['scale'] = intval(100*((1920/4)/$monitor->Width()));
+        if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+      }
+    }
     echo $monitor->getStreamHTML($monitor_options);
   }
 } # end foreach monitor
@@ -323,7 +376,6 @@ foreach ($monitors as $monitor) {
   <script src="<?php echo cache_bust('js/hls.js') ?>"></script>
 <?php } ?>
   <script src="<?php echo cache_bust('js/MonitorStream.js') ?>"></script>
-<?php xhtmlFooter() ?>
 
 <!-- In May 2024, IgorA100 globally changed grid layout -->
 <div id="messageModal" class="modal fade" tabindex="-1">
@@ -344,3 +396,4 @@ foreach ($monitors as $monitor) {
     </div>
   </div>
 </div>
+<?php xhtmlFooter() ?>

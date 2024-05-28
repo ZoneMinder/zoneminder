@@ -491,6 +491,9 @@ public static function getStatuses() {
     if (isset($args['height']))
       unset($args['height']);
 
+    unset($args['state']);
+    unset($args['zones']);
+
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
 
     return $streamSrc;
@@ -972,6 +975,8 @@ public static function getStatuses() {
  * Same width height.  If both are set we should calculate the smaller resulting scale
  */
   function getStreamHTML($options) {
+    global $basename;
+
     if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
       if ($options['scale'] != 'auto' && $options['scale'] != '0') {
         $options['width'] = reScale($this->ViewWidth(), $options['scale']).'px';
@@ -1021,10 +1026,11 @@ public static function getStatuses() {
     if ($this->StreamReplayBuffer())
       $options['buffer'] = $this->StreamReplayBuffer();
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+    $blockRatioControl = ($basename == "montage") ? '<div id="ratioControl'.$this->Id().'" class="ratioControl hidden"><select name="ratio'.$this->Id().'" id="ratio'.$this->Id().'" class="select-ratio chosen" data-on-change="changeRatio">
+</select></div>' : '';
     $html = '
       <div id="m'. $this->Id() . '" class="grid-monitor grid-stack-item" gs-id="'. $this->Id() . '" gs-w="12" gs-auto-position="true">
-        <div id="ratioControl'.$this->Id().'" class="ratioControl hidden"><select name="ratio'.$this->Id().'" id="ratio'.$this->Id().'" class="select-ratio chosen" data-on-change="changeRatio">
-</select></div>
+        ' . $blockRatioControl . '
         <div class="grid-stack-item-content">
           <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
             <div

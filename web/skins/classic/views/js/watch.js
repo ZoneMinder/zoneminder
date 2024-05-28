@@ -1309,7 +1309,7 @@ function monitorsSetScale(id=null) {
         return parseInt(o["id"]) === id;
       });
     }
-    const el = document.getElementById('liveStream'+id);
+    //const el = document.getElementById('liveStream'+id);
     if (panZoomEnabled) {
       var panZoomScale = zmPanZoom.panZoom[id].getScale();
     } else {
@@ -1355,7 +1355,7 @@ function monitorsSetScale(id=null) {
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
-      const el = document.getElementById('liveStream'+id);
+      //const el = document.getElementById('liveStream'+id);
       if (panZoomEnabled) {
         var panZoomScale = panZoom[id].getScale();
       } else {

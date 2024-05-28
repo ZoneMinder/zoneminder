@@ -1032,7 +1032,9 @@ public static function getStatuses() {
       <div id="m'. $this->Id() . '" class="grid-monitor grid-stack-item" gs-id="'. $this->Id() . '" gs-w="12" gs-auto-position="true">
         ' . $blockRatioControl . '
         <div class="grid-stack-item-content">
-          <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
+          <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor"
+            title="shift+click to zoom, click+drag to pan, ctrl+click to zoom out, ctrl+shift+click to zoom out completely"
+            >
             <div
               id="imageFeed'. $this->Id() .'"
               class="monitorStream imageFeed"

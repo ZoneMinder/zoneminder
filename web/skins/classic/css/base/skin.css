@@ -792,7 +792,7 @@ ul.nav.nav-pills.flex-column {
 }
 
 .chosen {
-  /* position: absolute !important; left: -999em !important; */
+  position: absolute !important; left: -999em !important;
 }
 
 .chosen-container-active .chosen-choices {

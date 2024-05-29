@@ -340,18 +340,29 @@ function MonitorStream(monitorData) {
       }
     }
     const stream = this.getElement();
-    if (!stream) return;
+    if (!stream) {
+      console.log("No element found for monitor "+this.id);
+      return;
+    }
     stream.onerror = null;
     stream.onload = null;
     this.stop();
 
-    if (this.ajaxQueue) {
+    // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
+    if (stream.src) {
+      src = stream.src.replace(/mode=jpeg/i, 'mode=single');
+      if (stream.src != src) {
+        stream.src = '';
+        stream.src = src;
+      }
+    }
+
+    // Because we stopped the zms process above, any remaining ajaxes will fail.  But aborting them will also cause them to fail, so why bother?
+    if (0 && this.ajaxQueue) {
       console.log("Aborting in progress ajax for kill");
       // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }
-    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
-    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
 
   this.pause = function() {

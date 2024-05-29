@@ -316,6 +316,7 @@ function MonitorStream(monitorData) {
     }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
+    this.started = true;
   }; // this.start
 
   this.stop = function() {
@@ -331,6 +332,7 @@ function MonitorStream(monitorData) {
     this.streamCommand(CMD_STOP);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+    this.started = false;
   };
 
   this.kill = function() {

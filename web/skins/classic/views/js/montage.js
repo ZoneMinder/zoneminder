@@ -645,7 +645,7 @@ function fullscreenchanged(event) {
       objBtn.children('.material-icons').html('fullscreen');
     }
     //Sometimes the positioning is not correct, so it is better to reset Pan & Zoom
-    panZoom[stringToNumber(event.target.id)].reset();
+    zmPanZoom.panZoom[stringToNumber(event.target.id)].reset();
   }
 }
 
@@ -1102,6 +1102,15 @@ function changeMonitorStatusPositon() {
 
 // Kick everything off
 $j(window).on('load', () => initPage());
+
+//Stop monitors when closing page
+document.onvisibilitychange = () => {
+  if (document.visibilityState === "hidden") {
+    for (let i = 0, length = monitorData.length; i < length; i++) {
+      monitors[i].kill();
+    }
+  }
+};
 
 /*
 window.onbeforeunload = function(e) {

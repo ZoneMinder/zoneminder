@@ -730,6 +730,14 @@ function initPage() {
   });
 } // initPage
 
+function panZoomIn(el) {
+  zmPanZoom.zoomIn(el);
+}
+
+function panZoomOut(el) {
+  zmPanZoom.zoomOut(el);
+}
+
 function imageLoadEvent() {
   // We only need this event on the first image load to set dimensions.
   // Turn it off after it has been called.
@@ -752,5 +760,21 @@ function Polygon_calcArea(coords) {
 
   return Math.round(Math.abs(float_area));
 }
+
+document.onvisibilitychange = () => {
+  if (document.visibilityState === "hidden") {
+    //Stop monitors when closing or hiding page
+    for (let i = 0, length = monitorData.length; i < length; i++) {
+      monitors[i].kill();
+    }
+  } else {
+    //Start monitors when show page
+    for (let i = 0, length = monitorData.length; i < length; i++) {
+      if (!monitors[i].started) {
+        monitors[i].start();
+      }
+    }
+  }
+};
 
 window.addEventListener('DOMContentLoaded', initPage);

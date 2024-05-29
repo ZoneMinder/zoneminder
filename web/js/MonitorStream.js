@@ -1,3 +1,4 @@
+"use strict";
 var janus = null;
 const streaming = [];
 
@@ -103,7 +104,7 @@ function MonitorStream(monitorData) {
     }
 
     // Scale the frame
-    monitor_frame = $j('#monitor'+this.id);
+    const monitor_frame = $j('#monitor'+this.id);
     if (!monitor_frame) {
       console.log('Error finding frame');
       return;
@@ -241,16 +242,16 @@ function MonitorStream(monitorData) {
     }
     if (this.RTSP2WebEnabled) {
       if (ZM_RTSP2WEB_PATH) {
-        videoEl = document.getElementById("liveStream" + this.id);
+        const videoEl = document.getElementById("liveStream" + this.id);
         const url = new URL(ZM_RTSP2WEB_PATH);
         const useSSL = (url.protocol == 'https');
 
-        rtsp2webModUrl = url;
+        const rtsp2webModUrl = url;
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
         if (this.RTSP2WebType == 'HLS') {
-          hlsUrl = rtsp2webModUrl;
+          const hlsUrl = rtsp2webModUrl;
           hlsUrl.pathname = "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
           /*
           if (useSSL) {
@@ -273,15 +274,13 @@ function MonitorStream(monitorData) {
               videoEl.play();
             }
           });
-          mseUrl = rtsp2webModUrl;
+          const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
           mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
-          console.log(mseUrl.href);
           startMsePlay(this, videoEl, mseUrl.href);
         } else if (this.RTSP2WebType == 'WebRTC') {
-          webrtcUrl = rtsp2webModUrl;
+          const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
-          console.log(webrtcUrl.href);
           startRTSP2WebPlay(videoEl, webrtcUrl.href);
         }
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
@@ -305,7 +304,7 @@ function MonitorStream(monitorData) {
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');
     }
-    src = stream.src.replace(/mode=single/i, 'mode=jpeg');
+    let src = stream.src.replace(/mode=single/i, 'mode=jpeg');
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
     }
@@ -323,7 +322,7 @@ function MonitorStream(monitorData) {
     if ( 0 ) {
       const stream = this.getElement();
       if (!stream) return;
-      src = stream.src.replace(/mode=jpeg/i, 'mode=single');
+      const src = stream.src.replace(/mode=jpeg/i, 'mode=single');
       if (stream.src != src) {
         stream.src = '';
         stream.src = src;
@@ -352,7 +351,7 @@ function MonitorStream(monitorData) {
 
     // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
     if (stream.src) {
-      src = stream.src.replace(/mode=jpeg/i, 'mode=single');
+      const src = stream.src.replace(/mode=jpeg/i, 'mode=single');
       if (stream.src != src) {
         stream.src = '';
         stream.src = src;
@@ -656,7 +655,7 @@ function MonitorStream(monitorData) {
       // Try to reload the image stream.
       if (stream.src) {
         console.log('Reloading stream: ' + stream.src);
-        src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+        let src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
         src = src.replace(/auth=\w+/i, 'auth='+this.auth_hash);
         // Maybe updated auth
         if (src != stream.src) {

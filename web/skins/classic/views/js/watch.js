@@ -1319,7 +1319,10 @@ function monitorsSetScale(id=null) {
     const scale = $j('#scale').val();
     let resize;
     let width;
+    let maxWidth = '';
     let height;
+    let overrideHW = false;
+    let defScale = 0;
 
     if (scale == '0') {
       //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
@@ -1336,23 +1339,37 @@ function monitorsSetScale(id=null) {
       resize = false;
       width = parseInt(window.innerWidth * panZoomScale) + 'px';
       height = 'auto';
+    } else if (scale.indexOf("px") > -1) {
+      maxWidth = scale;
+      resize = true;
+      width = 'auto';
+      height = 'auto';
+      overrideHW = true;
+      defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / curentMonitor.width * panZoomScale * 100);
     }
 
     if (resize) {
-      document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
-    }
-    //curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg:true, scaleImg:panZoomScale});
-    curentMonitor.setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
-    if (!resize) {
+      if (scale == '0') {
+        document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
+      }
+      document.getElementById('monitor'+id).style.maxWidth = maxWidth;
+    } else {
       document.getElementById('liveStream'+id).style.height = '';
+      document.getElementById('monitor'+id).style.width = width;
+      document.getElementById('monitor'+id).style.maxWidth = '';
       if (scale == 'fit_to_width') {
         document.getElementById('monitor'+id).style.width = '';
       } else if (scale == '100') {
-        document.getElementById('monitor'+id).style.width = 'max-content';
         document.getElementById('liveStream'+id).style.width = width;
       }
     }
-  } else {
+    //curentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
+    curentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale});
+    if (overrideHW) {
+      document.getElementById('liveStream'+id).style.height = 'auto';
+      document.getElementById('monitor'+id).style.width = 'auto';
+    }
+ } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
       //const el = document.getElementById('liveStream'+id);

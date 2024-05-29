@@ -1369,7 +1369,7 @@ function monitorsSetScale(id=null) {
       document.getElementById('liveStream'+id).style.height = 'auto';
       document.getElementById('monitor'+id).style.width = 'auto';
     }
- } else {
+  } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
       //const el = document.getElementById('liveStream'+id);

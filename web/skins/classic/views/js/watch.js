@@ -1406,7 +1406,6 @@ function monitorsSetScale(id=null) {
 $j( window ).on("load", initPage);
 
 document.onvisibilitychange = () => {
-  monitorStream = new MonitorStream(monitorData[monIdx]);
   if (document.visibilityState === "hidden") {
     //Stop monitor when closing or hiding page
     monitorStream.kill();

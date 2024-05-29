@@ -1414,6 +1414,5 @@ document.onvisibilitychange = () => {
     if (!monitorStream.started) {
       monitorStream.start();
     }
-
   }
 };

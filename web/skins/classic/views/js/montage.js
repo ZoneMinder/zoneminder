@@ -645,7 +645,7 @@ function fullscreenchanged(event) {
       objBtn.children('.material-icons').html('fullscreen');
     }
     //Sometimes the positioning is not correct, so it is better to reset Pan & Zoom
-    panZoom[stringToNumber(event.target.id)].reset();
+    zmPanZoom.panZoom[stringToNumber(event.target.id)].reset();
   }
 }
 

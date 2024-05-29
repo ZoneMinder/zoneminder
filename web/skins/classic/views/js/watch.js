@@ -1412,6 +1412,9 @@ document.onvisibilitychange = () => {
     monitorStream.kill();
   } else {
     //Start monitor when show page
-    monitorStream.start();
+    if (!monitorStream.started) {
+      monitorStream.start();
+    }
+
   }
 };

@@ -1103,11 +1103,18 @@ function changeMonitorStatusPositon() {
 // Kick everything off
 $j(window).on('load', () => initPage());
 
-//Stop monitors when closing page
 document.onvisibilitychange = () => {
   if (document.visibilityState === "hidden") {
+    //Stop monitors when closing or hiding page
     for (let i = 0, length = monitorData.length; i < length; i++) {
       monitors[i].kill();
+    }
+  } else {
+    //Start monitors when show page
+    for (let i = 0, length = monitorData.length; i < length; i++) {
+      if (!monitors[i].started) {
+        monitors[i].start();
+      }
     }
   }
 };

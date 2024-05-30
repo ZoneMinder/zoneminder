@@ -213,8 +213,10 @@ if (isset($_REQUEST['fit']))
 
 if (isset($_REQUEST['scale']))
   $defaultScale = validCardinal($_REQUEST['scale']);
-else
+  if ($defaultScale > 1.1) $defaultScale = 1.0;
+} else {
   $defaultScale = 1;
+}
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 

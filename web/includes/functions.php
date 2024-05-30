@@ -1041,6 +1041,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 
   $Filter = ZM\Filter::parse($filter, $querySep);
 
+  if (isset($filter['Id']))
+    $filter['Id'] = validCardinal($filter['Id']);
   $filter['sql'] = $Filter->sql();
   $filter['querystring'] = $Filter->querystring('filter', $querySep);
   $filter['hidden_fields'] = $Filter->hidden_fields();

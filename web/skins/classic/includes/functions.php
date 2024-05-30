@@ -91,7 +91,12 @@ function xhtmlHeaders($file, $title) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX) . ' - ' . validHtmlStr($title) ?></title>
 <?php
-if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
+if (defined('ZM_WEB_FAVICON')) {
+  echo '
+  <link rel="icon" type="image/ico" href="'.ZM_WEB_FAVICON.'"/>
+  <link rel="shortcut icon" href="'.ZM_WEB_FAVICON.'"/>
+';
+} else if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
   echo "
   <link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
   <link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>

@@ -237,29 +237,23 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
     (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
     config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
 
-  bool rc;
-
   SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
 
   if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write
-    Image *ts_image = new Image(*image);
-    monitor->TimestampImage(ts_image, timestamp);
-    rc = ts_image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
-    delete ts_image;
-  } else {
-    rc = image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
+    Image ts_image(*image);
+    monitor->TimestampImage(&ts_image, timestamp);
+    return ts_image.WriteJpeg(event_file, thisquality, jpeg_timestamp);
   }
-
-  return rc;
+  return image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
 }
 
 bool Event::WritePacket(const std::shared_ptr<ZMPacket>&packet) {
   if (videoStore->writePacket(packet) < 0)
     return false;
   return true;
-}  // bool Event::WriteFrameVideo
+}  // bool Event::WritePacket
 
 void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   bool update = false;

@@ -212,9 +212,11 @@ if (isset($_REQUEST['fit']))
   $fitMode = validCardinal($_REQUEST['fit']);
 
 if (isset($_REQUEST['scale']))
-  $defaultScale = validHtmlStr($_REQUEST['scale']);
-else
+  $defaultScale = validCardinal($_REQUEST['scale']);
+  if ($defaultScale > 1.1) $defaultScale = 1.0;
+} else {
   $defaultScale = 1;
+}
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
@@ -236,7 +238,7 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
 
 $initialDisplayInterval = 1000;
 if (isset($_REQUEST['displayinterval']))
-  $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
+  $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 
 $minTimeSecs = $maxTimeSecs = 0;
 if (isset($minTime) && isset($maxTime)) {

@@ -203,14 +203,14 @@ if ( isset($_REQUEST['fit']) && ($_REQUEST['fit'] == '0') )
   $fitMode = 0;
 
 if ( isset($_REQUEST['scale']) )
-  $defaultScale = validHtmlStr($_REQUEST['scale']);
+  $defaultScale = validCardinal($_REQUEST['scale']);
 else
   $defaultScale = 1;
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
 if ( isset($_REQUEST['speed']) )
-  $defaultSpeed = validHtmlStr($_REQUEST['speed']);
+  $defaultSpeed = validNum($_REQUEST['speed']);
 else
   $defaultSpeed = 1;
 
@@ -229,7 +229,7 @@ if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
 
 $initialDisplayInterval = 1000;
 if ( isset($_REQUEST['displayinterval']) )
-  $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
+  $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 
 #$eventsSql .= ' GROUP BY E.Id,E.Name,E.StartDateTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
 

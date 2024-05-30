@@ -174,7 +174,7 @@ function MonitorStream(monitorData) {
         $j(img).closest('.monitorStream')[0].style.overflow = 'hidden';
       }
     }
-    let streamQuality = 0; 
+    let streamQuality = 0;
     if (param.streamQuality) {
       streamQuality = param.streamQuality;
       newscale += parseInt(newscale/100*streamQuality);

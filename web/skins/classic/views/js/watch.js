@@ -162,6 +162,13 @@ function changeScale() {
   setScale();
 */
 }
+
+function changeStreamQuality () {
+  const streamQuality = $j('#streamQuality').val();
+  setCookie('zmStreamQuality', streamQuality);
+  monitorsSetScale(monitorId);
+}
+
 // Implement current scale, as opposed to changing it
 function setScale() {
 /*
@@ -1364,7 +1371,7 @@ function monitorsSetScale(id=null) {
       }
     }
     //curentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
-    curentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale});
+    curentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
     if (overrideHW) {
       document.getElementById('liveStream'+id).style.height = 'auto';
       document.getElementById('monitor'+id).style.width = 'auto';

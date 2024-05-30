@@ -277,7 +277,7 @@ function changeCodec() {
   location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+$j('#codec').val());
 }
 
-function deltaScale () {
+function deltaScale() {
   return parseInt(currentScale/100*$j('#streamQuality').val()); // "-" - Decrease quality, "+" - Increase image quality in %
 }
 
@@ -379,7 +379,7 @@ function changeScale() {
   */
 } // end function changeScale
 
-function changeStreamQuality () {
+function changeStreamQuality() {
   const streamQuality = $j('#streamQuality').val();
   setCookie('zmStreamQuality', streamQuality);
   streamScale(currentScale);
@@ -533,7 +533,7 @@ function playClicked( ) {
     if (zmsBroke) {
       // The assumption is that the command failed because zms exited, so restart the stream.
       const img = document.getElementById('evtStream');
-      let src = img.src;
+      const src = img.src;
       const url = new URL(src);
       url.searchParams.set('scale', currentScale); // In event.php we don’t yet know what scale to substitute. Let it be for now.
       img.src = '';
@@ -1312,7 +1312,7 @@ function initPage() {
   // Load the event stats
   getStat();
   zmPanZoom.init();
-  changeStreamQuality ();
+  changeStreamQuality();
 
   if (getEvtStatsCookie() != 'on') {
     eventStats.toggle(false);
@@ -1377,7 +1377,7 @@ function initPage() {
     }
   } // end if videojs or mjpeg stream
   progressBarNav();
-//  if (scale == '0') changeScale();
+  //if (scale == '0') changeScale();
   changeScale();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues

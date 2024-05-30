@@ -41,6 +41,7 @@ var coordinateMouse = {
 };
 var leftBtnStatus = {Down: false, UpAfterDown: false};
 var updateScale = false; //Scale needs to be updated
+var currentScale = 0; // Temporarily, because need to put things in order with the "scale" variable = "select" block
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
@@ -276,6 +277,10 @@ function changeCodec() {
   location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+$j('#codec').val());
 }
 
+function deltaScale () {
+  return parseInt(currentScale/100*$j('#streamQuality').val()); // "-" - Decrease quality, "+" - Increase image quality in %
+}
+
 function changeScale() {
   const scaleSel = $j('#scale').val();
   let newWidth;
@@ -295,26 +300,36 @@ function changeScale() {
     //Actual, 100% of original size
     newWidth = eventData.Width;
     newHeight = eventData.Height;
-    scale = 100;
+    currentScale = 100;
   } else if (scaleSel == '0') {
     //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
-    scale = newSize.autoScale;
+    currentScale = newSize.autoScale;
   } else if (scaleSel == 'fit_to_width') {
     //Fit to screen width
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
     //newHeight = 'auto';
-    scale = newSize.autoScale;
+    currentScale = newSize.autoScale;
+  } else if (scaleSel.indexOf("px") > -1) {
+    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
+    const w = Math.min(stringToNumber(scaleSel), newSize.width);
+    const h = w / (eventData.Width / eventData.Height);
+    newWidth = parseInt(w);
+    newHeight = parseInt(h);
+    currentScale = parseInt(w / eventData.Width * 100);
+    currentScale = currentScale;
   }
+
+  //console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
 
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
   if (!vid) { // zms needs extra sizing
-    streamScale(scale);
+    streamScale(currentScale);
     drawProgressBar();
   }
   if (cueFrames) {
@@ -325,7 +340,7 @@ function changeScale() {
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
 
-  updateScale = true;
+  //updateScale = true;
 
   /* OLD version
   scale = parseFloat($j('#scale').val());
@@ -363,6 +378,12 @@ function changeScale() {
   onStatsResize(newWidth);
   */
 } // end function changeScale
+
+function changeStreamQuality () {
+  const streamQuality = $j('#streamQuality').val();
+  setCookie('zmStreamQuality', streamQuality);
+  streamScale(currentScale);
+}
 
 function changeReplayMode() {
   var replayMode = $j('#replayMode').val();
@@ -449,15 +470,17 @@ function getCmdResponse(respObj, respText) {
     streamPlay( );
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
-  $j('#zoomValue').html(streamStatus.zoom);
+  //$j('#zoomValue').html(streamStatus.zoom);
+  $j('#zoomValue').html(zmPanZoom.panZoom[eventData.MonitorId].getScale().toFixed(1));
   if (streamStatus.zoom == '1.0') {
     setButtonState('zoomOutBtn', 'unavail');
   } else {
     setButtonState('zoomOutBtn', 'inactive');
   }
-  if (scale && (streamStatus.scale !== undefined) && (streamStatus.scale != scale)) {
-    console.log("Stream not scaled, re-applying", scale, streamStatus.scale);
-    streamScale(scale);
+
+  if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != currentScale + deltaScale())) {
+    console.log("Stream not scaled, re-applying", currentScale + deltaScale(), streamStatus.scale);
+    streamScale(currentScale);
   }
 
   updateProgressBar();
@@ -510,9 +533,11 @@ function playClicked( ) {
     if (zmsBroke) {
       // The assumption is that the command failed because zms exited, so restart the stream.
       const img = document.getElementById('evtStream');
-      const src = img.src;
+      let src = img.src;
+      const url = new URL(src);
+      url.searchParams.set('scale', currentScale); // In event.php we don’t yet know what scale to substitute. Let it be for now.
       img.src = '';
-      img.src = src;
+      img.src = url;
       zmsBroke = false;
     } else {
       streamReq({command: CMD_PLAY});
@@ -686,6 +711,7 @@ function tagAndPrev(action) {
   streamPrev(action);
 }
 
+/* Not used
 function vjsPanZoom(action, x, y) { //Pan and zoom with centering where the click occurs
   var outer = $j('#videoobj');
   var video = outer.children().first();
@@ -758,13 +784,16 @@ function streamZoomOut() {
     streamReq({command: CMD_ZOOMOUT});
   }
 }
+*/
 
 function streamScale(scale) {
+  scale += deltaScale();
   if (document.getElementById('evtStream')) {
     streamReq({command: CMD_SCALE, scale: (scale>100) ? 100 : scale});
   }
 }
 
+/*
 function streamPan(x, y) {
   if (vid) {
     vjsPanZoom('pan', x, y);
@@ -772,6 +801,7 @@ function streamPan(x, y) {
     streamReq({command: CMD_PAN, x: x, y: y});
   }
 }
+*/
 
 function streamSeek(offset) {
   if (vid) {
@@ -808,7 +838,7 @@ function getEventResponse(respObj, respText) {
     $j('#modeValue').html('Replay');
     $j('#zoomValue').html('1');
     $j('#rate').val('100');
-    vjsPanZoom('zoomOut');
+    //vjsPanZoom('zoomOut');
   } else {
     drawProgressBar();
   }
@@ -1019,6 +1049,7 @@ function handleClick(event) {
     }
   } else {
     // +++ Old ZoomPan algorithm.
+    /*
     if (vid && (event.target.id != 'videoobj')) {
       return; // ignore clicks on control bar
     }
@@ -1045,10 +1076,11 @@ function handleClick(event) {
         updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
       }
     }
-    // --- Old ZoomPan algorithm.
+    */// --- Old ZoomPan algorithm.
   }
 }
 
+/*
 function shiftImgFrame() { //We calculate the coordinates of the image displacement and shift the image
   let newPosX = parseInt(PrevCoordinatFrame.x - coordinateMouse.shiftMouse_x);
   let newPosY = parseInt(PrevCoordinatFrame.y - coordinateMouse.shiftMouse_y);
@@ -1082,8 +1114,10 @@ function getCoordinateMouse(event) { //We get the current cursor coordinates tak
 
   return {x: parseInt((event.pageX - pos.left) * scaleX), y: parseInt((event.pageY - pos.top) * scaleY)}; //The point of the mouse click relative to the dimensions of the real frame.
 }
+*/
 
 function handleMove(event) {
+/*
   if (panZoomEnabled) {
     return;
   }
@@ -1126,6 +1160,7 @@ function handleMove(event) {
     leftBtnStatus.UpAfterDown = false;
   }
   // --- Old ZoomPan algorithm.
+*/
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -1277,6 +1312,7 @@ function initPage() {
   // Load the event stats
   getStat();
   zmPanZoom.init();
+  changeStreamQuality ();
 
   if (getEvtStatsCookie() != 'on') {
     eventStats.toggle(false);
@@ -1341,7 +1377,8 @@ function initPage() {
     }
   } // end if videojs or mjpeg stream
   progressBarNav();
-  if (scale == '0') changeScale();
+//  if (scale == '0') changeScale();
+  changeScale();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
@@ -1634,9 +1671,10 @@ function initPage() {
     if (updateScale) {
       const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
       const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[eventData.MonitorId].getScale() : 1;
-      const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'), panZoomScale);
+      const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#videoFeed'), panZoomScale);
       scale = newSize.autoScale > 100 ? 100 : newSize.autoScale;
-      //streamScale(scale);
+      currentScale = scale;
+      streamScale(currentScale);
       updateScale = false;
     }
   }, 500);

@@ -64,6 +64,21 @@ $scales = array(
   '1600px' => translate('Max width 1600px'),
 );
 
+$streamQuality = array(
+  # In %
+  '+50' => '+50%',
+  '+40' => '+40%',
+  '+30' => '+30%',
+  '+20' => '+20%',
+  '+10' => '+10%',
+  '0' => translate('Optimal'),
+  '-10' => '-10%',
+  '-20' => '-20%',
+  '-30' => '-30%',
+  '-40' => '-40%',
+  '-50' => '-50%',
+);
+
 if ( isset($_REQUEST['view']) && ($_REQUEST['view'] == 'montage') ) {
   unset($scales['auto']); //Remove auto on montage, use everywhere else
 }

@@ -163,7 +163,7 @@ function changeScale() {
 */
 }
 
-function changeStreamQuality () {
+function changeStreamQuality() {
   const streamQuality = $j('#streamQuality').val();
   setCookie('zmStreamQuality', streamQuality);
   monitorsSetScale(monitorId);

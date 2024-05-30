@@ -155,6 +155,10 @@ int main(int argc, const char *argv[], char **envp) {
       source = ZMS_EVENT;
     } else if ( !strcmp(name, "scale") ) {
       scale = atoi(value);
+      if (scale > 1600) {
+        Warning("Limiting scale to 16x");
+        scale = 1600;
+      }
     } else if ( !strcmp(name, "rate") ) {
       rate = atoi(value);
     } else if ( !strcmp(name, "maxfps") ) {

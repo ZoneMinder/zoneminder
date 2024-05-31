@@ -289,6 +289,7 @@ function changeScale() {
 
   const alarmCue = $j('#alarmCues');
   const bottomEl = $j('#replayStatus');
+  const landscape = eventData.width / eventData.height > 1 ? true : false; //Image orientation.
 
   setCookie('zmEventScale'+eventData.MonitorId, scaleSel);
 
@@ -312,12 +313,17 @@ function changeScale() {
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
-    //newHeight = 'auto';
     currentScale = newSize.autoScale;
   } else if (scaleSel.indexOf("px") > -1) {
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
-    const w = Math.min(stringToNumber(scaleSel), newSize.width);
-    const h = w / (eventData.Width / eventData.Height);
+    let w, h;
+    if (landscape) {
+      w = Math.min(stringToNumber(scaleSel), newSize.width);
+      h = w / (eventData.Width / eventData.Height);
+    } else {
+      h = Math.min(stringToNumber(scaleSel), newSize.height);
+      w = h * (eventData.Width / eventData.Height);
+    }
     newWidth = parseInt(w);
     newHeight = parseInt(h);
     currentScale = parseInt(w / eventData.Width * 100);
@@ -472,11 +478,11 @@ function getCmdResponse(respObj, respText) {
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
   //$j('#zoomValue').html(streamStatus.zoom);
   $j('#zoomValue').html(zmPanZoom.panZoom[eventData.MonitorId].getScale().toFixed(1));
-  if (streamStatus.zoom == '1.0') {
-    setButtonState('zoomOutBtn', 'unavail');
-  } else {
-    setButtonState('zoomOutBtn', 'inactive');
-  }
+  //if (streamStatus.zoom == '1.0') {
+  //  setButtonState('zoomOutBtn', 'unavail');
+  //} else {
+  //  setButtonState('zoomOutBtn', 'inactive');
+  //}
 
   if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != currentScale + deltaScale())) {
     console.log("Stream not scaled, re-applying", currentScale + deltaScale(), streamStatus.scale);

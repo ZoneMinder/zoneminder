@@ -1349,7 +1349,7 @@ function monitorsSetScale(id=null) {
       height = 'auto';
     } else if (scale.indexOf("px") > -1) {
       if (landscape) {
-      maxWidth = scale;
+        maxWidth = scale;
         defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / curentMonitor.width * panZoomScale * 100);
         height = 'auto';
       } else {
@@ -1386,9 +1386,9 @@ function monitorsSetScale(id=null) {
       if (!landscape) { //PORTRAIT
         document.getElementById('monitor'+id).style.width = 'max-content';
       } else {
-      document.getElementById('liveStream'+id).style.height = 'auto';
-      document.getElementById('monitor'+id).style.width = 'auto';
-    }
+        document.getElementById('liveStream'+id).style.height = 'auto';
+        document.getElementById('monitor'+id).style.width = 'auto';
+      }
     }
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {

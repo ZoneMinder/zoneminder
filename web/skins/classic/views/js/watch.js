@@ -1190,7 +1190,33 @@ function cycleNext() {
   }
   clearInterval(intervalId);
   monitorStream.kill();
-  window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
+
+  // +++ Старт следующего монитора
+  monitorStream = new MonitorStream(monitorData[monIdx]);
+  const img = document.getElementById('liveStream'+monitorData[monIdx-1].id);
+  const src = img.src;
+  if (src) {
+    const url = new URL(src);
+    url.searchParams.set('monitor', monitorData[monIdx].id);
+    url.searchParams.delete('connkey');
+    url.searchParams.set('mode', 'single');
+    img.src = '';
+    img.src = url;
+    img.id = 'liveStream'+monitorData[monIdx].id;
+  } else {
+    // Пока х.з. что делать.... 
+  }
+
+  if (!monitorStream.started) {
+    monitorStream.start();
+  }
+
+  cycleStart();
+  //Изменим активный элемент
+  document.getElementById('nav-item-cycle'+monitorData[monIdx-1].id).querySelector('a').classList.remove("active");
+  document.getElementById('nav-item-cycle'+monitorData[monIdx].id).querySelector('a').classList.add("active");
+  // --- Старт следующего монитора
+  //window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 
 function cyclePrev() {

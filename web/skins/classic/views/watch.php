@@ -320,7 +320,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           <ul class="nav nav-pills flex-column">
 <?php
   foreach ($monitors as $m) {
-    echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=watch&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+    echo '<li id="nav-item-cycle'.$m->Id().'" class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=watch&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
   }
  ?>
           </ul>

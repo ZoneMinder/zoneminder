@@ -1105,11 +1105,15 @@ $j(window).on('load', () => initPage());
 
 document.onvisibilitychange = () => {
   if (document.visibilityState === "hidden") {
-    //Stop monitors when closing or hiding page
-    for (let i = 0, length = monitorData.length; i < length; i++) {
-      monitors[i].kill();
-    }
+    TimerHideShow = clearTimeout(TimerHideShow);
+    TimerHideShow = setTimeout(function() {
+      //Stop monitors when closing or hiding page
+      for (let i = 0, length = monitorData.length; i < length; i++) {
+        monitors[i].kill();
+      }
+    }, 15*1000);
   } else {
+    TimerHideShow = clearTimeout(TimerHideShow);
     //Start monitors when show page
     for (let i = 0, length = monitorData.length; i < length; i++) {
       if (!monitors[i].started) {
@@ -1118,6 +1122,7 @@ document.onvisibilitychange = () => {
     }
   }
 };
+
 
 /*
 window.onbeforeunload = function(e) {

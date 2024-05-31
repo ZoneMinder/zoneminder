@@ -5,6 +5,7 @@ function AddNewZone(el) {
 }
 
 var monitors = new Array();
+var TimerHideShow;
 
 function initPage() {
   for ( var i = 0, length = monitorData.length; i < length; i++ ) {
@@ -54,10 +55,13 @@ window.addEventListener('DOMContentLoaded', initPage);
 
 document.onvisibilitychange = () => {
   if (document.visibilityState === "hidden") {
-    //Stop monitors when closing or hiding page
-    for (let i = 0, length = monitorData.length; i < length; i++) {
-      monitors[i].kill();
-    }
+    TimerHideShow = clearTimeout(TimerHideShow);
+    TimerHideShow = setTimeout(function() {
+      //Stop monitors when closing or hiding page
+      for (let i = 0, length = monitorData.length; i < length; i++) {
+        monitors[i].kill();
+      }
+    }, 15*1000);
   } else {
     //Start monitors when show page
     for (let i = 0, length = monitorData.length; i < length; i++) {

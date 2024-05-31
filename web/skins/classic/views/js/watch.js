@@ -24,6 +24,7 @@ var coordinateMouse = {
 };
 var leftBtnStatus = {Down: false, UpAfterDown: false};
 var updateScale = false; //Scale needs to be updated
+var TimerHideShow;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -1407,8 +1408,11 @@ $j( window ).on("load", initPage);
 
 document.onvisibilitychange = () => {
   if (document.visibilityState === "hidden") {
-    //Stop monitor when closing or hiding page
-    monitorStream.kill();
+    TimerHideShow = clearTimeout(TimerHideShow);
+    TimerHideShow = setTimeout(function() {
+      //Stop monitor when closing or hiding page
+      monitorStream.kill();
+    }, 15*1000);
   } else {
     //Start monitor when show page
     if (!monitorStream.started) {

@@ -326,7 +326,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           </ul>
         </nav>
         <div id="wrapperMonitor" class="container-fluid col">
-          <div id="monitor" class="monitor"
+          <div id="monitor" class="monitor hidden-shift"
 >
 <?php 
 if ($monitor->Type() != 'WebSite') {

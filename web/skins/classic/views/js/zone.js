@@ -7,6 +7,7 @@ var refreshBtn = $j('#refreshBtn');
 var analyseBtn = $j('#analyseBtn');
 var monitors = [];
 var analyse_frames = true;
+var TimerHideShow;
 
 function validateForm( form ) {
   var errors = [];
@@ -763,10 +764,13 @@ function Polygon_calcArea(coords) {
 
 document.onvisibilitychange = () => {
   if (document.visibilityState === "hidden") {
-    //Stop monitors when closing or hiding page
-    for (let i = 0, length = monitorData.length; i < length; i++) {
-      monitors[i].kill();
-    }
+    TimerHideShow = clearTimeout(TimerHideShow);
+    TimerHideShow = setTimeout(function() {
+      //Stop monitors when closing or hiding page
+      for (let i = 0, length = monitorData.length; i < length; i++) {
+        monitors[i].kill();
+      }
+    }, 15*1000);
   } else {
     //Start monitors when show page
     for (let i = 0, length = monitorData.length; i < length; i++) {

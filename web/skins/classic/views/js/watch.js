@@ -1330,6 +1330,7 @@ function monitorsSetScale(id=null) {
     let height;
     let overrideHW = false;
     let defScale = 0;
+    const landscape = curentMonitor.width / curentMonitor.height > 1 ? true : false; //Image orientation.
 
     if (scale == '0') {
       //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
@@ -1347,12 +1348,17 @@ function monitorsSetScale(id=null) {
       width = parseInt(window.innerWidth * panZoomScale) + 'px';
       height = 'auto';
     } else if (scale.indexOf("px") > -1) {
+      if (landscape) {
       maxWidth = scale;
+        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / curentMonitor.width * panZoomScale * 100);
+        height = 'auto';
+      } else {
+        defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / curentMonitor.height * panZoomScale * 100);
+        height = scale;
+      }
       resize = true;
       width = 'auto';
-      height = 'auto';
       overrideHW = true;
-      defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / curentMonitor.width * panZoomScale * 100);
     }
 
     if (resize) {
@@ -1360,6 +1366,10 @@ function monitorsSetScale(id=null) {
         document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
       }
       document.getElementById('monitor'+id).style.maxWidth = maxWidth;
+      if (!landscape) { //PORTRAIT
+        document.getElementById('monitor'+id).style.width = 'max-content';
+        document.getElementById('liveStream'+id).style.height = height;
+      }
     } else {
       document.getElementById('liveStream'+id).style.height = '';
       document.getElementById('monitor'+id).style.width = width;
@@ -1373,8 +1383,12 @@ function monitorsSetScale(id=null) {
     //curentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
     curentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
     if (overrideHW) {
+      if (!landscape) { //PORTRAIT
+        document.getElementById('monitor'+id).style.width = 'max-content';
+      } else {
       document.getElementById('liveStream'+id).style.height = 'auto';
       document.getElementById('monitor'+id).style.width = 'auto';
+    }
     }
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {

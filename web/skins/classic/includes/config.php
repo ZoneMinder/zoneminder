@@ -56,12 +56,12 @@ $scales = array(
   #  '25' => '1/4x',
   #  '12.5' => '1/8x',
   'fit_to_width' => translate('Fit to width'),
-  '480px' => translate('Max width 480px'),
-  '640px' => translate('Max width 640px'),
-  '800px' => translate('Max width 800px'),
-  '1024px' => translate('Max width 1024px'),
-  '1280px' => translate('Max width 1280px'),
-  '1600px' => translate('Max width 1600px'),
+  '480px' => translate('Max 480px'),
+  '640px' => translate('Max 640px'),
+  '800px' => translate('Max 800px'),
+  '1024px' => translate('Max 1024px'),
+  '1280px' => translate('Max 1280px'),
+  '1600px' => translate('Max 1600px'),
 );
 
 $streamQuality = array(

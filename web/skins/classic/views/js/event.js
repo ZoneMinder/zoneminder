@@ -316,7 +316,7 @@ function changeScale() {
     currentScale = newSize.autoScale;
   } else if (scaleSel.indexOf("px") > -1) {
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
-    let w, h;
+    const w, h;
     if (landscape) {
       w = Math.min(stringToNumber(scaleSel), newSize.width);
       h = w / (eventData.Width / eventData.Height);

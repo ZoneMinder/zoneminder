@@ -1132,6 +1132,7 @@ function initPage() {
     }
   }, 500);
 
+  document.getElementById('monitor').classList.remove('hidden-shift');
   changeObjectClass();
   changeSize();
 } // initPage

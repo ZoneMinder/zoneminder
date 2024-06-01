@@ -15,15 +15,9 @@ var zmPanZoom = {
       const _this = this;
       $j('.zoompan').each( function() {
         _this.action('enable', {obj: this});
-        var id;
-        if (this.querySelector("[id^='liveStream']")) {
-          //Montage & Watch page
-          id = stringToNumber(this.querySelector("[id^='liveStream']").id);
-        } else {
-          //Event page
-          id = eventData.MonitorId;
-        }
-        $j(document).on('keyup keydown', function(e) {
+        const stream = this.querySelector("[id^='liveStream']");
+        const id = (stream) ? stringToNumber(stream.id) /* Montage & Watch page */ : eventData.MonitorId /* Event page */;
+        $j(document).on('keyup.panzoom keydown.panzoom', function(e) {
           _this.shifted = e.shiftKey ? e.shiftKey : e.shift;
           _this.ctrled = e.ctrlKey;
           _this.manageCursor(id);
@@ -69,6 +63,7 @@ var zmPanZoom = {
         _this.setTriggerChangedMonitors(id);
       });
     } else if (action == "disable") { //Disable a specific object
+      $j(document).off('keyup.panzoom keydown.panzoom');
       $j('.btn-zoom-in').addClass('hidden');
       $j('.btn-zoom-out').addClass('hidden');
       this.panZoom[param['id']].reset();

@@ -16,7 +16,7 @@ var zmPanZoom = {
       $j('.zoompan').each( function() {
         _this.action('enable', {obj: this});
         const stream = this.querySelector("[id^='liveStream']");
-        const id = (stream) ? stringToNumber(stream.id) /* Montage & Watch page */ : eventData.MonitorId /* Event page */;
+        const id = (stream) ? stringToNumber(stream.id) /* Montage & Watch page */ : eventData.MonitorId; /* Event page */
         $j(document).on('keyup.panzoom keydown.panzoom', function(e) {
           _this.shifted = e.shiftKey ? e.shiftKey : e.shift;
           _this.ctrled = e.ctrlKey;

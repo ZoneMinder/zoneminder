@@ -163,6 +163,13 @@ function changeScale() {
   setScale();
 */
 }
+
+function changeStreamQuality() {
+  const streamQuality = $j('#streamQuality').val();
+  setCookie('zmStreamQuality', streamQuality);
+  monitorsSetScale(monitorId);
+}
+
 // Implement current scale, as opposed to changing it
 function setScale() {
 /*
@@ -1321,7 +1328,11 @@ function monitorsSetScale(id=null) {
     const scale = $j('#scale').val();
     let resize;
     let width;
+    let maxWidth = '';
     let height;
+    let overrideHW = false;
+    let defScale = 0;
+    const landscape = curentMonitor.width / curentMonitor.height > 1 ? true : false; //Image orientation.
 
     if (scale == '0') {
       //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
@@ -1338,20 +1349,47 @@ function monitorsSetScale(id=null) {
       resize = false;
       width = parseInt(window.innerWidth * panZoomScale) + 'px';
       height = 'auto';
+    } else if (scale.indexOf("px") > -1) {
+      if (landscape) {
+        maxWidth = scale;
+        defScale = parseInt(Math.min(stringToNumber(scale), window.innerWidth) / curentMonitor.width * panZoomScale * 100);
+        height = 'auto';
+      } else {
+        defScale = parseInt(Math.min(stringToNumber(scale), window.innerHeight) / curentMonitor.height * panZoomScale * 100);
+        height = scale;
+      }
+      resize = true;
+      width = 'auto';
+      overrideHW = true;
     }
 
     if (resize) {
-      document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
-    }
-    //curentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg:true, scaleImg:panZoomScale});
-    curentMonitor.setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
-    if (!resize) {
+      if (scale == '0') {
+        document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
+      }
+      document.getElementById('monitor'+id).style.maxWidth = maxWidth;
+      if (!landscape) { //PORTRAIT
+        document.getElementById('monitor'+id).style.width = 'max-content';
+        document.getElementById('liveStream'+id).style.height = height;
+      }
+    } else {
       document.getElementById('liveStream'+id).style.height = '';
+      document.getElementById('monitor'+id).style.width = width;
+      document.getElementById('monitor'+id).style.maxWidth = '';
       if (scale == 'fit_to_width') {
         document.getElementById('monitor'+id).style.width = '';
       } else if (scale == '100') {
-        document.getElementById('monitor'+id).style.width = 'max-content';
         document.getElementById('liveStream'+id).style.width = width;
+      }
+    }
+    //curentMonitor.setScale(0, maxWidth ? maxWidth : width, height, {resizeImg: resize, scaleImg: panZoomScale});
+    curentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
+    if (overrideHW) {
+      if (!landscape) { //PORTRAIT
+        document.getElementById('monitor'+id).style.width = 'max-content';
+      } else {
+        document.getElementById('liveStream'+id).style.height = 'auto';
+        document.getElementById('monitor'+id).style.width = 'auto';
       }
     }
   } else {

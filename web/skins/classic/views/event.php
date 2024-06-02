@@ -52,7 +52,7 @@ if ($rate > 1600) {
   zm_setcookie('zmEventRate', $rate);
 }
 
-// $scaleSelected - временно для адаптации нового алгоритма, т.к. $scale может быть только численное значение !
+// $scaleSelected - temporarily to adapt the new algorithm, because $scale can only be a numeric value!
 if (isset($_REQUEST['scale'])) {
   $scale = validInt($_REQUEST['scale']);
   $scaleSelected = $_REQUEST['scale'];
@@ -63,8 +63,18 @@ if (isset($_REQUEST['scale'])) {
   $scale = validInt($monitor->DefaultScale());
   $scaleSelected = $monitor->DefaultScale();
 }
-if (!validInt($scale) and $scale != '0') {
-  $scale = '0';
+//if (!validInt($scale) and $scale != '0') {
+//  $scale = '0';
+//}
+$scale = '10'; // temporarily to adapt the new algorithm, not used in new calculations!
+
+$streamQualitySelected = '0';
+if (isset($_REQUEST['streamQuality'])) {
+  $streamQualitySelected = $_REQUEST['streamQuality'];
+} else if (isset($_COOKIE['zmStreamQuality'])) {
+  $streamQualitySelected = $_COOKIE['zmStreamQuality'];
+} else if (isset($_SESSION['zmStreamQuality']) ) {
+  $streamQualitySelected = $_SESSION['zmStreamQuality'];
 }
 
 $showZones = false;
@@ -226,6 +236,10 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
           <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
+        </div>
+        <div id="streamQualityControl">
+          <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
+          <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
         </div>
         <div id="codecControl">
           <label for="codec"><?php echo translate('Codec') ?></label>
@@ -402,9 +416,9 @@ if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
                   <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
                   <i class="material-icons md-18">fast_forward</i>
                   </button>
-                  <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
+                  <!--<button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
                   <i class="material-icons md-18">zoom_out</i>
-                  </button>
+                  </button>-->
                   <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
                   <i class="material-icons md-18">fullscreen</i>
                   </button>

@@ -1033,7 +1033,7 @@ public static function getStatuses() {
         ' . $blockRatioControl . '
         <div class="grid-stack-item-content">
           <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor"
-            title="shift+click to zoom, click+drag to pan, ctrl+click to zoom out, ctrl+shift+click to zoom out completely"
+            title="Shift+Click to Zoom, Click+Drag to Pan &#013;Ctrl+Click to Zoom out, Ctrl+Shift+Click to Zoom out completely"
             >
             <div
               id="imageFeed'. $this->Id() .'"

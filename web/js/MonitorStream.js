@@ -94,6 +94,7 @@ function MonitorStream(monitorData) {
    * height should be auto, 100%, integer +px
    * param.resizeImg be boolean (added only for using GridStack & PanZoom on Montage page)
    * param.scaleImg scaling 1=100% (added only for using PanZoom on Montage & Watch page)
+   * param.streamQuality in %, numeric value from -50 to +50)
    * */
   this.setScale = function(newscale, width, height, param = {}) {
     const img = this.getElement();
@@ -173,10 +174,15 @@ function MonitorStream(monitorData) {
         $j(img).closest('.monitorStream')[0].style.overflow = 'hidden';
       }
     }
-    this.setStreamScale(newscale);
+    let streamQuality = 0;
+    if (param.streamQuality) {
+      streamQuality = param.streamQuality;
+      newscale += parseInt(newscale/100*streamQuality);
+    }
+    this.setStreamScale(newscale, streamQuality);
   }; // setScale
 
-  this.setStreamScale = function(newscale) {
+  this.setStreamScale = function(newscale, streamQuality=0) {
     const img = this.getElement();
     if (!img) {
       console.log("No img in setScale");
@@ -187,7 +193,7 @@ function MonitorStream(monitorData) {
       newscale = parseInt(100*parseInt(stream_frame.width())/this.width);
     }
     if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
-    if (newscale < 25) newscale = 25; // Arbitrary, lower values look bad
+    if (newscale < 25 && streamQuality > -1) newscale = 25; // Arbitrary, lower values look bad
     if (newscale <= 0) newscale = 100;
     this.scale = newscale;
     if (this.connKey) {

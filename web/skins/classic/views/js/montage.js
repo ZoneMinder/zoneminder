@@ -947,6 +947,12 @@ function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
 }
 
+function changeStreamQuality() {
+  const streamQuality = $j('#streamQuality').val();
+  setCookie('zmStreamQuality', streamQuality);
+  monitorsSetScale();
+}
+
 function monitorsSetScale(id=null) {
   // This function will probably need to be moved to the main JS file, because now used on Watch & Montage pages
   if (id || typeof monitorStream !== 'undefined') {
@@ -960,13 +966,13 @@ function monitorsSetScale(id=null) {
     }
     const el = document.getElementById('liveStream'+id);
     const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
-    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false});
+    currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
   } else {
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
       const el = document.getElementById('liveStream'+id);
       const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
-      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false});
+      monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
     }
   }
 }

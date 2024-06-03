@@ -15,6 +15,7 @@ var changedMonitors = []; //Monitor IDs that were changed in the DOM
 
 var scrollBbarExists = null;
 var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving))
+var TimerHideShow = null;
 
 const presetRatio = new Map([
   ['auto', ''],

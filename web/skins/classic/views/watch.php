@@ -103,7 +103,15 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
   $showCycle = $_COOKIE['zmCycleShow'] == 'true';
 }
 #Whether to show the controls button
-$hasPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
+$hasPtzControls = false;
+foreach ($monitors as $m) {
+  if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
+    //If there is control for at least one camera, then we display the block.
+    $hasPtzControls = true;
+  }
+}
+//$hasPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
+
 $showPtzControls = false;
 if ($hasPtzControls) {
   $showPtzControls = true;
@@ -198,14 +206,19 @@ if (
 ) {
   $options['scale'] = 0;
 }
-if ($monitor->JanusEnabled()) {
-  $streamMode = 'janus';
-} else if ($monitor->RTSP2WebEnabled()) {
-  $streamMode = $monitor->RTSP2WebType();
-} else {
-  $streamMode = getStreamMode();
+
+function getStreamModeMonitor($monitor) {
+  if ($monitor->JanusEnabled()) {
+    $streamMode = 'janus';
+  } else if ($monitor->RTSP2WebEnabled()) {
+    $streamMode = $monitor->RTSP2WebType();
+  } else {
+    $streamMode = getStreamMode();
+  }
+  return $streamMode;
 }
 
+$streamMode = getStreamModeMonitor($monitor);
 noCacheHeaders();
 xhtmlHeaders(__FILE__, $monitor->Name().' - '.translate('Feed'));
 getBodyTopHTML();
@@ -332,8 +345,31 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           </div>
           <ul class="nav nav-pills flex-column">
 <?php
+  if ($monitor->Type() != 'WebSite') {
+    $options['state'] = true;
+  }
+  $monitorsExtraData = [];
+  $monitorJanusUsed = false;
+  $dataMonIdx=0;
   foreach ($monitors as $m) {
-    echo '<li id="nav-item-cycle'.$m->Id().'" class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=watch&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+    $monitorsExtraData[$m->Id()]['StreamHTML'] = $m->getStreamHTML($options);
+    if ($m->JanusEnabled()) {
+      $monitorJanusUsed = true;
+    }
+    $monitorsExtraData[$m->Id()]['ptzControls'] = '';
+    if ($hasPtzControls) {
+      foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
+        require_once $includeFile;
+      $ptzControls = ptzControls($m);
+      $monitorsExtraData[$m->Id()]['ptzControls'] = $ptzControls;
+    }
+    echo '<li id="nav-item-cycle'.$m->Id().'" class="nav-item"><a id="nav-link'.$m->Id().'" class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" data-monIdx='.$dataMonIdx++.' href="#">'.$m->Name().'</a></li>';
+  }
+  if ($monitorJanusUsed) {
+?>
+    <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
+    <script src="/javascript/janus/janus.js"></script>
+<?php
   }
  ?>
           </ul>
@@ -342,9 +378,6 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           <div id="monitor" class="monitor hidden-shift"
 >
 <?php 
-if ($monitor->Type() != 'WebSite') {
-  $options['state'] = true;
-}
 echo $monitor->getStreamHTML($options);
 ?>
           </div><!-- id="Monitor" -->
@@ -409,11 +442,8 @@ if ($streamMode == 'jpeg') {
 <!-- START Control -->
 <?php
 if ( $hasPtzControls ) {
-    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
-        require_once $includeFile;
 ?>
       <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
-      <?php echo ptzControls($monitor) ?>
       </div>
 <?php
 }
@@ -478,14 +508,6 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
     </div><!-- id="content" -->
   </div>
 </div>
-<?php
-if ( $monitor->JanusEnabled() ) {
-?>
-  <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
-  <script src="/javascript/janus/janus.js"></script>
-<?php
-}
-?>
 <?php
 if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
 ?>

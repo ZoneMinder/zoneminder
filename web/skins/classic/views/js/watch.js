@@ -1002,7 +1002,7 @@ function streamStart(monitor = null) {
   } else {
     monitorStream = new MonitorStream(monitorData[monIdx]);
   }
-   monitorStream.setBottomElement(document.getElementById('dvrControls'));
+  monitorStream.setBottomElement(document.getElementById('dvrControls'));
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   monitorsSetScale(monitorId);
@@ -1046,7 +1046,7 @@ function streamReStart(oldId, newId) {
 
   //Change main monitor block
   document.getElementById('monitor').innerHTML = currentMonitor.streamHTML;
- 
+
   //Change active element of the navigation menu
   document.getElementById('nav-item-cycle'+oldId).querySelector('a').classList.remove("active");
   document.getElementById('nav-item-cycle'+newId).querySelector('a').classList.add("active");
@@ -1258,13 +1258,13 @@ function cycleNext() {
   monitorStream.kill();
 
   // +++ Start next monitor
-  let oldId, newId;
+  let oldId;
   if (monIdx == 0) {
     oldId = monitorData[monitorData.length-1].id;
   } else {
     oldId = monitorData[monIdx-1].id;
   }
-  newId = monitorData[monIdx].id;
+  const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
   cycleStart();
   // --- Start next monitor
@@ -1282,15 +1282,15 @@ function cyclePrev() {
   clearInterval(intervalId);
   //monitorStream.stop();
   monitorStream.kill();
-  
+
   // +++ Start previous monitor
-  let oldId, newId;
+  let oldId;
   if (monIdx == monitorData.length - 1) {
     oldId = monitorData[0].id;
   } else {
     oldId = monitorData[monIdx+1].id;
   }
-  newId = monitorData[monIdx].id;
+  const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
   cycleStart();
   // --- Start previous monitors

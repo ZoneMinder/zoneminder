@@ -704,8 +704,10 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
 
   // Let's recalculate everything and reduce the height a little. Necessary if "padding" is specified for "wrapperEventVideo"
   padding = parseInt(container.css("padding-left")) + parseInt(container.css("padding-right"));
-  newWidth -= padding;
-  newHeight = newWidth / ratio;
+  if (newWidth > container.innerWidth()) {
+    newWidth -= padding;
+    newHeight = newWidth / ratio;
+  }
 
   console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
 

@@ -162,6 +162,15 @@ scaleControl is no longer used!
 */
 }
 
+$streamQualitySelected = '0';
+if (isset($_REQUEST['streamQuality'])) {
+  $streamQualitySelected = $_REQUEST['streamQuality'];
+} else if (isset($_COOKIE['zmStreamQuality'])) {
+  $streamQualitySelected = $_COOKIE['zmStreamQuality'];
+} else if (isset($_SESSION['zmStreamQuality']) ) {
+  $streamQualitySelected = $_SESSION['zmStreamQuality'];
+}
+
 if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
   $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
 } else if (isset($_COOKIE['zmMontageRate'])) {
@@ -289,6 +298,10 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           <span id="ratioControl">
             <label><?php echo translate('Ratio') ?></label>
             <?php echo htmlSelect('ratio', [], '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
+          </span>
+          <span id="streamQualityControl">
+            <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
+            <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
           </span>
           <span id="widthControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Width') ?></label>

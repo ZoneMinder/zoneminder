@@ -211,7 +211,7 @@ $fitMode = 1;
 if (isset($_REQUEST['fit']))
   $fitMode = validCardinal($_REQUEST['fit']);
 
-if (isset($_REQUEST['scale']))
+if (isset($_REQUEST['scale'])) {
   $defaultScale = validCardinal($_REQUEST['scale']);
   if ($defaultScale > 1.1) $defaultScale = 1.0;
 } else {

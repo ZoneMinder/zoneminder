@@ -165,6 +165,15 @@ if ( !isset($scales[$scale])) {
 }
 $options['scale'] = 0; //Somewhere something is spoiled because of this...
 
+$streamQualitySelected = '0';
+if (isset($_REQUEST['streamQuality'])) {
+  $streamQualitySelected = $_REQUEST['streamQuality'];
+} else if (isset($_COOKIE['zmStreamQuality'])) {
+  $streamQualitySelected = $_COOKIE['zmStreamQuality'];
+} else if (isset($_SESSION['zmStreamQuality']) ) {
+  $streamQualitySelected = $_SESSION['zmStreamQuality'];
+}
+
 if (isset($_REQUEST['width'])) {
   $options['width'] = validInt($_REQUEST['width']); 
 } else if ( isset($_COOKIE['zmWatchWidth']) and $_COOKIE['zmWatchWidth'] ) {
@@ -276,6 +285,10 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps']);
           <label><?php echo translate('Scale') ?>:</label>
           <?php echo htmlSelect('scale', $scales, $scale, array('id'=>'scale', 'data-on-change-this'=>'changeScale') ); ?>
         </span>
+        <span id="streamQualityControl">
+          <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
+          <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
+        </span>
       </div><!--sizeControl-->
     </div><!--control header-->
     </div><!--flip-->
@@ -326,7 +339,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           </ul>
         </nav>
         <div id="wrapperMonitor" class="container-fluid col">
-          <div id="monitor" class="monitor"
+          <div id="monitor" class="monitor hidden-shift"
 >
 <?php 
 if ($monitor->Type() != 'WebSite') {

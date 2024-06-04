@@ -3,6 +3,7 @@
   global $nextMid;
   global $options;
   global $monitors;
+  global $monitorsExtraData;
   global $streamMode;
   global $showPtzControls;
   global $monitor;
@@ -53,7 +54,16 @@ monitorData[monitorData.length] = {
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $m->Id() ?>' );},
   'type': '<?php echo $m->Type() ?>',
   'refresh': '<?php echo $m->Refresh() ?>',
-  'janus_pin': '<?php echo $m->Janus_Pin() ?>'
+  'janus_pin': '<?php echo $m->Janus_Pin() ?>',
+  'streamHTML': '<?php echo str_replace(array("\r\n", "\r", "\n"), '', $monitorsExtraData[$m->Id()]['StreamHTML']) ?>',
+  'ptzControls': '<?php echo str_replace(array("\r\n", "\r", "\n"), '', $monitorsExtraData[$m->Id()]['ptzControls']) ?>',
+  'monitorWidth': parseInt('<?php echo $m->ViewWidth() ?>'),
+  'monitorHeight': parseInt('<?php echo $m->ViewHeight() ?>'),
+  'monitorType': '<?php echo $m->Type() ?>',
+  'monitorRefresh': '<?php echo $m->Refresh() ?>',
+  'monitorStreamReplayBuffer': parseInt('<?php echo $m->StreamReplayBuffer() ?>'),
+  'monitorControllable': <?php echo $m->Controllable()?'true':'false' ?>,
+  'streamMode': '<?php echo getStreamModeMonitor($m) ?>'
 };
 <?php
 } // end foreach monitor

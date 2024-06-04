@@ -495,7 +495,7 @@ public static function getStatuses() {
     unset($args['zones']);
 
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
-
+    $this->streamSrc = $streamSrc;
     return $streamSrc;
   } // end function getStreamSrc
 

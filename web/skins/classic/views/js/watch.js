@@ -1023,6 +1023,7 @@ function streamReStart(oldId, newId) {
     return parseInt(o["id"]) === newId;
   });
   monitorId = newId;
+  filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
   document.querySelector('title').textContent = newMonitorName;
 
   zmPanZoom.action('disable', {id: oldId});

@@ -1022,9 +1022,12 @@ function streamReStart(oldId, newId) {
   const currentMonitor = monitorData.find((o) => {
     return parseInt(o["id"]) === newId;
   });
+  const url = new URL(document.location.href);
   monitorId = newId;
   filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
   document.querySelector('title').textContent = newMonitorName;
+  url.searchParams.set('mid', monitorId);
+  history.pushState(null, "", url);
 
   zmPanZoom.action('disable', {id: oldId});
   if (monitorStream) {

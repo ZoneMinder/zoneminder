@@ -339,13 +339,15 @@ if ( currentView != 'none' && currentView != 'login' ) {
           if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
         });
       }
-      obj.slideToggle("fast", function() {
-        if (nameFuncAfterComplet) {
-          $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
-            if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
-          });
-        }
-      });
+      if (!_this_.attr('data-on-click-true')) {
+        obj.slideToggle("fast", function() {
+          if (nameFuncAfterComplet) {
+            $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
+              if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+            });
+          }
+        });
+      }
       if (nameFuncAfter) {
         $j.each(nameFuncAfter.split(' '), function(i, nameFunc) {
           if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();

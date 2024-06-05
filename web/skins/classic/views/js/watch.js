@@ -1540,6 +1540,7 @@ document.onvisibilitychange = () => {
 function setButtonStateWatch(element_id, btnClass) {
   //Temporary function so as not to break anything else, because analysis of the setButtonState function in skin.js is required,
   //and also review the logic of the buttons and more (if (this.onplay) this.onplay() in MonitorStream.js)  var element = document.getElementById(element_id);
+  var element = document.getElementById(element_id);
   if ( element ) {
     element.className = btnClass;
     if (btnClass == 'unavail') {

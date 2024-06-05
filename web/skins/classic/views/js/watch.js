@@ -302,7 +302,7 @@ function onPlay() {
   setButtonStateWatch('stopBtn', 'inactive');
   setButtonStateWatch('playBtn', 'unavail');
   if (monitorStream.status.delayed == true) {
-    setButtonState('stopBtn', 'inactive');
+    //setButtonState('stopBtn', 'inactive');
     if (monitorStreamReplayBuffer) {
       setButtonState('fastFwdBtn', 'inactive');
       setButtonState('slowFwdBtn', 'inactive');
@@ -310,7 +310,7 @@ function onPlay() {
       setButtonState('fastRevBtn', 'inactive');
     }
   } else {
-    setButtonState('stopBtn', 'unavail');
+    //setButtonState('stopBtn', 'unavail');
     if (monitorStreamReplayBuffer) {
       setButtonState('fastFwdBtn', 'unavail');
       setButtonState('slowFwdBtn', 'unavail');
@@ -967,7 +967,7 @@ function streamPrepareStart(monitor=null) {
       monitorsSetScale(monitorId);
     }
   }, 100);
-  setButtonState('stopBtn', 'active');
+  setButtonStateWatch('stopBtn', 'active');
 }
 
 function handleMouseEnter(event) {

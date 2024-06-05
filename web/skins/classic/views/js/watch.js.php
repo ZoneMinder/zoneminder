@@ -56,6 +56,7 @@ monitorData[monitorData.length] = {
   'refresh': '<?php echo $m->Refresh() ?>',
   'janus_pin': '<?php echo $m->Janus_Pin() ?>',
   'streamHTML': '<?php echo str_replace(array("\r\n", "\r", "\n"), '', $monitorsExtraData[$m->Id()]['StreamHTML']) ?>',
+  'urlForAllEvents': '<?php echo $monitorsExtraData[$m->Id()]['urlForAllEvents'] ?>',
   'ptzControls': '<?php echo str_replace(array("\r\n", "\r", "\n"), '', $monitorsExtraData[$m->Id()]['ptzControls']) ?>',
   'monitorWidth': parseInt('<?php echo $m->ViewWidth() ?>'),
   'monitorHeight': parseInt('<?php echo $m->ViewHeight() ?>'),

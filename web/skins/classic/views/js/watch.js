@@ -295,7 +295,7 @@ function streamCmdPause(action) {
 }
 
 function onPlay() {
-  //monitorStream.setup_onplay(onPlay); //IgorA100 Added for testing, but probably not required 
+  //monitorStream.setup_onplay(onPlay); //IgorA100 Added for testing, but probably not required
   //setButtonState('pauseBtn', 'inactive');
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('pauseBtn', 'inactive');
@@ -959,7 +959,7 @@ function streamPrepareStart(monitor=null) {
   el.addEventListener('mouseenter', handleMouseEnter);
   el.addEventListener('mouseleave', handleMouseLeave);
 
-  let i = setInterval(function() {
+  const i = setInterval(function() {
     if (document.querySelector('[id ^= "liveStream"]').offsetHeight > 20) {
       //You need to wait until the image appears.
       clearInterval(i);

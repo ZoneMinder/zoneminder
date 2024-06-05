@@ -63,6 +63,10 @@ var zmPanZoom = {
         _this.setTriggerChangedMonitors(id);
       });
     } else if (action == "disable") { //Disable a specific object
+      if (!this.panZoom[param['id']]) {
+        console.log(`PanZoom for monitor "${param['id']}" was not initialized.`);
+        return;
+      }
       $j(document).off('keyup.panzoom keydown.panzoom');
       $j('.btn-zoom-in').addClass('hidden');
       $j('.btn-zoom-out').addClass('hidden');
@@ -162,7 +166,9 @@ var zmPanZoom = {
       const point = {clientX: event.clientX, clientY: event.clientY};
       this.panZoom[id].zoomToPoint(scale, point, {focal: {x: event.clientX, y: event.clientY}});
     }
-    this.setTriggerChangedMonitors(id);
+    if (this.ctrled || this.shifted) {
+      this.setTriggerChangedMonitors(id);
+    }
   },
 
   setTriggerChangedMonitors: function(id) {

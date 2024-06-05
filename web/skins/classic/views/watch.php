@@ -381,55 +381,35 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
 echo $monitor->getStreamHTML($options);
 ?>
           </div><!-- id="Monitor" -->
-<?php
-if ($monitor->Type() != 'WebSite') {
-?>
           <div class="buttons" id="dvrControls">
 <!--
           <button type="button" id="getImageBtn" title="<?php echo translate('Download Image') ?>"/>
 -->
-<?php
-if ($streamMode == 'jpeg') {
-  if ($monitor->StreamReplayBuffer() != 0) {
-?>
               <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastRev">
               <i class="material-icons md-18">fast_rewind</i>
               </button>
               <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowRev">
-              <i class="material-icons md-18">chevron_right</i>
+              <i class="material-icons md-18">chevron_left</i>
               </button>
-<?php 
-  }
-?>
               <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click-true="streamCmdPause">
               <i class="material-icons md-18">pause</i>
               </button>
-              <button type="button" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdStop" style="display:none;">
+              <button type="button" id="stopBtn" title="<?php echo translate('Stop') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdStop">
               <i class="material-icons md-18">stop</i>
               </button>
               <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click-true="streamCmdPlay">
               <i class="material-icons md-18">play_arrow</i>
               </button>
-<?php
-  if ($monitor->StreamReplayBuffer() != 0) {
-?>
               <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdSlowFwd">
               <i class="material-icons md-18">chevron_right</i>
               </button>
               <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamCmdFastFwd">
               <i class="material-icons md-18">fast_forward</i>
               </button>
-<?php
-  }
-?>
               <button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="avail" data-on-click="zoomOutClick">
               <i class="material-icons md-18">zoom_out</i>
               </button>
-<?php
-} // end if streamMode==jpeg
-?>
           </div><!--dvrControls-->
-<?php } // end if $monitor->Type() != 'WebSite' ?>
           <div class="buttons" id="extButton"> 
             <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
             <i class="material-icons md-18">fullscreen</i>
@@ -443,8 +423,8 @@ if ($streamMode == 'jpeg') {
 <?php
 if ( $hasPtzControls ) {
 ?>
-      <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
-      </div>
+        <div id="ptzControls" class="col-sm-2 ptzControls"<?php echo $showPtzControls ? '' : ' style="display:none;"'?>>
+        </div>
 <?php
 }
 ?>

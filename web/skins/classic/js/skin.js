@@ -699,24 +699,26 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
     console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
   }
   let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
-  console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
+///  console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
   let newWidth = ratio * newHeight;
 
   // Let's recalculate everything and reduce the height a little. Necessary if "padding" is specified for "wrapperEventVideo"
-  padding = parseInt(container.css("padding-left")) + parseInt(container.css("padding-right"));
-  if (newWidth > container.innerWidth()) {
-    newWidth -= padding;
-    newHeight = newWidth / ratio;
-  }
+///  padding = parseInt(container.css("padding-left")) + parseInt(container.css("padding-right"));
+///  if (newWidth > container.innerWidth()) {
+///    newWidth -= padding;
+///    newHeight = newWidth / ratio;
+///  }
 
-  console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
+///  console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
 
-  if (newHeight < 0 || newWidth > container.innerWidth()-padding) {
+///  if (newHeight < 0 || newWidth > container.innerWidth()-padding) {
+  if (newHeight < 0 || newWidth > container.width()) {
     // Doesn't fit on screen anyways?
-    newWidth = container.innerWidth()-padding;
+///    newWidth = container.innerWidth()-padding;
+    newWidth = container.width();
     newHeight = newWidth / ratio;
   }
-  console.log("newWidth = " + newWidth);
+  //console.log("newWidth = " + newWidth);
   let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE * panZoomScale);
   /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
   const scales = $j('#scale option').map(function() {
@@ -735,6 +737,7 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
   }
   */
   if (autoScale < 10) autoScale = 10;
+  console.log(`container.height=${container.height()}, newWidth=${newWidth}, newHeight=${newHeight}, container width=${container.width()}, autoScale=${autoScale}`);
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 

@@ -1203,7 +1203,10 @@ function watchFullscreen() {
 }
 
 function watchAllEvents() {
-  window.location.replace(document.getElementById('allEventsBtn').getAttribute('data-url'));
+  const currentMonitor = monitorData.find((o) => {
+    return parseInt(o["id"]) === monitorId;
+  });
+  window.location.replace(currentMonitor.urlForAllEvents);
 }
 
 var intervalId;

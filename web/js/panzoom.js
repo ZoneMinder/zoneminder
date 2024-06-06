@@ -94,6 +94,18 @@ var zmPanZoom = {
       param['obj'].addEventListener('panzoomzoom', (event) => {
         if (typeof panZoomEventPanzoomzoom !== 'undefined' && $j.isFunction(panZoomEventPanzoomzoom)) panZoomEventPanzoomzoom(param['obj'], event);
       })
+      param['obj'].addEventListener('panzoomstart', (event) => {
+        if (typeof panZoomEventPanzoomstart !== 'undefined' && $j.isFunction(panZoomEventPanzoomstart)) panZoomEventPanzoomstart(param['obj'], event);
+      })
+      param['obj'].addEventListener('panzoompan', (event) => {
+        if (typeof panZoomEventPanzoompan !== 'undefined' && $j.isFunction(panZoomEventPanzoompan)) panZoomEventPanzoompan(param['obj'], event);
+      })
+      param['obj'].addEventListener('panzoomend', (event) => {
+        if (typeof panZoomEventPanzoomend !== 'undefined' && $j.isFunction(panZoomEventPanzoomend)) panZoomEventPanzoomend(param['obj'], event);
+      })
+      param['obj'].addEventListener('panzoomreset', (event) => {
+        if (typeof panZoomEventPanzoomreset !== 'undefined' && $j.isFunction(panZoomEventPanzoomreset)) panZoomEventPanzoomreset(param['obj'], event);
+      })
     } else if (action == "disable") { //Disable a specific object
       if (!this.panZoom[param['id']]) {
         console.log(`PanZoom for monitor "${param['id']}" was not initialized.`);

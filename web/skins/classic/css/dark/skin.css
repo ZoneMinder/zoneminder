@@ -290,6 +290,10 @@ ul.nav.nav-pills.flex-column {
   background:#444444;
 }
 
+.monitor .monitorStatus {
+  background-color: #222222;
+}
+
 /* Change scrollbar style */
 ::-webkit-scrollbar, div::-webkit-scrollbar, nav::-webkit-scrollbar, .chosen-results::-webkit-scrollbar {
   width: 11px;

@@ -243,7 +243,7 @@ function MonitorStream(monitorData) {
         }});
       }
       attachVideo(parseInt(this.id), this.janusPin);
-      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
       return;
     }
     if (this.RTSP2WebEnabled) {
@@ -289,7 +289,7 @@ function MonitorStream(monitorData) {
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
           startRTSP2WebPlay(videoEl, webrtcUrl.href);
         }
-        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
+        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -753,6 +753,15 @@ function MonitorStream(monitorData) {
       } // end if canEdit.Monitors
 
       this.setAlarmState(monitorStatus);
+
+      if (respObj.auth_hash) {
+        if (this.auth_hash != respObj.auth_hash) {
+          // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
+          console.log("Changed auth from " + this.auth_hash + " to " + respObj.auth_hash);
+          this.streamCmdParms.auth = this.auth_hash = respObj.auth_hash;
+          this.auth_relay = respObj.auth_relay;
+        }
+      } // end if have a new auth hash
     } else {
       checkStreamForErrors('getStatusCmdResponse', respObj);
     }

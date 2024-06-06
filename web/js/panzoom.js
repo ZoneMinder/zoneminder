@@ -60,7 +60,7 @@ var zmPanZoom = {
         const obj = $j(param['obj']).find('[id ^= "liveStream"]')[0];
         if (obj) {
           id = stringToNumber(obj.id); //Montage page
-        } 
+        }
       }
       if (!id) {
         console.log("The for panZoom action object was not found.", param);
@@ -90,22 +90,22 @@ var zmPanZoom = {
       param['obj'].addEventListener('panzoomchange', (event) => {
         if (typeof panZoomEventPanzoomchange !== 'undefined' && $j.isFunction(panZoomEventPanzoomchange)) panZoomEventPanzoomchange(param['obj'], event);
         //console.log('panzoomchange', event.detail) // => { x: 0, y: 0, scale: 1 }
-      })
+      });
       param['obj'].addEventListener('panzoomzoom', (event) => {
         if (typeof panZoomEventPanzoomzoom !== 'undefined' && $j.isFunction(panZoomEventPanzoomzoom)) panZoomEventPanzoomzoom(param['obj'], event);
-      })
+      });
       param['obj'].addEventListener('panzoomstart', (event) => {
         if (typeof panZoomEventPanzoomstart !== 'undefined' && $j.isFunction(panZoomEventPanzoomstart)) panZoomEventPanzoomstart(param['obj'], event);
-      })
+      });
       param['obj'].addEventListener('panzoompan', (event) => {
         if (typeof panZoomEventPanzoompan !== 'undefined' && $j.isFunction(panZoomEventPanzoompan)) panZoomEventPanzoompan(param['obj'], event);
-      })
+      });
       param['obj'].addEventListener('panzoomend', (event) => {
         if (typeof panZoomEventPanzoomend !== 'undefined' && $j.isFunction(panZoomEventPanzoomend)) panZoomEventPanzoomend(param['obj'], event);
-      })
+      });
       param['obj'].addEventListener('panzoomreset', (event) => {
         if (typeof panZoomEventPanzoomreset !== 'undefined' && $j.isFunction(panZoomEventPanzoomreset)) panZoomEventPanzoomreset(param['obj'], event);
-      })
+      });
     } else if (action == "disable") { //Disable a specific object
       if (!this.panZoom[param['id']]) {
         console.log(`PanZoom for monitor "${param['id']}" was not initialized.`);
@@ -189,8 +189,8 @@ var zmPanZoom = {
           obj_btn.style['cursor'] = 'auto';
         }
       } else {
-       const cursor = (disableZoom) ? 'auto' : 'zoom-out';
-       obj.style['cursor'] = cursor;
+        const cursor = (disableZoom) ? 'auto' : 'zoom-out';
+        obj.style['cursor'] = cursor;
         if (obj_btn) {
           obj_btn.style['cursor'] = cursor;
         }

@@ -1166,3 +1166,7 @@ font.load().then(function() {
 }, function() {
   $j('.material-icons').css('display', 'inline-block');
 });
+
+$j( window ).on("load", function() {
+  $j('[data-toggle="tooltip"], [title]').tooltip();
+});

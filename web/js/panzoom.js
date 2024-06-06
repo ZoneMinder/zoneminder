@@ -10,6 +10,9 @@ var zmPanZoom = {
   shifted: null,
   ctrled: null,
 
+  /*
+  * param.objString - class or id
+  */
   init: function(param={}) {
     const objString = param.objString;
     const contain = (param.contain) ? param.contain : (objString) ? null : "outside";
@@ -26,16 +29,6 @@ var zmPanZoom = {
           disablePan: disablePan
         };
         _this.action('enable', params);
-        const stream = this.querySelector("[id^='liveStream']");
-        const id = (stream) ? stringToNumber(stream.id) /* Montage & Watch page */ : eventData.MonitorId; /* Event page */
-        $j(document).on('keyup.panzoom keydown.panzoom', function(e) {
-          _this.shifted = e.shiftKey ? e.shiftKey : e.shift;
-          _this.ctrled = e.ctrlKey;
-          _this.manageCursor(id);
-        });
-        this.addEventListener('mousemove', function(e) {
-          //Temporarily not use
-        });
       });
     }
   },
@@ -76,6 +69,7 @@ var zmPanZoom = {
         cursor: 'inherit',
         disablePan: disablePan,
       });
+      this.panZoom[id].target = param['obj'];
       //panZoom[id].pan(10, 10);
       //panZoom[id].zoom(1, {animate: true});
       // Binds to shift + wheel
@@ -87,37 +81,43 @@ var zmPanZoom = {
         _this.setTriggerChangedMonitors(id);
       });
 
-      param['obj'].addEventListener('panzoomchange', (event) => {
-        if (typeof panZoomEventPanzoomchange !== 'undefined' && $j.isFunction(panZoomEventPanzoomchange)) panZoomEventPanzoomchange(param['obj'], event);
-        //console.log('panzoomchange', event.detail) // => { x: 0, y: 0, scale: 1 }
+      $j(document).on('keyup.panzoom keydown.panzoom', function(e) {
+        _this.shifted = e.shiftKey ? e.shiftKey : e.shift;
+        _this.ctrled = e.ctrlKey;
+        _this.manageCursor(id);
       });
-      param['obj'].addEventListener('panzoomzoom', (event) => {
-        if (typeof panZoomEventPanzoomzoom !== 'undefined' && $j.isFunction(panZoomEventPanzoomzoom)) panZoomEventPanzoomzoom(param['obj'], event);
-      });
-      param['obj'].addEventListener('panzoomstart', (event) => {
-        if (typeof panZoomEventPanzoomstart !== 'undefined' && $j.isFunction(panZoomEventPanzoomstart)) panZoomEventPanzoomstart(param['obj'], event);
-      });
-      param['obj'].addEventListener('panzoompan', (event) => {
-        if (typeof panZoomEventPanzoompan !== 'undefined' && $j.isFunction(panZoomEventPanzoompan)) panZoomEventPanzoompan(param['obj'], event);
-      });
-      param['obj'].addEventListener('panzoomend', (event) => {
-        if (typeof panZoomEventPanzoomend !== 'undefined' && $j.isFunction(panZoomEventPanzoomend)) panZoomEventPanzoomend(param['obj'], event);
-      });
-      param['obj'].addEventListener('panzoomreset', (event) => {
-        if (typeof panZoomEventPanzoomreset !== 'undefined' && $j.isFunction(panZoomEventPanzoomreset)) panZoomEventPanzoomreset(param['obj'], event);
-      });
+
+      param['obj'].addEventListener('mousemove', handlePanZoomEventMousemove);
+      param['obj'].addEventListener('panzoomchange', handlePanZoomEventPanzoomchange);
+      param['obj'].addEventListener('panzoomzoom', handlePanZoomEventPanzoomzoom);
+      param['obj'].addEventListener('panzoomstart', handlePanZoomEventPanzoomstart);
+      param['obj'].addEventListener('panzoompan', handlePanzoompan);
+      param['obj'].addEventListener('panzoomend', handlePanzoomend);
+      param['obj'].addEventListener('panzoomreset', handlePanzoomreset);
     } else if (action == "disable") { //Disable a specific object
       if (!this.panZoom[param['id']]) {
         console.log(`PanZoom for monitor "${param['id']}" was not initialized.`);
         return;
       }
-      $j(document).off('keyup.panzoom keydown.panzoom');
-      $j('.btn-zoom-in').addClass('hidden');
-      $j('.btn-zoom-out').addClass('hidden');
+      //Disables for the entire document!//$j(document).off('keyup.panzoom keydown.panzoom');
+      const obj = this.panZoom[param['id']].target;
+      // #videoFeed - Event page, #monitorX - Montage & Watch page
+      const el = document.getElementById('videoFeed');
+      const wrapper = el ? el : document.getElementById('monitor'+param['id']);
+
+      $j(wrapper).find('.btn-zoom-in, .btn-zoom-out').addClass('hidden');
       this.panZoom[param['id']].reset();
       this.panZoom[param['id']].resetStyle();
       this.panZoom[param['id']].setOptions({disablePan: true, disableZoom: true});
       this.panZoom[param['id']].destroy();
+      obj.removeEventListener('panzoomzoom', handlePanZoomEventPanzoomzoom);
+      obj.removeEventListener('mousemove', handlePanZoomEventMousemove);
+      obj.removeEventListener('panzoomchange', handlePanZoomEventPanzoomchange);
+      obj.removeEventListener('panzoomzoom', handlePanZoomEventPanzoomzoom);
+      obj.removeEventListener('panzoomstart', handlePanZoomEventPanzoomstart);
+      obj.removeEventListener('panzoompan', handlePanzoompan);
+      obj.removeEventListener('panzoomend', handlePanzoomend);
+      obj.removeEventListener('panzoomreset', handlePanzoomreset);
     }
   },
 
@@ -236,3 +236,32 @@ var zmPanZoom = {
     }
   }
 };
+
+function handlePanZoomEventMousemove(event) {
+  if (typeof panZoomEventMousemove !== 'undefined' && $j.isFunction(panZoomEventMousemove)) panZoomEventMousemove(event);
+}
+
+function handlePanZoomEventPanzoomchange(event) {
+  if (typeof panZoomEventPanzoomchange !== 'undefined' && $j.isFunction(panZoomEventPanzoomchange)) panZoomEventPanzoomchange(event);
+  //console.log('panzoomchange', event.detail) // => { x: 0, y: 0, scale: 1 }
+}
+
+function handlePanZoomEventPanzoomzoom(event) {
+  if (typeof panZoomEventPanzoomzoom !== 'undefined' && $j.isFunction(panZoomEventPanzoomzoom)) panZoomEventPanzoomzoom(event);
+}
+
+function handlePanZoomEventPanzoomstart(event) {
+  if (typeof panZoomEventPanzoomstart !== 'undefined' && $j.isFunction(panZoomEventPanzoomstart)) panZoomEventPanzoomstart(event);
+}
+
+function handlePanzoompan(event) {
+  if (typeof panZoomEventPanzoompan !== 'undefined' && $j.isFunction(panZoomEventPanzoompan)) panZoomEventPanzoompan(event);
+}
+
+function handlePanzoomend(event) {
+  if (typeof panZoomEventPanzoomend !== 'undefined' && $j.isFunction(panZoomEventPanzoomend)) panZoomEventPanzoomend(event);
+}
+
+function handlePanzoomreset(event) {
+  if (typeof panZoomEventPanzoomreset !== 'undefined' && $j.isFunction(panZoomEventPanzoomreset)) panZoomEventPanzoomreset(event);
+}

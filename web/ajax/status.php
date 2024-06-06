@@ -409,6 +409,11 @@ function collectData() {
     ZM\Debug("No fieldSQL");
   }
   //ZM\Debug(print_r($data, true));
+  if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+    $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+    $data['auth'] = $auth_hash;
+    $data['auth_relay'] = get_auth_relay();
+  }
   return $data;
 }
 

@@ -61,11 +61,11 @@ monitorData[monitorData.length] = {
 
 var scale = '<?php echo $scale ?>';
 
-var statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
-var eventsRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_EVENTS ?>;
-var imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
+const statusRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_STATUS ?>;
+const eventsRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_EVENTS ?>;
+const imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 
-var canStream = <?php echo canStream()?'true':'false' ?>;
+const canStream = <?php echo canStream()?'true':'false' ?>;
 
 var imageControlMode = '<?php 
 $control = $monitor->Control();

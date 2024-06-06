@@ -10,11 +10,22 @@ var zmPanZoom = {
   shifted: null,
   ctrled: null,
 
-  init: function() {
+  init: function(param={}) {
+    const objString = param.objString;
+    const contain = (param.contain) ? param.contain : (objString) ? null : "outside";
+    const disablePan = (param.disablePan) ? param.disablePan : (contain != "outside") ? true : false;
+
     if (panZoomEnabled) {
       const _this = this;
-      $j('.zoompan').each( function() {
-        _this.action('enable', {obj: this});
+      const object = (objString) ? $j(objString) : $j('.zoompan');
+
+      object.each( function() {
+        const params = {
+          obj: this,
+          contain: contain,
+          disablePan: disablePan
+        };
+        _this.action('enable', params);
         const stream = this.querySelector("[id^='liveStream']");
         const id = (stream) ? stringToNumber(stream.id) /* Montage & Watch page */ : eventData.MonitorId; /* Event page */
         $j(document).on('keyup.panzoom keydown.panzoom', function(e) {
@@ -30,27 +41,40 @@ var zmPanZoom = {
   },
 
   /*
-  param = param['obj'] : DOM object
-  param = param['id'] : monitor id
+  * param = param['obj'] : DOM object
+  * param = param['id'] : monitor id
+  * param = param['contain'] : "inside" | "outside", default="outside"
+  * param = param['disablePan'] : true || false
   */
   action: function(action, param) {
     const _this = this;
+    const contain = param['contain'];
+    const disablePan = param['disablePan'];
+    const minScale = (contain != "outside") ? 0.1 : 1.0;
     if (action == "enable") {
       var id;
-      if ($j(param['obj']).children('[id ^= "liveStream"]')[0]) {
-        id = stringToNumber($j(param['obj']).children('[id ^= "liveStream"]')[0].id); //Montage page
-      } else {
-        id = eventData.MonitorId; //Event page
-      }
 
+      if (typeof eventData != 'undefined') {
+        id = eventData.MonitorId; //Event page
+      } else {
+        const obj = $j(param['obj']).find('[id ^= "liveStream"]')[0];
+        if (obj) {
+          id = stringToNumber(obj.id); //Montage page
+        } 
+      }
+      if (!id) {
+        console.log("The for panZoom action object was not found.", param);
+        return;
+      }
       $j('.btn-zoom-in').removeClass('hidden');
       $j('.btn-zoom-out').removeClass('hidden');
       this.panZoom[id] = Panzoom(param['obj'], {
-        minScale: 1,
+        minScale: minScale,
         step: this.panZoomStep,
         maxScale: this.panZoomMaxScale,
-        contain: 'outside',
+        contain: contain, //"inside" | "outside" | null
         cursor: 'inherit',
+        disablePan: disablePan,
       });
       //panZoom[id].pan(10, 10);
       //panZoom[id].zoom(1, {animate: true});
@@ -62,6 +86,14 @@ var zmPanZoom = {
         _this.panZoom[id].zoomWithWheel(event);
         _this.setTriggerChangedMonitors(id);
       });
+
+      param['obj'].addEventListener('panzoomchange', (event) => {
+        if (typeof panZoomEventPanzoomchange !== 'undefined' && $j.isFunction(panZoomEventPanzoomchange)) panZoomEventPanzoomchange(param['obj'], event);
+        //console.log('panzoomchange', event.detail) // => { x: 0, y: 0, scale: 1 }
+      })
+      param['obj'].addEventListener('panzoomzoom', (event) => {
+        if (typeof panZoomEventPanzoomzoom !== 'undefined' && $j.isFunction(panZoomEventPanzoomzoom)) panZoomEventPanzoomzoom(param['obj'], event);
+      })
     } else if (action == "disable") { //Disable a specific object
       if (!this.panZoom[param['id']]) {
         console.log(`PanZoom for monitor "${param['id']}" was not initialized.`);
@@ -110,8 +142,15 @@ var zmPanZoom = {
   * !!! On Montage & Watch page, when you hover over a block of buttons (in the empty space between the buttons themselves), the cursor changes, but no action occurs, you need to review "monitors[i]||monitorStream.setup_onclick(handleClick)"
   */
   manageCursor: function(id) {
+    if (!this.panZoom[id]) {
+      console.log(`PanZoom for monitor ID=${id} is not initialized.`);
+      return;
+    }
     var obj;
     var obj_btn;
+    const disablePan = this.panZoom[id].getOptions().disablePan;
+    const disableZoom = this.panZoom[id].getOptions().disableZoom;
+
     obj = document.getElementById('liveStream'+id);
     if (obj) { //Montage & Watch page
       obj_btn = document.getElementById('button_zoom'+id); //Change the cursor when you hover over the block of buttons at the top of the image. Not required on Event page
@@ -120,14 +159,16 @@ var zmPanZoom = {
     }
     const currentScale = this.panZoom[id].getScale().toFixed(1);
     if (this.shifted && this.ctrled) {
-      obj.style['cursor'] = 'zoom-out';
+      const cursor = (disableZoom) ? 'auto' : 'zoom-out';
+      obj.style['cursor'] = cursor;
       if (obj_btn) {
-        obj_btn.style['cursor'] = 'zoom-out';
+        obj_btn.style['cursor'] = cursor;
       }
     } else if (this.shifted) {
-      obj.style['cursor'] = 'zoom-in';
+      const cursor = (disableZoom) ? 'auto' : 'zoom-in';
+      obj.style['cursor'] = cursor;
       if (obj_btn) {
-        obj_btn.style['cursor'] = 'zoom-in';
+        obj_btn.style['cursor'] = cursor;
       }
     } else if (this.ctrled) {
       if (currentScale == 1.0) {
@@ -136,9 +177,10 @@ var zmPanZoom = {
           obj_btn.style['cursor'] = 'auto';
         }
       } else {
-        obj.style['cursor'] = 'zoom-out';
+       const cursor = (disableZoom) ? 'auto' : 'zoom-out';
+       obj.style['cursor'] = cursor;
         if (obj_btn) {
-          obj_btn.style['cursor'] = 'zoom-out';
+          obj_btn.style['cursor'] = cursor;
         }
       }
     } else { //No ctrled & no shifted
@@ -148,9 +190,10 @@ var zmPanZoom = {
           obj_btn.style['cursor'] = 'auto';
         }
       } else {
-        obj.style['cursor'] = 'move';
+        const cursor = (disablePan) ? 'auto' : 'move';
+        obj.style['cursor'] = cursor;
         if (obj_btn) {
-          obj_btn.style['cursor'] = 'move';
+          obj_btn.style['cursor'] = cursor;
         }
       }
     }

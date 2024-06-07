@@ -1230,7 +1230,7 @@ function cyclePause() {
 }
 
 function cycleStart() {
-  secondsToCycle = (secondsToCycle == 0) ? $j('#cyclePeriod').val() : secondsToCycle;
+  if (secondsToCycle == 0) secondsToCycle = $j('#cyclePeriod').val();
   intervalId = setInterval(nextCycleView, 1000);
   cycle = true;
   $j('#cyclePauseBtn').show();

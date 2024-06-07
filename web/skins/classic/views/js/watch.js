@@ -1230,7 +1230,7 @@ function cyclePause() {
 }
 
 function cycleStart() {
-  secondsToCycle = $j('#cyclePeriod').val();
+  secondsToCycle = (secondsToCycle == 0) ? $j('#cyclePeriod').val() : secondsToCycle;
   intervalId = setInterval(nextCycleView, 1000);
   cycle = true;
   $j('#cyclePauseBtn').show();
@@ -1238,6 +1238,7 @@ function cycleStart() {
 }
 
 function cycleStop(target) {
+  secondsToCycle = 0;
   monIdx = target.getAttribute('data-monIdx');
   $j('#secondsToCycle').text('');
   cyclePause();

@@ -938,6 +938,11 @@ a.flip {
   clear: both;
 }
 
+.monitor .monitorStatus {
+  position: relative;
+  background-color: #FFFFFF;
+}
+
 .monitor .monitorStatus.bottom {
   color: #dddddd;
 }

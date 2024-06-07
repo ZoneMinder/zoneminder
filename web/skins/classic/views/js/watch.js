@@ -601,6 +601,8 @@ function handleClick(event) {
     const oldId = stringToNumber(document.querySelector('[id ^= "liveStream"]').id);
     const newId = stringToNumber(targetId);
     streamReStart(oldId, newId);
+  } else if (event.target.closest('#dvrControls')) { //Controls DVR
+    cyclePause();
   }
   if (panZoomEnabled) {
     //event.preventDefault();

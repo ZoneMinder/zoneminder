@@ -1152,9 +1152,13 @@ function stringToNumber(str) {
   return parseInt(str.replace(/\D/g, ''));
 }
 
-const font = new FontFaceObserver('Material Icons', {weight: 400});
-font.load().then(function() {
-  $j('.material-icons').css('display', 'inline-block');
-}, function() {
-  $j('.material-icons').css('display', 'inline-block');
-});
+function loadFontFaceObserver() {
+  const font = new FontFaceObserver('Material Icons', {weight: 400});
+  font.load().then(function() {
+    $j('.material-icons').css('display', 'inline-block');
+  }, function() {
+    $j('.material-icons').css('display', 'inline-block');
+  });
+}
+
+loadFontFaceObserver();

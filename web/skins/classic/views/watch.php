@@ -108,9 +108,9 @@ foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
     $hasPtzControls = true;
+    break;
   }
 }
-//$hasPtzControls = ( ZM_OPT_CONTROL && $monitor->Controllable() && canView('Control') && $monitor->Type() != 'WebSite' );
 
 $showPtzControls = false;
 if ($hasPtzControls) {
@@ -135,9 +135,9 @@ if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode
 $options['mode'] = 'single';
 
 if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
-  $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
+  $options['maxfps'] = validFloat($_REQUEST['maxfps']);
 } else if (isset($_COOKIE['zmWatchRate'])) {
-  $options['maxfps'] = validHtmlStr($_COOKIE['zmWatchRate']);
+  $options['maxfps'] = validFloat($_COOKIE['zmWatchRate']);
 } else {
   $options['maxfps'] = ''; // unlimited
 }
@@ -174,6 +174,7 @@ if ( !isset($scales[$scale])) {
 $options['scale'] = 0; //Somewhere something is spoiled because of this...
 
 $streamQualitySelected = '0';
+# TODO input validation on streamquality
 if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_REQUEST['streamQuality'];
 } else if (isset($_COOKIE['zmStreamQuality'])) {
@@ -267,6 +268,8 @@ echo getNavBarHTML() ?>
             <span class="material-icons md-18">open_with</span>
         </button>
 <?php
+    } else {
+      echo 'No ptz';
     }
 ?>
         <span id="rateControl">

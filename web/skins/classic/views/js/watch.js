@@ -1063,21 +1063,25 @@ function streamReStart(oldId, newId) {
 }
 
 function applyMonitorControllable(currentMonitor) {
+  const ptzToggle = document.getElementById('ptzToggle');
   if (currentMonitor.monitorControllable) {
     const ptzShow = getCookie('ptzShow');
-    document.getElementById('ptzToggle').classList.remove("hidden");
+
+    ptzToggle.classList.remove("disabled");
+    ptzToggle.disabled=false;
     sidebarControls.html(currentMonitor.ptzControls);
     if (ptzShow) {
       sidebarControls.show();
-      document.getElementById('ptzToggle').classList.remove("btn-secondary");
-      document.getElementById('ptzToggle').classList.add("btn-primary");
+      ptzToggle.classList.remove("btn-secondary");
+      ptzToggle.classList.add("btn-primary");
     } else {
       sidebarControls.hide();
-      document.getElementById('ptzToggle').classList.remove("btn-primary");
-      document.getElementById('ptzToggle').classList.add("btn-secondary");
+      ptzToggle.classList.remove("btn-primary");
+      ptzToggle.classList.add("btn-secondary");
     }
   } else {
-    document.getElementById('ptzToggle').classList.add("hidden");
+    ptzToggle.classList.add("disabled");
+    ptzToggle.disabled=true;
     sidebarControls.html('');
     sidebarControls.hide();
   }
@@ -1185,8 +1189,11 @@ function initPage() {
   //document.getElementById('monitor').classList.remove('hidden-shift');
   changeObjectClass();
   streamPrepareStart();
-  if (monitorStream) {
-    applyMonitorControllable(monitorStream);
+  const currentMonitor = monitorData.find((o) => {
+    return parseInt(o["id"]) === monitorId;
+  });
+  if (currentMonitor) {
+    applyMonitorControllable(currentMonitor);
   }
 } // initPage
 

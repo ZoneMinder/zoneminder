@@ -668,7 +668,7 @@ input[type=button]:disabled,
 input[type=submit]:disabled,
   a.disabled,
   a.btn-primary.disabled,
-.btn-primary:disabled {
+.btn-primary.disabled, .btn-primary:disabled, .btn-secondary.disabled, .btn-secondary:disabled {
     background-color: #aaaaaa;    
     border-color: #bbbbbb;
 }

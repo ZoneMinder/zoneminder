@@ -604,7 +604,10 @@ function handleClick(event) {
     streamReStart(oldId, newId);
   } else if (event.target.closest('#dvrControls')) { //Controls DVR
     cyclePause();
+  } else if (!event.target.closest('#wrapperMonitor')) {
+    return;
   }
+
   if (panZoomEnabled) {
     //event.preventDefault();
     if (targetId) {
@@ -971,6 +974,7 @@ function streamPrepareStart(monitor=null) {
     }
   }, 100);
   setButtonStateWatch('stopBtn', 'active');
+  setTimeout(dataOnClick, 100);
 }
 
 function handleMouseEnter(event) {
@@ -1056,8 +1060,8 @@ function streamReStart(oldId, newId) {
   streamMode = currentMonitor.streamMode;
 
   table.bootstrapTable('destroy');
-  streamPrepareStart(currentMonitor);
   applyMonitorControllable();
+  streamPrepareStart(currentMonitor);
   zmPanZoom.init();
   loadFontFaceObserver();
   //document.getElementById('monitor').classList.remove('hidden-shift');
@@ -1193,13 +1197,14 @@ function initPage() {
 
   //document.getElementById('monitor').classList.remove('hidden-shift');
   changeObjectClass();
-  streamPrepareStart();
+
   currentMonitor = monitorData.find((o) => {
     return parseInt(o["id"]) === monitorId;
   });
   if (currentMonitor) {
     applyMonitorControllable();
   }
+  streamPrepareStart();
 } // initPage
 
 function watchFullscreen() {

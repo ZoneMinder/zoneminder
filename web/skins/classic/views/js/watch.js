@@ -603,7 +603,10 @@ function handleClick(event) {
     streamReStart(oldId, newId);
   } else if (event.target.closest('#dvrControls')) { //Controls DVR
     cyclePause();
+  } else if (!event.target.closest('#wrapperMonitor')) {
+    return;
   }
+
   if (panZoomEnabled) {
     //event.preventDefault();
     if (targetId) {

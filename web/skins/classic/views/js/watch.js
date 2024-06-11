@@ -1216,9 +1216,6 @@ function watchFullscreen() {
 }
 
 function watchAllEvents() {
-  const currentMonitor = monitorData.find((o) => {
-    return parseInt(o["id"]) === monitorId;
-  });
   window.location.replace(currentMonitor.urlForAllEvents);
 }
 

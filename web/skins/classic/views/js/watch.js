@@ -1062,6 +1062,7 @@ function streamReStart(oldId, newId) {
   applyMonitorControllable(currentMonitor);
   zmPanZoom.init();
   loadFontFaceObserver();
+  dataOnClick();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
 

@@ -354,6 +354,10 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
   $monitorsExtraData = [];
   $monitorJanusUsed = false;
   $dataMonIdx=0;
+  if ($hasPtzControls) {
+    foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
+      require_once $includeFile;
+  }
   foreach ($monitors as $m) {
     $monitorsExtraData[$m->Id()]['StreamHTML'] = $m->getStreamHTML($options);
     $monitorsExtraData[$m->Id()]['urlForAllEvents'] = "?view=events&page=1&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Battr%5D=Monitor&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bop%5D=%3D&filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bval%5D=".$m->Id()."&filter%5BQuery%5D%5Bsort_asc%5D=1&filter%5BQuery%5D%5Bsort_field%5D=StartDateTime&filter%5BQuery%5D%5Bskip_locked%5D=&filter%5BQuery%5D%5Blimit%5D=0";
@@ -362,8 +366,6 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
     }
     $monitorsExtraData[$m->Id()]['ptzControls'] = '';
     if ($hasPtzControls) {
-      foreach ( getSkinIncludes('includes/control_functions.php') as $includeFile )
-        require_once $includeFile;
       $ptzControls = ptzControls($m);
       $monitorsExtraData[$m->Id()]['ptzControls'] = $ptzControls;
     }

@@ -1060,8 +1060,8 @@ function streamReStart(oldId, newId) {
   streamMode = currentMonitor.streamMode;
 
   table.bootstrapTable('destroy');
-  streamPrepareStart(currentMonitor);
   applyMonitorControllable();
+  streamPrepareStart(currentMonitor);
   zmPanZoom.init();
   loadFontFaceObserver();
   //document.getElementById('monitor').classList.remove('hidden-shift');

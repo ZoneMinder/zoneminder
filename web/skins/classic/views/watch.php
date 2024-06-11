@@ -134,10 +134,10 @@ if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode
 }
 $options['mode'] = 'single';
 
-if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
-  $options['maxfps'] = validFloat($_REQUEST['maxfps']);
+if (!empty($_REQUEST['maxfps']) and validNum($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+  $options['maxfps'] = validNum($_REQUEST['maxfps']);
 } else if (isset($_COOKIE['zmWatchRate'])) {
-  $options['maxfps'] = validFloat($_COOKIE['zmWatchRate']);
+  $options['maxfps'] = validNum($_COOKIE['zmWatchRate']);
 } else {
   $options['maxfps'] = ''; // unlimited
 }

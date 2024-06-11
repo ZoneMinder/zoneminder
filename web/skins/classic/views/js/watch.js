@@ -9,6 +9,7 @@ var wrapperMonitor = $j('#wrapperMonitor');
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 var idle = 0;
 var monitorStream = false; /* Stream is not started */
+var currentMonitor;
 
 var classSidebarL = 'col-sm-3'; /* id="sidebar" */
 var classSidebarR = 'col-sm-2'; /* id="ptzControls" */
@@ -1021,7 +1022,7 @@ function streamReStart(oldId, newId) {
   document.getElementById('monitor').classList.add('hidden-shift');
   const el = document.querySelector('.imageFeed');
   const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
-  const currentMonitor = monitorData.find((o) => {
+  currentMonitor = monitorData.find((o) => {
     return parseInt(o["id"]) === newId;
   });
   const url = new URL(document.location.href);
@@ -1056,13 +1057,13 @@ function streamReStart(oldId, newId) {
 
   table.bootstrapTable('destroy');
   streamPrepareStart(currentMonitor);
-  applyMonitorControllable(currentMonitor);
+  applyMonitorControllable();
   zmPanZoom.init();
   loadFontFaceObserver();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
 
-function applyMonitorControllable(currentMonitor) {
+function applyMonitorControllable() {
   const ptzToggle = document.getElementById('ptzToggle');
   if (currentMonitor.monitorControllable) {
     const ptzShow = getCookie('ptzShow');
@@ -1189,11 +1190,11 @@ function initPage() {
   //document.getElementById('monitor').classList.remove('hidden-shift');
   changeObjectClass();
   streamPrepareStart();
-  const currentMonitor = monitorData.find((o) => {
+  currentMonitor = monitorData.find((o) => {
     return parseInt(o["id"]) === monitorId;
   });
   if (currentMonitor) {
-    applyMonitorControllable(currentMonitor);
+    applyMonitorControllable();
   }
 } // initPage
 
@@ -1212,9 +1213,6 @@ function watchFullscreen() {
 }
 
 function watchAllEvents() {
-  const currentMonitor = monitorData.find((o) => {
-    return parseInt(o["id"]) === monitorId;
-  });
   window.location.replace(currentMonitor.urlForAllEvents);
 }
 

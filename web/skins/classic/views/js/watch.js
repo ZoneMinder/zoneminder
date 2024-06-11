@@ -1064,6 +1064,10 @@ function streamReStart(oldId, newId) {
 
 function applyMonitorControllable(currentMonitor) {
   const ptzToggle = document.getElementById('ptzToggle');
+  if (!ptzToggle) {
+    console.log('ptz toggle is not present. Likely OPT_CONTROL is off');
+    return;
+  }
   if (currentMonitor.monitorControllable) {
     const ptzShow = getCookie('ptzShow');
 

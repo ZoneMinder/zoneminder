@@ -1198,6 +1198,7 @@ function initPage() {
   if (currentMonitor) {
     applyMonitorControllable(currentMonitor);
   }
+  dataOnClick();
 } // initPage
 
 function watchFullscreen() {

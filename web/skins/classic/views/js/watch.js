@@ -974,7 +974,7 @@ function streamPrepareStart(monitor=null) {
     }
   }, 100);
   setButtonStateWatch('stopBtn', 'active');
-  dataOnClick();
+  setTimeout(dataOnClick, 100);
 }
 
 function handleMouseEnter(event) {

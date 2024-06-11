@@ -973,6 +973,7 @@ function streamPrepareStart(monitor=null) {
     }
   }, 100);
   setButtonStateWatch('stopBtn', 'active');
+  dataOnClick();
 }
 
 function handleMouseEnter(event) {
@@ -1062,7 +1063,6 @@ function streamReStart(oldId, newId) {
   applyMonitorControllable(currentMonitor);
   zmPanZoom.init();
   loadFontFaceObserver();
-  dataOnClick();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
 
@@ -1192,14 +1192,13 @@ function initPage() {
 
   //document.getElementById('monitor').classList.remove('hidden-shift');
   changeObjectClass();
-  streamPrepareStart();
   const currentMonitor = monitorData.find((o) => {
     return parseInt(o["id"]) === monitorId;
   });
   if (currentMonitor) {
     applyMonitorControllable(currentMonitor);
   }
-  dataOnClick();
+  streamPrepareStart();
 } // initPage
 
 function watchFullscreen() {

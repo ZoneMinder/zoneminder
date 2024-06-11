@@ -60,49 +60,6 @@ function checkSize() {
   }
 }
 
-// Polyfill for NodeList.prototype.forEach on IE.
-if (window.NodeList && !NodeList.prototype.forEach) {
-  NodeList.prototype.forEach = Array.prototype.forEach;
-}
-
-window.addEventListener("DOMContentLoaded", function onSkinDCL() {
-  document.querySelectorAll("form.validateFormOnSubmit").forEach(function(el) {
-    el.addEventListener("submit", function onSubmit(evt) {
-      if (!validateForm(this)) {
-        evt.preventDefault();
-      }
-    });
-  });
-
-  document.querySelectorAll(".zmlink").forEach(function(el) {
-    el.addEventListener("click", function onClick(evt) {
-      var el = this;
-      var url;
-      if ( el.hasAttribute("href") ) {
-        // <a>
-        url = el.getAttribute("href");
-      } else {
-        // buttons
-        url = el.getAttribute("data-url");
-      }
-      evt.preventDefault();
-      window.location.assign(url);
-    });
-  });
-
-  document.querySelectorAll(".pillList a").forEach(function addOnClick(el) {
-    el.addEventListener("click", submitTab);
-  });
-
-  dataOnClickThis();
-  dataOnClick();
-  dataOnClickTrue();
-  dataOnChangeThis();
-  dataOnChange();
-  dataOnInput();
-  dataOnInputThis();
-});
-
 // 'data-on-click-this' calls the global function in the attribute value with the element when a click happens.
 function dataOnClickThis() {
   document.querySelectorAll("a[data-on-click-this], button[data-on-click-this], input[data-on-click-this], span[data-on-click-this]").forEach(function attachOnClick(el) {
@@ -1161,4 +1118,51 @@ function loadFontFaceObserver() {
   });
 }
 
-loadFontFaceObserver();
+function initPage() {
+  // Polyfill for NodeList.prototype.forEach on IE.
+  if (window.NodeList && !NodeList.prototype.forEach) {
+    NodeList.prototype.forEach = Array.prototype.forEach;
+  }
+
+  window.addEventListener("DOMContentLoaded", function onSkinDCL() {
+    document.querySelectorAll("form.validateFormOnSubmit").forEach(function(el) {
+      el.addEventListener("submit", function onSubmit(evt) {
+        if (!validateForm(this)) {
+          evt.preventDefault();
+        }
+      });
+    });
+
+    document.querySelectorAll(".zmlink").forEach(function(el) {
+      el.addEventListener("click", function onClick(evt) {
+        var el = this;
+        var url;
+        if ( el.hasAttribute("href") ) {
+          // <a>
+          url = el.getAttribute("href");
+        } else {
+          // buttons
+          url = el.getAttribute("data-url");
+        }
+        evt.preventDefault();
+        window.location.assign(url);
+      });
+    });
+
+    document.querySelectorAll(".pillList a").forEach(function addOnClick(el) {
+      el.addEventListener("click", submitTab);
+    });
+
+    dataOnClickThis();
+    dataOnClick();
+    dataOnClickTrue();
+    dataOnChangeThis();
+    dataOnChange();
+    dataOnInput();
+    dataOnInputThis();
+  });
+
+  loadFontFaceObserver();
+}
+
+$j( window ).on("load", initPage);

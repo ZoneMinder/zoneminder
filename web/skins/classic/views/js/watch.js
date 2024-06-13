@@ -607,11 +607,11 @@ function handleClick(event) {
   }
   if (panZoomEnabled) {
     //event.preventDefault();
-    if (targetId) {
     //We are looking for an object with an ID, because there may be another element in the button.
-      var obj = event.target;
-    } else {
-      var obj = event.target.parentElement;
+    const obj = targetId ? event.target : event.target.parentElement;
+    if (!obj) {
+      console.log("No obj found", targetId, event.target, event.target.parentElement);
+      return;
     }
     if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
 
@@ -624,8 +624,12 @@ function handleClick(event) {
       }
     }
 
-    if (obj.getAttribute('id').indexOf("liveStream") >= 0) {
-      zmPanZoom.click(monitorId);
+    const obj_id = obj.getAttribute('id');
+    if (obj_id) {
+      if (obj_id.indexOf("liveStream") >= 0)
+        zmPanZoom.click(monitorId);
+    } else {
+      console.log("obj does not have an id", obj);
     }
   } else {
     // +++ Old ZoomPan algorithm.

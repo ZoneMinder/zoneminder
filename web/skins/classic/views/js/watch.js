@@ -1067,6 +1067,7 @@ function streamReStart(oldId, newId) {
   applyMonitorControllable();
   streamPrepareStart(currentMonitor);
   zmPanZoom.init();
+  zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
   loadFontFaceObserver();
   //document.getElementById('monitor').classList.remove('hidden-shift');
 }
@@ -1124,6 +1125,7 @@ function initPage() {
   // --- Support of old ZoomPan algorithm
 
   zmPanZoom.init();
+  zmPanZoom.init({objString: '.imageFeed', disablePan: true, contain: 'inside', additional: true});
 
   // Manage the BACK button
   bindButton('#backBtn', 'click', null, function onBackClick(evt) {
@@ -1404,6 +1406,30 @@ function panZoomIn(el) {
 
 function panZoomOut(el) {
   zmPanZoom.zoomOut(el);
+}
+
+function panZoomEventPanzoomzoom(event) {
+  //Temporarily not in use
+  /*
+  const obj = event.target;
+  const parent = obj.parentNode;
+  const objDim = obj.getBoundingClientRect();
+  const parentDim = parent.getBoundingClientRect();
+  const top = objDim.top - parentDim.top;
+  const h = objDim.height + top;
+  console.log("object", obj);
+  console.log("parentDim:", parentDim);
+  console.log("objDim:", objDim);
+  console.log("H:", h);
+  if (h>30) {
+    parent.style.height = h+'px';
+    console.log('panzoomzoom', event.detail) // => { x: 0, y: 0, scale: 1 }
+  }
+  */
+}
+
+function panZoomEventPanzoomchange(event) {
+
 }
 
 function monitorsSetScale(id=null) {

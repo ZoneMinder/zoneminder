@@ -469,18 +469,6 @@ body.sticky #content {
  * Generic useful classes, especially with mootools
  */
 
-.hidden {
-    display: none;
-}
-
-.hidden-shift {
-  position: absolute !important; left: -999em !important;
-}
-
-.invisible {
-    visibility: hidden;
-}
-
 .nowrap {
     white-space: nowrap;
 }
@@ -680,7 +668,7 @@ input[type=button]:disabled,
 input[type=submit]:disabled,
   a.disabled,
   a.btn-primary.disabled,
-.btn-primary:disabled {
+.btn-primary.disabled, .btn-primary:disabled, .btn-secondary.disabled, .btn-secondary:disabled {
     background-color: #aaaaaa;    
     border-color: #bbbbbb;
 }
@@ -938,6 +926,11 @@ a.flip {
   clear: both;
 }
 
+.monitor .monitorStatus {
+  position: relative;
+  background-color: #FFFFFF;
+}
+
 .monitor .monitorStatus.bottom {
   color: #dddddd;
 }
@@ -1124,3 +1117,18 @@ html::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scroll
     width: 100%;
   }
 }
+
+/* +++ This block should always be located at the end! */
+.hidden {
+    display: none;
+}
+
+.hidden-shift {
+  position: absolute !important; left: -999em !important;
+}
+
+.invisible {
+    visibility: hidden;
+}
+/* --- This block should always be located at the end! */
+

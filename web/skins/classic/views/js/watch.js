@@ -629,8 +629,7 @@ function handleClick(event) {
 
     const obj_id = obj.getAttribute('id');
     if (obj_id) {
-      if (obj_id.indexOf("liveStream") >= 0)
-        zmPanZoom.click(monitorId);
+      if (obj_id.indexOf("liveStream") >= 0) zmPanZoom.click(monitorId);
     } else {
       console.log("obj does not have an id", obj);
     }

@@ -30,13 +30,12 @@ var zmPanZoom = {
   * params['id'] : monitor id
   * params['contain'] : "inside" | "outside", default="outside"
   * params['disablePan'] : true || false
-  * & etc 
+  * & etc
   */
   action: function(action, params) {
     const _this = this;
     const objString = params['objString'];
     const contain = (params['contain']) ? params['contain'] : "outside";
-    const disablePan = params['disablePan'];
     const minScale = (contain != "outside") ? 0.1 : 1.0;
     if (action == "enable") {
       var id;
@@ -56,7 +55,7 @@ var zmPanZoom = {
       $j('.btn-zoom-in').removeClass('hidden');
       $j('.btn-zoom-out').removeClass('hidden');
       const objPanZoom = (params['additional'] && objString) ? id+objString : id;
-      
+
       // default value for ZM, if not explicitly specified in the parameters
       if (!('contain' in params)) params.contain = contain;
       if (!('minScale' in params)) params.minScale = minScale;
@@ -81,12 +80,12 @@ var zmPanZoom = {
           event.preventDefault(); //Avoid page scrolling
           if (!_this.panZoom[objPanZoom].additional) return;
 
-          const obj = (event.target.closest('#monitor'+id)) ? event.target.closest('#monitor'+id) /*Watch & Montage*/ : event.target.closest('#eventVideo') /*Event*/;
+          const obj = (event.target.closest('#monitor'+id)) ? event.target.closest('#monitor'+id)/*Watch & Montage*/ : event.target.closest('#eventVideo')/*Event*/;
           const objDim = obj.getBoundingClientRect();
           //Get the coordinates (x - the middle of the image, y - the top edge) of the point relative to which we will scale the image
           const x = objDim.x + objDim.width/2;
           const y = objDim.y;
-          const scale = (event.deltaY < 0) ? _this.panZoom[objPanZoom].getScale() * Math.exp(_this.panZoomStep) /*scrolling up*/ : _this.panZoom[objPanZoom].getScale() / Math.exp(_this.panZoomStep) /*scrolling down*/;
+          const scale = (event.deltaY < 0) ? _this.panZoom[objPanZoom].getScale() * Math.exp(_this.panZoomStep)/*scrolling up*/ : _this.panZoom[objPanZoom].getScale() / Math.exp(_this.panZoomStep)/*scrolling down*/;
           _this.panZoom[objPanZoom].zoomToPoint(scale, {clientX: x, clientY: y});
         } else if (_this.shifted && !_this.alted) {
           if (!_this.panZoom[id]) return;

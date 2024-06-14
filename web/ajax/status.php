@@ -440,6 +440,11 @@ switch ( $_REQUEST['layout'] ) {
   case 'json' :
     {
       $response = array( strtolower(validJsStr($_REQUEST['entity'])) => $data );
+      if ( ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') ) {
+        $auth_hash = generateAuthHash(ZM_AUTH_HASH_IPS);
+        $response['auth'] = $auth_hash;
+        $response['auth_relay'] = get_auth_relay();
+      }
       if ( isset($_REQUEST['loopback']) )
         $response['loopback'] = validJsStr($_REQUEST['loopback']);
         #ZM\Warning(print_r($response, true));

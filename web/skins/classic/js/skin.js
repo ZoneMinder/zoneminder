@@ -313,22 +313,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
-      if ( obj.is(":visible") && !obj.hasClass("hidden-shift")) {
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
-          objIconButton.html(objIconButton.attr('data-icon-hidden'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
-        }
-        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'hidden');
-      } else { //hidden
-        obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
-          objIconButton.html(objIconButton.attr('data-icon-visible'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
-        }
-        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
-      }
+      changeButtonIcon(_this_, objIconButton);
 
       const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
       const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
@@ -356,9 +341,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
     });
 
     // Manage visible filter bar & control button (after document ready)
-    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects and set icons
+    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
       const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const initialStateIcon = _this_.attr('data-initial-state-icon') //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
@@ -366,20 +352,24 @@ if ( currentView != 'none' && currentView != 'login' ) {
         obj.wrap('<div style="display: block"></div>');
       }
 
-      if (сookie == 'hidden') {
+      // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
+      const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
         if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        if (stateIcon == 'hidden') {
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
-        }
-        obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
-      } else { //no cookies or opened.
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+        } else {
           objIconButton.html(objIconButton.attr('data-icon-visible'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+          obj.removeClass('hidden-shift');
         }
-        obj.removeClass('hidden-shift');
+        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        if (stateIcon == 'hidden') {
+          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
+        obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+        } else {
+          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+          obj.removeClass('hidden-shift');
+        }
       }
     });
 
@@ -418,6 +408,31 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
     applyChosen();
   });
+
+  /*
+  * params{visibility: null "visible" or "hidden"} - state of the panel before pressing button
+  */
+  function changeButtonIcon(pressedBtn, target, params) {
+    const visibility = (!params) ? null : params.visibility;
+    const objIconButton = pressedBtn.find("i");
+    const obj = $j(pressedBtn.attr('data-flip-сontrol-object'));
+    if ((visibility == "visible") || (obj.is(":visible") && !obj.hasClass("hidden-shift"))) {
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        objIconButton.html(objIconButton.attr('data-icon-hidden'));
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
+      }
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'hidden');
+    } else { //hidden
+      obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        objIconButton.html(objIconButton.attr('data-icon-visible'));
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
+      }
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'visible');
+    }
+  }
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {

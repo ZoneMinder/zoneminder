@@ -344,7 +344,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
     $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
       const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
-      const initialStateIcon = _this_.attr('data-initial-state-icon') //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
+      const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
@@ -354,7 +354,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
       // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
       const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
         if (stateIcon == 'hidden') {
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
           obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
@@ -362,10 +362,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
           objIconButton.html(objIconButton.attr('data-icon-visible'));
           obj.removeClass('hidden-shift');
         }
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
         if (stateIcon == 'hidden') {
           objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
-        obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+          obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
         } else {
           objIconButton.addClass(objIconButton.attr('data-icon-visible'));
           obj.removeClass('hidden-shift');

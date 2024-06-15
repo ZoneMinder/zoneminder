@@ -1219,12 +1219,16 @@ function getStat() {
 
     //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
     switch (key) {
+      case 'Name':
+        tdString = eventData[key] + ' (Id:' + eventData['Id'] + ')';
+        break;
       case 'Frames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+        tdString += ' Alarm:' + '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData['AlarmFrames'] + '</a>';
         break;
-      case 'AlarmFrames':
-        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
-        break;
+      //case 'AlarmFrames':
+      //  tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+      //  break;
       case 'Location':
         tdString = eventData.Latitude + ', ' + eventData.Longitude;
         break;
@@ -1259,12 +1263,19 @@ function getStat() {
       case 'Resolution':
         tdString = eventData.Width + 'x' + eventData.Height;
         break;
+      case 'DiskSpace':
+        tdString = eventData[key] + ' on ' + eventData['Storage'];
+        break;
       case 'Path':
         tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
         break;
-      case 'Archived':
-      case 'Emailed':
-        tdString = eventData[key] ? yesStr : noStr;
+      //case 'Archived':
+      //case 'Emailed':
+      //  tdString = eventData[key] ? yesStr : noStr;
+      //  break;
+      case 'Info':
+        tdString = translate["Archived"] + ':' + (eventData['Archived'] ? yesStr : noStr);
+        tdString += ', ' + translate["Emailed"] + ':' + (eventData['Emailed'] ? yesStr : noStr);
         break;
       case 'Length':
         const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.

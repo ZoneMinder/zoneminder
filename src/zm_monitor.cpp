@@ -2550,9 +2550,7 @@ bool Monitor::Analyse() {
       Debug(3, "Not video, not clearing packets");
     }
 
-    if (event) {
-      event->AddPacket(snap);
-    } else {
+    if (!event) {
       // In the case where people have pre-alarm frames, the web ui will generate the frame images
       // from the mp4. So no one will notice anyways.
       if (snap->image) {
@@ -3140,32 +3138,29 @@ Event * Monitor::openEvent(
 
   // FIXME this iterator is not protected from invalidation
   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
-                                     *analysis_it,
-                                     (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
-                                   );
+      *analysis_it,
+      (cause == "Continuous" ? 0 : (pre_event_count > alarm_frame_count ? pre_event_count : alarm_frame_count))
+      );
 
-  // This gets a lock on the starting packet
-
-  std::shared_ptr<ZMPacket> starting_packet;
-  ZMLockedPacket *starting_packet_lock = nullptr;
   if (*start_it != *analysis_it) {
-    starting_packet_lock = packetqueue.get_packet(start_it);
+    ZMLockedPacket *starting_packet_lock = packetqueue.get_packet(start_it);
 
     if (!starting_packet_lock) {
       Warning("Unable to get starting packet lock");
       return nullptr;
     }
-    starting_packet = starting_packet_lock->packet_;
+    std::shared_ptr<ZMPacket> starting_packet = starting_packet_lock->packet_;
     ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
+    event = new Event(this, start_it, starting_packet->timestamp, cause, noteSetMap);
+    SetVideoWriterStartTime(starting_packet->timestamp);
+    delete starting_packet_lock;
   } else {
-    starting_packet = snap;
-    ZM_DUMP_PACKET(starting_packet->packet, "First packet from alarm");
+    ZM_DUMP_PACKET(snap->packet, "First packet from alarm");
+    event = new Event(this, start_it, snap->timestamp, cause, noteSetMap);
+    SetVideoWriterStartTime(snap->timestamp);
   }
 
-  event = new Event(this, starting_packet->timestamp, cause, noteSetMap);
-
   shared_data->last_event_id = event->Id();
-  SetVideoWriterStartTime(starting_packet->timestamp);
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
 
 #if MOSQUITTOPP_FOUND
@@ -3185,23 +3180,6 @@ Event * Monitor::openEvent(
       std::quick_exit(0);
     }
   }
-
-  // Write out starting packets, do not modify packetqueue it will garbage collect itself
-  while (starting_packet_lock && (*start_it != *analysis_it) && !zm_terminate) {
-    ZM_DUMP_PACKET(starting_packet_lock->packet_->packet, "Queuing packet for event");
-
-    event->AddPacket(starting_packet_lock->packet_);
-    delete starting_packet_lock;
-    starting_packet_lock = nullptr;
-
-    packetqueue.increment_it(start_it);
-    if ((*start_it) != *analysis_it) {
-      starting_packet_lock = packetqueue.get_packet(start_it);
-    }
-  }
-  packetqueue.free_it(start_it);
-  delete start_it;
-  start_it = nullptr;
 
   return event;
 }

@@ -96,7 +96,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         std::shared_ptr<ZMPacket> prev_packet = *rit;
 
         if (prev_packet->packet->stream_index == add_packet->packet->stream_index) {
-          if (prev_packet->packet->dts >= add_packet->packet->dts) {
+          if (prev_packet->packet->dts > add_packet->packet->dts) {
             Debug(1, "Have out of order packets");
             ZM_DUMP_PACKET(prev_packet->packet, "queued_packet");
             ZM_DUMP_PACKET(add_packet->packet, "add_packet");

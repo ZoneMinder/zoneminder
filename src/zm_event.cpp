@@ -42,12 +42,14 @@ Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = {};
 
 Event::Event(
   Monitor *p_monitor,
+  packetqueue_iterator *p_packetqueue_it,
   SystemTimePoint p_start_time,
   const std::string &p_cause,
   const StringSetMap &p_noteSetMap
 ) :
   id(0),
   monitor(p_monitor),
+  packetqueue_it(p_packetqueue_it),
   start_time(p_start_time),
   end_time(p_start_time),
   cause(p_cause),
@@ -73,6 +75,8 @@ Event::Event(
   createNotes(notes);
 
   SystemTimePoint now = std::chrono::system_clock::now();
+
+  packetqueue = monitor->GetPacketQueue();
 
   if (start_time.time_since_epoch() == Seconds(0)) {
     Warning("Event has zero time, setting to now");
@@ -148,6 +152,8 @@ Event::~Event() {
     // Should be.  Issuing the stop and then getting the lock
     thread_.join();
   }
+  packetqueue->free_it(packetqueue_it);
+  delete packetqueue_it;
 
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
@@ -237,29 +243,23 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
     (alarm_frame && (config.jpeg_alarm_file_quality > config.jpeg_file_quality)) ?
     config.jpeg_alarm_file_quality : 0;   // quality to use, zero is default
 
-  bool rc;
-
   SystemTimePoint jpeg_timestamp = monitor->Exif() ? timestamp : SystemTimePoint();
 
   if (!config.timestamp_on_capture) {
     // stash the image we plan to use in another pointer regardless if timestamped.
     // exif is only timestamp at present this switches on or off for write
-    Image *ts_image = new Image(*image);
-    monitor->TimestampImage(ts_image, timestamp);
-    rc = ts_image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
-    delete ts_image;
-  } else {
-    rc = image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
+    Image ts_image(*image);
+    monitor->TimestampImage(&ts_image, timestamp);
+    return ts_image.WriteJpeg(event_file, thisquality, jpeg_timestamp);
   }
-
-  return rc;
+  return image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
 }
 
 bool Event::WritePacket(const std::shared_ptr<ZMPacket>&packet) {
   if (videoStore->writePacket(packet) < 0)
     return false;
   return true;
-}  // bool Event::WriteFrameVideo
+}  // bool Event::WritePacket
 
 void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   bool update = false;
@@ -312,15 +312,6 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
     dbQueue.push(std::move(sql));
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
-
-void Event::AddPacket(const std::shared_ptr<ZMPacket>&packet) {
-  {
-    std::unique_lock<std::mutex> lck(packet_queue_mutex);
-
-    packet_queue.push(std::move(packet));
-  }
-  packet_queue_condition.notify_one();
-}
 
 void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
   have_video_keyframe = have_video_keyframe ||
@@ -692,22 +683,11 @@ void Event::Run() {
 
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
-  while (true) {
-    std::shared_ptr<ZMPacket> packet = nullptr;
-    {
-      std::unique_lock<std::mutex> lck(packet_queue_mutex);
+  while (!terminate_) {
+    ZMLockedPacket *packet_lock = packetqueue->get_packet_and_increment_it(packetqueue_it);
+    if (packet_lock) {
+      std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
 
-      if (packet_queue.empty()) {
-        if (terminate_ or zm_terminate) break;
-        packet_queue_condition.wait(lck);
-        // Necessary because we don't hold the lock in the while condition
-      }
-      if (!packet_queue.empty()) {
-        packet = packet_queue.front();
-        packet_queue.pop();
-      }
-    }  // end lock scope
-    if (packet) {
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);
 
@@ -726,7 +706,11 @@ void Event::Run() {
           packet->analysis_image = nullptr;
         }
       } // end if packet->image
-    }
+      delete packet_lock;
+    } else {
+      Warning("Unable to get packet lock");
+      return;
+    } // end if packet_lock
   }  // end while
 }  // end Run()
 

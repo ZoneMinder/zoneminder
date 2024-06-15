@@ -723,6 +723,8 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
     autoScale = closest;
   }
   */
+  // Floor to nearest value % 5. THe 5 is somewhat arbitrary.  The point is that scaling by 88% is not better than 85%. Perhaps it should be to the nearest 10.  Or 25 even.
+  autoScale = 5 * Math.floor(autoScale / 5);
   if (autoScale < 10) autoScale = 10;
   console.log(`container.height=${container.height()}, newWidth=${newWidth}, newHeight=${newHeight}, container width=${container.width()}, autoScale=${autoScale}`);
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};

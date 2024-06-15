@@ -66,9 +66,10 @@ var eventDataStrings = {
     Length: '<?php echo translate('Duration') ?>',
     Frames: '<?php echo translate('AttrFrames') ?>',
     AlarmFrames: '<?php echo translate('AttrAlarmFrames') ?>',
-    TotScore: '<?php echo translate('AttrTotalScore') ?>',
-    AvgScore: '<?php echo translate('AttrAvgScore') ?>',
-    MaxScore: '<?php echo translate('AttrMaxScore') ?>',
+    <!--TotScore: '<?php echo translate('AttrTotalScore') ?>',-->
+    <!--AvgScore: '<?php echo translate('AttrAvgScore') ?>',-->
+    <!--MaxScore: '<?php echo translate('AttrMaxScore') ?>',-->
+    Score: '<?php echo translate('Score') ?>',
     Resolution: '<?php echo translate('Resolution') ?>',
     DiskSpace: '<?php echo translate('DiskSpace') ?>',
     Storage: '<?php echo translate('Storage') ?>',

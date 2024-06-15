@@ -1247,8 +1247,11 @@ function getStat() {
           tdString = eventData[key];
         }
         break;
-      case 'MaxScore':
-        tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
+      //case 'MaxScore':
+      //  tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
+      //  break;
+      case 'Score':
+        tdString = 'Total:' + eventData['TotScore'] + ' '+ '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + 'Max:' + eventData['MaxScore'] + '</a>' + ' Avg:' + eventData['AvgScore'];
         break;
       case 'n/a':
         tdString = 'n/a';

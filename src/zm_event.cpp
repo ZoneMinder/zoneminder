@@ -684,9 +684,18 @@ void Event::Run() {
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   while (!terminate_) {
-    ZMLockedPacket *packet_lock = packetqueue->get_packet_and_increment_it(packetqueue_it);
+    ZMLockedPacket *packet_lock = packetqueue->get_packet(packetqueue_it);
     if (packet_lock) {
       std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
+      if (!packet->decoded) {
+        delete packet_lock;
+        // Stay behind decoder
+        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
+        Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+        continue;
+      }
+      packetqueue->increment_it(packetqueue_it);
 
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);

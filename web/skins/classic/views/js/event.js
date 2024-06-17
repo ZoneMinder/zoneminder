@@ -1026,14 +1026,15 @@ function progressBarNav() {
 
 function handleClick(event) {
   if (panZoomEnabled) {
+    const targetId = event.target.id;
+    if (!event.target.closest('#wrapperEventVideo')) {
+      return;
+    }
+
     //event.preventDefault();
     const monitorId = eventData.MonitorId; // Event page
-    if (event.target.id) {
     //We are looking for an object with an ID, because there may be another element in the button.
-      var obj = event.target;
-    } else {
-      var obj = event.target.parentElement;
-    }
+    const obj = event.target.id ? event.target : event.target.parentElement;
 
     if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
     if (obj.className.includes('btn-edit-monitor')) {
@@ -1045,12 +1046,14 @@ function handleClick(event) {
       }
     }
 
+    const obj_id = obj.getAttribute('id');
     //if (obj.getAttribute('id').indexOf("liveStream") >= 0 || obj.getAttribute('id').indexOf("button_zoom") >= 0) { //Montage & Watch page
-    if (obj.getAttribute('id').indexOf("evtStream") >= 0 ||
-      obj.getAttribute('id').indexOf("button_zoom") >= 0 ||
-      obj.querySelector('video')) { //Event page
+    if (obj_id && (
+      obj_id.indexOf("evtStream") >= 0 ||
+      obj_id.indexOf("button_zoom") >= 0 ||
+      obj.querySelector('video'))
+    ) { //Event page
       //panZoom[monitorId].setOptions({disablePan: false});
-
       zmPanZoom.click(monitorId);
     }
   } else {

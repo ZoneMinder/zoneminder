@@ -2484,6 +2484,7 @@ bool Monitor::Decode() {
   if (!packet_lock) return false;
   std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
   if (packet->codec_type != AVMEDIA_TYPE_VIDEO) {
+    packet->decoded = true;
     Debug(4, "Not video");
     delete packet_lock;
     return true; // Don't need decode

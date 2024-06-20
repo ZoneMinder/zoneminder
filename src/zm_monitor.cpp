@@ -2569,7 +2569,7 @@ bool Monitor::Analyse() {
         }
       }
       // Free up the decoded frame as well, we won't be using it for anything at this time.
-      snap->out_frame = nullptr;
+      //snap->out_frame = nullptr;
     }
   }  // end scope for event_lock
   delete packet_lock;

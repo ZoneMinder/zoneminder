@@ -1063,6 +1063,7 @@ bool Monitor::connect() {
   double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
   last_fps_time = now_double;
   last_analysis_fps_time = now_double;
+  last_capture_image_count = 0;
 
   Debug(3, "Success connecting");
   return true;

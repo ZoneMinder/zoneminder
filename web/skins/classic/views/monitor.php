@@ -1146,6 +1146,7 @@ $videowriter_encoders = array(
   'h264_omx' => 'h264_omx',
   'h264_qsv' => 'h264_qsv',
   'h264_vaapi' => 'h264_vaapi',
+  'h264_v4l2m2m ' => 'h264_v4l2m2m',
   'libx265' => 'libx265',
   'hevc_nvenc' => 'hevc_nvenc',
   'hevc_qsv' => 'hevc_qsv',

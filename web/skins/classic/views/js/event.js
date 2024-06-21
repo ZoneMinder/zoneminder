@@ -1026,7 +1026,6 @@ function progressBarNav() {
 
 function handleClick(event) {
   if (panZoomEnabled) {
-    const targetId = event.target.id;
     if (!event.target.closest('#wrapperEventVideo')) {
       return;
     }

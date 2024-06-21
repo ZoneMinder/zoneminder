@@ -1288,6 +1288,7 @@ bool Monitor::connect() {
   // We set these here because otherwise the first fps calc is meaningless
   last_fps_time = std::chrono::system_clock::now();
   last_analysis_fps_time = std::chrono::system_clock::now();
+  last_capture_image_count = 0;
 
   Debug(3, "Success connecting");
   return true;

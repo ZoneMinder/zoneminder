@@ -1200,7 +1200,7 @@ bool Monitor::connect() {
             Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
             if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
               const char *detail = soap_fault_detail(soap);
-              Error("ONVIF Couldn't create subscription! %s, %s", soap_fault_string(soap), detail ? detail : "null");
+              Error("ONVIF Couldn't create subscription! fault:%s, detail:%s", soap_fault_string(soap), detail ? detail : "null");
               _wsnt__Unsubscribe wsnt__Unsubscribe;
               _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
               proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);

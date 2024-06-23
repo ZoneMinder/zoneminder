@@ -2780,6 +2780,7 @@ int Monitor::Capture() {
     if (decoding == DECODING_NONE) {
       shared_data->last_write_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
+      packet->decoded = true;
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
           packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);
@@ -2950,11 +2951,9 @@ bool Monitor::Decode() {
       }
     } else {
       Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
-      packet->decoded = true;
     } // end if doing decoding
   } else {
     Warning("No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
-    packet->decoded = true;
   }  // end if need_decoding
 
   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (

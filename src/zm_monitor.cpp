@@ -2953,7 +2953,7 @@ bool Monitor::Decode() {
       packet->decoded = true;
     } // end if doing decoding
   } else {
-    Warning(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
+    Warning("No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
     packet->decoded = true;
   }  // end if need_decoding
 

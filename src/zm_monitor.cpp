@@ -2411,6 +2411,7 @@ int Monitor::Capture() {
     if (!decoding_enabled) {
       shared_data->last_write_index = index;
       shared_data->last_write_time = packet->timestamp.tv_sec;
+      packet->decoded = true;
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
         packet->packet.stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);

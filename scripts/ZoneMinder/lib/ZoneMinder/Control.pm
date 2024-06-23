@@ -329,6 +329,43 @@ sub executeCommand {
   &{$self->{$command}}($self, $params);
 }
 
+# Uses LWP get command and adds debugging
+# if $$self{BaseURL} is defined then it will be prepended
+sub get {
+  my $self = shift;
+  my $url = shift;
+  if (!$url) {
+    Error('No url specified in get');
+    return;
+  }
+  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  my $response = $self->{ua}->get($url);
+  Debug("Response from $url: ". $response->status_line . ' ' . $response->content);
+  return $response;
+}
+
+sub put {
+  my $self = shift;
+  my $url = shift;
+  if (!$url) {
+    Error('No url specified in put');
+    return;
+  }
+  $url = $$self{BaseURL}.'/'.$url if $$self{BaseURL};
+  my $req = HTTP::Request->new(PUT => $url);
+  my $content = shift;
+  if ( defined($content) ) {
+    $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
+    $req->content($content);
+  }
+  my $res = $self->{ua}->request($req);
+  if (!$res->is_success) {
+    Error($res->status_line);
+  } # end unless res->is_success
+  Debug('Response: '. $res->status_line . ' ' . $res->content);
+  return $res;
+} # end sub put
+
 sub printMsg {
   my $self = shift;
   my $msg = shift;

@@ -336,6 +336,48 @@ sub printMsg {
 
   Debug($msg.'['.$msg_len.']');
 }
+sub get_realm {
+  my $self = shift;
+  my $url = shift;
+  my $response = $self->get($url);
+  return 1 if $response->is_success();
+
+  if ($response->status_line() eq '401 Unauthorized' and defined $$self{username}) {
+    my $headers = $response->headers();
+    foreach my $k ( keys %$headers ) {
+      Debug("Initial Header $k => $$headers{$k}");
+    }
+    if ( $$headers{'www-authenticate'} ) {
+      foreach my $auth_header ( ref $$headers{'www-authenticate'} eq 'ARRAY' ? @{$$headers{'www-authenticate'}} : ($$headers{'www-authenticate'})) {
+        my ( $auth, $tokens ) = $auth_header =~ /^(\w+)\s+(.*)$/;
+        my %tokens = map { /(\w+)="?([^"]+)"?/i } split(', ', $tokens );
+        if ( $tokens{realm} ) {
+          if ( $$self{realm} ne $tokens{realm} ) {
+            $$self{realm} = $tokens{realm};
+            Debug("Changing REALM to $$self{realm}, $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
+            $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+            $response = $self->get($url);
+            if ( !$response->is_success() ) {
+              Debug('Authentication still failed after updating REALM' . $response->status_line);
+              $headers = $response->headers();
+              foreach my $k ( keys %$headers ) {
+                Debug("Initial Header $k => $$headers{$k}\n");
+              }  # end foreach
+            } else {
+              return 1;
+            }
+          } else {
+            Error('Authentication failed, not a REALM problem');
+          }
+        } else {
+          Debug('Failed to match realm in tokens');
+        } # end if
+      } # end foreach auth header
+    } else {
+      debug('No headers line');
+    } # end if headers
+  } # end if not authen
+} # end sub get_realm
 
 1;
 __END__

@@ -748,7 +748,7 @@ void Event::Run() {
       } // end if packet->image
       delete packet_lock;
     } else {
-      Warning("Unable to get packet lock");
+      //Warning("Unable to get packet lock");
       return;
     } // end if packet_lock
   }  // end while

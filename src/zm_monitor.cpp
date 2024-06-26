@@ -2953,7 +2953,7 @@ bool Monitor::Decode() {
       Debug(1, "Not Decoding ? %s", Decoding_Strings[decoding].c_str());
     } // end if doing decoding
   } else {
-    Warning("No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
+    Debug(1, "No packet.size(%d) or packet->in_frame(%p). Not decoding", packet->packet->size, packet->in_frame.get());
   }  // end if need_decoding
 
   if ((analysis_image == ANALYSISIMAGE_YCHANNEL) && packet->in_frame && (

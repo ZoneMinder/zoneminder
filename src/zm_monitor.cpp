@@ -963,7 +963,7 @@ bool Monitor::connect() {
     Warning("Already connected. Please call disconnect first.");
   }
   if (!camera) LoadCamera();
-  uint64_t image_size = camera->ImageSize();
+  size_t image_size = camera->ImageSize();
   mem_size = sizeof(SharedData)
              + sizeof(TriggerData)
              + (zone_count * sizeof(int)) // Per zone scores
@@ -980,9 +980,9 @@ bool Monitor::connect() {
         "zone_count %d * sizeof int %zu "
         "VideoStoreData=%zu "
         "timestamps=%zu "
-        "images=%dx%zd = %zd "
-        "analysis images=%dx%" PRIi64 " = %" PRId64 " "
-        "image_format = %dx%" PRIi64 " = %" PRId64 " "
+        "images=%dx%zu = %zu "
+        "analysis images=%dx%zu = %zu "
+        "image_format = %dx%zu = %zu "
         "total=%jd",
         sizeof(SharedData),
         sizeof(TriggerData),
@@ -990,9 +990,9 @@ bool Monitor::connect() {
         sizeof(int),
         sizeof(VideoStoreData),
         (image_buffer_count * sizeof(struct timeval)),
-        image_buffer_count, image_size, (image_buffer_count * image_size),
-        image_buffer_count, image_size, (image_buffer_count * image_size),
-        image_buffer_count, sizeof(AVPixelFormat), (image_buffer_count * sizeof(AVPixelFormat)),
+        image_buffer_count, image_size, static_cast<size_t>((image_buffer_count * image_size)),
+        image_buffer_count, image_size, static_cast<size_t>((image_buffer_count * image_size)),
+        image_buffer_count, sizeof(AVPixelFormat), static_cast<size_t>(image_buffer_count * sizeof(AVPixelFormat)),
         static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED
   mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);

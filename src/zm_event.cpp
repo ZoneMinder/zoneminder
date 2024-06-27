@@ -683,7 +683,7 @@ void Event::Run() {
 
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
-  while (!terminate_) {
+  while (!terminate_ and !zm_terminate) {
     ZMLockedPacket *packet_lock = packetqueue->get_packet(packetqueue_it);
     if (packet_lock) {
       std::shared_ptr<ZMPacket> packet = packet_lock->packet_;

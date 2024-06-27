@@ -1200,7 +1200,7 @@ bool Monitor::connect() {
             Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
             if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
               const char *detail = soap_fault_detail(soap);
-              Error("ONVIF Couldn't create subscription! %s, %s", soap_fault_string(soap), detail ? detail : "null");
+              Error("ONVIF Couldn't create subscription! fault:%s, detail:%s", soap_fault_string(soap), detail ? detail : "null");
               _wsnt__Unsubscribe wsnt__Unsubscribe;
               _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
               proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
@@ -2780,6 +2780,7 @@ int Monitor::Capture() {
     if (decoding == DECODING_NONE) {
       shared_data->last_write_index = index;
       shared_data->last_write_time = std::chrono::system_clock::to_time_t(packet->timestamp);
+      packet->decoded = true;
     }
     Debug(2, "Have packet stream_index:%d ?= videostream_id: %d q.vpktcount %d event? %d image_count %d",
           packet->packet->stream_index, video_stream_id, packetqueue.packet_count(video_stream_id), ( event ? 1 : 0 ), shared_data->image_count);

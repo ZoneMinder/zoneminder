@@ -320,11 +320,17 @@ bool VideoStore::open() {
         video_out_ctx->codec_id = codec_data[i].codec_id;
         video_out_ctx->pix_fmt = codec_data[i].hw_pix_fmt;
         Debug(1, "Setting pix fmt to %d %s", codec_data[i].hw_pix_fmt, av_get_pix_fmt_name(codec_data[i].hw_pix_fmt));
-        const AVDictionaryEntry *opts_level = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+        const AVDictionaryEntry *opts_level = av_dict_get(opts, "level", nullptr, AV_DICT_MATCH_CASE);
         if (opts_level) {
           video_out_ctx->level = std::stoul(opts_level->value);
         } else {
           video_out_ctx->level = 32;
+        }
+        const AVDictionaryEntry *opts_gop_size = av_dict_get(opts, "gop_size", nullptr, AV_DICT_MATCH_CASE);
+        if (opts_gop_size) {
+          video_out_ctx->gop_size = std::stoul(opts_gop_size->value);
+        } else {
+          video_out_ctx->gop_size = 12;
         }
 
         // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
@@ -334,7 +340,6 @@ bool VideoStore::open() {
 
         if (video_out_ctx->codec_id == AV_CODEC_ID_H264) {
           video_out_ctx->bit_rate = 2000000;
-          video_out_ctx->gop_size = 12;
           video_out_ctx->max_b_frames = 1;
         } else if (video_out_ctx->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
           /* just for testing, we also add B frames */

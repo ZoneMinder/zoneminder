@@ -648,6 +648,7 @@ sub substituteTags {
   my $filter = shift;
   my $Event = @_ ? shift : undef;
   my $attachments_ref = shift if @_;
+  my $options = @_ ? shift : {};
 
 # First we'd better check what we need to get
 # We have a filter and an event, do we need any more
@@ -658,7 +659,7 @@ sub substituteTags {
   my $Monitor = $Event->Monitor() if $Event and $need_monitor;
   my $Summary = $Monitor->Event_Summary() if $Monitor and $need_summary;
 
-  my $html = ($text =~ /<html/ ? !undef : undef);
+  my $html = exists $$options{html} ? $$options{html} : (($text =~ /<html/ ? !undef : undef));
 # Do we need the image information too?
   my $need_images = $text =~ /%(?:EPI1|EPIM|EPISNAP|EI1|EIM|EI1A|EIMA|EISNAP|EIMOD|EIMODG)%/;
   my $first_alarm_frame = '';
@@ -913,15 +914,16 @@ sub sendSummaryEmail {
   my $subject = substituteTags($$filter{EmailSubject}, $filter);
   return 0 if !$subject;
 
+  my $html = $$filter{EmailBody} =~ /<html/ ? !undef : undef;
   my ($body_head, $summary_part, $body_tail) = split(/%SUMMARY%/m, $$filter{EmailBody});
   if (!$summary_part) {
     Error('Failed finding summary part of email body');
     return 0;
   }
   my @attachments;
-  my $body = substituteTags($body_head, $filter, undef, \@attachments);
+  my $body = substituteTags($body_head, $filter, undef, \@attachments, {html=>$html});
   foreach my $event (@events) {
-    $body .= substituteTags($summary_part, $filter, $event, \@attachments);
+    $body .= substituteTags($summary_part, $filter, $event, \@attachments, {html=>$html});
   }
   return 0 if !$body;
   $body .= $body_tail;

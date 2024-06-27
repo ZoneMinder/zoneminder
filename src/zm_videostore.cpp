@@ -301,12 +301,31 @@ bool VideoStore::open() {
           video_out_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
         }
 
+        // We have to re-parse the options because each attempt to open destroys the dictionary
+        AVDictionary *opts = 0;
+        ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
+        if (ret < 0) {
+          Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
+        } else {
+          const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          if (entry) {
+            reorder_queue_size = std::stoul(entry->value);
+            Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
+            // remove it to prevent complaining later.
+            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+          }
+        }
         // When encoding, we are going to use the timestamp values instead of packet pts/dts
         video_out_ctx->time_base = AV_TIME_BASE_Q;
         video_out_ctx->codec_id = codec_data[i].codec_id;
         video_out_ctx->pix_fmt = codec_data[i].hw_pix_fmt;
         Debug(1, "Setting pix fmt to %d %s", codec_data[i].hw_pix_fmt, av_get_pix_fmt_name(codec_data[i].hw_pix_fmt));
-        video_out_ctx->level = 32;
+        const AVDictionaryEntry *opts_level = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+        if (opts_level) {
+          video_out_ctx->level = std::stoul(opts_level->value);
+        } else {
+          video_out_ctx->level = 32;
+        }
 
         // Don't have an input stream, so need to tell it what we are sending it, or are transcoding
         video_out_ctx->width = monitor->Width();
@@ -364,20 +383,6 @@ bool VideoStore::open() {
         }  // end if hwdevice_type != NONE
 #endif
 
-        // We have to re-parse the options because each attempt to open destroys the dictionary
-        AVDictionary *opts = 0;
-        ret = av_dict_parse_string(&opts, options.c_str(), "=", ",#\n", 0);
-        if (ret < 0) {
-          Warning("Could not parse ffmpeg encoder options list '%s'", options.c_str());
-        } else {
-          const AVDictionaryEntry *entry = av_dict_get(opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-          if (entry) {
-            reorder_queue_size = std::stoul(entry->value);
-            Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
-            // remove it to prevent complaining later.
-            av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-          }
-        }
         if ((ret = avcodec_open2(video_out_ctx, video_out_codec, &opts)) < 0) {
           if (wanted_encoder != "" and wanted_encoder != "auto") {
             Warning("Can't open video codec (%s) %s",

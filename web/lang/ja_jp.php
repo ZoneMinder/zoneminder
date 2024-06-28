@@ -51,7 +51,7 @@
 //
 // Example
 // header( "Content-Type: text/html; charset=iso-8859-1" );
-header( "Content-Type: text/html; charset=Shift_JIS" );
+header( "Content-Type: text/html; charset=UTF-8" );
 
 // You may need to change your locale here if your default one is incorrect for the
 // language described in this file, or if you have multiple languages supported.

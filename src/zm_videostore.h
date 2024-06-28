@@ -109,11 +109,11 @@ class VideoStore {
   ~VideoStore();
   bool  open();
 
-  void write_video_packet(AVPacket &pkt);
-  void write_audio_packet(AVPacket &pkt);
-  int writeVideoFramePacket(const std::shared_ptr<ZMPacket> &pkt);
-  int writeAudioFramePacket(const std::shared_ptr<ZMPacket> &pkt);
-  int writePacket(const std::shared_ptr<ZMPacket> &pkt);
+  void write_video_packet(AVPacket pkt);
+  void write_audio_packet(AVPacket pkt);
+  int writeVideoFramePacket(const std::shared_ptr<ZMPacket> pkt);
+  int writeAudioFramePacket(const std::shared_ptr<ZMPacket> pkt);
+  int writePacket(const std::shared_ptr<ZMPacket> pkt);
   int write_packets(PacketQueue &queue);
   void flush_codecs();
   const char *get_codec() {

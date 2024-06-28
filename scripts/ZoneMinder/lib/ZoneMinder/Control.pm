@@ -373,6 +373,12 @@ sub printMsg {
 
   Debug($msg.'['.$msg_len.']');
 }
+
+sub credentials {
+  my $self = shift;
+  @$self{'username', 'password'} = @_;
+}
+
 sub get_realm {
   my $self = shift;
   my $url = shift;

@@ -311,6 +311,7 @@ function MonitorStream(monitorData) {
       stream.setAttribute('loading', 'eager');
     }
     let src = stream.src.replace(/mode=single/i, 'mode=jpeg');
+    src = src.replace(/auth=\w+/i, 'auth='+this.auth_hash);
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
     }

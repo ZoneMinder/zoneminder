@@ -128,8 +128,8 @@ class Event {
     const struct timeval &StartTime() const { return start_time; }
     const struct timeval &EndTime() const { return end_time; }
 
-    void AddPacket_(const std::shared_ptr<ZMPacket> &p);
-    bool WritePacket(const std::shared_ptr<ZMPacket> &p);
+    void AddPacket_(const std::shared_ptr<ZMPacket> p);
+    bool WritePacket(const std::shared_ptr<ZMPacket> p);
     bool SendFrameImage(const Image *image, bool alarm_frame=false);
     bool WriteFrameImage(
         Image *image,

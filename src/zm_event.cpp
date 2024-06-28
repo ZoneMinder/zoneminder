@@ -148,7 +148,9 @@ Event::Event(
 
 Event::~Event() {
   Stop();
+
   if (thread_.joinable()) {
+    Debug(1, "Joining event thread");
     // Should be.  Issuing the stop and then getting the lock
     thread_.join();
   }
@@ -255,7 +257,7 @@ bool Event::WriteFrameImage(Image *image, SystemTimePoint timestamp, const char 
   return image->WriteJpeg(event_file, thisquality, jpeg_timestamp);
 }
 
-bool Event::WritePacket(const std::shared_ptr<ZMPacket>&packet) {
+bool Event::WritePacket(const std::shared_ptr<ZMPacket>packet) {
   if (videoStore->writePacket(packet) < 0)
     return false;
   return true;
@@ -313,7 +315,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
-void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
+void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   have_video_keyframe = have_video_keyframe ||
                         ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) &&
                           ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
@@ -715,6 +717,7 @@ void Event::Run() {
           packet->analysis_image = nullptr;
         }
       } // end if packet->image
+      Debug(1, "Deleting packet lock");
       delete packet_lock;
     } else {
       Warning("Unable to get packet lock");

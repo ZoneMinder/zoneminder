@@ -1095,7 +1095,7 @@ bool VideoStore::setup_resampler() {
 #endif
 }  // end bool VideoStore::setup_resampler()
 
-int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
+int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
   int stream_index;
   if (zm_pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
     stream_index = video_out_stream->index;
@@ -1154,7 +1154,7 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
   return 0;
 }
 
-int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
+int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   frame_count += 1;
 
   // if we have to transcode
@@ -1362,7 +1362,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
   return 1;
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )
 
-int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
+int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   AVPacket *ipkt = &zm_packet->packet;
   int ret;
   ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "input packet");

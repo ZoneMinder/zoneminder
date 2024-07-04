@@ -504,7 +504,7 @@ function reloadWebSite(ndx) {
 }
 
 function takeSnapshot() {
-  for (let i = 0, length = monitorData.length; i < length; i++) {
+  for (let i = 0, length = monitors.length; i < length; i++) {
     monitors[i].kill();
   }
   const monitor_ids = monitorData.map((monitor)=>{
@@ -557,7 +557,7 @@ function handleClick(evt) {
 }
 
 function startMonitors() {
-  for (let i = 0, length = monitorData.length; i < length; i++) {
+  for (let i = 0, length = monitors.length; i < length; i++) {
     const obj = document.getElementById('liveStream'+monitors[i].id);
     if (obj.src) {
       const url = new URL(obj.src);
@@ -576,7 +576,7 @@ function startMonitors() {
 }
 
 function stopMonitors() { //Not working yet.
-  for (let i = 0, length = monitorData.length; i < length; i++) {
+  for (let i = 0, length = monitors.length; i < length; i++) {
     //monitors[i].stop();
     //monitors[i].kill();
     monitors[i].streamCommand(CMD_QUIT);
@@ -585,13 +585,13 @@ function stopMonitors() { //Not working yet.
 }
 
 function pauseMonitors() {
-  for (let i = 0, length = monitorData.length; i < length; i++) {
+  for (let i = 0, length = monitors.length; i < length; i++) {
     monitors[i].pause();
   }
 }
 
 function playMonitors() {
-  for (let i = 0, length = monitorData.length; i < length; i++) {
+  for (let i = 0, length = monitors.length; i < length; i++) {
     monitors[i].play();
   }
 }
@@ -1016,7 +1016,7 @@ function setTriggerChangedMonitors(id=null) {
 }
 
 function checkEndMonitorsPlaced() {
-  for (let i = 0, length = monitorData.length; i < length; i++) {
+  for (let i = 0, length = monitors.length; i < length; i++) {
     const id = monitors[i].id;
 
     if (!movableMonitorData[id].stop) {
@@ -1042,7 +1042,7 @@ function checkEndMonitorsPlaced() {
     }
   }
   if (monitorsEndMoving) {
-    for (let i = 0, length = monitorData.length; i < length; i++) {
+    for (let i = 0, length = monitors.length; i < length; i++) {
       //Clean for later use
       movableMonitorData[monitors[i].id] = {'width': 0, 'stop': false};
     }
@@ -1115,14 +1115,14 @@ document.onvisibilitychange = () => {
     TimerHideShow = clearTimeout(TimerHideShow);
     TimerHideShow = setTimeout(function() {
       //Stop monitors when closing or hiding page
-      for (let i = 0, length = monitorData.length; i < length; i++) {
+      for (let i = 0, length = monitors.length; i < length; i++) {
         monitors[i].kill();
       }
     }, 15*1000);
   } else {
     TimerHideShow = clearTimeout(TimerHideShow);
     //Start monitors when show page
-    for (let i = 0, length = monitorData.length; i < length; i++) {
+    for (let i = 0, length = monitors.length; i < length; i++) {
       if (!monitors[i].started) {
         monitors[i].start();
       }

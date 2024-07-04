@@ -761,7 +761,7 @@ function setButtonState(element_id, btnClass) {
   }
 }
 
-function isJSON (str) {
+function isJSON(str) {
   if (typeof str !== 'string') return false;
   try {
     const result = JSON.parse(str);
@@ -786,7 +786,7 @@ function setCookie(name, value, seconds) {
   document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
 }
 
-/**
+/*
 * If JSON is stored in cookies, the function will return an array of values.
 */
 function getCookie(name) {

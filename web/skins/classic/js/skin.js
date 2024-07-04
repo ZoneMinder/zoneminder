@@ -773,12 +773,7 @@ function isJSON (str) {
 };
 
 function setCookie(name, value, seconds) {
-  var newValue = '';
-  if (typeof value === 'string') {
-    var newValue = value;
-  } else {
-    var newValue = JSON.stringify(value);
-  }
+  var newValue = (typeof value === 'string') ? value : JSON.stringify(value);
   let expires = "";
   if (seconds) {
     const date = new Date();

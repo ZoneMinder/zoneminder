@@ -761,7 +761,24 @@ function setButtonState(element_id, btnClass) {
   }
 }
 
+function isJSON (str) {
+  if (typeof str !== 'string') return false;
+  try {
+    const result = JSON.parse(str);
+    const type = Object.prototype.toString.call(result);
+    return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
+  } catch (e) {
+    return false; // This is also not JSON
+  }
+};
+
 function setCookie(name, value, seconds) {
+  var newValue = '';
+  if (typeof value === 'string') {
+    var newValue = value;
+  } else {
+    var newValue = JSON.stringify(value);
+  }
   let expires = "";
   if (seconds) {
     const date = new Date();
@@ -771,18 +788,28 @@ function setCookie(name, value, seconds) {
     // 2147483647 is 2^31 - 1 which is January of 2038 to avoid the 32bit integer overflow bug.
     expires = "; max-age=2147483647";
   }
-  document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
+  document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
 }
 
+/**
+* If JSON is stored in cookies, the function will return an array of values.
+*/
 function getCookie(name) {
   var nameEQ = name + "=";
+  var result = null;
   var ca = document.cookie.split(';');
   for (var i=0; i < ca.length; i++) {
+    if (result) break;
     var c = ca[i];
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    if (c.indexOf(nameEQ) == 0) {
+      result = c.substring(nameEQ.length, c.length);
+      break;
+    }
   }
-  return null;
+  if (isJSON(result)) result = JSON.parse(result);
+
+  return result;
 }
 
 function delCookie(name) {

@@ -787,7 +787,7 @@ function setCookie(name, value, seconds) {
 }
 
 /*
-* If JSON is stored in cookies, the function will return an array of values.
+* If JSON is stored in cookies, the function will return an array or object of values.
 */
 function getCookie(name) {
   var nameEQ = name + "=";

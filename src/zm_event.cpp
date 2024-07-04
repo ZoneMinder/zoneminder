@@ -720,7 +720,6 @@ void Event::Run() {
       Debug(1, "Deleting packet lock");
       delete packet_lock;
     } else {
-      Warning("Unable to get packet lock");
       return;
     } // end if packet_lock
   }  // end while

@@ -261,17 +261,17 @@ echo getNavBarHTML() ?>
         <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
             <span class="material-icons md-18">view_carousel</span>
         </button>
+        <button type="button" id="ptzToggle" class="btn <?php echo $showPtzControls ? 'btn-primary':'btn-secondary'?>"
 <?php
     if ($hasPtzControls) {
-?>
-        <button type="button" id="ptzToggle" class="btn <?php echo $showPtzControls ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle PTZ Controls')?>">
-            <span class="material-icons md-18">open_with</span>
-        </button>
-<?php
+      echo 'title="'.translate('Toggle PTZ Controls').'"';
     } else {
-      echo 'No ptz';
+      echo 'disabled="disabled" title="'.translate('PTZ Not available').'"';
     }
 ?>
+>
+            <span class="material-icons md-18">open_with</span>
+        </button>
         <span id="rateControl">
           <label><?php echo translate('Rate') ?>:</label>
           <?php

@@ -65,6 +65,7 @@ Here is what the filter window looks like
     *    %ED%       Event description
     *    %ET%       Time of the event
     *    %EL%       Length of the event
+    *    %ELOC%     Location of event Latitude, Longitude
     *    %EF%       Number of frames in the event
     *    %EFA%      Number of alarm frames in the event
     *    %EST%      Total score of the event

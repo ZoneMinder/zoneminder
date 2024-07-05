@@ -708,6 +708,7 @@ sub substituteTags {
     $text =~ s/%EN%/$Event->{Name}/g;
     $text =~ s/%EC%/$Event->{Cause}/g;
     $text =~ s/%ED%/$Event->{Notes}/g;
+    $text =~ s/%ELOC%/$Event->{Latitude}, $Event->{Longitude}/g;
     $text =~ s/%ET%/$Event->{StartDateTime}/g;
     $text =~ s/%EVF%/$$Event{DefaultVideo}/g; # Event video filename
     $text =~ s/%EL%/$Event->{Length}/g;

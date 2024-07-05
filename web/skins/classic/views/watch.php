@@ -263,7 +263,7 @@ echo getNavBarHTML() ?>
         </button>
         <button type="button" id="ptzToggle" class="btn <?php echo $showPtzControls ? 'btn-primary':'btn-secondary'?>"
 <?php
-    if ($hasPtzControls) {
+    if ($monitor->Controllable() && canView('Control') && ($monitor->Type() != 'WebSite')) {
       echo 'title="'.translate('Toggle PTZ Controls').'"';
     } else {
       echo 'disabled="disabled" title="'.translate('PTZ Not available').'"';

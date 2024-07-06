@@ -151,7 +151,7 @@ bool VideoStore::open() {
       reorder_queue_size = std::stoul(entry->value);
       // remove it to prevent complaining later.
       av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
-    } else if (monitor->has_out_of_order_packets()) {
+    } else if (monitor->has_out_of_order_packets() and !monitor->WallClockTimestamps()) {
       reorder_queue_size = 2*monitor->get_max_keyframe_interval();
     }
     Debug(1, "reorder_queue_size set to %zu", reorder_queue_size);
@@ -1283,7 +1283,11 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     av_packet_ref(opkt.get(), ipkt);
     pkt_guard.acquire(opkt);
 
-    if (ipkt->dts != AV_NOPTS_VALUE) {
+    if (monitor->WallClockTimestamps()) {
+      Microseconds useconds = std::chrono::duration_cast<Microseconds>(
+                                zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
+      opkt->pts = opkt->dts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_in_stream->time_base);
+    } else if (ipkt->dts != AV_NOPTS_VALUE) {
       if (video_first_dts == AV_NOPTS_VALUE) {
         Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
         video_first_dts = ipkt->dts;

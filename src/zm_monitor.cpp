@@ -94,7 +94,7 @@ std::string load_monitor_sql =
   "`Decoder`, `DecoderHWAccelName`, `DecoderHWAccelDevice`, `RTSPDescribe`, "
   "`SaveJPEGs`, `VideoWriter`, `EncoderParameters`, "
   "`OutputCodec`, `Encoder`, `OutputContainer`, "
-  "`RecordAudio`, "
+  "`RecordAudio`, WallClockTimestamps,"
   "`Brightness`, `Contrast`, `Hue`, `Colour`, "
   "`EventPrefix`, `LabelFormat`, `LabelX`, `LabelY`, `LabelSize`,"
   "`ImageBufferCount`, `MaxImageBufferCount`, `WarmupCount`, `PreEventCount`, "
@@ -356,7 +356,7 @@ Monitor::Monitor() :
    "Device, Channel, Format, V4LMultiBuffer, V4LCapturesPerFrame, " // V4L Settings
    "Protocol, Method, Options, User, Pass, Host, Port, Path, SecondPath, Width, Height, Colours, Palette, Orientation+0, Deinterlacing, RTSPDescribe, "
    "SaveJPEGs, VideoWriter, EncoderParameters,
-   "OutputCodec, Encoder, OutputContainer, RecordAudio, "
+   "OutputCodec, Encoder, OutputContainer, RecordAudio, WallClockTimestamps,"
    "Brightness, Contrast, Hue, Colour, "
    "EventPrefix, LabelFormat, LabelX, LabelY, LabelSize,"
    "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, "

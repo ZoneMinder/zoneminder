@@ -1177,6 +1177,10 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <textarea name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
               
             </li>
+            <li class="WallClockTimeStamps">
+              <label><?php echo translate('Use Wallclock Timestamps') ?></label>
+              <input type="checkbox" name="newMonitor[WallClockTimestamps]" value="1"<?php if ( $monitor->WallClockTimestamps() ) { ?> checked="checked"<?php } ?>/>
+            </li>
             <li class="RecordAudio">
               <label><?php echo translate('RecordAudio') ?></label>
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>

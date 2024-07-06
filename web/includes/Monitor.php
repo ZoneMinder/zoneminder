@@ -196,6 +196,7 @@ public static function getStatuses() {
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
     'EncoderParameters' => '',
+    'WallClockTimestamps' => array('type'=>'boolean', 'default'=>0),
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
     #'OutputSourceStream'  => 'Primary',
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),

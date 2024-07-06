@@ -223,6 +223,7 @@ Monitor::Monitor() :
   output_container(""),
   imagePixFormat(AV_PIX_FMT_NONE),
   record_audio(false),
+  wallclock_timestamps(false),
 //event_prefix
 //label_format
   label_coord(Vector2(0,0)),
@@ -548,6 +549,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   output_container = dbrow[col] ? dbrow[col] : "";
   col++;
   record_audio = (*dbrow[col] != '0');
+  col++;
+  wallclock_timestamps = (*dbrow[col] != '0');
   col++;
 
   /* "Brightness, Contrast, Hue, Colour, " */

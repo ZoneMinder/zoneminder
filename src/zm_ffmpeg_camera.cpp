@@ -235,8 +235,9 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         Info("Unable to read packet from stream %d: error %d \"%s\".",
              packet->stream_index, ret, av_make_error_string(ret).c_str());
       } else {
-        Error("Unable to read packet from stream %d: error %d \"%s\".",
-              packet->stream_index, ret, av_make_error_string(ret).c_str());
+        logPrintf(Logger::ERROR + monitor->Importance(),
+            "Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
       }
       return -1;
     }

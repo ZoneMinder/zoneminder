@@ -27,6 +27,7 @@
 
 bool zm_reload = false;
 bool zm_terminate = false;
+bool zm_panic = false;
 
 RETSIGTYPE zm_hup_handler(int signal) {
   // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
@@ -47,7 +48,10 @@ RETSIGTYPE zm_die_handler(int signal)
 #endif
 {
   zm_terminate = true;
-	Error("Got signal %d (%s), crashing", signal, strsignal(signal));
+  if (zm_panic)
+    Panic("Got signal %d (%s), crashing", signal, strsignal(signal));
+  zm_panic = true;
+  Error("Got signal %d (%s), crashing", signal, strsignal(signal));
 #if (defined(__i386__) || defined(__x86_64__))
 	// Get more information if available
   #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )

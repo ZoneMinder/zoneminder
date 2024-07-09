@@ -1456,8 +1456,8 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   } else {
     if (last_dts[stream->index] != AV_NOPTS_VALUE) {
       if (pkt->dts < last_dts[stream->index]) {
-        Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last_duration %" PRId64 ". reorder_queue_size=%zu",
-            pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index], reorder_queue_size);
+        Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " difference %" PRId64 " last_duration %" PRId64 ". reorder_queue_size=%zu",
+            pkt->dts, stream->index, last_dts[stream->index], (last_dts[stream->index]-pkt->dts), last_duration[stream->index], reorder_queue_size);
         pkt->dts = last_dts[stream->index]+last_duration[stream->index];
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       } else if (pkt->dts == last_dts[stream->index]) {

@@ -101,6 +101,7 @@ if ($action == 'save') {
       'Exif' => 0,
       'RTSPDescribe' => 0,
       'V4LMultiBuffer'  => '',
+      'WallClockTimestamps' => '',
       'RecordAudio' => 0,
       'Method' => 'raw',
       'GroupIds'  =>  array(),

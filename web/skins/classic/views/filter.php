@@ -353,6 +353,10 @@ if ( ZM_OPT_EMAIL ) {
   $filter->EmailFormat()); ?>
 </label>
               </p>
+              <p>
+                <label for="filter[EmailServer]"><?php echo translate('FilterEmailServer') ?></label>
+                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" />
+              </p>
               
             </div>
 <?php

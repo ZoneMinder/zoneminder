@@ -1036,14 +1036,14 @@ sub sendTheEmail {
         }
         if (!$ssmtp_location) {
           Warning('Unable to find ssmtp, trying MIME::Lite->send');
-          MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
+          MIME::Lite->send('smtp', ($$filter{EmailServer} ? $$filter{EmailServer} : $Config{ZM_EMAIL_HOST}), Timeout=>60);
           $mail->send();
         } else {
 ### Send using SSMTP
           $mail->send('sendmail', $ssmtp_location, $$filter{EmailTo});
         }
       } else {
-        MIME::Lite->send('smtp', $Config{ZM_EMAIL_HOST}, Timeout=>60);
+        MIME::Lite->send('smtp', ($$filter{EmailServer} ? $$filter{EmailServer} : $Config{ZM_EMAIL_HOST}), Timeout=>60);
         $mail->send();
       }
     } else {
@@ -1105,7 +1105,9 @@ sub sendTheEmail {
       if ( $total_size > 10*1024*1024 ) {
         Warning('Emails larger than 10Mb will often not be delivered! This one is '.int($total_size/(1024*1024)).'Mb');
       }
-      $mail->smtpsend(Host => $Config{ZM_EMAIL_HOST}, MailFrom => $Config{ZM_FROM_EMAIL});
+      $mail->smtpsend(
+        Host => ($$filter{EmailServer} ? $$filter{EmailServer} :$Config{ZM_EMAIL_HOST}),
+        MailFrom => $Config{ZM_FROM_EMAIL});
     }
   };
   if ( $@ ) {

@@ -49,7 +49,7 @@ RETSIGTYPE zm_die_handler(int signal)
 {
   zm_terminate = true;
   if (zm_panic)
-    Panic("Got signal %d (%s), crashing", signal, strsignal(signal));
+    Fatal("Got signal %d (%s), crashing", signal, strsignal(signal));
   zm_panic = true;
   Error("Got signal %d (%s), crashing", signal, strsignal(signal));
 #if (defined(__i386__) || defined(__x86_64__))

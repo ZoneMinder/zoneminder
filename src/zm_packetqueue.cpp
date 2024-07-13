@@ -308,15 +308,11 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     }
     delete lp;
 
-#if 0
-    // There are no threads that follow analysis thread.  So there cannot be an it pointing here
-    // event writing thread technically follows, but packets are copied out of queue
     if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
-      if (pktQueue.begin() == next_front)
-        Warning("Found iterator at beginning of queue. Some thread isn't keeping up");
+      Debug(3, "Foudn iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+          video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
       break;
     }
-#endif
 
     if (zm_packet->packet.stream_index == video_stream_id) {
       keyframe_interval_count++;

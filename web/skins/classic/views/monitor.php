@@ -1300,6 +1300,34 @@ $codecs = array(
 );
  echo htmlSelect('newMonitor[DefaultCodec]', $codecs, $monitor->DefaultCodec()); ?>
             </li>
+            <li>
+<?php
+  $stream_available = canView('Stream') and $monitor->Type()=='WebSite' or ($monitor->CaptureFPS() && $monitor->Capturing() != 'None');
+  $options = array();
+
+  $ratio_factor = $monitor->ViewWidth() ? $monitor->ViewHeight() / $monitor->ViewWidth() : 1;
+  $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
+  $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
+  $options['scale'] = $monitor->ViewWidth() ? intval(100*ZM_WEB_LIST_THUMB_WIDTH / $monitor->ViewWidth()) : 100;
+  $options['mode'] = 'jpeg';
+  $options['frames'] = 1;
+
+  $stillSrc = $monitor->getStreamSrc($options);
+  $streamSrc = $monitor->getStreamSrc(array('scale'=>$options['scale']*5));
+
+  $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
+  $thmbHeight = ( $options['height'] ) ? 'height:'.$options['height'].'px;' : '';
+
+  $imgHTML = '<div class="colThumbnail" style="'.$thmbHeight.'"><a';
+  $imgHTML .= $stream_available ? ' href="?view=watch&amp;mid='.$monitor->Id().'">' : '>';
+  $imgHTML .= '<img id="thumbnail' .$monitor->Id(). '" src="' .$stillSrc. '" style="'
+    .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.
+    ($options['width'] ? ' width="'.$options['width'].'"' : '' ).
+    ($options['height'] ? ' height="'.$options['height'].'"' : '' ).
+    ' loading="lazy" /></a></div>';
+  echo $imgHTML;
+?>
+            </li>
 <?php
     break;
   case 'timestamp' :

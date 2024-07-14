@@ -393,6 +393,9 @@ function initPage() {
   } // end if ZM_OPT_USE_GEOLOCATION
 
   updateLinkedMonitorsUI();
+  
+  // Setup the thumbnail video animation
+  if (!isMobile()) initThumbAnimation();
 } // end function initPage()
 
 function ll2dms(input) {

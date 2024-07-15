@@ -23,11 +23,10 @@ if (!canView('Stream')) {
   return;
 }
 require_once('includes/Monitor.php');
-
-ob_start();
 include('_monitor_filters.php');
-$filterbar = ob_get_contents();
-ob_end_clean();
+$resultMonitorFilters = buildMonitorsFilters();
+$filterbar = $resultMonitorFilters['filterBar'];
+$displayMonitors = $resultMonitorFilters['displayMonitors'];
 
 $widths = array(
   'auto'  => translate('auto'),

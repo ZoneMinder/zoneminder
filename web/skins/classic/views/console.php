@@ -97,10 +97,10 @@ $eventCounts = array(
 require_once('includes/Group_Monitor.php');
 
 $navbar = getNavBarHTML();
-ob_start();
 include('_monitor_filters.php');
-$filterbar = ob_get_contents();
-ob_end_clean();
+$resultMonitorFilters = buildMonitorsFilters();
+$filterbar = $resultMonitorFilters['filterBar'];
+$displayMonitors = $resultMonitorFilters['displayMonitors'];
 
 $displayMonitorIds = array_map(function($m){return $m['Id'];}, $displayMonitors);
 

@@ -518,7 +518,10 @@ function initPage() {
   table.show();
 }
 
-function filterEvents() {
+function filterEvents(clickedElement) {
+  if (clickedElement.target.id == 'Archived') {
+    setCookie('zmFilterArchived', clickedElement.target.value);
+  }
   filterQuery = '';
   $j('#fieldsTable input').each(function(index) {
     const el = $j(this);

@@ -278,6 +278,7 @@ $SLANG = array(
     'Exif'                  => 'Embed EXIF data into image',
     'DownloadVideo'         => 'Download Video',
     'GenerateDownload'      => 'Generate Download',
+    'EventsLoading'         => 'Events are loading',
     'ExistsInFileSystem'    => 'Exists In File System',
     'ExportFailed'          => 'Export Failed',
     'ExportFormat'          => 'Export File Format',

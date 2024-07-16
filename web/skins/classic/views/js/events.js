@@ -519,7 +519,7 @@ function initPage() {
 }
 
 function filterEvents(clickedElement) {
-  if (clickedElement.target.id == 'filterArchived') {
+  if (clickedElement.target && clickedElement.target.id == 'filterArchived') {
     setCookie('zmFilterArchived', clickedElement.target.value);
   }
   filterQuery = '';

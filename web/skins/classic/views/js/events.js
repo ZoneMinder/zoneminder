@@ -60,7 +60,8 @@ function ajaxRequest(params) {
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
     error: function(jqXHR) {
-      console.log("error", jqXHR);
+      if (jqXHR.statusText != 'abort')
+        console.log("error", jqXHR);
       //logAjaxFail(jqXHR);
       //$j('#eventTable').bootstrapTable('refresh');
     }
@@ -124,8 +125,8 @@ function getIdSelections() {
 
 // Returns a boolen to indicate at least one selected row is archived
 function getArchivedSelections() {
-  var table = $j('#eventTable');
-  var selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
+  const table = $j('#eventTable');
+  const selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
     return row.Archived;
   });
   return selection.includes('Yes');
@@ -314,11 +315,21 @@ function initPage() {
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',
   function() {
-    selections = table.bootstrapTable('getSelections');
+    const selections = table.bootstrapTable('getSelections');
 
     viewBtn.prop('disabled', !(selections.length && canView.Events));
     archiveBtn.prop('disabled', !(selections.length && canEdit.Events));
-    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEdit.Events);
+    if (!(getArchivedSelections() && canEdit.Events)) {
+      unarchiveBtn.prop('disabled', true);
+      if (!getArchivedSelections()) {
+        unarchiveBtn.prop('title', 'Please select an event that is archived.');
+      } else {
+        unarchiveBtn.prop('title', 'You must have events edit permission to unarchive');
+      }
+    } else {
+      unarchiveBtn.prop('disabled', false);
+      unarchiveBtn.prop('title', unarchiveString);
+    }
     editBtn.prop('disabled', !(selections.length && canEdit.Events));
     exportBtn.prop('disabled', !(selections.length && canView.Events));
     downloadBtn.prop('disabled', !(selections.length && canView.Events));

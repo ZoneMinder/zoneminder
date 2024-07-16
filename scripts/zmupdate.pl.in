@@ -930,7 +930,7 @@ if ( $version ) {
     foreach my $patch ( @files ) {
       my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
 #PP make sure we use version compare 
-      if ( version->parse('v'.$v) > version->parse('v'.$version) ) {
+      if ( version->parse('v'.$v) >= version->parse('v'.$version) ) {
         print("Upgrading DB to $v from $version\n");
         if ( patchDB($dbh, $v) ) {
           my $res = $sth->execute($version) or die( "Can't execute: ".$sth->errstr() );

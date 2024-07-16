@@ -103,6 +103,7 @@ class VideoStore {
     // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
     int64_t *next_dts;
     std::map<int, int64_t> last_dts;
+    std::map<int, int64_t> last_duration;
     int64_t audio_next_pts;
 
     int max_stream_index;
@@ -127,9 +128,9 @@ class VideoStore {
 
     void write_video_packet(AVPacket &pkt);
     void write_audio_packet(AVPacket &pkt);
-    int writeVideoFramePacket(const std::shared_ptr<ZMPacket> &pkt);
-    int writeAudioFramePacket(const std::shared_ptr<ZMPacket> &pkt);
-    int writePacket(const std::shared_ptr<ZMPacket> &pkt);
+    int writeVideoFramePacket(const std::shared_ptr<ZMPacket> pkt);
+    int writeAudioFramePacket(const std::shared_ptr<ZMPacket> pkt);
+    int writePacket(const std::shared_ptr<ZMPacket> pkt);
     int write_packets(PacketQueue &queue);
     void flush_codecs();
 };

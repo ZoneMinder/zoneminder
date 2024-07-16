@@ -40,7 +40,7 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libswscale6|libswscale5|libswscale4
+        ,libswscale7|libswscale6|libswscale5|libswscale4
         ,libswresample4|libswresample3|libswresample2
         ,ffmpeg
         ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl

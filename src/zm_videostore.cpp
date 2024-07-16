@@ -1095,7 +1095,7 @@ bool VideoStore::setup_resampler() {
 #endif
 }  // end bool VideoStore::setup_resampler()
 
-int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
+int VideoStore::writePacket(const std::shared_ptr<ZMPacket> zm_pkt) {
   int stream_index;
   if (zm_pkt->codec_type == AVMEDIA_TYPE_VIDEO) {
     stream_index = video_out_stream->index;
@@ -1154,7 +1154,7 @@ int VideoStore::writePacket(const std::shared_ptr<ZMPacket> &zm_pkt) {
   return 0;
 }
 
-int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
+int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   frame_count += 1;
 
   // if we have to transcode
@@ -1362,7 +1362,7 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> &zm_packet
   return 1;
 }  // end int VideoStore::writeVideoFramePacket( AVPacket *ipkt )
 
-int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> &zm_packet) {
+int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet) {
   AVPacket *ipkt = &zm_packet->packet;
   int ret;
   ZM_DUMP_STREAM_PACKET(audio_in_stream, (*ipkt), "input packet");
@@ -1454,13 +1454,24 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
     } 
     pkt->dts = last_dts[stream->index];
   } else {
-    if ((last_dts[stream->index] != AV_NOPTS_VALUE) and (pkt->dts < last_dts[stream->index])) {
-      Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 ". reorder_queue_size=%zu",
-          pkt->dts, stream->index, last_dts[stream->index], reorder_queue_size);
-      pkt->dts = last_dts[stream->index];
+    if (last_dts[stream->index] != AV_NOPTS_VALUE) {
+      if (pkt->dts < last_dts[stream->index]) {
+        Warning("non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " difference %" PRId64 " last_duration %" PRId64 ". reorder_queue_size=%zu",
+            pkt->dts, stream->index, last_dts[stream->index], (last_dts[stream->index]-pkt->dts), last_duration[stream->index], reorder_queue_size);
+        pkt->dts = last_dts[stream->index]+last_duration[stream->index];
+        if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
+      } else if (pkt->dts == last_dts[stream->index]) {
+        // Commonly seen
+        Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 ". reorder_queue_size=%zu",
+            pkt->dts, stream->index, last_dts[stream->index], reorder_queue_size);
+        // dts MUST monotonically increase, so add 1 which should be a small enough time difference to not matter.
+        pkt->dts = last_dts[stream->index]+last_duration[stream->index];
+        if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
+      }
     }
     next_dts[stream->index] = pkt->dts + pkt->duration;
     last_dts[stream->index] = pkt->dts;
+    last_duration[stream->index] = pkt->duration;
   }
 
   if (pkt->pts == AV_NOPTS_VALUE) {

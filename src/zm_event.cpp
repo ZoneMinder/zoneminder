@@ -139,7 +139,9 @@ Event::Event(
 
 Event::~Event() {
   Stop();
+
   if (thread_.joinable()) {
+    Debug(1, "Joining event thread");
     // Should be.  Issuing the stop and then getting the lock
     thread_.join();
   }
@@ -233,7 +235,7 @@ bool Event::WriteFrameImage(
   return rc;
 }  // end Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 
-bool Event::WritePacket(const std::shared_ptr<ZMPacket>&packet) {
+bool Event::WritePacket(const std::shared_ptr<ZMPacket>packet) {
   if (videoStore->writePacket(packet) < 0)
     return false;
   return true;
@@ -338,7 +340,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
-void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
+void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   have_video_keyframe = have_video_keyframe || 
     ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && 
       ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
@@ -715,9 +717,18 @@ void Event::Run() {
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
   while (!terminate_) {
-    ZMLockedPacket *packet_lock = packetqueue->get_packet_and_increment_it(packetqueue_it);
+    ZMLockedPacket *packet_lock = packetqueue->get_packet(packetqueue_it);
     if (packet_lock) {
       std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
+      if (!packet->decoded) {
+        delete packet_lock;
+        // Stay behind decoder
+        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
+        Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+        continue;
+      }
+      packetqueue->increment_it(packetqueue_it);
 
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);
@@ -737,9 +748,10 @@ void Event::Run() {
           packet->analysis_image = nullptr;
         }
       } // end if packet->image
+      Debug(1, "Deleting packet lock");
       delete packet_lock;
     } else {
-      Warning("Unable to get packet lock");
+      //Warning("Unable to get packet lock");
       return;
     } // end if packet_lock
   }  // end while

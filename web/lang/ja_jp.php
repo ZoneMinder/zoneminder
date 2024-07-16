@@ -51,7 +51,7 @@
 //
 // Example
 // header( "Content-Type: text/html; charset=iso-8859-1" );
-header( "Content-Type: text/html; charset=Shift_JIS" );
+header( "Content-Type: text/html; charset=UTF-8" );
 
 // Simple String Replacements
 $SLANG = array(

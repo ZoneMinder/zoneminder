@@ -64,7 +64,12 @@ if (!$filter->Id()) {
       'val' => $num_terms ? '' : (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
       'cnj' => 'and', 'cookie'=>'eventsTags'));
   }
-  $filter->sort_terms(['Group','Monitor','StartDateTime','EndDateTime','Notes','Tags']);
+  if (!$filter->has_term('Archived')) {
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=',
+      'val' => $num_terms ? '' : (isset($_COOKIE['zmFilterArchived']) ? $_COOKIE['zmFilterArchived'] : ''),
+      'cnj' => 'and', 'cookie'=>'zmFilterArchived'));
+  }
+  $filter->sort_terms(['Group','Monitor','StartDateTime','EndDateTime','Notes','Tags','Archived']);
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'AlarmFrames', 'op'=> '>', 'val'=>'10'));
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '<=', 'val'=>''));
 }

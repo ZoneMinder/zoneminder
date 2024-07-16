@@ -23,6 +23,7 @@ include('_monitor_filters.php');
 $resultMonitorFilters = buildMonitorsFilters();
 $filterbar = $resultMonitorFilters['filterBar'];
 $displayMonitors = $resultMonitorFilters['displayMonitors'];
+$selected_monitor_ids = $resultMonitorFilters['selected_monitor_ids'];
 
 if ( isset($_REQUEST['minTime']) ) {
   $minTime = validHtmlStr($_REQUEST['minTime']);

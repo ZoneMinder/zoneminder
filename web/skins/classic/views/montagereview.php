@@ -57,10 +57,11 @@ if ( !canView('Events') ) {
 }
 
 require_once('includes/Filter.php');
-ob_start();
 include('_monitor_filters.php');
-$filter_bar = ob_get_contents();
-ob_end_clean();
+$resultMonitorFilters = buildMonitorsFilters();
+$filterbar = $resultMonitorFilters['filterBar'];
+$displayMonitors = $resultMonitorFilters['displayMonitors'];
+$selected_monitor_ids = $resultMonitorFilters['selected_monitor_ids'];
 
 $preference = ZM\User_Preference::find_one([
     'UserId'=>$user->Id(),

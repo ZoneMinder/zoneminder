@@ -291,6 +291,7 @@ function buildMonitorsFilters() {
     "filterBar" => $html,
     "displayMonitors" => $displayMonitors,
     "storage_areas" => $storage_areas,
+    "StorageById" => $StorageById,
     "selected_monitor_ids" => $selected_monitor_ids
   ];
 }

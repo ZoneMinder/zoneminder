@@ -601,6 +601,7 @@ $SLANG = array(
     'TimestampLabelY'       => 'Timestamp Label Y',
     'TimestampLabelSize'    => 'Font Size',
     'TimeStamp'             => 'Time Stamp',
+    'TooManyEventsForTimeline' => 'Too many events for Timeline. Reduce the number of monitors or reduce the visible range of the Timeline',
     'TotalBrScore'          => 'Total<br/>Score',
     'TrackDelay'            => 'Track Delay',
     'TrackMotion'           => 'Track Motion',

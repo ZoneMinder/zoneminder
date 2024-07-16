@@ -103,6 +103,7 @@ $filterbar = $resultMonitorFilters['filterBar'];
 $displayMonitors = $resultMonitorFilters['displayMonitors'];
 $storage_areas = $resultMonitorFilters['storage_areas'];
 $StorageById = $resultMonitorFilters['StorageById'];
+$colAllAvailableMonitors = $resultMonitorFilters['selected_monitor_ids'];
 
 $displayMonitorIds = array_map(function($m){return $m['Id'];}, $displayMonitors);
 

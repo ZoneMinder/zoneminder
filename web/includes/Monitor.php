@@ -423,7 +423,7 @@ public static function getStatuses() {
         $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
         $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
         if (!$row) {
-          Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
+          // Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
         } else {
           foreach ($row as $k => $v) {
             $this->{$k} = $v;

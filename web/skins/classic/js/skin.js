@@ -943,8 +943,7 @@ function stateStuff(action, runState, newState) {
 function logAjaxFail(jqxhr, textStatus, error) {
   console.log("Request Failed: " + textStatus + ", " + error);
   if ( ! jqxhr.responseText ) {
-    console.log("Ajax request failed.  No responseText.  jqxhr follows:");
-    console.log(jqxhr);
+    console.log("Ajax request failed.  No responseText.  jqxhr follows:", jqxhr);
     return;
   }
   var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response

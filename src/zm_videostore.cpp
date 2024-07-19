@@ -1288,9 +1288,17 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     pkt_guard.acquire(opkt);
 
     if (monitor->WallClockTimestamps()) {
-      Microseconds useconds = std::chrono::duration_cast<Microseconds>(
-                                zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
-      opkt->pts = opkt->dts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_in_stream->time_base);
+      int64_t ts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
+      if (video_first_dts == AV_NOPTS_VALUE) {
+        Debug(2, "Starting video first_dts will become %" PRId64, ts);
+        video_first_dts = ts;
+      }
+      opkt->pts = opkt->dts = av_rescale_q(ts-video_first_dts, AV_TIME_BASE_Q, video_in_stream->time_base);
+
+      Debug(2, "dts from timestamp, set to (%" PRId64 ") secs(%.2f), minus first_dts %" PRId64 " = %" PRId64,
+          ts,
+          FPSeconds(zm_packet->timestamp.time_since_epoch()).count(),
+          video_first_dts, ts - video_first_dts);
     } else if (ipkt->dts != AV_NOPTS_VALUE) {
       if (video_first_dts == AV_NOPTS_VALUE) {
         Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);

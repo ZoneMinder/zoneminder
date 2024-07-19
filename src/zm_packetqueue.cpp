@@ -252,24 +252,9 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
   // If analysis_it isn't at the end, we need to keep that many additional packets
   int tail_count = 0;
-  if (pktQueue.back() != add_packet) {
-    packetqueue_iterator it = pktQueue.end();
-    --it;
-    while (*it != add_packet) {
-      if (!(*it))  {
-        Error("null packet");
-        break;
-      }
-      if (!((*it)->packet)) {
-        Error("null av packet");
-        ++tail_count;
-      } else {
-        if ((*it)->packet->stream_index == video_stream_id)
-          ++tail_count;
-      }
-
-      --it;
-    }
+  for (auto it = pktQueue.end(); *it != add_packet; --it) {
+    if ((*it)->packet->stream_index == video_stream_id)
+      ++tail_count;
   }
   Debug(1, "Tail count is %d, queue size is %zu", tail_count, pktQueue.size());
 

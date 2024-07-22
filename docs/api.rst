@@ -245,7 +245,7 @@ This API changes monitor 1 to enable motion detection and recording on motion de
 
 ::
 
-  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Analysing]=Always&Monitor[Recording]=OnMotion"
+  curl -XPOST http://server/zm/api/monitors/1.json -d "Monitor[Function]=Modect&Monitor[Enabled]=1"
   
 Get Daemon Status of Monitor 1
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -213,8 +213,9 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         Info("Unable to read packet from stream %d: error %d \"%s\".",
              packet->stream_index, ret, av_make_error_string(ret).c_str());
       } else {
-        Error("Unable to read packet from stream %d: error %d \"%s\".",
-              packet->stream_index, ret, av_make_error_string(ret).c_str());
+        logPrintf(Logger::ERROR + monitor->Importance(),
+            "Unable to read packet from stream %d: error %d \"%s\".",
+            packet->stream_index, ret, av_make_error_string(ret).c_str());
       }
       return -1;
     }
@@ -541,6 +542,8 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if (!mOptions.empty()) {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", ",", 0);
+    // reorder_queue is for avformat not codec
+    av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
   }
   ret = avcodec_open2(mVideoCodecContext, mVideoCodec, &opts);
 

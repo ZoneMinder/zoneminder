@@ -294,6 +294,10 @@ $Colours = array(
     '4' => translate('32BitColour')
     );
 
+$devices = [''=>translate('Other')];
+foreach (glob('/dev/video*') as $device) 
+  $devices[$device] = $device;
+
 $orientations = array(
     'ROTATE_0' => translate('Normal'),
     'ROTATE_90' => translate('RotateRight'),
@@ -645,7 +649,10 @@ switch ($name) {
 ?>
           <li>
             <label><?php echo translate('DevicePath') ?></label>
-            <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"/>
+<?php echo count($devices) > 1 ? htmlSelect('newMonitor[Devices]', $devices, $monitor->Device()) : ''; ?>
+            <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"
+<?php echo ($monitor->Device() and isset($devices[$monitor->Device()]) ) ? 'style="display: none;"' : '' ?>
+            />
           </li>
           <li>
             <label><?php echo translate('CaptureMethod') ?></label>

@@ -697,7 +697,6 @@ void Event::Run() {
         std::this_thread::sleep_for(sleep_for);
         continue;
       }
-      packetqueue->increment_it(packetqueue_it);
 
       Debug(1, "Adding packet %d", packet->image_index);
       this->AddPacket_(packet);
@@ -719,6 +718,8 @@ void Event::Run() {
       } // end if packet->image
       Debug(1, "Deleting packet lock");
       delete packet_lock;
+      // Important not to increment it until after we are done with the packet because clearPackets checks for iterators pointing to it.
+      packetqueue->increment_it(packetqueue_it);
     } else {
       return;
     } // end if packet_lock

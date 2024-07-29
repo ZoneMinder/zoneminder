@@ -311,6 +311,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   }
 
   int keyframe_interval_count = 1;
+  int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
 
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (!lp->trylock()) {
@@ -318,8 +319,14 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     delete lp;
     return;
   }  // end if first packet not locked
+ 
+  if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
+    Debug(3, "Found iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+        video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
+    delete lp;
+    return;
+  }
 
-  int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
   ++it;
   delete lp;
 
@@ -335,7 +342,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     delete lp;
 
     if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
-      Debug(3, "Foudn iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+      Debug(3, "Found iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
           video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
       break;
     }
@@ -595,6 +602,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
 
   packetqueue_iterator *it = new packetqueue_iterator;
   iterators.push_back(it);
+  Debug(4, "Have event start iterator %p", std::addressof(*it));
 
   *it = snapshot_it;
   std::shared_ptr<ZMPacket> packet = *(*it);
@@ -714,6 +722,7 @@ bool PacketQueue::is_there_an_iterator_pointing_to_packet(const std::shared_ptr<
   ) {
     packetqueue_iterator *iterator_it = *iterators_it;
     if (*iterator_it == pktQueue.end()) {
+      Debug(4, "Checking iterator %p == end", std::addressof(*iterator_it));
       continue;
     }
     Debug(4, "Checking iterator %p == packet ? %d", std::addressof(*iterator_it), ( *(*iterator_it) == zm_packet ));

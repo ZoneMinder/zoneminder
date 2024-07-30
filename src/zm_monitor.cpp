@@ -3158,10 +3158,10 @@ Event * Monitor::openEvent(
       return nullptr;
     }
     std::shared_ptr<ZMPacket> starting_packet = starting_packet_lock->packet_;
+    delete starting_packet_lock;
     ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
     event = new Event(this, start_it, starting_packet->timestamp, cause, noteSetMap);
     SetVideoWriterStartTime(starting_packet->timestamp);
-    delete starting_packet_lock;
   } else {
     ZM_DUMP_PACKET(snap->packet, "First packet from alarm");
     event = new Event(this, start_it, snap->timestamp, cause, noteSetMap);

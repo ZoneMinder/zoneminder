@@ -5,8 +5,6 @@ const streaming = [];
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.connKey = monitorData.connKey;
-  this.auth_relay = auth_relay;
-  this.auth_hash = auth_hash;
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
@@ -85,7 +83,7 @@ function MonitorStream(monitorData) {
   this.show = function() {
     const stream = this.getElement();
     if (!stream.src) {
-      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+this.auth_relay;
+      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+'&'+auth_relay;
     }
   };
 
@@ -311,7 +309,7 @@ function MonitorStream(monitorData) {
       stream.setAttribute('loading', 'eager');
     }
     let src = stream.src.replace(/mode=single/i, 'mode=jpeg');
-    src = src.replace(/auth=\w+/i, 'auth='+this.auth_hash);
+    src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
     }
@@ -650,10 +648,11 @@ function MonitorStream(monitorData) {
         } // end if canEdit.Monitors
 
         if (this.status.auth) {
-          if (this.status.auth != this.auth_hash) {
+          if (this.status.auth != auth_hash) {
             // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
-            console.log("Changed auth from " + this.auth_hash + " to " + this.status.auth);
-            this.streamCmdParms.auth = auth_hash = this.auth_hash = this.status.auth;
+            console.log("Changed auth from " + auth_hash + " to " + this.status.auth);
+            auth_hash = this.status.auth;
+            auth_relay = this.status.auth_relay;
           }
         } // end if have a new auth hash
       } // end if has state
@@ -663,7 +662,7 @@ function MonitorStream(monitorData) {
       if (stream.src) {
         console.log('Reloading stream: ' + stream.src);
         let src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-        src = src.replace(/auth=\w+/i, 'auth='+this.auth_hash);
+        src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
         // Maybe updated auth
         if (src != stream.src) {
           stream.src = '';
@@ -756,11 +755,11 @@ function MonitorStream(monitorData) {
       this.setAlarmState(monitorStatus);
 
       if (respObj.auth_hash) {
-        if (this.auth_hash != respObj.auth_hash) {
+        if (auth_hash != respObj.auth_hash) {
           // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
-          console.log("Changed auth from " + this.auth_hash + " to " + respObj.auth_hash);
-          this.streamCmdParms.auth = this.auth_hash = respObj.auth_hash;
-          this.auth_relay = respObj.auth_relay;
+          console.log("Changed auth from " + auth_hash + " to " + respObj.auth_hash);
+          auth_hash = respObj.auth_hash;
+          auth_relay = respObj.auth_relay;
         }
       } // end if have a new auth hash
     } else {
@@ -768,8 +767,8 @@ function MonitorStream(monitorData) {
     }
   }; // this.getStatusCmdResponse
 
-  this.statusCmdQuery=function() {
-    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+this.auth_relay)
+  this.statusCmdQuery = function() {
+    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+auth_relay)
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
   };
@@ -805,7 +804,7 @@ function MonitorStream(monitorData) {
 
   this.alarmCommand = function(command) {
     if (this.ajaxQueue) {
-      console.log("Aborting in progress ajax for alarm");
+      console.log('Aborting in progress ajax for alarm');
       // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }
@@ -818,7 +817,7 @@ function MonitorStream(monitorData) {
       url: this.url + (auth_relay?'?'+auth_relay:''),
       xhrFields: {withCredentials: true},
       data: alarmCmdParms,
-      dataType: "json"
+      dataType: 'json'
     })
         .done(this.getStreamCmdResponse.bind(this))
         .fail(this.onFailure.bind(this));
@@ -832,7 +831,7 @@ function MonitorStream(monitorData) {
         url: this.url + (auth_relay?'?'+auth_relay:''),
         xhrFields: {withCredentials: true},
         data: streamCmdParms,
-        dataType: "json"
+        dataType: 'json'
       })
           .done(this.getStreamCmdResponse.bind(this))
           .fail(this.onFailure.bind(this));

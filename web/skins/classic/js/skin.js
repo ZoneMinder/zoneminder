@@ -491,14 +491,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
         // Update authentication token.
         auth_hash = data.auth;
       }
+      delete data.auth;
     }
     if (data.auth_relay) {
       auth_relay = data.auth_relay;
+      delete data.auth_relay;
     }
     // iterate through all the keys then update each element id with the same name
-    for (var key of Object.keys(data)) {
-      if ( key == "auth" ) continue;
-      if ( key == "auth_relay" ) continue;
+    for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
       if ( key == 'getBandwidthHTML' ) bwClickFunction();

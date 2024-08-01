@@ -716,8 +716,8 @@ void Event::Run() {
 
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
-  while (!terminate_) {
-    ZMLockedPacket *packet_lock = packetqueue->get_packet(packetqueue_it);
+  while (!terminate_ and !zm_terminate) {
+    ZMLockedPacket *packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
     if (packet_lock) {
       std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
       if (!packet->decoded) {
@@ -751,8 +751,8 @@ void Event::Run() {
       Debug(1, "Deleting packet lock");
       delete packet_lock;
     } else {
-      //Warning("Unable to get packet lock");
-      return;
+      if (terminate_ or zm_terminate) return;
+      usleep(10000);
     } // end if packet_lock
   }  // end while
 }  // end Run()

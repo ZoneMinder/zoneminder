@@ -434,6 +434,32 @@ int PacketQueue::packet_count(int stream_id) {
   return packet_counts[stream_id];
 }  // end int PacketQueue::packet_count(int stream_id)
 
+ZMLockedPacket *PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
+  if (deleting or zm_terminate)
+    return nullptr;
+
+  Debug(4, "Locking in get_packet using it %p queue end? %d",
+      std::addressof(*it), (*it == pktQueue.end()));
+
+  // scope for lock
+  std::unique_lock<std::mutex> lck(mutex);
+  Debug(4, "Have Lock in get_packet");
+  if ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
+    Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
+    condition.wait(lck);
+  }
+  if ((*it == pktQueue.end()) or deleting or zm_terminate) return nullptr;
+
+  std::shared_ptr<ZMPacket> p = *(*it);
+  ZMLockedPacket *lp = new ZMLockedPacket(p);
+  if (lp->trylock()) {
+    Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
+    return lp;
+  }
+  delete lp;
+  return nullptr;
+}
+
 // Returns a packet. Packet will be locked
 ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
   if (deleting or zm_terminate)

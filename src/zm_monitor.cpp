@@ -2165,7 +2165,7 @@ bool Monitor::Analyse() {
     if (snap->out_frame) av_frame_free(&snap->out_frame);
     if (snap->buffer) av_freep(&snap->buffer);
 
-    delete packet_lock;
+    packetqueue.unlock(packet_lock);
   } // end scope for event_lock
 
   packetqueue.increment_it(analysis_it);

@@ -2578,8 +2578,8 @@ bool Monitor::Analyse() {
       //snap->out_frame = nullptr;
     }
   }  // end scope for event_lock
-  delete packet_lock;
 
+  packetqueue.unlock(packet_lock);
   packetqueue.increment_it(analysis_it);
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 

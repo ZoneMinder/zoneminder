@@ -1350,9 +1350,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     }
     if ((ipkt->pts != AV_NOPTS_VALUE) and (video_first_dts != AV_NOPTS_VALUE)) {
       opkt->pts = ipkt->pts - video_first_dts;
+      av_packet_rescale_ts(opkt, video_in_stream->time_base, video_out_stream->time_base);
     }
 
-    av_packet_rescale_ts(opkt, video_in_stream->time_base, video_out_stream->time_base);
   }  // end if codec matches
 
   write_packet(opkt, video_out_stream);
@@ -1450,7 +1450,7 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
 
   if (pkt->dts == AV_NOPTS_VALUE) {
     if (last_dts[stream->index] == AV_NOPTS_VALUE) {
-      last_dts[stream->index] = 0;
+      last_dts[stream->index] = -1;
     } 
     pkt->dts = last_dts[stream->index];
   } else {

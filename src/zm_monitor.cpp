@@ -1201,9 +1201,11 @@ bool Monitor::connect() {
           const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
           if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest") == SOAP_OK)) {
             Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
-            if (proxyEvent.CreatePullPointSubscription(&request, response) != SOAP_OK) {
+            int rc = proxyEvent.CreatePullPointSubscription(&request, response);
+
+            if (rc != SOAP_OK) {
               const char *detail = soap_fault_detail(soap);
-              Error("ONVIF Couldn't create subscription! fault:%s, detail:%s", soap_fault_string(soap), detail ? detail : "null");
+              Error("ONVIF Couldn't create subscription! %d, fault:%s, detail:%s", rc, soap_fault_string(soap), detail ? detail : "null");
               _wsnt__Unsubscribe wsnt__Unsubscribe;
               _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
               proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
@@ -2576,8 +2578,8 @@ bool Monitor::Analyse() {
       //snap->out_frame = nullptr;
     }
   }  // end scope for event_lock
-  delete packet_lock;
 
+  packetqueue.unlock(packet_lock);
   packetqueue.increment_it(analysis_it);
   shared_data->last_read_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
@@ -3156,10 +3158,10 @@ Event * Monitor::openEvent(
       return nullptr;
     }
     std::shared_ptr<ZMPacket> starting_packet = starting_packet_lock->packet_;
+    delete starting_packet_lock;
     ZM_DUMP_PACKET(starting_packet->packet, "First packet from start");
     event = new Event(this, start_it, starting_packet->timestamp, cause, noteSetMap);
     SetVideoWriterStartTime(starting_packet->timestamp);
-    delete starting_packet_lock;
   } else {
     ZM_DUMP_PACKET(snap->packet, "First packet from alarm");
     event = new Event(this, start_it, snap->timestamp, cause, noteSetMap);

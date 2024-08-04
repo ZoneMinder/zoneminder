@@ -60,8 +60,9 @@ function ajaxRequest(params) {
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
     error: function(jqXHR) {
-      if (jqXHR.statusText != 'abort')
+      if (jqXHR.statusText != 'abort') {
         console.log("error", jqXHR);
+      }
       //logAjaxFail(jqXHR);
       //$j('#eventTable').bootstrapTable('refresh');
     }

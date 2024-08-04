@@ -89,7 +89,7 @@ getBodyTopHTML();
 <?php echo getNavBarHTML(); ?>
     <div id="content" class="container-fluid">
       <!-- Toolbar button placement and styling handled by bootstrap-tables -->
-      <div id="toolbar">
+      <div id="toolbar" class="container-fluid">
         <div class="row">
           <div class="col-sm-1">
             <div id="leftButtons" class="buttons">

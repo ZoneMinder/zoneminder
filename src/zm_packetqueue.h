@@ -77,6 +77,7 @@ class PacketQueue {
   bool increment_it(packetqueue_iterator *it);
   bool increment_it(packetqueue_iterator *it, int stream_id);
   ZMLockedPacket *get_packet(packetqueue_iterator *);
+  ZMLockedPacket *get_packet_no_wait(packetqueue_iterator *);
   ZMLockedPacket *get_packet_and_increment_it(packetqueue_iterator *);
   packetqueue_iterator *get_video_it(bool wait);
   packetqueue_iterator *get_stream_it(int stream_id);

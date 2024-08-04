@@ -294,6 +294,10 @@ $Colours = array(
     '4' => translate('32BitColour')
     );
 
+$devices = [''=>translate('Other')];
+foreach (glob('/dev/video*') as $device) 
+  $devices[$device] = $device;
+
 $orientations = array(
     'ROTATE_0' => translate('Normal'),
     'ROTATE_90' => translate('RotateRight'),
@@ -645,23 +649,25 @@ switch ($name) {
 ?>
           <li>
             <label><?php echo translate('DevicePath') ?></label>
-            <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"/>
+<?php echo count($devices) > 1 ? htmlSelect('newMonitor[Devices]', $devices, $monitor->Device()) : ''; ?>
+            <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"
+<?php echo ($monitor->Device() and isset($devices[$monitor->Device()]) ) ? 'style="display: none;"' : '' ?>
+            />
           </li>
-          <li>
-            <label><?php echo translate('CaptureMethod') ?></label>
-            <?php 
+<?php
 $localMethods = array(
     'v4l2' => 'Video For Linux version 2',
     );
 if (!ZM_HAS_V4L2)
   unset($localMethods['v4l2']);
-if (!isset($localMethods[$monitor->Method()])) $monitor->Method('v4l2');
-echo htmlSelect('newMonitor[Method]', $localMethods, 
-  ((count($localMethods)==1) ? array_keys($localMethods)[0] : $monitor->Method()),
-  array('data-on-change'=>'submitTab', 'data-tab-name'=>$tab) );
-?>
-          </li>
-<?php
+if (!isset($localMethods[$monitor->Method()])) $monitor->Method(array_keys($localMethods)[0]);
+if (count($localMethods)>1) {
+  echo '<li><label>'.translate('CaptureMethod').'</label>';
+  echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), ['data-on-change'=>'submitTab', 'data-tab-name'=>$tab] );
+  echo '</li>'.PHP_EOL;
+} else {
+  echo '<input type="hidden" name="newMonitor[Method]" value="'.validHtmlStr($monitor->Method()).'"/>'.PHP_EOL;
+}
         if ( ZM_HAS_V4L2 && $monitor->Method() == 'v4l2' ) {
 ?>
           <li>

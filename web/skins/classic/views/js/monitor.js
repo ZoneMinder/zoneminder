@@ -136,6 +136,9 @@ function initPage() {
       }
     };
   });
+  document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
+    el.onchange = window['devices_onchange'].bind(el, el);
+  });
   document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
     el.oninput = window['updateMonitorDimensions'].bind(el, el);
   });
@@ -167,10 +170,10 @@ function initPage() {
     el.onchange = function() {
       if (this.value == 1 /* Encode */) {
         $j('.OutputCodec').show();
-        $j('.WallClockTimestamps').hide();
+        $j('.WallClockTimeStamps').hide();
         $j('.Encoder').show();
       } else {
-        $j('.WallClockTimestamps').show();
+        $j('.WallClockTimeStamps').show();
         $j('.OutputCodec').hide();
         $j('.Encoder').hide();
       }
@@ -679,6 +682,17 @@ function Model_onchange(input) {
 
 function updateLinkedMonitorsUI() {
   expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
+}
+
+function devices_onchange(devices) {
+  const selected = $j(devices).val();
+  const device = devices.form.elements['newMonitor[Device]'];
+  if (selected !== '') {
+    device.value = selected;
+    device.style['display'] = 'none';
+  } else {
+    device.style['display'] = 'inline';
+  }
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

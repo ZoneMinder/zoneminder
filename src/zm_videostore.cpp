@@ -1288,24 +1288,31 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     pkt_guard.acquire(opkt);
 
     if (monitor->WallClockTimestamps()) {
-      Microseconds useconds = std::chrono::duration_cast<Microseconds>(
-                                zm_packet->timestamp - SystemTimePoint(Microseconds(video_first_pts)));
-      opkt->pts = opkt->dts = av_rescale_q(useconds.count(), AV_TIME_BASE_Q, video_in_stream->time_base);
-    } else if (ipkt->dts != AV_NOPTS_VALUE) {
+      int64_t ts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
       if (video_first_dts == AV_NOPTS_VALUE) {
-        Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
-        video_first_dts = ipkt->dts;
+        Debug(2, "Starting video first_dts will become %" PRId64, ts);
+        video_first_dts = ts;
       }
-      opkt->dts = ipkt->dts - video_first_dts;
-      //} else {
-      //opkt.dts = next_dts[video_out_stream->index] ? av_rescale_q(next_dts[video_out_stream->index], video_out_stream->time_base, video_in_stream->time_base) : 0;
-      //Debug(3, "Setting dts to video_next_dts %" PRId64 " from %" PRId64, opkt.dts, next_dts[video_out_stream->index]);
-    }
-    if ((ipkt->pts != AV_NOPTS_VALUE) and (video_first_dts != AV_NOPTS_VALUE)) {
-      opkt->pts = ipkt->pts - video_first_dts;
-    }
+      opkt->pts = opkt->dts = av_rescale_q(ts-video_first_dts, AV_TIME_BASE_Q, video_out_stream->time_base);
 
-    av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
+      Debug(2, "dts from timestamp, set to (%" PRId64 ") secs(%.2f), minus first_dts %" PRId64 " = %" PRId64,
+          ts,
+          FPSeconds(zm_packet->timestamp.time_since_epoch()).count(),
+          video_first_dts, ts - video_first_dts);
+    } else {
+      if (ipkt->dts != AV_NOPTS_VALUE) {
+        if (video_first_dts == AV_NOPTS_VALUE) {
+          Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
+          video_first_dts = ipkt->dts;
+        }
+        opkt->dts = ipkt->dts - video_first_dts;
+      }
+      if (ipkt->pts != AV_NOPTS_VALUE) {
+        opkt->pts = ipkt->pts - video_first_dts;
+      }
+
+      av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
+    }  // end if wallclock or not
   }  // end if codec matches
 
   write_packet(opkt.get(), video_out_stream);
@@ -1411,8 +1418,8 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       } else if (pkt->dts == last_dts[stream->index]) {
         // Commonly seen
-        Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 ". reorder_queue_size=%zu",
-            pkt->dts, stream->index, last_dts[stream->index], reorder_queue_size);
+        Debug(1, "non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " stream %d. reorder_queue_size=%zu",
+            pkt->dts, stream->index, last_dts[stream->index], stream->index, reorder_queue_size);
         // dts MUST monotonically increase, so add 1 which should be a small enough time difference to not matter.
         pkt->dts = last_dts[stream->index]+last_duration[stream->index];
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below

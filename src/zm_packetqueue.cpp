@@ -311,6 +311,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   }
 
   int keyframe_interval_count = 1;
+  int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
 
   ZMLockedPacket *lp = new ZMLockedPacket(zm_packet);
   if (!lp->trylock()) {
@@ -318,8 +319,14 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     delete lp;
     return;
   }  // end if first packet not locked
+ 
+  if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
+    Debug(3, "Found iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+        video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
+    delete lp;
+    return;
+  }
 
-  int video_packets_to_delete = 0;    // This is a count of how many packets we will delete so we know when to stop looking
   ++it;
   delete lp;
 
@@ -335,7 +342,7 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     delete lp;
 
     if (is_there_an_iterator_pointing_to_packet(zm_packet)) {
-      Debug(3, "Foudn iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+      Debug(3, "Found iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
           video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
       break;
     }
@@ -452,6 +459,32 @@ int PacketQueue::packet_count(int stream_id) {
   }
   return packet_counts[stream_id];
 }  // end int PacketQueue::packet_count(int stream_id)
+
+ZMLockedPacket *PacketQueue::get_packet_no_wait(packetqueue_iterator *it) {
+  if (deleting or zm_terminate)
+    return nullptr;
+
+  Debug(4, "Locking in get_packet using it %p queue end? %d",
+      std::addressof(*it), (*it == pktQueue.end()));
+
+  // scope for lock
+  std::unique_lock<std::mutex> lck(mutex);
+  Debug(4, "Have Lock in get_packet");
+  if ((*it == pktQueue.end()) and !(deleting or zm_terminate)) {
+    Debug(2, "waiting.  Queue size %zu it == end? %d", pktQueue.size(), (*it == pktQueue.end()));
+    condition.wait(lck);
+  }
+  if ((*it == pktQueue.end()) or deleting or zm_terminate) return nullptr;
+
+  std::shared_ptr<ZMPacket> p = *(*it);
+  ZMLockedPacket *lp = new ZMLockedPacket(p);
+  if (lp->trylock()) {
+    Debug(2, "Locked packet %d, unlocking packetqueue mutex", p->image_index);
+    return lp;
+  }
+  delete lp;
+  return nullptr;
+}
 
 // Returns a packet. Packet will be locked
 ZMLockedPacket *PacketQueue::get_packet(packetqueue_iterator *it) {
@@ -595,6 +628,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
 
   packetqueue_iterator *it = new packetqueue_iterator;
   iterators.push_back(it);
+  Debug(4, "Have event start iterator %p", std::addressof(*it));
 
   *it = snapshot_it;
   std::shared_ptr<ZMPacket> packet = *(*it);
@@ -714,6 +748,7 @@ bool PacketQueue::is_there_an_iterator_pointing_to_packet(const std::shared_ptr<
   ) {
     packetqueue_iterator *iterator_it = *iterators_it;
     if (*iterator_it == pktQueue.end()) {
+      Debug(4, "Checking iterator %p == end", std::addressof(*iterator_it));
       continue;
     }
     Debug(4, "Checking iterator %p == packet ? %d", std::addressof(*iterator_it), ( *(*iterator_it) == zm_packet ));

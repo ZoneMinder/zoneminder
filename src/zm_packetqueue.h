@@ -87,7 +87,7 @@ class PacketQueue {
     packetqueue_iterator snapshot_it,
     unsigned int pre_event_count
   );
-  bool is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> &zm_packet);
+  bool is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> zm_packet);
   void unlock(ZMLockedPacket *lp);
   void notify_all();
   void wait();

@@ -725,7 +725,7 @@ void PacketQueue::free_it(packetqueue_iterator *it) {
   }
 }
 
-bool PacketQueue::is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> &zm_packet) {
+bool PacketQueue::is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> zm_packet) {
   for (
     std::list<packetqueue_iterator *>::iterator iterators_it = iterators.begin();
     iterators_it != iterators.end();

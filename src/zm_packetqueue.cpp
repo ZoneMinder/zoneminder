@@ -252,24 +252,9 @@ void PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
 
   // If analysis_it isn't at the end, we need to keep that many additional packets
   int tail_count = 0;
-  if (pktQueue.back() != add_packet) {
-    packetqueue_iterator it = pktQueue.end();
-    --it;
-    while (*it != add_packet) {
-      if (!(*it))  {
-        Error("null packet");
-        break;
-      }
-      if (!((*it)->packet)) {
-        Error("null av packet");
-        ++tail_count;
-      } else {
-        if ((*it)->packet->stream_index == video_stream_id)
-          ++tail_count;
-      }
-
-      --it;
-    }
+  for (auto it = pktQueue.rbegin(); it != pktQueue.rend() && (*it != add_packet); ++it) {
+    if ((*it)->packet->stream_index == video_stream_id)
+      ++tail_count;
   }
   Debug(1, "Tail count is %d, queue size is %zu", tail_count, pktQueue.size());
 
@@ -728,6 +713,7 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
 }  // get video_it
 
 void PacketQueue::free_it(packetqueue_iterator *it) {
+  std::unique_lock<std::mutex> lck(mutex);
   for (
     std::list<packetqueue_iterator *>::iterator iterators_it = iterators.begin();
     iterators_it != iterators.end();
@@ -740,7 +726,7 @@ void PacketQueue::free_it(packetqueue_iterator *it) {
   }
 }
 
-bool PacketQueue::is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> &zm_packet) {
+bool PacketQueue::is_there_an_iterator_pointing_to_packet(const std::shared_ptr<ZMPacket> zm_packet) {
   for (
     std::list<packetqueue_iterator *>::iterator iterators_it = iterators.begin();
     iterators_it != iterators.end();

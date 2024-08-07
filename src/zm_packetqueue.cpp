@@ -713,6 +713,7 @@ packetqueue_iterator * PacketQueue::get_video_it(bool wait) {
 }  // get video_it
 
 void PacketQueue::free_it(packetqueue_iterator *it) {
+  std::unique_lock<std::mutex> lck(mutex);
   for (
     std::list<packetqueue_iterator *>::iterator iterators_it = iterators.begin();
     iterators_it != iterators.end();

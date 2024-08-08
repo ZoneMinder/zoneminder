@@ -83,7 +83,7 @@ if ( isset($_REQUEST['downloadIndex']) ) {
   // can't be output buffering, as this file might be large
   ob_end_clean();
   $downloadIndex = validInt($_REQUEST['downloadIndex']);
-  ZM\Error("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
+  ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
   header('Pragma: public');
   header('Expires: 0');
   header('Cache-Control: must-revalidate, post-check=0, pre-check=0');

@@ -78,8 +78,6 @@ if (isset($_REQUEST['deleteIndex'])) {
   unlink($videoFiles[$deleteIndex]);
   unset($videoFiles[$deleteIndex]);
 } else if (isset($_REQUEST['downloadIndex'])) {
-  // can't be output buffering, as this file might be large
-  ob_end_clean();
   $downloadIndex = validInt($_REQUEST['downloadIndex']);
   ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
   header('Pragma: public');
@@ -91,6 +89,11 @@ if (isset($_REQUEST['deleteIndex'])) {
   header('Content-Transfer-Encoding: binary');
   header('Content-Type: application/force-download');
   header('Content-Length: '.filesize($videoFiles[$downloadIndex])); 
+  // can't be output buffering, as this file might be large
+  while (ob_get_level()) {
+    ob_end_clean();
+  }
+  set_time_limit(0);
   readfile($videoFiles[$downloadIndex]);
   exit;
 }

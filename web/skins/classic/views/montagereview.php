@@ -274,17 +274,15 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-    $html = '<a class="flip" href="#" 
-             data-flip-сontrol-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen drawGraph" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
-               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-             </a>'.PHP_EOL;
-    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
-    echo $html;
-?>
-        <?php echo $filter_bar ?>
-<?php
+$html = '<a class="flip" href="#" 
+         data-flip-сontrol-object="#mfbpanel" 
+         data-flip-сontrol-run-after-func="applyChosen drawGraph" 
+         data-flip-сontrol-run-after-complet-func="changeScale">
+           <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+         </a>'.PHP_EOL;
+$html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+echo $html;
+echo $filterbar;
 if (count($filter->terms())) {
   echo $filter->simple_widget();
 }

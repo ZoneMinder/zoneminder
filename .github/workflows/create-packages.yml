@@ -21,6 +21,9 @@ jobs:
           - os: ubuntu
             dist: jammy
             arch: x86_64
+          - os: ubuntu
+            dist: noble
+            arch: x86_64
           - os: debian
             dist: bookworm
             arch: x86_64
@@ -32,6 +35,9 @@ jobs:
             arch: aarch64
           - os: ubuntu
             dist: jammy
+            arch: aarch64
+          - os: ubuntu
+            dist: noble
             arch: aarch64
           - os: debian
             dist: bookworm

@@ -1,12 +1,13 @@
-var backBtn = $j('#backBtn');
-var viewBtn = $j('#viewBtn');
-var archiveBtn = $j('#archiveBtn');
-var unarchiveBtn = $j('#unarchiveBtn');
-var editBtn = $j('#editBtn');
-var exportBtn = $j('#exportBtn');
-var downloadBtn = $j('#downloadBtn');
-var deleteBtn = $j('#deleteBtn');
-var table = $j('#eventTable');
+"use strict";
+const backButton = $j('#backBtn');
+const viewButton = $j('#viewBtn');
+const archiveButton = $j('#archiveBtn');
+const unarchiveButton = $j('#unarchiveBtn');
+const editButton = $j('#editBtn');
+const exportButton = $j('#exportBtn');
+const downloadButton = $j('#downloadBtn');
+const deleteButton = $j('#deleteBtn');
+const table = $j('#eventTable');
 var ajax = null;
 
 /*
@@ -88,6 +89,9 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+    row.Location = row.Latitude+', '+row.Longitude;
+    row.DiskSpace = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.DiskSpace + '</a>';
+    row.Storage = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Storage + '</a>';
 
     const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
     date.setSeconds(row.Length);
@@ -318,27 +322,27 @@ function initPage() {
   function() {
     const selections = table.bootstrapTable('getSelections');
 
-    viewBtn.prop('disabled', !(selections.length && canView.Events));
-    archiveBtn.prop('disabled', !(selections.length && canEdit.Events));
+    viewButton.prop('disabled', !(selections.length && canView.Events));
+    archiveButton.prop('disabled', !(selections.length && canEdit.Events));
     if (!(getArchivedSelections() && canEdit.Events)) {
-      unarchiveBtn.prop('disabled', true);
+      unarchiveButton.prop('disabled', true);
       if (!getArchivedSelections()) {
-        unarchiveBtn.prop('title', 'Please select an event that is archived.');
+        unarchiveButton.prop('title', 'Please select an event that is archived.');
       } else {
-        unarchiveBtn.prop('title', 'You must have events edit permission to unarchive');
+        unarchiveButton.prop('title', 'You must have events edit permission to unarchive');
       }
     } else {
-      unarchiveBtn.prop('disabled', false);
-      unarchiveBtn.prop('title', unarchiveString);
+      unarchiveButton.prop('disabled', false);
+      unarchiveButton.prop('title', unarchiveString);
     }
-    editBtn.prop('disabled', !(selections.length && canEdit.Events));
-    exportBtn.prop('disabled', !(selections.length && canView.Events));
-    downloadBtn.prop('disabled', !(selections.length && canView.Events));
-    deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
+    editButton.prop('disabled', !(selections.length && canEdit.Events));
+    exportButton.prop('disabled', !(selections.length && canView.Events));
+    downloadButton.prop('disabled', !(selections.length && canView.Events));
+    deleteButton.prop('disabled', !(selections.length && canEdit.Events));
   });
 
   // Don't enable the back button if there is no previous zm page to go back to
-  backBtn.prop('disabled', !document.referrer.length);
+  backButton.prop('disabled', !document.referrer.length);
 
   // Setup the thumbnail video animation
   if (!isMobile()) initThumbAnimation();

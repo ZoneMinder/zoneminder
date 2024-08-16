@@ -173,6 +173,9 @@ getBodyTopHTML();
               <th data-sortable="true" data-field="StartDateTime" class="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
               <th data-sortable="true" data-field="EndDateTime" class="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="true" data-field="Length" class="Length"><?php echo translate('Duration') ?></th>
+<?php if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) { ?>
+              <th data-sortable="true" data-field="Location" class="Location"><?php echo translate('Location') ?></th>
+<?php } ?>
               <th data-sortable="true" data-field="Frames" class="Frames"><?php echo translate('Frames') ?></th>
               <th data-sortable="true" data-field="AlarmFrames" class="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
               <th data-sortable="true" data-field="TotScore" class="TotScore"><?php echo translate('TotalBrScore') ?></th>

@@ -1013,6 +1013,7 @@ function xhtmlFooter() {
   'js/bootstrap-table-1.22.3/extensions/cookie/bootstrap-table-cookie.js',
   'js/bootstrap-table-1.22.3/extensions/toolbar/bootstrap-table-toolbar.min.js',
   'js/bootstrap-table-1.22.3/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.22.3/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',

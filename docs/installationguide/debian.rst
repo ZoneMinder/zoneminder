@@ -39,7 +39,7 @@ Run the following commands.
 
 ::
 
-    sudo apt install mariadb-server
+    sudo apt install apache2 mariadb-server
 
 Switch into root user and create database and database user
 

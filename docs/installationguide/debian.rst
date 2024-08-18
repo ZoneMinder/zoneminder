@@ -74,7 +74,7 @@ The backports repository is deactivated by default, so with the second line we e
 
 ::
 
-    sudo echo 'deb http://deb.debian.org/debian bookworm-backports main contrib' >> /etc/apt/sources.list
+    sudo bash -c "echo 'deb http://deb.debian.org/debian bookworm-backports main contrib' >> /etc/apt/sources.list"
     sudo apt update
     sudo apt -t bookworm-backports install zoneminder
 

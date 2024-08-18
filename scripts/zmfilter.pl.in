@@ -119,23 +119,7 @@ if ( $Config{ZM_OPT_UPLOAD} ) {
   }
 }
 
-if ( $Config{ZM_OPT_EMAIL} ) {
-  if ( $Config{ZM_NEW_MAIL_MODULES} ) {
-    require MIME::Lite;
-    require Net::SMTP;
-  } else {
-    require MIME::Entity;
-  }
-}
 
-if ( $Config{ZM_OPT_MESSAGE} ) {
-  if ( $Config{ZM_NEW_MAIL_MODULES} ) {
-    require MIME::Lite;
-    require Net::SMTP;
-  } else {
-    require MIME::Entity;
-  }
-}
 
 $| = 1;
 
@@ -972,6 +956,8 @@ sub sendTheEmail {
 
   eval {
     if ($Config{ZM_NEW_MAIL_MODULES}) {
+      require MIME::Lite;
+      require Net::SMTP;
       my $total_size = 0;
       # Create the multipart container
       my $mail = MIME::Lite->new(
@@ -1047,6 +1033,7 @@ sub sendTheEmail {
         $mail->send();
       }
     } else {
+      require MIME::Entity;
       my $total_size = 0;
       my $mail = MIME::Entity->build(
         From => $Config{ZM_FROM_EMAIL},
@@ -1145,6 +1132,8 @@ sub sendMessage {
 
   eval {
     if ( $Config{ZM_NEW_MAIL_MODULES} ) {
+      require MIME::Lite;
+      require Net::SMTP;
 ### Create the multipart container
       my $mail = MIME::Lite->new(
           From => $Config{ZM_FROM_EMAIL},
@@ -1189,6 +1178,7 @@ sub sendMessage {
         $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
       }
     } else {
+      require MIME::Entity;
       my $mail = MIME::Entity->build(
           From => $Config{ZM_FROM_EMAIL},
           To => $Config{ZM_MESSAGE_ADDRESS},

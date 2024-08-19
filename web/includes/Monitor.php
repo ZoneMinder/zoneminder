@@ -49,6 +49,10 @@ public static function getAnalysingOptions() {
   }
   return $AnalysingOptions;
 }
+public static function getAnalysingString($option) {
+  $options = Monitor::getAnalysingOptions();
+  return $options[$option];
+}
 
 protected static $AnalysisSourceOptions = null;
 public static function getAnalysisSourceOptions() {
@@ -84,6 +88,11 @@ public static function getRecordingOptions() {
   return $RecordingOptions;
 }
 
+public static function getRecordingString($option) {
+  $options = Monitor::getRecordingOptions();
+  return $options[$option];
+}
+
 protected static $RecordingSourceOptions = null;
 public static function getRecordingSourceOptions() {
   if (!isset($RecordingSourceOptions)) {
@@ -114,15 +123,19 @@ protected static $Statuses = null;
 public static function getStatuses() {
   if (!isset($Statuses)) {
     $Statuses = array(
-      -1 => 'Unknown',
-      0 => 'Idle',
-      1 => 'PreAlarm',
-      2 => 'Alarm',
-      3 => 'Alert',
-      4 => 'Tape'
+      0 => 'Unknown',
+      1 => 'Idle',
+      2 => 'PreAlarm',
+      3 => 'Alarm',
+      4 => 'Alert',
     );
   }
   return $Statuses;
+}
+
+public static function getStateString($option) {
+  $statuses = Monitor::getStatuses();
+  return $statuses[$option];
 }
 
   protected static $table = 'Monitors';
@@ -265,6 +278,11 @@ public static function getStatuses() {
     'AnalysisFPS' => null,
     'CaptureFPS' => null,
     'CaptureBandwidth' => null,
+    'Capturing' => 0,
+    'Analysing' => 0,
+    'State'     => 0,
+    'LastEventId' =>  null,
+    'EventId'     =>  null,
   );
   private $summary_fields = array(
     'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
@@ -420,16 +438,8 @@ public static function getStatuses() {
       return $this->defaults[$fn];
     } else if (array_key_exists($fn, $this->status_fields)) {
       if ($this->Id()) {
-        $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
-        $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
-        if (!$row) {
-          Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
-        } else {
-          foreach ($row as $k => $v) {
-            $this->{$k} = $v;
-          }
-          return $this->{$fn};
-        }
+        $row = $this->Monitor_Status();
+        if ($row) return $row[$fn];
       } # end if this->Id
       return null;
     } else if (array_key_exists($fn, $this->summary_fields)) {
@@ -450,6 +460,15 @@ public static function getStatuses() {
       $line = $backTrace[1]['line'];
       Warning("Unknown function call Monitor->$fn from $file:$line");
     }
+  }
+
+  public function Monitor_Status() {
+    if (!property_exists($this, 'Monitor_Status')) {
+      $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
+      $row = $this->{'Monitor_Status'} = dbFetchOne($sql, NULL, array($this->{'Id'}));
+      if (!$row) Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
+    }
+    return $this->{'Monitor_Status'};
   }
 
   public function getStreamSrc($args, $querySep='&amp;') {

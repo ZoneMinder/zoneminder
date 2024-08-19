@@ -874,8 +874,10 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       int img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
-      fprintf(stdout, "--" BOUNDARY "\r\n");
+      if (type != STREAM_SINGLE)
+       fprintf(stdout, "--" BOUNDARY "\r\n");
       switch ( type ) {
+      case STREAM_SINGLE :
       case STREAM_JPEG :
         send_image->EncodeJpeg(img_buffer, &img_buffer_size);
         fputs("Content-Type: image/jpeg\r\n", stdout);
@@ -1096,6 +1098,11 @@ void EventStream::runStream() {
         curr_frame_id += step;
       }  // end if !paused
     }  // end scope for mutex lock
+ 
+    if (type == STREAM_SINGLE) {
+      Debug(1, "Single, exiting.");
+      break;
+    }
 
     if (type != STREAM_MPEG) {
       if (delta > Seconds(0)) {

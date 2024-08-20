@@ -1645,54 +1645,56 @@ void Monitor::CheckAction() {
 }
 
 void Monitor::UpdateFPS() {
-  if ( fps_report_interval and
-       (
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+  double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
+  double elapsed = now_double - last_fps_time;
+
+  // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
+  // Also only do the update at most 1/sec
+  if ( elapsed > 1.0 ) {
+    // # of images per interval / the amount of time it took
+    double new_capture_fps = (shared_data->image_count - last_capture_image_count) / elapsed;
+    uint32 new_camera_bytes = camera->Bytes();
+    uint32 new_capture_bandwidth =
+      static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed);
+    double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed;
+
+    Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
+        shared_data->image_count,
+        last_capture_image_count,
+        shared_data->image_count - last_capture_image_count,
+        now_double,
+        last_fps_time,
+        elapsed,
+        new_capture_fps,
+        new_analysis_fps);
+
+    if ( fps_report_interval and
+        (
          !(shared_data->image_count%fps_report_interval)
          or
          ( (shared_data->image_count < fps_report_interval) and !(shared_data->image_count%10) )
-       )
-     ) {
-    struct timeval now;
-    gettimeofday(&now, nullptr);
-    double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
-    double elapsed = now_double - last_fps_time;
-
-    // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
-    // Also only do the update at most 1/sec
-    if ( elapsed > 1.0 ) {
-      // # of images per interval / the amount of time it took
-      double new_capture_fps = (shared_data->image_count - last_capture_image_count) / elapsed;
-      uint32 new_camera_bytes = camera->Bytes();
-      uint32 new_capture_bandwidth =
-          static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed);
-      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed;
-
-      Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
-            shared_data->image_count,
-            last_capture_image_count,
-            shared_data->image_count - last_capture_image_count,
-            now_double,
-            last_fps_time,
-            elapsed,
-            new_capture_fps,
-            new_analysis_fps);
-
+        )
+       ) {
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
           name.c_str(), shared_data->image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
+    } // end if report fps
 
-      shared_data->capture_fps = new_capture_fps;
-      last_fps_time = now_double;
-      last_capture_image_count = shared_data->image_count;
-      shared_data->analysis_fps = new_analysis_fps;
-      last_motion_frame_count = motion_frame_count;
-      last_camera_bytes = new_camera_bytes;
+    shared_data->capture_fps = new_capture_fps;
+    last_capture_image_count = shared_data->image_count;
+    shared_data->analysis_fps = new_analysis_fps;
+    last_motion_frame_count = motion_frame_count;
+    last_camera_bytes = new_camera_bytes;
 
+    if ( elapsed > 10.0 ) {
       std::string sql = stringtf(
           "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
           new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
       dbQueue.push(std::move(sql));
-    } // now != last_fps_time
-  } // end if report fps
+      last_fps_time = now_double;
+    }
+  } // now != last_fps_time
 }  // void Monitor::UpdateFPS()
 
 // Would be nice if this JUST did analysis

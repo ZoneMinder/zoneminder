@@ -10,7 +10,9 @@ var zmPanZoom = {
   shifted: null,
   ctrled: null,
   alted: null,
-
+  panOnlyWhenZoomed: true,
+  //canvas: true,
+  touchAction: 'manipulation',
   /*
   * param.objString - class or id
   */
@@ -43,9 +45,10 @@ var zmPanZoom = {
       if (typeof eventData != 'undefined') {
         id = eventData.MonitorId; //Event page
       } else {
-        const obj = $j(params['obj']).find('[id ^= "liveStream"]')[0];
-        if (obj) {
-          id = stringToNumber(obj.id); //Montage & Watch page
+        const obj = this.getStream(params['obj']);
+
+        if (obj.length > 0) {
+          id = stringToNumber(obj[0].id); //Montage & Watch page
         }
       }
       if (!id) {
@@ -64,7 +67,11 @@ var zmPanZoom = {
       if (!('cursor' in params)) params.cursor = 'inherit';
       if (!('disablePan' in params)) params.disablePan = false;
       if (!('roundPixels' in params)) params.roundPixels = false;
+      if (!('panOnlyWhenZoomed' in params)) params.panOnlyWhenZoomed = this.panOnlyWhenZoomed;
+      //if (!('canvas' in params)) params.canvas = this.canvas;
+      if (!('touchAction' in params)) params.touchAction = this.touchAction;
 
+      //Direct initialization Panzoom
       this.panZoom[objPanZoom] = Panzoom(params['obj'], params);
       this.panZoom[objPanZoom].target = params['obj'];
       this.panZoom[objPanZoom].additional = params['additional'];
@@ -150,6 +157,7 @@ var zmPanZoom = {
       this.panZoom[id].zoomIn();
     }
     this.setTriggerChangedMonitors(id);
+    this.setTouchAction(this.panZoom[id]);
     this.manageCursor(id);
   },
 
@@ -162,7 +170,18 @@ var zmPanZoom = {
       this.panZoom[id].zoomOut();
     }
     this.setTriggerChangedMonitors(id);
+    this.setTouchAction(this.panZoom[id]);
     this.manageCursor(id);
+  },
+
+  setTouchAction: function(el) {
+    const currentScale = el.getScale().toFixed(1);
+console.log("currentScale_=>", currentScale);
+    if (currentScale == 1) {
+      el.setOptions({ touchAction: 'manipulation' });
+    } else {
+      el.setOptions({ touchAction: 'none' });
+    }
   },
 
   /*
@@ -179,7 +198,7 @@ var zmPanZoom = {
     const disablePan = this.panZoom[id].getOptions().disablePan;
     const disableZoom = this.panZoom[id].getOptions().disableZoom;
 
-    obj = document.getElementById('liveStream'+id);
+    obj = this.getStream(id);
     if (obj) { //Montage & Watch page
       obj_btn = document.getElementById('button_zoom'+id); //Change the cursor when you hover over the block of buttons at the top of the image. Not required on Event page
     } else { //Event page
@@ -187,10 +206,11 @@ var zmPanZoom = {
     }
 
     if (!obj) {
-      console.log(`Stream witd id=${id} not found.`);
+      console.log(`Stream with id=${id} not found.`);
       return;
     }
     const currentScale = this.panZoom[id].getScale().toFixed(1);
+
     if (this.shifted && this.ctrled) {
       const cursor = (disableZoom) ? 'auto' : 'zoom-out';
       obj.style['cursor'] = cursor;
@@ -244,6 +264,19 @@ var zmPanZoom = {
     }
     if (this.ctrled || this.shifted) {
       this.setTriggerChangedMonitors(id);
+    }
+    this.setTouchAction(this.panZoom[id]);
+  },
+
+  getStream: function(id) {
+    if (isNaN(id)) {
+      const liveStream = $j(id).find('[id ^= "liveStream"]');
+      const evtStream = $j(id).find('[id ^= "evtStream"]');
+      return (liveStream.length > 0) ? liveStream : evtStream;
+    } else {
+      const liveStream = document.getElementById('liveStream'+id);
+      const evtStream = document.getElementById('evtStream'+id);
+      return (liveStream) ? liveStream : evtStream;
     }
   },
 

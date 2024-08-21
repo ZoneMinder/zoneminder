@@ -1943,18 +1943,16 @@ void Monitor::UpdateFPS() {
 
     }  // end if fps_report_interval
     shared_data->capture_fps = new_capture_fps;
-    last_fps_time = now;
     last_capture_image_count = shared_data->image_count;
     shared_data->analysis_fps = new_analysis_fps;
     last_motion_frame_count = motion_frame_count;
     last_camera_bytes = new_camera_bytes;
+    last_fps_time = now;
 
-    if (elapsed > Seconds(10)) {
       std::string sql = stringtf(
           "UPDATE LOW_PRIORITY Monitor_Status SET Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
           new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
       dbQueue.push(std::move(sql));
-    }
   } // now != last_fps_time
 }  // void Monitor::UpdateFPS()
 

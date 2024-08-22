@@ -1642,6 +1642,14 @@ function initPage() {
     removeTag(tag);
   });
 
+  // Event listener for double click
+  //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  var elStream = document.querySelectorAll('[id = "wrapperEventVideo"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    el.addEventListener('touchstart', doubleTouch);
+    el.addEventListener('dblclick', doubleClickOnStream);
+  });
+
   streamPlay();
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {

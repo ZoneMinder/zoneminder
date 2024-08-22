@@ -1202,18 +1202,18 @@ function loadFontFaceObserver() {
   });
 }
 
-var doubleClickOnStream = function (event, touchEvent) {
+var doubleClickOnStream = function(event, touchEvent) {
   let target = null;
   if (event.target) {// Click NOT on touch screen, use THIS
-    //Process only double clicks directly on the image, excluding clicks, 
+    //Process only double clicks directly on the image, excluding clicks,
     //for example, on zoom buttons and other elements located in the image area.
-    if (event.target.id && 
-      (event.target.id.indexOf('evtStream') != -1 || event.target.id.indexOf('liveStream') != -1)){
+    if (event.target.id &&
+      (event.target.id.indexOf('evtStream') != -1 || event.target.id.indexOf('liveStream') != -1)) {
       target = this;
     }
   } else {// Click on touch screen, use EVENT
-    if (touchEvent.target.id && 
-      (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)){
+    if (touchEvent.target.id &&
+      (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)) {
       target = event;
     }
   }
@@ -1225,9 +1225,9 @@ var doubleClickOnStream = function (event, touchEvent) {
       openFullscreen(target);
     }
   }
-}
+};
 
-var doubleTouch = function (e) {
+var doubleTouch = function(e) {
   if (e.touches.length === 1) {
     if (!expiredTap) {
       expiredTap = e.timeStamp + 300;
@@ -1242,6 +1242,6 @@ var doubleTouch = function (e) {
       expiredTap = e.timeStamp + 300;
     }
   }
-}
+};
 
 loadFontFaceObserver();

@@ -39,6 +39,7 @@ var icons = {
 };
 
 var panZoomEnabled = true; //Add it to settings in the future
+var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
 
 function checkSize() {
   if ( 0 ) {
@@ -1199,6 +1200,48 @@ function loadFontFaceObserver() {
   }, function() {
     $j('.material-icons').css('display', 'inline-block');
   });
+}
+
+var doubleClickOnStream = function (event, touchEvent) {
+  let target = null;
+  if (event.target) {// Click NOT on touch screen, use THIS
+    //Process only double clicks directly on the image, excluding clicks, 
+    //for example, on zoom buttons and other elements located in the image area.
+    if (event.target.id && 
+      (event.target.id.indexOf('evtStream') != -1 || event.target.id.indexOf('liveStream') != -1)){
+      target = this;
+    }
+  } else {// Click on touch screen, use EVENT
+    if (touchEvent.target.id && 
+      (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)){
+      target = event;
+    }
+  }
+
+  if (target) {
+    if (document.fullscreenElement) {
+      closeFullscreen();
+    } else {
+      openFullscreen(target);
+    }
+  }
+}
+
+var doubleTouch = function (e) {
+  if (e.touches.length === 1) {
+    if (!expiredTap) {
+      expiredTap = e.timeStamp + 300;
+    } else if (e.timeStamp <= expiredTap) {
+      // remove the default of this event ( Zoom )
+      e.preventDefault();
+      doubleClickOnStream(this, e);
+      // then reset the variable for other "double Touches" event
+      expiredTap = null;
+    } else {
+      // if the second touch was expired, make it as it's the first
+      expiredTap = e.timeStamp + 300;
+    }
+  }
 }
 
 loadFontFaceObserver();

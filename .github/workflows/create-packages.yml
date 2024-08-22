@@ -36,9 +36,6 @@ jobs:
           - os: ubuntu
             dist: jammy
             arch: aarch64
-          - os: ubuntu
-            dist: noble
-            arch: aarch64
           - os: debian
             dist: bookworm
             arch: aarch64

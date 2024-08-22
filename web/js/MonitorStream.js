@@ -203,7 +203,8 @@ function MonitorStream(monitorData) {
           console.log('No src on img?!', img);
           return;
         }
-        const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+        let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+        newSrc = newSrc.replace(/auth=\w+/i, 'auth='+auth_hash);
         if (newSrc != oldSrc) {
           this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
           // We know that only the first zms will get the command because the

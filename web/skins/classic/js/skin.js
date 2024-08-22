@@ -1224,6 +1224,12 @@ var doubleClickOnStream = function(event, touchEvent) {
     } else {
       openFullscreen(target);
     }
+    if (isMobile()) {
+      setTimeout(function() {
+        //For some mobile devices resizing does not work. You need to set a delay and re-call the 'resize' event
+        window.dispatchEvent(new Event('resize'));
+      }, 500);
+    }
   }
 };
 

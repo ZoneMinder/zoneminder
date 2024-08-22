@@ -1325,6 +1325,14 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   AVPacket *ipkt = zm_packet->packet.get();
   ZM_DUMP_STREAM_PACKET(audio_in_stream, ipkt, "input packet");
 
+  if (monitor->WallClockTimestamps()) {
+    int64_t ts = static_cast<int64>(std::chrono::duration_cast<Microseconds>(zm_packet->timestamp.time_since_epoch()).count());
+    ipkt->pts = ipkt->dts = av_rescale_q(ts, AV_TIME_BASE_Q, audio_in_stream->time_base);
+
+    Debug(2, "dts from timestamp, set to (%" PRId64 ") secs(%.2f)",
+        ts, FPSeconds(zm_packet->timestamp.time_since_epoch()).count());
+  }
+
   if (audio_first_dts == AV_NOPTS_VALUE) {
     audio_first_dts = ipkt->dts;
     audio_next_pts = audio_out_ctx->frame_size;

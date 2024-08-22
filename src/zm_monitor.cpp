@@ -1903,57 +1903,57 @@ void Monitor::CheckAction() {
 }
 
 void Monitor::UpdateFPS() {
-  if ( fps_report_interval and
-       (
+  SystemTimePoint now = std::chrono::system_clock::now();
+  FPSeconds elapsed = now - last_fps_time;
+
+  // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
+  // Also only do the update at most 1/sec
+  if (elapsed > Seconds(1)) {
+    // # of images per interval / the amount of time it took
+    double new_capture_fps = (shared_data->image_count - last_capture_image_count) / elapsed.count();
+    uint32 new_camera_bytes = camera->Bytes();
+    uint32 new_capture_bandwidth =
+      static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
+    double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
+
+    Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
+        shared_data->image_count,
+        last_capture_image_count,
+        shared_data->image_count - last_capture_image_count,
+        FPSeconds(now.time_since_epoch()).count(),
+        FPSeconds(last_fps_time.time_since_epoch()).count(),
+        elapsed.count(),
+        new_capture_fps,
+        new_analysis_fps);
+
+    if ( fps_report_interval and
+        (
          !(shared_data->image_count%fps_report_interval)
          or
          ( (shared_data->image_count < fps_report_interval) and !(shared_data->image_count%10) )
-       )
-     ) {
-    SystemTimePoint now = std::chrono::system_clock::now();
-    FPSeconds elapsed = now - last_fps_time;
-
-    // If we are too fast, we get div by zero. This seems to happen in the case of audio packets.
-    // Also only do the update at most 1/sec
-    if (elapsed > Seconds(1)) {
-      // # of images per interval / the amount of time it took
-      double new_capture_fps = (shared_data->image_count - last_capture_image_count) / elapsed.count();
-      uint32 new_camera_bytes = camera->Bytes();
-      uint32 new_capture_bandwidth =
-        static_cast<uint32>((new_camera_bytes - last_camera_bytes) / elapsed.count());
-      double new_analysis_fps = (motion_frame_count - last_motion_frame_count) / elapsed.count();
-
-      Debug(4, "FPS: capture count %d - last capture count %d = %d now:%lf, last %lf, elapsed %lf = capture: %lf fps analysis: %lf fps",
-            shared_data->image_count,
-            last_capture_image_count,
-            shared_data->image_count - last_capture_image_count,
-            FPSeconds(now.time_since_epoch()).count(),
-            FPSeconds(last_fps_time.time_since_epoch()).count(),
-            elapsed.count(),
-            new_capture_fps,
-            new_analysis_fps);
-
+        )
+       ) {
       Info("%s: %d - Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
-           name.c_str(), shared_data->image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
+          name.c_str(), shared_data->image_count, new_capture_fps, new_capture_bandwidth, new_analysis_fps);
 
 #if MOSQUITTOPP_FOUND
       if (mqtt) mqtt->send(stringtf("Capturing at %.2lf fps, capturing bandwidth %ubytes/sec Analysing at %.2lf fps",
-                                      new_capture_fps, new_capture_bandwidth, new_analysis_fps));
+            new_capture_fps, new_capture_bandwidth, new_analysis_fps));
 #endif
 
-      shared_data->capture_fps = new_capture_fps;
-      last_fps_time = now;
-      last_capture_image_count = shared_data->image_count;
-      shared_data->analysis_fps = new_analysis_fps;
-      last_motion_frame_count = motion_frame_count;
-      last_camera_bytes = new_camera_bytes;
+    }  // end if fps_report_interval
+    shared_data->capture_fps = new_capture_fps;
+    last_capture_image_count = shared_data->image_count;
+    shared_data->analysis_fps = new_analysis_fps;
+    last_motion_frame_count = motion_frame_count;
+    last_camera_bytes = new_camera_bytes;
+    last_fps_time = now;
 
       std::string sql = stringtf(
-                          "UPDATE LOW_PRIORITY Monitor_Status SET Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
-                          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
+          "UPDATE LOW_PRIORITY Monitor_Status SET Status='Connected', CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
+          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
       dbQueue.push(std::move(sql));
-    } // now != last_fps_time
-  } // end if report fps
+  } // now != last_fps_time
 }  // void Monitor::UpdateFPS()
 
 //Thread where ONVIF polling, and other similar status polling can happen.

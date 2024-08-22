@@ -155,7 +155,6 @@ Event::~Event() {
     thread_.join();
   }
   packetqueue->free_it(packetqueue_it);
-  delete packetqueue_it;
 
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.

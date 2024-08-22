@@ -1687,13 +1687,11 @@ void Monitor::UpdateFPS() {
     last_motion_frame_count = motion_frame_count;
     last_camera_bytes = new_camera_bytes;
 
-    if ( elapsed > 10.0 ) {
-      std::string sql = stringtf(
-          "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
-          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
-      dbQueue.push(std::move(sql));
-      last_fps_time = now_double;
-    }
+    std::string sql = stringtf(
+        "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
+        new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
+    dbQueue.push(std::move(sql));
+    last_fps_time = now_double;
   } // now != last_fps_time
 }  // void Monitor::UpdateFPS()
 

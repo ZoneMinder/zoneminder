@@ -702,6 +702,7 @@ function initPage() {
         }
         $j('#button_zoom' + id).stop(true, true).slideDown('fast');
         $j('#ratioControl' + id).stop(true, true).slideDown('fast');
+        $j('#ratioControl' + id).css({ top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px' });
       },
       function() {
         const id = stringToNumber(this.id);

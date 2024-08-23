@@ -1250,4 +1250,23 @@ var doubleTouch = function(e) {
   }
 };
 
+function setButtonSizeOnStream() {
+  var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    //It is necessary to calculate the size for each Stream, because on the Montage page they can be of different sizes.
+    var w = el.offsetWidth;
+    const buttons = document.getElementById('button_zoom'+stringToNumber(el.id)).querySelectorAll(`
+      button.btn.btn-zoom-out span,
+      button.btn.btn-zoom-in span,
+      button.btn.btn-view-watch span,
+      button.btn.btn-fullscreen span,
+      button.btn.btn-edit-monitor span`
+    );
+    Array.prototype.forEach.call(buttons, (btn) => {
+      btn.style.fontSize = w/10 + "px";
+      btn.style.margin = -w/200 + "px";
+    });
+  });
+}
+
 loadFontFaceObserver();

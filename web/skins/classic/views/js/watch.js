@@ -1568,6 +1568,7 @@ function monitorsSetScale(id=null) {
       }
     }
   }
+  setButtonSizeOnStream();
 }
 
 // Kick everything off

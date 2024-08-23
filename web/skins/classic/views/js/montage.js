@@ -976,6 +976,7 @@ function monitorsSetScale(id=null) {
       monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
     }
   }
+  setButtonSizeOnStream();
 }
 
 function changeMonitorRate() {

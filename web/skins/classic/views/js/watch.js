@@ -1211,7 +1211,7 @@ function initPage() {
   }
   streamPrepareStart();
 
-	// Event listener for double click
+  // Event listener for double click
   //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
   var elStream = document.querySelectorAll('[id = "wrapperMonitor"]');
   Array.prototype.forEach.call(elStream, (el) => {

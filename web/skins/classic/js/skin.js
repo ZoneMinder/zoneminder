@@ -1263,8 +1263,9 @@ function setButtonSizeOnStream() {
       button.btn.btn-edit-monitor span`
     );
     Array.prototype.forEach.call(buttons, (btn) => {
-      btn.style.fontSize = w/10 + "px";
-      btn.style.margin = -w/200 + "px";
+      const btnWeight = (w/10 < 100) ? w/10 : 100;
+      btn.style.fontSize = btnWeight + "px";
+      btn.style.margin = -btnWeight/20 + "px";
     });
   });
 }

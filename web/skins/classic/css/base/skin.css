@@ -776,7 +776,7 @@ ul.nav.nav-pills.flex-column {
 
 #mfbpanel {
   width: calc(100% - 25px);
-  float: left;  
+  float: left;
 }
 
 .chosen {
@@ -1155,7 +1155,9 @@ button.btn.btn-zoom-in {
     1px 1px 0 #575757;
 }
 
-button.btn.btn-edit-monitor {
+button.btn.btn-view-watch,
+button.btn.btn-edit-monitor,
+button.btn.btn-fullscreen {
   padding: 0;
   background-color: rgba(150,150,150,0.5);
   z-index: 10;

@@ -779,6 +779,11 @@ ul.nav.nav-pills.flex-column {
   float: left;  
 }
 
+.sticky #mfbpanel {
+  max-height: 40vh; /* For mobile devices */
+  overflow: auto;
+}
+
 .chosen {
   position: absolute !important; left: -999em !important;
 }

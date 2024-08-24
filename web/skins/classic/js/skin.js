@@ -1251,11 +1251,15 @@ var doubleTouch = function(e) {
 };
 
 function setButtonSizeOnStream() {
-  var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  const elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
   Array.prototype.forEach.call(elStream, (el) => {
     //It is necessary to calculate the size for each Stream, because on the Montage page they can be of different sizes.
-    var w = el.offsetWidth;
-    const buttons = document.getElementById('button_zoom'+stringToNumber(el.id)).querySelectorAll(`
+    const w = el.offsetWidth;
+    // #videoFeedStream - on Event page
+    const monitorId = (stringToNumber(el.id)) ? stringToNumber(el.id) : stringToNumber(el.closest('[id ^= "videoFeedStream"]').id);
+    const buttonsBlock = document.getElementById('button_zoom' + monitorId);
+    if (!buttonsBlock) return;
+    const buttons = buttonsBlock.querySelectorAll(`
       button.btn.btn-zoom-out span,
       button.btn.btn-zoom-in span,
       button.btn.btn-view-watch span,

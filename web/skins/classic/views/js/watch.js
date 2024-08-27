@@ -1210,6 +1210,14 @@ function initPage() {
     applyMonitorControllable();
   }
   streamPrepareStart();
+
+  // Event listener for double click
+  //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  var elStream = document.querySelectorAll('[id = "wrapperMonitor"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    el.addEventListener('touchstart', doubleTouch);
+    el.addEventListener('dblclick', doubleClickOnStream);
+  });
 } // initPage
 
 function watchFullscreen() {

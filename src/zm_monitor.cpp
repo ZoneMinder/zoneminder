@@ -385,6 +385,7 @@ Monitor::Monitor()
   state(IDLE),
   start_time(0),
   last_fps_time(0),
+  last_status_time(0),
   last_analysis_fps_time(0),
   auto_resume_time(0),
   last_motion_score(0),
@@ -1062,6 +1063,7 @@ bool Monitor::connect() {
   gettimeofday(&now, nullptr);
   double now_double = (double)now.tv_sec + (0.000001f * now.tv_usec);
   last_fps_time = now_double;
+  last_status_time = now_double;
   last_analysis_fps_time = now_double;
   last_capture_image_count = 0;
 
@@ -1686,12 +1688,16 @@ void Monitor::UpdateFPS() {
     shared_data->analysis_fps = new_analysis_fps;
     last_motion_frame_count = motion_frame_count;
     last_camera_bytes = new_camera_bytes;
-
-    std::string sql = stringtf(
-        "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
-        new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
-    dbQueue.push(std::move(sql));
     last_fps_time = now_double;
+
+    double db_elapsed = now_double - last_status_time;
+    if ( db_elapsed > 10.0 ) {
+      std::string sql = stringtf(
+          "UPDATE LOW_PRIORITY Monitor_Status SET CaptureFPS = %.2lf, CaptureBandwidth=%u, AnalysisFPS = %.2lf, UpdatedOn=NOW() WHERE MonitorId=%u",
+          new_capture_fps, new_capture_bandwidth, new_analysis_fps, id);
+      dbQueue.push(std::move(sql));
+      last_status_time = now_double;
+    }
   } // now != last_fps_time
 }  // void Monitor::UpdateFPS()
 

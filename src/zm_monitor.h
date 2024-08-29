@@ -356,6 +356,7 @@ protected:
   State      state;
   time_t      start_time;
   double      last_fps_time;
+  double      last_status_time;
   double      last_analysis_fps_time;
   time_t      auto_resume_time;
   unsigned int      last_motion_score;

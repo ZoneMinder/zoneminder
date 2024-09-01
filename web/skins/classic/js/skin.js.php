@@ -138,7 +138,6 @@ stateStrings[STATE_IDLE] = "<?php echo translate('Idle') ?>";
 stateStrings[STATE_PREALARM] = "<?php echo translate('Prealarm') ?>";
 stateStrings[STATE_ALARM] = "<?php echo translate('Alarm') ?>";
 stateStrings[STATE_ALERT] = "<?php echo translate('Alert') ?>";
-stateStrings[STATE_TAPE] = "<?php echo translate('Record') ?>";
 
 <?php
 global $user;

@@ -49,6 +49,10 @@ public static function getAnalysingOptions() {
   }
   return $AnalysingOptions;
 }
+public static function getAnalysingString($option) {
+  $options = Monitor::getAnalysingOptions();
+  return $options[$option];
+}
 
 protected static $AnalysisSourceOptions = null;
 public static function getAnalysisSourceOptions() {
@@ -84,6 +88,11 @@ public static function getRecordingOptions() {
   return $RecordingOptions;
 }
 
+public static function getRecordingString($option) {
+  $options = Monitor::getRecordingOptions();
+  return $options[$option];
+}
+
 protected static $RecordingSourceOptions = null;
 public static function getRecordingSourceOptions() {
   if (!isset($RecordingSourceOptions)) {
@@ -114,15 +123,19 @@ protected static $Statuses = null;
 public static function getStatuses() {
   if (!isset($Statuses)) {
     $Statuses = array(
-      -1 => 'Unknown',
-      0 => 'Idle',
-      1 => 'PreAlarm',
-      2 => 'Alarm',
-      3 => 'Alert',
-      4 => 'Tape'
+      0 => 'Unknown',
+      1 => 'Idle',
+      2 => 'PreAlarm',
+      3 => 'Alarm',
+      4 => 'Alert',
     );
   }
   return $Statuses;
+}
+
+public static function getStateString($option) {
+  $statuses = Monitor::getStatuses();
+  return $statuses[$option];
 }
 
   protected static $table = 'Monitors';
@@ -196,6 +209,7 @@ public static function getStatuses() {
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
     'EncoderParameters' => '',
+    'WallClockTimestamps' => array('type'=>'boolean', 'default'=>0),
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
     #'OutputSourceStream'  => 'Primary',
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
@@ -264,6 +278,11 @@ public static function getStatuses() {
     'AnalysisFPS' => null,
     'CaptureFPS' => null,
     'CaptureBandwidth' => null,
+    'Capturing' => 0,
+    'Analysing' => 0,
+    'State'     => 0,
+    'LastEventId' =>  null,
+    'EventId'     =>  null,
   );
   private $summary_fields = array(
     'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
@@ -419,16 +438,8 @@ public static function getStatuses() {
       return $this->defaults[$fn];
     } else if (array_key_exists($fn, $this->status_fields)) {
       if ($this->Id()) {
-        $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
-        $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
-        if (!$row) {
-          Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
-        } else {
-          foreach ($row as $k => $v) {
-            $this->{$k} = $v;
-          }
-          return $this->{$fn};
-        }
+        $row = $this->Monitor_Status();
+        if ($row) return $row[$fn];
       } # end if this->Id
       return null;
     } else if (array_key_exists($fn, $this->summary_fields)) {
@@ -449,6 +460,15 @@ public static function getStatuses() {
       $line = $backTrace[1]['line'];
       Warning("Unknown function call Monitor->$fn from $file:$line");
     }
+  }
+
+  public function Monitor_Status() {
+    if (!property_exists($this, 'Monitor_Status')) {
+      $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
+      $row = $this->{'Monitor_Status'} = dbFetchOne($sql, NULL, array($this->{'Id'}));
+      if (!$row) Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
+    }
+    return $this->{'Monitor_Status'};
   }
 
   public function getStreamSrc($args, $querySep='&amp;') {
@@ -491,8 +511,11 @@ public static function getStatuses() {
     if (isset($args['height']))
       unset($args['height']);
 
-    $streamSrc .= '?'.http_build_query($args, '', $querySep);
+    unset($args['state']);
+    unset($args['zones']);
 
+    $streamSrc .= '?'.http_build_query($args, '', $querySep);
+    $this->streamSrc = $streamSrc;
     return $streamSrc;
   } // end function getStreamSrc
 
@@ -945,7 +968,7 @@ public static function getStatuses() {
   function getMonitorStateHTML() {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
-<span class="MonitorName">'.$this->Name().'</span>
+<span class="MonitorName">'.$this->Name().' (id='.$this->Id().')</span>
   <div id="monitorState'.$this->Id().'" class="monitorState">
     <span>'.translate('State').':<span id="stateValue'.$this->Id().'">'.$this->Status().'</span></span>
     <span class="viewingFPS" id="viewingFPS'.$this->Id().'" title="'.translate('Viewing FPS').'"><span id="viewingFPSValue'.$this->Id().'"></span> fps</span>
@@ -972,6 +995,8 @@ public static function getStatuses() {
  * Same width height.  If both are set we should calculate the smaller resulting scale
  */
   function getStreamHTML($options) {
+    global $basename;
+
     if (isset($options['scale']) and $options['scale'] != '' and $options['scale'] != 'fixed') {
       if ($options['scale'] != 'auto' && $options['scale'] != '0') {
         $options['width'] = reScale($this->ViewWidth(), $options['scale']).'px';
@@ -1021,12 +1046,15 @@ public static function getStatuses() {
     if ($this->StreamReplayBuffer())
       $options['buffer'] = $this->StreamReplayBuffer();
     //Warning("width: " . $options['width'] . ' height: ' . $options['height']. ' scale: ' . $options['scale'] );
+    $blockRatioControl = ($basename == "montage") ? '<div id="ratioControl'.$this->Id().'" class="ratioControl hidden"><select name="ratio'.$this->Id().'" id="ratio'.$this->Id().'" class="select-ratio chosen" data-on-change="changeRatio">
+</select></div>' : '';
     $html = '
       <div id="m'. $this->Id() . '" class="grid-monitor grid-stack-item" gs-id="'. $this->Id() . '" gs-w="12" gs-auto-position="true">
-        <div id="ratioControl'.$this->Id().'" class="ratioControl hidden"><select name="ratio'.$this->Id().'" id="ratio'.$this->Id().'" class="select-ratio chosen" data-on-change="changeRatio">
-</select></div>
+        ' . $blockRatioControl . '
         <div class="grid-stack-item-content">
-          <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
+          <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor"
+            title="Shift+Click to Zoom, Click+Drag to Pan &#013;Ctrl+Click to Zoom out, Ctrl+Shift+Click to Zoom out completely"
+            >
             <div
               id="imageFeed'. $this->Id() .'"
               class="monitorStream imageFeed"

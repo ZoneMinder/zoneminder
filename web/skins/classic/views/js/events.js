@@ -1,12 +1,13 @@
-var backBtn = $j('#backBtn');
-var viewBtn = $j('#viewBtn');
-var archiveBtn = $j('#archiveBtn');
-var unarchiveBtn = $j('#unarchiveBtn');
-var editBtn = $j('#editBtn');
-var exportBtn = $j('#exportBtn');
-var downloadBtn = $j('#downloadBtn');
-var deleteBtn = $j('#deleteBtn');
-var table = $j('#eventTable');
+"use strict";
+const backButton = $j('#backBtn');
+const viewButton = $j('#viewBtn');
+const archiveButton = $j('#archiveBtn');
+const unarchiveButton = $j('#unarchiveBtn');
+const editButton = $j('#editBtn');
+const exportButton = $j('#exportBtn');
+const downloadButton = $j('#downloadBtn');
+const deleteButton = $j('#deleteBtn');
+const table = $j('#eventTable');
 var ajax = null;
 
 /*
@@ -60,7 +61,9 @@ function ajaxRequest(params) {
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
     error: function(jqXHR) {
-      console.log("error", jqXHR);
+      if (jqXHR.statusText != 'abort') {
+        console.log("error", jqXHR);
+      }
       //logAjaxFail(jqXHR);
       //$j('#eventTable').bootstrapTable('refresh');
     }
@@ -86,6 +89,9 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+    row.Location = row.Latitude+', '+row.Longitude;
+    row.DiskSpace = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.DiskSpace + '</a>';
+    row.Storage = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Storage + '</a>';
 
     const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
     date.setSeconds(row.Length);
@@ -124,8 +130,8 @@ function getIdSelections() {
 
 // Returns a boolen to indicate at least one selected row is archived
 function getArchivedSelections() {
-  var table = $j('#eventTable');
-  var selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
+  const table = $j('#eventTable');
+  const selection = $j.map(table.bootstrapTable('getSelections'), function(row) {
     return row.Archived;
   });
   return selection.includes('Yes');
@@ -314,19 +320,29 @@ function initPage() {
   table.on('check.bs.table uncheck.bs.table ' +
   'check-all.bs.table uncheck-all.bs.table',
   function() {
-    selections = table.bootstrapTable('getSelections');
+    const selections = table.bootstrapTable('getSelections');
 
-    viewBtn.prop('disabled', !(selections.length && canView.Events));
-    archiveBtn.prop('disabled', !(selections.length && canEdit.Events));
-    unarchiveBtn.prop('disabled', !(getArchivedSelections()) && canEdit.Events);
-    editBtn.prop('disabled', !(selections.length && canEdit.Events));
-    exportBtn.prop('disabled', !(selections.length && canView.Events));
-    downloadBtn.prop('disabled', !(selections.length && canView.Events));
-    deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
+    viewButton.prop('disabled', !(selections.length && canView.Events));
+    archiveButton.prop('disabled', !(selections.length && canEdit.Events));
+    if (!(getArchivedSelections() && canEdit.Events)) {
+      unarchiveButton.prop('disabled', true);
+      if (!getArchivedSelections()) {
+        unarchiveButton.prop('title', 'Please select an event that is archived.');
+      } else {
+        unarchiveButton.prop('title', 'You must have events edit permission to unarchive');
+      }
+    } else {
+      unarchiveButton.prop('disabled', false);
+      unarchiveButton.prop('title', unarchiveString);
+    }
+    editButton.prop('disabled', !(selections.length && canEdit.Events));
+    exportButton.prop('disabled', !(selections.length && canView.Events));
+    downloadButton.prop('disabled', !(selections.length && canView.Events));
+    deleteButton.prop('disabled', !(selections.length && canEdit.Events));
   });
 
   // Don't enable the back button if there is no previous zm page to go back to
-  backBtn.prop('disabled', !document.referrer.length);
+  backButton.prop('disabled', !document.referrer.length);
 
   // Setup the thumbnail video animation
   if (!isMobile()) initThumbAnimation();
@@ -518,7 +534,10 @@ function initPage() {
   table.show();
 }
 
-function filterEvents() {
+function filterEvents(clickedElement) {
+  if (clickedElement.target && clickedElement.target.id == 'filterArchived') {
+    setCookie('zmFilterArchived', clickedElement.target.value);
+  }
   filterQuery = '';
   $j('#fieldsTable input').each(function(index) {
     const el = $j(this);

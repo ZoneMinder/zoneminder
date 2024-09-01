@@ -201,7 +201,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 
 #ifndef DBG_OFF
 # define ZM_DUMP_PACKET(pkt, text) \
-  Debug(2, "%s: pts: %" PRId64 ", dts: %" PRId64 \
+  if (pkt) { Debug(2, "%s: pts: %" PRId64 ", dts: %" PRId64 \
     ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64 ", duration: %" AV_PACKET_DURATION_FMT, \
     text,\
     pkt->pts,\
@@ -211,7 +211,9 @@ void zm_dump_codecpar(const AVCodecParameters *par);
     pkt->flags,\
     pkt->flags & AV_PKT_FLAG_KEY,\
     pkt->pos,\
-    pkt->duration)
+    pkt->duration); } else { \
+    Error("Null packet send to ZM_DUMP_PACKET"); \
+  }
 
 # define ZM_DUMP_STREAM_PACKET(stream, pkt, text) \
   if (logDebugging()) { \

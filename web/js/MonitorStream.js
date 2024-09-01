@@ -1,11 +1,10 @@
+"use strict";
 var janus = null;
 const streaming = [];
 
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
   this.connKey = monitorData.connKey;
-  this.auth_relay = auth_relay;
-  this.auth_hash = auth_hash;
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
   this.width = monitorData.width;
@@ -84,7 +83,7 @@ function MonitorStream(monitorData) {
   this.show = function() {
     const stream = this.getElement();
     if (!stream.src) {
-      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+this.auth_relay;
+      stream.src = this.url_to_zms+"&mode=single&scale="+this.scale+"&connkey="+this.connKey+'&'+auth_relay;
     }
   };
 
@@ -93,6 +92,7 @@ function MonitorStream(monitorData) {
    * height should be auto, 100%, integer +px
    * param.resizeImg be boolean (added only for using GridStack & PanZoom on Montage page)
    * param.scaleImg scaling 1=100% (added only for using PanZoom on Montage & Watch page)
+   * param.streamQuality in %, numeric value from -50 to +50)
    * */
   this.setScale = function(newscale, width, height, param = {}) {
     const img = this.getElement();
@@ -103,7 +103,7 @@ function MonitorStream(monitorData) {
     }
 
     // Scale the frame
-    monitor_frame = $j('#monitor'+this.id);
+    const monitor_frame = $j('#monitor'+this.id);
     if (!monitor_frame) {
       console.log('Error finding frame');
       return;
@@ -172,10 +172,15 @@ function MonitorStream(monitorData) {
         $j(img).closest('.monitorStream')[0].style.overflow = 'hidden';
       }
     }
-    this.setStreamScale(newscale);
+    let streamQuality = 0;
+    if (param.streamQuality) {
+      streamQuality = param.streamQuality;
+      newscale += parseInt(newscale/100*streamQuality);
+    }
+    this.setStreamScale(newscale, streamQuality);
   }; // setScale
 
-  this.setStreamScale = function(newscale) {
+  this.setStreamScale = function(newscale, streamQuality=0) {
     const img = this.getElement();
     if (!img) {
       console.log("No img in setScale");
@@ -186,7 +191,7 @@ function MonitorStream(monitorData) {
       newscale = parseInt(100*parseInt(stream_frame.width())/this.width);
     }
     if (newscale > 100) newscale = 100; // we never request a larger image, as it just wastes bandwidth
-    if (newscale < 25) newscale = 25; // Arbitrary, lower values look bad
+    if (newscale < 25 && streamQuality > -1) newscale = 25; // Arbitrary, lower values look bad
     if (newscale <= 0) newscale = 100;
     this.scale = newscale;
     if (this.connKey) {
@@ -198,7 +203,8 @@ function MonitorStream(monitorData) {
           console.log('No src on img?!', img);
           return;
         }
-        const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+        let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+        newSrc = newSrc.replace(/auth=\w+/i, 'auth='+auth_hash);
         if (newSrc != oldSrc) {
           this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
           // We know that only the first zms will get the command because the
@@ -236,21 +242,21 @@ function MonitorStream(monitorData) {
         }});
       }
       attachVideo(parseInt(this.id), this.janusPin);
-      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
       return;
     }
     if (this.RTSP2WebEnabled) {
       if (ZM_RTSP2WEB_PATH) {
-        videoEl = document.getElementById("liveStream" + this.id);
+        const videoEl = document.getElementById("liveStream" + this.id);
         const url = new URL(ZM_RTSP2WEB_PATH);
         const useSSL = (url.protocol == 'https');
 
-        rtsp2webModUrl = url;
+        const rtsp2webModUrl = url;
         rtsp2webModUrl.username = '';
         rtsp2webModUrl.password = '';
         //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
         if (this.RTSP2WebType == 'HLS') {
-          hlsUrl = rtsp2webModUrl;
+          const hlsUrl = rtsp2webModUrl;
           hlsUrl.pathname = "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
           /*
           if (useSSL) {
@@ -273,18 +279,16 @@ function MonitorStream(monitorData) {
               videoEl.play();
             }
           });
-          mseUrl = rtsp2webModUrl;
+          const mseUrl = rtsp2webModUrl;
           mseUrl.protocol = useSSL ? 'wss' : 'ws';
           mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
-          console.log(mseUrl.href);
           startMsePlay(this, videoEl, mseUrl.href);
         } else if (this.RTSP2WebType == 'WebRTC') {
-          webrtcUrl = rtsp2webModUrl;
+          const webrtcUrl = rtsp2webModUrl;
           webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
-          console.log(webrtcUrl.href);
           startRTSP2WebPlay(videoEl, webrtcUrl.href);
         }
-        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), delay);
+        this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
@@ -305,7 +309,8 @@ function MonitorStream(monitorData) {
     if (stream.getAttribute('loading') == 'lazy') {
       stream.setAttribute('loading', 'eager');
     }
-    src = stream.src.replace(/mode=single/i, 'mode=jpeg');
+    let src = stream.src.replace(/mode=single/i, 'mode=jpeg');
+    src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
     if (-1 == src.search('connkey')) {
       src += '&connkey='+this.connKey;
     }
@@ -316,13 +321,14 @@ function MonitorStream(monitorData) {
     }
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
+    this.started = true;
   }; // this.start
 
   this.stop = function() {
     if ( 0 ) {
       const stream = this.getElement();
       if (!stream) return;
-      src = stream.src.replace(/mode=jpeg/i, 'mode=single');
+      const src = stream.src.replace(/mode=jpeg/i, 'mode=single');
       if (stream.src != src) {
         stream.src = '';
         stream.src = src;
@@ -331,6 +337,7 @@ function MonitorStream(monitorData) {
     this.streamCommand(CMD_STOP);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
+    this.started = false;
   };
 
   this.kill = function() {
@@ -340,18 +347,29 @@ function MonitorStream(monitorData) {
       }
     }
     const stream = this.getElement();
-    if (!stream) return;
+    if (!stream) {
+      console.log("No element found for monitor "+this.id);
+      return;
+    }
     stream.onerror = null;
     stream.onload = null;
     this.stop();
 
-    if (this.ajaxQueue) {
+    // this.stop tells zms to stop streaming, but the process remains. We need to turn the stream into an image.
+    if (stream.src) {
+      const src = stream.src.replace(/mode=jpeg/i, 'mode=single');
+      if (stream.src != src) {
+        stream.src = '';
+        stream.src = src;
+      }
+    }
+
+    // Because we stopped the zms process above, any remaining ajaxes will fail.  But aborting them will also cause them to fail, so why bother?
+    if (0 && this.ajaxQueue) {
       console.log("Aborting in progress ajax for kill");
       // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }
-    this.statusCmdTimer = clearInterval(this.statusCmdTimer);
-    this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
 
   this.pause = function() {
@@ -508,7 +526,7 @@ function MonitorStream(monitorData) {
           const captureFPSValue = $j('#captureFPSValue'+this.id);
           const analysisFPSValue = $j('#analysisFPSValue'+this.id);
 
-          this.status.fps = this.status.fps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+          this.status.fps = this.status.fps.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 2});
           if (viewingFPSValue.length && (viewingFPSValue.text != this.status.fps)) {
             viewingFPSValue.text(this.status.fps);
           }
@@ -631,10 +649,11 @@ function MonitorStream(monitorData) {
         } // end if canEdit.Monitors
 
         if (this.status.auth) {
-          if (this.status.auth != this.auth_hash) {
+          if (this.status.auth != auth_hash) {
             // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
-            console.log("Changed auth from " + this.auth_hash + " to " + this.status.auth);
-            this.streamCmdParms.auth = auth_hash = this.auth_hash = this.status.auth;
+            console.log("Changed auth from " + auth_hash + " to " + this.status.auth);
+            auth_hash = this.status.auth;
+            auth_relay = this.status.auth_relay;
           }
         } // end if have a new auth hash
       } // end if has state
@@ -643,8 +662,8 @@ function MonitorStream(monitorData) {
       // Try to reload the image stream.
       if (stream.src) {
         console.log('Reloading stream: ' + stream.src);
-        src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
-        src = src.replace(/auth=\w+/i, 'auth='+this.auth_hash);
+        let src = stream.src.replace(/rand=\d+/i, 'rand='+Math.floor((Math.random() * 1000000) ));
+        src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
         // Maybe updated auth
         if (src != stream.src) {
           stream.src = '';
@@ -667,11 +686,11 @@ function MonitorStream(monitorData) {
       const monitor = respObj.monitor;
 
       if (monitor.FrameRate) {
-        const fpses = monitor.FrameRate.split(",");
+        const fpses = monitor.FrameRate.split(',');
         fpses.forEach(function(fps) {
           const name_values = fps.split(':');
           const name = name_values[0].trim();
-          const value = name_values[1].trim().toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+          const value = name_values[1].trim().toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 2});
 
           if (name == 'analysis') {
             this.status.analysisfps = value;
@@ -735,13 +754,22 @@ function MonitorStream(monitorData) {
       } // end if canEdit.Monitors
 
       this.setAlarmState(monitorStatus);
+
+      if (respObj.auth_hash) {
+        if (auth_hash != respObj.auth_hash) {
+          // Don't reload the stream because it causes annoying flickering. Wait until the stream breaks.
+          console.log("Changed auth from " + auth_hash + " to " + respObj.auth_hash);
+          auth_hash = respObj.auth_hash;
+          auth_relay = respObj.auth_relay;
+        }
+      } // end if have a new auth hash
     } else {
       checkStreamForErrors('getStatusCmdResponse', respObj);
     }
   }; // this.getStatusCmdResponse
 
-  this.statusCmdQuery=function() {
-    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+this.auth_relay)
+  this.statusCmdQuery = function() {
+    $j.getJSON(this.url + '?view=request&request=status&entity=monitor&element[]=Status&element[]=CaptureFPS&element[]=AnalysisFPS&element[]=Analysing&element[]=Recording&id='+this.id+'&'+auth_relay)
         .done(this.getStatusCmdResponse.bind(this))
         .fail(logAjaxFail);
   };
@@ -777,7 +805,7 @@ function MonitorStream(monitorData) {
 
   this.alarmCommand = function(command) {
     if (this.ajaxQueue) {
-      console.log("Aborting in progress ajax for alarm");
+      console.log('Aborting in progress ajax for alarm');
       // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }
@@ -790,7 +818,7 @@ function MonitorStream(monitorData) {
       url: this.url + (auth_relay?'?'+auth_relay:''),
       xhrFields: {withCredentials: true},
       data: alarmCmdParms,
-      dataType: "json"
+      dataType: 'json'
     })
         .done(this.getStreamCmdResponse.bind(this))
         .fail(this.onFailure.bind(this));
@@ -804,7 +832,7 @@ function MonitorStream(monitorData) {
         url: this.url + (auth_relay?'?'+auth_relay:''),
         xhrFields: {withCredentials: true},
         data: streamCmdParms,
-        dataType: "json"
+        dataType: 'json'
       })
           .done(this.getStreamCmdResponse.bind(this))
           .fail(this.onFailure.bind(this));
@@ -819,7 +847,7 @@ function MonitorStream(monitorData) {
 
   this.setMaxFPS = function(maxfps) {
     if (1) {
-      this.streamCommand({command: CMD_MAXFPS, maxfps: currentSpeed});
+      this.streamCommand({command: CMD_MAXFPS, maxfps: maxfps});
     } else {
       var streamImage = this.getElement();
       const oldsrc = streamImage.attr('src');

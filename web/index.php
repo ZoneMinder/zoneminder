@@ -58,7 +58,9 @@ if ( $_SERVER['REQUEST_METHOD'] == 'OPTIONS' ) {
   return;
 }
 
-if ( isset($_GET['skin']) ) {
+if ( defined('ZM_FORCE_SKIN_DEFAULT') ) {
+  $skin = ZM_FORCE_SKIN_DEFAULT;
+} else if ( isset($_GET['skin']) ) {
   $skin = $_GET['skin'];
 } else if ( isset($_COOKIE['zmSkin']) ) {
   $skin = $_COOKIE['zmSkin'];
@@ -76,7 +78,9 @@ if (!is_dir('skins/'.$skin) ) {
   }
 }
 global $css;
-if ( isset($_GET['css']) ) {
+if (defined('ZM_FORCE_CSS_DEFAULT')) {
+  $css = ZM_FORCE_CSS_DEFAULT;
+} else if ( isset($_GET['css']) ) {
   $css = $_GET['css'];
 } else if ( isset($_COOKIE['zmCSS']) ) {
   $css = $_COOKIE['zmCSS'];

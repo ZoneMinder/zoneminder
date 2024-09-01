@@ -57,10 +57,11 @@ if ( !canView('Events') ) {
 }
 
 require_once('includes/Filter.php');
-ob_start();
 include('_monitor_filters.php');
-$filter_bar = ob_get_contents();
-ob_end_clean();
+$resultMonitorFilters = buildMonitorsFilters();
+$filterbar = $resultMonitorFilters['filterBar'];
+$displayMonitors = $resultMonitorFilters['displayMonitors'];
+$selected_monitor_ids = $resultMonitorFilters['selected_monitor_ids'];
 
 $preference = ZM\User_Preference::find_one([
     'UserId'=>$user->Id(),
@@ -211,10 +212,12 @@ $fitMode = 1;
 if (isset($_REQUEST['fit']))
   $fitMode = validCardinal($_REQUEST['fit']);
 
-if (isset($_REQUEST['scale']))
-  $defaultScale = validHtmlStr($_REQUEST['scale']);
-else
+if (isset($_REQUEST['scale'])) {
+  $defaultScale = validCardinal($_REQUEST['scale']);
+  if ($defaultScale > 1.1) $defaultScale = 1.0;
+} else {
   $defaultScale = 1;
+}
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
@@ -236,7 +239,7 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
 
 $initialDisplayInterval = 1000;
 if (isset($_REQUEST['displayinterval']))
-  $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
+  $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 
 $minTimeSecs = $maxTimeSecs = 0;
 if (isset($minTime) && isset($maxTime)) {
@@ -271,17 +274,15 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-    $html = '<a class="flip" href="#" 
-             data-flip-сontrol-object="#mfbpanel" 
-             data-flip-сontrol-run-after-func="applyChosen drawGraph" 
-             data-flip-сontrol-run-after-complet-func="changeScale">
-               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-             </a>'.PHP_EOL;
-    $html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
-    echo $html;
-?>
-        <?php echo $filter_bar ?>
-<?php
+$html = '<a class="flip" href="#" 
+         data-flip-сontrol-object="#mfbpanel" 
+         data-flip-сontrol-run-after-func="applyChosen drawGraph" 
+         data-flip-сontrol-run-after-complet-func="changeScale">
+           <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+         </a>'.PHP_EOL;
+$html .= '<div id="mfbpanel" class="hidden-shift container-fluid">'.PHP_EOL;
+echo $html;
+echo $filterbar;
 if (count($filter->terms())) {
   echo $filter->simple_widget();
 }

@@ -39,7 +39,7 @@ Run the following commands.
 
 ::
 
-    sudo apt install mariadb-server
+    sudo apt install apache2 mariadb-server
 
 Switch into root user and create database and database user
 
@@ -74,7 +74,7 @@ The backports repository is deactivated by default, so with the second line we e
 
 ::
 
-    sudo echo 'deb http://deb.debian.org/debian bookworm-backports main contrib' >> /etc/apt/sources.list
+    sudo bash -c "echo 'deb http://deb.debian.org/debian bookworm-backports main contrib' >> /etc/apt/sources.list"
     sudo apt update
     sudo apt -t bookworm-backports install zoneminder
 
@@ -102,6 +102,7 @@ To make sure zoneminder can read the configuration file, run the following comma
     sudo systemctl reload apache2.service
     sudo systemctl restart zoneminder.service
     sudo systemctl status zoneminder.service
+    sudo systemctl enable zoneminder.service    # start zoneminder automatically at boot
 
 If the zoneminder.service show to be active and without any errors, you should be able to access zoneminder at ``http://yourhostname/zm``
 

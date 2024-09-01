@@ -55,6 +55,7 @@ AutoEmail
 EmailTo
 EmailSubject
 EmailBody
+EmailServer
 EmailFormat
 AutoMessage
 AutoExecute

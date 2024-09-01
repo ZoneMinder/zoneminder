@@ -8,11 +8,11 @@ const exportBtn = $j('#exportBtn');
 const downloadBtn = $j('#downloadBtn');
 const statsBtn = $j('#statsBtn');
 const deleteBtn = $j('#deleteBtn');
-var eventStats = $j('#eventStats');
-var eventVideo = $j('#eventVideo');
-var wrapperEventVideo = $j('#wrapperEventVideo');
-var videoFeed = $j('#videoFeed');
-var eventStatsTable = $j('#eventStatsTable');
+const eventStats = $j('#eventStats');
+const eventVideo = $j('#eventVideo');
+const wrapperEventVideo = $j('#wrapperEventVideo');
+const videoFeed = $j('#videoFeed');
+const eventStatsTable = $j('#eventStatsTable');
 var prevEventId = 0;
 var nextEventId = 0;
 var prevEventStartTime = 0;
@@ -33,27 +33,12 @@ var lastEventId = 0;
 var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 const indicator = document.getElementById('indicator');
+var newWidth;
+var newHeight;
 
 const SHOW_LOADING = 'loading...';
 const SHOW_DONE = 'done.';
 
-function durationFormatSubVal(val) {
-  const valStr = val.toString();
-  if (valStr.length < 2) {
-    return '0' + valStr;
-  }
-  return valStr;
-}
-
-function durationText(duration) {
-  if (duration < 0) {
-    return "Play";
-  }
-  const durationSecInt = Math.round(duration);
-  return durationFormatSubVal(Math.floor(durationSecInt / 3600))
-    + ":" + durationFormatSubVal(Math.floor((durationSecInt % 3600) / 60))
-    + ":" + durationFormatSubVal(Math.floor(durationSecInt % 60));
-}
 var scaleValue = 0;
 var availableTags = [];
 var selectedTags = [];
@@ -65,6 +50,8 @@ var coordinateMouse = {
   shiftMouseForTrigger_x: null, shiftMouseForTrigger_y: null
 };
 var leftBtnStatus = {Down: false, UpAfterDown: false};
+var updateScale = false; //Scale needs to be updated
+var currentScale = 0; // Temporarily, because need to put things in order with the "scale" variable = "select" block
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
@@ -206,7 +193,7 @@ function setAlarmCues(data) {
     Error('No data.frames in setAlarmCues for event ' + eventData.Id);
   } else {
     cueFrames = data.frames;
-    alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
+    alarmSpans = renderAlarmCues((vid || player) ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
     $j('#alarmCues').html(alarmSpans);
   }
 }
@@ -215,7 +202,7 @@ function renderAlarmCues(containerEl) {
   let html = '';
 
   cues_div = document.getElementById('alarmCues');
-  const event_length = (!cueFrames.length || (eventData.Length > cueFrames[cueFrames.length - 1].Delta)) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
+  const event_length = ((!cueFrames.length) || (parseFloat(eventData.Length) > parseFloat(cueFrames[cueFrames.length - 1].Delta))) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
   const span_count = 10;
   const span_seconds = parseFloat(event_length / span_count);
   const span_width = parseFloat(containerEl.width() / span_count);
@@ -223,6 +210,7 @@ function renderAlarmCues(containerEl) {
   for (let i=0; i < span_count; i += 1) {
     html += '<span style="left:'+(i*span_width)+'px; width: '+span_width+'px;">'+date.toLocaleTimeString()+'</span>';
     date.setTime(date.getTime() + span_seconds*1000);
+    console.log(date);
   }
 
   if (!(cueFrames && cueFrames.length)) {
@@ -310,7 +298,83 @@ function changeCodec() {
   location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+$j('#codec').val());
 }
 
+function deltaScale() {
+  return parseInt(currentScale/100*$j('#streamQuality').val()); // "-" - Decrease quality, "+" - Increase image quality in %
+}
+
 function changeScale() {
+  const scaleSel = $j('#scale').val();
+  const eventViewer = $j((playerType == 'h265web.js' || playerType == 'video.js') ? '#videoobj' : '#evtStream');
+
+  const alarmCue = $j('#alarmCues');
+  const bottomEl = $j('#replayStatus');
+  const landscape = eventData.width / eventData.height > 1 ? true : false; //Image orientation.
+
+  setCookie('zmEventScale'+eventData.MonitorId, scaleSel);
+
+  /*!!! eventData.Width & eventData.Height may differ from the actual size of the broadcast frame due to the "Capture Resolution (pixels)" setting on the source page of the monitor settings !!!*/
+  /*!!! Because of this, the Scale is not correct. For example, when recording in 4k, Capture Resolution = FHD, the image with a width of 600px looks terrible! */
+
+  let newSize;
+  if (scaleSel == '100') {
+    //Actual, 100% of original size
+    newWidth = eventData.Width;
+    newHeight = eventData.Height;
+    currentScale = 100;
+  } else if (scaleSel == '0') {
+    //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
+    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl, $j('#wrapperEventVideo'));
+    newWidth = newSize.width;
+    newHeight = newSize.height;
+    currentScale = newSize.autoScale;
+  } else if (scaleSel == 'fit_to_width') {
+    //Fit to screen width
+    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'));
+    newWidth = newSize.width;
+    newHeight = newSize.height;
+    currentScale = newSize.autoScale;
+  } else if (scaleSel.indexOf("px") > -1) {
+    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
+    let w = h = '';
+    if (landscape) {
+      w = Math.min(stringToNumber(scaleSel), newSize.width);
+      h = w / (eventData.Width / eventData.Height);
+    } else {
+      h = Math.min(stringToNumber(scaleSel), newSize.height);
+      w = h * (eventData.Width / eventData.Height);
+    }
+    newWidth = parseInt(w);
+    newHeight = parseInt(h);
+    currentScale = parseInt(w / eventData.Width * 100);
+    currentScale = currentScale;
+  }
+
+  console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
+
+  eventViewer.width(newWidth);
+  eventViewer.height(newHeight);
+  if (player) {
+    if (player.resize) {
+      console.log(player);
+      player.resize(newWidth, newHeight);
+    }
+    $j('#videoobj canvas').width(newWidth).height(newHeight);
+      console.log(player);
+  } else if (!vid) { // zms needs extra sizing
+    streamScale(currentScale);
+    drawProgressBar();
+  }
+  if (cueFrames) {
+    //just re-render alarmCues.  skip ajax call
+    alarmCue.html(renderAlarmCues(videoFeed));
+  }
+
+  // After a resize, check if we still have room to display the event stats table
+  onStatsResize(newWidth);
+
+  //updateScale = true;
+
+  /* OLD version
   scale = parseFloat($j('#scale').val());
   setCookie('zmEventScale'+eventData.MonitorId, scale);
 
@@ -368,7 +432,14 @@ function changeScale() {
 
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
+  */
 } // end function changeScale
+
+function changeStreamQuality() {
+  const streamQuality = $j('#streamQuality').val();
+  setCookie('zmStreamQuality', streamQuality);
+  streamScale(currentScale);
+}
 
 function changeReplayMode() {
   var replayMode = $j('#replayMode').val();
@@ -463,15 +534,17 @@ function getCmdResponse(respObj, respText) {
     streamPlay( );
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
-  $j('#zoomValue').html(streamStatus.zoom);
-  if (streamStatus.zoom == '1.0') {
-    setButtonState('zoomOutBtn', 'unavail');
-  } else {
-    setButtonState('zoomOutBtn', 'inactive');
-  }
-  if (scale && (streamStatus.scale !== undefined) && (streamStatus.scale != scale)) {
-    console.log("Stream not scaled, re-applying", scale, streamStatus.scale);
-    streamScale(scale);
+  //$j('#zoomValue').html(streamStatus.zoom);
+  $j('#zoomValue').html(zmPanZoom.panZoom[eventData.MonitorId].getScale().toFixed(1));
+  //if (streamStatus.zoom == '1.0') {
+  //  setButtonState('zoomOutBtn', 'unavail');
+  //} else {
+  //  setButtonState('zoomOutBtn', 'inactive');
+  //}
+
+  if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != currentScale + deltaScale())) {
+    console.log("Stream not scaled, re-applying", currentScale + deltaScale(), streamStatus.scale);
+    streamScale(currentScale);
   }
 
   updateProgressBar(streamStatus.progress);
@@ -533,8 +606,10 @@ function playClicked( ) {
       // The assumption is that the command failed because zms exited, so restart the stream.
       const img = document.getElementById('evtStream');
       const src = img.src;
+      const url = new URL(src);
+      url.searchParams.set('scale', currentScale); // In event.php we don’t yet know what scale to substitute. Let it be for now.
       img.src = '';
-      img.src = src;
+      img.src = url;
       zmsBroke = false;
     } else {
       streamReq({command: CMD_PLAY});
@@ -716,6 +791,7 @@ function tagAndPrev(action) {
   streamPrev(action);
 }
 
+/* Not used
 function vjsPanZoom(action, x, y) { //Pan and zoom with centering where the click occurs
   var outer = $j('#videoobj');
   var video = outer.children().first();
@@ -788,13 +864,16 @@ function streamZoomOut() {
     streamReq({command: CMD_ZOOMOUT});
   }
 }
+*/
 
 function streamScale(scale) {
+  scale += deltaScale();
   if (playerType == 'mjpeg') {
-    streamReq({command: CMD_SCALE, scale: scale});
+    streamReq({command: CMD_SCALE, scale: (scale>100) ? 100 : scale});
   }
 }
 
+/*
 function streamPan(x, y) {
   if (vid) {
     vjsPanZoom('pan', x, y);
@@ -804,12 +883,15 @@ function streamPan(x, y) {
     streamReq({command: CMD_PAN, x: x, y: y});
   }
 }
+*/
 
 function streamSeek(offset) {
   if (playerType == 'mjpeg') {
     streamReq({command: CMD_SEEK, offset: offset});
   } else if (playerType == 'h265web.js') {
     player.seek(offset);
+  } else if (vid) {
+    vid.currentTime(offset);
   }
 }
 
@@ -842,7 +924,7 @@ function getEventResponse(respObj, respText) {
     $j('#modeValue').html('Replay');
     $j('#zoomValue').html('1');
     $j('#rate').val('100');
-    vjsPanZoom('zoomOut');
+    //vjsPanZoom('zoomOut');
   } else {
     drawProgressBar();
   }
@@ -973,6 +1055,7 @@ function updateProgressBar(progress) {
 
 // Handles seeking when clicking on the progress bar.
 function progressBarNav() {
+  console.log('progress');
   $j('#progressBar').click(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
@@ -1022,34 +1105,70 @@ function progressBarNav() {
 }
 
 function handleClick(event) {
-  if (vid && (event.target.id != 'videoobj')) {
-    return; // ignore clicks on control bar
-  }
-  // target should be the img tag
-  if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
-    const target = $j(event.target);
-
-    const width = target.width();
-    const height = target.height();
-
-    const scaleX = parseFloat(eventData.Width / width);
-    const scaleY = parseFloat(eventData.Height / height);
-    const pos = target.offset();
-    const x = parseInt((event.pageX - pos.left) * scaleX);
-    const y = parseInt((event.pageY - pos.top) * scaleY);
-
-    if (event.shift || event.shiftKey) { // handle both jquery and mootools
-      streamPan(x, y);
-      updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
-    } else if (event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
-      streamZoomOut();
-    } else {
-      streamZoomIn(x, y);
-      updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
+  if (panZoomEnabled) {
+    if (!event.target.closest('#wrapperEventVideo')) {
+      return;
     }
+
+    //event.preventDefault();
+    const monitorId = eventData.MonitorId; // Event page
+    //We are looking for an object with an ID, because there may be another element in the button.
+    const obj = event.target.id ? event.target : event.target.parentElement;
+
+    if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
+    if (obj.className.includes('btn-edit-monitor')) {
+      const url = '?view=monitor&mid='+monitorId;
+      if (event.ctrlKey) {
+        window.open(url, '_blank');
+      } else {
+        window.location.assign(url);
+      }
+    }
+
+    const obj_id = obj.getAttribute('id');
+    //if (obj.getAttribute('id').indexOf("liveStream") >= 0 || obj.getAttribute('id').indexOf("button_zoom") >= 0) { //Montage & Watch page
+    if (obj_id && (
+      obj_id.indexOf("evtStream") >= 0 ||
+      obj_id.indexOf("button_zoom") >= 0 ||
+      obj.querySelector('video'))
+    ) { //Event page
+      //panZoom[monitorId].setOptions({disablePan: false});
+      zmPanZoom.click(monitorId);
+    }
+  } else {
+    // +++ Old ZoomPan algorithm.
+    /*
+    if (vid && (event.target.id != 'videoobj')) {
+      return; // ignore clicks on control bar
+    }
+    // target should be the img tag
+    if (!(event.ctrlKey && (event.shift || event.shiftKey))) {
+      const target = $j(event.target);
+
+      const width = target.width();
+      const height = target.height();
+
+      const scaleX = parseFloat(eventData.Width / width);
+      const scaleY = parseFloat(eventData.Height / height);
+      const pos = target.offset();
+      const x = parseInt((event.pageX - pos.left) * scaleX);
+      const y = parseInt((event.pageY - pos.top) * scaleY);
+
+      if (event.shift || event.shiftKey) { // handle both jquery and mootools
+        streamPan(x, y);
+        updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
+      } else if (event.ctrlKey) { // allow zoom out by control click.  useful in fullscreen
+        streamZoomOut();
+      } else {
+        streamZoomIn(x, y);
+        updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
+      }
+    }
+    */// --- Old ZoomPan algorithm.
   }
 }
 
+/*
 function shiftImgFrame() { //We calculate the coordinates of the image displacement and shift the image
   let newPosX = parseInt(PrevCoordinatFrame.x - coordinateMouse.shiftMouse_x);
   let newPosY = parseInt(PrevCoordinatFrame.y - coordinateMouse.shiftMouse_y);
@@ -1083,8 +1202,14 @@ function getCoordinateMouse(event) { //We get the current cursor coordinates tak
 
   return {x: parseInt((event.pageX - pos.left) * scaleX), y: parseInt((event.pageY - pos.top) * scaleY)}; //The point of the mouse click relative to the dimensions of the real frame.
 }
+*/
 
 function handleMove(event) {
+/*
+  if (panZoomEnabled) {
+    return;
+  }
+  // +++ Old ZoomPan algorithm.
   if (event.ctrlKey && (event.shift || event.shiftKey)) {
     document.ondragstart = function() {
       return false;
@@ -1122,6 +1247,8 @@ function handleMove(event) {
     updateCoordinateMouse(x, y);
     leftBtnStatus.UpAfterDown = false;
   }
+  // --- Old ZoomPan algorithm.
+*/
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -1174,12 +1301,16 @@ function getStat() {
 
     //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
     switch (key) {
+      case 'Name':
+        tdString = eventData[key] + ' (Id:' + eventData['Id'] + ')';
+        break;
       case 'Frames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+        tdString += ' Alarm:' + '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData['AlarmFrames'] + '</a>';
         break;
-      case 'AlarmFrames':
-        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
-        break;
+      //case 'AlarmFrames':
+      //  tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+      //  break;
       case 'Location':
         tdString = eventData.Latitude + ', ' + eventData.Longitude;
         break;
@@ -1202,8 +1333,11 @@ function getStat() {
           tdString = eventData[key];
         }
         break;
-      case 'MaxScore':
-        tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
+      //case 'MaxScore':
+      //  tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
+      //  break;
+      case 'Score':
+        tdString = 'Total:' + eventData['TotScore'] + ' '+ '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + 'Max:' + eventData['MaxScore'] + '</a>' + ' Avg:' + eventData['AvgScore'];
         break;
       case 'n/a':
         tdString = 'n/a';
@@ -1211,12 +1345,19 @@ function getStat() {
       case 'Resolution':
         tdString = eventData.Width + 'x' + eventData.Height;
         break;
+      case 'DiskSpace':
+        tdString = eventData[key] + ' on ' + eventData['Storage'];
+        break;
       case 'Path':
         tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
         break;
-      case 'Archived':
-      case 'Emailed':
-        tdString = eventData[key] ? yesStr : noStr;
+      //case 'Archived':
+      //case 'Emailed':
+      //  tdString = eventData[key] ? yesStr : noStr;
+      //  break;
+      case 'Info':
+        tdString = translate["Archived"] + ':' + (eventData['Archived'] ? yesStr : noStr);
+        tdString += ', ' + translate["Emailed"] + ':' + (eventData['Emailed'] ? yesStr : noStr);
         break;
       case 'Length':
         const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
@@ -1238,11 +1379,11 @@ function getStat() {
 function onStatsResize(vidWidth) {
   if (!vidWidth) return;
   const minWidth = 200; // An arbitrary value in pixels used to hide the stats table
-  const scale = $j('#scale').val();
+  //const scale = $j('#scale').val();
 
-  if (parseInt(scale)) {
-    vidWidth = vidWidth * (scale/100);
-  }
+  //if (parseInt(scale)) {
+  //  vidWidth = vidWidth * (scale/100);
+  //}
 
   const width = $j(window).width() - vidWidth;
   //console.log("Width: " + width + " = window.width " + $j(window).width() + "- vidWidth" + vidWidth);
@@ -1272,6 +1413,8 @@ function initPage() {
 
   // Load the event stats
   getStat();
+  zmPanZoom.init();
+  changeStreamQuality();
 
   if (getEvtStatsCookie() != 'on') {
     eventStats.toggle(false);
@@ -1280,7 +1423,7 @@ function initPage() {
     onStatsResize(eventData.Width);
     wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
   }
-  if (scale == '0') changeScale();
+  changeScale();
 
   progressBarNav();
 
@@ -1294,8 +1437,8 @@ function initPage() {
   }
 
   {
-    let vid = document.createElement('video');
     if ( codec != 'mjpeg') {
+      let vid = document.createElement('video');
       if (vid.canPlayType('video/mp4; codecs="'+codec+'"')) {
         console.log("can play " + codec);
       } else {
@@ -1303,7 +1446,6 @@ function initPage() {
       }
     }
   }
-  //FIXME prevent blocking...not sure what is happening or best way to unblock
   if (playerType == 'h265web.js') {
     if (!(eventData.DefaultVideo.indexOf('h265') >= 0 || eventData.DefaultVideo.indexOf('hevc') >= 0))
       console.log("Warning, using h265web.js on a non-h265 file");
@@ -1311,53 +1453,54 @@ function initPage() {
     const PLAYER_CORE_TYPE_CNATIVE = 1;
     const token = "base64:QXV0aG9yOmNoYW5neWFubG9uZ3xudW1iZXJ3b2xmLEdpdGh1YjpodHRwczovL2dpdGh1Yi5jb20vbnVtYmVyd29sZixFbWFpbDpwb3JzY2hlZ3QyM0Bmb3htYWlsLmNvbSxRUTo1MzEzNjU4NzIsSG9tZVBhZ2U6aHR0cDovL3h2aWRlby52aWRlbyxEaXNjb3JkOm51bWJlcndvbGYjODY5NCx3ZWNoYXI6bnVtYmVyd29sZjExLEJlaWppbmcsV29ya0luOkJhaWR1";
 
-    const evtStream = $j('#evtStream');
+    console.log('initial width and height', newWidth, newHeight);
+    const evtStream = $j('#videoFeed');
     const config = {
       player: 'videoobj',
-      width: evtStream.width(),
-      height: evtStream.height(),
+      width: newWidth,
+      height: newHeight,
       //accurateSeek: true,
       token: token,
       extInfo: {
-        //probeSize : 8192,
+        probeSize : 8192,
         autoPlay : true,
         moovStartFlag: true,
         readyShow: true,
         //core: PLAYER_CORE_TYPE_DEFAULT,
-        //core : PLAYER_CORE_TYPE_CNATIVE,
+        core : PLAYER_CORE_TYPE_CNATIVE,
         //cacheLength : 50,
-        coreProbePart: 0.4, //0.1 didn't work
+        coreProbePart: 1.0, //0.1 didn't work // anything less than 1 doesn't load the whole file.
         ignoreAudio: 0
       }
     };
     player = window.new265webjs(videoUrl+'&ext=.mp4', config);
-    const progressVoice = document.querySelector('#volume');
-    progressVoice.addEventListener('click', (e) => {
-      let x = e.pageX - progressVoice.getBoundingClientRect().left; // or e.offsetX (less support, though)
-      let y = e.pageY - progressVoice.getBoundingClientRect().top;  // or e.offsetY
-      let clickedValue = x * progressVoice.max / progressVoice.offsetWidth;
-      progressVoice.value = clickedValue;
+    const volume = document.querySelector('#volume');
+    volume.addEventListener('click', (e) => {
+      let x = e.pageX - volume.getBoundingClientRect().left; // or e.offsetX (less support, though)
+      let y = e.pageY - volume.getBoundingClientRect().top;  // or e.offsetY
+      let clickedValue = x * volume.max / volume.offsetWidth;
+      volume.value = clickedValue;
       let volume = clickedValue / 100;
       // alert(volume);
       // console.log(
-      //     progressVoice.offsetLeft, // 209
+      //     volume.offsetLeft, // 209
       //     x, y, // 324 584
-      //     progressVoice.max, progressVoice.offsetWidth);
+      //     volume.max, volume.offsetWidth);
       player.setVoice(volume);
     });
     const showLabel = document.querySelector('#showLabel');
-    const coverToast = document.querySelector('#coverLayer');
-    const coverBtn = document.querySelector('#coverLayerBtn');
+    //const coverToast = document.querySelector('#coverLayer');
+    //const coverBtn = document.querySelector('#coverLayerBtn');
 
     let muteState = false;
     const muteBtn = document.querySelector('#muteBtn');
     muteBtn.onclick = () => {
       if (muteState === true) {
         player.setVoice(1.0);
-        progressVoice.value = 100;
+        volume.value = 100;
       } else {
         player.setVoice(0.0);
-        progressVoice.value = 0;
+        volume.value = 0;
       }
       muteState = !muteState;
     };
@@ -1416,7 +1559,7 @@ function initPage() {
       console.log("mediaInfo===========>", mediaInfo);
       if (mediaInfo.meta.isHEVC === false) {
         console.log("is not HEVC/H.265 media!");
-        //coverToast.removeAttribute('hidden');
+        ////coverToast.removeAttribute('hidden');
         //coverBtn.style.width = '100%';
         //coverBtn.style.fontSize = '50px';
         //coverBtn.innerHTML = 'is not HEVC/H.265 media!';
@@ -1425,13 +1568,13 @@ function initPage() {
       //console.log("is HEVC/H.265 media.");
 
       if (mediaInfo.meta.audioNone) {
-        progressVoice.value = 0;
-        progressVoice.style.display = 'none';
+        volume.value = 0;
+        volume.style.display = 'none';
       } else {
         let volume = getCookie('volume');
         if (volume !== null) {
           player.setVoice(volume/100);
-          progressVoice.value = volume;
+          volume.value = volume;
         }
       }
       if (mediaInfo.videoType == "vod") {
@@ -1441,17 +1584,18 @@ function initPage() {
         if (mediaInfo.meta.audioNone === true) {
           player.play();
         } else {
-          coverToast.removeAttribute('hidden');
-          coverBtn.onclick = () => {
+          //coverToast.removeAttribute('hidden');
+          //coverBtn.onclick = () => {
             // playBar.textContent = '||';
-            playAction();
-            coverToast.setAttribute('hidden', 'hidden');
-          };
+            //playAction();
+            //coverToast.setAttribute('hidden', 'hidden');
+          //};
         }
       }
+      player.play();
 
       showLabel.textContent = SHOW_DONE;
-    };
+    };  // onLoadFinish
     player.do();
   } else if (playerType == 'video.js') {
     //FIXME prevent blocking...not sure what is happening or best way to unblock
@@ -1499,7 +1643,8 @@ function initPage() {
         if (!streamImg) {
           streamImg = $j('#imageFeed object');
         }
-        $j(streamImg).click(function(event) {
+        const observedObject = panZoomEnabled ? 'body' : streamImg;
+        $j(observedObject).click(function(event) {
           handleClick(event);
         });
         $j(streamImg).mousemove(function(event) {
@@ -1510,6 +1655,7 @@ function initPage() {
   } else {
     console.error("Unknown playerType: " + playerType);
   } // end if playerType
+  progressBarNav();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
@@ -1752,6 +1898,14 @@ function initPage() {
     removeTag(tag);
   });
 
+  // Event listener for double click
+  //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  var elStream = document.querySelectorAll('[id = "wrapperEventVideo"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    el.addEventListener('touchstart', doubleTouch);
+    el.addEventListener('dblclick', doubleClickOnStream);
+  });
+
   streamPlay();
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
@@ -1783,6 +1937,33 @@ function initPage() {
       console.log('Location turned on but leaflet not installed.');
     }
   } // end if ZM_OPT_USE_GEOLOCATION
+
+  $j("#videoFeed").hover(
+      //Displaying "Scale" and other buttons at the top of the monitor image
+      function() {
+        //const id = stringToNumber(this.id); //Montage & Watch page
+        const id = eventData.MonitorId; // Event page
+        $j('#button_zoom' + id).stop(true, true).slideDown('fast');
+      },
+      function() {
+        //const id = stringToNumber(this.id); //Montage & Watch page
+        const id = eventData.MonitorId; // Event page
+        $j('#button_zoom' + id).stop(true, true).slideUp('fast');
+      }
+  );
+
+  setInterval(() => {
+    //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
+    if (updateScale) {
+      const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
+      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[eventData.MonitorId].getScale() : 1;
+      const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#videoFeed'), panZoomScale);
+      scale = newSize.autoScale > 100 ? 100 : newSize.autoScale;
+      currentScale = scale;
+      streamScale(currentScale);
+      updateScale = false;
+    }
+  }, 500);
 } // end initPage
 
 function addOrCreateTag(tagValue) {
@@ -1953,6 +2134,14 @@ function fullscreenClicked() {
     console.log(content);
     openFullscreen(content);
   }
+}
+
+function panZoomIn(el) {
+  zmPanZoom.zoomIn(el);
+}
+
+function panZoomOut(el) {
+  zmPanZoom.zoomOut(el);
 }
 
 // Kick everything off

@@ -179,59 +179,60 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     uint32_t size;              /* +0    */
     int32_t  last_write_index;  /* +4    */
     int32_t  last_read_index;   /* +8    */
-    uint32_t state;             /* +12   */
+    int32_t  image_count;       /* +12   */
+    uint32_t state;             /* +16   */
     double      capture_fps;       // Current capturing fps
     double      analysis_fps;      // Current analysis fps
     double      latitude;
     double      longitude;
-    uint64_t last_event_id;     /* +16   */
-    uint32_t action;            /* +24   */
-    int32_t brightness;         /* +28   */
-    int32_t hue;                /* +32   */
-    int32_t colour;             /* +36   */
-    int32_t contrast;           /* +40   */
-    int32_t alarm_x;            /* +44   */
-    int32_t alarm_y;            /* +48   */
-    uint8_t valid;              /* +52   */
-    uint8_t capturing;          /* +53   */
-    uint8_t analysing;          /* +54   */
-    uint8_t recording;          /* +55   */
-    uint8_t signal;             /* +56   */
-    uint8_t format;             /* +57   */
-    uint8_t reserved1;          /* +58   */
-    uint8_t reserved2;          /* +59   */
-    uint32_t imagesize;         /* +60   */
-    uint32_t last_frame_score;  /* +64   */
-    uint32_t audio_frequency;   /* +68   */
-    uint32_t audio_channels;    /* +72   */
-    uint32_t reserved3;         /* +76   */
+    uint64_t last_event_id;     /* +48   */
+    uint32_t action;            /* +56   */
+    int32_t brightness;         /* +60   */
+    int32_t hue;                /* +64   */
+    int32_t colour;             /* +68   */
+    int32_t contrast;           /* +72   */
+    int32_t alarm_x;            /* +76   */
+    int32_t alarm_y;            /* +80   */
+    uint8_t valid;              /* +81   */
+    uint8_t capturing;          /* +82   */
+    uint8_t analysing;          /* +83   */
+    uint8_t recording;          /* +84   */
+    uint8_t signal;             /* +85   */
+    uint8_t format;             /* +86   */
+    uint8_t reserved1;          /* +87   */
+    //uint8_t reserved2;          /* +0   */
+    uint32_t imagesize;         /* +88   */
+    uint32_t last_frame_score;  /* +72   */
+    uint32_t audio_frequency;   /* +76   */
+    uint32_t audio_channels;    /* +80   */
+    //uint32_t reserved3;         /* +0   */
     /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
      ** Shared memory layout should be identical for both 32bit and 64bit and is multiples of 16.
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
      */
-    union {                     /* +80   */
+    union {                     /* +84   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +88   */
+    union {                     /* +92   */
       time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {                     /* +96   */
+    union {                     /* +100   */
       time_t last_write_time;
       uint64_t extrapad3;
     };
-    union {                     /* +104  */
+    union {                     /* +108  */
       time_t last_read_time;
       uint64_t extrapad4;
     };
-    union {                     /* +112  */
+    union {                     /* +116  */
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    uint8_t control_state[256]; /* +120  */
+    uint8_t control_state[256]; /* +124  */
 
     char alarm_cause[256];
     char video_fifo_path[64];
@@ -463,6 +464,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
+  bool            wallclock_timestamps; // Whether to use wallclock pts/dts instead of values from ffmpeg
   int             output_source_stream;
 
 
@@ -518,7 +520,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned int  last_camera_bytes;
 
   int        event_count;
-  int        image_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
   int        decoding_image_count;    // How many frames have been processed by analysis thread.
@@ -758,6 +759,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   inline double Longitude() const { return shared_data ? shared_data->longitude : longitude; }
   inline bool RTSPServer() const { return rtsp_server; }
   inline bool RecordAudio() const { return record_audio; }
+  inline bool WallClockTimestamps() const { return wallclock_timestamps; }
 
   /*
   inline Purpose Purpose() { return purpose };

@@ -136,6 +136,9 @@ function initPage() {
       }
     };
   });
+  document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
+    el.onchange = window['devices_onchange'].bind(el, el);
+  });
   document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
     el.oninput = window['updateMonitorDimensions'].bind(el, el);
   });
@@ -167,8 +170,10 @@ function initPage() {
     el.onchange = function() {
       if (this.value == 1 /* Encode */) {
         $j('.OutputCodec').show();
+        $j('.WallClockTimeStamps').hide();
         $j('.Encoder').show();
       } else {
+        $j('.WallClockTimeStamps').show();
         $j('.OutputCodec').hide();
         $j('.Encoder').hide();
       }
@@ -391,6 +396,9 @@ function initPage() {
   } // end if ZM_OPT_USE_GEOLOCATION
 
   updateLinkedMonitorsUI();
+
+  // Setup the thumbnail video animation
+  if (!isMobile()) initThumbAnimation();
 } // end function initPage()
 
 function ll2dms(input) {
@@ -510,9 +518,11 @@ function random_WebColour() {
 function buffer_setting_oninput(e) {
   const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
   const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
-  if (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value)) {
-    if (this.id=='newMonitor[PreEventCount]') {
-      max_image_buffer_count.value=pre_event_count.value;
+  if (parseInt(max_image_buffer_count.value) &&
+    (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
+  ) {
+    if (this.id == 'newMonitor[PreEventCount]') {
+      max_image_buffer_count.value = pre_event_count.value;
     } else {
       pre_event_count.value = max_image_buffer_count.value;
     }
@@ -672,6 +682,17 @@ function Model_onchange(input) {
 
 function updateLinkedMonitorsUI() {
   expr_to_ui($j('[name="newMonitor[LinkedMonitors]"]').val(), $j('#LinkedMonitorsUI'));
+}
+
+function devices_onchange(devices) {
+  const selected = $j(devices).val();
+  const device = devices.form.elements['newMonitor[Device]'];
+  if (selected !== '') {
+    device.value = selected;
+    device.style['display'] = 'none';
+  } else {
+    device.style['display'] = 'inline';
+  }
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

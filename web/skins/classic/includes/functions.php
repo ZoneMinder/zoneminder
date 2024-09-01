@@ -91,7 +91,12 @@ function xhtmlHeaders($file, $title) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo validHtmlStr(ZM_WEB_TITLE_PREFIX) . ' - ' . validHtmlStr($title) ?></title>
 <?php
-if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
+if (defined('ZM_WEB_FAVICON')) {
+  echo '
+  <link rel="icon" type="image/ico" href="'.ZM_WEB_FAVICON.'"/>
+  <link rel="shortcut icon" href="'.ZM_WEB_FAVICON.'"/>
+';
+} else if ( file_exists("skins/$skin/css/$css/graphics/favicon.ico") ) {
   echo "
   <link rel=\"icon\" type=\"image/ico\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
   <link rel=\"shortcut icon\" href=\"skins/$skin/css/$css/graphics/favicon.ico\"/>
@@ -992,9 +997,10 @@ function xhtmlFooter() {
   if ( $basename == 'montage' ) {
     echo output_script_if_exists(array('assets/gridstack/dist/gridstack-all.js'));
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
-  }
-  if ( $basename == 'watch' ) {
+    echo output_script_if_exists(array('js/panzoom.js'));
+  } else if ( $basename == 'watch' || $basename == 'event') {
     echo output_script_if_exists(array('assets/jquery.panzoom/dist/jquery.panzoom.js'));
+    echo output_script_if_exists(array('js/panzoom.js'));
   }
 
   echo output_script_if_exists(array(
@@ -1007,6 +1013,7 @@ function xhtmlFooter() {
   'js/bootstrap-table-1.22.3/extensions/cookie/bootstrap-table-cookie.js',
   'js/bootstrap-table-1.22.3/extensions/toolbar/bootstrap-table-toolbar.min.js',
   'js/bootstrap-table-1.22.3/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js',
+  'js/bootstrap-table-1.22.3/extensions/mobile/bootstrap-table-mobile.js',
   'js/chosen/chosen.jquery.js',
   'js/dateTimePicker/jquery-ui-timepicker-addon.js',
   'js/Server.js',

@@ -86,6 +86,9 @@ $path_info = pathinfo($Event->DefaultVideo());
 header('Content-type: video/'.$path_info['extension']);
 header('Accept-Ranges: bytes');
 header('Content-Length: '.$length);
+  header('Cache-Control: max-age=86400');
+  header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
+  header('Pragma: cache');
 # This is so that Save Image As give a useful filename
 if ( $Event ) {
   header('Content-Disposition: inline; filename="' . $Event->DefaultVideo() . '"');

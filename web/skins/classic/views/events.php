@@ -64,9 +64,18 @@ if (!$filter->Id()) {
       'val' => $num_terms ? '' : (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
       'cnj' => 'and', 'cookie'=>'eventsTags'));
   }
-  $filter->sort_terms(['Group','Monitor','StartDateTime','EndDateTime','Notes','Tags']);
+  if (!$filter->has_term('Archived')) {
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=',
+      'val' => $num_terms ? '' : (isset($_COOKIE['zmFilterArchived']) ? $_COOKIE['zmFilterArchived'] : ''),
+      'cnj' => 'and', 'cookie'=>'zmFilterArchived'));
+  }
+  $filter->sort_terms(['Group','Monitor','StartDateTime','EndDateTime','Notes','Tags','Archived']);
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'AlarmFrames', 'op'=> '>', 'val'=>'10'));
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '<=', 'val'=>''));
+}
+
+if (!isset($_COOKIES['zmEventsTable.bs.table.pageList'])) {
+  zm_setcookie('zmEventsTable.bs.table.pageList', ZM_WEB_EVENTS_PER_PAGE);
 }
 
 parseSort();
@@ -80,7 +89,7 @@ getBodyTopHTML();
 <?php echo getNavBarHTML(); ?>
     <div id="content" class="container-fluid">
       <!-- Toolbar button placement and styling handled by bootstrap-tables -->
-      <div id="toolbar">
+      <div id="toolbar" class="container-fluid">
         <div class="row">
           <div class="col-sm-1">
             <div id="leftButtons" class="buttons">
@@ -88,6 +97,7 @@ getBodyTopHTML();
               <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
               <button id="tlineBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ShowTimeline') ?>" ><i class="fa fa-history"></i></button>
               <button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>
+        <a class="btn" href="#" data-flip-сontrol-object="#fieldsTable"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
             </div>
           </div> <!-- .col-sm-1-->
           <div class="col-sm-9">
@@ -98,6 +108,7 @@ getBodyTopHTML();
       echo $filter->widget();
     }
   ?>
+
           </div> <!-- .col-sm-9-->
           <div class="col-sm-2">
             <div id="rightButtons" class="buttons">
@@ -164,6 +175,9 @@ getBodyTopHTML();
               <th data-sortable="true" data-field="StartDateTime" class="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
               <th data-sortable="true" data-field="EndDateTime" class="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="true" data-field="Length" class="Length"><?php echo translate('Duration') ?></th>
+<?php if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) { ?>
+              <th data-sortable="true" data-field="Location" class="Location"><?php echo translate('Location') ?></th>
+<?php } ?>
               <th data-sortable="true" data-field="Frames" class="Frames"><?php echo translate('Frames') ?></th>
               <th data-sortable="true" data-field="AlarmFrames" class="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>
               <th data-sortable="true" data-field="TotScore" class="TotScore"><?php echo translate('TotalBrScore') ?></th>

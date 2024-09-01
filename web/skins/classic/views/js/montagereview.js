@@ -25,7 +25,7 @@ function evaluateLoadTimes() {
     avgFrac += freeTimeLastIntervals[i];
   }
   avgFrac = avgFrac / imageLoadTimesEvaluated;
-  // The larger this is(positive) the faster we can go
+  // The larger this is (positive) the faster we can go
   if (avgFrac >= 0.9) currentDisplayInterval = (currentDisplayInterval * 0.50).toFixed(1); // we can go much faster
   else if (avgFrac >= 0.8) currentDisplayInterval = (currentDisplayInterval * 0.55).toFixed(1);
   else if (avgFrac >= 0.7) currentDisplayInterval = (currentDisplayInterval * 0.60).toFixed(1);
@@ -314,7 +314,7 @@ function getImageSource(monId, time) {
     const storage = Storage[e.StorageId] ? Storage[e.StorageId] : Storage[0];
     // monitorServerId may be 0, which gives us the default Server entry
     const server = storage.ServerId ? Servers[storage.ServerId] : Servers[monitorServerId[monId]];
-    return server.PathToZMS + '?mode=jpeg&event=' + Frame.EventId + '&frame='+frame_id +
+    return server.PathToZMS + '?mode=jpeg&frames=1&event=' + Frame.EventId + '&frame='+frame_id +
       //"&width=" + monitorCanvasObj[monId].width +
       //"&height=" + monitorCanvasObj[monId].height +
       "&scale=" + scale +
@@ -794,6 +794,7 @@ function setSpeed(speed_index) {
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
   playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
+  setCookie('speed', speedIndex);
   showSpeed(speed_index);
   timerFire();
 }
@@ -1173,7 +1174,7 @@ function load_Frames(zm_events) {
         $j.ajax(url+query+'.json?'+auth_relay, {
           timeout: 0,
           success: function(data) {
-            if (data.frames && data.frames.length) {
+            if (data && data.frames && data.frames.length) {
               zm_event.FramesById = [];
               let last_frame = null;
 

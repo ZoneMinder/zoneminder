@@ -255,10 +255,10 @@ if (canEdit('Groups')) {
           </tbody>
         </table>
       </fieldset>
+</div><!--Group Permissions-->
 <?php
   } // end if canEdit(Groups)
 ?>
-</div><!--Group Permissions-->
 <div id="MonitorPermissions">
   <fieldset><legend><?php echo translate('Monitor Permissions') ?></legend>
     <table id="contentTable" class="major Monitors">

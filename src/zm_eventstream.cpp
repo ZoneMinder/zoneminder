@@ -629,6 +629,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_QUIT :
     Info("User initiated exit - CMD_QUIT");
+    zm_terminate = true;
     break;
   default :
     // Do nothing, for now
@@ -686,12 +687,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
       //exit(-1);
     }
   }
-
-  // quit after sending a status, if this was a quit request
-  if (static_cast<MsgCommand>(msg->msg_data[0]) == CMD_QUIT) {
-    exit(0);
-  }
-
 }  // void EventStream::processCommand(const CmdMsg *msg)
 
 bool EventStream::checkEventLoaded() {

@@ -77,3 +77,13 @@ body.sticky #eventTable thead {
 .term-value, .chosen-container{
   width: 100% !important;
 }
+
+.bs-bars {
+  width: 100%;
+}
+#toolbar .row {
+  width: 100%;
+}
+#toolbar .row >div {
+  padding: 0;
+}

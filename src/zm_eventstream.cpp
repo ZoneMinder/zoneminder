@@ -43,7 +43,7 @@ constexpr Milliseconds EventStream::STREAM_PAUSE_WAIT;
 
 bool EventStream::loadInitialEventData(int monitor_id, SystemTimePoint event_time) {
   std::string sql = stringtf("SELECT `Id` FROM `Events` WHERE "
-                             "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %ld "
+                             "`MonitorId` = %d AND unix_timestamp(`EndDateTime`) > %jd "
                              "ORDER BY `Id` ASC LIMIT 1", monitor_id, std::chrono::system_clock::to_time_t(event_time));
 
   MYSQL_RES *result = zmDbFetch(sql);
@@ -629,6 +629,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_QUIT :
     Info("User initiated exit - CMD_QUIT");
+    zm_terminate = true;
     break;
   default :
     // Do nothing, for now
@@ -686,12 +687,6 @@ void EventStream::processCommand(const CmdMsg *msg) {
       //exit(-1);
     }
   }
-
-  // quit after sending a status, if this was a quit request
-  if (static_cast<MsgCommand>(msg->msg_data[0]) == CMD_QUIT) {
-    exit(0);
-  }
-
 }  // void EventStream::processCommand(const CmdMsg *msg)
 
 bool EventStream::checkEventLoaded() {
@@ -874,8 +869,10 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       int img_buffer_size = 0;
       uint8_t *img_buffer = temp_img_buffer;
 
-      fprintf(stdout, "--" BOUNDARY "\r\n");
+      if (type != STREAM_SINGLE)
+       fprintf(stdout, "--" BOUNDARY "\r\n");
       switch ( type ) {
+      case STREAM_SINGLE :
       case STREAM_JPEG :
         send_image->EncodeJpeg(img_buffer, &img_buffer_size);
         fputs("Content-Type: image/jpeg\r\n", stdout);
@@ -940,12 +937,13 @@ void EventStream::runStream() {
   Microseconds delta = Microseconds(0);
 
   while (!zm_terminate) {
-    start = std::chrono::steady_clock::now();
+    now = start = std::chrono::steady_clock::now();
 
     {
       std::scoped_lock lck{mutex};
 
       send_frame = false;
+      TimePoint::duration time_since_last_send = now - last_frame_sent;
 
       if (!paused) {
         // Figure out if we should send this frame
@@ -964,16 +962,22 @@ void EventStream::runStream() {
         send_frame = true;
       } else if (!send_frame) {
         // We are paused, not stepping and doing nothing, meaning that comms didn't set send_frame to true
-        if (now - last_frame_sent > MAX_STREAM_DELAY) {
+        if (time_since_last_send > MAX_STREAM_DELAY) {
           // Send keepalive
           Debug(2, "Sending keepalive frame");
           send_frame = true;
+        } else {
+          Debug(4, "Not Sending keepalive frame now %.2f - %.2f last = %.2f > Max %.2f",
+              FPSeconds(now.time_since_epoch()).count(),
+              FPSeconds(last_frame_sent.time_since_epoch()).count(),
+              FPSeconds(time_since_last_send).count(),
+              FPSeconds(MAX_STREAM_DELAY).count()
+              );
         }
       }  // end if streaming stepping or doing nothing
 
       // time_to_event > 0 means that we are not in the event
       if (time_to_event > Seconds(0) and mode == MODE_ALL) {
-        TimePoint::duration time_since_last_send = now - last_frame_sent;
         Debug(1, "Time since last send = %.2f s", FPSeconds(time_since_last_send).count());
         if (time_since_last_send > Seconds(1)) {
           char frame_text[64];
@@ -1069,8 +1073,7 @@ void EventStream::runStream() {
                   base_fps,
                   effective_fps);
           }
-          now = std::chrono::steady_clock::now();
-          TimePoint::duration elapsed = now - start;
+          TimePoint::duration elapsed = std::chrono::steady_clock::now() - start;
           delta -= std::chrono::duration_cast<Microseconds>(elapsed); // sending frames takes time, so remove it from the sleep time
 
           Debug(2, "New delta: %fs from last frame offset %fs - next_frame_offset %fs - elapsed %fs",
@@ -1090,6 +1093,11 @@ void EventStream::runStream() {
         curr_frame_id += step;
       }  // end if !paused
     }  // end scope for mutex lock
+ 
+    if (type == STREAM_SINGLE) {
+      Debug(1, "Single, exiting.");
+      break;
+    }
 
     if (type != STREAM_MPEG) {
       if (delta > Seconds(0)) {

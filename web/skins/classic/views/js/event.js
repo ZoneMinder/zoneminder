@@ -40,15 +40,8 @@ var coordinateMouse = {
   shiftMouseForTrigger_x: null, shiftMouseForTrigger_y: null
 };
 var leftBtnStatus = {Down: false, UpAfterDown: false};
-
-var panZoomEnabled = true; //Add it to settings in the future
-var panZoomMaxScale = 10;
-var panZoomStep = 0.3;
-var panZoom = [];
-var shifted;
-var ctrled;
-
 var updateScale = false; //Scale needs to be updated
+var currentScale = 0; // Temporarily, because need to put things in order with the "scale" variable = "select" block
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
@@ -284,6 +277,10 @@ function changeCodec() {
   location.replace(thisUrl + '?view=event&eid=' + eventData.Id + filterQuery + sortQuery+'&codec='+$j('#codec').val());
 }
 
+function deltaScale() {
+  return parseInt(currentScale/100*$j('#streamQuality').val()); // "-" - Decrease quality, "+" - Increase image quality in %
+}
+
 function changeScale() {
   const scaleSel = $j('#scale').val();
   let newWidth;
@@ -292,6 +289,7 @@ function changeScale() {
 
   const alarmCue = $j('#alarmCues');
   const bottomEl = $j('#replayStatus');
+  const landscape = eventData.width / eventData.height > 1 ? true : false; //Image orientation.
 
   setCookie('zmEventScale'+eventData.MonitorId, scaleSel);
 
@@ -303,26 +301,41 @@ function changeScale() {
     //Actual, 100% of original size
     newWidth = eventData.Width;
     newHeight = eventData.Height;
-    scale = 100;
+    currentScale = 100;
   } else if (scaleSel == '0') {
     //Auto, Width is calculated based on the occupied height so that the image and control buttons occupy the visible part of the screen.
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, bottomEl, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
-    scale = newSize.autoScale;
+    currentScale = newSize.autoScale;
   } else if (scaleSel == 'fit_to_width') {
     //Fit to screen width
     newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'));
     newWidth = newSize.width;
     newHeight = newSize.height;
-    //newHeight = 'auto';
-    scale = newSize.autoScale;
+    currentScale = newSize.autoScale;
+  } else if (scaleSel.indexOf("px") > -1) {
+    newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo')); // Only for calculating the maximum width!
+    let w = h = '';
+    if (landscape) {
+      w = Math.min(stringToNumber(scaleSel), newSize.width);
+      h = w / (eventData.Width / eventData.Height);
+    } else {
+      h = Math.min(stringToNumber(scaleSel), newSize.height);
+      w = h * (eventData.Width / eventData.Height);
+    }
+    newWidth = parseInt(w);
+    newHeight = parseInt(h);
+    currentScale = parseInt(w / eventData.Width * 100);
+    currentScale = currentScale;
   }
+
+  //console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
 
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
   if (!vid) { // zms needs extra sizing
-    streamScale(scale);
+    streamScale(currentScale);
     drawProgressBar();
   }
   if (cueFrames) {
@@ -333,7 +346,7 @@ function changeScale() {
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
 
-  updateScale = true;
+  //updateScale = true;
 
   /* OLD version
   scale = parseFloat($j('#scale').val());
@@ -371,6 +384,12 @@ function changeScale() {
   onStatsResize(newWidth);
   */
 } // end function changeScale
+
+function changeStreamQuality() {
+  const streamQuality = $j('#streamQuality').val();
+  setCookie('zmStreamQuality', streamQuality);
+  streamScale(currentScale);
+}
 
 function changeReplayMode() {
   var replayMode = $j('#replayMode').val();
@@ -457,15 +476,17 @@ function getCmdResponse(respObj, respText) {
     streamPlay( );
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
-  $j('#zoomValue').html(streamStatus.zoom);
-  if (streamStatus.zoom == '1.0') {
-    setButtonState('zoomOutBtn', 'unavail');
-  } else {
-    setButtonState('zoomOutBtn', 'inactive');
-  }
-  if (scale && (streamStatus.scale !== undefined) && (streamStatus.scale != scale)) {
-    console.log("Stream not scaled, re-applying", scale, streamStatus.scale);
-    streamScale(scale);
+  //$j('#zoomValue').html(streamStatus.zoom);
+  $j('#zoomValue').html(zmPanZoom.panZoom[eventData.MonitorId].getScale().toFixed(1));
+  //if (streamStatus.zoom == '1.0') {
+  //  setButtonState('zoomOutBtn', 'unavail');
+  //} else {
+  //  setButtonState('zoomOutBtn', 'inactive');
+  //}
+
+  if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != currentScale + deltaScale())) {
+    console.log("Stream not scaled, re-applying", currentScale + deltaScale(), streamStatus.scale);
+    streamScale(currentScale);
   }
 
   updateProgressBar();
@@ -519,8 +540,10 @@ function playClicked( ) {
       // The assumption is that the command failed because zms exited, so restart the stream.
       const img = document.getElementById('evtStream');
       const src = img.src;
+      const url = new URL(src);
+      url.searchParams.set('scale', currentScale); // In event.php we don’t yet know what scale to substitute. Let it be for now.
       img.src = '';
-      img.src = src;
+      img.src = url;
       zmsBroke = false;
     } else {
       streamReq({command: CMD_PLAY});
@@ -694,6 +717,7 @@ function tagAndPrev(action) {
   streamPrev(action);
 }
 
+/* Not used
 function vjsPanZoom(action, x, y) { //Pan and zoom with centering where the click occurs
   var outer = $j('#videoobj');
   var video = outer.children().first();
@@ -766,13 +790,16 @@ function streamZoomOut() {
     streamReq({command: CMD_ZOOMOUT});
   }
 }
+*/
 
 function streamScale(scale) {
+  scale += deltaScale();
   if (document.getElementById('evtStream')) {
     streamReq({command: CMD_SCALE, scale: (scale>100) ? 100 : scale});
   }
 }
 
+/*
 function streamPan(x, y) {
   if (vid) {
     vjsPanZoom('pan', x, y);
@@ -780,9 +807,14 @@ function streamPan(x, y) {
     streamReq({command: CMD_PAN, x: x, y: y});
   }
 }
+*/
 
 function streamSeek(offset) {
-  streamReq({command: CMD_SEEK, offset: offset});
+  if (vid) {
+    vid.currentTime(offset);
+  } else {
+    streamReq({command: CMD_SEEK, offset: offset});
+  }
 }
 
 function streamQuery() {
@@ -812,7 +844,7 @@ function getEventResponse(respObj, respText) {
     $j('#modeValue').html('Replay');
     $j('#zoomValue').html('1');
     $j('#rate').val('100');
-    vjsPanZoom('zoomOut');
+    //vjsPanZoom('zoomOut');
   } else {
     drawProgressBar();
   }
@@ -943,6 +975,7 @@ function updateProgressBar() {
 
 // Handles seeking when clicking on the progress bar.
 function progressBarNav() {
+  console.log('progress');
   $j('#progressBar').click(function(e) {
     let x = e.pageX - $j(this).offset().left;
     if (x<0) x=0;
@@ -993,14 +1026,14 @@ function progressBarNav() {
 
 function handleClick(event) {
   if (panZoomEnabled) {
+    if (!event.target.closest('#wrapperEventVideo')) {
+      return;
+    }
+
     //event.preventDefault();
     const monitorId = eventData.MonitorId; // Event page
-    if (event.target.id) {
     //We are looking for an object with an ID, because there may be another element in the button.
-      var obj = event.target;
-    } else {
-      var obj = event.target.parentElement;
-    }
+    const obj = event.target.id ? event.target : event.target.parentElement;
 
     if (obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
     if (obj.className.includes('btn-edit-monitor')) {
@@ -1012,26 +1045,19 @@ function handleClick(event) {
       }
     }
 
+    const obj_id = obj.getAttribute('id');
     //if (obj.getAttribute('id').indexOf("liveStream") >= 0 || obj.getAttribute('id').indexOf("button_zoom") >= 0) { //Montage & Watch page
-    if (obj.getAttribute('id').indexOf("evtStream") >= 0 ||
-      obj.getAttribute('id').indexOf("button_zoom") >= 0 ||
-      obj.querySelector('video')) { //Event page
+    if (obj_id && (
+      obj_id.indexOf("evtStream") >= 0 ||
+      obj_id.indexOf("button_zoom") >= 0 ||
+      obj.querySelector('video'))
+    ) { //Event page
       //panZoom[monitorId].setOptions({disablePan: false});
-      if (ctrled && shifted) {
-        panZoom[monitorId].zoom(1, {animate: true});
-      } else if (ctrled) {
-        //panZoom[monitorId].setOptions({disablePan: true});
-        panZoom[monitorId].zoomOut();
-      } else if (shifted) {
-        const scalePanZoom = panZoom[monitorId].getScale() * Math.exp(panZoomStep);
-        const point = {clientX: event.clientX, clientY: event.clientY};
-        //panZoom[monitorId].setOptions({disablePan: true});
-        panZoom[monitorId].zoomToPoint(scalePanZoom, point, {focal: {x: event.clientX, y: event.clientY}});
-      }
-      updateScale = true;
+      zmPanZoom.click(monitorId);
     }
   } else {
     // +++ Old ZoomPan algorithm.
+    /*
     if (vid && (event.target.id != 'videoobj')) {
       return; // ignore clicks on control bar
     }
@@ -1058,10 +1084,11 @@ function handleClick(event) {
         updatePrevCoordinatFrame(x, y); //Fixing current coordinates after scaling or shifting
       }
     }
-    // --- Old ZoomPan algorithm.
+    */// --- Old ZoomPan algorithm.
   }
 }
 
+/*
 function shiftImgFrame() { //We calculate the coordinates of the image displacement and shift the image
   let newPosX = parseInt(PrevCoordinatFrame.x - coordinateMouse.shiftMouse_x);
   let newPosY = parseInt(PrevCoordinatFrame.y - coordinateMouse.shiftMouse_y);
@@ -1095,8 +1122,10 @@ function getCoordinateMouse(event) { //We get the current cursor coordinates tak
 
   return {x: parseInt((event.pageX - pos.left) * scaleX), y: parseInt((event.pageY - pos.top) * scaleY)}; //The point of the mouse click relative to the dimensions of the real frame.
 }
+*/
 
 function handleMove(event) {
+/*
   if (panZoomEnabled) {
     return;
   }
@@ -1139,6 +1168,7 @@ function handleMove(event) {
     leftBtnStatus.UpAfterDown = false;
   }
   // --- Old ZoomPan algorithm.
+*/
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -1191,12 +1221,16 @@ function getStat() {
 
     //switch ( ( eventData[key] && eventData[key].length ) ? key : 'n/a') {
     switch (key) {
+      case 'Name':
+        tdString = eventData[key] + ' (Id:' + eventData['Id'] + ')';
+        break;
       case 'Frames':
         tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+        tdString += ' Alarm:' + '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData['AlarmFrames'] + '</a>';
         break;
-      case 'AlarmFrames':
-        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
-        break;
+      //case 'AlarmFrames':
+      //  tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
+      //  break;
       case 'Location':
         tdString = eventData.Latitude + ', ' + eventData.Longitude;
         break;
@@ -1219,8 +1253,11 @@ function getStat() {
           tdString = eventData[key];
         }
         break;
-      case 'MaxScore':
-        tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
+      //case 'MaxScore':
+      //  tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
+      //  break;
+      case 'Score':
+        tdString = 'Total:' + eventData['TotScore'] + ' '+ '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + 'Max:' + eventData['MaxScore'] + '</a>' + ' Avg:' + eventData['AvgScore'];
         break;
       case 'n/a':
         tdString = 'n/a';
@@ -1228,12 +1265,19 @@ function getStat() {
       case 'Resolution':
         tdString = eventData.Width + 'x' + eventData.Height;
         break;
+      case 'DiskSpace':
+        tdString = eventData[key] + ' on ' + eventData['Storage'];
+        break;
       case 'Path':
         tdString = '<a href="?view=files&amp;path='+eventData.Path+'">'+eventData.Path+'</a>';
         break;
-      case 'Archived':
-      case 'Emailed':
-        tdString = eventData[key] ? yesStr : noStr;
+      //case 'Archived':
+      //case 'Emailed':
+      //  tdString = eventData[key] ? yesStr : noStr;
+      //  break;
+      case 'Info':
+        tdString = translate["Archived"] + ':' + (eventData['Archived'] ? yesStr : noStr);
+        tdString += ', ' + translate["Emailed"] + ':' + (eventData['Emailed'] ? yesStr : noStr);
         break;
       case 'Length':
         const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
@@ -1283,61 +1327,14 @@ function onStatsResize(vidWidth) {
   }
 }
 
-/*
-* Id - Monitor ID
-* The function will probably be moved to the main JS file
-*/
-function manageCursor(Id) {
-  //const obj = document.getElementById('liveStream'+Id); //Montage & Watch page
-  const obj = document.getElementById('videoFeedStream'+Id); //Event page
-  //const obj_btn = document.getElementById('button_zoom'+Id); //Change the cursor when you hover over the block of buttons at the top of the image. Not required on Event page
-  const currentScale = panZoom[Id].getScale().toFixed(1);
-
-  if (shifted && ctrled) {
-    obj.style['cursor'] = 'zoom-out';
-    //obj_btn.style['cursor'] = 'not-allowed';
-  } else if (shifted) {
-    obj.style['cursor'] = 'zoom-in';
-    //obj_btn.style['cursor'] = 'zoom-in';
-  } else if (ctrled) {
-    if (currentScale == 1.0) {
-      obj.style['cursor'] = 'auto';
-      //obj_btn.style['cursor'] = 'auto';
-    } else {
-      obj.style['cursor'] = 'zoom-out';
-      //obj_btn.style['cursor'] = 'zoom-out';
-    }
-  } else {
-    if (currentScale == 1.0) {
-      obj.style['cursor'] = 'auto';
-      //obj_btn.style['cursor'] = 'auto';
-    } else {
-      obj.style['cursor'] = 'move';
-      //obj_btn.style['cursor'] = 'move';
-    }
-  }
-}
-
 function initPage() {
   getAvailableTags();
   getSelectedTags();
 
   // Load the event stats
   getStat();
-
-  if (panZoomEnabled) {
-    $j(document).on('keyup keydown', function(e) {
-      shifted = e.shiftKey ? e.shiftKey : e.shift;
-      ctrled = e.ctrlKey;
-      manageCursor(eventData.MonitorId);
-    });
-    $j('.zoompan').each( function() {
-      panZoomAction('enable', {obj: this});
-      this.addEventListener('mousemove', function(e) {
-        //Temporarily not use
-      });
-    });
-  }
+  zmPanZoom.init();
+  changeStreamQuality();
 
   if (getEvtStatsCookie() != 'on') {
     eventStats.toggle(false);
@@ -1382,7 +1379,6 @@ function initPage() {
       vid.playbackRate(rate/100);
     }
   } else {
-    progressBarNav();
     streamCmdTimer = setTimeout(streamQuery, 500);
     if (canStreamNative) {
       if (!$j('#videoFeed')) {
@@ -1402,7 +1398,9 @@ function initPage() {
       }
     }
   } // end if videojs or mjpeg stream
-  if (scale == '0') changeScale();
+  progressBarNav();
+  //if (scale == '0') changeScale();
+  changeScale();
   nearEventsQuery(eventData.Id);
   initialAlarmCues(eventData.Id); //call ajax+renderAlarmCues
   document.querySelectorAll('select[name="rate"]').forEach(function(el) {
@@ -1644,6 +1642,14 @@ function initPage() {
     removeTag(tag);
   });
 
+  // Event listener for double click
+  //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  var elStream = document.querySelectorAll('[id = "wrapperEventVideo"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    el.addEventListener('touchstart', doubleTouch);
+    el.addEventListener('dblclick', doubleClickOnStream);
+  });
+
   streamPlay();
 
   if ( parseInt(ZM_OPT_USE_GEOLOCATION) && parseFloat(eventData.Latitude) && parseFloat(eventData.Longitude)) {
@@ -1694,10 +1700,11 @@ function initPage() {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
     if (updateScale) {
       const eventViewer = $j(vid ? '#videoobj' : '#evtStream');
-      const panZoomScale = panZoomEnabled ? panZoom[eventData.MonitorId].getScale() : 1;
-      const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#wrapperEventVideo'), panZoomScale);
+      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[eventData.MonitorId].getScale() : 1;
+      const newSize = scaleToFit(eventData.Width, eventData.Height, eventViewer, false, $j('#videoFeed'), panZoomScale);
       scale = newSize.autoScale > 100 ? 100 : newSize.autoScale;
-      //streamScale(scale);
+      currentScale = scale;
+      streamScale(currentScale);
       updateScale = false;
     }
   }, 500);
@@ -1873,87 +1880,12 @@ function fullscreenClicked() {
   }
 }
 
-/*
-param = param['obj'] : DOM object
-param = param['id'] : monitor id
-*/
-function panZoomAction(action, param) {
-  if (action == "enable") {
-    //Enable all object
-    //const i = stringToNumber($j(param['obj']).children('[id ^= "liveStream"]')[0].id); //Montage & Watch page
-    const i = eventData.MonitorId; //Event page
-    $j('.btn-zoom-in').removeClass('hidden');
-    $j('.btn-zoom-out').removeClass('hidden');
-    panZoom[i] = Panzoom(param['obj'], {
-      minScale: 1,
-      step: panZoomStep,
-      maxScale: panZoomMaxScale,
-      panOnlyWhenZoomed: true,
-      contain: 'outside',
-      cursor: 'inherit',
-    });
-    //panZoom[i].pan(10, 10);
-    //panZoom[i].zoom(1, {animate: true});
-    // Binds to shift + wheel
-    param['obj'].parentElement.addEventListener('wheel', function(event) {
-      if (!shifted) {
-        return;
-      }
-      panZoom[i].zoomWithWheel(event);
-      updateScale = true;
-    });
-  } else if (action == "disable") {
-    //Disable a specific object
-    $j('.btn-zoom-in').addClass('hidden');
-    $j('.btn-zoom-out').addClass('hidden');
-    panZoom[param['id']].reset();
-    panZoom[param['id']].resetStyle();
-    panZoom[param['id']].setOptions({disablePan: true, disableZoom: true});
-    panZoom[param['id']].destroy();
-    updateScale = true;
-  }
-}
-
 function panZoomIn(el) {
-  /*
-  if (el.target.id) {
-    //For Montage page
-    var id = stringToNumber(el.target.id);
-  } else { //There may be an element without ID inside the button
-    var id = stringToNumber(el.target.parentElement.id);
-  }
-  */
-  //var id = monitorId; //For Watch page
-  var id = eventData.MonitorId; //For Evant page
-  if (el.ctrlKey) {
-    // Double the zoom step.
-    panZoom[id].zoom(panZoom[id].getScale() * Math.exp(panZoomStep*2), {animate: true});
-  } else {
-    panZoom[id].zoomIn();
-  }
-  updateScale = true;
-  manageCursor(id);
+  zmPanZoom.zoomIn(el);
 }
 
 function panZoomOut(el) {
-  /*
-  if (el.target.id) {
-    //For Montage page
-    var id = stringToNumber(el.target.id);
-  } else { //There may be an element without ID inside the button
-    var id = stringToNumber(el.target.parentElement.id);
-  }
-  */
-  //var id = monitorId; //For Watch page
-  var id = eventData.MonitorId; //For Evant page
-  if (el.ctrlKey) {
-    // Reset zoom
-    panZoom[id].zoom(1, {animate: true});
-  } else {
-    panZoom[id].zoomOut();
-  }
-  updateScale = true;
-  manageCursor(id);
+  zmPanZoom.zoomOut(el);
 }
 
 // Kick everything off

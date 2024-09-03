@@ -24,6 +24,15 @@ if (!canView('Events')) {
 }
 
 $path = (!empty($_REQUEST['path'])) ? $_REQUEST['path'] : ZM_DIR_EVENTS;
+$is_ok_path = false;
+foreach (ZM\Storage::find() as $storage) {
+  $rc = strstr($path, $storage->Path(), true);
+  ZM\Debug("rc from strstr ($rc) $path ".$storage->Path());
+  if ((false !== $rc) and ($rc == '')) {
+    # Must be at the beginning
+    $is_ok_path = true;
+  }
+}
 $path_parts = pathinfo($path);
 
 if (@is_file($path)) {
@@ -54,6 +63,9 @@ xhtmlHeaders(__FILE__, translate('Files'));
     <div id="content">
       <form id="filesForm" name="filesForm" method="post" action="?view=files&path=<?php echo urlencode($path); ?>">
 <?php
+if (!$is_ok_path) {
+  echo '<div class="error">Path is not valid. Path must be below a designated Storage area.<br/></div>';
+} else {
 $exploded = explode('/', $path);
 ZM\Debug(print_r($exploded, true));
 $array = array();
@@ -123,6 +135,9 @@ foreach ($files as $file) {
 ?>
           </tbody>
         </table>
+<?php 
+} # end if is_ok_path
+?>
         <div id="contentButtons">
           <button type="submit" name="action" value="delete" disabled="disabled">
           <?php echo translate('Delete') ?>

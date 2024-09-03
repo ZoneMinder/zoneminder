@@ -38,7 +38,8 @@ $fid = 0;
 if ( isset($_REQUEST['Id']) and $_REQUEST['Id'] ) {
   $fid = validInt($_REQUEST['Id']);
 } else if ( isset($_REQUEST['filter']) and isset($_REQUEST['filter']['Id']) ) {
-  $fid = validInt($_REQUEST['filter']['Id']);
+  # $_REQUEST['filter']['Id'] get used later in populating filter object, so need to sanitise it
+  $fid = $_REQUEST['filter']['Id'] = validInt($_REQUEST['filter']['Id']);
 }
 $filter = null;
 foreach ( ZM\Filter::find(null,array('order'=>'lower(Name)')) as $Filter ) {
@@ -351,6 +352,10 @@ if ( ZM_OPT_EMAIL ) {
   ['Individual'=>translate('Individual'), 'Summary'=>translate('Summary')],
   $filter->EmailFormat()); ?>
 </label>
+              </p>
+              <p>
+                <label for="filter[EmailServer]"><?php echo translate('FilterEmailServer') ?></label>
+                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" />
               </p>
               
             </div>

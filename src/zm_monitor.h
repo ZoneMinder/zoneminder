@@ -464,6 +464,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
+  bool            wallclock_timestamps; // Whether to use wallclock pts/dts instead of values from ffmpeg
   int             output_source_stream;
 
 
@@ -749,7 +750,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
                  static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
                  -
                  shared_data->last_viewed_time
-               ) > 1 ? false : true);
+               ) > 10 ? false : true);
     }
     return false;
   }
@@ -758,6 +759,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   inline double Longitude() const { return shared_data ? shared_data->longitude : longitude; }
   inline bool RTSPServer() const { return rtsp_server; }
   inline bool RecordAudio() const { return record_audio; }
+  inline bool WallClockTimestamps() const { return wallclock_timestamps; }
 
   /*
   inline Purpose Purpose() { return purpose };

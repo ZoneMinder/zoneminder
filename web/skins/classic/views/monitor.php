@@ -294,6 +294,10 @@ $Colours = array(
     '4' => translate('32BitColour')
     );
 
+$devices = [''=>translate('Other')];
+foreach (glob('/dev/video*') as $device) 
+  $devices[$device] = $device;
+
 $orientations = array(
     'ROTATE_0' => translate('Normal'),
     'ROTATE_90' => translate('RotateRight'),
@@ -645,23 +649,25 @@ switch ($name) {
 ?>
           <li>
             <label><?php echo translate('DevicePath') ?></label>
-            <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"/>
+<?php echo count($devices) > 1 ? htmlSelect('newMonitor[Devices]', $devices, $monitor->Device()) : ''; ?>
+            <input type="text" name="newMonitor[Device]" value="<?php echo validHtmlStr($monitor->Device()) ?>"
+<?php echo ($monitor->Device() and isset($devices[$monitor->Device()]) ) ? 'style="display: none;"' : '' ?>
+            />
           </li>
-          <li>
-            <label><?php echo translate('CaptureMethod') ?></label>
-            <?php 
+<?php
 $localMethods = array(
     'v4l2' => 'Video For Linux version 2',
     );
 if (!ZM_HAS_V4L2)
   unset($localMethods['v4l2']);
-if (!isset($localMethods[$monitor->Method()])) $monitor->Method('v4l2');
-echo htmlSelect('newMonitor[Method]', $localMethods, 
-  ((count($localMethods)==1) ? array_keys($localMethods)[0] : $monitor->Method()),
-  array('data-on-change'=>'submitTab', 'data-tab-name'=>$tab) );
-?>
-          </li>
-<?php
+if (!isset($localMethods[$monitor->Method()])) $monitor->Method(array_keys($localMethods)[0]);
+if (count($localMethods)>1) {
+  echo '<li><label>'.translate('CaptureMethod').'</label>';
+  echo htmlSelect('newMonitor[Method]', $localMethods, $monitor->Method(), ['data-on-change'=>'submitTab', 'data-tab-name'=>$tab] );
+  echo '</li>'.PHP_EOL;
+} else {
+  echo '<input type="hidden" name="newMonitor[Method]" value="'.validHtmlStr($monitor->Method()).'"/>'.PHP_EOL;
+}
         if ( ZM_HAS_V4L2 && $monitor->Method() == 'v4l2' ) {
 ?>
           <li>
@@ -1146,6 +1152,7 @@ $videowriter_encoders = array(
   'h264_omx' => 'h264_omx',
   'h264_qsv' => 'h264_qsv',
   'h264_vaapi' => 'h264_vaapi',
+  'h264_v4l2m2m' => 'h264_v4l2m2m',
   'libx265' => 'libx265',
   'hevc_nvenc' => 'hevc_nvenc',
   'hevc_qsv' => 'hevc_qsv',
@@ -1175,6 +1182,10 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <label><?php echo translate('OptionalEncoderParam'); echo makeHelpLink('OPTIONS_ENCODER_PARAMETERS') ?></label>
               <textarea name="newMonitor[EncoderParameters]" rows="<?php echo count(explode("\n", $monitor->EncoderParameters())); ?>"><?php echo validHtmlStr($monitor->EncoderParameters()) ?></textarea>
               
+            </li>
+            <li class="WallClockTimeStamps">
+              <label><?php echo translate('Use Wallclock Timestamps') ?></label>
+              <input type="checkbox" name="newMonitor[WallClockTimestamps]" value="1"<?php if ( $monitor->WallClockTimestamps() ) { ?> checked="checked"<?php } ?>/>
             </li>
             <li class="RecordAudio">
               <label><?php echo translate('RecordAudio') ?></label>
@@ -1294,6 +1305,34 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
  echo htmlSelect('newMonitor[DefaultCodec]', $codecs, $monitor->DefaultCodec()); ?>
+            </li>
+            <li>
+<?php
+  $stream_available = canView('Stream') and $monitor->Type()=='WebSite' or ($monitor->CaptureFPS() && $monitor->Capturing() != 'None');
+  $options = array();
+
+  $ratio_factor = $monitor->ViewWidth() ? $monitor->ViewHeight() / $monitor->ViewWidth() : 1;
+  $options['width'] = ZM_WEB_LIST_THUMB_WIDTH;
+  $options['height'] = ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor;
+  $options['scale'] = $monitor->ViewWidth() ? intval(100*ZM_WEB_LIST_THUMB_WIDTH / $monitor->ViewWidth()) : 100;
+  $options['mode'] = 'jpeg';
+  $options['frames'] = 1;
+
+  $stillSrc = $monitor->getStreamSrc($options);
+  $streamSrc = $monitor->getStreamSrc(array('scale'=>$options['scale']*5));
+
+  $thmbWidth = ( $options['width'] ) ? 'width:'.$options['width'].'px;' : '';
+  $thmbHeight = ( $options['height'] ) ? 'height:'.$options['height'].'px;' : '';
+
+  $imgHTML = '<div class="colThumbnail" style="'.$thmbHeight.'"><a';
+  $imgHTML .= $stream_available ? ' href="?view=watch&amp;mid='.$monitor->Id().'">' : '>';
+  $imgHTML .= '<img id="thumbnail' .$monitor->Id(). '" src="' .$stillSrc. '" style="'
+    .$thmbWidth.$thmbHeight. '" stream_src="' .$streamSrc. '" still_src="' .$stillSrc. '"'.
+    ($options['width'] ? ' width="'.$options['width'].'"' : '' ).
+    ($options['height'] ? ' height="'.$options['height'].'"' : '' ).
+    ' loading="lazy" /></a></div>';
+  echo $imgHTML;
+?>
             </li>
 <?php
     break;

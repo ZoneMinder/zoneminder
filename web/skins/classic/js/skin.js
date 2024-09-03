@@ -38,6 +38,9 @@ var icons = {
   detailClose: 'fa-minus'
 };
 
+var panZoomEnabled = true; //Add it to settings in the future
+var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
+
 function checkSize() {
   if ( 0 ) {
     if (window.outerHeight) {
@@ -311,22 +314,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
-      if ( obj.is(":visible") && !obj.hasClass("hidden-shift")) {
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
-          objIconButton.html(objIconButton.attr('data-icon-hidden'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
-        }
-        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'hidden');
-      } else { //hidden
-        obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
-          objIconButton.html(objIconButton.attr('data-icon-visible'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
-        }
-        setCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'), 'visible');
-      }
+      changeButtonIcon(_this_, objIconButton);
 
       const nameFuncBefore = _this_.attr('data-flip-сontrol-run-before-func') ? _this_.attr('data-flip-сontrol-run-before-func') : null;
       const nameFuncAfter = _this_.attr('data-flip-сontrol-run-after-func') ? _this_.attr('data-flip-сontrol-run-after-func') : null;
@@ -337,13 +325,15 @@ if ( currentView != 'none' && currentView != 'login' ) {
           if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
         });
       }
-      obj.slideToggle("fast", function() {
-        if (nameFuncAfterComplet) {
-          $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
-            if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
-          });
-        }
-      });
+      if (!_this_.attr('data-on-click-true')) {
+        obj.slideToggle("fast", function() {
+          if (nameFuncAfterComplet) {
+            $j.each(nameFuncAfterComplet.split(' '), function(i, nameFunc) {
+              if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
+            });
+          }
+        });
+      }
       if (nameFuncAfter) {
         $j.each(nameFuncAfter.split(' '), function(i, nameFunc) {
           if (typeof safeFunc[nameFunc] === 'function') safeFunc[nameFunc]();
@@ -352,9 +342,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
     });
 
     // Manage visible filter bar & control button (after document ready)
-    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects and set icons
+    $j("[data-flip-сontrol-object]").each(function() { //let's go through all objects (buttons) and set icons
       const _this_ = $j(this);
       const сookie = getCookie('zmFilterBarFlip'+_this_.attr('data-flip-сontrol-object'));
+      const initialStateIcon = _this_.attr('data-initial-state-icon'); //"visible"=Opened block , "hidden"=Closed block or "undefined"=use cookie
       const objIconButton = _this_.find("i");
       const obj = $j(_this_.attr('data-flip-сontrol-object'));
 
@@ -362,20 +353,24 @@ if ( currentView != 'none' && currentView != 'login' ) {
         obj.wrap('<div style="display: block"></div>');
       }
 
-      if (сookie == 'hidden') {
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+      // initialStateIcon takes priority. If there is no cookie, we assume that it is 'visible'
+      const stateIcon = (initialStateIcon) ? initialStateIcon : ((сookie == 'hidden') ? 'hidden' : 'visible');
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        if (stateIcon == 'hidden') {
           objIconButton.html(objIconButton.attr('data-icon-hidden'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
-        }
-        obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
-      } else { //no cookies or opened.
-        if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+          obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+        } else {
           objIconButton.html(objIconButton.attr('data-icon-visible'));
-        } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
-          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+          obj.removeClass('hidden-shift');
         }
-        obj.removeClass('hidden-shift');
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        if (stateIcon == 'hidden') {
+          objIconButton.addClass(objIconButton.attr('data-icon-hidden'));
+          obj.addClass('hidden-shift'); //To prevent jerking when running the "Chosen" script, it is necessary to make the block visible to JS, but invisible to humans!
+        } else {
+          objIconButton.addClass(objIconButton.attr('data-icon-visible'));
+          obj.removeClass('hidden-shift');
+        }
       }
     });
 
@@ -414,6 +409,31 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
     applyChosen();
   });
+
+  /*
+  * params{visibility: null "visible" or "hidden"} - state of the panel before pressing button
+  */
+  function changeButtonIcon(pressedBtn, target, params) {
+    const visibility = (!params) ? null : params.visibility;
+    const objIconButton = pressedBtn.find("i");
+    const obj = $j(pressedBtn.attr('data-flip-сontrol-object'));
+    if ((visibility == "visible") || (obj.is(":visible") && !obj.hasClass("hidden-shift"))) {
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        objIconButton.html(objIconButton.attr('data-icon-hidden'));
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        objIconButton.removeClass(objIconButton.attr('data-icon-visible')).addClass(objIconButton.attr('data-icon-hidden'));
+      }
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'hidden');
+    } else { //hidden
+      obj.removeClass('hidden-shift').addClass('hidden'); //It is necessary to make the block invisible both for JS and for humans
+      if (objIconButton.is('[class~="material-icons"]')) { // use material-icons
+        objIconButton.html(objIconButton.attr('data-icon-visible'));
+      } else if (objIconButton.is('[class*="fa-"]')) { //use Font Awesome
+        objIconButton.removeClass(objIconButton.attr('data-icon-hidden')).addClass(objIconButton.attr('data-icon-visible'));
+      }
+      setCookie('zmFilterBarFlip'+pressedBtn.attr('data-flip-сontrol-object'), 'visible');
+    }
+  }
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {
@@ -472,14 +492,14 @@ if ( currentView != 'none' && currentView != 'login' ) {
         // Update authentication token.
         auth_hash = data.auth;
       }
+      delete data.auth;
     }
     if (data.auth_relay) {
       auth_relay = data.auth_relay;
+      delete data.auth_relay;
     }
     // iterate through all the keys then update each element id with the same name
-    for (var key of Object.keys(data)) {
-      if ( key == "auth" ) continue;
-      if ( key == "auth_relay" ) continue;
+    for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
       if ( key == 'getBandwidthHTML' ) bwClickFunction();
@@ -679,13 +699,13 @@ function endOfResize(e) {
  * */
 function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoomScale = 1) {
   $j(window).on('resize', endOfResize); //set delayed scaling when Scale to Fit is selected
-  const ratio = baseWidth / baseHeight;
   if (!container) container = $j('#content');
   if (!container) {
     console.error("No container found");
     return;
   }
 
+  const ratio = baseWidth / baseHeight;
   const viewPort = $j(window);
   // jquery does not provide a bottom offset, and offset does not include margins.  outerHeight true minus false gives total vertical margins.
   var bottomLoc = 0;
@@ -697,22 +717,13 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
     console.log("bottomLoc: " + bottomEl.offset().top + " + (" + bottomEl.outerHeight(true) + ' - ' + bottomEl.outerHeight() +') + '+bottomEl.outerHeight(true) + '='+bottomLoc);
   }
   let newHeight = viewPort.height() - (bottomLoc - scaleEl.outerHeight(true));
-  console.log("newHeight = " + viewPort.height() +" - " + bottomLoc + ' - ' + scaleEl.outerHeight(true)+'='+newHeight);
   let newWidth = ratio * newHeight;
 
-  // Let's recalculate everything and reduce the height a little. Necessary if "padding" is specified for "wrapperEventVideo"
-  padding = parseInt(container.css("padding-left")) + parseInt(container.css("padding-right"));
-  newWidth -= padding;
-  newHeight = newWidth / ratio;
-
-  console.log("newWidth = ", newWidth, "container width:", container.innerWidth()-padding);
-
-  if (newHeight < 0 || newWidth > container.innerWidth()-padding) {
+  if (newHeight < 0 || newWidth > container.width()) {
     // Doesn't fit on screen anyways?
-    newWidth = container.innerWidth()-padding;
+    newWidth = container.width();
     newHeight = newWidth / ratio;
   }
-  console.log("newWidth = " + newWidth);
   let autoScale = Math.round(newWidth / baseWidth * SCALE_BASE * panZoomScale);
   /* IgorA100 not required due to new "Scale" algorithm & new PanZoom (may 2024)
   const scales = $j('#scale option').map(function() {
@@ -730,7 +741,10 @@ function scaleToFit(baseWidth, baseHeight, scaleEl, bottomEl, container, panZoom
     autoScale = closest;
   }
   */
+  // Floor to nearest value % 5. THe 5 is somewhat arbitrary.  The point is that scaling by 88% is not better than 85%. Perhaps it should be to the nearest 10.  Or 25 even.
+  autoScale = 5 * Math.floor(autoScale / 5);
   if (autoScale < 10) autoScale = 10;
+  console.log(`container.height=${container.height()}, newWidth=${newWidth}, newHeight=${newHeight}, container width=${container.width()}, autoScale=${autoScale}`);
   return {width: Math.floor(newWidth), height: Math.floor(newHeight), autoScale: autoScale};
 }
 
@@ -748,7 +762,19 @@ function setButtonState(element_id, btnClass) {
   }
 }
 
+function isJSON(str) {
+  if (typeof str !== 'string') return false;
+  try {
+    const result = JSON.parse(str);
+    const type = Object.prototype.toString.call(result);
+    return type === '[object Object]' || type === '[object Array]'; // We only pass objects and arrays
+  } catch (e) {
+    return false; // This is also not JSON
+  }
+};
+
 function setCookie(name, value, seconds) {
+  var newValue = (typeof value === 'string' || typeof value === 'boolean') ? value : JSON.stringify(value);
   let expires = "";
   if (seconds) {
     const date = new Date();
@@ -758,18 +784,28 @@ function setCookie(name, value, seconds) {
     // 2147483647 is 2^31 - 1 which is January of 2038 to avoid the 32bit integer overflow bug.
     expires = "; max-age=2147483647";
   }
-  document.cookie = name + "=" + (value || "") + expires + "; path=/; samesite=strict";
+  document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
 }
 
+/*
+* If JSON is stored in cookies, the function will return an array or object of values.
+*/
 function getCookie(name) {
   var nameEQ = name + "=";
+  var result = null;
   var ca = document.cookie.split(';');
   for (var i=0; i < ca.length; i++) {
+    if (result) break;
     var c = ca[i];
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    if (c.indexOf(nameEQ) == 0) {
+      result = c.substring(nameEQ.length, c.length);
+      break;
+    }
   }
-  return null;
+  if (isJSON(result)) result = JSON.parse(result);
+
+  return result;
 }
 
 function delCookie(name) {
@@ -908,8 +944,7 @@ function stateStuff(action, runState, newState) {
 function logAjaxFail(jqxhr, textStatus, error) {
   console.log("Request Failed: " + textStatus + ", " + error);
   if ( ! jqxhr.responseText ) {
-    console.log("Ajax request failed.  No responseText.  jqxhr follows:");
-    console.log(jqxhr);
+    console.log("Ajax request failed.  No responseText.  jqxhr follows:\n", jqxhr);
     return;
   }
   var responseText = jqxhr.responseText.replace(/(<([^>]+)>)/gi, '').trim(); // strip any html or whitespace from the response
@@ -1158,9 +1193,61 @@ function stringToNumber(str) {
   return parseInt(str.replace(/\D/g, ''));
 }
 
-const font = new FontFaceObserver('Material Icons', {weight: 400});
-font.load().then(function() {
-  $j('.material-icons').css('display', 'inline-block');
-}, function() {
-  $j('.material-icons').css('display', 'inline-block');
-});
+function loadFontFaceObserver() {
+  const font = new FontFaceObserver('Material Icons', {weight: 400});
+  font.load().then(function() {
+    $j('.material-icons').css('display', 'inline-block');
+  }, function() {
+    $j('.material-icons').css('display', 'inline-block');
+  });
+}
+
+var doubleClickOnStream = function(event, touchEvent) {
+  let target = null;
+  if (event.target) {// Click NOT on touch screen, use THIS
+    //Process only double clicks directly on the image, excluding clicks,
+    //for example, on zoom buttons and other elements located in the image area.
+    if (event.target.id &&
+      (event.target.id.indexOf('evtStream') != -1 || event.target.id.indexOf('liveStream') != -1)) {
+      target = this;
+    }
+  } else {// Click on touch screen, use EVENT
+    if (touchEvent.target.id &&
+      (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)) {
+      target = event;
+    }
+  }
+
+  if (target) {
+    if (document.fullscreenElement) {
+      closeFullscreen();
+    } else {
+      openFullscreen(target);
+    }
+    if (isMobile()) {
+      setTimeout(function() {
+        //For some mobile devices resizing does not work. You need to set a delay and re-call the 'resize' event
+        window.dispatchEvent(new Event('resize'));
+      }, 500);
+    }
+  }
+};
+
+var doubleTouch = function(e) {
+  if (e.touches.length === 1) {
+    if (!expiredTap) {
+      expiredTap = e.timeStamp + 300;
+    } else if (e.timeStamp <= expiredTap) {
+      // remove the default of this event ( Zoom )
+      e.preventDefault();
+      doubleClickOnStream(this, e);
+      // then reset the variable for other "double Touches" event
+      expiredTap = null;
+    } else {
+      // if the second touch was expired, make it as it's the first
+      expiredTap = e.timeStamp + 300;
+    }
+  }
+};
+
+loadFontFaceObserver();

@@ -80,7 +80,7 @@ $presetLayoutsNames = array( //Order matters!
   '16 Wide'
 );
 
-/* Create an array "Name"=>layouts to make it easier to find IDs by name*/
+/* Create an array "Name"=>layouts to make it easier to find IDs by name */
 $layoutsByName = array();
 foreach ($layouts as $l) {
   if ($l->Name() == 'Freeform') $l->Name('Auto');
@@ -91,15 +91,14 @@ foreach ($layouts as $l) {
  * Also sorting 1 Wide and 11 Wide fails... so need a smarter sort
  */
 foreach ($presetLayoutsNames as $name) {
-  if (array_key_exists($name, $layoutsByName)) // Layout may be missing in BD (rare case during update process)
+  if (array_key_exists($name, $layoutsByName)) // Layout may be missing in DB (rare case during update process)
     $layoutsById[$layoutsByName[$name]->Id()] = $layoutsByName[$name];
 }
 
 /* Add custom Layouts & assign objects instead of names for preset Layouts */
-foreach ( $layouts as $l ) {
+foreach ($layouts as $l) {
   $layoutsById[$l->Id()] = $l;
 }
-ZM\Debug(print_r($layoutsById, true));
 
 zm_session_start();
 
@@ -113,7 +112,7 @@ if (!$layout_id || !isset($layoutsById[$layout_id])) {
   $layout_id = $layoutsByName['Auto']->Id();
 }
 $layout = $layoutsById[$layout_id];
-
+$layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false ? false : true;
 
 $options = array();
 
@@ -163,12 +162,29 @@ scaleControl is no longer used!
 */
 }
 
+$streamQualitySelected = '0';
+if (isset($_REQUEST['streamQuality'])) {
+  $streamQualitySelected = $_REQUEST['streamQuality'];
+} else if (isset($_COOKIE['zmStreamQuality'])) {
+  $streamQualitySelected = $_COOKIE['zmStreamQuality'];
+} else if (isset($_SESSION['zmStreamQuality']) ) {
+  $streamQualitySelected = $_SESSION['zmStreamQuality'];
+}
+
+if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+  $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
+} else if (isset($_COOKIE['zmMontageRate'])) {
+  $options['maxfps'] = validHtmlStr($_COOKIE['zmMontageRate']);
+} else {
+  $options['maxfps'] = ''; // unlimited
+}
+
 session_write_close();
 
-ob_start();
 include('_monitor_filters.php');
-$filterbar = ob_get_contents();
-ob_end_clean();
+$resultMonitorFilters = buildMonitorsFilters();
+$filterbar = $resultMonitorFilters['filterBar'];
+$displayMonitors = $resultMonitorFilters['displayMonitors'];
 
 $need_hls = false;
 $need_janus = false;
@@ -264,9 +280,28 @@ if (canView('System')) {
             <label><?php echo translate('Monitor status position') ?></label>
             <?php echo htmlSelect('monitorStatusPositon', $monitorStatusPositon, $monitorStatusPositonSelected, array('id'=>'monitorStatusPositon', 'data-on-change'=>'changeMonitorStatusPositon', 'class'=>'chosen')); ?>
           </span>
+          <span id="rateControl">
+            <label for="changeRate"><?php echo translate('Rate') ?>:</label>
+            <?php
+$maxfps_options = array(''=>translate('Unlimited'),
+  '0.10' => '1/10' .translate('FPS'),
+  '0.50' => '1/2' .translate('FPS'),
+  '1' => '1 '.translate('FPS'),
+  '2' => '2 '.translate('FPS'),
+  '5' => '5 '.translate('FPS'),
+  '10' => '10 '.translate('FPS'),
+  '20' => '20 '.translate('FPS'),
+);
+echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'changeRate', 'data-on-change'=>'changeMonitorRate', 'class'=>'chosen'));
+?>
+          </span>
           <span id="ratioControl">
             <label><?php echo translate('Ratio') ?></label>
             <?php echo htmlSelect('ratio', [], '', array('id'=>'ratio', 'data-on-change'=>'changeRatioForAll', 'class'=>'chosen')); ?>
+          </span>
+          <span id="streamQualityControl">
+            <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
+            <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
           </span>
           <span id="widthControl" class="hidden"> <!-- OLD version, requires removal -->
             <label><?php echo translate('Width') ?></label>
@@ -325,10 +360,19 @@ foreach ($monitors as $monitor) {
     $monitor_options['state'] = !ZM_WEB_COMPACT_MONTAGE;
     $monitor_options['zones'] = $showZones;
     $monitor_options['mode'] = 'paused';
-    if (!$scale and $layout->Name() != 'Auto') {
-      if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
-        if ($matches[1])
-          $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
+    if (!$scale and ($layout->Name() != 'Auto')) {
+      if ($layout_is_preset) {
+        # We know the # of columns so can figure out a proper scale
+        if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
+          if ($matches[1]) {
+            $monitor_options['scale'] = intval(100*((1920/$matches[1])/$monitor->Width()));
+            if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
+          }
+        }
+      } else {
+        # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
+        $monitor_options['scale'] = intval(100*((1920/4)/$monitor->Width()));
+        if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       }
     }
     echo $monitor->getStreamHTML($monitor_options);

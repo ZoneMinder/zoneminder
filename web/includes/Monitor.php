@@ -49,6 +49,10 @@ public static function getAnalysingOptions() {
   }
   return $AnalysingOptions;
 }
+public static function getAnalysingString($option) {
+  $options = Monitor::getAnalysingOptions();
+  return $options[$option];
+}
 
 protected static $AnalysisSourceOptions = null;
 public static function getAnalysisSourceOptions() {
@@ -84,6 +88,11 @@ public static function getRecordingOptions() {
   return $RecordingOptions;
 }
 
+public static function getRecordingString($option) {
+  $options = Monitor::getRecordingOptions();
+  return $options[$option];
+}
+
 protected static $RecordingSourceOptions = null;
 public static function getRecordingSourceOptions() {
   if (!isset($RecordingSourceOptions)) {
@@ -114,15 +123,19 @@ protected static $Statuses = null;
 public static function getStatuses() {
   if (!isset($Statuses)) {
     $Statuses = array(
-      -1 => 'Unknown',
-      0 => 'Idle',
-      1 => 'PreAlarm',
-      2 => 'Alarm',
-      3 => 'Alert',
-      4 => 'Tape'
+      0 => 'Unknown',
+      1 => 'Idle',
+      2 => 'PreAlarm',
+      3 => 'Alarm',
+      4 => 'Alert',
     );
   }
   return $Statuses;
+}
+
+public static function getStateString($option) {
+  $statuses = Monitor::getStatuses();
+  return $statuses[$option];
 }
 
   protected static $table = 'Monitors';
@@ -196,6 +209,7 @@ public static function getStatuses() {
     'Encoder'     =>  'auto',
     'OutputContainer' => null,
     'EncoderParameters' => '',
+    'WallClockTimestamps' => array('type'=>'boolean', 'default'=>0),
     'RecordAudio' =>  array('type'=>'boolean', 'default'=>0),
     #'OutputSourceStream'  => 'Primary',
     'RTSPDescribe'  =>  array('type'=>'boolean','default'=>0),
@@ -264,6 +278,11 @@ public static function getStatuses() {
     'AnalysisFPS' => null,
     'CaptureFPS' => null,
     'CaptureBandwidth' => null,
+    'Capturing' => 0,
+    'Analysing' => 0,
+    'State'     => 0,
+    'LastEventId' =>  null,
+    'EventId'     =>  null,
   );
   private $summary_fields = array(
     'TotalEvents' =>  array('type'=>'integer', 'default'=>null, 'do_not_update'=>1),
@@ -419,16 +438,8 @@ public static function getStatuses() {
       return $this->defaults[$fn];
     } else if (array_key_exists($fn, $this->status_fields)) {
       if ($this->Id()) {
-        $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
-        $row = dbFetchOne($sql, NULL, array($this->{'Id'}));
-        if (!$row) {
-          Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
-        } else {
-          foreach ($row as $k => $v) {
-            $this->{$k} = $v;
-          }
-          return $this->{$fn};
-        }
+        $row = $this->Monitor_Status();
+        if ($row) return $row[$fn];
       } # end if this->Id
       return null;
     } else if (array_key_exists($fn, $this->summary_fields)) {
@@ -449,6 +460,15 @@ public static function getStatuses() {
       $line = $backTrace[1]['line'];
       Warning("Unknown function call Monitor->$fn from $file:$line");
     }
+  }
+
+  public function Monitor_Status() {
+    if (!property_exists($this, 'Monitor_Status')) {
+      $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
+      $row = $this->{'Monitor_Status'} = dbFetchOne($sql, NULL, array($this->{'Id'}));
+      if (!$row) Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
+    }
+    return $this->{'Monitor_Status'};
   }
 
   public function getStreamSrc($args, $querySep='&amp;') {
@@ -495,7 +515,7 @@ public static function getStatuses() {
     unset($args['zones']);
 
     $streamSrc .= '?'.http_build_query($args, '', $querySep);
-
+    $this->streamSrc = $streamSrc;
     return $streamSrc;
   } // end function getStreamSrc
 
@@ -676,27 +696,29 @@ public static function getStatuses() {
         $source .= ':'.$this->{'Port'};
       }
     } else if ($this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'Libvlc' || $this->{'Type'} == 'WebSite') {
-      $url_parts = parse_url($this->{'Path'});
-      if (ZM_WEB_FILTER_SOURCE == 'Hostname') {
-        # Filter out everything but the hostname
-        if (isset($url_parts['host'])) {
-          $source = $url_parts['host'];
-        } else {
+      if ($this->{'Path'}) {
+        $url_parts = parse_url($this->{'Path'});
+        if (ZM_WEB_FILTER_SOURCE == 'Hostname') {
+          # Filter out everything but the hostname
+          if (isset($url_parts['host'])) {
+            $source = $url_parts['host'];
+          } else {
+            $source = $this->{'Path'};
+          }
+        } else if (ZM_WEB_FILTER_SOURCE == 'NoCredentials') {
+          # Filter out sensitive and common items
+          unset($url_parts['user']);
+          unset($url_parts['pass']);
+          #unset($url_parts['scheme']);
+          unset($url_parts['query']);
+          #unset($url_parts['path']);
+          if (isset($url_parts['port']) and ($url_parts['port'] == '80' or $url_parts['port'] == '554'))
+            unset($url_parts['port']);
+          $source = unparse_url($url_parts);
+        } else { # Don't filter anything
           $source = $this->{'Path'};
         }
-      } else if (ZM_WEB_FILTER_SOURCE == 'NoCredentials') {
-        # Filter out sensitive and common items
-        unset($url_parts['user']);
-        unset($url_parts['pass']);
-        #unset($url_parts['scheme']);
-        unset($url_parts['query']);
-        #unset($url_parts['path']);
-        if (isset($url_parts['port']) and ($url_parts['port'] == '80' or $url_parts['port'] == '554'))
-          unset($url_parts['port']);
-        $source = unparse_url($url_parts);
-      } else { # Don't filter anything
-        $source = $this->{'Path'};
-      }
+      } # end if Path
     }
     if ($source == '') {
       $source = 'Monitor ' . $this->{'Id'};
@@ -948,7 +970,7 @@ public static function getStatuses() {
   function getMonitorStateHTML() {
     $html = '
 <div id="monitorStatus'.$this->Id().'" class="monitorStatus">
-<span class="MonitorName">'.$this->Name().'</span>
+<span class="MonitorName">'.$this->Name().' (id='.$this->Id().')</span>
   <div id="monitorState'.$this->Id().'" class="monitorState">
     <span>'.translate('State').':<span id="stateValue'.$this->Id().'">'.$this->Status().'</span></span>
     <span class="viewingFPS" id="viewingFPS'.$this->Id().'" title="'.translate('Viewing FPS').'"><span id="viewingFPSValue'.$this->Id().'"></span> fps</span>
@@ -1032,7 +1054,9 @@ public static function getStatuses() {
       <div id="m'. $this->Id() . '" class="grid-monitor grid-stack-item" gs-id="'. $this->Id() . '" gs-w="12" gs-auto-position="true">
         ' . $blockRatioControl . '
         <div class="grid-stack-item-content">
-          <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor" title="'.$this->Id(). ' '.$this->Name().'">
+          <div id="monitor'. $this->Id() . '" data-id="'.$this->Id().'" class="monitor"
+            title="Shift+Click to Zoom, Click+Drag to Pan &#013;Ctrl+Click to Zoom out, Ctrl+Shift+Click to Zoom out completely"
+            >
             <div
               id="imageFeed'. $this->Id() .'"
               class="monitorStream imageFeed"

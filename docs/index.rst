@@ -7,6 +7,7 @@ ZoneMinder Documentation
    installationguide/index
    userguide/index
    api
+   web_ui_api
    faq
    contributing
 
@@ -22,6 +23,9 @@ If you are facing issues that are not covered in the documentation, please feel 
 
 :doc:`api`
   Information on using the CakePHP based API for interfacing to ZoneMinder
+
+:doc:`web_ui_api`
+  Information on interfacing to ZoneMinder's Web UI
 
 :doc:`faq`
   Frequently Asked Questions

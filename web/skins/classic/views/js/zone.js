@@ -7,6 +7,7 @@ var refreshBtn = $j('#refreshBtn');
 var analyseBtn = $j('#analyseBtn');
 var monitors = [];
 var analyse_frames = true;
+var TimerHideShow;
 
 function validateForm( form ) {
   var errors = [];
@@ -730,6 +731,14 @@ function initPage() {
   });
 } // initPage
 
+function panZoomIn(el) {
+  zmPanZoom.zoomIn(el);
+}
+
+function panZoomOut(el) {
+  zmPanZoom.zoomOut(el);
+}
+
 function imageLoadEvent() {
   // We only need this event on the first image load to set dimensions.
   // Turn it off after it has been called.
@@ -752,5 +761,24 @@ function Polygon_calcArea(coords) {
 
   return Math.round(Math.abs(float_area));
 }
+
+document.onvisibilitychange = () => {
+  if (document.visibilityState === "hidden") {
+    TimerHideShow = clearTimeout(TimerHideShow);
+    TimerHideShow = setTimeout(function() {
+      //Stop monitors when closing or hiding page
+      for (let i = 0, length = monitorData.length; i < length; i++) {
+        monitors[i].kill();
+      }
+    }, 15*1000);
+  } else {
+    //Start monitors when show page
+    for (let i = 0, length = monitorData.length; i < length; i++) {
+      if (!monitors[i].started) {
+        monitors[i].start();
+      }
+    }
+  }
+};
 
 window.addEventListener('DOMContentLoaded', initPage);

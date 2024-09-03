@@ -794,6 +794,7 @@ function setSpeed(speed_index) {
   currentSpeed = parseFloat(speeds[speed_index]);
   speedIndex = speed_index;
   playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
+  setCookie('speed', speedIndex);
   showSpeed(speed_index);
   timerFire();
 }

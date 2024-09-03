@@ -53,7 +53,7 @@ var yesStr = '<?php echo translate('Yes') ?>';
 var noStr = '<?php echo translate('No') ?>';
 
 var eventDataStrings = {
-    Id: '<?php echo translate('EventId') ?>',
+    <!--Id: '<?php echo translate('EventId') ?>',-->
     Name: '<?php echo translate('Name') ?>',
     MonitorId: '<?php echo translate('AttrMonitorId') ?>',
     MonitorName: '<?php echo translate('Monitor') ?>',
@@ -65,16 +65,18 @@ var eventDataStrings = {
     EndDateTimeFormatted: '<?php echo translate('AttrEndTime') ?>',
     Length: '<?php echo translate('Duration') ?>',
     Frames: '<?php echo translate('AttrFrames') ?>',
-    AlarmFrames: '<?php echo translate('AttrAlarmFrames') ?>',
-    TotScore: '<?php echo translate('AttrTotalScore') ?>',
-    AvgScore: '<?php echo translate('AttrAvgScore') ?>',
-    MaxScore: '<?php echo translate('AttrMaxScore') ?>',
+    <!--AlarmFrames: '<?php echo translate('AttrAlarmFrames') ?>',-->
+    <!--TotScore: '<?php echo translate('AttrTotalScore') ?>',-->
+    <!--AvgScore: '<?php echo translate('AttrAvgScore') ?>',-->
+    <!--MaxScore: '<?php echo translate('AttrMaxScore') ?>',-->
+    Score: '<?php echo translate('Score') ?>',
     Resolution: '<?php echo translate('Resolution') ?>',
     DiskSpace: '<?php echo translate('DiskSpace') ?>',
-    Storage: '<?php echo translate('Storage') ?>',
+    <!--Storage: '<?php echo translate('Storage') ?>',-->
     Path: '<?php echo translate('Path') ?>',
-    Archived: '<?php echo translate('Archived') ?>',
-    Emailed: '<?php echo translate('Emailed') ?>'
+    <!--Archived: '<?php echo translate('Archived') ?>',-->
+    <!--Emailed: '<?php echo translate('Emailed') ?>'-->
+    Info: '<?php echo translate('Info') ?>'
 };
 if ( parseInt(ZM_OPT_USE_GEOLOCATION) ) {
   eventDataStrings.Location = '<?php echo translate('Location') ?>';
@@ -113,4 +115,7 @@ var translate = {
   "Live": "<?php echo translate('Live') ?>",
   "Edit": "<?php echo translate('Edit') ?>",
   "All Events": "<?php echo translate('All Events') ?>",
+  "Info": "<?php echo translate('Info') ?>",
+  "Archived": "<?php echo translate('Archived') ?>",
+  "Emailed": "<?php echo translate('Emailed') ?>",
 };

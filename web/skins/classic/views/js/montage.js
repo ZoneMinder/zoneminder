@@ -266,10 +266,8 @@ function getSelected(objSel) {
 * objSel: object <select>
 */
 function setSelected(objSel, value) {
-  let option;
-
-  for (var i=0; i<objSel.options.length; i++) {
-    option = objSel.options[i];
+  for (let i=0; i<objSel.options.length; i++) {
+    const option = objSel.options[i];
     if (option.value == value) {
       option.selected = true;
       $j(objSel).trigger("chosen:updated");
@@ -556,20 +554,27 @@ function handleClick(evt) {
 
 function startMonitors() {
   for (let i = 0, length = monitors.length; i < length; i++) {
-    const obj = document.getElementById('liveStream'+monitors[i].id);
+    const monitor = monitors[i];
+    // Why are we scaling here instead of in monitorstream?
+    const obj = document.getElementById('liveStream'+monitor.id);
     if (obj.src) {
       const url = new URL(obj.src);
-      url.searchParams.set('scale', parseInt(obj.clientWidth / monitors[i].width * 100));
+      let scale = parseInt(obj.clientWidth / monitor.width * 100);
+      if (scale > 100) scale = 100;
+      url.searchParams.set('scale', scale);
       obj.src = url;
     }
 
-    // Start the fps and status updates. give a random delay so that we don't assault the server
-    const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-    monitors[i].start(delay);
-    if ((monitors[i].type == 'WebSite') && (monitors[i].refresh > 0)) {
-      setInterval(reloadWebSite, monitors.refresh*1000, i);
+    const isOut = isOutOfViewport(monitor.getElement());
+    if (!isOut.all) {
+      // Start the fps and status updates. give a random delay so that we don't assault the server
+      const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
+      monitors[i].start(delay);
     }
-    monitors[i].setup_onclick(handleClick);
+    if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
+      setInterval(reloadWebSite, monitor.refresh*1000, i);
+    }
+    monitor.setup_onclick(handleClick);
   }
 }
 
@@ -670,7 +675,7 @@ function initPage() {
   monitors_ul = $j('#monitors');
 
   //For select in header
-  buildRatioSelect(document.getElementById("ratio"));
+  buildRatioSelect(document.getElementById('ratio'));
 
   //For select in each monitor
   $j('.grid-monitor').each(function() {
@@ -781,7 +786,7 @@ function initPage() {
   }, 100);
 
   selectLayout();
-  $j('#monitors').removeClass('hidden-shift');
+  monitors_ul.removeClass('hidden-shift');
   changeMonitorStatusPositon();
   zmPanZoom.init();
 
@@ -812,8 +817,9 @@ function initPage() {
   //You can immediately call startMonitors() here, but in this case the height of the monitor will initially be minimal, and then become normal, but this is not pretty.
   //Check if the monitor arrangement is complete
   waitingMonitorsPlaced('startMonitors');
-  window.onscroll = on_scroll;
-  on_scroll();
+
+  document.addEventListener('scrollend', on_scroll); // for non-sticky
+  document.getElementById('content').addEventListener('scrollend', on_scroll);
 } // end initPage
 
 function on_scroll() {
@@ -821,21 +827,15 @@ function on_scroll() {
     const monitor = monitors[i];
 
     const isOut = isOutOfViewport(monitor.getElement());
-    if ( !isOut.all ) {
+    if (!isOut.all) {
+      console.log("Starting ",monitor);
       monitor.start();
     } else if ( monitor.started ) {
+      console.log("Stopping ",monitor);
       monitor.stop();
     }
   } // end foreach monitor
 } // end function on_scsroll
-
-$j(window).focus(on_scroll);
-
-$j(window).blur(function() {
-  for ( var i = 0, length = monitorData.length; i < length; i++ ) {
-    monitors[i].stop();
-  }
-});
 
 function isOutOfViewport(elem) {
   // Get element's bounding
@@ -843,16 +843,16 @@ function isOutOfViewport(elem) {
   //console.log( 'top: ' + bounding.top + ' left: ' + bounding.left + ' bottom: '+bounding.bottom + ' right: '+bounding.right);
 
   // Check if it's out of the viewport on each side
-	const out = {};
-	out.top = (bounding.top < 0) || ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
-	out.left = (bounding.left < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
-	out.bottom = (bounding.bottom > (window.innerHeight || document.documentElement.clientHeight) ) || (bounding.bottom < 0);
-	out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
-	out.any = out.top || out.left || out.bottom || out.right;
-	out.all = (out.top && out.bottom ) || (out.left && out.right);
+  const out = {};
+  out.top = (bounding.top < 0) || ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.left = (bounding.left < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
+  out.bottom = (bounding.bottom > (window.innerHeight || document.documentElement.clientHeight) ) || (bounding.bottom < 0);
+  out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
+  out.any = out.top || out.left || out.bottom || out.right;
+  out.all = (out.top && out.bottom ) || (out.left && out.right);
   //console.log( 'top: ' + out.top + ' left: ' + out.left + ' bottom: '+out.bottom + ' right: '+out.right);
 
-	return out;
+  return out;
 };
 
 function formSubmit(form) {
@@ -906,7 +906,7 @@ function addEvents(grid, id) {
 
     elementResize();
   })
-      .on('added removed', function(event) {
+    .on('added removed', function(event) {
         //let str = '';
         //items.forEach(function(item) { str += ' (' + item.x + ',' + item.y + ' ' + item.w + 'x' + item.h + ')'; });
         //console.log("INFO==>", g + event.type + ' ' + items.length + ' items (x,y w h):' + str );
@@ -1068,9 +1068,9 @@ function checkEndMonitorsPlaced() {
       }
     }
   }
+  let monitorsEndMoving = true;
   //Check if all monitors are in their places
   for (let i = 0, length = movableMonitorData.length; i < length; i++) {
-    var monitorsEndMoving = true;
 
     if (movableMonitorData[i]) { //There may be empty elements
       if (!movableMonitorData[i].stop) {

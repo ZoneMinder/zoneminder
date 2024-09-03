@@ -232,7 +232,7 @@ sub Sql {
                 $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server($ZoneMinder::Config::Config{ZM_SERVER_ID});
-              } elsif ( $temp_value eq 'NULL' ) {
+              } elsif ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = "'$temp_value'";
@@ -254,7 +254,7 @@ sub Sql {
               }
               $value = "'$temp_value'";
             } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' ) {
-              if ( $temp_value eq 'NULL' ) {
+              if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = DateTimeToSQL($temp_value);
@@ -265,7 +265,7 @@ sub Sql {
                 $value = "'$value'";
               }
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' ) {
-              if ( $temp_value eq 'NULL' ) {
+              if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
                 $value = 'to_days('.$temp_value.')';
@@ -278,7 +278,7 @@ sub Sql {
                 $value = "to_days( '$value' )";
               }
             } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' ) {
-              if ( $temp_value eq 'NULL' ) {
+              if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
                 $value = DateTimeToSQL($temp_value);

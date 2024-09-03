@@ -516,7 +516,7 @@ function handleClick(evt) {
   evt.preventDefault();
   var id;
 
- //We are looking for an object with an ID, because there may be another element in the button.
+  // We are looking for an object with an ID, because there may be another element in the button.
   const obj = evt.target.id ? evt.target : evt.target.parentElement;
 
   if (mode == EDITING || obj.className.includes('btn-zoom-out') || obj.className.includes('btn-zoom-in')) return;
@@ -828,10 +828,8 @@ function on_scroll() {
 
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
-      console.log("Starting ",monitor);
       monitor.start();
     } else if ( monitor.started ) {
-      console.log("Stopping ",monitor);
       monitor.stop();
     }
   } // end foreach monitor
@@ -906,7 +904,7 @@ function addEvents(grid, id) {
 
     elementResize();
   })
-    .on('added removed', function(event) {
+      .on('added removed', function(event) {
         //let str = '';
         //items.forEach(function(item) { str += ' (' + item.x + ',' + item.y + ' ' + item.w + 'x' + item.h + ')'; });
         //console.log("INFO==>", g + event.type + ' ' + items.length + ' items (x,y w h):' + str );
@@ -1071,7 +1069,6 @@ function checkEndMonitorsPlaced() {
   let monitorsEndMoving = true;
   //Check if all monitors are in their places
   for (let i = 0, length = movableMonitorData.length; i < length; i++) {
-
     if (movableMonitorData[i]) { //There may be empty elements
       if (!movableMonitorData[i].stop) {
         //Monitor is still moving

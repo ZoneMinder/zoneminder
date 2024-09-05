@@ -1182,6 +1182,12 @@ button.btn.btn-edit-monitor:hover,
 button.btn.btn-view-watch:hover {
   background-color: darkgrey;
 }
+
+.controlHeader .chosen-container {
+  /* limit width of monitor filters so that it fits on 1920px */
+  max-width: 300px;
+}
+
 /* --- Control button block in the Stream image*/
 
 /* +++ This block should always be located at the end! */

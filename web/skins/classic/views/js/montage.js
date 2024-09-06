@@ -1159,8 +1159,11 @@ document.onvisibilitychange = () => {
     TimerHideShow = clearTimeout(TimerHideShow);
     //Start monitors when show page
     for (let i = 0, length = monitors.length; i < length; i++) {
-      if (!monitors[i].started) {
-        monitors[i].start();
+      const monitor = monitors[i];
+
+      const isOut = isOutOfViewport(monitor.getElement());
+      if ((!isOut.all) && !monitor.started) {
+        monitor.start();
       }
     }
   }

@@ -828,8 +828,8 @@ function on_scroll() {
 
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
-      monitor.start();
-    } else if ( monitor.started ) {
+      if (!monitor.started) monitor.start();
+    } else if (monitor.started) {
       monitor.stop();
     }
   } // end foreach monitor

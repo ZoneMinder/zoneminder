@@ -51,18 +51,18 @@ $heights = array(
   '1080px' => '1080px',
 );
 
-$monitorStatusPositon = array( 
+$monitorStatusPosition = array( 
   'insideImgBottom'  => translate('Inside bottom'),
   'outsideImgBottom' => translate('Outside bottom'),
   'hidden' => translate('Hidden'),
   'showOnHover' => translate('Show on hover'),
 );
 
-$monitorStatusPositonSelected = 'outsideImgBottom';
-if (isset($_REQUEST['monitorStatusPositonSelected'])) {
-  $monitorStatusPositonSelected = $_REQUEST['monitorStatusPositonSelected'];
-} else if (isset($_COOKIE['zmMonitorStatusPositonSelected'])) {
-  $monitorStatusPositonSelected = $_COOKIE['zmMonitorStatusPositonSelected'];
+$monitorStatusPositionSelected = 'outsideImgBottom';
+if (isset($_REQUEST['monitorStatusPositionSelected'])) {
+  $monitorStatusPositionSelected = $_REQUEST['monitorStatusPositionSelected'];
+} else if (isset($_COOKIE['zmMonitorStatusPositionSelected'])) {
+  $monitorStatusPositionSelected = $_COOKIE['zmMonitorStatusPositionSelected'];
 }
 
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
@@ -276,9 +276,9 @@ if (canView('System')) {
           <input type="hidden" name="object" value="MontageLayout"/>
           <input id="action" type="hidden" name="action" value=""/> <?php // "value" is generated in montage.js depending on the action "Save" or "Delete"?>
 
-          <span id="monitorStatusPositonControl">
+          <span id="monitorStatusPositionControl">
             <label><?php echo translate('Monitor status position') ?></label>
-            <?php echo htmlSelect('monitorStatusPositon', $monitorStatusPositon, $monitorStatusPositonSelected, array('id'=>'monitorStatusPositon', 'data-on-change'=>'changeMonitorStatusPositon', 'class'=>'chosen')); ?>
+            <?php echo htmlSelect('monitorStatusPosition', $monitorStatusPosition, $monitorStatusPositionSelected, array('id'=>'monitorStatusPosition', 'data-on-change'=>'changeMonitorStatusPosition', 'class'=>'chosen')); ?>
           </span>
           <span id="rateControl">
             <label for="changeRate"><?php echo translate('Rate') ?>:</label>

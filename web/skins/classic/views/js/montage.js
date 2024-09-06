@@ -194,7 +194,7 @@ function selectLayout(new_layout_id) {
   }
 
   /* Probably unnecessary, because... we have ResizeObserver running
-  changeMonitorStatusPositon(); //!!! After loading the saved layer, you must execute.
+  changeMonitorStatusPosition(); //!!! After loading the saved layer, you must execute.
   monitorsSetScale();
   */
   setCookie('zmMontageLayout', layout_id);
@@ -417,7 +417,7 @@ function save_layout(button) {
 
   var Positions = {};
   Positions['gridStack'] = objGridStack.save(false, false);
-  Positions['monitorStatusPositon'] = $j('#monitorStatusPositon').val(); //Not yet used when reading Layout
+  Positions['monitorStatusPosition'] = $j('#monitorStatusPosition').val(); //Not yet used when reading Layout
   Positions['monitorRatio'] = {};
   $j('.select-ratio').each(function f() {
     Positions['monitorRatio'][stringToNumber(this.id)] = getSelected(this);
@@ -700,7 +700,7 @@ function initPage() {
       //Displaying "Scale" and other buttons at the top of the monitor image
       function() {
         const id = stringToNumber(this.id);
-        if ($j('#monitorStatusPositon').val() == 'showOnHover') {
+        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
           $j(this).find('#monitorStatus'+id).removeClass('hidden');
         }
         $j('#button_zoom' + id).stop(true, true).slideDown('fast');
@@ -708,7 +708,7 @@ function initPage() {
       },
       function() {
         const id = stringToNumber(this.id);
-        if ($j('#monitorStatusPositon').val() == 'showOnHover') {
+        if ($j('#monitorStatusPosition').val() == 'showOnHover') {
           $j(this).find('#monitorStatus'+id).addClass('hidden');
         }
         $j('#button_zoom' + id).stop(true, true).slideUp('fast');
@@ -787,7 +787,7 @@ function initPage() {
 
   selectLayout();
   monitors_ul.removeClass('hidden-shift');
-  changeMonitorStatusPositon();
+  changeMonitorStatusPosition();
   zmPanZoom.init();
 
   // Creating a ResizeObserver Instance
@@ -1122,25 +1122,25 @@ function waitingMonitorsPlaced(action = null) {
   }, 100);
 }
 
-function changeMonitorStatusPositon() {
-  const monitorStatusPositon = $j('#monitorStatusPositon').val();
+function changeMonitorStatusPosition() {
+  const monitorStatusPosition = $j('#monitorStatusPosition').val();
   $j('.monitorStatus').each(function updateStatusPosition() {
-    if (monitorStatusPositon == 'insideImgBottom' || monitorStatusPositon == 'showOnHover') {
+    if (monitorStatusPosition == 'insideImgBottom' || monitorStatusPosition == 'showOnHover') {
       $j(this).addClass('bottom');
-      if (monitorStatusPositon == 'showOnHover') {
+      if (monitorStatusPosition == 'showOnHover') {
         $j(this).addClass('hidden');
       } else {
         $j(this).removeClass('hidden');
       }
-    } else if (monitorStatusPositon == 'outsideImgBottom') {
+    } else if (monitorStatusPosition == 'outsideImgBottom') {
       $j(this).removeClass('bottom');
       $j(this).removeClass('hidden');
-    } else if (monitorStatusPositon == 'hidden') {
+    } else if (monitorStatusPosition == 'hidden') {
       $j(this).addClass('hidden');
     }
     setTriggerChangedMonitors(stringToNumber(this.id));
   });
-  setCookie('zmMonitorStatusPositonSelected', monitorStatusPositon);
+  setCookie('zmMonitorStatusPositionSelected', monitorStatusPosition);
 }
 
 // Kick everything off

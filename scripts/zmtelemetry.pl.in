@@ -245,9 +245,21 @@ sub getGeo {
     (my $latitude, my $longitude) = split /,/, $content->{loc};
     return ($content->{city}, $content->{region}, $content->{country}, $latitude, $longitude);
   } else {
-    Warning("Geoip data retrieval returned HTTP POST error code: $resp_code");
-    Debug("Geoip data retrieval failure response message: $resp_msg");
-    return ($unknown, $unknown, $unknown, $unknown, $unknown);
+    my $endpoint2 = 'https://api.ip2location.io';
+    my $ua2 = LWP::UserAgent->new;
+    my $req2 = HTTP::Request->new(GET => $endpoint2);
+    my $resp2 = $ua2->request($req2);
+    my $resp_msg2 = $resp2->decoded_content;
+    my $resp_code2 = $resp2->code;
+
+    if ($resp2->is_success) {
+      my $content = decode_json($resp_msg2);
+      return ($content->{city_name}, $content->{region_name}, $content->{country_code}, $content->{latitude}, $content->{longitude});
+    } else {
+      Warning("Geoip data retrieval returned HTTP POST error code: $resp_code2");
+      Debug("Geoip data retrieval failure response message: $resp_msg2");
+      return ($unknown, $unknown, $unknown, $unknown, $unknown);
+    }
   }
 }
 

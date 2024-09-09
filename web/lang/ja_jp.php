@@ -1179,6 +1179,13 @@ $SLANG = array(
     'Zoom' => 'ズーム',
     'Zoom IN' => 'ズームイン',
     'Zoom OUT' => 'ズームアウト',
+    'text or regular expression' => '文字列または正規表現を入力',
+    'leave blank for auto' => '空白の場合は自動採番',
+    'Python strftime format. %f for hundredths, %N for Monitor Name, %Q for show text.' => 'Pythonのstrftimeフォーマット。fは100分の1、%Nはモニター名、%Qはテキスト表示',
+    'Camera IP Address' => 'カメラのIPアドレス',
+    'Camera Username' => 'カメラのユーザ名',
+    'Camera Password' => 'カメラのパスワード',
+    'Enter new name for layout if desired' => 'レイアウト名を入力',
 );
 
 // Complex replacements with formatting and/or placements, must be passed through sprintf

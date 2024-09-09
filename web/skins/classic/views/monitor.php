@@ -473,7 +473,7 @@ switch ($name) {
 ?>
               <li class="Id">
                 <label><?php echo translate('Id') ?></label>
-                <input type="number" step="1" min="1" name="newMonitor[Id]" placeholder="leave blank for auto"/><br/>
+                <input type="number" step="1" min="1" name="newMonitor[Id]" placeholder="<?php echo translate('leave blank for auto') ?>"/><br/>
 <?php 
         if (count($available_monitor_ids)) {
           echo 'Some available ids: '.implode(', ', array_slice($available_monitor_ids, 0, 10));
@@ -1341,7 +1341,7 @@ $codecs = array(
 ?>
             <li>
               <label><?php echo translate('TimestampLabelFormat') ?></label>
-              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>" placeholder="Python strftime format. %f for hundredths, %N for Monitor Name, %Q for show text."/>
+              <input type="text" name="newMonitor[LabelFormat]" value="<?php echo validHtmlStr($monitor->LabelFormat()) ?>" placeholder="<?php echo translate('Python strftime format. %f for hundredths, %N for Monitor Name, %Q for show text.') ?>"/>
             </li>
             <li>
               <label><?php echo translate('TimestampLabelX') ?></label>

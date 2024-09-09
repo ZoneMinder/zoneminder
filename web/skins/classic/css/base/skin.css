@@ -167,6 +167,10 @@ label {
     margin: 0 4px;
 }
 
+button {
+  line-height: 18.5px;
+}
+
 a.btn,
 button.btn {
   line-height: 1;

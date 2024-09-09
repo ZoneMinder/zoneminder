@@ -277,7 +277,7 @@ function parseRows(rows) {
       inputTds.eq(4).html(serverSelect).children().val(serverVal).addClass('chosen chosen-full-width');
     } else if ( (attr == 'StorageId') || (attr == 'SecondaryStorageId') ) { //Choose by storagearea
       const storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
-      for ( key in storageareas ) {
+      for (const key in storageareas ) {
         storageSelect.append('<option value="' + key + '">' + storageareas[key].Name + '</option>');
       }
       const storageVal = inputTds.eq(4).children().val();

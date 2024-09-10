@@ -761,7 +761,6 @@ VideoStore::~VideoStore() {
   avformat_free_context(oc);
   delete[] next_dts;
   next_dts = nullptr;
-  delete opkt;
 } // VideoStore::~VideoStore()
 
 bool VideoStore::setup_resampler() {

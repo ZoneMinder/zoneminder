@@ -1244,7 +1244,9 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     // Do this to allow the encoder to choose whether to use I/P/B frame
     //zm_packet->out_frame->pict_type = AV_PICTURE_TYPE_NONE;
     //zm_packet->out_frame->key_frame = zm_packet->keyframe;
-#if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
+#if LIBAVCODEC_VERSION_CHECK(60, 3, 0, 3, 0)
+    frame->duration
+#elif LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
     frame->pkt_duration = 0;
 #endif
 

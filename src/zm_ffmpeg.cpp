@@ -458,7 +458,7 @@ bool is_video_stream(const AVStream * stream) {
     return true;
   }
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  Debug(2, "Not a video type %d != %d", stream->codecpar->codec_type, AVMEDIA_TYPE_VIDEO);
+  Debug(2, "Not a video type %d != %d for stream %d", stream->codecpar->codec_type, AVMEDIA_TYPE_VIDEO, stream->index);
   #endif
 
   return false;

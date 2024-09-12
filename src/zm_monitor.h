@@ -126,6 +126,7 @@ protected:
     uint32_t size;              /* +0    */
     int32_t last_write_index;  /* +4    */
     int32_t last_read_index;   /* +8    */
+    int32_t  image_count;       /* +12   */
     uint32_t state;             /* +12   */
     double      capture_fps;       // Current capturing fps
     double      analysis_fps;      // Current analysis fps
@@ -342,7 +343,6 @@ protected:
   unsigned int  last_camera_bytes;
 
   int        event_count;
-  int        image_count;
   int         last_capture_image_count; // last value of image_count when calculating capture fps
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
   int        motion_frame_count;      // How many frames have had motion detection performed on them.
@@ -356,6 +356,7 @@ protected:
   State      state;
   time_t      start_time;
   double      last_fps_time;
+  double      last_status_time;
   double      last_analysis_fps_time;
   time_t      auto_resume_time;
   unsigned int      last_motion_score;
@@ -473,10 +474,10 @@ public:
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {
-    if ( image_count >= ready_count ) {
+    if ( shared_data->image_count >= ready_count ) {
       return true;
     }
-    Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", image_count, ready_count);
+    Debug(2, "Not ready because image_count(%d) <= ready_count(%d)", shared_data->image_count, ready_count);
     return false;
   }
   inline bool Active() const {

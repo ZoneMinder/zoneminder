@@ -27,22 +27,33 @@ var params =
 
 // Called by bootstrap-table to retrieve zm log data
 function ajaxRequest(params) {
-  $j.getJSON(thisUrl + '?view=request&request=log&task=query', params.data)
-      .done(function(data) {
-        //console.log('Ajax parameters: ' + JSON.stringify(params));
-        // rearrange the result into what bootstrap-table expects
-        params.success({
-          total: data.total,
-          totalNotFiltered: data.totalNotFiltered,
-          rows: processRows(data.rows)
-        });
-        updateHeaderStats(data);
-      })
-      .fail(logAjaxFail);
+  $j.ajax({
+    url: thisUrl + '?view=request&request=log&task=query',
+    data: params.data,
+    timeout: 0,
+    success: function(data) {
+      //console.log('Ajax parameters: ' + JSON.stringify(params));
+      // rearrange the result into what bootstrap-table expects
+      params.success({
+        total: data.total,
+        totalNotFiltered: data.totalNotFiltered,
+        rows: processRows(data.rows)
+      });
+      updateHeaderStats(data);
+    },
+    error: function(jqxhr) {
+      logAjaxFail(jqxhr);
+    }
+  });
 }
+
 function processRows(rows) {
   $j.each(rows, function(ndx, row) {
-    row.Message = decodeURIComponent(row.Message);
+    try {
+      row.Message = decodeURIComponent(row.Message).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    } catch (e) {
+      // ignore errors
+    }
   });
   return rows;
 }

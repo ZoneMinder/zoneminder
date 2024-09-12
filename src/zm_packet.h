@@ -20,6 +20,7 @@
 #ifndef ZM_PACKET_H
 #define ZM_PACKET_H
 
+#include "zm_ffmpeg.h"
 #include "zm_logger.h"
 #include "zm_zone.h"
 
@@ -46,7 +47,7 @@ class ZMPacket {
 
     int keyframe;
     AVStream  *stream;            // Input stream
-    AVPacket  packet;             // Input packet, undecoded
+    av_packet_ptr packet;         // Input packet, undecoded
     AVFrame   *in_frame;          // Input image, decoded Theoretically only filled if needed.
     AVFrame   *out_frame;         // output image, Only filled if needed.
     timeval  timestamp;
@@ -62,7 +63,7 @@ class ZMPacket {
     std::vector<ZoneStats> zone_stats;
 
   public:
-    AVPacket *av_packet() { return &packet; }
+    AVPacket *av_packet() { return packet.get(); }
     AVPacket *set_packet(AVPacket *p) ;
     AVFrame *av_frame() { return out_frame; }
     Image *get_image(Image *i=nullptr);
@@ -78,6 +79,9 @@ class ZMPacket {
     //AVFrame *get_out_frame(const AVCodecContext *ctx);
     AVFrame *get_out_frame(int width, int height, AVPixelFormat format);
     int get_codec_imgsize() { return codec_imgsize; };
+    void notify_all() {
+      this->condition_.notify_all();
+    }
 };
 
 class ZMLockedPacket {
@@ -96,22 +100,24 @@ class ZMLockedPacket {
     }
 
     void lock() {
-      Debug(4, "locking packet %d", packet_->image_index);
+      Debug(4, "locking packet %d %p %d owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       lck_.lock();
       locked = true;
       Debug(4, "packet %d locked", packet_->image_index);
     };
 
     bool trylock() {
-      Debug(4, "TryLocking packet %d", packet_->image_index);
+      Debug(4, "TryLocking packet %d %p locked: %d owns: %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       locked = lck_.try_lock();
+      Debug(4, "TryLocking packet %d %p %d, owns: %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       return locked;
     };
 
     void unlock() {
-      Debug(4, "packet %d unlocked", packet_->image_index);
+      Debug(4, "packet %d unlocked, %p, locked %d, owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       locked = false;
       lck_.unlock();
+      Debug(4, "packet %d unlocked, %p, locked %d, owns %d", packet_->image_index, packet_.get(), locked, lck_.owns_lock());
       packet_->condition_.notify_all();
     };
 
@@ -119,6 +125,10 @@ class ZMLockedPacket {
       Debug(4, "packet %d waiting", packet_->image_index);
       packet_->condition_.wait(lck_);
     }
+    void notify_all() {
+      packet_->notify_all();
+    }
+    
 };
 
 #endif /* ZM_PACKET_H */

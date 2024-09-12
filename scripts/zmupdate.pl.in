@@ -122,10 +122,11 @@ GetOptions(
     ) or pod2usage(-exitstatus => -1);
 
 my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
-if ( !$dbh ) {
-  die "Unable to connect to db\n";
-}
+die "Unable to connect to db\n" if !$dbh;
+
+#When putting the user and password on the command line, we will enclose in quotes, so escape any quotes.
 $Config{ZM_DB_USER} = $dbUser;
+$dbUser =~ s/'/\\'/g;
 $Config{ZM_DB_PASS} = $dbPass;
 # we escape dbpass with single quotes so that $ in the password has no effect, but dbpass could have a ' in it.
 $dbPass =~ s/'/\\'/g;
@@ -169,7 +170,7 @@ if ( $check && $Config{ZM_CHECK_FOR_UPDATES} ) {
       my $ua = LWP::UserAgent->new;
       $ua->agent('ZoneMinder Update Agent/'.ZM_VERSION);
       if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
-        $ua->proxy('http', $Config{ZM_UPDATE_CHECK_PROXY});
+        $ua->proxy('https', $Config{ZM_UPDATE_CHECK_PROXY});
       }
       my $req = HTTP::Request->new(GET=>'https://update.zoneminder.com/version.txt');
       my $res = $ua->request($req);
@@ -374,11 +375,6 @@ if ( $version ) {
   my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
   $version = $detaint_version;
 
-  if ( ZM_VERSION eq $version ) {
-    print("\nDatabase already at version $version, update skipped.\n\n");
-    exit(0);
-  }
-
   my $start_zm = 0;
   print("\nInitiating database upgrade to version ".ZM_VERSION." from version $version\n");
   if ( $interactive ) {
@@ -412,7 +408,7 @@ if ( $version ) {
       if ($super) {
         $command .= ' --defaults-file=/etc/mysql/debian.cnf';
       } elsif ($dbUser) {
-        $command .= ' -u'.$dbUser;
+        $command .= ' -u\''.$dbUser.'\'';
         $command .= ' -p\''.$dbPass.'\'' if $dbPass;
       }
       if ( defined($portOrSocket) ) {
@@ -929,7 +925,7 @@ if ( $version ) {
     foreach my $patch ( @files ) {
       my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
 #PP make sure we use version compare 
-      if ( version->parse('v'.$v) > version->parse('v'.$version) ) {
+      if ( version->parse('v'.$v) >= version->parse('v'.$version) ) {
         print("Upgrading DB to $v from $version\n");
         if ( patchDB($dbh, $v) ) {
           my $res = $sth->execute($version) or die( "Can't execute: ".$sth->errstr() );
@@ -1004,7 +1000,7 @@ sub patchDB {
   if ($super) {
     $command .= ' --defaults-file=/etc/mysql/debian.cnf';
   } elsif ($dbUser) {
-    $command .= ' -u'.$dbUser;
+    $command .= ' -u\''.$dbUser.'\'';
     $command .= ' -p\''.$dbPass.'\'' if $dbPass;
   }
   if ( defined($portOrSocket) ) {

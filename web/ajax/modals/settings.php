@@ -25,14 +25,12 @@ if ( $zmuOutput ) {
         </button>
       </div>
       <div class="modal-body">
-      <form name="contentForm" id="settingsForm" method="post" action="?">
+      <form name="contentForm" id="settingsForm" method="post" action="?view=watch&mid=<?php echo $monitor->Id() ?>">
         <?php
         // We have to manually insert the csrf key into the form when using a modal generated via ajax call
         echo getCSRFinputHTML();
         ?>
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
         <input type="hidden" name="action" value="settings"/>
-        <input type="hidden" name="mid" value="<?php echo validInt($_REQUEST['mid']) ?>"/>
         <table id="contentTable" class="major">
           <tbody>
             <tr>

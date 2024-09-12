@@ -19,7 +19,7 @@
 //
 global $CLANG;
 ?>
-<div id="modalLogout" class="modal" tabindex="-1" role="dialog">
+<div id="modalLogout" class="modal fade" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -81,7 +81,7 @@ while ( $row = $result->fetch(PDO::FETCH_ASSOC) ) {
   <tr>
     <td>'.validHtmlStr($user->Username()).'</td>
     <td>'.validHtmlStr($_SESSION['remoteAddr']).'</td>
-    <td>'.$dateTimeFormatter->formatter($row['access']).'</td>
+    <td>'.$dateTimeFormatter->format($row['access']).'</td>
   </tr>
 ';
 } # end while

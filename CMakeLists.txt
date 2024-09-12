@@ -192,11 +192,6 @@ set(ZM_MANPAGE_DEST_PREFIX "share/man" CACHE PATH
 set(ZM_CAKEPHP_CACHE "Apc" CACHE STRING
   "Set the CakePHP cache engine, default: Apc")
 
-# Reassign some variables if a target distro has been specified
-if(ZM_TARGET_DISTRO MATCHES "^fc")
-  set(ZM_CAKEPHP_CACHE "Memcached")
-endif()
-
 if((ZM_TARGET_DISTRO MATCHES "^el") OR (ZM_TARGET_DISTRO MATCHES "^fc"))
   set(ZM_RUNDIR "/var/run/zoneminder")
   set(ZM_SOCKDIR "/var/lib/zoneminder/sock")

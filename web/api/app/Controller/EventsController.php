@@ -110,7 +110,7 @@ class EventsController extends AppController {
     // also add FS path
 
     foreach ( $events as $key => $value ) {
-      $EventObj = new ZM\Event($value['Event']['Id']);
+      $EventObj = new ZM\Event($value['Event']);
       $maxScoreFrameId = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
       $events[$key]['Event']['MaxScoreFrameId'] = $maxScoreFrameId;
       $events[$key]['Event']['FileSystemPath'] = $EventObj->Path();
@@ -145,7 +145,7 @@ class EventsController extends AppController {
 
     $noFrames = $this->request->query('noframes');
     if ($noFrames=='true')
-        $this->Event->unbindModel(array('hasMany' => array('Frame')));
+      $this->Event->unbindModel(array('hasMany' => array('Frame')));
 
     $options = array('conditions' => array(array('Event.' . $this->Event->primaryKey => $id), $mon_options));
     $event = $this->Event->find('first', $options);
@@ -170,8 +170,12 @@ class EventsController extends AppController {
     $event['Event']['PrevOfMonitor'] = $event_monitor_neighbors['prev']['Event']['Id'];
   
     $this->loadModel('Frame');
-    $event['Event']['MaxScoreFrameId'] = $this->Frame->findByEventid($id,'FrameId',array('Score'=>'desc','FrameId'=>'asc'))['Frame']['FrameId'];
-    $event['Event']['AlarmFrameId'] = $this->Frame->findByEventidAndType($id,'Alarm')['Frame']['FrameId'];
+    $maxScoreFrame = $this->Frame->findByEventid($id, 'FrameId', array('Score'=>'desc','FrameId'=>'asc'));
+
+    $event['Event']['MaxScoreFrameId'] = $maxScoreFrame ? $maxScoreFrame['Frame']['FrameId'] : null;
+    $alarmFrame = $this->Frame->findByEventidAndType($id, 'Alarm');
+
+    $event['Event']['AlarmFrameId'] = $alarmFrame ? $alarmFrame['Frame']['FrameId'] : null;
 
     $this->set(array(
       'event' => $event,

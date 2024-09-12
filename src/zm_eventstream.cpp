@@ -26,6 +26,7 @@
 #include "zm_signal.h"
 #include "zm_storage.h"
 #include <arpa/inet.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -812,9 +813,10 @@ bool EventStream::sendFrame(int delta_us) {
           Fatal("Unexpected frame type %d", type);
           break;
       }
-      send_buffer(img_buffer, img_buffer_size);
+      int rc = send_buffer(img_buffer, img_buffer_size);
       delete image;
       image = nullptr;
+      if (!rc) return false;
     }  // end if send_raw or not
 
   }  // end if stream MPEG or other
@@ -1093,13 +1095,13 @@ bool EventStream::send_file(const char *filepath) {
 
 bool EventStream::send_buffer(uint8_t* buffer, int size) {
   if ( 0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", size) ) {
-    Info("Unable to send raw frame %ld: %s", curr_frame_id, strerror(errno));
+    Debug(1, "Unable to send raw frame %ld: %s", curr_frame_id, strerror(errno));
     return false;
   }
   int rc = fwrite(buffer, size, 1, stdout);
 
   if ( 1 != rc ) {
-    Error("Unable to send raw frame %ld: %s %d", curr_frame_id, strerror(errno), rc);
+    Debug(1, "Unable to send raw frame %ld: %s %d", curr_frame_id, strerror(errno), rc);
     return false;
   }
   return true;

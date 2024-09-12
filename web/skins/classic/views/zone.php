@@ -70,7 +70,7 @@ if ( !isset($newZone) ) {
 			'Units'	=>	'Pixels',
       'MonitorId' => $monitor->Id(),
       'NumCoords' => 4,
-      'Coords' => sprintf('%d,%d %d,%d, %d,%d %d,%d', $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY),
+      'Coords' => sprintf('%d,%d %d,%d %d,%d %d,%d', $minX, $minY, $maxX, $minY, $maxX, $maxY, $minX, $maxY),
       'Area' => $monitor->ViewWidth() * $monitor->ViewHeight(),
       'AlarmRGB' => 0xff0000,
       'CheckMethod' => 'Blobs',

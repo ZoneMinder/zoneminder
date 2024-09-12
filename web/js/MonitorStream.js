@@ -149,7 +149,6 @@ function MonitorStream(monitorData) {
       const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
       if (newSrc != oldSrc) {
         this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-        this.statusCmdTimer = clearTimeout(this.statusCmdTimer);
         // We know that only the first zms will get the command because the
         // second can't open the commandQueue until the first exits
         // This is necessary because safari will never close the first image
@@ -160,7 +159,6 @@ function MonitorStream(monitorData) {
         console.log("Changing src to " + newSrc);
         img.src = '';
         img.src = newSrc;
-        this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), statusRefreshTimeout);
       }
     }
   }; // setscale
@@ -189,7 +187,6 @@ function MonitorStream(monitorData) {
       stream.src = '';
       stream.src = src;
     }
-    this.statusCmdTimer = setTimeout(this.statusQuery.bind(this), delay);
     stream.onerror = this.img_onerror.bind(this);
     stream.onload = this.img_onload.bind(this);
   }; // this.start
@@ -521,6 +518,7 @@ function MonitorStream(monitorData) {
       this.streamCmdParms.command = CMD_QUERY;
       this.streamCmdReq(this.streamCmdParms);
     }
+    this.streamCmdTimer = setTimeout(this.streamCmdQuery.bind(this), statusRefreshTimeout);
   };
 
   this.streamCommand = function(command) {
@@ -544,8 +542,11 @@ function MonitorStream(monitorData) {
     alarmCmdParms.id = this.id;
 
     this.ajaxQueue = jQuery.ajaxQueue({
-      url: this.url,
-      data: alarmCmdParms, dataType: "json"})
+      url: this.url + (auth_relay?'?'+auth_relay:''),
+      xhrFields: {withCredentials: true},
+      data: alarmCmdParms,
+      dataType: "json"
+    })
         .done(this.getStreamCmdResponse.bind(this))
         .fail(this.onFailure.bind(this));
   };
@@ -559,7 +560,12 @@ function MonitorStream(monitorData) {
     }
 
     this.streamCmdReq = function(streamCmdParms) {
-      this.ajaxQueue = jQuery.ajaxQueue({url: this.url, data: streamCmdParms, dataType: "json"})
+      this.ajaxQueue = jQuery.ajaxQueue({
+        url: this.url,
+        xhrFields: { withCredentials: true },
+        data: streamCmdParms,
+        dataType: "json"
+      })
           .done(this.getStreamCmdResponse.bind(this))
           .fail(this.onFailure.bind(this));
     };

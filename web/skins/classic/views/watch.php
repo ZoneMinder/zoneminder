@@ -192,7 +192,10 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
               <th data-sortable="false" data-field="Delete"><?php echo translate('Delete') ?></th>
               <th data-sortable="false" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="false" data-field="Name"><?php echo translate('Name') ?></th>
+              <th data-sortable="false" data-field="Cause"><?php echo translate('Cause') ?></th>
+              <th data-sortable="false" data-field="Notes"><?php echo translate('Notes') ?></th>
               <th data-sortable="false" data-field="StartDateTime"><?php echo translate('AttrStartTime') ?></th>
+              <th data-sortable="false" data-field="EndDateTime"><?php echo translate('AttrEndTime') ?></th>
               <th data-sortable="false" data-field="Length"><?php echo translate('Duration') ?></th>
               <th data-sortable="false" data-field="Frames"><?php echo translate('Frames') ?></th>
               <th data-sortable="false" data-field="AlarmFrames"><?php echo translate('AlarmBrFrames') ?></th>

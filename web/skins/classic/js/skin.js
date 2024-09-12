@@ -334,7 +334,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
   function insertModalHtml(name, html) {
     var modal = $j('#' + name);
 
-    if ( modal.length ) {
+    if (modal.length) {
       modal.replaceWith(html);
     } else {
       $j("body").append(html);
@@ -360,13 +360,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
           if (error == 'Unauthorized') {
             window.location.reload(true);
           }
-          if ( ! jqxhr.responseText ) {
+          if (!jqxhr.responseText) {
             console.log("No responseText in jqxhr");
             console.log(jqxhr);
             return;
           }
           console.log("Response Text: " + jqxhr.responseText.replace(/(<([^>]+)>)/gi, ''));
-          if ( textStatus != "timeout" ) {
+          if (textStatus != "timeout") {
           // The idea is that this should only fail due to auth, so reload the page
           // which should go to login if it can't stay logged in.
             window.location.reload(true);
@@ -375,29 +375,30 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function setNavBar(data) {
-    if ( !data ) {
+    if (!data) {
       console.error("No data in setNavBar");
       return;
     }
-    if ( data.auth ) {
-      if ( data.auth != auth_hash ) {
+    if (data.auth) {
+      if (data.auth != auth_hash) {
         console.log("Update auth_hash to "+data.auth);
         // Update authentication token.
         auth_hash = data.auth;
       }
     }
-    if ( data.auth_relay ) {
+    if (data.auth_relay) {
       auth_relay = data.auth_relay;
     }
     // iterate through all the keys then update each element id with the same name
     for (var key of Object.keys(data)) {
       if ( key == "auth" ) continue;
+      if ( key == "auth_relay" ) continue;
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
       if ( $j('#'+key).length ) $j('#'+key).replaceWith(data[key]);
       if ( key == 'getBandwidthHTML' ) bwClickFunction();
     }
   }
-}
+} // end if ( currentView != 'none' && currentView != 'login' )
 
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
 function checkStreamForErrors(funcName, streamObj) {
@@ -441,7 +442,7 @@ function secsToTime( seconds ) {
     }
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
-  return ( timeString );
+  return timeString;
 }
 
 function submitTab(evt) {
@@ -689,11 +690,13 @@ function getLogoutModal() {
       .fail(logAjaxFail);
 }
 function clickLogout() {
-  if ( ! $j('#modalLogout').length ) {
+  const modalLogout = $j('#modalLogout');
+
+  if (!modalLogout.length) {
     getLogoutModal();
     return;
   }
-  $j('#modalLogout').modal('show');
+  modalLogout.modal('show');
 }
 
 function getStateModal() {

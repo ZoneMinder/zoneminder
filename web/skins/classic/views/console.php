@@ -166,8 +166,7 @@ xhtmlHeaders(__FILE__, translate('Console'));
 getBodyTopHTML();
 ?>
   <?php echo $navbar ?>
-  <form name="monitorForm" method="get" action="?">
-    <input type="hidden" name="view" value="<?php echo $view ?>"/>
+  <form name="monitorForm" method="post" action="?view=<?php echo $view; ?>">
     <input type="hidden" name="action" value=""/>
 
     <div class="filterBar" id="fbpanel"<?php echo ( isset($_COOKIE['zmFilterBarFlip']) and $_COOKIE['zmFilterBarFlip'] == 'down' ) ? ' style="display:none;"' : '' ?>>

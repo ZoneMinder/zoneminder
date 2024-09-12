@@ -64,6 +64,7 @@ class zmDbRow {
 extern MYSQL dbconn;
 extern std::mutex db_mutex;
 extern zmDbQueue  dbQueue;
+extern unsigned long db_thread_id;
 
 extern bool zmDbConnected;
 
@@ -77,5 +78,7 @@ int zmDbDoUpdate(const char *query);
 
 MYSQL_RES * zmDbFetch(const char *query);
 zmDbRow *zmDbFetchOne(const char *query);
+
+std::string zmDbEscapeString(const std::string& to_escape);
 
 #endif // ZM_DB_H

@@ -29,12 +29,14 @@
 // Valid query string:
 //
 //        &maxTime, minTime = string formats (locale) of starting and ending time for history (pass both or none), default = last hour
+//                            if not specified, but current is, then should center 1 hour on current
 //
 //        &current = string format of time, where the slider is positioned first in history mode (normally only used in reloads, default = half scale)
+//                   also used when jumping from event view to montagereview
 //
 //        &speed = one of the valid speeds below (see $speeds in php section, default = 1.0)
 //
-//        &scale = image sie scale (.1 to 1.0, or 1.1 = fit, default = fit)
+//        &scale = image size scale (.1 to 1.0, or 1.1 = fit, default = fit)
 //
 //        &live=1 whether to start in live mode, 1 = yes, 0 = no
 //
@@ -59,12 +61,47 @@ include('_monitor_filters.php');
 $filter_bar = ob_get_contents();
 ob_end_clean();
 
+// Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
+// Live overrides all the min/max stuff but it is still processed
+
+// The default (nothing at all specified) is for 1 hour so we do not read the whole database
+
+if (isset($_REQUEST['current'])) {
+  $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
+  $defaultCurrentTimeSecs = strtotime($defaultCurrentTime);
+}
+
+if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
+  if (isset($defaultCurrentTimeSecs)) {
+    $minTime = date('c', $defaultCurrentTimeSecs - 1800);
+    $maxTime = date('c', $defaultCurrentTimeSecs + 1800);
+  } else {
+    $time = time();
+    $maxTime = date('c', $time);
+    $minTime = date('c', $time - 3600);
+  }
+} else {
+  if (isset($_REQUEST['minTime']))
+    $minTime = validHtmlStr($_REQUEST['minTime']);
+
+  if (isset($_REQUEST['maxTime']))
+    $maxTime = validHtmlStr($_REQUEST['maxTime']);
+}
+
+// AS a special case a "all" is passed in as an extreme interval - if so, clear them here and let the database query find them
+
+if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
+  // test years
+  $minTime = null;
+  $maxTime = null;
+}
+
 $filter = array();
-if ( isset($_REQUEST['filter']) ) {
+if (isset($_REQUEST['filter'])) {
   $filter = $_REQUEST['filter'];
 
 	# Try to guess min/max time from filter
-	foreach ( $filter['Query'] as $term ) {
+	foreach ($filter['Query'] as $term) {
 		if ( $term['attr'] == 'StartDateTime' ) {
 			if ( $term['op'] == '<=' or $term['op'] == '<' ) {
 				$maxTime = $term['val'];
@@ -160,43 +197,22 @@ if ( isset($_SESSION['archive_status']) ) {
   }
 }
 
-// Parse input parameters -- note for future, validate/clean up better in case we don't get called from self.
-// Live overrides all the min/max stuff but it is still processed
-
-// The default (nothing at all specified) is for 1 hour so we do not read the whole database
-
-if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
-  $time = time();
-  $maxTime = date('c', $time);
-  $minTime = date('c', $time - 3600);
-}
-if ( isset($_REQUEST['minTime']) )
-  $minTime = validHtmlStr($_REQUEST['minTime']);
-
-if ( isset($_REQUEST['maxTime']) )
-  $maxTime = validHtmlStr($_REQUEST['maxTime']);
-
-// AS a special case a "all" is passed in as an extreme interval - if so, clear them here and let the database query find them
-
-if ( (strtotime($maxTime) - strtotime($minTime))/(365*24*3600) > 30 ) {
-  // test years
-  $minTime = null;
-  $maxTime = null;
-}
 
 $fitMode = 1;
 if ( isset($_REQUEST['fit']) && ($_REQUEST['fit'] == '0') )
   $fitMode = 0;
 
-if ( isset($_REQUEST['scale']) )
-  $defaultScale = validHtmlStr($_REQUEST['scale']);
-else
+if ( isset($_REQUEST['scale']) ) {
+  $defaultScale = validCardinal($_REQUEST['scale']);
+  if ($defaultScale > 1.1) $defaultScale = 1.0;
+} else {
   $defaultScale = 1;
+}
 
 $speeds = [0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2, 3, 5, 10, 20, 50];
 
 if ( isset($_REQUEST['speed']) )
-  $defaultSpeed = validHtmlStr($_REQUEST['speed']);
+  $defaultSpeed = validNum($_REQUEST['speed']);
 else
   $defaultSpeed = 1;
 
@@ -208,8 +224,6 @@ for ( $i = 0; $i < count($speeds); $i++ ) {
   }
 }
 
-if ( isset($_REQUEST['current']) )
-  $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
 
 $liveMode = 1; // default to live
 if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
@@ -217,12 +231,20 @@ if ( isset($_REQUEST['live']) && ($_REQUEST['live'] == '0') )
 
 $initialDisplayInterval = 1000;
 if ( isset($_REQUEST['displayinterval']) )
-  $initialDisplayInterval = validHtmlStr($_REQUEST['displayinterval']);
+  $initialDisplayInterval = validCardinal($_REQUEST['displayinterval']);
 
 #$eventsSql .= ' GROUP BY E.Id,E.Name,E.StartDateTime,E.Length,E.Frames,E.MaxScore,E.Cause,E.Notes,E.Archived,E.MonitorId';
 
 $minTimeSecs = $maxTimeSecs = 0;
 if ( isset($minTime) && isset($maxTime) ) {
+  if ($minTime >= $maxTime) {
+    $error_message .= 'Invalid minTime and maxTime specified.<br/>';
+    if ($minTime > $maxTime) {
+      $temp = $minTime;
+      $maxTime = $minTime;
+      $minTime = $temp;
+    }
+  }
   $minTimeSecs = strtotime($minTime);
   $maxTimeSecs = strtotime($maxTime);
   $eventsSql .= " AND EndDateTime > '" . $minTime . "' AND StartDateTime < '" . $maxTime . "'";
@@ -239,7 +261,7 @@ $framesSql .= ' ORDER BY Id DESC';
 
 $monitors = array();
 foreach( $displayMonitors as $row ) {
-  if ( $row['Function'] == 'None' || $row['Type'] == 'WebSite' )
+  if ($row['Type'] == 'WebSite')
     continue;
   $Monitor = new ZM\Monitor($row);
   $monitors[] = $Monitor;

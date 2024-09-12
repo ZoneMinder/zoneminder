@@ -836,9 +836,11 @@ FROM `Frames` WHERE `EventId`=?';
     unlink( split( /;/, $untainted_old_files ) );
   }
 
-  # Now delete any old swap files
-  ( my $swap_image_root ) = ( $Config{ZM_PATH_SWAP} =~ /^(.*)$/ ); # De-taint
-  File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
+  eval {
+    # Now delete any old swap files
+    ( my $swap_image_root ) = ( $Config{ZM_PATH_SWAP} =~ /^(.*)$/ ); # De-taint
+    File::Find::find( { wanted=>\&deleteSwapImage, untaint=>1 }, $swap_image_root );
+  };
 
   # Prune the Logs table if required
   if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {

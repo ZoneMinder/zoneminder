@@ -81,7 +81,7 @@ Options for use with monitors:
   -U, --username <username>               - When running in authenticated mode the username and
   -P, --password <password>               - password combination of the given user
   -A, --auth <authentication>             - Pass authentication hash string instead of user details
-
+  -x, --xtrigger                          - Output the current monitor trigger state, 0 = not triggered, 1 = triggered 
 =cut
 
 */
@@ -137,7 +137,9 @@ void Usage(int status=-1) {
 			"  -U, --username <username>    : When running in authenticated mode the username and\n" 
 			"  -P, --password <password>    : password combination of the given user\n" 
 			"  -A, --auth <authentication>  : Pass authentication hash string instead of user details\n"
-      "  -T, --token <token>  : Pass JWT token string instead of user details\n"
+                        "  -T, --token <token>  : Pass JWT token string instead of user details\n"
+                        "  -x, --xtrigger       : Output the current monitor trigger state, 0 = not triggered, 1 = triggered\n"
+
 	 "", stderr );
 
   exit(status);
@@ -167,11 +169,12 @@ typedef enum {
 	ZMU_SUSPEND    = 0x00400000,
 	ZMU_RESUME     = 0x00800000,
 	ZMU_LIST       = 0x10000000,
+        ZMU_TRIGGER    = 0x20000000,
 } Function;
 
 bool ValidateAccess(User *user, int mon_id, int function) {
   bool allowed = true;
-  if ( function & (ZMU_STATE|ZMU_IMAGE|ZMU_TIME|ZMU_READ_IDX|ZMU_WRITE_IDX|ZMU_FPS) ) {
+  if ( function & (ZMU_STATE|ZMU_IMAGE|ZMU_TIME|ZMU_READ_IDX|ZMU_WRITE_IDX|ZMU_FPS|ZMU_TRIGGER) ) {
     if ( user->getStream() < User::PERM_VIEW )
       allowed = false;
   }
@@ -246,6 +249,7 @@ int main(int argc, char *argv[]) {
     {"version", 1, nullptr, 'V'},
     {"help", 0, nullptr, 'h'},
     {"list", 0, nullptr, 'l'},
+    {"xtrigger", 0, nullptr, 'x'},
     {nullptr, 0, nullptr, 0}
   };
 
@@ -282,7 +286,7 @@ int main(int argc, char *argv[]) {
   while (1) {
     int option_index = 0;
 
-    int c = getopt_long(argc, argv, "d:m:vsEDLurwei::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
+    int c = getopt_long(argc, argv, "d:m:vsEDLurweix::S:t::fz::ancqhlB::C::H::O::RWU:P:A:V:T:", long_options, &option_index);
     if (c == -1) {
       break;
     }
@@ -300,6 +304,9 @@ int main(int argc, char *argv[]) {
         break;
       case 's':
         function |= ZMU_STATE;
+        break;
+      case 'x':
+        function |= ZMU_TRIGGER;
         break;
       case 'i':
         function |= ZMU_IMAGE;
@@ -514,6 +521,15 @@ int main(int argc, char *argv[]) {
         printf("Current state: %s\n", state==Monitor::ALARM?"Alarm":(state==Monitor::ALERT?"Alert":"Idle"));
       } else {
         printf("%d", state);
+        have_output = true;
+      }
+    }
+    if ( function & ZMU_TRIGGER ) {
+      int trgstate = monitor->GetTriggerState();
+      if ( verbose ) {
+        printf("Current Triggered state: %s\n", trgstate==0?"Not Triggered":(trgstate==1?"Triggered":"NA"));
+      } else {
+        printf("%d", trgstate);
         have_output = true;
       }
     }

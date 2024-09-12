@@ -223,6 +223,19 @@ Get the crud submodule tarball:
 
     spectool -f -g -R -s 1 ~/zoneminder/distros/redhat/zoneminder.spec
 
+Get the cakephp-enum-behavior submodule tarball:
+
+::
+
+    spectool -f -g -R -s 2 ~/zoneminder/distros/redhat/zoneminder.spec
+
+
+Get the Rtsp-Server submodule tarball:
+
+::
+
+    spectool -f -g -R -s 3 ~/zoneminder/distros/redhat/zoneminder.spec
+
 At this point, you can make changes to the source code. Depending on what you want to do with those changes, you generally want to create a new branch first:
 
 ::

@@ -47,6 +47,8 @@ class PacketQueue {
     std::mutex mutex;
     std::condition_variable condition;
     int warned_count;
+    bool has_out_of_order_packets_;
+    int max_keyframe_interval_;
 
   public:
     PacketQueue();
@@ -61,10 +63,13 @@ class PacketQueue {
 
     bool queuePacket(std::shared_ptr<ZMPacket> packet);
     void stop();
+    bool stopping() const { return deleting; };
     void clear();
     void dumpQueue();
     unsigned int size();
     unsigned int get_packet_count(int stream_id) const { return packet_counts[stream_id]; };
+    bool has_out_of_order_packets() const { return has_out_of_order_packets_; };
+    int get_max_keyframe_interval() const { return max_keyframe_interval_; };
 
     void clearPackets(const std::shared_ptr<ZMPacket> &packet);
     int packet_count(int stream_id);
@@ -72,6 +77,7 @@ class PacketQueue {
     bool increment_it(packetqueue_iterator *it);
     bool increment_it(packetqueue_iterator *it, int stream_id);
     ZMLockedPacket *get_packet(packetqueue_iterator *);
+    ZMLockedPacket *get_packet_no_wait(packetqueue_iterator *);
     ZMLockedPacket *get_packet_and_increment_it(packetqueue_iterator *);
     packetqueue_iterator *get_video_it(bool wait);
     packetqueue_iterator *get_stream_it(int stream_id);

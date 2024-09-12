@@ -30,22 +30,33 @@
 bool ValidateAccess(User *user, int mon_id) {
   bool allowed = true;
 
-  if ( mon_id > 0 ) {
-    if ( user->getStream() < User::PERM_VIEW )
+  if (mon_id > 0) {
+    if (user->getStream() < User::PERM_VIEW) {
       allowed = false;
-    if ( !user->canAccess(mon_id) )
+      Warning("Insufficient privileges for request user %d %s for monitor %d, user does not have permission to stream live view.",
+          user->Id(), user->getUsername(), mon_id);
+    } else if (!user->canAccess(mon_id)) {
       allowed = false;
-  } else {
-    if ( user->getEvents() < User::PERM_VIEW )
-      allowed = false;
-  }
-  if ( !allowed ) {
-    Error("Insufficient privileges for request user %d %s for monitor %d",
-      user->Id(), user->getUsername(), mon_id);
+      Warning("Insufficient privileges for request user %d %s for monitor %d, user does not have permission view this monitor.",
+          user->Id(), user->getUsername(), mon_id);
+    }
+  } else if (user->getEvents() < User::PERM_VIEW) {
+    allowed = false;
+    Warning("Insufficient privileges for request user %d %s, user does not have permission view events.",
+        user->Id(), user->getUsername());
   }
   return allowed;
 }
 
+int exit_zms(int exit_code) {
+  Debug(1, "Terminating");
+  Image::Deinitialise();
+  dbQueue.stop();
+  zmDbClose();
+  logTerm();
+  exit(exit_code);
+  return exit_code;
+}
 int main(int argc, const char *argv[], char **envp) {
   self = argv[0];
 
@@ -97,7 +108,7 @@ int main(int argc, const char *argv[], char **envp) {
   const char *query = getenv("QUERY_STRING");
   if ( query == nullptr ) {
     Fatal("No query string.");
-    return 0;
+    return exit_zms(0);
   }  // end if query
 
   Debug(1, "Query: %s", query);
@@ -144,6 +155,10 @@ int main(int argc, const char *argv[], char **envp) {
       source = ZMS_EVENT;
     } else if ( !strcmp(name, "scale") ) {
       scale = atoi(value);
+      if (scale > 1600) {
+        Warning("Limiting scale to 16x");
+        scale = 1600;
+      }
     } else if ( !strcmp(name, "rate") ) {
       rate = atoi(value);
     } else if ( !strcmp(name, "maxfps") ) {
@@ -212,25 +227,23 @@ int main(int argc, const char *argv[], char **envp) {
     if ( !user ) {
       if (nph) {
         fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
+      } else {
+        fputs("Status: 403\r\nContent-Type: text/html\r\n", stdout);
       }
-      fputs("Status: 403\r\nContent-Type: text/html\r\n", stdout);
 
       const char *referer = getenv("HTTP_REFERER");
       Error("Unable to authenticate user from %s", referer);
-      logTerm();
-      zmDbClose();
-      return 0;
+      return exit_zms(0);
     }
     if ( !ValidateAccess(user, monitor_id) ) {
       delete user;
       user = nullptr;
       if (nph) {
         fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
+      } else {
+        fputs("Status: 403\r\nContent-Type: text/html\r\n\r\n", stdout);
       }
-      fputs("Status: 403\r\nContent-Type: text/html\r\n\r\n", stdout);
-      logTerm();
-      zmDbClose();
-      return 0;
+      return exit_zms(0);
     }
     delete user;
     user = nullptr;
@@ -339,11 +352,5 @@ int main(int argc, const char *argv[], char **envp) {
     Error("Neither a monitor or event was specified.");
   }  // end if monitor or event
 
-  Debug(1, "Terminating");
-  Image::Deinitialise();
-  dbQueue.stop();
-  logTerm();
-  zmDbClose();
-
-  return 0;
+  return exit_zms(0);
 }

@@ -108,7 +108,12 @@ switch ($task) {
 			ajaxError('Insufficient permissions for user '.$user['Username']);
 			return;
 		}
-    foreach ($eids as $eid) $data[] = deleteRequest($eid);
+    foreach ($eids as $eid) {
+      $message = deleteRequest($eid);
+      if (count($message)) {
+        $data[] = $message;
+      }
+    }
     break;
   case 'query' :
     $data = queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $limit);
@@ -156,8 +161,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     'updated' =>  $dateTimeFormatter->format(time())
   );
 
-  $failed = !$filter->test_pre_sql_conditions();
-  if ($failed) {
+  if (!$filter->test_pre_sql_conditions()) {
     ZM\Debug('Pre conditions failed, not doing sql');
     return $data;
   }
@@ -170,13 +174,13 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $columns = array('Id', 'MonitorId', 'StorageId', 'Name', 'Cause', 'StartDateTime', 'EndDateTime', 'Length', 'Frames', 'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'Archived', 'Emailed', 'Notes', 'DiskSpace');
 
   // The names of columns shown in the event view that are NOT dB columns in the database
-  $col_alt = array('Monitor', 'Storage');
+  $col_alt = array('Monitor', 'MonitorName', 'Storage');
 
   if ( $sort != '' ) {
     if (!in_array($sort, array_merge($columns, $col_alt))) {
       ZM\Error('Invalid sort field: ' . $sort);
       $sort = '';
-    } else if ( $sort == 'Monitor' ) {
+    } else if ( $sort == 'Monitor' or $sort == 'MonitorName' ) {
       $sort = 'M.Name';
     } else {
       $sort = 'E.'.$sort;
@@ -189,7 +193,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
   $col_str = 'E.*, M.Name AS Monitor';
   $sql = 'SELECT ' .$col_str. ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
-  if ($filter->limit() and !count($filter->pre_sql_conditions()) and !count($filter->post_sql_conditions())) {
+  if ($filter->limit() and !count($filter->post_sql_conditions())) {
     $sql .= ' LIMIT '.$filter->limit();
   }
 

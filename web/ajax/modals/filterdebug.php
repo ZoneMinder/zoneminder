@@ -43,7 +43,7 @@
   echo $sql;
 ?></p>
          <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel')?> </button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Close')?> </button>
         </div>
       </form>
     </div>

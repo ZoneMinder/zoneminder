@@ -323,14 +323,14 @@ $orientations = array(
     );
 
 $deinterlaceopts = array(
-  0x00000000 => 'Disabled',
-  0x00001E04 => 'Four field motion adaptive - Soft', /* 30 change */
-  0x00001404 => 'Four field motion adaptive - Medium', /* 20 change */
-  0x00000A04 => 'Four field motion adaptive - Hard', /* 10 change */
-  0x00000001 => 'Discard',
-  0x00000002 => 'Linear',
-  0x00000003 => 'Blend',
-  0x00000205 => 'Blend (25%)',
+  0x00000000 => translate('Disabled'),
+  0x00001E04 => translate('Four field motion adaptive - Soft'), /* 30 change */
+  0x00001404 => translate('Four field motion adaptive - Medium'), /* 20 change */
+  0x00000A04 => translate('Four field motion adaptive - Hard'), /* 10 change */
+  0x00000001 => translate('Discard'),
+  0x00000002 => translate('Linear'),
+  0x00000003 => translate('Blend'),
+  0x00000205 => translate('Blend (25%)'),
 );
 
 $deinterlaceopts_v4l2 = array(
@@ -350,23 +350,23 @@ $deinterlaceopts_v4l2 = array(
 );
 
 $fastblendopts = array(
-    0  => 'No blending',
+    0  => translate ('No blending'),
     1  => '1.5625%',
     3  => '3.125%',
-    6  => '6.25% (Indoor)',
-    12 => '12.5% (Outdoor)',
+    6  => translate('6.25% (Indoor)'),
+    12 => translate('12.5% (Outdoor)'),
     25 => '25%',
     50 => '50%',
     );
 
 $fastblendopts_alarm = array(
-    0  => 'No blending (Alarm lasts forever)',
+    0  => translate('No blending (Alarm lasts forever)'),
     1  => '1.5625%',
     3  => '3.125%',
     6  => '6.25%',
     12 => '12.5%',
     25 => '25%',
-    50 => '50% (Alarm lasts a moment)',
+    50 => translate('50% (Alarm lasts a moment)'),
     );
 
 $label_size = array(
@@ -562,8 +562,8 @@ switch ( $name ) {
       echo htmlSelect(
         'newMonitor[LinkedMonitors][]',
         $monitor_options,
-        ( $monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array() ),
-        array('class'=>'chosen','multiple'=>'multiple')
+        ($monitor->LinkedMonitors() ? explode(',', $monitor->LinkedMonitors()) : array()),
+        array('class'=>'chosen', 'multiple'=>'multiple')
       );
 ?>
           </td>
@@ -589,7 +589,7 @@ switch ( $name ) {
               </td>
             </tr>
             <tr>
-              <td class="text-right pr-3"><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_MAXFPS') ?></td>
+              <td class="text-right pr-3"><?php echo translate('AlarmMaximumFPS'); echo makeHelpLink('OPTIONS_ALARMMAXFPS') ?></td>
               <td>
                 <input type="number" name="newMonitor[AlarmMaxFPS]" value="<?php echo validHtmlStr($monitor->AlarmMaxFPS()) ?>" min="0" step="any"/>
                 <span id="newMonitor[AlarmMaxFPS]" style="color:red;<?php echo $monitor->AlarmMaxFPS() ? '' : 'display:none;' ?>">CAUTION: See the help text</span>
@@ -956,10 +956,10 @@ include('_monitor_source_nvsocket.php');
             <td>
 <?php
       $savejpegopts = array(
-        0 => 'Disabled',
-        1 => 'Frames only',
-        2 => 'Analysis images only (if available)',
-        3 => 'Frames + Analysis images (if available)',
+        0 => translate('Disabled'),
+        1 => translate('Frames only'),
+        2 => translate('Analysis images only (if available)'),
+        3 => translate('Frames + Analysis images (if available)'),
       );
       echo htmlSelect('newMonitor[SaveJPEGs]', $savejpegopts, $monitor->SaveJPEGs());
 ?>
@@ -968,15 +968,15 @@ include('_monitor_source_nvsocket.php');
             <tr><td class="text-right pr-3"><?php echo translate('VideoWriter') ?></td><td>
 <?php
 	$videowriteropts = array(
-			0 => 'Disabled',
+			0 => translate('Disabled'),
 			);
 
-  $videowriteropts[1] = 'Encode';
+  $videowriteropts[1] = translate('Encode');
 
   if ( $monitor->Type() == 'Ffmpeg' )
-    $videowriteropts[2] = 'Camera Passthrough';
+    $videowriteropts[2] = translate('Camera Passthrough');
   else
-    $videowriteropts[2] = array('text'=>'Camera Passthrough - only for FFMPEG','disabled'=>1);
+    $videowriteropts[2] = array('text'=>translate('Camera Passthrough - only for FFMPEG'),'disabled'=>1);
 	echo htmlSelect('newMonitor[VideoWriter]', $videowriteropts, $monitor->VideoWriter());
 ?>
               </td>
@@ -1033,7 +1033,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>
               <input type="checkbox" name="newMonitor[RecordAudio]" value="1"<?php if ( $monitor->RecordAudio() ) { ?> checked="checked"<?php } ?>/>
 <?php } else { ?>
-              Audio recording only available with FFMPEG
+              <?php echo translate('Audio recording only available with FFMPEG')?>
               <input type="hidden" name="newMonitor[RecordAudio]" value="<?php echo $monitor->RecordAudio() ? 1 : 0 ?>"/>
 <?php } ?>
             </td></tr>
@@ -1071,7 +1071,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('MaxImageBufferCount'); echo makeHelpLink('MaxImageBufferCount'); ?></td>
-              <td><input type="number" name="newMonitor[MaxImageBufferCount]" value="<?php echo validHtmlStr($monitor->MaxImageBufferCount()) ?>" min="0"/></td>
+              <td><input type="number" id="newMonitor[MaxImageBufferCount]" name="newMonitor[MaxImageBufferCount]" value="<?php echo validHtmlStr($monitor->MaxImageBufferCount()) ?>" min="0"/></td>
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('WarmupFrames') ?></td>
@@ -1079,7 +1079,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('PreEventImageBuffer') ?></td>
-              <td><input type="number" name="newMonitor[PreEventCount]" value="<?php echo validHtmlStr($monitor->PreEventCount()) ?>" min="0"/></td>
+              <td><input type="number" id="newMonitor[PreEventCount]" name="newMonitor[PreEventCount]" value="<?php echo validHtmlStr($monitor->PreEventCount()) ?>" min="0"/></td>
             </tr>
             <tr>
               <td class="text-right pr-3"><?php echo translate('PostEventImageBuffer') ?></td>
@@ -1315,7 +1315,8 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
 ?>
 </div><!--tab-content-->
         <div id="contentButtons" class="pr-3">
-          <button type="submit" name="action" value="save"<?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+          <input type="hidden" name="action"/>
+          <button type="button" data-on-click="validateForm" <?php echo canEdit('Monitors') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
           <button type="button" id="cancelBtn"><?php echo translate('Cancel') ?></button>
         </div>
       </form>

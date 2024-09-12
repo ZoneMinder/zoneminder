@@ -63,7 +63,7 @@ class Logger {
 
   private function __construct() {
     $this->hasTerm = (php_sapi_name() == 'cli' && empty($_SERVER['REMOTE_ADDR']));
-    $this->logFile = $this->logPath.'/'.$this->id.'.log';
+    $this->logFile = $this->id.'.log';
   }
 
   public function __destruct() {
@@ -81,11 +81,11 @@ class Logger {
       $tempLogFile = $this->logPath.'/'.$this->id.'.log';
     }
     if ( isset($options['logFile']) )
-      $tempLogFile = $options['logFile'];
+      $tempLogFile = basename($options['logFile']);
     else
-      $tempLogFile = $this->logPath.'/'.$this->id.'.log';
+      $tempLogFile = $this->id.'.log';
     if ( !is_null($logFile = $this->getTargettedEnv('LOG_FILE')) )
-      $tempLogFile = $logFile;
+      $tempLogFile = basename($logFile);
 
     $tempLevel = self::INFO;
     $tempTermLevel = $this->termLevel;
@@ -139,7 +139,7 @@ class Logger {
           if ( ZM_LOG_DEBUG_LEVEL > self::NOLOG ) {
             $tempLevel = $this->limit( ZM_LOG_DEBUG_LEVEL );
             if ( ZM_LOG_DEBUG_FILE != '' ) {
-              $tempLogFile = ZM_LOG_DEBUG_FILE;
+              $tempLogFile = basename(ZM_LOG_DEBUG_FILE);
               $tempFileLevel = $tempLevel;
             }
           }
@@ -237,7 +237,7 @@ class Logger {
         $this->effectiveLevel = $this->level;
       if ( !$this->hasTerm ) {
         if ( $lastLevel < self::DEBUG && $this->level >= self::DEBUG ) {
-          $this->savedErrorReporting = error_reporting(E_ALL);
+          $this->savedErrorReporting = error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED);
           $this->savedDisplayErrors = ini_set('display_errors', true);
         } elseif ( $lastLevel >= self::DEBUG && $this->level < self::DEBUG ) {
           error_reporting($this->savedErrorReporting);
@@ -338,7 +338,7 @@ class Logger {
 
   private function openFile() {
     if ( !$this->useErrorLog ) {
-      if ( $this->logFd = fopen($this->logFile, 'a+') ) {
+      if ( $this->logFd = fopen($this->logPath.'/'.$this->logFile, 'a+') ) {
         if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
           $error = error_get_last();
           trigger_error("Can't open log file '$logFile': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
@@ -395,7 +395,7 @@ class Logger {
 
     if ( $level <= $this->fileLevel ) {
       if ( $this->useErrorLog ) {
-        if ( !error_log($message."\n", 3, $this->logFile) ) {
+        if ( !error_log($message."\n", 3, $this->logPath.'/'.$this->logFile) ) {
           if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
             $error = error_get_last();
             $this->fileLevel = self::NOLOG;

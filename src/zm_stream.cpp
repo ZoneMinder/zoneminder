@@ -100,7 +100,7 @@ void StreamBase::updateFrameRate(double fps) {
       fps, maxfps, base_fps, effective_fps, frame_mod, replay_rate);
   // Min frame repeat?
   // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.  
-  while ( effective_fps > maxfps ) {
+  while ( (int)effective_fps > (int)maxfps ) {
     effective_fps /= 2.0;
     frame_mod *= 2;
     Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d",
@@ -283,12 +283,14 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    if (0 > fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout)) {
-      Debug(1, "Error sending  --" BOUNDARY "\r\nContent-Type: image/jpeg\r\n");
-      return false;
+    if (type == STREAM_JPEG) {
+      if (0 > fputs("--" BOUNDARY "\r\n", stdout)) {
+        Debug(1, "Error sending  --" BOUNDARY "\r\n");
+        return false;
+      }
     }
-    if (0 > fprintf(stdout, "Content-Length: %d\r\n\r\n", n_bytes)) {
-      Debug(1, "Error sending Content-Length: %d\r\n\r\n", n_bytes);
+    if (0 > fprintf(stdout, "Content-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n", n_bytes)) {
+      Debug(1, "Error sending Content-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n", n_bytes);
       return false;
     }
     int rc = fwrite(buffer, n_bytes, 1, stdout);

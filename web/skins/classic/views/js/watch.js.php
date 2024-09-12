@@ -72,7 +72,7 @@ var imageControlMode = null;
 <?php } ?>
 
 var refreshApplet = <?php echo (canStreamApplet() && $streamMode == "jpeg")?'true':'false' ?>;
-var appletRefreshTime = <?php echo ZM_RELOAD_CAMBOZOLA ?>;
+var appletRefreshTime = <?php echo defined('ZM_RELOAD_CAMBOZOLA') ? ZM_RELOAD_CAMBOZOLA : 0 ?>;
 
 var labels = new Array();
 <?php

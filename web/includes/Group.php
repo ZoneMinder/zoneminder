@@ -196,11 +196,13 @@ class Group extends ZM_Object {
 		global $user;
 		if (!$u) $u = $user;
     if (!count($this->Monitors()) and !count($this->Children())) {
-      return true;
+      return false;
     }
 		# Can view if we can view any of the monitors in it.
 		foreach ($this->Monitors() as $monitor) {
-			if ($monitor->canView($u)) return true;
+      if ($monitor->canView($u)) {
+        return true;
+      }
 		}
 		foreach ($this->Children() as $child) {
 			if ($child->canView($u)) return true;

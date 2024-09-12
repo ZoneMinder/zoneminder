@@ -308,6 +308,18 @@ our @options = (
     category    => 'system',
   },
   {
+    name        => 'ZM_CASE_INSENSITIVE_USERNAMES',
+    default     => 'no',
+    description => 'Case insensitive username authentication',
+    help        => q`
+      This option makes usernames case insensitive when
+      authenticating.
+      `,
+    requires    => [ { name=>'ZM_OPT_USE_AUTH', value=>'yes' } ],
+    type        => $types{boolean},
+    category    => 'system',
+  },
+  {
     name        => 'ZM_AUTH_RELAY',
     default     => 'hashed',
     description => 'Method used to relay authentication information',
@@ -348,6 +360,7 @@ our @options = (
       { name=>'ZM_AUTH_RELAY', value=>'hashed' }
     ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -506,6 +519,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
                    ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -521,6 +535,7 @@ our @options = (
                      {name=>'ZM_OPT_USE_GOOG_RECAPTCHA', value=>'yes'}
                    ],
     type        => $types{string},
+    private     => 1,
     category    => 'system',
   },
   {
@@ -1002,13 +1017,12 @@ our @options = (
   {
     name        =>  'ZM_MIN_RTSP_PORT',
     default     =>  '',
-    description =>  'Start of port range to contact for RTSP streaming video.',
+    description =>  'Port used for RTSP streaming video.',
     help        =>  q`
-      The beginng of a port range that will be used to offer
+      The port that will be used to offer
       RTSP streaming of live captured video.
-      Each monitor will use this value plus the Monitor Id to stream
-      content.  So a value of 2000 here will cause a stream for Monitor 1 to
-      hit port 2001.`,
+      Each camera to be streamed must be enabled
+      under its misc tab.`,
     type  =>  $types{integer},
     category  => 'network',
   },
@@ -1294,6 +1308,20 @@ our @options = (
     type        => $types{boolean},
     category    => 'logging',
   },
+  {
+    name        => 'ZM_LOG_INJECT',
+    default     => 'no',
+    description => 'Allow log injection via API by unprivileged users.',
+    help        => q`
+       When enabled (default is off), this option will allow users without System:Edit
+       permissions to inject javascript console or other messages into the ZoneMinder log.
+       Before 1.36.27 Users were able to abuse this functionality to create a denial of service by
+       filling up the logs. This feature is useful in debugging and detecting errors
+       experienced by end users, but requires trust of users and monitoring of resources.
+      `,
+    type        => $types{boolean},
+    category    => 'logging',
+  },
 {
     name        => 'ZM_LOG_DEBUG',
     default     => 'no',
@@ -1362,7 +1390,7 @@ our @options = (
     help        => q`
       This option allows you to specify a different target for debug
       output. All components have a default log file which will
-      norally be in /tmp or /var/log and this is where debug will be
+      normally be in /var/log and this is where debug will be
       written to if this value is empty. Adding a path here will
       temporarily redirect debug, and other logging output, to this
       file. This option is a simple filename and you are debugging
@@ -1372,9 +1400,7 @@ our @options = (
       suffix containing your process id. In this way debug from each
       run of a component is kept separate. This is the recommended
       setting as it will also prevent subsequent runs from
-      overwriting the same log. You should ensure that permissions
-      are set up to allow writing to the file and directory specified
-      here.
+      overwriting the same log. 
       `,
     requires    => [ { name => 'ZM_LOG_DEBUG', value => 'yes' } ],
     type        => $types{string},

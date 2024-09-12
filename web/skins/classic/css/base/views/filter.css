@@ -47,6 +47,7 @@ select {
 
 #actionsTable input[type=text] {
     margin-left: 4px;
+    width: 100%;
 }
 #actionsTable, #optionsTable {
   float: left;

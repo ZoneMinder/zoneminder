@@ -136,9 +136,43 @@ define('SCALE_BASE', 100);           // The additional scaling factor used to he
 define('STRF_FMT_DATETIME_DB', 'Y-m-d H:i:s');      // Strftime format for database queries, don't change
 define('MYSQL_FMT_DATETIME_SHORT', 'Y/m/d H:i:s');  // MySQL date_format shorter format for dates with time
 
+global $dateFormatter;
+global $dateTimeFormatter;
+global $timeFormatter;
+$dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+$dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+$timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
+
 require_once('database.php');
 require_once('logger.php');
 loadConfig();
+if (ZM_LOCALE_DEFAULT) {
+  try {
+    if (ZM_TIMEZONE) {
+      $dateFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::NONE, ZM_TIMEZONE);
+      $dateTimeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::LONG, ZM_TIMEZONE);
+      $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG, ZM_TIMEZONE);
+    } else {
+      $dateFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+      $dateTimeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+      $timeFormatter = new IntlDateFormatter(ZM_LOCALE_DEFAULT, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
+    }
+  } catch(Exception $e) {
+    ZM\Error($e->getMessage());
+    $dateFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::NONE);
+    $dateTimeFormatter = new IntlDateFormatter(null, IntlDateFormatter::SHORT, IntlDateFormatter::LONG);
+    $timeFormatter = new IntlDateFormatter(null, IntlDateFormatter::NONE, IntlDateFormatter::LONG);
+  }
+}
+if (ZM_DATE_FORMAT_PATTERN) {
+  $dateFormatter->setPattern(ZM_DATE_FORMAT_PATTERN);
+}
+if (ZM_DATETIME_FORMAT_PATTERN) {
+  $dateTimeFormatter->setPattern(ZM_DATETIME_FORMAT_PATTERN);
+}
+if (ZM_TIME_FORMAT_PATTERN) {
+  $timeFormatter->setPattern(ZM_TIME_FORMAT_PATTERN);
+}
 ZM\Logger::fetch()->initialise();
 
 $GLOBALS['defaultUser'] = array(
@@ -164,7 +198,7 @@ function loadConfig( $defineConsts=true ) {
 
   $config = array();
 
-  $result = $dbConn->query('SELECT Name,Value FROM Config');
+  $result = $dbConn->query('SELECT Name,Value,Private FROM Config');
   if ( !$result )
     echo mysql_error();
   while( $row = dbFetchNext($result) ) {

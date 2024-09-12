@@ -39,7 +39,12 @@ class Server extends ZM_Object {
     } else if ( $this->Id() ) {
       return $this->{'Name'};
     }
-    if (isset($_SERVER['HTTP_HOST'])) {
+
+    if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+      return $_SERVER['HTTP_X_FORWARDED_HOST'];
+    } else if (isset($_SERVER['HTTP_X_FORWARDED_SERVER'])) {
+      return $_SERVER['HTTP_X_FORWARDED_SERVER'];
+    } else if (isset($_SERVER['HTTP_HOST'])) {
       # This theoretically will match ipv6 addresses as well
       if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER['HTTP_HOST'], $matches ) ) {
         return $matches[1];

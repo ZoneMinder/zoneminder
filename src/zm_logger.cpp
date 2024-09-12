@@ -528,11 +528,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
 
   if (level <= mDatabaseLevel) {
     if (zmDbConnected) {
-      int syslogSize = syslogEnd - syslogStart;
-      std::string escapedString;
-      escapedString.resize((syslogSize * 2) + 1);
-      mysql_real_escape_string(&dbconn, &escapedString[0], syslogStart, syslogSize);
-      escapedString.resize(std::strlen(escapedString.c_str()));
+      std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
 
       std::string sql_string = stringtf(
           "INSERT INTO `Logs` "

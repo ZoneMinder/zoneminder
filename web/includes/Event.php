@@ -112,7 +112,7 @@ class Event extends ZM_Object {
     $event_path = '';
 
     if ( $this->{'Scheme'} == 'Deep' ) {
-      $event_path = $this->{'MonitorId'}.'/'.date('Y/m/d/H/i/s', $this->Time());
+      $event_path = $this->{'MonitorId'}.'/'.date('y/m/d/H/i/s', $this->Time());
     } else if ( $this->{'Scheme'} == 'Medium' ) {
       $event_path = $this->{'MonitorId'}.'/'.date('Y-m-d', $this->Time()).'/'.$this->{'Id'};
     } else {

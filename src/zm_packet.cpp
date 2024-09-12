@@ -42,8 +42,7 @@ ZMPacket::ZMPacket() :
   pts(0),
   decoded(false)
 {
-  av_init_packet(&packet);
-  packet.size = 0; // So we can detect whether it has been filled.
+  packet = av_packet_ptr{av_packet_alloc()};
 }
 
 ZMPacket::ZMPacket(Image *i, const timeval &tv) :
@@ -62,8 +61,7 @@ ZMPacket::ZMPacket(Image *i, const timeval &tv) :
   pts(0),
   decoded(false)
 {
-  av_init_packet(&packet);
-  packet.size = 0; // So we can detect whether it has been filled.
+  packet = av_packet_ptr{av_packet_alloc()};
 }
 
 ZMPacket::ZMPacket(ZMPacket &p) :
@@ -82,21 +80,19 @@ ZMPacket::ZMPacket(ZMPacket &p) :
   pts(0),
   decoded(false)
 {
-  av_init_packet(&packet);
-  packet.size = 0;
-  packet.data = nullptr;
-  if ( zm_av_packet_ref(&packet, &p.packet) < 0 ) {
+  packet = av_packet_ptr{av_packet_alloc()};
+
+  if (zm_av_packet_ref(packet.get(), p.packet.get()) < 0) {
     Error("error refing packet");
   }
 }
 
 ZMPacket::~ZMPacket() {
-  zm_av_packet_unref(&packet);
   if (in_frame) av_frame_free(&in_frame);
   if (out_frame) av_frame_free(&out_frame);
   if (buffer) av_freep(&buffer);
-  if (analysis_image) delete analysis_image;
-  if (image) delete image;
+  delete analysis_image;
+  delete image;
 }
 
 /* returns < 0 on error, 0 on not ready, int bytes consumed on success 
@@ -116,7 +112,7 @@ int ZMPacket::decode(AVCodecContext *ctx) {
   // packets are always stored in AV_TIME_BASE_Q so need to convert to codec time base
   //av_packet_rescale_ts(&packet, AV_TIME_BASE_Q, ctx->time_base);
 
-  int ret = zm_send_packet_receive_frame(ctx, in_frame, packet);
+  int ret = zm_send_packet_receive_frame(ctx, in_frame, *packet);
   if (ret < 0) {
     if (AVERROR(EAGAIN) != ret) {
       Warning("Unable to receive frame : code %d %s.",
@@ -240,13 +236,13 @@ Image *ZMPacket::set_image(Image *i) {
 }
 
 AVPacket *ZMPacket::set_packet(AVPacket *p) {
-  if (zm_av_packet_ref(&packet, p) < 0) {
+  if (zm_av_packet_ref(packet.get(), p) < 0) {
     Error("error refing packet");
   }
   //ZM_DUMP_PACKET(packet, "zmpacket:");
   gettimeofday(&timestamp, nullptr);
   keyframe = p->flags & AV_PKT_FLAG_KEY;
-  return &packet;
+  return packet.get();
 }
 
 AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {

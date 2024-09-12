@@ -27,6 +27,7 @@
 
 bool zm_reload = false;
 bool zm_terminate = false;
+bool zm_panic = false;
 
 RETSIGTYPE zm_hup_handler(int signal) {
   // Shouldn't do complex things in signal handlers, logging is complex and can block due to mutexes.
@@ -47,7 +48,10 @@ RETSIGTYPE zm_die_handler(int signal)
 #endif
 {
   zm_terminate = true;
-	Error("Got signal %d (%s), crashing", signal, strsignal(signal));
+  if (zm_panic)
+    Fatal("Got signal %d (%s), crashing", signal, strsignal(signal));
+  zm_panic = true;
+  Error("Got signal %d (%s), crashing", signal, strsignal(signal));
 #if (defined(__i386__) || defined(__x86_64__))
 	// Get more information if available
   #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
@@ -108,7 +112,10 @@ RETSIGTYPE zm_die_handler(int signal)
 	Info("Backtrace complete, please execute the following command for more information: %s", cmd);
   #endif				// ( !defined(ZM_NO_CRASHTRACE) && HAVE_DECL_BACKTRACE && HAVE_DECL_BACKTRACE_SYMBOLS )
 #endif                          // (defined(__i386__) || defined(__x86_64__)
-	exit(signal);
+  // Icon: Don't exit, setting zm_terminate should cause the exit to happen in a timely manner.
+  // The main reason not to here is to make valgrind traces quieter because logger gets free while other threads
+  // are still running and trying to log.                                
+	//exit(signal);
 }
 
 void zmSetHupHandler(SigHandler * handler) {

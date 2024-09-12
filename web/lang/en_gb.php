@@ -52,28 +52,6 @@
 // Example
 // header( "Content-Type: text/html; charset=iso-8859-1" );
 
-// You may need to change your locale here if your default one is incorrect for the
-// language described in this file, or if you have multiple languages supported.
-// If you do need to change your locale, be aware that the format of this function
-// is subtlely different in versions of PHP before and after 4.3.0, see
-// http://uk2.php.net/manual/en/function.setlocale.php for details.
-// Also be aware that changing the whole locale may affect some floating point or decimal
-// arithmetic in the database, if this is the case change only the individual locale areas
-// that don't affect this rather than all at once. See the examples below.
-// Finally, depending on your setup, PHP may not enjoy have multiple locales in a shared
-// threaded environment, if you get funny errors it may be this.
-//
-// Examples
-// setlocale( 'LC_ALL', 'en_GB' ); All locale settings pre-4.3.0
-// setlocale( LC_ALL, 'en_GB' ); All locale settings 4.3.0 and after
-// setlocale( LC_CTYPE, 'en_GB' ); Character class settings 4.3.0 and after
-// setlocale( LC_TIME, 'en_GB' ); Date and time formatting 4.3.0 and after
-
-setlocale( LC_TIME, 'en_GB.utf8' );
-define("DATE_FMT_CONSOLE_LONG", "%a %d %b, %Hh%M");
-define( "STRF_FMT_DATETIME_SHORT", "%d/%m/%y %H:%M:%S" );
-define( "STRF_FMT_DATETIME_SHORTER", "%x %H:%M:%S" );
-
 // Simple String Replacements
 $SLANG = array(
     'SystemLog'             => 'System Log',
@@ -187,6 +165,7 @@ $SLANG = array(
     'BadPort'               => 'Port must be set to a valid number',
     'BadPostEventCount'     => 'Post event image count must be an integer of zero or more',
     'BadPreEventCount'      => 'Pre event image count must be at least zero, and less than image buffer size',
+    'BadPreEventCountMaxImageBufferCount'      => 'Max Image Buffer Count should be greater than Pre event image count or else it cannot be satisfied',
     'BadRefBlendPerc'       => 'Reference blend percentage must be a positive integer',
     'BadNoSaveJPEGsOrVideoWriter' => 'SaveJPEGs and VideoWriter are both set to disabled.  Nothing will be recorded!',
     'BadSectionLength'      => 'Section length must be an integer of 30 or more',
@@ -1073,6 +1052,15 @@ $OLANG = array(
       Some, mostly older, IP cameras support snapshot mode. In this case ZoneMinder is actively polling the camera
       for new images. In this case, it is safe to use the field.
       '
+	),
+	'OPTIONS_ALARMMAXFPS' => array(
+    'Help' => '
+    This field has certain limitations when used for non-local devices.~~
+    Failure to adhere to these limitations will cause a delay in live video, irregular frame skipping,
+    and missed events~
+    This setting allows you to override the Maximum FPS value if this circumstance occurs. As with the Maximum FPS 
+    setting, leaving this blank implies no limit.
+    '
 	),
 	'OPTIONS_LINKED_MONITORS' => array(
     'Help' => '

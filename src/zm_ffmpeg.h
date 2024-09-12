@@ -23,6 +23,8 @@
 #include "zm_config.h"
 #include "zm_define.h"
 
+#include <memory>
+
 extern "C" {
 
 #ifdef HAVE_LIBSWRESAMPLE
@@ -125,6 +127,9 @@ extern "C" {
 // AVCODEC
 #if HAVE_LIBAVCODEC_AVCODEC_H
 #include <libavcodec/avcodec.h>
+#elif HAVE_FFMPEG_AVCODEC_H
+#include <ffmpeg/avcodec.h>
+#endif /* HAVE_LIBAVCODEC_AVCODEC_H */
 
 /*
  * LIBAVCODEC_VERSION_CHECK checks for the right version of libav and FFmpeg
@@ -135,10 +140,6 @@ extern "C" {
 #define LIBAVCODEC_VERSION_CHECK(a, b, c, d, e) \
     ( (LIBAVCODEC_VERSION_MICRO <  100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, b, c) ) || \
       (LIBAVCODEC_VERSION_MICRO >= 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
-
-#elif HAVE_FFMPEG_AVCODEC_H
-#include <ffmpeg/avcodec.h>
-#endif /* HAVE_LIBAVCODEC_AVCODEC_H */
 
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)
 #if LIBAVCODEC_VERSION_CHECK(54, 25, 0, 51, 100)
@@ -308,6 +309,19 @@ void zm_dump_codec(const AVCodecContext *codec);
 #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
 void zm_dump_codecpar(const AVCodecParameters *par);
 #endif
+
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+#define zm_dump_frame(frame, text) Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d" \
+      " layout %" PRIu64 " pts %" PRId64, \
+      text, \
+      frame->format, \
+      av_get_sample_fmt_name((AVSampleFormat)frame->format), \
+      frame->sample_rate, \
+      frame->nb_samples, \
+      frame->ch_layout.u.mask, \
+      frame->pts \
+      );
+#else
 #define zm_dump_frame(frame, text) Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d" \
       " layout %" PRIu64 " pts %" PRId64, \
       text, \
@@ -318,8 +332,20 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       frame->channel_layout, \
       frame->pts \
       );
+#endif
 
-#if LIBAVUTIL_VERSION_CHECK(54, 4, 0, 74, 100)
+#if LIBAVUTIL_VERSION_CHECK(58, 7, 100, 7, 0)
+#define zm_dump_video_frame(frame, text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%d pts: %" PRId64 " keyframe: %d", \
+      text, \
+      frame->format, \
+      av_get_pix_fmt_name((AVPixelFormat)frame->format), \
+      frame->width, \
+      frame->height, \
+      frame->linesize[0], frame->linesize[1], \
+      frame->pts, \
+      frame->flags && AV_FRAME_FLAG_KEY \
+      );
+#elif LIBAVUTIL_VERSION_CHECK(54, 4, 0, 74, 100)
 #define zm_dump_video_frame(frame, text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%d pts: %" PRId64 " keyframe: %d", \
       text, \
       frame->format, \
@@ -330,7 +356,6 @@ void zm_dump_codecpar(const AVCodecParameters *par);
       frame->pts, \
       frame->key_frame \
       );
-
 #else
 #define zm_dump_video_frame(frame,text) Debug(1, "%s: format %d %s %dx%d linesize:%dx%d pts: %" PRId64, \
       text, \
@@ -366,34 +391,34 @@ void zm_dump_codecpar(const AVCodecParameters *par);
   Debug(2, "%s: pts: %" PRId64 ", dts: %" PRId64 \
     ", size: %d, stream_index: %d, flags: %04x, keyframe(%d) pos: %" PRId64 ", duration: %" AV_PACKET_DURATION_FMT, \
     text,\
-    pkt.pts,\
-    pkt.dts,\
-    pkt.size,\
-    pkt.stream_index,\
-    pkt.flags,\
-    pkt.flags & AV_PKT_FLAG_KEY,\
-    pkt.pos,\
-    pkt.duration)
+    pkt->pts,\
+    pkt->dts,\
+    pkt->size,\
+    pkt->stream_index,\
+    pkt->flags,\
+    pkt->flags & AV_PKT_FLAG_KEY,\
+    pkt->pos,\
+    pkt->duration)
 
 # define ZM_DUMP_STREAM_PACKET(stream, pkt, text) \
   if (logDebugging()) { \
-    double pts_time = static_cast<double>(av_rescale_q(pkt.pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE; \
+    double pts_time = static_cast<double>(av_rescale_q(pkt->pts, stream->time_base, AV_TIME_BASE_Q)) / AV_TIME_BASE; \
     \
     Debug(2, "%s: pts: %" PRId64 " * %u/%u=%f, dts: %" PRId64 \
       ", size: %d, stream_index: %d, %s flags: %04x, keyframe(%d) pos: %" PRId64", duration: %" AV_PACKET_DURATION_FMT, \
       text, \
-      pkt.pts, \
+      pkt->pts, \
       stream->time_base.num, \
       stream->time_base.den, \
       pts_time, \
-      pkt.dts, \
-      pkt.size, \
-      pkt.stream_index, \
+      pkt->dts, \
+      pkt->size, \
+      pkt->stream_index, \
       av_get_media_type_string(CODEC_TYPE(stream)), \
-      pkt.flags, \
-      pkt.flags & AV_PKT_FLAG_KEY, \
-      pkt.pos, \
-    pkt.duration); \
+      pkt->flags, \
+      pkt->flags & AV_PKT_FLAG_KEY, \
+      pkt->pos, \
+    pkt->duration); \
   }
 
 #else
@@ -477,5 +502,49 @@ int zm_resample_get_delay(
 
 int zm_add_samples_to_fifo(AVAudioFifo *fifo, AVFrame *frame);
 int zm_get_samples_from_fifo(AVAudioFifo *fifo, AVFrame *frame);
+
+struct zm_free_av_packet
+{
+    void operator()(AVPacket *pkt) const
+    {
+        av_packet_free(&pkt);
+    }
+};
+
+using av_packet_ptr = std::unique_ptr<AVPacket, zm_free_av_packet>;
+
+struct av_packet_guard
+{
+    av_packet_guard() : packet{nullptr}
+    {
+    }
+    explicit av_packet_guard(const av_packet_ptr& p) : packet{p.get()}
+    {
+    }
+    explicit av_packet_guard(AVPacket *p) : packet{p}
+    {
+    }
+    ~av_packet_guard()
+    {
+	if (packet)
+	    av_packet_unref(packet);
+    }
+
+    void acquire(const av_packet_ptr& p)
+    {
+	packet = p.get();
+    }
+    void acquire(AVPacket *p)
+    {
+	packet = p;
+    }
+    void release()
+    {
+	packet = nullptr;
+    }
+
+private:
+    AVPacket *packet;
+};
 
 #endif // ZM_FFMPEG_H

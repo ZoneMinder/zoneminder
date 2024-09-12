@@ -39,6 +39,10 @@ if ( isset($_REQUEST['filter'])) {
   $filter->set($_REQUEST['filter']);
 }
 
+if (!isset($_COOKIES['zmEventsTable.bs.table.pageList'])) {
+  zm_setcookie('zmEventsTable.bs.table.pageList', ZM_WEB_EVENTS_PER_PAGE);
+}
+
 parseSort();
 
 $filterQuery = $filter->querystring();
@@ -76,6 +80,7 @@ getBodyTopHTML();
         data-page-list="[10, 25, 50, 100, 200, All]"
         data-search="true"
         data-cookie="true"
+        data-cookie-same-site="Strict"
         data-cookie-id-table="zmEventsTable"
         data-cookie-expire="2y"
         data-click-to-select="true"

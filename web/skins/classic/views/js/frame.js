@@ -1,11 +1,11 @@
-var table = $j('#frameStatsTable');
-var backBtn = $j('#backBtn');
-var statsBtn = $j('#statsBtn');
+const table = $j('#frameStatsTable');
+const backBtn = $j('#backBtn');
+const statsBtn = $j('#statsBtn');
 
 function changeScale() {
-  var scale = $j('#scale').val();
-  var img = $j('#frameImg');
-  var controlsLinks = {
+  const scale = $j('#scale').val();
+  const img = $j('#frameImg');
+  const controlsLinks = {
     next: $j('#nextLink'),
     prev: $j('#prevLink'),
     first: $j('#firstLink'),
@@ -13,15 +13,15 @@ function changeScale() {
   };
 
   if (img) {
-    var baseWidth = $j('#base_width').val();
-    var baseHeight = $j('#base_height').val();
+    const baseWidth = $j('#base_width').val();
+    const baseHeight = $j('#base_height').val();
     if (!parseInt(scale)) {
-      var newSize = scaleToFit(baseWidth, baseHeight, img, $j('#controls'));
+      const newSize = scaleToFit(baseWidth, baseHeight, img, $j('#controls'));
       newWidth = newSize.width;
       newHeight = newSize.height;
       autoScale = newSize.autoScale;
     } else {
-      $j(window).off('resize', endOfResize); //remove resize handler when Scale to Fit is not active
+      $j(window).off('resize', endOfResize); // remove resize handler when Scale to Fit is not active
       newWidth = baseWidth * scale / SCALE_BASE;
       newHeight = baseHeight * scale / SCALE_BASE;
     }
@@ -29,7 +29,7 @@ function changeScale() {
     img.css('height', newHeight + 'px');
   }
   setCookie('zmWatchScale', scale, 3600);
-  $j.each(controlsLinks, function(k, anchor) { //Make frames respect scale choices
+  $j.each(controlsLinks, function(k, anchor) { // Make frames respect scale choices
     if (anchor) {
       anchor.prop('href', anchor.prop('href').replace(/scale=.*&/, 'scale=' + scale + '&'));
     }
@@ -40,8 +40,8 @@ function changeScale() {
 }
 
 function getFrameStatsCookie() {
-  var cookie = 'zmFrameStats';
-  var stats = getCookie(cookie);
+  const cookie = 'zmFrameStats';
+  let stats = getCookie(cookie);
 
   if (!stats) {
     stats = 'on';
@@ -53,19 +53,23 @@ function getFrameStatsCookie() {
 function getStat(params) {
   $j.getJSON(thisUrl + '?view=request&request=stats&raw=true', params)
       .done(function(data) {
-        var stats = data.raw;
-
-
         $j('#frameStatsTable').empty().append('<tbody>');
-        for (const stat of stats) {
+        if (!data.raw.length) {
+          statsBtn.prop('disabled', true);
+          statsBtn.prop('title', 'No statistics available for this frame');
+          return;
+        }
+        for (const stat of data.raw) {
           $j.each(statHeaderStrings, function(key) {
-            var th = $j('<th>').addClass('text-right').text(statHeaderStrings[key]);
-            var tdString;
+            const th = $j('<th>').addClass('text-right').text(statHeaderStrings[key]);
+            let tdString = '';
 
             switch (stat ? key : 'n/a') {
               case 'FrameId':
+                tdString = '<a href="?view=frame&amp;eid=' + params.eid + '&amp;fid=' + params.fid + '">' + stat[key] + '</a>';
+                break;
               case 'EventId':
-                //tdString = '<a href="?view=stats&amp;eid=' + params.eid + '&amp;fid=' + params.fid + '">' + stat[key] + '</a>';
+                tdString = '<a href="?view=event&amp;eid=' + params.eid + '">' + stat[key] + '</a>';
                 break;
               case 'n/a':
                 tdString = 'n/a';
@@ -74,8 +78,8 @@ function getStat(params) {
                 tdString = stat[key];
             }
 
-            var td = $j('<td>').html(tdString);
-            var row = $j('<tr>').append(th, td);
+            const td = $j('<td>').html(tdString);
+            const row = $j('<tr>').append(th, td);
 
             $j('#frameStatsTable tbody').append(row);
           });
@@ -126,14 +130,13 @@ function initPage() {
   // Manage the Frame STATISTICS Button
   document.getElementById("statsBtn").addEventListener("click", function onStatsClick(evt) {
     evt.preventDefault();
-    var cookie = 'zmFrameStats';
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
     if (table.is(':visible')) {
-      setCookie(cookie, 'off', 10*365);
+      setCookie('zmFrameStats', 'off', 10*365);
       table.toggle(false);
     } else {
-      setCookie(cookie, 'on', 10*365);
+      setCookie('zmFrameStats', 'on', 10*365);
       table.toggle(true);
     }
   });
@@ -152,6 +155,12 @@ function initPage() {
   } else {
     onStatsResize($j('#base_width').val() * scale / SCALE_BASE);
   }
+
+  // Manage the FRAMES Button
+  bindButton('#framesBtn', 'click', null, function onFramesClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=frames&eid='+eid);
+  });
 }
 
 // Kick everything off

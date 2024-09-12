@@ -43,12 +43,14 @@ Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = {};
 
 Event::Event(
     Monitor *p_monitor,
+    packetqueue_iterator *p_packetqueue_it,
     struct timeval p_start_time,
     const std::string &p_cause,
     const StringSetMap &p_noteSetMap
     ) :
   id(0),
   monitor(p_monitor),
+  packetqueue_it(p_packetqueue_it),
   start_time(p_start_time),
   end_time({0,0}),
   cause(p_cause),
@@ -60,6 +62,7 @@ Event::Event(
   max_score(-1),
   //path(""),
   //snapshit_file(),
+  snapshot_file_written(false),
   //alarm_file(""),
   videoStore(nullptr),
   //video_name(""),
@@ -76,6 +79,7 @@ Event::Event(
   timeval now = {};
   gettimeofday(&now, nullptr);
 
+  packetqueue = monitor->GetPacketQueue();
   if ( !start_time.tv_sec ) {
     Warning("Event has zero time, setting to now");
     start_time = now;
@@ -135,7 +139,14 @@ Event::Event(
 
 Event::~Event() {
   Stop();
-  if (thread_.joinable()) thread_.join();
+
+  if (thread_.joinable()) {
+    Debug(1, "Joining event thread");
+    // Should be.  Issuing the stop and then getting the lock
+    thread_.join();
+  }
+  packetqueue->free_it(packetqueue_it);
+  delete packetqueue_it;
 
   /* Close the video file */
   // We close the videowriter first, because if we finish the event, we might try to view the file, but we aren't done writing it yet.
@@ -224,7 +235,7 @@ bool Event::WriteFrameImage(
   return rc;
 }  // end Event::WriteFrameImage( Image *image, struct timeval timestamp, const char *event_file, bool alarm_frame )
 
-bool Event::WritePacket(const std::shared_ptr<ZMPacket>&packet) {
+bool Event::WritePacket(const std::shared_ptr<ZMPacket>packet) {
   if (videoStore->writePacket(packet) < 0)
     return false;
   return true;
@@ -321,26 +332,15 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
       Error("Unable to execute sql '%s': %s", sql, mysql_stmt_error(stmt));
     }
 #else
-    char sql[ZM_SQL_LGE_BUFSIZ];
-    static char escapedNotes[ZM_SQL_MED_BUFSIZ];
+    std::string escaped_notes = zmDbEscapeString(notes);
 
-    mysql_real_escape_string(&dbconn, escapedNotes, notes.c_str(), notes.length());
-
-    snprintf(sql, sizeof(sql), "UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64, escapedNotes, id);
+    std::string sql = stringtf("UPDATE `Events` SET `Notes` = '%s' WHERE `Id` = %" PRIu64, escaped_notes.c_str(), id);
     dbQueue.push(std::move(sql));
 #endif
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
-void Event::AddPacket(ZMLockedPacket *packetlock) {
-  {
-    std::unique_lock<std::mutex> lck(packet_queue_mutex);
-    packet_queue.push(packetlock);
-  }
-  packet_queue_condition.notify_one();
-}
-
-void Event::AddPacket_(const std::shared_ptr<ZMPacket>&packet) {
+void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   have_video_keyframe = have_video_keyframe || 
     ( ( packet->codec_type == AVMEDIA_TYPE_VIDEO ) && 
       ( packet->keyframe || monitor->GetOptVideoWriter() == Monitor::ENCODE) );
@@ -450,10 +450,11 @@ void Event::AddFrame(const std::shared_ptr<ZMPacket>&packet) {
     }  // end if save_jpegs
 
     // If this is the first frame, we should add a thumbnail to the event directory
-    if ((frames == 1) || (score > max_score)) {
+    if ((frames == 1) || (score > max_score) || (!snapshot_file_written)) {
       write_to_db = true; // web ui might show this as thumbnail, so db needs to know about it.
       Debug(1, "Writing snapshot to %s", snapshot_file.c_str());
       WriteFrameImage(packet->image, packet->timestamp, snapshot_file.c_str());
+      snapshot_file_written = true;
     } else {
       Debug(1, "Not Writing snapshot because frames %d score %d > max %d", frames, score, max_score);
     }
@@ -713,29 +714,45 @@ void Event::Run() {
   if (storage != monitor->getStorage())
     delete storage;
 
-
   // The idea is to process the queue no matter what so that all packets get processed.
   // We only break if the queue is empty
-  while (true) {
-    ZMLockedPacket * packet_lock = nullptr;
-    {
-      std::unique_lock<std::mutex> lck(packet_queue_mutex);
-
-      if (packet_queue.empty()) {
-        if (terminate_ or zm_terminate) break;
-        packet_queue_condition.wait(lck);
-      } 
-
-      if (!packet_queue.empty()) {
-        // Packets on this queue are locked. They are locked by analysis thread
-        packet_lock = packet_queue.front();
-        packet_queue.pop();
-      }
-    }  // end lock scope
+  while (!terminate_ and !zm_terminate) {
+    ZMLockedPacket *packet_lock = packetqueue->get_packet_no_wait(packetqueue_it);
     if (packet_lock) {
-      Debug(1, "Adding packet %d", packet_lock->packet_->image_index);
-      this->AddPacket_(packet_lock->packet_);
+      std::shared_ptr<ZMPacket> packet = packet_lock->packet_;
+      if (!packet->decoded) {
+        delete packet_lock;
+        // Stay behind decoder
+        Microseconds sleep_for = Microseconds(ZM_SAMPLE_RATE);
+        Debug(4, "Sleeping for %" PRId64 "us", int64(sleep_for.count()));
+        std::this_thread::sleep_for(sleep_for);
+        continue;
+      }
+      packetqueue->increment_it(packetqueue_it);
+
+      Debug(1, "Adding packet %d", packet->image_index);
+      this->AddPacket_(packet);
+
+      if (packet->image) {
+        if (monitor->GetOptVideoWriter() == Monitor::PASSTHROUGH) {
+          if (!save_jpegs) {
+            Debug(1, "Deleting image data for %d", packet->image_index);
+            // Don't need raw images anymore
+            delete packet->image;
+            packet->image = nullptr;
+          }
+        }
+        if (packet->analysis_image and !(save_jpegs & 2)) {
+          Debug(1, "Deleting analysis image data for %d", packet->image_index);
+          delete packet->analysis_image;
+          packet->analysis_image = nullptr;
+        }
+      } // end if packet->image
+      Debug(1, "Deleting packet lock");
       delete packet_lock;
-    }
+    } else {
+      if (terminate_ or zm_terminate) return;
+      usleep(10000);
+    } // end if packet_lock
   }  // end while
 }  // end Run()

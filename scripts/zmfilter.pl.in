@@ -76,6 +76,7 @@ my $filter_name = '';
 my $filter_id;
 my $version = 0;
 my $zm_terminate = 0;
+my $sleeping = 0;
 
 GetOptions(
   daemon        =>\$daemon,
@@ -112,6 +113,7 @@ sub HupHandler {
 sub TermHandler {
   Info('Received TERM, exiting');
   $zm_terminate = 1;
+  exit(0) if $sleeping;
 }
 sub Term {
   exit(0);
@@ -189,7 +191,9 @@ if ( $filter_name ) {
 
 if ( ! ( $filter_name or $filter_id ) ) {
   Debug('Sleeping due to start delay: ' . START_DELAY . ' seconds...');
+  $sleeping = 1;
   sleep(START_DELAY);
+  $sleeping = 0;
 }
 
 my @filters;
@@ -219,7 +223,9 @@ while( !$zm_terminate ) {
   last if (!$daemon and ($filter_name or $filter_id)) or $zm_terminate;
 
   Debug("Sleeping for $delay seconds");
+  $sleeping = 1;
   sleep($delay);
+  $sleeping = 0;
 }
 
 sub getFilters {
@@ -361,7 +367,7 @@ sub checkFilter {
     if ($filter->{AutoMove}) {
       my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoMoveTo});
       if ($NewStorage) {
-        Info("Moving event $Event->{Id} to datastore $filter->{AutoMoveTo}");
+        Info("Moving event $Event->{Id} from ".$Event->Storage()->Path().' to '.$NewStorage->Path());
         $_ = $Event->MoveTo($NewStorage);
         Error($_) if $_;
       } else {
@@ -397,7 +403,7 @@ sub checkFilter {
       if (
 					( (!defined $old_diskspace) and defined $new_diskspace)
 					or
-					( (defined $old_diskspace) and (defined $new_diskspace) and ( $old_diskspace != $Event->DiskSpace(undef) ) )
+					( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
 					) {
         $Event->save();
       }
@@ -498,7 +504,7 @@ sub generateImage {
     chomp($output);
     my $status = $? >> 8;
     if ( $status || logDebugging() ) {
-      Debug("Output: $output");
+      Debug("Output from $command\n: $output");
     }
     if ( $status ) {
       Error("Failed $command status $status");

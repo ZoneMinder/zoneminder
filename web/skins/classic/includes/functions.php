@@ -119,7 +119,7 @@ echo output_link_if_exists(array(
   'css/base/skin.css',
   'css/base/views/'.$basename.'.css',
   'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.12.1/jquery-ui.structure.min.css',
+  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
 ));
 if ( $css != 'base' )
   echo output_link_if_exists(array(
@@ -128,7 +128,7 @@ if ( $css != 'base' )
     'css/'.$css.'/jquery-ui-theme.css',
   ));
 ?>
-  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.12.1/jquery-ui.theme.min.css" type="text/css"/>
+  <link rel="stylesheet" href="skins/classic/js/jquery-ui-1.13.2/jquery-ui.theme.min.css" type="text/css"/>
   <?php #Chosen can't be cache-busted because it loads sprites by relative path ?>
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
@@ -414,8 +414,7 @@ function getStorageHTML() {
   $result = '';
   if ( !canView('System') ) return $result;
 
-  $func = function($S) {
-    $class = '';
+  $func = function($S, $class='') {
     if ( $S->disk_usage_percent() > 98 ) {
       $class = 'text-danger';
     } else if ( $S->disk_usage_percent() > 90 ) {
@@ -423,7 +422,7 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<a class="dropdown-item '.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
+    return '<a class="'.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -443,15 +442,23 @@ function getStorageHTML() {
     $class = 'text-warning'; 
   }
   
-  $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-  $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
-  $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
-  
-  foreach ( $storage_areas as $area ) {  
-    $result .= $func($area).PHP_EOL;
-  } 
-  $result .= '</div>'.PHP_EOL;
-  $result .= '</li>'.PHP_EOL;
+  if (count($storage_areas) <= 2) {
+    $result .= '<li id="getStorageHTML" class="nav-item mx-2">'.PHP_EOL;
+    foreach ( $storage_areas as $area ) {  
+      $result .= $func($area).PHP_EOL;
+    } 
+    $result .= '</li>'.PHP_EOL;
+  } else {
+    $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
+    
+    foreach ( $storage_areas as $area ) {  
+      $result .= $func($area, 'dropdown-item ').PHP_EOL;
+    } 
+    $result .= '</div>'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  }
   
   return $result;
 }
@@ -499,21 +506,22 @@ function getBandwidthHTML($bandwidth_options, $user) {
     }
   }
 
-  $result = '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-  $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
+  $result = '';
+  if (count($bandwidth_options) > 1) {
+    $result .= '<li id="getBandwidthHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="dropdown_bandwidth"><i class="material-icons md-18 mr-1">network_check</i>'.translate($bandwidth_options[$_COOKIE['zmBandwidth']]).'</a>'.PHP_EOL;
 
-  $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
-  if ( count($bandwidth_options) > 1 ) {
+    $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_bandwidth">'.PHP_EOL;  
     if ( isset($bandwidth_options['high']) )
       $result .= '<a data-pdsa-dropdown-val="high" class="dropdown-item bwselect" href="#">' .translate('High'). '</a>'.PHP_EOL;
     if ( isset($bandwidth_options['medium']) )
       $result .= '<a data-pdsa-dropdown-val="medium" class="dropdown-item bwselect" href="#">' .translate('Medium'). '</a>'.PHP_EOL;
     # low is theoretically always available
     $result .= '<a data-pdsa-dropdown-val="low" class="dropdown-item bwselect" href="#">' .translate('Low'). '</a>'.PHP_EOL;    
-  }
-  $result .= '</div>'.PHP_EOL;
+    $result .= '</div>'.PHP_EOL;
 
-  $result .= '</li>'.PHP_EOL;
+    $result .= '</li>'.PHP_EOL;
+  }
     
   return $result;
 }
@@ -882,9 +890,9 @@ function xhtmlFooter() {
   $viewJsPhpFile = getSkinFile('views/js/'.$basename.'.js.php');
 ?>
   <script src="<?php echo cache_bust('skins/'.$skin.'/js/jquery.min.js'); ?>"></script>
-  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.12.1/jquery-ui.min.js"></script>
+  <script src="skins/<?php echo $skin; ?>/js/jquery-ui-1.13.2/jquery-ui.min.js"></script>
   <script src="<?php echo cache_bust('js/ajaxQueue.js') ?>"></script>
-  <script src="<?php echo cache_bust('skins/'.$skin.'/js/bootstrap.min.js'); ?>"></script>
+  <script src="<?php echo 'skins/'.$skin.'/js/bootstrap.min.js' ?>"></script>
 <?php echo output_script_if_exists(array(
   'js/tableExport.min.js',
   'js/bootstrap-table.min.js',

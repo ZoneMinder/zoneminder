@@ -2267,7 +2267,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     zm_packet->image->Assign(width, height, colours, subpixelorder, buffer, imagesize);
   } // end if doing conversion or not
 
-  zm_packet->packet.stream_index = mVideoStreamId;
+  zm_packet->packet->stream_index = mVideoStreamId;
   zm_packet->stream = mVideoStream;
   zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
   zm_packet->keyframe = 1;

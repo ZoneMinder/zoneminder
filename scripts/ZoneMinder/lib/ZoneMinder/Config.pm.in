@@ -156,7 +156,7 @@ sub loadConfigFromDB {
     print("Error: unable to load options from database: $DBI::errstr\n");
     return(0);
   }
-  my $sql = "select * from Config";
+  my $sql = 'SELECT * FROM Config';
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute()
@@ -201,7 +201,7 @@ sub saveConfigToDB {
   my $res = $dbh->do( $sql )
     or croak( "Can't do '$sql': ".$dbh->errstr() );
 
-  $sql = 'REPLACE INTO Config SET Id=?, Name=?, Value=?, Type=?, DefaultValue=?, Hint=?, Pattern=?, Format=?, Prompt=?, Help=?, Category=?, Readonly=?, `System`=?, Requires=?';
+  $sql = 'REPLACE INTO Config SET Id=?, Name=?, Value=?, Type=?, DefaultValue=?, Hint=?, Pattern=?, Format=?, Prompt=?, Help=?, Category=?, Readonly=?, `Private`=?, `System`=?, Requires=?';
   my $sth = $dbh->prepare_cached( $sql )
     or croak( "Can't prepare '$sql': ".$dbh->errstr() );
   foreach my $option ( @options ) {
@@ -238,6 +238,7 @@ sub saveConfigToDB {
         $option->{help},
         $option->{category},
         $option->{readonly} ? 1 : 0,
+        $option->{private} ? 1 : 0,
         $option->{system} ? 1 : 0,
         $option->{db_requires}
         ) or croak("Can't execute when updating config entry $$option{name}: ".$sth->errstr() );

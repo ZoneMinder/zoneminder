@@ -28,7 +28,7 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 
 function streamReq(data) {
-  if ( auth_hash ) data.auth = auth_hash;
+  if (auth_hash) data.auth = auth_hash;
   data.connkey = connKey;
   data.view = 'request';
   data.request = 'stream';
@@ -303,11 +303,7 @@ function getCmdResponse(respObj, respText) {
   updateProgressBar();
 
   if (streamStatus.auth) {
-    // Try to reload the image stream.
-    var streamImg = document.getElementById('evtStream');
-    if (streamImg) {
-      streamImg.src = streamImg.src.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-    }
+    auth_hash = streamStatus.auth;
   } // end if haev a new auth hash
 
   streamCmdTimer = setTimeout(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
@@ -450,6 +446,7 @@ function streamFastRev(action) {
 function streamPrev(action) {
   if (action) {
     $j(".vjsMessage").remove();
+    if (vid==null) streamReq({command: CMD_QUIT});
     location.replace(thisUrl + '?view=event&eid=' + prevEventId + filterQuery + sortQuery);
     return;
 
@@ -484,6 +481,7 @@ function streamNext(action) {
   // We used to try to dynamically update all the bits in the page, which is really complex
   // How about we just reload the page?
   //
+  if (vid==null) streamReq({command: CMD_QUIT});
   location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
   return;
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
@@ -712,7 +710,7 @@ function renameEvent() {
   actQuery('rename', {eventName: newName});
 }
 
-function exportEvent() {
+function goToExportEvent() {
   window.location.assign('?view=export&eids[]='+eventData.Id);
 }
 
@@ -756,8 +754,8 @@ function handleClick(event) {
     var x = event.offsetX;
     var y = event.offsetY;
   } else {
-    var x = event.page.x - rect.left;
-    var y = event.page.y - rect.top;
+    var x = event.pageX - rect.left;
+    var y = event.pageY - rect.top;
   }
 
   if (event.shift || event.shiftKey) { // handle both jquery and mootools
@@ -1022,7 +1020,7 @@ function initPage() {
   // Manage the EXPORT button
   bindButton('#exportBtn', 'click', null, function onExportClick(evt) {
     evt.preventDefault();
-    exportEvent();
+    goToExportEvent();
   });
 
   // Manage the generateVideo button

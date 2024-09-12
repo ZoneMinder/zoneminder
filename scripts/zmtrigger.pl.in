@@ -405,11 +405,6 @@ sub handleMessage {
       handleDelay($delay, $connection, $action_text);
     }
   } elsif ( $action =~ /^(on|off)(?:[ \+](\d+))?$/ ) {
-    if ( !$monitor->{Enabled} ) {
-      Info('Motion detection not enabled on monitor '.$id);
-      return;
-    }
-
     my $trigger = $1;
     my $delay = $2;
     my $trigger_data;

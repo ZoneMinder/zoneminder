@@ -22,6 +22,7 @@
 
 #include "zm_ffmpeg.h"
 #include <pthread.h>
+#include <array>
 
 #if HAVE_LIBAVCODEC
 
@@ -61,7 +62,7 @@ protected:
   pthread_mutex_t *buffer_copy_lock;
   int buffer_copy_size;
   int buffer_copy_used;
-  AVPacket** packet_buffers;
+  std::array<av_packet_ptr, 2> packet_buffers;
   int packet_index;
   int SendPacket(AVPacket *packet);
   static void* StreamingThreadCallback(void *ctx);

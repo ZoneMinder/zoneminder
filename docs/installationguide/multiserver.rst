@@ -23,13 +23,13 @@ New installs
 
 .. sidebar :: Note
 
-    For systemd based linux distros, inspect the zoneminder service file, typically found under /lib/systemd/system. Changes may be required for multiserver to function correctly. For example, the service file may check for a running instance of mysql or mariadb running locally on the server. This check will need to be removed. Rather than edit the service file directly, copy the service file to /etc/systemd/system and edit the file in that location.
+    For systemd based linux distros, inspect the zoneminder service file, typically found under /lib/systemd/system. Changes may be required for multiserver to function correctly. For example, the service file may check for a running instance of MySQL or MariaDB running locally on the server. This check will need to be removed. Rather than edit the service file directly, copy the service file to /etc/systemd/system and edit the file in that location.
 
 2. On each ZoneMinder server, edit zm.conf. Find the ZM_DB_HOST variable and set it to the name or ip address of your Database Server. Find the ZM_SERVER_HOST and enter a name for this ZoneMinder server. Use a name easily recognizable by you. This name is not used by ZoneMinder for dns or any other form of network conectivity.
 
 3. Copy the file /usr/share/zoneminder/db/zm_create.sql from one of the ZoneMinder Servers to the machine targeted as the Database Server.
 
-4. Install mysql/mariadb server onto the Database Server.
+4. Install MySQL/MariaDB server onto the Database Server.
 
 5. It is advised to run "mysql_secure_installation" to help secure the server.
 

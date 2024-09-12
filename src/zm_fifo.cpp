@@ -104,9 +104,9 @@ bool Fifo::close() {
 bool Fifo::writePacket(const ZMPacket &packet) {
   if (!(outfile or open())) return false;
 
-  Debug(2, "Writing header ZM %u %" PRId64,  packet.packet.size, packet.pts);
+  Debug(2, "Writing header ZM %u %" PRId64,  packet.packet->size, packet.pts);
   // Going to write a brief header
-  if (fprintf(outfile, "ZM %u %" PRId64 "\n", packet.packet.size, packet.pts) < 0) {
+  if (fprintf(outfile, "ZM %u %" PRId64 "\n", packet.packet->size, packet.pts) < 0) {
     if (errno != EAGAIN) {
       Error("Problem during writing: %s", strerror(errno));
     } else {
@@ -115,7 +115,7 @@ bool Fifo::writePacket(const ZMPacket &packet) {
     return false;
   }
 
-  if (fwrite(packet.packet.data, packet.packet.size, 1, outfile) != 1) {
+  if (fwrite(packet.packet->data, packet.packet->size, 1, outfile) != 1) {
     Debug(1, "Unable to write to '%s': %s", path.c_str(), strerror(errno));
     return false;
   }
@@ -134,8 +134,8 @@ bool Fifo::writePacket(std::string filename, const ZMPacket &packet) {
     return false;
   }
 
-  Debug(4, "Writing packet of size %d pts %" PRId64, packet.packet.size, packet.pts);
-  if (fwrite(packet.packet.data, packet.packet.size, 1, outfile) != 1) {
+  Debug(4, "Writing packet of size %d pts %" PRId64, packet.packet->size, packet.pts);
+  if (fwrite(packet.packet->data, packet.packet->size, 1, outfile) != 1) {
     Debug(1, "Unable to write to '%s': %s", filename.c_str(), strerror(errno));
     fclose(outfile);
     return false;

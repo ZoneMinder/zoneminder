@@ -287,7 +287,7 @@ function timerFire() {
   } else if (currentTimeSecs + playSecsPerInterval >= maxTimeSecs) {
     // beyond the end just stop
     console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval + " >= " + maxTimeSecs + " so stopping");
-    setSpeed(0);
+    if (speedIndex) setSpeed(0);
     outputUpdate(currentTimeSecs);
   } else {
     //console.log("Current time " + currentTimeSecs + " + " + playSecsPerInterval);

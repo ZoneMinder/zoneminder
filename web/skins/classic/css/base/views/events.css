@@ -42,3 +42,12 @@
 input[type="number"].form-control {
   padding: 5px;
 }
+
+#objdetectModal  .modal-dialog {
+  width: 65%;
+  max-width: 65%;
+}
+
+#objdetectModal img {
+  width: 100%;
+}

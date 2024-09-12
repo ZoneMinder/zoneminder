@@ -24,12 +24,13 @@ if ( !canEdit('Monitors') ) return;
 <div id="modalFunction" class="modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-    <form id="function_form" action="?view=function&action=function" method="post">
+    <form id="function_form" action="?view=function" method="post">
       <?php
       // We have to manually insert the csrf key into the form when using a modal generated via ajax call
       echo getCSRFinputHTML();
       ?>
       <input type="hidden" name="mid"/>
+      <input type="hidden" name="action" value="save"/>
       <div class="modal-header">
         <h5 class="modal-title"><?php echo translate('Function') ?> - <span id="function_monitor_name"></span></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">

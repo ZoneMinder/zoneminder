@@ -230,7 +230,7 @@ int RemoteCameraRtsp::PreCapture() {
 
 int RemoteCameraRtsp::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   int frameComplete = false;
-  AVPacket *packet = &zm_packet->packet;
+  AVPacket *packet = zm_packet->packet.get();
 
   while (!frameComplete) {
     buffer.clear();

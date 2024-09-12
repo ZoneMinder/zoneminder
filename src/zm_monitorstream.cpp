@@ -407,10 +407,8 @@ bool MonitorStream::sendFrame(Image *image, const timeval &timestamp) {
         ||
         (fwrite(img_buffer, img_buffer_size, 1, stdout) != 1)
        ) {
-      if ( !zm_terminate ) {
-        // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
-        Warning("Unable to send stream frame: %s", strerror(errno));
-      }
+      // If the pipe was closed, we will get signalled SIGPIPE to exit, which will set zm_terminate
+      Debug(1, "Unable to send stream frame: %s, zm_terminate: %d", strerror(errno), zm_terminate);
       return false;
     }
     fputs("\r\n", stdout);
@@ -450,6 +448,7 @@ void MonitorStream::runStream() {
 
   // point to end which is theoretically not a valid value because all indexes are % image_buffer_count
   int32_t last_read_index = monitor->image_buffer_count;
+  int32_t last_image_count = 0;
 
   time_t stream_start_time;
   time(&stream_start_time);
@@ -651,14 +650,16 @@ void MonitorStream::runStream() {
       }
     }  // end if (buffered_playback && delayed)
 
-    if (last_read_index != monitor->shared_data->last_write_index) {
+    if (last_read_index != monitor->shared_data->last_write_index || last_image_count < monitor->shared_data->image_count) {
       // have a new image to send
-      int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+      int last_write_index = monitor->shared_data->last_write_index;
+      int index = last_write_index % monitor->image_buffer_count;
       if ((frame_mod == 1) || ((frame_count%frame_mod) == 0)) {
         if (!paused && !delayed) {
           last_read_index = monitor->shared_data->last_write_index;
-          Debug(2, "Sending frame index: %d: frame_mod: %d frame count: %d paused(%d) delayed(%d)",
-              index, frame_mod, frame_count, paused, delayed);
+          last_image_count = monitor->shared_data->image_count;
+          Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->image_count, paused, delayed);
           // Send the next frame
           //
           // Perhaps we should use NOW instead. 
@@ -760,7 +761,7 @@ void MonitorStream::runStream() {
       sleep_time = MonitorStream::MAX_SLEEP_USEC;
       Debug(3, "Sleeping for MAX_SLEEP_USEC %luus", sleep_time);
     } else {
-      Debug(3, "Sleeping for %luus", sleep_time);
+      Debug(3, "Sleeping for %luus base_fps %f replay_rate %d", sleep_time, base_fps, replay_rate);
     }
     usleep(sleep_time);
     if ( ttl ) {

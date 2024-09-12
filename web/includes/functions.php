@@ -45,7 +45,7 @@ function CSPHeaders($view, $nonce) {
 
   $additionalScriptSrc = implode(' ', array_map(function($S){return $S->Hostname();}, $Servers));
   switch ($view) {
-    case 'login': {
+    case 'login':
       if (defined('ZM_OPT_USE_GOOG_RECAPTCHA')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SITEKEY')
           && defined('ZM_OPT_GOOG_RECAPTCHA_SECRETKEY')
@@ -53,42 +53,12 @@ function CSPHeaders($view, $nonce) {
         $additionalScriptSrc .= ' https://www.google.com';
       }
       // fall through
-    }
-    case 'bandwidth':
-    case 'blank':
-    case 'console':
-    case 'controlcap':
-    case 'cycle':
-    case 'donate':
-    case 'download':
-    case 'error':
-    case 'events':
-    case 'export':
-    case 'frame':
-    case 'function':
-    case 'log':
-    case 'logout':
-    case 'optionhelp':
-    case 'options':
-    case 'plugin':
-    case 'postlogin':
-    case 'privacy':
-    case 'server':
-    case 'state':
-    case 'status':
-    case 'storage':
-    case 'version': {
+    default:
       // Enforce script-src on pages where inline scripts and event handlers have been fixed.
-      header("Content-Security-Policy: script-src 'self' 'nonce-$nonce' $additionalScriptSrc");
-      break;
-    }
-    default: {
-      // Use Report-Only mode on all other pages.
-      header("Content-Security-Policy-Report-Only: script-src 'self' 'nonce-$nonce' $additionalScriptSrc;".
-        (ZM_CSP_REPORT_URI ? ' report-uri '.ZM_CSP_REPORT_URI : '' )
+      header("Content-Security-Policy: object-src 'self'; script-src 'self' 'nonce-$nonce' $additionalScriptSrc".
+        (ZM_CSP_REPORT_URI ? '; report-uri '.ZM_CSP_REPORT_URI : '' )
       );
       break;
-    }
   }
 }
 
@@ -106,6 +76,7 @@ function CORSHeaders() {
       if ( ZM_MIN_STREAMING_PORT ) {
         ZM\Debug('Setting default Access-Control-Allow-Origin from ' . $_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
       }
       return;
@@ -119,6 +90,7 @@ function CORSHeaders() {
         $valid = true;
         ZM\Debug('Setting Access-Control-Allow-Origin from '.$_SERVER['HTTP_ORIGIN']);
         header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+        header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Headers: x-requested-with,x-request');
         break;
       }
@@ -304,7 +276,7 @@ function outputHelperStream($id, $src, $width, $height, $title='') {
 }
 function getHelperStream($id, $src, $width, $height, $title='') {
     return '<object type="application/x-java-applet" id="'.$id.'" code="com.charliemouse.cambozola.Viewer"
-    archive="'. ZM_PATH_CAMBOZOLA .'"
+    archive="'.(defined('ZM_PATH_CAMBOZOLA') ? ZM_PATH_CAMBOZOLA : '') .'"
     align="middle"
     width="'. $width .'"
     height="'. $height .'"
@@ -771,11 +743,11 @@ function canStreamNative() {
 }
 
 function canStreamApplet() {
-  if ( (ZM_OPT_CAMBOZOLA && !file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) ) {
+  if ( defined('ZM_OPT_CAMBOZOLA') && (ZM_OPT_CAMBOZOLA && !file_exists( ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA )) ) {
     ZM\Warning('ZM_OPT_CAMBOZOLA is enabled, but the system cannot find '.ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA);
   }
 
-  return (ZM_OPT_CAMBOZOLA && file_exists(ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA));
+  return (defined('ZM_OPT_CAMBOZOLA') && ZM_OPT_CAMBOZOLA && file_exists(ZM_PATH_WEB.'/'.ZM_PATH_CAMBOZOLA));
 }
 
 function canStream() {
@@ -1069,6 +1041,8 @@ function parseFilter(&$filter, $saveToSession=false, $querySep='&amp;') {
 
   $Filter = ZM\Filter::parse($filter, $querySep);
 
+  if (isset($filter['Id']))
+    $filter['Id'] = validCardinal($filter['Id']);
   $filter['sql'] = $Filter->sql();
   $filter['querystring'] = $Filter->querystring('filter', $querySep);
   $filter['hidden_fields'] = $Filter->hidden_fields();
@@ -1187,7 +1161,7 @@ function sortHeader($field, $querySep='&amp;') {
   global $view;
   return implode($querySep, array(
     '?view='.$view,
-    'page=1'.(isset($_REQUEST['filter'])?$_REQUEST['filter']['query']:''),
+    'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? $_REQUEST['filter']['query'] : ''),
     'sort_field='.$field,
     'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !$_REQUEST['sort_asc'] : 0),
     'limit='.(isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : ''),
@@ -1937,8 +1911,13 @@ function generateConnKey() {
 }
 
 function detaintPath($path) {
+
+  // Strip out :// because php:// is a way to inject code apparently
+  $path = str_replace('://', '', $path);
   // Remove any absolute paths, or relative ones that want to go up
-  $path = str_replace('../', '', $path);
+  do {
+    $path = str_replace('../', '', $path, $count);
+  } while($count);
   $path = ltrim($path, '/');
   return $path;
 }
@@ -2011,19 +1990,19 @@ function validNum( $input ) {
 
 // For general strings
 function validStr($input) {
-  if(!$input) return '';
+  if (is_null($input)) return '';
   return strip_tags($input);
 }
 
 // For strings in javascript or tags etc, expected to be in quotes so further quotes escaped rather than converted
 function validJsStr($input) {
-  if(!$input) return '';
+  if (is_null($input)) return '';
   return strip_tags(addslashes($input));
 }
 
 // For general text in pages outside of tags or quotes so quotes converted to entities
 function validHtmlStr($input) {
-  if(!$input) return '';
+  if (is_null($input)) return '';
   return htmlspecialchars($input, ENT_QUOTES);
 }
 
@@ -2423,5 +2402,9 @@ function i18n() {
   $string[1] = strtoupper($string[1]);
 
   return implode('-', $string);
+}
+
+function check_datetime($x) {
+  return (date('Y-m-d H:i:s', strtotime($x)) == $x);
 }
 ?>

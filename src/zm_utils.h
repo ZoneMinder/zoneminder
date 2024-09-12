@@ -110,6 +110,7 @@ typedef std::chrono::steady_clock::time_point TimePoint;
 typedef std::chrono::system_clock::time_point SystemTimePoint;
 
 std::string mask_authentication(const std::string &url);
+std::string remove_authentication(const std::string &url);
 
 std::string UriDecode(const std::string &encoded);
 

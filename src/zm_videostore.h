@@ -6,6 +6,7 @@
 #include "zm_ffmpeg.h"
 #include "zm_swscale.h"
 
+#include <list>
 #include <memory>
 #include <map>
 
@@ -65,8 +66,8 @@ class VideoStore {
     const AVCodec *audio_out_codec;
     AVCodecContext *audio_out_ctx;
     // Move this into the object so that we aren't constantly allocating/deallocating it on the stack
-    AVPacket opkt;
-    // we are transcoding
+    av_packet_ptr opkt;
+
     AVFrame *video_in_frame;
     AVFrame *in_frame;
     AVFrame *out_frame;
@@ -102,9 +103,13 @@ class VideoStore {
     // These are for out, should start at zero.  We assume they do not wrap because we just aren't going to save files that big.
     int64_t *next_dts;
     std::map<int, int64_t> last_dts;
+    std::map<int, int64_t> last_duration;
     int64_t audio_next_pts;
 
     int max_stream_index;
+
+    size_t reorder_queue_size;
+    std::map<int, std::list<std::shared_ptr<ZMPacket>>> reorder_queues;
 
     bool setup_resampler();
     int write_packet(AVPacket *pkt, AVStream *stream);
@@ -123,9 +128,9 @@ class VideoStore {
 
     void write_video_packet(AVPacket &pkt);
     void write_audio_packet(AVPacket &pkt);
-    int writeVideoFramePacket(const std::shared_ptr<ZMPacket> &pkt);
-    int writeAudioFramePacket(const std::shared_ptr<ZMPacket> &pkt);
-    int writePacket(const std::shared_ptr<ZMPacket> &pkt);
+    int writeVideoFramePacket(const std::shared_ptr<ZMPacket> pkt);
+    int writeAudioFramePacket(const std::shared_ptr<ZMPacket> pkt);
+    int writePacket(const std::shared_ptr<ZMPacket> pkt);
     int write_packets(PacketQueue &queue);
     void flush_codecs();
 };

@@ -29,14 +29,24 @@ xhtmlHeaders( __FILE__, translate('Console'));
 
 if ( isset($_REQUEST['minTime']) ) {
   $minTime = validHtmlStr($_REQUEST['minTime']);
+  if (!check_datetime($minTime)) {
+    ZM\Error('Invalid date given for minTime.');
+    unset($minTime);
+  }
 } else {
-  $minTime = date('c', time() - (2*3600));
+  $minTime = date('Y-m-d H:i:s', time() - (2*3600));
 }
 if ( isset($_REQUEST['maxTime']) ) {
   $maxTime = validHtmlStr($_REQUEST['maxTime']);
+  if (!check_datetime($maxTime)) {
+    ZM\Error('Invalid date given for maxTime.');
+    unset($maxTime);
+  }
 } else {
-  $maxTime = date('c', time() - 3600);
+  $maxTime = date('Y-m-d H:i:s', time() - 3600);
 }
+
+$group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
 
 $filter = new ZM\Filter();
 $filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'>=', 'val'=>$minTime, 'obr'=>'1'));
@@ -108,14 +118,12 @@ while ( $event = $result->fetch(PDO::FETCH_ASSOC) ) {
 ?>
 <body>
   <?php echo $navbar ?>
-  <form name="monitorForm" method="get" action="?">
-    <input type="hidden" name="view" value="<?php echo $view ?>"/>
-    <input type="hidden" name="action" value=""/>
+  <form name="monitorForm" method="post" action="?view=<?php echo $view ?>">
     <div class="filterBar">
       <?php echo $filterbar ?>
       <div id="DateTimeDiv">
-        <label>Event Start Time</label>
-        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> to 
+        <label><?php echo translate('Event Start Time') ?></label>
+        <input type="text" name="minTime" id="minTime" value="<?php echo preg_replace('/T/', ' ', $minTime) ?>"/> <?php echo translate('to') ?> 
         <input type="text" name="maxTime" id="maxTime" value="<?php echo preg_replace('/T/', ' ', $maxTime) ?>"/>
       </div>
     </div><!--FilterBar-->

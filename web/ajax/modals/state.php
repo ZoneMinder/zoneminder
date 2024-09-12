@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-if ( !canEdit('System') ) return;
+if (!canEdit('System')) return;
 
 $running = daemonCheck();
 
@@ -44,43 +44,37 @@ foreach ( $states as $state ) {
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Run State</h5>
+        <h5 class="modal-title"><?php echo translate('Run State')?> </h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body">
-          <form class="" name="contentForm" method="get" action="?view=state">
-            <?php
-            // We have to manually insert the csrf key into the form when using a modal generated via ajax call
-            echo getCSRFinputHTML();
-            ?>
-            <input type="hidden" name="view" value="state"/>
-            <input type="hidden" name="action" value="state"/>
-            <input type="hidden" name="apply" value="1"/>
-            <div class="form-group">
-              <label for="runState" class="col-md-3 col-form-label float-left">Change State</label>
-              <div class="col-md-9">
-                <select id="runState" name="runState" class="form-control">
-                  <?php echo $content ?>
-                </select>
-              </div><!--col-md-9-->
-            </div><!--form-group-->
-            <div class="form-group">
-              <label for="newState" class="col-md-3 col-form-label float-left"><?php echo translate('NewState') ?></label>
-                <div class="col-md-9">
-                  <input class="form-control" type="text" id="newState"/>
-                </div>
-            </div>
-          </form>        
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" type="button" id="btnApply"><?php echo translate('Apply') ?></button>
-        <button class="btn btn-primary" type="button" id="btnSave" disabled><?php echo translate('Save') ?></button>
-        <button class="btn btn-danger" type="button" id="btnDelete" disabled><?php echo translate('Delete') ?></button>
-        <p class="pull-left hidden" id="pleasewait"><?php echo translate('PleaseWait') ?></p>
-      </div>
+      <form name="contentForm" method="post" action="?view=state">
+        <div class="modal-body">
+          <?php
+          // We have to manually insert the csrf key into the form when using a modal generated via ajax call
+          echo getCSRFinputHTML();
+          ?>
+          <input type="hidden" name="action" value="state"/>
+          <input type="hidden" name="apply" value="1"/>
+          <div class="form-group">
+            <label for="runState"><?php echo translate('Change State')?></label>
+              <select id="runState" name="runState" class="form-control">
+                <?php echo $content ?>
+              </select>
+          </div><!--form-group-->
+          <div class="form-group">
+            <label for="newState"><?php echo translate('NewState') ?></label>
+              <input class="form-control" type="text" id="newState"/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" type="button" id="btnApply"><?php echo translate('Apply') ?></button>
+          <button class="btn btn-primary" type="button" id="btnSave" disabled><?php echo translate('Save') ?></button>
+          <button class="btn btn-danger" type="button" id="btnDelete" disabled><?php echo translate('Delete') ?></button>
+          <p class="pull-left hidden" id="pleasewait"><?php echo translate('PleaseWait') ?></p>
+        </div>
+      </form>        
     </div>
   </div>
 </div>
-

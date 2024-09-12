@@ -40,8 +40,8 @@ Package: zoneminder
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,javascript-common
-        ,libswscale5|libswscale4
-        ,libswresample3|libswresample2
+        ,libswscale7|libswscale6|libswscale5|libswscale4
+        ,libswresample4|libswresample3|libswresample2
         ,ffmpeg
         ,libdate-manip-perl, libmime-lite-perl, libmime-tools-perl
         ,libdbd-mysql-perl
@@ -52,6 +52,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdbd-mysql-perl
         ,libdevice-serialport-perl
         ,libimage-info-perl
+        ,libio-interface-perl
         ,libjson-maybexs-perl
         ,libsys-mmap-perl [!hurd-any]
         ,liburi-encode-perl
@@ -67,7 +68,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
         ,default-mysql-client | mariadb-client | virtual-mysql-client
-        ,php-mysql, php-gd, php-apcu, php-json
+        ,php-mysql, php-gd, php-apcu, php-json, php-intl
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip
@@ -75,7 +76,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libcrypt-eksblowfish-perl
         ,libdata-entropy-perl
         ,libvncclient1|libvncclient0
-        ,libjwt-gnutls0|libjwt0
+        ,libjwt2|libjwt-gnutls2|libjwt-gnutls0|libjwt0
 Recommends: ${misc:Recommends}
            ,libapache2-mod-php | php-fpm
            ,default-mysql-server | mariadb-server | virtual-mysql-server

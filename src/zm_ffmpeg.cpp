@@ -59,7 +59,7 @@ void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
     Error("Unknown log level %d", level);
   }
 
-  if (log) {
+  if (log and (log->level() >= log_level) ) {
     char logString[8192];
     int length = vsnprintf(logString, sizeof(logString)-1, fmt, vargs);
     if (length > 0) {
@@ -335,7 +335,15 @@ void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output)
       zm_log_fps(1 / av_q2d(st->time_base), "stream tb numerator");
   } else if (codec->codec_type == AVMEDIA_TYPE_AUDIO) {
     Debug(1, "profile %d channels %d sample_rate %d",
-        codec->profile, codec->channels, codec->sample_rate);
+        codec->profile, 
+#if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
+        codec->ch_layout.nb_channels,
+#else
+        codec->channels,
+#endif
+        codec->sample_rate);
+  } else {
+    Debug(1, "Unknown codec type %d", codec->codec_type);
   }
 
   if (st->disposition & AV_DISPOSITION_DEFAULT)
@@ -450,7 +458,7 @@ bool is_video_stream(const AVStream * stream) {
     return true;
   }
   #if LIBAVCODEC_VERSION_CHECK(57, 64, 0, 64, 0)
-  Debug(2, "Not a video type %d != %d", stream->codecpar->codec_type, AVMEDIA_TYPE_VIDEO);
+  Debug(2, "Not a video type %d != %d for stream %d", stream->codecpar->codec_type, AVMEDIA_TYPE_VIDEO, stream->index);
   #endif
 
   return false;

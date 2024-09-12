@@ -39,24 +39,28 @@ function ajaxRequest(params) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
   }
-  $j.getJSON(thisUrl + '?view=request&request=events&task=query'+filterQuery, params.data)
-      .done(function(data) {
-        if (data.result == 'Error') {
-          alert(data.message);
-          return;
-        }
-        var rows = processRows(data.rows);
-        // rearrange the result into what bootstrap-table expects
-        params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
-      })
-      .fail(function(jqXHR) {
-        logAjaxFail(jqXHR);
-        $j('#eventTable').bootstrapTable('refresh');
-      });
+  $j.ajax({
+    url: thisUrl + '?view=request&request=events&task=query'+filterQuery,
+    data: params.data,
+    timeout: 0,
+    success: function(data) {
+      if (data.result == 'Error') {
+        alert(data.message);
+        return;
+      }
+      var rows = processRows(data.rows);
+      // rearrange the result into what bootstrap-table expects
+      params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
+    },
+    error: function(jqXHR) {
+      console.log("error", jqXHR);
+      //logAjaxFail(jqXHR);
+      //$j('#eventTable').bootstrapTable('refresh');
+    }
+  });
 }
 
 function processRows(rows) {
-  const date = new Date(0);
   $j.each(rows, function(ndx, row) {
     var eid = row.Id;
     var archived = row.Archived == yesString ? archivedString : '';
@@ -75,8 +79,10 @@ function processRows(rows) {
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+
+    const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
     date.setSeconds(row.Length);
-    row.Length = date.toISOString().substr(11,8);
+    row.Length = date.toISOString().substr(11, 8);
 
     if ( WEB_LIST_THUMBS ) row.Thumbnail = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.imgHtml + '</a>';
   });
@@ -109,7 +115,10 @@ function getDelConfirmModal() {
         insertModalHtml('deleteConfirm', data.html);
         manageDelConfirmModalBtns();
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR) {
+        console.log("error getting delconfirm", jqXHR);
+        logAjaxFail(jqXHR);
+      });
 }
 
 // Manage the DELETE CONFIRMATION modal button
@@ -119,25 +128,46 @@ function manageDelConfirmModalBtns() {
       enoperm();
       return;
     }
-
-    var selections = getIdSelections();
-
     evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+selections.join('&eids[]='))
-        .done( function(data) {
-          $j('#eventTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
-        })
-        .fail( function(jqxhr) {
-          logAjaxFail(jqxhr);
-          $j('#eventTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
-        });
+
+    const selections = getIdSelections();
+    deleteEvents(selections);
   });
 
   // Manage the CANCEL modal button
   document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
     $j('#deleteConfirm').modal('hide');
+  });
+}
+
+function deleteEvents(event_ids) {
+  const ticker = document.getElementById('deleteProgressTicker');
+  const chunk = event_ids.splice(0, 10);
+  console.log("Deleting " + chunk.length + " selections.  " + event_ids.length);
+
+  $j.ajax({
+    method: 'get',
+    timeout: 0,
+    url: thisUrl + '?request=events&task=delete',
+    data: {'eids[]': chunk},
+    success: function(data) {
+      if (!event_ids.length) {
+        $j('#eventTable').bootstrapTable('refresh');
+        $j('#deleteConfirm').modal('hide');
+      } else {
+        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+          ticker.innerHTML = '.';
+        } else {
+          ticker.innerHTML = ticker.innerHTML + '.';
+        }
+        deleteEvents(event_ids);
+      }
+    },
+    fail: function(jqxhr) {
+      logAjaxFail(jqxhr);
+      $j('#eventTable').bootstrapTable('refresh');
+      $j('#deleteConfirm').modal('hide');
+    }
   });
 }
 
@@ -152,7 +182,10 @@ function getEventDetailModal(eid) {
           $j('#eventDetailForm').submit();
         });
       })
-      .fail(logAjaxFail);
+      .fail(function(jqxhr) {
+        console.log("Fail get event details");
+        logAjaxFail(jqxhr);
+      });
 }
 
 function getObjdetectModal(eid) {
@@ -161,7 +194,10 @@ function getObjdetectModal(eid) {
         insertModalHtml('objdetectModal', data.html);
         $j('#objdetectModal').modal('show');
       })
-      .fail(logAjaxFail);
+      .fail(function(jqxhr) {
+        console.log("Fail get objdetect details");
+        logAjaxFail(jqxhr);
+      });
 }
 
 function initPage() {

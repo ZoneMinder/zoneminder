@@ -441,6 +441,7 @@ void zm_dump_codecpar(const AVCodecParameters *par);
  avcodec_send_packet(context, packet); \
  avcodec_receive_frame(context, rawFrame);
 #else
+    #define av_packet_alloc new AVPacket
 #if LIBAVCODEC_VERSION_CHECK(52, 23, 0, 23, 0)
   #define zm_avcodec_decode_video(context, rawFrame, frameComplete, packet) \
       avcodec_decode_video2(context, rawFrame, frameComplete, packet)
@@ -507,7 +508,11 @@ struct zm_free_av_packet
 {
     void operator()(AVPacket *pkt) const
     {
+#if LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 100)
         av_packet_free(&pkt);
+#else
+        av_free_packet(pkt);
+#endif
     }
 };
 

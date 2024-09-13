@@ -103,9 +103,11 @@ foreach ($layouts as $l) {
 zm_session_start();
 
 $layout_id = 0;
-if ( isset($_COOKIE['zmMontageLayout']) ) {
+if (isset($_REQUEST['zmMontageLayout'])) {
+  $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_REQUEST['zmMontageLayout']);
+} else if ( isset($_COOKIE['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_COOKIE['zmMontageLayout']);
-} elseif ( isset($_SESSION['zmMontageLayout']) ) {
+} else if ( isset($_SESSION['zmMontageLayout']) ) {
   $layout_id = validCardinal($_SESSION['zmMontageLayout']);
 }
 if (!$layout_id || !isset($layoutsById[$layout_id])) {

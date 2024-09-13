@@ -648,6 +648,7 @@ input[type=submit],
     text-decoration: none;
     display: inline-block;
     text-align: center;
+    margin-right: 3px;
 }
 
 .btn-normal,

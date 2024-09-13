@@ -126,7 +126,7 @@ function findFrameByTime(arr, time, debug) {
         }
         //console.log(NextFrame);
 
-        if (frame.Type == 'Bulk' || NextFrame.Type == 'Bulk') {
+        if ((frame.TimeStampSecs != time) && (frame.Type == 'Bulk' || NextFrame.Type == 'Bulk')) {
           // There is time between this frame and a bulk frame
           var duration = frame.NextTimeStampSecs - frame.TimeStampSecs;
           frame.FrameId = parseInt(frame.FrameId) + parseInt( (NextFrame.FrameId-frame.FrameId) * ( time-frame.TimeStampSecs )/duration );

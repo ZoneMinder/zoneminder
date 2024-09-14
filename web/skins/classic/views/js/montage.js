@@ -872,7 +872,7 @@ function initGridStack(grid=null) {
   const opts = {
     margin: 0,
     cellHeight: '1px',
-    sizeToContent: true, // default to make them all fit
+    //sizeToContent: true, // default to make them all fit
     resizable: {handles: 'all'}, // do all sides
     float: false,
     disableDrag: true,

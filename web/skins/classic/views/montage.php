@@ -51,18 +51,18 @@ $heights = array(
   '1080px' => '1080px',
 );
 
-$monitorStatusPositon = array( 
+$monitorStatusPosition = array( 
   'insideImgBottom'  => translate('Inside bottom'),
   'outsideImgBottom' => translate('Outside bottom'),
   'hidden' => translate('Hidden'),
   'showOnHover' => translate('Show on hover'),
 );
 
-$monitorStatusPositonSelected = 'outsideImgBottom';
-if (isset($_REQUEST['monitorStatusPositonSelected'])) {
-  $monitorStatusPositonSelected = $_REQUEST['monitorStatusPositonSelected'];
-} else if (isset($_COOKIE['zmMonitorStatusPositonSelected'])) {
-  $monitorStatusPositonSelected = $_COOKIE['zmMonitorStatusPositonSelected'];
+$monitorStatusPositionSelected = 'outsideImgBottom';
+if (isset($_REQUEST['monitorStatusPositionSelected'])) {
+  $monitorStatusPositionSelected = $_REQUEST['monitorStatusPositionSelected'];
+} else if (isset($_COOKIE['zmMonitorStatusPositionSelected'])) {
+  $monitorStatusPositionSelected = $_COOKIE['zmMonitorStatusPositionSelected'];
 }
 
 $layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
@@ -103,9 +103,11 @@ foreach ($layouts as $l) {
 zm_session_start();
 
 $layout_id = 0;
-if ( isset($_COOKIE['zmMontageLayout']) ) {
+if (isset($_REQUEST['zmMontageLayout'])) {
+  $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_REQUEST['zmMontageLayout']);
+} else if ( isset($_COOKIE['zmMontageLayout']) ) {
   $layout_id = $_SESSION['zmMontageLayout'] = validCardinal($_COOKIE['zmMontageLayout']);
-} elseif ( isset($_SESSION['zmMontageLayout']) ) {
+} else if ( isset($_SESSION['zmMontageLayout']) ) {
   $layout_id = validCardinal($_SESSION['zmMontageLayout']);
 }
 if (!$layout_id || !isset($layoutsById[$layout_id])) {
@@ -276,9 +278,9 @@ if (canView('System')) {
           <input type="hidden" name="object" value="MontageLayout"/>
           <input id="action" type="hidden" name="action" value=""/> <?php // "value" is generated in montage.js depending on the action "Save" or "Delete"?>
 
-          <span id="monitorStatusPositonControl">
+          <span id="monitorStatusPositionControl">
             <label><?php echo translate('Monitor status position') ?></label>
-            <?php echo htmlSelect('monitorStatusPositon', $monitorStatusPositon, $monitorStatusPositonSelected, array('id'=>'monitorStatusPositon', 'data-on-change'=>'changeMonitorStatusPositon', 'class'=>'chosen')); ?>
+            <?php echo htmlSelect('monitorStatusPosition', $monitorStatusPosition, $monitorStatusPositionSelected, array('id'=>'monitorStatusPosition', 'data-on-change'=>'changeMonitorStatusPosition', 'class'=>'chosen')); ?>
           </span>
           <span id="rateControl">
             <label for="changeRate"><?php echo translate('Rate') ?>:</label>
@@ -323,7 +325,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           <button type="button" id="EditLayout" data-on-click-this="edit_layout"><?php echo translate('EditLayout') ?></button>
           <button type="button" id="btnDeleteLayout" class="btn btn-danger" value="Delete" data-on-click-this="delete_layout" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete layout') ?>" disabled><i class="material-icons md-18">delete</i></button>
           <span id="SaveLayout" style="display:none;">
-            <input type="text" name="Name" placeholder="Enter new name for layout if desired" autocomplete="off"/>
+            <input type="text" name="Name" placeholder="<?php echo translate('Enter new name for layout if desired') ?>" autocomplete="off"/>
             <button type="button" value="Save" data-on-click-this="save_layout"><?php echo translate('Save') ?></button>
             <button type="button" value="Cancel" data-on-click-this="cancel_layout"><?php echo translate('Cancel') ?></button>
           </span>

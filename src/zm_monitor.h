@@ -750,7 +750,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
                  static_cast<int64>(std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count())
                  -
                  shared_data->last_viewed_time
-               ) > 1 ? false : true);
+               ) > 10 ? false : true);
     }
     return false;
   }

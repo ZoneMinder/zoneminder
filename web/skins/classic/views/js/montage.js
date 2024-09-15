@@ -154,6 +154,7 @@ function selectLayout(new_layout_id) {
       } else {
         monitor_wrapper.attr('gs-w', widthFrame).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
       }
+      setRatioForMonitor(getStream(monitors[i].id), monitors[i].id); 
     }
     initGridStack();
   } else { //CUSTOM
@@ -169,6 +170,7 @@ function selectLayout(new_layout_id) {
       const monitor_wrapper = monitor_frame.closest('[gs-id="' + monitor.id + '"]');
       monitor_wrapper.attr('gs-w', 12).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
       $j('#liveStream'+monitor.id).css('height', '');
+      setRatioForMonitor(getStream(monitors[i].id), monitors[i].id);
     }
 
     if (layout.Positions.gridStack) {
@@ -340,14 +342,18 @@ function checkRatioForAllMonitors() {
   }
 }
 
-function setRatioForMonitor(objLiveStream, id=null) {
+function setRatioForMonitor(objStream, id=null) {
   if (!id) {
-    id = stringToNumber(objLiveStream.id);
+    id = stringToNumber(objStream.id);
   }
   const value = getSelected(document.getElementById("ratio"+id));
   const currentMonitor = monitors.find((o) => {
     return parseInt(o["id"]) === id;
   });
+  if (!currentMonitor) {
+    console.log(`Monitor with ID=${id} not found in 'monitors' object.`);
+    return;
+  }
 
   var ratio;
   if (value == 'real') {
@@ -356,11 +362,9 @@ function setRatioForMonitor(objLiveStream, id=null) {
     const partsRatio = value.split(':');
     ratio = (value == 'auto') ? averageMonitorsRatio : partsRatio[0]/partsRatio[1];
   }
-  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objLiveStream.clientWidth / ratio + 'px') /* landscape */ : (objLiveStream.clientWidth * ratio + 'px');
-  objLiveStream.style['height'] = height;
-  objLiveStream.parentNode.style['height'] = height;
-}
-
+  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio + 'px') /* landscape */ : (objStream.clientWidth * ratio + 'px');
+  objStream.style['height'] = height;
+  objStream.parentNode.style['height'] = height;
 function toGrid(value) { //Not used
 /*  return Math.round(value / 80) * 80;*/
 }

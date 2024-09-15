@@ -705,6 +705,7 @@ function initPage() {
         }
         $j('#button_zoom' + id).stop(true, true).slideDown('fast');
         $j('#ratioControl' + id).stop(true, true).slideDown('fast');
+        $j('#ratioControl' + id).css({top: document.getElementById('btn-zoom-in' + id).offsetHeight + 10 + 'px'});
       },
       function() {
         const id = stringToNumber(this.id);
@@ -1013,6 +1014,7 @@ function monitorsSetScale(id=null) {
       monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
     }
   }
+  setButtonSizeOnStream();
 }
 
 function changeMonitorRate() {

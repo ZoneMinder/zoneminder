@@ -22,11 +22,11 @@
 #include <cstring>
 
 Monitor::ONVIF::ONVIF(Monitor *parent_) :
-  parent(parent_),
-  alarmed(false),
-  healthy(false),
+  parent(parent_)
+  ,alarmed(false)
+  ,healthy(false)
 #ifdef WITH_GSOAP
-  soap(nullptr)
+  ,soap(nullptr)
 #endif
 {
 }

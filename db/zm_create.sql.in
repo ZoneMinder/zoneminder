@@ -1078,6 +1078,7 @@ INSERT INTO `Controls` VALUES (NULL,'PSIA','Remote','PSIA',0,0,0,0,1,0,0,1,0,0,0
 INSERT INTO `Controls` VALUES (NULL,'Dahua','Ffmpeg','Dahua',0,0,1,1,1,0,0,1,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,20,1,1,1,1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0);
 INSERT INTO `Controls` VALUES (NULL,'FOSCAMR2C','Libvlc','FOSCAMR2C',1,1,1,0,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,12,0,1,1,1,0,0,0,1,1,NULL,NULL,NULL,NULL,1,0,4,0,NULL,1,NULL,NULL,NULL,NULL,1,0,4,0,NULL,0,0);
 INSERT INTO `Controls` VALUES (NULL,'Amcrest HTTP API','Ffmpeg','Amcrest_HTTP',0,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,5,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,5);
+INSERT INTO `Controls` VALUES (NULL,'Instar 7011HD CGI','Ffmpeg','Instar720p',0,0,0,1,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,0,1,0,0,0,6,1,1,0,0,0,0,0,0,0,0,NULL,NULL,NULL,NULL,0,NULL,NULL,1,0,1,0,0,0,6,1,1,0,0,0,1,8,1,1,1,1,0,0,0,1,1,0,350,1,25,1,1,63,0,NULL,1,0,100,1,10,1,1,63,0,NULL,0,0);
 
 --
 -- Add some monitor preset values
@@ -1158,6 +1159,7 @@ INSERT INTO MonitorPresets VALUES (NULL,NULL,'Airlink 777W PTZ, 640x480, mjpeg',
 INSERT INTO MonitorPresets VALUES (NULL,NULL,'SunEyes SP-P1802SWPTZ','Libvlc','/dev/video<?>','0',255,'','rtpMulti','','80','rtsp://<ip-address>:554/11','',1920,1080,0,0.00,1,'16','-speed=64','<ip-address>:<port>',100,33);
 INSERT INTO MonitorPresets VALUES (NULL,NULL,'Qihan IP, 1280x720, RTP/RTSP','Ffmpeg','rtsp',0,255,'rtsp','rtpRtsp',NULL,554,'rtsp://<ip-address>/tcp_live/ch0_0',NULL,1280,720,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,NULL,'Qihan IP, 1920x1080, RTP/RTSP','Ffmpeg','rtsp',0,255,'rtsp','rtpRtsp',NULL,554,'rtsp://<ip-address>/tcp_live/ch0_0',NULL,1920,1080,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,NULL,'Instar 720p, IN-7011HD 1280x720, RTP/RTSP','Ffmpeg','/dev/video<?>',0,255,'http','rtpRtsp','<ip-address>',554,'rtsp://<username>:<password>@<ip-address>:554/11','',1280,720,0,NULL,1,NULL,NULL,'<username>:<password>@<ip-address>:80',100,100);
 
 --
 -- Add some zone preset values

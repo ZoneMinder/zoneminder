@@ -321,6 +321,31 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   };
  protected:
 
+  class ONVIF {
+   protected:
+    Monitor *parent;
+    bool alarmed;
+    bool healthy;
+#ifdef WITH_GSOAP
+  struct soap *soap = nullptr;
+  _tev__CreatePullPointSubscription request;
+  _tev__CreatePullPointSubscriptionResponse response;
+  _tev__PullMessages tev__PullMessages;
+  _tev__PullMessagesResponse tev__PullMessagesResponse;
+  _wsnt__Renew wsnt__Renew;
+  _wsnt__RenewResponse wsnt__RenewResponse;
+  PullPointSubscriptionBindingProxy proxyEvent;
+  void set_credentials(struct soap *soap);
+#endif
+   public:
+    explicit ONVIF(Monitor *parent_);
+    ~ONVIF();
+    void start();
+    void WaitForMessage();
+    bool isAlarmed() const { return alarmed; };
+    bool isHealthy() const { return healthy; };
+  };
+
   class AmcrestAPI {
    protected:
     Monitor *parent;
@@ -613,19 +638,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   RTSP2WebManager *RTSP2Web_Manager;
   JanusManager *Janus_Manager;
   AmcrestAPI *Amcrest_Manager;
-
-#ifdef WITH_GSOAP
-  struct soap *soap = nullptr;
-  _tev__CreatePullPointSubscription request;
-  _tev__CreatePullPointSubscriptionResponse response;
-  _tev__PullMessages tev__PullMessages;
-  _tev__PullMessagesResponse tev__PullMessagesResponse;
-  _wsnt__Renew wsnt__Renew;
-  _wsnt__RenewResponse wsnt__RenewResponse;
-  PullPointSubscriptionBindingProxy proxyEvent;
-  void set_credentials(struct soap *soap);
-#endif
-
+  ONVIF *onvif;
 
   // Used in check signal
   uint8_t red_val;

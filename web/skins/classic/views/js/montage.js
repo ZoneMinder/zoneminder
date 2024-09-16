@@ -158,7 +158,7 @@ function selectLayout(new_layout_id) {
       } else {
         monitor_wrapper.attr('gs-w', widthFrame).removeAttr('gs-x').removeAttr('gs-y').removeAttr('gs-h');
       }
-      setRatioForMonitor(getStream(monitors[i].id), monitors[i].id); 
+      setRatioForMonitor(getStream(monitors[i].id), monitors[i].id);
     }
     initGridStack();
   } else { //CUSTOM
@@ -370,7 +370,7 @@ function setRatioForMonitor(objStream, id=null) {
 
   const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio + 'px') /* landscape */ : (objStream.clientWidth * ratio + 'px');
   if (!height) {
-    console.log("0 height from ",currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio); 
+    console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
     objStream.style['height'] = height;
     objStream.parentNode.style['height'] = height;

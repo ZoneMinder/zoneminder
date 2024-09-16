@@ -1075,11 +1075,12 @@ void EventStream::runStream() {
           }
           TimePoint::duration elapsed = std::chrono::steady_clock::now() - start;
           delta -= std::chrono::duration_cast<Microseconds>(elapsed); // sending frames takes time, so remove it from the sleep time
+          if (delta<Microseconds(0)) delta = Microseconds(0);
 
-          Debug(2, "New delta: %fs from last frame offset %fs - next_frame_offset %fs - elapsed %fs",
+          Debug(2, "New delta: %fs from next frame offset %fs - last_frame_offset %fs - elapsed %fs",
                 FPSeconds(delta).count(),
-                FPSeconds(last_frame_data->offset).count(),
                 FPSeconds(next_frame_data->offset).count(),
+                FPSeconds(last_frame_data->offset).count(),
                 FPSeconds(elapsed).count()
                );
         }  // end if not at end of event

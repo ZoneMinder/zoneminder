@@ -965,17 +965,15 @@ function updateProgressBar() {
     var currentTime = vid.currentTime();
     var progressDate = new Date(currentTime);
   } else {
-  if (!(eventData && streamStatus)) {
-    return;
-    }
+    if (!(eventData && streamStatus)) return;
     var currentTime = streamStatus.progress;
     var progressDate = new Date(eventData.StartDateTime);
-  progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
+    progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
   }
   const progressBox = $j("#progressBox");
   let curWidth = (currentTime / parseFloat(eventData.Length)) * 100;
   if (curWidth > 100) curWidth = 100;
-  
+
   progressBox.css('width', curWidth + '%');
   progressBox.attr('title', progressDate.toLocaleTimeString());
 } // end function updateProgressBar()

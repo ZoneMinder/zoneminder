@@ -175,7 +175,7 @@ var zmPanZoom = {
   },
 
   setTouchAction: function(el) {
-	  if (!el) return;
+    if (!el) return;
     const currentScale = el.getScale().toFixed(1);
     if (currentScale == 1) {
       el.setOptions({touchAction: 'manipulation'});

@@ -1645,7 +1645,7 @@ function initPage() {
 
   // Event listener for double click
   //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
-  var elStream = document.querySelectorAll('[id = "wrapperEventVideo"]');
+  var elStream = document.querySelectorAll("[id = 'wrapperEventVideo'], [id = 'videoobj']");
   Array.prototype.forEach.call(elStream, (el) => {
     el.addEventListener('touchstart', doubleTouch);
     el.addEventListener('dblclick', doubleClickOnStream);

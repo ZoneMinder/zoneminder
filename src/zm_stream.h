@@ -153,6 +153,9 @@ class StreamBase {
   uint8_t *temp_img_buffer;     // Used when encoding or sending file data
   size_t temp_img_buffer_size;
 
+  AVCodecContext *mJpegCodecContext;
+  SwsContext     *mJpegSwsContext;
+
  protected:
   bool loadMonitor(int monitor_id);
   bool checkInitialised();
@@ -161,6 +164,7 @@ class StreamBase {
   void checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
   void reserveTempImgBuffer(size_t size);
+  bool initContexts(int p_width, int p_height, unsigned int quality);
 
  public:
   StreamBase():
@@ -196,7 +200,10 @@ class StreamBase {
     frames_to_send(-1),
     got_command(false),
     temp_img_buffer(nullptr),
-    temp_img_buffer_size(0) {
+    temp_img_buffer_size(0),
+    mJpegCodecContext(nullptr),
+    mJpegSwsContext(nullptr)
+  {
     memset(&loc_sock_path, 0, sizeof(loc_sock_path));
     memset(&loc_addr, 0, sizeof(loc_addr));
     memset(&rem_sock_path, 0, sizeof(rem_sock_path));

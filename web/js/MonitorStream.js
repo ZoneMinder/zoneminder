@@ -4,6 +4,7 @@ const streaming = [];
 
 function MonitorStream(monitorData) {
   this.id = monitorData.id;
+  this.name = monitorData.name;
   this.connKey = monitorData.connKey;
   this.url = monitorData.url;
   this.url_to_zms = monitorData.url_to_zms;
@@ -34,6 +35,7 @@ function MonitorStream(monitorData) {
   };
   this.ajaxQueue = null;
   this.type = monitorData.type;
+  this.capturing = monitorData.capturing;
   this.refresh = monitorData.refresh;
 
   this.buttons = {}; // index by name

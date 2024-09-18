@@ -168,7 +168,7 @@ void Monitor::ONVIF::WaitForMessage() {
       for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
         if ((msg->Topic != nullptr) &&
             (msg->Topic->__any.text != nullptr) &&
-            std::strstr(msg->Topic->__any.text, parent->onvif_alarm_txt.c_str()) &&
+            (parent->onvif_alarm_txt.empty() || std::strstr(msg->Topic->__any.text, parent->onvif_alarm_txt.c_str())) &&
             (msg->Message.__any.elts != nullptr) &&
             (msg->Message.__any.elts->next != nullptr) &&
             (msg->Message.__any.elts->next->elts != nullptr) &&
@@ -176,26 +176,29 @@ void Monitor::ONVIF::WaitForMessage() {
             (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
             (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
            ) {
-          Info("Got Motion Alarm!");
-          if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
-            // Event Start
-            Info("Triggered on ONVIF");
-            if (!alarmed) {
-              Info("Triggered Event");
-              alarmed = true;
-              // Why sleep?
-              std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
-            }
-          } else {
+          Info("ONVIF Got Motion Alarm! %s %s", msg->Topic->__any.text, msg->Message.__any.elts->next->elts->atts->next->text);
+          // Apparently simple motion events, the value is boolean, but for people detection can be things like isMotion, isPeople
+          if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "false") == 0) {
             Info("Triggered off ONVIF");
             alarmed = false;
             if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
               parent->Event_Poller_Closes_Event = true;
               Info("Setting ClosesEvent");
             }
+          } else {
+            // Event Start
+            Info("Triggered on ONVIF");
+            if (!alarmed) {
+              Info("Triggered Event");
+              alarmed = true;
+              last_topic = msg->Topic->__any.text;
+              last_value = msg->Message.__any.elts->next->elts->atts->next->text; 
+              // Why sleep?
+              std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
+            }
           }
         } else {
-          Debug(1, "Got a message that we couldn't parse");
+          Debug(1, "ONVIF Got a message that we couldn't parse");
           if ((msg->Topic != nullptr) && (msg->Topic->__any.text != nullptr)) {
             Debug(1, "text was %s", msg->Topic->__any.text);
           }

@@ -316,8 +316,6 @@ Monitor::Monitor() :
   //linked_monitors_string
   n_linked_monitors(0),
   linked_monitors(nullptr),
-  Poll_Trigger_State(false),
-  Event_Poller_Healthy(false),
   Event_Poller_Closes_Event(false),
   RTSP2Web_Manager(nullptr),
   Janus_Manager(nullptr),
@@ -1168,10 +1166,8 @@ bool Monitor::connect() {
 
     //ONVIF and Amcrest Setup
     //For now, only support one event type per camera, so share some state.
-    Poll_Trigger_State = false;
     if (onvif_event_listener) { //
       Debug(1, "Starting ONVIF");
-      Event_Poller_Healthy = false;
       if (onvif_options.find("closes_event") != std::string::npos) { //Option to indicate that ONVIF will send a close event message
         Event_Poller_Closes_Event = true;
       }
@@ -1871,7 +1867,7 @@ bool Monitor::Poll() {
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
   if (use_Amcrest_API) {
-    if (Event_Poller_Healthy) {
+    if (Amcrest_Manager->isHealthy()) {
       Amcrest_Manager->WaitForMessage();
     } else {
       delete Amcrest_Manager;
@@ -1950,17 +1946,18 @@ bool Monitor::Analyse() {
       Event::StringSetMap noteSetMap;
 
 #ifdef WITH_GSOAP
-      if (onvif_event_listener && Event_Poller_Healthy) {
-        if ((onvif and onvif->isAlarmed()) or Poll_Trigger_State) {
+      if (onvif_event_listener) {
+        if ((onvif and onvif->isAlarmed()) or (Amcrest_Manager and Amcrest_Manager->isAlarmed())) {
           score += 9;
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
           noteSet.insert("ONVIF");
+          noteSet.insert(onvif->lastTopic() + '/' + onvif->lastValue());
           noteSetMap[MOTION_CAUSE] = noteSet;
           cause += "ONVIF";
           // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
           if (!Event_Poller_Closes_Event && state == ALARM)
-            Poll_Trigger_State = false;
+            onvif->setAlarmed(false);
         }  // end ONVIF_Trigger
       }  // end if (onvif_event_listener  && Event_Poller_Healthy)
 #endif

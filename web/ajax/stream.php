@@ -71,6 +71,7 @@ case CMD_SEEK :
     1000000*( $_REQUEST['offset']-intval($_REQUEST['offset'])));
   break;
 case CMD_MAXFPS :
+  if (!floatval($_REQUEST['maxfps'])) $_REQUEST['maxfps'] = 0;
   ZM\Debug('Maxfps to '.$_REQUEST['maxfps']);
   # Pack int two 32 bit integers instead of trying to deal with floats
   $msg = pack('lcNN', MSG_CMD, $_REQUEST['command'],

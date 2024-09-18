@@ -960,16 +960,20 @@ function drawProgressBar() {
 
 // Shows current stream progress.
 function updateProgressBar() {
-  if (!(eventData && streamStatus)) {
-    return;
-  } // end if ! eventData && streamStatus
-  let curWidth = (streamStatus.progress / parseFloat(eventData.Length)) * 100;
+  if (vid) {
+    if (!eventData) return;
+    var currentTime = vid.currentTime();
+    var progressDate = new Date(currentTime);
+  } else {
+    if (!(eventData && streamStatus)) return;
+    var currentTime = streamStatus.progress;
+    var progressDate = new Date(eventData.StartDateTime);
+    progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
+  }
+  const progressBox = $j("#progressBox");
+  let curWidth = (currentTime / parseFloat(eventData.Length)) * 100;
   if (curWidth > 100) curWidth = 100;
 
-  const progressDate = new Date(eventData.StartDateTime);
-  progressDate.setTime(progressDate.getTime() + (streamStatus.progress*1000));
-
-  const progressBox = $j("#progressBox");
   progressBox.css('width', curWidth + '%');
   progressBox.attr('title', progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
@@ -1645,7 +1649,7 @@ function initPage() {
 
   // Event listener for double click
   //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
-  var elStream = document.querySelectorAll('[id = "wrapperEventVideo"]');
+  var elStream = document.querySelectorAll("[id = 'wrapperEventVideo'], [id = 'videoobj']");
   Array.prototype.forEach.call(elStream, (el) => {
     el.addEventListener('touchstart', doubleTouch);
     el.addEventListener('dblclick', doubleClickOnStream);
@@ -1709,6 +1713,12 @@ function initPage() {
       updateScale = false;
     }
   }, 500);
+
+  if (vid) {
+    setInterval(() => {
+      updateProgressBar();
+    }, streamTimeout);
+  }
 } // end initPage
 
 function addOrCreateTag(tagValue) {

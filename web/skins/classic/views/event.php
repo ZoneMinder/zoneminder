@@ -237,7 +237,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
           <label for="scale"><?php echo translate('Scale') ?></label>
           <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
         </div>
-        <div id="streamQualityControl">
+          <div id="streamQualityControl"<?php echo $video_tag ? ' style="display: none;"':'' ?>>
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
           <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
         </div>

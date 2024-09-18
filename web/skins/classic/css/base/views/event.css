@@ -43,6 +43,7 @@
   border-radius: 0;
   z-index: 11;
   font-size: 8px;
+  overflow:hidden;
 }
 
 #alarmCues span.alarmCue {

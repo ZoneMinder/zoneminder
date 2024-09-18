@@ -466,7 +466,7 @@ public static function getStateString($option) {
     if (!property_exists($this, 'Monitor_Status')) {
       $sql = 'SELECT * FROM `Monitor_Status` WHERE `MonitorId`=?';
       $row = $this->{'Monitor_Status'} = dbFetchOne($sql, NULL, array($this->{'Id'}));
-      if (!$row) Warning('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
+      if (!$row) Debug('Unable to load Monitor status record for Id='.$this->{'Id'}.' using '.$sql);
     }
     return $this->{'Monitor_Status'};
   }

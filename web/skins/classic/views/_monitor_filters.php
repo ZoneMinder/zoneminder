@@ -121,7 +121,7 @@ function buildMonitorsFilters() {
 
   $html .= '<span class="term MonitorNameFilter"><label>'.translate('Name').'</label>';
   $html .= '<span class="term-value-wrapper">';
-  $html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="text or regular expression"/></span>';
+  $html .= '<input type="text" name="MonitorName" value="'.(isset($_SESSION['MonitorName'])?validHtmlStr($_SESSION['MonitorName']):'').'" placeholder="'.translate('text or regular expression').'"/></span>';
   $html .= '</span>'.PHP_EOL;
 
   $html .= addFilterSelect('Capturing', array('None'=>translate('None'), 'Always'=>translate('Always'), 'OnDemand'=>translate('On Demand')));
@@ -180,7 +180,7 @@ function buildMonitorsFilters() {
 
   $html .= '<span class="term SourceFilter"><label>'.translate('Source').'</label>';
   $html .= '<span class="term-value-wrapper">';
-  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?validHtmlStr($_SESSION['Source']):'').'" placeholder="text or regular expression"/>';
+  $html .= '<input type="text" name="Source" value="'.(isset($_SESSION['Source'])?validHtmlStr($_SESSION['Source']):'').'" placeholder="'.translate('text or regular expression').'"/>';
   $html .= '</span>';
   $html .= '</span>';
 

@@ -27,6 +27,7 @@ var coordinateMouse = {
 var leftBtnStatus = {Down: false, UpAfterDown: false};
 var updateScale = false; //Scale needs to be updated
 var TimerHideShow;
+var observer;
 
 /*
 This is the format of the json object sent by bootstrap-table
@@ -1210,6 +1211,26 @@ function initPage() {
     applyMonitorControllable();
   }
   streamPrepareStart();
+
+  // Creating a ResizeObserver Instance
+  observer = new ResizeObserver((objResizes) => {
+    objResizes.forEach((obj) => {
+      monitorsSetScale(monitorId);
+    });
+  });
+
+  // Registering an observer on an element
+  $j('[id ^= "liveStream"]').each(function() {
+    observer.observe(this);
+  });
+
+  // Event listener for double click
+  //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  var elStream = document.querySelectorAll('[id = "wrapperMonitor"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    el.addEventListener('touchstart', doubleTouch);
+    el.addEventListener('dblclick', doubleClickOnStream);
+  });
 } // initPage
 
 function watchFullscreen() {
@@ -1568,6 +1589,7 @@ function monitorsSetScale(id=null) {
       }
     }
   }
+  setButtonSizeOnStream();
 }
 
 // Kick everything off

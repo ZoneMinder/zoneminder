@@ -322,9 +322,7 @@ Monitor::Monitor() :
   RTSP2Web_Manager(nullptr),
   Janus_Manager(nullptr),
   Amcrest_Manager(nullptr),
-#ifdef WITH_GSOAP
-  soap(nullptr),
-#endif
+  onvif(nullptr),
   red_val(0),
   green_val(0),
   blue_val(0),
@@ -1180,97 +1178,7 @@ bool Monitor::connect() {
       if (use_Amcrest_API) {
         Amcrest_Manager = new AmcrestAPI(this);
       } else { //using GSOAP
-#ifdef WITH_GSOAP
-        tev__PullMessages.Timeout = "PT20S";
-        tev__PullMessages.MessageLimit = 10;
-        std::string Termination_time = "PT60S";
-        wsnt__Renew.TerminationTime = &Termination_time;
-        soap = soap_new();
-        soap->connect_timeout = 0;
-        soap->recv_timeout = 0;
-        soap->send_timeout = 0;
-        //soap->bind_flags |= SO_REUSEADDR;
-        soap_register_plugin(soap, soap_wsse);
-        if (soap_wsa_compl) {soap_register_plugin(soap, soap_wsa);};
-        proxyEvent = PullPointSubscriptionBindingProxy(soap);
-
-        if (!onvif_url.empty()) {
-          std::string full_url = onvif_url + onvif_events_path;
-          proxyEvent.soap_endpoint = full_url.c_str();
-          set_credentials(soap);
-          const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-          if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  proxyEvent.soap_endpoint, "CreatePullPointSubscriptionRequest") == SOAP_OK)) {
-            Debug(1, "ONVIF Endpoint: %s", proxyEvent.soap_endpoint);
-            int rc = proxyEvent.CreatePullPointSubscription(&request, response);
-
-            if (rc != SOAP_OK) {
-              const char *detail = soap_fault_detail(soap);
-              Error("ONVIF Couldn't create subscription! %d, fault:%s, detail:%s", rc, soap_fault_string(soap), detail ? detail : "null");
-              _wsnt__Unsubscribe wsnt__Unsubscribe;
-              _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-              proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-              soap_destroy(soap);
-              soap_end(soap);
-              soap_free(soap);
-              soap = nullptr;
-            } else {
-              //Empty the stored messages
-              set_credentials(soap);
-              RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap):NULL;
-              if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID,  response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
-                Debug(1, "ONVIF :soap_wsa_request  OK ");
-                if ((proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
-                    (soap->error != SOAP_EOF)
-                   ) { //SOAP_EOF could indicate no messages to pull.
-                  Error("Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  Event_Poller_Healthy = false;
-                } else {
-                  Debug(1, "Good Initial ONVIF Pull%i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                  Event_Poller_Healthy = true;
-                }
-              } else {
-                Error("ONVIF Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                Event_Poller_Healthy = false;
-              }
-
-              // we renew the current subscription .........
-              if (soap_wsa_compl) {
-                set_credentials(soap);
-                RequestMessageID = soap_wsa_rand_uuid(soap);
-                if (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK) {
-                  Debug(1, "ONVIF :soap_wsa_request OK");
-                  if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-                    Error("ONVIF Couldn't do initial Renew ! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                    if (soap->error==12) {//ActionNotSupported
-                      Event_Poller_Healthy = true;
-                    } else {
-                      Event_Poller_Healthy = false;
-                    }
-                  } else {
-                    Debug(1, "Good Initial ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                    Event_Poller_Healthy = true;
-                  }
-                } else {
-                  Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=RenewRequest Error %i %s, %s",
-                        RequestMessageID,
-                        response.SubscriptionReference.Address,
-                        soap->error,
-                        soap_fault_string(soap),
-                        soap_fault_detail(soap));
-                  Event_Poller_Healthy = false;
-                }// end renew
-              }
-            }
-          } else {
-            Error("ONVIF Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=CreatePullPointSubscriptionRequest Error %i %s, %s",
-                  RequestMessageID, proxyEvent.soap_endpoint, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-          }
-        } else {
-          Warning("You must specify the url to the ONVIF endpoint");
-        }
-#else
-        Error("zmc not compiled with GSOAP. ONVIF support not built in!");
-#endif
+        onvif = new ONVIF(this);
       }  // end if Armcrest or GSOAP
     } else {
       Debug(1, "Not Starting ONVIF");
@@ -1385,8 +1293,8 @@ Monitor::~Monitor() {
   }
   if (Amcrest_Manager != nullptr) {
     delete Amcrest_Manager;
-  } else {
   }
+  if (onvif) delete onvif;
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
@@ -1962,92 +1870,22 @@ bool Monitor::Poll() {
   // We want to trigger every 5 seconds or so. so grab the time at the beginning of the loop, and sleep at the end.
   std::chrono::system_clock::time_point loop_start_time = std::chrono::system_clock::now();
 
-  if (Event_Poller_Healthy) {
-    if (use_Amcrest_API) {
+  if (use_Amcrest_API) {
+    if (Event_Poller_Healthy) {
       Amcrest_Manager->WaitForMessage();
     } else {
-#ifdef WITH_GSOAP
-      set_credentials(soap);
-      const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-      if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "PullMessageRequest") == SOAP_OK)) {
-        Debug(1, ":soap_wsa_request OK; starting ONVIF PullMessageRequest ...");
-        int result = proxyEvent.PullMessages(response.SubscriptionReference.Address, NULL, &tev__PullMessages, tev__PullMessagesResponse);
-        if (result != SOAP_OK) {
-          const char *detail = soap_fault_detail(soap);
-          Debug(1, "Result of getting  ONVIF messages= %d soap_fault_string=%s detail=%s",
-                result, soap_fault_string(soap), detail ? detail : "null");
-          if (result != SOAP_EOF) { //Ignore the timeout error
-            Error("Failed to get ONVIF messages! %d %s", result, soap_fault_string(soap));
-            // Event_Poller_Healthy = false;
-          }
-        } else {
-          Debug(1, "ONVIF polling : Got Good Response! %i", result);
-          for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
-            if ((msg->Topic != nullptr) &&
-                (msg->Topic->__any.text != nullptr) &&
-                std::strstr(msg->Topic->__any.text, onvif_alarm_txt.c_str()) &&
-                (msg->Message.__any.elts != nullptr) &&
-                (msg->Message.__any.elts->next != nullptr) &&
-                (msg->Message.__any.elts->next->elts != nullptr) &&
-                (msg->Message.__any.elts->next->elts->atts != nullptr) &&
-                (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
-                (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
-               ) {
-              Info("Got Motion Alarm!");
-              if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "true") == 0) {
-                //Event Start
-                Info("Triggered on ONVIF");
-                if (!Poll_Trigger_State) {
-                  Info("Triggered Event");
-                  Poll_Trigger_State = true;
-                  std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
-                }
-              } else {
-                Info("Triggered off ONVIF");
-                Poll_Trigger_State = false;
-                if (!Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
-                  Event_Poller_Closes_Event = true;
-                  Info("Setting ClosesEvent");
-                }
-              }
-            } else {
-              Debug(1, "Got a message that we couldn't parse");
-            }
-          }  // end foreach msg
-
-          // we renew the current subscription .........
-          if (soap_wsa_compl) {
-            set_credentials(soap);
-            std::string Termination_time = "PT60S";
-            wsnt__Renew.TerminationTime = &Termination_time;
-            RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-            if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "RenewRequest") == SOAP_OK)) {
-              Debug(1, ":soap_wsa_request OK");
-              if (proxyEvent.Renew(response.SubscriptionReference.Address, NULL, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK)  {
-                Error("Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                if (soap->error==12) {//ActionNotSupported
-                  Event_Poller_Healthy = true;
-                } else {
-                  Event_Poller_Healthy = false;
-                }
-              } else {
-                Debug(1, "Good Renew ONVIF Renew %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-                Event_Poller_Healthy = true;
-              }
-            } else {
-              Error("Couldn't set wsa headers RequestMessageID=%s; TO=%s; Request=  RenewRequest .... ! Error %i %s, %s",
-                    RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-              Event_Poller_Healthy = false;
-            } // end renew
-          }
-        }  // end if SOAP OK/NOT OK
-      } else {
-        Error("Couldn't set wsa headers   RequestMessageID= %s ; TO= %s ; Request=  PullMessageRequest .... ! Error %i %s, %s",
-              RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-      }  // end if soap == OK
-#endif
-    }  // end if Amcrest or not
-  }  // end if Healthy
+      delete Amcrest_Manager;
+      Amcrest_Manager = new AmcrestAPI(this);
+    }
+  } else if (onvif) {
+    if (onvif->isHealthy()) {
+      onvif->WaitForMessage();
+    } else {
+      delete onvif;
+      onvif = new ONVIF(this);
+      onvif->start();
+    }
+  }  // end if Amcrest or not
 
   if (RTSP2Web_enabled and RTSP2Web_Manager) {
     Debug(1, "Trying to check RTSP2Web in Poller");
@@ -2113,14 +1951,14 @@ bool Monitor::Analyse() {
 
 #ifdef WITH_GSOAP
       if (onvif_event_listener && Event_Poller_Healthy) {
-        if (Poll_Trigger_State) {
+        if ((onvif and onvif->isAlarmed()) or Poll_Trigger_State) {
           score += 9;
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
-          noteSet.insert("ONVIF2");
+          noteSet.insert("ONVIF");
           noteSetMap[MOTION_CAUSE] = noteSet;
           cause += "ONVIF";
-          //If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
+          // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.
           if (!Event_Poller_Closes_Event && state == ALARM)
             Poll_Trigger_State = false;
         }  // end ONVIF_Trigger
@@ -3597,6 +3435,7 @@ int Monitor::Play() {
   return 1;
 } // end int Monitor::Play()
 
+// Close can be called multiple times, for example before object delete, and then in the destructor.
 int Monitor::Close() {
   Pause();
 
@@ -3605,25 +3444,11 @@ int Monitor::Close() {
     Poller->Stop();
     Debug(1, "Poller stopped");
   }
-#ifdef WITH_GSOAP
-  if (onvif_event_listener && (soap != nullptr)) {
-    Debug(1, "Tearing Down Onvif");
-    _wsnt__Unsubscribe wsnt__Unsubscribe;
-    _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
-    const char *RequestMessageID = soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
-    if ((!soap_wsa_compl) || (soap_wsa_request(soap, RequestMessageID, response.SubscriptionReference.Address, "UnsubscribeRequest") == SOAP_OK)) {
-      proxyEvent.Unsubscribe(response.SubscriptionReference.Address, NULL, &wsnt__Unsubscribe, wsnt__UnsubscribeResponse);
-    } else {
-      Error("Couldn't set wsa headers RequestMessageID=%s; TO= %s; Request=UnsubscribeRequest .... ! Error %i %s, %s",
-            RequestMessageID, response.SubscriptionReference.Address, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-    }
+  if (onvif) {
+    delete onvif;
+    onvif = nullptr;
+  }
 
-    soap_destroy(soap);
-    soap_end(soap);
-    soap_free(soap);
-    soap = nullptr;
-  }  //End ONVIF
-#endif
   // RTSP2Web teardown
   if (RTSP2Web_enabled and (purpose == CAPTURE) and RTSP2Web_Manager) {
     delete RTSP2Web_Manager;
@@ -3732,33 +3557,3 @@ StringVector Monitor::GroupNames() {
   return groupnames;
 } // end Monitor::GroupNames()
 
-#ifdef WITH_GSOAP
-//ONVIF Set Credentials
-void Monitor::set_credentials(struct soap *soap) {
-  soap_wsse_delete_Security(soap);
-  soap_wsse_add_Timestamp(soap, NULL, 10);
-  soap_wsse_add_UsernameTokenDigest(soap, "Auth", onvif_username.c_str(), onvif_password.c_str());
-}
-
-//GSOAP boilerplate
-int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char *faultactor, struct SOAP_ENV__Detail *detail, struct SOAP_ENV__Code *SOAP_ENV__Code, struct SOAP_ENV__Reason *SOAP_ENV__Reason, char *SOAP_ENV__Node, char *SOAP_ENV__Role, struct SOAP_ENV__Detail *SOAP_ENV__Detail) {
-  // populate the fault struct from the operation arguments to print it
-  soap_fault(soap);
-  // SOAP 1.1
-  soap->fault->faultcode = faultcode;
-  soap->fault->faultstring = faultstring;
-  soap->fault->faultactor = faultactor;
-  soap->fault->detail = detail;
-  // SOAP 1.2
-  soap->fault->SOAP_ENV__Code = SOAP_ENV__Code;
-  soap->fault->SOAP_ENV__Reason = SOAP_ENV__Reason;
-  soap->fault->SOAP_ENV__Node = SOAP_ENV__Node;
-  soap->fault->SOAP_ENV__Role = SOAP_ENV__Role;
-  soap->fault->SOAP_ENV__Detail = SOAP_ENV__Detail;
-  // set error
-  soap->error = SOAP_FAULT;
-  // handle or display the fault here with soap_stream_fault(soap, std::cerr);
-  // return HTTP 202 Accepted
-  return soap_send_empty_response(soap, SOAP_OK);
-}
-#endif

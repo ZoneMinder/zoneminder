@@ -237,7 +237,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
           <label for="scale"><?php echo translate('Scale') ?></label>
           <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
         </div>
-        <div id="streamQualityControl">
+          <div id="streamQualityControl"<?php echo $video_tag ? ' style="display: none;"':'' ?>>
           <label for="streamQuality"><?php echo translate('Stream quality') ?></label>
           <?php echo htmlSelect('streamQuality', $streamQuality, $streamQualitySelected, array('data-on-change'=>'changeStreamQuality','id'=>'streamQuality')); ?>
         </div>
@@ -325,11 +325,11 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                       <button id="btn-edit-monitor<?php echo $Event->MonitorId()?>" class="btn btn-edit-monitor" title="<?php echo translate('Edit monitor')?>"><span class="material-icons md-30">edit</span></button>
                     </div>
                   </div>
+                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>">
+                    <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
 ?>
-                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>">
-                    <div id="zoompan" class="zoompan">
                   <video autoplay id="videoobj" class="video-js vjs-default-skin"
                     style="transform: matrix(1, 0, 0, 1, 0, 0);"
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
@@ -345,43 +345,30 @@ if ($video_tag) {
                   <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default/>
                   Your browser does not support the video tag.
                   </video>
-                    </div><!--".zoompan"-->
-                  </div><!--"#videoFeedStream"-->
-                  <div id="progressBar" style="width: 100%;">
-                    <div id="alarmCues" style="width: 100%;"></div>
-                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
-                    <div id="indicator" style="display: none;"></div>
-                  </div><!--progressBar-->
 <?php
 } else {
-?>
-                  <div id="videoFeedStream<?php echo $Event->MonitorId()?>">
-                    <div id="zoompan" class="zoompan">
-<?php
-if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
-  $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
-  outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
-} else {
-  $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
-  if (!canStreamNative()) {
-    echo '<div class="warning">We have detected an inability to stream natively.  Unfortunately we no longer support really ancient browsers.  Trying anyways.</div>';
-  }
-  outputImageStream('evtStream', $streamSrc,
-    ($scale ? reScale($Event->Width(), $scale).'px' : '100%'),
-    ($scale ? reScale($Event->Height(), $scale).'px' : 'auto'),
-    validHtmlStr($Event->Name()));
-} // end if stream method
-?>
-                    </div><!--".zoompan"-->
-                  </div><!--"#videoFeedStream"-->
-                  <div id="progressBar" style="width: 100%;">
-                    <div id="alarmCues" style="width: 100%;"></div>
-                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
-                    <div id="indicator" style="display: none;"></div>
-                  </div><!--progressBar-->
-<?php
+  if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
+    $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
+    outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
+  } else {
+    $streamSrc = $Event->getStreamSrc(array('mode'=>'jpeg', 'frame'=>$fid, 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'replay'=>$replayMode),'&amp;');
+    if (!canStreamNative()) {
+      echo '<div class="warning">We have detected an inability to stream natively.  Unfortunately we no longer support really ancient browsers.  Trying anyways.</div>';
+    }
+    outputImageStream('evtStream', $streamSrc,
+      ($scale ? reScale($Event->Width(), $scale).'px' : '100%'),
+      ($scale ? reScale($Event->Height(), $scale).'px' : 'auto'),
+      validHtmlStr($Event->Name()));
+  } // end if stream method
 } /*end if !DefaultVideo*/
 ?>
+                    </div><!--".zoompan"-->
+                  </div><!--"#videoFeedStream"-->
+                  <div id="progressBar" style="width: 100%;">
+                    <div id="alarmCues" style="width: 100%;"></div>
+                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+                    <div id="indicator" style="display: none;"></div>
+                  </div><!--progressBar-->
                   <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 <?php echo $monitor->ViewWidth().' '.$monitor->ViewHeight() ?>" preserveAspectRatio="none">
 <?php
     foreach (ZM\Zone::find(array('MonitorId'=>$monitor->Id()), array('order'=>'Area DESC')) as $zone) {

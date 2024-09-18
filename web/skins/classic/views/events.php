@@ -74,8 +74,8 @@ if (!$filter->Id()) {
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'StartDateTime', 'op'=> '<=', 'val'=>''));
 }
 
-if (!isset($_COOKIES['zmEventsTable.bs.table.pageList'])) {
-  zm_setcookie('zmEventsTable.bs.table.pageList', ZM_WEB_EVENTS_PER_PAGE);
+if (!isset($_COOKIE['zmEventsTable_bs_table_pageList'])) {
+  zm_setcookie('zmEventsTable_bs_table_pageList', ZM_WEB_EVENTS_PER_PAGE);
 }
 
 parseSort();

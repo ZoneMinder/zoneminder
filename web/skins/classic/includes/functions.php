@@ -19,6 +19,11 @@
 // 
 
 function xhtmlHeaders($file, $title) {
+  xhtmlHeadersStart($file, $title);
+  xhtmlHeadersEnd();
+}
+
+function xhtmlHeadersStart($file, $title) {
   ob_start();
 
   global $css;
@@ -34,54 +39,6 @@ function xhtmlHeaders($file, $title) {
 
   $basename = basename($file, '.php');
 
-  function output_link_if_exists($files, $cache_bust=true) {
-    global $skin;
-    $html = array();
-    foreach ( $files as $file ) {
-      if ( getSkinFile($file) ) {
-        if ( $cache_bust ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
-        } else  {
-        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
-        }
-      }
-    }
-    $html[] = ''; // So we ge a trailing \n
-    return implode(PHP_EOL, $html);
-  }
-  function output_script_if_exists($files, $cache_bust=true) {
-    global $skin;
-    $html = array();
-    foreach ( $files as $file ) {
-      if ( file_exists('skins/'.$skin.'/'.$file) ) {
-        if ( $cache_bust ) {
-          $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
-        } else {
-          $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
-        }
-      } else if ( file_exists($file) ) {
-        if ( $cache_bust ) {
-          $html[] = '<script src="'.cache_bust($file).'"></script>';
-        } else {
-          $html[] = '<script src="'.$file.'"></script>';
-        }
-      }
-    }
-    $html[] = ''; // So we ge a trailing \n
-    return implode(PHP_EOL, $html);
-  }
-  
-  function output_cache_busted_stylesheet_links($files) {
-    $html = array();
-    foreach ( $files as $file ) {
-        $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
-    }
-    if ( ! count($html) ) {
-      ZM\Warning("No files found for $files");
-    }
-    $html[] = ''; // So we ge a trailing \n
-    return implode(PHP_EOL, $html);
-  }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -113,13 +70,6 @@ echo output_cache_busted_stylesheet_links(array(
   'css/bootstrap.min.css',
 ));
 
-echo output_link_if_exists(array(
-  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
-  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
-  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
-  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
-), true);
-
 if ( $basename == 'montage' ) {
   echo output_link_if_exists(array('/assets/gridstack/dist/gridstack.css', '/assets/gridstack/dist/gridstack-extra.css'));
 }
@@ -129,6 +79,10 @@ if ( $basename == 'montage' ) {
   <link rel="stylesheet" href="skins/classic/js/chosen/chosen.min.css" type="text/css"/>
 <?php
 echo output_link_if_exists(array(
+  'js/dateTimePicker/jquery-ui-timepicker-addon.css',
+  'js/jquery-ui-1.13.2/jquery-ui.structure.min.css',
+  'js/bootstrap-table-1.22.3/bootstrap-table.min.css',
+  'js/bootstrap-table-1.22.3/extensions/page-jump-to/bootstrap-table-page-jump-to.min.css',
   'css/base/skin.css',
   'css/base/views/'.$basename.'.css',
 ), true);
@@ -139,8 +93,7 @@ if ( $css != 'base' )
     'css/'.$css.'/views/'.$basename.'.css',
     'css/'.$css.'/jquery-ui-theme.css',
   ));
-?>
-<?php
+
   if ( $basename == 'watch' ) {
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
@@ -160,10 +113,12 @@ if ( $css != 'base' )
   if ($viewCssPhpFile) require_once($viewCssPhpFile);
 ?>
   </style>
-
-</head>
 <?php
   echo ob_get_clean();
+} // end function xhtmlHeadersStart( $file, $title )
+
+function xhtmlHeadersEnd() {
+  echo '</head>';
 } // end function xhtmlHeaders( $file, $title )
 
 // Outputs an opening body tag, and any additional content that should go at the very top, like warnings and error messages.
@@ -203,6 +158,56 @@ function getNavBarHTML() {
   }
 
   return ob_get_clean();
+}
+
+function output_link_if_exists($files, $cache_bust=true) {
+  global $skin;
+  $html = array();
+  foreach ( $files as $file ) {
+    if ( getSkinFile($file) ) {
+      if ( $cache_bust ) {
+        $html[] = '<link rel="stylesheet" href="'.cache_bust('skins/'.$skin.'/'.$file).'" type="text/css"/>';
+      } else  {
+        $html[] = '<link rel="stylesheet" href="skins/'.$skin.'/'.$file.'" type="text/css"/>';
+      }
+    }
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
+function output_script_if_exists($files, $cache_bust=true) {
+  global $skin;
+  $html = array();
+  foreach ( $files as $file ) {
+    if ( file_exists('skins/'.$skin.'/'.$file) ) {
+      if ( $cache_bust ) {
+        $html[] = '<script src="'.cache_bust('skins/'.$skin.'/'.$file).'"></script>';
+      } else {
+        $html[] = '<script src="skins/'.$skin.'/'.$file.'"></script>';
+      }
+    } else if ( file_exists($file) ) {
+      if ( $cache_bust ) {
+        $html[] = '<script src="'.cache_bust($file).'"></script>';
+      } else {
+        $html[] = '<script src="'.$file.'"></script>';
+      }
+    }
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
+}
+
+function output_cache_busted_stylesheet_links($files) {
+  $html = array();
+  foreach ( $files as $file ) {
+    $html[] = '<link rel="stylesheet" href="'.cache_bust($file).'" type="text/css"/>';
+  }
+  if ( ! count($html) ) {
+    ZM\Warning("No files found for $files");
+  }
+  $html[] = ''; // So we ge a trailing \n
+  return implode(PHP_EOL, $html);
 }
 
 //

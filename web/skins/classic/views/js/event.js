@@ -343,6 +343,7 @@ function changeScale() {
     alarmCue.html(renderAlarmCues(videoFeed));
   }
 
+  setButtonSizeOnStream();
   // After a resize, check if we still have room to display the event stats table
   onStatsResize(newWidth);
 

@@ -203,7 +203,8 @@ function MonitorStream(monitorData) {
           console.log('No src on img?!', img);
           return;
         }
-        const newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+        let newSrc = oldSrc.replace(/scale=\d+/i, 'scale='+newscale);
+        newSrc = newSrc.replace(/auth=\w+/i, 'auth='+auth_hash);
         if (newSrc != oldSrc) {
           this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
           // We know that only the first zms will get the command because the
@@ -242,6 +243,7 @@ function MonitorStream(monitorData) {
       }
       attachVideo(parseInt(this.id), this.janusPin);
       this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+      this.started = true;
       return;
     }
     if (this.RTSP2WebEnabled) {
@@ -288,6 +290,7 @@ function MonitorStream(monitorData) {
           startRTSP2WebPlay(videoEl, webrtcUrl.href);
         }
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+        this.started = true;
         return;
       } else {
         console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");

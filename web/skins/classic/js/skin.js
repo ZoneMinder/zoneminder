@@ -1250,4 +1250,28 @@ var doubleTouch = function(e) {
   }
 };
 
+function setButtonSizeOnStream() {
+  const elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  Array.prototype.forEach.call(elStream, (el) => {
+    //It is necessary to calculate the size for each Stream, because on the Montage page they can be of different sizes.
+    const w = el.offsetWidth;
+    // #videoFeedStream - on Event page
+    const monitorId = (stringToNumber(el.id)) ? stringToNumber(el.id) : stringToNumber(el.closest('[id ^= "videoFeedStream"]').id);
+    const buttonsBlock = document.getElementById('button_zoom' + monitorId);
+    if (!buttonsBlock) return;
+    const buttons = buttonsBlock.querySelectorAll(`
+      button.btn.btn-zoom-out span,
+      button.btn.btn-zoom-in span,
+      button.btn.btn-view-watch span,
+      button.btn.btn-fullscreen span,
+      button.btn.btn-edit-monitor span`
+    );
+    Array.prototype.forEach.call(buttons, (btn) => {
+      const btnWeight = (w/10 < 100) ? w/10 : 100;
+      btn.style.fontSize = btnWeight + "px";
+      btn.style.margin = -btnWeight/20 + "px";
+    });
+  });
+}
+
 loadFontFaceObserver();

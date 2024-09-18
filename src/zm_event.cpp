@@ -59,7 +59,7 @@ Event::Event(
   alarm_frames(0),
   alarm_frame_written(false),
   tot_score(0),
-  max_score(-1),
+  max_score(0),
   //path(""),
   //snapshit_file(),
   snapshot_file_written(false),

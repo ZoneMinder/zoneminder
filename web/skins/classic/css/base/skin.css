@@ -776,12 +776,7 @@ ul.nav.nav-pills.flex-column {
 
 #mfbpanel {
   width: calc(100% - 25px);
-  float: left;  
-}
-
-.sticky #mfbpanel {
-  max-height: 40vh; /* For mobile devices */
-  overflow: auto;
+  float: left;
 }
 
 .chosen {
@@ -1123,6 +1118,19 @@ html::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scroll
   }
 }
 
+@media screen and (max-height:600px) {
+  .sticky #mfbpanel {
+    max-height: 40vh; /* For mobile devices */
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sticky #toolbar {
+    max-height: 20vh; /* For mobile devices */
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;

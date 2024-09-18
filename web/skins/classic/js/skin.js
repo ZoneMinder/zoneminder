@@ -40,6 +40,7 @@ var icons = {
 
 var panZoomEnabled = true; //Add it to settings in the future
 var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
+var shifted = ctrled = alted = false;
 
 function checkSize() {
   if ( 0 ) {
@@ -1202,20 +1203,45 @@ function loadFontFaceObserver() {
   });
 }
 
+function thisClickOnStreamObject(clickObj) {
+  if (clickObj.id) {
+    if (clickObj.id.indexOf('evtStream') != -1 || clickObj.id.indexOf('liveStream') != -1) {
+      return true;
+    } else if (clickObj.id.indexOf('monitorStatus') != -1) {
+      return document.getElementById('monitor'+stringToNumber(clickObj.id));
+      //return clickObj;
+    } else if (clickObj.id.indexOf('videoobj') != -1) {
+      return document.getElementById('eventVideo');
+    } else return false;
+  } else return false;
+}
+
+var doubleTouchExecute = function(event, touchEvent) {
+//  if (touchEvent.target.id &&
+//    (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1 || touchEvent.target.id.indexOf('monitorStatus') != -1)) {
+  if (thisClickOnStreamObject(touchEvent.target)) {
+    doubleClickOnStream(event, touchEvent);
+  } else if (thisClickOnTimeline(touchEvent.target)) {
+    doubleTouchOnTimeline(event, touchEvent);
+  }
+};
+
 var doubleClickOnStream = function(event, touchEvent) {
   let target = null;
   if (event.target) {// Click NOT on touch screen, use THIS
     //Process only double clicks directly on the image, excluding clicks,
     //for example, on zoom buttons and other elements located in the image area.
-    if (event.target.id &&
-      (event.target.id.indexOf('evtStream') != -1 || event.target.id.indexOf('liveStream') != -1)) {
+    const fullScreenObject = thisClickOnStreamObject(event.target);
+    if (fullScreenObject === true) {
       target = this;
+    } else if (fullScreenObject !== false) {
+      target = fullScreenObject;
     }
   } else {// Click on touch screen, use EVENT
-    if (touchEvent.target.id &&
-      (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)) {
-      target = event;
-    }
+    //if (touchEvent.target.id &&
+    //  (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)) {
+    target = event;
+    //}
   }
 
   if (target) {
@@ -1240,7 +1266,8 @@ var doubleTouch = function(e) {
     } else if (e.timeStamp <= expiredTap) {
       // remove the default of this event ( Zoom )
       e.preventDefault();
-      doubleClickOnStream(this, e);
+      //doubleClickOnStream(this, e);
+      doubleTouchExecute(this, e);
       // then reset the variable for other "double Touches" event
       expiredTap = null;
     } else {
@@ -1273,5 +1300,11 @@ function setButtonSizeOnStream() {
     });
   });
 }
+
+$j(document).on('keyup.global keydown.global', function(e) {
+  shifted = e.shiftKey ? e.shiftKey : e.shift;
+  ctrled = e.ctrlKey;
+  alted = e.altKey;
+});
 
 loadFontFaceObserver();

@@ -253,7 +253,9 @@ var zmPanZoom = {
     }
 
     if (this.panZoom[id].getScale().toFixed(1) > 1) {
-      this.panZoom[id].setOptions({handleStartEvent: (event) => {event.preventDefault()}});
+      this.panZoom[id].setOptions({handleStartEvent: (event) => {
+        event.preventDefault();
+      }});
     } else {
       this.panZoom[id].setOptions({handleStartEvent: (event) => {}});
     }

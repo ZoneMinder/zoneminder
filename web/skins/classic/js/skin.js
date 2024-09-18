@@ -1240,7 +1240,7 @@ var doubleClickOnStream = function(event, touchEvent) {
   } else {// Click on touch screen, use EVENT
     //if (touchEvent.target.id &&
     //  (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1)) {
-      target = event;
+    target = event;
     //}
   }
 
@@ -1266,7 +1266,7 @@ var doubleTouch = function(e) {
     } else if (e.timeStamp <= expiredTap) {
       // remove the default of this event ( Zoom )
       e.preventDefault();
-//      doubleClickOnStream(this, e);
+      //doubleClickOnStream(this, e);
       doubleTouchExecute(this, e);
       // then reset the variable for other "double Touches" event
       expiredTap = null;

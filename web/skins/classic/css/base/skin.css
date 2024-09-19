@@ -1123,11 +1123,25 @@ html::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scroll
   }
 }
 
+@media screen and (max-height:600px) {
+  .sticky #mfbpanel {
+    max-height: 40vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sticky #toolbar {
+    max-height: 20vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
 /* +++ Control button block in the Stream image*/
 .block-button-center {
   position: absolute;
-  left: 35%;
-  right: 35%;
+  left: 50px;
+  right: 50px;
   top: 2px;
   z-index: 10;
 }
@@ -1161,6 +1175,7 @@ button.btn.btn-zoom-in {
 }
 
 button.btn.btn-view-watch,
+button.btn.btn-view-event,
 button.btn.btn-edit-monitor,
 button.btn.btn-fullscreen {
   padding: 0;
@@ -1176,6 +1191,8 @@ button.btn.btn-fullscreen {
 button.btn.btn-zoom-out:focus,
 button.btn.btn-zoom-in:focus,
 button.btn.btn-view-watch:focus,
+button.btn.btn-view-event:focus,
+button.btn.btn-fullscreen:focus,
 button.btn.btn-edit-monitor:focus {
   outline: 0;
   box-shadow: none;
@@ -1183,8 +1200,10 @@ button.btn.btn-edit-monitor:focus {
 
 button.btn.btn-zoom-out:hover,
 button.btn.btn-zoom-in:hover,
-button.btn.btn-edit-monitor:hover,
-button.btn.btn-view-watch:hover {
+button.btn.btn-view-watch:hover,
+button.btn.btn-view-event:hover,
+button.btn.btn-fullscreen:hover,
+button.btn.btn-edit-monitor:hover {
   background-color: darkgrey;
 }
 
@@ -1208,4 +1227,9 @@ button.btn.btn-view-watch:hover {
     visibility: hidden;
 }
 /* --- This block should always be located at the end! */
+
+/*Левй бар, не реализованное....*/
+.btn-open-left-bar {
+  float: left;
+}
 

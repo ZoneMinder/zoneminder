@@ -1053,7 +1053,7 @@ void EventStream::runStream() {
           // but what if we are skipping frames? We need the distance from the last frame sent
           // Also, what about reverse? needs to be absolute value
 
-          delta = abs(next_frame_data->offset - last_frame_data->offset);
+          delta = abs(next_frame_data->offset - last_frame_data->offset) /frame_mod;
           Debug(2, "New delta: %fs from last frame offset %fs - next_frame_offset %fs",
                 FPSeconds(delta).count(),
                 FPSeconds(last_frame_data->offset).count(),
@@ -1075,11 +1075,12 @@ void EventStream::runStream() {
           }
           TimePoint::duration elapsed = std::chrono::steady_clock::now() - start;
           delta -= std::chrono::duration_cast<Microseconds>(elapsed); // sending frames takes time, so remove it from the sleep time
+          if (delta<Microseconds(0)) delta = Microseconds(0);
 
-          Debug(2, "New delta: %fs from last frame offset %fs - next_frame_offset %fs - elapsed %fs",
+          Debug(2, "New delta: %fs from next frame offset %fs - last_frame_offset %fs - elapsed %fs",
                 FPSeconds(delta).count(),
-                FPSeconds(last_frame_data->offset).count(),
                 FPSeconds(next_frame_data->offset).count(),
+                FPSeconds(last_frame_data->offset).count(),
                 FPSeconds(elapsed).count()
                );
         }  // end if not at end of event

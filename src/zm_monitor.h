@@ -326,6 +326,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     Monitor *parent;
     bool alarmed;
     bool healthy;
+    std::string last_topic;
+    std::string last_value;
 #ifdef WITH_GSOAP
   struct soap *soap = nullptr;
   _tev__CreatePullPointSubscription request;
@@ -343,12 +345,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     void start();
     void WaitForMessage();
     bool isAlarmed() const { return alarmed; };
+    void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
     bool isHealthy() const { return healthy; };
+    const std::string &lastTopic() const { return last_topic; };
+    const std::string &lastValue() const { return last_value; };
   };
 
   class AmcrestAPI {
    protected:
     Monitor *parent;
+    bool alarmed;
+    bool healthy;
     std::string amcrest_response;
     CURLM *curl_multi = nullptr;
     CURL *Amcrest_handle = nullptr;
@@ -359,8 +366,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     ~AmcrestAPI();
     int API_Connect();
     void WaitForMessage();
-    bool Amcrest_Alarmed;
-    int start_Amcrest();
+    int start();
+    bool isAlarmed() const { return alarmed; };
+    bool isHealthy() const { return healthy; };
   };
 
   class RTSP2WebManager {
@@ -631,8 +639,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string diag_path_delta;
 
   //ONVIF
-  bool Poll_Trigger_State;
-  bool Event_Poller_Healthy;
   bool Event_Poller_Closes_Event;
 
   RTSP2WebManager *RTSP2Web_Manager;
@@ -718,8 +724,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return onvif_event_listener;
   }
   int check_janus(); //returns 1 for healthy, 0 for success but missing stream, negative for error.
-  bool EventPollerHealthy() {
-    return Event_Poller_Healthy;
+  bool EventPollerHealthy() const {
+    if (onvif) {
+      return onvif->isHealthy();
+    } else if (Amcrest_Manager) {
+      return Amcrest_Manager->isHealthy();
+    }
+    return false;
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
   inline bool Ready() const {

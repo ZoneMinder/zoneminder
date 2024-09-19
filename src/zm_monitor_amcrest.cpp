@@ -21,9 +21,11 @@
 
 Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
   parent(parent_),
-  Amcrest_Alarmed(false) {
+  alarmed(false),
+  healthy(false)
+{
   curl_multi = curl_multi_init();
-  start_Amcrest();
+  start();
 }
 
 Monitor::AmcrestAPI::~AmcrestAPI() {
@@ -34,7 +36,7 @@ Monitor::AmcrestAPI::~AmcrestAPI() {
   if (curl_multi != nullptr) curl_multi_cleanup(curl_multi);
 }
 
-int Monitor::AmcrestAPI::start_Amcrest() {
+int Monitor::AmcrestAPI::start() {
   // init the transfer and start it in multi-handle
   int running_handles;
   long response_code;
@@ -76,7 +78,7 @@ int Monitor::AmcrestAPI::start_Amcrest() {
   }
 
   if ((curl_error == CURLM_OK) && (running_handles > 0)) {
-    parent->Event_Poller_Healthy = true;
+    healthy = true;
     Debug(1, "AMCREST Healthy");
   } else {
     Warning("AMCREST Response: %s", amcrest_response.c_str());
@@ -94,7 +96,7 @@ void Monitor::AmcrestAPI::WaitForMessage() {
   int transfers;
   curl_multi_perform(curl_multi, &open_handles);
   if (open_handles == 0) {
-    start_Amcrest();  // http transfer ended, need to restart.
+    start();  // http transfer ended, need to restart.
   } else {
     // wait for max 5 seconds for event.
     curl_multi_wait(curl_multi, nullptr, 0, 5000, &transfers);
@@ -104,13 +106,13 @@ void Monitor::AmcrestAPI::WaitForMessage() {
       if (amcrest_response.find("action=Start") != std::string::npos) {
         // Event Start
         Debug(1, "AMCREST Triggered on ONVIF");
-        if (!parent->Poll_Trigger_State) {
+        if (!alarmed) {
           Debug(1, "AMCREST Triggered Event");
-          parent->Poll_Trigger_State = true;
+          alarmed = true;
         }
       } else if (amcrest_response.find("action=Stop") != std::string::npos) {
         Debug(1, "AMCREST Triggered off ONVIF");
-        parent->Poll_Trigger_State = false;
+        alarmed = false;
         if (!parent->Event_Poller_Closes_Event) {  // If we get a close event, then we know to expect them.
           parent->Event_Poller_Closes_Event = true;
           Debug(1, "AMCREST Setting ClosesEvent");

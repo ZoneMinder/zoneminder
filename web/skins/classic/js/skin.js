@@ -1227,6 +1227,7 @@ var doubleTouchExecute = function(event, touchEvent) {
 };
 
 var doubleClickOnStream = function(event, touchEvent) {
+  if (shifted || ctrled || alted) return;
   let target = null;
   if (event.target) {// Click NOT on touch screen, use THIS
     //Process only double clicks directly on the image, excluding clicks,

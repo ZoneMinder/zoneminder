@@ -387,7 +387,7 @@ function getSelectedMultiple(objSel) {
 function setSelected(objSel, value) {
   if (!value) return;
   var newValue =[]; 
-  if (typeof value === 'string')  {
+  if (typeof value === 'string') {
     newValue.push(value);
   } else {
     newValue = value;
@@ -3063,7 +3063,7 @@ function setTimelineMarker(time) {
 }
 
 function delTimelineMarker() {
-  timeline.removeCustomTime(idTimelineCustomTimeMarker)
+  timeline.removeCustomTime(idTimelineCustomTimeMarker);
   customTimeSpecified = false;
 }
 
@@ -3236,8 +3236,8 @@ function processingEventsForMonitor(data, params) {
         });
       }
     } else {
-      //url = new URL(stream.src);
-      url = new URL(streamSrc[events[index].Id]);
+      const baseURL = (streamSrc[events[index].Id].indexOf('http') == -1) ? ZM_HOME_URL : '';
+      url = new URL(streamSrc[events[index].Id], baseURL);
       url.searchParams.set('frame', frameCalculationByTime(currentDateTime, events[index].StartDateTime, events[index].EndDateTime, events[index].Frames));
       url.searchParams.set('rate', parseFloat(speeds[speedIndex]) * 100);
       /* ПОПЫТКА работать через команды, пока не работает... */

@@ -153,7 +153,6 @@ getBodyTopHTML();
           data-buttons-class="btn btn-normal"
           data-show-jump-to="true"
           data-show-refresh="true"
-          data-columns-hidden="['Archived','Emailed','Monitor','Id','Name'.'Frames','AlarmFrames','TotScore','AvgScore']"
           data-check-on-init="true"
           data-mobile-responsive="true"
           data-min-width="562"

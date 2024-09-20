@@ -690,8 +690,8 @@ function streamNext(action) {
   // How about we just reload the page?
   //
   if (vid==null) streamReq({command: CMD_QUIT});
-  location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
-  return;
+  //location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+  //return;
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
     // on and staying with videojs
     CurEventDefVideoPath = NextEventDefVideoPath;

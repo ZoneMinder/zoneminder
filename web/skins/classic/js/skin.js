@@ -1246,11 +1246,10 @@ var doubleTouchOnTimeline = function(event, touchEvent) {
 };
 
 var doubleClickOnStream = function(event, touchEvent) {
-//console.log("+++shifted==>", shifted);
-//console.log("+++ctrled==>", ctrled);
-//console.log("+++alted==>", alted);
-//  if (shifted || ctrled || alted) return;
-
+  //console.log("+++shifted==>", shifted);
+  //console.log("+++ctrled==>", ctrled);
+  //console.log("+++alted==>", alted);
+  if (shifted || ctrled || alted) return;
   let target = null;
 //console.log("touchEvent=====++>", touchEvent);
 //console.log("event=====++>", event);

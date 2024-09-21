@@ -1,3 +1,4 @@
+"use strict";
 var eventStats = $j('#eventStats');
 var eventVideo = $j('#eventVideo');
 var wrapperEventVideo = $j('#wrapperEventVideo');
@@ -172,7 +173,7 @@ function setAlarmCues(data) {
     Error('No data.frames in setAlarmCues for event ' + eventData.Id);
   } else {
     cueFrames = data.frames;
-    alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
+    const alarmSpans = renderAlarmCues(vid ? $j("#videoobj") : $j("#evtStream"));//use videojs width or zms width
     $j('#alarmCues').html(alarmSpans);
   }
 }
@@ -180,7 +181,6 @@ function setAlarmCues(data) {
 function renderAlarmCues(containerEl) {
   let html = '';
 
-  cues_div = document.getElementById('alarmCues');
   const event_length = (!cueFrames.length || (eventData.Length > cueFrames[cueFrames.length - 1].Delta)) ? eventData.Length : cueFrames[cueFrames.length - 1].Delta;
   const span_count = 10;
   const span_seconds = parseFloat(event_length / span_count);
@@ -210,7 +210,7 @@ function renderAlarmCues(containerEl) {
 
   for (let i=0; i < num_cueFrames; i++) {
     skip = 0;
-    frame = cueFrames[i];
+    const frame = cueFrames[i];
 
     if ((frame.Type == 'Alarm') && (alarmed == 0)) { //From nothing to alarm.  End nothing and start alarm.
       alarmed = 1;
@@ -257,7 +257,7 @@ function renderAlarmCues(containerEl) {
         pix += Math.round(pixSkew);
         pixSkew = pixSkew - Math.round(pixSkew);
       }
-      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px; height: '+frame.Score+'px;"></span>';
       left = parseInt((frame.Delta / event_length) * containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type == 'Alarm') && (alarmed == 1) && (i + 1 >= cueFrames.length) ) { //event ends on an alarm
@@ -267,7 +267,7 @@ function renderAlarmCues(containerEl) {
       pix = Math.round(cueRatio * spanTime);
       if (pixSkew >= .5 || pixSkew <= -.5) pix += Math.round(pixSkew);
 
-      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px;"></span>';
+      alarmHtml += '<span class="alarmCue" style="left: '+left+'px; width: ' + pix + 'px; height: '+frame.Score+'px;"></span>';
     }
   }
   return html + alarmHtml;
@@ -330,7 +330,7 @@ function changeScale() {
     currentScale = currentScale;
   }
 
-  //console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
+  console.log(`Real dimensions: ${eventData.Width} X ${eventData.Height}, Scale: ${currentScale}, deltaScale: ${deltaScale()}, New dimensions: ${newWidth} X ${newHeight}`);
 
   eventViewer.width(newWidth);
   eventViewer.height(newHeight);
@@ -393,15 +393,14 @@ function changeStreamQuality() {
 }
 
 function changeReplayMode() {
-  var replayMode = $j('#replayMode').val();
-
+  const replayMode = $j('#replayMode').val();
   setCookie('replayMode', replayMode);
-
+  // FIXME don't need to refresh, can just tell zms
   refreshWindow();
 }
 
 function changeRate() {
-  var rate = parseInt($j('select[name="rate"]').val());
+  const rate = parseInt($j('select[name="rate"]').val());
 
   if (!rate) {
     pauseClicked();
@@ -470,11 +469,11 @@ function getCmdResponse(respObj, respText) {
   }
 
   if (streamStatus.paused == true) {
-    streamPause( );
+    streamPause();
   } else {
     $j('select[name="rate"]').val(streamStatus.rate*100);
     setCookie('zmEventRate', streamStatus.rate*100);
-    streamPlay( );
+    streamPlay();
   }
   $j('#progressValue').html(secsToTime(parseInt(streamStatus.progress)));
   //$j('#zoomValue').html(streamStatus.zoom);
@@ -486,7 +485,7 @@ function getCmdResponse(respObj, respText) {
   //}
 
   if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != currentScale + deltaScale())) {
-    console.log("Stream not scaled, re-applying", currentScale + deltaScale(), streamStatus.scale);
+    console.log("Stream not scaled, re-applying, current: ", currentScale + deltaScale(), " stream: ", streamStatus.scale);
     streamScale(currentScale);
   }
 
@@ -494,7 +493,7 @@ function getCmdResponse(respObj, respText) {
 
   if (streamStatus.auth) {
     auth_hash = streamStatus.auth;
-  } // end if haev a new auth hash
+  } // end if have a new auth hash
 
   streamCmdTimer = setTimeout(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
 } // end function getCmdResponse( respObj, respText )
@@ -528,7 +527,7 @@ function playClicked( ) {
   const rate_select = $j('select[name="rate"]');
 
   if (!rate_select.val()) {
-    $j('select[name="rate"]').val(100);
+    rate_select.val(100);
   }
   if (vid) {
     if (vid.paused()) {
@@ -680,18 +679,20 @@ function streamNext(action) {
   $j(".vjsMessage").remove();//This shouldn't happen
   if (nextEventId == 0) { //handles deleting last event.
     pauseClicked();
-    var hideContainer = $j('#eventVideo');
-    var hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
+    const hideContainer = $j('#eventVideo');
+    const hideStream = $j(vid ? "#videoobj" : "#evtStream").height() + (vid ? 0 :$j("#progressBar").height());
     hideContainer.prepend('<p class="vjsMessage" style="height: ' + hideStream + 'px; line-height: ' + hideStream + 'px;">No more events</p>');
     if (vid == null) zmsBroke = true;
     return;
   }
   // We used to try to dynamically update all the bits in the page, which is really complex
   // How about we just reload the page?
-  //
-  if (vid==null) streamReq({command: CMD_QUIT});
-  location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
-  return;
+  // Ic0n 2024-09-20: because it is annoying and now that we have fullscreen mode, we need to just update instead of reloading
+  if (1) {
+    if (vid==null) streamReq({command: CMD_QUIT});
+    location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
+    return;
+  }
   if (vid && ( NextEventDefVideoPath.indexOf('view_video') > 0 )) {
     // on and staying with videojs
     CurEventDefVideoPath = NextEventDefVideoPath;
@@ -701,6 +702,7 @@ function streamNext(action) {
     (vid && NextEventDefVideoPath.indexOf("view_video") < 0) ||
     NextEventDefVideoPath.indexOf("view_video") > 0
   ) {//reload zms, leaving vjs, moving to vjs
+    // Need to be able to replace video.js with zms or vice versa as required instead of reloading
     location.replace(thisUrl + '?view=event&eid=' + nextEventId + filterQuery + sortQuery);
   } else {
     streamReq({command: CMD_NEXT});
@@ -831,6 +833,7 @@ function getEventResponse(respObj, respText) {
   eventData = respObj.event;
   getStat();
   currEventId = eventData.Id;
+  $j('#eventTitle').html('Event '+currEventId); // FIXME should translate Event
 
   // Refresh the status of the archive buttons
   archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));

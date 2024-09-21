@@ -855,13 +855,14 @@ function on_scroll() {
 function isOutOfViewport(elem) {
   // Get element's bounding
   const bounding = elem.getBoundingClientRect();
+  const headerHeight = (parseInt(ZM_WEB_NAVBAR_STICKY) == 1) ? document.getElementById('navbar-container').offsetHeight + document.getElementById('header').offsetHeight : 0;
   //console.log( 'top: ' + bounding.top + ' left: ' + bounding.left + ' bottom: '+bounding.bottom + ' right: '+bounding.right);
 
   // Check if it's out of the viewport on each side
   const out = {};
-  out.top = (bounding.top < 0) || ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.top = (bounding.top < headerHeight) || ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
   out.left = (bounding.left < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
-  out.bottom = (bounding.bottom > (window.innerHeight || document.documentElement.clientHeight) ) || (bounding.bottom < 0);
+  out.bottom = (bounding.bottom > (window.innerHeight-headerHeight || document.documentElement.clientHeight-headerHeight) ) || (bounding.bottom < 0);
   out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
   out.any = out.top || out.left || out.bottom || out.right;
   out.all = (out.top && out.bottom ) || (out.left && out.right);

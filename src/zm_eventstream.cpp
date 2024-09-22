@@ -290,11 +290,10 @@ bool EventStream::loadEventData(uint64_t event_id) {
   } // end foreach db row
 
   if (event_data->end_time.time_since_epoch() != Seconds(0)) {
-    Microseconds delta = (last_frame && (last_frame->delta > Microseconds(0)))
-                         ? last_frame->delta
-                         : Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
+    Microseconds delta;
     if (!last_frame) {
       // There were no frames in db
+      delta = Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
       auto frame = event_data->frames.emplace_back(
                      1,
                      event_data->start_time,
@@ -306,28 +305,38 @@ bool EventStream::loadEventData(uint64_t event_id) {
       last_id ++;
       last_timestamp = event_data->start_time;
       event_data->frame_count ++;
+    } else {
+      delta = std::chrono::duration_cast<Microseconds>((event_data->end_time - last_timestamp)/(event_data->frame_count-last_id));
+      Debug(1, "Setting delta from endtime %f - %f / %d - %d", 
+              FPSeconds(event_data->end_time.time_since_epoch()).count(),
+              FPSeconds(last_timestamp.time_since_epoch()).count(),
+              event_data->frame_count,
+              last_id
+              );
     }
 
-    while (event_data->end_time > last_timestamp and !zm_terminate) {
-      last_timestamp += delta;
-      last_id ++;
+    if (delta > Microseconds(0)) {
+      while (event_data->end_time > last_timestamp and !zm_terminate) {
+        last_timestamp += delta;
+        last_id ++;
 
-      auto frame = event_data->frames.emplace_back(
-                     last_id,
-                     last_timestamp,
-                     last_frame->offset + delta,
-                     delta,
-                     false
-                   );
-      last_frame = &frame;
-      Debug(3, "Trailing Frame %d timestamp (%f s), offset (%f s), delta(%f s), in_db(%d)",
-            last_id,
-            FPSeconds(frame.timestamp.time_since_epoch()).count(),
-            FPSeconds(frame.offset).count(),
-            FPSeconds(frame.delta).count(),
-            frame.in_db);
-      event_data->frame_count ++;
-    } // end while
+        auto frame = event_data->frames.emplace_back(
+                       last_id,
+                       last_timestamp,
+                       last_frame->offset + delta,
+                       delta,
+                       false
+                     );
+        last_frame = &frame;
+        Debug(3, "Trailing Frame %d timestamp (%f s), offset (%f s), delta(%f s), in_db(%d)",
+              last_id,
+              FPSeconds(frame.timestamp.time_since_epoch()).count(),
+              FPSeconds(frame.offset).count(),
+              FPSeconds(frame.delta).count(),
+              frame.in_db);
+        event_data->frame_count ++;
+      } // end while
+    }
   } // end if have endtime
 
   // Incomplete events might not have any frame data
@@ -339,11 +348,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
   }
   mysql_free_result(result);
 
-  if (!event_data->video_file.empty() || (monitor->GetOptVideoWriter() > 0)) {
-    if (event_data->video_file.empty()) {
-      event_data->video_file = stringtf("%" PRIu64 "-%s", event_data->event_id, "video.mp4");
-    }
-
+  if (!event_data->video_file.empty()) {
     std::string filepath = event_data->path + "/" + event_data->video_file;
     Debug(1, "Loading video file from %s", filepath.c_str());
     delete ffmpeg_input;

@@ -311,7 +311,7 @@ function initPage() {
   table.bootstrapTable({icons: icons});
 
   // Hide these columns on first run when no cookie is saved
-  if (!getCookie('zmEventsTable.bs.table.columns')) {
+  if (!getCookie('zmEventsTable.bs.table.hiddenColumns')) {
     // table.bootstrapTable('hideColumn', 'Archived');
     table.bootstrapTable('hideColumn', 'Emailed');
   }

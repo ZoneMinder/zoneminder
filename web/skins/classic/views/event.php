@@ -226,7 +226,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
 ?>
       </div>
       
-      <h2><?php echo translate('Event').' '.$Event->Id() ?></h2>
+      <h2 id="eventTitle"><?php echo translate('Event').' '.$Event->Id() ?></h2>
       
       <div class="d-flex flex-row">
         <div id="replayControl">

@@ -837,6 +837,7 @@ function initPage() {
 
   document.addEventListener('scrollend', on_scroll); // for non-sticky
   document.getElementById('content').addEventListener('scrollend', on_scroll);
+  window.addEventListener('resize', on_scroll);
 } // end initPage
 
 function on_scroll() {

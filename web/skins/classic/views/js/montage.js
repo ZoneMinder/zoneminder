@@ -860,12 +860,16 @@ function isOutOfViewport(elem) {
 
   // Check if it's out of the viewport on each side
   const out = {};
-  out.top = (bounding.top < headerHeight) || ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.topUp = (bounding.top < headerHeight);
+  out.topDown = ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.top = (out.topUp || out.topDown);
   out.left = (bounding.left < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
-  out.bottom = (bounding.bottom > (window.innerHeight-headerHeight || document.documentElement.clientHeight-headerHeight) ) || (bounding.bottom < headerHeight);
+  out.bottomUp = (bounding.bottom < headerHeight);
+  out.bottomDown = (bounding.bottom > (window.innerHeight-headerHeight || document.documentElement.clientHeight-headerHeight) );
+  out.bottom = (out.bottomUp || out.bottomDown);
   out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
   out.any = out.top || out.left || out.bottom || out.right;
-  out.all = (out.top && out.bottom ) || (out.left && out.right);
+  out.all = (out.topUp && out.bottomUp ) || (out.topDown && out.bottomDown ) || (out.left && out.right);
   //console.log( 'top: ' + out.top + ' left: ' + out.left + ' bottom: '+out.bottom + ' right: '+out.right);
 
   return out;

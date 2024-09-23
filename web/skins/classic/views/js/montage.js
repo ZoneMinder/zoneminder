@@ -941,8 +941,8 @@ console.log("*********monitors[i].kill() " + monitors[i].id + " in LIVE mode");
         for (let i = 0, length = monitors.length; i < length; i++) {
           const monitor = monitors[i];
           const isOut = isOutOfViewport(monitor.getElement());
-          if ((!isOut.all) && !monitor.started && monitorDisplayedOnPage(monitors[i].id)) {
-            console.log("*********monitors[i].start() " + i + " in LIVE mode");
+          if ((!isOut.all) && !monitor.started && monitorDisplayedOnPage(monitor.id)) {
+            console.log("*********monitor.start() " + i + " in LIVE mode");
             monitor.start();
           }
         }
@@ -994,6 +994,7 @@ console.log("*********startAllEvents in RECORDING mode");
 
   document.addEventListener('scrollend', on_scroll); // for non-sticky
   document.getElementById('content').addEventListener('scrollend', on_scroll);
+  window.addEventListener('resize', on_scroll);
 } // end initPage
 
 function initPageLive() {
@@ -1097,6 +1098,7 @@ function initPageLive() {
     observer.observe(this);
   });
 
+  $j('#monitors').removeClass('hidden-shift');
   //You can immediately call startMonitors() here, but in this case the height of the monitor will initially be minimal, and then become normal, but this is not pretty.
   //Check if the monitor arrangement is complete
   waitingMonitorsPlaced('startMonitors'); //???Не уверен что требуется, если это используем в "changeRatioForAll"...
@@ -1324,7 +1326,8 @@ function on_scroll() {
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
     } else if (monitor.started) {
-      monitor.stop();
+      //monitor.stop(); //НЕ РАБОТАЕТ...
+      monitor.kill();
     }
   } // end foreach monitor
 } // end function on_scsroll
@@ -1337,12 +1340,16 @@ function isOutOfViewport(elem) {
 
   // Check if it's out of the viewport on each side
   const out = {};
-  out.top = (bounding.top < headerHeight) || ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.topUp = (bounding.top < headerHeight);
+  out.topDown = ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.top = (out.topUp || out.topDown);
   out.left = (bounding.left < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
-  out.bottom = (bounding.bottom > (window.innerHeight-headerHeight || document.documentElement.clientHeight-headerHeight) ) || (bounding.bottom < 0);
+  out.bottomUp = (bounding.bottom < headerHeight);
+  out.bottomDown = (bounding.bottom > (window.innerHeight-headerHeight || document.documentElement.clientHeight-headerHeight) );
+  out.bottom = (out.bottomUp || out.bottomDown);
   out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
   out.any = out.top || out.left || out.bottom || out.right;
-  out.all = (out.top && out.bottom ) || (out.left && out.right);
+  out.all = (out.topUp && out.bottomUp ) || (out.topDown && out.bottomDown ) || (out.left && out.right);
   //console.log( 'top: ' + out.top + ' left: ' + out.left + ' bottom: '+out.bottom + ' right: '+out.right);
 
   return out;
@@ -1504,15 +1511,14 @@ function changeStreamQuality() {
 function getStream(id) {
   if (!id) return null;
   const liveStream = document.getElementById('liveStream'+id);
-  const evtStream = document.getElementById('evtStream'+id);
-  return (liveStream) ? liveStream : evtStream;
+  return (liveStream) ? liveStream : document.getElementById('evtStream'+id);
 }
 
 function monitorsEventSetScale(id=null) {
   const streamQuality = $j('#streamQuality').val();
   if (id) {
     const stream = getStream(id);
-    const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
+    const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
     if (stream) {
       if (stream.src) {
         const url = new URL(stream.src);
@@ -1548,7 +1554,7 @@ function monitorsEventSetScale(id=null) {
     // For all monitors
     for ( let i = 0, length = monitors.length; i < length; i++ ) {
       const id = monitors[i].id;
-      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
+      const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
       if (!monitorDisplayedOnPage(id)) continue;
       const stream = getStream(id);
       if (stream) {
@@ -1594,7 +1600,7 @@ function monitorsSetScale(id=null) {
       });
     }
     const el = getStream(id);
-    const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
+    const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
     ////console.log(`++monitorsSetScale id=>${id}, el.clientWidth=>${el.clientWidth}, el.clientHeight=>${el.clientHeight}, panZoomScale=>${panZoomScale}`);
     ////console.log("el", el);
     currentMonitor.setScale(0, el.clientWidth * panZoomScale + 'px', el.clientHeight * panZoomScale + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
@@ -1603,7 +1609,7 @@ function monitorsSetScale(id=null) {
       const id = monitors[i].id;
       if (!monitorDisplayedOnPage(id)) continue;
       const el = getStream(id);
-      const panZoomScale = panZoomEnabled ? zmPanZoom.panZoom[id].getScale() : 1;
+      const panZoomScale = (panZoomEnabled && zmPanZoom.panZoom[id] ) ? zmPanZoom.panZoom[id].getScale() : 1;
       monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg: false, streamQuality: $j('#streamQuality').val()});
     }
   }
@@ -1770,6 +1776,9 @@ function setTriggerChangedMonitors(id=null) {
   }
 }
 
+/*
+* Используется при первоначальной инициализации страницы
+*/
 function checkEndMonitorsPlaced() {
   //return true; //ВАЖНО ВРЕМЕННО !!!
   for (let i = 0, length = monitors.length; i < length; i++) {
@@ -1787,10 +1796,16 @@ function checkEndMonitorsPlaced() {
         movableMonitorData[id].stop = true; //Данный монитор не отображается на экране
         continue;
       }
-      if (objWidth == movableMonitorData[id].width && objWidth !=0 ) {
-        movableMonitorData[id].stop = true; //The size does not change, which means it’s already in its place!
+      if (obj.tagName == 'img') {
+        if (obj.complete) { //ВАЖНО! Попробуем так... Не работает для тега <video>
+          movableMonitorData[id].stop = true; //The size does not change, which means it’s already in its place!
+        }
       } else {
-        movableMonitorData[id].width = objWidth;
+        if (objWidth == movableMonitorData[id].width && objWidth !=0 ) {
+          movableMonitorData[id].stop = true; //The size does not change, which means it’s already in its place!
+        } else {
+          movableMonitorData[id].width = objWidth;
+        }
       }
     }
   }

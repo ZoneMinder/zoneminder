@@ -533,8 +533,6 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
                                  now_sec, static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
                                  escapedString.c_str(), file, line);
       dbQueue.push(std::move(sql_string));
-    } else {
-      puts("Db is closed");
     }
   }  // end if level <= mDatabaseLevel
 

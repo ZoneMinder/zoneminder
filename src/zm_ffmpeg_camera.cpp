@@ -248,7 +248,6 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       lastPTS = mLastVideoPTS;
     } else {
       Debug(1, "Have packet which isn't for video or audio stream.");
-      return 0;
     }
   }
 

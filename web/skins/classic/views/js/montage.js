@@ -368,12 +368,12 @@ function setRatioForMonitor(objStream, id=null) {
     ratio = (value == 'auto') ? averageMonitorsRatio : partsRatio[0]/partsRatio[1];
   }
 
-  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio + 'px') /* landscape */ : (objStream.clientWidth * ratio + 'px');
+  const height = (currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio);
   if (!height) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
-    objStream.style['height'] = height;
-    objStream.parentNode.style['height'] = height;
+    objStream.style['height'] = height + 'px';
+    objStream.parentNode.style['height'] = height + 'px';
   }
 }
 
@@ -837,6 +837,7 @@ function initPage() {
 
   document.addEventListener('scrollend', on_scroll); // for non-sticky
   document.getElementById('content').addEventListener('scrollend', on_scroll);
+  window.addEventListener('resize', on_scroll);
 } // end initPage
 
 function on_scroll() {
@@ -855,16 +856,21 @@ function on_scroll() {
 function isOutOfViewport(elem) {
   // Get element's bounding
   const bounding = elem.getBoundingClientRect();
+  const headerHeight = (parseInt(ZM_WEB_NAVBAR_STICKY) == 1) ? document.getElementById('navbar-container').offsetHeight + document.getElementById('header').offsetHeight : 0;
   //console.log( 'top: ' + bounding.top + ' left: ' + bounding.left + ' bottom: '+bounding.bottom + ' right: '+bounding.right);
 
   // Check if it's out of the viewport on each side
   const out = {};
-  out.top = (bounding.top < 0) || ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.topUp = (bounding.top < headerHeight);
+  out.topDown = ( bounding.top > (window.innerHeight || document.documentElement.clientHeight) );
+  out.top = (out.topUp || out.topDown);
   out.left = (bounding.left < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
-  out.bottom = (bounding.bottom > (window.innerHeight || document.documentElement.clientHeight) ) || (bounding.bottom < 0);
+  out.bottomUp = (bounding.bottom < headerHeight);
+  out.bottomDown = (bounding.bottom > (window.innerHeight-headerHeight || document.documentElement.clientHeight-headerHeight) );
+  out.bottom = (out.bottomUp || out.bottomDown);
   out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
   out.any = out.top || out.left || out.bottom || out.right;
-  out.all = (out.top && out.bottom ) || (out.left && out.right);
+  out.all = (out.topUp && out.bottomUp ) || (out.topDown && out.bottomDown ) || (out.left && out.right);
   //console.log( 'top: ' + out.top + ' left: ' + out.left + ' bottom: '+out.bottom + ' right: '+out.right);
 
   return out;

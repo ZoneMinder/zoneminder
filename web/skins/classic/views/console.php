@@ -201,9 +201,7 @@ echo $navbar ?>
           <i class="material-icons">add_circle</i>
           <span class="text">&nbsp;<?php echo translate('AddNewMonitor') ?></span>
         </button>
-        <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor"
-        <?php echo $canCreateMonitors ? '' : ' disabled="disabled"' ?>
-        style="display:none;">
+        <button type="button" name="cloneBtn" data-on-click-this="cloneMonitor" disabled="disabled">
           <i class="material-icons">content_copy</i>
   <!--content_copy used instead of file_copy as there is a bug in material-icons -->
           <span class="text">&nbsp;<?php echo translate('CloneMonitor') ?></span>

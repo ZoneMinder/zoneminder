@@ -148,135 +148,6 @@ function changeStreamQuality() {
   monitorsSetScale(monitorId);
 }
 
-function getStreamCmdResponse(respObj, respText) {
-  watchdogOk('stream');
-  streamCmdTimer = clearTimeout(streamCmdTimer);
-  if (respObj.result == 'Ok') {
-    // The get status command can get backed up, in which case we won't be able to get the semaphore and will exit.
-    if (respObj.status) {
-      const streamStatus = respObj.status;
-      if ($j('#viewingFPSValue').text() != streamStatus.fps) {
-        $j('#viewingFPSValue').text(streamStatus.fps);
-      }
-      if ($j('#captureFPSValue').text() != streamStatus.capturefps) {
-        $j('#captureFPSValue').text(streamStatus.capturefps);
-      }
-      if ($j('#analysisFPSValue').text() != streamStatus.analysisfps) {
-        $j('#analysisFPSValue').text(streamStatus.analysisfps);
-      }
-
-      setAlarmState(streamStatus.state);
-
-      $j('#levelValue').text(streamStatus.level);
-      var newClass = 'ok';
-      if (streamStatus.level > 95) {
-        newClass = 'alarm';
-      } else if (streamStatus.level > 80) {
-        newClass = 'alert';
-      }
-      $j('#levelValue').removeClass();
-      $j('#levelValue').addClass(newClass);
-
-      var delayString = secsToTime(streamStatus.delay);
-
-      if (streamStatus.paused == true) {
-        $j('#modeValue').text('Paused');
-        $j('#rate').addClass('hidden');
-        $j('#delayValue').text(delayString);
-        $j('#delay').removeClass('hidden');
-        $j('#level').removeClass('hidden');
-        streamCmdPause(false);
-      } else if (streamStatus.delayed == true) {
-        $j('#modeValue').text('Replay');
-        $j('#rateValue').text(streamStatus.rate);
-        $j('#rate').removeClass('hidden');
-        $j('#delayValue').text(delayString);
-        $j('#delay').removeClass('hidden');
-        $j('#level').removeClass('hidden');
-        if (streamStatus.rate == 1) {
-          streamCmdPlay(false);
-        } else if (streamStatus.rate > 0) {
-          if (streamStatus.rate < 1) {
-            streamCmdSlowFwd(false);
-          } else {
-            streamCmdFastFwd(false);
-          }
-        } else {
-          if (streamStatus.rate > -1) {
-            streamCmdSlowRev(false);
-          } else {
-            streamCmdFastRev(false);
-          }
-        } // rate
-      } else {
-        $j('#modeValue').text('Live');
-        $j('#rate').addClass('hidden');
-        $j('#delay').addClass('hidden');
-        $j('#level').addClass('hidden');
-        streamCmdPlay(false);
-      } // end if paused or delayed
-
-      $j('#zoomValue').text(streamStatus.zoom);
-      if (streamStatus.zoom == '1.0') {
-        setButtonState('zoomOutBtn', 'unavail');
-      } else {
-        setButtonState('zoomOutBtn', 'inactive');
-      }
-
-      if (canEdit.Monitors) {
-        if (streamStatus.enabled) {
-          enableAlmBtn.addClass('disabled');
-          enableAlmBtn.prop('title', disableAlarmsStr);
-          if (streamStatus.forced) {
-            forceAlmBtn.addClass('disabled');
-            forceAlmBtn.prop('title', cancelForcedAlarmStr);
-          } else {
-            forceAlmBtn.removeClass('disabled');
-            forceAlmBtn.prop('title', forceAlarmStr);
-          }
-          forceAlmBtn.prop('disabled', false);
-        } else {
-          enableAlmBtn.removeClass('disabled');
-          enableAlmBtn.prop('title', enableAlarmsStr);
-          forceAlmBtn.prop('disabled', true);
-        }
-        enableAlmBtn.prop('disabled', false);
-      } // end if canEdit.Monitors
-
-      if (streamStatus.auth) {
-        auth_hash = streamStatus.auth;
-        // Try to reload the image stream.
-        var streamImg = $j('#liveStream'+monitorId);
-        if (streamImg) {
-          const oldSrc = streamImg.attr('src');
-          if (oldSrc) {
-            const newSrc = oldSrc.replace(/auth=\w+/i, 'auth='+streamStatus.auth);
-            if (oldSrc != newSrc) {
-              streamImg.attr('src', ''); // Required or chrome doesn't stop the stream
-              streamImg.attr('src', newSrc);
-              table.bootstrapTable('refresh');
-            }
-          }
-        }
-      } // end if have a new auth hash
-    } // end if respObj.status
-  } else {
-    console.log("Not ok");
-    checkStreamForErrors('getStreamCmdResponse', respObj);//log them
-    setTimeout(fetchImage, 1000, $j('#imageFeed img')[0]);
-  }
-
-  var streamCmdTimeout = statusRefreshTimeout;
-  if (alarmState == STATE_ALARM || alarmState == STATE_ALERT) {
-    streamCmdTimeout = streamCmdTimeout/5;
-  }
-  streamCmdTimer = setTimeout(streamCmdQuery, streamCmdTimeout);
-}
-
-function streamCmdQuery() {
-  streamCmdReq({command: CMD_QUERY});
-}
-
 function onPause() {
   setButtonState('pauseBtn', 'active');
   setButtonState('playBtn', 'inactive');
@@ -502,9 +373,9 @@ function cmdCancelForcedAlarm() {
 
 function cmdForce() {
   if (forceAlmBtn.hasClass('disabled')) {
-    cmdCancelForcedAlarm();
-  } else {
     cmdForceAlarm();
+  } else {
+    cmdCancelForcedAlarm();
   }
 }
 
@@ -751,31 +622,6 @@ function zoomOutClick(event) {
   } else {
     streamCmdZoomOut();
   }
-}
-
-var watchdogInactive = {
-  'stream': false,
-  'status': false
-};
-
-var watchdogFunctions = {
-  'stream': streamCmdQuery,
-  'status': statusCmdQuery,
-};
-
-//Make sure the various refreshes are still taking effect
-function watchdogCheck(type) {
-  if (watchdogInactive[type]) {
-    console.log("Detected streamWatch of type: " + type + " stopped, restarting");
-    watchdogFunctions[type]();
-    watchdogInactive[type] = false;
-  } else {
-    watchdogInactive[type] = true;
-  }
-}
-
-function watchdogOk(type) {
-  watchdogInactive[type] = false;
 }
 
 function reloadWebSite() {
@@ -1170,6 +1016,8 @@ function initPage() {
     setInterval(function() {
       if (idle >= ZM_WEB_VIEWING_TIMEOUT) {
         streamCmdPause(true);
+        const cycle_was = cycle;
+        cyclePause();
         let ayswModal = $j('#AYSWModal');
         if (!ayswModal.length) {
           $j.getJSON('?request=modal&modal=areyoustillwatching')
@@ -1177,6 +1025,7 @@ function initPage() {
                 ayswModal = insertModalHtml('AYSWModal', data.html);
                 $j('#AYSWYesBtn').on('click', function() {
                   streamCmdPlay(true);
+                  if (cycle_was) cycleStart();
                   idle = 0;
                 });
                 ayswModal.modal('show');

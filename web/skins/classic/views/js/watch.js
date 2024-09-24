@@ -163,7 +163,7 @@ function onPause() {
 function streamCmdPause(action) {
   onPause();
   if (action) {
-    monitorStream.streamCommand(CMD_PAUSE);
+    monitorStream.pause();
   }
 }
 
@@ -198,7 +198,7 @@ function streamCmdPlay(action) {
   if (action) {
     if (monitorStream.started) {
       //Stream was on pause
-      monitorStream.streamCommand(CMD_PLAY);
+      monitorStream.play();
     } else {
       //Stream has been stopped
       monitorStream.start();

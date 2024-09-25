@@ -3252,7 +3252,7 @@ function processingEventsForMonitor(data, params) {
         });
       }
     } else {
-      const baseURL = (streamSrc[events[index].Id].indexOf('http') == -1) ? ZM_HOME_URL : '';
+      const baseURL = (streamSrc[events[index].Id].indexOf('http') == -1) ? ZM_HOME_URL : undefined;
       url = new URL(streamSrc[events[index].Id], baseURL);
       url.searchParams.set('frame', frameCalculationByTime(currentDateTime, events[index].StartDateTime, events[index].EndDateTime, events[index].Frames));
       url.searchParams.set('rate', parseFloat(speeds[speedIndex]) * 100);

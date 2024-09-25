@@ -1001,7 +1001,7 @@ function initPage() {
   bindButton('#cyclePrevBtn', 'click', null, cyclePrev);
   bindButton('#cycleToggle', 'click', null, cycleToggle);
   bindButton('#cyclePeriod', 'change', null, cyclePeriodChange);
-  if (monitorData.length && cycle) {
+  if (monitorData.length > 1 && cycle) {
     cycleStart();
   } else {
     cyclePause();
@@ -1081,7 +1081,6 @@ function initPage() {
   setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        const img = document.getElementById('liveStream'+item);
         changedMonitors.splice(object.length - 1 - index, 1);
         monitorsSetScale(item);
       });

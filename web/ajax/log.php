@@ -84,7 +84,7 @@ function queryRequest() {
   $columns = array('TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
 
   // The names of columns shown in the log view that are NOT dB columns in the database
-  $col_alt = array('DateTime', 'Server');
+  $col_alt = array('DateTime'=>'FROM_UNIXTIME(TimeKey)', 'Server'=>'(SELECT Name FROM Servers WHERE Servers.Id=ServerId)');
 
   $sort = 'TimeKey';
   if (isset($_REQUEST['sort'])) {
@@ -116,13 +116,17 @@ function queryRequest() {
   $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
   if (count($advsearch)) {
     foreach ($advsearch as $col=>$text) {
-      if (!in_array($col, array_merge($columns, $col_alt))) {
+      if (!in_array($col, array_merge($columns, array_keys($col_alt)))) {
         ZM\Error("'$col' is not a searchable column name");
         continue;
       }
       // Don't use wildcards on advanced search
       //$text = '%' .$text. '%';
-      array_push($likes, $col.' LIKE ?');
+      if (isset($col_alt[$col])) {
+        array_push($likes, $col_alt[$col].' LIKE ?');
+      } else {
+        array_push($likes, $col.' LIKE ?');
+      }
       array_push($query['values'], $text);
     }
     $wherevalues = $query['values'];

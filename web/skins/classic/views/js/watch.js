@@ -1084,8 +1084,9 @@ function initPage() {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
         changedMonitors.splice(object.length - 1 - index, 1);
         // When changing monitor, this may fire after we have replace the monitor html
-        if (document.getElementById('monitor'+item))
+        if (document.getElementById('monitor'+item)) {
           monitorsSetScale(item);
+        }
       });
     }
   }, 100);

@@ -1319,6 +1319,8 @@ function panZoomEventPanzoomzoom(event) {
 }
 
 function on_scroll() {
+  //For now, use only for live viewing.
+  if (montageMode == 'inRecording') return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
 

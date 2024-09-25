@@ -50,7 +50,7 @@ function MonitorStream(monitorData) {
   };
 
   this.img_onerror = function() {
-    console.log('Image stream has been stoppd! stopping streamCmd');
+    console.log('Image stream has been stopped! stopping streamCmd');
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);
   };
   this.img_onload = function() {
@@ -375,10 +375,21 @@ function MonitorStream(monitorData) {
   };
 
   this.pause = function() {
-    this.streamCommand(CMD_PAUSE);
+    if (this.element.src) {
+      this.streamCommand(CMD_PAUSE);
+    } else {
+      this.element.pause();
+      this.statusCmdTimer = clearInterval(this.statusCmdTimer);
+    }
   };
+
   this.play = function() {
-    this.streamCommand(CMD_PLAY);
+    if (this.element.src) {
+      this.streamCommand(CMD_PLAY);
+    } else {
+      this.element.play();
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+    }
   };
 
   this.eventHandler = function(event) {
@@ -681,7 +692,6 @@ function MonitorStream(monitorData) {
   this.getStatusCmdResponse=function(respObj, respText) {
     //watchdogOk('status');
     if (respObj.result == 'Ok') {
-      const monitorStatus = respObj.monitor.Status;
       const captureFPSValue = $j('#captureFPSValue'+this.id);
       const analysisFPSValue = $j('#analysisFPSValue'+this.id);
       const viewingFPSValue = $j('#viewingFPSValue'+this.id);
@@ -720,42 +730,45 @@ function MonitorStream(monitorData) {
       }
 
       if (canEdit.Monitors) {
-        if (monitorStatus.enabled) {
-          if ('enableAlarmButton' in this.buttons) {
+        if ('enableAlarmButton' in this.buttons) {
+          if (monitor.Analysing == 'None') {
+            // Not doing analysis, so enable/disable button should be grey
+
             if (!this.buttons.enableAlarmButton.hasClass('disabled')) {
               this.buttons.enableAlarmButton.addClass('disabled');
               this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
             }
-          }
-          if ('forceAlarmButton' in this.buttons) {
-            if (monitorStatus.forced) {
-              if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
-                this.buttons.forceAlarmButton.addClass('disabled');
-                this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
-              }
-            } else {
-              if (this.buttons.forceAlarmButton.hasClass('disabled')) {
-                this.buttons.forceAlarmButton.removeClass('disabled');
-                this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
-              }
-            }
-            this.buttons.forceAlarmButton.prop('disabled', false);
-          }
-        } else {
-          if ('enableAlarmButton' in this.buttons) {
+          } else {
             this.buttons.enableAlarmButton.removeClass('disabled');
             this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);
-          }
-          if ('forceAlarmButton' in this.buttons) {
-            this.buttons.forceAlarmButton.prop('disabled', true);
-          }
-        }
-        if ('enableAlarmButton' in this.buttons) {
+          } // end if doing analysis
           this.buttons.enableAlarmButton.prop('disabled', false);
+        } // end if have enableAlarmButton
+
+        if ('forceAlarmButton' in this.buttons) {
+          if (monitor.Status == STATE_ALARM || monitor.Status == STATE_ALERT) {
+            // Ic0n: My thought here is that the non-disabled state should be for killing an alarm
+            // and the disabled state should be to force an alarm
+            if (this.buttons.forceAlarmButton.hasClass('disabled')) {
+              this.buttons.forceAlarmButton.removeClass('disabled');
+              this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+            }
+          } else {
+            if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
+              // Looks disabled
+              this.buttons.forceAlarmButton.addClass('disabled');
+              this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+            }
+          }
+          this.buttons.forceAlarmButton.prop('disabled', false);
+        } else {
+          console.log("No forceAlarmButton");
         }
+      } else {
+        console.log("Can't edit");
       } // end if canEdit.Monitors
 
-      this.setAlarmState(monitorStatus);
+      this.setAlarmState(monitor.Status);
 
       if (respObj.auth_hash) {
         if (auth_hash != respObj.auth_hash) {
@@ -807,7 +820,7 @@ function MonitorStream(monitorData) {
 
   this.alarmCommand = function(command) {
     if (this.ajaxQueue) {
-      console.log('Aborting in progress ajax for alarm');
+      console.log('Aborting in progress ajax for alarm', this.ajaxQueue);
       // Doing this for responsiveness, but we could be aborting something important. Need smarter logic
       this.ajaxQueue.abort();
     }

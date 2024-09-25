@@ -796,7 +796,7 @@ function streamPrepareStart(monitor=null) {
 
       // Update table links each time after new data is loaded
       table.on('post-body.bs.table', function(data) {
-        var thumb_ndx = $j('#eventList tr th').filter(function() {
+        const thumb_ndx = $j('#eventList tr th').filter(function() {
           return $j(this).text().trim() == 'Thumbnail';
         }).index();
         table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
@@ -840,11 +840,7 @@ function handleMouseLeave(event) {
 }
 
 function streamStart(monitor = null) {
-  if (monitor) {
-    monitorStream = new MonitorStream(monitor);
-  } else {
-    monitorStream = new MonitorStream(monitorData[monIdx]);
-  }
+  monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
   monitorStream.setBottomElement(document.getElementById('dvrControls'));
   // Start the fps and status updates. give a random delay so that we don't assault the server
   //monitorStream.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
@@ -874,15 +870,17 @@ function streamStart(monitor = null) {
 }
 
 function streamReStart(oldId, newId) {
-  document.getElementById('monitor').classList.add('hidden-shift');
-  const el = document.querySelector('.imageFeed');
-  const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
+  const monitor_div = document.getElementById('monitor');
+  monitor_div.classList.add('hidden-shift');
+
   currentMonitor = monitorData.find((o) => {
     return parseInt(o["id"]) === newId;
   });
   const url = new URL(document.location.href);
   monitorId = newId;
   filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
+
+  const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
   document.querySelector('title').textContent = newMonitorName;
   url.searchParams.set('mid', monitorId);
   history.pushState(null, "", url);
@@ -891,11 +889,13 @@ function streamReStart(oldId, newId) {
   if (monitorStream) {
     monitorStream.kill();
   }
+
+  const el = document.querySelector('.imageFeed');
   el.removeEventListener('mouseenter', handleMouseEnter);
   el.removeEventListener('mouseleave', handleMouseLeave);
 
   //Change main monitor block
-  document.getElementById('monitor').innerHTML = currentMonitor.streamHTML;
+  monitor_div.innerHTML = currentMonitor.streamHTML;
 
   //Change active element of the navigation menu
   document.getElementById('nav-item-cycle'+oldId).querySelector('a').classList.remove("active");
@@ -1042,6 +1042,7 @@ function initPage() {
   setInterval(() => {
     //Updating Scale. When quickly scrolling the mouse wheel or quickly pressing Zoom In/Out, you should not set Scale very often.
     if (updateScale) {
+      console.log('set scale for ', monitorId);
       monitorsSetScale(monitorId);
       updateScale = false;
     }
@@ -1060,7 +1061,7 @@ function initPage() {
   if (currentMonitor) {
     applyMonitorControllable();
   }
-  streamPrepareStart();
+  streamPrepareStart(currentMonitor);
 
   // Creating a ResizeObserver Instance
   observer = new ResizeObserver((objResizes) => {
@@ -1082,7 +1083,9 @@ function initPage() {
     if (changedMonitors.length > 0) {
       changedMonitors.slice().reverse().forEach(function(item, index, object) {
         changedMonitors.splice(object.length - 1 - index, 1);
-        monitorsSetScale(item);
+        // When changing monitor, this may fire after we have replace the monitor html
+        if (document.getElementById('monitor'+item))
+          monitorsSetScale(item);
       });
     }
   }, 100);
@@ -1147,6 +1150,7 @@ function cycleStop(target) {
   cyclePause();
 }
 
+// FIXME this runs within the interval handler and can take >50ms which will cause chrome to complain.
 function cycleNext() {
   monIdx ++;
   if (monIdx >= monitorData.length) {
@@ -1156,18 +1160,12 @@ function cycleNext() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
-  monitorStream.kill();
 
   // +++ Start next monitor
-  let oldId;
-  if (monIdx == 0) {
-    oldId = monitorData[monitorData.length-1].id;
-  } else {
-    oldId = monitorData[monIdx-1].id;
-  }
+  const oldId = monitorData[(monIdx == 0) ? monitorData.length-1 : monIdx-1].id;
   const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
-  cycleStart();
+  if (cycle) cycleStart();
   // --- Start next monitor
   //window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
@@ -1181,19 +1179,12 @@ function cyclePrev() {
     console.log('No monitorData for ' + monIdx);
   }
   clearInterval(intervalId);
-  //monitorStream.stop();
-  monitorStream.kill();
 
   // +++ Start previous monitor
-  let oldId;
-  if (monIdx == monitorData.length - 1) {
-    oldId = monitorData[0].id;
-  } else {
-    oldId = monitorData[monIdx+1].id;
-  }
+  const oldId = monitorData[(monIdx == monitorData.length - 1)? 0 : monIdx+1].id;
   const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
-  cycleStart();
+  if (cycle) cycleStart();
   // --- Start previous monitors
   //window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
@@ -1375,21 +1366,23 @@ function monitorsSetScale(id=null) {
       overrideHW = true;
     }
 
+    const monitor_div = document.getElementById('monitor'+id);
+    if (!monitor_div) console.log("No monitor div for ", id);
     if (resize) {
       if (scale == '0') {
-        document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
+        monitor_div.style.width = 'max-content'; //Required when switching from resize=false to resize=true
       }
-      document.getElementById('monitor'+id).style.maxWidth = maxWidth;
+      monitor_div.style.maxWidth = maxWidth;
       if (!landscape) { //PORTRAIT
-        document.getElementById('monitor'+id).style.width = 'max-content';
+        monitor_div.style.width = 'max-content';
         document.getElementById('liveStream'+id).style.height = height;
       }
     } else {
       document.getElementById('liveStream'+id).style.height = '';
-      document.getElementById('monitor'+id).style.width = width;
-      document.getElementById('monitor'+id).style.maxWidth = '';
+      monitor_div.style.width = width;
+      monitor_div.style.maxWidth = '';
       if (scale == 'fit_to_width') {
-        document.getElementById('monitor'+id).style.width = '';
+        monitor_div.style.width = '';
       } else if (scale == '100') {
         document.getElementById('liveStream'+id).style.width = width;
       }
@@ -1398,10 +1391,10 @@ function monitorsSetScale(id=null) {
     curentMonitor.setScale(defScale, width, height, {resizeImg: resize, scaleImg: panZoomScale, streamQuality: $j('#streamQuality').val()});
     if (overrideHW) {
       if (!landscape) { //PORTRAIT
-        document.getElementById('monitor'+id).style.width = 'max-content';
+        monitor_div.style.width = 'max-content';
       } else {
         document.getElementById('liveStream'+id).style.height = 'auto';
-        document.getElementById('monitor'+id).style.width = 'auto';
+        monitor_div.style.width = 'auto';
       }
     }
   } else {
@@ -1437,20 +1430,20 @@ function monitorsSetScale(id=null) {
       }
 
       if (resize) {
-        document.getElementById('monitor'+id).style.width = 'max-content'; //Required when switching from resize=false to resize=true
+        monitor_div.style.width = 'max-content'; //Required when switching from resize=false to resize=true
       }
       //monitors[i].setScale(0, parseInt(el.clientWidth * panZoomScale) + 'px', parseInt(el.clientHeight * panZoomScale) + 'px', {resizeImg:true, scaleImg:panZoomScale});
       monitors[i].setScale(0, width, height, {resizeImg: resize, scaleImg: panZoomScale});
       if (!resize) {
         document.getElementById('liveStream'+id).style.height = '';
         if (scale == 'fit_to_width') {
-          document.getElementById('monitor'+id).style.width = '';
+          monitor_div.style.width = '';
         } else if (scale == '100') {
-          document.getElementById('monitor'+id).style.width = 'max-content';
+          monitor_div.style.width = 'max-content';
           document.getElementById('liveStream'+id).style.width = width;
         }
       }
-    }
+    } // end foreach monitor
   }
   setButtonSizeOnStream();
 }
@@ -1469,7 +1462,7 @@ document.onvisibilitychange = () => {
     }, 15*1000);
   } else {
     //Start monitor when show page
-    if (monitorStream && !monitorStream.started) {
+    if (monitorStream && !monitorStream.started && (idle<ZM_WEB_VIEWING_TIMEOUT)) {
       monitorStream.start();
     }
   }

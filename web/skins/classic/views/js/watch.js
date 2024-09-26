@@ -10,7 +10,6 @@ var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms]
 var idle = 0;
 var monitorStream = false; /* Stream is not started */
 var currentMonitor;
-var changedMonitors = [];
 
 var classSidebarL = 'col-sm-3'; /* id="sidebar" */
 var classSidebarR = 'col-sm-2'; /* id="ptzControls" */
@@ -1065,12 +1064,8 @@ function initPage() {
 
   // Creating a ResizeObserver Instance
   observer = new ResizeObserver((objResizes) => {
-    // We can't do the actual resizing in the Observer, it causes a loop. Need to just set a flag and do it in an interval.
     objResizes.forEach((obj) => {
-      const id = stringToNumber(obj.target.id);
-      if (!changedMonitors.includes(id)) {
-        changedMonitors.push(id);
-      }
+      monitorsSetScale(monitorId);
     });
   });
 
@@ -1078,18 +1073,6 @@ function initPage() {
   $j('[id ^= "liveStream"]').each(function() {
     observer.observe(this);
   });
-
-  setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
-    if (changedMonitors.length > 0) {
-      changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        changedMonitors.splice(object.length - 1 - index, 1);
-        // When changing monitor, this may fire after we have replace the monitor html
-        if (document.getElementById('monitor'+item)) {
-          monitorsSetScale(item);
-        }
-      });
-    }
-  }, 100);
 
   // Event listener for double click
   //var elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');

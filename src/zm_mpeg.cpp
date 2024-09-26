@@ -369,7 +369,8 @@ VideoStream::~VideoStream( ) {
 
   /* close each codec */
   if ( ost ) {
-    avcodec_close( codec_context );
+    //avcodec_close( codec_context );
+    avcodec_free_context(&codec_context);
     av_free( video_outbuf );
   }
 

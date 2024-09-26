@@ -1064,9 +1064,7 @@ function initPage() {
 
   // Creating a ResizeObserver Instance
   observer = new ResizeObserver((objResizes) => {
-    objResizes.forEach((obj) => {
-      monitorsSetScale(monitorId);
-    });
+    updateScale = true;
   });
 
   // Registering an observer on an element

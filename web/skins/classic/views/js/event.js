@@ -199,6 +199,7 @@ function renderAlarmCues(containerEl) {
   // if we shouldn't just use the event length endtime-starttime
   var cueRatio = containerEl.width() / (event_length * 100);
   var minAlarm = Math.ceil(1/cueRatio);
+  var spanTime = 0;
   var spanTimeStart = 0;
   var spanTimeEnd = 0;
   var alarmed = 0;

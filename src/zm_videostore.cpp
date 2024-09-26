@@ -519,6 +519,9 @@ bool VideoStore::open() {
     if (ret < 0) {
       Warning("Could not parse ffmpeg output options '%s'", options.c_str());
     }
+    if (reorder_queue_size) {
+      av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+    }
   }
 
   const AVDictionaryEntry *movflags_entry = av_dict_get(opts, "movflags", nullptr, AV_DICT_MATCH_CASE);

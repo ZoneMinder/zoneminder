@@ -1668,7 +1668,7 @@ function initPage() {
       mapDiv.style.height='450px';
     }
     if ( window.L ) {
-      map = L.map('LocationMap', {
+      const map = L.map('LocationMap', {
         center: L.latLng(eventData.Latitude, eventData.Longitude),
         zoom: 8,
         onclick: function() {

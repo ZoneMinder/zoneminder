@@ -85,8 +85,8 @@ class Event {
     int        frames;
     int        alarm_frames;
     bool alarm_frame_written;
-    int  tot_score;
-    int  max_score;
+    unsigned int  tot_score;
+    unsigned int  max_score;
     std::string path;
     std::string snapshot_file;
     bool snapshot_file_written;
@@ -127,6 +127,12 @@ class Event {
 
     const struct timeval &StartTime() const { return start_time; }
     const struct timeval &EndTime() const { return end_time; }
+    double Duration() const {
+      double start_double = (double)start_time.tv_sec + (0.000001f * start_time.tv_usec);
+      double end_double = (double)end_time.tv_sec + (0.000001f * end_time.tv_usec);
+      double elapsed = end_double - start_double;
+      return elapsed;
+    }
 
     void AddPacket_(const std::shared_ptr<ZMPacket> p);
     bool WritePacket(const std::shared_ptr<ZMPacket> p);

@@ -289,7 +289,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
           frame.in_db);
   } // end foreach db row
 
-  if (event_data->end_time.time_since_epoch() != Seconds(0)) {
+  if (event_data->end_time.time_since_epoch() != Seconds(0) and event_data->duration != Seconds(0)) {
     Microseconds delta;
     if (!last_frame) {
       // There were no frames in db

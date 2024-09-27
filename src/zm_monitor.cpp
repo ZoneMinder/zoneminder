@@ -1902,7 +1902,7 @@ bool Monitor::Analyse() {
               Debug(2, "Have event %" PRIu64 " in record", event->Id());
 
               if (section_length && 
-                  (( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length)
+                  ((int)event->Duration() >= section_length)
                   && ( 
                     ((function == MOCORD) && (event_close_mode != CLOSE_TIME))
                     ||
@@ -1915,8 +1915,8 @@ bool Monitor::Analyse() {
                     shared_data->image_count,
                     event->Id(),
                     static_cast<int64>(timestamp->tv_sec),
-                    static_cast<int64>(video_store_data->recording.tv_sec),
-                    static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
+                    static_cast<int64>(event->StartTime().tv_sec),
+                    static_cast<int64>(timestamp->tv_sec - event->StartTime().tv_sec),
                     section_length);
                 closeEvent();
               }  // end if section_length
@@ -1952,7 +1952,7 @@ bool Monitor::Analyse() {
               if (event && event->Frames()
                   && (!event->AlarmFrames())
                   && (event_close_mode == CLOSE_ALARM)
-                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+                  && ((int)event->Duration() >= min_section_length )
                   && ( (!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1) )
                  ) {
                 Info("%s: %03d - Closing event %" PRIu64 ", continuous end, alarm begins",
@@ -1965,7 +1965,7 @@ bool Monitor::Analyse() {
                     Event::PreAlarmCount(),
                     event->Frames(),
                     event->AlarmFrames(),
-                    static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
+                    static_cast<int64>(event->Duration()),
                     min_section_length);
               }
               if ((!pre_event_count) || (Event::PreAlarmCount() >= alarm_frame_count-1)) {
@@ -2025,7 +2025,7 @@ bool Monitor::Analyse() {
               if ( 
                   ( analysis_image_count-last_alarm_count > post_event_count ) 
                   &&
-                  ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= min_section_length )
+                  ((int)event->Duration() >= min_section_length)
                  ) {
                 Info("%s: %03d - Left alarm state (%" PRIu64 ") - %d(%d) images",
                     name.c_str(), analysis_image_count, event->Id(), event->Frames(), event->AlarmFrames());
@@ -2050,7 +2050,7 @@ bool Monitor::Analyse() {
                   last_alarm_count,
                   post_event_count,
                   static_cast<int64>(timestamp->tv_sec),
-                  static_cast<int64>(video_store_data->recording.tv_sec),
+                  static_cast<int64>(event->StartTime().tv_sec),
                   min_section_length);
             }
             if (Event::PreAlarmCount())
@@ -2090,13 +2090,13 @@ bool Monitor::Analyse() {
               if (noteSetMap.size() > 0)
                 event->updateNotes(noteSetMap);
               if ( section_length
-                  && ( ( timestamp->tv_sec - video_store_data->recording.tv_sec ) >= section_length )
+                  && ((int)event->Duration() >= section_length)
                  ) {
                 if (event_close_mode != CLOSE_TIME) {
                   Warning("%s: %03d - event %" PRIu64 ", has exceeded desired section length. %" PRIi64 " - %" PRIi64 " = %" PRIi64 " >= %d",
                       name.c_str(), analysis_image_count, event->Id(),
-                      static_cast<int64>(timestamp->tv_sec), static_cast<int64>(video_store_data->recording.tv_sec),
-                      static_cast<int64>(timestamp->tv_sec - video_store_data->recording.tv_sec),
+                      static_cast<int64>(timestamp->tv_sec), static_cast<int64>(event->StartTime().tv_sec),
+                      static_cast<int64>(timestamp->tv_sec - event->StartTime().tv_sec),
                       section_length);
                 }
                 closeEvent();

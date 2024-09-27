@@ -247,8 +247,8 @@ int main(int argc, char *argv[]) {
       monitor->setHeartbeatTime(now);
 
       snprintf(sql, sizeof(sql), 
-          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS)"
-          " VALUES (%u, 'Running',0,0) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0",
+          "INSERT INTO Monitor_Status (MonitorId,Status,CaptureFPS,AnalysisFPS,UpdatedOn)"
+          " VALUES (%u, 'Running',0,0,NOW()) ON DUPLICATE KEY UPDATE Status='Running',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0,UpdatedOn=NOW()",
           monitor->Id());
       zmDbDo(sql);
 
@@ -268,7 +268,7 @@ int main(int argc, char *argv[]) {
       if (zm_terminate) break;
 
       snprintf(sql, sizeof(sql),
-          "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'Connected') ON DUPLICATE KEY UPDATE Status='Connected'",
+          "INSERT INTO Monitor_Status (MonitorId,Status,UpdatedOn) VALUES (%u, 'Connected', NOW()) ON DUPLICATE KEY UPDATE Status='Connected',UpdatedOn=NOW()",
                monitor->Id());
       zmDbDo(sql);
     }  // end foreach monitor
@@ -373,7 +373,7 @@ int main(int argc, char *argv[]) {
   for (std::shared_ptr<Monitor> &monitor : monitors) {
     static char sql[ZM_SQL_SML_BUFSIZ];
     snprintf(sql, sizeof(sql),
-        "INSERT INTO Monitor_Status (MonitorId,Status) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0", 
+        "INSERT INTO Monitor_Status (MonitorId,Status,UpdatedOn) VALUES (%u, 'NotRunning') ON DUPLICATE KEY UPDATE Status='NotRunning',CaptureFPS=0,AnalysisFPS=0,CaptureBandwidth=0,NOW()", 
         monitor->Id());
     zmDbDo(sql);
   }

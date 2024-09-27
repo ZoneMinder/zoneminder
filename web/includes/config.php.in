@@ -94,7 +94,6 @@ define('STATE_IDLE', 1);
 define('STATE_PREALARM', 2);
 define('STATE_ALARM', 3);
 define('STATE_ALERT', 4);
-define('STATE_TAPE', 5);
 
 //
 // DVR Control Commands

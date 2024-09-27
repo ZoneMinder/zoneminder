@@ -1123,6 +1123,20 @@ html::-webkit-scrollbar-thumb, div::-webkit-scrollbar-thumb, nav::-webkit-scroll
   }
 }
 
+@media screen and (max-height:600px) {
+  .sticky #mfbpanel {
+    max-height: 40vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sticky #toolbar {
+    max-height: 20vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
 /* +++ Control button block in the Stream image*/
 .block-button-center {
   position: absolute;

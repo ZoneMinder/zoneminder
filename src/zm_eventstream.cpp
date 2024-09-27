@@ -289,7 +289,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
           frame.in_db);
   } // end foreach db row
 
-  if (event_data->end_time.time_since_epoch() != Seconds(0)) {
+  if (event_data->end_time.time_since_epoch() != Seconds(0) and event_data->duration != Seconds(0)) {
     Microseconds delta;
     if (!last_frame) {
       // There were no frames in db
@@ -1058,7 +1058,8 @@ void EventStream::runStream() {
           // but what if we are skipping frames? We need the distance from the last frame sent
           // Also, what about reverse? needs to be absolute value
 
-          delta = abs(next_frame_data->offset - last_frame_data->offset) /frame_mod;
+          delta = abs(next_frame_data->offset - last_frame_data->offset);
+          if (frame_mod) delta /= frame_mod;
           Debug(2, "New delta: %fs from last frame offset %fs - next_frame_offset %fs",
                 FPSeconds(delta).count(),
                 FPSeconds(last_frame_data->offset).count(),

@@ -199,6 +199,7 @@ function renderAlarmCues(containerEl) {
   // if we shouldn't just use the event length endtime-starttime
   var cueRatio = containerEl.width() / (event_length * 100);
   var minAlarm = Math.ceil(1/cueRatio);
+  var spanTime = 0;
   var spanTimeStart = 0;
   var spanTimeEnd = 0;
   var alarmed = 0;
@@ -230,8 +231,8 @@ function renderAlarmCues(containerEl) {
       //console.log(left, frame.Delta, event_length, containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
-      futNone = 0;
-      indexPlus = i+1;
+      let futNone = 0;
+      let indexPlus = i+1;
       if (((frame.Delta * 100) - spanTimeStart) < minAlarm && indexPlus < num_cueFrames) {
         //alarm is too short and there is more event
         continue;
@@ -1667,7 +1668,7 @@ function initPage() {
       mapDiv.style.height='450px';
     }
     if ( window.L ) {
-      map = L.map('LocationMap', {
+      const map = L.map('LocationMap', {
         center: L.latLng(eventData.Latitude, eventData.Longitude),
         zoom: 8,
         onclick: function() {

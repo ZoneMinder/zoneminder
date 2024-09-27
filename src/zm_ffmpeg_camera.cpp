@@ -188,7 +188,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   start_read_time = std::chrono::steady_clock::now();
   int ret;
   AVFormatContext *formatContextPtr;
-  int64_t lastPTS;
+  int64_t lastPTS = -1;
 
   if ( mSecondFormatContext and
        (
@@ -242,7 +242,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       }
       return -1;
     }
-    if ( packet->stream_index == mAudioStreamId) {
+    if (packet->stream_index == mAudioStreamId) {
       lastPTS = mLastAudioPTS;
     } else if ( packet->stream_index == mVideoStreamId) {
       lastPTS = mLastVideoPTS;
@@ -287,7 +287,7 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         mFirstVideoPTS = packet->pts;
 
       mLastVideoPTS = packet->pts - mFirstVideoPTS;
-    } else {
+    } else if (stream == mAudioStream) {
       if (mFirstAudioPTS == AV_NOPTS_VALUE)
         mFirstAudioPTS = packet->pts;
 

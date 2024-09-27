@@ -112,7 +112,7 @@ bool EventStream::loadInitialEventData(
 bool EventStream::loadEventData(uint64_t event_id) {
   std::string sql = stringtf(
                       "SELECT `MonitorId`, `StorageId`, `Frames`, unix_timestamp( `StartDateTime` ) AS StartTimestamp, "
-                      "unix_timestamp( `EndDateTime` ) AS EndTimestamp, "
+                      "unix_timestamp( `EndDateTime` ) AS EndTimestamp, Length, "
                       "(SELECT max(`Delta`)-min(`Delta`) FROM `Frames` WHERE `EventId`=`Events`.`Id`) AS FramesDuration, "
                       "`DefaultVideo`, `Scheme`, `SaveJPEGs`, `Orientation`+0 FROM `Events` WHERE `Id` = %" PRIu64, event_id);
 
@@ -140,11 +140,11 @@ bool EventStream::loadEventData(uint64_t event_id) {
   event_data->frame_count = dbrow[2] == nullptr ? 0 : atoi(dbrow[2]);
   event_data->start_time = SystemTimePoint(Seconds(atoi(dbrow[3])));
   event_data->end_time = dbrow[4] ? SystemTimePoint(Seconds(atoi(dbrow[4]))) : std::chrono::system_clock::now();
-  event_data->duration = std::chrono::duration_cast<Microseconds>(event_data->end_time - event_data->start_time);
+  event_data->duration = std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : event_data->end_time - event_data->start_time);
   event_data->frames_duration =
-    std::chrono::duration_cast<Microseconds>(dbrow[5] ? FPSeconds(atof(dbrow[5])) : FPSeconds(0.0));
-  event_data->video_file = std::string(dbrow[6]);
-  std::string scheme_str = std::string(dbrow[7]);
+    std::chrono::duration_cast<Microseconds>(dbrow[6] ? FPSeconds(atof(dbrow[6])) : FPSeconds(0.0));
+  event_data->video_file = std::string(dbrow[7]);
+  std::string scheme_str = std::string(dbrow[8]);
   if ( scheme_str == "Deep" ) {
     event_data->scheme = Storage::DEEP;
   } else if ( scheme_str == "Medium" ) {
@@ -152,8 +152,8 @@ bool EventStream::loadEventData(uint64_t event_id) {
   } else {
     event_data->scheme = Storage::SHALLOW;
   }
-  event_data->SaveJPEGs = dbrow[8] == nullptr ? 0 : atoi(dbrow[8]);
-  event_data->Orientation = (Monitor::Orientation)(dbrow[9] == nullptr ? 0 : atoi(dbrow[9]));
+  event_data->SaveJPEGs = dbrow[9] == nullptr ? 0 : atoi(dbrow[9]);
+  event_data->Orientation = (Monitor::Orientation)(dbrow[10] == nullptr ? 0 : atoi(dbrow[10]));
   mysql_free_result(result);
 
   if (!monitor) {
@@ -289,7 +289,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
           frame.in_db);
   } // end foreach db row
 
-  if (event_data->end_time.time_since_epoch() != Seconds(0) and event_data->duration != Seconds(0)) {
+  if (event_data->end_time.time_since_epoch() != Seconds(0) and event_data->duration != Seconds(0) and event_data->frame_count > last_id) {
     Microseconds delta;
     if (!last_frame) {
       // There were no frames in db
@@ -306,6 +306,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
       last_timestamp = event_data->start_time;
       event_data->frame_count ++;
     } else {
+      Debug(1, "EIther no endtime or no duration, frame_count %d, last_id %d", event_data->frame_count, last_id);
       delta = std::chrono::duration_cast<Microseconds>((event_data->end_time - last_timestamp)/(event_data->frame_count-last_id));
       Debug(1, "Setting delta from endtime %f - %f / %d - %d", 
               FPSeconds(event_data->end_time.time_since_epoch()).count(),
@@ -659,7 +660,7 @@ void EventStream::processCommand(const CmdMsg *msg) {
 
     status_data.event_id = event_data->event_id;
     //status_data.duration = event_data->duration;
-    status_data.duration = std::chrono::duration<double>(event_data->duration).count();
+    status_data.duration = FPSeconds(event_data->duration).count();
     //status_data.progress = event_data->frames[curr_frame_id-1].offset;
     status_data.progress = std::chrono::duration<double>(event_data->frames[curr_frame_id-1].offset).count();
     status_data.rate = replay_rate;

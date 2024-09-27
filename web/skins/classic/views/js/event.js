@@ -231,8 +231,8 @@ function renderAlarmCues(containerEl) {
       //console.log(left, frame.Delta, event_length, containerEl.width());
       spanTimeStart = spanTimeEnd;
     } else if ( (frame.Type !== 'Alarm') && (alarmed == 1) ) { //from alarm to nothing.  End alarm and start nothing.
-      futNone = 0;
-      indexPlus = i+1;
+      let futNone = 0;
+      let indexPlus = i+1;
       if (((frame.Delta * 100) - spanTimeStart) < minAlarm && indexPlus < num_cueFrames) {
         //alarm is too short and there is more event
         continue;

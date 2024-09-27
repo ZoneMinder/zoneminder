@@ -168,8 +168,8 @@ class Montage {
   
   public static function buildOptions() {
     $options = array();
-    if (!empty($_REQUEST['maxFPS']) and validHtmlStr($_REQUEST['maxFPS']) and ($_REQUEST['maxFPS']>0)) {
-      $options['maxfps'] = validHtmlStr($_REQUEST['maxFPS']);
+    if (!empty($_REQUEST['maxfps']) and validHtmlStr($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+      $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
     } else if (isset($_COOKIE['zmMontageRate'])) {
       $options['maxfps'] = validHtmlStr($_COOKIE['zmMontageRate']);
     } else {
@@ -563,23 +563,28 @@ Width: 1920
                 <div class="zoompan">';
 
     //$streamSrc = 'no data'; //Когда только формируем страницу, событий еще нет...
-    $streamSrc = $options['lastEvent']['Id'];
+    $eid = $options['lastEvent']['Id'];
   //<img src="?view=image&eid='. $Event->Id().'&amp;fid=alarm&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="First alarmed frame" title="First alarmed frame"/>
-    $Event = new ZM\Event($options['lastEvent']['Id']);
-    if (file_exists($Event->Path().'/alarm.jpg')) {
+    $Event = new ZM\Event($eid);
+    $fid = null;
+    if (file_exists($Event->Path().'/alarm.jpg') && filesize($Event->Path().'/alarm.jpg') > 0) {
       $fid = 'alarm';
-    } else if (file_exists($Event->Path().'/objdetect.jpg')) {
+    } else if (file_exists($Event->Path().'/objdetect.jpg') && filesize($Event->Path().'/objdetect.jpg') > 0) {
       $fid = 'objdetect';
-    } else if (file_exists($Event->Path().'/snapshot.jpg')) {
+    } else if (file_exists($Event->Path().'/snapshot.jpg') && filesize($Event->Path().'/snapshot.jpg') > 0) {
       $fid = 'snapshot';
-    } else { //!!! ВАЖНО Требуется проверка файла с событием! Может его и не быть по причине сбоя. А отображать что-то нужно !
+    } else {
+      //!!! IMPORTANT It is necessary to check the file with the event! It may not be there due to a failure. But something needs to be displayed!
+      if ($Event->file_exists() && $Event->file_size() > 0) {
       $fid = 1;
     }
-//    $streamSrc = '?view=image&eid='. $options['lastEvent']['Id'].'&fid='.$fid.'&width='.$options['lastEvent']['Width'];
-//    $streamSrc = '?view=image&eid='. $options['lastEvent']['Id'].'&fid='.$fid.'&width='.$options['lastEvent']['Width'].'&scale=10';
+    }
     $width = intval($options['lastEvent']['Width'] / 100 * $options['scale']);
-    $streamSrc = '?view=image&eid='. $options['lastEvent']['Id'].'&fid='.$fid.'&width='.$width;
-
+    if ($fid) {
+      $streamSrc = '?view=image&eid='. $eid.'&fid='.$fid.'&width='.$width;
+    } else {
+      $streamSrc = '?view=image&path='. 'graphics/no-frame.jpg'.'&width='.$width;
+    }
     //!!! ВАЖНО В данных о событиях есть Height, Width, значит можно рассчитать пропорции и выводить ЗАГЛУШКУ с высотой, что бы не портить расположение мониторов на экране.
 
     //src="http://192.168.111.244:30006/zm/cgi-bin/nph-zms?mode=jpeg&frame=8595703890&scale=51&rate=100&maxfps=5&replay=none&source=event&event=437496&rand=1719528464&auth=ad5fc1d3b184e2f4c100e1a60f7a5a80"

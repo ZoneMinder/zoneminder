@@ -338,6 +338,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   _wsnt__RenewResponse wsnt__RenewResponse;
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
+  std::unordered_map<std::string, std::string> alarms;
 #endif
    public:
     explicit ONVIF(Monitor *parent_);

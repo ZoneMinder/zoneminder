@@ -176,11 +176,17 @@ void Monitor::ONVIF::WaitForMessage() {
             (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
             (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
            ) {
-          Info("ONVIF Got Motion Alarm! %s %s", msg->Topic->__any.text, msg->Message.__any.elts->next->elts->atts->next->text);
+          last_topic = msg->Topic->__any.text;
+          last_value = msg->Message.__any.elts->next->elts->atts->next->text;
+          Info("ONVIF Got Motion Alarm! %s %s", last_topic.c_str(), last_value.c_str());
           // Apparently simple motion events, the value is boolean, but for people detection can be things like isMotion, isPeople
-          if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "false") == 0) {
+          if (last_value.find("false") == 0) {
             Info("Triggered off ONVIF");
-            alarmed = false;
+            alarms.erase(last_topic);
+            if(alarms.empty()) {
+              Info("ONVIF Alarms count is  %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
+              alarmed = false;
+            }
             if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
               parent->Event_Poller_Closes_Event = true;
               Info("Setting ClosesEvent");
@@ -191,8 +197,7 @@ void Monitor::ONVIF::WaitForMessage() {
             if (!alarmed) {
               Info("Triggered Event");
               alarmed = true;
-              last_topic = msg->Topic->__any.text;
-              last_value = msg->Message.__any.elts->next->elts->atts->next->text; 
+              alarms[last_topic] = last_value;
               // Why sleep?
               std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
             }

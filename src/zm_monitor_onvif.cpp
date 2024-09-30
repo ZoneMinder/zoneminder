@@ -197,6 +197,8 @@ void Monitor::ONVIF::WaitForMessage() {
               Info("Triggered Event");
               alarmed = true;
               alarms[last_topic] = last_value;
+              last_active_topic = last_topic;
+              last_active_value = last_value;
               // Why sleep?
               std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
             }

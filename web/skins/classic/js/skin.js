@@ -1216,6 +1216,11 @@ function thisClickOnStreamObject(clickObj) {
   } else return false;
 }
 
+/* For mobile device Not implemented yet. */
+function thisClickOnTimeline(clickObj) {
+  return false;
+}
+
 var doubleTouchExecute = function(event, touchEvent) {
 //  if (touchEvent.target.id &&
 //    (touchEvent.target.id.indexOf('evtStream') != -1 || touchEvent.target.id.indexOf('liveStream') != -1 || touchEvent.target.id.indexOf('monitorStatus') != -1)) {

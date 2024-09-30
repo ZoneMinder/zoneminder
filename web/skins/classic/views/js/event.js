@@ -204,6 +204,7 @@ function renderAlarmCues(containerEl) {
   var spanTimeEnd = 0;
   var alarmed = 0;
   var alarmHtml = '';
+  var pix = 0;
   var pixSkew = 0;
   var skip = 0;
   var num_cueFrames = cueFrames.length;
@@ -218,7 +219,7 @@ function renderAlarmCues(containerEl) {
       if (frame.Delta == 0) continue; //If event starts with an alarm or too few for a nonespan
       spanTimeEnd = frame.Delta * 100;
       spanTime = spanTimeEnd - spanTimeStart;
-      let pix = cueRatio * spanTime;
+      pix = cueRatio * spanTime;
       pixSkew += pix - Math.round(pix);//average out the rounding errors.
       pix = Math.round(pix);
       if ((pixSkew > 1 || pixSkew < -1) && pix + Math.round(pixSkew) > 0) { //add skew if it's a pixel and won't zero out span.

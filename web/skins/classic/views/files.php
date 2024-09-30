@@ -23,7 +23,7 @@ if (!canView('Events')) {
   return;
 }
 
-$path = (!empty($_REQUEST['path'])) ? $_REQUEST['path'] : ZM_DIR_EVENTS;
+$path = (!empty($_REQUEST['path'])) ? detaintPathAllowAbsolute($_REQUEST['path']) : ZM_DIR_EVENTS;
 $is_ok_path = false;
 foreach (ZM\Storage::find() as $storage) {
   $rc = strstr($path, $storage->Path(), true);

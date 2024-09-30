@@ -1884,6 +1884,16 @@ function generateConnKey() {
   return rand(1, 999999);
 }
 
+function detaintPathAllowAbsolute($path) {
+  // Strip out :// because php:// is a way to inject code apparently
+  $path = str_replace('://', '', $path);
+  // Remove any absolute paths, or relative ones that want to go up
+  do {
+    $path = str_replace('../', '', $path, $count);
+  } while($count);
+  return $path;
+}
+
 function detaintPath($path) {
 
   // Strip out :// because php:// is a way to inject code apparently

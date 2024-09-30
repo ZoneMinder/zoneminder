@@ -184,7 +184,6 @@ void Monitor::ONVIF::WaitForMessage() {
             Info("Triggered off ONVIF");
             alarms.erase(last_topic);
             if(alarms.empty()) {
-              Info("ONVIF Alarms count is  %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
               alarmed = false;
             }
             if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
@@ -202,6 +201,7 @@ void Monitor::ONVIF::WaitForMessage() {
               std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
             }
           }
+          Info("ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
         } else {
           Debug(1, "ONVIF Got a message that we couldn't parse");
           if ((msg->Topic != nullptr) && (msg->Topic->__any.text != nullptr)) {

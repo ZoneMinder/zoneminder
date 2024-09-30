@@ -24,16 +24,22 @@ if ( !canEdit('System') ) {
   return;
 }
 
+global $error_message;
+
 if ($action == 'save') {
   $storage = new ZM\Storage($_REQUEST['id']);
 
   $changes = $storage->changes($_REQUEST['newStorage']);
 
   if (count($changes)) {
-    $storage->save($changes);
-    $refreshParent = true;
+    if ($storage->save($changes)) {
+    } else {
+      $error_message .= $storage->get_last_error();
+    } // end if successful save
   }
+  // there is no view=storage, so need to redirect somewhere useful
   $redirect = '?view=options&tab=storage';
+  $refreshParent = true;
 } else {
   ZM\Error("Unknown action $action in saving Storage");
 }

@@ -999,7 +999,7 @@ bool Monitor::connect() {
     map_fd = open(mem_file.c_str(), O_RDWR);
   } else {
     umask(0);
-    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0666);
+    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0660);
   }
 
   if (map_fd < 0) {

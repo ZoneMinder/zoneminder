@@ -70,7 +70,7 @@ var ZMMap = function() {
       key: 'addMonitors',
       value: function addMonitors() {
         const server = new Server(Servers[serverId]);
-        const get_monitors_promise = server.getFromApi('/monitors.json');
+        const get_monitors_promise = server.getFromApi('/monitors/Deleted:0.json');
         get_monitors_promise
             .then((response) => {
               return response.json();

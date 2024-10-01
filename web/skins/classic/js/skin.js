@@ -1224,6 +1224,7 @@ function thisClickOnStreamObject(clickObj) {
 /* For mobile device Not implemented yet. */
 function thisClickOnTimeline(clickObj) {
   console.log("thisClickOnTimeline_clickObj=====++>", clickObj);
+  return false;
 }
 
 var doubleTouchExecute = function(event, touchEvent) {

@@ -875,12 +875,12 @@ function streamReStart(oldId, newId) {
   currentMonitor = monitorData.find((o) => {
     return parseInt(o["id"]) === newId;
   });
-  const url = new URL(document.location.href);
   monitorId = newId;
   filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 
   const newMonitorName = document.getElementById('nav-item-cycle'+newId).querySelector('a').textContent;
   document.querySelector('title').textContent = newMonitorName;
+  const url = new URL(document.location.href);
   url.searchParams.set('mid', monitorId);
   history.pushState(null, "", url);
 
@@ -1148,8 +1148,6 @@ function cycleNext() {
   const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
   if (cycle) cycleStart();
-  // --- Start next monitor
-  //window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 
 function cyclePrev() {
@@ -1167,14 +1165,13 @@ function cyclePrev() {
   const newId = monitorData[monIdx].id;
   streamReStart(oldId, newId);
   if (cycle) cycleStart();
-  // --- Start previous monitors
-  //window.location.replace('?view=watch&cycle='+cycle+'&mid='+monitorData[monIdx].id+'&mode='+mode);
 }
 
 function cyclePeriodChange() {
   const cyclePeriodSelect = $j('#cyclePeriod');
   setCookie('zmCyclePeriod', cyclePeriodSelect.val());
 }
+
 function cycleToggle(e) {
   const button = $j('#cycleToggle');
   if (sidebarView.is(":visible")) {

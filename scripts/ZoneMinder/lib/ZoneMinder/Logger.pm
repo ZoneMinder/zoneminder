@@ -145,13 +145,22 @@ our %codes = (
     );
 
 our %priorities = (
-    &DEBUG => 'debug',
-    &INFO => 'info',
-    &WARNING => 'warning',
-    &ERROR => 'err',
-    &FATAL => 'err',
-    &PANIC => 'err'
-    );
+  &DEBUG9 => 'debug',
+  &DEBUG8 => 'debug',
+  &DEBUG7 => 'debug',
+  &DEBUG6 => 'debug',
+  &DEBUG5 => 'debug',
+  &DEBUG4 => 'debug',
+  &DEBUG3 => 'debug',
+  &DEBUG2 => 'debug',
+  &DEBUG1 => 'debug',
+  &DEBUG => 'debug',
+  &INFO => 'info',
+  &WARNING => 'warning',
+  &ERROR => 'err',
+  &FATAL => 'err',
+  &PANIC => 'err'
+);
 
 our $logger;
 our $LOGFILE;

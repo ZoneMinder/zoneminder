@@ -35,6 +35,11 @@ Monitor::ONVIF::~ONVIF() {
 #ifdef WITH_GSOAP
   if (soap != nullptr) {
     Debug(1, "Tearing Down Onvif");
+    //We have lost ONVIF clear previous alarm topics
+    alarms.clear();
+    //Set alarmed to false so we don't get stuck recording
+    alarmed = false;
+    Debug(1, "ONVIF Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
     const char *RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";

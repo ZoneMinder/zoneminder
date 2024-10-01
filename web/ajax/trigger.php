@@ -29,7 +29,7 @@ if (canEdit('Monitors')) {
     }
     $monitor->TriggerEventOn($score, $cause, $text);
     if ($showtext) $monitor->TriggerShowtext($showtext);
-    ZM\Info("Trigger '$action' '$cause'");
+    ZM\Info("Trigger action:'$action' cause:'$cause'");
 
     # Because we aren't a persistent daemon here, we can't handle delays
     #if ( $delay ) {
@@ -37,18 +37,20 @@ if (canEdit('Monitors')) {
       #handleDelay($delay, $connection, $action_text);
     #}
   } else if ($action == 'off') {
-    $last_event = $monitor->GetLastEvent();
+    $last_event_id = $monitor->GetLastEventId();
     $monitor->TriggerEventOff();
     if ($showtext) $monitor->TriggerShowtext($showtext);
     ZM\Info("Trigger '$action'");
     # Wait til it's finished
-    while ($monitor->InAlarm() && ($last_event == $monitor->GetLastEventId())) {
+    while ($monitor->InAlarm() && ($last_event_id == $monitor->GetLastEventId())) {
       # Tenth of a second
       usleep(100000);
     }
     $monitor->TriggerEventCancel();
+    ajaxResponse(['event_id'=>$last_event_id]);
   } else {
     ZM\Warning("Invalid action $action");
+    ajaxError("Invalid action $action");
   }
 
   ajaxResponse();

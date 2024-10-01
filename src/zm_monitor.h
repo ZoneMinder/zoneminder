@@ -236,8 +236,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
     char alarm_cause[256]; /* 408 */
     char video_fifo_path[64]; /* 664 */
-    char audio_fifo_path[64]; /* 792 */
-    char janus_pin[64]; /* 856 */
+    char audio_fifo_path[64]; /* 728 */
+    char janus_pin[64]; /* 792 */
+    /* 856 total? */
   } SharedData;
 
   enum TriggerState : uint32 {
@@ -248,12 +249,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   /* sizeof(TriggerData) expected to be 560 on 32bit & and 64bit */
   typedef struct {
-    uint32_t size;
-    TriggerState trigger_state;
-    uint32_t trigger_score;
-    uint32_t padding;
-    char trigger_cause[32];
-    char trigger_text[256];
+    uint32_t size;              /* 920 */
+    TriggerState trigger_state; /* 924 */
+    uint32_t trigger_score;     /* 928 */
+    uint32_t padding;           /* 936 */
+    char trigger_cause[32];     /* 968 */
+    char trigger_text[256];     /* 1224 */
     char trigger_showtext[256];
   } TriggerData;
 

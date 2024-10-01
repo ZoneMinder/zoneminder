@@ -247,6 +247,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     bool paused;
     bool enabled;
     bool forced;
+    int  score;
   } status_data;
 
   status_data.id = monitor->Id();
@@ -278,6 +279,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
     else
       status_data.buffer_level = 0;
+    status_data.score = monitor->shared_data->last_frame_score;
   }
   status_data.delayed = delayed;
   status_data.paused = paused;
@@ -285,7 +287,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
   status_data.delay = FPSeconds(now - last_frame_sent).count();
   status_data.zoom = zoom;
   status_data.scale = scale;
-  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d",
+  Debug(2, "viewing fps: %.2f capture_fps: %.2f analysis_fps: %.2f Buffer Level:%d, Delayed:%d, Paused:%d, Rate:%d, delay:%.3f, Zoom:%d, Enabled:%d Forced:%d score: %d",
         status_data.fps,
         status_data.capture_fps,
         status_data.analysis_fps,
@@ -296,7 +298,8 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
         status_data.delay,
         status_data.zoom,
         status_data.enabled,
-        status_data.forced
+        status_data.forced,
+        status_data.score
        );
 
   DataMsg status_msg;

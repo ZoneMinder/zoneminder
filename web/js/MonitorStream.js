@@ -40,6 +40,8 @@ function MonitorStream(monitorData) {
   this.setButton = function(name, element) {
     this.buttons[name] = element;
   };
+  this.gridstack = null;
+  this.setGridStack = function(gs) { this.gridstack = gs; };
 
   this.bottomElement = null;
   this.setBottomElement = function(e) {
@@ -555,7 +557,7 @@ function MonitorStream(monitorData) {
           const levelValue = $j('#levelValue');
           if (levelValue.length) {
             levelValue.text(this.status.level);
-            var newClass = 'ok';
+            let newClass = 'ok';
             if (this.status.level > 95) {
               newClass = 'alarm';
             } else if (this.status.level > 80) {
@@ -563,6 +565,9 @@ function MonitorStream(monitorData) {
             }
             levelValue.removeClass();
             levelValue.addClass(newClass);
+          }
+
+          if (this.status.score) {
           }
 
           const delayString = secsToTime(this.status.delay);
@@ -626,38 +631,39 @@ function MonitorStream(monitorData) {
         this.setAlarmState(this.status.state);
 
         if (canEdit.Monitors) {
-          if (streamStatus.enabled) {
-            if ('enableAlarmButton' in this.buttons) {
+          if ('enableAlarmButton' in this.buttons) {
+            if (streamStatus.analysing == ANALYSING_NONE) {
+              // Not doing analysis, so enable/disable button should be grey
+
               if (!this.buttons.enableAlarmButton.hasClass('disabled')) {
                 this.buttons.enableAlarmButton.addClass('disabled');
                 this.buttons.enableAlarmButton.prop('title', disableAlarmsStr);
               }
-            }
-            if ('forceAlarmButton' in this.buttons) {
-              if (streamStatus.forced) {
-                if (! this.buttons.forceAlarmButton.hasClass('disabled')) {
-                  this.buttons.forceAlarmButton.addClass('disabled');
-                  this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
-                }
-              } else {
-                if (this.buttons.forceAlarmButton.hasClass('disabled')) {
-                  this.buttons.forceAlarmButton.removeClass('disabled');
-                  this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
-                }
-              }
-              this.buttons.forceAlarmButton.prop('disabled', false);
-            }
-          } else {
-            if ('enableAlarmButton' in this.buttons) {
+            } else {
               this.buttons.enableAlarmButton.removeClass('disabled');
               this.buttons.enableAlarmButton.prop('title', enableAlarmsStr);
-            }
-            if ('forceAlarmButton' in this.buttons) {
-              this.buttons.forceAlarmButton.prop('disabled', true);
-            }
-          }
-          if ('enableAlarmButton' in this.buttons) {
+            } // end if doing analysis
             this.buttons.enableAlarmButton.prop('disabled', false);
+          } // end if have enableAlarmButton
+
+          if ('forceAlarmButton' in this.buttons) {
+            if (streamStatus.state == STATE_ALARM || streamStatus.state == STATE_ALERT) {
+              // Ic0n: My thought here is that the non-disabled state should be for killing an alarm
+              // and the disabled state should be to force an alarm
+              if (this.buttons.forceAlarmButton.hasClass('disabled')) {
+                this.buttons.forceAlarmButton.removeClass('disabled');
+                this.buttons.forceAlarmButton.prop('title', cancelForcedAlarmStr);
+              }
+            } else {
+              if (!this.buttons.forceAlarmButton.hasClass('disabled')) {
+                // Looks disabled
+                this.buttons.forceAlarmButton.addClass('disabled');
+                this.buttons.forceAlarmButton.prop('title', forceAlarmStr);
+              }
+            }
+            this.buttons.forceAlarmButton.prop('disabled', false);
+          } else {
+            console.log("No forceAlarmButton");
           }
         } // end if canEdit.Monitors
 
@@ -721,6 +727,7 @@ function MonitorStream(monitorData) {
         if (analysisFPSValue.length && (analysisFPSValue.text() != monitor.AnalysisFPS)) {
           analysisFPSValue.text(monitor.AnalysisFPS);
         }
+        
         if (captureFPSValue.length && (captureFPSValue.text() != monitor.CaptureFPS)) {
           captureFPSValue.text(monitor.CaptureFPS);
         }

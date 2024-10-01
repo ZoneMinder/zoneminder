@@ -67,8 +67,15 @@ class HostController extends AppController {
   }
 
   function login() {
+    $ver = $this->_getVersion();
+
     if (!ZM_OPT_USE_AUTH) {
-      $this->set([]);
+      $login_array = [];
+      $login_array['version'] = $ver[0];
+      $login_array['apiversion'] = $ver[1];
+
+      $login_array['_serialize'] = array_keys($login_array);
+      $this->set($login_array);
       return;
     }
 
@@ -85,7 +92,6 @@ class HostController extends AppController {
       throw new UnauthorizedException(__('No identity provided'));
     }
 
-    $ver = $this->_getVersion();
     $cred = [];
     $cred_depr = [];
 

@@ -431,7 +431,7 @@ function save_layout(button) {
 
   mode = VIEWING;
 
-  var Positions = {};
+  const Positions = {};
   Positions['gridStack'] = objGridStack.save(false, false);
   Positions['monitorStatusPosition'] = $j('#monitorStatusPosition').val(); //Not yet used when reading Layout
   Positions['monitorRatio'] = {};
@@ -735,13 +735,14 @@ function initPage() {
 
   const arrRatioMonitors = [];
   for (let i = 0, length = monitorData.length; i < length; i++) {
-    monitors[i] = new MonitorStream(monitorData[i]);
+    const monitor = monitors[i] = new MonitorStream(monitorData[i]);
+    monitor.setGridStack(objGridStack);
     //Create a Ratio array for each monitor
-    const r = monitors[i].width / monitors[i].height;
+    const r = monitor.width / monitor.height;
     arrRatioMonitors.push(r > 1 ? r : 1/r); //landscape or portret orientation
 
     //Prepare the array.
-    movableMonitorData[monitors[i].id] = {'width': 0, 'stop': false};
+    movableMonitorData[monitor.id] = {'width': 0, 'stop': false};
   }
 
   calculateAverageMonitorsRatio(arrRatioMonitors);

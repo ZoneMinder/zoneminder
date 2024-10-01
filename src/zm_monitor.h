@@ -329,6 +329,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool healthy;
     std::string last_topic;
     std::string last_value;
+    std::string last_active_topic;
+    std::string last_active_value;
 #ifdef WITH_GSOAP
   struct soap *soap = nullptr;
   _tev__CreatePullPointSubscription request;
@@ -339,6 +341,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   _wsnt__RenewResponse wsnt__RenewResponse;
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
+  std::unordered_map<std::string, std::string> alarms;
 #endif
    public:
     explicit ONVIF(Monitor *parent_);
@@ -348,8 +351,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool isAlarmed() const { return alarmed; };
     void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
     bool isHealthy() const { return healthy; };
-    const std::string &lastTopic() const { return last_topic; };
-    const std::string &lastValue() const { return last_value; };
+    const std::string &lastTopic() const { return last_active_topic; };
+    const std::string &lastValue() const { return last_active_value; };
   };
 
   class AmcrestAPI {

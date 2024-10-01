@@ -1698,22 +1698,6 @@ our @options = (
     category    => 'web',
   },
   {
-    name        => 'ZM_WEB_RESIZE_CONSOLE',
-    default     => 'yes',
-    description => 'Should the console window resize itself to fit',
-    help        => q`
-      Traditionally the main ZoneMinder web console window has
-      resized itself to shrink to a size small enough to list only
-      the monitors that are actually present. This is intended to
-      make the window more unobtrusize but may not be to everyone's
-      tastes, especially if opened in a tab in browsers which support
-      this kind if layout. Switch this option off to have the console
-      window size left to the users preference
-      `,
-    type        => $types{boolean},
-    category    => 'web',
-  },
-  {
     name        => 'ZM_WEB_ID_ON_CONSOLE',
     default     => 'yes',
     description => 'Should the console list the monitor id',

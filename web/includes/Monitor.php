@@ -11,132 +11,189 @@ require_once('Storage.php');
 require_once('Zone.php');
 
 class Monitor extends ZM_Object {
-protected static $FunctionTypes = null;
+  private $shm_id = null;
+  private $connected = false;
 
-public static function getFunctionTypes() {
-  if (!isset($FunctionTypes)) {
-    $FunctionTypes = array(
-      'None'    => translate('FnNone'),
-      'Monitor' => translate('FnMonitor'),
-      'Modect'  => translate('FnModect'),
-      'Record'  => translate('FnRecord'),
-      'Mocord'  => translate('FnMocord'),
-      'Nodect'  => translate('FnNodect')
-    );
+  private $shm_offsets = ['SharedData' => [
+    'size'             => [ 'type'=>'uint32', 'offset'=>0, 'size'=>4 ],
+    'last_write_index' => [ 'type'=>'int32', 'offset'=>4, 'size'=>4 ],
+    'last_read_index'  => [ 'type'=>'int32', 'offset'=>8, 'size'=>4 ],
+    'image_count'      => [ 'type'=>'int32', 'offset'=>12, 'size'=>4 ],
+    'state'            => [ 'type'=>'uint32', 'offset'=>16, 'size'=>4 ],
+    'capture_fps'      => [ 'type'=>'double', 'offset'=>20, 'size'=>8 ],
+    'analysis_fps'     => [ 'type'=>'double', 'offset'=>28, 'size'=>8 ],
+    'latitude'         => [ 'type'=>'double', 'offset'=>36, 'size'=>8 ],
+    'longitude'        => [ 'type'=>'double', 'offset'=>44, 'size'=>8 ],
+    'last_event'       => [ 'type'=>'uint64', 'offset'=>52, 'size'=>8 ],
+    'action'           => [ 'type'=>'uint32', 'offset'=>60, 'size'=>4 ],
+    'brightness'       => [ 'type'=>'int32', 'offset'=>64, 'size'=>4 ],
+    'hue'              => [ 'type'=>'int32', 'offset'=>68, 'size'=>4 ],
+    'colour'           => [ 'type'=>'int32', 'offset'=>72, 'size'=>4 ],
+    'contrast'         => [ 'type'=>'int32', 'offset'=>76, 'size'=>4 ],
+    'alarm_x'          => [ 'type'=>'int32', 'offset'=>80, 'size'=>4 ],
+    'alarm_y'          => [ 'type'=>'int32', 'offset'=>84, 'size'=>4 ],
+    'valid'            => [ 'type'=>'uint8', 'offset'=>88, 'size'=>1 ],
+    'capturing'        => [ 'type'=>'uint8', 'offset'=>89, 'size'=>1 ],
+    'analysing'        => [ 'type'=>'uint8', 'offset'=>90, 'size'=>1 ],
+    'recording'        => [ 'type'=>'uint8', 'offset'=>91, 'size'=>1 ],
+    'signal'           => [ 'type'=>'uint8', 'offset'=>92, 'size'=>1 ],
+    'format'           => [ 'type'=>'uint8', 'offset'=>93, 'size'=>1 ],
+    'reserved1'        => [ 'type'=>'uint8', 'offset'=>94, 'size'=>1 ],
+    'reserved2'        => [ 'type'=>'uint8', 'offset'=>95, 'size'=>1 ],
+    'imagesize'        => [ 'type'=>'uint32', 'offset'=>96, 'size'=>4 ],
+    'last_frame_score' => [ 'type'=>'uint32', 'offset'=>100, 'size'=>4 ],
+    'audio_frequency'  => [ 'type'=>'uint32', 'offset'=>104, 'size'=>4 ],
+    'audio_channels'   => [ 'type'=>'uint32', 'offset'=>108, 'size'=>4 ],
+    'startup_time'     => [ 'type'=>'time_t64', 'offset'=>112, 'size'=>8 ],
+    'heartbeat_time'   => [ 'type'=>'time_t64', 'offset'=>120, 'size'=>8 ],
+    'last_write_time'  => [ 'type'=>'time_t64', 'offset'=>128, 'size'=>8 ],
+    'last_read_time'   => [ 'type'=>'time_t64', 'offset'=>136, 'size'=>8 ],
+    'last_viewed_time' => [ 'type'=>'time_t64', 'offset'=>144, 'size'=>8 ],
+    'control_state'    => [ 'type'=>'uint8[256]', 'offset'=>152, 'size'=>256 ],
+    'alarm_cause'      => [ 'type'=>'int8[256]', 'offset'=>408, 'size'=>256 ],
+    'video_fifo'       => [ 'type'=>'int8[64]', 'offset'=>664, 'size'=>64 ],
+    'audio_fifo'       => [ 'type'=>'int8[64]', 'offset'=>728, 'size'=>64 ],
+    'janus_pin'        => [ 'type'=>'int8[64]', 'offset'=>792, 'size'=>64 ],
+  ], 
+  'TriggerData' => [
+    'size'     => [ 'type'=>'uint32', 'offset'=>864, 'size'=>4 ],
+    'state'    => [ 'type'=>'uint32', 'offset'=>868, 'size'=>4 ],
+    'score'    => [ 'type'=>'uint32', 'offset'=>872, 'size'=>4 ],
+    'padding'  => [ 'type'=>'uint32', 'offset'=>876, 'size'=>4 ],
+    'cause'    => [ 'type'=>'int8[32]', 'offset'=>880, 'size'=>32 ],
+    'text'     => [ 'type'=>'int8[256]', 'offset'=>912, 'size'=>256 ],
+    'showtext' => [ 'type'=>'int8[256]', 'offset'=>1268, 'size'=>256 ],
+    // 1424
+  ]
+  ];
+
+
+  protected static $FunctionTypes = null;
+
+  public static function getFunctionTypes() {
+    if (!isset($FunctionTypes)) {
+      $FunctionTypes = array(
+        'None'    => translate('FnNone'),
+        'Monitor' => translate('FnMonitor'),
+        'Modect'  => translate('FnModect'),
+        'Record'  => translate('FnRecord'),
+        'Mocord'  => translate('FnMocord'),
+        'Nodect'  => translate('FnNodect')
+      );
+    }
+    return $FunctionTypes;
   }
-  return $FunctionTypes;
-}
 
-protected static $CapturingOptions = null;
-public static function getCapturingOptions() {
-  if (!isset($CapturingOptions)) {
-    $CapturingOptions = array(
+  protected static $CapturingOptions = null;
+  public static function getCapturingOptions() {
+    if (!isset($CapturingOptions)) {
+      $CapturingOptions = array(
         'None'=>translate('None'),
         'Ondemand'  =>  translate('On Demand'),
         'Always'    =>  translate('Always'),
-        );
+      );
+    }
+    return $CapturingOptions;
   }
-  return $CapturingOptions;
-}
 
-protected static $AnalysingOptions = null;
-public static function getAnalysingOptions() {
-  if (!isset($AnalysingOptions)) {
-    $AnalysingOptions = array(
+  protected static $AnalysingOptions = null;
+  public static function getAnalysingOptions() {
+    if (!isset($AnalysingOptions)) {
+      $AnalysingOptions = array(
         'None'   => translate('None'),
         'Always' => translate('Always'),
-        );
+      );
+    }
+    return $AnalysingOptions;
   }
-  return $AnalysingOptions;
-}
-public static function getAnalysingString($option) {
-  $options = Monitor::getAnalysingOptions();
-  return $options[$option];
-}
+  public static function getAnalysingString($option) {
+    $options = Monitor::getAnalysingOptions();
+    return $options[$option];
+  }
 
-protected static $AnalysisSourceOptions = null;
-public static function getAnalysisSourceOptions() {
-  if (!isset($AnalysisSourceOptions)) {
-    $AnalysisSourceOptions = array(
+  protected static $AnalysisSourceOptions = null;
+  public static function getAnalysisSourceOptions() {
+    if (!isset($AnalysisSourceOptions)) {
+      $AnalysisSourceOptions = array(
         'Primary'   => translate('Primary'),
         'Secondary' => translate('Secondary'),
-        );
+      );
+    }
+    return $AnalysisSourceOptions;
   }
-  return $AnalysisSourceOptions;
-}
 
-protected static $AnalysisImageOptions = null;
-public static function getAnalysisImageOptions() {
-  if (!isset($AnalysisImageOptions)) {
-    $AnalysisImageOptions = array(
+  protected static $AnalysisImageOptions = null;
+  public static function getAnalysisImageOptions() {
+    if (!isset($AnalysisImageOptions)) {
+      $AnalysisImageOptions = array(
         'FullColour'   => translate('Full Colour'),
         'YChannel' => translate('Y-Channel (Greyscale)'),
-        );
+      );
+    }
+    return $AnalysisImageOptions;
   }
-  return $AnalysisImageOptions;
-}
 
-protected static $RecordingOptions = null;
-public static function getRecordingOptions() {
-  if (!isset($RecordingOptions)) {
-    $RecordingOptions = array(
+  protected static $RecordingOptions = null;
+  public static function getRecordingOptions() {
+    if (!isset($RecordingOptions)) {
+      $RecordingOptions = array(
         'None'     => translate('None'),
         'OnMotion' => translate('On Motion / Trigger / etc'),
         'Always'   => translate('Always'),
-        );
+      );
+    }
+    return $RecordingOptions;
   }
-  return $RecordingOptions;
-}
 
-public static function getRecordingString($option) {
-  $options = Monitor::getRecordingOptions();
-  return $options[$option];
-}
+  public static function getRecordingString($option) {
+    $options = Monitor::getRecordingOptions();
+    return $options[$option];
+  }
 
-protected static $RecordingSourceOptions = null;
-public static function getRecordingSourceOptions() {
-  if (!isset($RecordingSourceOptions)) {
-    $RecordingSourceOptions = array(
+  protected static $RecordingSourceOptions = null;
+  public static function getRecordingSourceOptions() {
+    if (!isset($RecordingSourceOptions)) {
+      $RecordingSourceOptions = array(
         'Primary'   => translate('Primary'),
         'Secondary' => translate('Secondary'),
         'Both'      => translate('Both'),
-        );
+      );
+    }
+    return $RecordingSourceOptions;
   }
-  return $RecordingSourceOptions;
-}
 
-protected static $DecodingOptions = null;
-public static function getDecodingOptions() {
-  if (!isset($DecodingOptions)) {
-    $DecodingOptions = array(
+  protected static $DecodingOptions = null;
+  public static function getDecodingOptions() {
+    if (!isset($DecodingOptions)) {
+      $DecodingOptions = array(
         'None'      =>  translate('None'),
         'Ondemand'  =>  translate('On Demand'),
         'KeyFrames' =>  translate('KeyFrames Only'),
         'KeyFrames+Ondemand' => translate('Keyframes + Ondemand'),
         'Always'    =>  translate('Always'),
-        );
+      );
+    }
+    return $DecodingOptions;
   }
-  return $DecodingOptions;
-}
 
-protected static $Statuses = null;
-public static function getStatuses() {
-  if (!isset($Statuses)) {
-    $Statuses = array(
-      0 => 'Unknown',
-      1 => 'Idle',
-      2 => 'PreAlarm',
-      3 => 'Alarm',
-      4 => 'Alert',
-    );
+  protected static $Statuses = null;
+  public static function getStatuses() {
+    if (!isset($Statuses)) {
+      $Statuses = array(
+        0 => 'Unknown',
+        1 => 'Idle',
+        2 => 'PreAlarm',
+        3 => 'Alarm',
+        4 => 'Alert',
+      );
+    }
+    return $Statuses;
   }
-  return $Statuses;
-}
 
-public static function getStateString($option) {
-  $statuses = Monitor::getStatuses();
-  return $statuses[$option];
-}
+  public static function getStateString($option) {
+    $statuses = Monitor::getStatuses();
+    return $statuses[$option];
+  }
 
   protected static $table = 'Monitors';
 
@@ -1164,5 +1221,181 @@ public static function getStateString($option) {
   public function link_to($text='') {
     return '<a href="?view=monitor&mid='.$this->Id().'">'.($text ? $text : $this->Name()).'</a>';
   }
+
+  public function connect() {
+    if ($this->connected()) return true;
+    $mmap_file = ZM_PATH_MAP.'/zm.mmap.'.$this->Id;
+    if (!file_exists($mmap_file)) {
+      Debug( "Memory map file '$mmap_file' does not exist.  zmc might not be running.");
+      return false;
+    }
+    $mmap_file_size = filesize($mmap_file);
+    if (!$mmap_file_size) {
+      Debug( "Memory map file '$mmap_file' has no size.  zmc might not be running.");
+      return false;
+    }
+
+    $valid = false;
+    $this->shm_id = fopen($mmap_file, 'r+');
+    if ($this->shm_id) {
+      #$this->mmap = mmap($this->shm_id);
+      $valid = $this->shared_read('SharedData', 'valid');
+      if (!$valid) {
+        Error('Shared data not valid for monitor '.$this->Id);
+      }
+      $size = $this->shared_read('SharedData', 'size');
+      Debug("Shm is $valid $size");
+    }
+
+    return $this->connected = $this->shm_id && $valid;
+  }
+  public function disconnect() {
+    if ($this->shm_id) {
+      fclose($this->shm_id);
+      $this->connected = false;
+      $this->shm_id = false;
+    }
+  }
+
+  public function shared_read($section, $var) {
+    if (!isset($this->shm_offsets[$section])) {
+      Error("Invalid shared mem section $section");
+      return false;
+    }
+    if (!isset($this->shm_offsets[$section][$var])) {
+      Error("Invalid shared mem variable $var");
+      return false;
+    }
+
+    fseek($this->shm_id, $this->shm_offsets[$section][$var]['offset']);
+    $value = fread($this->shm_id, $this->shm_offsets[$section][$var]['size']);
+    $unpacked_value = $value;
+    if ($this->shm_offsets[$section][$var]['type'] == 'int8') {
+      $unpacked_value = unpack('c', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'uint8') {
+      $unpacked_value = unpack('C', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'int32') {
+      $unpacked_value = unpack('l', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'uint32') {
+      $unpacked_value = unpack('L', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'int64') {
+      $unpacked_value = unpack('q', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'uint64') {
+      $unpacked_value = unpack('Q', $value);
+    }
+    $unpacked_value = is_array($unpacked_value) ? $unpacked_value[1] : $unpacked_value;
+    Debug("Value for $section::$var is $value=>$unpacked_value from ".$this->shm_offsets[$section][$var]['offset']);
+    return $unpacked_value;
+
+    #return substr($this->mmap,
+      #$this->shm_offsets[$section][$var]['offset'],
+      #$this->shm_offsets[$section][$var]['size'],
+    #);
+
+    return shmop_read($this->shm_id,
+      $this->shm_offsets[$section][$var]['offset'], 
+      $this->shm_offsets[$section][$var]['size'], 
+    );
+  }
+
+  public function shared_write($section, $var, $value) {
+    if (!isset($this->shm_offsets[$section])) {
+      Error("Invalid shared mem section $section");
+      return false;
+    }
+    if (!isset($this->shm_offsets[$section][$var])) {
+      Error("Invalid shared mem variable $var");
+      return false;
+    }
+
+    $packed_value = $value;
+    if ($this->shm_offsets[$section][$var]['type'] == 'int8') {
+      $packed_value = pack('c', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'uint8') {
+      $packed_value = pack('C', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'int32') {
+      $packed_value = pack('l', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'uint32') {
+      $packed_value = pack('L', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'int64') {
+      $packed_value = pack('q', $value);
+    } else if ($this->shm_offsets[$section][$var]['type'] == 'uint64') {
+      $packed_value = pack('Q', $value);
+    }
+    Debug("Writing $value=>$packed_value at ".$this->shm_offsets[$section][$var]['offset']);
+    fseek($this->shm_id, $this->shm_offsets[$section][$var]['offset']);
+    return fwrite($this->shm_id, $packed_value, $this->shm_offsets[$section][$var]['size']);
+    #return $this->mmap[$this->shm_offsets[$section][$var]['offset']] = $value;
+
+    return shmop_write($this->shm_id, $value,
+      $this->shm_offsets[$section][$var]['offset'], 
+    );
+  }
+  
+  public function enable() {
+    if (!$this->connect()) return false;
+    $action = $this->shared_read('TriggerData', 'action');
+    $action |= TRIGGER_ACTION_SUSPEND;
+    $this->shared_write('TriggerData', 'action', $action);
+    return true;
+  }
+
+  public function disable() {
+    if (!$this->connect()) return false;
+    $action = $this->shared_read('TriggerData', 'action');
+    $action |= TRIGGER_ACTION_RESUME;
+    $this->shared_write('TriggerData', 'action', $action);
+    return true;
+  }
+
+  public function TriggerEventOn($score, $cause, $text, $showtext='') {
+    if (!$this->connect()) return false;
+    Debug("Trigger size is ".$this->shared_read('TriggerData','size'));
+    $this->shared_write('TriggerData', 'score', $score);
+    $this->shared_write('TriggerData', 'cause', $cause);
+    if ($text) $this->shared_write('TriggerData', 'text', $text);
+    if ($showtext) $this->shared_write('TriggerData', 'showtext', $showtext);
+    $this->shared_write('TriggerData', 'state', TRIGGER_ON);
+    Debug("Trigger cause is ".$this->shared_read('TriggerData','cause'));
+  }
+
+  public function  TriggerEventOff () {
+    if (!$this->connect()) return false;
+    $this->shared_write('TriggerData', 'score', 0);
+    $this->shared_write('TriggerData', 'cause', '');
+    if ($text) $this->shared_write('TriggerData', 'text', '');
+    if ($showtext) $this->shared_write('TriggerData', 'showtext', '');
+    $this->shared_write('TriggerData', 'state', TRIGGER_OFF);
+  }
+
+  public function TriggerEventCancel() {
+    if (!$this->connect()) return false;
+    $this->shared_write('TriggerData', 'score', 0);
+    $this->shared_write('TriggerData', 'cause', '');
+    if ($text) $this->shared_write('TriggerData', 'text', '');
+    if ($showtext) $this->shared_write('TriggerData', 'showtext', '');
+    $this->shared_write('TriggerData', 'state', TRIGGER_CANCEL);
+  }
+  public function TriggerShowtext($showtext) {
+    $this->shared_write('TriggerData', 'showtext', $showtext);
+  }
+
+  public function GetState() {
+    if (!$this->connect()) return false;
+    return $this->shared_read('SharedData', 'state');
+  }
+
+  public function InAlarm() {
+    if (!$this->connect()) return false;
+    $state = $this->GetState();
+    return( $state == STATE_ALARM || $state == STATE_ALERT );
+  }
+
+  public function GetLastEventId() {
+    if (!$this->connect()) return false;
+    return $this->shared_read('SharedData', 'last_event');
+  }
+  
+
 } // end class Monitor
 ?>

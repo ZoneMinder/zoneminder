@@ -181,30 +181,30 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     int32_t  last_read_index;   /* +8    */
     int32_t  image_count;       /* +12   */
     uint32_t state;             /* +16   */
-    double      capture_fps;       // Current capturing fps
-    double      analysis_fps;      // Current analysis fps
-    double      latitude;
-    double      longitude;
-    uint64_t last_event_id;     /* +48   */
-    uint32_t action;            /* +56   */
-    int32_t brightness;         /* +60   */
-    int32_t hue;                /* +64   */
-    int32_t colour;             /* +68   */
-    int32_t contrast;           /* +72   */
-    int32_t alarm_x;            /* +76   */
-    int32_t alarm_y;            /* +80   */
-    uint8_t valid;              /* +81   */
-    uint8_t capturing;          /* +82   */
-    uint8_t analysing;          /* +83   */
-    uint8_t recording;          /* +84   */
-    uint8_t signal;             /* +85   */
-    uint8_t format;             /* +86   */
-    uint8_t reserved1;          /* +87   */
-    //uint8_t reserved2;          /* +0   */
-    uint32_t imagesize;         /* +88   */
-    uint32_t last_frame_score;  /* +72   */
-    uint32_t audio_frequency;   /* +76   */
-    uint32_t audio_channels;    /* +80   */
+    double      capture_fps;    /* +20   Current capturing fps */
+    double      analysis_fps;   /* +28   Current analysis fps */
+    double      latitude;       /* +36   */
+    double      longitude;      /* +44   */
+    uint64_t last_event_id;     /* +52   */
+    uint32_t action;            /* +60   */
+    int32_t brightness;         /* +64   */
+    int32_t hue;                /* +68   */
+    int32_t colour;             /* +72   */
+    int32_t contrast;           /* +76   */
+    int32_t alarm_x;            /* +80   */
+    int32_t alarm_y;            /* +84   */
+    uint8_t valid;              /* +88   */
+    uint8_t capturing;          /* +89   */
+    uint8_t analysing;          /* +90   */
+    uint8_t recording;          /* +91   */
+    uint8_t signal;             /* +92   */
+    uint8_t format;             /* +93   */
+    uint8_t reserved1;          /* +94   */
+    uint8_t reserved2;          /* +95   */
+    uint32_t imagesize;         /* +96   */
+    uint32_t last_frame_score;  /* +100   */
+    uint32_t audio_frequency;   /* +104   */
+    uint32_t audio_channels;    /* +108   */
     //uint32_t reserved3;         /* +0   */
     /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
@@ -212,32 +212,33 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      ** Because startup_time is 64bit it may be aligned to a 64bit boundary.  So it's offset SHOULD be a multiple
      ** of 8. Add or delete epadding's to achieve this.
      */
-    union {                     /* +84   */
+    union {                     /* +112   */
       time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
-    union {                     /* +92   */
+    union {                     /* +120   */
       time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
-    union {                     /* +100   */
+    union {                     /* +128   */
       time_t last_write_time;
       uint64_t extrapad3;
     };
-    union {                     /* +108  */
+    union {                     /* +136  */
       time_t last_read_time;
       uint64_t extrapad4;
     };
-    union {                     /* +116  */
+    union {                     /* +144  */
       time_t last_viewed_time;
       uint64_t extrapad5;
     };
-    uint8_t control_state[256]; /* +124  */
+    uint8_t control_state[256]; /* +152  */
 
-    char alarm_cause[256];
-    char video_fifo_path[64];
-    char audio_fifo_path[64];
-    char janus_pin[64];
+    char alarm_cause[256]; /* 408 */
+    char video_fifo_path[64]; /* 664 */
+    char audio_fifo_path[64]; /* 728 */
+    char janus_pin[64]; /* 792 */
+    /* 856 total? */
   } SharedData;
 
   enum TriggerState : uint32 {
@@ -248,12 +249,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   /* sizeof(TriggerData) expected to be 560 on 32bit & and 64bit */
   typedef struct {
-    uint32_t size;
-    TriggerState trigger_state;
-    uint32_t trigger_score;
-    uint32_t padding;
-    char trigger_cause[32];
-    char trigger_text[256];
+    uint32_t size;              /* 920 */
+    TriggerState trigger_state; /* 924 */
+    uint32_t trigger_score;     /* 928 */
+    uint32_t padding;           /* 936 */
+    char trigger_cause[32];     /* 968 */
+    char trigger_text[256];     /* 1224 */
     char trigger_showtext[256];
   } TriggerData;
 
@@ -328,6 +329,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool healthy;
     std::string last_topic;
     std::string last_value;
+    std::string last_active_topic;
+    std::string last_active_value;
 #ifdef WITH_GSOAP
   struct soap *soap = nullptr;
   _tev__CreatePullPointSubscription request;
@@ -338,6 +341,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   _wsnt__RenewResponse wsnt__RenewResponse;
   PullPointSubscriptionBindingProxy proxyEvent;
   void set_credentials(struct soap *soap);
+  std::unordered_map<std::string, std::string> alarms;
 #endif
    public:
     explicit ONVIF(Monitor *parent_);
@@ -347,8 +351,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool isAlarmed() const { return alarmed; };
     void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
     bool isHealthy() const { return healthy; };
-    const std::string &lastTopic() const { return last_topic; };
-    const std::string &lastValue() const { return last_value; };
+    const std::string &lastTopic() const { return last_active_topic; };
+    const std::string &lastValue() const { return last_active_value; };
   };
 
   class AmcrestAPI {

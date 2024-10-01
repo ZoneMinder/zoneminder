@@ -35,6 +35,11 @@ Monitor::ONVIF::~ONVIF() {
 #ifdef WITH_GSOAP
   if (soap != nullptr) {
     Debug(1, "Tearing Down Onvif");
+    //We have lost ONVIF clear previous alarm topics
+    alarms.clear();
+    //Set alarmed to false so we don't get stuck recording
+    alarmed = false;
+    Debug(1, "ONVIF Alarms Cleared: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
     _wsnt__Unsubscribe wsnt__Unsubscribe;
     _wsnt__UnsubscribeResponse wsnt__UnsubscribeResponse;
     const char *RequestMessageID = parent->soap_wsa_compl ? soap_wsa_rand_uuid(soap) : "RequestMessageID";
@@ -176,27 +181,38 @@ void Monitor::ONVIF::WaitForMessage() {
             (msg->Message.__any.elts->next->elts->atts->next != nullptr) &&
             (msg->Message.__any.elts->next->elts->atts->next->text != nullptr)
            ) {
-          Info("ONVIF Got Motion Alarm! %s %s", msg->Topic->__any.text, msg->Message.__any.elts->next->elts->atts->next->text);
+          last_topic = msg->Topic->__any.text;
+          last_value = msg->Message.__any.elts->next->elts->atts->next->text;
+          Info("ONVIF Got Motion Alarm! %s %s", last_topic.c_str(), last_value.c_str());
           // Apparently simple motion events, the value is boolean, but for people detection can be things like isMotion, isPeople
-          if (strcmp(msg->Message.__any.elts->next->elts->atts->next->text, "false") == 0) {
+          if (last_value.find("false") == 0) {
             Info("Triggered off ONVIF");
-            alarmed = false;
+            alarms.erase(last_topic);
+            if(alarms.empty()) {
+              Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
+              alarmed = false;
+            }
             if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
               parent->Event_Poller_Closes_Event = true;
               Info("Setting ClosesEvent");
             }
           } else {
             // Event Start
-            Info("Triggered on ONVIF");
-            if (!alarmed) {
-              Info("Triggered Event");
-              alarmed = true;
-              last_topic = msg->Topic->__any.text;
-              last_value = msg->Message.__any.elts->next->elts->atts->next->text; 
+            Info("Triggered Start on ONVIF");
+            if (alarms.count(last_topic) == 0 )
+            {
+              alarms[last_topic] = last_value;
+              last_active_topic = last_topic;
+              last_active_value = last_value;
+              if (!alarmed) {
+                Info("Triggered Start Event on ONVIF");
+                alarmed = true;
               // Why sleep?
               std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
             }
           }
+          }
+          Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
         } else {
           Debug(1, "ONVIF Got a message that we couldn't parse");
           if ((msg->Topic != nullptr) && (msg->Topic->__any.text != nullptr)) {

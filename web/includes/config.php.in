@@ -95,6 +95,16 @@ define('STATE_PREALARM', 2);
 define('STATE_ALARM', 3);
 define('STATE_ALERT', 4);
 
+define('TRIGGER_ACTION_GET', 1);
+define('TRIGGER_ACTION_SET', 2);
+define('TRIGGER_ACTION_RELOAD', 4);
+define('TRIGGER_ACTION_SUSPEND', 16);
+define('TRIGGER_ACTION_RESUME', 32);
+
+define('TRIGGER_CANCEL', 0);
+define('TRIGGER_ON', 1);
+define('TRIGGER_OFF', 2);
+
 //
 // DVR Control Commands
 //

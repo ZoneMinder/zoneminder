@@ -3012,13 +3012,17 @@ Event * Monitor::openEvent(
 
   if (!event_start_command.empty()) {
     if (fork() == 0) {
+      Logger *log = Logger::fetch();
+      std::string log_id = log->id();
+      logTerm();
+      int fdlimit = (int)sysconf(_SC_OPEN_MAX);
+      for (int i = 0; i < fdlimit; i++) close(i);
       execlp(event_start_command.c_str(),
              event_start_command.c_str(),
              std::to_string(event->Id()).c_str(),
              std::to_string(event->MonitorId()).c_str(),
              nullptr);
-      Logger *log = Logger::fetch();
-      log->databaseLevel(Logger::NOLOG);
+      logInit(log_id.c_str());
       Error("Error execing %s: %s", event_start_command.c_str(), strerror(errno));
       std::quick_exit(0);
     }
@@ -3048,12 +3052,16 @@ void Monitor::closeEvent() {
 
     if (!command.empty()) {
       if (fork() == 0) {
+        Logger *log = Logger::fetch();
+        std::string log_id = log->id();
+        logTerm();
+        int fdlimit = (int)sysconf(_SC_OPEN_MAX);
+        for (int i = 0; i < fdlimit; i++) close(i);
         execlp(command.c_str(), command.c_str(),
                std::to_string(event_id).c_str(),
                std::to_string(monitor_id).c_str(),
                nullptr);
-        Logger *log = Logger::fetch();
-        log->databaseLevel(Logger::NOLOG);
+        logInit(log_id.c_str());
         Error("Error execing %s: %s", command.c_str(), strerror(errno));
         std::quick_exit(0);
       }

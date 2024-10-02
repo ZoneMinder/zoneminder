@@ -224,7 +224,7 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
-  this.start = function(delay=500) {
+  this.start = function() {
     if (this.janusEnabled) {
       let server;
       if (ZM_JANUS_PATH) {

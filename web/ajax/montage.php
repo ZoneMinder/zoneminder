@@ -72,7 +72,7 @@ $displayMonitors = $resultMonitorFilters['displayMonitors'];
 
 $result = '';
 
-if ($mode == 'live') {
+if ($mode == 'Live') {
   if ($action == 'filters') {
     $result = &$resultMonitorFilters;
   } else if ($action == 'grid') {

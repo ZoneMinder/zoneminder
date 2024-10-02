@@ -576,8 +576,8 @@ Width: 1920
     } else {
       //!!! IMPORTANT It is necessary to check the file with the event! It may not be there due to a failure. But something needs to be displayed!
       if ($Event->file_exists() && $Event->file_size() > 0) {
-      $fid = 1;
-    }
+        $fid = 1;
+      }
     }
     $width = intval($options['lastEvent']['Width'] / 100 * $options['scale']);
     if ($fid) {

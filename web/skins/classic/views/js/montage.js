@@ -549,7 +549,7 @@ function save_layout(button) {
 
   mode = VIEWING;
 
-  var Positions = {};
+  const Positions = {};
   Positions['gridStack'] = objGridStack.save(false, false);
   Positions['monitorStatusPosition'] = $j('#monitorStatusPosition').val(); //Not yet used when reading Layout
   Positions['monitorRatio'] = {};
@@ -1213,8 +1213,8 @@ function buildMonitors(arrRatioMonitors) {
     //Требуется проверить, отображается ли данный монитор, т.к. если нет событий для монитора, то и для просмотра записей монитора не будет на странице!
     //Или (для Live) если монитор отключен, то его не будет на странице
     if (!getStream(monitorData[i].id)) continue;
-    monitors[im] = new MonitorStream(monitorData[i]);
-    const monitor = monitors[im];
+    const monitor = monitors[im] = new MonitorStream(monitorData[i]);
+    monitor.setGridStack(objGridStack); // ВАЖНО! Разобраться для чего нужно.... From https://github.com/ZoneMinder/zoneminder/commit/19ea7339f496d5e1c7ecc40bdc57e44b8546256f 02-10-24
     const monitorId = monitor.id;
     monitorsId.push(monitorId);
     //Create a Ratio array for each monitor

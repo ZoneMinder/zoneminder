@@ -105,6 +105,9 @@ define('TRIGGER_CANCEL', 0);
 define('TRIGGER_ON', 1);
 define('TRIGGER_OFF', 2);
 
+define('ANALYSING_NONE', 1);
+define('ANALYSING_ALWAYS', 2);
+
 //
 // DVR Control Commands
 //

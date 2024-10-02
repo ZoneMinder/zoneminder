@@ -1307,7 +1307,7 @@ var doubleTouch = function(e) {
 };
 
 function setButtonSizeOnStream() {
-  const elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"]');
+  const elStream = document.querySelectorAll('[id ^= "liveStream"], [id ^= "evtStream"], [id = "videoobj"]');
   Array.prototype.forEach.call(elStream, (el) => {
     //It is necessary to calculate the size for each Stream, because on the Montage page they can be of different sizes.
     const w = el.offsetWidth;

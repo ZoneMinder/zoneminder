@@ -248,6 +248,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     bool enabled;
     bool forced;
     int  score;
+    int  analysing;
   } status_data;
 
   status_data.id = monitor->Id();
@@ -279,6 +280,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
     else
       status_data.buffer_level = 0;
+    status_data.analysing = monitor->shared_data->analysing;
     status_data.score = monitor->shared_data->last_frame_score;
   }
   status_data.delayed = delayed;

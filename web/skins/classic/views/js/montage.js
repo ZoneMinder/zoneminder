@@ -722,9 +722,7 @@ function startMonitors() {
 
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
-      // Start the fps and status updates. give a random delay so that we don't assault the server
-      const delay = Math.round( (Math.random()+0.5)*statusRefreshTimeout );
-      monitor.start(delay);
+      monitor.start();
     }
     if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
       setInterval(reloadWebSite, monitor.refresh*1000, i);

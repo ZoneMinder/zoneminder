@@ -331,6 +331,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     std::string last_value;
     std::string last_active_topic;
     std::string last_active_value;
+    std::string GetNoteText();
 #ifdef WITH_GSOAP
   struct soap *soap = nullptr;
   _tev__CreatePullPointSubscription request;
@@ -353,6 +354,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool isHealthy() const { return healthy; };
     const std::string &lastTopic() const { return last_active_topic; };
     const std::string &lastValue() const { return last_active_value; };
+    const std::string noteText() { return GetNoteText(); };
   };
 
   class AmcrestAPI {

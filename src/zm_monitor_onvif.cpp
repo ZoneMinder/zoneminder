@@ -285,3 +285,11 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
   return soap_send_empty_response(soap, SOAP_OK);
 }
 #endif
+
+std::string Monitor::ONVIF::GetNoteText() {
+  std::string note = "";
+  #ifdef WITH_GSOAP
+    note = last_active_topic + "/" + last_active_value;
+  #endif
+  return note;
+}

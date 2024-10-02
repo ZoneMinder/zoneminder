@@ -583,7 +583,7 @@ function startMonitors() {
 
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
-      monitor.start(delay);
+      monitor.start();
     }
     if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
       setInterval(reloadWebSite, monitor.refresh*1000, i);

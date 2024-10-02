@@ -222,110 +222,108 @@ function MonitorStream(monitorData) {
     }
   }; // setStreamScale
 
-  this.start = function(delay=500) {
-    setTimeout(function() {
-      if (this.janusEnabled) {
-        let server;
-        if (ZM_JANUS_PATH) {
-          server = ZM_JANUS_PATH;
-        } else if (this.server_id && Servers[this.server_id]) {
-          server = Servers[this.server_id].urlToJanus();
-        } else if (window.location.protocol=='https:') {
-          // Assume reverse proxy setup for now
-          server = "https://" + window.location.hostname + "/janus";
-        } else {
-          server = "http://" + window.location.hostname + "/janus";
-        }
+  this.start = function() {
+    if (this.janusEnabled) {
+      let server;
+      if (ZM_JANUS_PATH) {
+        server = ZM_JANUS_PATH;
+      } else if (this.server_id && Servers[this.server_id]) {
+        server = Servers[this.server_id].urlToJanus();
+      } else if (window.location.protocol=='https:') {
+        // Assume reverse proxy setup for now
+        server = "https://" + window.location.hostname + "/janus";
+      } else {
+        server = "http://" + window.location.hostname + "/janus";
+      }
 
-        if (janus == null) {
-          Janus.init({debug: "all", callback: function() {
-            janus = new Janus({server: server}); //new Janus
-          }});
+      if (janus == null) {
+        Janus.init({debug: "all", callback: function() {
+          janus = new Janus({server: server}); //new Janus
+        }});
+      }
+      attachVideo(parseInt(this.id), this.janusPin);
+      this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
+      this.started = true;
+      return;
+    }
+    if (this.RTSP2WebEnabled) {
+      if (ZM_RTSP2WEB_PATH) {
+        const videoEl = document.getElementById("liveStream" + this.id);
+        const url = new URL(ZM_RTSP2WEB_PATH);
+        const useSSL = (url.protocol == 'https');
+
+        const rtsp2webModUrl = url;
+        rtsp2webModUrl.username = '';
+        rtsp2webModUrl.password = '';
+        //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
+        if (this.RTSP2WebType == 'HLS') {
+          const hlsUrl = rtsp2webModUrl;
+          hlsUrl.pathname = "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+          /*
+          if (useSSL) {
+            hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+          } else {
+          hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
+          }
+          */
+          if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(hlsUrl.href);
+            hls.attachMedia(videoEl);
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            videoEl.src = hlsUrl.href;
+          }
+        } else if (this.RTSP2WebType == 'MSE') {
+          videoEl.addEventListener('pause', () => {
+            if (videoEl.currentTime > videoEl.buffered.end(videoEl.buffered.length - 1)) {
+              videoEl.currentTime = videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1;
+              videoEl.play();
+            }
+          });
+          const mseUrl = rtsp2webModUrl;
+          mseUrl.protocol = useSSL ? 'wss' : 'ws';
+          mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
+          startMsePlay(this, videoEl, mseUrl.href);
+        } else if (this.RTSP2WebType == 'WebRTC') {
+          const webrtcUrl = rtsp2webModUrl;
+          webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
+          startRTSP2WebPlay(videoEl, webrtcUrl.href);
         }
-        attachVideo(parseInt(this.id), this.janusPin);
         this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
         this.started = true;
         return;
+      } else {
+        console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
       }
-      if (this.RTSP2WebEnabled) {
-        if (ZM_RTSP2WEB_PATH) {
-          const videoEl = document.getElementById("liveStream" + this.id);
-          const url = new URL(ZM_RTSP2WEB_PATH);
-          const useSSL = (url.protocol == 'https');
+    }
 
-          const rtsp2webModUrl = url;
-          rtsp2webModUrl.username = '';
-          rtsp2webModUrl.password = '';
-          //.urlParts.length > 1 ? urlParts[1] : urlParts[0]; // drop the username and password for viewing
-          if (this.RTSP2WebType == 'HLS') {
-            const hlsUrl = rtsp2webModUrl;
-            hlsUrl.pathname = "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
-            /*
-            if (useSSL) {
-              hlsUrl = "https://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
-            } else {
-            hlsUrl = "http://" + rtsp2webModUrl + "/stream/" + this.id + "/channel/0/hls/live/index.m3u8";
-            }
-            */
-            if (Hls.isSupported()) {
-              const hls = new Hls();
-              hls.loadSource(hlsUrl.href);
-              hls.attachMedia(videoEl);
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-              videoEl.src = hlsUrl.href;
-            }
-          } else if (this.RTSP2WebType == 'MSE') {
-            videoEl.addEventListener('pause', () => {
-              if (videoEl.currentTime > videoEl.buffered.end(videoEl.buffered.length - 1)) {
-                videoEl.currentTime = videoEl.buffered.end(videoEl.buffered.length - 1) - 0.1;
-                videoEl.play();
-              }
-            });
-            const mseUrl = rtsp2webModUrl;
-            mseUrl.protocol = useSSL ? 'wss' : 'ws';
-            mseUrl.pathname = "/stream/" + this.id + "/channel/0/mse?uuid=" + this.id + "&channel=0";
-            startMsePlay(this, videoEl, mseUrl.href);
-          } else if (this.RTSP2WebType == 'WebRTC') {
-            const webrtcUrl = rtsp2webModUrl;
-            webrtcUrl.pathname = "/stream/" + this.id + "/channel/0/webrtc";
-            startRTSP2WebPlay(videoEl, webrtcUrl.href);
-          }
-          this.statusCmdTimer = setInterval(this.statusCmdQuery.bind(this), statusRefreshTimeout);
-          this.started = true;
-          return;
-        } else {
-          console.log("ZM_RTSP2WEB_PATH is empty. Go to Options->System and set ZM_RTSP2WEB_PATH accordingly.");
-        }
-      }
-
-      // zms stream
-      const stream = this.getElement();
-      if (!stream) return;
-      if (!stream.src) {
-        // Website Monitors won't have an img tag, neither will video
-        console.log('No src for #liveStream'+this.id);
-        console.log(stream);
-        return;
-      }
-      this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
-      // Step 1 make sure we are streaming instead of a static image
-      if (stream.getAttribute('loading') == 'lazy') {
-        stream.setAttribute('loading', 'eager');
-      }
-      let src = stream.src.replace(/mode=single/i, 'mode=jpeg');
-      src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
-      if (-1 == src.search('connkey')) {
-        src += '&connkey='+this.connKey;
-      }
-      if (stream.src != src) {
-        console.log("Setting to streaming: " + src);
-        stream.src = '';
-        stream.src = src;
-      }
-      stream.onerror = this.img_onerror.bind(this);
-      stream.onload = this.img_onload.bind(this);
-      this.started = true;
-    }.bind(this), delay);
+    // zms stream
+    const stream = this.getElement();
+    if (!stream) return;
+    if (!stream.src) {
+      // Website Monitors won't have an img tag, neither will video
+      console.log('No src for #liveStream'+this.id);
+      console.log(stream);
+      return;
+    }
+    this.streamCmdTimer = clearTimeout(this.streamCmdTimer);
+    // Step 1 make sure we are streaming instead of a static image
+    if (stream.getAttribute('loading') == 'lazy') {
+      stream.setAttribute('loading', 'eager');
+    }
+    let src = stream.src.replace(/mode=single/i, 'mode=jpeg');
+    src = src.replace(/auth=\w+/i, 'auth='+auth_hash);
+    if (-1 == src.search('connkey')) {
+      src += '&connkey='+this.connKey;
+    }
+    if (stream.src != src) {
+      console.log("Setting to streaming: " + src);
+      stream.src = '';
+      stream.src = src;
+    }
+    stream.onerror = this.img_onerror.bind(this);
+    stream.onload = this.img_onload.bind(this);
+    this.started = true;
   }; // this.start
 
   this.stop = function() {

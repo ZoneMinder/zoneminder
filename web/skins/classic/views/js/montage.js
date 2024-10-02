@@ -915,18 +915,13 @@ function initPage() {
         //Stop monitors when closing or hiding page
         if (montageMode == 'Live') {
           for (let i = 0, length = monitors.length; i < length; i++) {
-//              monitors[i].streamCmdTimer = clearInterval(monitors[i].streamCmdTimer);
+            //monitors[i].streamCmdTimer = clearInterval(monitors[i].streamCmdTimer);
             if (!monitorDisplayedOnPage(monitors[i].id)) continue;
-            if (montageMode == 'Live') {
-console.log("*********monitors[i].kill() " + monitors[i].id + " in LIVE mode");
-              monitors[i].kill();
-            } else {
-
-            }
+//console.log("*********monitors[i].kill() " + monitors[i].id + " in LIVE mode");
+            monitors[i].kill();
           }
         } else { //inRecording
           if (eventsPlay) {
-            ////console.log("*********stopAllEvents in RECORDING mode");
             stopAllEvents();
             eventsPlay = true;
           }
@@ -1323,7 +1318,6 @@ function on_scroll() {
   if (montageMode == 'inRecording') return;
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
-
     const isOut = isOutOfViewport(monitor.getElement());
     if (!isOut.all) {
       if (!monitor.started) monitor.start();
@@ -1688,6 +1682,7 @@ function setRateForMonitors(fps, id=null) {
             const eid = url.searchParams.get('event');
             if (eid) { //Только для тех, которые воспроизводятся
               const eventInfo = getEventInfoFromEventsTable({what: 'current', eid: eid});
+              if (!eventInfo) continue;
               const startDateTime = new Date(eventInfo.start);
               //const currentDateTime =  new Date(timeline.getCurrentTime());
               url.searchParams.set('maxfps', fps);
@@ -2000,8 +1995,8 @@ function changeDateTime(e) {
   }
 }
 
-function getGridMonitors(mode) {
-  console.log("getGridMonitors_START=>");
+function getGridMonitors() {
+  console.log("getGridMonitors_START=>", montageMode);
   const blockMonitors = $j('#monitors');
   blockMonitors.addClass('hidden-shift'); //IgorA100 Особой пользы нет....
   const currentTime = new Date();
@@ -2016,24 +2011,21 @@ function getGridMonitors(mode) {
     request_montage: request_montage, //$_REQUEST received when opening Montage page
     montage_action: 'grid', 
     dateTime: currentTime, //We will pass the client's current time. It is necessary for correct receipt of events.
-    montage_mode: mode,
+    montage_mode: montageMode,
     showZones: showZones,
   };
   $j.getJSON(thisUrl, params)
     .done(function(data) {
-      console.log("getGridMonitors_getJSON=DONE=>");
       arrRatioMonitors = [];
       movableMonitorData = [];
       //buildMonitors(arrRatioMonitors);
       //calculateAverageMonitorsRatio(arrRatioMonitors);
       loadFontFaceObserver();
-      //blockMonitors.html('');
       //console.log("++++++getGridMonitors_LastEvents=>", data.lastEvents);
-      if (mode == 'live') {
-        blockMonitors.html(data.monitors);
-       initPageLive();
+      blockMonitors.html(data.monitors);
+      if (montageMode == 'Live') {
+        initPageLive();
       } else {
-        blockMonitors.html(data.monitors);
         initPageReview();
       }
       applyChosen(); //ToDo Is it necessary???
@@ -2128,7 +2120,7 @@ function setLiveMode() {
     stopAllEvents();
   }
 
-  getGridMonitors('live');
+  getGridMonitors();
   prevMontageMode = montageMode;
 }
 
@@ -2145,7 +2137,7 @@ function setInRecordingMode() {
     stopAllMonitors();
   }
 
-  getGridMonitors('inRecording');
+  getGridMonitors();
   prevMontageMode = montageMode;
 }
 
@@ -2158,7 +2150,8 @@ function streamQuery() {
     //if (eventsTable[monitorId].current.status != 'started' ||
     if (eventInfo.status != 'started' || eventInfo.zmsBroke) continue;
 
-    const url = new URL(eventInfo.src);
+    //const url = new URL(eventInfo.src);
+    const url = newURL(eventInfo.src);
     const connkey = url.searchParams.get('connkey');
     if (!connkey) continue;
     const monitor = monitors.find((o) => {
@@ -2186,6 +2179,9 @@ function streamReq(settings) {
   }
 
   if (settings.monitorId) {
+    //Еще нет картинки......
+    if (!getStream(settings.monitorId).complete) return;
+
     //Пока для критически важных команд передаем monitorId. Затем нужно это реализовать для всех команд !!!
     const currentDateTime = new Date(timelineGetCurrentTime());
     const eventEndTime = new Date(eventsTable[settings.monitorId].current.end)
@@ -2214,7 +2210,12 @@ function streamReq(settings) {
       //Вроде поборол ошибку описанную выше. НЕТ, все равно вылезает.....
       //Теперь пробуем побороть ошибку "getCmdResponse stream error: No data to read from socket" при остановке всех событий.
       //Возможно уже изменили SRC при остановке всех событий, потом моментално нажимаем старт всех событии и снова стоп и снова старт и все делаем быстро...???
-      if (!getStream(settings.monitorId).complete || eventsTable[settings.monitorId].current.status != 'started' || eventsTable[settings.monitorId].current.src != getStream(settings.monitorId).src) {
+//      if (!getStream(settings.monitorId).complete || eventsTable[settings.monitorId].current.status != 'started' || eventsTable[settings.monitorId].current.src != getStream(settings.monitorId).src) {
+//      if (eventsTable[settings.monitorId].current.status != 'started' || eventsTable[settings.monitorId].current.src != getStream(settings.monitorId).src) {
+      if (!getStream(settings.monitorId).complete ||
+       eventsTable[settings.monitorId].current.status != 'started' ||
+       getStream(settings.monitorId).src.indexOf(eventsTable[settings.monitorId].current.src) == -1
+      ) {
         console.log("***SEEK не отправлен для монитора ="+settings.monitorId);
         return; //Событие еще не воспроизводится.
       }
@@ -2623,7 +2624,8 @@ function startAllEvents(properties) {
   intervalSynchronizeEventsWithTimeline = setInterval(() => { //Синхронизировать текущее время воспроизведения события с Timeline. Особенно актуально при скорости отличной от 1X
     for (var monitorId in eventsTable) {
       if (eventsTable[monitorId].current.status != 'started') continue;
-      const url = new URL(eventsTable[monitorId].current.src);
+      //const url = new URL(eventsTable[monitorId].current.src);
+      const url = newURL(eventsTable[monitorId].current.src);
       const connkey = url.searchParams.get('connkey');
       if (!connkey) continue;
       const startDateTime = new Date(eventsTable[monitorId].current.start);
@@ -2686,7 +2688,7 @@ function pauseAllEvents() {
   //Pause playback of monitors
   for (var monitorId in eventsTable) {
     if (eventsTable[monitorId].current.status == 'started' ) {
-      const url = new URL(eventsTable[monitorId].current.src);
+      const url = newURL(eventsTable[monitorId].current.src);
       const connkey = url.searchParams.get('connkey');
       if (!connkey) continue;
       const monitor = monitors.find((o) => {
@@ -2818,6 +2820,11 @@ function click_download() {
       })
       .fail(logAjaxFail);
 } // end function click_download
+
+function newURL (src) {
+  const baseURL = (src.indexOf('http') == -1) ? ZM_HOME_URL : undefined;
+  return new URL(src, baseURL);
+}
 
 /* +++++ TimeLine*/
 function initTimeline () {
@@ -3147,7 +3154,8 @@ function stopEvent(monitorId, fullStop = true) {
         updateEventStatusInEventsTable({what: 'current', mid: monitorId, statusValue: 'stoped'});
         //console.log('monitorId=>', monitorId, 'Status=>' , getEventInfoFromEventsTable({what: 'current', mid: monitorId}).status);
         //const url = new URL(stream.src);
-        const url = new URL(eventInfo.src);
+        //const url = new URL(eventInfo.src);
+        const url = newURL(eventInfo.src);
         const eventId = url.searchParams.get('event');
         const connkey = url.searchParams.get('connkey');
         const monitor = monitors.find((o) => {
@@ -3254,8 +3262,9 @@ function processingEventsForMonitor(data, params) {
         });
       }
     } else {
-      const baseURL = (streamSrc[events[index].Id].indexOf('http') == -1) ? ZM_HOME_URL : undefined;
-      url = new URL(streamSrc[events[index].Id], baseURL);
+      //const baseURL = (streamSrc[events[index].Id].indexOf('http') == -1) ? ZM_HOME_URL : undefined;
+      //url = new URL(streamSrc[events[index].Id], baseURL);
+      url = newURL(streamSrc[events[index].Id]);
       url.searchParams.set('frame', frameCalculationByTime(currentDateTime, events[index].StartDateTime, events[index].EndDateTime, events[index].Frames));
       url.searchParams.set('rate', parseFloat(speeds[speedIndex]) * 100);
       /* ПОПЫТКА работать через команды, пока не работает... */
@@ -3352,8 +3361,8 @@ function checkEventEnded(currentDateTime, monitorId) {
   if (currentDateTime >= startDateTime && currentDateTime < endDateTime ) {
     //Требуется проверить, воспроизводится ли уже новое событие или еще нет.
     //++ для отладки
-    const url = new URL(eventInfo.src);
-    const connkey = url.searchParams.get('connkey');
+//    const url = new URL(eventInfo.src);
+//    const connkey = url.searchParams.get('connkey');
     //-- для отладки
 
     /*В*///console.log("+++start_Event_connkey=", connkey);

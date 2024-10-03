@@ -202,8 +202,6 @@ void Monitor::ONVIF::WaitForMessage() {
             if (alarms.count(last_topic) == 0 )
             {
               alarms[last_topic] = last_value;
-              last_active_topic = last_topic;
-              last_active_value = last_value;
               if (!alarmed) {
                 Info("Triggered Start Event on ONVIF");
                 alarmed = true;
@@ -286,10 +284,14 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 }
 #endif
 
-std::string Monitor::ONVIF::GetNoteText() {
+void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
   std::string note = "";
   #ifdef WITH_GSOAP
-    note = last_active_topic + "/" + last_active_value;
+    for (auto it = alarms.begin(); it != alarms.end(); ++it) {
+      note = it->first + "/" + it->second;
+      noteSet.insert(note);
+    }
   #endif
-  return note;
+  return ;
 }
+

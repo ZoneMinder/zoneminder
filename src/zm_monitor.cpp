@@ -1952,7 +1952,7 @@ bool Monitor::Analyse() {
           Debug(4, "Triggered on ONVIF");
           Event::StringSet noteSet;
           noteSet.insert("ONVIF");
-          noteSet.insert(onvif->noteText());
+          onvif->setNotes(noteSet);
           noteSetMap[MOTION_CAUSE] = noteSet;
           cause += "ONVIF";
           // If the camera isn't going to send an event close, we need to close it here, but only after it has actually triggered an alarm.

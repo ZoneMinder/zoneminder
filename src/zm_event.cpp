@@ -608,7 +608,7 @@ void Event::Run() {
 
     MYSQL_RES *result = zmDbFetch(sql);
     if (result) {
-      for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+       while(MYSQL_ROW dbrow = mysql_fetch_row(result)) {
         storage = new Storage(atoi(dbrow[0]));
         if (SetPath(storage))
           break;
@@ -627,7 +627,7 @@ void Event::Run() {
 
       result = zmDbFetch(sql);
       if (result) {
-        for (int i = 0; MYSQL_ROW dbrow = mysql_fetch_row(result); i++) {
+        while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
           storage = new Storage(atoi(dbrow[0]));
           if (SetPath(storage))
             break;

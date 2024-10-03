@@ -1040,7 +1040,7 @@ $start_ = microtime(true);
       $where .= " AND E.EndDateTime >='".$startDateTime."'";
       $where .= " AND E.StartDateTime <='".$endDateTime."'";
       //Sorting by E.StartDateTime is necessary for the correct thinning of events when forming the Timeline
-      $order .= ' ORDER BY E.StartDateTime ASC, E.MonitorId ASC, E.StartDateTime';
+      $order .= ' ORDER BY E.StartDateTime ASC, E.MonitorId ASC';
     } else if ($actionRange == 'first') {
       //Temporarily not used
       if ($oneMonitors) {

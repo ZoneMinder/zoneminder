@@ -576,7 +576,16 @@ Width: 1920
     } else {
       //!!! IMPORTANT It is necessary to check the file with the event! It may not be there due to a failure. But something needs to be displayed!
       if ($Event->file_exists() && $Event->file_size() > 0) {
-        $fid = 1;
+        $Event = ZM\Event::find_one(array('Id'=>$eid));
+        if ($Event) {
+          require_once('includes/Frame.php');
+          $Frame = ZM\Frame::find_one(array('EventId'=>$eid, 'FrameId'=>$fid));
+          if ($Frame) {
+            $fid = 1;
+          }
+        }
+
+        //$fid = 1;
       }
     }
     $width = intval($options['lastEvent']['Width'] / 100 * $options['scale']);
@@ -1031,7 +1040,7 @@ $start_ = microtime(true);
       $where .= " AND E.EndDateTime >='".$startDateTime."'";
       $where .= " AND E.StartDateTime <='".$endDateTime."'";
       //Sorting by E.StartDateTime is necessary for the correct thinning of events when forming the Timeline
-      $order .= ' ORDER BY E.StartDateTime ASC, E.MonitorId ASC';
+      $order .= ' ORDER BY E.StartDateTime ASC, E.MonitorId ASC, E.StartDateTime';
     } else if ($actionRange == 'first') {
       //Temporarily not used
       if ($oneMonitors) {
@@ -1056,7 +1065,7 @@ $start_ = microtime(true);
           #AND (MonitorId IN (5,6,20,15,33,37,38,41)))
         #GROUP BY MonitorId
         // StartDateTime в ответе будет НЕ правильный!
-        $select .= ' E.MonitorId, E.StartDateTime, MAX(E.Id) AS eventId';
+        $select .= ' E.MonitorId, ANY_VALUE(E.StartDateTime), MAX(E.Id) AS eventId';
         $where .= " AND E.StartDateTime <='".$startDateTime."'";
         $group .= ' GROUP BY E.MonitorId';
       }
@@ -1066,7 +1075,7 @@ $start_ = microtime(true);
       #WHERE MonitorId IN (5,6,20,15,33,37,38,41)
       #GROUP BY MonitorId
       // StartDateTime в ответе будет НЕ правильный!
-      $select .= ' E.MonitorId, E.StartDateTime, MAX(E.Id) AS eventId';
+      $select .= ' E.MonitorId,  ANY_VALUE(E.StartDateTime), MAX(E.Id) AS eventId';
       $group .= ' GROUP BY E.MonitorId';
     } else if ($actionRange == 'next') {
       if ($oneMonitors) {
@@ -1087,7 +1096,7 @@ $start_ = microtime(true);
           #AND (MonitorId IN (5,6,20,15,33,37,38,41)))
         #GROUP BY MonitorId
         // StartDateTime в ответе будет НЕ правильный!
-        $select .= ' E.MonitorId, E.StartDateTime, MIN(E.Id) AS eventId';
+        $select .= ' E.MonitorId,  ANY_VALUE(E.StartDateTime), MIN(E.Id) AS eventId';
         $where .= " AND E.StartDateTime >='".$startDateTime."'";
         $group .= ' GROUP BY E.MonitorId';
       }
@@ -1095,7 +1104,7 @@ $start_ = microtime(true);
       #SELECT MonitorId, MIN(StartDateTime) AS minData
       #FROM Events
       #WHERE MonitorId IN (5,6,20,15,33,37,38,41)
-      $select .= ' E.MonitorId, MIN(E.StartDateTime) AS minData';
+      $select .= ' ANY_VALUE(E.MonitorId), MIN(E.StartDateTime) AS minData';
     }
 
     /* IMPORTANT! Here we process the filter used by IgorA100 instead of the main one. */
@@ -1155,6 +1164,7 @@ $start_ = microtime(true);
         ') AS p2
         ON E.MonitorId = p2.MonitorId
         AND E.Id = p2.eventId';
+        $sql .= ' GROUP BY E.Id, E.MonitorId, E.Width, E.Height, E.Length, E.Frames, E.Archived, E.Cause, E.StartDateTime';
     }
     return $sql;
   }

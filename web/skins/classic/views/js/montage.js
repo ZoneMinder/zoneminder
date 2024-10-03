@@ -3450,8 +3450,10 @@ function checkNextEvent() {
 
     const currentEventId = currentEventInfo.eventId;
     const nextEventId = nextEventInfo.eventId;
-    if ((currentEventId == nextEventId && currentEventInfo.status != 'waiting' && nextEventInfo.status != 'notAvailable') || 
-      (!nextEventId && nextEventInfo.status != 'notAvailable'))
+    //if ((currentEventId == nextEventId && currentEventInfo.status != 'waiting' && nextEventInfo.status != 'notAvailable') || 
+      //(!nextEventId && nextEventInfo.status != 'notAvailable'))
+    if ((currentEventId == nextEventId && nextEventInfo.status != 'waiting') || 
+      (!nextEventId))
     {
       $j.getJSON(thisUrl, {
         request: 'montage', 
@@ -3464,6 +3466,7 @@ function checkNextEvent() {
           /*В*///console.log("++++++checkNextEvent", monitorId, data);
           //const events = data.events;
           /*В*///console.log("++++++Текущий events", data.events);
+          console.log("+++++checkNextEvent for monitor ID=", monitorId, data.events);
           if (data.events.length != 0) {
             //ВАЖНО ! Понять, почему при двойном клике по Timeline в момент воспроизведения тут нет событий!!!
             // Толи это баг, толи нормально !

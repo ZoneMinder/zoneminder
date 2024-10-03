@@ -293,3 +293,14 @@ std::string Monitor::ONVIF::GetNoteText() {
   #endif
   return note;
 }
+void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
+  std::string note = "";
+  #ifdef WITH_GSOAP
+    for (auto it = alarms.begin(); it != alarms.end(); ++it) {
+      note = it->first + "/" + it->second;
+      noteSet.insert(note);
+    }
+  #endif
+  return ;
+}
+

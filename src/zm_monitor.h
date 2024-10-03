@@ -329,9 +329,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool healthy;
     std::string last_topic;
     std::string last_value;
-    std::string last_active_topic;
-    std::string last_active_value;
-    std::string GetNoteText();
     void SetNoteSet(Event::StringSet &noteSet);
 #ifdef WITH_GSOAP
   struct soap *soap = nullptr;
@@ -353,9 +350,6 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     bool isAlarmed() const { return alarmed; };
     void setAlarmed(bool p_alarmed) { alarmed = p_alarmed; };
     bool isHealthy() const { return healthy; };
-    const std::string &lastTopic() const { return last_active_topic; };
-    const std::string &lastValue() const { return last_active_value; };
-    const std::string noteText() { return GetNoteText(); };
     void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); };
   };
 

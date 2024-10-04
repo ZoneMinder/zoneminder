@@ -1233,7 +1233,8 @@ function buildMonitors(arrRatioMonitors) {
         monitorCanvasCtx[monitorId] = monitorCanvasObj[monitorId].getContext('2d');
       }
 
-      writeTextCanvas(monitorId, 'No Event');
+      //writeTextCanvas(monitorId, 'No Event');
+      writeTextCanvas(monitorId, 'No recording for this time', 0.4);
     }
     //Prepare the array.
     movableMonitorData[monitorId] = {'width': 0, 'stop': false};
@@ -2744,7 +2745,7 @@ function stopAllEvents() {
   //eventsTable = [];
 }
 
-function writeTextCanvas( monId, text ) {
+function writeTextCanvas( monId, text, scaleSize=1 ) {
   if ( monId ) {
     clearTextCanvas( monId );
     var canvasCtx = monitorCanvasCtx[monId];
@@ -2755,7 +2756,7 @@ function writeTextCanvas( monId, text ) {
     }
     canvasObj.classList.remove("hidden-shift");
     //canvasCtx.fillRect(0, 0, canvasObj.width, canvasObj.height);
-    var textSize=canvasObj.width * 0.15;
+    var textSize=canvasObj.width * 0.15 * scaleSize;
     canvasCtx.font = "600 " + textSize.toString() + "px Arial";
     //canvasCtx.fillStyle='rgba(100,100,100,1)';
     //canvasCtx.fillStyle="white";
@@ -3172,7 +3173,8 @@ function stopEvent(monitorId, fullStop = true) {
             monitorUrl: monitor.url
           });
         }
-        writeTextCanvas(monitorId, 'No Event');
+        //writeTextCanvas(monitorId, 'No Event');
+        writeTextCanvas(monitorId, 'Stop');
       }
     }
 }

@@ -577,9 +577,10 @@ Width: 1920
       //!!! IMPORTANT It is necessary to check the file with the event! It may not be there due to a failure. But something needs to be displayed!
       if ($Event->file_exists() && $Event->file_size() > 0) {
         require_once('includes/Frame.php');
-        $Frame = ZM\Frame::find_one(array('EventId'=>$eid, 'FrameId'=>$fid));
+        $numFrame = 1; //Номер фрейма, который получаем.
+        $Frame = ZM\Frame::find_one(array('EventId'=>$eid, 'FrameId'=>$numFrame));
         if ($Frame) {
-          $fid = 1;
+          $fid = $numFrame;
         }
       }
     }
@@ -1069,8 +1070,11 @@ $start_ = microtime(true);
       #FROM Events
       #WHERE MonitorId IN (5,6,20,15,33,37,38,41)
       #GROUP BY MonitorId
-      // StartDateTime в ответе будет НЕ правильный!
-      $select .= ' E.MonitorId,  ANY_VALUE(E.StartDateTime), MAX(E.Id) AS eventId';
+      // StartDateTime в ответе будет НЕ правильный! Но мы его и не будем включать в выборку. 
+      // Нам достаточно MAX(E.Id) - это и будет последнее соьытие.
+#      $select .= ' E.MonitorId, ANY_VALUE(E.StartDateTime), MAX(E.Id) AS eventId';
+      $select .= ' E.MonitorId, MAX(E.Id) AS eventId';
+      #$where .= " AND E.EndDateTime IS NOT NULL"; //Если событие еще не окончено, то из него почему-то не возможно получить "Frame"
       $group .= ' GROUP BY E.MonitorId';
     } else if ($actionRange == 'next') {
       if ($oneMonitors) {
@@ -1091,7 +1095,7 @@ $start_ = microtime(true);
           #AND (MonitorId IN (5,6,20,15,33,37,38,41)))
         #GROUP BY MonitorId
         // StartDateTime в ответе будет НЕ правильный!
-        $select .= ' E.MonitorId,  ANY_VALUE(E.StartDateTime), MIN(E.Id) AS eventId';
+        $select .= ' E.MonitorId, ANY_VALUE(E.StartDateTime), MIN(E.Id) AS eventId';
         $where .= " AND E.StartDateTime >='".$startDateTime."'";
         $group .= ' GROUP BY E.MonitorId';
       }

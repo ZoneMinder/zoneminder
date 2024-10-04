@@ -3452,7 +3452,8 @@ function checkNextEvent() {
     const nextEventId = nextEventInfo.eventId;
     //if ((currentEventId == nextEventId && currentEventInfo.status != 'waiting' && nextEventInfo.status != 'notAvailable') || 
       //(!nextEventId && nextEventInfo.status != 'notAvailable'))
-    if ((currentEventId == nextEventId && nextEventInfo.status != 'waiting') || 
+    //if ((currentEventId == nextEventId && nextEventInfo.status != 'waiting') || 
+    if ((currentEventId == nextEventId && currentEventInfo.status != 'stoped' && currentEventInfo.status != 'waiting') || 
       (!nextEventId))
     {
       $j.getJSON(thisUrl, {

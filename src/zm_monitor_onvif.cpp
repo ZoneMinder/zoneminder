@@ -199,16 +199,15 @@ void Monitor::ONVIF::WaitForMessage() {
           } else {
             // Event Start
             Info("Triggered Start on ONVIF");
-            if (alarms.count(last_topic) == 0 )
-            {
+            if (alarms.count(last_topic) == 0) {
               alarms[last_topic] = last_value;
               if (!alarmed) {
                 Info("Triggered Start Event on ONVIF");
                 alarmed = true;
-              // Why sleep?
-              std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
+                // Why sleep?
+                std::this_thread::sleep_for(std::chrono::seconds(1)); //thread sleep
+              }
             }
-          }
           }
           Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
         } else {

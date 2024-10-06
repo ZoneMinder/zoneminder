@@ -85,7 +85,7 @@ if (isset($_REQUEST['speed'])) {
 } else if (isset($_COOKIE['speed'])) {
   $defaultSpeed = validNum($_COOKIE['speed']);
 } else {
-  $defaultSpeed = 1;
+  $defaultSpeed = 1.0;
 }
 
 $speedIndex = 5; // default to 1x
@@ -101,7 +101,7 @@ getBodyTopHTML();
 echo getNavBarHTML();
 ?>
 <div id="page">
-    <div id="header">
+  <div id="header">
 <?php
     $html = '<a class="flip" href="#" 
              data-flip-сontrol-object="#mfbpanel" 
@@ -274,7 +274,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
         <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="unavail" disabled="disabled" data-on-click-true="streamNext">
           <i class="material-icons md-18">skip_next</i>-->
         </button>
-  </div>
+      </div>
     </div><!--#buttonBlock-->
   </div>
 <!--<div id="alert-load-events" class="alert alert-info alert-dismissible fade show" role="alert">-->

@@ -188,8 +188,8 @@ void Monitor::ONVIF::WaitForMessage() {
           if (last_value.find("false") == 0) {
             Info("Triggered off ONVIF");
             alarms.erase(last_topic);
-            if(alarms.empty()) {
-              Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s", alarms.size(), alarmed ? "true": "false");
+              Debug(1, "ONVIF Alarms Empty: Alarms count is %zu, alarmed is %s, empty is %d ", alarms.size(), alarmed ? "true": "false", alarms.empty());
+            if (alarms.empty()) {
               alarmed = false;
             }
             if (!parent->Event_Poller_Closes_Event) { //If we get a close event, then we know to expect them.
@@ -284,13 +284,14 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 #endif
 
 void Monitor::ONVIF::SetNoteSet(Event::StringSet &noteSet) {
-  std::string note = "";
+  if (alarms.empty()) return;
   #ifdef WITH_GSOAP
+    std::string note = "";
     for (auto it = alarms.begin(); it != alarms.end(); ++it) {
       note = it->first + "/" + it->second;
       noteSet.insert(note);
     }
   #endif
-  return ;
+  return;
 }
 

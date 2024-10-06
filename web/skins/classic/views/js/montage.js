@@ -102,9 +102,10 @@ function showSpeed(val) {
 
 function setSpeed(newSpeed) {
   if (montageMode == 'Live') {
+    // IMPORTANT The code is left from the old montage.js, but it didn't seem to work for Live mode!
     lastSpeed = currentSpeed;
     currentSpeed = newSpeed;
-    setCookie('speed', String(currentSpeed), 3600);
+    setCookie('speedForLive', String(currentSpeed), 3600);
     for (let i=0, length = monitors.length; i < length; i++) {
       const monitorStream = monitors[i];
       if (lastSpeed != '0' && currentSpeed != '0') {
@@ -122,6 +123,7 @@ function setSpeed(newSpeed) {
     ////console.log("+++newSpeed", newSpeed);
     speedIndex = newSpeed;
     currentSpeed = parseFloat(speeds[speedIndex]);
+    setCookie('speed', String(currentSpeed), 3600);
     //playSecsPerInterval = Math.floor( 1000 * currentSpeed * currentDisplayInterval ) / 1000000;
     showSpeed(speedIndex);
     //timerFire();
@@ -2739,7 +2741,8 @@ function stopAllEvents() {
   //Stop playing monitors
   for (var monitorId in eventsTable) {
     //if (eventsTable[monitorId].current.status == 'started' ) {
-    stopEvent(parseInt(monitorId));
+    //stopEvent(parseInt(monitorId), true, "Stop");
+    stopEvent(parseInt(monitorId), true, "No recording for this time");
     //}
   }
   //eventsTable = [];
@@ -3128,7 +3131,7 @@ function startEvent(monitorId) {
 /*
 * fullStop = false - для того, что бы дать возможность доиграть 1-2 последние секундны при возможной рассинхронизации с Timeline
 */
-function stopEvent(monitorId, fullStop = true) {
+function stopEvent(monitorId, fullStop = true, message='') {
     //writeTextCanvas(monitorId, 'No Event');
     const eventInfo = getEventInfoFromEventsTable({what: 'current', mid: monitorId});
     const stream = getStream(monitorId);
@@ -3174,7 +3177,11 @@ function stopEvent(monitorId, fullStop = true) {
           });
         }
         //writeTextCanvas(monitorId, 'No Event');
-        writeTextCanvas(monitorId, 'Stop');
+        if (message) {
+          writeTextCanvas(monitorId, message);
+        } else {
+          writeTextCanvas(monitorId, 'No recording for this time', 0.4);
+        }
       }
     }
 }

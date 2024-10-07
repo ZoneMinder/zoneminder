@@ -308,11 +308,8 @@ function initPage() {
     });
 
     const Janus_Use_RTSP_Restream = form.elements['newMonitor[Janus_Use_RTSP_Restream]'];
-    if (Janus_Use_RTSP_Restream.length) {
-      Janus_Use_RTSP_Restream[0].onclick = Janus_Use_RTSP_Restream_onclick;
-      console.log("Setup Janus_RTSP_Restream.onclick");
-    } else {
-      console.log("newMonitor[Janus_Use_RTSP_Restream] not found");
+    if (Janus_Use_RTSP_Restream) {
+      Janus_Use_RTSP_Restream.onclick = Janus_Use_RTSP_Restream_onclick;
     }
   }
 

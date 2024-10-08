@@ -174,7 +174,7 @@ set(ZM_CONFIG_DIR "/${CMAKE_INSTALL_SYSCONFDIR}" CACHE PATH
   "Location of ZoneMinder configuration, default system config directory")
 set(ZM_CONFIG_SUBDIR "${ZM_CONFIG_DIR}/conf.d" CACHE PATH
   "Location of ZoneMinder configuration subfolder, default: ZM_CONFIG_DIR/conf.d")
-set(ZM_EXTRA_LIBS "" CACHE STRING
+set(ZM_EXTRA_LIBS "v4l2" CACHE STRING
   "A list of optional libraries, separated by semicolons, e.g. ssl;theora")
 set(ZM_MYSQL_ENGINE "InnoDB" CACHE STRING
   "MySQL engine to use with database, default: InnoDB")

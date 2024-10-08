@@ -1033,8 +1033,12 @@ $start_ = microtime(true);
         CASE WHEN E.EndDateTime IS NULL THEN (SELECT NOW()) ELSE E.EndDateTime END AS EndDateTime,
         CASE WHEN E.EndDateTime IS NULL THEN (SELECT UNIX_TIMESTAMP(NOW())) ELSE UNIX_TIMESTAMP(E.EndDateTime) END AS EndTimeSecs
       ';
-      $where .= " AND E.EndDateTime >='".$startDateTime."'";
-      $where .= " AND E.StartDateTime <='".$endDateTime."'";
+      $where .= " AND (";
+      $where .= " (E.EndDateTime >='".$startDateTime."'";
+      $where .= " AND E.StartDateTime <='".$endDateTime."')";
+      //The last event that has not yet ended.
+      $where .= " OR (E.StartDateTime >='".$startDateTime."' AND E.StartDateTime <='".$endDateTime."')";
+      $where .= ")";
       //Sorting by E.StartDateTime is necessary for the correct thinning of events when forming the Timeline
       $order .= ' ORDER BY E.StartDateTime ASC, E.MonitorId ASC';
     } else if ($actionRange == 'first') {

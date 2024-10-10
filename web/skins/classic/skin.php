@@ -23,15 +23,18 @@ if ( empty($_COOKIE['zmBandwidth']) )
 if ( empty($_COOKIE['zmBandwidth']) )
   $_COOKIE['zmBandwidth'] = 'low';
 
+if ( empty($view) ) {
+  $view = isset($user)?'console':'login';
+} else {
+  foreach ( getSkinIncludes('views/class/' . $view . '_class.php') as $includeFile )
+    require_once $includeFile;
+}
+
 foreach ( getSkinIncludes('includes/config.php') as $includeFile )
   require_once $includeFile;
 
 foreach ( getSkinIncludes('includes/functions.php') as $includeFile )
   require_once $includeFile;
-
-if ( empty($view) ) {
-  $view = isset($user)?'console':'login';
-}
 
 if ( isset($user) ) {
   // Bandwidth Limiter
